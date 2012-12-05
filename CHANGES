@@ -1,5 +1,14 @@
 Changes:
 
+
+Release 1.1.2 (5 Dec 2012)
+--------------------------
+* maketx fixes -- was botching creation of textures from source images that
+  were crop windows (pixel window smaller than display window).
+* Minor bug fix to Timer when repeatedly starting and restopping (Apple only).
+* Bug fix in ustring:find_last_not_of.
+
+
 Release 1.1.1 (16 Nov 2012)
 ---------------------------
 * Altered the ImageInput::read_scanlines, read_tiles, read_native_scanlines,
