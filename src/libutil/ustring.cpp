@@ -229,7 +229,8 @@ ustring::make_unique (const char *str)
     // new one!  Use the one in the table and disregard the one we
     // speculatively built.  Note that we've already released the lock
     // on the table at this point.
-    delete rep;
+    rep->~TableRep ();  // destructor
+    free (rep);         // because it was malloced
     return result;
 }
 
