@@ -69,7 +69,7 @@
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfOutputPart.h>
 #include <OpenEXR/ImfTiledOutputPart.h>
-#include <OpenEXR/ImfDeepScanlineOutputPart.h>
+#include <OpenEXR/ImfDeepScanLineOutputPart.h>
 #include <OpenEXR/ImfDeepTiledOutputPart.h>
 #endif
 
