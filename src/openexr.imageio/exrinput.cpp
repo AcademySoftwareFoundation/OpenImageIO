@@ -61,7 +61,7 @@
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfTiledInputPart.h>
-#include <OpenEXR/ImfDeepScanlineInputPart.h>
+#include <OpenEXR/ImfDeepScanLineInputPart.h>
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
 #endif
