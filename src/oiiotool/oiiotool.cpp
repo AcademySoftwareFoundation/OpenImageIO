@@ -1450,9 +1450,21 @@ action_croptofull (int argc, const char *argv[])
     const ImageSpec &Aspec (*A->spec(0,0));
     // Implement by calling action_crop with a geometry specifier built
     // from the current full image size.
+#if 0
+    // This should work...
     std::string size = Strutil::format ("%dx%d%+d%+d",
                                         Aspec.full_width, Aspec.full_height,
                                         Aspec.full_x, Aspec.full_y);
+    // ... but tinyformat doesn't print the sign for '0' values!  It
+    // appears to be a bug with iostream use of 'showpos' format flag,
+    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
+#else
+    std::string size = Strutil::format ("%dx%d%c%d%c%d",
+                                        Aspec.full_width, Aspec.full_height,
+                                        Aspec.full_x >= 0 ? '+' : '-',
+                                        Aspec.full_y >= 0 ? '+' : '-',
+                                        abs(Aspec.full_x), abs(Aspec.full_y));
+#endif
     const char *newargv[2] = { "crop", size.c_str() };
     return action_crop (2, newargv);
 }
