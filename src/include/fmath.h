@@ -843,8 +843,10 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define hypotf _hypotf
 #define copysign(x,y) _copysign(x,y)
 #define copysignf(x,y) copysign(x,y)
+#ifdef _MSC_VER
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
+#endif
 
 #define M_E        2.71828182845904523536
 #define M_LOG2E    1.44269504088896340736
@@ -870,10 +872,12 @@ roundf (float val) {
     return static_cast<float>(round (val));
 }
 
+#ifdef _MSC_VER
 template<class T>
 inline int isinf (T x) {
     return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(1.0f, x));
 }
+#endif
 
 inline float
 log2f (float val) {
@@ -963,7 +967,7 @@ truncf(float val)
 
 
 // Some systems have isnan, isinf and isfinite in the std namespace.
-#ifndef WIN32
+#ifndef _MSC_VER
  using std::isnan;
  using std::isinf;
  using std::isfinite;

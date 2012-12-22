@@ -42,6 +42,10 @@
 
 #include <string>
 
+#ifdef __MINGW32__
+#include <malloc.h> // for alloca
+#endif
+
 #include "export.h"
 #include "version.h"
 
