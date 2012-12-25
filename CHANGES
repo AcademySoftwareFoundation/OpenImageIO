@@ -1,6 +1,22 @@
 Changes:
 
 
+Release 1.1.3 (9 Jan 2013)
+---------------------------
+* Build fix: incorrectly named OpenEXR 2.x files.
+* Bug fix in oiiotool --croptofull on OSX
+* Build fixes for MinGW on Windows.
+* maketx --fullpixels option ignores any origin or display window in the
+  source image, pretending the pixel data is the entire 0-1 image range
+  starting at the origin (useful when the source image is created by an
+  application that incorrectly writes it out as if it were a crop window).
+* maketx no longer will clobber existing ImageDescription metadata
+  when it adds SHA-1 hash or other info as it creates the texture.
+* Many additional Exif and IPTC tags are correctly recognized.
+* maketx and oiiotool recognize and take advantage of IPTC:ImageHistory
+  metadata.
+
+
 Release 1.1.2 (5 Dec 2012)
 --------------------------
 * maketx fixes -- was botching creation of textures from source images that
