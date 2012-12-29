@@ -174,8 +174,8 @@ ImageBuf::ImageBuf (const ImageBuf &src)
       m_current_miplevel(src.m_current_miplevel),
       m_nmiplevels(src.m_nmiplevels),
       m_spec(src.m_spec), m_nativespec(src.m_nativespec),
-      m_pixels(src.m_pixels),
-      m_localpixels(src.m_localpixels),
+      m_pixels(src.localpixels() ? new char [src.spec().image_bytes()] : NULL),
+      m_localpixels(m_pixels.get()),
       m_clientpixels(src.m_clientpixels),
       m_spec_valid(src.m_spec_valid), m_pixels_valid(src.m_pixels_valid),
       m_badfile(src.m_badfile),
@@ -191,9 +191,8 @@ ImageBuf::ImageBuf (const ImageBuf &src)
             // Source just wrapped the client app's pixels
             ASSERT (0 && "ImageBuf wrapping client buffer not yet supported");
         } else {
-            // We own our pixels
-            // Make sure our localpixels points to our own owned memory.
-            m_localpixels = &m_pixels[0];
+            // We own our pixels -- copy from source
+            memcpy (m_pixels.get(), src.m_pixels.get(), spec().image_bytes());
         }
     } else {
         // Source was cache-based or deep
@@ -210,54 +209,6 @@ ImageBuf::~ImageBuf ()
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
 }
-
-
-
-#if 0
-const ImageBuf &
-ImageBuf::operator= (const ImageBuf &src)
-{
-    if (&src != this) {
-        m_name = src.m_name;
-        m_fileformat = src.m_fileformat;
-        m_nsubimages = src.m_nsubimages;
-        m_current_subimage = src.m_current_subimage;
-        m_current_miplevel = src.m_current_miplevel;
-        m_nmiplevels = src.m_nmiplevels;
-        m_spec = src.m_spec;
-        m_nativespec = src.m_nativespec;
-        m_pixels = src.m_pixels;
-        m_localpixels = src.m_localpixels;
-        m_clientpixels = src.m_clientpixels;
-        m_spec_valid = src.m_spec_valid;
-        m_pixels_valid = src.m_pixels_valid;
-        m_badfile = src.m_badfile;
-        m_err.clear();
-        m_orientation = src.m_orientation;
-        m_pixelaspect = src.m_pixelaspect;
-        m_imagecache = src.m_imagecache;
-        m_cachedpixeltype = src.m_cachedpixeltype;
-        if (src.localpixels()) {
-            // Source had the image fully in memory (no cache)
-            if (src.m_clientpixels) {
-                // Source just wrapped the client app's pixels
-                ASSERT (0 && "ImageBuf wrapping client buffer not yet supported");
-                std::vector<char> tmp;
-                std::swap (m_pixels, tmp);  // delete it with prejudice
-            } else {
-                // We own our pixels
-                // Make sure our localpixels points to our own owned memory.
-                m_localpixels = &m_pixels[0];
-            }
-        } else {
-            // Source was cache-based
-            std::vector<char> tmp;
-            std::swap (m_pixels, tmp);  // delete it with prejudice
-        }
-    }
-    return *this;
-}
-#endif
 
 
 
@@ -307,7 +258,7 @@ ImageBuf::clear ()
     m_current_miplevel = -1;
     m_spec = ImageSpec ();
     m_nativespec = ImageSpec ();
-    std::vector<char>().swap (m_pixels);  // clear it with deallocation
+    m_pixels.reset ();
     m_localpixels = NULL;
     m_clientpixels = false;
     m_spec_valid = false;
@@ -347,15 +298,8 @@ void
 ImageBuf::realloc ()
 {
     size_t newsize = spec().deep ? size_t(0) : spec().image_bytes ();
-    if (((int)m_pixels.size() - (int)newsize) > 4*1024*1024) {
-        // If we are substantially shrinking, try to actually free
-        // memory, which std::vector::resize does not do!
-        std::vector<char> tmp;      // vector with 0 memory
-        std::swap (tmp, m_pixels);  // Now tmp holds the mem, not m_pixels
-        // As tmp leaves scope, it frees m_pixels's old memory
-    }
-    m_pixels.resize (newsize);
-    m_localpixels = newsize ? &m_pixels[0] : NULL;
+    m_pixels.reset (newsize ? new char [newsize] : NULL);
+    m_localpixels = m_pixels.get();
     m_clientpixels = false;
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";

@@ -1200,7 +1200,7 @@ protected:
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    std::vector<char> m_pixels;  ///< Pixel data, if local and we own it
+    scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
     char *m_localpixels;         ///< Pointer to local pixels
     bool m_clientpixels;         ///< Local pixels are owned by the client app
     bool m_spec_valid;           ///< Is the spec valid
