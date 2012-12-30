@@ -827,11 +827,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         y0 += spec.y;
         y1 += spec.y;
         // Read the whole tile-row worth of scanlines
-        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
-            ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
-            if (! ok)
-                imagecache().error ("%s", m_input->geterror().c_str());
-        }
+        ok = m_input->read_scanlines (y0, y1+1, z, format, (void *)&buf[0],
+                                      pixelsize, scanlinesize);
+        if (! ok)
+            imagecache().error ("%s", m_input->geterror().c_str());
         size_t b = (y1-y0+1) * spec.scanline_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
