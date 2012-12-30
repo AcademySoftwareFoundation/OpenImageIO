@@ -2267,9 +2267,16 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
             }
             continue;
         }
+        int old_tx = -100000, old_ty = -100000, old_tz = -100000;
         int tz = z - ((z - spec.z) % spec.tile_depth);
         char *yptr = zptr;
+        int ty = ybegin - ((ybegin - spec.y) % spec.tile_height);
+        int tyend = ty + spec.tile_height;
         for (int y = ybegin;  y < yend;  ++y, yptr += ystride) {
+            if (y == tyend) {
+                ty = tyend;
+                tyend += spec.tile_height;
+            }
             if (y < spec.y || y >= (spec.y+spec.height)) {
                 // nonexistant scanlines
                 if (xstride == formatpixelsize) {
@@ -2283,9 +2290,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 }
                 continue;
             }
-            int ty = y - ((y - spec.y) % spec.tile_height);
+            // int ty = y - ((y - spec.y) % spec.tile_height);
             char *xptr = yptr;
-            int old_tx = -100000;
             const char *data = NULL;
             for (int x = xbegin;  x < xend;  ++x, xptr += xstride) {
                 if (x < spec.x || x >= (spec.x+spec.width)) {
@@ -2294,19 +2300,24 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                     continue;
                 }
                 int tx = x - ((x - spec.x) % spec.tile_width);
-                if (old_tx != tx) {
+                if (old_tx != tx || old_ty != ty || old_tz != tz) {
                     // Only do a find_tile and re-setup of the data
                     // pointer when we move across a tile boundary.
                     TileID tileid (*file, subimage, miplevel, tx, ty, tz);
                     ok &= find_tile (tileid, thread_info);
                     if (! ok)
                         return false;  // Just stop if file read failed
+                    old_tx = tx;
+                    old_ty = ty;
+                    old_tz = tz;
+                    data = NULL;
+                }
+                if (! data) {
                     ImageCacheTileRef &tile (thread_info->tile);
                     ASSERT (tile);
                     data = (const char *)tile->data (x, y, z)
                                         + chbegin*formatsize;
                     ASSERT (data);
-                    old_tx = tx;
                 }
                 if (xcontig) {
                     // Special case for a contiguous span within one tile
