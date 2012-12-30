@@ -41,6 +41,7 @@
 #include "texture.h"
 #include "refcnt.h"
 #include "hash.h"
+#include "imagebuf.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -471,7 +472,7 @@ public:
     /// Return the actual allocated memory size for this tile's pixels.
     ///
     size_t memsize () const {
-        return m_pixels.size();
+        return m_pixels_size;
     }
 
     /// Return the space that will be needed for this tile's pixels.
@@ -511,7 +512,8 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    std::vector<char> m_pixels;   ///< The pixel data
+    scoped_array<char> m_pixels;  ///< The pixel data
+    size_t m_pixels_size;         ///< How much m_pixels has allocated
     bool m_valid;                 ///< Valid pixels
     atomic_int m_used;            ///< Used recently
     volatile bool m_pixels_ready; ///< The pixels have been read from disk

@@ -1154,6 +1154,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id,
 {
     m_used = true;
     m_pixels_ready = false;
+    m_pixels_size = 0;
     if (read_now) {
         read (thread_info);
     }
@@ -1167,11 +1168,12 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
     : m_id (id) // , m_used(true)
 {
     m_used = true;
+    m_pixels_size = 0;
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage(), id.miplevel()));
     size_t size = memsize_needed ();
     ASSERT (size > 0 && memsize() == 0);
-    m_pixels.resize (size);
+    m_pixels.reset (new char [m_pixels_size = size]);
     size_t dst_pelsize = spec.nchannels * file.datatype().size();
     m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
                              spec.tile_depth, pels, format, xstride, ystride,
@@ -1199,7 +1201,7 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
              "ImageCacheTile::read expects to NOT hold the tile lock");
     size_t size = memsize_needed ();
     ASSERT (memsize() == 0 && size > 0);
-    m_pixels.resize (size);
+    m_pixels.reset (new char [m_pixels_size = size]);
     ImageCacheFile &file (m_id.file());
     m_valid = file.read_tile (thread_info, m_id.subimage(), m_id.miplevel(),
                               m_id.x(), m_id.y(), m_id.z(),
