@@ -371,26 +371,24 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
-                if (imagecache().autotile()) {
+                int autotile = imagecache().autotile();
+                if (autotile) {
                     // Automatically make it appear as if it's tiled
                     if (imagecache().autoscanline()) {
-                        tempspec.tile_width = pow2roundup (tempspec.width);
+                        tempspec.tile_width = tempspec.width;
                     } else {
-                        tempspec.tile_width = imagecache().autotile();
+                        tempspec.tile_width = std::min (tempspec.width, autotile);
                     }
-                    tempspec.tile_height = imagecache().autotile();
-                    if (tempspec.depth > 1)
-                        tempspec.tile_depth = imagecache().autotile();
-                    else
-                        tempspec.tile_depth = 1;
+                    tempspec.tile_height = std::min (tempspec.height, autotile);
+                    tempspec.tile_depth = std::min (std::max(tempspec.depth,1), autotile);
                 } else {
                     // Don't auto-tile -- which really means, make it look like
                     // a single tile that's as big as the whole image.
                     // We round to a power of 2 because the texture system
                     // currently requires power of 2 tile sizes.
-                    tempspec.tile_width = pow2roundup (tempspec.width);
-                    tempspec.tile_height = pow2roundup (tempspec.height);
-                    tempspec.tile_depth = pow2roundup(tempspec.depth);
+                    tempspec.tile_width = tempspec.width;
+                    tempspec.tile_height = tempspec.height;
+                    tempspec.tile_depth = tempspec.depth;
                 }
             }
             thread_info->m_stats.files_totalsize += tempspec.image_bytes();
@@ -448,10 +446,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     s.tile_height = h;
                     s.tile_depth = d;
                 }
-                // Texture system requires pow2 tile sizes
-                s.tile_width = pow2roundup (s.tile_width);
-                s.tile_height = pow2roundup (s.tile_height);
-                s.tile_depth = pow2roundup (s.tile_depth);
                 ++nmip;
                 maxmip = std::max (nmip, maxmip);
                 LevelInfo levelinfo (s, s);
