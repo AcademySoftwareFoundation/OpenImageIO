@@ -371,26 +371,24 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
-                if (imagecache().autotile()) {
+                int autotile = imagecache().autotile();
+                if (autotile) {
                     // Automatically make it appear as if it's tiled
                     if (imagecache().autoscanline()) {
-                        tempspec.tile_width = pow2roundup (tempspec.width);
+                        tempspec.tile_width = tempspec.width;
                     } else {
-                        tempspec.tile_width = imagecache().autotile();
+                        tempspec.tile_width = std::min (tempspec.width, autotile);
                     }
-                    tempspec.tile_height = imagecache().autotile();
-                    if (tempspec.depth > 1)
-                        tempspec.tile_depth = imagecache().autotile();
-                    else
-                        tempspec.tile_depth = 1;
+                    tempspec.tile_height = std::min (tempspec.height, autotile);
+                    tempspec.tile_depth = std::min (std::max(tempspec.depth,1), autotile);
                 } else {
                     // Don't auto-tile -- which really means, make it look like
                     // a single tile that's as big as the whole image.
                     // We round to a power of 2 because the texture system
                     // currently requires power of 2 tile sizes.
-                    tempspec.tile_width = pow2roundup (tempspec.width);
-                    tempspec.tile_height = pow2roundup (tempspec.height);
-                    tempspec.tile_depth = pow2roundup(tempspec.depth);
+                    tempspec.tile_width = tempspec.width;
+                    tempspec.tile_height = tempspec.height;
+                    tempspec.tile_depth = tempspec.depth;
                 }
             }
             thread_info->m_stats.files_totalsize += tempspec.image_bytes();
@@ -448,10 +446,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     s.tile_height = h;
                     s.tile_depth = d;
                 }
-                // Texture system requires pow2 tile sizes
-                s.tile_width = pow2roundup (s.tile_width);
-                s.tile_height = pow2roundup (s.tile_height);
-                s.tile_depth = pow2roundup (s.tile_depth);
                 ++nmip;
                 maxmip = std::max (nmip, maxmip);
                 LevelInfo levelinfo (s, s);
@@ -814,12 +808,12 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         // if not already present, on the assumption that it's highly
         // likely that they will also soon be requested.
         // FIXME -- I don't think this works properly for 3D images
-        int pixelsize = spec.nchannels * format.size();
+        size_t pixelsize = size_t (spec.nchannels * format.size());
         // Because of the way we copy below, we need to allocate the
         // buffer to be an even multiple of the tile width, so round up.
         stride_t scanlinesize = tw * ((spec.width+tw-1)/tw);
         scanlinesize *= pixelsize;
-        std::vector<char> buf (scanlinesize * th); // a whole tile-row size
+        scoped_array<char> buf (new char [scanlinesize * th]); // a whole tile-row size
         int yy = y - spec.y;   // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
         int y0 = yy - (yy % th);
@@ -827,11 +821,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         y0 += spec.y;
         y1 += spec.y;
         // Read the whole tile-row worth of scanlines
-        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
-            ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
-            if (! ok)
-                imagecache().error ("%s", m_input->geterror().c_str());
-        }
+        ok = m_input->read_scanlines (y0, y1+1, z, format, (void *)&buf[0],
+                                      pixelsize, scanlinesize);
+        if (! ok)
+            imagecache().error ("%s", m_input->geterror().c_str());
         size_t b = (y1-y0+1) * spec.scanline_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
@@ -1154,6 +1147,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id,
 {
     m_used = true;
     m_pixels_ready = false;
+    m_pixels_size = 0;
     if (read_now) {
         read (thread_info);
     }
@@ -1167,11 +1161,12 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
     : m_id (id) // , m_used(true)
 {
     m_used = true;
+    m_pixels_size = 0;
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage(), id.miplevel()));
     size_t size = memsize_needed ();
     ASSERT (size > 0 && memsize() == 0);
-    m_pixels.resize (size);
+    m_pixels.reset (new char [m_pixels_size = size]);
     size_t dst_pelsize = spec.nchannels * file.datatype().size();
     m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
                              spec.tile_depth, pels, format, xstride, ystride,
@@ -1199,7 +1194,7 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
              "ImageCacheTile::read expects to NOT hold the tile lock");
     size_t size = memsize_needed ();
     ASSERT (memsize() == 0 && size > 0);
-    m_pixels.resize (size);
+    m_pixels.reset (new char [m_pixels_size = size]);
     ImageCacheFile &file (m_id.file());
     m_valid = file.read_tile (thread_info, m_id.subimage(), m_id.miplevel(),
                               m_id.x(), m_id.y(), m_id.z(),
@@ -2266,9 +2261,16 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
             }
             continue;
         }
+        int old_tx = -100000, old_ty = -100000, old_tz = -100000;
         int tz = z - ((z - spec.z) % spec.tile_depth);
         char *yptr = zptr;
+        int ty = ybegin - ((ybegin - spec.y) % spec.tile_height);
+        int tyend = ty + spec.tile_height;
         for (int y = ybegin;  y < yend;  ++y, yptr += ystride) {
+            if (y == tyend) {
+                ty = tyend;
+                tyend += spec.tile_height;
+            }
             if (y < spec.y || y >= (spec.y+spec.height)) {
                 // nonexistant scanlines
                 if (xstride == formatpixelsize) {
@@ -2282,9 +2284,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 }
                 continue;
             }
-            int ty = y - ((y - spec.y) % spec.tile_height);
+            // int ty = y - ((y - spec.y) % spec.tile_height);
             char *xptr = yptr;
-            int old_tx = -100000;
             const char *data = NULL;
             for (int x = xbegin;  x < xend;  ++x, xptr += xstride) {
                 if (x < spec.x || x >= (spec.x+spec.width)) {
@@ -2293,19 +2294,24 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                     continue;
                 }
                 int tx = x - ((x - spec.x) % spec.tile_width);
-                if (old_tx != tx) {
+                if (old_tx != tx || old_ty != ty || old_tz != tz) {
                     // Only do a find_tile and re-setup of the data
                     // pointer when we move across a tile boundary.
                     TileID tileid (*file, subimage, miplevel, tx, ty, tz);
                     ok &= find_tile (tileid, thread_info);
                     if (! ok)
                         return false;  // Just stop if file read failed
+                    old_tx = tx;
+                    old_ty = ty;
+                    old_tz = tz;
+                    data = NULL;
+                }
+                if (! data) {
                     ImageCacheTileRef &tile (thread_info->tile);
                     ASSERT (tile);
                     data = (const char *)tile->data (x, y, z)
                                         + chbegin*formatsize;
                     ASSERT (data);
-                    old_tx = tx;
                 }
                 if (xcontig) {
                     // Special case for a contiguous span within one tile

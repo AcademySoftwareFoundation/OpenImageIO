@@ -195,7 +195,8 @@ input_file (int argc, const char *argv[])
 
 
 static void
-adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
+adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
+                       bool format_supports_tiles)
 {
     if (ot.output_dataformat != TypeDesc::UNKNOWN) {
         spec.set_format (ot.output_dataformat);
@@ -207,12 +208,14 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
 
 //        spec.channelformats.clear ();   // FIXME: why?
 
-    if (ot.output_scanline)
-        spec.tile_width = spec.tile_height = 0;
-    else if (ot.output_tilewidth) {
+    // If we've had tiled input and scanline was not explicitly
+    // requested, we'll try tiled output.
+    if (ot.output_tilewidth && !ot.output_scanline && format_supports_tiles) {
         spec.tile_width = ot.output_tilewidth;
         spec.tile_height = ot.output_tileheight;
         spec.tile_depth = 1;
+    } else {
+        spec.tile_width = spec.tile_height = spec.tile_depth = 0;
     }
 
     if (! ot.output_compression.empty())
@@ -273,6 +276,7 @@ output_file (int argc, const char *argv[])
         return 0;
     }
     bool supports_displaywindow = out->supports ("displaywindow");
+    bool supports_tiles = out->supports ("tiles");
     ot.read ();
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir (ot.curimg);
@@ -291,7 +295,7 @@ output_file (int argc, const char *argv[])
     std::vector<ImageSpec> subimagespecs (ir->subimages());
     for (int s = 0;  s < ir->subimages();  ++s) {
         ImageSpec spec = *ir->spec(s,0);
-        adjust_output_options (spec, ot);
+        adjust_output_options (spec, ot, supports_tiles);
         subimagespecs[s] = spec;
     }
 
@@ -313,7 +317,7 @@ output_file (int argc, const char *argv[])
     for (int s = 0, send = ir->subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
             ImageSpec spec = *ir->spec(s,m);
-            adjust_output_options (spec, ot);
+            adjust_output_options (spec, ot, supports_tiles);
             if (s > 0 || m > 0) {  // already opened first subimage/level
                 if (! out->open (filename, spec, mode)) {
                     std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
