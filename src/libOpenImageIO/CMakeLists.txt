@@ -319,4 +319,8 @@ add_test (unit_hash hash_test)
 
 add_executable (imagespeed_test imagespeed_test.cpp)
 target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-#add_test (unit_hash hash_test)
+#add_test (imagespeed_test imagespeed_test)
+
+add_executable (timer_test timer_test.cpp)
+target_link_libraries (timer_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (timer_test timer_test)
