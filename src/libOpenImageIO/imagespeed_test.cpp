@@ -106,6 +106,42 @@ time_read_image ()
 
 
 static void
+time_read_scanline_at_a_time ()
+{
+    ImageInput *in = ImageInput::open (input_filename.c_str());
+    ASSERT (in);
+    const ImageSpec &spec (in->spec());
+    size_t pixelsize = spec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = spec.width * pixelsize;
+    for (int y = 0; y < spec.height;  ++y) {
+        in->read_scanline (y+spec.y, 0, TypeDesc::TypeFloat,
+                           &buffer[scanlinesize*y]);
+    }
+    in->close ();
+    delete in;
+}
+
+
+
+static void
+time_read_64_scanlines_at_a_time ()
+{
+    ImageInput *in = ImageInput::open (input_filename.c_str());
+    ASSERT (in);
+    const ImageSpec &spec (in->spec());
+    size_t pixelsize = spec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = spec.width * pixelsize;
+    for (int y = 0; y < spec.height;  y += 64) {
+        in->read_scanlines (y+spec.y, std::min(y+spec.y+64, spec.y+spec.height),
+                            0, TypeDesc::TypeFloat, &buffer[scanlinesize*y]);
+    }
+    in->close ();
+    delete in;
+}
+
+
+
+static void
 time_read_imagebuf ()
 {
     ImageBuf ib (input_filename.string(), imagecache);
@@ -141,25 +177,66 @@ main (int argc, char **argv)
     imagecache->attribute ("forcefloat", 1);
 
     // Allocate a buffer big enough (for floats)
-    bool ok = imagecache->get_imagespec (input_filename, spec);
+    bool ok = imagecache->get_imagespec (input_filename, spec, 0, 0, true);
     ASSERT (ok);
     imagecache->invalidate_all (true);  // Don't hold anything
     buffer.resize (spec.image_pixels()*spec.nchannels*sizeof(float), 0);
-
+ 
     {
         double t = time_trial (time_read_image, ntrials);
-        std::cout << "image_read speed: " << Strutil::timeintervalformat(t,2) << "\n";
+        std::cout << "read_image speed: " << Strutil::timeintervalformat(t,2) << "\n";
     }
 
+    if (spec.tile_width == 0) {
+        double t = time_trial (time_read_scanline_at_a_time, ntrials);
+        std::cout << "read_scanline (1 at a time) speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
+
+    if (spec.tile_width == 0) {
+        double t = time_trial (time_read_64_scanlines_at_a_time, ntrials);
+        std::cout << "read_scanlines (64 at a time) speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
     {
+        imagecache->invalidate_all (true);  // Don't hold anything
         double t = time_trial (time_read_imagebuf, ntrials);
         std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
     }
 
     {
+        imagecache->invalidate_all (true);  // Don't hold anything
         double t = time_trial (time_ic_get_pixels, ntrials);
         std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
     }
+
+    std::cout << "With autotile = 64:\n";
+    imagecache->attribute ("autotile", 64);
+    {
+        imagecache->invalidate_all (true);  // Don't hold anything
+        double t = time_trial (time_read_imagebuf, ntrials);
+        std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
+    {
+        imagecache->invalidate_all (true);  // Don't hold anything
+        double t = time_trial (time_ic_get_pixels, ntrials);
+        std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
+
+    std::cout << "With autotile = 64, autoscanline = 1:\n";
+    imagecache->attribute ("autotile", 64);
+    imagecache->attribute ("autoscanline", 1);
+    {
+        imagecache->invalidate_all (true);  // Don't hold anything
+        double t = time_trial (time_read_imagebuf, ntrials);
+        std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
+    {
+        imagecache->invalidate_all (true);  // Don't hold anything
+        double t = time_trial (time_ic_get_pixels, ntrials);
+        std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    }
+
+    if (verbose)
+        std::cout << "\n" << imagecache->getstats(2) << "\n";
 
     imagecache->invalidate_all (true);  // Don't hold anything
 

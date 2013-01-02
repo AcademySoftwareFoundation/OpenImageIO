@@ -52,8 +52,34 @@
 OIIO_NAMESPACE_ENTER
 {
 
-class ImageBuf;
+/// Helper template for a scoped array -- just a memory-managed holder
+/// of a dynamically-allocated array. A bit like boost::scoped_array,
+/// but not dependent on Boost. Some day, C++ std::unique_ptr will be used
+/// instead, but for now, this will work with even very old C++
+/// compilers.
+template <class T>
+class scoped_array {
+public:
+    explicit scoped_array (T *t=NULL) : m_ptr(t) { }
+    ~scoped_array () { delete [] m_ptr; }
+    void reset (T *t=NULL) { delete [] m_ptr; m_ptr = t; }
+    T* get () { return m_ptr; }
+    const T* get () const { return m_ptr; }
+    T& operator[] (size_t i) { return m_ptr[i]; }
+    const T& operator[] (size_t i) const { return m_ptr[i]; }
+    void swap (scoped_array &x) { std::swap (m_ptr, x.m_ptr); }
+    operator bool () const { return m_ptr != NULL; }
+private:
+    T *m_ptr;
+    const scoped_array& operator= (const scoped_array &);
+    scoped_array (const scoped_array &x);
+};
 
+template <class T>
+void swap (scoped_array<T> & a, scoped_array<T> & b) { a.swap(b); }
+
+    
+class ImageBuf;
 
 
 /// Helper struct describing a region of interest in an image.
@@ -1174,7 +1200,7 @@ protected:
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    std::vector<char> m_pixels;  ///< Pixel data, if local and we own it
+    scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
     char *m_localpixels;         ///< Pointer to local pixels
     bool m_clientpixels;         ///< Local pixels are owned by the client app
     bool m_spec_valid;           ///< Is the spec valid
