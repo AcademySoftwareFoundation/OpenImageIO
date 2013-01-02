@@ -22,7 +22,7 @@ list(APPEND public_headers ${CMAKE_BINARY_DIR}/include/version.h)
 install (FILES ${public_headers} DESTINATION ${INCLUDE_INSTALL_DIR}
          COMPONENT developer)
 
-if (USE_TBB)
+if (USE_TBB AND NOT USE_EXTERNAL_TBB)
     install (DIRECTORY tbb DESTINATION ${INCLUDE_INSTALL_DIR}
              COMPONENT developer)
 endif ()
