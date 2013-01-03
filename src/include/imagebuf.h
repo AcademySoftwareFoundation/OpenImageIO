@@ -573,79 +573,18 @@ public:
     /// Is this ImageBuf object initialized?
     bool initialized () const;
 
-    /// Templated class for referring to an individual pixel in an
-    /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
-    /// over the pixels of a specified region of the ImageBuf
-    /// [xbegin..xend) X [ybegin..yend).  It is templated on BUFT, the
-    /// type known to be in the internal representation of the ImageBuf,
-    /// and USERT, the type that the user wants to retrieve or set the
-    /// data (defaulting to float).  the whole idea is to allow this:
-    /// \code
-    ///   ImageBuf img (...);
-    ///   ImageBuf::Iterator<float> pixel (img, 0, 512, 0, 512);
-    ///   for (  ;  ! pixel.done();  ++pixel) {
-    ///       for (int c = 0;  c < img.nchannels();  ++c) {
-    ///           float x = pixel[c];
-    ///           pixel[c] = ...;
-    ///       }
-    ///   }
-    /// \endcode
-    ///
-    template<typename BUFT, typename USERT=float>
-    class Iterator {
+    friend class IteratorBase;
+
+    class IteratorBase {
     public:
-        /// Construct from just an ImageBuf -- iterate over the whole
-        /// region, starting with the upper left pixel of the region.
-        Iterator (ImageBuf &ib)
-            : m_ib(&ib), m_tile(NULL)
-        {
-            init_ib ();
-            range_is_image ();
-            pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
-        }
-        /// Construct from an ImageBuf and a specific pixel index.
-        /// The iteration range is the full image.
-        Iterator (ImageBuf &ib, int x_, int y_, int z_=0)
-            : m_ib(&ib), m_tile(NULL)
-        {
-            init_ib ();
-            range_is_image ();
-            pos (x_, y_, z_);
-        }
-        /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel.  The
-        /// iteration region will be clamped to the valid image range.
-        Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin=0, int zend=1)
-            : m_ib(&ib), m_tile(NULL)
-        {
-            init_ib ();
-            m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
-            m_rng_xend   = std::min (xend,   m_img_xend);
-            m_rng_ybegin = std::max (ybegin, m_img_ybegin);
-            m_rng_yend   = std::min (yend,   m_img_yend);
-            m_rng_zbegin = std::max (zbegin, m_img_zbegin);
-            m_rng_zend   = std::min (zend,   m_img_zend);
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
+        IteratorBase (const ImageBuf &ib);
+        IteratorBase (const ImageBuf &ib, int xbegin, int xend,
+                      int ybegin, int yend, int zbegin=0, int zend=1);
+
         /// Construct read-write clamped valid iteration region from
         /// ImageBuf and ROI.
-        Iterator (ImageBuf &ib, const ROI &roi)
-            : m_ib(&ib), m_tile(NULL)
-        {
-            init_ib ();
-            if (roi.defined()) {
-                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-                m_rng_xend   = std::min (roi.xend,   m_img_xend);
-                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-                m_rng_yend   = std::min (roi.yend,   m_img_yend);
-                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-                m_rng_zend   = std::min (roi.zend,   m_img_zend);
-            } else {
-                range_is_image ();
-            }
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
+        IteratorBase (const ImageBuf &ib, const ROI &roi);
+
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel, and do NOT
         /// clamp the region to the valid image pixels.  If "unclamped"
@@ -653,105 +592,20 @@ public:
         /// image boundary, so you must use done() to test whether the
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
-        Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin, int zend,
-                  bool unclamped)
-            : m_ib(&ib), m_tile(NULL)
-        {
-            init_ib ();
-            if (unclamped) {
-                m_rng_xbegin = xbegin;
-                m_rng_xend = xend;
-                m_rng_ybegin = ybegin;
-                m_rng_yend = yend;
-                m_rng_zbegin = zbegin;
-                m_rng_zend = zend;
-            } else {
-                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
-                m_rng_xend = std::min(xend,m_img_xend);
-                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
-                m_rng_yend = std::min(yend,m_img_yend);
-                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
-                m_rng_zend = std::min(zend,m_img_zend);
-            }
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
-        /// Copy constructor.
-        ///
-        Iterator (Iterator &i)
-            : m_ib (i.m_ib),
-              m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
-              m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
-              m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
-              m_tile(NULL)
-        {
-            init_ib ();
-            pos (i.m_x, i.m_y, i.m_z);
-        }
+        IteratorBase (const ImageBuf &ib, int xbegin, int xend,
+                      int ybegin, int yend, int zbegin, int zend,
+                      bool unclamped);
 
-        ~Iterator () {
+        IteratorBase (const IteratorBase &i);
+
+        ~IteratorBase () {
             if (m_tile)
                 m_ib->imagecache()->release_tile (m_tile);
         }
 
-        /// Explicitly point the iterator.  This results in an invalid
-        /// iterator if outside the previously-designated region.
-        void pos (int x_, int y_, int z_=0) {
-            bool v = valid(x_,y_,z_);
-            bool e = exists(x_,y_,z_);
-            if (! e || m_deep)
-                m_proxy.set (NULL);
-            else if (m_localpixels)
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
-            else
-                m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
-                                         m_tile, m_tilexbegin,
-                                         m_tileybegin, m_tilezbegin));
-            m_x = x_;  m_y = y_;  m_z = z_;
-            m_valid = v;
-            m_exists = e;
-        }
-
-        /// Increment to the next pixel in the region.
+        /// Assign one IteratorBase to another
         ///
-        void operator++ () {
-            if (++m_x >= m_rng_xend) {
-                m_x = m_rng_xbegin;
-                if (++m_y >= m_rng_yend) {
-                    m_y = m_rng_ybegin;
-                    ++m_z;
-                }
-            } else {
-                // Special case: we only incremented x, didn't change y
-                // or z, and the previous position was within the data
-                // window.  Call a shortcut version of pos.
-                if (m_exists) {
-                    pos_xincr ();
-                    return;
-                }
-            }
-            pos (m_x, m_y, m_z);
-        }
-        /// Increment to the next pixel in the region.
-        ///
-        void operator++ (int) {
-            ++(*this);
-        }
-
-        /// Assign one Iterator to another
-        ///
-        const Iterator & operator= (const Iterator &i) {
-            if (m_tile)
-                m_ib->imagecache()->release_tile (m_tile);
-            m_tile = NULL;
-            m_ib = i.m_ib;
-            init_ib ();
-            m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
-            m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
-            m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
-            pos (i.m_x, i.m_y, i.m_z);
-            return *this;
-        }
+        const IteratorBase & assign_base (const IteratorBase &i);
 
         /// Retrieve the current x location of the iterator.
         ///
@@ -802,32 +656,33 @@ public:
                     m_y == m_rng_ybegin && m_z == m_rng_zend);
         }
 
-        /// Dereferencing the iterator gives us a proxy for the pixel,
-        /// which we can index for reading or assignment.
-        DataArrayProxy<BUFT,USERT>& operator* () { return m_proxy; }
-
-        /// Array indexing retrieves the value of the i-th channel of
-        /// the current pixel.
-        USERT operator[] (int i) const { return m_proxy[i]; } 
-
-        /// Array referencing retrieve a proxy (which may be "assigned
-        /// to") of i-th channel of the current pixel, so that this
-        /// works: me[i] = val;
-        DataProxy<BUFT,USERT> operator[] (int i) { return m_proxy[i]; } 
-
-        void * rawptr () const { return m_proxy.get(); }
-
         /// Retrieve the number of deep data samples at this pixel.
         int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
 
-        /// Retrieve the deep data value of sample s of channel c.
-        USERT deep_value (int c, int s) const {
-            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        /// Explicitly point the iterator.  This results in an invalid
+        /// iterator if outside the previously-designated region.
+        void pos (int x_, int y_, int z_=0) {
+            bool v = valid(x_,y_,z_);
+            bool e = exists(x_,y_,z_);
+            if (! e || m_deep)
+                m_proxydata = NULL;
+            else if (m_localpixels)
+                m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+            else
+                m_proxydata = (char *)m_ib->retile (x_, y_, z_,
+                                          m_tile, m_tilexbegin,
+                                          m_tileybegin, m_tilezbegin);
+            m_x = x_;  m_y = y_;  m_z = z_;
+            m_valid = v;
+            m_exists = e;
         }
-
-    private:
-        ImageBuf *m_ib;
+    protected:
+        friend class ImageBuf;
+        friend class ImageBufImpl;
+        const ImageBuf *m_ib;
         bool m_valid, m_exists;
+        bool m_deep;
+        bool m_localpixels;
         // Image boundaries
         int m_img_xbegin, m_img_xend, m_img_ybegin, m_img_yend,
             m_img_zbegin, m_img_zend;
@@ -835,32 +690,19 @@ public:
         int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
             m_rng_zbegin, m_rng_zend;
         int m_x, m_y, m_z;
-        DataArrayProxy<BUFT,USERT> m_proxy;
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
-        int m_nchannels, m_tilewidth;
-        bool m_deep;
-        bool m_localpixels;
+        int m_tilexend, m_tileyend, m_tilezend;
+        int m_nchannels, m_tilewidth, m_pixel_bytes;
+        char *m_proxydata;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
-        void init_ib () {
-            m_img_xbegin = m_ib->xbegin(); m_img_xend = m_ib->xend();
-            m_img_ybegin = m_ib->ybegin(); m_img_yend = m_ib->yend();
-            m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
-            m_nchannels = m_ib->spec().nchannels;
-            m_tilewidth = m_ib->spec().tile_width;
-            m_deep = m_ib->deep();
-            m_localpixels = m_ib->localpixels();
-        }
+        void init_ib ();
 
         // Helper called by ctrs -- make the iteration range the full
         // image data window.
-        void range_is_image () {
-            m_rng_xbegin = m_img_xbegin;  m_rng_xend = m_img_xend; 
-            m_rng_ybegin = m_img_ybegin;  m_rng_yend = m_img_yend;
-            m_rng_zbegin = m_img_zbegin;  m_rng_zend = m_img_zend;
-        }
+        void range_is_image ();
 
         // Helper called by pos(), but ONLY for the case where we are
         // moving from an existing pixel to the next spot in +x.
@@ -869,19 +711,159 @@ public:
             DASSERT (m_exists && m_valid);   // precondition
             DASSERT (valid(m_x,m_y,m_z));    // should be true by definition
             if (m_x >= m_img_xend /*same as !exists() for this case*/) {
-                m_proxy.set (NULL);
+                m_proxydata = NULL;
                 m_exists = false;
             } else if (m_deep) {
-                m_proxy.set (NULL);
+                m_proxydata = NULL;
             } else if (m_localpixels) {
-                m_proxy += m_nchannels;
+                m_proxydata += m_pixel_bytes;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
                 // Haven't crossed a tile boundary, don't retile!
-                m_proxy += m_nchannels;
+                m_proxydata += m_pixel_bytes;
             } else {
-                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z, m_tile,
-                                    m_tilexbegin, m_tileybegin, m_tilezbegin));
+                m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
+                                    m_tilexbegin, m_tileybegin, m_tilezbegin);
             }
+        }
+    };
+
+    /// Templated class for referring to an individual pixel in an
+    /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
+    /// over the pixels of a specified region of the ImageBuf
+    /// [xbegin..xend) X [ybegin..yend).  It is templated on BUFT, the
+    /// type known to be in the internal representation of the ImageBuf,
+    /// and USERT, the type that the user wants to retrieve or set the
+    /// data (defaulting to float).  the whole idea is to allow this:
+    /// \code
+    ///   ImageBuf img (...);
+    ///   ImageBuf::Iterator<float> pixel (img, 0, 512, 0, 512);
+    ///   for (  ;  ! pixel.done();  ++pixel) {
+    ///       for (int c = 0;  c < img.nchannels();  ++c) {
+    ///           float x = pixel[c];
+    ///           pixel[c] = ...;
+    ///       }
+    ///   }
+    /// \endcode
+    ///
+    template<typename BUFT, typename USERT=float>
+    class Iterator : public IteratorBase {
+    public:
+        /// Construct from just an ImageBuf -- iterate over the whole
+        /// region, starting with the upper left pixel of the region.
+        Iterator (ImageBuf &ib)
+            : IteratorBase(ib)
+        {
+            pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
+        }
+        /// Construct from an ImageBuf and a specific pixel index.
+        /// The iteration range is the full image.
+        Iterator (ImageBuf &ib, int x_, int y_, int z_=0)
+            : IteratorBase(ib)
+        {
+            pos (x_, y_, z_);
+        }
+        /// Construct from an ImageBuf and designated region -- iterate
+        /// over region, starting with the upper left pixel.  The
+        /// iteration region will be clamped to the valid image range.
+        Iterator (ImageBuf &ib, int xbegin, int xend,
+                  int ybegin, int yend, int zbegin=0, int zend=1)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
+        {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Construct read-write clamped valid iteration region from
+        /// ImageBuf and ROI.
+        Iterator (ImageBuf &ib, const ROI &roi)
+            : IteratorBase (ib, roi)
+        {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Construct from an ImageBuf and designated region -- iterate
+        /// over region, starting with the upper left pixel, and do NOT
+        /// clamp the region to the valid image pixels.  If "unclamped"
+        /// is true, the iteration region will NOT be clamped to the
+        /// image boundary, so you must use done() to test whether the
+        /// iteration is complete, versus valid() to test whether it's
+        /// pointing to a valid image pixel.
+        Iterator (ImageBuf &ib, int xbegin, int xend,
+                  int ybegin, int yend, int zbegin, int zend,
+                  bool unclamped)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend,
+                           zbegin, zend, unclamped)
+        {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Copy constructor.
+        ///
+        Iterator (Iterator &i)
+            : IteratorBase (i.m_ib)
+        {
+            pos (i.m_x, i.m_y, i.m_z);
+        }
+
+        ~Iterator () { }
+
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ () {
+            if (++m_x >= m_rng_xend) {
+                m_x = m_rng_xbegin;
+                if (++m_y >= m_rng_yend) {
+                    m_y = m_rng_ybegin;
+                    ++m_z;
+                }
+            } else {
+                // Special case: we only incremented x, didn't change y
+                // or z, and the previous position was within the data
+                // window.  Call a shortcut version of pos.
+                if (m_exists) {
+                    ASSERT (m_pixel_bytes == m_nchannels*sizeof(BUFT));
+                    pos_xincr ();
+                    return;
+                }
+            }
+            pos (m_x, m_y, m_z);
+        }
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ (int) {
+            ++(*this);
+        }
+
+        /// Assign one Iterator to another
+        ///
+        const Iterator & operator= (const Iterator &i) {
+            assign_base (i);
+            pos (i.m_x, i.m_y, i.m_z);
+            return *this;
+        }
+
+        /// Dereferencing the iterator gives us a proxy for the pixel,
+        /// which we can index for reading or assignment.
+        DataArrayProxy<BUFT,USERT>& operator* () {
+            return *(DataArrayProxy<BUFT,USERT> *)&m_proxydata;
+        }
+
+        /// Array indexing retrieves the value of the i-th channel of
+        /// the current pixel.
+        USERT operator[] (int i) const {
+            DataArrayProxy<BUFT,USERT> proxy((BUFT*)m_proxydata);
+            return proxy[i];
+        } 
+
+        /// Array referencing retrieve a proxy (which may be "assigned
+        /// to") of i-th channel of the current pixel, so that this
+        /// works: me[i] = val;
+        DataProxy<BUFT,USERT> operator[] (int i) {
+            DataArrayProxy<BUFT,USERT> proxy((BUFT*)m_proxydata);
+            return proxy[i];
+        } 
+
+        void * rawptr () const { return m_proxydata; }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        USERT deep_value (int c, int s) const {
+            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
         }
     };
 
@@ -889,24 +871,20 @@ public:
     /// Just like an ImageBuf::Iterator, except that it refers to a
     /// const ImageBuf.
     template<typename BUFT, typename USERT=float>
-    class ConstIterator {
+    class ConstIterator : public IteratorBase {
     public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
         ConstIterator (const ImageBuf &ib)
-            : m_ib(&ib), m_tile(NULL)
+            : IteratorBase(ib)
         {
-            init_ib ();
-            range_is_image ();
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
         ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0)
-            : m_ib(&ib), m_tile(NULL)
+            : IteratorBase(ib)
         {
-            init_ib ();
-            range_is_image ();
             pos (x_, y_, z_);
         }
         /// Construct from an ImageBuf and designated region -- iterate
@@ -914,33 +892,15 @@ public:
         /// iteration region will be clamped to the valid image range.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
                        int ybegin, int yend, int zbegin=0, int zend=1)
-            : m_ib(&ib), m_tile(NULL)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
         {
-            init_ib ();
-            m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
-            m_rng_xend   = std::min (xend,   m_img_xend);
-            m_rng_ybegin = std::max (ybegin, m_img_ybegin);
-            m_rng_yend   = std::min (yend,   m_img_yend);
-            m_rng_zbegin = std::max (zbegin, m_img_zbegin);
-            m_rng_zend   = std::min (zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct read-only clamped valid iteration region
         /// from ImageBuf and ROI.
         ConstIterator (const ImageBuf &ib, const ROI &roi)
-            : m_ib(&ib), m_tile(NULL)
+            : IteratorBase (ib, roi)
         {
-            init_ib ();
-            if (roi.defined()) {
-                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-                m_rng_xend   = std::min (roi.xend,   m_img_xend);
-                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-                m_rng_yend   = std::min (roi.yend,   m_img_yend);
-                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-                m_rng_zend   = std::min (roi.zend,   m_img_zend);
-            } else {
-                range_is_image ();
-            }
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
@@ -953,61 +913,20 @@ public:
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
                        int ybegin, int yend, int zbegin, int zend,
                        bool unclamped)
-            : m_ib(&ib), m_tile(NULL)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend,
+                           zbegin, zend, unclamped)
         {
-            init_ib ();
-            if (unclamped) {
-                m_rng_xbegin = xbegin;
-                m_rng_xend = xend;
-                m_rng_ybegin = ybegin;
-                m_rng_yend = yend;
-                m_rng_zbegin = zbegin;
-                m_rng_zend = zend;
-            } else {
-                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
-                m_rng_xend = std::min(xend,m_img_xend);
-                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
-                m_rng_yend = std::min(yend,m_img_yend);
-                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
-                m_rng_zend = std::min(zend,m_img_zend);
-            }
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Copy constructor.
         ///
         ConstIterator (const ConstIterator &i)
-            : m_ib (i.m_ib),
-              m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
-              m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
-              m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
-              m_tile(NULL)
+            : IteratorBase (i)
         {
-            init_ib ();
             pos (i.m_x, i.m_y, i.m_z);
         }
 
-        ~ConstIterator () {
-            if (m_tile)
-                m_ib->imagecache()->release_tile (m_tile);
-        }
-
-        /// Explicitly point the iterator.  This results in an invalid
-        /// iterator if outside the previously-designated region.
-        void pos (int x_, int y_, int z_=0) {
-            bool v = valid(x_,y_,z_);
-            bool e = exists(x_,y_,z_);
-            if (! e || m_deep)
-                m_proxy.set (NULL);
-            else if (m_localpixels)
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
-            else
-                m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
-                                         m_tile, m_tilexbegin,
-                                         m_tileybegin, m_tilezbegin));
-            m_x = x_;  m_y = y_;  m_z = z_;
-            m_valid = v;
-            m_exists = e;
-        }
+        ~ConstIterator () { }
 
         /// Increment to the next pixel in the region.
         ///
@@ -1038,142 +957,29 @@ public:
         /// Assign one ConstIterator to another
         ///
         const ConstIterator & operator= (const ConstIterator &i) {
-            if (m_tile)
-                m_ib->imagecache()->release_tile (m_tile);
-            m_tile = NULL;
-            m_ib = i.m_ib;
-            init_ib ();
-            m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
-            m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
-            m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
+            assign_base (i);
             pos (i.m_x, i.m_y, i.m_z);
             return *this;
         }
 
-        /// Retrieve the current x location of the iterator.
-        ///
-        int x () const { return m_x; }
-        /// Retrieve the current y location of the iterator.
-        ///
-        int y () const { return m_y; }
-        /// Retrieve the current z location of the iterator.
-        ///
-        int z () const { return m_z; }
-
-        /// Is the current location valid?  Locations outside the
-        /// designated region are invalid, as is an iterator that has
-        /// completed iterating over the whole region.
-        bool valid () const {
-            return m_valid;
-        }
-
-        /// Is the location (x,y[,z]) within the designated iteration
-        /// range?
-        bool valid (int x_, int y_, int z_=0) const {
-            return (x_ >= m_rng_xbegin && x_ < m_rng_xend &&
-                    y_ >= m_rng_ybegin && y_ < m_rng_yend &&
-                    z_ >= m_rng_zbegin && z_ < m_rng_zend);
-        }
-
-        /// Is the location (x,y[,z]) within the region of the ImageBuf
-        /// that contains pixel values (sometimes called the "data window")?
-        bool exists (int x_, int y_, int z_=0) const {
-            return (x_ >= m_img_xbegin && x_ < m_img_xend &&
-                    y_ >= m_img_ybegin && y_ < m_img_yend &&
-                    z_ >= m_img_zbegin && z_ < m_img_zend);
-        }
-        /// Does the current location exist within the ImageBuf's 
-        /// data window?
-        bool exists () const {
-            return m_exists;
-        }
-
-        /// Are we finished iterating over the region?
-        ///
-        bool done () const {
-            // We're "done" if we are both invalid and in exactly the
-            // spot that we would end up after iterating off of the last
-            // pixel in the range.  (The m_valid test is just a quick
-            // early-out for when we're in the correct pixel range.)
-            return (m_valid == false && m_x == m_rng_xbegin &&
-                    m_y == m_rng_ybegin && m_z == m_rng_zend);
-        }
-
         /// Dereferencing the iterator gives us a proxy for the pixel,
         /// which we can index for reading or assignment.
-        ConstDataArrayProxy<BUFT,USERT>& operator* () const { return m_proxy; }
+        ConstDataArrayProxy<BUFT,USERT>& operator* () const {
+            return *(ConstDataArrayProxy<BUFT,USERT> *)&m_proxydata;
+        }
 
         /// Array indexing retrieves the value of the i-th channel of
         /// the current pixel.
-        USERT operator[] (int i) const { return m_proxy[i]; } 
+        USERT operator[] (int i) const {
+            ConstDataArrayProxy<BUFT,USERT> proxy ((BUFT*)m_proxydata);
+            return proxy[i];
+        } 
 
-        const void * rawptr () const { return m_proxy.get(); }
-
-        /// Retrieve the number of deep data samples at this pixel.
-        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+        const void * rawptr () const { return m_proxydata; }
 
         /// Retrieve the deep data value of sample s of channel c.
         USERT deep_value (int c, int s) const {
             return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
-        }
-
-    private:
-        const ImageBuf *m_ib;
-        bool m_valid, m_exists;
-        // Image boundaries
-        int m_img_xbegin, m_img_xend, m_img_ybegin, m_img_yend,
-            m_img_zbegin, m_img_zend;
-        // Iteration range
-        int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
-            m_rng_zbegin, m_rng_zend;
-        int m_x, m_y, m_z;
-        ConstDataArrayProxy<BUFT,USERT> m_proxy;
-        ImageCache::Tile *m_tile;
-        int m_tilexbegin, m_tileybegin, m_tilezbegin;
-        int m_nchannels, m_tilewidth;
-        bool m_deep;
-        bool m_localpixels;
-
-        // Helper called by ctrs -- set up some locally cached values
-        // that are copied or derived from the ImageBuf.
-        void init_ib () {
-            m_img_xbegin = m_ib->xbegin(); m_img_xend = m_ib->xend();
-            m_img_ybegin = m_ib->ybegin(); m_img_yend = m_ib->yend();
-            m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
-            m_nchannels = m_ib->spec().nchannels;
-            m_tilewidth = m_ib->spec().tile_width;
-            m_deep = m_ib->deep();
-            m_localpixels = m_ib->localpixels();
-        }
-
-        // Helper called by ctrs -- make the iteration range the full
-        // image data window.
-        void range_is_image () {
-            m_rng_xbegin = m_img_xbegin;  m_rng_xend = m_img_xend; 
-            m_rng_ybegin = m_img_ybegin;  m_rng_yend = m_img_yend;
-            m_rng_zbegin = m_img_zbegin;  m_rng_zend = m_img_zend;
-        }
-
-        // Helper called by pos(), but ONLY for the case where we are
-        // moving from an existing pixel to the next spot in +x.
-        // Note: called *after* m_x was incremented!
-        void pos_xincr () {
-            DASSERT (m_exists && m_valid);   // precondition
-            DASSERT (valid(m_x,m_y,m_z));    // should be true by definition
-            if (m_x >= m_img_xend /*same as !exists() for this case*/) {
-                m_proxy.set (NULL);
-                m_exists = false;
-            } else if (m_deep) {
-                m_proxy.set (NULL);
-            } else if (m_localpixels) {
-                m_proxy += m_nchannels;
-            } else if (m_x < m_tilexbegin+m_tilewidth) {
-                // Haven't crossed a tile boundary, don't retile!
-                m_proxy += m_nchannels;
-            } else {
-                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z, m_tile,
-                                    m_tilexbegin, m_tileybegin, m_tilezbegin));
-            }
         }
     };
 
