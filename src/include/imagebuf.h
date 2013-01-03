@@ -52,33 +52,6 @@
 OIIO_NAMESPACE_ENTER
 {
 
-/// Helper template for a scoped array -- just a memory-managed holder
-/// of a dynamically-allocated array. A bit like boost::scoped_array,
-/// but not dependent on Boost. Some day, C++ std::unique_ptr will be used
-/// instead, but for now, this will work with even very old C++
-/// compilers.
-template <class T>
-class scoped_array {
-public:
-    explicit scoped_array (T *t=NULL) : m_ptr(t) { }
-    ~scoped_array () { delete [] m_ptr; }
-    void reset (T *t=NULL) { delete [] m_ptr; m_ptr = t; }
-    T* get () { return m_ptr; }
-    const T* get () const { return m_ptr; }
-    T& operator[] (size_t i) { return m_ptr[i]; }
-    const T& operator[] (size_t i) const { return m_ptr[i]; }
-    void swap (scoped_array &x) { std::swap (m_ptr, x.m_ptr); }
-    operator bool () const { return m_ptr != NULL; }
-private:
-    T *m_ptr;
-    const scoped_array& operator= (const scoped_array &);
-    scoped_array (const scoped_array &x);
-};
-
-template <class T>
-void swap (scoped_array<T> & a, scoped_array<T> & b) { a.swap(b); }
-
-    
 class ImageBuf;
 
 
@@ -144,6 +117,10 @@ OIIO_API void set_roi_full (ImageSpec &spec, const ROI &newroi);
 
 
 
+class ImageBufImpl;   // Opaque pointer
+
+
+
 /// An ImageBuf is a simple in-memory representation of a 2D image.  It
 /// uses ImageInput and ImageOutput underneath for its file I/O, and has
 /// simple routines for setting and getting individual pixels, that
@@ -177,67 +154,57 @@ public:
 
     /// Restore the ImageBuf to an uninitialized state.
     ///
-    virtual void clear ();
+    void clear ();
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
-    virtual void reset (const std::string &name,
-                        ImageCache *imagecache = NULL);
+    void reset (const std::string &name, ImageCache *imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
-    virtual void reset (const std::string &name, const ImageSpec &spec);
+    void reset (const std::string &name, const ImageSpec &spec);
 
     /// Copy spec to *this, and then allocate enough space the right
     /// size for an image described by the format spec.  If the ImageBuf
     /// already has allocated pixels, their values will not be preserved
     /// if the new spec does not describe an image of the same size and
     /// data type as it used to be.
-    virtual void alloc (const ImageSpec &spec);
-
-    /// Change the pixel data window resolution, channel information,
-    /// and data format to that described by src (but no other
-    /// metadata), and then resize the local buffer to accommodate the
-    /// new image size.  Return true on success, false if it could not
-    /// be done because it was not possible to change the resolution,
-    /// channels, or data format (e.g., if it wrapped an app memory
-    /// buffer and thus could not be resized).
-    virtual bool reres (const ImageBuf &spec);
+    void alloc (const ImageSpec &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
     /// force==true.  This uses ImageInput underneath, so will read any
     /// file format for which an appropriate imageio plugin can be found.
     /// Return value is true if all is ok, otherwise false.
-    virtual bool read (int subimage=0, int miplevel=0, bool force=false,
-                       TypeDesc convert=TypeDesc::UNKNOWN,
-                       ProgressCallback progress_callback=NULL,
-                       void *progress_callback_data=NULL);
+    bool read (int subimage=0, int miplevel=0, bool force=false,
+               TypeDesc convert=TypeDesc::UNKNOWN,
+               ProgressCallback progress_callback=NULL,
+               void *progress_callback_data=NULL);
 
     /// Initialize this ImageBuf with the named image file, and read its
     /// header to fill out the spec correctly.  Return true if this
     /// succeeded, false if the file could not be read.  But don't
     /// allocate or read the pixels.
-    virtual bool init_spec (const std::string &filename,
-                            int subimage, int miplevel);
+    bool init_spec (const std::string &filename,
+                    int subimage, int miplevel);
 
     /// Save the image or a subset thereof, with override for filename
     /// ("" means use the original filename) and file format ("" indicates
     /// to infer it from the filename).  This uses ImageOutput
     /// underneath, so will write any file format for which an
     /// appropriate imageio plugin can be found.
-    virtual bool save (const std::string &filename = std::string(),
-                       const std::string &fileformat = std::string(),
-                       ProgressCallback progress_callback=NULL,
-                       void *progress_callback_data=NULL) const;
+    bool save (const std::string &filename = std::string(),
+               const std::string &fileformat = std::string(),
+               ProgressCallback progress_callback=NULL,
+               void *progress_callback_data=NULL) const;
 
     /// Write the image to the open ImageOutput 'out'.  Return true if
     /// all went ok, false if there were errors writing.  It does NOT
     /// close the file when it's done (and so may be called in a loop to
     /// write a multi-image file).
-    virtual bool write (ImageOutput *out,
-                        ProgressCallback progress_callback=NULL,
-                        void *progress_callback_data=NULL) const;
+    bool write (ImageOutput *out,
+                ProgressCallback progress_callback=NULL,
+                void *progress_callback_data=NULL) const;
 
     /// Copy all the metadata from src to *this (except for pixel data
     /// resolution, channel information, and data format).
@@ -283,49 +250,49 @@ public:
 
     /// Return a read-only (const) reference to the image spec that
     /// describes the buffer.
-    const ImageSpec & spec () const { return m_spec; }
+    const ImageSpec & spec () const;
 
     /// Return a writable reference to the image spec that describes the
     /// buffer.  Use with extreme caution!  If you use this for anything
     /// other than adding attribute metadata, you are really taking your
     /// chances!
-    ImageSpec & specmod () { return m_spec; }
+    ImageSpec & specmod ();
 
     /// Return a read-only (const) reference to the "native" image spec
     /// (that describes the file, which may be slightly different than
     /// the spec of the ImageBuf, particularly if the IB is backed by an
     /// ImageCache that is imposing some particular data format or tile
     /// size).
-    const ImageSpec & nativespec () const { return m_nativespec; }
+    const ImageSpec & nativespec () const;
 
     /// Return the name of this image.
     ///
-    const std::string & name (void) const { return m_name.string(); }
+    const std::string & name (void) const;
 
     /// Return the name of the image file format of the disk file we
     /// read into this image.  Returns an empty string if this image
     /// was not the result of a read().
-    const std::string & file_format_name (void) const { return m_fileformat.string(); }
+    const std::string & file_format_name (void) const;
 
     /// Return the index of the subimage are we currently viewing
     ///
-    int subimage () const { return m_current_subimage; }
+    int subimage () const;
 
     /// Return the number of subimages in the file.
     ///
-    int nsubimages () const { return m_nsubimages; }
+    int nsubimages () const;
 
     /// Return the index of the miplevel are we currently viewing
     ///
-    int miplevel () const { return m_current_miplevel; }
+    int miplevel () const;
 
     /// Return the number of miplevels of the current subimage.
     ///
-    int nmiplevels () const { return m_nmiplevels; }
+    int nmiplevels () const;
 
     /// Return the number of color channels in the image.
     ///
-    int nchannels () const { return m_spec.nchannels; }
+    int nchannels () const;
 
     /// Retrieve a single channel of one pixel.
     ///
@@ -479,7 +446,7 @@ public:
     /// deep samples.
     float deep_value (int x, int y, int z, int c, int s) const;
 
-    int orientation () const { return m_orientation; }
+    int orientation () const;
 
     int oriented_width () const;
     int oriented_height () const;
@@ -496,7 +463,10 @@ public:
 
     /// Return the end (one past maximum) x coordinate of the defined image.
     ///
-    int xend () const { return spec().x + spec().width; }
+    int xend () const {
+        const ImageSpec &spec (this->spec());
+        return spec.x + spec.width;
+    }
 
     /// Return the beginning (minimum) y coordinate of the defined image.
     ///
@@ -504,7 +474,10 @@ public:
 
     /// Return the end (one past maximum) y coordinate of the defined image.
     ///
-    int yend () const { return spec().y + spec().height; }
+    int yend () const {
+        const ImageSpec &spec (this->spec());
+        return spec.y + spec.height;
+    }
 
     /// Return the beginning (minimum) z coordinate of the defined image.
     ///
@@ -512,7 +485,10 @@ public:
 
     /// Return the end (one past maximum) z coordinate of the defined image.
     ///
-    int zend () const { return spec().z + std::max(spec().depth,1); }
+    int zend () const {
+        const ImageSpec &spec (this->spec());
+        return spec.z + std::max(spec.depth,1);
+    }
 
     /// Return the minimum x coordinate of the defined image.
     ///
@@ -520,7 +496,10 @@ public:
 
     /// Return the maximum x coordinate of the defined image.
     ///
-    int xmax () const { return spec().x + spec().width - 1; }
+    int xmax () const {
+        const ImageSpec &spec (this->spec());
+        return spec.x + spec.width - 1;
+    }
 
     /// Return the minimum y coordinate of the defined image.
     ///
@@ -528,7 +507,10 @@ public:
 
     /// Return the maximum y coordinate of the defined image.
     ///
-    int ymax () const { return spec().y + spec().height - 1; }
+    int ymax () const {
+        const ImageSpec &spec (this->spec());
+        return spec.y + spec.height - 1;
+    }
 
     /// Return the minimum z coordinate of the defined image.
     ///
@@ -536,7 +518,10 @@ public:
 
     /// Return the maximum z coordinate of the defined image.
     ///
-    int zmax () const { return spec().z + std::max(spec().depth,1) - 1; }
+    int zmax () const {
+        const ImageSpec &spec (this->spec());
+        return spec.z + std::max(spec.depth,1) - 1;
+    }
 
     /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
     /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
@@ -544,21 +529,19 @@ public:
     void set_full (int xbegin, int xend, int ybegin, int yend,
                    int zbegin, int zend, const float *bordercolor=NULL);
 
-    bool pixels_valid (void) const { return m_pixels_valid; }
+    bool pixels_valid (void) const;
 
-    TypeDesc pixeltype () const {
-        return m_localpixels ? m_spec.format : m_cachedpixeltype;
-    }
+    TypeDesc pixeltype () const;
 
     /// Are the pixels "local", i.e. fully in RAM and not backed by an
     /// ImageCache?
-    bool localpixels () const { return m_localpixels; }
+    bool localpixels () const;
 
     /// Are the pixels backed by an ImageCache, rather than the whole
     /// image being in RAM somewhere?
-    bool cachedpixels () const { return !m_localpixels; }
+    bool cachedpixels () const;
 
-    ImageCache *imagecache () const { return m_imagecache; }
+    ImageCache *imagecache () const;
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
     /// Use with extreme caution!  Will return NULL if the pixel values
@@ -581,14 +564,14 @@ public:
     void *pixeladdr (int x, int y, int z);
 
     /// Does this ImageBuf store deep data?
-    bool deep () const { return m_spec.deep; }
+    bool deep () const;
 
     /// Retrieve the "deep" data.
-    DeepData *deepdata () { return deep() ? &m_deepdata : NULL; }
-    const DeepData *deepdata () const { return deep() ? &m_deepdata : NULL; }
+    DeepData *deepdata ();
+    const DeepData *deepdata () const;
 
     /// Is this ImageBuf object initialized?
-    bool initialized () const { return m_spec_valid || m_pixels_valid; }
+    bool initialized () const;
 
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
@@ -718,7 +701,7 @@ public:
             bool e = exists(x_,y_,z_);
             if (! e || m_deep)
                 m_proxy.set (NULL);
-            else if (m_ib->localpixels())
+            else if (m_localpixels)
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
             else
                 m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
@@ -857,6 +840,7 @@ public:
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
         bool m_deep;
+        bool m_localpixels;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -867,6 +851,7 @@ public:
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
             m_deep = m_ib->deep();
+            m_localpixels = m_ib->localpixels();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -888,7 +873,7 @@ public:
                 m_exists = false;
             } else if (m_deep) {
                 m_proxy.set (NULL);
-            } else if (m_ib->localpixels()) {
+            } else if (m_localpixels) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
                 // Haven't crossed a tile boundary, don't retile!
@@ -1013,7 +998,7 @@ public:
             bool e = exists(x_,y_,z_);
             if (! e || m_deep)
                 m_proxy.set (NULL);
-            else if (m_ib->localpixels())
+            else if (m_localpixels)
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
             else
                 m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
@@ -1147,6 +1132,7 @@ public:
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
         bool m_deep;
+        bool m_localpixels;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -1157,6 +1143,7 @@ public:
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
             m_deep = m_ib->deep();
+            m_localpixels = m_ib->localpixels();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -1178,7 +1165,7 @@ public:
                 m_exists = false;
             } else if (m_deep) {
                 m_proxy.set (NULL);
-            } else if (m_ib->localpixels()) {
+            } else if (m_localpixels) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
                 // Haven't crossed a tile boundary, don't retile!
@@ -1192,30 +1179,10 @@ public:
 
 
 protected:
-    ustring m_name;              ///< Filename of the image
-    ustring m_fileformat;        ///< File format name
-    int m_nsubimages;            ///< How many subimages are there?
-    int m_current_subimage;      ///< Current subimage we're viewing
-    int m_current_miplevel;      ///< Current miplevel we're viewing
-    int m_nmiplevels;            ///< # of MIP levels in the current subimage
-    ImageSpec m_spec;            ///< Describes the image (size, etc)
-    ImageSpec m_nativespec;      ///< Describes the true native image
-    scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
-    char *m_localpixels;         ///< Pointer to local pixels
-    bool m_clientpixels;         ///< Local pixels are owned by the client app
-    bool m_spec_valid;           ///< Is the spec valid
-    bool m_pixels_valid;         ///< Image is valid
-    bool m_badfile;              ///< File not found
-    mutable std::string m_err;   ///< Last error message
-    int m_orientation;           ///< Orientation of the image
-    float m_pixelaspect;         ///< Pixel aspect ratio of the image
-    ImageCache *m_imagecache;    ///< ImageCache to use
-    TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
-    DeepData m_deepdata;         ///< Deep data
+    ImageBufImpl *m_impl;    //< PIMPL idiom
 
-    // Resize the local owned buffer to the size indicated by the
-    // ImageBuf's spec.
-    void realloc ();
+    ImageBufImpl * impl () { return m_impl; }
+    const ImageBufImpl * impl () const { return m_impl; }
 
     // Copy src's pixels into *this.  Pixels must already be local
     // (either owned or wrapped) and the resolution and number of

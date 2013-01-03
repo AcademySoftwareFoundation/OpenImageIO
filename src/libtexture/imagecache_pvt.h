@@ -37,6 +37,7 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/unordered_map.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "texture.h"
 #include "refcnt.h"
@@ -512,7 +513,7 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    scoped_array<char> m_pixels;  ///< The pixel data
+    boost::scoped_array<char> m_pixels;  ///< The pixel data
     size_t m_pixels_size;         ///< How much m_pixels has allocated
     bool m_valid;                 ///< Valid pixels
     atomic_int m_used;            ///< Used recently
