@@ -817,7 +817,7 @@ public:
                 // or z, and the previous position was within the data
                 // window.  Call a shortcut version of pos.
                 if (m_exists) {
-                    ASSERT (m_pixel_bytes == m_nchannels*sizeof(BUFT));
+                    DASSERT (m_pixel_bytes == size_t(m_nchannels*sizeof(BUFT)));
                     pos_xincr ();
                     return;
                 }
@@ -841,7 +841,7 @@ public:
         /// Dereferencing the iterator gives us a proxy for the pixel,
         /// which we can index for reading or assignment.
         DataArrayProxy<BUFT,USERT>& operator* () {
-            return *(DataArrayProxy<BUFT,USERT> *)&m_proxydata;
+            return *(DataArrayProxy<BUFT,USERT> *)(void *)&m_proxydata;
         }
 
         /// Array indexing retrieves the value of the i-th channel of

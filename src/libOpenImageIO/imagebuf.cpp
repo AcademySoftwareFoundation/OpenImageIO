@@ -162,6 +162,12 @@ public:
     bool initialized () const { return m_spec_valid || m_pixels_valid; }
     bool cachedpixels () const { return m_localpixels == NULL; }
 
+    const void *pixeladdr (int x, int y, int z) const;
+    void *pixeladdr (int x, int y, int z);
+
+    const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
+                    int &tilexbegin, int &tileybegin, int &tilezbegin) const;
+
 private:
     ustring m_name;              ///< Filename of the image
     ustring m_fileformat;        ///< File format name
@@ -177,12 +183,15 @@ private:
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
-    mutable std::string m_err;   ///< Last error message
     int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
+    size_t m_pixel_bytes;
+    size_t m_scanline_bytes;
+    size_t m_plane_bytes;
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
+    mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
     friend class ImageBuf;
@@ -198,12 +207,16 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
       m_localpixels(NULL), m_clientpixels(false),
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
+      m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
       m_imagecache(imagecache)
 {
     if (spec) {
         m_spec = *spec;
         m_nativespec = *spec;
         m_spec_valid = true;
+        m_pixel_bytes = spec->pixel_bytes();
+        m_scanline_bytes = spec->scanline_bytes();
+        m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
     }
     if (buffer) {
         ASSERT (spec != NULL);
@@ -229,6 +242,9 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_badfile(src.m_badfile),
       m_orientation(src.m_orientation),
       m_pixelaspect(src.m_pixelaspect),
+      m_pixel_bytes(src.m_pixel_bytes),
+      m_scanline_bytes(src.m_scanline_bytes),
+      m_plane_bytes(src.m_plane_bytes),
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
       m_deepdata(src.m_deepdata)
@@ -360,6 +376,9 @@ ImageBufImpl::clear ()
     m_badfile = false;
     m_orientation = 1;
     m_pixelaspect = 1;
+    m_pixel_bytes = 0;
+    m_scanline_bytes = 0;
+    m_plane_bytes = 0;
     m_deepdata.free ();
 }
 
@@ -419,6 +438,9 @@ ImageBufImpl::realloc ()
     m_pixels.reset (newsize ? new char [newsize] : NULL);
     m_localpixels = m_pixels.get();
     m_clientpixels = false;
+    m_pixel_bytes = m_spec.pixel_bytes();
+    m_scanline_bytes = m_spec.scanline_bytes();
+    m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
 #endif
@@ -491,6 +513,10 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
                                   TypeDesc::TypeInt, &m_nmiplevels);
     m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
     m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true);
+    m_pixel_bytes = m_spec.pixel_bytes();
+    m_scanline_bytes = m_spec.scanline_bytes();
+    m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -574,6 +600,9 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
     if (! m_localpixels && ! force &&
         (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
         m_spec.format = m_cachedpixeltype;
+        m_pixel_bytes = m_spec.pixel_bytes();
+        m_scanline_bytes = m_spec.scanline_bytes();
+        m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
 #ifdef DEBUG
         std::cerr << "read was not necessary -- using cache\n";
 #endif
@@ -1483,18 +1512,39 @@ ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
 
 
 const void *
-ImageBuf::pixeladdr (int x, int y, int z) const
+ImageBufImpl::pixeladdr (int x, int y, int z) const
 {
     if (cachedpixels())
         return NULL;
-    const ImageSpec spec (this->spec());
-    x -= spec.x;
-    y -= spec.y;
-    z -= spec.z;
-    size_t p = y * spec.scanline_bytes() + x * spec.pixel_bytes();
-    if (z)
-        p += z * clamped_mult64 (spec.scanline_bytes(), (imagesize_t)spec.height);
-    return &(impl()->m_localpixels[p]);
+    x -= m_spec.x;
+    y -= m_spec.y;
+    z -= m_spec.z;
+    size_t p = y * m_scanline_bytes + x * m_pixel_bytes
+             + z * m_plane_bytes;
+    return &(m_localpixels[p]);
+}
+
+
+
+void *
+ImageBufImpl::pixeladdr (int x, int y, int z)
+{
+    if (cachedpixels())
+        return NULL;
+    x -= m_spec.x;
+    y -= m_spec.y;
+    z -= m_spec.z;
+    size_t p = y * m_scanline_bytes + x * m_pixel_bytes
+             + z * m_plane_bytes;
+    return &(m_localpixels[p]);
+}
+
+
+
+const void *
+ImageBuf::pixeladdr (int x, int y, int z) const
+{
+    return impl()->pixeladdr (x, y, z);
 }
 
 
@@ -1502,16 +1552,40 @@ ImageBuf::pixeladdr (int x, int y, int z) const
 void *
 ImageBuf::pixeladdr (int x, int y, int z)
 {
-    if (cachedpixels())
-        return NULL;
-    const ImageSpec spec (this->spec());
-    x -= spec.x;
-    y -= spec.y;
-    z -= spec.z;
-    size_t p = y * spec.scanline_bytes() + x * spec.pixel_bytes();
-    if (z)
-        p += z * spec.scanline_bytes() * spec.height;
-    return &(impl()->m_localpixels[p]);
+    return impl()->pixeladdr (x, y, z);
+}
+
+
+
+const void *
+ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
+                      int &tilexbegin, int &tileybegin, int &tilezbegin) const
+{
+    int tw = m_spec.tile_width, th = m_spec.tile_height;
+    int td = std::max (1, m_spec.tile_depth);
+    if (tile == NULL || x < tilexbegin || x >= (tilexbegin+tw) ||
+                        y < tileybegin || y >= (tileybegin+th) ||
+                        z < tilezbegin || z >= (tilezbegin+td)) {
+        // not the same tile as before
+        if (tile)
+            m_imagecache->release_tile (tile);
+        int xtile = (x-m_spec.x) / tw;
+        int ytile = (y-m_spec.y) / th;
+        int ztile = (z-m_spec.z) / td;
+        tilexbegin = m_spec.x + xtile*tw;
+        tileybegin = m_spec.y + ytile*th;
+        tilezbegin = m_spec.z + ztile*td;
+        tile = m_imagecache->get_tile (m_name, m_current_subimage,
+                                       m_current_miplevel, x, y, z);
+    }
+
+    size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
+    offset += ((z - tilezbegin) * tw * th);
+    offset *= m_spec.pixel_bytes();
+    DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
+                "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+    TypeDesc format;
+    return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
 }
 
 
@@ -1520,30 +1594,7 @@ const void *
 ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin, int &tilezbegin) const
 {
-    const ImageBufImpl *impl (this->impl());
-    const ImageSpec spec (this->spec());
-    int tw = spec.tile_width, th = spec.tile_height;
-    int td = std::max (1, spec.tile_depth);
-    if (tile == NULL || x < tilexbegin || x >= (tilexbegin+tw) ||
-                        y < tileybegin || y >= (tileybegin+th) ||
-                        z < tilezbegin || z >= (tilezbegin+td)) {
-        // not the same tile as before
-        if (tile)
-            impl->m_imagecache->release_tile (tile);
-        int xtile = (x-spec.x) / tw;
-        int ytile = (y-spec.y) / th;
-        int ztile = (z-spec.z) / td;
-        tilexbegin = spec.x + xtile*tw;
-        tileybegin = spec.y + ytile*th;
-        tilezbegin = spec.z + ztile*td;
-        tile = impl->m_imagecache->get_tile (impl->m_name, subimage(), miplevel(), x, y, z);
-    }
-
-    size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
-    offset += ((z - tilezbegin) * tw * th);
-    offset *= spec.pixel_bytes();
-    TypeDesc format;
-    return (const char *)impl->m_imagecache->tile_pixels (tile, format) + offset;
+    return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin);
 }
 
 
@@ -1654,7 +1705,7 @@ ImageBuf::IteratorBase::init_ib ()
     m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
     m_nchannels = spec.nchannels;
     m_tilewidth = spec.tile_width;
-    m_pixel_bytes = m_ib->m_impl->m_spec.pixel_bytes();
+    m_pixel_bytes = m_ib->m_impl->m_pixel_bytes;
 }
 
 
