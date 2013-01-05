@@ -1,0 +1,38 @@
+Reading small.tif
+small.tif            :   64 x   64, 3 channel, uint8 tiff
+    SHA-1: D628817909A6465FADD7553BAE01E9BBAD57C915
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    ImageDescription: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
+    Orientation: 1 (normal)
+    DateTime: "2013:01:05 15:13:08"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 5
+    compression: "lzw"
+    tiff:RowsPerStrip: 32
+    IPTC:Caption: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
+detected const color 
+Reading small.tx
+small.tx             :   64 x   64, 3 channel, uint8 tiff
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: D628817909A6465FADD7553BAE01E9BBAD57C915
+    channel list: R, G, B
+    tile size: 64 x 64
+    oiio:BitsPerSample: 8
+    ImageDescription: "foo bar SHA-1=54DB64622BDF27BB42FC4E321A73E06D2BD540AC ConstantColor=[1,1,1]"
+    Orientation: 1 (normal)
+    Software: "../../maketx/maketx small.tif --oiio --constant-color-detect -o small.tx"
+    DateTime: "2013:01:05 15:13:08"
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    fovcot: 1
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 5
+    compression: "zip"
+    IPTC:OriginatingProgram: "../../maketx/maketx small.tif --oiio --constant-color-detect -o small.tx"
+    IPTC:Caption: "foo bar SHA-1=54DB64622BDF27BB42FC4E321A73E06D2BD540AC ConstantColor=[1,1,1]"
+    tiff:RowsPerStrip: "32"
