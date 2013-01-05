@@ -313,10 +313,11 @@ if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
 endif()
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread misnamed-file nonwhole-tiles
+oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                sgi rla psd dpx png
+                dpx ico png psd rla sgi
+                maketx
                 texture-blurtube texture-fill texture-filtersize
                 texture-gray texture-grid
                 texture-missing texture-overscan
