@@ -80,6 +80,7 @@ static double stat_miptime = 0;
 static double stat_colorconverttime = 0;
 static bool checknan = false;
 static std::string fixnan = "none"; // none, black, box3
+static bool set_full_to_pixels = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
@@ -249,6 +250,7 @@ getargs (int argc, char *argv[])
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
                   "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
+                  "--fullpixels", &set_full_to_pixels, "Set the 'full' image range to be the pixel data window",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
                           &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
@@ -834,6 +836,18 @@ make_texturemap (const char *maptypename = "texture map")
               out_dataformat != TypeDesc::HALF &&
               out_dataformat != TypeDesc::DOUBLE)
             out_dataformat = TypeDesc::FLOAT;
+    }
+
+    if (set_full_to_pixels) {
+        // User requested that we treat the image as uncropped or not
+        // overscan
+        ImageSpec &spec (src.specmod());
+        spec.full_x = spec.x = 0;
+        spec.full_y = spec.y = 0;
+        spec.full_z = spec.z = 0;
+        spec.full_width = spec.width;
+        spec.full_height = spec.height;
+        spec.full_depth = spec.depth;
     }
 
     // Copy the input spec

@@ -150,6 +150,14 @@ be replaced by the average of all the finite values within a $3 \times 3$
 region surrounding the pixel.
 \apiend
 
+\apiitem{--fullpixels}
+\NEW
+Resets the ``full'' (or ``display'') pixel range to be the ``data''
+range.  This is used to deal with input images that appear, in their
+headers, to be crop windows or overscanned images, but you want to treat
+them as full 0--1 range images over just their defined pixel data.
+\apiend
+
 %\apiitem{--ingamma {\rm \emph{value}} \\
 %--outgamma {\rm \emph{value}}}
 %Not currently implemented
