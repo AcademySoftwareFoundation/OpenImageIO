@@ -38,6 +38,7 @@
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 #include <OpenEXR/ImathMatrix.h>
 
 #include "argparse.h"
@@ -291,7 +292,7 @@ getargs (int argc, char *argv[])
                           "if your image contains an alpha channel.",
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
-                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
+                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata.",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -1135,14 +1136,15 @@ make_texturemap (const char *maptypename = "texture map")
     std::string desc = dstspec.get_string_attribute ("ImageDescription");
     bool updatedDesc = false;
     
-    // FIXME: We need to do real dictionary style partial updates on the
-    //        ImageDescription. I.e., set one key without affecting the
-    //        other keys. But in the meantime, just clear it out if
-    //        it appears the incoming image was a maketx style texture.
-    
-    if ((desc.find ("SHA-1=") != std::string::npos) || 
-        (desc.find ("ConstantColor=") != std::string::npos)) {
-        desc = "";
+    // Eliminate any SHA-1 or ConstantColor hints in the ImageDescription.
+    if (desc.size()) {
+        desc = boost::regex_replace (desc, boost::regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
+        static const char *fp_number_pattern =
+            "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
+        const std::string color_pattern =
+            std::string ("ConstantColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
+        desc = boost::regex_replace (desc, boost::regex(color_pattern), "");
+        updatedDesc = true;
     }
     
     // The hash is only computed for the top mipmap level of pixel data.
