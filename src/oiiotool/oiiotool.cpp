@@ -226,6 +226,19 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
     if (ot.output_planarconfig == "contig" ||
         ot.output_planarconfig == "separate")
         spec.attribute ("planarconfig", ot.output_planarconfig);
+
+    // Append command to image history
+    std::string history = spec.get_string_attribute ("Exif:ImageHistory");
+    if (! Strutil::iends_with (history, ot.full_command_line)) { // don't add twice
+        if (history.length() && ! Strutil::iends_with (history, "\n"))
+            history += std::string("\n");
+        history += ot.full_command_line;
+        spec.attribute ("Exif:ImageHistory", history);
+    }
+
+    std::string software = Strutil::format ("OpenImageIO %s : %s",
+                                   OIIO_VERSION_STRING, ot.full_command_line);
+    spec.attribute ("Software", software);
 }
 
 
@@ -1831,7 +1844,8 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap;
+    ArgParse ap (argc, (const char **)argv);
+    ot.full_command_line = ap.command_line();
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  oiiotool [filename,option,action]...\n",
