@@ -56,7 +56,8 @@ public:
     bool hash;
     bool updatemode;
     int threads;
-    
+    std::string full_command_line;
+
     // Output options
     TypeDesc output_dataformat;
     int output_bitspersample;

@@ -925,7 +925,16 @@ make_texturemap (const char *maptypename = "texture map")
         time (&date);    // not update: get the time now
     dstspec.attribute ("DateTime", datestring(date));
 
-    dstspec.attribute ("Software", full_command_line);
+    std::string software = Strutil::format ("OpenImageIO %s : %s",
+                                      OIIO_VERSION_STRING, full_command_line);
+    dstspec.attribute ("Software", software);
+
+    // Append command to image history
+    std::string history = dstspec.get_string_attribute ("Exif:ImageHistory");
+    if (history.length() && ! Strutil::iends_with (history, "\n"))
+        history += std::string("\n");
+    history += full_command_line;
+    dstspec.attribute ("Exif:ImageHistory", history);
     
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
