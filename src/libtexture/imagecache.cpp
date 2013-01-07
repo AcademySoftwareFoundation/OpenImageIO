@@ -32,11 +32,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/tr1/memory.hpp>
-using namespace std::tr1;
 
 #include <OpenEXR/ImathMatrix.h>
 
@@ -56,6 +51,13 @@ using namespace std::tr1;
 #include "imagecache.h"
 #include "texture.h"
 #include "imagecache_pvt.h"
+
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/scoped_array.hpp>
+#include <boost/tr1/memory.hpp>
+using namespace std::tr1;
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -813,7 +815,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         // buffer to be an even multiple of the tile width, so round up.
         stride_t scanlinesize = tw * ((spec.width+tw-1)/tw);
         scanlinesize *= pixelsize;
-        scoped_array<char> buf (new char [scanlinesize * th]); // a whole tile-row size
+        boost::scoped_array<char> buf (new char [scanlinesize * th]); // a whole tile-row size
         int yy = y - spec.y;   // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
         int y0 = yy - (yy % th);
