@@ -513,9 +513,8 @@ private:
     TileID m_id;                  ///< ID of this tile
     std::vector<char> m_pixels;   ///< The pixel data
     bool m_valid;                 ///< Valid pixels
-    atomic_int m_used;            ///< Used recently
     volatile bool m_pixels_ready; ///< The pixels have been read from disk
-    float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
+    atomic_int m_used;            ///< Used recently
 };
 
 
