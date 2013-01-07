@@ -1187,11 +1187,36 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
     float xfrac, yfrac;
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
+    // FIXME -- we know that getpixel is the slow way to look up.
+    // We should be using an iterator here.  Maybe also a full shortcut
+    // for the localpixels case.
     getpixel (xtexel, ytexel, p[0], n);
     getpixel (xtexel+1, ytexel, p[1], n);
     getpixel (xtexel, ytexel+1, p[2], n);
     getpixel (xtexel+1, ytexel+1, p[3], n);
     bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
+}
+
+
+
+void
+ImageBuf::interppixel_NDC (float x, float y, float *pixel) const
+{
+    const ImageSpec &spec (impl()->m_spec);
+    interppixel (static_cast<float>(spec.x) + x * static_cast<float>(spec.width),
+                 static_cast<float>(spec.y) + y * static_cast<float>(spec.height),
+                 pixel);
+}
+
+
+
+void
+ImageBuf::interppixel_NDC_full (float x, float y, float *pixel) const
+{
+    const ImageSpec &spec (impl()->m_spec);
+    interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
+                 static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
+                 pixel);
 }
 
 
@@ -1426,6 +1451,113 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     }
 }
 
+
+
+int
+ImageBuf::xbegin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.x;
+}
+
+
+
+int
+ImageBuf::xend () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.x + spec.width;
+}
+
+
+
+int
+ImageBuf::ybegin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.y;
+}
+
+
+
+int
+ImageBuf::yend () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.y + spec.height;
+}
+
+
+
+int
+ImageBuf::zbegin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.z;
+}
+
+
+
+int
+ImageBuf::zend () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.z + std::max(spec.depth,1);
+}
+
+
+
+int
+ImageBuf::xmin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.x;
+}
+
+
+
+int
+ImageBuf::xmax () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.x + spec.width - 1;
+}
+
+
+
+int
+ImageBuf::ymin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.y;
+}
+
+
+
+int
+ImageBuf::ymax () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.y + spec.height - 1;
+}
+
+
+
+int
+ImageBuf::zmin () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.z;
+}
+
+
+
+int
+ImageBuf::zmax () const
+{
+    const ImageSpec &spec (m_impl->m_spec);
+    return spec.z + std::max(spec.depth,1) - 1;
+}
 
 
 int

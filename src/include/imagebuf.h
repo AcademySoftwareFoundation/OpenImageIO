@@ -150,7 +150,7 @@ public:
 
     /// Destructor for an ImageBuf.
     ///
-    virtual ~ImageBuf ();
+    ~ImageBuf ();
 
     /// Restore the ImageBuf to an uninitialized state.
     ///
@@ -321,20 +321,12 @@ public:
     /// FIXME -- lg thinks that this is stupid, and the only useful NDC
     /// space is the one used by interppixel_NDC_full.  We should deprecate
     /// this in the future.
-    void interppixel_NDC (float x, float y, float *pixel) const {
-        interppixel (static_cast<float>(spec().x) + x * static_cast<float>(spec().width),
-                     static_cast<float>(spec().y) + y * static_cast<float>(spec().height),
-                     pixel);
-    }
+    void interppixel_NDC (float x, float y, float *pixel) const;
 
     /// Linearly interpolate at NDC (image) coordinates (x,y), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
-    void interppixel_NDC_full (float x, float y, float *pixel) const {
-        interppixel (static_cast<float>(spec().full_x) + x * static_cast<float>(spec().full_width),
-                     static_cast<float>(spec().full_y) + y * static_cast<float>(spec().full_height),
-                     pixel);
-    }
+    void interppixel_NDC_full (float x, float y, float *pixel) const;
 
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
     /// from floating-point values in pixel[].  Set at most
@@ -458,70 +450,40 @@ public:
     int oriented_full_y () const;
 
     /// Return the beginning (minimum) x coordinate of the defined image.
-    ///
-    int xbegin () const { return spec().x; }
+    int xbegin () const;
 
     /// Return the end (one past maximum) x coordinate of the defined image.
-    ///
-    int xend () const {
-        const ImageSpec &spec (this->spec());
-        return spec.x + spec.width;
-    }
+    int xend () const;
 
     /// Return the beginning (minimum) y coordinate of the defined image.
-    ///
-    int ybegin () const { return spec().y; }
+    int ybegin () const;
 
     /// Return the end (one past maximum) y coordinate of the defined image.
-    ///
-    int yend () const {
-        const ImageSpec &spec (this->spec());
-        return spec.y + spec.height;
-    }
+    int yend () const;
 
     /// Return the beginning (minimum) z coordinate of the defined image.
-    ///
-    int zbegin () const { return spec().z; }
+    int zbegin () const;
 
     /// Return the end (one past maximum) z coordinate of the defined image.
-    ///
-    int zend () const {
-        const ImageSpec &spec (this->spec());
-        return spec.z + std::max(spec.depth,1);
-    }
+    int zend () const;
 
     /// Return the minimum x coordinate of the defined image.
-    ///
-    int xmin () const { return spec().x; }
+    int xmin () const;
 
     /// Return the maximum x coordinate of the defined image.
-    ///
-    int xmax () const {
-        const ImageSpec &spec (this->spec());
-        return spec.x + spec.width - 1;
-    }
+    int xmax () const;
 
     /// Return the minimum y coordinate of the defined image.
-    ///
-    int ymin () const { return spec().y; }
+    int ymin () const;
 
     /// Return the maximum y coordinate of the defined image.
-    ///
-    int ymax () const {
-        const ImageSpec &spec (this->spec());
-        return spec.y + spec.height - 1;
-    }
+    int ymax () const;
 
     /// Return the minimum z coordinate of the defined image.
-    ///
-    int zmin () const { return spec().z; }
+    int zmin () const;
 
     /// Return the maximum z coordinate of the defined image.
-    ///
-    int zmax () const {
-        const ImageSpec &spec (this->spec());
-        return spec.z + std::max(spec.depth,1) - 1;
-    }
+    int zmax () const;
 
     /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
     /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
