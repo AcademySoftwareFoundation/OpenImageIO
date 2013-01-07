@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 const char* Ptex::MeshTypeName(MeshType mt)
 {
     static const char* names[] = { "triangle", "quad" };
-    if (mt < 0 || mt >= int(sizeof(names)/sizeof(const char*)))
+    if (mt < 0 /* || mt >= int(sizeof(names)/sizeof(const char*))*/)
 	return "(invalid mesh type)";
     return names[mt];
 }
@@ -54,7 +54,7 @@ const char* Ptex::MeshTypeName(MeshType mt)
 const char* Ptex::DataTypeName(DataType dt)
 {
     static const char* names[] = { "uint8", "uint16", "float16", "float32" };
-    if (dt < 0 || dt >= int(sizeof(names)/sizeof(const char*)))
+    if (dt < 0 /* || dt >= int(sizeof(names)/sizeof(const char*))*/)
 	return "(invalid data type)";
     return names[dt];
 }
@@ -72,7 +72,7 @@ const char* Ptex::BorderModeName(BorderMode m)
 const char* Ptex::EdgeIdName(EdgeId eid)
 {
     static const char* names[] = { "bottom", "right", "top", "left" };
-    if (eid < 0 || eid >= int(sizeof(names)/sizeof(const char*)))
+    if (eid < 0 /* || eid >= int(sizeof(names)/sizeof(const char*)) */)
 	return "(invalid edge id)";
     return names[eid];
 }
