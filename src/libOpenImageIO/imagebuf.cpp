@@ -830,7 +830,15 @@ ImageBuf::pixeltype () const
 
 
 
-bool
+void *
+ImageBuf::localpixels ()
+{
+    return impl()->m_localpixels;
+}
+
+
+
+const void *
 ImageBuf::localpixels () const
 {
     return impl()->m_localpixels;
@@ -1597,126 +1605,6 @@ ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
     return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin);
 }
 
-
-
-ImageBuf::IteratorBase::IteratorBase (const ImageBuf &ib)
-    : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-{
-    init_ib ();
-    range_is_image ();
-}
-
-
-
-ImageBuf::IteratorBase::IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                                     int ybegin, int yend,int zbegin, int zend)
-    : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-{
-    init_ib ();
-    m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
-    m_rng_xend   = std::min (xend,   m_img_xend);
-    m_rng_ybegin = std::max (ybegin, m_img_ybegin);
-    m_rng_yend   = std::min (yend,   m_img_yend);
-    m_rng_zbegin = std::max (zbegin, m_img_zbegin);
-    m_rng_zend   = std::min (zend,   m_img_zend);
-}
-
-
-
-ImageBuf::IteratorBase::IteratorBase (const ImageBuf &ib, const ROI &roi)
-    : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-{
-    init_ib ();
-    if (roi.defined()) {
-        m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-        m_rng_xend   = std::min (roi.xend,   m_img_xend);
-        m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-        m_rng_yend   = std::min (roi.yend,   m_img_yend);
-        m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-        m_rng_zend   = std::min (roi.zend,   m_img_zend);
-    } else {
-        range_is_image ();
-    }
-}
-
-
-
-ImageBuf::IteratorBase::IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                                    int ybegin, int yend, int zbegin, int zend,
-                                    bool unclamped)
-    : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-{
-    init_ib ();
-    if (unclamped) {
-        m_rng_xbegin = xbegin;
-        m_rng_xend = xend;
-        m_rng_ybegin = ybegin;
-        m_rng_yend = yend;
-        m_rng_zbegin = zbegin;
-        m_rng_zend = zend;
-    } else {
-        m_rng_xbegin = std::max(xbegin,m_img_xbegin);
-        m_rng_xend = std::min(xend,m_img_xend);
-        m_rng_ybegin = std::max(ybegin,m_img_ybegin);
-        m_rng_yend = std::min(yend,m_img_yend);
-        m_rng_zbegin = std::max(zbegin,m_img_zbegin);
-        m_rng_zend = std::min(zend,m_img_zend);
-    }
-}
-
-
-
-ImageBuf::IteratorBase::IteratorBase (const IteratorBase &i)
-    : m_ib (i.m_ib),
-      m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
-      m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
-      m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
-      m_tile(NULL), m_proxydata(i.m_proxydata)
-{
-    init_ib ();
-}
-
-
-const ImageBuf::IteratorBase &
-ImageBuf::IteratorBase::assign_base (const IteratorBase &i)
-{
-    if (m_tile)
-        m_ib->imagecache()->release_tile (m_tile);
-    m_tile = NULL;
-    m_proxydata = i.m_proxydata;
-    m_ib = i.m_ib;
-    init_ib ();
-    m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
-    m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
-    m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
-    return *this;
-}
-
-
-
-void
-ImageBuf::IteratorBase::init_ib ()
-{
-    const ImageSpec &spec (m_ib->spec());
-    m_deep = spec.deep;
-    m_localpixels = m_ib->m_impl->m_localpixels;
-    m_img_xbegin = spec.x; m_img_xend = spec.x+spec.width;
-    m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
-    m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
-    m_nchannels = spec.nchannels;
-    m_tilewidth = spec.tile_width;
-    m_pixel_bytes = m_ib->m_impl->m_pixel_bytes;
-}
-
-
-
-void
-ImageBuf::IteratorBase::range_is_image ()
-{
-    m_rng_xbegin = m_img_xbegin;  m_rng_xend = m_img_xend; 
-    m_rng_ybegin = m_img_ybegin;  m_rng_yend = m_img_yend;
-    m_rng_zbegin = m_img_zbegin;  m_rng_zend = m_img_zend;
-}
 
 
 }

@@ -533,9 +533,11 @@ public:
 
     TypeDesc pixeltype () const;
 
-    /// Are the pixels "local", i.e. fully in RAM and not backed by an
-    /// ImageCache?
-    bool localpixels () const;
+    /// A pointer to "local" pixels, if they are fully in RAM and not
+    /// backed by an ImageCache, or NULL otherwise.  (You can also test
+    /// it like a bool to find out if pixels are local.)
+    void *localpixels ();
+    const void *localpixels () const;
 
     /// Are the pixels backed by an ImageCache, rather than the whole
     /// image being in RAM somewhere?
@@ -577,13 +579,43 @@ public:
 
     class IteratorBase {
     public:
-        IteratorBase (const ImageBuf &ib);
+        IteratorBase (const ImageBuf &ib)
+            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+        {
+            init_ib ();
+            range_is_image ();
+        }
+
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                      int ybegin, int yend, int zbegin=0, int zend=1);
+                      int ybegin, int yend, int zbegin=0, int zend=1)
+            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+        {
+            init_ib ();
+            m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
+            m_rng_xend   = std::min (xend,   m_img_xend);
+            m_rng_ybegin = std::max (ybegin, m_img_ybegin);
+            m_rng_yend   = std::min (yend,   m_img_yend);
+            m_rng_zbegin = std::max (zbegin, m_img_zbegin);
+            m_rng_zend   = std::min (zend,   m_img_zend);
+        }
 
         /// Construct read-write clamped valid iteration region from
         /// ImageBuf and ROI.
-        IteratorBase (const ImageBuf &ib, const ROI &roi);
+        IteratorBase (const ImageBuf &ib, const ROI &roi)
+            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+        {
+            init_ib ();
+            if (roi.defined()) {
+                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+                m_rng_xend   = std::min (roi.xend,   m_img_xend);
+                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+                m_rng_yend   = std::min (roi.yend,   m_img_yend);
+                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+                m_rng_zend   = std::min (roi.zend,   m_img_zend);
+            } else {
+                range_is_image ();
+            }
+        }
 
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel, and do NOT
@@ -594,9 +626,36 @@ public:
         /// pointing to a valid image pixel.
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
                       int ybegin, int yend, int zbegin, int zend,
-                      bool unclamped);
+                      bool unclamped)
+            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+        {
+            init_ib ();
+            if (unclamped) {
+                m_rng_xbegin = xbegin;
+                m_rng_xend = xend;
+                m_rng_ybegin = ybegin;
+                m_rng_yend = yend;
+                m_rng_zbegin = zbegin;
+                m_rng_zend = zend;
+            } else {
+                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
+                m_rng_xend = std::min(xend,m_img_xend);
+                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
+                m_rng_yend = std::min(yend,m_img_yend);
+                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
+                m_rng_zend = std::min(zend,m_img_zend);
+            }
+        }
 
-        IteratorBase (const IteratorBase &i);
+        IteratorBase (const IteratorBase &i)
+            : m_ib (i.m_ib),
+              m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
+              m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
+              m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
+              m_tile(NULL), m_proxydata(i.m_proxydata)
+        {
+            init_ib ();
+        }
 
         ~IteratorBase () {
             if (m_tile)
@@ -605,7 +664,18 @@ public:
 
         /// Assign one IteratorBase to another
         ///
-        const IteratorBase & assign_base (const IteratorBase &i);
+        const IteratorBase & assign_base (const IteratorBase &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
+            m_proxydata = i.m_proxydata;
+            m_ib = i.m_ib;
+            init_ib ();
+            m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
+            m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
+            m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
+            return *this;
+        }
 
         /// Retrieve the current x location of the iterator.
         ///
@@ -698,11 +768,25 @@ public:
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
-        void init_ib ();
+        void init_ib () {
+            const ImageSpec &spec (m_ib->spec());
+            m_deep = spec.deep;
+            m_localpixels = m_ib->localpixels();
+            m_img_xbegin = spec.x; m_img_xend = spec.x+spec.width;
+            m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
+            m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
+            m_nchannels = spec.nchannels;
+            m_tilewidth = spec.tile_width;
+            m_pixel_bytes = spec.pixel_bytes();
+        }
 
         // Helper called by ctrs -- make the iteration range the full
         // image data window.
-        void range_is_image ();
+        void range_is_image () {
+            m_rng_xbegin = m_img_xbegin;  m_rng_xend = m_img_xend; 
+            m_rng_ybegin = m_img_ybegin;  m_rng_yend = m_img_yend;
+            m_rng_zbegin = m_img_zbegin;  m_rng_zend = m_img_zend;
+        }
 
         // Helper called by pos(), but ONLY for the case where we are
         // moving from an existing pixel to the next spot in +x.
