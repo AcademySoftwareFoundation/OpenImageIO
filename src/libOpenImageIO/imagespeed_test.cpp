@@ -41,6 +41,8 @@
 
 #include <iostream>
 
+#include <boost/bind.hpp>
+
 OIIO_NAMESPACE_USING;
 
 static bool verbose = false;
@@ -163,6 +165,132 @@ time_ic_get_pixels ()
 
 
 
+static void
+test_read (const std::string &explanation,
+           void (*func)(), int autotile=64, int autoscanline=1)
+{
+    imagecache->invalidate_all (true);  // Don't hold anything
+    // Force the whole image to be read at once
+    imagecache->attribute ("autotile", autotile);
+    imagecache->attribute ("autoscanline", autoscanline);
+    double t = time_trial (func, ntrials);
+    imagesize_t np = imagecache->imagespec(input_filename)->image_pixels();
+    double rate = double(np) / t;
+    std::cout << "  " << explanation << ": "
+              << Strutil::timeintervalformat(t,2) 
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+}
+
+
+
+static float
+time_loop_pixels_1D (ImageBuf &ib, int iters)
+{
+    ASSERT (ib.localpixels() && ib.pixeltype() == TypeDesc::TypeFloat);
+    const ImageSpec &spec (ib.spec());
+    imagesize_t npixels = spec.image_pixels();
+    int nchannels = spec.nchannels;
+    double sum = 0.0f;
+    for (int i = 0;  i < iters;  ++i) {
+        const float *f = (const float *) ib.pixeladdr (spec.x, spec.y, spec.z);
+        ASSERT (f);
+        for (imagesize_t p = 0;  p < npixels;  ++p) {
+            sum += f[0];
+            f += nchannels;
+        }
+    }
+    // std::cout << float(sum/npixels/iters) << "\n";
+    return float(sum/npixels/iters);
+}
+
+
+
+static float
+time_loop_pixels_3D (ImageBuf &ib, int iters)
+{
+    ASSERT (ib.localpixels() && ib.pixeltype() == TypeDesc::TypeFloat);
+    const ImageSpec &spec (ib.spec());
+    imagesize_t npixels = spec.image_pixels();
+    int nchannels = spec.nchannels;
+    double sum = 0.0f;
+    for (int i = 0;  i < iters;  ++i) {
+        const float *f = (const float *) ib.pixeladdr (spec.x, spec.y, spec.z);
+        ASSERT (f);
+        for (int z = spec.z, ze = spec.z+spec.depth; z < ze; ++z) {
+            for (int y = spec.y, ye = spec.y+spec.height; y < ye; ++y) {
+                for (int x = spec.x, xe = spec.x+spec.width; x < xe; ++x) {
+                    sum += f[0];
+                    f += nchannels;
+                }
+            }
+        }
+    }
+    // std::cout << float(sum/npixels/iters) << "\n";
+    return float(sum/npixels/iters);
+}
+
+
+
+static float
+time_loop_pixels_3D_getchannel (ImageBuf &ib, int iters)
+{
+    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    const ImageSpec &spec (ib.spec());
+    imagesize_t npixels = spec.image_pixels();
+    double sum = 0.0f;
+    for (int i = 0;  i < iters;  ++i) {
+        for (int z = spec.z, ze = spec.z+spec.depth; z < ze; ++z) {
+            for (int y = spec.y, ye = spec.y+spec.height; y < ye; ++y) {
+                for (int x = spec.x, xe = spec.x+spec.width; x < xe; ++x) {
+                    sum += ib.getchannel (x, y, 0);
+                }
+            }
+        }
+    }
+    // std::cout << float(sum/npixels/iters) << "\n";
+    return float(sum/npixels/iters);
+}
+
+
+
+static float
+time_iterate_pixels (ImageBuf &ib, int iters)
+{
+    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    const ImageSpec &spec (ib.spec());
+    imagesize_t npixels = spec.image_pixels();
+    double sum = 0.0f;
+    for (int i = 0;  i < iters;  ++i) {
+        for (ImageBuf::ConstIterator<float,float> p (ib);  !p.done();  ++p) {
+            sum += p[0];
+        }
+    }
+    // std::cout << float(sum/npixels/iters) << "\n";
+    return float(sum/npixels/iters);
+}
+
+
+
+static void
+test_pixel_iteration (const std::string &explanation,
+                      float (*func)(ImageBuf&,int),
+                      bool preload, int iters=100, int autotile=64)
+{
+    imagecache->invalidate_all (true);  // Don't hold anything
+    // Force the whole image to be read at once
+    imagecache->attribute ("autotile", autotile);
+    imagecache->attribute ("autoscanline", 1);
+    ImageBuf ib (input_filename.string(), imagecache);
+    ib.read (0, 0, preload, TypeDesc::TypeFloat);
+    double t = time_trial (boost::bind(func,boost::ref(ib),iters), ntrials);
+    double rate = double(ib.spec().image_pixels()) / (t/iters);
+    std::cout << "  " << explanation << ": "
+              << Strutil::timeintervalformat(t/iters,3) 
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -176,69 +304,61 @@ main (int argc, char **argv)
     imagecache = ImageCache::create ();
     imagecache->attribute ("forcefloat", 1);
 
+    std::cout << "Timing various ways of reading images:\n";
+
     // Allocate a buffer big enough (for floats)
     bool ok = imagecache->get_imagespec (input_filename, spec, 0, 0, true);
     ASSERT (ok);
     imagecache->invalidate_all (true);  // Don't hold anything
     buffer.resize (spec.image_pixels()*spec.nchannels*sizeof(float), 0);
  
-    {
-        double t = time_trial (time_read_image, ntrials);
-        std::cout << "read_image speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-
+    test_read ("read_image                                   ",
+               time_read_image, 0, 0);
     if (spec.tile_width == 0) {
-        double t = time_trial (time_read_scanline_at_a_time, ntrials);
-        std::cout << "read_scanline (1 at a time) speed: " << Strutil::timeintervalformat(t,2) << "\n";
+        test_read ("read_scanline (1 at a time)                  ",
+                   time_read_scanline_at_a_time, 0, 0);
+        test_read ("read_scanlines (64 at a time)                ",
+                   time_read_64_scanlines_at_a_time, 0, 0);
     }
+    test_read ("ImageBuf read                                ",
+               time_read_imagebuf, 0, 0);
+    test_read ("ImageCache get_pixels                        ",
+               time_ic_get_pixels, 0, 0);
 
-    if (spec.tile_width == 0) {
-        double t = time_trial (time_read_64_scanlines_at_a_time, ntrials);
-        std::cout << "read_scanlines (64 at a time) speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_read_imagebuf, ntrials);
-        std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
+    test_read ("ImageBuf read (autotile)                     ",
+               time_read_imagebuf, 64, 0);
+    test_read ("ImageCache get_pixels (autotile)             ",
+               time_ic_get_pixels, 64, 0);
 
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_ic_get_pixels, ntrials);
-        std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-
-    std::cout << "With autotile = 64:\n";
-    imagecache->attribute ("autotile", 64);
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_read_imagebuf, ntrials);
-        std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_ic_get_pixels, ntrials);
-        std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-
-    std::cout << "With autotile = 64, autoscanline = 1:\n";
-    imagecache->attribute ("autotile", 64);
-    imagecache->attribute ("autoscanline", 1);
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_read_imagebuf, ntrials);
-        std::cout << "ImageBuf read speed: " << Strutil::timeintervalformat(t,2) << "\n";
-    }
-    {
-        imagecache->invalidate_all (true);  // Don't hold anything
-        double t = time_trial (time_ic_get_pixels, ntrials);
-        std::cout << "ImageCache get_pixels speed: " << Strutil::timeintervalformat(t,2) << "\n";
+    if (spec.tile_width == 0) {  // don't bother for tiled images
+        test_read ("ImageBuf read (autotile+autoscanline)        ",
+                   time_read_imagebuf, 64, 1);
+        test_read ("ImageCache get_pixels (autotile+autoscanline)",
+                   time_ic_get_pixels, 64, 1);
     }
 
     if (verbose)
         std::cout << "\n" << imagecache->getstats(2) << "\n";
 
-    imagecache->invalidate_all (true);  // Don't hold anything
+    std::cout << "\n";
+    const int iters = 64;
+    std::cout << "Timing ways of iterating over an image:\n";
+
+    test_pixel_iteration ("Loop pointers on loaded image (\"1D\")    ",
+                          time_loop_pixels_1D, true, iters);
+    test_pixel_iteration ("Loop pointers on loaded image (\"3D\")    ",
+                          time_loop_pixels_3D, true, iters);
+    test_pixel_iteration ("Loop + getchannel on loaded image (\"3D\")",
+                          time_loop_pixels_3D_getchannel, true, iters/32);
+    test_pixel_iteration ("Iterate over a loaded image             ",
+                          time_iterate_pixels, true, iters);
+    test_pixel_iteration ("Iterate over a cache image              ",
+                          time_iterate_pixels, false, iters);
+    test_pixel_iteration ("Loop + getchannel on cached image (\"3D\")",
+                          time_loop_pixels_3D_getchannel, false, iters/32);
+
+    if (verbose)
+        std::cout << "\n" << imagecache->getstats(2) << "\n";
 
     ImageCache::destroy (imagecache);
     return unit_test_failures;
