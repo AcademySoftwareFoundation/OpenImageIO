@@ -694,6 +694,15 @@ public:
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
         void pos (int x_, int y_, int z_=0) {
+            if (x_ == m_x+1 && x_ < m_rng_xend && y_ == m_y && z_ == m_z &&
+                m_valid && m_exists) {
+                // Special case for what is in effect just incrementing x
+                // within the iteration region.
+                m_x = x_;
+                pos_xincr ();
+                m_exists = (x_ < m_img_xend);
+                return;
+            }
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
             if (! e || m_deep)
@@ -701,13 +710,45 @@ public:
             else if (m_localpixels)
                 m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
             else
-                m_proxydata = (char *)m_ib->retile (x_, y_, z_,
-                                          m_tile, m_tilexbegin,
-                                          m_tileybegin, m_tilezbegin);
+                m_proxydata = (char *)m_ib->retile (x_, y_, z_, m_tile,
+                                                    m_tilexbegin, m_tileybegin,
+                                                    m_tilezbegin, m_tilexend);
             m_x = x_;  m_y = y_;  m_z = z_;
             m_valid = v;
             m_exists = e;
         }
+
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ () {
+            if (++m_x <  m_rng_xend) {
+                // Special case: we only incremented x, didn't change y
+                // or z, and the previous position was within the data
+                // window.  Call a shortcut version of pos.
+                if (m_exists) {
+                    DASSERT (m_pixel_bytes == size_t(m_nchannels*sizeof(BUFT)));
+                    pos_xincr ();
+                    return;
+                }
+            } else {
+                // Wrap to the next scanline
+                m_x = m_rng_xbegin;
+                if (++m_y >= m_rng_yend) {
+                    m_y = m_rng_ybegin;
+                    if (++m_z >= m_rng_zend) {
+                        m_valid = false;  // shortcut -- finished iterating
+                        return;
+                    }
+                }
+            }
+            pos (m_x, m_y, m_z);
+        }
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ (int) {
+            ++(*this);
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -724,8 +765,8 @@ public:
         int m_x, m_y, m_z;
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
-        int m_tilexend, m_tileyend, m_tilezend;
-        int m_nchannels, m_tilewidth, m_pixel_bytes;
+        int m_tilexend;
+        int m_nchannels, m_pixel_bytes;
         char *m_proxydata;
 
         // Helper called by ctrs -- set up some locally cached values
@@ -738,8 +779,11 @@ public:
             m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
             m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
             m_nchannels = spec.nchannels;
-            m_tilewidth = spec.tile_width;
+//            m_tilewidth = spec.tile_width;
             m_pixel_bytes = spec.pixel_bytes();
+            m_x = 0xffffffff;
+            m_y = 0xffffffff;
+            m_z = 0xffffffff;
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -763,12 +807,13 @@ public:
                 m_proxydata = NULL;
             } else if (m_localpixels) {
                 m_proxydata += m_pixel_bytes;
-            } else if (m_x < m_tilexbegin+m_tilewidth) {
+            } else if (m_x < m_tilexend) {
                 // Haven't crossed a tile boundary, don't retile!
                 m_proxydata += m_pixel_bytes;
             } else {
                 m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
-                                    m_tilexbegin, m_tileybegin, m_tilezbegin);
+                                    m_tilexbegin, m_tileybegin, m_tilezbegin,
+                                    m_tilexend);
             }
         }
     };
@@ -848,33 +893,6 @@ public:
         }
 
         ~Iterator () { }
-
-        /// Increment to the next pixel in the region.
-        ///
-        void operator++ () {
-            if (++m_x >= m_rng_xend) {
-                m_x = m_rng_xbegin;
-                if (++m_y >= m_rng_yend) {
-                    m_y = m_rng_ybegin;
-                    ++m_z;
-                }
-            } else {
-                // Special case: we only incremented x, didn't change y
-                // or z, and the previous position was within the data
-                // window.  Call a shortcut version of pos.
-                if (m_exists) {
-                    DASSERT (m_pixel_bytes == size_t(m_nchannels*sizeof(BUFT)));
-                    pos_xincr ();
-                    return;
-                }
-            }
-            pos (m_x, m_y, m_z);
-        }
-        /// Increment to the next pixel in the region.
-        ///
-        void operator++ (int) {
-            ++(*this);
-        }
 
         /// Assign one Iterator to another
         ///
@@ -974,32 +992,6 @@ public:
 
         ~ConstIterator () { }
 
-        /// Increment to the next pixel in the region.
-        ///
-        void operator++ () {
-            if (++m_x >= m_rng_xend) {
-                m_x = m_rng_xbegin;
-                if (++m_y >= m_rng_yend) {
-                    m_y = m_rng_ybegin;
-                    ++m_z;
-                }
-            } else {
-                // Special case: we only incremented x, didn't change y
-                // or z, and the previous position was within the data
-                // window.  Call a shortcut version of pos.
-                if (m_exists) {
-                    pos_xincr ();
-                    return;
-                }
-            }
-            pos (m_x, m_y, m_z);
-        }
-        /// Increment to the next pixel in the region.
-        ///
-        void operator++ (int) {
-            ++(*this);
-        }
-
         /// Assign one ConstIterator to another
         ///
         const ConstIterator & operator= (const ConstIterator &i) {
@@ -1047,7 +1039,8 @@ protected:
     // within the tile.
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
-                         int &tileybegin, int &tilezbegin) const;
+                         int &tileybegin, int &tilezbegin,
+                         int &tilexend) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);

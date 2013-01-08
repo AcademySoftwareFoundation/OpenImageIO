@@ -166,7 +166,8 @@ public:
     void *pixeladdr (int x, int y, int z);
 
     const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
-                    int &tilexbegin, int &tileybegin, int &tilezbegin) const;
+                    int &tilexbegin, int &tileybegin, int &tilezbegin,
+                    int &tilexend) const;
 
 private:
     ustring m_name;              ///< Filename of the image
@@ -1699,11 +1700,13 @@ ImageBuf::pixeladdr (int x, int y, int z)
 
 const void *
 ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
-                      int &tilexbegin, int &tileybegin, int &tilezbegin) const
+                      int &tilexbegin, int &tileybegin, int &tilezbegin,
+                      int &tilexend) const
 {
     int tw = m_spec.tile_width, th = m_spec.tile_height;
     int td = std::max (1, m_spec.tile_depth);
-    if (tile == NULL || x < tilexbegin || x >= (tilexbegin+tw) ||
+    DASSERT (tile == NULL || tilexend == (tilexbegin+tw));
+    if (tile == NULL || x < tilexbegin || x >= tilexend ||
                         y < tileybegin || y >= (tileybegin+th) ||
                         z < tilezbegin || z >= (tilezbegin+td)) {
         // not the same tile as before
@@ -1715,12 +1718,13 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
         tilexbegin = m_spec.x + xtile*tw;
         tileybegin = m_spec.y + ytile*th;
         tilezbegin = m_spec.z + ztile*td;
+        tilexend = tilexbegin + tw;
         tile = m_imagecache->get_tile (m_name, m_current_subimage,
                                        m_current_miplevel, x, y, z);
     }
 
-    size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
-    offset += ((z - tilezbegin) * tw * th);
+    size_t offset = ((z - tilezbegin) * th + (y - tileybegin)) * tw
+                    + (x - tilexbegin);
     offset *= m_spec.pixel_bytes();
     DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
                 "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
@@ -1732,9 +1736,11 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
 
 const void *
 ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
-                  int &tilexbegin, int &tileybegin, int &tilezbegin) const
+                  int &tilexbegin, int &tileybegin, int &tilezbegin,
+                  int &tilexend) const
 {
-    return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin);
+    return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
+                           tilexend);
 }
 
 
