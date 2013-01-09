@@ -111,7 +111,7 @@ def info_command (file, extraargs="") :
 # the file "out.txt".  We allow a small number of pixels to have up to
 # 1 LSB (8 bit) error, it's very hard to make different platforms and
 # compilers always match to every last floating point bit.
-def diff_command (fileA, fileB, extraargs="", silent=0, concat=True) :
+def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
     command = (oiio_app("idiff") + "-a "
                + "-failpercent 0.01 -hardfail 0.004 -warn 0.004 "
                + extraargs + " " + oiio_relpath(fileA,tmpdir) 
@@ -121,6 +121,21 @@ def diff_command (fileA, fileB, extraargs="", silent=0, concat=True) :
     if concat:
         command += " ;\n"
     return command
+
+
+# Construct a command that will create a texture, appending console
+# output to the file "out.txt".
+def maketx_command (infile, outfile, extraargs="", silent=False, concat=True) :
+    command = (oiio_app("maketx") 
+               + " " + oiio_relpath(infile,tmpdir) 
+               + " " + extraargs
+               + " -o " + oiio_relpath(outfile,tmpdir) )
+    if not silent :
+        command += " >> out.txt"
+    if concat:
+        command += " ;\n"
+    return command
+
 
 
 # Construct a command that will test the basic ability to read and write
