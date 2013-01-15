@@ -36,6 +36,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           color_ocio.cpp
                           imagebufalgo.cpp imagebufalgo_orient.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          maketexture.cpp
                           ../libutil/argparse.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
