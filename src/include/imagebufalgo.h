@@ -416,6 +416,123 @@ bool OIIO_API histogram_draw (ImageBuf &R,
 
 
 
+enum OIIO_API MakeTextureMode {
+    MakeTxTexture, MakeTxShadow, MakeTxEnvLatl, _MakeTxLast
+};
+
+/// Turn an image file (filename) into a tiled, MIP-mapped, texture file
+/// (outputfilename).  The 'mode' describes what type of texture file we
+/// are creating.  If the outstream pointer is not NULL, it should point
+/// to a stream (for example, &std::out, or a pointer to a local 
+/// std::stringstream to capture output), which is where console output
+/// and error messages will be deposited.
+///
+/// The 'config' is an ImageSpec that contains all the information and
+/// special instructions for making the texture.  Anything set in config
+/// (format, tile size, or named metadata) will take precedence over
+/// whatever is specified by the input file itself.  Additionally, named
+/// metadata that starts with "maketx:" will not be output to the file
+/// itself, but may contain instructions controlling how the texture is
+/// created.  The full list of supported configuration options is:
+///
+/// Named fields:
+///    format         Data format of the texture file (default: UNKNOWN =
+///                     same format as the input)
+///    tile_width     Preferred tile size (default: 64x64x1)
+///    tile_height    
+///    tile_depth     
+/// Metadata in config.extra_attribs:
+///    compression (string)   Default: "zip"
+///    fovcot (float)         Default: aspect ratio of the image resolution
+///    planarconfig (string)  Default: "separate"
+///    worldtocamera (matrix) World-to-camera matrix of the view.
+///    worldtoscreen (matrix) World-to-screen space matrix of the view.
+///    wrapmodes (string)     Default: "black,black"
+///    maketx:verbose (int)   How much detail should go to outstream (0).
+///    maketx:stats (int)     If nonzero, print stats to outstream (0).
+///    maketx:resize (int)    If nonzero, resize to power of 2. (0)
+///    maketx:nomipmap (int)  If nonzero, only output the top MIP level (0).
+///    maketx:updatemode (int) If nonzero, write new output only if the
+///                              output file doesn't already exist, or is
+///                              older than the input file. (0)
+///    maketx:constant_color_detect (int)
+///                           If nonzero, detect images that are entirely
+///                             one color, and change them to be low
+///                             resolution (default: 0).
+///    maketx:monochrome_detect (int)
+///                           If nonzero, change RGB images which have 
+///                              R==G==B everywhere to single-channel 
+///                              grayscale (default: 0).
+///    maketx:opaquedetect (int)
+///                           If nonzero, drop the alpha channel if alpha
+///                              is 1.0 in all pixels (default: 0).
+///    maketx:unpremult (int) If nonzero, unpremultiply color by alpha before
+///                              color conversion, then multiply by alpha
+///                              after color conversion (default: 0).
+///    maketx:incolorspace (string)
+///    maketx:outcolorspace (string) 
+///                           These two together will apply a color conversion
+///                               (with OpenColorIO, if compiled). Default: ""
+///    maketx:checknan (int)  If nonzero, will consider it an error if the
+///                               input image has any NaN pixels. (0)
+///    maketx:fixnan (string) If set to "black" or "box3", will attempt
+///                               to repair any NaN pixels found in the
+///                               input image (default: "none").
+///    maketx:set_full_to_pixels (int)
+///                           If nonzero, doctors the full/display window
+///                               of the texture to be identical to the
+///                               pixel/data window and reset the origin
+///                               to 0,0 (default: 0).
+///    maketx:filtername (string)
+///                           If set, will specify the name of a high-quality
+///                           filter to use when resampling for MIPmap levels.
+///                           Default: "", use simple bilinear resampling.
+///    maketx:nchannels (int) If nonzero, will specify how many channels
+///                              the output texture should have, padding with
+///                              0 values or dropping channels, if it doesn't
+///                              the number of channels in the input.
+///                              (default: 0, meaning keep all input channels)
+///    maketx:fileformatname (string)
+///                           If set, will specify the output file format.
+///                               (default: "", meaning infer the format from
+///                               the output filename)
+///    maketx:prman_metadata (int)
+///                           If set, output some metadata that PRMan will
+///                               need for its textures. (0)
+///    maketx:oiio_options (int)
+///                           (Deprecated; all are handled by default)
+///    maketx:prman_options (int)
+///                           If nonzero, override a whole bunch of settings
+///                               as needed to make textures that are
+///                               compatible with PRMan. (0)
+///    maketx:mipimages (string)
+///                           Semicolon-separated list of alternate images
+///                               to be used for individual MIPmap levels,
+///                               rather than simply downsizing. (default: "")
+///    maketx:full_command_line (string)
+///                           The command or program used to generate this
+///                               call, will be embedded in the metadata.
+///                               (default: "")
+///    maketx:ignore_unassoc (int)
+///                           If nonzero, will disbelieve any evidence that
+///                               the input image is unassociated alpha. (0)
+///
+bool OIIO_API make_texture (MakeTextureMode mode,
+                            const std::string &filename,
+                            const std::string &outputfilename,
+                            const ImageSpec &config,
+                            std::ostream *outstream = NULL);
+
+/// Version of make_texture that takes multiple filenames (reserved for
+/// future expansion, such as assembling several faces into a cube map).
+bool OIIO_API make_texture (MakeTextureMode mode,
+                            const std::vector<std::string> &filenames,
+                            const std::string &outputfilename,
+                            const ImageSpec &config,
+                            std::ostream *outstream = NULL);
+                                
+
+
 /// Helper template for generalized multithreading for image processing
 /// functions.  Some function/functor f is applied to every pixel the
 /// region of interest roi, dividing the region into multiple threads if
@@ -431,7 +548,7 @@ bool OIIO_API histogram_draw (ImageBuf &R,
 ///                       float scale, ROI roi);
 /// Then you can parallelize it as follows:
 ///     ImageBuf R /*result*/, A /*input*/;
-///     ROI roi = get_roi (R);
+///     ROI roi = get_roi (R.spec());
 ///     parallel_image (boost::bind(my_image_op,boost::ref(R),
 ///                                 boost::cref(A),3.14,_1), roi);
 ///
