@@ -183,9 +183,13 @@ input_file (int argc, const char *argv[])
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.compute_sha1 = ot.hash;
+            pio.metamatch = ot.printinfo_metamatch;
+            pio.nometamatch = ot.printinfo_nometamatch;
             long long totalsize = 0;
             std::string error;
-            OiioTool::print_info (argv[i], pio, totalsize, error);
+            bool ok = OiioTool::print_info (argv[i], pio, totalsize, error);
+            if (! ok)
+                std::cerr << "oiiotool ERROR: " << error << "\n";
         }
         ot.process_pending ();
     }
@@ -1852,6 +1856,10 @@ getargs (int argc, char *argv[])
                 "-q %!", &ot.verbose, "Quiet mode (turn verbose off)",
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
+                "--metamatch %s", &ot.printinfo_metamatch,
+                    "Regex: which metadata is printed with -info -v",
+                "--no-metamatch %s", &ot.printinfo_nometamatch,
+                    "Regex: which metadata is excluded with -info -v",
                 "--stats", &ot.printstats, "Print pixel statistics on all inputs",
                 "--hash", &ot.hash, "Print SHA-1 hash of each input image",
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
