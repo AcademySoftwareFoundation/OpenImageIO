@@ -60,7 +60,7 @@ OIIO_NAMESPACE_USING
 // # FIXME: Refactor all statics into a struct
 
 // Basic runtime options
-static bool newmode = false;
+static bool newmode = true;
 static std::string full_command_line;
 static std::vector<std::string> filenames;
 static std::string outputfilename;
