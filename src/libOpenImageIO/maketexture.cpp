@@ -39,6 +39,8 @@
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include <OpenEXR/ImathMatrix.h>
 #include <OpenEXR/half.h>
 
@@ -153,12 +155,12 @@ datestring (time_t t)
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 template<typename SRCTYPE>
 static void
-copy_block_ (ImageBuf *dst, const ImageBuf *src, ROI roi=ROI())
+copy_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI())
 {
-    int nchannels = dst->spec().nchannels;
-    ASSERT (src->spec().nchannels == nchannels);
-    ImageBuf::Iterator<float> d (*dst, roi, true /*unclamped*/);
-    ImageBuf::ConstIterator<SRCTYPE> s (*src, roi, true /*unclamped*/);
+    int nchannels = dst.spec().nchannels;
+    ASSERT (src.spec().nchannels == nchannels);
+    ImageBuf::Iterator<float> d (dst, roi, true /*unclamped*/);
+    ImageBuf::ConstIterator<SRCTYPE> s (src, roi, true /*unclamped*/);
     for (  ; ! d.done();  ++d, ++s) {
         if (! d.exists())
             continue;   // skip nonexistant pixels
@@ -176,10 +178,10 @@ copy_block_ (ImageBuf *dst, const ImageBuf *src, ROI roi=ROI())
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 static bool
-copy_block (ImageBuf *dst, const ImageBuf *src, ROI roi)
+copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 {
-    ASSERT (dst->spec().format == TypeDesc::TypeFloat);
-    switch (src->spec().format.basetype) {
+    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+    switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT : copy_block_<float> (dst, src, roi); break;
     case TypeDesc::UINT8 : copy_block_<unsigned char> (dst, src, roi); break;
     case TypeDesc::UINT16: copy_block_<unsigned short> (dst, src, roi); break;
@@ -192,7 +194,7 @@ copy_block (ImageBuf *dst, const ImageBuf *src, ROI roi)
     case TypeDesc::INT64 : copy_block_<long long> (dst, src, roi); break;
     case TypeDesc::DOUBLE: copy_block_<double> (dst, src, roi); break;
     default:
-        dst->error ("Unsupported pixel data format '%s'", src->spec().format);
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
     
@@ -204,10 +206,10 @@ copy_block (ImageBuf *dst, const ImageBuf *src, ROI roi)
 // Resize src into dst using a good quality filter, 
 // for the pixel range [x0,x1) x [y0,y1).
 static void
-resize_block_HQ (ImageBuf *dst, const ImageBuf *src, ROI roi, Filter2D *filter)
+resize_block_HQ (ImageBuf &dst, const ImageBuf &src, ROI roi, Filter2D *filter)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
-    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter);
+    ImageBufAlgo::resize (dst, src, x0, x1, y0, y1, filter);
 }
 
 
@@ -263,13 +265,12 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
 
 
 // Resize src into dst, relying on the linear interpolation of
-// interppixel_NDC_full or interppixel_NDC_clamped, for the pixel range
-// [x0,x1) x [y0,y1).
+// interppixel_NDC_full or interppixel_NDC_clamped, for the pixel range.
 static void
-resize_block (ImageBuf *dst, const ImageBuf *src, ROI roi, bool envlatlmode)
+resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
-    const ImageSpec &srcspec (src->spec());
+    const ImageSpec &srcspec (src.spec());
     bool src_is_crop = (srcspec.x > srcspec.full_x ||
                         srcspec.y > srcspec.full_y ||
                         srcspec.z > srcspec.full_z ||
@@ -277,7 +278,7 @@ resize_block (ImageBuf *dst, const ImageBuf *src, ROI roi, bool envlatlmode)
                         srcspec.y+srcspec.height < srcspec.full_y+srcspec.full_height ||
                         srcspec.z+srcspec.depth < srcspec.full_z+srcspec.full_depth);
 
-    const ImageSpec &dstspec (dst->spec());
+    const ImageSpec &dstspec (dst.spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
     float xoffset = dstspec.full_x;
     float yoffset = dstspec.full_y;
@@ -288,10 +289,10 @@ resize_block (ImageBuf *dst, const ImageBuf *src, ROI roi, bool envlatlmode)
         for (int x = x0;  x < x1;  ++x) {
             float s = (x+0.5f)*xscale + xoffset;
             if (src_is_crop)
-                src->interppixel_NDC_full (s, t, pel);
+                src.interppixel_NDC_full (s, t, pel);
             else
-                interppixel_NDC_clamped (*src, s, t, pel, envlatlmode);
-            dst->setpixel (x, y, pel);
+                interppixel_NDC_clamped (src, s, t, pel, envlatlmode);
+            dst.setpixel (x, y, pel);
         }
     }
 }
@@ -300,14 +301,14 @@ resize_block (ImageBuf *dst, const ImageBuf *src, ROI roi, bool envlatlmode)
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 static void
-check_nan_block (const ImageBuf* src, ROI roi, int &found_nonfinite)
+check_nan_block (const ImageBuf &src, ROI roi, int &found_nonfinite)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
-    const ImageSpec &spec (src->spec());
+    const ImageSpec &spec (src.spec());
     float *pel = (float *) alloca (spec.pixel_bytes());
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
-            src->getpixel (x, y, pel);
+            src.getpixel (x, y, pel);
             for (int c = 0;  c < spec.nchannels;  ++c) {
                 if (! isfinite(pel[c])) {
                     spin_lock lock (maketx_mutex);
@@ -405,12 +406,14 @@ maketx_merge_spec (ImageSpec &dstspec, const ImageSpec &srcspec)
 
 static bool
 write_mipmap (ImageBufAlgo::MakeTextureMode mode,
-              ImageBuf &img, const ImageSpec &outspec_template,
+              boost::shared_ptr<ImageBuf> &img,
+              const ImageSpec &outspec_template,
               std::string outputfilename, ImageOutput *out,
               TypeDesc outputdatatype, bool mipmap,
               Filter2D *filter, const ImageSpec &configspec,
               std::ostream &outstream,
-              double &stat_writetime, double &stat_miptime)
+              double &stat_writetime, double &stat_miptime,
+              size_t &peak_mem)
 {
     bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl);
 
@@ -440,7 +443,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
         outspec.attribute ("oiio:sampleborder", 1);
     }
     if (envlatlmode && src_samples_border)
-        fix_latl_edges (img);
+        fix_latl_edges (*img);
 
     Timer writetimer;
     if (! out->open (outputfilename.c_str(), outspec)) {
@@ -458,10 +461,10 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
         outstream << "  Top level is " << formatres(outspec) << std::endl;
     }
 
-    if (! img.write (out)) {
+    if (! img->write (out)) {
         // ImageBuf::write transfers any errors from the ImageOutput to
         // the ImageBuf.
-        outstream << "maketx ERROR: Write failed \" : " << img.geterror() << "\n";
+        outstream << "maketx ERROR: Write failed \" : " << img->geterror() << "\n";
         out->close ();
         return false;
     }
@@ -475,8 +478,8 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
         std::string mipimages_unsplit = configspec.get_string_attribute ("maketx:mipimages");
         if (mipimages_unsplit.length())
             Strutil::split (mipimages_unsplit, mipimages, ";");
-        ImageBuf tmp;
-        ImageBuf *big = &img, *small = &tmp;
+        
+        boost::shared_ptr<ImageBuf> small (new ImageBuf);
         while (outspec.width > 1 || outspec.height > 1) {
             Timer miptimer;
             ImageSpec smallspec;
@@ -489,10 +492,9 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 if (smallspec.nchannels != outspec.nchannels) {
                     outstream << "WARNING: Custom mip level \"" << mipimages[0]
                               << " had the wrong number of channels.\n";
-                    ImageBuf *t = new ImageBuf (mipimages[0], smallspec);
+                    boost::shared_ptr<ImageBuf> t (new ImageBuf (mipimages[0], smallspec));
                     ImageBufAlgo::setNumChannels(*t, *small, outspec.nchannels);
                     std::swap (t, small);
-                    delete t;
                 }
                 smallspec.tile_width = outspec.tile_width;
                 smallspec.tile_height = outspec.tile_height;
@@ -501,9 +503,9 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
             } else {
                 // Resize a factor of two smaller
                 smallspec = outspec;
-                smallspec.width = big->spec().width;
-                smallspec.height = big->spec().height;
-                smallspec.depth = big->spec().depth;
+                smallspec.width = img->spec().width;
+                smallspec.height = img->spec().height;
+                smallspec.depth = img->spec().depth;
                 if (smallspec.width > 1)
                     smallspec.width /= 2;
                 if (smallspec.height > 1)
@@ -526,14 +528,14 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 smallspec.full_x = 0;
                 smallspec.full_y = 0;
                 small->alloc (smallspec);  // Realocate with new size
-                big->set_full (big->xbegin(), big->xend(), big->ybegin(),
-                               big->yend(), big->zbegin(), big->zend());
+                img->set_full (img->xbegin(), img->xend(), img->ybegin(),
+                               img->yend(), img->zbegin(), img->zend());
 
                 if (filter->name() == "box" && filter->width() == 1.0f)
-                    ImageBufAlgo::parallel_image (boost::bind(resize_block, small, big, _1, envlatlmode),
+                    ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode),
                                                   OIIO::get_roi(small->spec()));
                 else
-                    ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, small, big, _1, filter),
+                    ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*small), boost::cref(*img), _1, filter),
                                                   OIIO::get_roi(small->spec()));
             }
 
@@ -563,14 +565,20 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
             }
             stat_writetime += writetimer();
             if (verbose) {
-                outstream << "    " << formatres(smallspec) << std::endl;
+                size_t mem = Sysutil::memory_used(true);
+                peak_mem = std::max (peak_mem, mem);
+                outstream << Strutil::format ("    %-15s (%s)", 
+                                              formatres(smallspec),
+                                              Strutil::memformat(mem))
+                          << std::endl;
             }
-            std::swap (big, small);
+            std::swap (img, small);
         }
     }
 
     if (verbose)
-        outstream << "  Wrote file: " << outputfilename << std::endl;
+        outstream << "  Wrote file: " << outputfilename << "  ("
+                  << Strutil::memformat(Sysutil::memory_used(true)) << ")\n";
     writetimer.reset ();
     writetimer.start ();
     if (! out->close ()) {
@@ -606,18 +614,29 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                             std::ostream *outstream_ptr)
 {
     ASSERT (mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
-    Timer alltime;
-    ImageSpec configspec = _configspec;
-//    const char *modenames[] = { "texture map", "shadow map",
-//                                "latlong environment map" };
-    std::stringstream localstream; // catch output when user doesn't want it
-    std::ostream &outstream (outstream_ptr ? *outstream_ptr : localstream);
-
     double stat_readtime = 0;
     double stat_writetime = 0;
     double stat_resizetime = 0;
     double stat_miptime = 0;
     double stat_colorconverttime = 0;
+    size_t peak_mem = 0;
+    Timer alltime;
+
+#define STATUS(task,timer)                                              \
+    {                                                                   \
+        size_t mem = Sysutil::memory_used(true);                        \
+        peak_mem = std::max (peak_mem, mem);                            \
+        if (verbose)                                                    \
+            outstream << Strutil::format ("  %-25s %s   (%s)\n", task,  \
+                                  Strutil::timeintervalformat(timer,2), \
+                                  Strutil::memformat(mem));             \
+    }
+
+    ImageSpec configspec = _configspec;
+//    const char *modenames[] = { "texture map", "shadow map",
+//                                "latlong environment map" };
+    std::stringstream localstream; // catch output when user doesn't want it
+    std::ostream &outstream (outstream_ptr ? *outstream_ptr : localstream);
 
     std::string filename = filenames[0];
     if (! Filesystem::exists (filename)) {
@@ -659,13 +678,13 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         return false;
     }
 
-    ImageBuf src (filename);
-    src.init_spec (filename, 0, 0); // force it to get the spec, not read
+    boost::shared_ptr<ImageBuf> src (new ImageBuf(filename));
+    src->init_spec (filename, 0, 0); // force it to get the spec, not read
 
     // The cache might mess with the apparent data format.  But for the 
     // purposes of what we should output, figure it out now, before the
     // file has been read and cached.
-    TypeDesc out_dataformat = src.spec().format;
+    TypeDesc out_dataformat = src->spec().format;
 
     if (configspec.format != TypeDesc::UNKNOWN)
         out_dataformat = configspec.format;
@@ -680,45 +699,48 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
-    bool read_local = (src.spec().image_bytes() < size_t(1024*1024*1024));
+    bool read_local = (src->spec().image_bytes() < imagesize_t(1024*1024*1024));
 
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
+    double misc_time_1 = alltime.lap();
+    STATUS ("prep", misc_time_1);
     if (verbose)
         outstream << "Reading file: " << filename << std::endl;
-    Timer readtimer;
-    if (! src.read (0, 0, read_local)) {
+
+    if (! src->read (0, 0, read_local)) {
         outstream 
             << "maketx ERROR: Could not read \"" 
-            << filename << "\" : " << src.geterror() << "\n";
+            << filename << "\" : " << src->geterror() << "\n";
         return false;
     }
-    stat_readtime += readtimer();
+    stat_readtime += alltime.lap();
+    STATUS (Strutil::format("read \"%s\"", filename), stat_readtime);
     
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
     // Also note that this could affect the appearance when using "black"
     // wrap mode at runtime.
-    std::vector<float> constantColor(src.nchannels());
+    std::vector<float> constantColor(src->nchannels());
     bool isConstantColor = false;
     if (configspec.get_int_attribute("maketx:constant_color_detect") &&
-        src.spec().x == 0 && src.spec().y == 0 && src.spec().z == 0 &&
-        src.spec().full_x == 0 && src.spec().full_y == 0 &&
-        src.spec().full_z == 0 && src.spec().full_width == src.spec().width &&
-        src.spec().full_height == src.spec().height &&
-        src.spec().full_depth == src.spec().depth) {
-        isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
+        src->spec().x == 0 && src->spec().y == 0 && src->spec().z == 0 &&
+        src->spec().full_x == 0 && src->spec().full_y == 0 &&
+        src->spec().full_z == 0 && src->spec().full_width == src->spec().width &&
+        src->spec().full_height == src->spec().height &&
+        src->spec().full_depth == src->spec().depth) {
+        isConstantColor = ImageBufAlgo::isConstantColor (*src, &constantColor[0]);
         if (isConstantColor) {
             // Reset the image, to a new image, at the tile size
-            ImageSpec newspec = src.spec();
-            newspec.width  = std::min (configspec.tile_width, src.spec().width);
-            newspec.height = std::min (configspec.tile_height, src.spec().height);
-            newspec.depth  = std::min (configspec.tile_depth, src.spec().depth);
+            ImageSpec newspec = src->spec();
+            newspec.width  = std::min (configspec.tile_width, src->spec().width);
+            newspec.height = std::min (configspec.tile_height, src->spec().height);
+            newspec.depth  = std::min (configspec.tile_depth, src->spec().depth);
             newspec.full_width  = newspec.width;
             newspec.full_height = newspec.height;
             newspec.full_depth  = newspec.depth;
-            std::string name = src.name() + ".constant_color";
-            src.reset(name, newspec);
-            ImageBufAlgo::fill (src, &constantColor[0]);
+            std::string name = src->name() + ".constant_color";
+            src->reset(name, newspec);
+            ImageBufAlgo::fill (*src, &constantColor[0]);
             if (verbose) {
                 outstream << "  Constant color image detected. ";
                 outstream << "Creating " << newspec.width << "x" << newspec.height << " texture instead.\n";
@@ -730,47 +752,44 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
     // If requested -- and alpha is 1.0 everywhere -- drop it.
     if (configspec.get_int_attribute("maketx:opaque_detect") &&
-          src.spec().alpha_channel == src.nchannels()-1 &&
+          src->spec().alpha_channel == src->nchannels()-1 &&
           nchannels <= 0 &&
-          ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
-        ImageBuf newsrc(src.name() + ".noalpha", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
-        src.copy (newsrc);
-        if (verbose) {
+          ImageBufAlgo::isConstantChannel(*src,src->spec().alpha_channel,1.0f)) {
+        if (verbose)
             outstream << "  Alpha==1 image detected. Dropping the alpha channel.\n";
-        }
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".noalpha", src->spec()));
+        ImageBufAlgo::setNumChannels (*newsrc, *src, src->nchannels()-1);
+        std::swap (src, newsrc);   // N.B. the old src will delete
     }
 
     // If requested - and we're a monochrome image - drop the extra channels
     if (configspec.get_int_attribute("maketx:monochrome_detect") &&
           nchannels <= 0 &&
-          src.nchannels() == 3 && src.spec().alpha_channel < 0 &&  // RGB only
-          ImageBufAlgo::isMonochrome(src)) {
-        ImageBuf newsrc(src.name() + ".monochrome", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, 1);
-        src.copy (newsrc);
-        if (verbose) {
+          src->nchannels() == 3 && src->spec().alpha_channel < 0 &&  // RGB only
+          ImageBufAlgo::isMonochrome(*src)) {
+        if (verbose)
             outstream << "  Monochrome image detected. Converting to single channel texture.\n";
-        }
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".monochrome", src->spec()));
+        ImageBufAlgo::setNumChannels (*newsrc, *src, 1);
+        std::swap (src, newsrc);
     }
 
     // If we've otherwise explicitly requested to write out a
     // specific number of channels, do it.
-    if ((nchannels > 0) && (nchannels != src.nchannels())) {
-        ImageBuf newsrc(src.name() + ".channels", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
-        src.copy (newsrc);
-        if (verbose) {
+    if ((nchannels > 0) && (nchannels != src->nchannels())) {
+        if (verbose)
             outstream << "  Overriding number of channels to " << nchannels << "\n";
-        }
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".channels", src->spec()));
+        ImageBufAlgo::setNumChannels (*newsrc, *src, nchannels);
+        std::swap (src, newsrc);
     }
     
     if (shadowmode) {
         // Some special checks for shadow maps
-        if (src.spec().nchannels != 1) {
+        if (src->spec().nchannels != 1) {
             outstream << "maketx ERROR: shadow maps require 1-channel images,\n"
                       << "\t\"" << filename << "\" is " 
-                      << src.spec().nchannels << " channels\n";
+                      << src->spec().nchannels << " channels\n";
             return false;
         }
         // Shadow maps only make sense for floating-point data.
@@ -783,7 +802,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     if (configspec.get_int_attribute("maketx:set_full_to_pixels")) {
         // User requested that we treat the image as uncropped or not
         // overscan
-        ImageSpec &spec (src.specmod());
+        ImageSpec &spec (src->specmod());
         spec.full_x = spec.x = 0;
         spec.full_y = spec.y = 0;
         spec.full_z = spec.z = 0;
@@ -793,7 +812,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     }
 
     // Copy the input spec
-    const ImageSpec &srcspec = src.spec();
+    ImageSpec srcspec = src->spec();
     ImageSpec dstspec = srcspec;
     bool orig_was_volume = srcspec.depth > 1 || srcspec.full_depth > 1;
     bool orig_was_crop = (srcspec.x > srcspec.full_x ||
@@ -907,7 +926,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                      srcspec.format.basetype == TypeDesc::HALF ||
                      srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
-        ImageBufAlgo::parallel_image (boost::bind(check_nan_block, &src, _1, boost::ref(found_nonfinite)),
+        ImageBufAlgo::parallel_image (boost::bind(check_nan_block, *src, _1, boost::ref(found_nonfinite)),
                                       OIIO::get_roi(dstspec));
         if (found_nonfinite) {
             if (found_nonfinite > 3)
@@ -917,9 +936,9 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         }
     }
     
-    // Fix nans/infs (if requested
-    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
+    // Fix nans/infs (if requested)
     std::string fixnan = configspec.get_string_attribute("maketx:fixnan");
+    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
     if (fixnan.empty() || fixnan == "none") { }
     else if (fixnan == "black") { fixmode = ImageBufAlgo::NONFINITE_BLACK; }
     else if (fixnan == "box3") { fixmode = ImageBufAlgo::NONFINITE_BOX3; }
@@ -927,42 +946,47 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         outstream << "maketx ERROR: Unknown --fixnan mode " << " fixnan\n";
         return false;
     }
-    
     int pixelsFixed = 0;
-    if (!ImageBufAlgo::fixNonFinite (src, src, fixmode, &pixelsFixed)) {
+    if (!ImageBufAlgo::fixNonFinite (*src, *src, fixmode, &pixelsFixed)) {
         outstream << "maketx ERROR: Error fixing nans/infs.\n";
         return false;
     }
-    
     if (verbose && pixelsFixed>0) {
         outstream << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
     }
-    
-    
-    
+    // FIXME -- we'd like to not call fixNonFinite if fixnan mode is
+    // "none", or if we did the checknan and found no NaNs.  But deep
+    // inside fixNonFinite, it forces a full read into local mem of any
+    // cached images, and that affects performance. Come back to this
+    // and solve later.
+
+    double misc_time_2 = alltime.lap();
+    STATUS ("misc2", misc_time_2);
+
     // Color convert the pixels, if needed, in place.  If a color
     // conversion is required we will promote the src to floating point
     // (or there wont be enough precision potentially).  Also,
     // independently color convert the constant color metadata
-    ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
-    ImageBuf colorBuffer;
     std::string incolorspace = configspec.get_string_attribute ("incolorspace");
     std::string outcolorspace = configspec.get_string_attribute ("outcolorspace");
     if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
-        if (src.spec().format != TypeDesc::FLOAT) {
-            ImageSpec floatSpec = src.spec();
-            floatSpec.set_format(TypeDesc::FLOAT);
-            colorBuffer.reset("bitdepth promoted", floatSpec);
-            ccSrc = &colorBuffer;
-        }
-        
-        Timer colorconverttimer;
-        ColorConfig colorconfig;
-        if (verbose) {
+        if (verbose)
             outstream << "  Converting from colorspace " << incolorspace 
                       << " to colorspace " << outcolorspace << std::endl;
+
+        // Buffer for the color-corrected version. Start by making it just
+        // another pointer to the original source.
+        boost::shared_ptr<ImageBuf> ccSrc (src);  // color-corrected buffer
+
+        if (src->spec().format != TypeDesc::FLOAT) {
+            // If the original src buffer isn't float, make a scratch space
+            // that is float.
+            ImageSpec floatSpec = src->spec();
+            floatSpec.set_format (TypeDesc::FLOAT);
+            ccSrc.reset (new ImageBuf ("bitdepth promoted", floatSpec));
         }
-        
+
+        ColorConfig colorconfig;
         if (colorconfig.error()) {
             outstream << "Error Creating ColorConfig\n";
             outstream << colorconfig.geterror() << std::endl;
@@ -971,7 +995,6 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         
         ColorProcessor * processor = colorconfig.createColorProcessor (
             incolorspace.c_str(), outcolorspace.c_str());
-        
         if (!processor || colorconfig.error()) {
             outstream << "Error Creating Color Processor." << std::endl;
             outstream << colorconfig.geterror() << std::endl;
@@ -982,7 +1005,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         if (unpremult && verbose)
             outstream << "  Unpremulting image..." << std::endl;
         
-        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult)) {
+        if (!ImageBufAlgo::colorconvert (*ccSrc, *src, processor, unpremult)) {
             outstream << "Error applying color conversion to image.\n";
             return false;
         }
@@ -997,7 +1020,14 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
         ColorConfig::deleteColorProcessor(processor);
         processor = NULL;
-        stat_colorconverttime += colorconverttimer();
+
+        // swap the color-converted buffer and src (making src be the
+        // working master that's color converted).
+        std::swap (src, ccSrc);
+        // N.B. at this point, ccSrc will go out of scope, freeing it if
+        // it was a scratch buffer.
+        stat_colorconverttime += alltime.lap();
+        STATUS ("color convert", stat_colorconverttime);
     }
 
     // Force float for the sake of the ImageBuf math
@@ -1042,35 +1072,42 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         return false;
     }
 
-    Timer resizetimer;
-    ImageBuf dst ("temp", dstspec);
-    ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
-    if (! do_resize) {
-        // Don't need to resize
-        if (dstspec.format == ccSrc->spec().format) {
-            // Even more special case, no format change -- just use
-            // the original copy.
-            toplevel = ccSrc;
-        } else {
-            ImageBufAlgo::parallel_image (boost::bind(copy_block,&dst,ccSrc,_1),
-                                          OIIO::get_roi(dstspec));
-        }
+    double misc_time_3 = alltime.lap(); 
+    STATUS ("misc3", misc_time_3);
+
+    boost::shared_ptr<ImageBuf> toplevel;  // Ptr to top level of mipmap
+    if (! do_resize && dstspec.format == src->spec().format) {
+        // No resize needed, no format conversion needed -- just stick to
+        // the image we've already got
+        toplevel = src;
+    } else  if (! do_resize) {
+        // Need format conversion, but no resize -- just copy the pixels
+        toplevel.reset (new ImageBuf ("temp", dstspec));
+        ImageBufAlgo::parallel_image (boost::bind(copy_block,boost::ref(*toplevel),boost::cref(*src),_1),
+                                      OIIO::get_roi(dstspec));
     } else {
         // Resize
         if (verbose)
             outstream << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
+        toplevel.reset (new ImageBuf ("temp", dstspec));
         if (filtername == "box" && filter->width() == 1.0f)
-            ImageBufAlgo::parallel_image (boost::bind(resize_block, &dst, ccSrc, _1, envlatlmode),
+            ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode),
                                           OIIO::get_roi(dstspec));
         else
-            ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, &dst, ccSrc, _1, filter),
+            ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*toplevel), boost::cref(*src), _1, filter),
                                           OIIO::get_roi(dstspec));
     }
-    stat_resizetime += resizetimer();
+    stat_resizetime += alltime.lap();
+    STATUS ("resize & data convert", stat_resizetime);
 
-    
-    // Update the toplevel ImageDescription with the sha1 pixel hash and constant color
+    // toplevel now holds the color converted, format converted, resized
+    // master copy.  We can release src.
+    src.reset ();
+
+
+    // Update the toplevel ImageDescription with the sha1 pixel hash and
+    // constant color
     std::string desc = dstspec.get_string_attribute ("ImageDescription");
     bool updatedDesc = false;
     
@@ -1105,6 +1142,8 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         updatedDesc = true;
         dstspec.attribute ("oiio:SHA-1", hash_digest);
     }
+    double stat_hashtime = alltime.lap();
+    STATUS ("SHA-1 hash", stat_hashtime);
     
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
@@ -1130,19 +1169,22 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     }
 
 
-    if (configspec.get_float_attribute("fovcot") == 0.0f)
+    if (configspec.get_float_attribute("fovcot") == 0.0f) {
         configspec.attribute("fovcot", float(srcspec.full_width) / 
                                        float(srcspec.full_height));
-
+    }
 
     maketx_merge_spec (dstspec, configspec);
 
+    double misc_time_4 = alltime.lap();
+    STATUS ("misc4", misc_time_4);
+
     // Write out, and compute, the mipmap levels for the speicifed image
     bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap");
-    bool ok = write_mipmap (mode, *toplevel, dstspec, outputfilename,
+    bool ok = write_mipmap (mode, toplevel, dstspec, outputfilename,
                             out, out_dataformat, !shadowmode && !nomipmap,
                             filter, configspec, outstream,
-                            stat_writetime, stat_miptime);
+                            stat_writetime, stat_miptime, peak_mem);
     delete out;  // don't need it any more
 
     // If using update mode, stamp the output file with a modification time
@@ -1159,14 +1201,16 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         outstream << Strutil::format ("  file read:       %5.2f\n", stat_readtime);
         outstream << Strutil::format ("  file write:      %5.2f\n", stat_writetime);
         outstream << Strutil::format ("  initial resize:  %5.2f\n", stat_resizetime);
+        outstream << Strutil::format ("  hash:            %5.2f\n", stat_hashtime);
         outstream << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
         outstream << Strutil::format ("  color convert:   %5.2f\n", stat_colorconverttime);
-        outstream << Strutil::format ("  unaccounted:     %5.2f\n",
-                                      all-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
-        size_t kb = Sysutil::memory_used(true) / 1024;
-        outstream << Strutil::format ("maketx memory used: %5.1f MB\n",
-                                      (double)kb/1024.0);
+        outstream << Strutil::format ("  unaccounted:     %5.2f  (%5.2f %5.2f %5.2f %5.2f)\n",
+                                      all-stat_readtime-stat_writetime-stat_resizetime-stat_hashtime-stat_miptime,
+                                      misc_time_1, misc_time_2, misc_time_3, misc_time_4);
+        outstream << Strutil::format ("maketx peak memory used: %s\n",
+                                      Strutil::memformat(peak_mem));
     }
 
+#undef STATUS
     return ok;
 }
