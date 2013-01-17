@@ -105,9 +105,12 @@ OIIO_NAMESPACE_ENTER
 namespace Sysutil {
 
 /// The amount of memory currently being used by this process, in bytes.
-/// By default, returns the full virtual arena, but if resident=true,
-/// it will report just the resident set in RAM.
-OIIO_API size_t memory_used (bool resident=false);
+/// If resident==true (the default), it will report just the resident
+/// set in RAM; if resident==false, it returns the full virtual arena
+/// (which can be misleading because gcc allocates quite a bit of
+/// virtual, but not actually resident until malloced, memory per
+/// thread).
+OIIO_API size_t memory_used (bool resident=true);
 
 
 /// Convert calendar time pointed by 'time' into local time and save it in
