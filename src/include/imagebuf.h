@@ -548,32 +548,28 @@ public:
             range_is_image ();
         }
 
-        IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                      int ybegin, int yend, int zbegin=0, int zend=1)
-            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-        {
-            init_ib ();
-            m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
-            m_rng_xend   = std::min (xend,   m_img_xend);
-            m_rng_ybegin = std::max (ybegin, m_img_ybegin);
-            m_rng_yend   = std::min (yend,   m_img_yend);
-            m_rng_zbegin = std::max (zbegin, m_img_zbegin);
-            m_rng_zend   = std::min (zend,   m_img_zend);
-        }
-
         /// Construct read-write clamped valid iteration region from
         /// ImageBuf and ROI.
-        IteratorBase (const ImageBuf &ib, const ROI &roi)
+        IteratorBase (const ImageBuf &ib, const ROI &roi, bool unclamped=false)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
             init_ib ();
             if (roi.defined()) {
-                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-                m_rng_xend   = std::min (roi.xend,   m_img_xend);
-                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-                m_rng_yend   = std::min (roi.yend,   m_img_yend);
-                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-                m_rng_zend   = std::min (roi.zend,   m_img_zend);
+                if (unclamped) {
+                    m_rng_xbegin = roi.xbegin;
+                    m_rng_xend   = roi.xend;
+                    m_rng_ybegin = roi.ybegin;
+                    m_rng_yend   = roi.yend;
+                    m_rng_zbegin = roi.zbegin;
+                    m_rng_zend   = roi.zend;
+                } else {
+                    m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+                    m_rng_xend   = std::min (roi.xend,   m_img_xend);
+                    m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+                    m_rng_yend   = std::min (roi.yend,   m_img_yend);
+                    m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+                    m_rng_zend   = std::min (roi.zend,   m_img_zend);
+                }
             } else {
                 range_is_image ();
             }
@@ -587,8 +583,8 @@ public:
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                      int ybegin, int yend, int zbegin, int zend,
-                      bool unclamped)
+                      int ybegin, int yend, int zbegin=0, int zend=1,
+                      bool unclamped=false)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
             init_ib ();
@@ -852,19 +848,14 @@ public:
         {
             pos (x_, y_, z_);
         }
-        /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel.  The
-        /// iteration region will be clamped to the valid image range.
-        Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin=0, int zend=1)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
-        {
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
         /// Construct read-write clamped valid iteration region from
-        /// ImageBuf and ROI.
-        Iterator (ImageBuf &ib, const ROI &roi)
-            : IteratorBase (ib, roi)
+        /// ImageBuf and ROI.  If "unclamped" is true, the iteration
+        /// region will NOT be clamped to the image boundary, so you
+        /// must use done() to test whether the iteration is complete,
+        /// versus valid() to test whether it's pointing to a valid
+        /// image pixel.
+        Iterator (ImageBuf &ib, const ROI &roi, bool unclamped=false)
+            : IteratorBase (ib, roi, unclamped)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -876,8 +867,8 @@ public:
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
         Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin, int zend,
-                  bool unclamped)
+                  int ybegin, int yend, int zbegin=0, int zend=1,
+                  bool unclamped=false)
             : IteratorBase(ib, xbegin, xend, ybegin, yend,
                            zbegin, zend, unclamped)
         {
@@ -950,19 +941,14 @@ public:
         {
             pos (x_, y_, z_);
         }
-        /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel.  The
-        /// iteration region will be clamped to the valid image range.
-        ConstIterator (const ImageBuf &ib, int xbegin, int xend,
-                       int ybegin, int yend, int zbegin=0, int zend=1)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
-        {
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
         /// Construct read-only clamped valid iteration region
-        /// from ImageBuf and ROI.
-        ConstIterator (const ImageBuf &ib, const ROI &roi)
-            : IteratorBase (ib, roi)
+        /// from ImageBuf and ROI. If "unclamped" is true, the iteration
+        /// region will NOT be clamped to the image boundary, so you
+        /// must use done() to test whether the iteration is complete,
+        /// versus valid() to test whether it's pointing to a valid
+        /// image pixel.
+        ConstIterator (const ImageBuf &ib, const ROI &roi, bool unclamped=false)
+            : IteratorBase (ib, roi, unclamped)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -974,8 +960,8 @@ public:
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
-                       int ybegin, int yend, int zbegin, int zend,
-                       bool unclamped)
+                       int ybegin, int yend, int zbegin=0, int zend=1,
+                       bool unclamped=false)
             : IteratorBase(ib, xbegin, xend, ybegin, yend,
                            zbegin, zend, unclamped)
         {
