@@ -40,6 +40,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <OpenEXR/ImathMatrix.h>
+#include <OpenEXR/half.h>
 
 #include "argparse.h"
 #include "dassert.h"
@@ -150,18 +151,52 @@ datestring (time_t t)
 
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
+template<typename SRCTYPE>
 static void
-copy_block (ImageBuf *dst, const ImageBuf *src, ROI roi)
+copy_block_ (ImageBuf *dst, const ImageBuf *src, ROI roi=ROI())
 {
-    int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
-    const ImageSpec &dstspec (dst->spec());
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
-    for (int y = y0;  y < y1;  ++y) {
-        for (int x = x0;  x < x1;  ++x) {
-            src->getpixel (x, y, pel);
-            dst->setpixel (x, y, pel);
+    int nchannels = dst->spec().nchannels;
+    ASSERT (src->spec().nchannels == nchannels);
+    ImageBuf::Iterator<float> d (*dst, roi, true /*unclamped*/);
+    ImageBuf::ConstIterator<SRCTYPE> s (*src, roi, true /*unclamped*/);
+    for (  ; ! d.done();  ++d, ++s) {
+        if (! d.exists())
+            continue;   // skip nonexistant pixels
+        if (s.exists()) {
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = s[c];
+        } else {
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = 0.0f;
         }
     }
+}
+
+
+
+// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
+static bool
+copy_block (ImageBuf *dst, const ImageBuf *src, ROI roi)
+{
+    ASSERT (dst->spec().format == TypeDesc::TypeFloat);
+    switch (src->spec().format.basetype) {
+    case TypeDesc::FLOAT : copy_block_<float> (dst, src, roi); break;
+    case TypeDesc::UINT8 : copy_block_<unsigned char> (dst, src, roi); break;
+    case TypeDesc::UINT16: copy_block_<unsigned short> (dst, src, roi); break;
+    case TypeDesc::HALF  : copy_block_<half> (dst, src, roi); break;
+    case TypeDesc::INT8  : copy_block_<char> (dst, src, roi); break;
+    case TypeDesc::INT16 : copy_block_<short> (dst, src, roi); break;
+    case TypeDesc::UINT  : copy_block_<unsigned int> (dst, src, roi); break;
+    case TypeDesc::INT   : copy_block_<int> (dst, src, roi); break;
+    case TypeDesc::UINT64: copy_block_<unsigned long long> (dst, src, roi); break;
+    case TypeDesc::INT64 : copy_block_<long long> (dst, src, roi); break;
+    case TypeDesc::DOUBLE: copy_block_<double> (dst, src, roi); break;
+    default:
+        dst->error ("Unsupported pixel data format '%s'", src->spec().format);
+        return false;
+    }
+    
+    return true;
 }
 
 
