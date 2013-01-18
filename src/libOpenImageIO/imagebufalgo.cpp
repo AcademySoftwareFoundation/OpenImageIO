@@ -61,6 +61,10 @@
 #include FT_FREETYPE_H
 #endif
 
+#ifdef USE_OPENSSL
+#include <openssl/sha.h>
+#endif
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -909,15 +913,12 @@ ImageBufAlgo::isMonochrome(const ImageBuf &src)
                          src, 0);
 };
 
+
+
 std::string
 ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
                                    const std::string & extrainfo)
 {
-    std::string hash_digest;
-    
-    CSHA1 sha;
-    sha.Reset ();
-    
     bool localpixels = src.localpixels();
     imagesize_t scanline_bytes = src.spec().scanline_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
@@ -927,6 +928,44 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     std::vector<unsigned char> tmp;
     if (! localpixels)
         tmp.resize (chunk*scanline_bytes);
+
+#ifdef USE_OPENSSL
+    // If OpenSSL was available at build time, use its SHA-1
+    // implementation, which is about 20% faster than CSHA1.
+    SHA_CTX sha;
+    SHA1_Init (&sha);
+    
+    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
+        for (int y = src.ymin(), yend=src.yend();  y < yend;  y += chunk) {
+            int y1 = std::min (y+chunk, yend);
+            if (localpixels) {
+                SHA1_Update (&sha, src.pixeladdr (src.xbegin(), y, z),
+                            (unsigned int) scanline_bytes*(y1-y));
+            } else {
+                src.get_pixels (src.xbegin(), src.xend(), y, y1, z, z+1,
+                                src.spec().format, &tmp[0]);
+                SHA1_Update (&sha, &tmp[0], (unsigned int) scanline_bytes*(y1-y));
+            }
+        }
+    }
+    
+    // If extra info is specified, also include it in the sha computation
+    if (!extrainfo.empty())
+        SHA1_Update (&sha, extrainfo.c_str(), extrainfo.size());
+
+    unsigned char md[SHA_DIGEST_LENGTH];
+    char hash_digest[2*SHA_DIGEST_LENGTH+1];
+    SHA1_Final (md, &sha);
+    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
+        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
+    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
+    return std::string (hash_digest);
+    
+#else
+    // Fall back on CSHA1 if OpenSSL was not available or if 
+    CSHA1 sha;
+    sha.Reset ();
+    
     for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
         for (int y = src.ymin(), yend=src.yend();  y < yend;  y += chunk) {
             int y1 = std::min (y+chunk, yend);
@@ -942,15 +981,19 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     }
     
     // If extra info is specified, also include it in the sha computation
-    if(!extrainfo.empty()) {
+    if (!extrainfo.empty()) {
         sha.Update ((const unsigned char*) extrainfo.c_str(), extrainfo.size());
     }
     
     sha.Final ();
+    std::string hash_digest;
     sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
-    
+
     return hash_digest;
+#endif
 }
+
+
 
 std::string
 ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
