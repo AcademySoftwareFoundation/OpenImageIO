@@ -285,6 +285,18 @@ If verbose mode is not turned on, only the resolution and data format
 are printed.
 \apiend
 
+\apiitem{--metamatch \emph{regex} \\
+--no-metamatch \emph{regex}}
+\NEW
+Regular expressions to restrict which metadata are output when using
+{\cf oiiotool --info -v}.  The {\cf --metamatch} expression causes only
+metadata whose name matches to print; non-matches are not output.  The
+{\cf --no-metamatch} expression causes metadata whose name matches to be
+suppressed; others (non-matches) are printed.  It is not advised to use
+both of these options at the same time (probably nothing bad will
+happen, but it's hard to reason about the behavior in that case).
+\apiend
+
 \apiitem{--stats}
 Prints detailed statistical information about each input image as it is
 read.

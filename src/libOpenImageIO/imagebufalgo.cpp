@@ -1103,6 +1103,10 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 namespace
 {
 
+// Make sure isfinite is defined for 'half'
+inline bool isfinite (half h) { return h.isFinite(); }
+
+
 template<typename SRCTYPE>
 bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     ImageBufAlgo::NonFiniteFixMode mode,
@@ -1123,7 +1127,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         if (! dst.copy (src))
             return false;
         
-        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
         while (pixel.valid()) {
             bool fixed = false;
             for (int c = 0;  c < nchannels;  ++c) {
@@ -1159,7 +1163,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         if (! dst.copy (src))
             return false;
         
-        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
         
         while (pixel.valid()) {
             bool fixed = false;
@@ -1175,7 +1179,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     int left   = pixel.y() - boxwidth;
                     int right  = pixel.y() + boxwidth;
                     
-                    ImageBuf::Iterator<SRCTYPE> it (dst, top, bottom, left, right);
+                    ImageBuf::Iterator<SRCTYPE,SRCTYPE> it (dst, top, bottom, left, right);
                     while (it.valid()) {
                         SRCTYPE v = it[c];
                         if (isfinite (v)) {
@@ -1220,9 +1224,7 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     case TypeDesc::FLOAT :
         return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
     case TypeDesc::HALF  :
-         // This use of float here is on purpose to allow for simpler
-         // implementations that work on all data types
-        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<half> (dst, src, mode, pixelsFixed);
     case TypeDesc::DOUBLE:
         return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
     default:

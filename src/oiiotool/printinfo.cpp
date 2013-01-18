@@ -291,7 +291,7 @@ print_stats (const std::string &filename,
 static void
 print_metadata (const ImageSpec &spec, const std::string &filename,
                 const print_info_options &opt,
-                boost::regex &field_re)
+                boost::regex &field_re, boost::regex &field_exclude_re)
 {
     bool printed = false;
     if (opt.metamatch.empty() ||
@@ -370,6 +370,9 @@ print_metadata (const ImageSpec &spec, const std::string &filename,
         if (! opt.metamatch.empty() &&
             ! boost::regex_search (p.name().c_str(), field_re))
             continue;
+        if (! opt.nometamatch.empty() &&
+            boost::regex_search (p.name().c_str(), field_exclude_re))
+            continue;
         std::string s = spec.metadata_val (p, true);
         if (opt.filenameprefix)
             printf ("%s : ", filename.c_str());
@@ -415,16 +418,10 @@ static void
 print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                      ImageInput *input, const std::string &filename,
                      const print_info_options &opt,
-                     boost::regex &field_re)
+                     boost::regex &field_re, boost::regex &field_exclude_re)
 {
     if ( ! input->seek_subimage (current_subimage, 0, spec) )
         return;
-
-    if (! opt.metamatch.empty() &&
-        ! boost::regex_search ("resolution, width, height, depth, channels, sha-1, stats", field_re)) {
-        // nothing to do here
-        return;
-    }
 
     int nmip = 1;
 
@@ -466,7 +463,7 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
     }
 
     if (opt.verbose)
-        print_metadata (spec, filename, opt, field_re);
+        print_metadata (spec, filename, opt, field_re, field_exclude_re);
 
     if (opt.compute_stats && (opt.metamatch.empty() ||
                           boost::regex_search ("stats", field_re))) {
@@ -506,9 +503,27 @@ OiioTool::print_info (const std::string &filename,
     ImageSpec spec = input->spec();
 
     boost::regex field_re;
-    if (! opt.metamatch.empty())
-        field_re.assign (opt.metamatch,
+    boost::regex field_exclude_re;
+    if (! opt.metamatch.empty()) {
+        try {
+            field_re.assign (opt.metamatch,
                          boost::regex::extended | boost::regex_constants::icase);
+        } catch (const std::exception &e) {
+            error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
+                                     e.what(), opt.metamatch);
+            return false;
+        }
+    }
+    if (! opt.nometamatch.empty()) {
+        try {
+            field_exclude_re.assign (opt.nometamatch,
+                         boost::regex::extended | boost::regex_constants::icase);
+        } catch (const std::exception &e) {
+            error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
+                                     e.what(), opt.nometamatch);
+            return false;
+        }
+    }
 
     int padlen = std::max (0, (int)opt.namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
@@ -589,7 +604,7 @@ OiioTool::print_info (const std::string &filename,
         num_of_subimages = 1;
     for (int i = 0; i < num_of_subimages; ++i) {
         print_info_subimage (i, num_of_subimages, spec, input,
-                             filename, opt, field_re);
+                             filename, opt, field_re, field_exclude_re);
     }
 
     input->close ();
