@@ -918,15 +918,26 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     CSHA1 sha;
     sha.Reset ();
     
-    // Do one scanline at a time, to keep to < 2^32 bytes each
+    bool localpixels = src.localpixels();
     imagesize_t scanline_bytes = src.spec().scanline_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
-    std::vector<unsigned char> tmp (scanline_bytes);
+    // Do it a few scanlines at a time
+    int chunk = std::max (1, int(16*1024*1024/scanline_bytes));
+
+    std::vector<unsigned char> tmp;
+    if (! localpixels)
+        tmp.resize (chunk*scanline_bytes);
     for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
-        for (int y = src.ymin(), yend=src.yend();  y < yend;  ++y) {
-            src.get_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
-                            src.spec().format, &tmp[0]);
-            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
+        for (int y = src.ymin(), yend=src.yend();  y < yend;  y += chunk) {
+            int y1 = std::min (y+chunk, yend);
+            if (localpixels) {
+                sha.Update ((const unsigned char *)src.pixeladdr (src.xbegin(), y, z),
+                            (unsigned int) scanline_bytes*(y1-y));
+            } else {
+                src.get_pixels (src.xbegin(), src.xend(), y, y1, z, z+1,
+                                src.spec().format, &tmp[0]);
+                sha.Update (&tmp[0], (unsigned int) scanline_bytes*(y1-y));
+            }
         }
     }
     
