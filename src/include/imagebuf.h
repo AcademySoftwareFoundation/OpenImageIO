@@ -726,7 +726,6 @@ public:
                 // or z, and the previous position was within the data
                 // window.  Call a shortcut version of pos.
                 if (m_exists) {
-                    DASSERT (m_pixel_bytes == size_t(m_nchannels*sizeof(BUFT)));
                     pos_xincr ();
                     return;
                 }
