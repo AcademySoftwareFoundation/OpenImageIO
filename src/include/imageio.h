@@ -1191,8 +1191,14 @@ OIIO_API int quantize (float value, int quant_black, int quant_white,
 /// conversion.  If dst_type is UNKNWON, it will be assumed to be the
 /// same as src_type.
 OIIO_API bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *to, int n,
-                              int alpha_channel = -1, int z_channel = -1);
+                              TypeDesc dst_type, void *dst, int n);
+
+/// DEPRECATED -- for some reason we had a convert_types that took
+/// alpha_channel and z_channel parameters, but never did anything
+/// with them.
+OIIO_API bool convert_types (TypeDesc src_type, const void *src,
+                             TypeDesc dst_type, void *dst, int n,
+                             int alpha_channel, int z_channel = -1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
