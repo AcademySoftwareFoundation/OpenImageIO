@@ -79,6 +79,9 @@
 #include "fmath.h"
 #include "filesystem.h"
 
+#include <boost/scoped_array.hpp>
+
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -929,12 +932,13 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
     int whole_width = nxtiles * m_spec.tile_width;
     int whole_height = nytiles * m_spec.tile_height;
-    std::vector<char> tmpbuf;
+    
+    boost::scoped_array<char> tmpbuf;
     void *origdata = data;
     if (whole_width != (xend-xbegin) || whole_height != (yend-ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
         // OpenEXR will happily overwrite user memory in this case.
-        tmpbuf.resize (nxtiles * nytiles * m_spec.tile_bytes(true));
+        tmpbuf.reset (new char [nxtiles * nytiles * m_spec.tile_bytes(true)]);
         data = &tmpbuf[0];
     }
     char *buf = (char *)data
