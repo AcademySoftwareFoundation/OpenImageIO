@@ -282,7 +282,6 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
     compression: "zip"
-    Exif:ImageHistory: "../../maketx/maketx ../oiiotool-fixnan/bad.exr --fixnan box3 --nomipmap -o nan.exr"
     ImageDescription: "SHA-1=93D431375F9CC89BC200B8CDDF6C04DB05271363"
     fovcot: 1
     openexr:levelmode: 0
@@ -310,7 +309,6 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     openexr:roundingmode: 0
     textureformat: "Plain Texture"
     compression: "zip"
-    Exif:ImageHistory: "../../maketx/maketx checker.tif --format exr -o checker-exr.pdq"
     Orientation: 1 (normal)
     ImageDescription: "SHA-1=3DCC044E78762699EBEFA0644CD5CEF62000120C"
     fovcot: 1
