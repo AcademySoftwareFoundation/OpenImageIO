@@ -32,7 +32,7 @@
 #include <cstdlib>
 #include <sstream>
 
-#include <half.h>
+#include <OpenEXR/half.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
