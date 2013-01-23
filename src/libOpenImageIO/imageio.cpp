@@ -40,9 +40,32 @@
 #include "typedesc.h"
 #include "strutil.h"
 #include "fmath.h"
-
 #include "imageio.h"
 #include "imageio_pvt.h"
+
+#if 1
+// This library, available from http://sourceforge.net/projects/half/
+// uses different techniques then OpenEXR/IlmBase for float->half and
+// half->float conversion.  In my benchmarks their f->h is 2.5x faster
+// in a loop, and speeds up the image write tests below (writing a float
+// buffer to a half OpenEXR file) by about 8% overall, and thus is a
+// clear winner.  Their h->f conversion appears slower than IlmBase (ILM
+// is about 1.8x faster) when isolated in a loop, but in the read tests
+// below (reading a half OpenEXR file into a float buffer) is break-even
+// or maybe even ~1% faster. (The difference is probably that the
+// IlmBase technique of a single table lookup from one big table
+// performs best in the loop because it ends up entirely in cache;
+// whereas in a more real world mixture of conversions and other ops,
+// the half.hpp method of two lookups into small tables ends up with
+// better cache performance.) So I tentatively use half.hpp for our h->f
+// conversion below, but it is not an appreciable gain and there may be
+// places where it's a loss.
+#include "half.hpp"
+typedef half_float::half fast_half;
+#else
+typedef half fast_half;
+#endif
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -270,7 +293,7 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
     case TypeDesc::FLOAT :
         return (float *)src;
     case TypeDesc::HALF :
-        convert_type ((const half *)src, dst, nvals);
+        convert_type ((const fast_half *)src, dst, nvals);
         break;
     case TypeDesc::DOUBLE :
         convert_type ((const double *)src, dst, nvals);
@@ -352,7 +375,7 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
     case TypeDesc::FLOAT :
         return src;
     case TypeDesc::HALF :
-        return _from_float<half> (src, (half *)dst, nvals,
+        return _from_float<fast_half> (src, (fast_half *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max);
     case TypeDesc::DOUBLE :
@@ -444,7 +467,7 @@ convert_types (TypeDesc src_type, const void *src,
     case TypeDesc::FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
     case TypeDesc::UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
     case TypeDesc::UINT16 : convert_type (buf, (unsigned short *)dst, n); break;
-    case TypeDesc::HALF :   convert_type (buf, (half *)dst, n);   break;
+    case TypeDesc::HALF :   convert_type (buf, (fast_half *)dst, n);   break;
     case TypeDesc::INT8 :   convert_type (buf, (char *)dst, n);   break;
     case TypeDesc::INT16 :  convert_type (buf, (short *)dst, n);  break;
     case TypeDesc::INT :    convert_type (buf, (int *)dst, n);  break;

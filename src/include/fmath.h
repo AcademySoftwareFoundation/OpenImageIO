@@ -372,7 +372,7 @@ D scaled_conversion (const S &src, F scale, F min, F max)
 // FIXME: make table-based specializations for common types with only a
 // few possible src values (like unsigned char -> float).
 template<typename S, typename D>
-void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
+void convert_type (const S *src, D *dst, size_t n, D _zero=D(0), D _one=D(1),
                    D _min=std::numeric_limits<D>::min(),
                    D _max=std::numeric_limits<D>::max())
 {

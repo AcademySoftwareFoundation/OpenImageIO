@@ -75,9 +75,14 @@ fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
 {
     int chbegin = roi.chbegin;
     int chend = std::min (roi.chend, dst.nchannels());
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
-        for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
-            p[c] = values[i];
+    // Copy once to get similar indices and values of type T, then the
+    // per-pixel copying should be faster
+    T * Tvalues = ALLOCA (T, chend);
+    for (int c = chbegin, i = 0; c < chend; ++c, ++i)
+        Tvalues[c] = (T) values[i];
+    for (ImageBuf::Iterator<T,T> p (dst, roi);  !p.done();  ++p)
+        for (int c = chbegin;  c < chend;  ++c)
+            p[c] = Tvalues[c];
 }
 
 }
