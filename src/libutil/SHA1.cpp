@@ -8,9 +8,9 @@
 
 // If compiling with MFC, you might want to add #include "StdAfx.h"
 
+#include "SHA1.h"
 #include "hash.h"
 #include "dassert.h"
-#include "SHA1.h"
 
 #ifdef SHA1_UTILITY_FUNCTIONS
 #define SHA1_MAX_FILE_BUFFER 8000
