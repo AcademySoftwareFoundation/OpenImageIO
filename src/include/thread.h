@@ -98,9 +98,9 @@
 #endif
 
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
-#if !defined(__FreeBSD__) || defined(__x86_64__)
-#define USE_GCC_ATOMICS
-#endif
+# if !USE_TBB
+# define USE_GCC_ATOMICS 1
+# endif
 #endif
 
 OIIO_NAMESPACE_ENTER
