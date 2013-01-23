@@ -70,8 +70,13 @@
 #pragma GCC diagnostic error "-Wunused-variable"
 #endif
 
-#ifndef USE_TBB
-#  define USE_TBB 0
+#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
+#  define USE_GCC_ATOMICS 1
+#  undef USE_TBB
+#else
+#  ifndef USE_TBB
+#    define USE_TBB 1
+#  endif
 #endif
 
 // Include files we need for atomic counters.
@@ -95,12 +100,6 @@
 
 #ifdef __APPLE__
 #  include <libkern/OSAtomic.h>
-#endif
-
-#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
-#if !defined(__FreeBSD__) || defined(__x86_64__)
-#define USE_GCC_ATOMICS
-#endif
 #endif
 
 OIIO_NAMESPACE_ENTER

@@ -7,6 +7,14 @@ if (VERBOSE)
     message (STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
 endif ()
 
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
+    if (NOT USE_TBB)
+        # to use gcc atomics we need cpu instructions only available
+        # with arch of i586 or higher
+        set (CXXFLAGS "${CXXFLAGS} -march=i586")
+    endif()
+endif()
+
 if (UNIX)
     if (VERBOSE)
         message (STATUS "Unix! ${CMAKE_SYSTEM_NAME}")
