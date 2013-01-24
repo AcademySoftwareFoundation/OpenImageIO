@@ -48,12 +48,14 @@
 OIIO_NAMESPACE_USING;
 
 static bool verbose = false;
-static int iterations = 1;
-static int ntrials = 1;
+static int ntrials = 5;
 static int numthreads = 0;
 static int autotile_size = 64;
 static bool iter_only = false;
 static std::vector<ustring> input_filename;
+static std::string output_filename;
+static int output_width = 1024, output_height = 1024, output_nchans = 4;
+static std::string output_datatype ("uint8");
 static std::vector<char> buffer;
 static ImageCache *imagecache = NULL;
 static imagesize_t total_image_pixels = 0;
@@ -80,10 +82,12 @@ getargs (int argc, char *argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose mode",
+                "-o %s", &output_filename, "Output test filename",
+                "--res %d %d %d", &output_width, &output_height, &output_nchans,
+                    "Output test height, width, chans",
+                "-d %s", &output_datatype, "Output datatype (uint8, half, float, etc.)",
                 "--threads %d", &numthreads, 
                     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
-                "--iters %d", &iterations,
-                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
                 "--trials %d", &ntrials, "Number of trials",
                 "--autotile %d", &autotile_size, 
                     ustring::format("Autotile size (when used; default: %d)", autotile_size).c_str(),
@@ -192,6 +196,85 @@ test_read (const std::string &explanation,
     imagecache->attribute ("autoscanline", autoscanline);
     double t = time_trial (func, ntrials);
     double rate = double(total_image_pixels) / t;
+    std::cout << "  " << explanation << ": "
+              << Strutil::timeintervalformat(t,2) 
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+}
+
+
+
+static TypeDesc
+datatype (const std::string &s)
+{
+    if (s == "uint8")
+        return TypeDesc::UINT8;
+    else if (s == "int8")
+        return TypeDesc::INT8;
+    else if (s == "uint16")
+        return TypeDesc::UINT16;
+    else if (s == "int16")
+        return TypeDesc::INT16;
+    else if (s == "half")
+        return TypeDesc::HALF;
+    else if (s == "float")
+        return TypeDesc::FLOAT;
+    else if (s == "double")
+        return TypeDesc::DOUBLE;
+    return TypeDesc::UNKNOWN;
+}
+
+
+
+static void
+time_write_image (ImageBuf &ib, const ImageSpec &spec)
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    out->open (output_filename, spec);
+    out->write_image (ib.spec().format, ib.localpixels());
+    out->close ();
+}
+
+
+
+static void
+time_write_scanline_at_a_time (ImageBuf &ib, const ImageSpec &spec)
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    out->open (output_filename, spec);
+    int xbegin = ib.xbegin();
+    for (int y = ib.ybegin(), yend = ib.yend(); y < yend; ++y)
+        out->write_scanline (y, 0, ib.spec().format,
+                             ib.pixeladdr(xbegin, y));
+    out->close ();
+}
+
+
+
+static void
+time_write_64_scanlines_at_a_time (ImageBuf &ib, const ImageSpec &spec)
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    out->open (output_filename, spec);
+    int xbegin = ib.xbegin();
+    for (int y = ib.ybegin(), yend = ib.yend(); y < yend; y += 64)
+        out->write_scanlines (y, std::min(y+64, yend), 0, ib.spec().format,
+                             ib.pixeladdr(xbegin, y));
+    out->close ();
+}
+
+
+
+static void
+test_write (const std::string &explanation,
+            void (*func)(ImageBuf &, const ImageSpec &),
+            ImageBuf &ib, const ImageSpec &spec)
+{
+    double t = time_trial (boost::bind(func, boost::ref(ib), boost::cref(spec)),
+                           ntrials);
+    double rate = double(ib.spec().image_pixels()) / t;
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t,2) 
               << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
@@ -407,7 +490,45 @@ main (int argc, char **argv)
         std::cout << "\n";
     }
 
-    const int iters = 64;
+    if (output_filename.size() && !iter_only) {
+        std::cout << "Timing various ways of writing images ("
+                  << output_width << "x" << output_height << ", "
+                  << output_nchans << " chans, " << output_datatype << ")\n";
+        int nc = output_nchans;
+        ImageSpec ibspec (output_width, output_height, nc, TypeDesc::TypeFloat);
+        ImageBuf ib (output_filename, ibspec);
+        for (ImageBuf::Iterator<float> it(ib);  !it.done();  ++it) {
+            for (int c = 0;  c < nc;  ++c) {
+                if (c == 0)
+                    it[c] = float(it.x()) / output_width;
+                else if (c == 1)
+                    it[c] = float(it.y()) / output_height;
+                else if (c == 2)
+                    it[c] = 0.0f;
+                else
+                    it[c] = 1.0f;
+            }
+        }
+
+        ibspec.set_format (datatype(output_datatype));
+        ImageSpec ibspec_tiled = ibspec;
+        ibspec_tiled.tile_width = 64;
+        ibspec_tiled.tile_height = 64;
+        ibspec_tiled.tile_depth = 1;
+
+        test_write ("write_image (scanline)           ",
+                    time_write_image, ib, ibspec);
+        test_write ("write_image (tiled)              ",
+                    time_write_image, ib, ibspec_tiled);
+        test_write ("write_scanline (1 at a time)     ",
+                    time_write_scanline_at_a_time, ib, ibspec);
+        test_write ("write_scanlines (64 at a time)   ",
+                    time_write_64_scanlines_at_a_time, ib, ibspec);
+        std::cout << "\n";
+    }
+
+
+    const int iters = 32;
     std::cout << "Timing ways of iterating over an image:\n";
 
     test_pixel_iteration ("Loop pointers on loaded image (\"1D\")    ",
@@ -415,9 +536,9 @@ main (int argc, char **argv)
     test_pixel_iteration ("Loop pointers on loaded image (\"3D\")    ",
                           time_loop_pixels_3D, true, iters);
     test_pixel_iteration ("Loop + getchannel on loaded image (\"3D\")",
-                          time_loop_pixels_3D_getchannel, true, iters/32);
+                          time_loop_pixels_3D_getchannel, true, iters/16);
     test_pixel_iteration ("Loop + getchannel on cached image (\"3D\")",
-                          time_loop_pixels_3D_getchannel, false, iters/32);
+                          time_loop_pixels_3D_getchannel, false, iters/16);
     test_pixel_iteration ("Iterate over a loaded image             ",
                           time_iterate_pixels, true, iters);
     test_pixel_iteration ("Iterate over a cache image              ",
