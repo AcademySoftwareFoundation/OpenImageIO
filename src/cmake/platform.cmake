@@ -11,7 +11,7 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
     if (NOT USE_TBB)
         # to use gcc atomics we need cpu instructions only available
         # with arch of i586 or higher
-        set (CXXFLAGS "${CXXFLAGS} -march=i586")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=i586")
     endif()
 endif()
 
