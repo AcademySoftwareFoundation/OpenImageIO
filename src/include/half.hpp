@@ -765,7 +765,7 @@ namespace half_float
 		friend struct detail::unary_specialized<half>;
 		friend struct detail::binary_specialized<half,half>;
 		template<typename,typename,std::float_round_style> friend struct detail::half_caster;
-		friend class std::numeric_limits<half>;
+		friend struct std::numeric_limits<half>;
 	#if HALF_ENABLE_CPP11_HASH
 		friend struct std::hash<half>;
 	#endif
@@ -2477,7 +2477,7 @@ namespace std
 	/// Numeric limits for half-precision floats.
 	/// Because of the underlying single-precision implementation of many operations, it inherits some properties from 
 	/// `std::numeric_limits<float>`.
-	template<> class numeric_limits<half_float::half> : public numeric_limits<float>
+	template<> struct numeric_limits<half_float::half> : public numeric_limits<float>
 	{
 	public:
 		/// Supports signed values.
