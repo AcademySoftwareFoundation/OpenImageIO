@@ -1243,10 +1243,43 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 namespace {   // anonymous namespace
 
+static bool
+decode_over_channels (const ImageBuf &R, int &nchannels, 
+                      int &alpha, int &z, int &colors)
+{
+    if (! R.initialized()) {
+        alpha = -1;
+        z = -1;
+        colors = 0;
+        return false;
+    }
+    const ImageSpec &spec (R.spec());
+    alpha =  spec.alpha_channel;
+    bool has_alpha = (alpha >= 0);
+    z = spec.z_channel;
+    bool has_z = (z >= 0);
+    nchannels = spec.nchannels;
+    colors = nchannels - has_alpha - has_z;
+    if (! has_alpha && colors == 4) {
+        // No marked alpha channel, but suspiciously 4 channel -- assume
+        // it's RGBA. 
+        has_alpha = true;
+        colors -= 1;
+        // Assume alpha is the highest channel that's not z
+        alpha = nchannels - 1;
+        if (alpha == z)
+            --alpha;
+    }
+    return true;
+}
+
+
+
 // Fully type-specialized version of over.
 template<class Rtype, class Atype, class Btype>
-bool
-over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
+static bool
+over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
+           bool zcomp=false)
 {
     if (R.spec().format != BaseTypeFromC<Rtype>::value ||
         A.spec().format != BaseTypeFromC<Atype>::value ||
@@ -1256,23 +1289,12 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
         return false;   // double check that types match
     }
 
-    // Output image R.
-    const ImageSpec &specR = R.spec();
-    int channels_R = specR.nchannels;
-
-    // Input image A.
-    const ImageSpec &specA = A.spec();
-    int alpha_index_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_index_A >= 0);
-    int channels_A = specA.nchannels;
-
-    // Input image B.
-    const ImageSpec &specB = B.spec();
-    int alpha_index_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_index_B >= 0);
-    int channels_B = specB.nchannels;
-
-    int channels_AB = std::min (channels_A, channels_B);
+    // It's already guaranteed that R, A, and B have matching channel
+    // ordering, and have an alpha channel.  So just decode one.
+    int nchannels, alpha_channel, z_channel, ncolor_channels;
+    decode_over_channels (R, nchannels, alpha_channel,
+                          z_channel, ncolor_channels);
+    bool has_z = (z_channel >= 0);
 
     ImageBuf::ConstIterator<Atype, float> a (A);
     ImageBuf::ConstIterator<Btype, float> b (B);
@@ -1283,32 +1305,41 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
 
         if (! a.valid()) {
             if (! b.valid()) {
-                // a and b invalid.
-                for (int c = 0; c < channels_R; c++) { r[c] = 0.0f; }
+                // a and b are both invalid -- make it an "empty" pixel
+                for (int c = 0; c < nchannels; c++)
+                    r[c] = 0.0f;
             } else {
-                // a invalid, b valid.
-                for (int c = 0; c < channels_B; c++) { r[c] = b[c]; }
-                if (! has_alpha_B) { r[3] = 1.0f; }
+                // a invalid, b valid -- copy B
+                for (int c = 0; c < nchannels; ++c)
+                    r[c] = b[c];
             }
             continue;
         }
 
         if (! b.valid()) {
-            // a valid, b invalid.
-            for (int c = 0; c < channels_A; c++) { r[c] = a[c]; }
-            if (! has_alpha_A) { r[3] = 1.0f; }
+            // a valid, b invalid -- copy A
+            for (int c = 0; c < nchannels; ++c)
+                r[c] = a[c];
             continue;
         }
 
         // At this point, a and b are valid.
-        float alpha_A = has_alpha_A 
-                        ? clamp (a[alpha_index_A], 0.0f, 1.0f) : 1.0f;
-        float one_minus_alpha_A = 1.0f - alpha_A;
-        for (int c = 0;  c < channels_AB;  c++)
-            r[c] = a[c] + one_minus_alpha_A * b[c];
-        if (channels_R != channels_AB) {
-            // R has 4 channels, A or B has 3 channels -> alpha channel is 3.
-            r[3] = alpha_A + one_minus_alpha_A * (has_alpha_B ? b[3] : 1.0f);
+
+        if (!zcomp || a[z_channel] <= b[z_channel]) {
+            // A over B
+            float alpha = clamp (a[alpha_channel], 0.0f, 1.0f);
+            float one_minus_alpha = 1.0f - alpha;
+            for (int c = 0;  c < nchannels;  c++)
+                r[c] = a[c] + one_minus_alpha * b[c];
+            if (has_z)
+                r[z_channel] = (alpha != 0.0) ? a[z_channel] : b[z_channel];
+        } else {
+            // B over A -- because we're doing a Z composite
+            float alpha = clamp (b[alpha_channel], 0.0f, 1.0f);
+            float one_minus_alpha = 1.0f - alpha;
+            for (int c = 0;  c < nchannels;  c++)
+                r[c] = b[c] + one_minus_alpha * a[c];
+            r[z_channel] = (alpha != 0.0) ? b[z_channel] : a[z_channel];
         }
     }
     return true;
@@ -1321,98 +1352,61 @@ bool
 ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
                     int nthreads)
 {
-    // Output image R.
     const ImageSpec &specR = R.spec();
-    int alpha_R =  specR.alpha_channel;
-    int has_alpha_R = (alpha_R >= 0);
-    int channels_R = specR.nchannels;
-    int non_alpha_R = channels_R - has_alpha_R;
-    bool initialized_R = R.initialized();
-
-    // Input image A.
     const ImageSpec &specA = A.spec();
-    int alpha_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_A >= 0);
-    int channels_A = specA.nchannels;
-    int non_alpha_A = has_alpha_A ? (channels_A - 1) : 3;
-    bool A_not_34 = channels_A != 3 && channels_A != 4;
-
-    // Input image B.
     const ImageSpec &specB = B.spec();
-    int alpha_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_B >= 0);
-    int channels_B = specB.nchannels;
-    int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
-    bool B_not_34 = channels_B != 3 && channels_B != 4;
 
+    int nchannels_R, nchannels_A, nchannels_B;
+    int alpha_R, alpha_A, alpha_B;
+    int z_R, z_A, z_B;
+    int colors_R, colors_A, colors_B;
+    bool initialized_R = decode_over_channels (R, nchannels_R, alpha_R,
+                                               z_R, colors_R);
+    bool initialized_A = decode_over_channels (A, nchannels_A, alpha_A,
+                                               z_A, colors_A);
+    bool initialized_B = decode_over_channels (B, nchannels_B, alpha_B,
+                                               z_B, colors_B);
+
+    if (! initialized_A || ! initialized_B) {
+        R.error ("Can't 'over' uninitialized images");
+        return false;
+    }
+
+    // Fail if the input images don't have an alpha channel.
+    if (alpha_A < 0 || alpha_B < 0 || (initialized_R && alpha_R < 0)) {
+        R.error ("'over' requires alpha channels");
+        return false;
+    }
+    // Fail for mismatched channel counts
+    if (colors_A != colors_B || colors_A < 1) {
+        R.error ("Can't 'over' images with mismatched color channel counts (%d vs %d)",
+                 colors_A, colors_B);
+        return false;
+    }
+    // Fail for unaligned alpha or z channels
+    if (alpha_A != alpha_B || z_A != z_B ||
+        (initialized_R && alpha_R != alpha_A) ||
+        (initialized_R && z_R != z_A)) {
+        R.error ("Can't 'over' images with mismatched channel order",
+                 colors_A, colors_B);
+        return false;
+    }
+    
     // At present, this operation only supports ImageBuf's containing
     // float pixel data.
-    if (R.spec().format != TypeDesc::TypeFloat ||
-        A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat) {
-        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
-                   R.spec().format, A.spec().format, B.spec().format);
+    if ((initialized_R && specR.format != TypeDesc::TypeFloat) ||
+        specA.format != TypeDesc::TypeFloat ||
+        specB.format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s = %s over %s'",
+                 specR.format, specA.format, specB.format);
         return false;
     }
 
-    // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0) {
-        R.error ("'over' does not support Z channels");
-        return false;
-    }
-
-    // If input images A and B have different number of non-alpha channels
-    // then return false.
-    if (non_alpha_A != non_alpha_B) {
-        R.error ("inputs had different numbers of color channels");
-        return false;
-    }
-
-    // A or B has number of channels different than 3 and 4, and it does
-    // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B)) {
-        R.error ("inputs must have alpha channels (or be implicitly RGB or RGBA)");
-        return false;
-    }
-
-    // A or B has zero or one channel -> return false.
-    if (channels_A <= 1 || channels_B <= 1) {
-        R.error ("unsupported number of channels");
-        return false;
-    }
-
-    // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
-    ImageSpec newspec = ImageSpec ();
-    ROI union_AB = roi_union (get_roi(specA), get_roi(specB));
-    set_roi (newspec, union_AB);
-    if ((! has_alpha_A && ! has_alpha_B)
-        || (has_alpha_A && ! has_alpha_B && alpha_A == channels_A - 1)
-        || (! has_alpha_A && has_alpha_B && alpha_B == channels_B - 1)) {
-        if (! initialized_R) {
-            newspec.nchannels = 4;
-            newspec.alpha_channel =  3;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != 3 || alpha_R != 3) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
-        if (! initialized_R) {
-            newspec.nchannels = channels_A;
-            newspec.alpha_channel =  alpha_A;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else {
-        R.error ("unsupported channel layout");
-        return false;
+    if (! initialized_R) {
+        ImageSpec newspec = specA;
+        set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
+        R.reset ("over", newspec);
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
@@ -1420,8 +1414,85 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         roi = get_roi (R.spec());
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
-                                 boost::cref(A), boost::cref(B), _1),
-                           roi, nthreads);
+                                 boost::cref(A), boost::cref(B), _1, false),
+                    roi, nthreads);
+    return ! R.has_error();
+}
+
+
+
+bool
+ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int nthreads)
+{
+    const ImageSpec &specR = R.spec();
+    const ImageSpec &specA = A.spec();
+    const ImageSpec &specB = B.spec();
+
+    int nchannels_R, nchannels_A, nchannels_B;
+    int alpha_R, alpha_A, alpha_B;
+    int z_R, z_A, z_B;
+    int colors_R, colors_A, colors_B;
+    bool initialized_R = decode_over_channels (R, nchannels_R, alpha_R,
+                                               z_R, colors_R);
+    bool initialized_A = decode_over_channels (A, nchannels_A, alpha_A,
+                                               z_A, colors_A);
+    bool initialized_B = decode_over_channels (B, nchannels_B, alpha_B,
+                                               z_B, colors_B);
+
+    if (! initialized_A || ! initialized_B) {
+        R.error ("Can't 'zover' uninitialized images");
+        return false;
+    }
+    // Fail if the input images don't have a Z channel.
+    if (z_A < 0 || z_B < 0 || (initialized_R && z_R < 0)) {
+        R.error ("'zover' requires Z channels");
+        return false;
+    }
+    // Fail if the input images don't have an alpha channel.
+    if (alpha_A < 0 || alpha_B < 0 || (initialized_R && alpha_R < 0)) {
+        R.error ("'zover' requires alpha channels");
+        return false;
+    }
+    // Fail for mismatched channel counts
+    if (colors_A != colors_B || colors_A < 1) {
+        R.error ("Can't 'zover' images with mismatched color channel counts (%d vs %d)",
+                 colors_A, colors_B);
+        return false;
+    }
+    // Fail for unaligned alpha or z channels
+    if (alpha_A != alpha_B || z_A != z_B ||
+        (initialized_R && alpha_R != alpha_A) ||
+        (initialized_R && z_R != z_A)) {
+        R.error ("Can't 'zover' images with mismatched channel order",
+                 colors_A, colors_B);
+        return false;
+    }
+    
+    // At present, this operation only supports ImageBuf's containing
+    // float pixel data.
+    if ((initialized_R && specR.format != TypeDesc::TypeFloat) ||
+        specA.format != TypeDesc::TypeFloat ||
+        specB.format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s = %s zover %s'",
+                 specR.format, specA.format, specB.format);
+        return false;
+    }
+
+    // Uninitialized R -> size it to the union of A and B.
+    if (! initialized_R) {
+        ImageSpec newspec = specA;
+        set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
+        R.reset ("zover", newspec);
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined())
+        roi = get_roi (R.spec());
+
+    parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
+                                 boost::cref(A), boost::cref(B), _1, true),
+                    roi, nthreads);
     return ! R.has_error();
 }
 
