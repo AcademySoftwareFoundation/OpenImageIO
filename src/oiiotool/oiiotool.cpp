@@ -1619,14 +1619,41 @@ action_over (int argc, const char *argv[])
     // Create output image specification.
     ImageSpec specR = specA;
     set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
-    specR.nchannels = std::max (specA.nchannels, specB.nchannels);
-    if (specR.alpha_channel < 0 && specR.nchannels == 4)
-        specR.alpha_channel = 3;
 
-    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ot.push (new ImageRec ("over", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
     bool ok = ImageBufAlgo::over (Rib, Aib, Bib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+    return 0;
+}
+
+
+
+static int
+action_zover (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_over, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    const ImageBuf &Aib ((*A)());
+    const ImageBuf &Bib ((*B)());
+    const ImageSpec &specA = Aib.spec();
+    const ImageSpec &specB = Bib.spec();
+
+    // Create output image specification.
+    ImageSpec specR = specA;
+    set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
+
+    ot.push (new ImageRec ("zover", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    bool ok = ImageBufAlgo::zover (Rib, Aib, Bib);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
     return 0;
@@ -1916,6 +1943,7 @@ getargs (int argc, char *argv[])
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
+                "--zover %@", action_zover, NULL, "Depth composite two images with Z channels",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (args: cumulative=0)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",

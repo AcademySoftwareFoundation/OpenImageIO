@@ -365,6 +365,14 @@ bool OIIO_API over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
                      ROI roi = ROI(), int threads = 0);
 
 
+/// Just like ImageBufAlgo::over(), but inputs A and B must have
+/// designated 'z' channels, and on a pixel-by-pixel basis, the z values
+/// will determine which of A or B will be considered the foreground or
+/// background (lower z is foreground).
+bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi = ROI(), int threads = 0);
+
+
 /// Render a text string into image R, essentially doing an "over" of
 /// the character into the existing pixel data.  The baseline of the
 /// first character will start at position (x,y).  The font is given by
