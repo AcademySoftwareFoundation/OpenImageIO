@@ -1,6 +1,30 @@
 Changes:
 
 
+Release 1.1.4 (27 Jan 2013)
+---------------------------
+* ImageBufAlgo::make_texture() allows you to do the same thing that
+  maketx does, but from inside an application and without launching a
+  shell involcation of maketx.
+* oiiotool now recognizes --metamatch and --nometamatch arguments which
+  cause metadata names matching (or only info NOT matching) the given
+  regular expression to be printed with --info.
+* oiiotool --zover does z (depth) composites (it's like a regular "over",
+  but uses the z depth at each pixel to determine which of the two images
+  is the foreground and which is the background).
+* ImageBufAlgo::fixNonFinite didn't work properly with 'half' image buffers.
+* Performance improvements when reading and writing images.
+* Fix error when writing tiled 'float' TIFF images, corrupted output.
+  (Could easily happen when using 'maketx' to convert float images into
+  TIFF textures.)
+* Eliminate warnings when compiling with Clang 3.2.
+* New CMake variable "USE_EXTERNAL_TBB" can optionally be set to force use
+  of an external TBB library rather than the embedded one.
+* Additional testsuite tests (doesn't affect users, but makes bugs easier
+  to catch).
+* Fix build problem with SHA1.cpp on some platforms.
+
+
 Release 1.1.3 (9 Jan 2013)
 ---------------------------
 * Build fix: incorrectly named OpenEXR 2.x files.
