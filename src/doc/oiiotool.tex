@@ -721,9 +721,24 @@ consisting of the \emph{absolute value} of he old pixel value.
 \apiend
 
 \apiitem{--over}
+\index{composite}
 Replace the \emph{two} top images with a new image that is the
-Porter/Duff ``over'' composite of the first image over the second
-image.
+Porter/Duff ``over'' composite with the first image as the foreground
+and the second image as the background.
+Both input images must have the same number and order of channels
+and must contain an alpha channel.
+\apiend
+
+\apiitem{--zover}
+\index{depth composite}
+\NEW
+Replace the \emph{two} top images with a new image that is a \emph{depth
+composite} of the two images -- the operation is the 
+Porter/Duff ``over'' composite, but each pixel individually will choose
+which of the two images is the foreground and which background, depending on
+the ``Z'' channel values for that pixel (larger Z means farther away).
+Both input images must have the same number and order of channels
+and must contain both depth/Z and alpha channels.
 \apiend
 
 \apiitem{--flip}
