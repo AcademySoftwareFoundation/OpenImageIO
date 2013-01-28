@@ -5,7 +5,7 @@ Release 1.1.4 (27 Jan 2013)
 ---------------------------
 * ImageBufAlgo::make_texture() allows you to do the same thing that
   maketx does, but from inside an application and without launching a
-  shell involcation of maketx.
+  shell invocation of maketx.
 * oiiotool now recognizes --metamatch and --nometamatch arguments which
   cause metadata names matching (or only info NOT matching) the given
   regular expression to be printed with --info.
