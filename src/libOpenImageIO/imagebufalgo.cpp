@@ -1291,7 +1291,7 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
 
     // It's already guaranteed that R, A, and B have matching channel
     // ordering, and have an alpha channel.  So just decode one.
-    int nchannels, alpha_channel, z_channel, ncolor_channels;
+    int nchannels = 0, alpha_channel = 0, z_channel = 0, ncolor_channels = 0;
     decode_over_channels (R, nchannels, alpha_channel,
                           z_channel, ncolor_channels);
     bool has_z = (z_channel >= 0);
