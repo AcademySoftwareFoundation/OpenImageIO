@@ -738,7 +738,15 @@ Porter/Duff ``over'' composite, but each pixel individually will choose
 which of the two images is the foreground and which background, depending on
 the ``Z'' channel values for that pixel (larger Z means farther away).
 Both input images must have the same number and order of channels
-and must contain both depth/Z and alpha channels.
+and must contain both depth/Z and alpha channels. Optional appended arguments
+include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf zeroisinf=}\emph{num} & If nonzero, indicates that $z=0$ pixels
+  should be treated as if they were infinitely far away. (The default is
+  0, meaning that ``zero means zero.'').
+\end{tabular}
+
 \apiend
 
 \apiitem{--flip}
