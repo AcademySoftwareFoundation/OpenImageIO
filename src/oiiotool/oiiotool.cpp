@@ -1637,6 +1637,16 @@ action_zover (int argc, const char *argv[])
     if (ot.postpone_callback (2, action_over, argc, argv))
         return 0;
 
+    // Get optional flags
+    bool z_zeroisinf = false;
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(cmd,"zeroisinf="))
+            z_zeroisinf = (atoi(cmd.c_str()+10) != 0);
+    }
+
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
     ot.read (A);
@@ -1653,7 +1663,7 @@ action_zover (int argc, const char *argv[])
     ot.push (new ImageRec ("zover", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    bool ok = ImageBufAlgo::zover (Rib, Aib, Bib);
+    bool ok = ImageBufAlgo::zover (Rib, Aib, Bib, z_zeroisinf);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
     return 0;
@@ -1933,18 +1943,18 @@ getargs (int argc, char *argv[])
                 "--hardwarn %g", &ot.diff_hardwarn, "Warn if any one pixel difference exceeds this error (infinity)",
                 "<SEPARATOR>", "Actions:",
                 "--create %@ %s %d", action_create, NULL, NULL,
-                        "Create a blank image (args: geom, channels)",
+                        "Create a blank image (optional args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
-                        "Create a patterned image (args: pattern, geom, channels)",
+                        "Create a patterned image (optional args: pattern, geom, channels)",
                 "--capture %@", action_capture, NULL,
-                        "Capture an image (args: camera=%%d)",
+                        "Capture an image (optional args: camera=%d)",
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
-                "--zover %@", action_zover, NULL, "Depth composite two images with Z channels",
-                "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (args: cumulative=0)",
+                "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (optional args: zeroisinf=%d)",
+                "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (optional args: cumulative=0)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
