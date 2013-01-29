@@ -1,6 +1,16 @@
 Changes:
 
 
+Release 1.1.5 (29 Jan 2013)
+---------------------------
+* Bug fix in ImageBufAlgo::parallel_image utility template -- care when
+  not enough work chunks to dole out to all the threads (was previously
+  sending work to threads with nonsensical ROI's, now we just stop when
+  all the regions have been doled out).
+* Additional optional argument to IBA::zover that, when nonzero, will
+  treat z=0 pixels as infinitely far away, not super close.  You can turn
+  this on from oiiotool with:  oiiotool --zover:zeroisinf=1 ...
+
 Release 1.1.4 (27 Jan 2013)
 ---------------------------
 * ImageBufAlgo::make_texture() allows you to do the same thing that
@@ -12,6 +22,7 @@ Release 1.1.4 (27 Jan 2013)
 * oiiotool --zover does z (depth) composites (it's like a regular "over",
   but uses the z depth at each pixel to determine which of the two images
   is the foreground and which is the background).
+* ImageBufAlgo::zover() performs z compositing (same as oiiotool --zover).
 * ImageBufAlgo::fixNonFinite didn't work properly with 'half' image buffers.
 * Performance improvements when reading and writing images.
 * Fix error when writing tiled 'float' TIFF images, corrupted output.
