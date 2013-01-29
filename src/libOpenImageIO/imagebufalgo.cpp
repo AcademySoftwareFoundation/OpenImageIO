@@ -1279,7 +1279,7 @@ decode_over_channels (const ImageBuf &R, int &nchannels,
 template<class Rtype, class Atype, class Btype>
 static bool
 over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
-           bool zcomp=false)
+           bool zcomp=false, bool z_zeroisinf=false)
 {
     if (R.spec().format != BaseTypeFromC<Rtype>::value ||
         A.spec().format != BaseTypeFromC<Atype>::value ||
@@ -1303,29 +1303,39 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         a.pos (r.x(), r.y(), r.z());
         b.pos (r.x(), r.y(), r.z());
 
-        if (! a.valid()) {
-            if (! b.valid()) {
-                // a and b are both invalid -- make it an "empty" pixel
+        if (! a.exists()) {
+            if (! b.exists()) {
+                // a and b outside their data window -- "empty" pixels
                 for (int c = 0; c < nchannels; c++)
                     r[c] = 0.0f;
             } else {
-                // a invalid, b valid -- copy B
+                // a doesn't exist, but b does -- copy B
                 for (int c = 0; c < nchannels; ++c)
                     r[c] = b[c];
             }
             continue;
         }
 
-        if (! b.valid()) {
-            // a valid, b invalid -- copy A
+        if (! b.exists()) {
+            // a exists, b does not -- copy A
             for (int c = 0; c < nchannels; ++c)
                 r[c] = a[c];
             continue;
         }
 
-        // At this point, a and b are valid.
-
-        if (!zcomp || a[z_channel] <= b[z_channel]) {
+        // At this point, a and b exist.
+        float az = 0.0f, bz = 0.0f;
+        bool a_is_closer = true;  // will remain true if !zcomp
+        if (zcomp && has_z) {
+            az = a[z_channel];
+            bz = b[z_channel];
+            if (z_zeroisinf) {
+                if (az == 0.0f) az = std::numeric_limits<float>::max();
+                if (bz == 0.0f) bz = std::numeric_limits<float>::max();
+            }
+            a_is_closer = (az <= bz);
+        }
+        if (a_is_closer) {
             // A over B
             float alpha = clamp (a[alpha_channel], 0.0f, 1.0f);
             float one_minus_alpha = 1.0f - alpha;
@@ -1414,7 +1424,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         roi = get_roi (R.spec());
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
-                                 boost::cref(A), boost::cref(B), _1, false),
+                                 boost::cref(A), boost::cref(B), _1, false, false),
                     roi, nthreads);
     return ! R.has_error();
 }
@@ -1423,7 +1433,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
 
 bool
 ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
-                     ROI roi, int nthreads)
+                     bool z_zeroisinf, ROI roi, int nthreads)
 {
     const ImageSpec &specR = R.spec();
     const ImageSpec &specA = A.spec();
@@ -1491,9 +1501,22 @@ ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
         roi = get_roi (R.spec());
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
-                                 boost::cref(A), boost::cref(B), _1, true),
+                                 boost::cref(A), boost::cref(B), _1,
+                                 true, z_zeroisinf),
                     roi, nthreads);
     return ! R.has_error();
+}
+
+
+
+bool
+ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int nthreads)
+{
+    // DEPRECATED version -- just call the new version.  This exists to 
+    // avoid breaking link compatibility.  Eventually remove it at the
+    // next major release.
+    return zover (R, A, B, false, roi, nthreads);
 }
 
 

@@ -368,9 +368,15 @@ bool OIIO_API over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// Just like ImageBufAlgo::over(), but inputs A and B must have
 /// designated 'z' channels, and on a pixel-by-pixel basis, the z values
 /// will determine which of A or B will be considered the foreground or
-/// background (lower z is foreground).
+/// background (lower z is foreground).  If z_zeroisinf is true, then
+/// z=0 values will be treated as if they are infinitely far away.
 bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     bool z_zeroisinf = false,
                      ROI roi = ROI(), int threads = 0);
+
+/// DEPRECATED -- preserved for link compatibility, but will be removed.
+bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int threads = 0);
 
 
 /// Render a text string into image R, essentially doing an "over" of
