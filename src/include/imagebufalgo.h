@@ -580,6 +580,8 @@ parallel_image (Func f, ROI roi, int nthreads=0)
         for (int i = 0;  i < nthreads;  i++) {
             roi.ybegin = roi_ybegin + i * blocksize;
             roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
+            if (roi.ybegin >= roi.yend)
+                break;   // no more work to dole out
             threads.add_thread (new boost::thread (f, roi));
         }
         threads.join_all ();
