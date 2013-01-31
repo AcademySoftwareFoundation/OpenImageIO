@@ -41,6 +41,16 @@
 #include <boost/algorithm/string.hpp>
 
 #ifdef _WIN32
+// defining NOMINMAX to prevent problems with std::min/std::max
+// and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
+// when including windows.h
+#ifdef _MSC_VER
+# define WIN32_LEAN_AND_MEAN
+# define VC_EXTRALEAN
+# ifndef NOMINMAX
+#   define NOMINMAX
+# endif
+#endif
 #include <windows.h>
 #include <shellapi.h>
 #endif
