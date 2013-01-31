@@ -161,16 +161,17 @@ bool
 TextureSystemImpl::wrap_periodic_sharedborder (int &coord, int origin, int width)
 {
     // Like periodic, but knowing that the first column and last are
-    // actually the same position, so we essentially skip the first
-    // column in the next cycle.  We only need this to work for one wrap
-    // in each direction since it's only used for latlong maps.
-    coord -= origin;
-    if (coord >= width) {
-        coord = coord - width + 1;
-    } else if (coord < 0) {
-        coord = coord + width - 1;
+    // actually the same position, so we essentially skip the last
+    // column in the next cycle.
+    if (width <= 2) {
+        coord = origin;  // special case -- just 1 pixel wide
+    } else {
+        coord -= origin;
+        coord %= (width-1);
+        if (coord < 0)       // Fix negative values
+            coord += width;
+        coord += origin;
     }
-    coord += origin;
     return true;
 }
 
