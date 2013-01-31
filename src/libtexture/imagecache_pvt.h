@@ -39,6 +39,7 @@
 #include <boost/unordered_map.hpp>
 #include <boost/scoped_array.hpp>
 
+#include "export.h"
 #include "texture.h"
 #include "refcnt.h"
 #include "hash.h"
@@ -131,7 +132,7 @@ struct ImageCacheStatistics {
 /// However, a few of them require passing in a pointer to the
 /// thread-specific IC data including microcache and statistics.
 ///
-class ImageCacheFile : public RefCnt {
+class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache,
                     ImageCachePerThreadInfo *thread_info, ustring filename);
