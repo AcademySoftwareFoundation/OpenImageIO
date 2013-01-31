@@ -2427,6 +2427,8 @@ ImageCacheImpl::invalidate (ustring filename)
         tilemutex_holder (NULL);
     }
 
+    ustring fingerprint = file->fingerprint();
+
     {
         ic_write_lock fileguard (m_filemutex);
         file->invalidate ();
@@ -2435,7 +2437,7 @@ ImageCacheImpl::invalidate (ustring filename)
     // Remove the fingerprint corresponding to this file
     {
         spin_lock lock (m_fingerprints_mutex);
-        FilenameMap::iterator f = m_fingerprints.find (filename);
+        FilenameMap::iterator f = m_fingerprints.find (fingerprint);
         if (f != m_fingerprints.end())
             m_fingerprints.erase (f);
     }
