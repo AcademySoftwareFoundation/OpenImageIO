@@ -64,6 +64,22 @@ static Oiiotool ot;
 
 
 
+std::string
+format_resolution (int w, int h, int x, int y)
+{
+#if 0
+    // This should work...
+    return Strutil::format ("%dx%d%+d%+d", w, h, x, y);
+    // ... but tinyformat doesn't print the sign for '0' values!  It
+    // appears to be a bug with iostream use of 'showpos' format flag,
+    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
+#else
+    return Strutil::format ("%dx%d%c%d%c%d", w, h,
+                            x >= 0 ? '+' : '-', abs(x),
+                            y >= 0 ? '+' : '-', abs(y));
+#endif
+}
+
 
 // FIXME -- lots of things we skimped on so far:
 // FIXME: check binary ops for compatible image dimensions
@@ -1471,21 +1487,8 @@ action_croptofull (int argc, const char *argv[])
     const ImageSpec &Aspec (*A->spec(0,0));
     // Implement by calling action_crop with a geometry specifier built
     // from the current full image size.
-#if 0
-    // This should work...
-    std::string size = Strutil::format ("%dx%d%+d%+d",
-                                        Aspec.full_width, Aspec.full_height,
-                                        Aspec.full_x, Aspec.full_y);
-    // ... but tinyformat doesn't print the sign for '0' values!  It
-    // appears to be a bug with iostream use of 'showpos' format flag,
-    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
-#else
-    std::string size = Strutil::format ("%dx%d%c%d%c%d",
-                                        Aspec.full_width, Aspec.full_height,
-                                        Aspec.full_x >= 0 ? '+' : '-',
-                                        Aspec.full_y >= 0 ? '+' : '-',
-                                        abs(Aspec.full_x), abs(Aspec.full_y));
-#endif
+    std::string size = format_resolution (Aspec.full_width, Aspec.full_height,
+                                          Aspec.full_x, Aspec.full_y);
     const char *newargv[2] = { "crop", size.c_str() };
     return action_crop (2, newargv);
 }
