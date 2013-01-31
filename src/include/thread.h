@@ -91,6 +91,18 @@
 #  if defined(_WIN64)
 #    pragma intrinsic(_InterlockedExchangeAdd64)
 #  endif
+// InterlockedExchangeAdd64 is not available for XP
+#  if defined(_WIN32_WINNT) && _WIN32_WINNT <= 0x0501
+inline long long
+InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
+{
+    long long Old;
+    do {
+        Old = *Addend;
+    } while (_InterlockedCompareExchange64(Addend, Old + Value, Old) != Old);
+    return Old;
+}
+#  endif
 #endif
 
 #ifdef __APPLE__
