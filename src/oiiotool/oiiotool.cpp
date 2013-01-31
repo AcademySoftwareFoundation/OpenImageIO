@@ -1569,6 +1569,85 @@ action_resize (int argc, const char *argv[])
 
 
 
+static int
+action_fit (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fit, argc, argv))
+        return 0;
+
+    // Examine the top of stack
+    ImageRecRef A = ot.top();
+    ot.read ();
+    const ImageSpec *Aspec = A->spec(0,0);
+
+    // Parse the user request for resolution to fit
+    int fit_full_width = Aspec->full_width;
+    int fit_full_height = Aspec->full_height;
+    int fit_full_x = Aspec->full_x;
+    int fit_full_y = Aspec->full_y;
+    adjust_geometry (fit_full_width, fit_full_height, fit_full_x, fit_full_y,
+                     argv[1], false);
+
+    // Compute scaling factors and use action_resize to do the heavy lifting
+    float wfactor = float(fit_full_width) / Aspec->full_width;
+    float hfactor = float(fit_full_height) / Aspec->full_height;
+    int resize_full_width = fit_full_width;
+    int resize_full_height = fit_full_height;
+    if (wfactor <= hfactor)
+        resize_full_height = int(Aspec->full_height * wfactor);
+    else
+        resize_full_width = int(Aspec->full_width * hfactor);
+    if (ot.verbose) {
+        std::cout << "Fitting " 
+                  << format_resolution(Aspec->full_width, Aspec->full_height,
+                                       Aspec->x, Aspec->y)
+                  << " into "
+                  << format_resolution(fit_full_width, fit_full_height,
+                                       fit_full_x, fit_full_y) 
+                  << "\n";
+        std::cout << "  Resizing to "
+                  << format_resolution(resize_full_width, resize_full_height,
+                                       fit_full_x, fit_full_y) << "\n";
+    }
+    if (resize_full_width != Aspec->full_width ||
+        resize_full_height != Aspec->full_height ||
+        fit_full_x != Aspec->full_x || fit_full_y != Aspec->full_y) {
+        std::string resize = format_resolution (resize_full_width,
+                                                resize_full_height,
+                                                fit_full_x, fit_full_y);
+        const char *newargv[2] = { "resize", resize.c_str() };
+        action_resize (2, newargv);
+        A = ot.top ();
+        Aspec = A->spec(0,0);
+        // Now A,Aspec are for the NEW resized top of stack
+    }
+
+    if (fit_full_width != resize_full_width ||
+        fit_full_height != Aspec->full_height) {
+        // Needs padding
+        ImageSpec newspec = *Aspec;
+        newspec.width = newspec.full_width = fit_full_width;
+        newspec.height = newspec.full_height = fit_full_height;
+        newspec.x = newspec.full_x = fit_full_x;
+        newspec.y = newspec.full_y = fit_full_y;
+        newspec.set_format (TypeDesc::FLOAT);
+        ImageRecRef B (new ImageRec (A->name(), newspec, ot.imagecache));
+        ImageBuf &Rib ((*B)(0,0));
+        ot.curimg = B;
+        ImageBufAlgo::zero (Rib);
+        if (Aspec->full_width == fit_full_width)
+            ImageBufAlgo::paste (Rib, 0, (fit_full_height-Aspec->full_height)/2,
+                                 0, 0, (*A)(0,0));
+        else
+            ImageBufAlgo::paste (Rib, (fit_full_width-Aspec->full_height)/2, 0,
+                                 0, 0, (*A)(0,0));
+    }
+    
+    return 0;
+}
+
+
+
 int
 action_fixnan (int argc, const char *argv[])
 {
@@ -1963,7 +2042,8 @@ getargs (int argc, char *argv[])
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
-                "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%)",
+                "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
+                "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: x=, y=, size=, color=)",
                 "--text %@ %s", action_text, NULL,
