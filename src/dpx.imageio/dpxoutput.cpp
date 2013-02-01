@@ -95,11 +95,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *dpx_output_imageio_create () { return new DPXOutput; }
+OIIO_EXPORT ImageOutput *dpx_output_imageio_create () { return new DPXOutput; }
 
-// DLLEXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;   // it's in dpxinput.cpp
+// OIIO_EXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;   // it's in dpxinput.cpp
 
-DLLEXPORT const char * dpx_output_extensions[] = {
+OIIO_EXPORT const char * dpx_output_extensions[] = {
     "dpx", NULL
 };
 
@@ -180,7 +180,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     // check if the client wants endianness reverse to native
     // assume big endian per Jeremy's request, unless little endian is
     // explicitly specified
-    std::string tmpstr = m_spec.get_string_attribute ("oiio:Endian", "big");
+    std::string tmpstr = m_spec.get_string_attribute ("oiio:Endian", littleendian() ? "little" : "big");
     m_wantSwap = (littleendian() != Strutil::iequals (tmpstr, "little"));
 
     m_dpx.SetOutStream (m_stream);

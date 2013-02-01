@@ -47,9 +47,6 @@ OIIO_NAMESPACE_ENTER
 
 using namespace Plugin;
 
-// FIXME: this implementation doesn't set error messages for Windows.
-// Get a Windows expert to fix this.
-
 namespace {
 
 static mutex plugin_mutex;
@@ -70,16 +67,58 @@ Plugin::plugin_extension (void)
 #endif
 }
 
+#if defined(_WIN32)
 
+// Dummy values
+#define RTLD_LAZY 0
+#define RTLD_GLOBAL 0
+
+
+Handle
+dlopen (const char *plugin_filename, int)
+{
+    return LoadLibrary (plugin_filename);
+}
+
+
+
+bool
+dlclose (Handle plugin_handle)
+{
+    return FreeLibrary ((HMODULE)plugin_handle) != 0;
+}
+
+
+
+void *
+dlsym (Handle plugin_handle, const char *symbol_name)
+{
+    return GetProcAddress ((HMODULE)plugin_handle, symbol_name);
+}
+
+
+
+std::string
+dlerror ()
+{
+    LPVOID lpMsgBuf;
+    std::string win32Error;
+    if (FormatMessageA( 
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, GetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR) &lpMsgBuf, 0, NULL))
+        win32Error = (LPSTR)lpMsgBuf;
+    LocalFree(lpMsgBuf);
+    return win32Error;
+}
+#endif
 
 Handle
 Plugin::open (const char *plugin_filename, bool global)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(_WIN32)
-    return LoadLibrary (plugin_filename);
-#else
     int mode = RTLD_LAZY;
     if (global)
         mode |= RTLD_GLOBAL;
@@ -87,7 +126,6 @@ Plugin::open (const char *plugin_filename, bool global)
     if (!h)
         last_error = dlerror();
     return h;
-#endif
 }
 
 
@@ -97,14 +135,10 @@ Plugin::close (Handle plugin_handle)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(_WIN32)
-    FreeLibrary ((HMODULE)plugin_handle);
-#else
     if (dlclose (plugin_handle)) {
         last_error = dlerror();
         return false;
     }
-#endif
     return true;
 }
 
@@ -115,14 +149,10 @@ Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(_WIN32)
-    return GetProcAddress ((HMODULE)plugin_handle, symbol_name);
-#else
     void *s = dlsym (plugin_handle, symbol_name);
     if (!s)
         last_error = dlerror();
     return s;
-#endif
 }
 
 

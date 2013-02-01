@@ -45,6 +45,14 @@ extern "C" {
 #include "tiff.h"
 }
 
+// Some EXIF tags that don't seem to be in tiff.h
+#ifndef EXIFTAG_SECURITYCLASSIFICATION
+#define EXIFTAG_SECURITYCLASSIFICATION 37394
+#endif
+#ifndef EXIFTAG_IMAGEHISTORY
+#define EXIFTAG_IMAGEHISTORY 37395
+#endif
+
 #ifdef TIFF_VERSION_BIG
 // In old versions of TIFF, this was defined in tiff.h.  It's gone from
 // "BIG TIFF" (libtiff 4.x), so we just define it here.
@@ -144,6 +152,8 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_LIGHTSOURCE,	"Exif:LightSource",	TIFF_SHORT, 1 },
     { EXIFTAG_FLASH,	        "Exif:Flash",	        TIFF_SHORT, 1 },
     { EXIFTAG_FOCALLENGTH,	"Exif:FocalLength",	TIFF_RATIONAL, 1 }, // mm
+    { EXIFTAG_SECURITYCLASSIFICATION, "Exif:SecurityClassification", TIFF_ASCII, 1 },
+    { EXIFTAG_IMAGEHISTORY,     "Exif:ImageHistory",    TIFF_ASCII, 1 },
     { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE, 1 }, // skip
     { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_NOTYPE, 1 },	 // skip it
     { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_NOTYPE, 1 },	// skip it
@@ -205,7 +215,8 @@ enum GPSTag {
     GPSTAG_PROCESSINGMETHOD = 27,
     GPSTAG_AREAINFORMATION = 28,
     GPSTAG_DATESTAMP = 29,
-    GPSTAG_DIFFERENTIAL = 30
+    GPSTAG_DIFFERENTIAL = 30,
+    GPSTAG_HPOSITIONINGERROR = 31
 };
 
 static const EXIF_tag_info gps_tag_table[] = {
@@ -240,6 +251,7 @@ static const EXIF_tag_info gps_tag_table[] = {
     { GPSTAG_AREAINFORMATION,	"GPS:AreaInformation",	TIFF_UNDEFINED, 1 },
     { GPSTAG_DATESTAMP,		"GPS:DateStamp",	TIFF_ASCII, 0 },
     { GPSTAG_DIFFERENTIAL,	"GPS:Differential",	TIFF_SHORT, 1 },
+    { GPSTAG_HPOSITIONINGERROR,	"GPS:HPositioningError",TIFF_RATIONAL, 1 },
     { -1, NULL }  // signal end of table
 };
 

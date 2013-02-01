@@ -135,7 +135,8 @@ ImageSpec::ImageSpec (TypeDesc format)
       full_x(0), full_y(0), full_z(0),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
-      nchannels(0), format(format), alpha_channel(-1), z_channel(-1)
+      nchannels(0), format(format), alpha_channel(-1), z_channel(-1),
+      deep(false)
 {
     set_format (format);
 }
@@ -147,7 +148,8 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
       full_x(0), full_y(0), full_z(0),
       full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
-      nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1)
+      nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1),
+      deep(false)
 {
     set_format (format);
     default_channel_names ();
@@ -271,16 +273,16 @@ ImageSpec::pixel_bytes (bool native) const
 
 
 size_t
-ImageSpec::pixel_bytes (int firstchan, int nchans, bool native) const
+ImageSpec::pixel_bytes (int chbegin, int chend, bool native) const
 {
-    nchans = std::min (nchans, nchannels-firstchan);
-    if (nchans < 0 || firstchan < 0)
+    if (chbegin < 0)
         return 0;
+    chend = std::max (chend, chbegin);
     if (!native || channelformats.empty())
-        return clamped_mult32 ((size_t)nchans, channel_bytes());
+        return clamped_mult32 ((size_t)(chend-chbegin), channel_bytes());
     else {
         size_t sum = 0;
-        for (int i = firstchan, e = firstchan+nchans;  i < e;  ++i)
+        for (int i = chbegin; i < chend;  ++i)
             sum += channelformats[i].size();
         return sum;
     }
@@ -710,6 +712,7 @@ static LabelTable ExifExposureProgram_table[] = {
     { 6, "Action program, biased toward fast shutter" },
     { 7, "Portrait mode, foreground in focus" },
     { 8, "Landscape mode, background in focus" },
+    { 9, "bulb" },
     { -1, NULL }
 };
 
@@ -755,7 +758,8 @@ static LabelTable orientation_table[] = {
 };
 
 static LabelTable resunit_table[] = {
-    { 1, "none" }, { 2, "inches" }, { 3, "cm" }, { -1, NULL }
+    { 1, "none" }, { 2, "inches" }, { 3, "cm" },
+    { 4, "mm" }, { 5, "um" }, { -1, NULL }
 };
 
 static LabelTable ExifSensingMethod_table[] = {
@@ -766,6 +770,7 @@ static LabelTable ExifSensingMethod_table[] = {
 };
 
 static LabelTable ExifFileSource_table[] = {
+    { 1, "film scanner" }, { 2, "reflection print scanner" },
     { 3, "digital camera" }, { -1, NULL }
 };
 
@@ -981,6 +986,7 @@ ImageSpec::to_xml () const
     add_channelnames_node (doc, channelnames);
     add_node (node, "alpha_channel", alpha_channel);
     add_node (node, "z_channel", z_channel);
+    add_node (node, "deep", int(deep));
     
     // FIXME: What about extra attributes?
     
@@ -1021,6 +1027,7 @@ ImageSpec::from_xml (const char *xml)
     get_channelnames (n, channelnames);
     alpha_channel = atoi (n.child_value ("alpha_channel"));
     z_channel = atoi (n.child_value ("z_channel"));
+    deep = atoi (n.child_value ("deep"));
     
     // FIXME: What about extra attributes?
     

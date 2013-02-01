@@ -38,10 +38,10 @@ using namespace iff_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *iff_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *iff_output_imageio_create () {
         return new IffOutput;
     }
-    DLLEXPORT const char *iff_output_extensions[] = {
+    OIIO_EXPORT const char *iff_output_extensions[] = {
         "iff", "z", NULL
     };
 

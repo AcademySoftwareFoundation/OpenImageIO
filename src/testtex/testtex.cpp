@@ -49,6 +49,7 @@
 #include "sysutil.h"
 #include "strutil.h"
 #include "timer.h"
+#include "../libtexture/imagecache_pvt.h"
 
 OIIO_NAMESPACE_USING
 
@@ -58,9 +59,10 @@ static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
 static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
-static float blur = 0;
+static float sblur = 0, tblur = -1;
 static float width = 1;
 static std::string wrapmodes ("periodic");
+static int anisotropic = -1;
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
@@ -84,6 +86,7 @@ static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
 static bool resetstats = false;
+static bool testhash = false;
 static Imath::M33f xform;
 void *dummyptr;
 
@@ -102,6 +105,9 @@ parse_files (int argc, const char *argv[])
 static void
 getargs (int argc, const char *argv[])
 {
+    TextureOptions opt;  // to figure out defaults
+    anisotropic = opt.anisotropic;
+
     bool help = false;
     ArgParse ap;
     ap.options ("Usage:  testtex [options] inputfile",
@@ -115,10 +121,13 @@ getargs (int argc, const char *argv[])
                       "Resolution of output test image",
                   "-iters %d", &iters,
                       "Iterations for time trials",
-                  "--blur %f", &blur, "Add blur to texture lookup",
+                  "--blur %f", &sblur, "Add blur to texture lookup",
+                  "--stblur %f %f", &sblur, &tblur, "Add blur (s, t) to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
                   "--fill %f", &fill, "Set fill value for missing channels",
                   "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
+                  "--aniso %d", &anisotropic,
+                      Strutil::format("Set max anisotropy (default: %d)", anisotropic).c_str(),
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
                         "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
@@ -141,6 +150,7 @@ getargs (int argc, const char *argv[])
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
+                  "--testhash", &testhash, "Test the tile hashing function",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -152,7 +162,8 @@ getargs (int argc, const char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    if (filenames.size() < 1) {
+    if (filenames.size() < 1 &&
+          !test_construction && !test_getimagespec && !testhash) {
         std::cerr << "testtex: Must have at least one input file\n";
         ap.usage();
         exit (EXIT_FAILURE);
@@ -428,8 +439,8 @@ test_plain_texture (MAPPING mapping)
     xform.invert();
 
     TextureOptions opt;
-    opt.sblur = blur;
-    opt.tblur = blur;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
     opt.swidth = width;
     opt.twidth = width;
     opt.nchannels = nchannels;
@@ -441,10 +452,11 @@ test_plain_texture (MAPPING mapping)
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
     TextureOptions::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
+    opt.anisotropic = anisotropic;
 
     TextureOpt opt1;
-    opt1.sblur = blur;
-    opt1.tblur = blur;
+    opt1.sblur = sblur;
+    opt1.tblur = tblur >= 0.0f ? tblur : sblur;
     opt1.swidth = width;
     opt1.twidth = width;
     opt1.nchannels = nchannels;
@@ -452,6 +464,7 @@ test_plain_texture (MAPPING mapping)
     if (missing[0] >= 0)
         opt1.missingcolor = (float *)&missing;
     TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt1.swrap, opt1.twrap);
+    opt1.anisotropic = anisotropic;
 
     int shadepoints = blocksize*blocksize;
     float *s = ALLOCA (float, shadepoints);
@@ -570,9 +583,9 @@ test_texture3d (ustring filename, MAPPING mapping)
     xform.invert();
 
     TextureOptions opt;
-    opt.sblur = blur;
-    opt.tblur = blur;
-    opt.rblur = blur;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
+    opt.rblur = sblur;
     opt.swidth = width;
     opt.twidth = width;
     opt.rwidth = width;
@@ -583,6 +596,7 @@ test_texture3d (ustring filename, MAPPING mapping)
         opt.missingcolor.init ((float *)&missing, 0);
 
     opt.swrap = opt.twrap = opt.rwrap = TextureOptions::WrapPeriodic;
+    opt.anisotropic = anisotropic;
     int shadepoints = blocksize*blocksize;
     Imath::V3f *P = ALLOCA (Imath::V3f, shadepoints);
     Runflag *runflags = ALLOCA (Runflag, shadepoints);
@@ -703,6 +717,114 @@ test_getimagespec_gettexels (ustring filename)
 
 
 
+static void
+test_hash ()
+{
+    std::vector<size_t> fourbits (1<<4, 0);
+    std::vector<size_t> eightbits (1<<8, 0);
+    std::vector<size_t> sixteenbits (1<<16, 0);
+    std::vector<size_t> highereightbits (1<<8, 0);
+
+    const size_t iters = 1000000;
+    const int res = 4*1024;  // Simulate tiles from a 4k image
+    const int tilesize = 64;
+    const int nfiles = iters / ((res/tilesize)*(res/tilesize));
+    std::cout << "Testing hashing with " << nfiles << " files of "
+              << res << 'x' << res << " with " << tilesize << 'x' << tilesize
+              << " tiles:\n";
+
+    ImageCache *imagecache = ImageCache::create ();
+
+    // Set up the ImageCacheFiles outside of the timing loop
+    using OIIO::pvt::ImageCacheImpl;
+    using OIIO::pvt::ImageCacheFile;
+    using OIIO::pvt::ImageCacheFileRef;
+    std::vector<ImageCacheFileRef> icf;
+    for (int f = 0;  f < nfiles;  ++f) {
+        ustring filename = ustring::format ("%06d.tif", f);
+        icf.push_back (new ImageCacheFile(*(ImageCacheImpl *)imagecache, NULL, filename));
+    }
+
+    // First, just try to do raw timings of the hash
+    Timer timer;
+    size_t i = 0, hh = 0;
+    for (int f = 0;  f < nfiles;  ++f) {
+        for (int y = 0;  y < res;  y += tilesize) {
+            for (int x = 0;  x < res;  x += tilesize, ++i) {
+                OIIO::pvt::TileID id (*icf[f], 0, 0, x, y, 0);
+                size_t h = id.hash();
+                hh += h;
+            }
+        }
+    }
+    std::cout << "hh = " << hh << "\n";
+    double time = timer();
+    double rate = (i/1.0e6) / time;
+    std::cout << "Hashing rate: " << Strutil::format ("%3.2f", rate)
+              << " Mhashes/sec\n";
+
+    // Now, check the quality of the hash by looking at the low 4, 8, and
+    // 16 bits and making sure that they divide into hash buckets fairly
+    // evenly.
+    i = 0;
+    for (int f = 0;  f < nfiles;  ++f) {
+        for (int y = 0;  y < res;  y += tilesize) {
+            for (int x = 0;  x < res;  x += tilesize, ++i) {
+                OIIO::pvt::TileID id (*icf[f], 0, 0, x, y, 0);
+                size_t h = id.hash();
+                ++ fourbits[h & 0xf];
+                ++ eightbits[h & 0xff];
+                ++ highereightbits[(h>>24) & 0xff];
+                ++ sixteenbits[h & 0xffff];
+                // if (i < 16) std::cout << Strutil::format("%llx\n", h);
+            }
+        }
+    }
+
+    size_t min, max;
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 16;  ++i) {
+        if (fourbits[i] < min) min = fourbits[i];
+        if (fourbits[i] > max) max = fourbits[i];
+    }
+    std::cout << "4-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 256;  ++i) {
+        if (eightbits[i] < min) min = eightbits[i];
+        if (eightbits[i] > max) max = eightbits[i];
+    }
+    std::cout << "8-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 256;  ++i) {
+        if (highereightbits[i] < min) min = highereightbits[i];
+        if (highereightbits[i] > max) max = highereightbits[i];
+    }
+    std::cout << "higher 8-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < (1<<16);  ++i) {
+        if (sixteenbits[i] < min) min = sixteenbits[i];
+        if (sixteenbits[i] > max) max = sixteenbits[i];
+    }
+    std::cout << "16-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    std::cout << "\n";
+
+    ImageCache::destroy (imagecache);
+}
+
+
+
 int
 main (int argc, const char *argv[])
 {
@@ -752,7 +874,11 @@ main (int argc, const char *argv[])
         iters = 0;
     }
 
-    if (iters > 0) {
+    if (testhash) {
+        test_hash ();
+    }
+
+    if (iters > 0 && filenames.size()) {
         ustring filename (filenames[0]);
         test_gettextureinfo (filename);
         const char *texturetype = "Plain Texture";

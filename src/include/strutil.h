@@ -43,6 +43,7 @@
 #include <cstdarg>
 #include <string>
 #include <cstring>
+#include <vector>
 #include <map>
 #include <sys/types.h>   // to safely get off_t
 
@@ -94,13 +95,13 @@ TINYFORMAT_WRAP_FORMAT (std::string, format, /**/,
 /// like format().  You would only want to use this instead of the safe
 /// format() in rare situations where you really need to use obscure
 /// printf features that aren't supported by tinyformat.
-std::string DLLPUBLIC format_raw (const char *fmt, ...)
+std::string OIIO_API format_raw (const char *fmt, ...)
                                          OPENIMAGEIO_PRINTF_ARGS(1,2);
 
 /// Return a std::string formatted from printf-like arguments -- passed
 /// already as a va_list.  Like vsprintf, this is not guaranteed
 /// type-safe and is not extensible like format().
-std::string DLLPUBLIC vformat (const char *fmt, va_list ap)
+std::string OIIO_API vformat (const char *fmt, va_list ap)
                                          OPENIMAGEIO_PRINTF_ARGS(1,0);
 
 /// Return a string expressing a number of bytes, in human readable form.
@@ -108,11 +109,11 @@ std::string DLLPUBLIC vformat (const char *fmt, va_list ap)
 ///  - memformat(15300)         -> "14.9 KB"
 ///  - memformat(15300000)      -> "14.6 MB"
 ///  - memformat(15300000000LL) -> "14.2 GB"
-std::string DLLPUBLIC memformat (off_t bytes, int digits=1);
+std::string OIIO_API memformat (off_t bytes, int digits=1);
 
 /// Return a string expressing an elapsed time, in human readable form.
 /// e.g. "0:35.2"
-std::string DLLPUBLIC timeintervalformat (double secs, int digits=1);
+std::string OIIO_API timeintervalformat (double secs, int digits=1);
 
 
 /// Get a map with RESTful arguments extracted from the given string 'str'.
@@ -123,17 +124,17 @@ std::string DLLPUBLIC timeintervalformat (double secs, int digits=1);
 ///  - text?arg1=val1&arg2=val2...
 ///  - ?arg1=val1&arg2=val2...
 /// Everything before question mark will be saved into the 'base' argument.
-bool DLLPUBLIC get_rest_arguments (const std::string &str, std::string &base,
+bool OIIO_API get_rest_arguments (const std::string &str, std::string &base,
                                    std::map<std::string, std::string> &result);
 
 /// Take a string that may have embedded newlines, tabs, etc., and turn
 /// those characters into escape sequences like \n, \t, \v, \b, \r, \f,
 /// \a, \\, \".
-std::string DLLPUBLIC escape_chars (const std::string &unescaped);
+std::string OIIO_API escape_chars (const std::string &unescaped);
 
 /// Take a string that has embedded escape sequences (\\, \", \n, etc.)
 /// and collapse them into the 'real' characters.
-std::string DLLPUBLIC unescape_chars (const std::string &escaped);
+std::string OIIO_API unescape_chars (const std::string &escaped);
 
 /// Word-wrap string 'src' to no more than columns width, splitting at
 /// space characters.  It assumes that 'prefix' characters are already
@@ -141,7 +142,7 @@ std::string DLLPUBLIC unescape_chars (const std::string &escaped);
 /// number of spaces in front of subsequent lines.  By illustration, 
 /// wordwrap("0 1 2 3 4 5 6 7 8", 4, 10) should return:
 /// "0 1 2\n    3 4 5\n    6 7 8"
-std::string DLLPUBLIC wordwrap (std::string src, int columns=80, int prefix=0);
+std::string OIIO_API wordwrap (std::string src, int columns=80, int prefix=0);
 
 /// Hash a string without pre-known length.  We use the Jenkins
 /// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
@@ -167,31 +168,48 @@ strhash (const char *s)
 
 /// Case-insensitive comparison of strings.  For speed, this always uses
 /// a static locale that doesn't require a mutex.
-bool DLLPUBLIC iequals (const std::string &a, const std::string &b);
-bool DLLPUBLIC iequals (const char *a, const char *b);
+bool OIIO_API iequals (const std::string &a, const std::string &b);
+bool OIIO_API iequals (const char *a, const char *b);
 
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool DLLPUBLIC istarts_with (const std::string &a, const std::string &b);
-bool DLLPUBLIC istarts_with (const char *a, const char *b);
+bool OIIO_API istarts_with (const std::string &a, const std::string &b);
+bool OIIO_API istarts_with (const char *a, const char *b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool DLLPUBLIC iends_with (const std::string &a, const std::string &b);
-bool DLLPUBLIC iends_with (const char *a, const char *b);
+bool OIIO_API iends_with (const std::string &a, const std::string &b);
+bool OIIO_API iends_with (const char *a, const char *b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool DLLPUBLIC iends_with (const std::string &a, const std::string &b);
-bool DLLPUBLIC iends_with (const char *a, const char *b);
+bool OIIO_API iends_with (const std::string &a, const std::string &b);
+bool OIIO_API iends_with (const char *a, const char *b);
 
 /// Convert to upper case, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
-void DLLPUBLIC to_lower (std::string &a);
+void OIIO_API to_lower (std::string &a);
 
 /// Convert to upper case, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
-void DLLPUBLIC to_upper (std::string &a);
+void OIIO_API to_upper (std::string &a);
+
+/// Return a copy of str with all consecutive characters in chars
+/// removed from the beginning and ending.  If chars is empty, it will
+/// be interpreted as " \t\n\r\f\v" (whitespace).
+std::string OIIO_API strip (const std::string &str,
+                             const std::string &chars=std::string());
+
+/// Fills the "result" list with the words in the string, using sep as
+/// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
+/// are done. If sep is "", any whitespace string is a separator.
+void OIIO_API split (const std::string &str, std::vector<std::string> &result,
+                      const std::string &sep = "", int maxsplit = -1);
+
+/// Join all the strings in 'seq' into one big string, separated by the
+/// 'sep' string.
+std::string OIIO_API join (const std::vector<std::string> &seq,
+                            const std::string &sep="");
 
 
 
@@ -223,6 +241,46 @@ public:
     }
 };
 
+#ifdef _WIN32
+/// Conversion functions between UTF-8 and UTF-16 for windows.
+///
+/// For historical reasons, the standard encoding for strings on windows is
+/// UTF-16, whereas the unix world seems to have settled on UTF-8.  These two
+/// encodings can be stored in std::string and std::wstring respectively, with
+/// the caveat that they're both variable-width encodings, so not all the
+/// standard string methods will make sense (for example std::string::size()
+/// won't return the number of glyphs in a UTF-8 string, unless it happens to
+/// be made up of only the 7-bit ASCII subset).
+///
+/// The standard windows API functions usually have two versions, a UTF-16
+/// version with a 'W' suffix (using wchar_t* strings), and an ANSI version
+/// with a 'A' suffix (using char* strings) which uses the current windows
+/// code page to define the encoding.  (To make matters more confusing there is
+/// also a further "TCHAR" version which is #defined to the UTF-16 or ANSI
+/// version, depending on whether UNICODE is defined during compilation.
+/// This is meant to make it possible to support compiling libraries in
+/// either unicode or ansi mode from the same codebase.)
+///
+/// Using std::string as the string container (as in OIIO) implies that we
+/// can't use UTF-16.  It also means we need a variable-width encoding to
+/// represent characters in non-Latin alphabets in an unambiguous way; the
+/// obvious candidate is UTF-8.  File paths in OIIO are considered to be
+/// represented in UTF-8, and must be converted to UTF-16 before passing to
+/// windows API file opening functions.
+
+/// On the other hand, the encoding used for the ANSI versions of the windows
+/// API is the current windows code page.  This is more compatible with the
+/// default setup of the standard windows command prompt, and may be more
+/// appropriate for error messages.
+
+// Conversion to wide char
+//
+std::wstring OIIO_API utf8_to_utf16(const std::string& utf8str);
+
+// Conversion from wide char
+//
+std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
+#endif
 
 };  // namespace Strutil
 

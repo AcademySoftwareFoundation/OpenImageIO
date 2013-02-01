@@ -66,11 +66,11 @@ namespace Filesystem {
 
 /// Return the filename (excluding any directories, but including the
 /// file extension, if any) of a filepath.
-DLLPUBLIC std::string filename (const std::string &filepath);
+OIIO_API std::string filename (const std::string &filepath);
 
 /// Return the file extension (including the last '.' if
 /// include_dot=true) of a filename or filepath.
-DLLPUBLIC std::string extension (const std::string &filepath,
+OIIO_API std::string extension (const std::string &filepath,
                                  bool include_dot=true);
 
 /// DEPRECATED.
@@ -78,9 +78,10 @@ inline std::string file_extension (const std::string &filepath) {
     return extension (filepath, false);
 }
 
-/// Replace the file extension of a filename or filepath. Does not
-/// alter filepath, just returns a new string
-DLLPUBLIC std::string replace_extension (const std::string &filepath, 
+/// Replace the file extension of a filename or filepath. Does not alter
+/// filepath, just returns a new string.  Note that the new_extension
+/// should contain a leading '.' dot.
+OIIO_API std::string replace_extension (const std::string &filepath, 
                                          const std::string &new_extension);
 
 /// Turn a searchpath (multiple directory paths separated by ':' or ';')
@@ -88,7 +89,7 @@ DLLPUBLIC std::string replace_extension (const std::string &filepath,
 /// validonly is true, only existing and readable directories will end
 /// up in the list.  N.B., the directory names will not have trailing
 /// slashes.
-DLLPUBLIC void searchpath_split (const std::string &searchpath,
+OIIO_API void searchpath_split (const std::string &searchpath,
                                  std::vector<std::string> &dirs,
                                  bool validonly = false);
 
@@ -96,69 +97,72 @@ DLLPUBLIC void searchpath_split (const std::string &searchpath,
 /// directories, returning the full path as a string.  If the file is
 /// not found in any of the listed directories, return an empty string.
 /// If the filename is absolute, the directory list will not be used.
-/// If testcwd is true, "." will be tested before the searchpath; if
-/// testcwd is false, "." will only be tested if it's explicitly in
-/// dirs.
-DLLPUBLIC std::string searchpath_find (const std::string &filename,
+/// If testcwd is true, "." will be tested before the searchpath;
+/// otherwise, "." will only be tested if it's explicitly in dirs.  If
+/// recursive is true, the directories will be searched recursively,
+/// finding a matching file in any subdirectory of the directories
+/// listed in dirs; otherwise.
+OIIO_API std::string searchpath_find (const std::string &filename,
                                        const std::vector<std::string> &dirs,
-                                       bool testcwd = true);
+                                       bool testcwd = true,
+                                       bool recursive = false);
 
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.
-DLLPUBLIC bool path_is_absolute (const std::string &path,
+OIIO_API bool path_is_absolute (const std::string &path,
                                  bool dot_is_absolute=false);
 
 
 /// Return true if the file exists.
 ///
-DLLPUBLIC bool exists (const std::string &path);
+OIIO_API bool exists (const std::string &path);
 
 
 /// Return true if the file exists and is a directory.
 ///
-DLLPUBLIC bool is_directory (const std::string &path);
+OIIO_API bool is_directory (const std::string &path);
 
 /// Return true if the file exists and is a regular file.
 ///
-DLLPUBLIC bool is_regular (const std::string &path);
+OIIO_API bool is_regular (const std::string &path);
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-DLLPUBLIC FILE *fopen (const std::string &path,
+OIIO_API FILE *fopen (const std::string &path,
                        const std::string &mode);
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-DLLPUBLIC void open (std::ifstream &stream,
+OIIO_API void open (std::ifstream &stream,
                      const std::string &path,
                      std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-DLLPUBLIC void open (std::ofstream &stream,
+OIIO_API void open (std::ofstream &stream,
                      const std::string &path,
                      std::ios_base::openmode mode = std::ios_base::out);
 
 /// Get last modified time of file
 ///
-DLLPUBLIC std::time_t last_write_time (const std::string& path);
+OIIO_API std::time_t last_write_time (const std::string& path);
 
 /// Set last modified time on file
 ///
-DLLPUBLIC void last_write_time (const std::string& path, std::time_t time);
+OIIO_API void last_write_time (const std::string& path, std::time_t time);
 
 /// Ensure command line arguments are UTF-8 everywhere
 ///
-DLLPUBLIC void convert_native_arguments (int argc, const char *argv[]);
+OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 
 #ifdef _WIN32
 // Conversion to windows native wide char file path
 //
-DLLPUBLIC std::wstring path_to_windows_native (const std::string& path);
+OIIO_API std::wstring path_to_windows_native (const std::string& path);
 
 // Conversion from windows native wide char file path
 //
-DLLPUBLIC std::string path_from_windows_native (const std::wstring& wpath);
+OIIO_API std::string path_from_windows_native (const std::wstring& wpath);
 #endif
 
 };  // namespace Filesystem

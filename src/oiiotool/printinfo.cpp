@@ -36,12 +36,6 @@
 #include <iostream>
 #include <iterator>
 
-/* This header have to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "SHA1.h"
-
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
@@ -50,6 +44,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "hash.h"
 #include "oiiotool.h"
 
 OIIO_NAMESPACE_USING;
@@ -63,19 +58,33 @@ using namespace ImageBufAlgo;
 static void
 print_sha1 (ImageInput *input)
 {
-    imagesize_t size = input->spec().image_bytes ();
-    if (size >= std::numeric_limits<size_t>::max()) {
-        printf ("    SHA1 digest: (unable to compute, image is too big)\n");
-        return;
+    SHA1 sha;
+    const ImageSpec &spec (input->spec());
+    if (spec.deep) {
+        // Special handling of deep data
+        DeepData dd;
+        if (! input->read_native_deep_image (dd)) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
+        // Hash both the sample counts and the data block
+        sha.appendvec (dd.nsamples);
+        sha.appendvec (dd.data);
+    } else {
+        imagesize_t size = input->spec().image_bytes (true /*native*/);
+        if (size >= std::numeric_limits<size_t>::max()) {
+            printf ("    SHA-1: unable to compute, image is too big\n");
+            return;
+        }
+        std::vector<unsigned char> buf((size_t)size);
+        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
+        sha.appendvec (buf);
     }
-    boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
-    input->read_image (input->spec().format, &buf[0]);
-    CSHA1 sha;
-    sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
-    sha.Final ();
-    std::string digest;
-    sha.ReportHashStl (digest, CSHA1::REPORT_HEX_SHORT);
-    printf ("    SHA-1: %s\n", digest.c_str());
+
+    printf ("    SHA-1: %s\n", sha.digest().c_str());
 }
 
 
@@ -232,25 +241,48 @@ print_stats (const std::string &filename,
     }
     printf ("\n");
     
-    std::vector<float> constantValues(input.spec().nchannels);
-    if(isConstantColor(input, &constantValues[0])) {
-        printf ("%sConstant: Yes\n", indent);
-        printf ("%sConstant Color: ", indent);
-        for (unsigned int i=0; i<constantValues.size(); ++i) {
-            print_stats_num (constantValues[i], maxval, false);
-            printf (" ");
+    if (input.deep()) {
+        const DeepData *dd (input.deepdata());
+        size_t npixels = dd->nsamples.size();
+        size_t totalsamples = 0, emptypixels = 0;
+        size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
+        for (size_t p = 0;  p < npixels;  ++p) {
+            int c = dd->nsamples[p];
+            totalsamples += c;
+            if (c > maxsamples)
+                maxsamples = c;
+            if (c < minsamples)
+                minsamples = c;
+            if (c == 0)
+                ++emptypixels;
         }
-        print_stats_footer (maxval);
-        printf ("\n");
-    }
-    else {
-        printf ("%sConstant: No\n", indent);
-    }
-    
-    if(isMonochrome(input)) {
-        printf ("%sMonochrome: Yes\n", indent);
+        printf ("%sMin deep samples in any pixel : %llu\n", indent, (unsigned long long)minsamples);
+        printf ("%sMax deep samples in any pixel : %llu\n", indent, (unsigned long long)maxsamples);
+        printf ("%sAverage deep samples per pixel: %.2f\n", indent, double(totalsamples)/double(npixels));
+        printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
+        printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
+        printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
     } else {
-        printf ("%sMonochrome: No\n", indent);
+        std::vector<float> constantValues(input.spec().nchannels);
+        if (isConstantColor(input, &constantValues[0])) {
+            printf ("%sConstant: Yes\n", indent);
+            printf ("%sConstant Color: ", indent);
+            for (unsigned int i=0; i<constantValues.size(); ++i) {
+                print_stats_num (constantValues[i], maxval, false);
+                printf (" ");
+            }
+            print_stats_footer (maxval);
+            printf ("\n");
+        }
+        else {
+            printf ("%sConstant: No\n", indent);
+        }
+    
+        if( isMonochrome(input)) {
+            printf ("%sMonochrome: Yes\n", indent);
+        } else {
+            printf ("%sMonochrome: No\n", indent);
+        }
     }
 }
 
@@ -259,7 +291,7 @@ print_stats (const std::string &filename,
 static void
 print_metadata (const ImageSpec &spec, const std::string &filename,
                 const print_info_options &opt,
-                boost::regex &field_re)
+                boost::regex &field_re, boost::regex &field_exclude_re)
 {
     bool printed = false;
     if (opt.metamatch.empty() ||
@@ -338,6 +370,9 @@ print_metadata (const ImageSpec &spec, const std::string &filename,
         if (! opt.metamatch.empty() &&
             ! boost::regex_search (p.name().c_str(), field_re))
             continue;
+        if (! opt.nometamatch.empty() &&
+            boost::regex_search (p.name().c_str(), field_exclude_re))
+            continue;
         std::string s = spec.metadata_val (p, true);
         if (opt.filenameprefix)
             printf ("%s : ", filename.c_str());
@@ -383,16 +418,10 @@ static void
 print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                      ImageInput *input, const std::string &filename,
                      const print_info_options &opt,
-                     boost::regex &field_re)
+                     boost::regex &field_re, boost::regex &field_exclude_re)
 {
     if ( ! input->seek_subimage (current_subimage, 0, spec) )
         return;
-
-    if (! opt.metamatch.empty() &&
-        ! boost::regex_search ("resolution, width, height, depth, channels, sha-1, stats", field_re)) {
-        // nothing to do here
-        return;
-    }
 
     int nmip = 1;
 
@@ -427,11 +456,14 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                          boost::regex_search ("sha-1", field_re))) {
         if (opt.filenameprefix)
             printf ("%s : ", filename.c_str());
+        // Before sha-1, be sure to point back to the highest-res MIP level
+        ImageSpec tmpspec;
+        input->seek_subimage (current_subimage, 0, tmpspec);
         print_sha1 (input);
     }
 
     if (opt.verbose)
-        print_metadata (spec, filename, opt, field_re);
+        print_metadata (spec, filename, opt, field_re, field_exclude_re);
 
     if (opt.compute_stats && (opt.metamatch.empty() ||
                           boost::regex_search ("stats", field_re))) {
@@ -471,11 +503,28 @@ OiioTool::print_info (const std::string &filename,
     ImageSpec spec = input->spec();
 
     boost::regex field_re;
-    if (! opt.metamatch.empty())
-        field_re.assign (opt.metamatch,
+    boost::regex field_exclude_re;
+    if (! opt.metamatch.empty()) {
+        try {
+            field_re.assign (opt.metamatch,
                          boost::regex::extended | boost::regex_constants::icase);
+        } catch (const std::exception &e) {
+            error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
+                                     e.what(), opt.metamatch);
+            return false;
+        }
+    }
+    if (! opt.nometamatch.empty()) {
+        try {
+            field_exclude_re.assign (opt.nometamatch,
+                         boost::regex::extended | boost::regex_constants::icase);
+        } catch (const std::exception &e) {
+            error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
+                                     e.what(), opt.nometamatch);
+            return false;
+        }
+    }
 
-    bool printed = false;
     int padlen = std::max (0, (int)opt.namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
 
@@ -534,7 +583,6 @@ OiioTool::print_info (const std::string &filename,
         if (! opt.verbose && num_of_subimages == 1 && any_mipmapping)
             printf (" (+mipmap)");
         printf ("\n");
-        printed = true;
     }
 
     if (opt.verbose && num_of_subimages != 1) {
@@ -556,7 +604,7 @@ OiioTool::print_info (const std::string &filename,
         num_of_subimages = 1;
     for (int i = 0; i < num_of_subimages; ++i) {
         print_info_subimage (i, num_of_subimages, spec, input,
-                             filename, opt, field_re);
+                             filename, opt, field_re, field_exclude_re);
     }
 
     input->close ();

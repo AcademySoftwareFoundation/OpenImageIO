@@ -359,6 +359,21 @@ The only reason to set it to 0 is if you specifically want to disable the
 de-duplication optimization.
 \apiend
 
+\apiitem{string substitute_image}
+When set to anything other than the empty string, the \ImageCache will
+use the named image in place of \emph{all} other images.  This allows
+you to run an app using OIIO and (if you can manage to get this option
+set) automagically substitute a grid, zone plate, or other special
+debugging image for all image/texture use.
+\apiend
+
+\apiitem{int unassociatedalpha}
+When nonzero, will request that image format readers try to leave input
+images with unassociated alpha as they are, rather than automatically
+converting to associated alpha upon reading the pixels.  The default is
+0, meaning that the automatic conversion will take place.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,
@@ -468,7 +483,8 @@ settings such as \qkw{forcefloat} or \qkw{autotile}.
 \apiend
 
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
-  subimage=0, int miplevel=0, bool native=false)}
+  subimage=0, \\
+      \bigspc\bigspc\spc int miplevel=0, bool native=false)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -500,12 +516,11 @@ applied.
 \label{sec:imagecache:api:getpixels}
 
 \apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, int miplevel, \\
-         \bigspc int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend, \\
-         \bigspc TypeDesc format, void *result)}
-
-Retrieve the rectangle of raw pixels
-of the designated {\cf subimage}, storing the pixel values
+         \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
+         \bigspc\spc int zbegin, int zend, \\
+         \bigspc\spc TypeDesc format, void *result)}
+Retrieve the rectangle of pixels
+of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
 beginning at the address specified by result.  The pixel values will be
 converted to the type specified by {\cf format}.  It is up to the caller
 to ensure that result points to an area of memory big enough to
@@ -517,10 +532,33 @@ Requested pixels that are not part of the valid pixel data region of the
 image file will be filled with zero values.
 \apiend
 
+\apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, int miplevel, \\
+         \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
+         \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
+         \bigspc\spc TypeDesc format, void *result, \\
+         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride)}
+Retrieve the rectangle of pixels and subset of channels
+of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
+beginning at the address specified by result and with the given strides.
+The pixel values will be
+converted to the type specified by {\cf format}.  It is up to the caller
+to ensure that result points to an area of memory big enough to
+accommodate the requested rectangle (taking into consideration its
+dimensions, number of channels, data format, and strides).
+Any stride values set to {\cf AutoStride} will be assumed to indicate
+a contiguous data layout.
+The rectangular region and channel set to be retrieved includes 
+{\cf begin} but does not
+include {\cf end} (much like STL begin/end usage).
+Requested pixels that are not part of the valid pixel data region of the
+image file will be filled with zero values.
+\apiend
+
+
 \subsection{Dealing with tiles}
 \label{sec:imagecache:api:tiles}
 
-\apiitem{ImageCache::Tile {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
+\apiitem{ImageCache::Tile * {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
   \bigspc \bigspc int x, int y, int z)}
 Find a tile given by an image {\cf filename}, {\cf subimage}, and pixel
 coordinates.  An opaque pointer to the tile will be returned,

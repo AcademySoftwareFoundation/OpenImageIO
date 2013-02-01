@@ -37,9 +37,12 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/unordered_map.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "texture.h"
 #include "refcnt.h"
+#include "hash.h"
+#include "imagebuf.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -54,6 +57,8 @@ namespace pvt {
     // optimized runs.  Note that this has some performance penalty.
 # define IMAGECACHE_TIME_STATS 0
 #endif
+
+#define IMAGECACHE_USE_RW_MUTEX 1
 
 
 class ImageCacheImpl;
@@ -175,6 +180,7 @@ public:
     size_t pixelsize () const { return m_pixelsize; }
     bool eightbit (void) const { return m_eightbit; }
     bool mipused (void) const { return m_mipused; }
+    const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
 
     void invalidate ();
 
@@ -277,6 +283,7 @@ private:
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
     bool m_mipused;                 ///< MIP level >0 accessed
+    std::vector<size_t> m_mipreadcount; ///< Tile reads per mip level
     volatile bool m_validspec;      ///< If false, reread spec upon open
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
@@ -367,10 +374,6 @@ public:
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
 
-    void x (int v) { m_x = v; }
-    void y (int v) { m_y = v; }
-    void z (int v) { m_z = v; }
-
     /// Do the two ID's refer to the same tile?  
     ///
     friend bool equal (const TileID &a, const TileID &b) {
@@ -394,13 +397,19 @@ public:
     ///
     bool operator== (const TileID &b) const { return equal (*this, b); }
 
-    /// Digest the TileID into a size_t to use as a hash key.  We do
-    /// this by multiplying each element by a different prime and
-    /// summing, so that collisions are unlikely.
+    /// Digest the TileID into a size_t to use as a hash key.
     size_t hash () const {
+#if 0
+        // original -- turned out not to fill hash buckets evenly
         return m_x * 53 + m_y * 97 + m_z * 193 + 
                m_subimage * 389 + m_miplevel * 1543 +
                m_file.filename().hash() * 769;
+#else
+        // Good compromise!
+        return bjhash::bjfinal (m_x+1543, m_y + 6151 + m_z*769,
+                                m_miplevel + (m_subimage<<8))
+                           + m_file.filename().hash();
+#endif
     }
 
     /// Functor that hashes a TileID
@@ -464,7 +473,7 @@ public:
     /// Return the actual allocated memory size for this tile's pixels.
     ///
     size_t memsize () const {
-        return m_pixels.size();
+        return m_pixels_size;
     }
 
     /// Return the space that will be needed for this tile's pixels.
@@ -504,11 +513,11 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    std::vector<char> m_pixels;   ///< The pixel data
+    boost::scoped_array<char> m_pixels;  ///< The pixel data
+    size_t m_pixels_size;         ///< How much m_pixels has allocated
     bool m_valid;                 ///< Valid pixels
-    atomic_int m_used;            ///< Used recently
     volatile bool m_pixels_ready; ///< The pixels have been read from disk
-    float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
+    atomic_int m_used;            ///< Used recently
 };
 
 
@@ -637,6 +646,7 @@ public:
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
     bool accept_unmipped () const { return m_accept_unmipped; }
+    bool unassociatedalpha () const { return m_unassociatedalpha; }
     int failure_retries () const { return m_failure_retries; }
     bool latlong_y_up_default () const { return m_latlong_y_up_default; }
     void get_commontoworld (Imath::M44f &result) const {
@@ -667,13 +677,22 @@ public:
                              int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
+    virtual bool get_pixels (ustring filename,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void *result,
+                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                    stride_t zstride=AutoStride);
 
     /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
     /// ImageCacheFile.
-    bool get_pixels (ImageCacheFile *file, ImageCachePerThreadInfo *thread_info,
-                     int subimage, int miplevel, int xmin, int xmax,
-                     int ymin, int ymax, int zmin, int zmax, 
-                     TypeDesc format, void *result);
+    bool get_pixels (ImageCacheFile *file,
+                     ImageCachePerThreadInfo *thread_info,
+                     int subimage, int miplevel, int xbegin, int xend,
+                     int ybegin, int yend, int zbegin, int zend,
+                     int chbegin, int chend, TypeDesc format, void *result,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride);
 
     /// Find the ImageCacheFile record for the named image, or NULL if
     /// no such file can be found.  This returns a plain old pointer,
@@ -694,11 +713,11 @@ public:
             ic_read_lock lock (m_tilemutex);
 #ifdef DEBUG
             DASSERT (m_tilemutex_holder == NULL);
-            m_tilemutex_holder = thread_info;
+//            m_tilemutex_holder = thread_info;
 #endif
             found = m_tilecache.find (id);
 #ifdef DEBUG
-            m_tilemutex_holder = NULL;
+//            m_tilemutex_holder = NULL;
 #endif
         } else {
             // Caller already holds the lock
@@ -899,9 +918,15 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints ();
 
+#if IMAGECACHE_USE_RW_MUTEX
+    typedef spin_rw_mutex ic_mutex;
+    typedef spin_rw_write_lock ic_read_lock;
+    typedef spin_rw_write_lock ic_write_lock;
+#else
     typedef spin_mutex ic_mutex;
     typedef spin_lock  ic_read_lock;
     typedef spin_lock  ic_write_lock;
+#endif
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
@@ -919,10 +944,12 @@ private:
     bool m_accept_unmipped;      ///< Accept unmipped images?
     bool m_read_before_insert;   ///< Read tiles before adding to cache?
     bool m_deduplicate;          ///< Detect duplicate files?
+    bool m_unassociatedalpha;    ///< Keep unassociated alpha files as they are?
     int m_failure_retries;       ///< Times to re-try disk failures
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+    ustring m_substitute_image;  ///< Substitute this image for all others
 
     mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's

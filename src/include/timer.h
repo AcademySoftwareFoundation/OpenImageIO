@@ -69,6 +69,14 @@ OIIO_NAMESPACE_ENTER
 ///    another.reset ();             // reset to zero time again
 /// \endcode
 ///
+/// These are not very high-resolution timers.  A Timer begin/end pair
+/// takes somewhere in the neighborhood of 0.1 - 0.3 us (microseconds),
+/// and can vary by OS.  This means that (a) it's not useful for timing
+/// individual events near or below that resolution (things that would
+/// take only tens or hundreds of processor cycles, for example), and
+/// (b) calling it millions of times could make your program appreciably
+/// more expensive due to the timers themselves.
+///
 class Timer {
 public:
 #ifdef _WIN32
@@ -107,7 +115,7 @@ public:
     double stop () {
         if (m_ticking) {
             value_t n = now();
-            m_elapsed += diff (n, m_starttime);
+            m_elapsed += diff (m_starttime, n);
             m_ticking = false;
         }
         return m_elapsed;
@@ -122,7 +130,7 @@ public:
 
     /// Return just the time of the current lap (since the last call to
     /// start() or lap()), add that to the previous elapsed time, reset
-    /// current start tiem to now, keep the timer going (if it was).
+    /// current start time to now, keep the timer going (if it was).
     double lap () {
         value_t n = now();
         double r = m_ticking ? diff (m_starttime, n) : 0.0;
@@ -187,7 +195,8 @@ private:
         mach_timebase_info(&time_info);
         double seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
           static_cast<double>(time_info.denom);
-        return fabs ((now - then) * seconds_per_tick);
+        value_t d = (now>then) ? now-then : then-now;
+        return d * seconds_per_tick;
 #else
         return fabs (static_cast<double>(now.tv_sec  - then.tv_sec) +
                      static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);

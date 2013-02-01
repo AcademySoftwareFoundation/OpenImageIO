@@ -64,17 +64,17 @@ real-world example of writing a JPEG/JFIF plug-in.
   to mamke this easy.  Depending on your
   compiler, you may need to use special commands to dictate that the
   symbols will be exported in the DSO; we provide a special {\cf
-  DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
+  OIIO_EXPORT} macro for this purpose, defined in {\fn export.h}.
 
   Putting this all together, we get the following for our JPEG example:
 
   \begin{code}
     OIIO_PLUGIN_EXPORTS_BEGIN
-        DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
-        DLLEXPORT JpgInput *jpeg_input_imageio_create () {
+        OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
+        OIIO_EXPORT JpgInput *jpeg_input_imageio_create () {
             return new JpgInput;
         }
-        DLLEXPORT const char *jpeg_input_extensions[] = {
+        OIIO_EXPORT const char *jpeg_input_extensions[] = {
             "jpg", "jpe", "jpeg", NULL
         };
     OIIO_PLUGIN_EXPORTS_END
@@ -109,7 +109,7 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{enumerate}
     \item[(f)] {\cf supports()}, only if your format supports any of
       the optional features described in
-      Section~\ref{inputsupportsfeaturelist}.
+      Section~\ref{sec:inputsupportsfeaturelist}.
     \item[(g)] {\cf valid_file()}, if your format has a way to
       determine if a file is of the given format in a way that is less
       expensive than a full {\cf open()}.
@@ -133,6 +133,9 @@ real-world example of writing a JPEG/JFIF plug-in.
       {\cf read_native_scanlines()} or {\cf read_native_tiles()} to read
       into a temporary all-channel buffer and then copy the channel
       subset into the user's buffer.
+    \item[(m)] {\cf read_native_deep_scanlines()} and/or 
+      {\cf read_native_deep_tiles()}, only if your format supports
+      ``deep'' data images.
   \end{enumerate}
 
   Here is how the class definition looks for our JPEG example.  Note
@@ -213,17 +216,17 @@ real-world example of writing a JPEG/JFIF plug-in.
   to mamke this easy.  Depending on your
   compiler, you may need to use special commands to dictate that the
   symbols will be exported in the DSO; we provide a special {\cf
-  DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
+  OIIO_EXPORT} macro for this purpose, defined in {\fn export.h}.
 
   Putting this all together, we get the following for our JPEG example:
 
   \begin{code}
     OIIO_PLUGIN_EXPORTS_BEGIN
-        DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
-        DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
+        OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
+        OIIO_EXPORT JpgOutput *jpeg_output_imageio_create () {
             return new JpgOutput;
         }
-        DLLEXPORT const char *jpeg_input_extensions[] = {
+        OIIO_EXPORT const char *jpeg_input_extensions[] = {
             "jpg", "jpe", "jpeg", NULL
         };
     OIIO_PLUGIN_EXPORTS_END
@@ -279,6 +282,9 @@ real-world example of writing a JPEG/JFIF plug-in.
     \item[(k)] {\cf write_image()}, only if you have a more clever
       method of doing so than the default implementation that calls
       {\cf write_scanline()} or {\cf write_tile()} repeatedly.
+    \item[(l)] {\cf write_deep_scanlines()} and/or 
+      {\cf write_deep_tiles()}, only if your format supports
+      ``deep'' data images.
   \end{enumerate}
 
   Here is how the class definition looks for our JPEG example.  Note

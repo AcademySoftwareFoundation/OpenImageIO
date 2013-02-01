@@ -1,0 +1,4 @@
+{
+    global: *OpenImageIO*; *OIIO*;
+    local: *;
+};

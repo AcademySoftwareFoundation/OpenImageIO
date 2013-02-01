@@ -133,15 +133,15 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *
+OIIO_EXPORT ImageInput *
 field3d_input_imageio_create ()
 {
     return new Field3DInput;
 }
 
-// DLLEXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION; // it's in field3doutput.cpp
+// OIIO_EXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION; // it's in field3doutput.cpp
 
-DLLEXPORT const char * field3d_input_extensions[] = {
+OIIO_EXPORT const char * field3d_input_extensions[] = {
     "f3d", NULL
 };
 

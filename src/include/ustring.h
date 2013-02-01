@@ -145,7 +145,7 @@
 OIIO_NAMESPACE_ENTER
 {
 
-class DLLPUBLIC ustring {
+class OIIO_API ustring {
 public:
     typedef char value_type;
     typedef value_type * pointer;
@@ -472,7 +472,7 @@ public:
     }
 
     size_type find_last_not_of(const char *s, size_type pos, size_type n) const {
-        return string().find(s, pos, n);
+        return string().find_last_not_of(s, pos, n);
     }
 
     size_type find_last_not_of(const char *s, size_type pos = npos) const {

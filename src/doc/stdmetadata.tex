@@ -274,7 +274,7 @@ purposes.
 
 \apiitem{"Exif:ExposureProgram" : int}
 The exposure program used to set exposure when the picture was taken:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & unknown \\
@@ -342,7 +342,7 @@ Distance to the subject, in meters.
 \apiitem{"Exif:MeteringMode" : int}
 The metering mode:
 
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & unknown \\
@@ -359,7 +359,7 @@ The metering mode:
 \apiitem{"Exif:LightSource" : int}
 The kind of light source:
 
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & unknown \\
@@ -411,6 +411,17 @@ A sum of:
 Actual focal length of the lens, in mm.
 \apiend
 
+\apiitem{"Exif:SecurityClassification" : string}
+Security classification of the image: `C' = confidential,
+`R' = restricted, `S' = secret, `T' = top secret,
+`U' = unclassified.
+\apiend
+
+\apiitem{"Exif:ImageHistory" : string}
+Image history.
+\apiend
+
+
 %\apiitem{"Exif:SubjectArea",TIFF_NOTYPE } // skip
 %\apiitem{"Exif:MakerNote",TIFF_NOTYPE } // skip it
 %\apiitem{"Exif:UserComment",TIFF_NOTYPE }// skip it
@@ -451,8 +462,16 @@ Seconds (BCPS).
 "Exif:FocalPlaneYResolution" : float \\
 "Exif:FocalPlaneResolutionUnit" : int} 
 The number of pixels in the $x$ and $y$ dimension, per resolution unit.
-The code for resolution units is: 2 for inches.
-% FIXME? units?
+The codes for resolution units are:
+\smallskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+1 & none \\
+2 & inches \\
+3 & cm \\
+4 & mm \\
+5 & $\mu$m \\
+\end{tabular}
 \apiend
 
 
@@ -464,7 +483,7 @@ The exposure index selected on the camera.
 
 \apiitem{"Exif:SensingMethod" : int}
 The image sensor type on the camra:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 1 & undefined \\
@@ -478,8 +497,14 @@ The image sensor type on the camra:
 \apiend
 
 \apiitem{"Exif:FileSource" : int}
-Set to 3, if captured by a digital camera, otherwise it should not be
-present.
+The source type of the scanned image, if known:
+\smallskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+1 & film scanner \\
+2 & reflection print scanner \\
+3 & digital camera \\
+\end{tabular}
 \apiend
 
 \apiitem{"Exif:SceneType" : int}
@@ -496,7 +521,7 @@ performed on the image data.
 
 \apiitem{"Exif:ExposureMode" : int}
 The exposure mode:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & auto \\
@@ -519,7 +544,7 @@ The equivalent focal length of a 35mm camera, in mm.
 
 \apiitem{"Exif:SceneCaptureType" : int}
 The type of scene that was shot:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & standard \\
@@ -531,7 +556,7 @@ The type of scene that was shot:
 
 \apiitem{"Exif:GainControl" : float }
 The degree of overall gain adjustment:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & none \\
@@ -544,7 +569,7 @@ The degree of overall gain adjustment:
 
 \apiitem{"Exif:Contrast" : int}
 The direction of contrast processing applied by the camera:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & normal \\
@@ -555,7 +580,7 @@ The direction of contrast processing applied by the camera:
 
 \apiitem{"Exif:Saturation" : int}
 The direction of saturation processing applied by the camera:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & normal \\
@@ -566,7 +591,7 @@ The direction of saturation processing applied by the camera:
 
 \apiitem{"Exif:Sharpness" : int}
 The direction of sharpness processing applied by the camera:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & normal \\
@@ -579,7 +604,7 @@ The direction of sharpness processing applied by the camera:
 
 \apiitem{"Exif:SubjectDistanceRange" : int}
 The distance to the subject:
-\medskip
+\smallskip
 
 \begin{tabular}{p{0.3in} p{4in}}
 0 & unknown \\
@@ -744,6 +769,10 @@ Date according to the GPS device, in format \qkw{YYYY:MM:DD}.
 If 1, indicates that differential correction was applied.
 \apiend
 
+\apiitem{"GPS:HPositioningError" : float}
+Positioning error.
+\apiend
+
 
 
 \section{IPTC metadata}
@@ -772,37 +801,99 @@ CopyrightNotice & \qkw{Copyright} \\[0.5ex]
 Creator & \qkw{Artist} \\
 \end{tabular}
 
-\medskip
+\bigskip
 
 The remainder of IPTC metadata fields should use the following names,
 prefixed with ``IPTC:'' to avoid conflicts with other plugins or
 standards.
 
+\apiitem{"IPTC:ObjecTypeReference" : string}
+Object type reference.
+\apiend
+
+\apiitem{"IPTC:ObjectAttributeReference" : string}
+Object attribute reference.
+\apiend
+
 \apiitem{"IPTC:ObjectName" : string}
 The name of the object in the picture.
+\apiend
+
+\apiitem{"IPTC:EditStatus" : string}
+Edit status.
+\apiend
+
+\apiitem{"IPTC:SubjectReference" : string}
+Subject reference.
+\apiend
+
+\apiitem{"IPTC:Category" : string}
+Category.
 \apiend
 
 % \apiitem{  25, "Keywords" : string}
 %\apiend
 % FIXME
 
+\apiitem{"IPTC:ContentLocationCode" : string}
+Code for content location.
+\apiend
+
+\apiitem{"IPTC:ContentLocationName" : string}
+Name of content location.
+\apiend
+
+\apiitem{"IPTC:ReleaseDate" : string \\
+"IPTC:ReleaseTime" : string}
+Release date and time.
+\apiend
+
+\apiitem{"IPTC:ExpirationDate" : string \\
+"IPTC:ExpirationTime" : string}
+Expiration date and time.
+\apiend
+
 \apiitem{"IPTC:Instructions" : string}
 Special instructions for handling the image.
 \apiend
+
+\apiitem{"IPTC:ReferenceService" : string \\
+"IPTC:ReferenceDate" : string \\
+"IPTC:ReferenceNumber" : string}
+Reference date, service, and number.
+\apiend
+
+\apiitem{"IPTC:DateCreated" : string \\
+"IPTC:TimeCreated" : string}
+Date and time that the image was created.
+\apiend
+
+\apiitem{"IPTC:DigitalCreationDate" : string \\
+"IPTC:DigitalCreationTime" : string}
+Date and time that the image was digitized.
+\apiend
+
 
 %\apiitem{"IPTC:Creator" : string}
 %The creator of the image.  This is optinal and, If present, 
 %is expected to be the same as the data in the standard \qkw{Artist} field.
 %\apiend
 
+\apiitem{"IPTC:ProgramVersion" : string}
+The version number of the creation software.
+\apiend
+
 \apiitem{"IPTC:AuthorsPosition" : string}
 The job title or position of the creator of the image.
 \apiend
 
 \apiitem{"IPTC:City" : string \\
+"IPTC:Sublocation" : string \\
 "IPTC:State" : string \\
-"IPTC:Country" : string}
-The city, state, and country of the location of the image.
+"IPTC:Country" : string \\
+"IPTC:CountryCode" : string}
+The city, sublocation within the city,
+state, country, and country code of the location of the image.
 \apiend
 
 \apiitem{"IPTC:Headline" : string}
@@ -836,6 +927,29 @@ email, etc.).
 \apiitem{"IPTC:CaptionWriter" : string}
 The name of the person who wrote the caption or description of the image.
 \apiend
+
+\apiitem{"IPTC:JobID" : string \\
+"IPTC:MasterDocumentID" : string \\
+"IPTC:ShortDocumentID" : string \\
+"IPTC:UniqueDocumentID" : string \\
+"IPTC:OwnerID" : string }
+Various identification tags.
+\apiend
+
+\apiitem{"IPTC:Prefs" : string \\
+"IPTC:ClassifyState" : string \\
+"IPTC:SimilarityIndex" : string}
+Who knows what the heck these are?
+\apiend
+
+\apiitem{"IPTC:DocumentNotes" : string}
+Notes about the image or document.
+\apiend
+
+\apiitem{"IPTC:DocumentHistory" : string}
+The history of the image or document.
+\apiend
+
 
 
 \section{Extension conventions}

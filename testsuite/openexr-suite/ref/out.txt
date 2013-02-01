@@ -1,15 +1,16 @@
-Reading ../../../../../openexr-images-1.5.0/ScanLines/Desk.exr
-../../../../../openexr-images-1.5.0/ScanLines/Desk.exr :  644 x  874, 4 channel, half openexr
+Reading ../../../../../openexr-images/ScanLines/Desk.exr
+../../../../../openexr-images/ScanLines/Desk.exr :  644 x  874, 4 channel, half openexr
     SHA-1: CBFEA416A3CA23DF2B1599A0495EECE6FB009E5D
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
     compression: "piz"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/Desk.exr" and "Desk.exr"
+Comparing "../../../../../openexr-images/ScanLines/Desk.exr" and "Desk.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/ScanLines/MtTamWest.exr
-../../../../../openexr-images-1.5.0/ScanLines/MtTamWest.exr : 1214 x  732, 4 channel, half openexr
+Reading ../../../../../openexr-images/ScanLines/MtTamWest.exr
+../../../../../openexr-images/ScanLines/MtTamWest.exr : 1214 x  732, 4 channel, half openexr
     SHA-1: 0C7FC9D17BCF20EE043335F7D2DCFA2F19B3BA09
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
@@ -21,23 +22,25 @@ Reading ../../../../../openexr-images-1.5.0/ScanLines/MtTamWest.exr
     longitude: -122.579
     Copyright: "Copyright 2002 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     utcOffset: 25200
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/MtTamWest.exr" and "MtTamWest.exr"
+Comparing "../../../../../openexr-images/ScanLines/MtTamWest.exr" and "MtTamWest.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/ScanLines/Cannon.exr
-../../../../../openexr-images-1.5.0/ScanLines/Cannon.exr :  780 x  566, 3 channel, half openexr
+Reading ../../../../../openexr-images/ScanLines/Cannon.exr
+../../../../../openexr-images/ScanLines/Cannon.exr :  780 x  566, 3 channel, half openexr
     SHA-1: 8855671D158731258798358D78E90B2A62CF206D
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "b44"
     Copyright: "Copyright 2006 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/Cannon.exr" and "Cannon.exr"
+Comparing "../../../../../openexr-images/ScanLines/Cannon.exr" and "Cannon.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/ScanLines/StillLife.exr
-../../../../../openexr-images-1.5.0/ScanLines/StillLife.exr : 1240 x  846, 4 channel, half openexr
+Reading ../../../../../openexr-images/ScanLines/StillLife.exr
+../../../../../openexr-images/ScanLines/StillLife.exr : 1240 x  846, 4 channel, half openexr
     SHA-1: F794B0D381CA2FDCE32BCAEC3734B2AB49579401
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
@@ -45,12 +48,13 @@ Reading ../../../../../openexr-images-1.5.0/ScanLines/StillLife.exr
     DateTime: "2002:06:23 21:30:10"
     Copyright: "Copyright 2002 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 0.45
     utcOffset: 25200
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/StillLife.exr" and "StillLife.exr"
+Comparing "../../../../../openexr-images/ScanLines/StillLife.exr" and "StillLife.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/ScanLines/Tree.exr
-../../../../../openexr-images-1.5.0/ScanLines/Tree.exr :  928 x  906, 4 channel, half openexr
+Reading ../../../../../openexr-images/ScanLines/Tree.exr
+../../../../../openexr-images/ScanLines/Tree.exr :  928 x  906, 4 channel, half openexr
     SHA-1: 75D2AAD6D04D8B8F520D391926767BC4A00E6A0F
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
@@ -59,14 +63,15 @@ Reading ../../../../../openexr-images-1.5.0/ScanLines/Tree.exr
     focus: 3.5
     Copyright: "Copyright 2002 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 0.48
     utcOffset: 25200
     whiteLuminance: 621
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/Tree.exr" and "Tree.exr"
+Comparing "../../../../../openexr-images/ScanLines/Tree.exr" and "Tree.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr
-../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr : 1040 x 1040, 5 channel, half/half/half/half/float openexr
-    SHA-1: 64C3C765E0D40AA92E066F6EC9198A8053BF1179
+Reading ../../../../../openexr-images/ScanLines/Blobbies.exr
+../../../../../openexr-images/ScanLines/Blobbies.exr : 1040 x 1040, 5 channel, half/half/half/half/float openexr
+    SHA-1: 7228F3D22D0317764870CC00CC697E3E5EEDBA68
     channel list: R (half), G (half), B (half), A (half), Z (float)
     pixel data origin: x=-20, y=-20
     full/display size: 1000 x 1000
@@ -76,113 +81,124 @@ Reading ../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr
     DateTime: "2004:01:19 12:55:33"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     utcOffset: 28800
     whiteLuminance: 50
-Comparing "../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr" and "Blobbies.exr"
+Comparing "../../../../../openexr-images/ScanLines/Blobbies.exr" and "Blobbies.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/AllHalfValues.exr
-../../../../../openexr-images-1.5.0/TestImages/AllHalfValues.exr :  256 x  256, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/AllHalfValues.exr
+../../../../../openexr-images/TestImages/AllHalfValues.exr :  256 x  256, 3 channel, half openexr
     SHA-1: 4428F325F403515E6B3BF8E290FB7EDBF959ECF7
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "piz"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/AllHalfValues.exr" and "AllHalfValues.exr"
+Comparing "../../../../../openexr-images/TestImages/AllHalfValues.exr" and "AllHalfValues.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/BrightRings.exr
-../../../../../openexr-images-1.5.0/TestImages/BrightRings.exr :  800 x  800, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/BrightRings.exr
+../../../../../openexr-images/TestImages/BrightRings.exr :  800 x  800, 3 channel, half openexr
     SHA-1: F6528D07E75DA1CE490DA6A93EB68573070FFB4B
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/BrightRings.exr" and "BrightRings.exr"
+Comparing "../../../../../openexr-images/TestImages/BrightRings.exr" and "BrightRings.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/BrightRingsNanInf.exr
-../../../../../openexr-images-1.5.0/TestImages/BrightRingsNanInf.exr :  800 x  800, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/BrightRingsNanInf.exr
+../../../../../openexr-images/TestImages/BrightRingsNanInf.exr :  800 x  800, 3 channel, half openexr
     SHA-1: 73F0C53CFCE17B37DD873CF5FE4C9DF0DDB4D3DD
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/BrightRingsNanInf.exr" and "BrightRingsNanInf.exr"
+Comparing "../../../../../openexr-images/TestImages/BrightRingsNanInf.exr" and "BrightRingsNanInf.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/GammaChart.exr
-../../../../../openexr-images-1.5.0/TestImages/GammaChart.exr :  800 x  800, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/GammaChart.exr
+../../../../../openexr-images/TestImages/GammaChart.exr :  800 x  800, 3 channel, half openexr
     SHA-1: D21C1DC58FEC725E62D5A9F1503965CBD1A9BFD4
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/GammaChart.exr" and "GammaChart.exr"
+Comparing "../../../../../openexr-images/TestImages/GammaChart.exr" and "GammaChart.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/GrayRampsDiagonal.exr
-../../../../../openexr-images-1.5.0/TestImages/GrayRampsDiagonal.exr :  800 x  800, 1 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/GrayRampsDiagonal.exr
+../../../../../openexr-images/TestImages/GrayRampsDiagonal.exr :  800 x  800, 1 channel, half openexr
     SHA-1: 4CC9922AFAD6CA706D66E466BEA9E93D9E813B39
     channel list: Y
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/GrayRampsDiagonal.exr" and "GrayRampsDiagonal.exr"
+Comparing "../../../../../openexr-images/TestImages/GrayRampsDiagonal.exr" and "GrayRampsDiagonal.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/GrayRampsHorizontal.exr
-../../../../../openexr-images-1.5.0/TestImages/GrayRampsHorizontal.exr :  800 x  800, 1 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/GrayRampsHorizontal.exr
+../../../../../openexr-images/TestImages/GrayRampsHorizontal.exr :  800 x  800, 1 channel, half openexr
     SHA-1: 1F0A6393B53BCA1AF072EA8B7795AE19FE2C8883
     channel list: Y
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/GrayRampsHorizontal.exr" and "GrayRampsHorizontal.exr"
+Comparing "../../../../../openexr-images/TestImages/GrayRampsHorizontal.exr" and "GrayRampsHorizontal.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/RgbRampsDiagonal.exr
-../../../../../openexr-images-1.5.0/TestImages/RgbRampsDiagonal.exr :  800 x  800, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/RgbRampsDiagonal.exr
+../../../../../openexr-images/TestImages/RgbRampsDiagonal.exr :  800 x  800, 3 channel, half openexr
     SHA-1: 8C973B65215B6C1BC0D29376F1C49D6A9A6CFA19
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/RgbRampsDiagonal.exr" and "RgbRampsDiagonal.exr"
+Comparing "../../../../../openexr-images/TestImages/RgbRampsDiagonal.exr" and "RgbRampsDiagonal.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/SquaresSwirls.exr
-../../../../../openexr-images-1.5.0/TestImages/SquaresSwirls.exr : 1000 x 1000, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/SquaresSwirls.exr
+../../../../../openexr-images/TestImages/SquaresSwirls.exr : 1000 x 1000, 3 channel, half openexr
     SHA-1: C0A591BDED4A83540BBEFC9FD0549FEEE499EB3A
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/SquaresSwirls.exr" and "SquaresSwirls.exr"
+Comparing "../../../../../openexr-images/TestImages/SquaresSwirls.exr" and "SquaresSwirls.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/WideColorGamut.exr
-../../../../../openexr-images-1.5.0/TestImages/WideColorGamut.exr :  800 x  800, 3 channel, half openexr
+Reading ../../../../../openexr-images/TestImages/WideColorGamut.exr
+../../../../../openexr-images/TestImages/WideColorGamut.exr :  800 x  800, 3 channel, half openexr
     SHA-1: B49406C6AA10E1E3CCA7AAF3BF68FDD3E5790643
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/WideColorGamut.exr" and "WideColorGamut.exr"
+Comparing "../../../../../openexr-images/TestImages/WideColorGamut.exr" and "WideColorGamut.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/TestImages/WideFloatRange.exr
-../../../../../openexr-images-1.5.0/TestImages/WideFloatRange.exr :  500 x  500, 1 channel, float openexr
+Reading ../../../../../openexr-images/TestImages/WideFloatRange.exr
+../../../../../openexr-images/TestImages/WideFloatRange.exr :  500 x  500, 1 channel, float openexr
     SHA-1: 9009BE7DD8CC438F258A48243056E6D46E6147EB
     channel list: G
     oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/TestImages/WideFloatRange.exr" and "WideFloatRange.exr"
+Comparing "../../../../../openexr-images/TestImages/WideFloatRange.exr" and "WideFloatRange.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/Tiles/GoldenGate.exr
-../../../../../openexr-images-1.5.0/Tiles/GoldenGate.exr : 1262 x  860, 3 channel, half openexr
+Reading ../../../../../openexr-images/Tiles/GoldenGate.exr
+../../../../../openexr-images/Tiles/GoldenGate.exr : 1262 x  860, 3 channel, half openexr
     SHA-1: 828CD8188CC4A237C8025BA6634D1682A7F8C9BB
     channel list: R, G, B
     tile size: 128 x 128
@@ -199,12 +215,13 @@ Reading ../../../../../openexr-images-1.5.0/Tiles/GoldenGate.exr
     longitude: -122.5
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1.15
     utcOffset: 28800
-Comparing "../../../../../openexr-images-1.5.0/Tiles/GoldenGate.exr" and "GoldenGate.exr"
+Comparing "../../../../../openexr-images/Tiles/GoldenGate.exr" and "GoldenGate.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/Tiles/Ocean.exr
-../../../../../openexr-images-1.5.0/Tiles/Ocean.exr : 1255 x  876, 3 channel, half openexr
+Reading ../../../../../openexr-images/Tiles/Ocean.exr
+../../../../../openexr-images/Tiles/Ocean.exr : 1255 x  876, 3 channel, half openexr
     SHA-1: 32BF0712FEABFFB448898D91F97E5C38BD351FD7
     channel list: R, G, B
     tile size: 128 x 128
@@ -213,6 +230,7 @@ Reading ../../../../../openexr-images-1.5.0/Tiles/Ocean.exr
     focus: inf
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/Tiles/Ocean.exr" and "Ocean.exr"
+Comparing "../../../../../openexr-images/Tiles/Ocean.exr" and "Ocean.exr"
 PASS

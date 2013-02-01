@@ -216,8 +216,13 @@ struct ustring_from_python_str
     }
 };
 
-BOOST_PYTHON_MODULE(OpenImageIO) {
+// This OIIO_DECLARE_PYMODULE mojo is necessary if we want to pass in the
+// MODULE name as a #define. Google for Argument-Prescan for additional
+// info on why this is necessary
 
+#define OIIO_DECLARE_PYMODULE(x) BOOST_PYTHON_MODULE(x) 
+
+OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     boost::python::to_python_converter<
         ustring,
         ustring_to_python_str>();

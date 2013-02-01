@@ -70,7 +70,11 @@ static int WebpImageWriter(const uint8_t* img_data, size_t data_size,
                            const WebPPicture* const webp_img)
 {
     FILE *out_file = (FILE*)webp_img->custom_ptr;
-    fwrite (img_data, data_size, sizeof(uint8_t), out_file);
+    size_t wb = fwrite (img_data, data_size, sizeof(uint8_t), out_file);
+	if (wb != sizeof(uint8_t)) {
+		//FIXME Bad write occurred
+	}
+
     return 1;
 }
 
@@ -186,10 +190,10 @@ WebpOutput::close()
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *webp_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *webp_output_imageio_create () {
         return new webp_pvt::WebpOutput;
     }
-    DLLEXPORT const char *webp_output_extensions[] = {
+    OIIO_EXPORT const char *webp_output_extensions[] = {
         "webp", NULL
     };
 

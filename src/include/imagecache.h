@@ -57,7 +57,7 @@ class ImageCacheImpl;
 /// caches of open file handles as well as tiles of pixels so that truly
 /// huge amounts of image data may be accessed by an application with low
 /// memory footprint.
-class DLLPUBLIC ImageCache {
+class OIIO_API ImageCache {
 public:
     /// Create a ImageCache and return a pointer.  This should only be
     /// freed by passing it to ImageCache::destroy()!
@@ -95,6 +95,9 @@ public:
     ///     int forcefloat : if nonzero, convert all to float.
     ///     int failure_retries : number of times to retry a read before fail.
     ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
+    ///     string substitute_image : uses the named image in place of all
+    ///                               texture and image references.
+    ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
     ///
     virtual bool attribute (const std::string &name, TypeDesc type,
                             const void *val) = 0;
@@ -127,7 +130,7 @@ public:
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
-    /// Back-compatible version of get_image_info -- temporary
+    /// Back-compatible version of get_image_info -- DEPRECATED
     bool get_image_info (ustring filename, ustring dataname,
                          TypeDesc datatype, void *data) {
         return get_image_info (filename, 0, 0, dataname, datatype, data);
@@ -175,6 +178,30 @@ public:
                              int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
+
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend) X [zbegin..zend), channels [chbegin..chend), 
+    /// with "exclusive end" a la STL, specified as integer pixel
+    /// coordinates in the designated subimage & miplevel, storing the
+    /// pixel values beginning at the address specified by result and
+    /// with the given x, y, and z strides (in bytes). The pixel values
+    /// will be converted to the type specified by format.  If the
+    /// strides are set to AutoStride, they will be automatically
+    /// computed assuming a contiguous data layout.  It is up to the
+    /// caller to ensure that result points to an area of memory big
+    /// enough to accommodate the requested rectangle (taking into
+    /// consideration its dimensions, number of channels, and data
+    /// format).  Requested pixels outside the valid pixel data region
+    /// will be filled in with 0 values.
+    ///
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool get_pixels (ustring filename,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void *result,
+                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                    stride_t zstride=AutoStride) = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to a tile but without exposing any internals.

@@ -30,8 +30,7 @@
 // an executing program.
 
 #include "tbb/tbb_stddef.h"
-// Out-of-line TBB assertion handling routines are instantiated here.
-#include "tbb/tbb_assert_impl.h"
+#include "tbb/tbb_machine.h"
 
 #include "tbb/tbb_misc.h"
 #include <cstdio>

@@ -290,27 +290,27 @@ flexible functionality.  A few representative examples follow:
 \item Flip an image vertically upon reading, by using \emph{negative}
   $y$ stride:
   \begin{code}
-        unsigned char pixels[spec.width * spec.height * spec.nchannels];
-        int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
-        ...
-        in->read_image (TypeDesc::UINT8,
-                        (char *)pixels+(yres-1)*scanlinesize, // offset to last
-                        AutoStride,                  // default x stride
-                        -scanlinesize,               // special y stride
-                        AutoStride);                 // default z stride
+    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
+    ...
+    in->read_image (TypeDesc::UINT8,
+                    (char *)pixels+(yres-1)*scanlinesize, // offset to last
+                    AutoStride,                  // default x stride
+                    -scanlinesize,               // special y stride
+                    AutoStride);                 // default z stride
   \end{code}
 \item Read a tile into its spot in a buffer whose layout matches
   a whole image of pixel data,
   rather than having a one-tile-only memory layout:
   \begin{code}
-        unsigned char pixels[spec.width * spec.height * spec.nchannels];
-        int pixelsize = spec.nchannels * sizeof(pixels[0]);
-        int scanlinesize = xpec.width * pixelsize;
-        ...
-        in->read_tile (x, y, 0, TypeDesc::UINT8,
-                       (char *)pixels + y*scanlinesize + x*pixelsize,
-                       pixelsize,
-                       scanlinesize);
+    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    int pixelsize = spec.nchannels * sizeof(pixels[0]);
+    int scanlinesize = xpec.width * pixelsize;
+    ...
+    in->read_tile (x, y, 0, TypeDesc::UINT8,
+                   (char *)pixels + y*scanlinesize + x*pixelsize,
+                   pixelsize,
+                   scanlinesize);
   \end{code}
 \end{itemize}
 
@@ -391,7 +391,7 @@ of a single integer:
         ImageInput *in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         ...
-        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::INT);
+        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::TypeInt);
         if (p) {
             int orientation = * (int *) p->data();
         } else {
@@ -408,6 +408,22 @@ to pixel data, there's no real memory waste of promoting all integer
 types to int32 metadata.  Floating-point metadata and string metadata
 may also exist, of course.
 
+For certain common types, there is an even simpler method for retrieving
+the metadata:
+
+\begin{code}
+    int i = spec.get_int_attribute ("Orientation", 0);
+    float f = spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    std::string s = spec.get_string_attribute ("ImageDescription", "");
+\end{code}
+
+This method simply returns the value.  The second argument is the
+default value to use if the attribute named is not found.  These
+versions will do automatic type conversion as well --- for example,
+if you ask for a float and the attribute is really an int, it will 
+return the proper float for it; or if the attribute is a UINT16 and
+you call {\cf get_int_attribute}, it will succeed, promoting to an int.
+
 It is also possible to step through all the metadata, item by item.
 This can be accomplished using the technique of the following example:
 
@@ -415,14 +431,21 @@ This can be accomplished using the technique of the following example:
         for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
             const ParamValue &p (spec.extra_attribs[i]);
             printf ("    \%s: ", p.name.c_str());
-            if (p.type() == TypeDesc::STRING)
+            if (p.type() == TypeDesc::TypeString)
                 printf ("\"\%s\"", *(const char **)p.data());
-            else if (p.type() == TypeDesc::FLOAT)
+            else if (p.type() == TypeDesc::TypeFloat)
                 printf ("\%g", *(const float *)p.data());
-            else if (p.type() == TypeDesc::INT)
+            else if (p.type() == TypeDesc::TypeInt)
                 printf ("\%d", *(const int *)p.data());
             else if (p.type() == TypeDesc::UINT)
                 printf ("\%u", *(const unsigned int *)p.data());
+            else if (p.type() == TypeDesc::TypeMatrix) {
+                const float *f = (const float *)p.data();
+                printf ("\%f \%f \%f \%f \%f \%f \%f \%f "
+                        "\%f \%f \%f \%f \%f \%f \%f \%f",
+                        f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7],
+                        f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
+            }
             else
                 printf ("<unknown data type>");
             printf ("\n");
@@ -596,6 +619,92 @@ a Z channel in {\cf float}:
         } else {
             ... the buffer contains all data per spec.format ...
         }
+\end{code}
+
+
+\subsection{Reading ``deep'' data}
+\label{sec:imageinput:deepdata}  \index{deep data}
+Some image file formats (OpenEXR only, at this time) support the concept
+of ``deep'' pixels -- those containing multiple samples per pixel (and a
+potentially differing number of them in each pixel).
+You can tell an image is ``deep'' from its \ImageSpec: the {\cf deep}
+field will be {\cf true}.
+
+Deep files cannot be read with the usual {\cf read_scanline}, {\cf
+  read_scanlines}, {\cf read_tile}, {\cf read_tiles}, {\cf read_image}
+functions, due to the nature of their variable number of samples per
+pixel.  Instead, \ImageInput has three special member functions used
+only for reading deep data:
+
+\begin{code}
+    bool read_native_deep_scanlines (int ybegin, int yend, int z,
+                                     int chbegin, int chend,
+                                     DeepData &deepdata);
+
+    bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend,
+                                 int chbegin, int chend, DeepData &deepdata);
+
+    bool read_native_deep_image (DeepData &deepdata);
+\end{code}
+
+It is only possible to read ``native'' data types from deep files; that
+is, there is no automatic translation into arbitrary data types as there
+is for ordinary images.  All three of these functions store the
+resulting deep data in a special {\cf DeepData} structure, defined in
+{\cf imageio.h} as follows:
+
+\begin{code}
+    struct DeepData {
+        int npixels, nchannels;
+        std::vector<TypeDesc> channeltypes;  // for each channel [c]
+        std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
+        std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
+        std::vector<char> data;          // for each sample [z][y][x][c][s]
+
+        DeepData ();
+        void init (int npix, int nchan,
+                   const TypeDesc *chbegin, const TypeDesc *chend);
+        void alloc ();
+    };
+\end{code}
+
+Here is an example of using these methods to read a deep image from 
+a file and print all its values:
+
+\begin{code}
+    ImageInput *in = ImageInput::open (filename);
+    if (! in)
+        return;
+    const ImageSpec &spec = in->spec();
+    if (spec.deep) {
+        DeepData deepdata;
+        in->read_native_deep_image (deepdata);
+        int p = 0;  // absolute pixel number
+        for (int y = 0; y < spec.height;  ++y) {
+            for (int x = 0;  x < spec.width;  ++x) {
+                std::cout << "Pixel " << x << "," << y << ":\n";
+                if (deepdata.nsamples[p] == 0)
+                    std::cout << "  no samples\n";
+                else
+                    for (int c = 0;  c < spec.nchannels;  ++c) {
+                        TypeDesc type = deepdata.channeltypes[c];
+                        std::cout << "  " << spec.channelnames[c] << ": ";
+                        void *ptr = deepdata.pointers[p*spec.nchannels+c]
+                        for (int s = 0;  s < deepdata.nsamples[p];  ++s) {
+                            if (type.basetype == TypeDesc::FLOAT)
+                                std::cout << ((float *)ptr)[s] << ' ';
+                            else if (type.basetype == TypeDesc::HALF)
+                                std::cout << ((half *)ptr)[s] << ' ';
+                            ... handle other types ...
+                        }
+                        std::cout << "\n";
+                    }
+            }
+        }
+    }
+    in->close ();
+    delete in;
 \end{code}
 
 
@@ -826,7 +935,7 @@ float pixels.
   \bigspc TypeDesc format, void *data,\\
   \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride) \\
 bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
-  \bigspc int firstchan, int nchans, TypeDesc format, void *data,\\
+  \bigspc int chbegin, int chend, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
 Read all the scanlines that include pixels $(*,y,z)$, where
@@ -836,7 +945,7 @@ one scanline at a time, which may be more efficient for certain image
 format readers.
 
 The version that specifies a channel range will read only
-channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
+channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
 \apiend
 
 
@@ -882,7 +991,7 @@ Simple version of {\kw read_tile} that reads to contiguous float pixels.
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride) \\
 bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int yend, \\
- \bigspc int zbegin, int zend, int firstchan, int nchans,\\
+ \bigspc int zbegin, int zend, int chbegin, int chend,\\
  \bigspc TypeDesc format, void *data, \\ 
  \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
  \bigspc stride_t zstride=AutoStride)}
@@ -914,7 +1023,7 @@ do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
 
 The version that specifies a channel range will read only
-channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
+channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
 \apiend
 
 
@@ -977,9 +1086,9 @@ reading multiple scanlines at once.
 \apiend
 
 \apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z,
-\\ \bigspc  int firstchan, int nchans, void *data)}
+\\ \bigspc  int chbegin, int chend, void *data)}
 A variant of {\cf read_native_scanlines} that reads only a subset of 
-channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
 not override this method, the default implementation will simply
 call the all-channel version of {\cf read_native_scanlines} into a
@@ -1006,13 +1115,29 @@ for each tile in the block.
 \apiend
 
 \apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
-  int yend, \\ \bigspc int zbegin, int zend, int firstchan, int nchans, void *data)}
+  int yend, \\ \bigspc int zbegin, int zend, int chbegin, int chend, void *data)}
 A variant of {\kw read_native_tiles()} that reads only a subset of 
-channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
 not override this method, the default implementation will simply
 call the all-channel version of {\cf read_native_tiles} into a
 temporary buffer and copy the subset of channels.
+\apiend
+
+\apiitem{bool {\ce read_native_deep_scanlines} (int ybegin, int yend, int z,
+ \\ \bigspc   int chbegin, int chend, DeepData \&deepdata) \\
+bool {\ce read_native_deep_tiles} (int xbegin, int xend,
+                                         int ybegin, int yend, \\ \bigspc
+                                         int zbegin, int zend,
+                                         int chbegin, int chend,
+                                         DeepData \&deepdata) \\
+bool {\ce read_native_deep_image} (DeepData \&deepdata)}
+Read native deep data from scanlines, tiles, or an entire image, 
+storing the results in {\cf deepdata} (analogously to the usual
+{\cf read_scanlines}, {\cf read_tiles},
+and {\cf read_image}, but with deep data).
+Only channels $[${\cf chbegin},{\cf chend}$)$
+will be read.
 \apiend
 
 \apiitem{int {\ce send_to_input} (const char *format, ...)}

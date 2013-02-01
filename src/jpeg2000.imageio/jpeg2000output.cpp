@@ -85,10 +85,10 @@ class Jpeg2000Output : public ImageOutput {
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *jpeg2000_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *jpeg2000_output_imageio_create () {
         return new Jpeg2000Output;
     }
-    DLLEXPORT const char *jpeg2000_output_extensions[] = {
+    OIIO_EXPORT const char *jpeg2000_output_extensions[] = {
         "jp2", "j2k", NULL
     };
 
@@ -178,7 +178,11 @@ Jpeg2000Output::save_image()
 
     opj_encode(compressor, cio, m_image, NULL);
 
-    fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    size_t wb = fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    if (wb != (size_t)cio_tell(cio)) {
+    	error ("Failed write jpeg2000::save_image (err: %d)", wb);
+    	return false;
+    }
 
     opj_destroy_compress(compressor);
     opj_cio_close(cio);

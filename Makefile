@@ -52,6 +52,7 @@ $(info INSTALLDIR = ${INSTALLDIR})
 VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
+MY_CMAKE_FLAGS += -DVERBOSE:BOOL=1
 TEST_FLAGS += -V
 endif
 
@@ -83,6 +84,10 @@ ifneq (${NAMESPACE},)
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
 endif
 
+ifneq (${HIDE_SYMBOLS},)
+MY_CMAKE_FLAGS += -DHIDE_SYMBOLS:BOOL=${HIDE_SYMBOLS}
+endif
+
 ifneq (${USE_PYTHON},)
 MY_CMAKE_FLAGS += -DUSE_PYTHON:BOOL=${USE_PYTHON}
 endif
@@ -107,6 +112,13 @@ ifneq (${USE_OCIO},)
 MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
 
+ifneq (${ILMBASE_HOME},)
+MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
+endif
+ifneq (${OPENEXR_HOME},)
+MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -119,12 +131,20 @@ ifneq (${SOVERSION},)
 MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
 endif
 
+ifneq (${PYLIB_LIB_PREFIX},)
+MY_CMAKE_FLAGS += -DPYLIB_LIB_PREFIX:BOOL=${PYLIB_LIB_PREFIX}
+endif
+
+ifneq (${PYLIB_INCLUDE_SONAME},)
+MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
 
 ifdef PROFILE
-MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING="-O2 -pg -g -DDEBUG" -DCMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING="-pg"
+MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 endif
 
 ifneq (${MYCC},)
@@ -247,6 +267,7 @@ help:
 	@echo "  make SOVERSION=nn ...       Include the specifed major version number "
 	@echo "                                in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
+	@echo "  make HIDE_SYMBOLS=1         Hide symbols not in the public API"
 	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
@@ -258,6 +279,8 @@ help:
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
+	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
+	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo ""

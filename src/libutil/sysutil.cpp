@@ -241,8 +241,8 @@ Sysutil::put_in_background (int, char* [])
 
 #if defined(__linux__) || defined(__GLIBC__)
     // Simplest case:
-    daemon (1, 1);
-    return true;
+    // daemon returns 0 if successful, thus return true if successful
+    return daemon (1, 1) == 0;
 #endif
 
 #ifdef __APPLE__
@@ -259,13 +259,6 @@ Sysutil::put_in_background (int, char* [])
 #endif
 
 #ifdef WIN32
-    // if we are not in DEBUG mode this code switch the app to
-    // full windowed mode (no console and no need to define WinMain)
-    // FIXME: this should be done in CMakeLists.txt but first we have to
-    // fix Windows Debug build
-# ifndef DEBUG
-#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
-# endif
     return true;
 #endif
 

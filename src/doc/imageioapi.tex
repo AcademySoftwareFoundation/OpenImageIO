@@ -266,6 +266,12 @@ the camera).  It defaults to -1 if no depth channel is present, or if it
 is not know which channel represents depth.
 \apiend
 
+\apiitem{bool deep}
+If {\cf true}, this indicates that the image describes contains ``deep''
+data consisting of multiple samples per pixel.  If {\cf false}, it's an
+ordinary image with one data value (per channel) per pixel.
+\apiend
+
 \apiitem{int quant_black, quant_white, quant_min, quant_max;}
 Describes the \emph{quantization}, or mapping between real
 (floating-point) values and the stored integer values.
@@ -344,9 +350,9 @@ default), or if all channels use the same format, this will simply be
 the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
 
-\apiitem{size_t {\ce pixel_bytes} (int firstchan, int nchans, bool native=false) const}
+\apiitem{size_t {\ce pixel_bytes} (int chbegin, int chend, bool native=false) const}
 Returns the number of bytes comprising the range of channels 
-  $[${\cf firstchan}, {\cf firstchan+nchans}$)$ for each pixel.
+  $[${\cf chbegin}, {\cf chend}$)$ for each pixel.
 
 If {\cf native} is true, this will be the sum of the per-channel
 formats in {\cf channelformats} (for the given range of channels).  
@@ -467,6 +473,25 @@ values) for certain known metadata.
 \apiend
 
 
+\apiitem{std::string {\ce to_xml} () const}
+Saves the contents of the \ImageSpec as XML, returning it as a string.
+\apiend
+
+\apiitem{void {\ce from_xml} (const char *xml) const}
+Populates the fields of the \ImageSpec based on the XML passed in.
+\apiend
+
+\apiitem{TypeDesc {\ce channelformat} (int chan) const}
+Returns a \TypeDesc describing the format of the requested channel.
+\apiend
+
+\apiitem{void {\ce get_channelformats} (std::vector<TypeDesc> \&formats) const}
+Fill in an array of channel formats describing all channels in the
+image.  (Note that this differs slightly from the member data 
+{\cf channelformats}, which is empty if there are not separate per-channel
+formats.)
+\apiend
+
 
 \subsection{Miscellaneous Utilities}
 \label{sec:miscapi}
@@ -525,11 +550,33 @@ The default is 1.  If set to 0, it means that it should use as many
 threads as there are hardware cores present on the system.
 \apiend
 
-\apiitem{string plugin_serachpath}
+\apiitem{string plugin_searchpath}
 \vspace{10pt}
 \index{plugin_searchpath}
 A colon-separated list of directories to search for 
 dynamically-loaded format plugins.
+\apiend
+
+\apiitem{string format_list}
+\vspace{10pt}
+\index{format_list}
+A comma-separated list of all the names of all supported 
+image format readers and writers.  (Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
+\apiitem{string extension_list}
+\vspace{10pt}
+\index{extension_list}
+For each format, the format name, followed by a colon, followed by
+a comma-separated list of all extensions that are presumed to be used
+for that format.  Semicolons separate the lists for formats.  For
+example,
+\begin{code}
+     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+\end{code}
+(Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 
 \apiend
@@ -579,7 +626,7 @@ general (pointer) form of {\cf getattribute()}:
       int maxfiles;
       ts->getattribute ("max_open_files", &maxfiles);
       const char *path;
-      ts->getattribute ("searchpath", &path);
+      ts->getattribute ("plugin_searchpath", &path);
 \end{code}
 
 \apiend

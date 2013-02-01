@@ -35,6 +35,25 @@ OIIO_NAMESPACE_USING;
 
 
 
+void test_format ()
+{
+    // Test formatting
+    OIIO_CHECK_EQUAL (Strutil::format ("%d %f %g", int(3), 3.14f, 3.14f),
+                      "3 3.140000 3.14");
+    OIIO_CHECK_EQUAL (Strutil::format ("'%s' '%s'", "foo", std::string("foo")),
+                      "'foo' 'foo'");
+    OIIO_CHECK_EQUAL (Strutil::format ("'%3d' '%03d' '%-3d'", 3, 3, 3),
+                      "'  3' '003' '3  '");
+
+    // Test '+' format modifier
+// FIXME -- this fails at the moment, due to tinyformat error
+//    OIIO_CHECK_EQUAL (Strutil::format ("%+d%+d%+d", 3, -3, 0), "+3-3+0");
+
+    // FIXME -- we should make comprehensive tests here
+}
+
+
+
 void test_memformat ()
 {
     OIIO_CHECK_EQUAL (Strutil::memformat (15), "15 B");
@@ -134,12 +153,25 @@ void test_escape_sequences ()
 
 
 
+void test_strip ()
+{
+    OIIO_CHECK_EQUAL (Strutil::strip ("abcdefbac", "abc"), "def");
+    OIIO_CHECK_EQUAL (Strutil::strip ("defghi", "abc"), "defghi");
+    OIIO_CHECK_EQUAL (Strutil::strip ("  \tHello, world\n"), "Hello, world");
+    OIIO_CHECK_EQUAL (Strutil::strip (" \t"), "");
+    OIIO_CHECK_EQUAL (Strutil::strip (""), "");
+}
+
+
+
 int main (int argc, char *argv[])
 {
+    test_format ();
     test_memformat ();
     test_timeintervalformat ();
     test_get_rest_arguments ();
     test_escape_sequences ();
+    test_strip ();
 
     return unit_test_failures;
 }

@@ -80,11 +80,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *ptex_input_imageio_create () { return new PtexInput; }
+OIIO_EXPORT ImageInput *ptex_input_imageio_create () { return new PtexInput; }
 
-DLLEXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * ptex_input_extensions[] = {
+OIIO_EXPORT const char * ptex_input_extensions[] = {
     "ptex", "ptx", NULL
 };
 

@@ -62,11 +62,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *ptex_output_imageio_create () { return new PtexOutput; }
+OIIO_EXPORT ImageOutput *ptex_output_imageio_create () { return new PtexOutput; }
 
-// DLLEXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;   // it's in ptexinput.cpp
+// OIIO_EXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;   // it's in ptexinput.cpp
 
-DLLEXPORT const char * ptex_output_extensions[] = {
+OIIO_EXPORT const char * ptex_output_extensions[] = {
     "ptex", "ptx", NULL
 };
 

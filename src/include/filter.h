@@ -41,7 +41,7 @@ OIIO_NAMESPACE_ENTER
 
 /// Quick structure that describes a filter.
 ///
-class DLLPUBLIC FilterDesc {
+class OIIO_API FilterDesc {
 public:
     const char *name; ///< name of the filter
     int dim;          ///< dimensionality: 1 or 2 
@@ -55,7 +55,7 @@ public:
 
 /// Filter1D is the abstract data type for a 1D filter.
 /// The filters are NOT expected to have their results normalized.
-class DLLPUBLIC Filter1D {
+class OIIO_API Filter1D {
 public:
     Filter1D (float width) : m_w(width) { }
     virtual ~Filter1D (void) { };
@@ -93,7 +93,7 @@ protected:
 
 /// Filter2D is the abstract data type for a 2D filter.
 /// The filters are NOT expected to have their results normalized.
-class DLLPUBLIC Filter2D {
+class OIIO_API Filter2D {
 public:
     Filter2D (float width, float height) : m_w(width), m_h(height) { }
     virtual ~Filter2D (void) { };

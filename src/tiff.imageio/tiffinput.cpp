@@ -47,6 +47,19 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
+// General TIFF information:
+// TIFF 6.0 spec: 
+//     http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf
+// Other Adobe TIFF docs:
+//     http://partners.adobe.com/public/developer/tiff/index.html
+// Adobe extensions to allow 16 (and 24) bit float in TIFF (ugh, not on
+// their developer page, only on Chris Cox's web site?):
+//     http://chriscox.org/TIFFTN3d1.pdf
+// Libtiff:
+//     http://remotesensing.org/libtiff/
+
+
+
 // Helper struct for constructing tables of TIFF tags
 struct TIFF_tag_info {
     int tifftag;       // TIFF tag used for this info
@@ -259,11 +272,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
+OIIO_EXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
-// DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
+// OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
-DLLEXPORT const char * tiff_input_extensions[] = {
+OIIO_EXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 
@@ -292,8 +305,10 @@ TIFFInput::valid_file (const std::string &filename) const
     if (! file)
         return false;  // needs to be able to open
     unsigned short magic[2] = { 0, 0 };
-    fread (magic, sizeof(unsigned short), 2, file);
+    size_t numRead = fread (magic, sizeof(unsigned short), 2, file);
     fclose (file);
+    if (numRead != 2)  // fread failed
+    	return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
         return false;  // not the right byte order
     if ((magic[0] == TIFF_LITTLEENDIAN) != littleendian())
@@ -362,7 +377,7 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     if (! m_tif) {
 #ifdef _WIN32
-        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        std::wstring wfilename = Strutil::utf8_to_utf16 (m_filename);
         m_tif = TIFFOpenW (wfilename.c_str(), "rm");
 #else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
@@ -565,8 +580,10 @@ TIFFInput::readspec (bool read_meta)
             m_spec.set_format (TypeDesc::UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
             m_spec.set_format (TypeDesc::INT16);
-        else if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            m_spec.set_format (TypeDesc::HALF); // not to spec, but why not?
+        else if (sampleformat == SAMPLEFORMAT_IEEEFP) {
+            m_spec.set_format (TypeDesc::HALF);
+            // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
+        }
         else
             m_spec.set_format (TypeDesc::UNKNOWN);
         break;
@@ -761,7 +778,7 @@ TIFFInput::readspec (bool read_meta)
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);
 #ifdef _WIN32
-        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        std::wstring wfilename = Strutil::utf8_to_utf16 (m_filename);
         m_tif = TIFFOpenW (wfilename.c_str(), "rm");
 #else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");

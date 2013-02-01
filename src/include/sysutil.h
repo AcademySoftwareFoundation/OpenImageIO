@@ -40,6 +40,12 @@
 #ifndef OPENIMAGEIO_SYSUTIL_H
 #define OPENIMAGEIO_SYSUTIL_H
 
+#include <string>
+
+#ifdef __MINGW32__
+#include <malloc.h> // for alloca
+#endif
+
 #include "export.h"
 #include "version.h"
 
@@ -69,6 +75,25 @@
 
 
 
+// gcc defines a special intrinsic to use in conditionals that can speed
+// up extremely performance-critical spots if the conditional usually
+// (or rarely) is true.  You use it by replacing
+//     if (x) ...
+// with
+//     if (OIIO_LIKELY(x)) ...     // if you think x will usually be true
+// or
+//     if (OIIO_UNLIKELY(x)) ...   // if you think x will rarely be true
+// Caveat: Programmers are notoriously bad at guessing this, so it
+// should be used only with thorough benchmarking.
+#ifdef __GNUC__
+#define OIIO_LIKELY(x)   (__builtin_expect((x), 1))
+#define OIIO_UNLIKELY(x) (__builtin_expect((x), 0))
+#else
+#define OIIO_LIKELY(x)   (x)
+#define OIIO_UNLIKELY(x) (x)
+#endif
+
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -82,31 +107,31 @@ namespace Sysutil {
 /// The amount of memory currently being used by this process, in bytes.
 /// By default, returns the full virtual arena, but if resident=true,
 /// it will report just the resident set in RAM.
-DLLPUBLIC size_t memory_used (bool resident=false);
+OIIO_API size_t memory_used (bool resident=false);
 
 
 /// Convert calendar time pointed by 'time' into local time and save it in
 /// 'converted_time' variable
-DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
+OIIO_API void get_local_time (const time_t *time, struct tm *converted_time);
 
 /// Return the full path of the currently-running executable program.
 ///
-DLLPUBLIC std::string this_program_path ();
+OIIO_API std::string this_program_path ();
 
 /// Sleep for the given number of microseconds.
 ///
-DLLPUBLIC void usleep (unsigned long useconds);
+OIIO_API void usleep (unsigned long useconds);
 
 /// Try to figure out how many columns wide the terminal window is.
 /// May not be correct all all systems, will default to 80 if it can't
 /// figure it out.
-DLLPUBLIC int terminal_columns ();
+OIIO_API int terminal_columns ();
 
 /// Try to put the process into the background so it doesn't continue to
 /// tie up any shell that it was launched from.  The arguments are the
 /// argc/argv that describe the program and its command line arguments.
 /// Return true if successful, false if it was unable to do so.
-DLLPUBLIC bool put_in_background (int argc, char* argv[]);
+OIIO_API bool put_in_background (int argc, char* argv[]);
 
 
 };  // namespace Sysutils

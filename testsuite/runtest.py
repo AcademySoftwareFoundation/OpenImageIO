@@ -101,8 +101,11 @@ def oiio_app (app):
 
 
 # Construct a command that will compare two images, appending output to
-# the file "out.txt".
-def info_command (file, extraargs="") :
+# the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
+# of fields that tend to change from run to run or release to release.
+def info_command (file, extraargs="", safematch=0) :
+    if safematch :
+        extraargs += " --no-metamatch \"DateTime|Software|OriginatingProgram|ImageHistory\""
     return (oiio_app("oiiotool") + "--info -v -a --hash " + extraargs
             + " " + oiio_relpath(file,tmpdir) + " >> out.txt ;\n")
 
@@ -111,7 +114,7 @@ def info_command (file, extraargs="") :
 # the file "out.txt".  We allow a small number of pixels to have up to
 # 1 LSB (8 bit) error, it's very hard to make different platforms and
 # compilers always match to every last floating point bit.
-def diff_command (fileA, fileB, extraargs="", silent=0, concat=True) :
+def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
     command = (oiio_app("idiff") + "-a "
                + "-failpercent 0.01 -hardfail 0.004 -warn 0.004 "
                + extraargs + " " + oiio_relpath(fileA,tmpdir) 
@@ -123,21 +126,45 @@ def diff_command (fileA, fileB, extraargs="", silent=0, concat=True) :
     return command
 
 
+# Construct a command that will create a texture, appending console
+# output to the file "out.txt".
+def maketx_command (infile, outfile, extraargs="",
+                    showinfo=False, showinfo_extra="",
+                    silent=False, concat=True) :
+    command = (oiio_app("maketx") 
+               + " " + oiio_relpath(infile,tmpdir) 
+               + " " + extraargs
+               + " -o " + oiio_relpath(outfile,tmpdir) )
+    if not silent :
+        command += " >> out.txt"
+    if concat:
+        command += " ;\n"
+    if showinfo:
+        command += info_command (outfile, extraargs=showinfo_extra, safematch=1)
+    return command
+
+
+
 # Construct a command that will test the basic ability to read and write
 # an image, appending output to the file "out.txt".  First, iinfo the
 # file, including a hash (VERY unlikely not to match if we've read
 # correctly).  If testwrite is nonzero, also iconvert the file to make a
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
-def rw_command (dir, filename, testwrite=1, extraargs="") :
+def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
+                preargs="", idiffextraargs="") :
     fn = oiio_relpath (dir + "/" + filename, tmpdir)
     cmd = (oiio_app("oiiotool") + " --info -v -a --hash " + fn
            + " >> out.txt ;\n")
     if testwrite :
-        cmd = (cmd + oiio_app("iconvert") + fn
-               + " " + extraargs + " " + filename + " >> out.txt ;\n")
+        if use_oiiotool :
+            cmd = (cmd + oiio_app("oiiotool") + preargs + " " + fn
+                   + " " + extraargs + " -o " + filename + " >> out.txt ;\n")
+        else :
+            cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
+                   + " " + extraargs + " " + filename + " >> out.txt ;\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
-               + " " + filename + " >> out.txt ;\n")
+               + " " + idiffextraargs + " " + filename + " >> out.txt ;\n")
     return cmd
 
 

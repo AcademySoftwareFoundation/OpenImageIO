@@ -56,7 +56,10 @@ public:
     bool hash;
     bool updatemode;
     int threads;
-    
+    std::string full_command_line;
+    std::string printinfo_metamatch;
+    std::string printinfo_nometamatch;
+
     // Output options
     TypeDesc output_dataformat;
     int output_bitspersample;
@@ -106,7 +109,7 @@ public:
     // Force img to be read at this point.
     void read (ImageRecRef img);
     // Read the current image
-    void read () { read (curimg); }
+    void read () { if (curimg) read (curimg); }
 
     // If required_images are not yet on the stack, then postpone this
     // call by putting it on the 'pending' list and return true.
@@ -142,6 +145,8 @@ public:
         }
         return r;
     }
+
+    void error (const std::string &command, const std::string &explanation);
 
 private:
     CallbackFunction m_pending_callback;
@@ -206,6 +211,14 @@ public:
     ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
 
+    // Initialize an ImageRec with a collection of prepared ImageSpec's.
+    // The number of subimages is nsubimages, the number of MIP levels
+    // for each subimages is in miplevels[0..nsubimages-1], and specs[]
+    // contains the specs for all the MIP levels of subimage 0, followed
+    // by all the specs for the MIP levels of subimage 1, and so on.
+    ImageRec (const std::string &name, int nsubimages,
+              const int *miplevels, const ImageSpec *specs);
+
     // Number of subimages
     int subimages() const { return (int) m_subimages.size(); }
 
@@ -264,6 +277,14 @@ public:
 
     std::time_t time() const { return m_time; }
 
+    // This should be called if for some reason the underlying
+    // ImageBuf's spec may have been modified in place.  We need to
+    // update the outer copy held by the SubimageRec.
+    void update_spec_from_imagebuf (int subimg=0, int mip=0) {
+        *m_subimages[subimg].spec(mip) = m_subimages[subimg][mip]->spec();
+        metadata_modified();
+    }
+
 private:
     std::string m_name;
     bool m_elaborated;
@@ -285,6 +306,7 @@ struct print_info_options {
     bool compute_sha1;
     bool compute_stats;
     std::string metamatch;
+    std::string nometamatch;
     size_t namefieldlength;
 
     print_info_options ()

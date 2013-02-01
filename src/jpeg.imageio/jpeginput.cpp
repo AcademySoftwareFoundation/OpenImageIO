@@ -50,11 +50,11 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *jpeg_input_imageio_create () {
+    OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
     }
-    DLLEXPORT const char *jpeg_input_extensions[] = {
+    OIIO_EXPORT const char *jpeg_input_extensions[] = {
         "jpg", "jpe", "jpeg", "jif", "jfif", ".jfi", NULL
     };
 

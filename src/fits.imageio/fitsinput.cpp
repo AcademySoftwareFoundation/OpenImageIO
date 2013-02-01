@@ -40,11 +40,11 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *fits_input_imageio_create () {
+    OIIO_EXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *fits_input_imageio_create () {
         return new FitsInput;
     }
-    DLLEXPORT const char *fits_input_extensions[] = {
+    OIIO_EXPORT const char *fits_input_extensions[] = {
         "fits", NULL
     };
 

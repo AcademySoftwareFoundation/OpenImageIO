@@ -107,10 +107,12 @@ if (OPENJPEG_FOUND)
   foreach (tmplib ${OpenJpeg_libvars})
     list (APPEND OPENJPEG_LIBRARIES ${${tmplib}})
   endforeach ()
-  FIND_PACKAGE_MESSAGE (OPENJPEG
-    "Found OpenJPEG: ${OPENJPEG_LIBRARIES}"
-    "[${OPENJPEG_INCLUDE_DIR}][${OPENJPEG_LIBRARIES}]"
-  )
+  if (VERBOSE)
+    FIND_PACKAGE_MESSAGE (OPENJPEG
+      "Found OpenJPEG: ${OPENJPEG_LIBRARIES}"
+      "[${OPENJPEG_INCLUDE_DIR}][${OPENJPEG_LIBRARIES}]"
+      )
+  endif ()
 endif ()
 
 unset (OpenJpeg_include_paths)

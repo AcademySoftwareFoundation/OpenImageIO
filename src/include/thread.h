@@ -40,6 +40,8 @@
 #define OPENIMAGEIO_THREAD_H
 
 #include "version.h"
+#include "sysutil.h"
+
 
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
@@ -69,7 +71,7 @@
 #endif
 
 #ifndef USE_TBB
-#  define USE_TBB 1
+#  define USE_TBB 0
 #endif
 
 // Include files we need for atomic counters.
@@ -342,6 +344,25 @@ pause (int delay)
 
 
 
+// Helper class to deliver ever longer pauses until we yield our timeslice.
+class atomic_backoff {
+public:
+    atomic_backoff () : m_count(1) { }
+
+    void operator() () {
+        if (m_count <= 16) {
+            pause (m_count);
+            m_count *= 2;
+        } else {
+            yield();
+        }
+    }
+private:
+    int m_count;
+};
+
+
+
 #if (! USE_TBB)
 // If we're not using TBB, we need to define our own atomic<>.
 
@@ -457,25 +478,6 @@ typedef tbb::spin_mutex::scoped_lock spin_lock;
 // Define our own spin locks.  Do we trust them?
 
 
-// Helper class to deliver ever longer pauses until we yield our timeslice.
-class atomic_backoff {
-public:
-    atomic_backoff () : m_count(1) { }
-
-    void operator() () {
-        if (m_count <= 16) {
-            pause (m_count);
-            m_count *= 2;
-        } else {
-            yield();
-        }
-    }
-private:
-    int m_count;
-};
-
-
-
 /// A spin_mutex is semantically equivalent to a regular mutex, except
 /// for the following:
 ///  - A spin_mutex is just 4 bytes, whereas a regular mutex is quite
@@ -515,23 +517,26 @@ public:
     /// Acquire the lock, spin until we have it.
     ///
     void lock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
-        while (! try_lock()) {
-            // Trick #1: don't spin too tightly; instead, insert
-            // increasingly longer pauses, and if the lock is under lots
-            // of contention, eventually yield the timeslice.  This is
-            // all handled by the atomic_backoff helper class.
-            atomic_backoff backoff;
+        // To avoid spinning too tightly, we use the atomic_backoff to
+        // provide increasingly longer pauses, and if the lock is under
+        // lots of contention, eventually yield the timeslice.
+        atomic_backoff backoff;
+        // Try to get ownership of the lock. Though experimentation, we
+        // found that OIIO_UNLIKELY makes this just a bit faster on 
+        // gcc x86/x86_64 systems.
+        while (! OIIO_UNLIKELY(try_lock())) {
             do {
                 backoff();
-            } while (*(int *)&m_locked);
-            // Trick #2 above: try_lock involves a compare_and_swap,
-            // which writes memory, and that will lock the bus.  But an
-            // normal read of m_locked will let us spin until the value
-            // changes, without locking the bus!
+            } while (*(volatile int *)&m_locked);
+            // The full try_lock() involves a compare_and_swap, which
+            // writes memory, and that will lock the bus.  But a normal
+            // read of m_locked will let us spin until the value
+            // changes, without locking the bus. So it's faster to
+            // check in this manner until the mutex appears to be free.
         }
 #endif
     }
@@ -539,9 +544,15 @@ public:
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         OSSpinLockUnlock ((OSSpinLock *)&m_locked);
+#elif defined(__GNUC__)
+        // GCC gives us an intrinsic that is even better, an atomic
+        // assignment of 0 with "release" barrier semantics.
+        __sync_lock_release ((volatile int *)&m_locked);
 #else
+        // Otherwise, just assign zero to the atomic (but that's a full 
+        // memory barrier).
         m_locked = 0;
 #endif
     }
@@ -549,12 +560,16 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         return OSSpinLockTry ((OSSpinLock *)&m_locked);
 #else
 #  if USE_TBB
         // TBB's compare_and_swap returns the original value
         return m_locked.compare_and_swap (0, 1) == 0;
+#  elif defined(__GNUC__)
+        // GCC gives us an intrinsic that is even better -- an atomic
+        // exchange with "acquire" barrier semantics.
+        return __sync_lock_test_and_set ((volatile int *)&m_locked, 1) == 0;
 #  else
         // Our compare_and_swap returns true if it swapped
         return m_locked.bool_compare_and_swap (0, 1);
@@ -632,7 +647,7 @@ public:
         // Spin until the last reader is done, at which point we will be
         // the sole owners and nobody else (reader or writer) can acquire
         // the resource until we release it.
-        while (m_readers > 0)
+        while (*(volatile int *)&m_readers > 0)
                 ;
     }
 
@@ -670,8 +685,12 @@ public:
     };
 
 private:
+    OIIO_CACHE_ALIGN
     spin_mutex m_locked;   // write lock
+    char pad1_[OIIO_CACHE_LINE_SIZE-sizeof(spin_mutex)];
+    OIIO_CACHE_ALIGN
     atomic_int m_readers;  // number of readers
+    char pad2_[OIIO_CACHE_LINE_SIZE-sizeof(atomic_int)];
 };
 
 

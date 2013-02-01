@@ -73,6 +73,16 @@ static std::map <std::string, std::string> plugin_filepaths;
 static std::string pattern = Strutil::format (".imageio.%s",
                                               Plugin::plugin_extension());
 
+
+inline void
+add_if_missing (std::vector<std::string> &vec, const std::string &val)
+{
+    if (std::find (vec.begin(), vec.end(), val) == vec.end())
+        vec.push_back (val);
+}
+
+
+
 /// Register the input and output 'create' routine and list of file
 /// extensions for a particular format.
 static void
@@ -80,6 +90,7 @@ declare_plugin (const std::string &format_name,
                 create_prototype input_creator, const char **input_extensions,
                 create_prototype output_creator, const char **output_extensions)
 {
+    std::vector<std::string> all_extensions;
     // Look for input creator and list of supported extensions
     if (input_creator) {
         if (input_formats.find(format_name) != input_formats.end())
@@ -88,8 +99,10 @@ declare_plugin (const std::string &format_name,
         for (const char **e = input_extensions; e && *e; ++e) {
             std::string ext (*e);
             Strutil::to_lower (ext);
-            if (input_formats.find(ext) == input_formats.end())
+            if (input_formats.find(ext) == input_formats.end()) {
                 input_formats[ext] = input_creator;
+                add_if_missing (all_extensions, ext);
+            }
         }
     }
 
@@ -100,10 +113,23 @@ declare_plugin (const std::string &format_name,
         for (const char **e = output_extensions; e && *e; ++e) {
             std::string ext (*e);
             Strutil::to_lower (ext);
-            if (output_formats.find(ext) == output_formats.end())
+            if (output_formats.find(ext) == output_formats.end()) {
                 output_formats[ext] = output_creator;
+                add_if_missing (all_extensions, ext);
+            }
         }
     }
+
+    // Add the name to the master list of format_names, and extensions to
+    // their master list.
+    recursive_lock_guard lock (pvt::imageio_mutex);
+    if (format_list.length())
+        format_list += std::string(",");
+    format_list += format_name;
+    if (extension_list.length())
+        extension_list += std::string(";");
+    extension_list += format_name + std::string(":");
+    extension_list += Strutil::join(all_extensions, ",");
 }
 
 
@@ -260,11 +286,15 @@ catalog_builtin_plugins ()
 #endif
 }
 
+} // anon namespace end
+
+
+
 /// Look at ALL imageio plugins in the searchpath and add them to the
 /// catalog.  This routine is not reentrant and should only be called
 /// by a routine that is holding a lock on imageio_mutex.
-static void
-catalog_all_plugins (std::string searchpath)
+void
+pvt::catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
@@ -295,7 +325,6 @@ catalog_all_plugins (std::string searchpath)
     }
 }
 
-}
 
 
 ImageOutput *

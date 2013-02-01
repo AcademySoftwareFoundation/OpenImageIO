@@ -102,7 +102,7 @@ typedef ParamValueList ImageIOParameterList;
 
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
-class DLLPUBLIC ImageSpec {
+class OIIO_API ImageSpec {
 public:
     int x, y, z;              ///< origin (upper left corner) of pixel data
     int width;                ///< width of the pixel data window
@@ -125,7 +125,8 @@ public:
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
     int z_channel;            ///< Index of depth channel, or -1 if not known
-    
+    bool deep;                ///< Contains deep data
+
     // quantize is used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
     int quant_white;          ///< quantization of white (1.0) level
@@ -185,14 +186,14 @@ public:
     size_t pixel_bytes (bool native=false) const;
 
     /// Return the number of bytes for just the subset of channels in
-    /// each pixel described by [firstchan,firstchan+nchans).
+    /// each pixel described by [chbegin,chend).
     /// If native is false (default), assume all channels are in 
     /// this->format, but if native is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
-    size_t pixel_bytes (int firstchan, int nchans, bool native=false) const;
+    size_t pixel_bytes (int chbegin, int chend, bool native=false) const;
 
     /// Return the number of bytes for each scanline.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
@@ -370,14 +371,52 @@ public:
                 (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
                 (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
     }
+
+    /// Return teh channelformat of the given channel.
+    TypeDesc channelformat (int chan) const {
+        return chan >= (int)channelformats.size() ? format : channelformats[chan];
+    }
+
+    /// Fill in an array of channel formats describing all channels in
+    /// the image.  (Note that this differs slightly from the member
+    /// data channelformats, which is empty if there are not separate
+    /// per-channel formats.)
+    void get_channelformats (std::vector<TypeDesc> &formats) {
+        formats = channelformats;
+        if ((int)formats.size() < nchannels)
+            formats.resize (nchannels, format);
+    }
 };
 
+
+
+/// Structure to hold "deep" data -- multiple samples per pixel.
+struct OIIO_API DeepData {
+public:
+    int npixels, nchannels;
+    std::vector<TypeDesc> channeltypes;  // for each channel [c]
+    std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
+    std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
+    std::vector<char> data;          // for each sample [z][y][x][c][s]
+
+    DeepData () : npixels(0), nchannels(0) { }
+    /// Initialize size and allocate nsamples, pointers
+    void init (int npix, int nchan,
+               const TypeDesc *chbegin, const TypeDesc *chend);
+    /// After nsamples[] has been filled in, allocate enough scratch space
+    /// for data and set up all the pointers.
+    void alloc ();
+    /// Clear the vectors and reset size to 0.
+    void clear ();
+    /// Deallocate all space in the vectors
+    void free ();
+};
 
 
 
 /// ImageInput abstracts the reading of an image file in a file
 /// format-agnostic manner.
-class DLLPUBLIC ImageInput {
+class OIIO_API ImageInput {
 public:
     /// Create an ImageInput subclass instance that is able to read
     /// the given file and open it, returning the opened ImageInput if
@@ -543,12 +582,11 @@ public:
     /// converting to the requested data format (unless format is
     /// TypeDesc::UNKNOWN, in which case pixels will be copied in the
     /// native data layout, including per-channel data formats).  Only
-    /// channels [firstchan,firstchan+nchans) will be read/copied
-    /// (firstchan=0, nchans=spec.nchannels reads all scanlines,
-    /// yielding equivalent behavior to the simpler variant of
-    /// read_scanlines).
+    /// channels [chbegin,chend) will be read/copied (chbegin=0,
+    /// chend=spec.nchannels reads all channels, yielding equivalent
+    /// behavior to the simpler variant of read_scanlines).
     virtual bool read_scanlines (int ybegin, int yend, int z,
-                                 int firstchan, int nchans,
+                                 int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
@@ -607,13 +645,12 @@ public:
     /// the strides given and converting to the requested data format
     /// (unless format is TypeDesc::UNKNOWN, in which case pixels will
     /// be copied in the native data layout, including per-channel data
-    /// formats).  Only channels [firstchan,firstchan+nchans) will be
-    /// read/copied (firstchan=0, nchans=spec.nchannels reads all
-    /// scanlines, yielding equivalent behavior to the simpler variant
-    /// of read_tiles).
+    /// formats).  Only channels [chbegin,chend) will be read/copied
+    /// (chbegin=0, chend=spec.nchannels reads all channels, yielding
+    /// equivalent behavior to the simpler variant of read_tiles).
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, 
-                             int firstchan, int nchans, TypeDesc format,
+                             int chbegin, int chend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
@@ -646,6 +683,7 @@ public:
         return read_image (TypeDesc::FLOAT, data);
     }
 
+
     /// read_native_scanline is just like read_scanline, except that it
     /// keeps the data in the native format of the disk file and always
     /// reads into contiguous memory (no strides).  It's up to the user to
@@ -664,13 +702,12 @@ public:
                                         void *data);
 
     /// A variant of read_native_scanlines that reads only channels
-    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// [chbegin,chend).  If a format reader subclass does
     /// not override this method, the default implementation will simply
     /// call the all-channel version of read_native_scanlines into a
     /// temporary buffer and copy the subset of channels.
     virtual bool read_native_scanlines (int ybegin, int yend, int z,
-                                        int firstchan, int nchans,
-                                        void *data);
+                                        int chbegin, int chend, void *data);
 
     /// read_native_tile is just like read_tile, except that it
     /// keeps the data in the native format of the disk file and always
@@ -691,13 +728,36 @@ public:
                                     int zbegin, int zend, void *data);
 
     /// A variant of read_native_tiles that reads only channels
-    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// [chbegin,chend).  If a format reader subclass does
     /// not override this method, the default implementation will simply
     /// call the all-channel version of read_native_tiles into a
     /// temporary buffer and copy the subset of channels.
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
-                                    int firstchan, int nchans, void *data);
+                                    int chbegin, int chend, void *data);
+
+    /// Read native deep data from multiple scanlines that include
+    /// pixels (*,y,z) for all ybegin <= y < yend, into deepdata.  Only
+    /// channels [chbegin, chend) will be read (chbegin=0,
+    /// chend=spec.nchannels reads all channels).
+    virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
+                                             int chbegin, int chend,
+                                             DeepData &deepdata);
+
+    /// Read the block of multiple native deep data tiles that include
+    /// all pixels in [xbegin,xend) X [ybegin,yend) X [zbegin,zend),
+    /// into deepdata.  Only channels [chbegin,chend) will
+    /// be read (chbegin=0, chend=spec.nchannels reads all channels).
+    virtual bool read_native_deep_tiles (int xbegin, int xend,
+                                         int ybegin, int yend,
+                                         int zbegin, int zend,
+                                         int chbegin, int chend,
+                                         DeepData &deepdata);
+
+    /// Read the entire deep data image of spec.width x spec.height x
+    /// spec.depth pixels, all channels, into deepdata.
+    virtual bool read_native_deep_image (DeepData &deepdata);
+
 
     /// General message passing between client and image input server
     ///
@@ -737,7 +797,7 @@ private:
 
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
-class DLLPUBLIC ImageOutput {
+class OIIO_API ImageOutput {
 public:
     /// Create an ImageOutput that will write to a file, with the format
     /// inferred from the extension of the name.  The plugin_searchpath
@@ -768,8 +828,12 @@ public:
     ///    "random_access"  May tiles or scanlines be written in
     ///                       any order (false indicates that they MUST
     ///                       be in successive order).
-    ///    "multiimage"     Does this format support multiple images
+    ///    "multiimage"     Does this format support multiple subimages
     ///                       within a file?
+    ///    "appendsubimage" Does this format support adding subimages one at
+    ///                       a time through open(name,spec,AppendSubimage)?
+    ///                       If not, then open(name,subimages,specs) must
+    ///                       be used instead.
     ///    "mipmap"         Does this format support multiple resolutions
     ///                       for an image/subimage?
     ///    "volumes"        Does this format support "3D" pixel arrays?
@@ -787,6 +851,7 @@ public:
     ///                        origin of the pixel data window?
     ///    "negativeorigin" Does the format support negative x,y,z
     ///                        and full_{x,y,z} origin values?
+    ///    "deepdata"       Deep (multi-sample per pixel) data
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -802,11 +867,33 @@ public:
     /// for failure.  Note that it is legal to call open multiple times
     /// on the same file without a call to close(), if it supports
     /// multiimage and mode is AppendSubimage, or if it supports
-    /// MIP-maps and mode is AppendMIPlevel -- this is interpreted as
+    /// MIP-maps and mode is AppendMIPLevel -- this is interpreted as
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
+
+    /// Open the file with given name, expecting to have a given total
+    /// number of subimages, described by specs[0..subimages-1].  
+    /// Return true for success, false for failure.  Upon success, the
+    /// first subimage will be open and ready for transmission of
+    /// pixels.  Subsequent subimages will be denoted with the usual
+    /// call of open(name,spec,AppendSubimage) (and MIP levels by
+    /// open(name,spec,AppendMIPLevel)).
+    ///
+    /// The purpose of this call is to accommodate format-writing
+    /// libraries that fmust know the number and specifications of the
+    /// subimages upon first opening the file; such formats can be
+    /// detected by
+    ///     supports("multiimage") && !supports("appendsubimage")
+    /// The individual specs passed to the appending open() calls for
+    /// subsequent subimages MUST match the ones originally passed.
+    virtual bool open (const std::string &name, int subimages,
+                       const ImageSpec *specs) {
+        // Default implementation: just a regular open, assume that
+        // appending will work.
+        return open (name, specs[0]);
+    }
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are
@@ -925,6 +1012,23 @@ public:
                               ProgressCallback progress_callback=NULL,
                               void *progress_callback_data=NULL);
 
+    /// Write deep scanlines containing pixels (*,y,z), for all y in
+    /// [ybegin,yend), to a deep file.
+    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
+                                       const DeepData &deepdata);
+
+    /// Write the block of deep tiles that include all pixels in
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
+    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend,
+                                   const DeepData &deepdata);
+
+    /// Write the entire deep image denoted by data.
+    virtual bool write_deep_image (const DeepData &deepdata);
+
     /// Read the current subimage of 'in', and write it as the next
     /// subimage of *this, in a way that is efficient and does not alter
     /// pixel values, if at all possible.  Both in and this must be a
@@ -963,7 +1067,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
-    // void error (const char *format, ...)
+    /// void error (const char *format, ...)
     TINYFORMAT_WRAP_FORMAT (void, error, const,
         std::ostringstream msg;, msg, append_error(msg.str());)
 
@@ -1004,14 +1108,14 @@ private:
 /// Retrieve the version of OpenImageIO for the library.  This is so
 /// plugins can query to be sure they are linked against an adequate
 /// version of the library.
-DLLPUBLIC int openimageio_version ();
+OIIO_API int openimageio_version ();
 
 /// Special geterror() called after ImageInput::create or
 /// ImageOutput::create, since if create fails, there's no object on
 /// which call obj->geterror().  This function returns the last error
 /// for this particular thread; separate threads will not clobber each
 /// other's global error messages.
-DLLPUBLIC std::string geterror ();
+OIIO_API std::string geterror ();
 
 /// Set a global attribute controlling OpenImageIO.  Return true
 /// if the name and type were recognized and the attribute was set.
@@ -1024,7 +1128,16 @@ DLLPUBLIC std::string geterror ();
 ///     string plugin_searchpath
 ///             Colon-separated list of directories to search for 
 ///             dynamically-loaded format plugins.
-DLLPUBLIC bool attribute (const std::string &name, TypeDesc type,
+///     string format_list     (for 'getattribute' only, cannot set)
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found.
+///     string extension_list   (for 'getattribute' only, cannot set)
+///             For each format, the format name followed by a colon,
+///             followed by comma-separated list of all extensions that
+///             are presumed to be used for that format.  Semicolons
+///             separate the lists for formats.  For example,
+///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+OIIO_API bool attribute (const std::string &name, TypeDesc type,
                           const void *val);
 // Shortcuts for common types
 inline bool attribute (const std::string &name, int val) {
@@ -1046,7 +1159,7 @@ inline bool attribute (const std::string &name, const std::string &val) {
 /// otherwise return false and do not modify the contents of *val.  It
 /// is up to the caller to ensure that val points to the right kind and
 /// size of storage for the given type.
-DLLPUBLIC bool getattribute (const std::string &name, TypeDesc type,
+OIIO_API bool getattribute (const std::string &name, TypeDesc type,
                              void *val);
 // Shortcuts for common types
 inline bool getattribute (const std::string &name, int &val) {
@@ -1062,14 +1175,14 @@ inline bool getattribute (const std::string &name, std::string &val) {
     const char *s = NULL;
     bool ok = getattribute (name, TypeDesc::TypeString, &s);
     if (ok)
-        val = s;
+        val = s ? s : "";
     return ok;
 }
 
 
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
-DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
+OIIO_API int quantize (float value, int quant_black, int quant_white,
                         int quant_min, int quant_max);
 
 /// Helper function: convert contiguous arbitrary data between two
@@ -1077,9 +1190,15 @@ DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
 /// Return true if ok, false if it didn't know how to do the
 /// conversion.  If dst_type is UNKNWON, it will be assumed to be the
 /// same as src_type.
-DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *to, int n,
-                              int alpha_channel = -1, int z_channel = -1);
+OIIO_API bool convert_types (TypeDesc src_type, const void *src,
+                              TypeDesc dst_type, void *dst, int n);
+
+/// DEPRECATED -- for some reason we had a convert_types that took
+/// alpha_channel and z_channel parameters, but never did anything
+/// with them.
+OIIO_API bool convert_types (TypeDesc src_type, const void *src,
+                             TypeDesc dst_type, void *dst, int n,
+                             int alpha_channel, int z_channel = -1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -1090,7 +1209,7 @@ DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
 /// stride values, and they will be auto-computed assuming contiguous
 /// data.  Return true if ok, false if it didn't know how to do the
 /// conversion.
-DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
+OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                               const void *src, TypeDesc src_type,
                               stride_t src_xstride, stride_t src_ystride,
                               stride_t src_zstride,
@@ -1108,7 +1227,7 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
 /// AutoStride for any of the stride values, and they will be
 /// auto-computed assuming contiguous data.  Return true if ok, false if
 /// it didn't know how to do the conversion.
-DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
+OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                            const void *src, stride_t pixelsize,
                            stride_t src_xstride, stride_t src_ystride,
                            stride_t src_zstride,
@@ -1119,11 +1238,11 @@ DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-DLLPUBLIC bool decode_exif (const void *exif, int length, ImageSpec &spec);
+OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec);
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif 
 /// data as a big blob to the char vector.
-DLLPUBLIC void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
+OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
@@ -1133,7 +1252,7 @@ DLLPUBLIC void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 /// metadata without having to duplicate functionality within each
 /// plugin.  Note that IIM is actually considered obsolete and is
 /// replaced by an XML scheme called XMP.
-DLLPUBLIC bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
+OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
 /// IIM data block in iptc.  This is a utility function to make it easy
@@ -1141,14 +1260,14 @@ DLLPUBLIC bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 /// without having to duplicate functionality within each plugin.  Note
 /// that IIM is actually considered obsolete and is replaced by an XML
 /// scheme called XMP.
-DLLPUBLIC void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
+OIIO_API void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
 
 /// Add metadata to spec based on XMP data in an XML block.  Return true
 /// if all is ok, false if the xml was somehow malformed.  This is a
 /// utility function to make it easy for multiple format plugins to
 /// support embedding XMP metadata without having to duplicate
 /// functionality within each plugin.
-DLLPUBLIC bool decode_xmp (const std::string &xml, ImageSpec &spec);
+OIIO_API bool decode_xmp (const std::string &xml, ImageSpec &spec);
 
 /// Find all the relavant metadata (IPTC, Exif, etc.) in spec and
 /// assemble it into an XMP XML string.  This is a utility function to
@@ -1156,10 +1275,10 @@ DLLPUBLIC bool decode_xmp (const std::string &xml, ImageSpec &spec);
 /// metadata without having to duplicate functionality within each
 /// plugin.  If 'minimal' is true, then don't encode things that would
 /// be part of ordinary TIFF or exif tags.
-DLLPUBLIC std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
+OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 // to force correct linkage on some systems
-DLLPUBLIC void _ImageIO_force_link ();
+OIIO_API void _ImageIO_force_link ();
 
 }
 OIIO_NAMESPACE_EXIT

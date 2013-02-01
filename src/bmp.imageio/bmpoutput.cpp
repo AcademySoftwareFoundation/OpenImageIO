@@ -39,10 +39,10 @@ using namespace bmp_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *bmp_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *bmp_output_imageio_create () {
         return new BmpOutput;
     }
-    DLLEXPORT const char *bmp_output_extensions[] = {
+    OIIO_EXPORT const char *bmp_output_extensions[] = {
         "bmp", NULL
     };
 
@@ -111,8 +111,8 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
     for (int i = 0, iend = buf.size() - 2; i < iend; i += m_spec.nchannels)
         std::swap (buf[i], buf[i+2]);
 
-    fwrite (&buf[0], 1, buf.size (), m_fd);
-    return true;
+    size_t byte_count = fwrite (&buf[0], 1, buf.size (), m_fd);
+    return byte_count == buf.size (); // true if wrote all bytes (no error)
 }
 
 

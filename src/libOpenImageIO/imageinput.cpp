@@ -41,6 +41,9 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
+#include <boost/scoped_array.hpp>
+
+
 OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;
@@ -166,13 +169,14 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
 
 bool
 ImageInput::read_scanlines (int ybegin, int yend, int z,
-                            int firstchan, int nchans,
+                            int chbegin, int chend,
                             TypeDesc format, void *data,
                             stride_t xstride, stride_t ystride)
 {
-    nchans = std::min (nchans, m_spec.nchannels-firstchan);
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
+    int nchans = chend - chbegin;
     yend = std::min (yend, spec().y+spec().height);
-    size_t native_pixel_bytes = m_spec.pixel_bytes (firstchan, nchans, true);
+    size_t native_pixel_bytes = m_spec.pixel_bytes (chbegin, chend, true);
     imagesize_t native_scanline_bytes = clamped_mult64 ((imagesize_t)m_spec.width,
                                                         (imagesize_t)native_pixel_bytes);
     bool native = (format == TypeDesc::UNKNOWN);
@@ -189,24 +193,23 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
     bool rightformat = (format == TypeDesc::UNKNOWN) ||
         (format == m_spec.format && m_spec.channelformats.empty());
     if (rightformat && contiguous) {
-        if (firstchan == 0 && nchans == m_spec.nchannels)
+        if (chbegin == 0 && chend == m_spec.nchannels)
             return read_native_scanlines (ybegin, yend, z, data);
         else
-            return read_native_scanlines (ybegin, yend, z,
-                                          firstchan, nchans, data);
+            return read_native_scanlines (ybegin, yend, z, chbegin, chend, data);
     }
 
     // No such luck.  Read scanlines in chunks.
 
     const imagesize_t limit = 16*1024*1024;   // Allocate 16 MB, or 1 scanline
     int chunk = std::max (1, int(limit / native_scanline_bytes));
-    std::vector<unsigned char> buf (chunk * native_scanline_bytes);
+    boost::scoped_array<char> buf (new char [chunk * native_scanline_bytes]);
 
     bool ok = true;
     int scanline_values = m_spec.width * nchans;
     for (;  ok && ybegin < yend;  ybegin += chunk) {
         int y1 = std::min (ybegin+chunk, yend);
-        ok &= read_native_scanlines (ybegin, y1, z, firstchan, nchans, &buf[0]);
+        ok &= read_native_scanlines (ybegin, y1, z, chbegin, chend, &buf[0]);
         if (! ok)
             break;
 
@@ -225,7 +228,7 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             // Per-channel formats -- have to convert/copy channels individually
             size_t offset = 0;
             for (int c = 0;  ok && c < nchans;  ++c) {
-                TypeDesc chanformat = m_spec.channelformats[c+firstchan];
+                TypeDesc chanformat = m_spec.channelformats[c+chbegin];
                 ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat, 
                                     native_pixel_bytes, AutoStride, AutoStride,
@@ -266,22 +269,22 @@ ImageInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
 
 bool
 ImageInput::read_native_scanlines (int ybegin, int yend, int z,
-                                   int firstchan, int nchans, void *data)
+                                   int chbegin, int chend, void *data)
 {
     // All-channel case just reduces to the simpler read_native_scanlines.
-    if (firstchan == 0 && nchans >= m_spec.nchannels)
+    if (chbegin == 0 && chend >= m_spec.nchannels)
         return read_native_scanlines (ybegin, yend, z, data);
 
     // Base class implementation of read_native_scanlines (with channel
     // subset) just calls read_native_scanlines (all channels), and
     // copies the appropriate subset.
-    size_t prefix_bytes = m_spec.pixel_bytes (0,firstchan,true);
-    size_t subset_bytes = m_spec.pixel_bytes (firstchan,nchans,true);
+    size_t prefix_bytes = m_spec.pixel_bytes (0,chbegin,true);
+    size_t subset_bytes = m_spec.pixel_bytes (chbegin,chend,true);
     size_t subset_ystride = m_spec.width * subset_bytes;
 
     size_t native_pixel_bytes = m_spec.pixel_bytes (true);
     size_t native_ystride = m_spec.width * native_pixel_bytes;
-    std::vector<char> buf (native_ystride);
+    boost::scoped_array<char> buf (new char [native_ystride]);
     yend = std::min (yend, spec().y+spec().height);
     for (int y = ybegin;  y < yend;  ++y) {
         bool ok = read_native_scanline (y, z, &buf[0]);
@@ -333,7 +336,7 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
     // Complex case -- either changing data type or stride
     size_t tile_values = (size_t)m_spec.tile_pixels() * m_spec.nchannels;
 
-    std::vector<char> buf (m_spec.tile_bytes(true));
+    boost::scoped_array<char> buf (new char [m_spec.tile_bytes(true)]);
     bool ok = read_native_tile (x, y, z, &buf[0]);
     if (! ok)
         return false;
@@ -384,17 +387,18 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
 bool 
 ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                         int zbegin, int zend, 
-                        int firstchan, int nchans,
+                        int chbegin, int chend,
                         TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
     if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
-    nchans = std::min (nchans, m_spec.nchannels-firstchan);
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
+    int nchans = chend - chbegin;
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
-    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (firstchan, nchans, true);
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (chbegin, chend, true);
     // perchanfile is true if the file has different per-channel formats
     bool perchanfile = m_spec.channelformats.size();
     // native_data is true if the user asking for data in the native format
@@ -422,12 +426,12 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
         (xend-xbegin) == nxtiles*m_spec.tile_width &&
         (yend-ybegin) == nytiles*m_spec.tile_height &&
         (zend-zbegin) == nztiles*m_spec.tile_depth) {
-        if (firstchan == 0 && nchans == m_spec.nchannels)
+        if (chbegin == 0 && chend == m_spec.nchannels)
             return read_native_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
                                       data);  // Simple case
         else
             return read_native_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                                      firstchan, nchans, data);
+                                      chbegin, chend, data);
     }
 
     // No such luck.  Just punt and read tiles individually.
@@ -439,7 +443,7 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t full_tilewidthbytes = full_pixelsize * m_spec.tile_width;
     stride_t full_tilewhbytes = full_tilewidthbytes * m_spec.tile_height;
     stride_t full_tilebytes = full_tilewhbytes * m_spec.tile_depth;
-    size_t prefix_bytes = m_spec.pixel_bytes (0,firstchan,true);
+    size_t prefix_bytes = m_spec.pixel_bytes (0,chbegin,true);
     std::vector<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
@@ -455,7 +459,7 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                 // then copied.
                 if (xw == m_spec.tile_width && yh == m_spec.tile_height &&
                       zd == m_spec.tile_depth && !perchanfile &&
-                      firstchan == 0 && nchans == m_spec.nchannels) {
+                      chbegin == 0 && chend == m_spec.nchannels) {
                     // Full tile, either native data or not needing
                     // per-tile data format conversion.
                     ok &= read_tile (x, y, z, format, tilestart,
@@ -509,7 +513,7 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t tilezstride = tileystride * m_spec.tile_height;
     stride_t ystride = (xend-xbegin) * pixel_bytes;
     stride_t zstride = (yend-ybegin) * ystride;
-    std::vector<char> pels (m_spec.tile_bytes(true));
+    boost::scoped_array<char> pels (new char [m_spec.tile_bytes(true)]);
     for (int z = zbegin;  z < zend;  z += m_spec.tile_depth) {
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
             for (int x = xbegin;  x < xend;  x += m_spec.tile_width) {
@@ -534,10 +538,13 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 bool
 ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                int zbegin, int zend, 
-                               int firstchan, int nchans, void *data)
+                               int chbegin, int chend, void *data)
 {
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
+    int nchans = chend - chbegin;
+
     // All-channel case just reduces to the simpler read_native_scanlines.
-    if (firstchan == 0 && nchans >= m_spec.nchannels)
+    if (chbegin == 0 && chend >= m_spec.nchannels)
         return read_native_tiles (xbegin, xend, ybegin, yend,
                                   zbegin, zend, data);
 
@@ -553,12 +560,12 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t native_tileystride = native_pixel_bytes * m_spec.tile_width;
     stride_t native_tilezstride = native_tileystride * m_spec.tile_height;
 
-    size_t prefix_bytes = m_spec.pixel_bytes (0,firstchan,true);
-    size_t subset_bytes = m_spec.pixel_bytes (firstchan,nchans,true);
+    size_t prefix_bytes = m_spec.pixel_bytes (0,chbegin,true);
+    size_t subset_bytes = m_spec.pixel_bytes (chbegin,chend,true);
     stride_t subset_ystride = (xend-xbegin) * subset_bytes;
     stride_t subset_zstride = (yend-ybegin) * subset_ystride;
 
-    std::vector<char> pels (m_spec.tile_bytes(true));
+    boost::scoped_array<char> pels (new char [m_spec.tile_bytes(true)]);
     for (int z = zbegin;  z < zend;  z += m_spec.tile_depth) {
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
             for (int x = xbegin;  x < xend;  x += m_spec.tile_width) {
@@ -602,7 +609,7 @@ ImageInput::read_image (TypeDesc format, void *data,
     if (m_spec.tile_width) {
         // Tiled image
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
-            for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
+            for (int y = 0;  y < m_spec.height && ok;  y += m_spec.tile_height) {
                 ok &= read_tiles (m_spec.x, m_spec.x+m_spec.width,
                                   y+m_spec.y, std::min (y+m_spec.y+m_spec.tile_height, m_spec.y+m_spec.height),
                                   z+m_spec.z, std::min (z+m_spec.z+m_spec.tile_depth, m_spec.z+m_spec.depth),
@@ -630,6 +637,53 @@ ImageInput::read_image (TypeDesc format, void *data,
     if (progress_callback)
         progress_callback (progress_callback_data, 1.0f);
     return ok;
+}
+
+
+
+bool
+ImageInput::read_native_deep_scanlines (int ybegin, int yend, int z,
+                                        int chbegin, int chend,
+                                        DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_tiles (int xbegin, int xend,
+                                    int ybegin, int yend,
+                                    int zbegin, int zend,
+                                    int chbegin, int chend,
+                                    DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_image (DeepData &deepdata)
+{
+    if (m_spec.depth > 1) {
+        error ("read_native_deep_image is not supported for volume (3D) images.");
+        return false;
+        // FIXME? - not implementing 3D deep images for now.  The only
+        // format that supports deep images at this time is OpenEXR, and
+        // it doesn't support volumes.
+    }
+    if (m_spec.tile_width) {
+        // Tiled image
+        return read_native_deep_tiles (m_spec.x, m_spec.x+m_spec.width,
+                                       m_spec.y, m_spec.y+m_spec.height,
+                                       m_spec.z, m_spec.z+m_spec.depth,
+                                       0, m_spec.nchannels, deepdata);
+    } else {
+        // Scanline image
+        return read_native_deep_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                                           0, m_spec.nchannels, deepdata);
+    }
 }
 
 

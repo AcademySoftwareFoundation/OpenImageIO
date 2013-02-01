@@ -55,10 +55,16 @@ typedef void* (*create_prototype)();
 extern recursive_mutex imageio_mutex;
 extern int oiio_threads;
 extern ustring plugin_searchpath;
+extern std::string format_list;
+extern std::string extension_list;
 
 
 // For internal use - use error() below for a nicer interface.
 void seterror (const std::string& message);
+
+// Make sure all plugins are inventoried.  Should only be called while
+// imageio_mutex is held.  For internal use only.
+void catalog_all_plugins (std::string searchpath);
 
 /// Use error() privately only.  Protoype is conceptually printf-like, but
 /// also fully typesafe:

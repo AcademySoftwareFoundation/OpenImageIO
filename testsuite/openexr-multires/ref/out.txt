@@ -1,7 +1,7 @@
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr
-../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/Bonita.exr
+../../../../../openexr-images/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
     MIP-map levels: 550x832 275x416 137x208 68x104 34x52 17x26 8x13 4x6 2x3 1x1
-    SHA-1: F43BE3720790586DDF9C978A34D464C292D3CDE2
+    SHA-1: 564202D0616E02C51CBAD01C4FC34A3D5D77861C
     channel list: R, G, B
     tile size: 128 x 128
     oiio:ColorSpace: "Linear"
@@ -11,14 +11,15 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr
     ImageDescription: "Point Bonita, Marin County, California"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     wrapmodes: "clamp,clamp"
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
+Comparing "../../../../../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr
-../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr
+../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: 45728B1CA28D39A3C2BF22DF19863278FE25B1ED
+    SHA-1: 3694F36696BA49FBA37BC7D35E7ACB2DFDDED2EC
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -28,14 +29,15 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr
     ImageDescription: "a mip-map image with color-coded levels"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
+Comparing "../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr
-../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/KernerEnvCube.exr
+../../../../../openexr-images/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
-    SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
+    SHA-1: FE90067A116E33C65D2C663C1A19ABCCE2C621A4
     channel list: R, G, B, A
     full/display size: 256 x 256
     full/display origin: 0, 0
@@ -47,13 +49,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
+Comparing "../../../../../openexr-images/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr
-../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr
+../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
-    SHA-1: 958966C77AADA8F4CB7738BE97CBE1FC9D9793DD
+    SHA-1: 10D3B289F5E6E0497AC5C297373BEEEEA4F7EEA4
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -64,13 +67,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
+Comparing "../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr
-../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/MirrorPattern.exr
+../../../../../openexr-images/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: E98E10A5087ECA2C514D42C92CE9DDBA3FC5BBEC
+    SHA-1: 1E48D1639C572C689EE82ACA93EEE9FC9EFB24EB
     channel list: R, G, B
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -79,14 +83,15 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr
     compression: "zip"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     wrapmodes: "mirror,mirror"
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
+Comparing "../../../../../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr
-../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/OrientationCube.exr
+../../../../../openexr-images/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
     MIP-map levels: 512x3072 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
-    SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
+    SHA-1: 06D36508E3D76F3288D6B50867812CC6E29C3C5A
     channel list: R, G, B, A
     full/display size: 512 x 512
     full/display origin: 0, 0
@@ -98,13 +103,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
+Comparing "../../../../../openexr-images/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr
-../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/OrientationLatLong.exr
+../../../../../openexr-images/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
-    SHA-1: 2D725903DE1F4D99C1AE6F2E1EC40F27526FA11E
+    SHA-1: 91BB1952FB9254759FA0629F40A721C6D461C8FC
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -115,13 +121,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.e
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
+Comparing "../../../../../openexr-images/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr
-../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/PeriodicPattern.exr
+../../../../../openexr-images/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
     MIP-map levels: 517x517 258x258 129x129 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: 133460EA695DA519AF2726FA950441894395D2F6
+    SHA-1: B83B67E1FF9B24991A6582C997AA9F629C094ED2
     channel list: R, G, B
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -130,14 +137,15 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr
     compression: "zip"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
+Comparing "../../../../../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr
-../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/StageEnvCube.exr
+../../../../../openexr-images/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
-    SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
+    SHA-1: 12BC1AA3805E1D718263F3118BD3366013E13B97
     channel list: R, G, B
     full/display size: 256 x 256
     full/display origin: 0, 0
@@ -149,13 +157,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr
     compression: "zip"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
+Comparing "../../../../../openexr-images/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr
-../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr
+../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
     MIP-map levels: 1000x500 500x250 250x125 125x63 63x32 32x16 16x8 8x4 4x2 2x1 1x1
-    SHA-1: 883801CB63BBA97E707EB7739CA572C7660D44EB
+    SHA-1: 573137DBE0076465729FC3DBE2B586A19330515D
     channel list: R, G, B
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -166,13 +175,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr
     compression: "zip"
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
+Comparing "../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr
-../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/WavyLinesCube.exr
+../../../../../openexr-images/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
-    SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
+    SHA-1: 2B90F593D0F4188F341438C097DC447D0B4C4A9B
     channel list: R, G, B
     full/display size: 256 x 256
     full/display origin: 0, 0
@@ -184,13 +194,14 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
+Comparing "../../../../../openexr-images/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr
-../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr
+../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
-    SHA-1: 39B4F888CCF3FF79C6A8D1063B2786496875823F
+    SHA-1: D7CB49482CFB4D2854089E7FF92690F69337DED0
     channel list: R, G, B
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -201,17 +212,19 @@ Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr
     compression: "zip"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
+Comparing "../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
 PASS
-Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr
-../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
+Reading ../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr
+../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
     SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
     compression: "piz"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
-Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
+Comparing "../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS
