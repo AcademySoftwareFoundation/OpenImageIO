@@ -291,6 +291,7 @@ private:
     std::time_t m_mod_time;         ///< Time file was last updated
     ustring m_fingerprint;          ///< Optional cryptographic fingerprint
     ImageCacheFile *m_duplicate;    ///< Is this a duplicate?
+    atomic_int m_printed_error;     ///< has already printed an error
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -650,6 +651,7 @@ public:
     bool unassociatedalpha () const { return m_unassociatedalpha; }
     int failure_retries () const { return m_failure_retries; }
     bool latlong_y_up_default () const { return m_latlong_y_up_default; }
+    bool one_error_per_file () const { return m_one_error_per_file; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
@@ -948,6 +950,7 @@ private:
     bool m_unassociatedalpha;    ///< Keep unassociated alpha files as they are?
     int m_failure_retries;       ///< Times to re-try disk failures
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
+    bool m_one_error_per_file;   ///< Issue just one err msg per broken file?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     ustring m_substitute_image;  ///< Substitute this image for all others

@@ -98,6 +98,8 @@ public:
     ///     string substitute_image : uses the named image in place of all
     ///                               texture and image references.
     ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
+    ///     string latlong_up : default "up" direction for latlong ("y")
+    ///     int one_error_per_file : only issue one error for each broken file
     ///
     virtual bool attribute (const std::string &name, TypeDesc type,
                             const void *val) = 0;

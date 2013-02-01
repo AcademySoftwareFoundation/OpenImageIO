@@ -327,22 +327,28 @@ public:
 
     /// Set an attribute controlling the texture system.  Return true
     /// if the name and type were recognized and the attrib was set.
-    /// Documented attributes:
+    /// Documented attributes specific to the TextureSystem:
+    ///     matrix44 worldtocommon : the world-to-common transformation
+    ///     matrix44 commontoworld : the common-to-world transformation
+    ///     int gray_to_rgb : make 1-channel images fill RGB lookups
+    ///     string latlong_up : default "up" direction for latlong ("y")
+    /// And attributes that are passed along to the underling ImageCache:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for texture files
     ///     string plugin_searchpath : colon-separated search path for plugins
-    ///     matrix44 worldtocommon : the world-to-common transformation
-    ///     matrix44 commontoworld : the common-to-world transformation
     ///     int autotile : if >0, tile size to emulate for non-tiled images
     ///     int autoscanline : autotile using full width tiles
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///     int accept_untiled : if nonzero, accept untiled images
     ///     int accept_unmipped : if nonzero, accept unmipped images
+    ///     int statistics:level : verbosity of statistics auto-printed.
     ///     int failure_retries : how many times to retry a read failure
     ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
-    ///     int gray_to_rgb : make 1-channel images fill RGB lookups
-    ///     string latlong_up : default "up" direction for latlong ("y")
+    ///     string substitute_image : uses the named image in place of all
+    ///                               texture and image references.
+    ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
+    ///     int one_error_per_file : only issue one error for each broken file
     ///
     virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types
