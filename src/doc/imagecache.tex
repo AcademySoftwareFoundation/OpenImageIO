@@ -374,6 +374,15 @@ converting to associated alpha upon reading the pixels.  The default is
 0, meaning that the automatic conversion will take place.
 \apiend
 
+\apiitem{int one_error_per_file}
+When nonzero, only one ``Invalid file'' or ``Could not open file''
+error message will be issued for each broken file.  Any subsequent 
+method call that fails will still return {\cf false}, but it just
+will have an empty error message string.  The default is
+0, meaning that a new error message will be generated for every time
+each broken file is accessed.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,

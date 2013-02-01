@@ -269,6 +269,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_filename = imagecache.resolve_filename (m_filename.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
     // reflected by the fact that m_validspec is false.
+    m_printed_error = 0;
 }
 
 
@@ -307,6 +308,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
     ImageSpec nativespec, tempspec;
     m_broken = false;
+    m_printed_error = false;
     bool ok = true;
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
         ok = m_input->open (m_filename.c_str(), nativespec, configspec);
@@ -922,6 +924,7 @@ ImageCacheFile::invalidate ()
     close ();
     invalidate_spec ();
     m_broken = false;
+    m_printed_error = false;
     m_fingerprint.clear ();
     duplicate (NULL);
 
@@ -1275,6 +1278,7 @@ ImageCacheImpl::init ()
     m_unassociatedalpha = false;
     m_failure_retries = 0;
     m_latlong_y_up_default = true;
+    m_one_error_per_file = false;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -1726,6 +1730,8 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     } else if (name == "substitute_image" && type == TypeDesc::STRING) {
         m_substitute_image = ustring (*(const char **)val);
         do_invalidate = true;
+    } else if (name == "one_error_per_file" && type == TypeDesc::INT) {
+        m_one_error_per_file = *(const int *)val;
     } else {
         // Otherwise, unknown name
         return false;
@@ -1762,6 +1768,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     ATTR_DECODE ("deduplicate", int, m_deduplicate);
     ATTR_DECODE ("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
+    ATTR_DECODE ("one_error_per_file", int, m_one_error_per_file);
 
     // The cases that don't fit in the simple ATTR_DECODE scheme
     if (name == "searchpath" && type == TypeDesc::STRING) {
@@ -2021,7 +2028,9 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
         return true;
     }
     if (!file || file->broken()) {
-        error ("Invalid image file \"%s\"", filename.c_str());
+        int errs = file->m_printed_error++;
+        if (!errs || !one_error_per_file())  // only print the first error
+            error ("Invalid image file \"%s\"", filename.c_str());
         return false;
     }
     if (dataname == s_subimages && datatype == TypeDesc::TypeInt) {
@@ -2126,11 +2135,15 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file) {
-        error ("Image file \"%s\" not found", filename.c_str());
+        int errs = file->m_printed_error++;
+        if (!errs || !one_error_per_file())  // only print the first error
+            error ("Image file \"%s\" not found", filename.c_str());
         return NULL;
     }
     if (file->broken()) {
-        error ("Invalid image file \"%s\"", filename.c_str());
+        int errs = file->m_printed_error++;
+        if (!errs || !one_error_per_file())  // only print the first error
+            error ("Invalid image file \"%s\"", filename.c_str());
         return NULL;
     }
     if (subimage < 0 || subimage >= file->subimages()) {
@@ -2185,11 +2198,15 @@ ImageCacheImpl::get_pixels (ustring filename,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file) {
-        error ("Image file \"%s\" not found", filename.c_str());
+        int errs = file->m_printed_error++;
+        if (!errs || !one_error_per_file())  // only print the first error
+            error ("Image file \"%s\" not found", filename.c_str());
         return false;
     }
     if (file->broken()) {
-        error ("Invalid image file \"%s\"", filename.c_str());
+        int errs = file->m_printed_error++;
+        if (!errs || !one_error_per_file())  // only print the first error
+            error ("Invalid image file \"%s\"", filename.c_str());
         return false;
     }
     if (subimage < 0 || subimage >= file->subimages()) {
