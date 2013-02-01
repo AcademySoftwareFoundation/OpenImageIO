@@ -151,6 +151,14 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
                      const float *bordercolor=NULL);
 
 
+/// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
+/// src described by srcroi.  If srcroi is ROI(), the entirety of src
+/// will be used.  It will copy into channels [chbegin...], as many
+/// cannels as are described by srcroi.
+bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
+                     int zbegin, int chbegin,
+                     const ImageBuf &src, ROI srcroi=ROI());
+
 
 /// Add the pixels of two images A and B, putting the sum in dst.
 /// The 'options' flag controls behaviors, particular of what happens
