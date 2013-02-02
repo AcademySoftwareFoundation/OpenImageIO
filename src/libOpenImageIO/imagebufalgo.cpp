@@ -362,6 +362,20 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
                         bool shuffle_channel_names)
 {
+    // DEPRECATED -- just provide link compatibility
+    return channels (dst, src, nchannels, channelorder, NULL, NULL,
+                     shuffle_channel_names);
+}
+
+
+
+bool
+ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
+                        int nchannels, const int *channelorder,
+                        const float *channelvalues,
+                        const std::string *newchannelnames,
+                        bool shuffle_channel_names)
+{
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
         dst.error ("%d-channel images not supported", nchannels);
@@ -396,19 +410,30 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     ImageSpec newspec = src.spec();
     newspec.nchannels = nchannels;
     newspec.default_channel_names ();
-    if (shuffle_channel_names) {
-        newspec.alpha_channel = -1;
-        newspec.z_channel = -1;
-        for (int c = 0; c < nchannels;  ++c) {
-            int csrc = channelorder[c];
-            if (csrc >= 0 && csrc < src.spec().nchannels) {
-                newspec.channelnames[c] = src.spec().channelnames[csrc];
-                if (csrc == src.spec().alpha_channel)
-                    newspec.alpha_channel = c;
-                if (csrc == src.spec().z_channel)
-                    newspec.z_channel = c;
-            }
-        }
+    newspec.alpha_channel = -1;
+    newspec.z_channel = -1;
+    for (int c = 0; c < nchannels;  ++c) {
+        int csrc = channelorder[c];
+        // If the user gave an explicit name for this channel, use it...
+        if (newchannelnames && newchannelnames[c].size())
+            newspec.channelnames[c] = newchannelnames[c];
+        // otherwise, if shuffle_channel_names, use the channel name of
+        // the src channel we're using (otherwise stick to the default name)
+        else if (shuffle_channel_names &&
+                 csrc >= 0 && csrc < src.spec().nchannels)
+            newspec.channelnames[c] = src.spec().channelnames[csrc];
+        // otherwise, use the name of the source in that slot
+        else if (csrc >= 0 && csrc < src.spec().nchannels)
+            newspec.channelnames[c] = src.spec().channelnames[c];
+        // Use the names (or designation of the src image, if
+        // shuffle_channel_names is true) to deduce the alpha and z channels.
+        if ((shuffle_channel_names && csrc == src.spec().alpha_channel) ||
+              Strutil::iequals (newspec.channelnames[c], "A") ||
+              Strutil::iequals (newspec.channelnames[c], "alpha"))
+            newspec.alpha_channel = c;
+        if ((shuffle_channel_names && csrc == src.spec().z_channel) ||
+              Strutil::iequals (newspec.channelnames[c], "Z"))
+            newspec.z_channel = c;
     }
 
     // Update the image (realloc with the new spec)
@@ -423,6 +448,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     char *pixels = (char *) dst.pixeladdr (dst.xbegin(), dst.ybegin(),
                                            dst.zbegin());
     for (int c = 0;  c < nchannels;  ++c) {
+        // Copy shuffled channels
         if (channelorder[c] >= 0 && channelorder[c] < src.spec().nchannels) {
             int csrc = channelorder[c];
             src.get_pixel_channels (src.xbegin(), src.xend(),
@@ -430,6 +456,13 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                                     src.zbegin(), src.zend(),
                                     csrc, csrc+1, newspec.format, pixels,
                                     dstxstride, dstystride, dstzstride);
+        }
+        // Set channels that are literals
+        if (channelorder[c] < 0 && channelvalues && channelvalues[c]) {
+            ROI roi = get_roi (dst.spec());
+            roi.chbegin = c;
+            roi.chend = c+1;
+            ImageBufAlgo::fill (dst, &channelvalues[c], roi);
         }
         pixels += channelsize;
     }
