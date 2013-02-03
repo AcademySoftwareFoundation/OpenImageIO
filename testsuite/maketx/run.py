@@ -90,6 +90,16 @@ command += info_command ("small.tif", safematch=1);
 command += maketx_command ("small.tif", "small.tx",
                            "--oiio --constant-color-detect", showinfo=True)
 
+# Regression test -- at one point, we had a bug where we were botching
+# the poles of OpenEXR env maps, adding energy.  Check it by creating an
+# all-white image, turning it into an env map, and calculating its
+# statistics (should be 1.0 everywhere).
+command += (oiio_app("oiiotool") + " --pattern constant:color=1,1,1 4x2 3 "
+            + " -d half -o " + oiio_relpath("white.exr") + " >> out.txt;\n")
+command += maketx_command ("white.exr", "whiteenv.exr",
+                           "--envlatl")
+command += (oiio_app("oiiotool") + "--stats whiteenv.exr"
+            + " >> out.txt;\n")
 
 outputs = [ "out.txt" ]
 

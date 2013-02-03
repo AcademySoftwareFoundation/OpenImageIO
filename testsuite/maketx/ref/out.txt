@@ -349,3 +349,37 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     compression: "zip"
     IPTC:Caption: "foo bar SHA-1=FFB354CFB97E56225E1FDA9484B8DE1B04470DAE ConstantColor=[1,0,0]"
     tiff:RowsPerStrip: "32"
+whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
+    MIP 0 of 3 (4 x 2):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 8 8 8 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
+    MIP 1 of 3 (2 x 1):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 2 2 2 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
+    MIP 2 of 3 (1 x 1):
+      Stats Min: 1.000000 1.000000 1.000000 (float)
+      Stats Max: 1.000000 1.000000 1.000000 (float)
+      Stats Avg: 1.000000 1.000000 1.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 1.000000 1.000000 1.000000 (float)
+      Monochrome: Yes
