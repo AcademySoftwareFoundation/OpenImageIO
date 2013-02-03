@@ -144,6 +144,122 @@ ImageBufAlgo::checker (ImageBuf &dst,
 namespace {
 
 template<class T>
+bool paste_ (ImageBuf &dst, int xbegin, int ybegin,
+             int zbegin, int chbegin,
+             const ImageBuf &src, ROI srcroi)
+{
+    const ImageSpec &dstspec (dst.spec());
+    if (dstspec.format.basetype != TypeDesc::FLOAT) {
+        dst.error ("paste: only 'float' destination images are supported");
+        return false;
+    }
+
+    ImageBuf::ConstIterator<T,float> s (src, srcroi.xbegin, srcroi.xend,
+                                        srcroi.ybegin, srcroi.yend,
+                                        srcroi.zbegin, srcroi.zend, true);
+    ImageBuf::Iterator<float,float> d (dst, xbegin, xbegin+srcroi.width(),
+                                       ybegin, ybegin+srcroi.height(),
+                                       zbegin, zbegin+srcroi.depth(), true);
+    int src_nchans = src.nchannels ();
+    int dst_nchans = dst.nchannels ();
+    for ( ;  ! s.done();  ++s, ++d) {
+        if (! d.exists())
+            continue;  // Skip paste-into pixels that don't overlap dst's data
+        if (s.exists()) {
+            for (int c = srcroi.chbegin, c_dst = chbegin;
+                   c < srcroi.chend;  ++c, ++c_dst) {
+                if (c_dst >= 0 && c_dst < dst_nchans)
+                    d[c_dst] = c < src_nchans ? s[c] : 0.0f;
+            }
+        } else {
+            // Copying from outside src's data -- black
+            for (int c = srcroi.chbegin, c_dst = chbegin;
+                   c < srcroi.chend;  ++c, ++c_dst) {
+                if (c_dst >= 0 && c_dst < dst_nchans)
+                    d[c_dst] = 0.0f;
+            }
+        }
+    }
+    return true;
+}
+
+};  // anon namespace
+
+
+
+bool
+ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
+                     int zbegin, int chbegin,
+                     const ImageBuf &src, ROI srcroi)
+{
+    if (! srcroi.defined())
+        srcroi = get_roi(src.spec());
+
+    // If dst is uninitialized, size it like the region
+    if (!dst.initialized()) {
+        std::cerr << "Allocating space\n";
+        ImageSpec dst_spec = src.spec();
+        dst_spec.x = srcroi.xbegin;
+        dst_spec.y = srcroi.ybegin;
+        dst_spec.z = srcroi.zbegin;
+        dst_spec.width = srcroi.width();
+        dst_spec.height = srcroi.height();
+        dst_spec.depth = srcroi.depth();
+        dst_spec.nchannels = srcroi.nchannels();
+        dst_spec.set_format (TypeDesc::FLOAT);
+        dst.alloc (dst_spec);
+    }
+
+    // do the actual copying
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return paste_<float> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::UINT8 :
+        return paste_<unsigned char> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::INT8  :
+        return paste_<char> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::UINT16:
+        return paste_<unsigned short> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::INT16 :
+        return paste_<short> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::UINT  :
+        return paste_<unsigned int> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::INT   :
+        return paste_<int> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::UINT64:
+        return paste_<unsigned long long> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::INT64 :
+        return paste_<long long> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::HALF  :
+        return paste_<half> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    case TypeDesc::DOUBLE:
+        return paste_<double> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+        break;
+    default:
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
+        return false;
+    }
+    
+    ASSERT (0);
+    return false;
+}
+
+
+
+
+namespace {
+
+template<class T>
 bool crop_ (ImageBuf &dst, const ImageBuf &src,
             int xbegin, int xend, int ybegin, int yend,
             const float *bordercolor)

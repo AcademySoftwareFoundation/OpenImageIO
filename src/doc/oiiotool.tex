@@ -194,10 +194,24 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 
 \subsection*{Resize an image}
 
+Resize by a known scale factor:
+
 \begin{code}
     oiiotool original.tif --resize 200% -o big.tif
     oiiotool original.tif --resize 25% -o small.tif
+\end{code}
+
+\noindent Resize to a specific resolution:
+
+\begin{code}
     oiiotool original.tif --resize 1024x768 -o specific.tif
+\end{code}
+
+\noindent Resize to fit into a given resolution, keeping the original
+aspect ratio and padding with black where necessary:
+
+\begin{code}
+    oiiotool original.tif --fit 640x480 -o fit.tif
 \end{code}
 
 
@@ -791,7 +805,7 @@ the full/display window.
 
 \apiitem{--resize {\rm \emph{size}}}
 Replace the current image with a new image that is resized to the 
-given pixel data resolution.  The size is in the form 
+given pixel data resolution.  The \emph{size} is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 
@@ -806,11 +820,28 @@ decreasing resolution. \\
 \noindent Examples: 
 
 \begin{tabular}{p{2in} p{4in}}
-    {\cf --resize 1024x768}  &     new resolution w=100, h=120, offset x=35, y=40 \\
+    {\cf --resize 1024x768}  &     new resolution w=100, h=120 \\
     {\cf --resize 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
     {\cf --resize 300{\verb|%|}}  & increase resolution by 3x
 \end{tabular}
 
+\apiend
+
+\apiitem{--fit {\rm \emph{size}}}
+Replace the current image with a new image that is resized to fit
+into the given pixel data resolution, keeping the original aspect ratio
+and padding with black pixels if the requested image size does not
+have the same aspect ratio.  The \emph{size} is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+\\ or~~~~ \spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xorigin}{\cf [+-]}\emph{yorigin} \\
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf filter=}\emph{name} & Filter name. The default is {\cf
+  blackman-harris} when increasing resolution, {\cf lanczos3} when
+decreasing resolution. \\
+\end{tabular}
 \apiend
 
 \apiitem{--fixnan {\rm \emph{streategy}}}
