@@ -189,8 +189,18 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 \begin{code}
     oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
     oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
+    oiiotool in.exr --attrib "FStop" 22.0 -o out.exr
 \end{code}
 
+
+\subsection*{Scale the values in an image}
+
+Reduce the brightness of the R, G, and B channels by 10%%,
+but leave the A channel at its original value:
+
+\begin{code}
+    oiiotool original.exr --cmul 0.9,0.9,0.9,1.0 -o out.exr
+\end{code}
 
 \subsection*{Resize an image}
 
@@ -614,10 +624,10 @@ on the stack being identical copies.
 Replaces the top image with a new copy whose channels have been 
 reordered as given by the \emph{channellist}.  The {\cf channellist}
 is a comma-separated list of channel names and/or numbers (e.g., 
-\qkw{R,G,B}, \emph{A}, \emph{B,G,R}, \emph{4,5,6,A}).  Channel numbers outside
+\qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
 the valid range of input channels, or unknown names, will be replaced
 by black channels.
-A channel designation beginning with the {\cf =} character and followed
+\NEW A channel designation beginning with the {\cf =} character and followed
 by a number is a \emph{literal value} that will be used to fill that
 channel.  If the \emph{channellist} is shorter than the number of
 channels in the source image, unspecified channels will be omitted.
@@ -740,6 +750,16 @@ Replace the current image with a new image that has each pixel
 consisting of the \emph{absolute value} of he old pixel value.
 \apiend
 
+\apiitem{--cmul {\rm \emph{value}} \\
+--cmul {\rm \emph{value0,value1,value2...}}}
+\NEW
+Multiply all the pixel values in the top image by a constant value.
+If a single constant value is given, all color channels will have their values
+multiplied by the same value.  Alternatively, a series of
+comma-separated constant values (with no spaces!) may be used to specifiy a
+different multiplier for each channel in the image, respectively.
+\apiend
+
 \apiitem{--over}
 \index{composite}
 Replace the \emph{two} top images with a new image that is the
@@ -834,6 +854,7 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{--fit {\rm \emph{size}}}
+\NEW
 Replace the current image with a new image that is resized to fit
 into the given pixel data resolution, keeping the original aspect ratio
 and padding with black pixels if the requested image size does not
