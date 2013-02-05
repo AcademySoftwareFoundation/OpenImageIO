@@ -166,7 +166,7 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
 /// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
 /// src described by srcroi.  If srcroi is ROI(), the entirety of src
 /// will be used.  It will copy into channels [chbegin...], as many
-/// cannels as are described by srcroi.
+/// channels as are described by srcroi.
 bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin,
                      const ImageBuf &src, ROI srcroi=ROI());
@@ -190,6 +190,18 @@ enum OIIO_API AddOptions
     ADD_RETAIN_WINDOWS = 2, ///< Honor the existing windows
     ADD_ALIGN_WINDOWS = 0,  ///< Default: align the windows before adding
 };
+
+
+/// For all pixels of R within region roi (defaulting to all the defined
+/// pixels in R), multiply their value by 'val'.  Use the given number
+/// of threads.
+bool OIIO_API mul (ImageBuf &R, float val, ROI roi=ROI(), int threads=0);
+
+/// For all pixels of R within region roi (defaulting to all the defined
+/// pixels in R), multiply their value by val[0..nchans-1]. Use the
+/// given number of threads.
+bool OIIO_API mul (ImageBuf &R, const float *val, ROI roi=ROI(), int threads=0);
+
 
 
 /// Apply a color transform to the pixel values
