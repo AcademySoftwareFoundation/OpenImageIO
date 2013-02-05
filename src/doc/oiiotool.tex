@@ -267,6 +267,12 @@ image, and add an alpha channel that is 1 everywhere:
     oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,=1 -o spec.exr
 \end{code}
 
+\noindent Add a channel to an RGBA image, setting it to 3.0 everywhere,
+and naming it ``Z'' so it will be recognized as a $z$ channel:
+\begin{code}
+    oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+\end{code}
+
 
 
 \newpage
