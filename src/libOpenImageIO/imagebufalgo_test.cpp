@@ -149,6 +149,49 @@ void test_crop ()
 
 
 
+void test_paste ()
+{
+    // Create the source image, make it a gradient
+    ImageSpec Aspec (4, 4, 3, TypeDesc::FLOAT);
+    ImageBuf A ("A", Aspec);
+    for (ImageBuf::Iterator<float> it (A);  !it.done();  ++it) {
+        it[0] = float(it.x()) / float(Aspec.width-1);
+        it[1] = float(it.y()) / float(Aspec.height-1);
+        it[2] = 0.1f;
+    }
+
+    // Create destination image -- black it out
+    ImageSpec Bspec (8, 8, 3, TypeDesc::FLOAT);
+    ImageBuf B ("B", Bspec);
+    float gray[3] = { .1, .1, .1 };
+    ImageBufAlgo::fill (B, gray);
+
+    // Paste a few pixels from A into B -- include offsets
+    ImageBufAlgo::paste (B, 2, 2, 0, 1 /* chan offset */,
+                         A, ROI(1, 4, 1, 4));
+
+    // Spot check
+    float a[3], b[3];
+    B.getpixel (1, 1, 0, b);
+    OIIO_CHECK_EQUAL (b[0], gray[0]);
+    OIIO_CHECK_EQUAL (b[1], gray[1]);
+    OIIO_CHECK_EQUAL (b[2], gray[2]);
+
+    B.getpixel (2, 2, 0, b);
+    A.getpixel (1, 1, 0, a);
+    OIIO_CHECK_EQUAL (b[0], gray[0]);
+    OIIO_CHECK_EQUAL (b[1], a[0]);
+    OIIO_CHECK_EQUAL (b[2], a[1]);
+
+    B.getpixel (3, 4, 0, b);
+    A.getpixel (2, 3, 0, a);
+    OIIO_CHECK_EQUAL (b[0], gray[0]);
+    OIIO_CHECK_EQUAL (b[1], a[0]);
+    OIIO_CHECK_EQUAL (b[2], a[1]);
+}
+
+
+
 // Tests ImageBufAlgo::add
 void test_add ()
 {
@@ -231,6 +274,7 @@ main (int argc, char **argv)
 {
     test_zero_fill ();
     test_crop ();
+    test_paste ();
     test_add ();
     test_compare ();
     

@@ -19,6 +19,11 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --resize 25% -o resize2.tif >> out.txt ;\n")
 
+# test fit
+command += (oiio_app ("oiiotool") + " " 
+            + parent + "/oiio-images/grid.tif"
+            + " --fit 360x240 -d uint8 -o fit.tif >> out.txt ;\n")
+
 # test histogram generation
 command += (oiio_app ("oiiotool") + " "
             + "ref/histogram_input.png"
@@ -40,7 +45,7 @@ command += (oiio_app ("oiiotool") + " "
 
 
 # Outputs to check against references
-outputs = [ "resize.tif", "resize2.tif",
+outputs = [ "resize.tif", "resize2.tif", "fit.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif",
             "out.txt" ]
