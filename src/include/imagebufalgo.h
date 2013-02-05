@@ -124,12 +124,17 @@ bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
 
 /// Generic channel shuffling -- copy src to dst, but with channels in
 /// the order channelorder[0..nchannels-1].  Does not support in-place
-/// operation.  If channelorder[i] < 0, it will just make dst channel i
-/// be black (0.0) rather than copying from src.
-///
+/// operation.  For any channel in which channelorder[i] < 0, it will
+/// just make dst channel i a constant color -- set to channelvalues[i]
+/// (if channelvalues != NULL) or 0.0 (if channelvalues == NULL).
+//
 /// If channelorder is NULL, it will be interpreted as
-/// {0, 1, ..., nchannels-1}.
+/// {0, 1, ..., nchannels-1} (meaning that it's only renaming channels,
+/// not reordering them.
 ///
+/// If newchannelnames is not NULL, it points to an array of new channel
+/// names.  Channels for which newchannelnames[i] is the empty string (or
+/// all channels, if newchannelnames == NULL) will be named as follows:
 /// If shuffle_channel_names is false, the resulting dst image will have
 /// default channel names in the usual order ("R", "G", etc.), but if
 /// shuffle_channel_names is true, the names will be taken from the
@@ -137,8 +142,15 @@ bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
 /// shuffling both channel ordering and their names could result in no
 /// semantic change at all, if you catch the drift.
 bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
+                        int nchannels, const int *channelorder,
+                        const float *channelvalues=NULL,
+                        const std::string *newchannelnames=NULL,
+                        bool shuffle_channel_names=false);
+
+/// DEPRECATED -- for back-compatibility
+bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                          int nchannels, const int *channelorder,
-                         bool shuffle_channel_names=false);
+                         bool shuffle_channel_names);
 
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data

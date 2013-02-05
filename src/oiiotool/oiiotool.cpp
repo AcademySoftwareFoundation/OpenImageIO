@@ -900,11 +900,18 @@ action_unmip (int argc, const char *argv[])
 // For a given spec (which contains the channel names for an image), and
 // a comma separated list of channels (e.g., "B,G,R,A"), compute the
 // vector of integer indices for those channels (e.g., {2,1,0,3}).
+// A channel may be a literal assignment (e.g., "=0.5"), or a literal
+// assignment with channel naming (e.g., "Z=0.5").
 // Return true for success, false for failure, including if any of the
-// channels were not present in the image.
+// channels were not present in the image.  Upon return, channels
+// will be the indices of the source image channels to copy (-1 for
+// channels that are not filled with source data), values will hold
+// the value to fill un-sourced channels (defaulting to zero), and
+// newchannelnames will be the name of renamed or non-default-named
+// channels (defaulting to "" if no special name is needed).
 static bool
 decode_channel_set (const ImageSpec &spec, std::string chanlist,
-                    std::vector<std::string> &channelnames,
+                    std::vector<std::string> &newchannelnames,
                     std::vector<int> &channels, std::vector<float> &values)
 {
     channels.clear ();
@@ -919,18 +926,26 @@ decode_channel_set (const ImageSpec &spec, std::string chanlist,
             chanlist = chanlist.substr (pos+1, std::string::npos);
 
         // Find the index corresponding to that channel
+        newchannelnames.push_back (std::string());
         float value = 0.0f;
         int ch = -1;
         for (int i = 0;  i < spec.nchannels;  ++i)
-            if (spec.channelnames[i] == onechan) {
-                ch = i;  break;
+            if (spec.channelnames[i] == onechan) { // name of a known channel?
+                ch = i;
+                break;
             }
         if (ch < 0 && onechan.length() &&
                 (isdigit(onechan[0]) || onechan[0] == '-'))
-            ch = atoi (onechan.c_str());
-        if (ch < 0 && onechan.length() && onechan[0] == '=')
-            value = atof (onechan.c_str()+1);
-        channelnames.push_back (onechan);
+            ch = atoi (onechan.c_str());  // numeric channel index
+        if (ch < 0 && onechan.length()) {
+            // Look for Either =val or name=val
+            size_t equal_pos = onechan.find ('=');
+            if (equal_pos != std::string::npos) {
+                value = atof (onechan.c_str()+equal_pos+1);
+                onechan.erase (equal_pos);
+                newchannelnames.back() = onechan;
+            }
+        }
         channels.push_back (ch);
         values.push_back (value);
     }
@@ -960,11 +975,11 @@ action_channels (int argc, const char *argv[])
     std::vector<ImageSpec> allspecs;
     for (int s = 0, subimages = ot.allsubimages ? A->subimages() : 1;
          s < subimages;  ++s) {
-        std::vector<std::string> channelnames;
+        std::vector<std::string> newchannelnames;
         std::vector<int> channels;
         std::vector<float> values;
         bool ok = decode_channel_set (*A->spec(s,0), chanlist,
-                                      channelnames, channels, values);
+                                      newchannelnames, channels, values);
         if (! ok) {
             ot.error (argv[0], Strutil::format("Invalid or unknown channel selection \"%s\"", chanlist));
             ot.push (A);
@@ -974,9 +989,9 @@ action_channels (int argc, const char *argv[])
         allmiplevels.push_back (miplevels);
         for (int m = 0;  m < miplevels;  ++m) {
             ImageSpec spec = *A->spec(s,m);
-            spec.nchannels = (int)channelnames.size();
-            spec.default_channel_names ();
+            spec.nchannels = (int)newchannelnames.size();
             spec.channelformats.clear();
+            spec.default_channel_names ();
             allspecs.push_back (spec);
         }
     }
@@ -989,23 +1004,16 @@ action_channels (int argc, const char *argv[])
     // Subimage by subimage, MIP level by MIP level, copy/shuffle the
     // channels individually from the source image into the result.
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
-        std::vector<std::string> channelnames;
+        std::vector<std::string> newchannelnames;
         std::vector<int> channels;
         std::vector<float> values;
-        decode_channel_set (*A->spec(s,0), chanlist, channelnames,
+        decode_channel_set (*A->spec(s,0), chanlist, newchannelnames,
                             channels, values);
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
             // Shuffle the indexed/named channels
             ImageBufAlgo::channels ((*R)(s,m), (*A)(s,m), (int)channels.size(),
-                                    &channels[0], false);
-            // Set channels that are literals
-            for (int c = 0;  c < (int)channels.size();  ++c)
-                if (channels[c] < 0) {
-                    ROI roi = get_roi (*R->spec(s,m));
-                    roi.chbegin = c;
-                    roi.chend = c+1;
-                    ImageBufAlgo::fill ((*R)(s,m), &values[c], roi);
-                }
+                                    &channels[0], &values[0], &newchannelnames[0],
+                                    false);
             // Tricky subtlety: IBA::channels changed the underlying IB,
             // we may need to update the IRR's copy of the spec.
             R->update_spec_from_imagebuf(s,m);
