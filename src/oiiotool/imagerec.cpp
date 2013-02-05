@@ -83,7 +83,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
             const ImageBuf &srcib (img(srcsub,srcmip));
             const ImageSpec &srcspec (*img.spec(srcsub,srcmip));
             ImageBuf *ib = NULL;
-            if (writable || img.pixels_modified() || !copy_pixels) {
+            if (writable || img.pixels_modified() || copy_pixels) {
                 // Make our own copy of the pixels
                 ib = new ImageBuf (img.name(), srcspec);
                 if (copy_pixels) {
