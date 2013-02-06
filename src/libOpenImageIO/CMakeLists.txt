@@ -277,6 +277,9 @@ if (NOT LINKSTATIC)
     add_definitions (-DPTEX_EXPORTS)
 endif ()
 
+
+if (OIIO_BUILD_TESTS)
+
 add_executable (imagebuf_test imagebuf_test.cpp)
 link_ilmbase (imagebuf_test)
 target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
@@ -286,7 +289,6 @@ add_executable (imagebufalgo_test imagebufalgo_test.cpp)
 link_ilmbase (imagebufalgo_test)
 target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_imagebufalgo imagebufalgo_test)
-
 
 add_executable (atomic_test atomic_test.cpp)
 target_link_libraries (atomic_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
@@ -335,3 +337,5 @@ target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL
 add_executable (timer_test timer_test.cpp)
 target_link_libraries (timer_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (timer_test timer_test)
+
+endif (OIIO_BUILD_TESTS)

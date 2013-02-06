@@ -127,6 +127,14 @@ ifneq (${LINKSTATIC},)
 MY_CMAKE_FLAGS += -DLINKSTATIC:BOOL=${LINKSTATIC}
 endif
 
+ifneq (${OIIO_BUILD_TOOLS},)
+MY_CMAKE_FLAGS += -DOIIO_BUILD_TOOLS:BOOL=${OIIO_BUILD_TOOLS}
+endif
+
+ifneq (${OIIO_BUILD_TESTS},)
+MY_CMAKE_FLAGS += -DOIIO_BUILD_TESTS:BOOL=${OIIO_BUILD_TESTS}
+endif
+
 ifneq (${SOVERSION},)
 MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
 endif
@@ -283,5 +291,7 @@ help:
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
+	@echo "  make OIIO_BUILD_TOOLS=0 ... Skip building the command-line tools"
+	@echo "  make OIIO_BUILD_TESTS=0 ... Skip building the unit tests"
 	@echo ""
 
