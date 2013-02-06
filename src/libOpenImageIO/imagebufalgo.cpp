@@ -607,6 +607,69 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 }
 
 
+
+namespace {
+
+template<class Rtype>
+static bool
+mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
+{
+    if (nthreads == 1 || roi.npixels() < 1000) {
+        // For-sure single thread case
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                r[c] = r[c] * val[c];
+    } else {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (boost::bind(mul_impl<Rtype>,
+                                                  boost::ref(R), val, _1, 1),
+                                      roi, nthreads);
+    }
+    return true;
+}
+
+
+} // anon namespace
+
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &R, const float *val, ROI roi, int nthreads)
+{
+    roi.chend = std::min (roi.chend, R.nchannels()); // clamp
+    switch (R.spec().format.basetype) {
+    case TypeDesc::FLOAT : return mul_impl<float> (R, val, roi, nthreads); break;
+    case TypeDesc::UINT8 : return mul_impl<unsigned char> (R, val, roi, nthreads); break;
+    case TypeDesc::HALF  : return mul_impl<half> (R, val, roi, nthreads); break;
+    case TypeDesc::UINT16: return mul_impl<unsigned short> (R, val, roi, nthreads); break;
+    case TypeDesc::INT8  : return mul_impl<char> (R, val, roi, nthreads); break;
+    case TypeDesc::INT16 : return mul_impl<short> (R, val, roi, nthreads); break;
+    case TypeDesc::UINT  : return mul_impl<unsigned int> (R, val, roi, nthreads); break;
+    case TypeDesc::INT   : return mul_impl<int> (R, val, roi, nthreads); break;
+    case TypeDesc::UINT64: return mul_impl<unsigned long long> (R, val, roi, nthreads); break;
+    case TypeDesc::INT64 : return mul_impl<long long> (R, val, roi, nthreads); break;
+    case TypeDesc::DOUBLE: return mul_impl<double> (R, val, roi, nthreads); break;
+    default:
+        R.error ("mul: Unsupported pixel data format '%s'", R.spec().format);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
+{
+    int nc = R.nchannels();
+    float *vals = ALLOCA (float, nc);
+    for (int c = 0;  c < nc;  ++c)
+        vals[c] = val;
+    return mul (R, vals, roi, nthreads);
+}
+
+
+
 bool
 ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
 {
