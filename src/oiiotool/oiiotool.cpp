@@ -1869,12 +1869,9 @@ action_text (int argc, const char *argv[])
     // Read and copy the top-of-stack image
     ImageRecRef A (ot.pop());
     ot.read (A);
-    ot.push (new ImageRec (*A, 0, 0, true, false));
+    ot.push (new ImageRec (*A, 0, 0, true, true /*copy_pixels*/));
     ImageBuf &Rib ((*ot.curimg)(0,0));
     const ImageSpec &Rspec = Rib.spec();
-    bool ok = ImageBufAlgo::zero (Rib);
-    if (! ok)
-        ot.error (argv[0], Rib.geterror());
 
     // Set up defaults for text placement, size, font, color
     int x = Rspec.x + Rspec.width/2;
@@ -1917,8 +1914,8 @@ action_text (int argc, const char *argv[])
         }
     }
 
-    ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
-                                    fontsize, font, textcolor);
+    bool ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
+                                         fontsize, font, textcolor);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
