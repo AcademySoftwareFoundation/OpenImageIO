@@ -62,7 +62,6 @@
 #endif
 
 
-
 OIIO_NAMESPACE_ENTER
 {
 
@@ -70,7 +69,7 @@ namespace
 {
 
 template<typename T>
-static inline void
+static inline bool
 fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
 {
     int chbegin = roi.chbegin;
@@ -78,6 +77,7 @@ fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
         for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
             p[c] = values[i];
+    return true;
 }
 
 }
@@ -86,23 +86,7 @@ bool
 ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
 {
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
-    switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT : fill_<float> (dst, pixel, roi); break;
-    case TypeDesc::UINT8 : fill_<unsigned char> (dst, pixel, roi); break;
-    case TypeDesc::UINT16: fill_<unsigned short> (dst, pixel, roi); break;
-    case TypeDesc::HALF  : fill_<half> (dst, pixel, roi); break;
-    case TypeDesc::INT8  : fill_<char> (dst, pixel, roi); break;
-    case TypeDesc::INT16 : fill_<short> (dst, pixel, roi); break;
-    case TypeDesc::UINT  : fill_<unsigned int> (dst, pixel, roi); break;
-    case TypeDesc::INT   : fill_<int> (dst, pixel, roi); break;
-    case TypeDesc::UINT64: fill_<unsigned long long> (dst, pixel, roi); break;
-    case TypeDesc::INT64 : fill_<long long> (dst, pixel, roi); break;
-    case TypeDesc::DOUBLE: fill_<double> (dst, pixel, roi); break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
-        return false;
-    }
-    
+    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format, dst, pixel, roi);
     return true;
 }
 
@@ -211,46 +195,8 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
     }
 
     // do the actual copying
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return paste_<float> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::UINT8 :
-        return paste_<unsigned char> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::INT8  :
-        return paste_<char> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::UINT16:
-        return paste_<unsigned short> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::INT16 :
-        return paste_<short> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::UINT  :
-        return paste_<unsigned int> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::INT   :
-        return paste_<int> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::UINT64:
-        return paste_<unsigned long long> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::INT64 :
-        return paste_<long long> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::HALF  :
-        return paste_<half> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    case TypeDesc::DOUBLE:
-        return paste_<double> (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
-        break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-    
-    ASSERT (0);
+    OIIO_DISPATCH_TYPES ("paste", paste_, src.spec().format,
+                         dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
     return false;
 }
 
@@ -310,47 +256,8 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     if (!dst.pixels_valid())
         dst.alloc (dst_spec);
 
-    // do the actual copying
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return crop_<float> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT8 :
-        return crop_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT8  :
-        return crop_<char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT16:
-        return crop_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT16 :
-        return crop_<short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT  :
-        return crop_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT   :
-        return crop_<int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT64:
-        return crop_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT64 :
-        return crop_<long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::HALF  :
-        return crop_<half> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::DOUBLE:
-        return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-    
-    ASSERT (0);
+    OIIO_DISPATCH_TYPES ("crop", crop_, src.spec().format,
+                         dst, src, xbegin, xend, ybegin, yend, bordercolor);
     return false;
 }
 
@@ -632,27 +539,12 @@ mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 } // anon namespace
 
 
-
 bool
 ImageBufAlgo::mul (ImageBuf &R, const float *val, ROI roi, int nthreads)
 {
     roi.chend = std::min (roi.chend, R.nchannels()); // clamp
-    switch (R.spec().format.basetype) {
-    case TypeDesc::FLOAT : return mul_impl<float> (R, val, roi, nthreads); break;
-    case TypeDesc::UINT8 : return mul_impl<unsigned char> (R, val, roi, nthreads); break;
-    case TypeDesc::HALF  : return mul_impl<half> (R, val, roi, nthreads); break;
-    case TypeDesc::UINT16: return mul_impl<unsigned short> (R, val, roi, nthreads); break;
-    case TypeDesc::INT8  : return mul_impl<char> (R, val, roi, nthreads); break;
-    case TypeDesc::INT16 : return mul_impl<short> (R, val, roi, nthreads); break;
-    case TypeDesc::UINT  : return mul_impl<unsigned int> (R, val, roi, nthreads); break;
-    case TypeDesc::INT   : return mul_impl<int> (R, val, roi, nthreads); break;
-    case TypeDesc::UINT64: return mul_impl<unsigned long long> (R, val, roi, nthreads); break;
-    case TypeDesc::INT64 : return mul_impl<long long> (R, val, roi, nthreads); break;
-    case TypeDesc::DOUBLE: return mul_impl<double> (R, val, roi, nthreads); break;
-    default:
-        R.error ("mul: Unsupported pixel data format '%s'", R.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("mul", mul_impl, R.spec().format,
+                         R, val, roi, nthreads);
     return true;
 }
 
@@ -956,22 +848,8 @@ isConstantColor_ (const ImageBuf &src, float *color)
 bool
 ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantColor_<float> (src, color); break;
-    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (src, color); break;
-    case TypeDesc::INT8  : return isConstantColor_<char> (src, color); break;
-    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (src, color); break;
-    case TypeDesc::INT16 : return isConstantColor_<short> (src, color); break;
-    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (src, color); break;
-    case TypeDesc::INT   : return isConstantColor_<int> (src, color); break;
-    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (src, color); break;
-    case TypeDesc::INT64 : return isConstantColor_<long long> (src, color); break;
-    case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
-    case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isConstantColor", isConstantColor_,
+                         src.spec().format, src, color);
 };
 
 
@@ -994,22 +872,8 @@ isConstantChannel_ (const ImageBuf &src, int channel, float val)
 bool
 ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantChannel_<float> (src, channel, val); break;
-    case TypeDesc::UINT8 : return isConstantChannel_<unsigned char> (src, channel, val); break;
-    case TypeDesc::INT8  : return isConstantChannel_<char> (src, channel, val); break;
-    case TypeDesc::UINT16: return isConstantChannel_<unsigned short> (src, channel, val); break;
-    case TypeDesc::INT16 : return isConstantChannel_<short> (src, channel, val); break;
-    case TypeDesc::UINT  : return isConstantChannel_<unsigned int> (src, channel, val); break;
-    case TypeDesc::INT   : return isConstantChannel_<int> (src, channel, val); break;
-    case TypeDesc::UINT64: return isConstantChannel_<unsigned long long> (src, channel, val); break;
-    case TypeDesc::INT64 : return isConstantChannel_<long long> (src, channel, val); break;
-    case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
-    case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isConstantChannel", isConstantChannel_,
+                         src.spec().format, src, channel, val);
 };
 
 namespace
@@ -1017,7 +881,7 @@ namespace
 
 template<typename T>
 static inline bool
-isMonochrome_ (const ImageBuf &src)
+isMonochrome_ (const ImageBuf &src, int dummy)
 {
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
@@ -1041,22 +905,8 @@ isMonochrome_ (const ImageBuf &src)
 bool
 ImageBufAlgo::isMonochrome(const ImageBuf &src)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isMonochrome_<float> (src); break;
-    case TypeDesc::UINT8 : return isMonochrome_<unsigned char> (src); break;
-    case TypeDesc::INT8  : return isMonochrome_<char> (src); break;
-    case TypeDesc::UINT16: return isMonochrome_<unsigned short> (src); break;
-    case TypeDesc::INT16 : return isMonochrome_<short> (src); break;
-    case TypeDesc::UINT  : return isMonochrome_<unsigned int> (src); break;
-    case TypeDesc::INT   : return isMonochrome_<int> (src); break;
-    case TypeDesc::UINT64: return isMonochrome_<unsigned long long> (src); break;
-    case TypeDesc::INT64 : return isMonochrome_<long long> (src); break;
-    case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
-    case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isMonochrome", isMonochrome_, src.spec().format,
+                         src, 0);
 };
 
 std::string
@@ -1280,35 +1130,8 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
                       Filter2D *filter)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return resize_<float> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT8 :
-        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT8  :
-        return resize_<char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT16:
-        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT16 :
-        return resize_<short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT  :
-        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT   :
-        return resize_<int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT64:
-        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT64 :
-        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::HALF  :
-        return resize_<half> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::DOUBLE:
-        return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-
-    ASSERT (0);
+    OIIO_DISPATCH_TYPES ("resize", resize_, src.spec().format,
+                         dst, src, xbegin, xend, ybegin, yend, filter);
     return false;
 }
 
