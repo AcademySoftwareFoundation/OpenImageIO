@@ -624,8 +624,6 @@ fix_latl_edges (ImageBuf &buf)
                 left[c] += right[c];
         }
         for (int c = 0;  c < n;  ++c)
-            left[c] += right[c];
-        for (int c = 0;  c < n;  ++c)
             left[c] *= wscale;
         for (int x = buf.xbegin();  x < buf.xend();  ++x)
             buf.setpixel (x, y, left);
