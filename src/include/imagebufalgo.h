@@ -628,39 +628,33 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 
 
 
-// Ugly way around the problem of __VA_ARGS__ holding the only argument
-#define OIIO_FIRST_ARG(...) OIIO_FIRST_ARG_HELPER(__VA_ARGS__, throwaway)
-#define OIIO_FIRST_ARG_HELPER(first, ...) first
-
-// Macro to call a type-specialzed version func<type>(...)
-#define OIIO_DISPATCH_TYPES(name,func,type,...)                         \
+// Macro to call a type-specialzed version func<type>(R,...)
+#define OIIO_DISPATCH_TYPES(name,func,type,R,...)                       \
     switch (type.basetype) {                                            \
     case TypeDesc::FLOAT :                                              \
-        return func<float> (__VA_ARGS__); break;                        \
+        return func<float> (R, __VA_ARGS__); break;                     \
     case TypeDesc::UINT8 :                                              \
-        return func<unsigned char> (__VA_ARGS__); break;                \
+        return func<unsigned char> (R, __VA_ARGS__); break;             \
     case TypeDesc::HALF  :                                              \
-        return func<half> (__VA_ARGS__); break;                         \
+        return func<half> (R, __VA_ARGS__); break;                      \
     case TypeDesc::UINT16:                                              \
-        return func<unsigned short> (__VA_ARGS__); break;               \
+        return func<unsigned short> (R, __VA_ARGS__); break;            \
     case TypeDesc::INT8  :                                              \
-        return func<char> (__VA_ARGS__); break;                         \
+        return func<char> (R, __VA_ARGS__); break;                      \
     case TypeDesc::INT16 :                                              \
-        return func<short> (__VA_ARGS__); break;                        \
+        return func<short> (R, __VA_ARGS__); break;                     \
     case TypeDesc::UINT  :                                              \
-        return func<unsigned int> (__VA_ARGS__); break;                 \
+        return func<unsigned int> (R, __VA_ARGS__); break;              \
     case TypeDesc::INT   :                                              \
-        return func<int> (__VA_ARGS__); break;                          \
+        return func<int> (R, __VA_ARGS__); break;                       \
     case TypeDesc::UINT64:                                              \
-        return func<unsigned long long> (__VA_ARGS__); break;           \
+        return func<unsigned long long> (R, __VA_ARGS__); break;        \
     case TypeDesc::INT64 :                                              \
-        return func<long long> (__VA_ARGS__); break;                    \
+        return func<long long> (R, __VA_ARGS__); break;                 \
     case TypeDesc::DOUBLE:                                              \
-        return func<double> (__VA_ARGS__); break;                       \
+        return func<double> (R, __VA_ARGS__); break;                    \
     default:                                                            \
-        /* The first argument in __VA_ARGS__ must be an ImageBuf& */    \
-        (OIIO_FIRST_ARG(__VA_ARGS__)).error (                           \
-               "%s: Unsupported pixel data format '%s'", name, type);   \
+        R.error ("%s: Unsupported pixel data format '%s'", name, type); \
         return false;                                                   \
     }
 
