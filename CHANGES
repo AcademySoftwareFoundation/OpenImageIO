@@ -1,6 +1,32 @@
 Changes:
 
 
+Release 1.1.6 (11 Feb 2013)
+---------------------------
+* Fix bug that could generate NaNs or other bad values near the poles of
+  very blurry environment lookups specifically from OpenEXR latlong env maps.
+* Fix bug in oiiotool --crop where it could mis-parse the geometric parameter.
+* Fix bug in ImageCache::invalidate() where it did not properly delete the
+  fingerprint of an invalidated file.
+* Cleanup and fixes in the oiiotool command line help messages.
+* New function ImageBufAlgo::paste() copies a region from one IB to another.
+* oiiotool --fit resizes an image to fit into a given resolution (keeping the
+  original aspect ratio and padding with black if needed).
+* ImageBufAlgo::channels() and "oiiotool --ch" have been extended to allow
+  new channels (specified to be filled with numeric constants) to also be
+  named.
+* New function ImageBufAlgo::mul() and "oiiotool --cmul" let you multiply
+  an image by a scalar constant (or per-channel constant).
+* Important maketx bug fix: when creating latlong environment maps as 
+  OpenEXR files, it was adding energy near the poles, making low-res
+  MIP levels too bright near the poles.
+* Fix to "oiiotool --text" and "oiiotool --fill" -- both were
+  incorrectly making the base image black rather than drawing overtop of
+  the previous image.
+* Fix FreeBSD compile when not using TBB.
+* New oiiotool --swap exchanges the top two items on the image stack.
+
+
 Release 1.1.5 (29 Jan 2013)
 ---------------------------
 * Bug fix in ImageBufAlgo::parallel_image utility template -- care when
@@ -10,6 +36,7 @@ Release 1.1.5 (29 Jan 2013)
 * Additional optional argument to IBA::zover that, when nonzero, will
   treat z=0 pixels as infinitely far away, not super close.  You can turn
   this on from oiiotool with:  oiiotool --zover:zeroisinf=1 ...
+
 
 Release 1.1.4 (27 Jan 2013)
 ---------------------------
