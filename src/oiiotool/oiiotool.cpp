@@ -1367,8 +1367,6 @@ action_swap (int argc, const char *argv[])
     ASSERT (argc == 1);
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
-    ot.read (A);
-    ot.read (B);
     ot.push (B);
     ot.push (A);
     return 0;
