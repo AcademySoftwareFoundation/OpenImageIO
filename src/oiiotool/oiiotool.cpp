@@ -1357,6 +1357,17 @@ action_dup (int argc, const char *argv[])
 }
 
 
+static int
+action_swap (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.push (B);
+    ot.push (A);
+    return 0;
+}
+
 
 static int
 action_create (int argc, const char *argv[])
@@ -2107,6 +2118,8 @@ getargs (int argc, char *argv[])
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,
                     "Duplicate the current image (push a copy onto the stack)",
+                "--swap %@", action_swap, NULL,
+                    "Swap the top two images on the stack.",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",
