@@ -654,7 +654,7 @@ parallel_image (Func f, ROI roi, int nthreads=0)
     case TypeDesc::DOUBLE:                                              \
         return func<double> (R, __VA_ARGS__); break;                    \
     default:                                                            \
-        R.error ("%s: Unsupported pixel data format '%s'", name, type); \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
         return false;                                                   \
     }
 
