@@ -20,6 +20,8 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Constant: Yes
     Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
     Monochrome: No
+Comparing "filled.tif" and "ref/filled.tif"
+PASS
 Comparing "resize.tif" and "ref/resize.tif"
 PASS
 Comparing "resize2.tif" and "ref/resize2.tif"

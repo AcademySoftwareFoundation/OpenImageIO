@@ -1386,7 +1386,7 @@ action_create (int argc, const char *argv[])
         std::cout << "Invalid number of channels: " << nchans << "\n";
         nchans = 3;
     }
-    ImageSpec spec (64, 64, nchans);
+    ImageSpec spec (64, 64, nchans, TypeDesc::FLOAT);
     adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[1]);
     spec.full_x = spec.x;
     spec.full_y = spec.y;
@@ -1831,12 +1831,9 @@ action_fill (int argc, const char *argv[])
     // Read and copy the top-of-stack image
     ImageRecRef A (ot.pop());
     ot.read (A);
-    ot.push (new ImageRec (*A, 0, 0, true, false));
+    ot.push (new ImageRec (*A, 0, 0, true, true /*copy_pixels*/));
     ImageBuf &Rib ((*ot.curimg)(0,0));
     const ImageSpec &Rspec = Rib.spec();
-    bool ok = ImageBufAlgo::zero (Rib);
-    if (! ok)
-        ot.error (argv[0], Rib.geterror());
 
     int w = Rib.spec().width, h = Rib.spec().height;
     int x = Rib.spec().x, y = Rib.spec().y;
@@ -1866,7 +1863,7 @@ action_fill (int argc, const char *argv[])
         }
     }
 
-    ok = ImageBufAlgo::fill (Rib, color, ROI(x, x+w, y, y+h));
+    bool ok = ImageBufAlgo::fill (Rib, color, ROI(x, x+w, y, y+h));
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
@@ -2112,7 +2109,7 @@ getargs (int argc, char *argv[])
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
-                "--fill %@ %s", action_fill, NULL, "Fill a region (options: x=, y=, size=, color=)",
+                "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Image stack manipulation:",
