@@ -2,7 +2,7 @@
 
 # test --create
 command += (oiio_app("oiiotool") 
-            + " --create 320x240 3 -o black.tif >> out.txt ;\n")
+            + " --create 320x240 3 -d uint8 -o black.tif >> out.txt ;\n")
 command += oiio_app("oiiotool") + " --stats black.tif >> out.txt ;\n"
 
 # test --pattern constant
@@ -10,6 +10,11 @@ command += (oiio_app("oiiotool")
             + " --pattern constant:color=.1,.2,.3,1 320x240 4"
             + " -o constant.tif >> out.txt ;\n")
 command += oiio_app("oiiotool") + " --stats constant.tif >> out.txt ;\n"
+
+# test --fill
+command += (oiio_app("oiiotool")
+            + " --create 256x256 3 --fill:color=1,.5,.5 256x256"
+            + " --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif >> out.txt ;\n")
 
 # test resize
 command += (oiio_app ("oiiotool") + " " 
@@ -55,7 +60,7 @@ command += (oiio_app ("oiiotool") + " "
 
 
 # Outputs to check against references
-outputs = [ "resize.tif", "resize2.tif", "fit.tif",
+outputs = [ "filled.tif", "resize.tif", "resize2.tif", "fit.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "out.txt" ]
