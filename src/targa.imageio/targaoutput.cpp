@@ -165,6 +165,7 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
+    m_spec.set_format (TypeDesc::UINT8);  // TARGA only supports 8 bits
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
@@ -506,9 +507,6 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
     }
-    ASSERT (m_spec.format == TypeDesc::UINT8 &&
-            "Targa only supports 8 bit channels");
-    //std::cerr << "[tga] writing scanline #" << y << "\n";
 
     unsigned char *bdata = (unsigned char *)data;
 

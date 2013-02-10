@@ -62,6 +62,8 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec = spec;
+    if (m_spec.format == TypeDesc::UNKNOWN)  // if unknown, default to float
+        m_spec.set_format (TypeDesc::FLOAT);
 
     // checking if the file exists and can be opened in WRITE mode
     m_fd = Filesystem::fopen (m_filename, mode == AppendSubimage ? "r+b" : "wb");
@@ -249,8 +251,10 @@ FitsOutput::create_basic_header (std::string &header)
             m_bitpix = -32;
             break;
         case TypeDesc::DOUBLE:
-        default:
             m_bitpix = -64;
+            break;
+        default:
+            m_bitpix = -32;  // punt: default to 32 bit float
             break;
     }
     header += create_card ("BITPIX", num2str (m_bitpix));

@@ -154,6 +154,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
 
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
+    if (m_spec.format == TypeDesc::UNKNOWN)  // if unknown, default to 8 bits
+        m_spec.set_format (TypeDesc::UINT8);
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {

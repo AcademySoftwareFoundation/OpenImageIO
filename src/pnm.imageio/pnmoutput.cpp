@@ -54,6 +54,7 @@ private:
     std::string m_filename;           ///< Stash the filename
     std::ofstream m_file;
     unsigned int m_max_val, m_pnm_type;
+    std::vector<unsigned char> m_scratch;
 };
 
 
@@ -164,7 +165,7 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
 
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
-
+    m_spec.set_format (TypeDesc::UINT8);  // Force 8 bit output
     int bits_per_sample = m_spec.get_int_attribute ("oiio:BitsPerSample", 8);
 
     if (bits_per_sample == 1)
@@ -213,6 +214,13 @@ PNMOutput::write_scanline (int y, int z, TypeDesc format,
         return false;
     if (z)
         return false;
+
+    m_spec.auto_stride (xstride, format, spec().nchannels);
+    const void *origdata = data;
+    data = to_native_scanline (format, data, xstride, m_scratch);
+    if (data != origdata) // a conversion happened...
+        xstride = spec().nchannels;
+
     switch (m_pnm_type){
         case 1:
             write_ascii_binary (m_file, (unsigned char *) data, xstride, m_spec);
