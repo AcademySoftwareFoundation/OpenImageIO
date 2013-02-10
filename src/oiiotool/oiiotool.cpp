@@ -1361,6 +1361,10 @@ static int
 action_swap (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
+    if (ot.image_stack.size() < 1) {
+        ot.error (argv[0], "requires at least two loaded images");
+        return 0;
+    }
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
     ot.push (B);
