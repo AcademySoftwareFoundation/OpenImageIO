@@ -46,6 +46,7 @@
 #include "imagebufalgo.h"
 #include "hash.h"
 #include "oiiotool.h"
+#include "fmath.h"
 
 OIIO_NAMESPACE_USING;
 using namespace OiioTool;
@@ -113,7 +114,12 @@ read_input (const std::string &filename, ImageBuf &img,
 static void
 print_stats_num (float val, int maxval, bool round)
 {
-    if (maxval == 0) {
+    // Ensure uniform printing of NaN and Inf on all platforms
+    if (isnan(val))
+        printf ("nan");
+    else if (isinf(val))
+        printf ("inf");
+    else if (maxval == 0) {
         printf("%f",val);
     } else {
         float fval = val * static_cast<float>(maxval);
