@@ -24,6 +24,10 @@ Fixes, minor enhancements, and performance improvements:
 
 Build/test system improvements:
 * Many fixes to improve builds and eliminate warnings on Windows and MinGW.
+* Fix missing InterlockedExchangeAdd64 for Windows XP.
+* New make/cmake boags: OIIO_BUILD_TOOLS=0 will exclude building of the
+  command line tools (just build libraries), OIIO_BUILD_TESTS=0 will
+  exclude building of unit test binaries.
 
 Developer goodies:
 * Unit tests for Timer class.
@@ -31,6 +35,32 @@ Developer goodies:
   and writing files and iterating image pixels (to help us know what to
   optimize).
 
+
+
+Release 1.1.6 (11 Feb 2013)
+---------------------------
+* Fix bug that could generate NaNs or other bad values near the poles of
+  very blurry environment lookups specifically from OpenEXR latlong env maps.
+* Fix bug in oiiotool --crop where it could mis-parse the geometric parameter.
+* Fix bug in ImageCache::invalidate() where it did not properly delete the
+  fingerprint of an invalidated file.
+* Cleanup and fixes in the oiiotool command line help messages.
+* New function ImageBufAlgo::paste() copies a region from one IB to another.
+* oiiotool --fit resizes an image to fit into a given resolution (keeping the
+  original aspect ratio and padding with black if needed).
+* ImageBufAlgo::channels() and "oiiotool --ch" have been extended to allow
+  new channels (specified to be filled with numeric constants) to also be
+  named.
+* New function ImageBufAlgo::mul() and "oiiotool --cmul" let you multiply
+  an image by a scalar constant (or per-channel constant).
+* Important maketx bug fix: when creating latlong environment maps as 
+  OpenEXR files, it was adding energy near the poles, making low-res
+  MIP levels too bright near the poles.
+* Fix to "oiiotool --text" and "oiiotool --fill" -- both were
+  incorrectly making the base image black rather than drawing overtop of
+  the previous image.
+* Fix FreeBSD compile when not using TBB.
+* New oiiotool --swap exchanges the top two items on the image stack.
 
 
 Release 1.1.5 (29 Jan 2013)
