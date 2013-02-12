@@ -44,6 +44,9 @@ parent = "../../../../../"
 
 command = ""
 outputs = [ "out.txt" ]    # default
+failureok = 0
+failthresh = 0.004
+failpercent = 0.02
 
 #print ("srcdir = " + srcdir)
 #print ("tmpdir = " + tmpdir)
@@ -115,9 +118,12 @@ def info_command (file, extraargs="", safematch=0) :
 # 1 LSB (8 bit) error, it's very hard to make different platforms and
 # compilers always match to every last floating point bit.
 def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
-    command = (oiio_app("idiff") + "-a "
-               + "-failpercent 0.01 -hardfail 0.004 -warn 0.004 "
-               + extraargs + " " + oiio_relpath(fileA,tmpdir) 
+    command = (oiio_app("idiff") + "-a"
+               + " -fail 0"
+               + " -failpercent " + str(failpercent)
+               + " -hardfail " + str(failthresh)
+               + " -warn " + str(2*failthresh)
+               + " " + extraargs + " " + oiio_relpath(fileA,tmpdir) 
                + " " + oiio_relpath(fileB,tmpdir))
     if not silent :
         command += " >> out.txt"
