@@ -237,7 +237,7 @@ namespace {  // anonymous
 
 static EightBitConverter<float> uchar2float;
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 namespace pvt {   // namespace pvt
 
@@ -509,7 +509,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

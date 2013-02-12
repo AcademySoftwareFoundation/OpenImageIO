@@ -66,7 +66,7 @@ namespace psd_pvt {
         std::streampos pos;
     };
 
-};  // namespace psd_pvt
+}  // namespace psd_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
 

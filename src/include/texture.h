@@ -65,7 +65,7 @@ enum EnvLayout {
     LayoutLatLong, LayoutCubeThreeByTwo, LayoutCubeOneBySix, EnvLayoutLast
 };
 
-}; // pvt namespace
+} // pvt namespace
 
 
 

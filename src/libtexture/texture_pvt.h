@@ -547,7 +547,7 @@ TextureSystemImpl::st_to_texel (float s, float t, TextureFile &texturefile,
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

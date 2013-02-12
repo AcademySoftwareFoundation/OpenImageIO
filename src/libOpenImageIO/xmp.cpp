@@ -239,7 +239,7 @@ extract_middle (const std::string &str, size_t pos,
 }
 
 
-};   // anonymous namespace
+}   // anonymous namespace
 
 
 

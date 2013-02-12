@@ -282,7 +282,7 @@ std::wstring OIIO_API utf8_to_utf16(const std::string& utf8str);
 std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 #endif
 
-};  // namespace Strutil
+}  // namespace Strutil
 
 }
 OIIO_NAMESPACE_EXIT

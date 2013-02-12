@@ -65,7 +65,7 @@ static EightBitConverter<float> uchar2float;
 static ustring s_field3d ("field3d");
 
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 namespace pvt {   // namespace pvt
 
@@ -574,7 +574,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

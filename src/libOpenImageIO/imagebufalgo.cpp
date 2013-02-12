@@ -167,7 +167,7 @@ bool paste_ (ImageBuf &dst, int xbegin, int ybegin,
     return true;
 }
 
-};  // anon namespace
+}  // anon namespace
 
 
 
@@ -237,7 +237,7 @@ bool crop_ (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
-};  // anon namespace
+}  // anon namespace
 
 
 

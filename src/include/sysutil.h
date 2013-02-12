@@ -134,7 +134,7 @@ OIIO_API int terminal_columns ();
 OIIO_API bool put_in_background (int argc, char* argv[]);
 
 
-};  // namespace Sysutils
+}  // namespace Sysutils
 
 }
 OIIO_NAMESPACE_EXIT

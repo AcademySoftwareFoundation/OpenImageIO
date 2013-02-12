@@ -109,7 +109,7 @@ static IIMtag iimtag [] = {
 // N.B. All "Date" fields are 8 digit strings: CCYYMMDD
 // All "Time" fields are 11 digit strings (what format?)
 
-};   // anonymous namespace
+}   // anonymous namespace
 
 
 
