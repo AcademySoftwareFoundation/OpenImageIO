@@ -569,27 +569,20 @@ TextureSystemImpl::missing_texture (TextureOpt &options, float *result)
 
 
 void
-TextureSystemImpl::fill_channels (const ImageSpec &spec, TextureOpt &options,
-                                  float *result)
+TextureSystemImpl::fill_gray_channels (const ImageSpec &spec,
+                                       TextureOpt &options, float *result)
 {
-    // Starting channel to deal with is the first beyond what we actually
-    // got from the texture lookup.
-    int c = options.actualchannels;
-
-    bool save_alpha = false;
+    if (! m_gray_to_rgb || options.firstchannel != 0)
+        return;   // never mind
 
     // Multi-channel texture reads from single channel files will
     // propagate their grayscale value to G and B (no alpha)
-    bool propagate = (spec.nchannels == 1 &&
-                      m_gray_to_rgb &&
-                      options.firstchannel == 0 && options.nchannels >= 3);
+    bool propagate = (spec.nchannels == 1 && options.nchannels >= 3);
 
     // When reading monochrome images with alpha into a 4
     // channel result, move the alpha to the last position (CCCA)
     if (spec.nchannels == 2 && spec.alpha_channel == 1 &&
-        m_gray_to_rgb &&
-        options.firstchannel == 0 && options.nchannels == 4) {
-        // Save alpha
+        options.nchannels == 4) {
         result[3] = result[1];
         if (options.dresultds)
             options.dresultds[3] = options.dresultds[1];
@@ -599,8 +592,6 @@ TextureSystemImpl::fill_channels (const ImageSpec &spec, TextureOpt &options,
             options.dresultdr[3] = options.dresultdr[1];
         // And we will propagate monochrome to G and B
         propagate = true;
-        // And save the alpha
-        save_alpha = true;
     }
 
     // Propagate to G and B if needed
@@ -619,15 +610,6 @@ TextureSystemImpl::fill_channels (const ImageSpec &spec, TextureOpt &options,
             options.dresultdr[1] = options.dresultdr[0];
             options.dresultdr[2] = options.dresultdr[0];
         }
-        c = 3 + save_alpha;
-    }
-
-    // Fill in the remaining files with the fill color
-    for ( ; c < options.nchannels; ++c) {
-        result[c] = options.fill;
-        if (options.dresultds) options.dresultds[c] = 0;
-        if (options.dresultdt) options.dresultdt[c] = 0;
-        if (options.dresultdr) options.dresultdr[c] = 0;
     }
 }
 
@@ -696,7 +678,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                s, t, dsdx, dtdx, dsdy, dtdy, result);
     if (actualchannels < options.nchannels)
-        fill_channels (spec, options, result);
+        fill_gray_channels (spec, options, result);
     return ok;
 }
 
@@ -733,13 +715,16 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-    }
+    if (dresultds)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+    if (dresultdt)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
     // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
@@ -825,11 +810,12 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     // Initialize results to 0.  We'll add from here on as we sample.
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-    }
+    if (dresultds)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+    if (dresultdt)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
     // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
@@ -968,13 +954,16 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-    }
+    if (dresultds)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+    if (dresultdt)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
     // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
@@ -1142,11 +1131,10 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
 
     if (sumw > 0) {
-       float invw = 1 / sumw;
-       for (int c = 0;  c < options.actualchannels;  ++c) {
-          result[c] *= invw;
-          if (dresultds) dresultds[c] *= invw;
-          if (dresultdt) dresultdt[c] *= invw;
+       for (int c = 0;  c < options.nchannels;  ++c) {
+           result[c] /= sumw;
+           if (dresultds) dresultds[c] /= sumw;
+           if (dresultdt) dresultdt[c] /= sumw;
        }
     }
 
@@ -1297,6 +1285,14 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         const float *texel = tile->data() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
+    }
+
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
     }
     return true;
 }
@@ -1477,6 +1473,16 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         }
     }
 
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = bilerp (1.0f*svalid[0]*tvalid[0], 1.0f*svalid[1]*tvalid[0],
+                          1.0f*svalid[0]*tvalid[1], 1.0f*svalid[1]*tvalid[1],
+                          sfrac, tfrac);
+        f *= weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
+    }
     return true;
 }
 
@@ -1777,6 +1783,21 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
 
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float col[4];
+        for (int j = 0;  j < 4; ++j) {
+            float lx = Imath::lerp (1.0f*tvalid[j]*svalid[0], 1.0f*tvalid[j]*svalid[1], h0x);
+            float rx = Imath::lerp (1.0f*tvalid[j]*svalid[2], 1.0f*tvalid[j]*svalid[3], h1x);
+            col[j]   = Imath::lerp (lx, rx, g1x);
+        }
+        float ly = Imath::lerp (col[0], col[1], h0y);
+        float ry = Imath::lerp (col[2], col[3], h1y);
+        float f = weight * Imath::lerp (ly, ry, g1y) * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
+    }
     return true;
 }
 
