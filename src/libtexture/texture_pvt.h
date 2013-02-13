@@ -413,9 +413,8 @@ private:
     /// results.
     bool missing_texture (TextureOpt &options, float *result);
 
-    /// Correctly fill in channels that were requested but not present
-    /// in the file.
-    void fill_channels (const ImageSpec &spec, TextureOpt &options, float *result);
+    /// Handle gray-to-RGB promotion.
+    void fill_gray_channels (const ImageSpec &spec, TextureOpt &options, float *result);
 
     typedef bool (*wrap_impl) (int &coord, int origin, int width);
     static bool wrap_black (int &coord, int origin, int width);
