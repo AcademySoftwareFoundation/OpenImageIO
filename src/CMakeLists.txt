@@ -327,7 +327,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
-                texture-skinny texture-fat
+                texture-skinny texture-fat texture-wrapfill
                )
 
 

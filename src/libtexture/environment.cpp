@@ -326,13 +326,16 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     options.actualchannels = actualchannels;
 
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-    }
+    if (dresultds)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+    if (dresultdt)
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
     // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
@@ -499,7 +502,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     ++stats.aniso_queries;
 
     if (actualchannels < options.nchannels)
-        fill_channels (spec, options, result);
+        fill_gray_channels (spec, options, result);
 
     return ok;
 }
