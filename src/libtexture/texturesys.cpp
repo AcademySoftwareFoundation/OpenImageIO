@@ -808,6 +808,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
     if (dresultds)
