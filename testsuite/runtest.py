@@ -1,6 +1,7 @@
 #!/usr/bin/python 
 
 import os
+import glob
 import sys
 import platform
 import subprocess
@@ -53,7 +54,7 @@ failpercent = 0.02
 #print ("path = " + path)
 #print ("refdir = " + refdir)
 
-
+###########################################################################
 
 # Handy functions...
 
@@ -191,7 +192,6 @@ def runtest (command, outputs, failureok=0) :
     os.chdir (srcdir)
     open ("out.txt", "w").close()    # truncate out.txt
 
-    assert options is not None
     if options.path != "" :
         sys.path = [options.path] + sys.path
     print "command = " + command
@@ -216,30 +216,37 @@ def runtest (command, outputs, failureok=0) :
     err = 0
     for out in outputs :
         extension = os.path.splitext(out)[1]
-        if extension == ".tif" or extension == ".exr" :
-            # images -- use idiff
-            cmpcommand = diff_command (out, refdir + out, concat=False)
-            # print "cmpcommand = " + cmpcommand
-            cmpresult = os.system (cmpcommand)
-        elif extension == ".txt" :
-            cmpresult = text_diff (out, refdir + out, out + ".diff")
-        else :
-            # anything else
-            cmpresult = 0 if filecmp.cmp (out, refdir + out) else 1
-        
-        if cmpresult == 0 :
-            print "\tmatch " + out
-        else :
-            print "\tNO MATCH " + out
-            err = 1
+        ok = 0
+        # We will first compare out to ref/out, and if that fails, we
+        # will compare it to everything else with the same extension in
+        # the ref directory.  That allows us to have multiple matching
+        # variants for different platforms, etc.
+        for testfile in (["ref/"+out] + glob.glob (os.path.join ("ref", "*"+extension))) :
+            # print ("comparing " + out + " to " + testfile)
+            if extension == ".tif" or extension == ".exr" :
+                # images -- use idiff
+                cmpcommand = diff_command (out, testfile, concat=False)
+                # print "cmpcommand = " + cmpcommand
+                cmpresult = os.system (cmpcommand)
+            elif extension == ".txt" :
+                cmpresult = text_diff (out, testfile, out + ".diff")
+            else :
+                # anything else
+                cmpresult = 0 if filecmp.cmp (out, testfile) else 1
+            if cmpresult == 0 :
+                print ("PASS: " + out + " matches " + testfile)
+                ok = 1
+                break      # we're done
 
-    if err == 0 :
-        print "PASS"
-    else :
-        print "FAIL"
+        if ok == 0:
+            err = 1
+            print "NO MATCH for " + out
+            print "FAIL " + out
+
     return (err)
 
 
+##########################################################################
 
 
 
