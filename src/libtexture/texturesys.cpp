@@ -71,7 +71,7 @@ static shared_ptr<TextureSystemImpl> shared_texsys;
 static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 
 TextureSystem *
@@ -2029,7 +2029,7 @@ TextureSystemImpl::unit_test_texture ()
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

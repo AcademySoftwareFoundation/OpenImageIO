@@ -64,7 +64,7 @@ static const ustring wrap_type_name[] = {
     ustring()
 };
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 
 

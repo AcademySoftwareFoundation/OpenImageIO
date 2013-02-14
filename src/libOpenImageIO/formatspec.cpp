@@ -879,7 +879,7 @@ static ExplanationTableEntry explanation[] = {
     { NULL, NULL, NULL }
 }; 
 
-}; // end anon namespace
+} // end anon namespace
 
 
 

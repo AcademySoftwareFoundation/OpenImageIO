@@ -58,7 +58,7 @@ struct ZfileHeader {
 static const int zfile_magic = 0x2f0867ab;
 static const int zfile_magic_endian = 0xab67082f;  // other endianness
 
-};  // end anon namespace
+}  // end anon namespace
 
 
 

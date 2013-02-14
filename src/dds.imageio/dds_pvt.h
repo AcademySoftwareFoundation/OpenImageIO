@@ -131,7 +131,7 @@ typedef struct {
 } dds_header;
 
 
-};  // namespace DDS_pvt
+}  // namespace DDS_pvt
 
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -94,7 +94,7 @@ ChannelPacket::channels () const
 }
 
 
-}; // namespace softimage_pvt
+} // namespace softimage_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
 

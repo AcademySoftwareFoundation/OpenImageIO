@@ -253,7 +253,7 @@ print_stats (const std::string &filename,
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
         for (size_t p = 0;  p < npixels;  ++p) {
-            int c = dd->nsamples[p];
+            size_t c = size_t(dd->nsamples[p]);
             totalsamples += c;
             if (c > maxsamples)
                 maxsamples = c;

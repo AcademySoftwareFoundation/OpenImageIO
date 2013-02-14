@@ -142,7 +142,7 @@ void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
 }
 
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 
 namespace pvt {   // namespace pvt
@@ -2603,7 +2603,7 @@ ImageCacheImpl::append_error (const std::string& message) const
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 
 

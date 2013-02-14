@@ -660,7 +660,7 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 
 
 
-};  // end namespace ImageBufAlgo
+}  // end namespace ImageBufAlgo
 
 
 }
