@@ -17,7 +17,7 @@ ifeq (${platform}, macosx)
 endif
 
 ## Spinux (current)
-ifeq ($(SP_ARCH), spinux1_x86_64)
+ifeq ($(SP_OS), spinux1)
     platform=spinux1
     SPCOMP2_COMPILER=gcc44m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
@@ -66,7 +66,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	  -DHDF5_LIBRARY_DIRS=/usr/lib64
-endif  # endif spinux1_x86_64
+endif  # endif spinux1
 
 
 
