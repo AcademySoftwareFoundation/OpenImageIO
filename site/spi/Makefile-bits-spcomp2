@@ -26,13 +26,12 @@ SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
 
 OCIO_VERSION ?= 2
-OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v${OCIO_VERSION}
+OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${COMPILER}/v${OCIO_VERSION}
 SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib
 SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
 
 ## Spinux (current)
 ifeq ($(SP_OS), spinux1)
-    platform=spinux1
     COMPILER=gcc44m64
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
