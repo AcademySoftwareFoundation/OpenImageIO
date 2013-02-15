@@ -233,10 +233,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
     default:
-        error ("TIFF doesn't support %s images (\"%s\")",
-               m_spec.format.c_str(), name.c_str());
-        close();
-        return false;
+        // Everything else, including UNKNOWN -- default to 8 bit
+        bps = 8;
+        sampformat = SAMPLEFORMAT_UINT;
+        m_spec.set_format (TypeDesc::UINT8);
+        break;
     }
     TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, bps);
     TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);

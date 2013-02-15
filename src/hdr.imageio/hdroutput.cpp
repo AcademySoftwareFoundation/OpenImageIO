@@ -83,6 +83,8 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec,
 
     // Save spec for later use
     m_spec = newspec;
+    // HDR always behaves like floating point
+    m_spec.set_format (TypeDesc::FLOAT);
 
     // Check for things HDR can't support
     if (m_spec.nchannels != 3) {

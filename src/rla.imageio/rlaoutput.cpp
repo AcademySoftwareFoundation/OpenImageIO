@@ -175,6 +175,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
 
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
+    if (m_spec.format == TypeDesc::UNKNOWN)
+        m_spec.format = TypeDesc::UINT8;  // Default to uint8 if unknown
 
     m_file = Filesystem::fopen (name, "wb");
     if (! m_file) {

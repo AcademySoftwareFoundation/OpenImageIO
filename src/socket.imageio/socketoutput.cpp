@@ -68,6 +68,8 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
 
     m_next_scanline = 0;
     m_spec = newspec;
+    if (m_spec.format == TypeDesc::UNKNOWN)
+        m_spec.set_format (TypeDesc::UINT8);  // Default to 8 bit channels
 
     return true;
 }
