@@ -59,8 +59,7 @@ else
 # Not sure how to obtain the correct GCC version but this returns the
 # version of GCC in the path.
 #GCC_VERSION=`gcc --version | grep 'gcc' | awk '{print $3}' | sed 's/\.//g'`
-echo "Unknown SP_OS."
-exit 1
+$(error Unknown SP_OS)
 fi
 endif  # endif spinux1_x86_64
 
