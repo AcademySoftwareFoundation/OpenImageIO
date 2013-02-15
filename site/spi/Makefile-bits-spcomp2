@@ -4,7 +4,9 @@ $(info Including spi/Makefile-bits-spcomp2)
 # READ THIS FIRST
 #
 # If you are building for installation as an SpComp2, make like this:
-# 1) Your must be setshot, for patchelf to be found.
+# 1) On Linux, you must be setshot, for patchelf to be found; on
+#    Mac OS X, no need to be setshot, just make sure SP_OS=lion and
+#    COMPILER=clang.
 # 2) make spcomp2_install_local
 # or 2) make spcomp2_install
 #
@@ -44,7 +46,43 @@ ifeq ($(SP_OS), spinux1)
      -DOPENEXR_CUSTOM=1 \
      -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
     MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
-endif  # endif spinux1
+else ifeq ($(SP_OS), lion)
+    COMPILER=clang
+    PYVER=2.7
+    PYVERNOSPACE=27
+    MACPORTS_PREFIX=/opt/local-10.7-2012-08
+
+    # CMAKE_CXX_COMPILER:
+    #   otherwise g++ is used and SPI standardized on clang.
+    # CMAKE_INSTALL_NAME_DIR:
+    #   without libraries and applications linking against this
+    #   library will not be able to find it at run time; prepends
+    #   "@rpath/" to the internal ID
+    # OPENJPEG_HOME:
+    #   Setting THIRD_PARTY_TOOLS_HOME isn't sufficient
+    # OVERRIDE_SHARED_LIBRARY_SUFFIX:
+    #   Set to .so so that shared libraries end in .so to be consistent
+    #   with Linux SpComp2 shared libraries
+    # PYTHON_EXECUTABLE:
+    # PYTHON_INCLUDE_DIR:
+    # PYTHON_LIBRARY:
+    #   Use MacPorts' Python
+    # THIRD_PARTY_TOOLS_HOME:
+    #   Find everything in SPI's MacPorts.
+    # ZLIB_ROOT:
+    #   Needed to use SPI's MacPorts' zlib.
+    MY_CMAKE_FLAGS += \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+      -DCMAKE_INSTALL_NAME_DIR=@rpath \
+      -DOCIO_PATH="${OCIO_PATH}" \
+      -DOPENJPEG_HOME=${MACPORTS_PREFIX} \
+      -DOVERRIDE_SHARED_LIBRARY_SUFFIX=.so \
+      -DPYTHON_EXECUTABLE=${MACPORTS_PREFIX}/bin/python${PYVER} \
+      -DPYTHON_INCLUDE_DIR=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Headers \
+      -DPYTHON_LIBRARY=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
+      -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
+      -DZLIB_ROOT=${MACPORTS_PREFIX}
+endif  # endif $(SP_OS)
 
 
 all: dist
@@ -73,11 +111,12 @@ spcomp2: dist
 
 spcomp2_debug: debug
 
-# This goal can't start with 'install' because something elsewhere picks
-# it up and starts doing bad things
-spcomp2_install: spcomp2 spcomp2_debug 
+spcomp2_install_fixup_lion: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
 	
+spcomp2_install_fixup_spinux1: spcomp2 spcomp2_debug
+	echo $(INSTALL_SPCOMP2_LOCATION)
+
 	patchelf \
 	--set-rpath $(SPCOMP2_RPATH_OPT) \
 	${dist_dir}/lib/libOpenImageIO.so
@@ -86,6 +125,9 @@ spcomp2_install: spcomp2 spcomp2_debug
 	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/lib/libOpenImageIO.so
 	
+# This goal can't start with 'install' because something elsewhere picks
+# it up and starts doing bad things
+spcomp2_install: spcomp2_install_fixup_$(SP_OS)
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
 	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
