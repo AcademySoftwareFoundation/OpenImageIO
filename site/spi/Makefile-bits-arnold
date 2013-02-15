@@ -17,7 +17,7 @@ ifeq (${platform}, macosx)
 endif
 
 ## Spinux (current)
-ifeq ($(SP_ARCH), spinux1_x86_64)
+ifeq ($(SP_OS), spinux1)
     platform=spinux1
     COMPILER=gcc44m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
@@ -34,7 +34,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
     ifeq (${OCIO_PATH},)
         MY_CMAKE_FLAGS += -DOCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v2"
     endif
-endif  # endif spinux1_x86_64
+endif  # endif spinux1
 
 
 ## CentOS (deprecated)

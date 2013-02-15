@@ -31,7 +31,7 @@ SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib
 SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
 
 ## Spinux (current)
-ifeq ($(SP_ARCH), spinux1_x86_64)
+ifeq ($(SP_OS), spinux1)
     platform=spinux1
     COMPILER=gcc44m64
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
@@ -45,7 +45,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
      -DOPENEXR_CUSTOM=1 \
      -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
     MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
-endif  # endif spinux1_x86_64
+endif  # endif spinux1
 
 
 all: dist
