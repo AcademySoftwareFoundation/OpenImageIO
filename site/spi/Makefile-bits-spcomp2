@@ -56,8 +56,8 @@ comma:= ,
 empty:=
 space:= $(empty) $(empty)
 
-INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(ARCHITECTURE)
-INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
+INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(SP_OS)
+INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SP_OS)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
 spcomp2_install_local: INSTALL_SPCOMP2_LOCATION = $(SPCOMP2_LOCAL_PATH)
 spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
@@ -67,7 +67,7 @@ local: dist
 
 spcomp2: MY_CMAKE_FLAGS += \
 		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
-		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
+		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SP_OS)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
 		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
 
 spcomp2: dist
@@ -90,7 +90,7 @@ spcomp2_install: spcomp2 spcomp2_debug
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
 	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
-	--arch=$(ARCHITECTURE)-$(COMPILER) \
+	--arch=$(SP_OS)-$(COMPILER) \
 	--headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
 	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" --namespace=${NAMESPACE} --spcomp_depend= --spcomp2_depend= \
 	--builddir_o=${dist_dir}/lib --builddir_d=${dist_dir}.debug/lib
