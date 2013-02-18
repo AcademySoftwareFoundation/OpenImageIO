@@ -1129,9 +1129,11 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     std::ostringstream addlHashData;
     addlHashData << filter->name() << " ";
     addlHashData << filter->width() << " ";
-    
-    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
-        addlHashData.str());
+
+    const int sha1_blocksize = 256;
+    std::string hash_digest =
+        ImageBufAlgo::computePixelHashSHA1 (*toplevel, addlHashData.str(),
+                                            ROI::All(), sha1_blocksize);
     if (hash_digest.length()) {
         if (desc.length())
             desc += " ";

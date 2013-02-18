@@ -289,14 +289,19 @@ bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val);
 /// (current subimage, and current mipmap level)
 bool OIIO_API isMonochrome(const ImageBuf &src);
 
-/// Compute the sha1 byte hash for all the pixels in the image.
-/// (current subimage, and current mipmap level)
-std::string OIIO_API computePixelHashSHA1(const ImageBuf &src);
-
-/// Compute the sha1 byte hash for all the pixels in the image.
-/// (current subimage, and current mipmap level)
-std::string OIIO_API computePixelHashSHA1(const ImageBuf &src,
-                                           const std::string & extrainfo);
+/// Compute the SHA-1 byte hash for all the pixels in the specifed
+/// region of the image.  If blocksize > 0, the function will compute
+/// separate SHA-1 hashes of each 'blocksize' batch of scanlines, then
+/// return a hash of the individual hashes.  This is just as strong a
+/// hash, but will NOT match a single hash of the entire image
+/// (blocksize==0).  But by breaking up the hash into independent
+/// blocks, we can parallelize across multiple threads, given by
+/// nthreads (if nthreads is 0, it will use the global OIIO thread
+/// count).
+std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
+                                           const std::string &extrainfo = "",
+                                           ROI roi = ROI::All(),
+                                           int blocksize = 0, int nthreads=0);
 
 
 

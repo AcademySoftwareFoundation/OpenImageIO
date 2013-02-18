@@ -916,12 +916,17 @@ ImageBufAlgo::isMonochrome(const ImageBuf &src)
 
 
 
+namespace {
+
 std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
-                                   const std::string & extrainfo)
+simplePixelHashSHA1 (const ImageBuf &src,
+                     const std::string & extrainfo, ROI roi)
 {
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+
     bool localpixels = src.localpixels();
-    imagesize_t scanline_bytes = src.spec().scanline_bytes();
+    imagesize_t scanline_bytes = roi.width() * src.spec().pixel_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
     // Do it a few scanlines at a time
     int chunk = std::max (1, int(16*1024*1024/scanline_bytes));
@@ -935,15 +940,15 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     // implementation, which is about 20% faster than CSHA1.
     SHA_CTX sha;
     SHA1_Init (&sha);
-    
-    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
-        for (int y = src.ymin(), yend=src.yend();  y < yend;  y += chunk) {
+
+    for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
+        for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
             int y1 = std::min (y+chunk, yend);
             if (localpixels) {
-                SHA1_Update (&sha, src.pixeladdr (src.xbegin(), y, z),
+                SHA1_Update (&sha, src.pixeladdr (roi.xbegin, y, z),
                             (unsigned int) scanline_bytes*(y1-y));
             } else {
-                src.get_pixels (src.xbegin(), src.xend(), y, y1, z, z+1,
+                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
                                 src.spec().format, &tmp[0]);
                 SHA1_Update (&sha, &tmp[0], (unsigned int) scanline_bytes*(y1-y));
             }
@@ -967,14 +972,14 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     CSHA1 sha;
     sha.Reset ();
     
-    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
-        for (int y = src.ymin(), yend=src.yend();  y < yend;  y += chunk) {
+    for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
+        for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
             int y1 = std::min (y+chunk, yend);
             if (localpixels) {
-                sha.Update ((const unsigned char *)src.pixeladdr (src.xbegin(), y, z),
+                sha.Update ((const unsigned char *)src.pixeladdr (roi.xbegin, y, z),
                             (unsigned int) scanline_bytes*(y1-y));
             } else {
-                src.get_pixels (src.xbegin(), src.xend(), y, y1, z, z+1,
+                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
                                 src.spec().format, &tmp[0]);
                 sha.Update (&tmp[0], (unsigned int) scanline_bytes*(y1-y));
             }
@@ -996,11 +1001,93 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
 
 
 
-std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
+// Wrapper to single-threadedly SHA1 hash a region in blocks and store
+// the results in a designated place.
+static void
+sha1_hasher (const ImageBuf *src, ROI roi, int blocksize,
+             std::string *results, int firstresult)
 {
-    return computePixelHashSHA1 (src, "");
+    ROI broi = roi;
+    for (int y = roi.ybegin; y < roi.yend; y += blocksize) {
+        broi.ybegin = y;
+        broi.yend = std::min (y+blocksize, roi.yend);
+        std::string s = simplePixelHashSHA1 (*src, "", broi);
+        results[firstresult++] = s;
+    }
 }
+
+} // anon namespace
+
+
+
+std::string
+ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
+                                    const std::string & extrainfo,
+                                    ROI roi, int blocksize, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+
+    // Fall back to whole-image hash for only one block
+    if (blocksize < 0 || blocksize >= roi.height())
+        return simplePixelHashSHA1 (src, extrainfo, roi);
+
+    // Request for 0 threads means "use the OIIO global thread count"
+    if (nthreads <= 0)
+        OIIO::getattribute ("threads", nthreads);
+
+    int nblocks = (roi.height()+blocksize-1) / blocksize;
+    std::vector<std::string> results (nblocks);
+    if (nthreads <= 1) {
+        sha1_hasher (&src, roi, blocksize, &results[0], 0);
+    } else {
+        // parallel case
+        boost::thread_group threads;
+        int blocks_per_thread = (nblocks+nthreads-1) / nthreads;
+        ROI broi = roi;
+        for (int b = 0, t = 0;  b < nblocks;  b += blocks_per_thread, ++t) {
+            int y = roi.ybegin + b*blocksize;
+            if (y >= roi.yend)
+                break;
+            broi.ybegin = y;
+            broi.yend = std::min (y+blocksize*blocks_per_thread, roi.yend);
+            threads.add_thread (new boost::thread (sha1_hasher, &src, broi,
+                                                   blocksize, &results[0], b));
+        }
+        threads.join_all ();
+    }
+
+#ifdef USE_OPENSSL
+    // If OpenSSL was available at build time, use its SHA-1
+    // implementation, which is about 20% faster than CSHA1.
+    SHA_CTX sha;
+    SHA1_Init (&sha);
+    for (int b = 0;  b < nblocks;  ++b)
+        SHA1_Update (&sha, results[b].c_str(), results[b].size());
+    if (extrainfo.size())
+        SHA1_Update (&sha, extrainfo.c_str(), extrainfo.size());
+    unsigned char md[SHA_DIGEST_LENGTH];
+    char hash_digest[2*SHA_DIGEST_LENGTH+1];
+    SHA1_Final (md, &sha);
+    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
+        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
+    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
+    return std::string (hash_digest);
+#else
+    // Fall back on CSHA1 if OpenSSL was not available or if 
+    CSHA1 sha;
+    sha.Reset ();
+    for (int b = 0;  b < nblocks;  ++b)
+        sha.Update (results[b].c_str(), results[b].size());
+    if (extrainfo.size())
+        sha.Update ((const unsigned char *)extrainfo.c_str(), extrainfo.size());
+    sha.Final ();
+    std::string hash_digest;
+    sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
+    return hash_digest;
+#endif
+}
+
 
 
 

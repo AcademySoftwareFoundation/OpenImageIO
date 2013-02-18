@@ -5,7 +5,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=8502BD4D9FA89E6449D73510BA008B2AEEC51E86"
+    ImageDescription: "SHA-1=A6CE37A04FCDB6F34266FFCC7A0F4308F5D81A2E"
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -19,7 +19,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=8502BD4D9FA89E6449D73510BA008B2AEEC51E86"
+    IPTC:Caption: "SHA-1=A6CE37A04FCDB6F34266FFCC7A0F4308F5D81A2E"
     tiff:PageNumber: "0"
     tiff:RowsPerStrip: "8"
 Reading grid-resize.tx
@@ -29,7 +29,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=6E041D85002929587707DA67BD1CB10F7F8A6B4D"
+    ImageDescription: "SHA-1=B61A1BD1C59D43B0ACC49C5B62FD20740E2E0DEF"
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -43,7 +43,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=6E041D85002929587707DA67BD1CB10F7F8A6B4D"
+    IPTC:Caption: "SHA-1=B61A1BD1C59D43B0ACC49C5B62FD20740E2E0DEF"
     tiff:PageNumber: "0"
     tiff:RowsPerStrip: "8"
 Reading checker-uint16.tx
