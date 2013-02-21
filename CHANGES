@@ -1,6 +1,14 @@
 Changes:
 
 
+Release 1.1.7 (21 Feb 2013)
+---------------------------
+* Back out dangerous change to thread.h that was in 1.1.6, which could
+  cause performance problems.
+* Compile fix for WIN32 in strutil.cpp
+* Compile fix for Windows XP - add implementation of InterlockedExchangeAdd64
+
+
 Release 1.1.6 (11 Feb 2013)
 ---------------------------
 * Fix bug that could generate NaNs or other bad values near the poles of
