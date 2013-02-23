@@ -527,6 +527,7 @@ mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 {
     if (nthreads == 1 || roi.npixels() < 1000) {
         // For-sure single thread case
+        ImageBuf::Iterator<Rtype> r (R, roi);
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
             for (int c = roi.chbegin;  c < roi.chend;  ++c)
                 r[c] = r[c] * val[c];

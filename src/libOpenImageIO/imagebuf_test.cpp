@@ -40,6 +40,99 @@
 OIIO_NAMESPACE_USING;
 
 
+
+// Test iterators
+template <class ITERATOR>
+void iterator_read_test ()
+{
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
+    static float buf[HEIGHT][WIDTH][CHANNELS] = {
+        { {0,0,0},  {1,0,1},  {2,0,2},  {3,0,3} },
+        { {0,1,4},  {1,1,5},  {2,1,6},  {3,1,7} },
+        { {0,2,8},  {1,2,9},  {2,2,10}, {3,2,11} },
+        { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
+    };
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec, buf);
+
+    ITERATOR p (A);
+    OIIO_CHECK_EQUAL (p[0], 0.0f);
+    OIIO_CHECK_EQUAL (p[1], 0.0f);
+    OIIO_CHECK_EQUAL (p[2], 0.0f);
+
+    // Explicit position
+    p.pos (2, 1);
+    OIIO_CHECK_EQUAL (p.x(), 2); OIIO_CHECK_EQUAL (p.y(), 1);
+    OIIO_CHECK_EQUAL (p[0], 2.0f);
+    OIIO_CHECK_EQUAL (p[1], 1.0f);
+    OIIO_CHECK_EQUAL (p[2], 6.0f);
+
+    // Iterate a few times
+    ++p;
+    OIIO_CHECK_EQUAL (p.x(), 3); OIIO_CHECK_EQUAL (p.y(), 1);
+    OIIO_CHECK_EQUAL (p[0], 3.0f);
+    OIIO_CHECK_EQUAL (p[1], 1.0f);
+    OIIO_CHECK_EQUAL (p[2], 7.0f);
+    ++p;
+    OIIO_CHECK_EQUAL (p.x(), 0); OIIO_CHECK_EQUAL (p.y(), 2);
+    OIIO_CHECK_EQUAL (p[0], 0.0f);
+    OIIO_CHECK_EQUAL (p[1], 2.0f);
+    OIIO_CHECK_EQUAL (p[2], 8.0f);
+
+    std::cout << "iterator_read_test result:";
+    int i = 0;
+    for (ITERATOR p (A);  !p.done();  ++p, ++i) {
+        if ((i % 4) == 0)
+            std::cout << "\n    ";
+        std::cout << "   " << p[0] << ' ' << p[1] << ' ' << p[2];
+    }
+    std::cout << "\n";
+}
+
+
+
+// Test iterators
+void iterator_write_test ()
+{
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
+    float buf[HEIGHT][WIDTH][CHANNELS] = {
+        { {0,0,0},  {1,0,1},  {2,0,2},  {3,0,3} },
+        { {0,1,4},  {1,1,5},  {2,1,6},  {3,1,7} },
+        { {0,2,8},  {1,2,9},  {2,2,10}, {3,2,11} },
+        { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
+    };
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    float fillcolor[] = { .5, .5, .5 };
+    ImageBufAlgo::fill (A, fillcolor);
+
+    for (ImageBuf::Iterator<float> p (A, get_roi(A.spec())); !p.done(); ++p) {
+        std::cout << "P " << p.x() << ' ' << p.y() << "\n";
+        p[0] = 0.5f;
+        p[1] = 0.5f;
+        p[2] = 0.5f;
+    }
+    
+    for (ImageBuf::Iterator<float> p (A, ROI(1,3,1,2)); !p.done(); ++p) {
+        p[0] = 100;
+        p[1] = 101;
+        p[2] = 102;
+    }
+    
+    std::cout << "iterator_write_test result:";
+    int i = 0;
+    for (ImageBuf::Iterator<float> p (A);  !p.done();  ++p, ++i) {
+        OIIO_CHECK_EQUAL (p.x(), i%4);
+        OIIO_CHECK_EQUAL (p.y(), i/4);
+        if ((i % 4) == 0)
+            std::cout << "\n    ";
+        std::cout << "   " << p[0] << ' ' << p[1] << ' ' << p[2];
+    }
+    std::cout << "\n";
+}
+
+
+
 // Tests ImageBuf construction from application buffer
 void ImageBuf_test_appbuffer ()
 {
@@ -127,6 +220,10 @@ void histogram_computation_test ()
 int
 main (int argc, char **argv)
 {
+    iterator_read_test<ImageBuf::ConstIterator<float> > ();
+    iterator_read_test<ImageBuf::Iterator<float> > ();
+    iterator_write_test ();
+
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
 

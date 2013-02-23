@@ -167,7 +167,11 @@ public:
 
     const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
-                    int &tilexend) const;
+                    int &tilexend, bool exists, ImageBuf::WrapMode wrap) const;
+
+    bool do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
+
+    const void *blackpixel () const { return &m_blackpixel[0]; }
 
 private:
     ustring m_name;              ///< Filename of the image
@@ -192,6 +196,7 @@ private:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
+    std::vector<char> m_blackpixel; ///< Pixel-sized zero bytes
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -218,6 +223,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
         m_pixel_bytes = spec->pixel_bytes();
         m_scanline_bytes = spec->scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+        m_blackpixel.resize (m_pixel_bytes, 0);
     }
     if (buffer) {
         ASSERT (spec != NULL);
@@ -248,7 +254,8 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_plane_bytes(src.m_plane_bytes),
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
-      m_deepdata(src.m_deepdata)
+      m_deepdata(src.m_deepdata),
+      m_blackpixel(src.m_blackpixel)
 {
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
@@ -381,6 +388,7 @@ ImageBufImpl::clear ()
     m_scanline_bytes = 0;
     m_plane_bytes = 0;
     m_deepdata.free ();
+    m_blackpixel.clear ();
 }
 
 
@@ -442,6 +450,7 @@ ImageBufImpl::realloc ()
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    m_blackpixel.resize (m_pixel_bytes, 0);
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
 #endif
@@ -517,7 +526,8 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-    
+    m_blackpixel.resize (m_pixel_bytes, 0);
+
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -604,6 +614,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixel_bytes = m_spec.pixel_bytes();
         m_scanline_bytes = m_spec.scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+        m_blackpixel.resize (m_pixel_bytes, 0);
 #ifdef DEBUG
         std::cerr << "read was not necessary -- using cache\n";
 #endif
@@ -1699,12 +1710,101 @@ ImageBuf::pixeladdr (int x, int y, int z)
 
 
 const void *
+ImageBuf::blackpixel () const
+{
+    return impl()->blackpixel();
+}
+
+
+
+inline bool wrap_periodic (int &coord, int origin, int width)
+{
+    coord -= origin;
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    coord += origin;
+    return true;
+}
+
+
+
+inline bool wrap_mirror (int &coord, int origin, int width)
+{
+    coord -= origin;
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    coord += origin;
+    return true;
+}
+
+
+
+bool
+ImageBufImpl::do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const
+{
+    if (wrap == ImageBuf::WrapBlack)
+        return true;   // nothing to do, but return true
+    if (wrap == ImageBuf::WrapClamp) {
+        x = OIIO::clamp (x, m_spec.x, m_spec.x+m_spec.width-1);
+        y = OIIO::clamp (y, m_spec.y, m_spec.y+m_spec.height-1);
+        z = OIIO::clamp (z, m_spec.z, m_spec.z+m_spec.depth-1);
+        return true;
+    }
+    if (wrap == ImageBuf::WrapPeriodic) {
+        wrap_periodic (x, m_spec.x, m_spec.width);
+        wrap_periodic (y, m_spec.y, m_spec.height);
+        wrap_periodic (z, m_spec.z, m_spec.depth);
+        return true;
+    }
+    if (wrap == ImageBuf::WrapMirror) {
+        wrap_mirror (x, m_spec.x, m_spec.width);
+        wrap_mirror (y, m_spec.y, m_spec.height);
+        wrap_mirror (z, m_spec.z, m_spec.depth);
+        return true;
+    }
+    ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
+    return false;
+}
+
+
+
+bool
+ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
+{
+    return m_impl->do_wrap (x, y, z, wrap);
+}
+
+
+
+const void *
 ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                       int &tilexbegin, int &tileybegin, int &tilezbegin,
-                      int &tilexend) const
+                      int &tilexend, bool exists,
+                      ImageBuf::WrapMode wrap) const
 {
+    if (! exists) {
+        // Special case -- (x,y,z) describes a location outside the data
+        // window.  Use the wrap mode to possibly give a meaningful data
+        // proxy to point to.
+        do_wrap (x, y, z, wrap);
+        if (wrap == ImageBuf::WrapBlack)
+            return &m_blackpixel; // Black points to a black pixel
+        // We've adjusted x,y,z, now fall through below to get the
+        // right tile
+    }
+
     int tw = m_spec.tile_width, th = m_spec.tile_height;
-    int td = std::max (1, m_spec.tile_depth);
+    int td = m_spec.tile_depth;  DASSERT(m_spec.tile_depth >= 1);
     DASSERT (tile == NULL || tilexend == (tilexbegin+tw));
     if (tile == NULL || x < tilexbegin || x >= tilexend ||
                         y < tileybegin || y >= (tileybegin+th) ||
@@ -1728,6 +1828,7 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
     offset *= m_spec.pixel_bytes();
     DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
                 "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+
     TypeDesc format;
     return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
 }
@@ -1737,10 +1838,11 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
 const void *
 ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin, int &tilezbegin,
-                  int &tilexend) const
+                  int &tilexend, bool exists,
+                  WrapMode wrap) const
 {
     return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
-                           tilexend);
+                           tilexend, exists, wrap);
 }
 
 

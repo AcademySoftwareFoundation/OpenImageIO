@@ -92,6 +92,12 @@ struct ROI {
         return w*h*d;
     }
 
+    friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
+        out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '
+            << roi.yend << ' ' << roi.zbegin << ' ' << roi.zend << ' '
+            << roi.chbegin << ' ' << roi.chend;
+        return out;
+    }
 };
 
 
@@ -537,23 +543,28 @@ public:
     /// Is this ImageBuf object initialized?
     bool initialized () const;
 
+    /// Wrap mode describes what happens when an iterator points to
+    /// a value outside the usual data range of an image.
+    enum WrapMode { WrapDefault, WrapBlack, WrapClamp, WrapPeriodic,
+                    WrapMirror, _WrapLast };
+
     friend class IteratorBase;
 
     class IteratorBase {
     public:
-        IteratorBase (const ImageBuf &ib)
+        IteratorBase (const ImageBuf &ib, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
+            init_ib (wrap);
             range_is_image ();
         }
 
-        /// Construct read-write clamped valid iteration region from
-        /// ImageBuf and ROI.
-        IteratorBase (const ImageBuf &ib, const ROI &roi, bool unclamped=false)
+        /// Construct clamped valid iteration region from ImageBuf and ROI.
+        IteratorBase (const ImageBuf &ib, const ROI &roi,
+                      bool unclamped, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
+            init_ib (wrap);
             if (roi.defined()) {
                 if (unclamped) {
                     m_rng_xbegin = roi.xbegin;
@@ -563,12 +574,12 @@ public:
                     m_rng_zbegin = roi.zbegin;
                     m_rng_zend   = roi.zend;
                 } else {
-                    m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-                    m_rng_xend   = std::min (roi.xend,   m_img_xend);
-                    m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-                    m_rng_yend   = std::min (roi.yend,   m_img_yend);
-                    m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-                    m_rng_zend   = std::min (roi.zend,   m_img_zend);
+                    m_rng_xbegin = clamp (roi.xbegin, m_img_xbegin, m_img_xend);
+                    m_rng_xend   = clamp (roi.xend,   m_img_xbegin, m_img_xend);
+                    m_rng_ybegin = clamp (roi.ybegin, m_img_ybegin, m_img_yend);
+                    m_rng_yend   = clamp (roi.yend,   m_img_ybegin, m_img_yend);
+                    m_rng_zbegin = clamp (roi.zbegin, m_img_zbegin, m_img_zend);
+                    m_rng_zend   = clamp (roi.zend,   m_img_zbegin, m_img_zend);
                 }
             } else {
                 range_is_image ();
@@ -583,25 +594,25 @@ public:
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                      int ybegin, int yend, int zbegin=0, int zend=1,
-                      bool unclamped=false)
+                      int ybegin, int yend, int zbegin, int zend,
+                      bool unclamped, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
+            init_ib (wrap);
             if (unclamped) {
                 m_rng_xbegin = xbegin;
-                m_rng_xend = xend;
+                m_rng_xend   = xend;
                 m_rng_ybegin = ybegin;
-                m_rng_yend = yend;
+                m_rng_yend   = yend;
                 m_rng_zbegin = zbegin;
-                m_rng_zend = zend;
+                m_rng_zend   = zend;
             } else {
-                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
-                m_rng_xend = std::min(xend,m_img_xend);
-                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
-                m_rng_yend = std::min(yend,m_img_yend);
-                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
-                m_rng_zend = std::min(zend,m_img_zend);
+                m_rng_xbegin = clamp (xbegin, m_img_xbegin, m_img_xend);
+                m_rng_xend   = clamp (xend,   m_img_xbegin, m_img_xend);
+                m_rng_ybegin = clamp (ybegin, m_img_ybegin, m_img_yend);
+                m_rng_yend   = clamp (yend,   m_img_ybegin, m_img_yend);
+                m_rng_zbegin = clamp (zbegin, m_img_zbegin, m_img_zend);
+                m_rng_zend   = clamp (zend,   m_img_zbegin, m_img_zend);
             }
         }
 
@@ -612,7 +623,7 @@ public:
               m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
               m_tile(NULL), m_proxydata(i.m_proxydata)
         {
-            init_ib ();
+            init_ib (i.m_wrap);
         }
 
         ~IteratorBase () {
@@ -628,7 +639,7 @@ public:
             m_tile = NULL;
             m_proxydata = i.m_proxydata;
             m_ib = i.m_ib;
-            init_ib ();
+            init_ib (i.m_wrap);
             m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
             m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
             m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
@@ -687,6 +698,9 @@ public:
         /// Retrieve the number of deep data samples at this pixel.
         int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
 
+        /// Return the wrap mode
+        WrapMode wrap () const { return m_wrap; }
+
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
         void pos (int x_, int y_, int z_=0) {
@@ -696,19 +710,33 @@ public:
                 // within the iteration region.
                 m_x = x_;
                 pos_xincr ();
-                m_exists = (x_ < m_img_xend);
+                // Not necessary? m_exists = (x_ < m_img_xend);
+                DASSERT ((x_ < m_img_xend) == m_exists);
                 return;
             }
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e || m_deep)
-                m_proxydata = NULL;
-            else if (m_localpixels)
-                m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
-            else
+            if (m_localpixels) {
+                if (! e) {
+                    m_x = x_;  m_y = y_;  m_z = z_;
+                    if (m_wrap == WrapBlack) {
+                        m_proxydata = (char *)m_ib->blackpixel();
+                    } else {
+                        m_ib->do_wrap (x_, y_, z_, m_wrap);
+                        m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                    }
+                    m_valid = v;
+                    m_exists = e;
+                    return;
+                }
+                else
+                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+            }
+            else if (! m_deep)
                 m_proxydata = (char *)m_ib->retile (x_, y_, z_, m_tile,
                                                     m_tilexbegin, m_tileybegin,
-                                                    m_tilezbegin, m_tilexend);
+                                                    m_tilezbegin, m_tilexend,
+                                                    e, m_wrap);
             m_x = x_;  m_y = y_;  m_z = z_;
             m_valid = v;
             m_exists = e;
@@ -744,6 +772,12 @@ public:
             ++(*this);
         }
 
+        /// Return the iteration range
+        ROI range () const {
+            return ROI (m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
+                        m_rng_zbegin, m_rng_zend, 0, m_ib->nchannels());
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -763,10 +797,11 @@ public:
         int m_tilexend;
         int m_nchannels, m_pixel_bytes;
         char *m_proxydata;
+        WrapMode m_wrap;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
-        void init_ib () {
+        void init_ib (WrapMode wrap) {
             const ImageSpec &spec (m_ib->spec());
             m_deep = spec.deep;
             m_localpixels = m_ib->localpixels();
@@ -779,6 +814,7 @@ public:
             m_x = 0xffffffff;
             m_y = 0xffffffff;
             m_z = 0xffffffff;
+            m_wrap = (wrap == WrapDefault ? WrapBlack : wrap);
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -795,20 +831,34 @@ public:
         void pos_xincr () {
             DASSERT (m_exists && m_valid);   // precondition
             DASSERT (valid(m_x,m_y,m_z));    // should be true by definition
-            if (m_x >= m_img_xend /*same as !exists() for this case*/) {
-                m_proxydata = NULL;
-                m_exists = false;
+            bool e = (m_x < m_img_xend);
+            if (m_localpixels) {
+                if (e)
+                    // Haven't run off the end, just increment
+                    m_proxydata += m_pixel_bytes;
+                else {
+                    m_exists = false;
+                    if (m_wrap == WrapBlack) {
+                        m_proxydata = (char *)m_ib->blackpixel();
+                    } else {
+                        int x = m_x, y = m_y, z = m_z;
+                        m_ib->do_wrap (x, y, z, m_wrap);
+                        m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                    }
+                }
             } else if (m_deep) {
                 m_proxydata = NULL;
-            } else if (m_localpixels) {
-                m_proxydata += m_pixel_bytes;
-            } else if (m_x < m_tilexend) {
-                // Haven't crossed a tile boundary, don't retile!
-                m_proxydata += m_pixel_bytes;
             } else {
-                m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
+                // Cached image
+                if (e && m_x < m_tilexend)
+                    // Haven't crossed a tile boundary, don't retile!
+                    m_proxydata += m_pixel_bytes;
+                else {
+                    m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
                                     m_tilexbegin, m_tileybegin, m_tilezbegin,
-                                    m_tilexend);
+                                    m_tilexend, e, m_wrap);
+                    m_exists = e;
+                }
             }
         }
     };
@@ -836,15 +886,16 @@ public:
     public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
-        Iterator (ImageBuf &ib)
-            : IteratorBase(ib)
+        Iterator (ImageBuf &ib, WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
-        Iterator (ImageBuf &ib, int x_, int y_, int z_=0)
-            : IteratorBase(ib)
+        Iterator (ImageBuf &ib, int x_, int y_, int z_=0,
+                  WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (x_, y_, z_);
         }
@@ -854,8 +905,9 @@ public:
         /// must use done() to test whether the iteration is complete,
         /// versus valid() to test whether it's pointing to a valid
         /// image pixel.
-        Iterator (ImageBuf &ib, const ROI &roi, bool unclamped=false)
-            : IteratorBase (ib, roi, unclamped)
+        Iterator (ImageBuf &ib, const ROI &roi,
+                  bool unclamped=false, WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, unclamped, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -868,16 +920,16 @@ public:
         /// pointing to a valid image pixel.
         Iterator (ImageBuf &ib, int xbegin, int xend,
                   int ybegin, int yend, int zbegin=0, int zend=1,
-                  bool unclamped=false)
+                  bool unclamped=false, WrapMode wrap=WrapDefault)
             : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped)
+                           zbegin, zend, unclamped, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Copy constructor.
         ///
         Iterator (Iterator &i)
-            : IteratorBase (i.m_ib)
+            : IteratorBase (i.m_ib, i.m_wrap)
         {
             pos (i.m_x, i.m_y, i.m_z);
         }
@@ -929,15 +981,16 @@ public:
     public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
-        ConstIterator (const ImageBuf &ib)
-            : IteratorBase(ib)
+        ConstIterator (const ImageBuf &ib, WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
-        ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0)
-            : IteratorBase(ib)
+        ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0,
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (x_, y_, z_);
         }
@@ -947,8 +1000,9 @@ public:
         /// must use done() to test whether the iteration is complete,
         /// versus valid() to test whether it's pointing to a valid
         /// image pixel.
-        ConstIterator (const ImageBuf &ib, const ROI &roi, bool unclamped=false)
-            : IteratorBase (ib, roi, unclamped)
+        ConstIterator (const ImageBuf &ib, const ROI &roi,
+                       bool unclamped=false, WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, unclamped, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -961,9 +1015,9 @@ public:
         /// pointing to a valid image pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
                        int ybegin, int yend, int zbegin=0, int zend=1,
-                       bool unclamped=false)
+                       bool unclamped=false, WrapMode wrap=WrapDefault)
             : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped)
+                           zbegin, zend, unclamped, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -1025,7 +1079,12 @@ protected:
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
                          int &tileybegin, int &tilezbegin,
-                         int &tilexend) const;
+                         int &tilexend, bool exists,
+                         WrapMode wrap=WrapDefault) const;
+
+    const void *blackpixel () const;
+
+    bool do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);
