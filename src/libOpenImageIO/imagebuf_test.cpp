@@ -198,8 +198,8 @@ void ImageBuf_test_appbuffer ()
     B.read ();
     for (int y = 0;  y < HEIGHT;  ++y)
         for (int x = 0;  x < WIDTH;  ++x)
-            OIIO_CHECK_EQUAL (A.getchannel (x, y, 0),
-                              B.getchannel (x, y, 0));
+            OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, 0),
+                              B.getchannel (x, y, 0, 0));
 }
 
 

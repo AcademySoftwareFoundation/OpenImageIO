@@ -300,9 +300,14 @@ public:
     ///
     int nchannels () const;
 
+    /// Wrap mode describes what happens when an iterator points to
+    /// a value outside the usual data range of an image.
+    enum WrapMode { WrapDefault, WrapBlack, WrapClamp, WrapPeriodic,
+                    WrapMirror, _WrapLast };
+
     /// Retrieve a single channel of one pixel.
     ///
-    float getchannel (int x, int y, int c) const;
+    float getchannel (int x, int y, int z, int c, WrapMode wrap=WrapBlack) const;
 
     /// Retrieve the pixel value by x and y coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
@@ -314,12 +319,14 @@ public:
     /// Retrieve the pixel value by x, y, z coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).
-    void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000) const;
+    void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000,
+                   WrapMode wrap=WrapBlack) const;
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner, (xres,yres) the lower right corner of
     /// the pixel data.
-    void interppixel (float x, float y, float *pixel) const;
+    void interppixel (float x, float y, float *pixel,
+                      WrapMode wrap=WrapBlack) const;
 
     /// Linearly interpolate at image data NDC coordinates (x,y), where (0,0) is
     /// the upper left corner of the pixel data window, (1,1) the lower
@@ -327,12 +334,14 @@ public:
     /// FIXME -- lg thinks that this is stupid, and the only useful NDC
     /// space is the one used by interppixel_NDC_full.  We should deprecate
     /// this in the future.
-    void interppixel_NDC (float x, float y, float *pixel) const;
+    void interppixel_NDC (float x, float y, float *pixel,
+                          WrapMode wrap=WrapBlack) const;
 
     /// Linearly interpolate at NDC (image) coordinates (x,y), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
-    void interppixel_NDC_full (float x, float y, float *pixel) const;
+    void interppixel_NDC_full (float x, float y, float *pixel,
+                               WrapMode wrap=WrapBlack) const;
 
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
     /// from floating-point values in pixel[].  Set at most
@@ -542,11 +551,6 @@ public:
 
     /// Is this ImageBuf object initialized?
     bool initialized () const;
-
-    /// Wrap mode describes what happens when an iterator points to
-    /// a value outside the usual data range of an image.
-    enum WrapMode { WrapDefault, WrapBlack, WrapClamp, WrapPeriodic,
-                    WrapMirror, _WrapLast };
 
     friend class IteratorBase;
 
