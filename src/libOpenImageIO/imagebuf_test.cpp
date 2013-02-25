@@ -91,44 +91,79 @@ void iterator_read_test ()
 
 
 
+inline int wrap_mirror (int coord, int origin, int width)
+{
+    coord -= origin;
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    coord += origin;
+    return coord;
+}
+
+
+
 // Test iterators
-void iterator_write_test ()
+template <class ITERATOR>
+void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
 {
     const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
-    float buf[HEIGHT][WIDTH][CHANNELS] = {
+    static float buf[HEIGHT][WIDTH][CHANNELS] = {
         { {0,0,0},  {1,0,1},  {2,0,2},  {3,0,3} },
         { {0,1,4},  {1,1,5},  {2,1,6},  {3,1,7} },
         { {0,2,8},  {1,2,9},  {2,2,10}, {3,2,11} },
         { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
     };
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
-    float fillcolor[] = { .5, .5, .5 };
-    ImageBufAlgo::fill (A, fillcolor);
+    ImageBuf A ("A", spec, buf);
 
-    for (ImageBuf::Iterator<float> p (A, get_roi(A.spec())); !p.done(); ++p) {
-        std::cout << "P " << p.x() << ' ' << p.y() << "\n";
-        p[0] = 0.5f;
-        p[1] = 0.5f;
-        p[2] = 0.5f;
-    }
-    
-    for (ImageBuf::Iterator<float> p (A, ROI(1,3,1,2)); !p.done(); ++p) {
-        p[0] = 100;
-        p[1] = 101;
-        p[2] = 102;
-    }
-    
-    std::cout << "iterator_write_test result:";
+    std::cout << "iterator_wrap_test " << wrapname << ":";
     int i = 0;
-    for (ImageBuf::Iterator<float> p (A);  !p.done();  ++p, ++i) {
-        OIIO_CHECK_EQUAL (p.x(), i%4);
-        OIIO_CHECK_EQUAL (p.y(), i/4);
-        if ((i % 4) == 0)
+    int noutside = 0;
+    for (ITERATOR p (A, ROI(-2, WIDTH+2, -2, HEIGHT+2), true, wrap);
+         !p.done(); ++p, ++i) {
+        if ((i % 8) == 0)
             std::cout << "\n    ";
         std::cout << "   " << p[0] << ' ' << p[1] << ' ' << p[2];
+        // Check wraps
+        if (! p.exists()) {
+            ++noutside;
+            if (wrap == ImageBuf::WrapBlack) {
+                OIIO_CHECK_EQUAL (p[0], 0.0f);
+                OIIO_CHECK_EQUAL (p[1], 0.0f);
+                OIIO_CHECK_EQUAL (p[2], 0.0f);
+            } else if (wrap == ImageBuf::WrapClamp) {
+                ITERATOR q = p;
+                q.pos (clamp (p.x(), 0, WIDTH-1), clamp (p.y(), 0, HEIGHT-1));
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            } else if (wrap == ImageBuf::WrapPeriodic) {
+                ITERATOR q = p;
+                q.pos (p.x() % WIDTH, p.y() % HEIGHT);
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            } else if (wrap == ImageBuf::WrapMirror) {
+                ITERATOR q = p;
+                q.pos (wrap_mirror(p.x(), 0, WIDTH),
+                       wrap_mirror(p.y(), 0, HEIGHT));
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            }
+        }
     }
     std::cout << "\n";
+    OIIO_CHECK_EQUAL (noutside, 48);  // Should be 48 wrapped pixels
 }
 
 
@@ -222,7 +257,11 @@ main (int argc, char **argv)
 {
     iterator_read_test<ImageBuf::ConstIterator<float> > ();
     iterator_read_test<ImageBuf::Iterator<float> > ();
-    iterator_write_test ();
+
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapBlack, "black");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapClamp, "clamp");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapPeriodic, "periodic");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapMirror, "mirror");
 
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
