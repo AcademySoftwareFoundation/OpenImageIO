@@ -185,7 +185,7 @@ TextureSystemImpl::wrap_mirror (int &coord, int origin, int width)
     coord -= iter * width;
     bool flip = (iter & 1);
     if (negative) {
-        coord += width - 1;
+        coord += width;
         flip = !flip;
     }
     if (flip)
