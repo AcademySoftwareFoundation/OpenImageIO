@@ -159,8 +159,8 @@ copy_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI())
 {
     int nchannels = dst.spec().nchannels;
     ASSERT (src.spec().nchannels == nchannels);
-    ImageBuf::Iterator<float> d (dst, roi, true /*unclamped*/);
-    ImageBuf::ConstIterator<SRCTYPE> s (src, roi, true /*unclamped*/);
+    ImageBuf::Iterator<float> d (dst, roi);
+    ImageBuf::ConstIterator<SRCTYPE> s (src, roi);
     for (  ; ! d.done();  ++d, ++s) {
         if (! d.exists())
             continue;   // skip nonexistant pixels

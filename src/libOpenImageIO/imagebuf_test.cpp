@@ -128,7 +128,7 @@ void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
     std::cout << "iterator_wrap_test " << wrapname << ":";
     int i = 0;
     int noutside = 0;
-    for (ITERATOR p (A, ROI(-2, WIDTH+2, -2, HEIGHT+2), true, wrap);
+    for (ITERATOR p (A, ROI(-2, WIDTH+2, -2, HEIGHT+2), wrap);
          !p.done(); ++p, ++i) {
         if ((i % 8) == 0)
             std::cout << "\n    ";

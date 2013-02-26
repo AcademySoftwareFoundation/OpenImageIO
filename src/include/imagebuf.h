@@ -563,61 +563,37 @@ public:
             range_is_image ();
         }
 
-        /// Construct clamped valid iteration region from ImageBuf and ROI.
-        IteratorBase (const ImageBuf &ib, const ROI &roi,
-                      bool unclamped, WrapMode wrap)
+        /// Construct valid iteration region from ImageBuf and ROI.
+        IteratorBase (const ImageBuf &ib, const ROI &roi, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
             init_ib (wrap);
             if (roi.defined()) {
-                if (unclamped) {
-                    m_rng_xbegin = roi.xbegin;
-                    m_rng_xend   = roi.xend;
-                    m_rng_ybegin = roi.ybegin;
-                    m_rng_yend   = roi.yend;
-                    m_rng_zbegin = roi.zbegin;
-                    m_rng_zend   = roi.zend;
-                } else {
-                    m_rng_xbegin = clamp (roi.xbegin, m_img_xbegin, m_img_xend);
-                    m_rng_xend   = clamp (roi.xend,   m_img_xbegin, m_img_xend);
-                    m_rng_ybegin = clamp (roi.ybegin, m_img_ybegin, m_img_yend);
-                    m_rng_yend   = clamp (roi.yend,   m_img_ybegin, m_img_yend);
-                    m_rng_zbegin = clamp (roi.zbegin, m_img_zbegin, m_img_zend);
-                    m_rng_zend   = clamp (roi.zend,   m_img_zbegin, m_img_zend);
-                }
+                m_rng_xbegin = roi.xbegin;
+                m_rng_xend   = roi.xend;
+                m_rng_ybegin = roi.ybegin;
+                m_rng_yend   = roi.yend;
+                m_rng_zbegin = roi.zbegin;
+                m_rng_zend   = roi.zend;
             } else {
                 range_is_image ();
             }
         }
 
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
                       int ybegin, int yend, int zbegin, int zend,
-                      bool unclamped, WrapMode wrap)
+                      WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
             init_ib (wrap);
-            if (unclamped) {
-                m_rng_xbegin = xbegin;
-                m_rng_xend   = xend;
-                m_rng_ybegin = ybegin;
-                m_rng_yend   = yend;
-                m_rng_zbegin = zbegin;
-                m_rng_zend   = zend;
-            } else {
-                m_rng_xbegin = clamp (xbegin, m_img_xbegin, m_img_xend);
-                m_rng_xend   = clamp (xend,   m_img_xbegin, m_img_xend);
-                m_rng_ybegin = clamp (ybegin, m_img_ybegin, m_img_yend);
-                m_rng_yend   = clamp (yend,   m_img_ybegin, m_img_yend);
-                m_rng_zbegin = clamp (zbegin, m_img_zbegin, m_img_zend);
-                m_rng_zend   = clamp (zend,   m_img_zbegin, m_img_zend);
-            }
+            m_rng_xbegin = xbegin;
+            m_rng_xend   = xend;
+            m_rng_ybegin = ybegin;
+            m_rng_yend   = yend;
+            m_rng_zbegin = zbegin;
+            m_rng_zend   = zend;
         }
 
         IteratorBase (const IteratorBase &i)
@@ -660,9 +636,7 @@ public:
         ///
         int z () const { return m_z; }
 
-        /// Is the current location valid?  Locations outside the
-        /// designated region are invalid, as is an iterator that has
-        /// completed iterating over the whole region.
+        /// Is the current location within the designated iteration range?
         bool valid () const {
             return m_valid;
         }
@@ -903,30 +877,18 @@ public:
         {
             pos (x_, y_, z_);
         }
-        /// Construct read-write clamped valid iteration region from
-        /// ImageBuf and ROI.  If "unclamped" is true, the iteration
-        /// region will NOT be clamped to the image boundary, so you
-        /// must use done() to test whether the iteration is complete,
-        /// versus valid() to test whether it's pointing to a valid
-        /// image pixel.
-        Iterator (ImageBuf &ib, const ROI &roi,
-                  bool unclamped=false, WrapMode wrap=WrapDefault)
-            : IteratorBase (ib, roi, unclamped, wrap)
+        /// Construct read-write iteration region from ImageBuf and ROI.
+        Iterator (ImageBuf &ib, const ROI &roi, WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         Iterator (ImageBuf &ib, int xbegin, int xend,
                   int ybegin, int yend, int zbegin=0, int zend=1,
-                  bool unclamped=false, WrapMode wrap=WrapDefault)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped, wrap)
+                  WrapMode wrap=WrapDefault)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -998,30 +960,19 @@ public:
         {
             pos (x_, y_, z_);
         }
-        /// Construct read-only clamped valid iteration region
-        /// from ImageBuf and ROI. If "unclamped" is true, the iteration
-        /// region will NOT be clamped to the image boundary, so you
-        /// must use done() to test whether the iteration is complete,
-        /// versus valid() to test whether it's pointing to a valid
-        /// image pixel.
+        /// Construct read-only iteration region from ImageBuf and ROI.
         ConstIterator (const ImageBuf &ib, const ROI &roi,
-                       bool unclamped=false, WrapMode wrap=WrapDefault)
-            : IteratorBase (ib, roi, unclamped, wrap)
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
                        int ybegin, int yend, int zbegin=0, int zend=1,
-                       bool unclamped=false, WrapMode wrap=WrapDefault)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped, wrap)
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }

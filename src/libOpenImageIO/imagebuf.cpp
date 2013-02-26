@@ -1181,7 +1181,7 @@ interppixel_ (const ImageBuf &img, float x, float y, float *pixel,
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
     ImageBuf::ConstIterator<T> it (img, xtexel, xtexel+2, ytexel, ytexel+2,
-                                   0, 1, true /*unclamped*/, wrap);
+                                   0, 1, wrap);
     for (int i = 0;  i < 4;  ++i, ++it)
         for (int c = 0; c < n; ++c)
             p[i][c] = it[c];
