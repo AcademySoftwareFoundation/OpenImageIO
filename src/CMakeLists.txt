@@ -171,7 +171,7 @@ oiio_add_tests (ico gpsread sgi
                 texture-fill texture-gray texture-grid
                 texture-missing texture-pointsample texture-res
                 texture-skinny texture-fat
-                imagecache-files texture-field3d texture-wrapfill)
+                imagecache-files texture-field3d)
 
 # List testsuites which need special external reference images from the web
 # here:
