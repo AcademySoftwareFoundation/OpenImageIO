@@ -616,5 +616,68 @@ DeepData::free ()
     std::vector<char>().swap (data);
 }
 
+
+
+bool
+wrap_black (int &coord, int origin, int width)
+{
+    return (coord >= origin && coord < (width+origin));
+}
+
+
+bool
+wrap_clamp (int &coord, int origin, int width)
+{
+    if (coord < origin)
+        coord = origin;
+    else if (coord >= origin+width)
+        coord = origin+width-1;
+    return true;
+}
+
+
+bool
+wrap_periodic (int &coord, int origin, int width)
+{
+    coord -= origin;
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    coord += origin;
+    return true;
+}
+
+
+bool
+wrap_periodic_pow2 (int &coord, int origin, int width)
+{
+    DASSERT (ispow2(width));
+    coord -= origin;
+    coord &= (width - 1); // Shortcut periodic if we're sure it's a pow of 2
+    coord += origin;
+    return true;
+}
+
+
+bool
+wrap_mirror (int &coord, int origin, int width)
+{
+    coord -= origin;
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    coord += origin;
+    return true;
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

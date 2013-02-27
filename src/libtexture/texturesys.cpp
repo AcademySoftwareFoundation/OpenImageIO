@@ -118,46 +118,6 @@ namespace pvt {   // namespace pvt
 
 
 bool
-TextureSystemImpl::wrap_black (int &coord, int origin, int width)
-{
-    return (coord >= origin && coord < (width+origin));
-}
-
-
-bool
-TextureSystemImpl::wrap_clamp (int &coord, int origin, int width)
-{
-    if (coord < origin)
-        coord = origin;
-    else if (coord >= origin+width)
-        coord = origin+width-1;
-    return true;
-}
-
-
-bool
-TextureSystemImpl::wrap_periodic (int &coord, int origin, int width)
-{
-    coord -= origin;
-    coord %= width;
-    if (coord < 0)       // Fix negative values
-        coord += width;
-    coord += origin;
-    return true;
-}
-
-
-bool
-TextureSystemImpl::wrap_periodic2 (int &coord, int origin, int width)
-{
-    coord -= origin;
-    coord &= (width - 1); // Shortcut periodic if we're sure it's a pow of 2
-    coord += origin;
-    return true;
-}
-
-
-bool
 TextureSystemImpl::wrap_periodic_sharedborder (int &coord, int origin, int width)
 {
     // Like periodic, but knowing that the first column and last are
@@ -176,28 +136,7 @@ TextureSystemImpl::wrap_periodic_sharedborder (int &coord, int origin, int width
 }
 
 
-bool
-TextureSystemImpl::wrap_mirror (int &coord, int origin, int width)
-{
-    coord -= origin;
-    bool negative = (coord < 0);
-    int iter = coord / width;    // Which iteration of the pattern?
-    coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width - 1;
-        flip = !flip;
-    }
-    if (flip)
-        coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
-    coord += origin;
-    return true;
-}
-
-
-
-const TextureSystemImpl::wrap_impl TextureSystemImpl::wrap_functions[] = {
+const wrap_impl TextureSystemImpl::wrap_functions[] = {
     // Must be in same order as Wrap enum
     wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
 };
@@ -722,13 +661,13 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     if (options.swrap == TextureOpt::WrapDefault)
         options.swrap = (TextureOpt::Wrap)texturefile->swrap();
     if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.width))
-        options.swrap_func = wrap_periodic2;
+        options.swrap_func = wrap_periodic_pow2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOpt::WrapDefault)
         options.twrap = (TextureOpt::Wrap)texturefile->twrap();
     if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.height))
-        options.twrap_func = wrap_periodic2;
+        options.twrap_func = wrap_periodic_pow2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
 
