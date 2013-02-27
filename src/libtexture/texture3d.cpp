@@ -141,19 +141,19 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     if (options.swrap == TextureOpt::WrapDefault)
         options.swrap = texturefile->swrap();
     if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic2;
+        options.swrap_func = wrap_periodic_pow2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOpt::WrapDefault)
         options.twrap = texturefile->twrap();
     if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic2;
+        options.twrap_func = wrap_periodic_pow2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
     if (options.rwrap == TextureOpt::WrapDefault)
         options.rwrap = texturefile->rwrap();
     if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
-        options.rwrap_func = wrap_periodic2;
+        options.rwrap_func = wrap_periodic_pow2;
     else
         options.rwrap_func = wrap_functions[(int)options.rwrap];
 

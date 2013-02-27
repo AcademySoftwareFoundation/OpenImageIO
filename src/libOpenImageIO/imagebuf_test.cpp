@@ -91,26 +91,6 @@ void iterator_read_test ()
 
 
 
-inline int wrap_mirror (int coord, int origin, int width)
-{
-    coord -= origin;
-    bool negative = (coord < 0);
-    int iter = coord / width;    // Which iteration of the pattern?
-    coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width;
-        flip = !flip;
-    }
-    if (flip)
-        coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
-    coord += origin;
-    return coord;
-}
-
-
-
 // Test iterators
 template <class ITERATOR>
 void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
@@ -154,8 +134,10 @@ void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
                 OIIO_CHECK_EQUAL (p[2], q[2]);
             } else if (wrap == ImageBuf::WrapMirror) {
                 ITERATOR q = p;
-                q.pos (wrap_mirror(p.x(), 0, WIDTH),
-                       wrap_mirror(p.y(), 0, HEIGHT));
+                int x = p.x(), y = p.y();
+                wrap_mirror (x, 0, WIDTH);
+                wrap_mirror (y, 0, HEIGHT);
+                q.pos (x, y);
                 OIIO_CHECK_EQUAL (p[0], q[0]);
                 OIIO_CHECK_EQUAL (p[1], q[1]);
                 OIIO_CHECK_EQUAL (p[2], q[2]);

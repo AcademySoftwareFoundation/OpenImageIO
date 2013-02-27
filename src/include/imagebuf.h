@@ -1039,7 +1039,7 @@ protected:
 
     const void *blackpixel () const;
 
-    bool do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
+    void do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);

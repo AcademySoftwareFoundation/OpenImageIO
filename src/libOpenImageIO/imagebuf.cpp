@@ -169,7 +169,7 @@ public:
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
                     int &tilexend, bool exists, ImageBuf::WrapMode wrap) const;
 
-    bool do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
+    void do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
 
     const void *blackpixel () const { return &m_blackpixel[0]; }
 
@@ -1715,71 +1715,38 @@ ImageBuf::blackpixel () const
 
 
 
-inline bool wrap_periodic (int &coord, int origin, int width)
-{
-    coord -= origin;
-    coord %= width;
-    if (coord < 0)       // Fix negative values
-        coord += width;
-    coord += origin;
-    return true;
-}
-
-
-
-inline bool wrap_mirror (int &coord, int origin, int width)
-{
-    coord -= origin;
-    bool negative = (coord < 0);
-    int iter = coord / width;    // Which iteration of the pattern?
-    coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width;
-        flip = !flip;
-    }
-    if (flip)
-        coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
-    coord += origin;
-    return true;
-}
-
-
-
-bool
+void
 ImageBufImpl::do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const
 {
     if (wrap == ImageBuf::WrapBlack)
-        return true;   // nothing to do, but return true
+        return;   // nothing to do
     if (wrap == ImageBuf::WrapClamp) {
         x = OIIO::clamp (x, m_spec.x, m_spec.x+m_spec.width-1);
         y = OIIO::clamp (y, m_spec.y, m_spec.y+m_spec.height-1);
         z = OIIO::clamp (z, m_spec.z, m_spec.z+m_spec.depth-1);
-        return true;
+        return;
     }
     if (wrap == ImageBuf::WrapPeriodic) {
         wrap_periodic (x, m_spec.x, m_spec.width);
         wrap_periodic (y, m_spec.y, m_spec.height);
         wrap_periodic (z, m_spec.z, m_spec.depth);
-        return true;
+        return;
     }
     if (wrap == ImageBuf::WrapMirror) {
         wrap_mirror (x, m_spec.x, m_spec.width);
         wrap_mirror (y, m_spec.y, m_spec.height);
         wrap_mirror (z, m_spec.z, m_spec.depth);
-        return true;
+        return;
     }
     ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
-    return false;
 }
 
 
 
-bool
+void
 ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
 {
-    return m_impl->do_wrap (x, y, z, wrap);
+    m_impl->do_wrap (x, y, z, wrap);
 }
 
 
