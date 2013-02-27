@@ -82,6 +82,10 @@ struct ROI {
     int width () const { return xend - xbegin; }
     int height () const { return yend - ybegin; }
     int depth () const { return zend - zbegin; }
+
+    /// Number of channels in the region.  Beware -- this defaults to a
+    /// huge number, and to be meaningful you must consider
+    /// std::min (imagebuf.nchannels(), roi.nchannels()).
     int nchannels () const { return chend - chbegin; }
 
     /// Total number of pixels in the region.
@@ -92,6 +96,15 @@ struct ROI {
         return w*h*d;
     }
 
+    /// Documentary sugar -- although the static ROI::All() function
+    /// simply returns the results of the default ROI constructor, it
+    /// makes it very clear when using as a default function argument
+    /// that it means "all" of the image.  For example,
+    ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
+    /// Doesn't that make it abundantly clear?
+    static ROI All () { return ROI(); }
+
+    /// Stream output of the range
     friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
         out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '
             << roi.yend << ' ' << roi.zbegin << ' ' << roi.zend << ' '
