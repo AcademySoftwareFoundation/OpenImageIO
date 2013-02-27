@@ -1277,6 +1277,21 @@ OIIO_API bool decode_xmp (const std::string &xml, ImageSpec &spec);
 /// be part of ordinary TIFF or exif tags.
 OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
+// All the wrap_foo functions implement a wrap mode, wherein coord is
+// altered to be origin <= coord < origin+width.  The return value
+// indicates if the resulting wrapped value is valid (example, for
+// wrap_black, values outside the region are invalid and do not modify
+// the coord parameter).
+OIIO_API bool wrap_black (int &coord, int origin, int width);
+OIIO_API bool wrap_clamp (int &coord, int origin, int width);
+OIIO_API bool wrap_periodic (int &coord, int origin, int width);
+OIIO_API bool wrap_periodic_pow2 (int &coord, int origin, int width);
+OIIO_API bool wrap_mirror (int &coord, int origin, int width);
+
+// Typedef for the function signature of a wrap implementation.
+typedef bool (*wrap_impl) (int &coord, int origin, int width);
+
+
 // to force correct linkage on some systems
 OIIO_API void _ImageIO_force_link ();
 

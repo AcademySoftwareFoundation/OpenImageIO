@@ -144,10 +144,10 @@ bool paste_ (ImageBuf &dst, int xbegin, int ybegin,
 
     ImageBuf::ConstIterator<T,float> s (src, srcroi.xbegin, srcroi.xend,
                                         srcroi.ybegin, srcroi.yend,
-                                        srcroi.zbegin, srcroi.zend, true);
+                                        srcroi.zbegin, srcroi.zend);
     ImageBuf::Iterator<float,float> d (dst, xbegin, xbegin+srcroi.width(),
                                        ybegin, ybegin+srcroi.height(),
-                                       zbegin, zbegin+srcroi.depth(), true);
+                                       zbegin, zbegin+srcroi.depth());
     int src_nchans = src.nchannels ();
     int dst_nchans = dst.nchannels ();
     for ( ;  ! s.done();  ++s, ++d) {
@@ -527,6 +527,7 @@ mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 {
     if (nthreads == 1 || roi.npixels() < 1000) {
         // For-sure single thread case
+        ImageBuf::Iterator<Rtype> r (R, roi);
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
             for (int c = roi.chbegin;  c < roi.chend;  ++c)
                 r[c] = r[c] * val[c];
@@ -1093,7 +1094,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                     int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                            yclamped, yclamped+1,
-                                                           0, 1, true);
+                                                           0, 1);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
                         if (w == 0.0f)
@@ -1131,7 +1132,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 // Non-separable
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
-                                                       0, 1, true);
+                                                       0, 1);
                 for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = (*filter)(xratio * (i-src_xf_frac),

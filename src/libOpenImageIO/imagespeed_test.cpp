@@ -258,7 +258,7 @@ time_loop_pixels_3D_getchannel (ImageBuf &ib, int iters)
         for (int z = spec.z, ze = spec.z+spec.depth; z < ze; ++z) {
             for (int y = spec.y, ye = spec.y+spec.height; y < ye; ++y) {
                 for (int x = spec.x, xe = spec.x+spec.width; x < xe; ++x) {
-                    sum += ib.getchannel (x, y, 0);
+                    sum += ib.getchannel (x, y, 0, 0);
                 }
             }
         }

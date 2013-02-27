@@ -167,7 +167,11 @@ public:
 
     const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
-                    int &tilexend) const;
+                    int &tilexend, bool exists, ImageBuf::WrapMode wrap) const;
+
+    void do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
+
+    const void *blackpixel () const { return &m_blackpixel[0]; }
 
 private:
     ustring m_name;              ///< Filename of the image
@@ -192,6 +196,7 @@ private:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
+    std::vector<char> m_blackpixel; ///< Pixel-sized zero bytes
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -218,6 +223,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
         m_pixel_bytes = spec->pixel_bytes();
         m_scanline_bytes = spec->scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+        m_blackpixel.resize (m_pixel_bytes, 0);
     }
     if (buffer) {
         ASSERT (spec != NULL);
@@ -248,7 +254,8 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_plane_bytes(src.m_plane_bytes),
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
-      m_deepdata(src.m_deepdata)
+      m_deepdata(src.m_deepdata),
+      m_blackpixel(src.m_blackpixel)
 {
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
@@ -381,6 +388,7 @@ ImageBufImpl::clear ()
     m_scanline_bytes = 0;
     m_plane_bytes = 0;
     m_deepdata.free ();
+    m_blackpixel.clear ();
 }
 
 
@@ -442,6 +450,7 @@ ImageBufImpl::realloc ()
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    m_blackpixel.resize (m_pixel_bytes, 0);
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
 #endif
@@ -517,7 +526,8 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-    
+    m_blackpixel.resize (m_pixel_bytes, 0);
+
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -604,6 +614,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixel_bytes = m_spec.pixel_bytes();
         m_scanline_bytes = m_spec.scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+        m_blackpixel.resize (m_pixel_bytes, 0);
 #ifdef DEBUG
         std::cerr << "read was not necessary -- using cache\n";
 #endif
@@ -1102,122 +1113,120 @@ ImageBuf::copy (const ImageBuf &src)
 
 
 template<typename T>
-static inline float getchannel_ (const ImageBuf &buf, int x, int y, int c)
+static inline float getchannel_ (const ImageBuf &buf, int x, int y, int z,
+                                 int c, ImageBuf::WrapMode wrap)
 {
-    ImageBuf::ConstIterator<T> pixel (buf, x, y);
+    ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
     return pixel[c];
 }
 
 
 
 float
-ImageBuf::getchannel (int x, int y, int c) const
+ImageBuf::getchannel (int x, int y, int z, int c, WrapMode wrap) const
 {
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
-    switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : return getchannel_<float> (*this, x, y, c);
-    case TypeDesc::UINT8 : return getchannel_<unsigned char> (*this, x, y, c);
-    case TypeDesc::INT8  : return getchannel_<char> (*this, x, y, c);
-    case TypeDesc::UINT16: return getchannel_<unsigned short> (*this, x, y, c);
-    case TypeDesc::INT16 : return getchannel_<short> (*this, x, y, c);
-    case TypeDesc::UINT  : return getchannel_<unsigned int> (*this, x, y, c);
-    case TypeDesc::INT   : return getchannel_<int> (*this, x, y, c);
-    case TypeDesc::HALF  : return getchannel_<half> (*this, x, y, c);
-    case TypeDesc::DOUBLE: return getchannel_<double> (*this, x, y, c);
-    case TypeDesc::UINT64: return getchannel_<unsigned long long> (*this, x, y, c);
-    case TypeDesc::INT64 : return getchannel_<long long> (*this, x, y, c);
-    default:
-        ASSERT (0);
-        return 0.0f;
-    }
+    OIIO_DISPATCH_TYPES ("getchannel", getchannel_, spec().format,
+                         *this, x, y, z, c, wrap);
 }
 
 
 
 template<typename T>
-static inline void
-getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans)
+static bool
+getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans,
+           ImageBuf::WrapMode wrap)
 {
-    ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
-    if (pixel.exists()) {
-        for (int i = 0;  i < chans;  ++i)
-            result[i] = pixel[i];
-    } else {
-        for (int i = 0;  i < chans;  ++i)
-            result[i] = 0.0f;
-    }
+    ImageBuf::ConstIterator<T> pixel (buf, x, y, z, wrap);
+    for (int i = 0;  i < chans;  ++i)
+        result[i] = pixel[i];
+    return true;
+}
+
+
+
+inline bool
+getpixel_wrapper (int x, int y, int z, float *pixel, int nchans,
+                  ImageBuf::WrapMode wrap, const ImageBuf &ib)
+{
+    OIIO_DISPATCH_TYPES ("getpixel", getpixel_, ib.spec().format,
+                         ib, x, y, z, pixel, nchans, wrap);
 }
 
 
 
 void
-ImageBuf::getpixel (int x, int y, int z, float *pixel, int maxchannels) const
+ImageBuf::getpixel (int x, int y, int z, float *pixel, int maxchannels,
+                    WrapMode wrap) const
 {
-    int n = std::min (spec().nchannels, maxchannels);
-    switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : getpixel_<float> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT8 : getpixel_<unsigned char> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT8  : getpixel_<char> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT16: getpixel_<unsigned short> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT16 : getpixel_<short> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT  : getpixel_<unsigned int> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT   : getpixel_<int> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::HALF  : getpixel_<half> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT64: getpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT64 : getpixel_<long long> (*this, x, y, z, pixel, n); break;
-    default:
-        ASSERT (0);
-    }
+    int nchans = std::min (spec().nchannels, maxchannels);
+    getpixel_wrapper (x, y, z, pixel, nchans, wrap, *this);
 }
 
 
 
-void
-ImageBuf::interppixel (float x, float y, float *pixel) const
+template <class T>
+static bool
+interppixel_ (const ImageBuf &img, float x, float y, float *pixel,
+              ImageBuf::WrapMode wrap)
 {
-    const int maxchannels = 64;  // Reasonable guess
-    float p[4][maxchannels];
-    DASSERT (spec().nchannels <= maxchannels && 
-             "You need to increase maxchannels in ImageBuf::interppixel");
-    int n = std::min (spec().nchannels, maxchannels);
+    int n = img.spec().nchannels;
+    float *localpixel = ALLOCA (float, n);
+    float *p[4] = { localpixel, localpixel+n, localpixel+2*n, localpixel+3*n };
     x -= 0.5f;
     y -= 0.5f;
     int xtexel, ytexel;
     float xfrac, yfrac;
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
-    // FIXME -- we know that getpixel is the slow way to look up.
-    // We should be using an iterator here.  Maybe also a full shortcut
-    // for the localpixels case.
-    getpixel (xtexel, ytexel, p[0], n);
-    getpixel (xtexel+1, ytexel, p[1], n);
-    getpixel (xtexel, ytexel+1, p[2], n);
-    getpixel (xtexel+1, ytexel+1, p[3], n);
+    ImageBuf::ConstIterator<T> it (img, xtexel, xtexel+2, ytexel, ytexel+2,
+                                   0, 1, wrap);
+    for (int i = 0;  i < 4;  ++i, ++it)
+        for (int c = 0; c < n; ++c)
+            p[i][c] = it[c];
     bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
+    return true;
+}
+
+
+
+inline bool
+interppixel_wrapper (float x, float y, float *pixel,
+                     ImageBuf::WrapMode wrap, const ImageBuf &img)
+{
+    OIIO_DISPATCH_TYPES ("interppixel", interppixel_, img.spec().format,
+                         img, x, y, pixel, wrap);
 }
 
 
 
 void
-ImageBuf::interppixel_NDC (float x, float y, float *pixel) const
+ImageBuf::interppixel (float x, float y, float *pixel, WrapMode wrap) const
+{
+    interppixel_wrapper (x, y, pixel, wrap, *this);
+}
+
+
+
+void
+ImageBuf::interppixel_NDC (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->m_spec);
     interppixel (static_cast<float>(spec.x) + x * static_cast<float>(spec.width),
                  static_cast<float>(spec.y) + y * static_cast<float>(spec.height),
-                 pixel);
+                 pixel, wrap);
 }
 
 
 
 void
-ImageBuf::interppixel_NDC_full (float x, float y, float *pixel) const
+ImageBuf::interppixel_NDC_full (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->m_spec);
     interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
                  static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
-                 pixel);
+                 pixel, wrap);
 }
 
 
@@ -1699,12 +1708,68 @@ ImageBuf::pixeladdr (int x, int y, int z)
 
 
 const void *
+ImageBuf::blackpixel () const
+{
+    return impl()->blackpixel();
+}
+
+
+
+void
+ImageBufImpl::do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const
+{
+    if (wrap == ImageBuf::WrapBlack)
+        return;   // nothing to do
+    if (wrap == ImageBuf::WrapClamp) {
+        x = OIIO::clamp (x, m_spec.x, m_spec.x+m_spec.width-1);
+        y = OIIO::clamp (y, m_spec.y, m_spec.y+m_spec.height-1);
+        z = OIIO::clamp (z, m_spec.z, m_spec.z+m_spec.depth-1);
+        return;
+    }
+    if (wrap == ImageBuf::WrapPeriodic) {
+        wrap_periodic (x, m_spec.x, m_spec.width);
+        wrap_periodic (y, m_spec.y, m_spec.height);
+        wrap_periodic (z, m_spec.z, m_spec.depth);
+        return;
+    }
+    if (wrap == ImageBuf::WrapMirror) {
+        wrap_mirror (x, m_spec.x, m_spec.width);
+        wrap_mirror (y, m_spec.y, m_spec.height);
+        wrap_mirror (z, m_spec.z, m_spec.depth);
+        return;
+    }
+    ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
+}
+
+
+
+void
+ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
+{
+    m_impl->do_wrap (x, y, z, wrap);
+}
+
+
+
+const void *
 ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                       int &tilexbegin, int &tileybegin, int &tilezbegin,
-                      int &tilexend) const
+                      int &tilexend, bool exists,
+                      ImageBuf::WrapMode wrap) const
 {
+    if (! exists) {
+        // Special case -- (x,y,z) describes a location outside the data
+        // window.  Use the wrap mode to possibly give a meaningful data
+        // proxy to point to.
+        do_wrap (x, y, z, wrap);
+        if (wrap == ImageBuf::WrapBlack)
+            return &m_blackpixel; // Black points to a black pixel
+        // We've adjusted x,y,z, now fall through below to get the
+        // right tile
+    }
+
     int tw = m_spec.tile_width, th = m_spec.tile_height;
-    int td = std::max (1, m_spec.tile_depth);
+    int td = m_spec.tile_depth;  DASSERT(m_spec.tile_depth >= 1);
     DASSERT (tile == NULL || tilexend == (tilexbegin+tw));
     if (tile == NULL || x < tilexbegin || x >= tilexend ||
                         y < tileybegin || y >= (tileybegin+th) ||
@@ -1728,6 +1793,7 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
     offset *= m_spec.pixel_bytes();
     DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
                 "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+
     TypeDesc format;
     return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
 }
@@ -1737,10 +1803,11 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
 const void *
 ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin, int &tilezbegin,
-                  int &tilexend) const
+                  int &tilexend, bool exists,
+                  WrapMode wrap) const
 {
     return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
-                           tilexend);
+                           tilexend, exists, wrap);
 }
 
 
