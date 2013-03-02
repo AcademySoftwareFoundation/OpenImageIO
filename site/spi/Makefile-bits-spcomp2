@@ -4,7 +4,9 @@ $(info Including spi/Makefile-bits-spcomp2)
 # READ THIS FIRST
 #
 # If you are building for installation as an SpComp2, make like this:
-# 1) Your must be setshot, for patchelf to be found.
+# 1) On Linux, you must be setshot, for patchelf to be found; on
+#    Mac OS X, no need to be setshot, just make sure SP_OS=lion and
+#    COMPILER=clang.
 # 2) make spcomp2_install_local
 # or 2) make spcomp2_install
 #
@@ -29,8 +31,8 @@ PYLIB_LIB_PREFIX ?= 1
 PYLIB_INCLUDE_SONAME ?= 1
 
 OCIO_VERSION ?= 2
-OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v${OCIO_VERSION}
-OIIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${platform}-${COMPILER}/v${OPENIMAGEIO_SPCOMP2_VERSION}
+OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${COMPILER}/v${OCIO_VERSION}
+OIIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${COMPILER}/v${OPENIMAGEIO_SPCOMP2_VERSION}
 
 SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib
 SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
@@ -39,8 +41,7 @@ PYSPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${OIIO_PATH}/lib
 PYSPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${OIIO_PATH}/lib/debug
 
 ## Spinux (current)
-ifeq ($(SP_ARCH), spinux1_x86_64)
-    platform=spinux1
+ifeq ($(SP_OS), spinux1)
     COMPILER=gcc44m64
     PYVER=2.6
     PYVERNOSPACE=26
@@ -55,18 +56,53 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
      -DOPENEXR_CUSTOM=1 \
      -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
     MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
+else ifeq ($(SP_OS), lion)
+    COMPILER=clang
+    PYVER=2.7
+    PYVERNOSPACE=27
+    MACPORTS_PREFIX=/opt/local-10.7-2012-08
+
+    # CMAKE_CXX_COMPILER:
+    #   otherwise g++ is used and SPI standardized on clang.
+    # CMAKE_INSTALL_NAME_DIR:
+    #   without libraries and applications linking against this
+    #   library will not be able to find it at run time; prepends
+    #   "@rpath/" to the internal ID
+    # OPENJPEG_HOME:
+    #   Setting THIRD_PARTY_TOOLS_HOME isn't sufficient
+    # OVERRIDE_SHARED_LIBRARY_SUFFIX:
+    #   Set to .so so that shared libraries end in .so to be consistent
+    #   with Linux SpComp2 shared libraries
+    # PYTHON_EXECUTABLE:
+    # PYTHON_INCLUDE_DIR:
+    # PYTHON_LIBRARY:
+    #   Use MacPorts' Python
+    # THIRD_PARTY_TOOLS_HOME:
+    #   Find everything in SPI's MacPorts.
+    # ZLIB_ROOT:
+    #   Needed to use SPI's MacPorts' zlib.
+    MY_CMAKE_FLAGS += \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+      -DCMAKE_INSTALL_NAME_DIR=@rpath \
+      -DOCIO_PATH="${OCIO_PATH}" \
+      -DOPENJPEG_HOME=${MACPORTS_PREFIX} \
+      -DOVERRIDE_SHARED_LIBRARY_SUFFIX=.so \
+      -DPYTHON_EXECUTABLE=${MACPORTS_PREFIX}/bin/python${PYVER} \
+      -DPYTHON_INCLUDE_DIR=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Headers \
+      -DPYTHON_LIBRARY=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
+      -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
+      -DZLIB_ROOT=${MACPORTS_PREFIX}
 else
 # Not sure how to obtain the correct GCC version but this returns the
 # version of GCC in the path.
 #GCC_VERSION=`gcc --version | grep 'gcc' | awk '{print $3}' | sed 's/\.//g'`
-echo "Unknown SP_OS."
-exit 1
+$(error Unknown SP_OS)
 fi
-endif  # endif spinux1_x86_64
+endif  # endif $(SP_OS)
 
 
-SPARCH=$(ARCHITECTURE)-$(COMPILER)
-SPPYARCH=$(ARCHITECTURE)-$(COMPILER)-py$(PYVERNOSPACE)
+SPARCH=$(SP_OS)-$(COMPILER)
+SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
 
 all: dist
 
@@ -76,8 +112,8 @@ comma:= ,
 empty:=
 space:= $(empty) $(empty)
 
-INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(ARCHITECTURE)
-INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
+INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(SP_OS)
+INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
 spcomp2_install_local: INSTALL_SPCOMP2_LOCATION = $(SPCOMP2_LOCAL_PATH)
 spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
@@ -87,7 +123,7 @@ local: dist
 
 spcomp2: MY_CMAKE_FLAGS += \
 		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
-		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
+		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
 		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
 		-DPYLIB_INCLUDE_SONAME:BOOL=ON \
 		-DPYLIB_LIB_PREFIX:BOOL=ON
@@ -96,18 +132,35 @@ spcomp2: dist
 
 spcomp2_debug: MY_CMAKE_FLAGS += \
 		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
-		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
+		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
 		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
 		-DPYLIB_INCLUDE_SONAME:BOOL=ON \
 		-DPYLIB_LIB_PREFIX:BOOL=ON
 
 spcomp2_debug: debug
 
-# This goal can't start with 'install' because something elsewhere picks
-# it up and starts doing bad things
-spcomp2_install: spcomp2 spcomp2_debug 
+spcomp2_install_fixup_lion: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
+
+	install_name_tool \
+	-add_rpath ${OCIO_PATH}/lib \
+	${dist_dir}/python/libPyOpenImageIO.so
+
+	install_name_tool \
+	-add_rpath ${OIIO_PATH}/lib \
+	${dist_dir}/python/libPyOpenImageIO.so
+
+	install_name_tool \
+	-add_rpath ${OCIO_PATH}/lib/debug \
+	${dist_dir}.debug/python/libPyOpenImageIO.so
+
+	install_name_tool \
+	-add_rpath ${OIIO_PATH}/lib/debug \
+	${dist_dir}.debug/python/libPyOpenImageIO.so
 	
+spcomp2_install_fixup_spinux1: spcomp2 spcomp2_debug
+	echo $(INSTALL_SPCOMP2_LOCATION)
+
 	patchelf \
 	--set-rpath $(SPCOMP2_RPATH_OPT) \
 	${dist_dir}/lib/libOpenImageIO.so
@@ -124,6 +177,9 @@ spcomp2_install: spcomp2 spcomp2_debug
 	--set-rpath $(PYSPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/python/libPyOpenImageIO.so
 	
+# This goal can't start with 'install' because something elsewhere picks
+# it up and starts doing bad things
+spcomp2_install: spcomp2_install_fixup_$(SP_OS)
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=OpenImageIO \
 	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \

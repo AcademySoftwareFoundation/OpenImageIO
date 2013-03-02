@@ -10,15 +10,14 @@ $(info Including spi/Makefile-bits-arnold)
 NAMESPACE ?= 'OpenImageIO_Arnold'
 
 ## OS X machines
-ifeq (${platform}, macosx)
+ifeq (${SP_OS}, lion)
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${SP_OS}${variant}/lib"
 endif
 
 ## Spinux (current)
-ifeq ($(SP_ARCH), spinux1_x86_64)
-    platform=spinux1
+ifeq ($(SP_OS), spinux1)
     SPCOMP2_COMPILER=gcc44m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
@@ -27,10 +26,10 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
     SPINUX_GL_LIB = /usr/lib64/xorg.nvidia.3d/libGL.so
     MY_CMAKE_FLAGS += $(if $(wildcard ${SPINUX_GL_LIB}), -DOPENGL_gl_LIBRARY=${SPINUX_GL_LIB})
     ifeq (${OCIO_PATH},)
-        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${SPCOMP2_COMPILER}/v2"
+        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
     ifeq (${FIELD3D_HOME},)
-        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${platform}-${SPCOMP2_COMPILER}/v227"
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}/v227"
     endif
 
     ## custom compiler: clang
@@ -66,7 +65,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	  -DHDF5_LIBRARY_DIRS=/usr/lib64
-endif  # endif spinux1_x86_64
+endif  # endif spinux1
 
 
 
