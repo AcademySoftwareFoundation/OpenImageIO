@@ -271,6 +271,16 @@ set_target_properties(OpenImageIO
                          SOVERSION ${SOVERSION}
                      )
 
+# For consistency with the linux SpComp2s, create Mac OS X SpComp2s
+# with a .so suffix instead of a .dylib suffix.
+if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+  message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
+  set_target_properties(OpenImageIO
+                           PROPERTIES
+                           SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
+                       )
+endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+
 oiio_install_targets (OpenImageIO)
 
 
