@@ -274,7 +274,6 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
     for (int y = y0;  y < y1;  ++y) {
         float t = (y+0.5f)*yscale + yoffset;
         for (int x = x0;  x < x1;  ++x, ++d) {
-//            d.pos (x, y);
             float s = (x+0.5f)*xscale + xoffset;
             if (src_is_crop)
                 src.interppixel_NDC_full (s, t, pel);
