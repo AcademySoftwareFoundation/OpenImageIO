@@ -1131,6 +1131,7 @@
 					"USE_TBB=0",
 					"$(inherited)",
 				);
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
 					OpenEXR,
 					.,
@@ -1164,6 +1165,7 @@
 					"EMBED_PLUGINS=1",
 					"USE_TBB=0",
 				);
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
 					OpenEXR,
 					.,
