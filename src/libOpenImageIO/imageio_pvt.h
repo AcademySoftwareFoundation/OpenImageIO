@@ -97,7 +97,7 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 int quant_min, int quant_max,
                                 TypeDesc format);
 
-};  // namespace pvt
+}  // namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

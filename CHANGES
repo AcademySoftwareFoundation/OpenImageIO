@@ -4,12 +4,120 @@ Changes:
 Release 1.2 (in progress -- compared to 1.1.x)
 ----------------------------------------------
 Major new features and improvements:
+* Significant performance improvements when reading images with ImageBuf,
+  as well as with with ImageCache::get_pixels.  This also translates to
+  improved performance and memory use for oiiotool and maketx.
+* Significant performance improvements when using ImageBuf::Iterator
+  or ConstIterator to traverse the pixels in an ImageBuf.
+
 API changes:
+* ImageBuf has been changed to a "PIMPL" idiom, wherein all the
+  internals are no longer exposed in the public API.  This allows us to
+  change ImageBuf internals in the future without breaking API or link
+  compatibility (and thus giving us more freedom to backport important
+  improvements to prior releases).
+* ImageBufAlgo::make_texture() allows you to do the same thing that
+  maketx does, but from inside an application and without launching a
+  shell invocation of maketx.
+
 Fixes, minor enhancements, and performance improvements:
+
 Build/test system improvements:
+* Many fixes to improve builds and eliminate warnings on Windows and MinGW.
+* Fix missing InterlockedExchangeAdd64 for Windows XP.
+* New make/cmake boags: OIIO_BUILD_TOOLS=0 will exclude building of the
+  command line tools (just build libraries), OIIO_BUILD_TESTS=0 will
+  exclude building of unit test binaries.
+
 Developer goodies:
+* Unit tests for Timer class.
+* libOpenImageio/imagespeed_test benchmarks various methods of reading
+  and writing files and iterating image pixels (to help us know what to
+  optimize).
 
 
+
+Release 1.1.6 (11 Feb 2013)
+---------------------------
+* Fix bug that could generate NaNs or other bad values near the poles of
+  very blurry environment lookups specifically from OpenEXR latlong env maps.
+* Fix bug in oiiotool --crop where it could mis-parse the geometric parameter.
+* Fix bug in ImageCache::invalidate() where it did not properly delete the
+  fingerprint of an invalidated file.
+* Cleanup and fixes in the oiiotool command line help messages.
+* New function ImageBufAlgo::paste() copies a region from one IB to another.
+* oiiotool --fit resizes an image to fit into a given resolution (keeping the
+  original aspect ratio and padding with black if needed).
+* ImageBufAlgo::channels() and "oiiotool --ch" have been extended to allow
+  new channels (specified to be filled with numeric constants) to also be
+  named.
+* New function ImageBufAlgo::mul() and "oiiotool --cmul" let you multiply
+  an image by a scalar constant (or per-channel constant).
+* Important maketx bug fix: when creating latlong environment maps as 
+  OpenEXR files, it was adding energy near the poles, making low-res
+  MIP levels too bright near the poles.
+* Fix to "oiiotool --text" and "oiiotool --fill" -- both were
+  incorrectly making the base image black rather than drawing overtop of
+  the previous image.
+* Fix FreeBSD compile when not using TBB.
+* New oiiotool --swap exchanges the top two items on the image stack.
+
+
+Release 1.1.5 (29 Jan 2013)
+---------------------------
+* Bug fix in ImageBufAlgo::parallel_image utility template -- care when
+  not enough work chunks to dole out to all the threads (was previously
+  sending work to threads with nonsensical ROI's, now we just stop when
+  all the regions have been doled out).
+* Additional optional argument to IBA::zover that, when nonzero, will
+  treat z=0 pixels as infinitely far away, not super close.  You can turn
+  this on from oiiotool with:  oiiotool --zover:zeroisinf=1 ...
+
+Release 1.1.4 (27 Jan 2013)
+---------------------------
+* ImageBufAlgo::make_texture() allows you to do the same thing that
+  maketx does, but from inside an application and without launching a
+  shell invocation of maketx.
+* oiiotool now recognizes --metamatch and --nometamatch arguments which
+  cause metadata names matching (or only info NOT matching) the given
+  regular expression to be printed with --info.
+* oiiotool --zover does z (depth) composites (it's like a regular "over",
+  but uses the z depth at each pixel to determine which of the two images
+  is the foreground and which is the background).
+* ImageBufAlgo::zover() performs z compositing (same as oiiotool --zover).
+* ImageBufAlgo::fixNonFinite didn't work properly with 'half' image buffers.
+* Performance improvements when reading and writing images.
+* Fix error when writing tiled 'float' TIFF images, corrupted output.
+  (Could easily happen when using 'maketx' to convert float images into
+  TIFF textures.)
+* Eliminate warnings when compiling with Clang 3.2.
+* New CMake variable "USE_EXTERNAL_TBB" can optionally be set to force use
+  of an external TBB library rather than the embedded one.
+* Additional testsuite tests (doesn't affect users, but makes bugs easier
+  to catch).
+* Fix build problem with SHA1.cpp on some platforms.
+
+Release 1.1.3 (9 Jan 2013)
+---------------------------
+* Build fix: incorrectly named OpenEXR 2.x files.
+* Bug fix in oiiotool --croptofull on OSX
+* Build fixes for MinGW on Windows.
+* maketx --fullpixels option ignores any origin or display window in the
+  source image, pretending the pixel data is the entire 0-1 image range
+  starting at the origin (useful when the source image is created by an
+  application that incorrectly writes it out as if it were a crop window).
+* maketx no longer will clobber existing ImageDescription metadata
+  when it adds SHA-1 hash or other info as it creates the texture.
+* Many additional Exif and IPTC tags are correctly recognized.
+* maketx and oiiotool recognize and take advantage of IPTC:ImageHistory
+  metadata.
+
+Release 1.1.2 (5 Dec 2012)
+--------------------------
+* maketx fixes -- was botching creation of textures from source images that
+  were crop windows (pixel window smaller than display window).
+* Minor bug fix to Timer when repeatedly starting and restopping (Apple only).
+* Bug fix in ustring:find_last_not_of.
 
 Release 1.1.1 (16 Nov 2012)
 ---------------------------

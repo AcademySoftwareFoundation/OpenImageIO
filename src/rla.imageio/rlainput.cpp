@@ -296,6 +296,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_spec.full_y = m_spec.full_height - m_rla.WindowTop - 1;
 
     // set channel formats and stride
+    int z_channel = -1;
     m_stride = 0;
     TypeDesc t = get_channel_typedesc (m_rla.ColorChannelType, m_rla.NumOfChannelBits);
     for (int i = 0; i < m_rla.NumOfColorChannels; ++i)
@@ -306,8 +307,13 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.channelformats.push_back (t);
     m_stride += m_rla.NumOfMatteChannels * t.size ();
     t = get_channel_typedesc (m_rla.AuxChannelType, m_rla.NumOfAuxBits);
-    for (int i = 0; i < m_rla.NumOfAuxChannels; ++i)
+    for (int i = 0; i < m_rla.NumOfAuxChannels; ++i) {
         m_spec.channelformats.push_back (t);
+        // assume first float aux or 32 bit int channel is z
+        if (z_channel < 0 && (t == TypeDesc::FLOAT || t == TypeDesc::INT32 ||
+                              t == TypeDesc::UINT32))
+            z_channel = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels;
+    }
     m_stride += m_rla.NumOfAuxChannels * t.size ();
 
     // But if all channels turned out the same, just use 'format' and don't
@@ -324,6 +330,11 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     // make a guess at channel names for the time being
     m_spec.default_channel_names ();
+    if (z_channel >= 0) {
+        m_spec.z_channel = z_channel;
+        m_spec.channelnames[z_channel] = "Z";
+    }
+
     // this is always true
     m_spec.attribute ("compression", "rle");
     

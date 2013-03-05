@@ -45,7 +45,7 @@ public:
                                float time) const = 0;
 };
 
-}; // end namespace pvt
+} // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

@@ -228,10 +228,6 @@ pvt::contiguize (const void *src, int nchannels,
         return _contiguize ((const float *)src, nchannels, 
                             xstride, ystride, zstride,
                             (float *)dst, width, height, depth);
-    case TypeDesc::DOUBLE :
-        return _contiguize ((const double *)src, nchannels, 
-                            xstride, ystride, zstride,
-                            (double *)dst, width, height, depth);
     case TypeDesc::INT8:
     case TypeDesc::UINT8 :
         return _contiguize ((const char *)src, nchannels, 
@@ -254,6 +250,10 @@ pvt::contiguize (const void *src, int nchannels,
         return _contiguize ((const long long *)src, nchannels, 
                             xstride, ystride, zstride,
                             (long long *)dst, width, height, depth);
+    case TypeDesc::DOUBLE :
+        return _contiguize ((const double *)src, nchannels, 
+                            xstride, ystride, zstride,
+                            (double *)dst, width, height, depth);
     default:
         ASSERT (0 && "OpenImageIO::contiguize : bad format");
         return NULL;
@@ -269,23 +269,20 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
     switch (format.basetype) {
     case TypeDesc::FLOAT :
         return (float *)src;
+    case TypeDesc::UINT8 :
+        convert_type ((const unsigned char *)src, dst, nvals);
+        break;
     case TypeDesc::HALF :
         convert_type ((const half *)src, dst, nvals);
         break;
-    case TypeDesc::DOUBLE :
-        convert_type ((const double *)src, dst, nvals);
+    case TypeDesc::UINT16 :
+        convert_type ((const unsigned short *)src, dst, nvals);
         break;
     case TypeDesc::INT8:
         convert_type ((const char *)src, dst, nvals);
         break;
-    case TypeDesc::UINT8 :
-        convert_type ((const unsigned char *)src, dst, nvals);
-        break;
     case TypeDesc::INT16 :
         convert_type ((const short *)src, dst, nvals);
-        break;
-    case TypeDesc::UINT16 :
-        convert_type ((const unsigned short *)src, dst, nvals);
         break;
     case TypeDesc::INT :
         convert_type ((const int *)src, dst, nvals);
@@ -298,6 +295,9 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
         break;
     case TypeDesc::UINT64 :
         convert_type ((const unsigned long long *)src, dst, nvals);
+        break;
+    case TypeDesc::DOUBLE :
+        convert_type ((const double *)src, dst, nvals);
         break;
     default:
         ASSERT (0 && "ERROR to_float: bad format");
@@ -400,8 +400,7 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 
 bool
 convert_types (TypeDesc src_type, const void *src, 
-               TypeDesc dst_type, void *dst, int n,
-               int alpha_channel, int z_channel)
+               TypeDesc dst_type, void *dst, int n)
 {
     // If no conversion is necessary, just memcpy
     if ((src_type == dst_type || dst_type.basetype == TypeDesc::UNKNOWN)) {
@@ -409,39 +408,29 @@ convert_types (TypeDesc src_type, const void *src,
         return true;
     }
 
-    // Conversions are via a temporary float array
-    bool use_tmp = false;
-    boost::scoped_array<float> tmp;
-    float *buf;
-    if (src_type == TypeDesc::FLOAT) {
-        buf = (float *) src;
-    } else {
-        tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
-        buf = tmp.get();
-        use_tmp = true;
+    if (dst_type == TypeDesc::TypeFloat) {
+        // Special case -- converting non-float to float
+        pvt::convert_to_float (src, (float *)dst, n, src_type);
+        return true;
     }
 
-    if (use_tmp) {
-        // Convert from 'src_type' to float (or nothing, if already float)
-        switch (src_type.basetype) {
-        case TypeDesc::UINT8 : convert_type ((const unsigned char *)src, buf, n); break;
-        case TypeDesc::UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
-        case TypeDesc::FLOAT : convert_type ((const float *)src, buf, n); break;
-        case TypeDesc::HALF :  convert_type ((const half *)src, buf, n); break;
-        case TypeDesc::DOUBLE : convert_type ((const double *)src, buf, n); break;
-        case TypeDesc::INT8 :  convert_type ((const char *)src, buf, n);  break;
-        case TypeDesc::INT16 : convert_type ((const short *)src, buf, n); break;
-        case TypeDesc::INT :   convert_type ((const int *)src, buf, n); break;
-        case TypeDesc::UINT :  convert_type ((const unsigned int *)src, buf, n);  break;
-        case TypeDesc::INT64 : convert_type ((const long long *)src, buf, n); break;
-        case TypeDesc::UINT64 : convert_type ((const unsigned long long *)src, buf, n);  break;
-        default:         return false;  // unknown format
+    // Conversion is to a non-float type
+
+    boost::scoped_array<float> tmp;   // In case we need a lot of temp space
+    float *buf = (float *)src;
+    if (src_type != TypeDesc::TypeFloat) {
+        // If src is also not float, convert through an intermediate buffer
+        if (n <= 4096)  // If < 16k, use the stack
+            buf = ALLOCA (float, n);
+        else {
+            tmp.reset (new float[n]);  // Freed when tmp exists its scope
+            buf = tmp.get();
         }
+        pvt::convert_to_float (src, buf, n, src_type);
     }
 
-    // Convert float to 'dst_type' (just a copy if dst is float)
+    // Convert float to 'dst_type'
     switch (dst_type.basetype) {
-    case TypeDesc::FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
     case TypeDesc::UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
     case TypeDesc::UINT16 : convert_type (buf, (unsigned short *)dst, n); break;
     case TypeDesc::HALF :   convert_type (buf, (half *)dst, n);   break;
@@ -456,6 +445,17 @@ convert_types (TypeDesc src_type, const void *src,
     }
 
     return true;
+}
+
+
+
+// Deprecated version -- keep for link compatibiity
+bool
+convert_types (TypeDesc src_type, const void *src, 
+               TypeDesc dst_type, void *dst, int n,
+               int alpha_channel, int z_channel)
+{
+    return convert_types (src_type, src, dst_type, dst, n);
 }
 
 
@@ -615,6 +615,69 @@ DeepData::free ()
     std::vector<void *>().swap (pointers);
     std::vector<char>().swap (data);
 }
+
+
+
+bool
+wrap_black (int &coord, int origin, int width)
+{
+    return (coord >= origin && coord < (width+origin));
+}
+
+
+bool
+wrap_clamp (int &coord, int origin, int width)
+{
+    if (coord < origin)
+        coord = origin;
+    else if (coord >= origin+width)
+        coord = origin+width-1;
+    return true;
+}
+
+
+bool
+wrap_periodic (int &coord, int origin, int width)
+{
+    coord -= origin;
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    coord += origin;
+    return true;
+}
+
+
+bool
+wrap_periodic_pow2 (int &coord, int origin, int width)
+{
+    DASSERT (ispow2(width));
+    coord -= origin;
+    coord &= (width - 1); // Shortcut periodic if we're sure it's a pow of 2
+    coord += origin;
+    return true;
+}
+
+
+bool
+wrap_mirror (int &coord, int origin, int width)
+{
+    coord -= origin;
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    coord += origin;
+    return true;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

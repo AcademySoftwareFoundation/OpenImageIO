@@ -45,6 +45,8 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
+#include <boost/scoped_array.hpp>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -495,7 +497,7 @@ ImageOutput::copy_image (ImageInput *in)
     // a time, to minimize mem footprint.
     bool native = supports("channelformats") && inspec.channelformats.size();
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
-    std::vector<char> pixels (inspec.image_bytes(native));
+    boost::scoped_array<char> pixels (new char [inspec.image_bytes(native)]);
     bool ok = in->read_image (format, &pixels[0]);
     if (ok)
         ok = write_image (format, &pixels[0]);

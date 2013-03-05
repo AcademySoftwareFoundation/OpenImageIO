@@ -165,7 +165,7 @@ namespace RLA_pvt {
         CT_FLOAT = 4
     };
 
-};  // namespace RLA_pvt
+}  // namespace RLA_pvt
 
 
 

@@ -86,18 +86,8 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
             if (writable || img.pixels_modified() || !copy_pixels) {
                 // Make our own copy of the pixels
                 ib = new ImageBuf (img.name(), srcspec);
-                if (copy_pixels) {
-                    ImageBuf::ConstIterator<float> src (srcib);
-                    ASSERT (src.rawptr());
-                    ImageBuf::Iterator<float> dst (*ib);
-                    int nchans = ib->nchannels();
-                    while (! src.done()) {
-                        for (int c = 0;  c < nchans;  ++c)
-                            dst[c] = src[c];
-                        ++src;
-                        ++dst;
-                    }
-                }
+                if (copy_pixels)
+                    ib->copy_pixels (srcib);
             } else {
                 // The other image is not modified, and we don't need to be
                 // writable, either.

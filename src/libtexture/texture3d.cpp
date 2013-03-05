@@ -65,7 +65,7 @@ static EightBitConverter<float> uchar2float;
 static ustring s_field3d ("field3d");
 
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 namespace pvt {   // namespace pvt
 
@@ -141,19 +141,19 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     if (options.swrap == TextureOpt::WrapDefault)
         options.swrap = texturefile->swrap();
     if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic2;
+        options.swrap_func = wrap_periodic_pow2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOpt::WrapDefault)
         options.twrap = texturefile->twrap();
     if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic2;
+        options.twrap_func = wrap_periodic_pow2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
     if (options.rwrap == TextureOpt::WrapDefault)
         options.rwrap = texturefile->rwrap();
     if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
-        options.rwrap_func = wrap_periodic2;
+        options.rwrap_func = wrap_periodic_pow2;
     else
         options.rwrap_func = wrap_functions[(int)options.rwrap];
 
@@ -186,10 +186,7 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
     if (actualchannels < options.nchannels)
-        fill_channels (spec, options, result);
-    return ok;
-
-
+        fill_gray_channels (spec, options, result);
     return ok;
 }
 
@@ -226,14 +223,19 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
     float* dresultdr = options.dresultdr;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-        if (dresultdr) dresultdr[c] = 0;
+    if (dresultds) {
+        DASSERT (dresultdt && dresultdr);
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdr[c] = 0;
     }
     // If the user only provided us with one pointer, clear all to simplify
     // the rest of the code, but only after we zero out the data for them so
@@ -328,6 +330,14 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
         const float *texel = tile->data() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
+    }
+
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
     }
     return true;
 }
@@ -547,12 +557,24 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
         }
     }
 
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = trilerp (1.0f*(rvalid[0]*tvalid[0]*svalid[0]), 1.0f*(rvalid[0]*tvalid[0]*svalid[1]),
+                           1.0f*(rvalid[0]*tvalid[1]*svalid[0]), 1.0f*(rvalid[0]*tvalid[1]*svalid[1]),
+                           1.0f*(rvalid[1]*tvalid[0]*svalid[0]), 1.0f*(rvalid[1]*tvalid[0]*svalid[1]),
+                           1.0f*(rvalid[1]*tvalid[1]*svalid[0]), 1.0f*(rvalid[1]*tvalid[1]*svalid[1]),
+                           sfrac, tfrac, rfrac);
+        f *= weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
+    }
     return true;
 }
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

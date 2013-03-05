@@ -189,15 +189,39 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 \begin{code}
     oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
     oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
+    oiiotool in.exr --attrib "FStop" 22.0 -o out.exr
 \end{code}
 
 
+\subsection*{Scale the values in an image}
+
+Reduce the brightness of the R, G, and B channels by 10%%,
+but leave the A channel at its original value:
+
+\begin{code}
+    oiiotool original.exr --cmul 0.9,0.9,0.9,1.0 -o out.exr
+\end{code}
+
 \subsection*{Resize an image}
+
+Resize by a known scale factor:
 
 \begin{code}
     oiiotool original.tif --resize 200% -o big.tif
     oiiotool original.tif --resize 25% -o small.tif
+\end{code}
+
+\noindent Resize to a specific resolution:
+
+\begin{code}
     oiiotool original.tif --resize 1024x768 -o specific.tif
+\end{code}
+
+\noindent Resize to fit into a given resolution, keeping the original
+aspect ratio and padding with black where necessary:
+
+\begin{code}
+    oiiotool original.tif --fit 640x480 -o fit.tif
 \end{code}
 
 
@@ -253,6 +277,12 @@ image, and add an alpha channel that is 1 everywhere:
     oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,=1 -o spec.exr
 \end{code}
 
+\noindent Add a channel to an RGBA image, setting it to 3.0 everywhere,
+and naming it ``Z'' so it will be recognized as a $z$ channel:
+\begin{code}
+    oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+\end{code}
+
 
 
 \newpage
@@ -283,6 +313,18 @@ Prints information about each input image as it is read.  If verbose mode
 is turned on ({\cf -v}), all the metadata for the image is printed.
 If verbose mode is not turned on, only the resolution and data format
 are printed.
+\apiend
+
+\apiitem{--metamatch \emph{regex} \\
+--no-metamatch \emph{regex}}
+\NEW
+Regular expressions to restrict which metadata are output when using
+{\cf oiiotool --info -v}.  The {\cf --metamatch} expression causes only
+metadata whose name matches to print; non-matches are not output.  The
+{\cf --no-metamatch} expression causes metadata whose name matches to be
+suppressed; others (non-matches) are printed.  It is not advised to use
+both of these options at the same time (probably nothing bad will
+happen, but it's hard to reason about the behavior in that case).
 \apiend
 
 \apiitem{--stats}
@@ -578,14 +620,19 @@ Note that this results in both the current and the next image
 on the stack being identical copies.
 \apiend
 
+\apiitem{--swap}
+\NEW
+Swap the current image and the next one on the stack.
+\apiend
+
 \apiitem{--ch {\rm \emph{channellist}}}
 Replaces the top image with a new copy whose channels have been 
 reordered as given by the \emph{channellist}.  The {\cf channellist}
 is a comma-separated list of channel names and/or numbers (e.g., 
-\qkw{R,G,B}, \emph{A}, \emph{B,G,R}, \emph{4,5,6,A}).  Channel numbers outside
+\qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
 the valid range of input channels, or unknown names, will be replaced
 by black channels.
-A channel designation beginning with the {\cf =} character and followed
+\NEW A channel designation beginning with the {\cf =} character and followed
 by a number is a \emph{literal value} that will be used to fill that
 channel.  If the \emph{channellist} is shorter than the number of
 channels in the source image, unspecified channels will be omitted.
@@ -708,10 +755,43 @@ Replace the current image with a new image that has each pixel
 consisting of the \emph{absolute value} of he old pixel value.
 \apiend
 
+\apiitem{--cmul {\rm \emph{value}} \\
+--cmul {\rm \emph{value0,value1,value2...}}}
+\NEW
+Multiply all the pixel values in the top image by a constant value.
+If a single constant value is given, all color channels will have their values
+multiplied by the same value.  Alternatively, a series of
+comma-separated constant values (with no spaces!) may be used to specifiy a
+different multiplier for each channel in the image, respectively.
+\apiend
+
 \apiitem{--over}
+\index{composite}
 Replace the \emph{two} top images with a new image that is the
-Porter/Duff ``over'' composite of the first image over the second
-image.
+Porter/Duff ``over'' composite with the first image as the foreground
+and the second image as the background.
+Both input images must have the same number and order of channels
+and must contain an alpha channel.
+\apiend
+
+\apiitem{--zover}
+\index{depth composite}
+\NEW
+Replace the \emph{two} top images with a new image that is a \emph{depth
+composite} of the two images -- the operation is the 
+Porter/Duff ``over'' composite, but each pixel individually will choose
+which of the two images is the foreground and which background, depending on
+the ``Z'' channel values for that pixel (larger Z means farther away).
+Both input images must have the same number and order of channels
+and must contain both depth/Z and alpha channels. Optional appended arguments
+include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf zeroisinf=}\emph{num} & If nonzero, indicates that $z=0$ pixels
+  should be treated as if they were infinitely far away. (The default is
+  0, meaning that ``zero means zero.'').
+\end{tabular}
+
 \apiend
 
 \apiitem{--flip}
@@ -756,7 +836,7 @@ the full/display window.
 
 \apiitem{--resize {\rm \emph{size}}}
 Replace the current image with a new image that is resized to the 
-given pixel data resolution.  The size is in the form 
+given pixel data resolution.  The \emph{size} is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 
@@ -771,11 +851,29 @@ decreasing resolution. \\
 \noindent Examples: 
 
 \begin{tabular}{p{2in} p{4in}}
-    {\cf --resize 1024x768}  &     new resolution w=100, h=120, offset x=35, y=40 \\
+    {\cf --resize 1024x768}  &     new resolution w=100, h=120 \\
     {\cf --resize 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
     {\cf --resize 300{\verb|%|}}  & increase resolution by 3x
 \end{tabular}
 
+\apiend
+
+\apiitem{--fit {\rm \emph{size}}}
+\NEW
+Replace the current image with a new image that is resized to fit
+into the given pixel data resolution, keeping the original aspect ratio
+and padding with black pixels if the requested image size does not
+have the same aspect ratio.  The \emph{size} is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+\\ or~~~~ \spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xorigin}{\cf [+-]}\emph{yorigin} \\
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf filter=}\emph{name} & Filter name. The default is {\cf
+  blackman-harris} when increasing resolution, {\cf lanczos3} when
+decreasing resolution. \\
+\end{tabular}
 \apiend
 
 \apiitem{--fixnan {\rm \emph{streategy}}}

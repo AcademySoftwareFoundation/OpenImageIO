@@ -61,6 +61,9 @@
 #include FT_FREETYPE_H
 #endif
 
+#ifdef USE_OPENSSL
+#include <openssl/sha.h>
+#endif
 
 
 OIIO_NAMESPACE_ENTER
@@ -70,7 +73,7 @@ namespace
 {
 
 template<typename T>
-static inline void
+static inline bool
 fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
 {
     int chbegin = roi.chbegin;
@@ -78,6 +81,7 @@ fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
         for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
             p[c] = values[i];
+    return true;
 }
 
 }
@@ -86,23 +90,7 @@ bool
 ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
 {
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
-    switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT : fill_<float> (dst, pixel, roi); break;
-    case TypeDesc::UINT8 : fill_<unsigned char> (dst, pixel, roi); break;
-    case TypeDesc::UINT16: fill_<unsigned short> (dst, pixel, roi); break;
-    case TypeDesc::HALF  : fill_<half> (dst, pixel, roi); break;
-    case TypeDesc::INT8  : fill_<char> (dst, pixel, roi); break;
-    case TypeDesc::INT16 : fill_<short> (dst, pixel, roi); break;
-    case TypeDesc::UINT  : fill_<unsigned int> (dst, pixel, roi); break;
-    case TypeDesc::INT   : fill_<int> (dst, pixel, roi); break;
-    case TypeDesc::UINT64: fill_<unsigned long long> (dst, pixel, roi); break;
-    case TypeDesc::INT64 : fill_<long long> (dst, pixel, roi); break;
-    case TypeDesc::DOUBLE: fill_<double> (dst, pixel, roi); break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
-        return false;
-    }
-    
+    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format, dst, pixel, roi);
     return true;
 }
 
@@ -144,6 +132,84 @@ ImageBufAlgo::checker (ImageBuf &dst,
 namespace {
 
 template<class T>
+bool paste_ (ImageBuf &dst, int xbegin, int ybegin,
+             int zbegin, int chbegin,
+             const ImageBuf &src, ROI srcroi)
+{
+    const ImageSpec &dstspec (dst.spec());
+    if (dstspec.format.basetype != TypeDesc::FLOAT) {
+        dst.error ("paste: only 'float' destination images are supported");
+        return false;
+    }
+
+    ImageBuf::ConstIterator<T,float> s (src, srcroi.xbegin, srcroi.xend,
+                                        srcroi.ybegin, srcroi.yend,
+                                        srcroi.zbegin, srcroi.zend);
+    ImageBuf::Iterator<float,float> d (dst, xbegin, xbegin+srcroi.width(),
+                                       ybegin, ybegin+srcroi.height(),
+                                       zbegin, zbegin+srcroi.depth());
+    int src_nchans = src.nchannels ();
+    int dst_nchans = dst.nchannels ();
+    for ( ;  ! s.done();  ++s, ++d) {
+        if (! d.exists())
+            continue;  // Skip paste-into pixels that don't overlap dst's data
+        if (s.exists()) {
+            for (int c = srcroi.chbegin, c_dst = chbegin;
+                   c < srcroi.chend;  ++c, ++c_dst) {
+                if (c_dst >= 0 && c_dst < dst_nchans)
+                    d[c_dst] = c < src_nchans ? s[c] : 0.0f;
+            }
+        } else {
+            // Copying from outside src's data -- black
+            for (int c = srcroi.chbegin, c_dst = chbegin;
+                   c < srcroi.chend;  ++c, ++c_dst) {
+                if (c_dst >= 0 && c_dst < dst_nchans)
+                    d[c_dst] = 0.0f;
+            }
+        }
+    }
+    return true;
+}
+
+}  // anon namespace
+
+
+
+bool
+ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
+                     int zbegin, int chbegin,
+                     const ImageBuf &src, ROI srcroi)
+{
+    if (! srcroi.defined())
+        srcroi = get_roi(src.spec());
+
+    // If dst is uninitialized, size it like the region
+    if (!dst.initialized()) {
+        std::cerr << "Allocating space\n";
+        ImageSpec dst_spec = src.spec();
+        dst_spec.x = srcroi.xbegin;
+        dst_spec.y = srcroi.ybegin;
+        dst_spec.z = srcroi.zbegin;
+        dst_spec.width = srcroi.width();
+        dst_spec.height = srcroi.height();
+        dst_spec.depth = srcroi.depth();
+        dst_spec.nchannels = srcroi.nchannels();
+        dst_spec.set_format (TypeDesc::FLOAT);
+        dst.alloc (dst_spec);
+    }
+
+    // do the actual copying
+    OIIO_DISPATCH_TYPES ("paste", paste_, src.spec().format,
+                         dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+    return false;
+}
+
+
+
+
+namespace {
+
+template<class T>
 bool crop_ (ImageBuf &dst, const ImageBuf &src,
             int xbegin, int xend, int ybegin, int yend,
             const float *bordercolor)
@@ -175,7 +241,7 @@ bool crop_ (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
-};  // anon namespace
+}  // anon namespace
 
 
 
@@ -194,47 +260,8 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     if (!dst.pixels_valid())
         dst.alloc (dst_spec);
 
-    // do the actual copying
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return crop_<float> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT8 :
-        return crop_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT8  :
-        return crop_<char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT16:
-        return crop_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT16 :
-        return crop_<short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT  :
-        return crop_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT   :
-        return crop_<int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT64:
-        return crop_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT64 :
-        return crop_<long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::HALF  :
-        return crop_<half> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::DOUBLE:
-        return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-    
-    ASSERT (0);
+    OIIO_DISPATCH_TYPES ("crop", crop_, src.spec().format,
+                         dst, src, xbegin, xend, ybegin, yend, bordercolor);
     return false;
 }
 
@@ -244,6 +271,20 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
+                        bool shuffle_channel_names)
+{
+    // DEPRECATED -- just provide link compatibility
+    return channels (dst, src, nchannels, channelorder, NULL, NULL,
+                     shuffle_channel_names);
+}
+
+
+
+bool
+ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
+                        int nchannels, const int *channelorder,
+                        const float *channelvalues,
+                        const std::string *newchannelnames,
                         bool shuffle_channel_names)
 {
     // Not intended to create 0-channel images.
@@ -280,19 +321,30 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     ImageSpec newspec = src.spec();
     newspec.nchannels = nchannels;
     newspec.default_channel_names ();
-    if (shuffle_channel_names) {
-        newspec.alpha_channel = -1;
-        newspec.z_channel = -1;
-        for (int c = 0; c < nchannels;  ++c) {
-            int csrc = channelorder[c];
-            if (csrc >= 0 && csrc < src.spec().nchannels) {
-                newspec.channelnames[c] = src.spec().channelnames[csrc];
-                if (csrc == src.spec().alpha_channel)
-                    newspec.alpha_channel = c;
-                if (csrc == src.spec().z_channel)
-                    newspec.z_channel = c;
-            }
-        }
+    newspec.alpha_channel = -1;
+    newspec.z_channel = -1;
+    for (int c = 0; c < nchannels;  ++c) {
+        int csrc = channelorder[c];
+        // If the user gave an explicit name for this channel, use it...
+        if (newchannelnames && newchannelnames[c].size())
+            newspec.channelnames[c] = newchannelnames[c];
+        // otherwise, if shuffle_channel_names, use the channel name of
+        // the src channel we're using (otherwise stick to the default name)
+        else if (shuffle_channel_names &&
+                 csrc >= 0 && csrc < src.spec().nchannels)
+            newspec.channelnames[c] = src.spec().channelnames[csrc];
+        // otherwise, use the name of the source in that slot
+        else if (csrc >= 0 && csrc < src.spec().nchannels)
+            newspec.channelnames[c] = src.spec().channelnames[c];
+        // Use the names (or designation of the src image, if
+        // shuffle_channel_names is true) to deduce the alpha and z channels.
+        if ((shuffle_channel_names && csrc == src.spec().alpha_channel) ||
+              Strutil::iequals (newspec.channelnames[c], "A") ||
+              Strutil::iequals (newspec.channelnames[c], "alpha"))
+            newspec.alpha_channel = c;
+        if ((shuffle_channel_names && csrc == src.spec().z_channel) ||
+              Strutil::iequals (newspec.channelnames[c], "Z"))
+            newspec.z_channel = c;
     }
 
     // Update the image (realloc with the new spec)
@@ -307,6 +359,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     char *pixels = (char *) dst.pixeladdr (dst.xbegin(), dst.ybegin(),
                                            dst.zbegin());
     for (int c = 0;  c < nchannels;  ++c) {
+        // Copy shuffled channels
         if (channelorder[c] >= 0 && channelorder[c] < src.spec().nchannels) {
             int csrc = channelorder[c];
             src.get_pixel_channels (src.xbegin(), src.xend(),
@@ -314,6 +367,13 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                                     src.zbegin(), src.zend(),
                                     csrc, csrc+1, newspec.format, pixels,
                                     dstxstride, dstystride, dstzstride);
+        }
+        // Set channels that are literals
+        if (channelorder[c] < 0 && channelvalues && channelvalues[c]) {
+            ROI roi = get_roi (dst.spec());
+            roi.chbegin = c;
+            roi.chend = c+1;
+            ImageBufAlgo::fill (dst, &channelvalues[c], roi);
         }
         pixels += channelsize;
     }
@@ -456,6 +516,55 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     
     return true;
 }
+
+
+
+namespace {
+
+template<class Rtype>
+static bool
+mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
+{
+    if (nthreads == 1 || roi.npixels() < 1000) {
+        // For-sure single thread case
+        ImageBuf::Iterator<Rtype> r (R, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                r[c] = r[c] * val[c];
+    } else {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (boost::bind(mul_impl<Rtype>,
+                                                  boost::ref(R), val, _1, 1),
+                                      roi, nthreads);
+    }
+    return true;
+}
+
+
+} // anon namespace
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &R, const float *val, ROI roi, int nthreads)
+{
+    roi.chend = std::min (roi.chend, R.nchannels()); // clamp
+    OIIO_DISPATCH_TYPES ("mul", mul_impl, R.spec().format,
+                         R, val, roi, nthreads);
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
+{
+    int nc = R.nchannels();
+    float *vals = ALLOCA (float, nc);
+    for (int c = 0;  c < nc;  ++c)
+        vals[c] = val;
+    return mul (R, vals, roi, nthreads);
+}
+
 
 
 bool
@@ -744,22 +853,8 @@ isConstantColor_ (const ImageBuf &src, float *color)
 bool
 ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantColor_<float> (src, color); break;
-    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (src, color); break;
-    case TypeDesc::INT8  : return isConstantColor_<char> (src, color); break;
-    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (src, color); break;
-    case TypeDesc::INT16 : return isConstantColor_<short> (src, color); break;
-    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (src, color); break;
-    case TypeDesc::INT   : return isConstantColor_<int> (src, color); break;
-    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (src, color); break;
-    case TypeDesc::INT64 : return isConstantColor_<long long> (src, color); break;
-    case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
-    case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isConstantColor", isConstantColor_,
+                         src.spec().format, src, color);
 };
 
 
@@ -782,22 +877,8 @@ isConstantChannel_ (const ImageBuf &src, int channel, float val)
 bool
 ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantChannel_<float> (src, channel, val); break;
-    case TypeDesc::UINT8 : return isConstantChannel_<unsigned char> (src, channel, val); break;
-    case TypeDesc::INT8  : return isConstantChannel_<char> (src, channel, val); break;
-    case TypeDesc::UINT16: return isConstantChannel_<unsigned short> (src, channel, val); break;
-    case TypeDesc::INT16 : return isConstantChannel_<short> (src, channel, val); break;
-    case TypeDesc::UINT  : return isConstantChannel_<unsigned int> (src, channel, val); break;
-    case TypeDesc::INT   : return isConstantChannel_<int> (src, channel, val); break;
-    case TypeDesc::UINT64: return isConstantChannel_<unsigned long long> (src, channel, val); break;
-    case TypeDesc::INT64 : return isConstantChannel_<long long> (src, channel, val); break;
-    case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
-    case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isConstantChannel", isConstantChannel_,
+                         src.spec().format, src, channel, val);
 };
 
 namespace
@@ -805,7 +886,7 @@ namespace
 
 template<typename T>
 static inline bool
-isMonochrome_ (const ImageBuf &src)
+isMonochrome_ (const ImageBuf &src, int dummy)
 {
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
@@ -829,61 +910,184 @@ isMonochrome_ (const ImageBuf &src)
 bool
 ImageBufAlgo::isMonochrome(const ImageBuf &src)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isMonochrome_<float> (src); break;
-    case TypeDesc::UINT8 : return isMonochrome_<unsigned char> (src); break;
-    case TypeDesc::INT8  : return isMonochrome_<char> (src); break;
-    case TypeDesc::UINT16: return isMonochrome_<unsigned short> (src); break;
-    case TypeDesc::INT16 : return isMonochrome_<short> (src); break;
-    case TypeDesc::UINT  : return isMonochrome_<unsigned int> (src); break;
-    case TypeDesc::INT   : return isMonochrome_<int> (src); break;
-    case TypeDesc::UINT64: return isMonochrome_<unsigned long long> (src); break;
-    case TypeDesc::INT64 : return isMonochrome_<long long> (src); break;
-    case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
-    case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
+    OIIO_DISPATCH_TYPES ("isMonochrome", isMonochrome_, src.spec().format,
+                         src, 0);
 };
 
+
+
+namespace {
+
 std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
-                                   const std::string & extrainfo)
+simplePixelHashSHA1 (const ImageBuf &src,
+                     const std::string & extrainfo, ROI roi)
 {
-    std::string hash_digest;
-    
-    CSHA1 sha;
-    sha.Reset ();
-    
-    // Do one scanline at a time, to keep to < 2^32 bytes each
-    imagesize_t scanline_bytes = src.spec().scanline_bytes();
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+
+    bool localpixels = src.localpixels();
+    imagesize_t scanline_bytes = roi.width() * src.spec().pixel_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
-    std::vector<unsigned char> tmp (scanline_bytes);
-    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
-        for (int y = src.ymin(), yend=src.yend();  y < yend;  ++y) {
-            src.get_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
-                            src.spec().format, &tmp[0]);
-            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
+    // Do it a few scanlines at a time
+    int chunk = std::max (1, int(16*1024*1024/scanline_bytes));
+
+    std::vector<unsigned char> tmp;
+    if (! localpixels)
+        tmp.resize (chunk*scanline_bytes);
+
+#ifdef USE_OPENSSL
+    // If OpenSSL was available at build time, use its SHA-1
+    // implementation, which is about 20% faster than CSHA1.
+    SHA_CTX sha;
+    SHA1_Init (&sha);
+
+    for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
+        for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
+            int y1 = std::min (y+chunk, yend);
+            if (localpixels) {
+                SHA1_Update (&sha, src.pixeladdr (roi.xbegin, y, z),
+                            (unsigned int) scanline_bytes*(y1-y));
+            } else {
+                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
+                                src.spec().format, &tmp[0]);
+                SHA1_Update (&sha, &tmp[0], (unsigned int) scanline_bytes*(y1-y));
+            }
         }
     }
     
     // If extra info is specified, also include it in the sha computation
-    if(!extrainfo.empty()) {
+    if (!extrainfo.empty())
+        SHA1_Update (&sha, extrainfo.c_str(), extrainfo.size());
+
+    unsigned char md[SHA_DIGEST_LENGTH];
+    char hash_digest[2*SHA_DIGEST_LENGTH+1];
+    SHA1_Final (md, &sha);
+    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
+        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
+    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
+    return std::string (hash_digest);
+    
+#else
+    // Fall back on CSHA1 if OpenSSL was not available or if 
+    CSHA1 sha;
+    sha.Reset ();
+    
+    for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
+        for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
+            int y1 = std::min (y+chunk, yend);
+            if (localpixels) {
+                sha.Update ((const unsigned char *)src.pixeladdr (roi.xbegin, y, z),
+                            (unsigned int) scanline_bytes*(y1-y));
+            } else {
+                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
+                                src.spec().format, &tmp[0]);
+                sha.Update (&tmp[0], (unsigned int) scanline_bytes*(y1-y));
+            }
+        }
+    }
+    
+    // If extra info is specified, also include it in the sha computation
+    if (!extrainfo.empty()) {
         sha.Update ((const unsigned char*) extrainfo.c_str(), extrainfo.size());
     }
     
     sha.Final ();
+    std::string hash_digest;
     sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
-    
+
     return hash_digest;
+#endif
 }
 
-std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
+
+
+// Wrapper to single-threadedly SHA1 hash a region in blocks and store
+// the results in a designated place.
+static void
+sha1_hasher (const ImageBuf *src, ROI roi, int blocksize,
+             std::string *results, int firstresult)
 {
-    return computePixelHashSHA1 (src, "");
+    ROI broi = roi;
+    for (int y = roi.ybegin; y < roi.yend; y += blocksize) {
+        broi.ybegin = y;
+        broi.yend = std::min (y+blocksize, roi.yend);
+        std::string s = simplePixelHashSHA1 (*src, "", broi);
+        results[firstresult++] = s;
+    }
 }
+
+} // anon namespace
+
+
+
+std::string
+ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
+                                    const std::string & extrainfo,
+                                    ROI roi, int blocksize, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+
+    // Fall back to whole-image hash for only one block
+    if (blocksize < 0 || blocksize >= roi.height())
+        return simplePixelHashSHA1 (src, extrainfo, roi);
+
+    // Request for 0 threads means "use the OIIO global thread count"
+    if (nthreads <= 0)
+        OIIO::getattribute ("threads", nthreads);
+
+    int nblocks = (roi.height()+blocksize-1) / blocksize;
+    std::vector<std::string> results (nblocks);
+    if (nthreads <= 1) {
+        sha1_hasher (&src, roi, blocksize, &results[0], 0);
+    } else {
+        // parallel case
+        boost::thread_group threads;
+        int blocks_per_thread = (nblocks+nthreads-1) / nthreads;
+        ROI broi = roi;
+        for (int b = 0, t = 0;  b < nblocks;  b += blocks_per_thread, ++t) {
+            int y = roi.ybegin + b*blocksize;
+            if (y >= roi.yend)
+                break;
+            broi.ybegin = y;
+            broi.yend = std::min (y+blocksize*blocks_per_thread, roi.yend);
+            threads.add_thread (new boost::thread (sha1_hasher, &src, broi,
+                                                   blocksize, &results[0], b));
+        }
+        threads.join_all ();
+    }
+
+#ifdef USE_OPENSSL
+    // If OpenSSL was available at build time, use its SHA-1
+    // implementation, which is about 20% faster than CSHA1.
+    SHA_CTX sha;
+    SHA1_Init (&sha);
+    for (int b = 0;  b < nblocks;  ++b)
+        SHA1_Update (&sha, results[b].c_str(), results[b].size());
+    if (extrainfo.size())
+        SHA1_Update (&sha, extrainfo.c_str(), extrainfo.size());
+    unsigned char md[SHA_DIGEST_LENGTH];
+    char hash_digest[2*SHA_DIGEST_LENGTH+1];
+    SHA1_Final (md, &sha);
+    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
+        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
+    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
+    return std::string (hash_digest);
+#else
+    // Fall back on CSHA1 if OpenSSL was not available or if 
+    CSHA1 sha;
+    sha.Reset ();
+    for (int b = 0;  b < nblocks;  ++b)
+        sha.Update (results[b].c_str(), results[b].size());
+    if (extrainfo.size())
+        sha.Update ((const unsigned char *)extrainfo.c_str(), extrainfo.size());
+    sha.Final ();
+    std::string hash_digest;
+    sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
+    return hash_digest;
+#endif
+}
+
 
 
 
@@ -977,7 +1181,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                     int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                            yclamped, yclamped+1,
-                                                           0, 1, true);
+                                                           0, 1);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
                         if (w == 0.0f)
@@ -1015,7 +1219,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 // Non-separable
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
-                                                       0, 1, true);
+                                                       0, 1);
                 for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = (*filter)(xratio * (i-src_xf_frac),
@@ -1068,40 +1272,17 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
                       Filter2D *filter)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return resize_<float> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT8 :
-        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT8  :
-        return resize_<char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT16:
-        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT16 :
-        return resize_<short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT  :
-        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT   :
-        return resize_<int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT64:
-        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT64 :
-        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::HALF  :
-        return resize_<half> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::DOUBLE:
-        return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-
-    ASSERT (0);
+    OIIO_DISPATCH_TYPES ("resize", resize_, src.spec().format,
+                         dst, src, xbegin, xend, ybegin, yend, filter);
     return false;
 }
 
 namespace
 {
+
+// Make sure isfinite is defined for 'half'
+inline bool isfinite (half h) { return h.isFinite(); }
+
 
 template<typename SRCTYPE>
 bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
@@ -1123,7 +1304,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         if (! dst.copy (src))
             return false;
         
-        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
         while (pixel.valid()) {
             bool fixed = false;
             for (int c = 0;  c < nchannels;  ++c) {
@@ -1159,7 +1340,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         if (! dst.copy (src))
             return false;
         
-        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
         
         while (pixel.valid()) {
             bool fixed = false;
@@ -1175,7 +1356,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     int left   = pixel.y() - boxwidth;
                     int right  = pixel.y() + boxwidth;
                     
-                    ImageBuf::Iterator<SRCTYPE> it (dst, top, bottom, left, right);
+                    ImageBuf::Iterator<SRCTYPE,SRCTYPE> it (dst, top, bottom, left, right);
                     while (it.valid()) {
                         SRCTYPE v = it[c];
                         if (isfinite (v)) {
@@ -1220,9 +1401,7 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     case TypeDesc::FLOAT :
         return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
     case TypeDesc::HALF  :
-         // This use of float here is on purpose to allow for simpler
-         // implementations that work on all data types
-        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<half> (dst, src, mode, pixelsFixed);
     case TypeDesc::DOUBLE:
         return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
     default:
@@ -1241,10 +1420,43 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 namespace {   // anonymous namespace
 
+static bool
+decode_over_channels (const ImageBuf &R, int &nchannels, 
+                      int &alpha, int &z, int &colors)
+{
+    if (! R.initialized()) {
+        alpha = -1;
+        z = -1;
+        colors = 0;
+        return false;
+    }
+    const ImageSpec &spec (R.spec());
+    alpha =  spec.alpha_channel;
+    bool has_alpha = (alpha >= 0);
+    z = spec.z_channel;
+    bool has_z = (z >= 0);
+    nchannels = spec.nchannels;
+    colors = nchannels - has_alpha - has_z;
+    if (! has_alpha && colors == 4) {
+        // No marked alpha channel, but suspiciously 4 channel -- assume
+        // it's RGBA. 
+        has_alpha = true;
+        colors -= 1;
+        // Assume alpha is the highest channel that's not z
+        alpha = nchannels - 1;
+        if (alpha == z)
+            --alpha;
+    }
+    return true;
+}
+
+
+
 // Fully type-specialized version of over.
 template<class Rtype, class Atype, class Btype>
-bool
-over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
+static bool
+over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
+           bool zcomp=false, bool z_zeroisinf=false)
 {
     if (R.spec().format != BaseTypeFromC<Rtype>::value ||
         A.spec().format != BaseTypeFromC<Atype>::value ||
@@ -1254,23 +1466,12 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
         return false;   // double check that types match
     }
 
-    // Output image R.
-    const ImageSpec &specR = R.spec();
-    int channels_R = specR.nchannels;
-
-    // Input image A.
-    const ImageSpec &specA = A.spec();
-    int alpha_index_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_index_A >= 0);
-    int channels_A = specA.nchannels;
-
-    // Input image B.
-    const ImageSpec &specB = B.spec();
-    int alpha_index_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_index_B >= 0);
-    int channels_B = specB.nchannels;
-
-    int channels_AB = std::min (channels_A, channels_B);
+    // It's already guaranteed that R, A, and B have matching channel
+    // ordering, and have an alpha channel.  So just decode one.
+    int nchannels = 0, alpha_channel = 0, z_channel = 0, ncolor_channels = 0;
+    decode_over_channels (R, nchannels, alpha_channel,
+                          z_channel, ncolor_channels);
+    bool has_z = (z_channel >= 0);
 
     ImageBuf::ConstIterator<Atype, float> a (A);
     ImageBuf::ConstIterator<Btype, float> b (B);
@@ -1279,34 +1480,53 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
         a.pos (r.x(), r.y(), r.z());
         b.pos (r.x(), r.y(), r.z());
 
-        if (! a.valid()) {
-            if (! b.valid()) {
-                // a and b invalid.
-                for (int c = 0; c < channels_R; c++) { r[c] = 0.0f; }
+        if (! a.exists()) {
+            if (! b.exists()) {
+                // a and b outside their data window -- "empty" pixels
+                for (int c = 0; c < nchannels; c++)
+                    r[c] = 0.0f;
             } else {
-                // a invalid, b valid.
-                for (int c = 0; c < channels_B; c++) { r[c] = b[c]; }
-                if (! has_alpha_B) { r[3] = 1.0f; }
+                // a doesn't exist, but b does -- copy B
+                for (int c = 0; c < nchannels; ++c)
+                    r[c] = b[c];
             }
             continue;
         }
 
-        if (! b.valid()) {
-            // a valid, b invalid.
-            for (int c = 0; c < channels_A; c++) { r[c] = a[c]; }
-            if (! has_alpha_A) { r[3] = 1.0f; }
+        if (! b.exists()) {
+            // a exists, b does not -- copy A
+            for (int c = 0; c < nchannels; ++c)
+                r[c] = a[c];
             continue;
         }
 
-        // At this point, a and b are valid.
-        float alpha_A = has_alpha_A 
-                        ? clamp (a[alpha_index_A], 0.0f, 1.0f) : 1.0f;
-        float one_minus_alpha_A = 1.0f - alpha_A;
-        for (int c = 0;  c < channels_AB;  c++)
-            r[c] = a[c] + one_minus_alpha_A * b[c];
-        if (channels_R != channels_AB) {
-            // R has 4 channels, A or B has 3 channels -> alpha channel is 3.
-            r[3] = alpha_A + one_minus_alpha_A * (has_alpha_B ? b[3] : 1.0f);
+        // At this point, a and b exist.
+        float az = 0.0f, bz = 0.0f;
+        bool a_is_closer = true;  // will remain true if !zcomp
+        if (zcomp && has_z) {
+            az = a[z_channel];
+            bz = b[z_channel];
+            if (z_zeroisinf) {
+                if (az == 0.0f) az = std::numeric_limits<float>::max();
+                if (bz == 0.0f) bz = std::numeric_limits<float>::max();
+            }
+            a_is_closer = (az <= bz);
+        }
+        if (a_is_closer) {
+            // A over B
+            float alpha = clamp (a[alpha_channel], 0.0f, 1.0f);
+            float one_minus_alpha = 1.0f - alpha;
+            for (int c = 0;  c < nchannels;  c++)
+                r[c] = a[c] + one_minus_alpha * b[c];
+            if (has_z)
+                r[z_channel] = (alpha != 0.0) ? a[z_channel] : b[z_channel];
+        } else {
+            // B over A -- because we're doing a Z composite
+            float alpha = clamp (b[alpha_channel], 0.0f, 1.0f);
+            float one_minus_alpha = 1.0f - alpha;
+            for (int c = 0;  c < nchannels;  c++)
+                r[c] = b[c] + one_minus_alpha * a[c];
+            r[z_channel] = (alpha != 0.0) ? b[z_channel] : a[z_channel];
         }
     }
     return true;
@@ -1319,98 +1539,61 @@ bool
 ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
                     int nthreads)
 {
-    // Output image R.
     const ImageSpec &specR = R.spec();
-    int alpha_R =  specR.alpha_channel;
-    int has_alpha_R = (alpha_R >= 0);
-    int channels_R = specR.nchannels;
-    int non_alpha_R = channels_R - has_alpha_R;
-    bool initialized_R = R.initialized();
-
-    // Input image A.
     const ImageSpec &specA = A.spec();
-    int alpha_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_A >= 0);
-    int channels_A = specA.nchannels;
-    int non_alpha_A = has_alpha_A ? (channels_A - 1) : 3;
-    bool A_not_34 = channels_A != 3 && channels_A != 4;
-
-    // Input image B.
     const ImageSpec &specB = B.spec();
-    int alpha_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_B >= 0);
-    int channels_B = specB.nchannels;
-    int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
-    bool B_not_34 = channels_B != 3 && channels_B != 4;
 
+    int nchannels_R, nchannels_A, nchannels_B;
+    int alpha_R, alpha_A, alpha_B;
+    int z_R, z_A, z_B;
+    int colors_R, colors_A, colors_B;
+    bool initialized_R = decode_over_channels (R, nchannels_R, alpha_R,
+                                               z_R, colors_R);
+    bool initialized_A = decode_over_channels (A, nchannels_A, alpha_A,
+                                               z_A, colors_A);
+    bool initialized_B = decode_over_channels (B, nchannels_B, alpha_B,
+                                               z_B, colors_B);
+
+    if (! initialized_A || ! initialized_B) {
+        R.error ("Can't 'over' uninitialized images");
+        return false;
+    }
+
+    // Fail if the input images don't have an alpha channel.
+    if (alpha_A < 0 || alpha_B < 0 || (initialized_R && alpha_R < 0)) {
+        R.error ("'over' requires alpha channels");
+        return false;
+    }
+    // Fail for mismatched channel counts
+    if (colors_A != colors_B || colors_A < 1) {
+        R.error ("Can't 'over' images with mismatched color channel counts (%d vs %d)",
+                 colors_A, colors_B);
+        return false;
+    }
+    // Fail for unaligned alpha or z channels
+    if (alpha_A != alpha_B || z_A != z_B ||
+        (initialized_R && alpha_R != alpha_A) ||
+        (initialized_R && z_R != z_A)) {
+        R.error ("Can't 'over' images with mismatched channel order",
+                 colors_A, colors_B);
+        return false;
+    }
+    
     // At present, this operation only supports ImageBuf's containing
     // float pixel data.
-    if (R.spec().format != TypeDesc::TypeFloat ||
-        A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat) {
-        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
-                   R.spec().format, A.spec().format, B.spec().format);
+    if ((initialized_R && specR.format != TypeDesc::TypeFloat) ||
+        specA.format != TypeDesc::TypeFloat ||
+        specB.format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s = %s over %s'",
+                 specR.format, specA.format, specB.format);
         return false;
     }
 
-    // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0) {
-        R.error ("'over' does not support Z channels");
-        return false;
-    }
-
-    // If input images A and B have different number of non-alpha channels
-    // then return false.
-    if (non_alpha_A != non_alpha_B) {
-        R.error ("inputs had different numbers of color channels");
-        return false;
-    }
-
-    // A or B has number of channels different than 3 and 4, and it does
-    // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B)) {
-        R.error ("inputs must have alpha channels (or be implicitly RGB or RGBA)");
-        return false;
-    }
-
-    // A or B has zero or one channel -> return false.
-    if (channels_A <= 1 || channels_B <= 1) {
-        R.error ("unsupported number of channels");
-        return false;
-    }
-
-    // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
-    ImageSpec newspec = ImageSpec ();
-    ROI union_AB = roi_union (get_roi(specA), get_roi(specB));
-    set_roi (newspec, union_AB);
-    if ((! has_alpha_A && ! has_alpha_B)
-        || (has_alpha_A && ! has_alpha_B && alpha_A == channels_A - 1)
-        || (! has_alpha_A && has_alpha_B && alpha_B == channels_B - 1)) {
-        if (! initialized_R) {
-            newspec.nchannels = 4;
-            newspec.alpha_channel =  3;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != 3 || alpha_R != 3) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
-        if (! initialized_R) {
-            newspec.nchannels = channels_A;
-            newspec.alpha_channel =  alpha_A;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else {
-        R.error ("unsupported channel layout");
-        return false;
+    if (! initialized_R) {
+        ImageSpec newspec = specA;
+        set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
+        R.reset ("over", newspec);
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
@@ -1418,9 +1601,99 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         roi = get_roi (R.spec());
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
-                                 boost::cref(A), boost::cref(B), _1),
-                           roi, nthreads);
+                                 boost::cref(A), boost::cref(B), _1, false, false),
+                    roi, nthreads);
     return ! R.has_error();
+}
+
+
+
+bool
+ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     bool z_zeroisinf, ROI roi, int nthreads)
+{
+    const ImageSpec &specR = R.spec();
+    const ImageSpec &specA = A.spec();
+    const ImageSpec &specB = B.spec();
+
+    int nchannels_R, nchannels_A, nchannels_B;
+    int alpha_R, alpha_A, alpha_B;
+    int z_R, z_A, z_B;
+    int colors_R, colors_A, colors_B;
+    bool initialized_R = decode_over_channels (R, nchannels_R, alpha_R,
+                                               z_R, colors_R);
+    bool initialized_A = decode_over_channels (A, nchannels_A, alpha_A,
+                                               z_A, colors_A);
+    bool initialized_B = decode_over_channels (B, nchannels_B, alpha_B,
+                                               z_B, colors_B);
+
+    if (! initialized_A || ! initialized_B) {
+        R.error ("Can't 'zover' uninitialized images");
+        return false;
+    }
+    // Fail if the input images don't have a Z channel.
+    if (z_A < 0 || z_B < 0 || (initialized_R && z_R < 0)) {
+        R.error ("'zover' requires Z channels");
+        return false;
+    }
+    // Fail if the input images don't have an alpha channel.
+    if (alpha_A < 0 || alpha_B < 0 || (initialized_R && alpha_R < 0)) {
+        R.error ("'zover' requires alpha channels");
+        return false;
+    }
+    // Fail for mismatched channel counts
+    if (colors_A != colors_B || colors_A < 1) {
+        R.error ("Can't 'zover' images with mismatched color channel counts (%d vs %d)",
+                 colors_A, colors_B);
+        return false;
+    }
+    // Fail for unaligned alpha or z channels
+    if (alpha_A != alpha_B || z_A != z_B ||
+        (initialized_R && alpha_R != alpha_A) ||
+        (initialized_R && z_R != z_A)) {
+        R.error ("Can't 'zover' images with mismatched channel order",
+                 colors_A, colors_B);
+        return false;
+    }
+    
+    // At present, this operation only supports ImageBuf's containing
+    // float pixel data.
+    if ((initialized_R && specR.format != TypeDesc::TypeFloat) ||
+        specA.format != TypeDesc::TypeFloat ||
+        specB.format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s = %s zover %s'",
+                 specR.format, specA.format, specB.format);
+        return false;
+    }
+
+    // Uninitialized R -> size it to the union of A and B.
+    if (! initialized_R) {
+        ImageSpec newspec = specA;
+        set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
+        R.reset ("zover", newspec);
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined())
+        roi = get_roi (R.spec());
+
+    parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
+                                 boost::cref(A), boost::cref(B), _1,
+                                 true, z_zeroisinf),
+                    roi, nthreads);
+    return ! R.has_error();
+}
+
+
+
+bool
+ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int nthreads)
+{
+    // DEPRECATED version -- just call the new version.  This exists to 
+    // avoid breaking link compatibility.  Eventually remove it at the
+    // next major release.
+    return zover (R, A, B, false, roi, nthreads);
 }
 
 

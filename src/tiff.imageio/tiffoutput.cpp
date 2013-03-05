@@ -44,6 +44,8 @@
 #include "sysutil.h"
 #include "timer.h"
 
+#include <boost/scoped_array.hpp>
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -87,8 +89,7 @@ private:
     }
 
     // Convert planar contiguous to planar separate data format
-    void contig_to_separate (int n, const unsigned char *contig,
-                             unsigned char *separate);
+    void contig_to_separate (int n, const char *contig, char *separate);
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
@@ -232,10 +233,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
     default:
-        error ("TIFF doesn't support %s images (\"%s\")",
-               m_spec.format.c_str(), name.c_str());
-        close();
-        return false;
+        // Everything else, including UNKNOWN -- default to 8 bit
+        bps = 8;
+        sampformat = SAMPLEFORMAT_UINT;
+        m_spec.set_format (TypeDesc::UINT8);
+        break;
     }
     TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, bps);
     TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
@@ -476,8 +478,7 @@ TIFFOutput::close ()
 /// Helper: Convert n pixels from contiguous (RGBRGBRGB) to separate
 /// (RRRGGGBBB) planarconfig.
 void
-TIFFOutput::contig_to_separate (int n, const unsigned char *contig,
-                                unsigned char *separate)
+TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
 {
     int channelbytes = m_spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
@@ -504,7 +505,7 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
         std::vector<unsigned char> scratch2 (m_spec.scanline_bytes());
         std::swap (m_scratch, scratch2);
         m_scratch.resize (m_spec.scanline_bytes());
-        contig_to_separate (m_spec.width, (const unsigned char *)data, &m_scratch[0]);
+        contig_to_separate (m_spec.width, (const char *)data, (char *)&m_scratch[0]);
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             if (TIFFWriteScanline (m_tif, (tdata_t)&m_scratch[plane_bytes*c], y, c) < 0) {
                 error ("TIFFWriteScanline failed");
@@ -562,9 +563,19 @@ TIFFOutput::write_tile (int x, int y, int z,
         imagesize_t plane_bytes = tile_pixels * m_spec.format.size();
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
-        contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);
+
+        boost::scoped_array<char> separate_heap;
+        char *separate = NULL;
+        imagesize_t separate_size = plane_bytes * m_spec.nchannels;
+        if (separate_size <= (1<<16))
+            separate = ALLOCA (char, separate_size);  // <=64k ? stack
+        else {                                        // >64k ? heap
+            separate_heap.reset (new char [separate_size]); // will auto-free
+            separate = separate_heap.get();
+        }
+        contig_to_separate (tile_pixels, (const char *)data, separate);
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
-            if (TIFFWriteTile (m_tif, (tdata_t)&m_scratch[plane_bytes*c], x, y, z, c) < 0) {
+            if (TIFFWriteTile (m_tif, (tdata_t)&separate[plane_bytes*c], x, y, z, c) < 0) {
                 error ("TIFFWriteTile failed");
                 return false;
             }

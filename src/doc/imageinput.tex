@@ -624,7 +624,6 @@ a Z channel in {\cf float}:
 
 \subsection{Reading ``deep'' data}
 \label{sec:imageinput:deepdata}  \index{deep data}
-\NEW
 Some image file formats (OpenEXR only, at this time) support the concept
 of ``deep'' pixels -- those containing multiple samples per pixel (and a
 potentially differing number of them in each pixel).
@@ -1133,7 +1132,6 @@ bool {\ce read_native_deep_tiles} (int xbegin, int xend,
                                          int chbegin, int chend,
                                          DeepData \&deepdata) \\
 bool {\ce read_native_deep_image} (DeepData \&deepdata)}
-\NEW
 Read native deep data from scanlines, tiles, or an entire image, 
 storing the results in {\cf deepdata} (analogously to the usual
 {\cf read_scanlines}, {\cf read_tiles},

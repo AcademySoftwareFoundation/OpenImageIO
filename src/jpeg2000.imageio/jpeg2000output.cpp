@@ -104,8 +104,12 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
         return false;
     }
 
-    m_spec = spec;
     m_filename = name;
+    m_spec = spec;
+
+    // If not uint8 or uint16, default to uint8
+    if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
+        m_spec.set_format (TypeDesc::UINT8);
 
     m_file = Filesystem::fopen (m_filename, "wb");
     if (m_file == NULL) {

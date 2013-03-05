@@ -56,7 +56,10 @@ public:
     bool hash;
     bool updatemode;
     int threads;
-    
+    std::string full_command_line;
+    std::string printinfo_metamatch;
+    std::string printinfo_nometamatch;
+
     // Output options
     TypeDesc output_dataformat;
     int output_bitspersample;
@@ -142,6 +145,8 @@ public:
         }
         return r;
     }
+
+    ImageRecRef top () { return curimg; }
 
     void error (const std::string &command, const std::string &explanation);
 
@@ -303,6 +308,7 @@ struct print_info_options {
     bool compute_sha1;
     bool compute_stats;
     std::string metamatch;
+    std::string nometamatch;
     size_t namefieldlength;
 
     print_info_options ()

@@ -170,7 +170,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_datasize = dpx::kDouble;
     else {
         // use 16-bit unsigned integers as a failsafe
-        m_spec.format = TypeDesc::UINT16;
+        m_spec.set_format (TypeDesc::UINT16);
         m_datasize = dpx::kWord;
     }
 

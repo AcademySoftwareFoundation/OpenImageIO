@@ -37,6 +37,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           color_ocio.cpp
                           imagebufalgo.cpp imagebufalgo_orient.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          maketexture.cpp
                           ../libutil/argparse.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
@@ -64,7 +65,13 @@ if (NOT USE_EXTERNAL_PUGIXML)
 endif ()
 
 # Include our own TBB if using it
-if (USE_TBB)
+if (USE_TBB AND USE_EXTERNAL_TBB)
+    message (STATUS "System TBB library will be used.")
+    find_package (TBB REQUIRED)
+    include_directories (${TBB_INCLUDE_DIRS})
+    set (libOpenImageIO_srcs ${libOpenImageIO_srcs})
+elseif (USE_TBB AND NOT USE_EXTERNAL_TBB)
+    message (STATUS "Built-in TBB library will be used.")
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
 endif ()
 
@@ -204,7 +211,11 @@ target_link_libraries (OpenImageIO
                            ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
                            ${Boost_LIBRARIES})
 
-
+# Link against system TBB library if specified
+if (USE_TBB AND USE_EXTERNAL_TBB)
+    message (STATUS "Linking TBB: ${TBB_LIBRARIES}")
+    target_link_libraries (OpenImageIO ${TBB_LIBRARIES})
+endif ()
 
 # Include OpenColorIO if using it
 if (USE_OCIO AND OCIO_FOUND)
@@ -217,6 +228,12 @@ endif ()
 if (OpenCV_FOUND)
     include_directories (${OpenCV_INCLUDE_DIR})
     target_link_libraries (OpenImageIO opencv_core opencv_highgui)
+endif ()
+
+# Include OpenSSL if using it
+if (OPENSSL_FOUND)
+    include_directories (${OPENSSL_INCLUDE_DIR})
+    target_link_libraries (OpenImageIO ${OPENSSL_LIBRARIES})
 endif ()
 
 # Include Freetype if using it
@@ -256,6 +273,16 @@ set_target_properties(OpenImageIO
                          SOVERSION ${SOVERSION}
                      )
 
+# For consistency with the linux SpComp2s, create Mac OS X SpComp2s
+# with a .so suffix instead of a .dylib suffix.
+if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+  message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
+  set_target_properties(OpenImageIO
+                           PROPERTIES
+                           SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
+                       )
+endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+
 oiio_install_targets (OpenImageIO)
 
 
@@ -268,6 +295,9 @@ if (NOT LINKSTATIC)
     add_definitions (-DPTEX_EXPORTS)
 endif ()
 
+
+if (OIIO_BUILD_TESTS)
+
 add_executable (imagebuf_test imagebuf_test.cpp)
 link_ilmbase (imagebuf_test)
 target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
@@ -277,7 +307,6 @@ add_executable (imagebufalgo_test imagebufalgo_test.cpp)
 link_ilmbase (imagebufalgo_test)
 target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_imagebufalgo imagebufalgo_test)
-
 
 add_executable (atomic_test atomic_test.cpp)
 target_link_libraries (atomic_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
@@ -321,4 +350,10 @@ add_test (unit_hash hash_test)
 
 add_executable (imagespeed_test imagespeed_test.cpp)
 target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-#add_test (unit_hash hash_test)
+#add_test (imagespeed_test imagespeed_test)
+
+add_executable (timer_test timer_test.cpp)
+target_link_libraries (timer_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (timer_test timer_test)
+
+endif (OIIO_BUILD_TESTS)

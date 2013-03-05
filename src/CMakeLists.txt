@@ -2,8 +2,8 @@ project (OpenImageIO)
 
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
-set (OIIO_VERSION_MINOR 1)
-set (OIIO_VERSION_PATCH 2)
+set (OIIO_VERSION_MINOR 2)
+set (OIIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
@@ -66,6 +66,8 @@ endif ()
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
+set (OIIO_BUILD_TOOLS ON CACHE BOOL "Build the command-line tools")
+set (OIIO_BUILD_TESTS ON CACHE BOOL "Build the unit tests")
 set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
 set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
 set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
@@ -78,11 +80,14 @@ set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
 set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
+set (USE_OPENSSL ON CACHE BOOL "Use OpenSSL if found")
 set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
+set (USE_EXTERNAL_TBB OFF CACHE BOOL
+     "Use system TBB library instead of bundled.")
 
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
@@ -241,14 +246,17 @@ include (CTest)
 # Tell CMake to process the sub-directories
 add_subdirectory (libOpenImageIO)
 
-add_subdirectory (iconvert)
-add_subdirectory (idiff)
-add_subdirectory (igrep)
-add_subdirectory (iinfo)
-add_subdirectory (maketx)
-add_subdirectory (oiiotool)
-add_subdirectory (testtex)
-add_subdirectory (iv)
+if (OIIO_BUILD_TOOLS)
+  add_subdirectory (iconvert)
+  add_subdirectory (idiff)
+  add_subdirectory (igrep)
+  add_subdirectory (iinfo)
+  add_subdirectory (maketx)
+  add_subdirectory (oiiotool)
+  add_subdirectory (testtex)
+  add_subdirectory (iv)
+endif ()
+
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
     add_subdirectory (bmp.imageio)
@@ -311,15 +319,16 @@ if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
 endif()
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread misnamed-file nonwhole-tiles
+oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                sgi rla psd dpx png
+                dpx ico png psd rla sgi
+                maketx
                 texture-blurtube texture-fill texture-filtersize
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
-                texture-skinny texture-fat
+                texture-skinny texture-fat texture-wrapfill
                )
 
 
@@ -332,6 +341,8 @@ oiio_add_tests (bmp
 oiio_add_tests (tiff-suite tiff-depths
     IMAGEDIR libtiffpic
     URL http://www.remotesensing.org/libtiff/images.html)
+
+oiio_add_tests (tiff-misc)
 
 oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
     IMAGEDIR openexr-images

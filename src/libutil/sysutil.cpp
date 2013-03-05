@@ -97,10 +97,11 @@ Sysutil::memory_used (bool resident)
     size_t size = 0;
     FILE *file = fopen("/proc/self/statm", "r");
     if (file) {
-        unsigned long vm = 0;
-        int n = fscanf (file, "%lu", &vm);  // Just need the first num: vm size
-        if (n == 1)
-            size = (size_t)vm * getpagesize();
+        unsigned long vm = 0, rss = 0;
+        int n = fscanf (file, "%lu %lu", &vm, &rss);
+        if (n == 2)
+            size = size_t(resident ? rss : vm);
+        size *= getpagesize();
         fclose (file);
     }
     return size;
@@ -124,7 +125,7 @@ Sysutil::memory_used (bool resident)
 
 #else
     // No idea what platform this is
-    ASSERT (0);
+    ASSERT (0 && "Need to implement Sysutil::memory_used on this platform");
     return 0;   // Punt
 #endif
 }

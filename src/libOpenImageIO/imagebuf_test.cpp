@@ -40,6 +40,116 @@
 OIIO_NAMESPACE_USING;
 
 
+
+// Test iterators
+template <class ITERATOR>
+void iterator_read_test ()
+{
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
+    static float buf[HEIGHT][WIDTH][CHANNELS] = {
+        { {0,0,0},  {1,0,1},  {2,0,2},  {3,0,3} },
+        { {0,1,4},  {1,1,5},  {2,1,6},  {3,1,7} },
+        { {0,2,8},  {1,2,9},  {2,2,10}, {3,2,11} },
+        { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
+    };
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec, buf);
+
+    ITERATOR p (A);
+    OIIO_CHECK_EQUAL (p[0], 0.0f);
+    OIIO_CHECK_EQUAL (p[1], 0.0f);
+    OIIO_CHECK_EQUAL (p[2], 0.0f);
+
+    // Explicit position
+    p.pos (2, 1);
+    OIIO_CHECK_EQUAL (p.x(), 2); OIIO_CHECK_EQUAL (p.y(), 1);
+    OIIO_CHECK_EQUAL (p[0], 2.0f);
+    OIIO_CHECK_EQUAL (p[1], 1.0f);
+    OIIO_CHECK_EQUAL (p[2], 6.0f);
+
+    // Iterate a few times
+    ++p;
+    OIIO_CHECK_EQUAL (p.x(), 3); OIIO_CHECK_EQUAL (p.y(), 1);
+    OIIO_CHECK_EQUAL (p[0], 3.0f);
+    OIIO_CHECK_EQUAL (p[1], 1.0f);
+    OIIO_CHECK_EQUAL (p[2], 7.0f);
+    ++p;
+    OIIO_CHECK_EQUAL (p.x(), 0); OIIO_CHECK_EQUAL (p.y(), 2);
+    OIIO_CHECK_EQUAL (p[0], 0.0f);
+    OIIO_CHECK_EQUAL (p[1], 2.0f);
+    OIIO_CHECK_EQUAL (p[2], 8.0f);
+
+    std::cout << "iterator_read_test result:";
+    int i = 0;
+    for (ITERATOR p (A);  !p.done();  ++p, ++i) {
+        if ((i % 4) == 0)
+            std::cout << "\n    ";
+        std::cout << "   " << p[0] << ' ' << p[1] << ' ' << p[2];
+    }
+    std::cout << "\n";
+}
+
+
+
+// Test iterators
+template <class ITERATOR>
+void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
+{
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
+    static float buf[HEIGHT][WIDTH][CHANNELS] = {
+        { {0,0,0},  {1,0,1},  {2,0,2},  {3,0,3} },
+        { {0,1,4},  {1,1,5},  {2,1,6},  {3,1,7} },
+        { {0,2,8},  {1,2,9},  {2,2,10}, {3,2,11} },
+        { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
+    };
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec, buf);
+
+    std::cout << "iterator_wrap_test " << wrapname << ":";
+    int i = 0;
+    int noutside = 0;
+    for (ITERATOR p (A, ROI(-2, WIDTH+2, -2, HEIGHT+2), wrap);
+         !p.done(); ++p, ++i) {
+        if ((i % 8) == 0)
+            std::cout << "\n    ";
+        std::cout << "   " << p[0] << ' ' << p[1] << ' ' << p[2];
+        // Check wraps
+        if (! p.exists()) {
+            ++noutside;
+            if (wrap == ImageBuf::WrapBlack) {
+                OIIO_CHECK_EQUAL (p[0], 0.0f);
+                OIIO_CHECK_EQUAL (p[1], 0.0f);
+                OIIO_CHECK_EQUAL (p[2], 0.0f);
+            } else if (wrap == ImageBuf::WrapClamp) {
+                ITERATOR q = p;
+                q.pos (clamp (p.x(), 0, WIDTH-1), clamp (p.y(), 0, HEIGHT-1));
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            } else if (wrap == ImageBuf::WrapPeriodic) {
+                ITERATOR q = p;
+                q.pos (p.x() % WIDTH, p.y() % HEIGHT);
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            } else if (wrap == ImageBuf::WrapMirror) {
+                ITERATOR q = p;
+                int x = p.x(), y = p.y();
+                wrap_mirror (x, 0, WIDTH);
+                wrap_mirror (y, 0, HEIGHT);
+                q.pos (x, y);
+                OIIO_CHECK_EQUAL (p[0], q[0]);
+                OIIO_CHECK_EQUAL (p[1], q[1]);
+                OIIO_CHECK_EQUAL (p[2], q[2]);
+            }
+        }
+    }
+    std::cout << "\n";
+    OIIO_CHECK_EQUAL (noutside, 48);  // Should be 48 wrapped pixels
+}
+
+
+
 // Tests ImageBuf construction from application buffer
 void ImageBuf_test_appbuffer ()
 {
@@ -70,8 +180,8 @@ void ImageBuf_test_appbuffer ()
     B.read ();
     for (int y = 0;  y < HEIGHT;  ++y)
         for (int x = 0;  x < WIDTH;  ++x)
-            OIIO_CHECK_EQUAL (A.getchannel (x, y, 0),
-                              B.getchannel (x, y, 0));
+            OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, 0),
+                              B.getchannel (x, y, 0, 0));
 }
 
 
@@ -127,6 +237,14 @@ void histogram_computation_test ()
 int
 main (int argc, char **argv)
 {
+    iterator_read_test<ImageBuf::ConstIterator<float> > ();
+    iterator_read_test<ImageBuf::Iterator<float> > ();
+
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapBlack, "black");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapClamp, "clamp");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapPeriodic, "periodic");
+    iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapMirror, "mirror");
+
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
 

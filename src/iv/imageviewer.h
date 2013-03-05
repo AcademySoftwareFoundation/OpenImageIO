@@ -92,12 +92,12 @@ public:
     /// select_channel() methods will work.
     /// Also, scanline will return a pointer to that buffer instead of the read
     /// buffer.
-    virtual bool read (int subimage=0, int miplevel=0,
-                       bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
-                       ProgressCallback progress_callback=NULL,
-                       void *progress_callback_data=NULL, bool secondary_buffer=false);
-    virtual bool init_spec (const std::string &filename,
-                            int subimage, int miplevel);
+    bool read_iv (int subimage=0, int miplevel=0,
+                  bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
+                  ProgressCallback progress_callback=NULL,
+                  void *progress_callback_data=NULL, bool secondary_buffer=false);
+    bool init_spec_iv (const std::string &filename,
+                       int subimage, int miplevel);
 
     float gamma (void) const { return m_gamma; }
     void gamma (float e) { m_gamma = e; }
@@ -108,7 +108,7 @@ public:
         if (m_corrected_image.localpixels()) {
             return m_corrected_image.nchannels();
         }
-        return m_spec.nchannels;
+        return spec().nchannels;
     }
 
     std::string shortinfo () const;

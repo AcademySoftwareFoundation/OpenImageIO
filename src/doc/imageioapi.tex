@@ -267,7 +267,6 @@ is not know which channel represents depth.
 \apiend
 
 \apiitem{bool deep}
-\NEW
 If {\cf true}, this indicates that the image describes contains ``deep''
 data consisting of multiple samples per pixel.  If {\cf false}, it's an
 ordinary image with one data value (per channel) per pixel.
@@ -483,12 +482,10 @@ Populates the fields of the \ImageSpec based on the XML passed in.
 \apiend
 
 \apiitem{TypeDesc {\ce channelformat} (int chan) const}
-\NEW
 Returns a \TypeDesc describing the format of the requested channel.
 \apiend
 
 \apiitem{void {\ce get_channelformats} (std::vector<TypeDesc> \&formats) const}
-\NEW
 Fill in an array of channel formats describing all channels in the
 image.  (Note that this differs slightly from the member data 
 {\cf channelformats}, which is empty if there are not separate per-channel

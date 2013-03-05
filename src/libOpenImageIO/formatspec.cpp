@@ -712,6 +712,7 @@ static LabelTable ExifExposureProgram_table[] = {
     { 6, "Action program, biased toward fast shutter" },
     { 7, "Portrait mode, foreground in focus" },
     { 8, "Landscape mode, background in focus" },
+    { 9, "bulb" },
     { -1, NULL }
 };
 
@@ -757,7 +758,8 @@ static LabelTable orientation_table[] = {
 };
 
 static LabelTable resunit_table[] = {
-    { 1, "none" }, { 2, "inches" }, { 3, "cm" }, { -1, NULL }
+    { 1, "none" }, { 2, "inches" }, { 3, "cm" },
+    { 4, "mm" }, { 5, "um" }, { -1, NULL }
 };
 
 static LabelTable ExifSensingMethod_table[] = {
@@ -768,6 +770,7 @@ static LabelTable ExifSensingMethod_table[] = {
 };
 
 static LabelTable ExifFileSource_table[] = {
+    { 1, "film scanner" }, { 2, "reflection print scanner" },
     { 3, "digital camera" }, { -1, NULL }
 };
 
@@ -876,7 +879,7 @@ static ExplanationTableEntry explanation[] = {
     { NULL, NULL, NULL }
 }; 
 
-}; // end anon namespace
+} // end anon namespace
 
 
 

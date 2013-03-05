@@ -37,10 +37,13 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/unordered_map.hpp>
+#include <boost/scoped_array.hpp>
 
+#include "export.h"
 #include "texture.h"
 #include "refcnt.h"
 #include "hash.h"
+#include "imagebuf.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -129,7 +132,7 @@ struct ImageCacheStatistics {
 /// However, a few of them require passing in a pointer to the
 /// thread-specific IC data including microcache and statistics.
 ///
-class ImageCacheFile : public RefCnt {
+class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache,
                     ImageCachePerThreadInfo *thread_info, ustring filename);
@@ -471,7 +474,7 @@ public:
     /// Return the actual allocated memory size for this tile's pixels.
     ///
     size_t memsize () const {
-        return m_pixels.size();
+        return m_pixels_size;
     }
 
     /// Return the space that will be needed for this tile's pixels.
@@ -511,11 +514,11 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    std::vector<char> m_pixels;   ///< The pixel data
+    boost::scoped_array<char> m_pixels;  ///< The pixel data
+    size_t m_pixels_size;         ///< How much m_pixels has allocated
     bool m_valid;                 ///< Valid pixels
-    atomic_int m_used;            ///< Used recently
     volatile bool m_pixels_ready; ///< The pixels have been read from disk
-    float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
+    atomic_int m_used;            ///< Used recently
 };
 
 
@@ -1012,7 +1015,7 @@ private:
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT
