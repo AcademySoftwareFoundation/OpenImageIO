@@ -591,26 +591,13 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
 
 
 
-bool
-ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
-                            const std::string &filename,
-                            const std::string &outputfilename,
-                            const ImageSpec &configspec,
-                            std::ostream *outstream)
-{
-    std::vector<std::string> filenames;
-    filenames.push_back (filename);
-    return make_texture (mode, filenames, outputfilename, configspec, outstream);
-}
-
-
-
-bool
-ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
-                            const std::vector<std::string> &filenames,
-                            const std::string &_outputfilename,
-                            const ImageSpec &_configspec,
-                            std::ostream *outstream_ptr)
+static bool
+make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
+                   const ImageBuf *input,
+                   const std::string filename,
+                   std::string outputfilename,
+                   const ImageSpec &_configspec,
+                   std::ostream *outstream_ptr)
 {
     ASSERT (mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
     double stat_readtime = 0;
@@ -632,30 +619,62 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     }
 
     ImageSpec configspec = _configspec;
-//    const char *modenames[] = { "texture map", "shadow map",
-//                                "latlong environment map" };
     std::stringstream localstream; // catch output when user doesn't want it
     std::ostream &outstream (outstream_ptr ? *outstream_ptr : localstream);
 
-    std::string filename = filenames[0];
-    if (! Filesystem::exists (filename)) {
+    bool from_filename = (input == NULL);
+
+    if (from_filename && ! Filesystem::exists (filename)) {
         outstream << "maketx ERROR: \"" << filename << "\" does not exist\n";
         return false;
     }
-    std::string outputfilename = _outputfilename.length() ? _outputfilename
-        : Filesystem::replace_extension (filename, ".tx");
+
+    ImageBuf *img = NULL;
+    if (input == NULL) {
+        // No buffer supplied -- create one to read the file
+        img = new ImageBuf(filename);
+        img->init_spec (filename, 0, 0); // force it to get the spec, not read
+    } else if (input->cachedpixels()) {
+        // Image buffer supplied that's backed by ImageCache -- create a
+        // copy (very light weight, just another cache reference)
+        img = new ImageBuf(*input);
+    } else {
+        // Image buffer supplied that has pixels -- wrap it
+        img = new ImageBuf(input->name(), input->spec(),
+                           (void *)input->localpixels());
+    }
+
+    boost::shared_ptr<ImageBuf> src (img); // transfers ownership to src
+
+    if (! outputfilename.length()) {
+        std::string fn = src->name();
+        if (fn.length()) {
+            if (Filesystem::extension(fn).length() > 1)
+                outputfilename = Filesystem::replace_extension (fn, ".tx");
+            else
+                outputfilename = outputfilename + ".tx";
+        }
+        else {
+            outstream << "maketx: no output filename supplied\n";
+            return false;
+        }
+    }
 
     // When was the input file last modified?
-    std::time_t in_time = Filesystem::last_write_time (filename);
-
-    // When in update mode, skip making the texture if the output already
-    // exists and has the same file modification time as the input file.
+    // This is only used when we're reading from a filename
+    std::time_t in_time;
     bool updatemode = configspec.get_int_attribute ("maketx:updatemode");
-    if (updatemode && Filesystem::exists (outputfilename) &&
-        (in_time == Filesystem::last_write_time (outputfilename))) {
-        outstream << "maketx: no update required for \"" 
-                  << outputfilename << "\"\n";
-        return true;
+    if (from_filename) {
+        // When in update mode, skip making the texture if the output
+        // already exists and has the same file modification time as the
+        // input file.
+        in_time = Filesystem::last_write_time (src->name());
+        if (updatemode && Filesystem::exists (outputfilename) &&
+            (in_time == Filesystem::last_write_time (outputfilename))) {
+            outstream << "maketx: no update required for \"" 
+                      << outputfilename << "\"\n";
+            return true;
+        }
     }
 
     bool shadowmode = (mode == ImageBufAlgo::MakeTxShadow);
@@ -676,9 +695,6 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                   << "\" format does not support tiled images\n";
         return false;
     }
-
-    boost::shared_ptr<ImageBuf> src (new ImageBuf(filename));
-    src->init_spec (filename, 0, 0); // force it to get the spec, not read
 
     // The cache might mess with the apparent data format.  But for the 
     // purposes of what we should output, figure it out now, before the
@@ -703,17 +719,17 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     double misc_time_1 = alltime.lap();
     STATUS ("prep", misc_time_1);
-    if (verbose)
-        outstream << "Reading file: " << filename << std::endl;
-
-    if (! src->read (0, 0, read_local)) {
-        outstream 
-            << "maketx ERROR: Could not read \"" 
-            << filename << "\" : " << src->geterror() << "\n";
-        return false;
+    if (from_filename) {
+        if (verbose)
+            outstream << "Reading file: " << src->name() << std::endl;
+        if (! src->read (0, 0, read_local)) {
+            outstream  << "maketx ERROR: Could not read \"" 
+                       << src->name() << "\" : " << src->geterror() << "\n";
+            return false;
+        }
     }
     stat_readtime += alltime.lap();
-    STATUS (Strutil::format("read \"%s\"", filename), stat_readtime);
+    STATUS (Strutil::format("read \"%s\"", src->name()), stat_readtime);
     
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
@@ -787,7 +803,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         // Some special checks for shadow maps
         if (src->spec().nchannels != 1) {
             outstream << "maketx ERROR: shadow maps require 1-channel images,\n"
-                      << "\t\"" << filename << "\" is " 
+                      << "\t\"" << src->name() << "\" is " 
                       << src->spec().nchannels << " channels\n";
             return false;
         }
@@ -881,7 +897,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     // Put a DateTime in the out file, either now, or matching the date
     // stamp of the input file (if update mode).
     time_t date;
-    if (updatemode)
+    if (updatemode && from_filename)
         date = in_time;  // update mode: use the time stamp of the input
     else
         time (&date);    // not update: get the time now
@@ -1190,7 +1206,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
-    if (ok && updatemode)
+    if (ok && updatemode && from_filename)
         Filesystem::last_write_time (outputfilename, in_time);
 
     Filter2D::destroy (filter);
@@ -1214,4 +1230,43 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
 #undef STATUS
     return ok;
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const std::string &filename,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream)
+{
+    return make_texture_impl (mode, NULL, filename, outputfilename,
+                              configspec, outstream);
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const std::vector<std::string> &filenames,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream_ptr)
+{
+    return make_texture_impl (mode, NULL, filenames[0], outputfilename,
+                              configspec, outstream_ptr);
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const ImageBuf &input,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream)
+{
+    return make_texture_impl (mode, &input, "", outputfilename,
+                              configspec, outstream);
 }

@@ -40,6 +40,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <cstdio>
 
 OIIO_NAMESPACE_USING;
 
@@ -269,6 +270,37 @@ void test_compare ()
 
 
 
+// Test ability to do a maketx directly from an ImageBuf
+void
+test_maketx_from_imagebuf()
+{
+    // Make a checkerboard
+    const int WIDTH = 16, HEIGHT = 16, CHANNELS = 3;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    float pink[] = { .5, .3, .3 }, green[] = { .1, .5, .1 };
+    ImageBufAlgo::checker (A, 4, pink, green, 0, WIDTH, 0, HEIGHT, 0, 1);
+
+    // Write it
+    const char *pgname = "oiio-pgcheck.tx";
+    remove (pgname);  // Remove it first
+    ImageSpec configspec;
+    ImageBufAlgo::make_texture (ImageBufAlgo::MakeTxTexture, A,
+                                pgname, configspec);
+
+    // Read it back and compare it
+    ImageBuf B (pgname);
+    B.read ();
+    ImageBufAlgo::CompareResults comparison;
+    ImageBufAlgo::compare (A, B, 0, 0, comparison);
+    OIIO_CHECK_EQUAL (comparison.nwarn, 0);
+    OIIO_CHECK_EQUAL (comparison.nfail, 0);
+    remove (pgname);  // clean up
+}
+
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -277,6 +309,7 @@ main (int argc, char **argv)
     test_paste ();
     test_add ();
     test_compare ();
+    test_maketx_from_imagebuf ();
     
     return unit_test_failures;
 }

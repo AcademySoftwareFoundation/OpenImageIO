@@ -581,7 +581,16 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::string &outputfilename,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
-                                
+
+/// Version of make_texture that starts with an ImageBuf, rather than
+/// reading the input image from disk.
+bool OIIO_API make_texture (MakeTextureMode mode,
+                            const ImageBuf &input,
+                            const std::string &outputfilename,
+                            const ImageSpec &config,
+                            std::ostream *outstream = NULL);
+
+
 
 
 /// Helper template for generalized multithreading for image processing
