@@ -472,8 +472,8 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
     // Clamp
     int xnext = Imath::clamp (xtexel+1, buf.xmin(), buf.xmax());
     int ynext = Imath::clamp (ytexel+1, buf.ymin(), buf.ymax());
-    xnext = Imath::clamp (xnext, buf.xmin(), buf.xmax());
-    ynext = Imath::clamp (ynext, buf.ymin(), buf.ymax());
+    xtexel = Imath::clamp (xtexel, buf.xmin(), buf.xmax());
+    ytexel = Imath::clamp (ytexel, buf.ymin(), buf.ymax());
 
     // Get the four texels
     buf.getpixel (xtexel, ytexel, p[0], n);

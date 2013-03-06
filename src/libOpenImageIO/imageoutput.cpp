@@ -383,7 +383,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     }
     
     // Convert from float to native format.
-    return convert_from_float (buf, &scratch[contiguoussize+floatsize], 
+    return parallel_convert_from_float (buf, &scratch[contiguoussize+floatsize], 
                        rectangle_values, m_spec.quant_black, m_spec.quant_white,
                        m_spec.quant_min, m_spec.quant_max,
                        m_spec.format);

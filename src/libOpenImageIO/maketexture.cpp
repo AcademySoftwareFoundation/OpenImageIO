@@ -154,24 +154,21 @@ datestring (time_t t)
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 template<typename SRCTYPE>
-static void
+static bool
 copy_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI())
 {
     int nchannels = dst.spec().nchannels;
     ASSERT (src.spec().nchannels == nchannels);
-    ImageBuf::Iterator<float> d (dst, roi);
-    ImageBuf::ConstIterator<SRCTYPE> s (src, roi);
+    ROI image_roi = get_roi (dst.spec());
+    if (roi.defined())
+        image_roi = roi_intersection (image_roi, roi);
+    ImageBuf::Iterator<float> d (dst, image_roi);
+    ImageBuf::ConstIterator<SRCTYPE> s (src, image_roi, ImageBuf::WrapBlack);
     for (  ; ! d.done();  ++d, ++s) {
-        if (! d.exists())
-            continue;   // skip nonexistant pixels
-        if (s.exists()) {
-            for (int c = 0;  c < nchannels;  ++c)
-                d[c] = s[c];
-        } else {
-            for (int c = 0;  c < nchannels;  ++c)
-                d[c] = 0.0f;
-        }
+        for (int c = 0;  c < nchannels;  ++c)
+            d[c] = s[c];
     }
+    return true;
 }
 
 
@@ -181,24 +178,8 @@ static bool
 copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 {
     ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : copy_block_<float> (dst, src, roi); break;
-    case TypeDesc::UINT8 : copy_block_<unsigned char> (dst, src, roi); break;
-    case TypeDesc::UINT16: copy_block_<unsigned short> (dst, src, roi); break;
-    case TypeDesc::HALF  : copy_block_<half> (dst, src, roi); break;
-    case TypeDesc::INT8  : copy_block_<char> (dst, src, roi); break;
-    case TypeDesc::INT16 : copy_block_<short> (dst, src, roi); break;
-    case TypeDesc::UINT  : copy_block_<unsigned int> (dst, src, roi); break;
-    case TypeDesc::INT   : copy_block_<int> (dst, src, roi); break;
-    case TypeDesc::UINT64: copy_block_<unsigned long long> (dst, src, roi); break;
-    case TypeDesc::INT64 : copy_block_<long long> (dst, src, roi); break;
-    case TypeDesc::DOUBLE: copy_block_<double> (dst, src, roi); break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-    
-    return true;
+    OIIO_DISPATCH_TYPES ("copy_block", copy_block_, src.spec().format,
+                         dst, src, roi);
 }
 
 
@@ -214,6 +195,7 @@ resize_block_HQ (ImageBuf &dst, const ImageBuf &src, ROI roi, Filter2D *filter)
 
 
 
+template<class SRCTYPE>
 static void
 interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
                          bool envlatlmode)
@@ -225,28 +207,26 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
     x = static_cast<float>(fx) + x * static_cast<float>(fw);
     y = static_cast<float>(fy) + y * static_cast<float>(fh);
 
-    const int maxchannels = 64;  // Reasonable guess
-    float p[4][maxchannels];
-    DASSERT (buf.spec().nchannels <= maxchannels && 
-             "You need to increase maxchannels");
-    int n = std::min (buf.spec().nchannels, maxchannels);
+    int n = buf.spec().nchannels;
+    float *p0 = ALLOCA(float, 4*n), *p1 = p0+n, *p2 = p1+n, *p3 = p2+n;
+
     x -= 0.5f;
     y -= 0.5f;
     int xtexel, ytexel;
     float xfrac, yfrac;
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
-    // Clamp
-    int xnext = Imath::clamp (xtexel+1, buf.xmin(), buf.xmax());
-    int ynext = Imath::clamp (ytexel+1, buf.ymin(), buf.ymax());
-    xnext = Imath::clamp (xnext, buf.xmin(), buf.xmax());
-    ynext = Imath::clamp (ynext, buf.ymin(), buf.ymax());
 
     // Get the four texels
-    buf.getpixel (xtexel, ytexel, p[0], n);
-    buf.getpixel (xnext, ytexel, p[1], n);
-    buf.getpixel (xtexel, ynext, p[2], n);
-    buf.getpixel (xnext, ynext, p[3], n);
+    ImageBuf::ConstIterator<SRCTYPE> it (buf, ROI(xtexel, xtexel+2, ytexel, ytexel+2), ImageBuf::WrapClamp);
+    for (int c = 0; c < n; ++c) p0[c] = it[c];
+    ++it;
+    for (int c = 0; c < n; ++c) p1[c] = it[c];
+    ++it;
+    for (int c = 0; c < n; ++c) p2[c] = it[c];
+    ++it;
+    for (int c = 0; c < n; ++c) p3[c] = it[c];
+
     if (envlatlmode) {
         // For latlong environment maps, in order to conserve energy, we
         // must weight the pixels by sin(t*PI) because pixels closer to
@@ -254,20 +234,24 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
+        int ynext = Imath::clamp (ytexel+1, buf.ymin(), buf.ymax());
+        ytexel = Imath::clamp (ytexel, buf.ymin(), buf.ymax());
         float w0 = (1.0f - yfrac) * sinf ((float)M_PI * (ytexel+0.5f)/(float)fh);
         float w1 = yfrac * sinf ((float)M_PI * (ynext+0.5f)/(float)fh);
         yfrac = w0 / (w0 + w1);
     }
+
     // Bilinearly interpolate
-    bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
+    bilerp (p0, p1, p2, p3, xfrac, yfrac, n, pixel);
 }
 
 
 
 // Resize src into dst, relying on the linear interpolation of
 // interppixel_NDC_full or interppixel_NDC_clamped, for the pixel range.
-static void
-resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
+template<class SRCTYPE>
+static bool
+resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
     const ImageSpec &srcspec (src.spec());
@@ -284,17 +268,32 @@ resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
     float yoffset = dstspec.full_y;
     float xscale = 1.0f / (float)dstspec.full_width;
     float yscale = 1.0f / (float)dstspec.full_height;
+    int nchannels = dst.nchannels();
+    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+    ImageBuf::Iterator<float> d (dst, roi);
     for (int y = y0;  y < y1;  ++y) {
         float t = (y+0.5f)*yscale + yoffset;
-        for (int x = x0;  x < x1;  ++x) {
+        for (int x = x0;  x < x1;  ++x, ++d) {
             float s = (x+0.5f)*xscale + xoffset;
             if (src_is_crop)
                 src.interppixel_NDC_full (s, t, pel);
             else
-                interppixel_NDC_clamped (src, s, t, pel, envlatlmode);
-            dst.setpixel (x, y, pel);
+                interppixel_NDC_clamped<SRCTYPE> (src, s, t, pel, envlatlmode);
+            for (int c = 0; c < nchannels; ++c)
+                d[c] = pel[c];
         }
     }
+    return true;
+}
+
+
+
+static bool
+resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
+{
+    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
+                         dst, src, roi, envlatlmode);
 }
 
 
@@ -592,26 +591,13 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
 
 
 
-bool
-ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
-                            const std::string &filename,
-                            const std::string &outputfilename,
-                            const ImageSpec &configspec,
-                            std::ostream *outstream)
-{
-    std::vector<std::string> filenames;
-    filenames.push_back (filename);
-    return make_texture (mode, filenames, outputfilename, configspec, outstream);
-}
-
-
-
-bool
-ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
-                            const std::vector<std::string> &filenames,
-                            const std::string &_outputfilename,
-                            const ImageSpec &_configspec,
-                            std::ostream *outstream_ptr)
+static bool
+make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
+                   const ImageBuf *input,
+                   const std::string filename,
+                   std::string outputfilename,
+                   const ImageSpec &_configspec,
+                   std::ostream *outstream_ptr)
 {
     ASSERT (mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
     double stat_readtime = 0;
@@ -633,30 +619,62 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     }
 
     ImageSpec configspec = _configspec;
-//    const char *modenames[] = { "texture map", "shadow map",
-//                                "latlong environment map" };
     std::stringstream localstream; // catch output when user doesn't want it
     std::ostream &outstream (outstream_ptr ? *outstream_ptr : localstream);
 
-    std::string filename = filenames[0];
-    if (! Filesystem::exists (filename)) {
+    bool from_filename = (input == NULL);
+
+    if (from_filename && ! Filesystem::exists (filename)) {
         outstream << "maketx ERROR: \"" << filename << "\" does not exist\n";
         return false;
     }
-    std::string outputfilename = _outputfilename.length() ? _outputfilename
-        : Filesystem::replace_extension (filename, ".tx");
+
+    ImageBuf *img = NULL;
+    if (input == NULL) {
+        // No buffer supplied -- create one to read the file
+        img = new ImageBuf(filename);
+        img->init_spec (filename, 0, 0); // force it to get the spec, not read
+    } else if (input->cachedpixels()) {
+        // Image buffer supplied that's backed by ImageCache -- create a
+        // copy (very light weight, just another cache reference)
+        img = new ImageBuf(*input);
+    } else {
+        // Image buffer supplied that has pixels -- wrap it
+        img = new ImageBuf(input->name(), input->spec(),
+                           (void *)input->localpixels());
+    }
+
+    boost::shared_ptr<ImageBuf> src (img); // transfers ownership to src
+
+    if (! outputfilename.length()) {
+        std::string fn = src->name();
+        if (fn.length()) {
+            if (Filesystem::extension(fn).length() > 1)
+                outputfilename = Filesystem::replace_extension (fn, ".tx");
+            else
+                outputfilename = outputfilename + ".tx";
+        }
+        else {
+            outstream << "maketx: no output filename supplied\n";
+            return false;
+        }
+    }
 
     // When was the input file last modified?
-    std::time_t in_time = Filesystem::last_write_time (filename);
-
-    // When in update mode, skip making the texture if the output already
-    // exists and has the same file modification time as the input file.
+    // This is only used when we're reading from a filename
+    std::time_t in_time;
     bool updatemode = configspec.get_int_attribute ("maketx:updatemode");
-    if (updatemode && Filesystem::exists (outputfilename) &&
-        (in_time == Filesystem::last_write_time (outputfilename))) {
-        outstream << "maketx: no update required for \"" 
-                  << outputfilename << "\"\n";
-        return true;
+    if (from_filename) {
+        // When in update mode, skip making the texture if the output
+        // already exists and has the same file modification time as the
+        // input file.
+        in_time = Filesystem::last_write_time (src->name());
+        if (updatemode && Filesystem::exists (outputfilename) &&
+            (in_time == Filesystem::last_write_time (outputfilename))) {
+            outstream << "maketx: no update required for \"" 
+                      << outputfilename << "\"\n";
+            return true;
+        }
     }
 
     bool shadowmode = (mode == ImageBufAlgo::MakeTxShadow);
@@ -677,9 +695,6 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                   << "\" format does not support tiled images\n";
         return false;
     }
-
-    boost::shared_ptr<ImageBuf> src (new ImageBuf(filename));
-    src->init_spec (filename, 0, 0); // force it to get the spec, not read
 
     // The cache might mess with the apparent data format.  But for the 
     // purposes of what we should output, figure it out now, before the
@@ -704,17 +719,17 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     double misc_time_1 = alltime.lap();
     STATUS ("prep", misc_time_1);
-    if (verbose)
-        outstream << "Reading file: " << filename << std::endl;
-
-    if (! src->read (0, 0, read_local)) {
-        outstream 
-            << "maketx ERROR: Could not read \"" 
-            << filename << "\" : " << src->geterror() << "\n";
-        return false;
+    if (from_filename) {
+        if (verbose)
+            outstream << "Reading file: " << src->name() << std::endl;
+        if (! src->read (0, 0, read_local)) {
+            outstream  << "maketx ERROR: Could not read \"" 
+                       << src->name() << "\" : " << src->geterror() << "\n";
+            return false;
+        }
     }
     stat_readtime += alltime.lap();
-    STATUS (Strutil::format("read \"%s\"", filename), stat_readtime);
+    STATUS (Strutil::format("read \"%s\"", src->name()), stat_readtime);
     
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
@@ -788,7 +803,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
         // Some special checks for shadow maps
         if (src->spec().nchannels != 1) {
             outstream << "maketx ERROR: shadow maps require 1-channel images,\n"
-                      << "\t\"" << filename << "\" is " 
+                      << "\t\"" << src->name() << "\" is " 
                       << src->spec().nchannels << " channels\n";
             return false;
         }
@@ -882,7 +897,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
     // Put a DateTime in the out file, either now, or matching the date
     // stamp of the input file (if update mode).
     time_t date;
-    if (updatemode)
+    if (updatemode && from_filename)
         date = in_time;  // update mode: use the time stamp of the input
     else
         time (&date);    // not update: get the time now
@@ -1191,7 +1206,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
-    if (ok && updatemode)
+    if (ok && updatemode && from_filename)
         Filesystem::last_write_time (outputfilename, in_time);
 
     Filter2D::destroy (filter);
@@ -1215,4 +1230,43 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
 
 #undef STATUS
     return ok;
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const std::string &filename,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream)
+{
+    return make_texture_impl (mode, NULL, filename, outputfilename,
+                              configspec, outstream);
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const std::vector<std::string> &filenames,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream_ptr)
+{
+    return make_texture_impl (mode, NULL, filenames[0], outputfilename,
+                              configspec, outstream_ptr);
+}
+
+
+
+bool
+ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
+                            const ImageBuf &input,
+                            const std::string &outputfilename,
+                            const ImageSpec &configspec,
+                            std::ostream *outstream)
+{
+    return make_texture_impl (mode, &input, "", outputfilename,
+                              configspec, outstream);
 }
