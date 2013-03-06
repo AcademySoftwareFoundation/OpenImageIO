@@ -184,7 +184,7 @@ copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 
 
 
-// Resize src into dst using a good quality filter, 
+// Resize src into dst using a good quality filter,
 // for the pixel range [x0,x1) x [y0,y1).
 static void
 resize_block_HQ (ImageBuf &dst, const ImageBuf &src, ROI roi, Filter2D *filter)
@@ -287,13 +287,85 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 }
 
 
+// Helper function to compute the first bilerp pass into a scanline buffer
+template<class SRCTYPE>
+static void
+halve_horiz(const SRCTYPE *s, const int nchannels, size_t sw, float *scanline)
+{
+    const size_t xstride = nchannels * sizeof(SRCTYPE);
+    float *dst = scanline;
+    for (size_t i = 0; i < sw; i += 2, s += xstride) {
+        for (size_t j = 0; j < nchannels; ++j, ++dst, ++s)
+            *dst = 0.5 * (*s + *(s + xstride));
+    }
+}
+
+
+
+// Bilinear resize performed as a 2-pass filter.
+// Optimized to assume that the images are contiguous.
+template<class SRCTYPE>
+static bool
+resize_block_2pass (ImageBuf &dst, const ImageBuf &src, ROI roi)
+{
+    ASSERT(dst.spec().width == roi.width());            // Full width ROI
+    ASSERT(roi.xbegin == 0 && roi.xend == roi.width()); // Not inset
+    ASSERT(dst.spec().width == src.spec().width / 2);   // Src is 2x
+    ASSERT(src.spec().format == dst.spec().format);     // Same formats
+    ASSERT(src.nchannels() == dst.nchannels());         // Same channels
+    ASSERT(roi.ybegin + roi.height() <= dst.spec().height);
+
+    // Allocate two scanline buffers to hold the result of the first pass
+    const int nchannels = dst.nchannels();
+    const size_t row_bytes = roi.width() * nchannels * sizeof(float);
+    float *S0 = (float *)malloc(row_bytes);             // float tmp buffers
+    float *S1 = (float *)malloc(row_bytes);
+    
+    // We know that the buffers created for mipmapping are all contiguous,
+    // so we can skip the iterators for a bilerp resize entirely along with
+    // any NDC -> pixel math, and just directly traverse pixels.
+    const SRCTYPE *s = (const SRCTYPE *)src.localpixels();
+    SRCTYPE *d = (SRCTYPE *)dst.localpixels();
+    ASSERT(s && d);                                     // Assume contig bufs
+    const size_t xstride = nchannels * sizeof(SRCTYPE); // Pixel offset
+    d += roi.ybegin * dst.spec().width * xstride;       // Top of dst ROI
+    const size_t ystride = src.spec().width * xstride;  // Scanline offset
+    s += 2 * roi.ybegin * ystride;                      // Top of src ROI
+    
+    // Run through destination rows, doing the two-pass bilerp filter
+    const size_t dw = roi.width(), dh = roi.height();   // Loop invariants
+    const size_t sw = dw * 2;                           // Handle odd res
+    for (size_t y = 0; y < dh; ++y) {                   // For each dst ROI row
+        halve_horiz(s, nchannels, sw, S0);              // Source scanline #1
+        s += ystride;
+        halve_horiz(s, nchannels, sw, S1);              // Source scanline #2
+        s += ystride;
+        const float *s0 = S0, *s1 = S1;
+        for (size_t x = 0; x < dw; ++x) {               // For each dst ROI col
+            for (size_t i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
+                *d = 0.5 * (*s0 + *s1);                 // Average vertically
+        }
+    }
+    
+    free(S0);                                           // Release buffers
+    free(S1);
+    
+    return true;
+}
+
+
 
 static bool
 resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 {
-    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
-                         dst, src, roi, envlatlmode);
+  if (!envlatlmode) {
+      OIIO_DISPATCH_TYPES("resize_block_2pass", resize_block_2pass,
+                          src.spec().format, dst, src, roi);
+  }
+  
+  ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+  OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
+                       dst, src, roi, envlatlmode);
 }
 
 
@@ -312,7 +384,7 @@ check_nan_block (const ImageBuf &src, ROI roi, int &found_nonfinite)
                 if (! isfinite(pel[c])) {
                     spin_lock lock (maketx_mutex);
                     if (found_nonfinite < 3)
-                        std::cerr << "maketx ERROR: Found " << pel[c] 
+                        std::cerr << "maketx ERROR: Found " << pel[c]
                                   << " at (x=" << x << ", y=" << y << ")\n";
                     ++found_nonfinite;
                     break;  // skip other channels, there's no point
@@ -512,7 +584,8 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 smallspec.full_width = smallspec.width;
                 smallspec.full_height = smallspec.height;
                 smallspec.full_depth = smallspec.depth;
-                smallspec.set_format (TypeDesc::FLOAT);
+                if (configspec.get_int_attribute("maketx:forcefloat", 1))
+                    smallspec.set_format (TypeDesc::FLOAT);
 
                 // Trick: to get the resize working properly, we reset
                 // both display and pixel windows to match, and have 0
@@ -713,7 +786,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
 
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
-    bool read_local = (src->spec().image_bytes() < imagesize_t(1024*1024*1024));
+    int local_thresh = configspec.get_int_attribute("maketx:read_local_bytes",
+                                                    1024*1024*1024);
+    bool read_local = (src->spec().image_bytes() < local_thresh);
 
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     double misc_time_1 = alltime.lap();
@@ -1045,7 +1120,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
 
     // Force float for the sake of the ImageBuf math
-    dstspec.set_format (TypeDesc::FLOAT);
+    if (configspec.get_int_attribute("maketx:forcefloat", 1))
+        dstspec.set_format (TypeDesc::FLOAT);
 
     // Handle resize to power of two, if called for
     if (configspec.get_int_attribute("maketx:resize")  &&  ! shadowmode) {
@@ -1145,9 +1221,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     addlHashData << filter->width() << " ";
 
     const int sha1_blocksize = 256;
-    std::string hash_digest =
+    std::string hash_digest = configspec.get_int_attribute("maketx:sha1", 1) ?
         ImageBufAlgo::computePixelHashSHA1 (*toplevel, addlHashData.str(),
-                                            ROI::All(), sha1_blocksize);
+                                            ROI::All(), sha1_blocksize) : "";
     if (hash_digest.length()) {
         if (desc.length())
             desc += " ";
@@ -1160,7 +1236,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
     double stat_hashtime = alltime.lap();
     STATUS ("SHA-1 hash", stat_hashtime);
-    
+  
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
         os << "[";

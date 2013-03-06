@@ -1078,7 +1078,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
     CSHA1 sha;
     sha.Reset ();
     for (int b = 0;  b < nblocks;  ++b)
-        sha.Update (results[b].c_str(), results[b].size());
+        sha.Update ((const unsigned char *)results[b].c_str(), results[b].size());
     if (extrainfo.size())
         sha.Update ((const unsigned char *)extrainfo.c_str(), extrainfo.size());
     sha.Final ();
