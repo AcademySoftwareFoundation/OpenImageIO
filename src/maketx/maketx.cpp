@@ -51,29 +51,19 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "maketexture.h"
 #include "thread.h"
 #include "filter.h"
 
 OIIO_NAMESPACE_USING
 
 
-// # FIXME: Refactor all statics into a struct
+static MaketxParams param;
 
 // Basic runtime options
 static bool newmode = true;
 static std::string full_command_line;
 static std::vector<std::string> filenames;
-static std::string outputfilename;
-static std::string dataformatname = "";
-static std::string fileformatname = "";
-static std::vector<std::string> mipimages;
-//static float ingamma = 1.0f, outgamma = 1.0f;
-static bool verbose = false;
-static bool stats = false;
-static int nthreads = 0;    // default: use #cores threads if available
-static int tile[3] = { 64, 64, 1 };
-static std::string channellist;
-static std::string compression = "zip";
 static bool updatemode = false;
 static double stat_readtime = 0;
 static double stat_writetime = 0;
@@ -86,7 +76,7 @@ static bool set_full_to_pixels = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
-static Filter2D *filter = NULL;
+ColorConfig colorconfig;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
 static bool mipmapmode = false;
@@ -98,40 +88,6 @@ static bool envcubemode = false;
 static bool lightprobemode = false;
 static bool vertcrossmode = false;
 static bool latl2envcubemode = false;
-
-// Options controlling file metadata or mipmap creation
-static float fov = 90;
-static float fovcot = 0.0f;
-static std::string wrap = "black";
-static std::string swrap;
-static std::string twrap;
-static bool doresize = false;
-//static float opaquewidth = 0;  // should be volume shadow epsilon
-static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
-static bool separate = false;
-static bool nomipmap = false;
-static bool embed_hash = false; // Ignored.
-static bool prman_metadata = false;
-static bool constant_color_detect = false;
-static bool monochrome_detect = false;
-static bool opaque_detect = false;
-static int nchannels = -1;
-static bool prman = false;
-static bool oiio = false;
-static bool src_samples_border = false; // are src edge samples on the border?
-static bool ignore_unassoc = false;  // ignore unassociated alpha tags
-
-static bool unpremult = false;
-static std::string incolorspace;
-static std::string outcolorspace;
-static ColorConfig colorconfig;
-
-
-// forward decl
-static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
-                          std::string outputfilename, ImageOutput *out,
-                          TypeDesc outputdatatype, bool mipmap);
-
 
 
 static std::string
@@ -230,9 +186,9 @@ getargs (int argc, char *argv[])
                 "Usage:  maketx [options] file...",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-o %s", &outputfilename, "Output filename",
-                  "--threads %d", &nthreads, "Number of threads (default: #cores)",
+                  "-v", &param.verbose, "Verbose status messages",
+                  "-o %s", &param.outputfilename, "Output filename",
+                  "--threads %d", &param.nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
                   "--new", &newmode, "",
                   "--old %!", &newmode, "",
@@ -240,41 +196,42 @@ getargs (int argc, char *argv[])
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
                   "-d %s", &dataformatname, "Set the output data format to one of: "
                           "uint8, sint8, uint16, sint16, half, float",
-                  "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
-                  "--separate", &separate, "Use planarconfig separate (default: contiguous)",
-                  "--compression %s", &compression, "Set the compression method (default = zip, if possible)",
-                  "--fov %f", &fov, "Field of view for envcube/shadcube/twofish",
-                  "--fovcot %f", &fovcot, "Override the frame aspect ratio. Default is width/height.",
-                  "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
-                  "--swrap %s", &swrap, "Specific s wrap mode separately",
-                  "--twrap %s", &twrap, "Specific t wrap mode separately",
-                  "--resize", &doresize, "Resize textures to power of 2 (default: no)",
-                  "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
+                  "--tile %d %d", &param.tile_width, &param.tile_height, "Specify tile size",
+                  "--separate", &param.separate, "Use planarconfig separate (default: contiguous)",
+//                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
+//                  "--outgamma %f", &outgamma, "Specify gamma of output files (default: 1)",
+//                  "--opaquewidth %f", &opaquewidth, "Set z fudge factor for volume shadows",
+                  "--fov %f", &param.fov, "Field of view for envcube/shadcube/twofish",
+                  "--fovcot %f", &param.fovcot, "Override the frame aspect ratio. Default is width/height.",
+                  "--wrap %s", &param.wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
+                  "--swrap %s", &param.swrap, "Specific s wrap mode separately",
+                  "--twrap %s", &param.twrap, "Specific t wrap mode separately",
+                  "--resize", &param.pow2resize, "Resize textures to power of 2 (default: no)",
+                  "--noresize %!", &param.pow2resize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
                   "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
                   "--fullpixels", &set_full_to_pixels, "Set the 'full' image range to be the pixel data window",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-                          &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
-                          &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
-                          &Mcam[2][0], &Mcam[2][1], &Mcam[2][2], &Mcam[2][3], 
-                          &Mcam[3][0], &Mcam[3][1], &Mcam[3][2], &Mcam[3][3], 
+                          &param.Mcam[0][0], &param.Mcam[0][1], &param.Mcam[0][2], &param.Mcam[0][3], 
+                          &param.Mcam[1][0], &param.Mcam[1][1], &param.Mcam[1][2], &param.Mcam[1][3], 
+                          &param.Mcam[2][0], &param.Mcam[2][1], &param.Mcam[2][2], &param.Mcam[2][3], 
+                          &param.Mcam[3][0], &param.Mcam[3][1], &param.Mcam[3][2], &param.Mcam[3][3], 
                           "Set the camera matrix",
                   "--Mscreen %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-                          &Mscr[0][0], &Mscr[0][1], &Mscr[0][2], &Mscr[0][3], 
-                          &Mscr[1][0], &Mscr[1][1], &Mscr[1][2], &Mscr[1][3], 
-                          &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3], 
-                          &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3], 
+                          &param.Mscr[0][0], &param.Mscr[0][1], &param.Mscr[0][2], &param.Mscr[0][3], 
+                          &param.Mscr[1][0], &param.Mscr[1][1], &param.Mscr[1][2], &param.Mscr[1][3], 
+                          &param.Mscr[2][0], &param.Mscr[2][1], &param.Mscr[2][2], &param.Mscr[2][3], 
+                          &param.Mscr[3][0], &param.Mscr[3][1], &param.Mscr[3][2], &param.Mscr[3][3], 
                           "Set the camera matrix",
                   "--hash", &embed_hash, "Embed SHA-1 hash of pixels in the header",
-                  "--prman-metadata", &prman_metadata, "Add prman specific metadata",
-                  "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
-                  "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
-                  "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
-                  "--ignore-unassoc", &ignore_unassoc, "Ignore unassociated alpha tags in input (don't autoconvert)",
+                  "--prman-metadata", &param.prman_metadata, "Add prman specific metadata",
+                  "--constant-color-detect", &param.constant_color_detect, "Create 1-tile textures from constant color inputs",
+                  "--monochrome-detect", &param.monochrome_detect, "Create 1-channel textures from monochrome inputs",
+                  "--opaque-detect", &param.opaque_detect, "Drop alpha channel that is always 1.0",
                   "--stats", &stats, "Print runtime statistics",
-                  "--mipimage %L", &mipimages, "Specify an individual MIP level",
+                  "--mipimage %L", &param.mipimages, "Specify an individual MIP level",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -288,9 +245,9 @@ getargs (int argc, char *argv[])
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
-                  "--colorconvert %s %s", &incolorspace, &outcolorspace,
+                  "--colorconvert %s %s", &param.incolorspace, &param.outcolorspace,
                           colorconvert_help_string().c_str(),
-                  "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
+                  "--unpremult", &param.unpremult, "Unpremultiply before color conversion, then premultiply "
                           "after the color conversion.  You'll probably want to use this flag "
                           "if your image contains an alpha channel.",
                   "<SEPARATOR>", "Configuration Presets",
@@ -322,7 +279,7 @@ getargs (int argc, char *argv[])
     if (optionsum == 0)
         mipmapmode = true;
     
-    if (prman && oiio) {
+    if (param.prman && param.oiio) {
         std::cerr << "maketx ERROR: '--prman' compatibility, and '--oiio' optimizations are mutually exclusive.\n";
         std::cerr << "\tIf you'd like both prman and oiio compatibility, you should choose --prman\n";
         std::cerr << "\t(at the expense of oiio-specific optimizations)\n";
@@ -336,13 +293,13 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    filter = setup_filter (filtername);
-    if (! filter) {
+    param.filter = setup_filter (filtername);
+    if (! param.filter) {
         std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
         exit (EXIT_FAILURE);
     }
 
-    if (embed_hash && verbose) {
+    if (param.verbose) {
         std::cerr << "maketx WARNING: The --embed_hash option is deprecated, and no longer necessary.\n";
         std::cerr << "                 (Hashes are always computed.)\n";
     }
@@ -576,34 +533,8 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 
 
 
-// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
-static void
-check_nan_block (ImageBuf* /*dst*/, const ImageBuf* src,
-                 int x0, int x1, int y0, int y1)
-{
-    const ImageSpec &spec (src->spec());
-    float *pel = (float *) alloca (spec.pixel_bytes());
-    for (int y = y0;  y < y1;  ++y) {
-        for (int x = x0;  x < x1;  ++x) {
-            src->getpixel (x, y, pel);
-            for (int c = 0;  c < spec.nchannels;  ++c) {
-                if (! isfinite(pel[c])) {
-                    spin_lock lock (maketx_mutex);
-                    if (found_nonfinite < 3)
-                        std::cerr << "maketx ERROR: Found " << pel[c] 
-                                  << " at (x=" << x << ", y=" << y << ")\n";
-                    ++found_nonfinite;
-                    break;  // skip other channels, there's no point
-                }
-            }
-        }
-    }
-}
-
-
-
-static void
-fix_latl_edges (ImageBuf &buf)
+int
+main (int argc, char *argv[])
 {
     ASSERT (envlatlmode && "only call fix_latl_edges for latlong maps");
     int n = buf.nchannels();
@@ -629,61 +560,49 @@ fix_latl_edges (ImageBuf &buf)
             buf.setpixel (x, y, left);
     }
 
-    // Make the left and right match, since they are both right on the
-    // prime meridian.
-    for (int y = buf.ybegin();  y < buf.yend();  ++y) {
-        buf.getpixel (buf.xbegin(), y, left);
-        buf.getpixel (buf.xend()-1, y, right);
-        for (int c = 0;  c < n;  ++c)
-            left[c] = 0.5f * left[c] + 0.5f * right[c];
-        buf.setpixel (buf.xbegin(), y, left);
-        buf.setpixel (buf.xend()-1, y, left);
+    OIIO::attribute ("threads", param.nthreads);
+    if (stats) {
+        ImageCache *ic = ImageCache::create ();  // get the shared one
+        ic->attribute ("forcefloat", 1);   // Force float upon read
+        ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
+        // N.B. This will apply to the default IC that any ImageBuf's get.
     }
-}
 
-
-
-static std::string
-formatres (const ImageSpec &spec, bool extended=false)
-{
-    std::string s;
-    s = Strutil::format("%dx%d", spec.width, spec.height);
-    if (extended) {
-        if (spec.x || spec.y)
-            s += Strutil::format("%+d%+d", spec.x, spec.y);
-        if (spec.width != spec.full_width || spec.height != spec.full_height ||
-            spec.x != spec.full_x || spec.y != spec.full_y) {
-            s += " (full/display window is ";
-            s += Strutil::format("%dx%d", spec.full_width, spec.full_height);
-            if (spec.full_x || spec.full_y)
-                s += Strutil::format("%+d%+d", spec.full_x, spec.full_y);
-            s += ")";
-        }
+    if (mipmapmode) {
+        param.conversionmode = MaketxParams::MIPMAP;
+    } else if (shadowmode) {
+        param.conversionmode = MaketxParams::SHADOW;
+    } else if (shadowcubemode) {
+        std::cerr << "Shadow cubes currently unsupported\n";
+    } else if (volshadowmode) {
+        std::cerr << "Volume shadows currently unsupported\n";
+    } else if (envlatlmode) {
+        param.conversionmode = MaketxParams::ENVLATLONG;
+    } else if (envcubemode) {
+        std::cerr << "Environment cubes currently unsupported\n";
+    } else if (lightprobemode) {
+        std::cerr << "Light probes currently unsupported\n";
+    } else if (vertcrossmode) {
+        std::cerr << "Vertcross currently unsupported\n";
+    } else if (latl2envcubemode) {
+        std::cerr << "Latlong->cube conversion currently unsupported\n";
     }
-    return s;
-}
-
-
-
-static void
-make_texturemap (const char *maptypename = "texture map")
-{
+  
     if (filenames.size() != 1) {
-        std::cerr << "maketx ERROR: " << maptypename 
-                  << " requires exactly one input filename\n";
+        std::cerr << "maketx ERROR: Requires exactly one input filename\n";
         exit (EXIT_FAILURE);
     }
-
+    
     if (! Filesystem::exists (filenames[0])) {
         std::cerr << "maketx ERROR: \"" << filenames[0] << "\" does not exist\n";
         exit (EXIT_FAILURE);
     }
-    if (outputfilename.empty()) 
-        outputfilename = Filesystem::replace_extension (filenames[0], ".tx");
-
+    if (param.outputfilename.empty())
+        param.outputfilename = Filesystem::replace_extension (filenames[0], ".tx");
+    
     // When was the input file last modified?
     std::time_t in_time = Filesystem::last_write_time (filenames[0]);
-
+    
     // When in update mode, skip making the texture if the output already
     // exists and has the same file modification time as the input file.
     if (updatemode && Filesystem::exists (outputfilename) &&
@@ -948,203 +867,34 @@ make_texturemap (const char *maptypename = "texture map")
         if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Latlong Environment");
     } else {
-        dstspec.attribute ("textureformat", "Plain Texture");
-        if(prman_metadata)
-            dstspec.attribute ("PixarTextureFormat", "Plain Texture");
-    }
-
-    if (Mcam != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &Mcam);
-    if (Mscr != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtoscreen", TypeDesc::TypeMatrix, &Mscr);
-
-    // FIXME - check for valid strings in the wrap mode
-    if (! shadowmode) {
-        std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 
-                                (twrap.size() ? twrap : wrap);
-        dstspec.attribute ("wrapmodes", wrapmodes);
-    }
-    
-    if(fovcot == 0.0f) {
-        fovcot = static_cast<float>(srcspec.full_width) / 
-            static_cast<float>(srcspec.full_height);
-    }
-    dstspec.attribute ("fovcot", fovcot);
-
-    if (separate)
-        dstspec.attribute ("planarconfig", "separate");
-    else {
-        dstspec.erase_attribute("planarconfig");
-        dstspec.erase_attribute("tiff:planarconfig");
-    }
-    // FIXME -- should we allow tile sizes to reduce if the image is
-    // smaller than the tile size?  And when we do, should we also try
-    // to make it bigger in the other direction to make the total tile
-    // size more constant?
-
-    // If --checknan was used and it's a floating point image, check for
-    // nonfinite (NaN or Inf) values and abort if they are found.
-    if (checknan && (srcspec.format.basetype == TypeDesc::FLOAT ||
-                     srcspec.format.basetype == TypeDesc::HALF ||
-                     srcspec.format.basetype == TypeDesc::DOUBLE)) {
-        found_nonfinite = false;
-        parallel_image (check_nan_block, &src, &src,
-                        dstspec.x, dstspec.x+dstspec.width,
-                        dstspec.y, dstspec.y+dstspec.height, nthreads);
-        if (found_nonfinite) {
-            if (found_nonfinite > 3)
-                std::cerr << "maketx ERROR: ...and Nan/Inf at "
-                          << (found_nonfinite-3) << " other pixels\n";
+        // Find an ImageIO plugin that can open the output file, and open it
+        std::string outformat = param.fileformatname.empty() ?
+                                param.outputfilename : param.fileformatname;
+        ImageOutput *out = ImageOutput::create (outformat.c_str());
+        if (! out) {
+            std::cerr
+                << "maketx ERROR: Could not find an ImageIO plugin to write "
+                << outformat << " files:" << geterror() << "\n";
+            return false;
+        }
+        if (! out->supports ("tiles")) {
+            std::cerr << "maketx ERROR: \"" << param.outputfilename
+                      << "\" format does not support tiled images\n";
+            return false;
+        }
+        
+        ImageBuf src(filenames[0]);
+        src.init_spec (filenames[0], 0, 0); // force it to get the spec, not read
+        if (!make_texturemap(src, out, param, &stat))
             exit (EXIT_FAILURE);
-        }
-    }
-    
-    // Fix nans/infs (if requested
-    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
-    if (fixnan.empty() || fixnan == "none") { }
-    else if (fixnan == "black") { fixmode = ImageBufAlgo::NONFINITE_BLACK; }
-    else if (fixnan == "box3") { fixmode = ImageBufAlgo::NONFINITE_BOX3; }
-    else {
-        std::cerr << "maketx ERROR: Unknown --fixnan mode " << " fixnan\n";
-        exit (EXIT_FAILURE);
-    }
-    
-    int pixelsFixed = 0;
-    if (!ImageBufAlgo::fixNonFinite (src, src, fixmode, &pixelsFixed)) {
-        std::cerr << "maketx ERROR: Error fixing nans/infs.\n";
-        exit (EXIT_FAILURE);
-    }
-    
-    if (verbose && pixelsFixed>0) {
-        std::cout << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
-    }
-    
-    
-    
-    // Color convert the pixels, if needed, in place.  If a color
-    // conversion is required we will promote the src to floating point
-    // (or there wont be enough precision potentially).  Also,
-    // independently color convert the constant color metadata
-    ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
-    ImageBuf colorBuffer;
-    if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
-        if (src.spec().format != TypeDesc::FLOAT) {
-            ImageSpec floatSpec = src.spec();
-            floatSpec.set_format(TypeDesc::FLOAT);
-            colorBuffer.reset("bitdepth promoted", floatSpec);
-            ccSrc = &colorBuffer;
-        }
-        
-        Timer colorconverttimer;
-        if (verbose) {
-            std::cout << "  Converting from colorspace " << incolorspace 
-                      << " to colorspace " << outcolorspace << std::endl;
-        }
-        
-        if (colorconfig.error()) {
-            std::cerr << "Error Creating ColorConfig\n";
-            std::cerr << colorconfig.geterror() << std::endl;
-            exit (EXIT_FAILURE);
-        }
-        
-        ColorProcessor * processor = colorconfig.createColorProcessor (
-            incolorspace.c_str(), outcolorspace.c_str());
-        
-        if (!processor || colorconfig.error()) {
-            std::cerr << "Error Creating Color Processor." << std::endl;
-            std::cerr << colorconfig.geterror() << std::endl;
-            exit (EXIT_FAILURE);
-        }
-        
-        if (unpremult && verbose)
-            std::cout << "  Unpremulting image..." << std::endl;
-        
-        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult)) {
-            std::cerr << "Error applying color conversion to image.\n";
-            exit (EXIT_FAILURE);
-        }
-        
-        if (isConstantColor) {
-            if (!ImageBufAlgo::colorconvert (&constantColor[0],
-                static_cast<int>(constantColor.size()), processor, unpremult)) {
-                std::cerr << "Error applying color conversion to constant color.\n";
-                exit (EXIT_FAILURE);
-            }
-        }
 
-        ColorConfig::deleteColorProcessor(processor);
-        processor = NULL;
-        stat_colorconverttime += colorconverttimer();
+        delete out;
+
+        // If using update mode, stamp the output file with a modification time
+        // matching that of the input file.
+        if (updatemode)
+            Filesystem::last_write_time (param.outputfilename, in_time);
     }
-
-    // Force float for the sake of the ImageBuf math
-    dstspec.set_format (TypeDesc::FLOAT);
-
-    // Handle resize to power of two, if called for
-    if (doresize  &&  ! shadowmode) {
-        dstspec.width = pow2roundup (dstspec.width);
-        dstspec.height = pow2roundup (dstspec.height);
-        dstspec.full_width = dstspec.width;
-        dstspec.full_height = dstspec.height;
-    }
-
-    bool do_resize = false;
-    // Resize if we're up-resing for pow2
-    if (dstspec.width != srcspec.width || dstspec.height != srcspec.height ||
-          dstspec.full_depth != srcspec.full_depth)
-        do_resize = true;
-    // resize if the original was a crop
-    if (orig_was_crop)
-        do_resize = true;
-    // resize if we're converting from non-border sampling to border sampling
-    if (envlatlmode && ! src_samples_border && 
-        (Strutil::iequals(fileformatname,"openexr") ||
-         Strutil::iends_with(outputfilename,".exr")))
-        do_resize = true;
-
-    if (do_resize && orig_was_overscan &&
-        out && !out->supports("displaywindow")) {
-        std::cerr << "maketx ERROR: format " << out->format_name()
-                  << " does not support separate display windows,\n"
-                  << "              which is necessary when combining resizing"
-                  << " and an input image with overscan.";
-        exit (EXIT_FAILURE);
-    }
-
-    Timer resizetimer;
-    ImageBuf dst ("temp", dstspec);
-    ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
-    if (! do_resize) {
-        // Don't need to resize
-        if (dstspec.format == ccSrc->spec().format) {
-            // Even more special case, no format change -- just use
-            // the original copy.
-            toplevel = ccSrc;
-        } else {
-            parallel_image (copy_block, &dst, ccSrc,
-                            dstspec.x, dstspec.x+dstspec.width,
-                            dstspec.y, dstspec.y+dstspec.height, nthreads);
-        }
-    } else {
-        // Resize
-        if (verbose)
-            std::cout << "  Resizing image to " << dstspec.width 
-                      << " x " << dstspec.height << std::endl;
-        if (filtername == "box" && filter->width() == 1.0f)
-            parallel_image (resize_block, &dst, ccSrc,
-                            dstspec.x, dstspec.x+dstspec.width,
-                            dstspec.y, dstspec.y+dstspec.height, nthreads);
-        else
-            parallel_image (resize_block_HQ, &dst, ccSrc,
-                            dstspec.x, dstspec.x+dstspec.width,
-                            dstspec.y, dstspec.y+dstspec.height, nthreads);
-    }
-    stat_resizetime += resizetimer();
-
-    
-    // Update the toplevel ImageDescription with the sha1 pixel hash and constant color
-    std::string desc = dstspec.get_string_attribute ("ImageDescription");
-    bool updatedDesc = false;
     
     // Eliminate any SHA-1 or ConstantColor hints in the ImageDescription.
     if (desc.size()) {
@@ -1654,19 +1404,19 @@ main (int argc, char *argv[])
         std::cout << "maketx Runtime statistics (seconds):\n";
         double alltime = alltimer();
         std::cout << Strutil::format ("  total runtime:   %5.2f\n", alltime);
-        std::cout << Strutil::format ("  file read:       %5.2f\n", stat_readtime);
-        std::cout << Strutil::format ("  file write:      %5.2f\n", stat_writetime);
-        std::cout << Strutil::format ("  initial resize:  %5.2f\n", stat_resizetime);
-        std::cout << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
-        std::cout << Strutil::format ("  color convert:   %5.2f\n", stat_colorconverttime);
+        std::cout << Strutil::format ("  file read:       %5.2f\n", stat.readtime);
+        std::cout << Strutil::format ("  file write:      %5.2f\n", stat.writetime);
+        std::cout << Strutil::format ("  initial resize:  %5.2f\n", stat.resizetime);
+        std::cout << Strutil::format ("  mip computation: %5.2f\n", stat.miptime);
+        std::cout << Strutil::format ("  color convert:   %5.2f\n", stat.colorconverttime);
         std::cout << Strutil::format ("  unaccounted:     %5.2f\n",
-                                      alltime-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
+                                      alltime-stat.readtime-stat.writetime-stat.resizetime-stat.miptime);
         size_t kb = Sysutil::memory_used(true) / 1024;
         std::cout << Strutil::format ("maketx memory used: %5.1f MB\n",
                                       (double)kb/1024.0);
     }
 
-    Filter2D::destroy (filter);
+    Filter2D::destroy (param.filter);
 
     if (stats) {
         std::cout << "\n" << ic->getstats();

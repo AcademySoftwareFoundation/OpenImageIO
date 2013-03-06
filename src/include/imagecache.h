@@ -211,7 +211,8 @@ public:
     /// pixel coordinates.  An opaque pointer to the tile will be
     /// returned, or NULL if no such file (or tile within the file)
     /// exists or can be read.  The tile will not be purged from the
-    /// cache until after release_tile() is called on the tile pointer.
+    /// cache until after release_tile() is called on the tile pointer
+    /// the same number of times that get_tile() was called (refcnt).
     /// This is thread-safe!
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
                                 int x, int y, int z) = 0;
