@@ -25,11 +25,11 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: C12F91CE509A947ACE16DECA103E73CB62D2AC09
+    SHA-1: 1DAB274639828223059FDBC0E30BD569C07B66C0
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=B61A1BD1C59D43B0ACC49C5B62FD20740E2E0DEF"
+    ImageDescription: "SHA-1=6BB20B8888D19264EF352459AF9681518D47BBF8"
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -43,7 +43,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=B61A1BD1C59D43B0ACC49C5B62FD20740E2E0DEF"
+    IPTC:Caption: "SHA-1=6BB20B8888D19264EF352459AF9681518D47BBF8"
     tiff:PageNumber: "0"
     tiff:RowsPerStrip: "8"
 Reading checker-uint16.tx

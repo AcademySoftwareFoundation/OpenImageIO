@@ -1218,6 +1218,18 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                               stride_t dst_zstride,
                               int alpha_channel = -1, int z_channel = -1);
 
+/// A version of convert_image that will break up big jobs into multiple
+/// threads.
+OIIO_API bool parallel_convert_image (
+               int nchannels, int width, int height, int depth,
+               const void *src, TypeDesc src_type,
+               stride_t src_xstride, stride_t src_ystride,
+               stride_t src_zstride,
+               void *dst, TypeDesc dst_type,
+               stride_t dst_xstride, stride_t dst_ystride,
+               stride_t dst_zstride,
+               int alpha_channel=-1, int z_channel=-1, int nthreads=0);
+
 
 /// Helper routine for data conversion: Copy an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have

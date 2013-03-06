@@ -220,7 +220,7 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             if (contiguous) {
                 ok = convert_types (m_spec.format, &buf[0], format, data, chunkvalues);
             } else {
-                ok = convert_image (nchans, m_spec.width, nscanlines, 1, 
+                ok = parallel_convert_image (nchans, m_spec.width, nscanlines, 1, 
                                     &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
                                     data, format, xstride, ystride, zstride);
             }
