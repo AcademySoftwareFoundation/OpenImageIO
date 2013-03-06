@@ -567,6 +567,14 @@ enum OIIO_API MakeTextureMode {
 ///    maketx:ignore_unassoc (int)
 ///                           If nonzero, will disbelieve any evidence that
 ///                               the input image is unassociated alpha. (0)
+///    maketx:read_local_bytes (int)
+///                           If nonzero, will read the full input file locally
+///                               if it is smaller than this threshold. (0)
+///    maketx:forcefloat (int)
+///                           Forces a conversion through float data for
+///                               the sake of ImageBuf math. (1)
+///    maketx:sha1 (int)
+///                           Compute the sha1 hash of the file in parallel. (1)
 ///
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::string &filename,
