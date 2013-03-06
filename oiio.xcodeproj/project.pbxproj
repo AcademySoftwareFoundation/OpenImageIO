@@ -118,6 +118,7 @@
 		CA24E8721627426400BD9ED3 /* jpegoutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA24E8701627426400BD9ED3 /* jpegoutput.cpp */; };
 		CA24E88D1627443400BD9ED3 /* jquant1.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E88B1627443400BD9ED3 /* jquant1.c */; };
 		CA24E88E1627443400BD9ED3 /* jquant2.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E88C1627443400BD9ED3 /* jquant2.c */; };
+		CA2E4B1C16E6A879003D463D /* maketexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA2E4B1B16E6A879003D463D /* maketexture.cpp */; };
 		CA38AA431625E9DE0055AF8E /* color_ocio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA1B1625E9DD0055AF8E /* color_ocio.cpp */; };
 		CA38AA441625E9DE0055AF8E /* exif.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA1C1625E9DD0055AF8E /* exif.cpp */; };
 		CA38AA451625E9DE0055AF8E /* filesystem_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA1D1625E9DD0055AF8E /* filesystem_test.cpp */; };
@@ -147,7 +148,6 @@
 		CA38AA631625E9DE0055AF8E /* sysutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA3E1625E9DD0055AF8E /* sysutil.cpp */; };
 		CA38AA651625E9DE0055AF8E /* typedesc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA401625E9DD0055AF8E /* typedesc.cpp */; };
 		CA38AA661625E9DE0055AF8E /* ustring.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA38AA411625E9DD0055AF8E /* ustring.cpp */; };
-		CA4428DA163F011000900286 /* maketexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D2163F010F00900286 /* maketexture.cpp */; };
 		CA4428DB163F011000900286 /* environment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D3163F010F00900286 /* environment.cpp */; };
 		CA4428DC163F011000900286 /* imagecache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D5163F010F00900286 /* imagecache.cpp */; };
 		CA4428DD163F011000900286 /* texoptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D6163F010F00900286 /* texoptions.cpp */; };
@@ -169,7 +169,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		CA021BAF163D8D2300AE1075 /* maketexture.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = maketexture.h; sourceTree = "<group>"; };
 		CA24E6B31626499300BD9ED3 /* eLut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eLut.h; sourceTree = "<group>"; };
 		CA24E6B41626499300BD9ED3 /* half.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = half.h; sourceTree = "<group>"; };
 		CA24E6B51626499300BD9ED3 /* halfFunction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = halfFunction.h; sourceTree = "<group>"; };
@@ -347,6 +346,7 @@
 		CA24E8701627426400BD9ED3 /* jpegoutput.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = jpegoutput.cpp; sourceTree = "<group>"; };
 		CA24E88B1627443400BD9ED3 /* jquant1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jquant1.c; path = "jpeg-8d/jquant1.c"; sourceTree = "<group>"; };
 		CA24E88C1627443400BD9ED3 /* jquant2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jquant2.c; path = "jpeg-8d/jquant2.c"; sourceTree = "<group>"; };
+		CA2E4B1B16E6A879003D463D /* maketexture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = maketexture.cpp; sourceTree = "<group>"; };
 		CA38A8EC1625E79D0055AF8E /* liboiio.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = liboiio.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA38A9DD1625E9C20055AF8E /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
 		CA38A9E01625E9C20055AF8E /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = color.h; sourceTree = "<group>"; };
@@ -435,7 +435,6 @@
 		CA38AA401625E9DD0055AF8E /* typedesc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = typedesc.cpp; sourceTree = "<group>"; };
 		CA38AA411625E9DD0055AF8E /* ustring.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ustring.cpp; sourceTree = "<group>"; };
 		CA38AA671625EA680055AF8E /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
-		CA4428D2163F010F00900286 /* maketexture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = maketexture.cpp; path = src/libtexture/maketexture.cpp; sourceTree = SOURCE_ROOT; };
 		CA4428D3163F010F00900286 /* environment.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = environment.cpp; path = src/libtexture/environment.cpp; sourceTree = SOURCE_ROOT; };
 		CA4428D4163F010F00900286 /* imagecache_pvt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imagecache_pvt.h; path = src/libtexture/imagecache_pvt.h; sourceTree = SOURCE_ROOT; };
 		CA4428D5163F010F00900286 /* imagecache.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imagecache.cpp; path = src/libtexture/imagecache.cpp; sourceTree = SOURCE_ROOT; };
@@ -740,7 +739,6 @@
 				CA38A9E91625E9C20055AF8E /* imagebufalgo.h */,
 				CA38A9EA1625E9C20055AF8E /* imagecache.h */,
 				CA38A9EB1625E9C20055AF8E /* imageio.h */,
-				CA021BAF163D8D2300AE1075 /* maketexture.h */,
 				CA38A9EC1625E9C20055AF8E /* optparser.h */,
 				CA38A9ED1625E9C20055AF8E /* osdep.h */,
 				CA38A9EE1625E9C20055AF8E /* paramlist.h */,
@@ -806,6 +804,7 @@
 		CA38AA181625E9DD0055AF8E /* libOpenImageIO */ = {
 			isa = PBXGroup;
 			children = (
+				CA2E4B1B16E6A879003D463D /* maketexture.cpp */,
 				CA38AA1B1625E9DD0055AF8E /* color_ocio.cpp */,
 				CA38AA1C1625E9DD0055AF8E /* exif.cpp */,
 				CA38AA1D1625E9DD0055AF8E /* filesystem_test.cpp */,
@@ -854,7 +853,6 @@
 		CA4428D1163F00D100900286 /* libtexture */ = {
 			isa = PBXGroup;
 			children = (
-				CA4428D2163F010F00900286 /* maketexture.cpp */,
 				CA4428D3163F010F00900286 /* environment.cpp */,
 				CA4428D4163F010F00900286 /* imagecache_pvt.h */,
 				CA4428D5163F010F00900286 /* imagecache.cpp */,
@@ -1057,12 +1055,12 @@
 				CA24E8721627426400BD9ED3 /* jpegoutput.cpp in Sources */,
 				CA24E88D1627443400BD9ED3 /* jquant1.c in Sources */,
 				CA24E88E1627443400BD9ED3 /* jquant2.c in Sources */,
-				CA4428DA163F011000900286 /* maketexture.cpp in Sources */,
 				CA4428DB163F011000900286 /* environment.cpp in Sources */,
 				CA4428DC163F011000900286 /* imagecache.cpp in Sources */,
 				CA4428DD163F011000900286 /* texoptions.cpp in Sources */,
 				CA4428DE163F011000900286 /* texture3d.cpp in Sources */,
 				CA4428DF163F011000900286 /* texturesys.cpp in Sources */,
+				CA2E4B1C16E6A879003D463D /* maketexture.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
