@@ -726,8 +726,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                 outputfilename = Filesystem::replace_extension (fn, ".tx");
             else
                 outputfilename = outputfilename + ".tx";
-        }
-        else {
+        } else {
             outstream << "maketx: no output filename supplied\n";
             return false;
         }
