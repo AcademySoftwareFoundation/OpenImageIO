@@ -211,14 +211,25 @@ _contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, st
 
     if (depth < 1)     // Safeguard against volume-unaware clients
         depth = 1;
+    
     T *dstsave = dst;
-    for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
-        const T *scanline = src;
-        for (int y = 0;  y < height;  ++y, scanline = (const T *)((char *)scanline + ystride)) {
-            const T *pixel = scanline;
-            for (int x = 0;  x < width;  ++x, pixel = (const T *)((char *)pixel + xstride))
-                for (int c = 0;  c < nchannels;  ++c)
-                    *dst++ = pixel[c];
+    if (xstride == nchannels*datasize) {
+        // Optimize for contiguous scanlines, but not from scanline to scanline
+        for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
+            const T *scanline = src;
+            for (int y = 0;  y < height;  ++y, dst += nchannels*width,
+                 scanline = (const T *)((char *)scanline + ystride))
+                memcpy(dst, scanline, xstride * width);
+        }
+    } else {
+        for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
+            const T *scanline = src;
+            for (int y = 0;  y < height;  ++y, scanline = (const T *)((char *)scanline + ystride)) {
+                const T *pixel = scanline;
+                for (int x = 0;  x < width;  ++x, pixel = (const T *)((char *)pixel + xstride))
+                    for (int c = 0;  c < nchannels;  ++c)
+                        *dst++ = pixel[c];
+            }
         }
     }
     return dstsave;
