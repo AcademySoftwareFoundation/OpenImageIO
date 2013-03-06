@@ -54,7 +54,10 @@ static int numthreads = 0;
 static int autotile_size = 64;
 static bool iter_only = false;
 static std::vector<ustring> input_filename;
+static std::string output_filename;
+static std::string output_format;
 static std::vector<char> buffer;
+static ImageSpec bufspec, outspec;
 static ImageCache *imagecache = NULL;
 static imagesize_t total_image_pixels = 0;
 
@@ -88,6 +91,8 @@ getargs (int argc, char *argv[])
                 "--autotile %d", &autotile_size, 
                     ustring::format("Autotile size (when used; default: %d)", autotile_size).c_str(),
                 "--iteronly", &iter_only, "Run iteration tests only (not read tests)",
+                "-o %s", &output_filename, "Test output by writing to this file",
+                "-od %s", &output_format, "Requested output format",
                 NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -190,6 +195,146 @@ test_read (const std::string &explanation,
     imagecache->invalidate_all (true);  // Don't hold anything
     imagecache->attribute ("autotile", autotile);
     imagecache->attribute ("autoscanline", autoscanline);
+    double t = time_trial (func, ntrials);
+    double rate = double(total_image_pixels) / t;
+    std::cout << "  " << explanation << ": "
+              << Strutil::timeintervalformat(t,2) 
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+}
+
+
+
+static void
+time_write_image ()
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+    out->write_image (bufspec.format, &buffer[0]);
+    out->close ();
+    delete out;
+}
+
+
+
+static void
+time_write_scanline_at_a_time ()
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+
+    size_t pixelsize = outspec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = outspec.width * pixelsize;
+    for (int y = 0; y < outspec.height;  ++y) {
+        out->write_scanline (y+outspec.y, outspec.z, bufspec.format,
+                             &buffer[scanlinesize*y]);
+    }
+    out->close ();
+    delete out;
+}
+
+
+
+static void
+time_write_64_scanlines_at_a_time ()
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+
+    size_t pixelsize = outspec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = outspec.width * pixelsize;
+    for (int y = 0; y < outspec.height;  y += 64) {
+        out->write_scanlines (y+outspec.y,
+                              std::min(y+outspec.y+64, outspec.y+outspec.height),
+                              outspec.z, bufspec.format, &buffer[scanlinesize*y]);
+    }
+    out->close ();
+    delete out;
+}
+
+
+
+static void
+time_write_tile_at_a_time ()
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+
+    size_t pixelsize = outspec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = outspec.width * pixelsize;
+    imagesize_t planesize = outspec.height * scanlinesize;
+    for (int z = 0; z < outspec.depth;  z += outspec.tile_depth) {
+        for (int y = 0; y < outspec.height;  y += outspec.tile_height) {
+            for (int x = 0;  x < outspec.width;  x += outspec.tile_width) {
+                out->write_tile (x+outspec.x, y+outspec.y, z+outspec.z,
+                                 bufspec.format,
+                                 &buffer[scanlinesize*y+pixelsize*x],
+                                 pixelsize, scanlinesize, planesize);
+            }
+        }
+    }
+    out->close ();
+    delete out;
+}
+
+
+
+static void
+time_write_tiles_row_at_a_time ()
+{
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+
+    size_t pixelsize = outspec.nchannels * sizeof(float);
+    imagesize_t scanlinesize = outspec.width * pixelsize;
+    for (int z = 0; z < outspec.depth;  z += outspec.tile_depth) {
+        for (int y = 0; y < outspec.height;  y += outspec.tile_height) {
+            out->write_tiles (outspec.x, outspec.x+outspec.width,
+                              y+outspec.y, y+outspec.y+outspec.tile_height,
+                              z+outspec.z, z+outspec.z+outspec.tile_depth,
+                              bufspec.format, &buffer[scanlinesize*y],
+                              pixelsize /*xstride*/, scanlinesize /*ystride*/);
+        }
+    }
+    out->close ();
+    delete out;
+}
+
+
+
+static void
+time_write_imagebuf ()
+{
+    ImageBuf ib (output_filename, bufspec, &buffer[0]);  // wrap the buffer
+
+    ImageOutput *out = ImageOutput::create (output_filename);
+    ASSERT (out);
+    bool ok = out->open (output_filename, outspec);
+    ASSERT (ok);
+
+    ib.write (out);
+
+    out->close ();
+    delete out;
+}
+
+
+static void
+test_write (const std::string &explanation,
+            void (*func)(), int tilesize = 0)
+{
+    outspec.tile_width = tilesize;
+    outspec.tile_height = tilesize;
+    outspec.tile_depth = 1;
     double t = time_trial (func, ntrials);
     double rate = double(total_image_pixels) / t;
     std::cout << "  " << explanation << ": "
@@ -347,6 +492,28 @@ test_pixel_iteration (const std::string &explanation,
 
 
 
+static void
+set_dataformat (const std::string &output_format, ImageSpec &outspec)
+{
+    if (output_format == "uint8")
+        outspec.format = TypeDesc::UINT8;
+    else if (output_format == "int8")
+        outspec.format = TypeDesc::INT8;
+    else if (output_format == "uint16")
+        outspec.format = TypeDesc::UINT16;
+    else if (output_format == "int16")
+        outspec.format = TypeDesc::INT16;
+    else if (output_format == "half")
+        outspec.format = TypeDesc::HALF;
+    else if (output_format == "float")
+        outspec.format = TypeDesc::FLOAT;
+    else if (output_format == "double")
+        outspec.format = TypeDesc::DOUBLE;
+    // Otherwise leave at the default
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -407,6 +574,40 @@ main (int argc, char **argv)
         std::cout << "\n";
     }
 
+    if (output_filename.size()) {
+        std::cout << "Timing ways of writing images:\n";
+        imagecache->get_imagespec (input_filename[0], bufspec, 0, 0, true);
+        ImageOutput *out = ImageOutput::create (output_filename);
+        ASSERT (out);
+        bool supports_tiles = out->supports("tiles");
+        delete out;
+        outspec = bufspec;
+        bufspec.format = TypeDesc::FLOAT;
+        set_dataformat (output_format, outspec);
+
+        test_write ("write_image (scanline)                       ",
+                    time_write_image, 0);
+        if (supports_tiles)
+            test_write ("write_image (tiled)                          ",
+                        time_write_image, 64);
+        test_write ("write_scanline (one at a time)               ",
+                    time_write_scanline_at_a_time, 0);
+        test_write ("write_scanlines (64 at a time)               ",
+                    time_write_64_scanlines_at_a_time, 0);
+        if (supports_tiles) {
+            test_write ("write_tile (one at a time)                   ",
+                        time_write_tile_at_a_time, 64);
+            test_write ("write_tiles (a whole row at a time)          ",
+                        time_write_tiles_row_at_a_time, 64);
+        }
+        test_write ("ImageBuf::write (scanline)                   ",
+                    time_write_imagebuf, 0);
+        if (supports_tiles)
+            test_write ("ImageBuf::write (tiled)                      ",
+                        time_write_imagebuf, 64);
+        std::cout << "\n";
+    }
+
     const int iters = 64;
     std::cout << "Timing ways of iterating over an image:\n";
 
@@ -422,9 +623,9 @@ main (int argc, char **argv)
                           time_iterate_pixels, true, iters);
     test_pixel_iteration ("Iterate over a cache image              ",
                           time_iterate_pixels, false, iters);
-    test_pixel_iteration ("Iterate over a loaded image (pos slave)",
+    test_pixel_iteration ("Iterate over a loaded image (pos slave) ",
                           time_iterate_pixels_slave_pos, true, iters);
-    test_pixel_iteration ("Iterate over a cache image (pos slave) ",
+    test_pixel_iteration ("Iterate over a cache image (pos slave)  ",
                           time_iterate_pixels_slave_pos, false, iters);
     test_pixel_iteration ("Iterate over a loaded image (incr slave)",
                           time_iterate_pixels_slave_incr, true, iters);
