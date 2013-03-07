@@ -214,6 +214,7 @@ _contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, st
     
     T *dstsave = dst;
     if (xstride == nchannels*datasize) {
+        // Optimize for contiguous scanlines, but not from scanline to scanline
         for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
             const T *scanline = src;
             for (int y = 0;  y < height;  ++y, dst += nchannels*width,
