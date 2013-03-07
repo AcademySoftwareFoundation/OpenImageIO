@@ -184,7 +184,7 @@ copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 
 
 
-// Resize src into dst using a good quality filter, 
+// Resize src into dst using a good quality filter,
 // for the pixel range [x0,x1) x [y0,y1).
 static void
 resize_block_HQ (ImageBuf &dst, const ImageBuf &src, ROI roi, Filter2D *filter)
@@ -287,13 +287,85 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 }
 
 
+// Helper function to compute the first bilerp pass into a scanline buffer
+template<class SRCTYPE>
+static void
+halve_scanline(const SRCTYPE *s, const int nchannels, size_t sw, float *dst)
+{
+    for (size_t i = 0; i < sw; i += 2, s += nchannels) {
+        for (size_t j = 0; j < nchannels; ++j, ++dst, ++s)
+            *dst = 0.5 * (*s + *(s + nchannels));
+    }
+}
+
+
+
+// Bilinear resize performed as a 2-pass filter.
+// Optimized to assume that the images are contiguous.
+template<class SRCTYPE>
+static bool
+resize_block_2pass (ImageBuf &dst, const ImageBuf &src, ROI roi, bool allow_shift)
+{
+    // Two-pass filtering introduces a half-pixel shift for odd resolutions.
+    // Revert to correct bilerp sampling unless shift is explicitly allowed.
+    if (!allow_shift && (src.spec().width % 2 || src.spec().height % 2))
+        return resize_block_<SRCTYPE>(dst, src, roi, false);
+    
+    DASSERT(dst.spec().width == roi.width());           // Full width ROI
+    DASSERT(roi.xbegin == 0 && roi.xend == roi.width());// Not inset
+    DASSERT(dst.spec().width == src.spec().width / 2);  // Src is 2x
+    DASSERT(src.spec().format == dst.spec().format);    // Same formats
+    DASSERT(src.nchannels() == dst.nchannels());        // Same channels
+    DASSERT(roi.ybegin + roi.height() <= dst.spec().height);
+
+    // Allocate two scanline buffers to hold the result of the first pass
+    const int nchannels = dst.nchannels();
+    const size_t row_elem = roi.width() * nchannels;    // # floats in scanline
+    boost::scoped_array<float> S0 (new float [row_elem]);
+    boost::scoped_array<float> S1 (new float [row_elem]);
+    
+    // We know that the buffers created for mipmapping are all contiguous,
+    // so we can skip the iterators for a bilerp resize entirely along with
+    // any NDC -> pixel math, and just directly traverse pixels.
+    const SRCTYPE *s = (const SRCTYPE *)src.localpixels();
+    SRCTYPE *d = (SRCTYPE *)dst.localpixels();
+    ASSERT(s && d);                                     // Assume contig bufs
+    d += roi.ybegin * dst.spec().width * nchannels;     // Top of dst ROI
+    const size_t ystride = src.spec().width * nchannels;// Scanline offset
+    s += 2 * roi.ybegin * ystride;                      // Top of src ROI
+    
+    // Run through destination rows, doing the two-pass bilerp filter
+    const size_t dw = roi.width(), dh = roi.height();   // Loop invariants
+    const size_t sw = dw * 2;                           // Handle odd res
+    for (size_t y = 0; y < dh; ++y) {                   // For each dst ROI row
+        halve_scanline<SRCTYPE>(s, nchannels, sw, &S0[0]);
+        s += ystride;
+        halve_scanline<SRCTYPE>(s, nchannels, sw, &S1[0]);
+        s += ystride;
+        const float *s0 = &S0[0], *s1 = &S1[0];
+        for (size_t x = 0; x < dw; ++x) {               // For each dst ROI col
+            for (size_t i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
+                *d = 0.5 * (*s0 + *s1);                 // Average vertically
+        }
+    }
+    
+    return true;
+}
+
+
 
 static bool
-resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
+resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode,
+              bool allow_shift)
 {
-    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
-                         dst, src, roi, envlatlmode);
+  if (!envlatlmode) {
+      OIIO_DISPATCH_TYPES("resize_block_2pass", resize_block_2pass,
+                          src.spec().format, dst, src, roi, allow_shift);
+  }
+  
+  ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+  OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
+                       dst, src, roi, envlatlmode);
 }
 
 
@@ -312,7 +384,7 @@ check_nan_block (const ImageBuf &src, ROI roi, int &found_nonfinite)
                 if (! isfinite(pel[c])) {
                     spin_lock lock (maketx_mutex);
                     if (found_nonfinite < 3)
-                        std::cerr << "maketx ERROR: Found " << pel[c] 
+                        std::cerr << "maketx ERROR: Found " << pel[c]
                                   << " at (x=" << x << ", y=" << y << ")\n";
                     ++found_nonfinite;
                     break;  // skip other channels, there's no point
@@ -512,7 +584,10 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 smallspec.full_width = smallspec.width;
                 smallspec.full_height = smallspec.height;
                 smallspec.full_depth = smallspec.depth;
-                smallspec.set_format (TypeDesc::FLOAT);
+                bool allow_shift = configspec.get_int_attribute("maketx:allow_pixel_shift");
+                if (!allow_shift ||
+                    configspec.get_int_attribute("maketx:forcefloat", 1))
+                    smallspec.set_format (TypeDesc::FLOAT);
 
                 // Trick: to get the resize working properly, we reset
                 // both display and pixel windows to match, and have 0
@@ -531,7 +606,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                                img->yend(), img->zbegin(), img->zend());
 
                 if (filter->name() == "box" && filter->width() == 1.0f)
-                    ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode),
+                    ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
                 else
                     ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*small), boost::cref(*img), _1, filter),
@@ -713,7 +788,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
 
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
-    bool read_local = (src->spec().image_bytes() < imagesize_t(1024*1024*1024));
+    int local_mb_thresh = configspec.get_int_attribute("maketx:read_local_MB",
+                                                    1024);
+    bool read_local = (src->spec().image_bytes() < local_mb_thresh * 1024*1024);
 
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     double misc_time_1 = alltime.lap();
@@ -1044,8 +1121,12 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         STATUS ("color convert", stat_colorconverttime);
     }
 
-    // Force float for the sake of the ImageBuf math
-    dstspec.set_format (TypeDesc::FLOAT);
+    // Force float for the sake of the ImageBuf math.
+    // Also force float if we do not allow for the pixel shift,
+    // since resize_block_ requires floating point buffers.
+    const int allow_shift = configspec.get_int_attribute("maketx:allow_pixel_shift");
+    if (configspec.get_int_attribute("maketx:forcefloat", 1) || !allow_shift)
+        dstspec.set_format (TypeDesc::FLOAT);
 
     // Handle resize to power of two, if called for
     if (configspec.get_int_attribute("maketx:resize")  &&  ! shadowmode) {
@@ -1106,7 +1187,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                       << " x " << dstspec.height << std::endl;
         toplevel.reset (new ImageBuf ("temp", dstspec));
         if (filtername == "box" && filter->width() == 1.0f)
-            ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode),
+            ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));
         else
             ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*toplevel), boost::cref(*src), _1, filter),
@@ -1145,9 +1226,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     addlHashData << filter->width() << " ";
 
     const int sha1_blocksize = 256;
-    std::string hash_digest =
+    std::string hash_digest = configspec.get_int_attribute("maketx:hash", 1) ?
         ImageBufAlgo::computePixelHashSHA1 (*toplevel, addlHashData.str(),
-                                            ROI::All(), sha1_blocksize);
+                                            ROI::All(), sha1_blocksize) : "";
     if (hash_digest.length()) {
         if (desc.length())
             desc += " ";
@@ -1160,7 +1241,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
     double stat_hashtime = alltime.lap();
     STATUS ("SHA-1 hash", stat_hashtime);
-    
+  
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
         os << "[";
