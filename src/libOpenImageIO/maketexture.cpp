@@ -293,7 +293,7 @@ static void
 halve_scanline(const SRCTYPE *s, const int nchannels, size_t sw, float *dst)
 {
     for (size_t i = 0; i < sw; i += 2, s += nchannels) {
-        for (size_t j = 0; j < nchannels; ++j, ++dst, ++s)
+        for (int j = 0; j < nchannels; ++j, ++dst, ++s)
             *dst = 0.5f * (*s + *(s + nchannels));
     }
 }
@@ -339,7 +339,7 @@ resize_block_2pass (ImageBuf &dst, const ImageBuf &src, ROI roi, bool allow_shif
         s += ystride;
         const float *s0 = &S0[0], *s1 = &S1[0];
         for (size_t x = 0; x < dw; ++x) {               // For each dst ROI col
-            for (size_t i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
+            for (int i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
                 *d = 0.5f * (*s0 + *s1);                 // Average vertically
         }
     }
@@ -745,6 +745,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // When was the input file last modified?
     // This is only used when we're reading from a filename
     std::time_t in_time;
+    time (&in_time);  // make it look initialized
     bool updatemode = configspec.get_int_attribute ("maketx:updatemode");
     if (from_filename) {
         // When in update mode, skip making the texture if the output
@@ -798,7 +799,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // allow the ImageBuf to use ImageCache to manage memory.
     int local_mb_thresh = configspec.get_int_attribute("maketx:read_local_MB",
                                                     1024);
-    bool read_local = (src->spec().image_bytes() < local_mb_thresh * 1024*1024);
+    bool read_local = (src->spec().image_bytes() < imagesize_t(local_mb_thresh * 1024*1024));
 
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     double misc_time_1 = alltime.lap();

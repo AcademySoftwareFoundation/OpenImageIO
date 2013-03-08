@@ -48,6 +48,8 @@
 #include "imagecache.h"
 #include "dassert.h"
 
+#include <limits>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -65,7 +67,7 @@ struct ROI {
 
     /// Default constructor is an undefined region.
     ///
-    ROI () : xbegin(0), xend(-1), chbegin(0), chend(1000) { }
+    ROI () : xbegin(std::numeric_limits<int>::min()) { }
 
     /// Constructor with an explicitly defined region.
     ///
@@ -76,7 +78,7 @@ struct ROI {
     { }
 
     /// Is a region defined?
-    bool defined () const { return (xbegin <= xend); }
+    bool defined () const { return (xbegin != std::numeric_limits<int>::min()); }
 
     // Region dimensions.
     int width () const { return xend - xbegin; }
