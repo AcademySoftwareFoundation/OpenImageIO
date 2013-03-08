@@ -573,7 +573,7 @@ handle_orientation (int orientation, int width, int height,
 void
 IvGL::paintGL ()
 {
-#ifdef DEBUG
+#ifndef NDEBUG
     Timer paint_image_time;
     paint_image_time.start();
 #endif
@@ -675,7 +675,7 @@ IvGL::paintGL ()
     m_viewer.statusViewInfo->show ();
     unsetCursor ();
 
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cerr << "paintGL elapsed time: " << paint_image_time() << " seconds\n";
 #endif
 }
@@ -1421,7 +1421,7 @@ IvGL::check_gl_extensions (void)
     // resources to use more than one of those at the same time.
     m_max_texture_size = std::min(m_max_texture_size, 4096);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     // Report back...
     std::cerr << "OpenGL Shading Language supported: " << m_use_shaders << "\n";
     if (m_shaders_using_extensions) {

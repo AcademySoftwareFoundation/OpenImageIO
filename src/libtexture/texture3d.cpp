@@ -469,7 +469,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                     savetile[k][j][i] = tile;
                     size_t tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
                     size_t offset = (spec.nchannels * tilepel + options.firstchannel) * channelsize;
-#if DEBUG
+#ifndef NDEBUG
                     if ((size_t)offset >= spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize)
                         std::cerr << "offset=" << offset << ", whd " << spec.tile_width << ' ' << spec.tile_height << ' ' << spec.tile_depth << " pixsize " << pixelsize << "\n";
 #endif

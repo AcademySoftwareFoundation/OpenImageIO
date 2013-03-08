@@ -51,7 +51,7 @@ OIIO_NAMESPACE_ENTER
 
 namespace pvt {
 
-#ifdef DEBUG
+#ifndef NDEBUG
 # define IMAGECACHE_TIME_STATS 1
 #else
     // Change the following to 1 to get timing statistics even for
@@ -712,12 +712,12 @@ public:
             DASSERT (m_tilemutex_holder != thread_info &&
                 "tile_in_cache called with do_lock=true, but already locked!");
             ic_read_lock lock (m_tilemutex);
-#ifdef DEBUG
+#ifndef NDEBUG
             DASSERT (m_tilemutex_holder == NULL);
 //            m_tilemutex_holder = thread_info;
 #endif
             found = m_tilecache.find (id);
-#ifdef DEBUG
+#ifndef NDEBUG
 //            m_tilemutex_holder = NULL;
 #endif
         } else {
@@ -884,7 +884,7 @@ private:
 
     /// Debugging aid -- set which thread holds the tile mutex
     void tilemutex_holder (ImageCachePerThreadInfo *p) {
-#ifdef DEBUG
+#ifndef NDEBUG
         if (p)                                     // if we claim to own it,
             DASSERT (m_tilemutex_holder == NULL);  // nobody else better!
         m_tilemutex_holder = p;
@@ -892,7 +892,7 @@ private:
     }
     /// Debugging aid -- set which thread holds the file mutex
     void filemutex_holder (ImageCachePerThreadInfo *p) {
-#ifdef DEBUG
+#ifndef NDEBUG
         if (p)                                     // if we claim to own it,
             DASSERT (m_filemutex_holder == NULL);  // nobody else better!
         m_filemutex_holder = p;

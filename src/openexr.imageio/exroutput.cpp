@@ -854,7 +854,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
 #endif
 

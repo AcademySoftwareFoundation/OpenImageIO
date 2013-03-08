@@ -218,9 +218,6 @@ main (int argc, char *argv[])
     else
         imagecache->attribute ("max_memory_MB", 2048.0);
     imagecache->attribute ("autotile", 256);
-#ifdef DEBUG
-    imagecache->attribute ("statistics:level", 2);
-#endif
     // force a full diff, even for files tagged with the same
     // fingerprint, just in case some mistake has been made.
     imagecache->attribute ("deduplicate", 0);

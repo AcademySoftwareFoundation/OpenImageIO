@@ -104,7 +104,7 @@ getargs (int argc, char *argv[])
     // full windowed mode (no console and no need to define WinMain)
     // FIXME: this should be done in CMakeLists.txt but first we have to
     // fix Windows Debug build
-# ifndef DEBUG
+# ifdef NDEBUG
 #  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
 # endif
 #endif
@@ -142,7 +142,7 @@ main (int argc, char *argv[])
     int r = app.exec();
     // OK to clean up here
 
-#ifndef DEBUG
+#ifdef NDEBUG
     if (verbose)
 #endif
     {

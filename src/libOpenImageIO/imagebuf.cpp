@@ -615,12 +615,12 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_scanline_bytes = m_spec.scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
         m_blackpixel.resize (m_pixel_bytes, 0);
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "read was not necessary -- using cache\n";
 #endif
         return true;
     } else {
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "going to have to read " << m_name << ": "
                   << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
 #endif
