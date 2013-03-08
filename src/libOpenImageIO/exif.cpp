@@ -446,7 +446,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         spec.attribute (name, TypeDesc::UINT8, dirp->tdir_count, addr);
 #endif
     } else {
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "didn't know how to process " << name << ", type " 
                   << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
 #endif

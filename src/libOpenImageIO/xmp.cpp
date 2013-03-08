@@ -204,7 +204,7 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
                 spec.attribute (xmptag[i].oiioname, f);
                 return;
             }
-#if (defined(DEBUG) || DEBUG_XMP_READ)
+#if (!defined(NDEBUG) || DEBUG_XMP_READ)
             else {
                 std::cerr << "iptc xml add_attrib unknown type " << xmlname 
                           << ' ' << xmptag[i].oiiotype.c_str() << "\n";
@@ -309,7 +309,7 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
     }
     } /* end of try */
     catch (const std::exception &e) {
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "ERROR! '" << e.what() << "'\n";
 #endif
         return false;
@@ -416,7 +416,7 @@ encode_xmp_category (const ImageSpec &spec, const char *xmlnamespace,
                     xmp += x;
                 }
             } else {
-#if (defined(DEBUG) || DEBUG_XMP_WRITE)
+#if (!defined(NDEBUG) || DEBUG_XMP_WRITE)
                 std::cerr << "encode_xmp_category: not sure about " << p->type().c_str() << " " << xmptag[i].oiioname << "\n";
 #endif
             }

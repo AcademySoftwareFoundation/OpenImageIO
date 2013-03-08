@@ -1613,7 +1613,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     else if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
         float size = *(const float *)val;
-#ifndef DEBUG
+#ifdef NDEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
 #else
         size = std::max (size, 1.0f);   // But let developers debugging do it
@@ -1622,7 +1622,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     else if (name == "max_memory_MB" && type == TypeDesc::INT) {
         float size = *(const int *)val;
-#ifndef DEBUG
+#ifdef NDEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
 #else
         size = std::max (size, 1.0f);   // But let developers debugging do it
@@ -1649,7 +1649,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         // Clamp to minimum 8x8 tiles to protect against stupid user who
         // think this is a boolean rather than the tile size.  Unless
         // we're in DEBUG mode, then allow developers to play with fire.
-#ifndef DEBUG
+#ifdef NDEBUG
         if (a > 0 && a < 8)
             a = 8;
 #endif
@@ -2409,7 +2409,7 @@ ImageCacheImpl::invalidate (ustring filename)
 
     {
         ic_write_lock tileguard (m_tilemutex);
-#ifdef DEBUG
+#ifndef NDEBUG
         tilemutex_holder (get_perthread_info ());
 #endif
         for (TileCache::iterator tci = m_tilecache.begin();  tci != m_tilecache.end();  ) {

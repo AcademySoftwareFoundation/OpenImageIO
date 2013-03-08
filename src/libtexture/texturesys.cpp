@@ -85,7 +85,7 @@ TextureSystem::create (bool shared)
         lock_guard guard (shared_texsys_mutex);
         if (! shared_texsys.get())
             shared_texsys.reset (new TextureSystemImpl (ic));
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << " shared TextureSystem is "
                   << (void *)shared_texsys.get() << "\n";
 #endif

@@ -1075,7 +1075,7 @@ ImageViewer::deleteCurrentImage()
 void
 ImageViewer::current_image (int newimage)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
     Timer swap_image_time;
     swap_image_time.start();
 #endif
@@ -1088,7 +1088,7 @@ ImageViewer::current_image (int newimage)
     } else {
         displayCurrentImage (false);
     }
-#ifdef DEBUG
+#ifndef NDEBUG
     swap_image_time.stop();
     std::cerr << "Current Image change elapsed time: " << swap_image_time() << " seconds \n";
 #endif
@@ -1245,7 +1245,7 @@ ImageViewer::slide (long t, bool b)
 void
 ImageViewer::viewChannel (int c, COLOR_MODE colormode)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
     Timer change_channel_time;
     change_channel_time.start();
 #endif
@@ -1285,7 +1285,7 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
         viewColor1ChAct->setChecked (m_color_mode == SINGLE_CHANNEL);
         viewColorHeatmapAct->setChecked (m_color_mode == HEATMAP);
     }
-#ifdef DEBUG
+#ifndef NDEBUG
     change_channel_time.stop();
     std::cerr << "Change channel elapsed time: " << change_channel_time() << " seconds \n";
 #endif

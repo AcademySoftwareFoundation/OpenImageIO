@@ -2173,9 +2173,6 @@ main (int argc, char *argv[])
     ot.imagecache->attribute ("forcefloat", 1);
     ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
 //    ot.imagecache->attribute ("autotile", 1024);
-#ifdef DEBUG
-    ot.imagecache->attribute ("statistics:level", 2);
-#endif
 
     getargs (argc, argv);
     ot.process_pending ();

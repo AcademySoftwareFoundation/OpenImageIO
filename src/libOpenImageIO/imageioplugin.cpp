@@ -148,7 +148,7 @@ catalog_plugin (const std::string &format_name,
             return;
         }
         // if (verbosity > 1)
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "OpenImageIO WARNING: " << format_name << " had multiple plugins:\n"
                   << "\t\"" << found_path->second << "\"\n"
                   << "    as well as\n"

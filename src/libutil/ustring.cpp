@@ -252,7 +252,7 @@ ustring::getstats (bool verbose)
             << ", unique " << ustring_stats_unique
             << ", " << Strutil::memformat(ustring_stats_memory);
     }
-#ifdef DEBUG
+#ifndef NDEBUG
     // See if our hashing is pathological by checking if there are multiple
     // strings that ended up with the same hash.
     UstringTable &table (ustring_table());

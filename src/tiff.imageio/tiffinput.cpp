@@ -193,7 +193,7 @@ private:
         void *ptr = NULL;  // dummy -- expect it to stay NULL
         bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
         if (ptr) {
-#ifdef DEBUG
+#ifndef NDEBUG
             std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
                       << name << " " << (void *)ptr << "\n";
 #endif
