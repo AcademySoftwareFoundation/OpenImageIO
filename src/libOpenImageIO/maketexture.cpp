@@ -294,7 +294,7 @@ halve_scanline(const SRCTYPE *s, const int nchannels, size_t sw, float *dst)
 {
     for (size_t i = 0; i < sw; i += 2, s += nchannels) {
         for (size_t j = 0; j < nchannels; ++j, ++dst, ++s)
-            *dst = 0.5 * (*s + *(s + nchannels));
+            *dst = 0.5f * (*s + *(s + nchannels));
     }
 }
 
@@ -340,7 +340,7 @@ resize_block_2pass (ImageBuf &dst, const ImageBuf &src, ROI roi, bool allow_shif
         const float *s0 = &S0[0], *s1 = &S1[0];
         for (size_t x = 0; x < dw; ++x) {               // For each dst ROI col
             for (size_t i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
-                *d = 0.5 * (*s0 + *s1);                 // Average vertically
+                *d = 0.5f * (*s0 + *s1);                 // Average vertically
         }
     }
     
@@ -355,22 +355,24 @@ resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode,
 {
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
-    if (!envlatlmode &&  // not environment map with nonstandard wrap
+    DASSERT (dstspec.nchannels == srcspec.nchannels);
+    DASSERT (dst.localpixels());
+    if (src.localpixels() &&                      // Not a cached image
+        !envlatlmode &&                           // not latlong wrap mode
         roi.xbegin == 0 &&                        // Region x at origin
         dstspec.width == roi.width() &&           // Full width ROI
         dstspec.width == (srcspec.width / 2) &&   // Src is 2x resize
         dstspec.format == srcspec.format &&       // Same formats
-        dstspec.nchannels == srcspec.nchannels && // Same channels
         dstspec.x == 0 && dstspec.y == 0 &&       // Not a crop or overscan
         srcspec.x == 0 && srcspec.y == 0) {
         // If all these conditions are met, we have a special case that
         // can be more highly optimized.
         OIIO_DISPATCH_TYPES("resize_block_2pass", resize_block_2pass,
-                            src.spec().format, dst, src, roi, allow_shift);
+                            srcspec.format, dst, src, roi, allow_shift);
     }
 
     ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, src.spec().format,
+    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, srcspec.format,
                          dst, src, roi, envlatlmode);
 }
 
