@@ -97,9 +97,9 @@ enum OIIO_API AlignedTransform
     TRANSFORM_FLIP,        // Upside-down
     TRANSFORM_FLOP,        // Left/Right Mirrored
     TRANSFORM_FLIPFLOP,    // Upside-down + Mirrored (Same as 180 degree rotation)
-//  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
+  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
 //  TRANSFORM_ROT180,      // Rotate 180 degrees clockwise. Image remains in positive quadrant. (Same as FlipFlop)
-//  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
+  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
 };
 
 /// Transform the image, as specified in the options. All transforms are done
@@ -124,12 +124,17 @@ bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
 
 /// Generic channel shuffling -- copy src to dst, but with channels in
 /// the order channelorder[0..nchannels-1].  Does not support in-place
-/// operation.  If channelorder[i] < 0, it will just make dst channel i
-/// be black (0.0) rather than copying from src.
-///
+/// operation.  For any channel in which channelorder[i] < 0, it will
+/// just make dst channel i a constant color -- set to channelvalues[i]
+/// (if channelvalues != NULL) or 0.0 (if channelvalues == NULL).
+//
 /// If channelorder is NULL, it will be interpreted as
-/// {0, 1, ..., nchannels-1}.
+/// {0, 1, ..., nchannels-1} (meaning that it's only renaming channels,
+/// not reordering them.
 ///
+/// If newchannelnames is not NULL, it points to an array of new channel
+/// names.  Channels for which newchannelnames[i] is the empty string (or
+/// all channels, if newchannelnames == NULL) will be named as follows:
 /// If shuffle_channel_names is false, the resulting dst image will have
 /// default channel names in the usual order ("R", "G", etc.), but if
 /// shuffle_channel_names is true, the names will be taken from the
@@ -137,8 +142,15 @@ bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
 /// shuffling both channel ordering and their names could result in no
 /// semantic change at all, if you catch the drift.
 bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
+                        int nchannels, const int *channelorder,
+                        const float *channelvalues=NULL,
+                        const std::string *newchannelnames=NULL,
+                        bool shuffle_channel_names=false);
+
+/// DEPRECATED -- for back-compatibility
+bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                          int nchannels, const int *channelorder,
-                         bool shuffle_channel_names=false);
+                         bool shuffle_channel_names);
 
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
@@ -150,6 +162,14 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
                      int xbegin, int xend, int ybegin, int yend,
                      const float *bordercolor=NULL);
 
+
+/// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
+/// src described by srcroi.  If srcroi is ROI(), the entirety of src
+/// will be used.  It will copy into channels [chbegin...], as many
+/// channels as are described by srcroi.
+bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
+                     int zbegin, int chbegin,
+                     const ImageBuf &src, ROI srcroi=ROI());
 
 
 /// Add the pixels of two images A and B, putting the sum in dst.
@@ -170,6 +190,18 @@ enum OIIO_API AddOptions
     ADD_RETAIN_WINDOWS = 2, ///< Honor the existing windows
     ADD_ALIGN_WINDOWS = 0,  ///< Default: align the windows before adding
 };
+
+
+/// For all pixels of R within region roi (defaulting to all the defined
+/// pixels in R), multiply their value by 'val'.  Use the given number
+/// of threads.
+bool OIIO_API mul (ImageBuf &R, float val, ROI roi=ROI(), int threads=0);
+
+/// For all pixels of R within region roi (defaulting to all the defined
+/// pixels in R), multiply their value by val[0..nchans-1]. Use the
+/// given number of threads.
+bool OIIO_API mul (ImageBuf &R, const float *val, ROI roi=ROI(), int threads=0);
+
 
 
 /// Apply a color transform to the pixel values
@@ -257,14 +289,19 @@ bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val);
 /// (current subimage, and current mipmap level)
 bool OIIO_API isMonochrome(const ImageBuf &src);
 
-/// Compute the sha1 byte hash for all the pixels in the image.
-/// (current subimage, and current mipmap level)
-std::string OIIO_API computePixelHashSHA1(const ImageBuf &src);
-
-/// Compute the sha1 byte hash for all the pixels in the image.
-/// (current subimage, and current mipmap level)
-std::string OIIO_API computePixelHashSHA1(const ImageBuf &src,
-                                           const std::string & extrainfo);
+/// Compute the SHA-1 byte hash for all the pixels in the specifed
+/// region of the image.  If blocksize > 0, the function will compute
+/// separate SHA-1 hashes of each 'blocksize' batch of scanlines, then
+/// return a hash of the individual hashes.  This is just as strong a
+/// hash, but will NOT match a single hash of the entire image
+/// (blocksize==0).  But by breaking up the hash into independent
+/// blocks, we can parallelize across multiple threads, given by
+/// nthreads (if nthreads is 0, it will use the global OIIO thread
+/// count).
+std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
+                                           const std::string &extrainfo = "",
+                                           ROI roi = ROI::All(),
+                                           int blocksize = 0, int nthreads=0);
 
 
 
@@ -530,6 +567,21 @@ enum OIIO_API MakeTextureMode {
 ///    maketx:ignore_unassoc (int)
 ///                           If nonzero, will disbelieve any evidence that
 ///                               the input image is unassociated alpha. (0)
+///    maketx:read_local_MB (int)
+///                           If nonzero, will read the full input file locally
+///                               if it is smaller than this threshold. Zero
+///                               causes the system to make a good guess at
+//                                a reasonable threshold (e.g. 1 GB). (0)
+///    maketx:forcefloat (int)
+///                           Forces a conversion through float data for
+///                               the sake of ImageBuf math. (1)
+///    maketx:hash (int)
+///                           Compute the sha1 hash of the file in parallel. (1)
+///    maketx:allow_pixel_shift (int)
+///                           Allow up to a half pixel shift per mipmap level.
+///                               The fastest path may result in a slight shift
+///                               in the image, accumulated for each mip level
+///                               with an odd resolution. (0)
 ///
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::string &filename,
@@ -544,7 +596,16 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::string &outputfilename,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
-                                
+
+/// Version of make_texture that starts with an ImageBuf, rather than
+/// reading the input image from disk.
+bool OIIO_API make_texture (MakeTextureMode mode,
+                            const ImageBuf &input,
+                            const std::string &outputfilename,
+                            const ImageSpec &config,
+                            std::ostream *outstream = NULL);
+
+
 
 
 /// Helper template for generalized multithreading for image processing
@@ -595,7 +656,40 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 }
 
 
-};  // end namespace ImageBufAlgo
+
+// Macro to call a type-specialzed version func<type>(R,...)
+#define OIIO_DISPATCH_TYPES(name,func,type,R,...)                       \
+    switch (type.basetype) {                                            \
+    case TypeDesc::FLOAT :                                              \
+        return func<float> (R, __VA_ARGS__); break;                     \
+    case TypeDesc::UINT8 :                                              \
+        return func<unsigned char> (R, __VA_ARGS__); break;             \
+    case TypeDesc::HALF  :                                              \
+        return func<half> (R, __VA_ARGS__); break;                      \
+    case TypeDesc::UINT16:                                              \
+        return func<unsigned short> (R, __VA_ARGS__); break;            \
+    case TypeDesc::INT8  :                                              \
+        return func<char> (R, __VA_ARGS__); break;                      \
+    case TypeDesc::INT16 :                                              \
+        return func<short> (R, __VA_ARGS__); break;                     \
+    case TypeDesc::UINT  :                                              \
+        return func<unsigned int> (R, __VA_ARGS__); break;              \
+    case TypeDesc::INT   :                                              \
+        return func<int> (R, __VA_ARGS__); break;                       \
+    case TypeDesc::UINT64:                                              \
+        return func<unsigned long long> (R, __VA_ARGS__); break;        \
+    case TypeDesc::INT64 :                                              \
+        return func<long long> (R, __VA_ARGS__); break;                 \
+    case TypeDesc::DOUBLE:                                              \
+        return func<double> (R, __VA_ARGS__); break;                    \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
+        return false;                                                   \
+    }
+
+
+
+}  // end namespace ImageBufAlgo
 
 
 }
