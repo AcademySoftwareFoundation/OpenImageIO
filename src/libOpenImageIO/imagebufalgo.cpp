@@ -90,6 +90,8 @@ bool
 ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
 {
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
+    if (! roi.defined())
+        roi = get_roi (dst.spec());
     OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format, dst, pixel, roi);
     return true;
 }
@@ -98,6 +100,8 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
 bool
 ImageBufAlgo::zero (ImageBuf &dst, ROI roi)
 {
+    if (! roi.defined())
+        roi = get_roi (dst.spec());
     int chans = std::min (dst.nchannels(), roi.nchannels());
     float *zero = ALLOCA(float,chans);
     memset (zero, 0, chans*sizeof(float));
@@ -547,6 +551,8 @@ mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 bool
 ImageBufAlgo::mul (ImageBuf &R, const float *val, ROI roi, int nthreads)
 {
+    if (! roi.defined())
+        roi = get_roi (R.spec());
     roi.chend = std::min (roi.chend, R.nchannels()); // clamp
     OIIO_DISPATCH_TYPES ("mul", mul_impl, R.spec().format,
                          R, val, roi, nthreads);
