@@ -218,8 +218,9 @@ public:
     // for each subimages is in miplevels[0..nsubimages-1], and specs[]
     // contains the specs for all the MIP levels of subimage 0, followed
     // by all the specs for the MIP levels of subimage 1, and so on.
+    // If spec == NULL, the IB's will not be fully allocated/initialized.
     ImageRec (const std::string &name, int nsubimages,
-              const int *miplevels, const ImageSpec *specs);
+              const int *miplevels, const ImageSpec *specs=NULL);
 
     // Number of subimages
     int subimages() const { return (int) m_subimages.size(); }
