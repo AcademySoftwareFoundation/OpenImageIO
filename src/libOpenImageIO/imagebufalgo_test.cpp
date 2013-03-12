@@ -48,6 +48,7 @@ OIIO_NAMESPACE_USING;
 // Test ImageBuf::zero and ImageBuf::fill
 void test_zero_fill ()
 {
+    std::cout << "test zero_fill\n";
     const int WIDTH = 8;
     const int HEIGHT = 6;
     const int CHANNELS = 4;
@@ -114,6 +115,7 @@ void test_zero_fill ()
 // Test ImageBuf::crop
 void test_crop ()
 {
+    std::cout << "test crop\n";
     int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
     // Crop region we'll work with
     int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
@@ -152,6 +154,7 @@ void test_crop ()
 
 void test_paste ()
 {
+    std::cout << "test paste\n";
     // Create the source image, make it a gradient
     ImageSpec Aspec (4, 4, 3, TypeDesc::FLOAT);
     ImageBuf A ("A", Aspec);
@@ -193,9 +196,33 @@ void test_paste ()
 
 
 
+void test_channel_append ()
+{
+    std::cout << "test channel_append\n";
+    ImageSpec spec (2, 2, 1, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    ImageBuf B ("B", spec);
+    float Acolor = 0.1, Bcolor = 0.2;
+    ImageBufAlgo::fill (A, &Acolor);
+    ImageBufAlgo::fill (B, &Bcolor);
+
+    ImageBuf R ("R");
+    ImageBufAlgo::channel_append (R, A, B);
+    OIIO_CHECK_EQUAL (R.spec().width, spec.width);
+    OIIO_CHECK_EQUAL (R.spec().height, spec.height);
+    OIIO_CHECK_EQUAL (R.nchannels(), 2);
+    for (ImageBuf::ConstIterator<float> r(R); !r.done(); ++r) {
+        OIIO_CHECK_EQUAL (r[0], Acolor);
+        OIIO_CHECK_EQUAL (r[1], Bcolor);
+    }
+}
+
+
+
 // Tests ImageBufAlgo::add
 void test_add ()
 {
+    std::cout << "test add\n";
     const int WIDTH = 8;
     const int HEIGHT = 8;
     const int CHANNELS = 4;
@@ -228,6 +255,7 @@ void test_add ()
 // Tests ImageBufAlgo::compare
 void test_compare ()
 {
+    std::cout << "test compare\n";
     // Construct two identical 50% grey images
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
@@ -274,6 +302,7 @@ void test_compare ()
 void
 test_maketx_from_imagebuf()
 {
+    std::cout << "test make_texture from ImageBuf\n";
     // Make a checkerboard
     const int WIDTH = 16, HEIGHT = 16, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
@@ -307,6 +336,7 @@ main (int argc, char **argv)
     test_zero_fill ();
     test_crop ();
     test_paste ();
+    test_channel_append ();
     test_add ();
     test_compare ();
     test_maketx_from_imagebuf ();

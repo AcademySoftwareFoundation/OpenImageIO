@@ -152,6 +152,16 @@ bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                          int nchannels, const int *channelorder,
                          bool shuffle_channel_names);
 
+/// Append the channels of A and B together into dst over the region of
+/// interest.  If the region passed is uninitialized (the default), it
+/// will be interpreted as being the union of the pixel windows of A and
+/// B (and all channels of both images).  If dst is not already
+/// initialized, it will be resized to be big enough for the region.
+bool OIIO_API channel_append (ImageBuf &dst, const ImageBuf &A,
+                              const ImageBuf &B, ROI roi=ROI(),
+                              int nthreads=0);
+
+
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
 /// falling outside this range will not be transferred to dst.  If

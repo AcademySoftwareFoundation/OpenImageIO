@@ -606,6 +606,19 @@ unchanged.
 Set the full/display window range to exactly cover the pixel data window.
 \apiend
 
+\apiitem{--chnames {\rm \emph{name-list}}}
+Rename some or all of the channels of the top image to the given
+comma-separated list.  Any completely empty channel names in the
+list will not be changed.  For example,
+
+\begin{code}
+    oiiotool in.exr --chnames ",,,A,Z" -o out.exr
+\end{code}
+
+\noindent will rename channel 3 to be \qkw{A} and channel 4 to be
+\qkw{Z}, but will leave channels 0--3 with their old names.
+\apiend
+
 
 \section{\oiiotool commands that adjust the image stack}
 
@@ -636,6 +649,12 @@ by black channels.
 by a number is a \emph{literal value} that will be used to fill that
 channel.  If the \emph{channellist} is shorter than the number of
 channels in the source image, unspecified channels will be omitted.
+\apiend
+
+\apiitem{--chappend}
+\NEW
+Replaces the top two images on the stack with a new image comprised of
+the channels of both images appended together.
 \apiend
 
 \apiitem{--selectmip {\rm \emph{level}}}
