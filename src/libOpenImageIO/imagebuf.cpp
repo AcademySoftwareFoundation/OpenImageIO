@@ -907,159 +907,48 @@ ImageBuf::initialized () const
 namespace {
 
 // Pixel-by-pixel copy fully templated by both data types.
+// The roi is guaranteed to exist in both images.
 template<class D, class S>
-void copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
-                    int ybegin, int yend, int zbegin, int zend, int nchannels)
+bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
 {
+    int nchannels = roi.nchannels();
     if (is_same<D,S>::value) {
         // If both bufs are the same type, just directly copy the values
-        ImageBuf::Iterator<D,D> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
-        ImageBuf::ConstIterator<D,D> s (src, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::Iterator<D,D> d (dst, roi);
+        ImageBuf::ConstIterator<D,D> s (src, roi);
         for ( ; ! d.done();  ++d, ++s) {
-            if (s.exists() && d.exists()) {
-                for (int c = 0;  c < nchannels;  ++c)
-                    d[c] = s[c];
-            }
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = s[c];
         }
     } else {
         // If the two bufs are different types, convert through float
-        ImageBuf::Iterator<D,float> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
-        ImageBuf::ConstIterator<S,float> s (dst, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::Iterator<D,float> d (dst, roi);
+        ImageBuf::ConstIterator<S,float> s (dst, roi);
         for ( ; ! d.done();  ++d, ++s) {
-            if (s.exists() && d.exists()) {
-                for (int c = 0;  c < nchannels;  ++c)
-                    d[c] = s[c];
-            }
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = s[c];
         }
-    }        
-}
-
-
-// Call two-type template copy_pixels_2 based on src AND dst data type
-template<class S>
-void copy_pixels_ (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
-                   int ybegin, int yend, int zbegin, int zend, int nchannels)
-{
-    switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        copy_pixels_2<float,S> (dst, src, xbegin, xend, ybegin, yend,
-                                zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT8 :
-        copy_pixels_2<unsigned char,S> (dst, src, xbegin, xend, ybegin, yend,
-                                        zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT8  :
-        copy_pixels_2<char,S> (dst, src, xbegin, xend, ybegin, yend,
-                               zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT16:
-        copy_pixels_2<unsigned short,S> (dst, src, xbegin, xend, ybegin, yend,
-                                         zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT16 :
-        copy_pixels_2<short,S> (dst, src, xbegin, xend, ybegin, yend,
-                                zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT  :
-        copy_pixels_2<unsigned int,S> (dst, src, xbegin, xend, ybegin, yend,
-                                       zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT   :
-        copy_pixels_2<int,S> (dst, src, xbegin, xend, ybegin, yend,
-                              zbegin, zend, nchannels);
-        break;
-    case TypeDesc::HALF  :
-        copy_pixels_2<half,S> (dst, src, xbegin, xend, ybegin, yend,
-                               zbegin, zend, nchannels);
-        break;
-    case TypeDesc::DOUBLE:
-        copy_pixels_2<double,S> (dst, src, xbegin, xend, ybegin, yend,
-                                 zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT64:
-        copy_pixels_2<unsigned long long,S> (dst, src, xbegin, xend, ybegin, yend,
-                                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT64 :
-        copy_pixels_2<long long,S> (dst, src, xbegin, xend, ybegin, yend,
-                                    zbegin, zend, nchannels);
-        break;
-    default:
-        ASSERT (0);
     }
+    return true;
 }
 
-}
+} // anon namespace
+
+
 
 bool
 ImageBuf::copy_pixels (const ImageBuf &src)
 {
     // compute overlap
-    int xbegin = std::max (this->xbegin(), src.xbegin());
-    int xend = std::min (this->xend(), src.xend());
-    int ybegin = std::max (this->ybegin(), src.ybegin());
-    int yend = std::min (this->yend(), src.yend());
-    int zbegin = std::max (this->zbegin(), src.zbegin());
-    int zend = std::min (this->zend(), src.zend());
-    int nchannels = std::min (this->nchannels(), src.nchannels());
+    ROI myroi = get_roi(spec());
+    ROI roi = roi_intersection (myroi, get_roi(src.spec()));
 
     // If we aren't copying over all our pixels, zero out the pixels
-    if (xbegin != this->xbegin() || xend != this->xend() ||
-        ybegin != this->ybegin() || yend != this->yend() ||
-        zbegin != this->zbegin() || zend != this->zend() ||
-        nchannels != this->nchannels())
+    if (roi != myroi)
         ImageBufAlgo::zero (*this);
 
-    // Call template copy_pixels_ based on src data type
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        copy_pixels_<float> (*this, src, xbegin, xend, ybegin, yend,
-                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT8 :
-        copy_pixels_<unsigned char> (*this, src, xbegin, xend, ybegin, yend,
-                                     zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT8  :
-        copy_pixels_<char> (*this, src, xbegin, xend, ybegin, yend,
-                            zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT16:
-        copy_pixels_<unsigned short> (*this, src, xbegin, xend, ybegin, yend,
-                                      zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT16 :
-        copy_pixels_<short> (*this, src, xbegin, xend, ybegin, yend,
-                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT  :
-        copy_pixels_<unsigned int> (*this, src, xbegin, xend, ybegin, yend,
-                                    zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT   :
-        copy_pixels_<int> (*this, src, xbegin, xend, ybegin, yend,
-                           zbegin, zend, nchannels);
-        break;
-    case TypeDesc::HALF  :
-        copy_pixels_<half> (*this, src, xbegin, xend, ybegin, yend,
-                            zbegin, zend, nchannels);
-        break;
-    case TypeDesc::DOUBLE:
-        copy_pixels_<double> (*this, src, xbegin, xend, ybegin, yend,
-                              zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT64:
-        copy_pixels_<unsigned long long> (*this, src, xbegin, xend, ybegin, yend,
-                                          zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT64 :
-        copy_pixels_<long long> (*this, src, xbegin, xend, ybegin, yend,
-                                 zbegin, zend, nchannels);
-        break;
-    default:
-        ASSERT (0);
-    }
+    OIIO_DISPATCH_TYPES2 ("copy_pixels", copy_pixels_2,
+                          spec().format, src.spec().format, *this, src, roi);
     return true;
 }
 
@@ -1276,13 +1165,14 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 
 
-template<typename S, typename D>
-static inline void 
+template<typename D, typename S>
+static inline bool 
 get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend, 
-                     int chbegin, int chend, D *r,
+                     int chbegin, int chend, void *r_,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    D *r = (D *)r_;
     int w = (xend-xbegin), h = (yend-ybegin);
     int nchans = chend - chbegin;
     ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D), nchans, w, h);
@@ -1294,6 +1184,7 @@ get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
         for (int c = 0;  c < nchans;  ++c)
             rc[c] = p[c+chbegin];
     }
+    return true;
 }
 
 
@@ -1306,30 +1197,10 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    // Caveat: serious hack here.  To avoid duplicating code, use a
-    // #define.  Furthermore, exploit the CType<> template to construct
-    // the right C data type for the given BASETYPE.
-#define TYPECASE(B)                                                     \
-    case B : get_pixel_channels_<CType<B>::type,D>(*this,               \
-                       xbegin, xend, ybegin, yend, zbegin, zend,        \
-                       chbegin, chend, (D *)r, xstride, ystride, zstride); \
-             return true
-    
-    switch (spec().format.basetype) {
-        TYPECASE (TypeDesc::UINT8);
-        TYPECASE (TypeDesc::INT8);
-        TYPECASE (TypeDesc::UINT16);
-        TYPECASE (TypeDesc::INT16);
-        TYPECASE (TypeDesc::UINT);
-        TYPECASE (TypeDesc::INT);
-        TYPECASE (TypeDesc::HALF);
-        TYPECASE (TypeDesc::FLOAT);
-        TYPECASE (TypeDesc::DOUBLE);
-        TYPECASE (TypeDesc::UINT64);
-        TYPECASE (TypeDesc::INT64);
-    }
-    return false;
-#undef TYPECASE
+    OIIO_DISPATCH_TYPES2_HELP ("get_pixel_channels", get_pixel_channels_,
+                               D, spec().format, *this,
+                               xbegin, xend, ybegin, yend, zbegin, zend,
+                               chbegin, chend, r, xstride, ystride, zstride);
 }
 
 
@@ -1341,29 +1212,10 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    // For each possible base type that the user wants for a destination
-    // type, call a template specialization.
-#define TYPECASE(B)                                                     \
-    case B : return get_pixel_channels<CType<B>::type> (                \
-                             xbegin, xend, ybegin, yend, zbegin, zend,  \
-                             chbegin, chend, (CType<B>::type *)result,  \
-                             xstride, ystride, zstride)
-
-    switch (format.basetype) {
-        TYPECASE (TypeDesc::UINT8);
-        TYPECASE (TypeDesc::INT8);
-        TYPECASE (TypeDesc::UINT16);
-        TYPECASE (TypeDesc::INT16);
-        TYPECASE (TypeDesc::UINT);
-        TYPECASE (TypeDesc::INT);
-        TYPECASE (TypeDesc::HALF);
-        TYPECASE (TypeDesc::FLOAT);
-        TYPECASE (TypeDesc::DOUBLE);
-        TYPECASE (TypeDesc::UINT64);
-        TYPECASE (TypeDesc::INT64);
-    }
-    return false;
-#undef TYPECASE
+    OIIO_DISPATCH_TYPES2 ("get_pixel_channels", get_pixel_channels_,
+                          format, spec().format, *this,
+                          xbegin, xend, ybegin, yend, zbegin, zend,
+                          chbegin, chend, result, xstride, ystride, zstride);
 }
 
 

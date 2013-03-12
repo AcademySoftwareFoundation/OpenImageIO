@@ -106,6 +106,21 @@ struct ROI {
     /// Doesn't that make it abundantly clear?
     static ROI All () { return ROI(); }
 
+    /// Test equality of two ROIs
+    friend bool operator== (const ROI &a, const ROI &b) {
+        return (a.xbegin == b.xbegin && a.xend == b.xend &&
+                a.ybegin == b.ybegin && a.yend == b.yend &&
+                a.zbegin == b.zbegin && a.zend == b.zend &&
+                a.chbegin == b.chbegin && a.chend == b.chend);
+    }
+    /// Test inequality of two ROIs
+    friend bool operator!= (const ROI &a, const ROI &b) {
+        return (a.xbegin != b.xbegin || a.xend != b.xend ||
+                a.ybegin != b.ybegin || a.yend != b.yend ||
+                a.zbegin != b.zbegin || a.zend != b.zend ||
+                a.chbegin != b.chbegin || a.chend != b.chend);
+    }
+
     /// Stream output of the range
     friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
         out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '

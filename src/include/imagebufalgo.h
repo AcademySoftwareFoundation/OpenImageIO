@@ -676,14 +676,113 @@ parallel_image (Func f, ROI roi, int nthreads=0)
         return func<unsigned int> (R, __VA_ARGS__); break;              \
     case TypeDesc::INT   :                                              \
         return func<int> (R, __VA_ARGS__); break;                       \
-    case TypeDesc::UINT64:                                              \
-        return func<unsigned long long> (R, __VA_ARGS__); break;        \
-    case TypeDesc::INT64 :                                              \
-        return func<long long> (R, __VA_ARGS__); break;                 \
     case TypeDesc::DOUBLE:                                              \
         return func<double> (R, __VA_ARGS__); break;                    \
     default:                                                            \
         (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
+        return false;                                                   \
+    }
+
+// Helper, do not call from the outside world.
+#define OIIO_DISPATCH_TYPES2_HELP(name,func,Atype,Btype,R,...)   \
+    switch (Btype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        return func<Atype,float> (R, __VA_ARGS__); break;               \
+    case TypeDesc::UINT8 :                                              \
+        return func<Atype,unsigned char> (R, __VA_ARGS__); break;       \
+    case TypeDesc::HALF  :                                              \
+        return func<Atype,half> (R, __VA_ARGS__); break;                \
+    case TypeDesc::UINT16:                                              \
+        return func<Atype,unsigned short> (R, __VA_ARGS__); break;      \
+    case TypeDesc::INT8 :                                               \
+        return func<Atype,char> (R, __VA_ARGS__); break;                \
+    case TypeDesc::INT16 :                                              \
+        return func<Atype,short> (R, __VA_ARGS__); break;               \
+    case TypeDesc::UINT :                                               \
+        return func<Atype,unsigned int> (R, __VA_ARGS__); break;        \
+    case TypeDesc::INT :                                                \
+        return func<Atype,int> (R, __VA_ARGS__); break;                 \
+    case TypeDesc::DOUBLE :                                             \
+        return func<Atype,double> (R, __VA_ARGS__); break;              \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
+        return false;                                                   \
+    }
+
+// Macro to call a type-specialzed version func<Atype,Btype>(R,...).
+#define OIIO_DISPATCH_TYPES2(name,func,Atype,Btype,R,...)               \
+    switch (Atype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,float,Btype,R,__VA_ARGS__); \
+    case TypeDesc::UINT8 :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned char,Btype,R,__VA_ARGS__); \
+    case TypeDesc::HALF  :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,half,Btype,R,__VA_ARGS__);  \
+    case TypeDesc::UINT16:                                              \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned short,Btype,R,__VA_ARGS__); \
+    case TypeDesc::INT8:                                                \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,char,Btype,R,__VA_ARGS__);  \
+    case TypeDesc::INT16:                                               \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,short,Btype,R,__VA_ARGS__); \
+    case TypeDesc::UINT:                                                \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned int,Btype,R,__VA_ARGS__); \
+    case TypeDesc::INT:                                                 \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,int,Btype,R,__VA_ARGS__);   \
+    case TypeDesc::DOUBLE:                                              \
+        OIIO_DISPATCH_TYPES2_HELP(name,func,double,Btype,R,__VA_ARGS__);\
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
+        return false;                                                   \
+    }
+
+
+// Macro to call a type-specialzed version func<type>(R,...) for
+// the most common types, fail for anything else.
+#define OIIO_DISPATCH_COMMON_TYPES(name,func,type,R,...)                \
+    switch (type.basetype) {                                            \
+    case TypeDesc::FLOAT :                                              \
+        return func<float> (R, __VA_ARGS__); break;                     \
+    case TypeDesc::UINT8 :                                              \
+        return func<unsigned char> (R, __VA_ARGS__); break;             \
+    case TypeDesc::HALF  :                                              \
+        return func<half> (R, __VA_ARGS__); break;                      \
+    case TypeDesc::UINT16:                                              \
+        return func<unsigned short> (R, __VA_ARGS__); break;            \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
+        return false;                                                   \
+    }
+
+// Helper, do not call from the outside world.
+#define OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,Atype,Btype,R,...)   \
+    switch (Btype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        return func<Atype,float> (R, __VA_ARGS__); break;               \
+    case TypeDesc::UINT8 :                                              \
+        return func<Atype,unsigned char> (R, __VA_ARGS__); break;       \
+    case TypeDesc::HALF  :                                              \
+        return func<Atype,half> (R, __VA_ARGS__); break;                \
+    case TypeDesc::UINT16:                                              \
+        return func<Atype,unsigned short> (R, __VA_ARGS__); break;      \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
+        return false;                                                   \
+    }
+
+// Macro to call a type-specialzed version func<Atype,Btype>(R,...) for
+// the most common types, fail for anything else.
+#define OIIO_DISPATCH_COMMON_TYPES2(name,func,Atype,Btype,R,...)        \
+    switch (Atype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,float,Btype,R,__VA_ARGS__); \
+    case TypeDesc::UINT8 :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,unsigned char,Btype,R,__VA_ARGS__); \
+    case TypeDesc::HALF  :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,half,Btype,R,__VA_ARGS__); \
+    case TypeDesc::UINT16:                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,unsigned short,Btype,R,__VA_ARGS__); \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
         return false;                                                   \
     }
 
