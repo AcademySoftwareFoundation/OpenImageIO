@@ -185,9 +185,9 @@ enum OIIO_API AlignedTransform
     TRANSFORM_FLIP,        // Upside-down
     TRANSFORM_FLOP,        // Left/Right Mirrored
     TRANSFORM_FLIPFLOP,    // Upside-down + Mirrored (Same as 180 degree rotation)
-//  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
+  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
 //  TRANSFORM_ROT180,      // Rotate 180 degrees clockwise. Image remains in positive quadrant. (Same as FlipFlop)
-//  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
+  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
 };
 
 /// Transform the image, as specified in the options. All transforms are done
