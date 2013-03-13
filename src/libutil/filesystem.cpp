@@ -36,6 +36,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+#include <boost/regex.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -78,6 +79,14 @@ Filesystem::extension (const std::string &filepath, bool include_dot)
     if (! include_dot && !s.empty() && s[0] == '.')
         s.erase (0, 1);  // erase the first character
     return s;
+}
+
+
+
+std::string
+Filesystem::parent_path (const std::string &filepath)
+{
+    return boost::filesystem::path(filepath).parent_path().string();
 }
 
 
@@ -175,6 +184,38 @@ Filesystem::searchpath_find (const std::string &filename,
         }
     }
     return std::string();
+}
+
+
+
+bool
+Filesystem::get_directory_entries (const std::string &dirname,
+                                   std::vector<std::string> &filenames,
+                                   bool recursive,
+                                   const std::string &filter_regex)
+{
+    filenames.clear ();
+    if (dirname.size() && ! is_directory(dirname))
+        return false;
+    boost::filesystem::path dirpath (dirname.size() ? dirname : std::string("."));
+    boost::regex re (filter_regex);
+
+    if (recursive) {
+        for (boost::filesystem::recursive_directory_iterator s (dirpath);
+             s != boost::filesystem::recursive_directory_iterator();  ++s) {
+            std::string file = s->path().string();
+            if (!filter_regex.size() || boost::regex_search (file, re))
+                filenames.push_back (file);
+        }
+    } else {
+        for (boost::filesystem::directory_iterator s (dirpath);
+             s != boost::filesystem::directory_iterator();  ++s) {
+            std::string file = s->path().string();
+            if (!filter_regex.size() || boost::regex_search (file, re))
+                filenames.push_back (file);
+        }
+    }
+    return true;
 }
 
 
