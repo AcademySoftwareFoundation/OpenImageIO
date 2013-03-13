@@ -20,6 +20,16 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Constant: Yes
     Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
     Monochrome: No
+copyA.0001.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0002.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0003.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0004.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0005.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0006.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0007.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0008.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0009.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0010.jpg       :  360 x  240, 3 channel, uint8 jpeg
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "resize.tif" and "ref/resize.tif"
