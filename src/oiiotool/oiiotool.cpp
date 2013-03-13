@@ -893,6 +893,46 @@ action_unmip (int argc, const char *argv[])
 
 
 
+static int
+set_channelnames (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, set_channelnames, argc, argv))
+        return 0;
+    ImageRecRef A = ot.curimg;
+    ot.read (A);
+
+    std::vector<std::string> newchannelnames;
+    Strutil::split (argv[1], newchannelnames, ",");
+
+    for (int s = 0; s < A->subimages(); ++s) {
+        int miplevels = A->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            ImageSpec *spec = A->spec(s,m);
+            spec->channelnames.resize (spec->nchannels);
+            for (int c = 0; c < spec->nchannels;  ++c) {
+                if (c < (int)newchannelnames.size() &&
+                      newchannelnames[c].size()) {
+                    std::string name = newchannelnames[c];
+                    spec->channelnames[c] = name;
+                    if (Strutil::iequals(name,"A") ||
+                        Strutil::iends_with(name,".A") ||
+                        Strutil::iequals(name,"Alpha") ||
+                        Strutil::iends_with(name,".Alpha"))
+                        spec->alpha_channel = c;
+                    if (Strutil::iequals(name,"Z") ||
+                        Strutil::iends_with(name,".Z") ||
+                        Strutil::iequals(name,"Depth") ||
+                        Strutil::iends_with(name,".Depth"))
+                        spec->z_channel = c;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+
+
 // For a given spec (which contains the channel names for an image), and
 // a comma separated list of channels (e.g., "B,G,R,A"), compute the
 // vector of integer indices for those channels (e.g., {2,1,0,3}).
@@ -1016,6 +1056,45 @@ action_channels (int argc, const char *argv[])
         }
     }
 
+    return 0;
+}
+
+
+
+static int
+action_chappend (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_chappend, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+
+    std::vector<int> allmiplevels;
+    for (int s = 0, subimages = ot.allsubimages ? A->subimages() : 1;
+         s < subimages;  ++s) {
+        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+    }
+
+    // Create the replacement ImageRec
+    ImageRecRef R (new ImageRec(A->name(), (int)allmiplevels.size(),
+                                &allmiplevels[0]));
+    ot.push (R);
+
+    // Subimage by subimage, MIP level by MIP level, channel_append the
+    // two images.
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            // Shuffle the indexed/named channels
+            ImageBufAlgo::channel_append ((*R)(s,m), (*A)(s,m), (*B)(s,m));
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(s,m);
+        }
+    }
     return 0;
 }
 
@@ -2075,6 +2154,8 @@ getargs (int argc, char *argv[])
                     "Set the pixel data window origin (e.g. +20+10)",
                 "--fullsize %@ %s", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, NULL, "Set the 'full' image range to be the pixel data window",
+                "--chnames %@ %s", set_channelnames, NULL,
+                    "Set the channel names (comma-separated)",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
                 "--fail %g", &ot.diff_failthresh, "Failure threshold difference (0.000001)",
                 "--failpercent %g", &ot.diff_failpercent, "Allow this percentage of failures in diff (0)",
@@ -2111,6 +2192,8 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Image stack manipulation:",
                 "--ch %@ %s", action_channels, NULL,
                     "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",
+                "--chappend %@", action_chappend, NULL,
+                    "Append the channels of the last two images",
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",

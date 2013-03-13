@@ -450,6 +450,85 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
 
 
 
+template<class ABtype>
+static bool
+channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int nthreads)
+{
+    if (nthreads == 1 || roi.npixels() < 1000) {
+        int na = A.nchannels(), nb = B.nchannels();
+        int n = std::min (dst.nchannels(), na+nb);
+        ImageBuf::Iterator<float> r (dst, roi);
+        ImageBuf::ConstIterator<ABtype> a (A, roi);
+        ImageBuf::ConstIterator<ABtype> b (B, roi);
+        for (;  !r.done();  ++r) {
+            a.pos (r.x(), r.y(), r.z());
+            b.pos (r.x(), r.y(), r.z());
+            for (int c = 0; c < n; ++c) {
+                if (c < na)
+                    r[c] = a.exists() ? a[c] : 0.0f;
+                else
+                    r[c] = b.exists() ? b[c-na] : 0.0f;
+            }
+        }
+    } else {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind (channel_append_impl<ABtype>, boost::ref(dst),
+                         boost::cref(A), boost::cref(B), _1, 1),
+            roi, nthreads);
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
+                              const ImageBuf &B, ROI roi,
+                              int nthreads)
+{
+    // If the region is not defined, set it to the union of the valid
+    // regions of the two source images.
+    if (! roi.defined())
+        roi = roi_union (get_roi (A.spec()), get_roi (B.spec()));
+
+    // If dst has not already been allocated, set it to the right size,
+    // make it unconditinally float.
+    if (! dst.pixels_valid()) {
+        ImageSpec dstspec = A.spec();
+        dstspec.set_format (TypeDesc::TypeFloat);
+        // Append the channel descriptions
+        dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
+        for (int c = 0;  c < B.spec().nchannels;  ++c) {
+            std::string name = B.spec().channelnames[c];
+            // Eliminate duplicates
+            if (std::find(dstspec.channelnames.begin(), dstspec.channelnames.end(), name) != dstspec.channelnames.end())
+                name = Strutil::format ("channel%d", A.spec().nchannels+c);
+            dstspec.channelnames.push_back (name);
+        }
+        if (dstspec.alpha_channel < 0 && B.spec().alpha_channel >= 0)
+            dstspec.alpha_channel = B.spec().alpha_channel + A.nchannels();
+        if (dstspec.z_channel < 0 && B.spec().z_channel >= 0)
+            dstspec.z_channel = B.spec().z_channel + A.nchannels();
+        set_roi (dstspec, roi);
+        dst.reset (dst.name(), dstspec);
+    }
+
+    // For now, only support float destination, and equivalent A and B
+    // types.
+    if (dst.spec().format != TypeDesc::FLOAT ||
+        A.spec().format != B.spec().format) {
+        dst.error ("Unable to perform channel_append of %s, %s -> %s",
+                   A.spec().format, B.spec().format, dst.spec().format);
+        return false;
+    }
+
+    OIIO_DISPATCH_TYPES ("channel_append", channel_append_impl,
+                         A.spec().format, dst, A, B, roi, nthreads);
+    return true;
+}
+
+
 
 bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
