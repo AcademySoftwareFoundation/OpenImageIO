@@ -54,6 +54,11 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --ch =0.25,B,G -o chanshuffle.tif >> out.txt ;\n")
 
+# test sequences
+command += (oiio_app("oiiotool")
+            + "fit.tif -o copyA.1-10#.jpg >> out.txt ;\n");
+command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
