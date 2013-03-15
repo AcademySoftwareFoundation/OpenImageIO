@@ -1,6 +1,19 @@
 Changes:
 
 
+Release 1.1.8 (15 Mar 2013)
+---------------------------
+* oiiotool --chappend (and ImageBufAlgo::channel_append() underneath) allow
+  you to take two files and concatenate their color channels.
+* oiiotool --chnames allows you to rename some or all of a file's color
+  channels.
+* oiiotool can loop over entire frame ranges by specifying wildcard
+  filenames such as "foo.#.tif" or "bar.1-10#.exr".
+* Cmake: OVERRIDE_SHARED_LIBRARY_SUFFIX allows the shared library suffix
+  to be overridden (e.g., if you need to force .so names on OSX rather 
+  than the usual default of .dylib).
+
+
 Release 1.1.7 (21 Feb 2013)
 ---------------------------
 * Back out dangerous change to thread.h that was in 1.1.6, which could
