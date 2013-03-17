@@ -78,6 +78,11 @@ inline std::string file_extension (const std::string &filepath) {
     return extension (filepath, false);
 }
 
+/// Return all but the last part of the path, for example,
+/// parent_path("foo/bar") returns "foo", and parent_path("foo")
+/// returns "".
+OIIO_API std::string parent_path (const std::string &filepath);
+
 /// Replace the file extension of a filename or filepath. Does not alter
 /// filepath, just returns a new string.  Note that the new_extension
 /// should contain a leading '.' dot.
@@ -107,11 +112,22 @@ OIIO_API std::string searchpath_find (const std::string &filename,
                                        bool testcwd = true,
                                        bool recursive = false);
 
+/// Fill a vector-of-strings with the names of all files contained by
+/// directory dirname.  If recursive is true, it will return all files
+/// below the directory (even in subdirectories), but if recursive is
+/// false (the default)If filter_regex is supplied and non-empty, only
+/// filenames matching the regular expression will be returned.  Return
+/// true if ok, false if there was an error (such as dirname not being
+/// found or not actually being a directory).
+OIIO_API bool get_directory_entries (const std::string &dirname,
+                               std::vector<std::string> &filenames,
+                               bool recursive = false,
+                               const std::string &filter_regex=std::string());
+
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.
 OIIO_API bool path_is_absolute (const std::string &path,
                                  bool dot_is_absolute=false);
-
 
 /// Return true if the file exists.
 ///

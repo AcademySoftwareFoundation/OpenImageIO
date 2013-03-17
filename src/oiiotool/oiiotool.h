@@ -86,25 +86,9 @@ public:
     int return_value;                        // oiiotool command return code
     ColorConfig colorconfig;                 // OCIO color config
 
-    Oiiotool ()
-        : verbose(false), noclobber(false), allsubimages(false),
-          printinfo(false), printstats(false), hash(false),
-          updatemode(false),
-          threads(0),
-          output_dataformat(TypeDesc::UNKNOWN), output_bitspersample(0),
-          output_scanline(false), output_tilewidth(0), output_tileheight(0),
-          output_compression(""), output_quality(-1),
-          output_planarconfig("default"),
-          output_adjust_time(false), output_autocrop(true),
-          diff_warnthresh(1.0e-6f), diff_warnpercent(0),
-          diff_hardwarn(std::numeric_limits<float>::max()),
-          diff_failthresh(1.0e-6f), diff_failpercent(0),
-          diff_hardfail(std::numeric_limits<float>::max()),
-          imagecache(NULL),
-          return_value (EXIT_SUCCESS),
-          m_pending_callback(NULL), m_pending_argc(0)
-    {
-    }
+    Oiiotool ();
+
+    void clear_options ();
 
     // Force img to be read at this point.
     void read (ImageRecRef img);
