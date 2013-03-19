@@ -4,13 +4,34 @@ Changes:
 Release 1.2 (in progress -- compared to 1.1.x)
 ----------------------------------------------
 Major new features and improvements:
-* Significant performance improvements when reading images with ImageBuf,
-  as well as with with ImageCache::get_pixels.  This also translates to
-  improved performance and memory use for oiiotool and maketx.
+* New oiiotool commands:
+    --swap      Exchanges the top two items on the image stack.
+    --fit       Resize image to fit into a given resolution (keeping aspect).
+    --ch        Select/cull/reorder/add channels within an image.
+    --chappend  Merge two images by appending their color channels.
+    --chnames   Rename some or all of the color channels in an image.
+    --cmul      Multiply an imge by a scalar or per-channel constant.
+    --zover     Depth compositing
+* oiiotool can loop over entire numeric frame ranges by specifying
+  wildcard filenames such as "foo.#.tif" or "bar.1-10#.exr".
+* Significant performance improvements when reading and writing images
+  using the ImageBuf::read and ImageCache::get_pixels interfaces, and in
+  some cases also when using regular ImageInput.  This also translates
+  to improved performance and memory use for oiiotool and maketx.
+* At least doubled the performance of maketx for large images when run
+  on multi-core machines.
 * Significant performance improvements when using ImageBuf::Iterator
-  or ConstIterator to traverse the pixels in an ImageBuf.
+  or ConstIterator to traverse the pixels in an ImageBuf, and the iterators
+  now support "wrap" modes (black, clamp, periodic, mirror).
 
 API changes:
+* ImageOutput semantics change: If the spec passed to open() has
+  spec.format set fo UNKNOWN, then select a default data format for the
+  output file that is "most likely to be able to be read" and/or "most
+  typical for files of that format in the wild."  Also,
+  ImageOutput::open() will never fail because a requested data format is
+  unavailable; if the requested format is not supported, a reasonable
+  alternate will always be chosen.
 * ImageBuf has been changed to a "PIMPL" idiom, wherein all the
   internals are no longer exposed in the public API.  This allows us to
   change ImageBuf internals in the future without breaking API or link
@@ -18,9 +39,30 @@ API changes:
   improvements to prior releases).
 * ImageBufAlgo::make_texture() allows you to do the same thing that
   maketx does, but from inside an application and without launching a
-  shell invocation of maketx.
+  shell invocation of maketx.  Two varieties exist: one that takes a
+  filename and reads from disk, another that takes an ImageBuf already
+  in memory.
+* ImageBuf Iterator/ConstIterator now take "wrap" mode parameters that
+  allow out-of-range iterators to be able to retrieve valid data. Supported
+  wrap modes include black, clamp, periodic, and mirror.  This simplifies
+  a lot of algorithms using IB::Iterator, they can now be written to 
+  rely on wrap behavior rather than being cluttered with checks for
+  "if (it.exits())" clauses.
+* ImageBuflgo::computePixelHashSHA1 has been refactored to take ROI,
+  a block size, and thread count, and thus can be parallelized with threads.
+  The block size means that rather than computing a single SHA-1 for all
+  the pixels, it computes separate (parallel) SHA-1 for each group of
+  blocksize scanlines, then returns the SHA-1 of all the individual SHA-1
+  hashed blocks. This is just as strong a hash as before, thought the value
+  is different than doing the whole thing at once, but by breaking it into
+  blocks the computation can be multithreaded.
+* New ImageBufAlgo functions: channels(), channel_append(), mul(),
+  paste(), zover().  [look in imagebufalgo.h for documentation.]
 
 Fixes, minor enhancements, and performance improvements:
+* Texture -- make sure "black" wrap wins out over "fill" value when they
+  conflict (looking up an out-of-range channel beyond the pixel data window).
+* Texture "mirror" wrap mode was slightly incorrect and has been fixed.
 
 Build/test system improvements:
 * Many fixes to improve builds and eliminate warnings on Windows and MinGW.
@@ -28,14 +70,53 @@ Build/test system improvements:
 * New make/cmake boags: OIIO_BUILD_TOOLS=0 will exclude building of the
   command line tools (just build libraries), OIIO_BUILD_TESTS=0 will
   exclude building of unit test binaries.
-
-Developer goodies:
+* Improved matching of testsuite reference images on different platforms.
+* Lots of fixes to compiler warnings on newer gcc and clang releases.
 * Unit tests for Timer class.
 * libOpenImageio/imagespeed_test benchmarks various methods of reading
   and writing files and iterating image pixels (to help us know what to
   optimize).
+* If OpenSSL is available at build time, OIIO will use its SHA-1
+  implementation instead of our own (theirs is faster). We still fall
+  back on ours if OpenSSL is not available or when OIIO is built with
+  USE_OPENSSL=0.
+* Allow default the shared library suffix to be overridden with the
+  CMake variable OVERRIDE_SHARED_LIBRARY_SUFFIX.
+* Eliminated all uses of the custom DEBUG symbol, and instead use the
+  more standard idiom "#ifndef NDEBUG".
+
+Developer goodies:
+* Improved ASSERT and DASSERT macros to not generate warning for certain
+  debug compiles; key their debug behavior by the absence of the standard
+  NDEBUG idiom rather than presence of a custom DEBUG symbol; rename the
+  message variants ASSERT_MSG and DASSERT_MSG.
+* Change the default for Sysutil::memory_used to report resident memory
+  rather than virtual process size.
+* Multithread/parallel version of utility function convert_image().
+* imagebufalgo.h improvements and expansion of the various DISPATCH_*
+  macros.
+* New Filesystem utilities: parent_path(), get_directory_entries().
 
 
+
+Release 1.1.8 (15 Mar 2013)
+---------------------------
+* oiiotool --chappend (and ImageBufAlgo::channel_append() underneath) allow
+  you to take two files and concatenate their color channels.
+* oiiotool --chnames allows you to rename some or all of a file's color
+  channels.
+* oiiotool can loop over entire frame ranges by specifying wildcard
+  filenames such as "foo.#.tif" or "bar.1-10#.exr".
+* Cmake: OVERRIDE_SHARED_LIBRARY_SUFFIX allows the shared library suffix
+  to be overridden (e.g., if you need to force .so names on OSX rather 
+  than the usual default of .dylib).
+
+Release 1.1.7 (21 Feb 2013)
+---------------------------
+* Back out dangerous change to thread.h that was in 1.1.6, which could
+  cause performance problems.
+* Compile fix for WIN32 in strutil.cpp
+* Compile fix for Windows XP - add implementation of InterlockedExchangeAdd64
 
 Release 1.1.6 (11 Feb 2013)
 ---------------------------
@@ -61,7 +142,6 @@ Release 1.1.6 (11 Feb 2013)
   the previous image.
 * Fix FreeBSD compile when not using TBB.
 * New oiiotool --swap exchanges the top two items on the image stack.
-
 
 Release 1.1.5 (29 Jan 2013)
 ---------------------------
