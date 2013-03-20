@@ -1714,25 +1714,33 @@ action_resize (int argc, const char *argv[])
     newspec.full_height = newspec.height;
 
     ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
+
+    // Resize ratio
+    float wratio = float(newspec.full_width) / float(Aspec.full_width);
+    float hratio = float(newspec.full_height) / float(Aspec.full_height);
+
+    if (filtername.empty()) {
+        // No filter name supplied -- pick a good default
+        if (wratio > 1.0f || hratio > 1.0f)
+            filtername = "blackman-harris";
+        else
+            filtername = "lanczos3";
+    }
     Filter2D *filter = NULL;
-    if (! filtername.empty()) {
-        // If there's a matching filter, use it (and its recommended width)
-        for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
-            FilterDesc fd;
-            Filter2D::get_filterdesc (i, &fd);
-            if (fd.name == filtername) {
-                filter = Filter2D::create (filtername, fd.width, fd.width);
-                break;
-            }
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc (i, &fd);
+        if (fd.name == filtername) {
+            float w = fd.width * std::max (1.0f, wratio);
+            float h = fd.width * std::max (1.0f, hratio);
+            filter = Filter2D::create (filtername, w, h);
+            break;
         }
-        if (!filter)
-            std::cout << "Filter \"" << filtername << "\" not recognized\n";
-    } else  if (newspec.width > Aspec.width && newspec.height > Aspec.height) {
-        // default maximizing filter: blackman-harris 3x3
-        filter = Filter2D::create ("blackman-harris", 3.0f, 3.0f);
-    } else if (newspec.width < Aspec.width && newspec.height < Aspec.height) {
-        // defualt minimizing filter: lanczos 3 lobe 6x6
-        filter = Filter2D::create ("lanczos3", 6.0f, 6.0f);
+    }
+    if (! filter) {
+        ot.error (argv[0], Strutil::format("Filter \"%s\" not recognized",
+                                           filtername));
+        return false;
     }
 
     if (ot.verbose) {

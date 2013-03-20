@@ -1051,8 +1051,12 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
-        // If no filter was provided, punt and just linearly interpolate
-        filter = Filter2D::create ("triangle", 2.0f, 2.0f);
+        // If no filter was provided, punt and just linearly interpolate.
+        float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+        float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+        float w = 2.0f * std::max (1.0f, wratio);
+        float h = 2.0f * std::max (1.0f, hratio);
+        filter = Filter2D::create ("triangle", w, h);
     }
 
     // Local copies of the source image window, converted to float
