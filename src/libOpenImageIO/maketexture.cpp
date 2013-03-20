@@ -65,22 +65,33 @@ static spin_mutex maketx_mutex;   // for anything that needs locking
 
 
 static Filter2D *
-setup_filter (const std::string &filtername)
+setup_filter (const ImageSpec &dstspec, const ImageSpec &srcspec,
+              std::string filtername = std::string())
 {
+    // Resize ratio
+    float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+    float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+    float w = std::max (1.0f, wratio);
+    float h = std::max (1.0f, hratio);
+
+    // Default filter, if none supplied
+    if (filtername.empty()) {
+        // No filter name supplied -- pick a good default
+        if (wratio > 1.0f || hratio > 1.0f)
+            filtername = "blackman-harris";
+        else
+            filtername = "lanczos3";
+    }
+
     // Figure out the recommended filter width for the named filter
-    float filterwidth = 1.0f;
     for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
         FilterDesc d;
         Filter2D::get_filterdesc (i, &d);
-        if (filtername == d.name) {
-            filterwidth = d.width;
-            break;
-        }
+        if (filtername == d.name)
+            return Filter2D::create (filtername, w*d.width, h*d.width);
     }
 
-    Filter2D *filter = Filter2D::create (filtername, filterwidth, filterwidth);
-
-    return filter;
+    return NULL;  // couldn't find a matching name
 }
 
 
@@ -489,7 +500,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
               const ImageSpec &outspec_template,
               std::string outputfilename, ImageOutput *out,
               TypeDesc outputdatatype, bool mipmap,
-              Filter2D *filter, const ImageSpec &configspec,
+              const std::string &filtername, const ImageSpec &configspec,
               std::ostream &outstream,
               double &stat_writetime, double &stat_miptime,
               size_t &peak_mem)
@@ -535,8 +546,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
     bool verbose = configspec.get_int_attribute ("maketx:verbose");
     if (verbose) {
         outstream << "  Writing file: " << outputfilename << std::endl;
-        outstream << "  Filter \"" << filter->name() << "\" width = " 
-                  << filter->width() << "\n";
+        outstream << "  Filter \"" << filtername << "\n";
         outstream << "  Top level is " << formatres(outspec) << std::endl;
     }
 
@@ -613,12 +623,23 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 
-                if (filter->name() == "box" && filter->width() == 1.0f)
+                if (filtername == "box")
                     ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
-                else
+                else {
+                    Filter2D *filter = setup_filter (small->spec(), img->spec(), filtername);
+                    if (! filter) {
+                        outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
+                        return false;
+                    }
+                    if (verbose) {
+                        outstream << "  Downsampling filter \"" << filter->name() 
+                                  << "\" width = " << filter->width() << "\n";
+                    }
                     ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*small), boost::cref(*img), _1, filter),
                                                   OIIO::get_roi(small->spec()));
+                    Filter2D::destroy (filter);
+                }
             }
 
             stat_miptime += miptimer();
@@ -677,7 +698,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
 static bool
 make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                    const ImageBuf *input,
-                   const std::string filename,
+                   std::string filename,
                    std::string outputfilename,
                    const ImageSpec &_configspec,
                    std::ostream *outstream_ptr)
@@ -1170,11 +1191,6 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
 
     std::string filtername = configspec.get_string_attribute ("maketx:filtername", "box");
-    Filter2D *filter = setup_filter (filtername);
-    if (! filter) {
-        outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
-        return false;
-    }
 
     double misc_time_3 = alltime.lap(); 
     STATUS ("misc3", misc_time_3);
@@ -1195,12 +1211,19 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             outstream << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
         toplevel.reset (new ImageBuf ("temp", dstspec));
-        if (filtername == "box" && filter->width() == 1.0f)
+        if (filtername == "box" || filtername == "triangle")
             ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));
-        else
+        else {
+            Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), filtername);
+            if (! filter) {
+                outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
+                return false;
+            }
             ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*toplevel), boost::cref(*src), _1, filter),
                                           OIIO::get_roi(dstspec));
+            Filter2D::destroy (filter);
+        }
     }
     stat_resizetime += alltime.lap();
     STATUS ("resize & data convert", stat_resizetime);
@@ -1231,8 +1254,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // (such as filtering information) needs to be manually added into the
     // hash.
     std::ostringstream addlHashData;
-    addlHashData << filter->name() << " ";
-    addlHashData << filter->width() << " ";
+    addlHashData << filtername << " ";
 
     const int sha1_blocksize = 256;
     std::string hash_digest = configspec.get_int_attribute("maketx:hash", 1) ?
@@ -1289,7 +1311,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap");
     bool ok = write_mipmap (mode, toplevel, dstspec, outputfilename,
                             out, out_dataformat, !shadowmode && !nomipmap,
-                            filter, configspec, outstream,
+                            filtername, configspec, outstream,
                             stat_writetime, stat_miptime, peak_mem);
     delete out;  // don't need it any more
 
@@ -1297,8 +1319,6 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // matching that of the input file.
     if (ok && updatemode && from_filename)
         Filesystem::last_write_time (outputfilename, in_time);
-
-    Filter2D::destroy (filter);
 
     if (verbose || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();

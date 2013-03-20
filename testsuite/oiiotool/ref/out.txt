@@ -36,6 +36,10 @@ Comparing "resize.tif" and "ref/resize.tif"
 PASS
 Comparing "resize2.tif" and "ref/resize2.tif"
 PASS
+Comparing "resize64.tif" and "ref/resize64.tif"
+PASS
+Comparing "resize512.tif" and "ref/resize512.tif"
+PASS
 Comparing "fit.tif" and "ref/fit.tif"
 PASS
 Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"

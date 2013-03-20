@@ -24,6 +24,14 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --resize 25% -o resize2.tif >> out.txt ;\n")
 
+# test extreme resize
+command += (oiio_app ("oiiotool")
+            + parent + "/oiio-images/grid.tif"
+            + " --resize 64x64 -o resize64.tif >> out.txt ;\n")
+command += (oiio_app ("oiiotool")
+            + "resize64.tif "
+            + " --resize 512x512 -o resize512.tif >> out.txt ;\n")
+
 # test fit
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -65,7 +73,8 @@ command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
 
 
 # Outputs to check against references
-outputs = [ "filled.tif", "resize.tif", "resize2.tif", "fit.tif",
+outputs = [ "filled.tif", "resize.tif", "resize2.tif",
+            "resize64.tif", "resize512.tif", "fit.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "out.txt" ]
