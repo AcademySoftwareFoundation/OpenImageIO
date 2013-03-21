@@ -148,47 +148,40 @@ FlipFlopImageData (ImageBuf &dst, const ImageBuf &src)
     }
 }
 
+void 
+Rotate_90 (ImageBuf &out, const ImageBuf &in)
+{
+    std::vector<float> p (out.spec().nchannels, 0.0f);
+    for (int z = in.spec().z; z < in.spec().z+in.spec().depth; z++) {
+        for (int y = in.spec().y; y < in.spec().y+in.spec().height; y++) {
+            int out_pos = in.spec().width-1;
+            for (int x = in.spec().x; x < in.spec().x+in.spec().width; x++) {
+                in.getpixel(x,y,z,&p[0]);
+                out.setpixel(y,out_pos,z,&p[0]);
+                out_pos--;
+            }
+        }
+    }
+}
+
+void 
+Rotate_270 (ImageBuf &out, const ImageBuf &in)
+{
+    std::vector<float> p (out.spec().nchannels, 0.0f);
+    for (int z = in.spec().z; z < in.spec().z+in.spec().depth; z++) {
+        int out_pos = in.spec().height-1;
+        for (int y = in.spec().y; y < in.spec().y+in.spec().height; y++) {
+            for (int x = in.spec().x; x<in.spec().x+in.spec().width; x++) {
+                in.getpixel (x, y, z,&p[0]);
+                out.setpixel (out_pos, x, z, &p[0]);
+            }
+            out_pos--;
+        }
+    }
+}
+
 } // Anonymous Namespace
 
-void 
-Rotate_90(ImageBuf &out,const ImageBuf &in)
-{
-float p[in.spec().nchannels];
-int out_pos;
-for(int z=in.spec().z;z<in.spec().z+in.spec().depth;z++)
-for(int y=in.spec().y;y<in.spec().y+in.spec().height;y++)
-{
- out_pos=in.spec().width-1;
-for(int x=in.spec().x;x<in.spec().x+in.spec().width;x++)
-{
-    in.getpixel(x,y,z,&p[0]);
-    out.setpixel(y,out_pos,z,&p[0]);
-    out_pos--;
-}
-}
-}
-
-void 
-Rotate_270(ImageBuf &out,const ImageBuf &in)
-{
-
-float p[in.spec().nchannels];
-int out_pos;
-for(int z=in.spec().z;z<in.spec().z+in.spec().depth;z++)
-{
-out_pos=in.spec().height-1;
-for(int y=in.spec().y;y<in.spec().y+in.spec().height;y++)
-{
- for(int x=in.spec().x;x<in.spec().x+in.spec().width;x++)
-{
-    in.getpixel(x,y,z,&p[0]);
-    out.setpixel(out_pos,x,z,&p[0]);
-
-}
-out_pos--;
-}
-}
-}
 
 bool
 ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
@@ -218,16 +211,14 @@ ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
         FlipFlopImageData (dst, src);
         return true;
     }
-    else if(t==TRANSFORM_ROT90)
-	{
+    else if (t==TRANSFORM_ROT90) {
 	Rotate_90(dst,src);
 	return true;
-	}
-    else if(t==TRANSFORM_ROT270)
-	{
+    }
+    else if (t==TRANSFORM_ROT270) {
 	Rotate_270(dst,src);
 	return true;
-	}
+    }
     dst.error ("unknown transform type %d", (int)t);
     return false;
 }
