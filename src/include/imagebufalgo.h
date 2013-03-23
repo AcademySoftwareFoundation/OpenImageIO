@@ -709,67 +709,35 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             std::ostream *outstream = NULL);
 
 
-/// ImageBufAlgo::contrast ---------------------------------------------------
-/// Formula:    - out = (in-pivot)*contrast + pivot
-///                   = in*contrast + pivot*(1-contrast)
+/// Scale the pixel-by-pixel difference between the input and a "pivot"
+/// color value.  That is,
 ///
-/// Parameters:
-/// R           - Output image R must have float pixel data. If initialized,
-///               fail if R.nchannels() != A.nchannels(). If not initialized,
-///               initialize from A.spec(), but set the format to float.
-/// A           - Input image A must have >= 1 channel and float pixel data.
-/// contrast    - This function assumes the caller will provide it with
-///               contrast array with A.nchannels() values, and it fails if
-///               any of them is < 0. Each value is used for its respective
-///               channel and determines if contrast is increased(>1),
-///               decreased(<1), or not modified(1).
-/// pivot       - This function assumes the caller will provide it with
-///               pivot array with A.nchannels() values, and it fails if any
-///               of them is < 0 or > 1. Each value is used for its respective
-///               channel.
-/// roi         - The operation is applied only to this region. If not defined
-///               it is initialized from R's region. If defined, it is clipped
-///               to its intersection with R's region, and the operation fails
-///               if that intersection region is empty.
-/// threads     - Number of threads.
-/// --------------------------------------------------------------------------
-bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
-                         float* contrast, float* pivot,
-                         ROI roi=ROI(), int threads=0);
-
-
-
-/// ImageBufAlgo::contrast ---------------------------------------------------
-/// One contrast value per channel and one pivot value for all channels.
-/// --------------------------------------------------------------------------
-bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
-                         float* contrast, float pivot=0.5f,
-                         ROI roi=ROI(), int threads=0);
-
-
-
-/// ImageBufAlgo::contrast ---------------------------------------------------
-/// One contrast value for all channels and one pivot value per channel.
-/// --------------------------------------------------------------------------
-bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
-                         float contrast, float* pivot,
-                         ROI roi=ROI(), int threads=0);
-
-
-
-/// ImageBufAlgo::contrast ---------------------------------------------------
-/// One contrast value and one pivot value for all channels.
+///     R = (A - pivot) * scale + pivot
 ///
-/// Additional parameter:
-/// luminance   - If false, the operation is applied to all channels. If true,
-///               the first 3 channels are assumed RGB and the operation is
-///               applied to their luminance channel, while ignoring alpha and
-///               z channels if present. If true and the number of non-alpha
-///               and non-z channels in A is != 3, the operation fails.
-/// --------------------------------------------------------------------------
+/// scale[] and pivot[] give per-channel multiplier and pivot values, and
+/// obviously must be of length at least equal to the number of channels in
+/// the input A and output R (which must be equal).
+///
+/// If clamptozero is true (the default), output pixels will be clamped
+/// to a minimum of zero; if false, it is possible that the output will
+/// end up with negative pixel values.
+///
+/// ROI can be used to restrict the range of pixels in R for which the 
+/// operation is carried out, defaulting to be R's entire pixel data region.
 bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
-                         float contrast, float pivot=0.5f,
-                         bool luminance=false, ROI roi=ROI(), int threads=0);
+                         const float *scale, const float *pivot,
+                         bool clamptozero=true,
+                         ROI roi=ROI::All(), int threads=0);
+
+/// Like ImageBufAlgo::contrast(), but scales each pixel in such a way
+/// as to apply a contrast to the luminance of the image.  This only
+/// works if the number of color channels (non-alpha, non-z) is exactly
+/// 3, and assumes a linear color space.
+bool DLLPUBLIC contrast_lum (ImageBuf &R, const ImageBuf &A,
+                             float scale, float pivot,
+                             bool clamptozero=true,
+                             ROI roi=ROI::All(), int threads=0);
+
 
 
 
