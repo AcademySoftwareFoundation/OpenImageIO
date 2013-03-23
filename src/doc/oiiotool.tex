@@ -243,12 +243,20 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 
 \subsection*{Scale the values in an image}
 
-Reduce the brightness of the R, G, and B channels by 10%%,
+Reduce the brightness of the R, G, and B channels by 10\%,
 but leave the A channel at its original value:
 
 \begin{code}
     oiiotool original.exr --cmul 0.9,0.9,0.9,1.0 -o out.exr
 \end{code}
+
+Increase the contrast of the image by 50\% (1.5x) by enhancing the
+difference between each pixel's value and 0.5 (the \emph{pivot}).
+
+\begin{code}
+    oiiotool original.exr --contrast:pivot=0.5,0.5,0.5 1.5,1.5,1.5 -o out.exr
+\end{code}
+
 
 \subsection*{Resize an image}
 
@@ -869,6 +877,39 @@ multiplied by the same value.  Alternatively, a series of
 comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
 \apiend
+
+\apiitem{--contrast \emph{scale0,scale1,scale2...}}
+\NEW
+Apply an adjustment to image contrast on a pixel-by-pixel and
+channel-by-channel basis:
+\begin{code}
+    result[c] = (input[c] - pivot[c]) * scale[c] + pivot[c]
+\end{code}
+Scale 
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf pivot=}\emph{p0,p1,...} & Specify the pivot value per
+                                   channel (default is 0.5) \\
+  & {\cf lum=1} & Adjust the pixels to apply the scale to their
+      luminance. In this case, only one pivot and scale value are
+      needed. \\
+  & {\cf clamp=0} & The default is to clamp output pixels to have a
+                    minimum value of 0, but if {\cf clamp=0} is among
+                    the options, no clamp will be applied. \\
+\end{tabular}
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool in.tif --contrast 0.75,1,1 -o out.tif
+    oiiotool in.tif --contrast:pivot=0.5,0.35,0.41 1.2,1.2,1.5 -o out.tif
+    oiiotool in.tif --contrast:lum=1 1.2 -o out.tif
+\end{code}
+
+\apiend
+
 
 \apiitem{--over}
 \index{composite}
