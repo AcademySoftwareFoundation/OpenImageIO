@@ -338,7 +338,11 @@ pause (int delay)
     __TBB_Pause(delay);
 #elif defined(__GNUC__)
     for (int i = 0; i < delay; ++i) {
+#if defined __arm__
+        __asm__ __volatile__("NOP;");
+#else
         __asm__ __volatile__("pause;");
+#endif
     }
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
@@ -453,7 +457,12 @@ private:
 
     // Disallow copy construction by making private and unimplemented.
     atomic (atomic const &);
+
+#if defined __arm__
+} __attribute__((aligned(8)));
+#else
 };
+#endif
 
 
 #endif /* ! USE_TBB */
