@@ -50,6 +50,19 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + " cmul-input.exr --cmul 1.5,1,0.5 -o cmul2.exr >> out.txt ;\n")
 
+# test --contrast
+command += (oiio_app("oiiotool") 
+            + parent + "/oiio-images/tahoe-gps.jpg --resize 320x240 "
+            + "-o tahoe-small.jpg >> out.txt ;\n")
+command += (oiio_app("oiiotool") + "tahoe-small.jpg "
+            + "--contrast 0.5,0.5,0.5 -o tahoe-lowcontrast.jpg >> out.txt ;\n")
+command += (oiio_app("oiiotool") + "tahoe-small.jpg "
+            + "--contrast:pivot=0,0,0 0.5,0.5,0.5 -o tahoe-lowcontrast-0pivot.jpg >> out.txt ;\n")
+command += (oiio_app("oiiotool") + "tahoe-small.jpg "
+            + "--contrast 2,1,1 -o tahoe-redcontrast.jpg >> out.txt ;\n")
+command += (oiio_app("oiiotool") + "tahoe-small.jpg "
+            + "--contrast:lum=1 1.5 -o tahoe-lumcontrast.jpg >> out.txt ;\n")
+
 # test histogram generation
 command += (oiio_app ("oiiotool") + " "
             + "ref/histogram_input.png"
@@ -79,6 +92,8 @@ command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
 outputs = [ "filled.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
+            "tahoe-lowcontrast.jpg", "tahoe-lowcontrast-0pivot.jpg",
+            "tahoe-lumcontrast.jpg", "tahoe-redcontrast.jpg",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "out.txt" ]

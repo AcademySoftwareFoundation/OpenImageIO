@@ -43,6 +43,13 @@ PASS
 Comparing "fit.tif" and "ref/fit.tif"
 PASS
 Comparing "fit2.tif" and "ref/fit2.tif"
+Comparing "tahoe-lowcontrast.jpg" and "ref/tahoe-lowcontrast.jpg"
+PASS
+Comparing "tahoe-lowcontrast-0pivot.jpg" and "ref/tahoe-lowcontrast-0pivot.jpg"
+PASS
+Comparing "tahoe-lumcontrast.jpg" and "ref/tahoe-lumcontrast.jpg"
+PASS
+Comparing "tahoe-redcontrast.jpg" and "ref/tahoe-redcontrast.jpg"
 PASS
 Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
