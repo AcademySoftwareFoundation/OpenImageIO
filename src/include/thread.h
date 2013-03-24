@@ -326,7 +326,11 @@ pause (int delay)
 {
 #if defined(__GNUC__)
     for (int i = 0; i < delay; ++i) {
+#if defined __arm__
+        __asm__ __volatile__("NOP;");
+#else
         __asm__ __volatile__("pause;");
+#endif
     }
 #elif USE_TBB
     __TBB_Pause(delay);
@@ -442,6 +446,9 @@ public:
     }
 
 private:
+#ifdef __arm__
+    OIIO_ALIGN(8)
+#endif 
     volatile mutable T m_val;
 
     // Disallow copy construction by making private and unimplemented.
