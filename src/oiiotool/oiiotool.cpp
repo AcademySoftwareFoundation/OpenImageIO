@@ -1583,13 +1583,12 @@ action_pattern (int argc, const char *argv[])
             pattern = pattern.substr (pos+1, std::string::npos);
             if (Strutil::istarts_with(pattern,"width="))
                 width = atoi (pattern.substr(6, std::string::npos).c_str());
+            // FIXME: allow full 3-D size and offset to be specified
         }
         std::vector<float> color1 (nchans, 0.0f);
         std::vector<float> color2 (nchans, 1.0f);
-        bool ok = ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
-                                         ib.xbegin(), ib.xend(),
-                                         ib.ybegin(), ib.yend(),
-                                         ib.zbegin(), ib.zend());
+        bool ok = ImageBufAlgo::checker (ib, width, width, width,
+                                         &color1[0], &color2[0], 0, 0, 0);
         if (! ok)
             ot.error (argv[0], ib.geterror());
     } else {
@@ -1648,8 +1647,7 @@ action_crop (int argc, const char *argv[])
         ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
         const ImageBuf &Aib ((*A)(0,0));
         ImageBuf &Rib ((*ot.curimg)(0,0));
-        bool ok = ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
-                                      newspec.y, newspec.y+newspec.height);
+        bool ok = ImageBufAlgo::crop (Rib, Aib, get_roi(newspec));
         if (! ok)
             ot.error (argv[0], Rib.geterror());
     } else if (newspec.x != Aspec.x || newspec.y != Aspec.y) {

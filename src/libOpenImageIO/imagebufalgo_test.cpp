@@ -132,7 +132,7 @@ void test_crop ()
     ImageBufAlgo::fill (A, arbitrary1);
 
     // Test CUT crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend);
+    ImageBufAlgo::crop (B, A, ROI(xbegin, xend, ybegin, yend));
 
     // Should have changed the data window (origin and width/height)
     OIIO_CHECK_EQUAL (B.spec().x, xbegin);
