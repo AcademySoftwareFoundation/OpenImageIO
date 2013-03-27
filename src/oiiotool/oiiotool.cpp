@@ -39,6 +39,7 @@
 #include <sstream>
 #include <utility>
 #include <ctype.h>
+#include <map>
 
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
@@ -210,6 +211,29 @@ Oiiotool::error (const std::string &command, const std::string &explanation)
         std::cerr << " (" << explanation << ")";
     std::cerr << "\n";
     exit (-1);
+}
+
+
+
+static int
+extract_options (std::map<std::string,std::string> &options,
+                 std::string command)
+{
+    // std::cout << "extract_options '" << command << "'\n";
+    int noptions = 0;
+    size_t pos;
+    while ((pos = command.find_first_of(":")) != std::string::npos) {
+        command = command.substr (pos+1, std::string::npos);
+        size_t e = command.find_first_of("=");
+        if (e != std::string::npos) {
+            std::string name = command.substr(0,e);
+            std::string value = command.substr(e+1,command.find_first_of(":")-(e+1));
+            options[name] = value;
+            ++noptions;
+            // std::cout << "'" << name << "' -> '" << value << "'\n";
+        }
+    }
+    return noptions;
 }
 
 
