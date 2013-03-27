@@ -320,7 +320,10 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
 /// each correspond to each other, regardless of resolution).  The
 /// caller may explicitly pass a reconstruction filter, or resize() will
 /// choose a reasonable default if NULL is passed.  The dst buffer must
-/// be of type FLOAT.
+/// be of type FLOAT.  If a filter is supplied, it will be used to weight
+/// the src pixels falling underneath it for each dst pixel; the filter's
+/// size is expressed in pixel units of the dst image.  If no filter is
+/// supplied, a default medium-quality (triangle) filter will be used.
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL);
