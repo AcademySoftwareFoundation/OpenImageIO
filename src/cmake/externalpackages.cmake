@@ -86,14 +86,13 @@ endmacro ()
 # end IlmBase and OpenEXR setup
 ###########################################################################
 
+
 ###########################################################################
 # Boost setup
 
-message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
-
-set (Boost_ADDITIONAL_VERSIONS "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
-                               "1.43" "1.43.0" "1.42" "1.42.0" 
-                               "1.41" "1.41.0" "1.40" "1.40.0")
+set (Boost_ADDITIONAL_VERSIONS "1.53" "1.52" "1.51" "1.50"
+                               "1.49" "1.48" "1.47" "1.46" "1.45"
+                               "1.44" "1.43" "1.42")
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()
@@ -103,8 +102,9 @@ if (BOOST_CUSTOM)
     # N.B. For a custom version, the caller had better set up the variables
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
-    find_package (Boost 1.40 REQUIRED 
-                  COMPONENTS filesystem regex system thread
+    set (Boost_COMPONENTS filesystem regex system thread)
+    find_package (Boost 1.42 REQUIRED 
+                  COMPONENTS ${Boost_COMPONENTS}
                  )
     # Try to figure out if this boost distro has Boost::python.  If we
     # include python in the component list above, cmake will abort if
@@ -150,6 +150,7 @@ else ()
 endif ()
 
 if (VERBOSE)
+    message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
     message (STATUS "Boost found ${Boost_FOUND} ")
     message (STATUS "Boost version      ${Boost_VERSION}")
     message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
@@ -169,10 +170,6 @@ endif ()
 
 include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
 link_directories ("${Boost_LIBRARY_DIRS}")
-
-#if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#    add_definitions ("-Wno-parentheses")
-#endif ()
 
 # end Boost setup
 ###########################################################################
