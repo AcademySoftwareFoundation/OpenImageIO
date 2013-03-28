@@ -1026,7 +1026,7 @@ decode_channel_set (const ImageSpec &spec, std::string chanlist,
             // Look for Either =val or name=val
             size_t equal_pos = onechan.find ('=');
             if (equal_pos != std::string::npos) {
-                value = atof (onechan.c_str()+equal_pos+1);
+                value = (float) atof (onechan.c_str()+equal_pos+1);
                 onechan.erase (equal_pos);
                 newchannelnames.back() = onechan;
             }
@@ -1339,11 +1339,11 @@ action_cmul (int argc, const char *argv[])
     for (int s = 0;  s < subimages;  ++s) {
         int nchans = R->spec(s,0)->nchannels;
         scale.clear ();
-        scale.resize (nchans, atof(scalestrings[0].c_str()));
+        scale.resize (nchans, (float) atof(scalestrings[0].c_str()));
         if (scalestrings.size() > 1) {
             for (int c = 0;  c < nchans;  ++c) {
                 if (c < (int)scalestrings.size())
-                    scale[c] = atof(scalestrings[c].c_str());
+                    scale[c] = (float) atof(scalestrings[c].c_str());
                 else
                     scale[c] = 1.0f;
             }
@@ -1565,7 +1565,7 @@ action_pattern (int argc, const char *argv[])
                 // Parse comma-separated color list
                 size_t numpos = 6;
                 for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
-                    fill[c] = atof (pattern.c_str()+numpos);
+                    fill[c] = (float) atof (pattern.c_str()+numpos);
                     while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
                         ++numpos;
                     if (numpos < pattern.size())
@@ -1986,7 +1986,7 @@ action_fill (int argc, const char *argv[])
             // Parse comma-separated color list
             size_t numpos = 6;
             for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
-                color[c] = atof (command.c_str()+numpos);
+                color[c] = (float) atof (command.c_str()+numpos);
                 while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
                     ++numpos;
                 if (numpos < command.size())
@@ -2041,7 +2041,7 @@ action_text (int argc, const char *argv[])
             // Parse comma-separated color list
             size_t numpos = 6;
             for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
-                textcolor[c] = atof (command.c_str()+numpos);
+                textcolor[c] = (float) atof (command.c_str()+numpos);
                 while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
                     ++numpos;
                 if (numpos < command.size())
