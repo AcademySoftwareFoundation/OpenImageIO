@@ -955,7 +955,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
         reoffset (exifdirs, exif_tagmap, datastart);
         unsigned short nd = exifdirs.size();
         data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));
-        data.insert (data.end(), (char *)&exifdirs[0], (char *)&exifdirs[exifdirs.size()]);
+        data.insert (data.end(), (char *)&exifdirs[0], (char *)&exifdirs[0] + exifdirs.size());
         data.insert (data.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
     }
 
@@ -966,7 +966,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
         reoffset (gpsdirs, gps_tagmap, datastart);
         unsigned short nd = gpsdirs.size();
         data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));
-        data.insert (data.end(), (char *)&gpsdirs[0], (char *)&gpsdirs[gpsdirs.size()]);
+        data.insert (data.end(), (char *)&gpsdirs[0], (char *)&gpsdirs[0] + gpsdirs.size());
         data.insert (data.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
     }
 
