@@ -389,8 +389,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         }*/
     }
 
-    // reserve space for the image data buffer
-    m_buf.reserve (m_bytes * m_spec.height);
+    // allocate space for the image data buffer
+    m_buf.resize (m_bytes * m_spec.height);
 
     return true;
 }
