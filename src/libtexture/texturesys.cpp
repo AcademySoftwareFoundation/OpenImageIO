@@ -837,7 +837,7 @@ compute_miplevels (TextureSystemImpl::TextureFile &texturefile,
                    int *miplevel, float *levelweight)
 {
     ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
-    float levelblend;
+    float levelblend = 0.0f;
     int nmiplevels = (int)subinfo.levels.size();
     for (int m = 0;  m < nmiplevels;  ++m) {
         // Compute the filter size (minor axis) in raster space at this
