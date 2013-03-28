@@ -1119,26 +1119,15 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 float *p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
                     totalweight = 0.0f;
-                    int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
+                    int yy = src_y+j;
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
-                                                           yclamped, yclamped+1,
-                                                           0, 1, true);
+                                                             yy, yy+1, 0, 1, true);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        if (w == 0.0f)
-                            continue;
-                        totalweight += w;
-                        if (srcpel.exists()) {
+                        if (w != 0.0f && srcpel.exists()) {
                             for (int c = 0;  c < nchannels;  ++c)
                                 p[c] += w * srcpel[c];
-                        } else {
-                            // Outside data window -- construct a clamped
-                            // iterator for just that pixel
-                            int xclamped = Imath::clamp (src_x+i, src.xmin(), src.xmax());
-                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
-                            clamped.pos (xclamped, yclamped);
-                            for (int c = 0;  c < nchannels;  ++c)
-                                p[c] += w * clamped[c];
+                            totalweight += w;
                         }
                     }
                     if (totalweight != 0.0f) {
@@ -1150,10 +1139,13 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 totalweight = 0.0f;
                 p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    float w = filter->yfilt (yratio * (j-src_yf_frac));
-                    totalweight += w;
-                    for (int c = 0;  c < nchannels;  ++c)
-                        pel[c] += w * p[c];
+                    int yy = src_y+j;
+                    if (yy >= src.ymin() && yy <= src.ymax()) {
+                        float w = filter->yfilt (yratio * (j-src_yf_frac));
+                        totalweight += w;
+                        for (int c = 0;  c < nchannels;  ++c)
+                            pel[c] += w * p[c];
+                    }
                 }
 
             } else {
@@ -1167,19 +1159,11 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                                             yratio * (j-src_yf_frac));
                         if (w == 0.0f)
                             continue;
-                        totalweight += w;
                         DASSERT (! srcpel.done());
                         if (srcpel.exists()) {
                             for (int c = 0;  c < nchannels;  ++c)
                                 pel[c] += w * srcpel[c];
-                        } else {
-                            // Outside data window -- construct a clamped
-                            // iterator for just that pixel
-                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
-                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
-                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
-                            for (int c = 0;  c < nchannels;  ++c)
-                                pel[c] += w * clamped[c];
+                            totalweight += w;
                         }
                     }
                 }
