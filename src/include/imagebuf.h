@@ -803,7 +803,8 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
-        int m_nchannels, m_pixel_bytes;
+        int m_nchannels;
+        size_t m_pixel_bytes;
         char *m_proxydata;
         WrapMode m_wrap;
 
@@ -812,7 +813,7 @@ public:
         void init_ib (WrapMode wrap) {
             const ImageSpec &spec (m_ib->spec());
             m_deep = spec.deep;
-            m_localpixels = m_ib->localpixels();
+            m_localpixels = m_ib->localpixels() != NULL;
             m_img_xbegin = spec.x; m_img_xend = spec.x+spec.width;
             m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
             m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;

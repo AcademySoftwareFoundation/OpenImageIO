@@ -557,8 +557,8 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 
     const ImageSpec &dstspec (dst->spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    float xoffset = dstspec.full_x;
-    float yoffset = dstspec.full_y;
+    float xoffset = (float)dstspec.full_x;
+    float yoffset = (float)dstspec.full_y;
     float xscale = 1.0f / (float)dstspec.full_width;
     float yscale = 1.0f / (float)dstspec.full_height;
     for (int y = y0;  y < y1;  ++y) {
