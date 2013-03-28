@@ -33,8 +33,6 @@
 #include <string>
 #include <sstream>
 #include <list>
-#include <boost/tr1/memory.hpp>
-using namespace std::tr1;
 
 #include <OpenEXR/ImathMatrix.h>
 
