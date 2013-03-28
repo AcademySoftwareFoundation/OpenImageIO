@@ -99,11 +99,18 @@ object create_array(int length)
 	// not all that bad.
 	object data(
 		handle<>(
+#if PY_MAJOR_VERSION >= 3
+			PyBytes_FromStringAndSize(
+#else
 			PyString_FromStringAndSize(
+#endif
 					reinterpret_cast<const char*>(test),
 					sizeof(int) * length)));
-
+#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
 	array.attr("fromstring")(data);
+#else
+	array.attr("frombytes")(data);
+#endif
 
 	// Tidy up and prove to ourselves that the returned
 	// array really stands on its own.
@@ -199,14 +206,23 @@ struct ustring_from_python_str
     }
 
     static void* convertible(PyObject* obj_ptr) {
+#if PY_MAJOR_VERSION >= 3
+        if (!PyUnicode_Check(obj_ptr)) return 0;
+#else
         if (!PyString_Check(obj_ptr)) return 0;
+#endif
         return obj_ptr;
     }
 
     static void construct(
             PyObject* obj_ptr,
             boost::python::converter::rvalue_from_python_stage1_data* data) {
+#if PY_MAJOR_VERSION >= 3
+        PyObject* pyStr = PyUnicode_AsUTF8String(obj_ptr);
+        const char* value = PyBytes_AsString(pyStr);
+#else
         const char* value = PyString_AsString(obj_ptr);
+#endif
         if (value == 0) boost::python::throw_error_already_set();
         void* storage = (
                 (boost::python::converter::rvalue_from_python_storage<ustring>*)
