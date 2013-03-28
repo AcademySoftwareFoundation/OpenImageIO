@@ -65,207 +65,294 @@
 #include <openssl/sha.h>
 #endif
 
+///////////////////////////////////////////////////////////////////////////
+// Guidelines for ImageBufAlgo functions:
+//
+// * Signature will always be:
+//       bool function (ImageBuf &R /* result */, 
+//                      const ImageBuf &A, ...other input images...,
+//                      ...other parameters...
+//                      ROI roi = ROI::All(),
+//                      int nthreads = 0);
+// * The ROI should restrict the operation to those pixels (and channels)
+//   specified. Default ROI::All() means perform the operation on all
+//   pixel in R's data window.
+// * It's ok to omit ROI and threads from the few functions that
+//   (a) can't possibly be parallelized, and (b) do not make sense to
+//   apply to anything less than the entire image.
+// * Be sure to clamp the channel range to those actually used.
+// * If R is initialized, do not change any pixels outside the ROI.
+//   If R is uninitialized, redefine ROI to be the union of the input
+//   images' data windows and allocate R to be that size.
+// * Try to always do the "reasonable thing" rather than be too brittle.
+// * For errors (where there is no "reasonable thing"), set R's error
+//   condition using R.error() with R.error() and return false.
+// * Always use IB::Iterators/ConstIterator, NEVER use getpixel/setpixel.
+// * Use the iterator Black or Clamp wrap modes to avoid lots of special
+//   cases inside the pixel loops.
+// * Use OIIO_DISPATCH_* macros to call type-specialized templated
+//   implemenations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
+//   to tame the cross-product of types, especially for binary functions
+//   (A,B inputs as well as R output).
+///////////////////////////////////////////////////////////////////////////
+
 
 OIIO_NAMESPACE_ENTER
 {
 
-namespace
+
+// Convenient helper struct to bundle a 3-int describing a block size.
+struct Dim3 {
+    int x, y, z;
+    Dim3 (int x, int y=1, int z=1) : x(x), y(y), z(z) { }
+};
+
+
+
+/// Common preparation for IBA functions: Given an ROI (which may or may
+/// not be the default ROI::All()), destination image (which may or may
+/// not yet be allocated), and optional input images, adjust roi if
+/// necessary and allocate pixels for dst if necessary.
+static void
+IBAprep (ROI &roi, ImageBuf *dst,
+         const ImageBuf *A=NULL, const ImageBuf *B=NULL)
 {
+    if (dst->initialized()) {
+        // Valid destination image.  Just need to worry about ROI.
+        if (roi.defined()) {
+            // Shrink-wrap ROI to the destination (including chend)
+            roi = roi_intersection (roi, get_roi(dst->spec()));
+        } else {
+            // No ROI? Set it to all of dst's pixel window.
+            roi = get_roi (dst->spec());
+        }
+    } else {
+        // Not an initialized destination image!
+        ASSERT ((A || roi.defined()) &&
+                "ImageBufAlgo without any guess about region of interest");
+        if (! roi.defined()) {
+            // No ROI -- make it the union of the pixel regions of the inputs
+            roi = get_roi (A->spec());
+            if (B)
+                roi = roi_union (roi, get_roi (B->spec()));
+        } else {
+            roi.chend = std::min (roi.chend, A->nchannels());
+        }
+        // Now we allocate space for dst.  Give it A's spec, but adjust
+        // the dimensions to match the ROI.
+        ImageSpec spec;
+        if (A) {
+            // If there's an input image, give dst A's spec (with
+            // modifications detailed below...)
+            spec = A->spec();
+            // For two inputs, if they aren't the same data type, punt and
+            // allocate a float buffer. If the user wanted something else,
+            // they should have pre-allocated dst with their desired format.
+            if (B && A->spec().format != B->spec().format)
+                spec.set_format (TypeDesc::FLOAT);
+        } else {
+            spec.set_format (TypeDesc::FLOAT);
+            spec.nchannels = roi.chend;
+            spec.default_channel_names ();
+        }
+        // Set the image dimensions based on ROI.
+        set_roi (spec, roi);
+        dst->alloc (spec);
+    }
+}
+
+
 
 template<typename T>
-static inline bool
-fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
+static bool
+fill_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 {
-    int chbegin = roi.chbegin;
-    int chend = std::min (roi.chend, dst.nchannels());
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
-        for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
-            p[c] = values[i];
-    return true;
-}
-
-}
-
-bool
-ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
-{
-    ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
-    if (! roi.defined())
-        roi = get_roi (dst.spec());
-    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format, dst, pixel, roi);
-    return true;
-}
-
-
-bool
-ImageBufAlgo::zero (ImageBuf &dst, ROI roi)
-{
-    if (! roi.defined())
-        roi = get_roi (dst.spec());
-    int chans = std::min (dst.nchannels(), roi.nchannels());
-    float *zero = ALLOCA(float,chans);
-    memset (zero, 0, chans*sizeof(float));
-    return fill (dst, zero, roi);
-}
-
-
-
-bool
-ImageBufAlgo::checker (ImageBuf &dst,
-                       int width,
-                       const float *color1,
-                       const float *color2,
-                       int xbegin, int xend,
-                       int ybegin, int yend,
-                       int zbegin, int zend)
-{
-    for (int k = zbegin; k < zend; k++)
-        for (int j = ybegin; j < yend; j++)
-            for (int i = xbegin; i < xend; i++) {
-                int p = (k-zbegin)/width + (j-ybegin)/width + (i-xbegin)/width;
-                if (p & 1)
-                    dst.setpixel (i, j, k, color2);
-                else
-                    dst.setpixel (i, j, k, color1);
-            }
-    return true;
-}
-
-
-
-namespace {
-
-template<class T>
-bool paste_ (ImageBuf &dst, int xbegin, int ybegin,
-             int zbegin, int chbegin,
-             const ImageBuf &src, ROI srcroi)
-{
-    const ImageSpec &dstspec (dst.spec());
-    if (dstspec.format.basetype != TypeDesc::FLOAT) {
-        dst.error ("paste: only 'float' destination images are supported");
-        return false;
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fill_<T>, boost::ref(dst), values,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
     }
 
-    ImageBuf::ConstIterator<T,float> s (src, srcroi.xbegin, srcroi.xend,
-                                        srcroi.ybegin, srcroi.yend,
-                                        srcroi.zbegin, srcroi.zend);
-    ImageBuf::Iterator<float,float> d (dst, xbegin, xbegin+srcroi.width(),
-                                       ybegin, ybegin+srcroi.height(),
-                                       zbegin, zbegin+srcroi.depth());
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            p[c] = values[c];
+    return true;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
+{
+    ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format,
+                         dst, pixel, roi, nthreads);
+    return true;
+}
+
+
+bool
+ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    float *zero = ALLOCA(float,roi.chend);
+    memset (zero, 0, roi.chend*sizeof(float));
+    return fill (dst, zero, roi, nthreads);
+}
+
+
+
+template<typename T>
+static bool
+checker_ (ImageBuf &dst, Dim3 size,
+          const float *color1, const float *color2,
+          Dim3 offset,
+          ROI roi, int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(checker_<T>, boost::ref(dst),
+                        size, color1, color2, offset,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int v = (p.z()-offset.z)/size.z + (p.y()-offset.y)/size.y
+              + (p.x()-offset.x)/size.x;
+        if (v & 1)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color2[c];
+        else
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color1[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
+                       const float *color1, const float *color2,
+                       int xoffset, int yoffset, int zoffset,
+                       ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("checker", checker_, dst.spec().format,
+                         dst, Dim3(width, height, depth), color1, color2,
+                         Dim3(xoffset, yoffset, zoffset), roi, nthreads);
+    return true;
+}
+
+/// DEPRECATED as of 1.2
+bool
+ImageBufAlgo::checker (ImageBuf &dst, int width,
+                       const float *color1, const float *color2,
+                       int xbegin, int xend, int ybegin, int yend,
+                       int zbegin, int zend)
+{
+    return checker (dst, width, width, width, color1, color2, 0, 0, 0,
+                    ROI(xbegin,xend,ybegin,yend,zbegin,zend), 0);
+}
+
+
+
+template<class D, class S>
+static bool
+paste_ (ImageBuf &dst, ROI dstroi,
+        const ImageBuf &src, ROI srcroi, int nthreads)
+{
+    // N.B. Punt on parallelizing because of the subtle interplay
+    // between srcroi and dstroi, the parallel_image idiom doesn't
+    // handle that especially well. And it's not worth customizing for
+    // this function which is inexpensive and not commonly used, and so
+    // would benefit little from parallelizing. We can always revisit
+    // this later. But in the mean time, we maintain the 'nthreads'
+    // parameter for uniformity with the rest of IBA.
     int src_nchans = src.nchannels ();
     int dst_nchans = dst.nchannels ();
+    ImageBuf::ConstIterator<S,D> s (src, srcroi);
+    ImageBuf::Iterator<D,D> d (dst, dstroi);
     for ( ;  ! s.done();  ++s, ++d) {
         if (! d.exists())
             continue;  // Skip paste-into pixels that don't overlap dst's data
-        if (s.exists()) {
-            for (int c = srcroi.chbegin, c_dst = chbegin;
-                   c < srcroi.chend;  ++c, ++c_dst) {
-                if (c_dst >= 0 && c_dst < dst_nchans)
-                    d[c_dst] = c < src_nchans ? s[c] : 0.0f;
-            }
-        } else {
-            // Copying from outside src's data -- black
-            for (int c = srcroi.chbegin, c_dst = chbegin;
-                   c < srcroi.chend;  ++c, ++c_dst) {
-                if (c_dst >= 0 && c_dst < dst_nchans)
-                    d[c_dst] = 0.0f;
-            }
+        for (int c = srcroi.chbegin, c_dst = dstroi.chbegin;
+             c < srcroi.chend;  ++c, ++c_dst) {
+            if (c_dst >= 0 && c_dst < dst_nchans)
+                d[c_dst] = c < src_nchans ? s[c] : D(0);
         }
     }
     return true;
 }
-
-}  // anon namespace
 
 
 
 bool
 ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin,
-                     const ImageBuf &src, ROI srcroi)
+                     const ImageBuf &src, ROI srcroi, int nthreads)
 {
     if (! srcroi.defined())
         srcroi = get_roi(src.spec());
 
-    // If dst is uninitialized, size it like the region
-    if (!dst.initialized()) {
-        std::cerr << "Allocating space\n";
-        ImageSpec dst_spec = src.spec();
-        dst_spec.x = srcroi.xbegin;
-        dst_spec.y = srcroi.ybegin;
-        dst_spec.z = srcroi.zbegin;
-        dst_spec.width = srcroi.width();
-        dst_spec.height = srcroi.height();
-        dst_spec.depth = srcroi.depth();
-        dst_spec.nchannels = srcroi.nchannels();
-        dst_spec.set_format (TypeDesc::FLOAT);
-        dst.alloc (dst_spec);
-    }
+    ROI dstroi (xbegin, xbegin+srcroi.width(),
+                ybegin, ybegin+srcroi.height(),
+                zbegin, zbegin+srcroi.depth(),
+                chbegin, chbegin+srcroi.nchannels());
+    IBAprep (dstroi, &dst);
 
     // do the actual copying
-    OIIO_DISPATCH_TYPES ("paste", paste_, src.spec().format,
-                         dst, xbegin, ybegin, zbegin, chbegin, src, srcroi);
+    OIIO_DISPATCH_TYPES2 ("paste", paste_, dst.spec().format, src.spec().format,
+                          dst, dstroi, src, srcroi, nthreads);
     return false;
 }
 
 
 
 
-namespace {
-
-template<class T>
-bool crop_ (ImageBuf &dst, const ImageBuf &src,
-            int xbegin, int xend, int ybegin, int yend,
-            const float *bordercolor)
+template<class D, class S>
+static bool
+crop_ (ImageBuf &dst, const ImageBuf &src,
+       ROI roi, int nthreads=1)
 {
-    int nchans = dst.nchannels();
-    T *border = ALLOCA (T, nchans);
-    const ImageIOParameter *p = src.spec().find_attribute ("oiio:bordercolor");
-    if (p && p->type().basetype == TypeDesc::FLOAT &&
-        (int)p->type().numelements() >= nchans) {
-        for (int c = 0;  c < nchans;  ++c)
-            border[c] = convert_type<float,T>(((float *)p->data())[0]);
-    } else {
-        for (int c = 0;  c < nchans;  ++c)
-            border[c] = T(0);
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(crop_<D,S>, boost::ref(dst), boost::cref(src),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
     }
 
-    ImageBuf::Iterator<T,T> d (dst, xbegin, xend, ybegin, yend);
-    ImageBuf::ConstIterator<T,T> s (src);
-    for ( ;  ! d.done();  ++d) {
-        s.pos (d.x(), d.y());
-        if (s.valid()) {
-            for (int c = 0;  c < nchans;  ++c)
-                d[c] = s[c];
-        } else {
-            for (int c = 0;  c < nchans;  ++c)
-                d[c] = border[c];
-        }
+    // Serial case
+    ImageBuf::ConstIterator<S,D> s (src, roi);
+    ImageBuf::Iterator<D,D> d (dst, roi);
+    for ( ;  ! d.done();  ++d, ++s) {
+        for (int c = roi.chbegin, i = 0;  c < roi.chend;  ++c, ++i)
+            d[c] = s[c];
     }
     return true;
 }
-
-}  // anon namespace
 
 
 
 bool 
 ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
-                    int xbegin, int xend, int ybegin, int yend,
-                    const float *bordercolor)
+                    ROI roi, int nthreads)
 {
-    ImageSpec dst_spec = src.spec();
-    dst_spec.x = xbegin;
-    dst_spec.y = ybegin;
-    dst_spec.width = xend-xbegin;
-    dst_spec.height = yend-ybegin;
-    
-    // create new ImageBuffer
-    if (!dst.pixels_valid())
-        dst.alloc (dst_spec);
-
-    OIIO_DISPATCH_TYPES ("crop", crop_, src.spec().format,
-                         dst, src, xbegin, xend, ybegin, yend, bordercolor);
+    dst.clear ();
+    roi.chend = std::min (roi.chend, src.nchannels());
+    IBAprep (roi, &dst, &src);
+    OIIO_DISPATCH_TYPES2 ("crop", crop_, dst.spec().format, src.spec().format,
+                          dst, src, roi, nthreads);
     return false;
 }
 
@@ -377,7 +464,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
             ROI roi = get_roi (dst.spec());
             roi.chbegin = c;
             roi.chend = c+1;
-            ImageBufAlgo::fill (dst, &channelvalues[c], roi);
+            ImageBufAlgo::fill (dst, &channelvalues[0], roi);
         }
         pixels += channelsize;
     }
@@ -389,71 +476,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
 {
-    // Not intended to create 0-channel images.
-    if (numChannels <= 0) {
-        dst.error ("%d-channel images not supported", numChannels);
-        return false;
-    }
-    // If we dont have a single source channel,
-    // hard to know how big to make the additional channels
-    if (src.spec().nchannels == 0) {
-        dst.error ("%d-channel images not supported", src.spec().nchannels);
-        return false;
-    }
-
-    if (numChannels == src.spec().nchannels) {
-        return dst.copy (src);
-    }
-    
-    // Update the ImageSpec
-    // (should this be moved to a helper function in the imagespec.h?
-    ImageSpec dst_spec = src.spec();
-    dst_spec.nchannels = numChannels;
-    
-    if (numChannels < src.spec().nchannels) {
-        // Reduce the number of formats, and names, if needed
-        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels)
-            dst_spec.channelformats.resize(numChannels);
-        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels)
-            dst_spec.channelnames.resize(numChannels);
-        
-        if (dst_spec.alpha_channel < numChannels-1) {
-            dst_spec.alpha_channel = -1;
-        }
-        if (dst_spec.z_channel < numChannels-1) {
-            dst_spec.z_channel = -1;
-        }
-    } else {
-        // Increase the number of formats, and names, if needed
-        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels) {
-            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
-                dst_spec.channelformats.push_back(dst_spec.format);
-            }
-        }
-        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels) {
-            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
-                dst_spec.channelnames.push_back (Strutil::format("channel%d", c));
-            }
-        }
-    }
-    
-    // Update the image (realloc with the new spec)
-    dst.alloc (dst_spec);
-    
-    std::vector<float> pixel(numChannels, 0.0f);
-    
-    // Walk though the data window. I.e., the crop window in a small image
-    // or the overscanned area in a large image.
-    for (int k = dst_spec.z; k < dst_spec.z+dst_spec.depth; k++) {
-        for (int j = dst_spec.y; j < dst_spec.y+dst_spec.height; j++) {
-            for (int i = dst_spec.x; i < dst_spec.x+dst_spec.width ; i++) {
-                src.getpixel (i, j, k, &pixel[0], numChannels);
-                dst.setpixel (i, j, k, &pixel[0]);
-            }
-        }
-    }
-    
-    return true;
+    return ImageBufAlgo::channels (dst, src, numChannels, NULL, NULL, NULL, true);
 }
 
 

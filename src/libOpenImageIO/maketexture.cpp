@@ -583,7 +583,8 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                     outstream << "WARNING: Custom mip level \"" << mipimages[0]
                               << " had the wrong number of channels.\n";
                     boost::shared_ptr<ImageBuf> t (new ImageBuf (mipimages[0], smallspec));
-                    ImageBufAlgo::setNumChannels(*t, *small, outspec.nchannels);
+                    ImageBufAlgo::channels(*t, *small, outspec.nchannels,
+                                           NULL, NULL, NULL, true);
                     std::swap (t, small);
                 }
                 smallspec.tile_width = outspec.tile_width;
@@ -879,7 +880,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (verbose)
             outstream << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".noalpha", src->spec()));
-        ImageBufAlgo::setNumChannels (*newsrc, *src, src->nchannels()-1);
+        ImageBufAlgo::channels (*newsrc, *src, src->nchannels()-1,
+                                NULL, NULL, NULL, true);
         std::swap (src, newsrc);   // N.B. the old src will delete
     }
 
@@ -891,7 +893,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (verbose)
             outstream << "  Monochrome image detected. Converting to single channel texture.\n";
         boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".monochrome", src->spec()));
-        ImageBufAlgo::setNumChannels (*newsrc, *src, 1);
+        ImageBufAlgo::channels (*newsrc, *src, 1, NULL, NULL, NULL, true);
         std::swap (src, newsrc);
     }
 
@@ -901,7 +903,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (verbose)
             outstream << "  Overriding number of channels to " << nchannels << "\n";
         boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".channels", src->spec()));
-        ImageBufAlgo::setNumChannels (*newsrc, *src, nchannels);
+        ImageBufAlgo::channels (*newsrc, *src, nchannels, NULL, NULL, NULL, true);
         std::swap (src, newsrc);
     }
     

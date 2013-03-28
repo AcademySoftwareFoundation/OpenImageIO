@@ -795,7 +795,8 @@ make_texturemap (const char *maptypename = "texture map")
           nchannels < 0 &&
           ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
         ImageBuf newsrc(src.name() + ".noalpha", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
+        ImageBufAlgo::channels (newsrc, src, src.nchannels()-1,
+                                NULL, NULL, NULL, true);
         src.copy (newsrc);
         if (verbose) {
             std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
@@ -807,7 +808,7 @@ make_texturemap (const char *maptypename = "texture map")
           src.nchannels() == 3 && src.spec().alpha_channel < 0 &&  // RGB only
           ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, 1);
+        ImageBufAlgo::channels (newsrc, src, 1, NULL, NULL, NULL, true);
         src.copy (newsrc);
         if (verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
@@ -818,7 +819,7 @@ make_texturemap (const char *maptypename = "texture map")
     // specific number of channels, do it.
     if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
-        ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
+        ImageBufAlgo::channels (newsrc, src, nchannels, NULL, NULL, NULL, true);
         src.copy (newsrc);
         if (verbose) {
             std::cout << "  Overriding number of channels to " << nchannels << "\n";
@@ -1290,7 +1291,8 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                     std::cout << "WARNING: Custom mip level \"" << mipimages[0]
                               << " had the wrong number of channels.\n";
                     ImageBuf *t = new ImageBuf (mipimages[0], smallspec);
-                    ImageBufAlgo::setNumChannels(*t, *small, outspec.nchannels);
+                    ImageBufAlgo::channels (*t, *small, outspec.nchannels,
+                                            NULL, NULL, NULL, true);
                     std::swap (t, small);
                     delete t;
                 }
