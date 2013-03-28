@@ -33,7 +33,7 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace std;
+using std::string;
 
 /// Accessor for channelnames, converts a vector<string> to a tuple
 object ImageSpec_get_channelnames(const ImageSpec& imageSpec)
@@ -41,7 +41,12 @@ object ImageSpec_get_channelnames(const ImageSpec& imageSpec)
     PyObject* result = PyTuple_New(imageSpec.channelnames.size());
 
     for (unsigned int i = 0; i < imageSpec.channelnames.size(); ++i) {
-        PyTuple_SetItem(result, i, PyString_FromString(imageSpec.channelnames[i].c_str()));
+#if PY_MAJOR_VERSION >= 3
+        PyObject* name = PyUnicode_FromString(imageSpec.channelnames[i].c_str());
+#else
+        PyObject* name = PyString_FromString(imageSpec.channelnames[i].c_str());
+#endif
+        PyTuple_SetItem(result, i, name);
     }
 
     return object(handle<>(result));
