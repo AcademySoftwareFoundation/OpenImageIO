@@ -92,18 +92,17 @@ class Jpeg2000Input : public ImageInput {
         const imagesize_t scanline_size = m_spec.scanline_bytes();
         for (imagesize_t i = 0; i < scanline_size; i += 3)
         {
-            T red = 1.164f * (p_scanline[i+2] - 16.0f) + 1.596f * (p_scanline[i] - 128.0f);
-            T green = 1.164f * (p_scanline[i+2] - 16.0f) - 0.813 * (p_scanline[i] - 128.0f) - 0.391f * (p_scanline[i+1] - 128.0f);
-            T blue = 1.164f * (p_scanline[i+2] - 16.0f) + 2.018f * (p_scanline[i+1] - 128.0f);
+            T red   = (T) (1.164f * (p_scanline[i+2] - 16.0f) + 1.596f * (p_scanline[i]   - 128.0f));
+            T green = (T) (1.164f * (p_scanline[i+2] - 16.0f) - 0.813f * (p_scanline[i]   - 128.0f) - 0.391f * (p_scanline[i+1] - 128.0f));
+            T blue  = (T) (1.164f * (p_scanline[i+2] - 16.0f) + 2.018f * (p_scanline[i+1] - 128.0f));
             p_scanline[i] = red;
             p_scanline[i+1] = green;
             p_scanline[i+2] = blue;
         } 
     }
 
-    void setup_event_mgr(opj_dinfo_t* p_decompressor)
+    void setup_event_mgr(opj_event_mgr_t& event_mgr, opj_dinfo_t* p_decompressor)
     {
-        opj_event_mgr_t event_mgr;
         event_mgr.error_handler = openjpeg_dummy_callback;
         event_mgr.warning_handler = openjpeg_dummy_callback;
         event_mgr.info_handler = openjpeg_dummy_callback;
@@ -159,7 +158,8 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
         return false;
     }
 
-    setup_event_mgr(decompressor);
+    opj_event_mgr_t event_mgr;
+    setup_event_mgr(event_mgr, decompressor);
 
     opj_dparameters_t parameters;
     opj_set_default_decoder_parameters(&parameters);
@@ -169,7 +169,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
     std::vector<uint8_t> fileContent(fileLength+1, 0);
     fread(&fileContent[0], sizeof(uint8_t), fileLength);
 
-    opj_cio_t *cio = opj_cio_open((opj_common_ptr)decompressor, &fileContent[0], fileLength);
+    opj_cio_t *cio = opj_cio_open((opj_common_ptr)decompressor, &fileContent[0], (int) fileLength);
     if (!cio) { 
         error ("Could not open Jpeg2000 stream");
         opj_destroy_decompress(decompressor);
@@ -293,7 +293,7 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
     if (m_spec.nchannels == 1) {
         for (int i = 0; i < m_spec.width; i++)
         {
-            scanline[i] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[y*m_spec.width + i]);
+            scanline[i] = (T) read_pixel(m_image->comps[0].prec, m_image->comps[0].data[y*m_spec.width + i]);
         }
         return;
     }
@@ -302,7 +302,7 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
     {
         if (y % m_image->comps[0].dy == 0 && i % m_image->comps[0].dx == 0) {
             const size_t data_offset = y/m_image->comps[0].dy * m_spec.width/m_image->comps[0].dx + i/m_image->comps[0].dx;
-            scanline[j++] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[data_offset]);
+            scanline[j++] = (T) read_pixel(m_image->comps[0].prec, m_image->comps[0].data[data_offset]);
         }
         else {
             scanline[j++] = 0;
@@ -310,7 +310,7 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
 
         if (y % m_image->comps[1].dy == 0 && i % m_image->comps[1].dx == 0) {
             const size_t data_offset = y/m_image->comps[1].dy * m_spec.width/m_image->comps[1].dx + i/m_image->comps[1].dx;
-            scanline[j++] = read_pixel(m_image->comps[1].prec, m_image->comps[1].data[data_offset]);
+            scanline[j++] = (T) read_pixel(m_image->comps[1].prec, m_image->comps[1].data[data_offset]);
         }
         else {
             scanline[j++] = 0;
@@ -318,7 +318,7 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
 
         if (y % m_image->comps[2].dy == 0 && i % m_image->comps[2].dx == 0) {
             const size_t data_offset = y/m_image->comps[2].dy * m_spec.width/m_image->comps[2].dx + i/m_image->comps[2].dx;
-            scanline[j++] = read_pixel(m_image->comps[2].prec, m_image->comps[2].data[data_offset]);
+            scanline[j++] = (T) read_pixel(m_image->comps[2].prec, m_image->comps[2].data[data_offset]);
         }
         else {
             scanline[j++] = 0;
@@ -330,7 +330,7 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
 
         if (y % m_image->comps[3].dy == 0 && i % m_image->comps[3].dx == 0) {
             const size_t data_offset = y/m_image->comps[3].dy * m_spec.width/m_image->comps[3].dx + i/m_image->comps[3].dx;
-            scanline[j++] = read_pixel(m_image->comps[3].prec, m_image->comps[3].data[data_offset]);
+            scanline[j++] = (T) read_pixel(m_image->comps[3].prec, m_image->comps[3].data[data_offset]);
         }
         else {
             scanline[j++] = 0;

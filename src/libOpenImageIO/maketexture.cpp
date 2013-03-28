@@ -275,8 +275,8 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
 
     const ImageSpec &dstspec (dst.spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    float xoffset = dstspec.full_x;
-    float yoffset = dstspec.full_y;
+    float xoffset = (float) dstspec.full_x;
+    float yoffset = (float) dstspec.full_y;
     float xscale = 1.0f / (float)dstspec.full_width;
     float yscale = 1.0f / (float)dstspec.full_height;
     int nchannels = dst.nchannels();
@@ -305,7 +305,7 @@ halve_scanline(const SRCTYPE *s, const int nchannels, size_t sw, float *dst)
 {
     for (size_t i = 0; i < sw; i += 2, s += nchannels) {
         for (int j = 0; j < nchannels; ++j, ++dst, ++s)
-            *dst = 0.5f * (*s + *(s + nchannels));
+            *dst = 0.5f * (float) (*s + *(s + nchannels));
     }
 }
 
@@ -351,7 +351,7 @@ resize_block_2pass (ImageBuf &dst, const ImageBuf &src, ROI roi, bool allow_shif
         const float *s0 = &S0[0], *s1 = &S1[0];
         for (size_t x = 0; x < dw; ++x) {               // For each dst ROI col
             for (int i = 0; i < nchannels; ++i, ++s0, ++s1, ++d)
-                *d = 0.5f * (*s0 + *s1);                 // Average vertically
+                *d = (SRCTYPE) (0.5f * (*s0 + *s1));   // Average vertically
         }
     }
     
@@ -543,7 +543,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
     }
 
     // Write out the image
-    bool verbose = configspec.get_int_attribute ("maketx:verbose");
+    bool verbose = configspec.get_int_attribute ("maketx:verbose") != 0;
     if (verbose) {
         outstream << "  Writing file: " << outputfilename << std::endl;
         outstream << "  Filter \"" << filtername << "\n";
@@ -567,7 +567,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
         std::string mipimages_unsplit = configspec.get_string_attribute ("maketx:mipimages");
         if (mipimages_unsplit.length())
             Strutil::split (mipimages_unsplit, mipimages, ";");
-        bool allow_shift = configspec.get_int_attribute("maketx:allow_pixel_shift");
+        bool allow_shift = configspec.get_int_attribute("maketx:allow_pixel_shift") != 0;
         
         boost::shared_ptr<ImageBuf> small (new ImageBuf);
         while (outspec.width > 1 || outspec.height > 1) {
@@ -767,7 +767,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // This is only used when we're reading from a filename
     std::time_t in_time;
     time (&in_time);  // make it look initialized
-    bool updatemode = configspec.get_int_attribute ("maketx:updatemode");
+    bool updatemode = configspec.get_int_attribute ("maketx:updatemode") != 0;
     if (from_filename) {
         // When in update mode, skip making the texture if the output
         // already exists and has the same file modification time as the
@@ -822,7 +822,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                                                     1024);
     bool read_local = (src->spec().image_bytes() < imagesize_t(local_mb_thresh * 1024*1024));
 
-    bool verbose = configspec.get_int_attribute ("maketx:verbose");
+    bool verbose = configspec.get_int_attribute ("maketx:verbose") != 0;
     double misc_time_1 = alltime.lap();
     STATUS ("prep", misc_time_1);
     if (from_filename) {
@@ -1019,7 +1019,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         dstspec.attribute ("Exif:ImageHistory", history);
     }
 
-    bool prman_metadata = configspec.get_int_attribute ("maketx:prman_metadata");
+    bool prman_metadata = configspec.get_int_attribute ("maketx:prman_metadata") != 0;
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
         if (prman_metadata)
@@ -1122,7 +1122,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             return false;
         }
         
-        bool unpremult = configspec.get_int_attribute ("maketx:unpremult");
+        bool unpremult = configspec.get_int_attribute ("maketx:unpremult") != 0;
         if (unpremult && verbose)
             outstream << "  Unpremulting image..." << std::endl;
         
@@ -1308,7 +1308,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     STATUS ("misc4", misc_time_4);
 
     // Write out, and compute, the mipmap levels for the speicifed image
-    bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap");
+    bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap") != 0;
     bool ok = write_mipmap (mode, toplevel, dstspec, outputfilename,
                             out, out_dataformat, !shadowmode && !nomipmap,
                             filtername, configspec, outstream,

@@ -768,7 +768,7 @@ TIFFInput::readspec (bool read_meta)
     // Search for an EXIF IFD in the TIFF file, and if found, rummage 
     // around for Exif fields.
 #if TIFFLIB_VERSION > 20050912    /* compat with old TIFF libs - skip Exif */
-    int exifoffset = 0;
+    toff_t exifoffset = 0;
     if (TIFFGetField (m_tif, TIFFTAG_EXIFIFD, &exifoffset) &&
             TIFFReadEXIFDirectory (m_tif, exifoffset)) {
         for (int i = 0;  exif_tag_table[i].name;  ++i)
