@@ -101,9 +101,8 @@ class Jpeg2000Input : public ImageInput {
         } 
     }
 
-    void setup_event_mgr(opj_dinfo_t* p_decompressor)
+    void setup_event_mgr(opj_event_mgr_t& event_mgr, opj_dinfo_t* p_decompressor)
     {
-        opj_event_mgr_t event_mgr;
         event_mgr.error_handler = openjpeg_dummy_callback;
         event_mgr.warning_handler = openjpeg_dummy_callback;
         event_mgr.info_handler = openjpeg_dummy_callback;
@@ -159,7 +158,8 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
         return false;
     }
 
-    setup_event_mgr(decompressor);
+    opj_event_mgr_t event_mgr;
+    setup_event_mgr(event_mgr, decompressor);
 
     opj_dparameters_t parameters;
     opj_set_default_decoder_parameters(&parameters);
