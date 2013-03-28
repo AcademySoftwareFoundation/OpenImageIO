@@ -194,7 +194,7 @@ def runtest (command, outputs, failureok=0) :
 
     if options.path != "" :
         sys.path = [options.path] + sys.path
-    print "command = " + command
+    print ("command = " + command)
 
     test_environ = None
     if (platform.system () == 'Windows') and (options.solution_path != "") and \
@@ -209,8 +209,8 @@ def runtest (command, outputs, failureok=0) :
     for sub_command in [c.strip() for c in command.split(';') if c.strip()]:
         cmdret = subprocess.call (sub_command, shell=True, env=test_environ)
         if cmdret != 0 and failureok == 0 :
-            print "#### Error: this command failed: ", sub_command
-            print "FAIL"
+            print ("#### Error: this command failed: ", sub_command)
+            print ("FAIL")
             return (1)
 
     err = 0
@@ -226,7 +226,7 @@ def runtest (command, outputs, failureok=0) :
             if extension == ".tif" or extension == ".exr" :
                 # images -- use idiff
                 cmpcommand = diff_command (out, testfile, concat=False)
-                # print "cmpcommand = " + cmpcommand
+                # print ("cmpcommand = " + cmpcommand)
                 cmpresult = os.system (cmpcommand)
             elif extension == ".txt" :
                 cmpresult = text_diff (out, testfile, out + ".diff")
@@ -240,8 +240,8 @@ def runtest (command, outputs, failureok=0) :
 
         if ok == 0:
             err = 1
-            print "NO MATCH for " + out
-            print "FAIL " + out
+            print ("NO MATCH for " + out)
+            print ("FAIL " + out)
 
     return (err)
 
@@ -254,7 +254,9 @@ def runtest (command, outputs, failureok=0) :
 # Read the individual run.py file for this test, which will define 
 # command and outputs.
 #
-execfile ("run.py")
+with open("run.py") as f:
+    code = compile(f.read(), "run.py", 'exec')
+    exec (code)
 
 # Run the test and check the outputs
 ret = runtest (command, outputs)
