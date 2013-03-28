@@ -77,12 +77,14 @@ print_sha1 (ImageInput *input)
             printf ("    SHA-1: unable to compute, image is too big\n");
             return;
         }
-        std::vector<unsigned char> buf((size_t)size);
-        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
-            printf ("    SHA-1: unable to compute, could not read image\n");
-            return;
+        else if (size != 0) {
+            std::vector<unsigned char> buf((size_t)size);
+            if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+                printf ("    SHA-1: unable to compute, could not read image\n");
+                return;
+            }
+            sha.appendvec (buf);
         }
-        sha.appendvec (buf);
     }
 
     printf ("    SHA-1: %s\n", sha.digest().c_str());
