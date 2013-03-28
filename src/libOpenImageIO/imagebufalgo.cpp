@@ -447,7 +447,7 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
     for (int k = dst_spec.z; k < dst_spec.z+dst_spec.depth; k++) {
         for (int j = dst_spec.y; j < dst_spec.y+dst_spec.height; j++) {
             for (int i = dst_spec.x; i < dst_spec.x+dst_spec.width ; i++) {
-                src.getpixel (i, j, k, &pixel[0]);
+                src.getpixel (i, j, k, &pixel[0], numChannels);
                 dst.setpixel (i, j, k, &pixel[0]);
             }
         }
