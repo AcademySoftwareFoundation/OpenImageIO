@@ -54,11 +54,13 @@ an example:
 
 \NEW
 It is also possible to have \oiiotool operate on numbered sequences of
-images.  Image sequences are specified by having filename arguments to
+images.  In effect, this will execute the \oiiotool command several
+times, making substitutions to the sequence arguments in turn.
+
+Image sequences are specified by having filename arguments to
 oiiotool use either a numeric wildcard (designated by ``{\cf \#}'') or an
-explicit numeric range (designated such as ``{\cf 1-10\#}'').  In effect,
-this will execute the \oiiotool command several times, making
-substitutions to the sequence arguments in turn.  For example:
+explicit numeric range (designated such as ``{\cf 1-10\#}''), or
+spelling out a more complex pattern with {\cf --frames}.  For example:
 
 \begin{code}
     oiiotool big.#.tif --resize 100x100 -o small.#.tif
@@ -79,6 +81,22 @@ sequence of commands:
 \begin{code}
     oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
 \end{code}
+
+You can also explicitly use the {\cf --frames} to specify a frame
+sequence very flexibly as a sequence of comma-separated subsequences,
+where each subsequence is a single frame (e.g., {\cf 100}), a range of
+frames ({\cf 100-150}), or a frame range with step size ({\cf 100-150x4}).
+An optional {\cf --framepadding} can be used to change the default number
+of digits (with leading zeroes applied) that the frame numbers should
+have.  It defaults to 4.
+For example,
+\begin{code}
+    oiiotool --framepadding 3 --frames 3,4,10-20x2 blah.#.tif
+\end{code}
+\noindent would match {\cf blah.003.tif}, {\cf blah.004.tif},
+{\cf blah.010.tif}, {\cf blah.012.tif}, 
+{\cf blah.014.tif}, {\cf blah.016.tif}, {\cf blah.018.tif}, 
+{\cf blah.020.tif}.
 
 
 \section{\oiiotool Tutorial / Recipes}
@@ -322,6 +340,11 @@ series of files with frame numbers in their names:
     oiiotool fg.1-50#.exr bg.1-50#.exr --over -o comp.1-50#.exr
 \end{code}
 
+\noindent Or,
+\begin{code}
+    oiiotool --frames 1-50 fg.#.exr bg.#.exr --over -o comp.#.exr
+\end{code}
+
 
 \newpage
 \section{\oiiotool commands: general}
@@ -390,6 +413,27 @@ overridden, even if the {\cf -o} command specifies that file.
 Use \emph{n} execution threads if it helps to speed up image operations.
 The default (also if $n=0$) is to use as many threads as there are cores
 present in the hardware.
+\apiend
+
+\apiitem{--frames \emph{seq}\\
+--framepadding \emph{n}}
+\NEW
+Describes the frame range to substitute for the {\cf \#} wildcard.  The
+sequence is a comma-separated list of subsequences; each subsequence
+is a single frame (e.g., {\cf 100}), a range of frames ({\cf 100-150}),
+or a frame range with step ({\cf 100-150x4} means {\cf  100,104,108,...}).
+
+The frame padding is the number of digits (with leading zeroes applied)
+that the frame numbers should have.  It defaults to 4.
+
+For example,
+\begin{code}
+    oiiotool --framepadding 3 --frames 3,4,10-20x2 blah.#.tif
+\end{code}
+\noindent would match {\cf blah.003.tif}, {\cf blah.004.tif},
+{\cf blah.010.tif}, {\cf blah.012.tif}, 
+{\cf blah.014.tif}, {\cf blah.016.tif}, {\cf blah.018.tif}, 
+{\cf blah.020.tif}.
 \apiend
 
 \begin{comment}
