@@ -1,6 +1,22 @@
 Changes:
 
 
+Release 1.1.9 (2 Apr 2013)
+--------------------------
+* IBA::resize and oiiotool --resize/--fit: Bug fixes to resize filter
+  size selection fix artifacts wherein extreme zooms could end up with
+  black stripes in places where the filters fell entirely between samples.
+* oiiotool --fit: fix subtle bugs with aspect ratio preservation for
+  images with differing data and display windows; and allow "filter=..."
+  to override the default filter used for fit.
+* Resize improvement: fix potential artifacts at the image edges resulting
+  from odd clamping behavior.
+* Even more frame range wildcard flexibility with oiiotool --frames and
+  --framepadding options.
+* oiiotool --resize and --fit (and the underlying IBA::resize()) have been
+  sped up significantly and are now also multithreaded.
+
+
 Release 1.1.8 (15 Mar 2013)
 ---------------------------
 * oiiotool --chappend (and ImageBufAlgo::channel_append() underneath) allow
