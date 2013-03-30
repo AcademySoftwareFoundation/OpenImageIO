@@ -50,6 +50,7 @@
 
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
@@ -109,13 +110,9 @@ struct Dim3 {
 
 
 
-/// Common preparation for IBA functions: Given an ROI (which may or may
-/// not be the default ROI::All()), destination image (which may or may
-/// not yet be allocated), and optional input images, adjust roi if
-/// necessary and allocate pixels for dst if necessary.
-static void
-IBAprep (ROI &roi, ImageBuf *dst,
-         const ImageBuf *A=NULL, const ImageBuf *B=NULL)
+void
+ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
+                       const ImageBuf *A, const ImageBuf *B)
 {
     if (dst->initialized()) {
         // Valid destination image.  Just need to worry about ROI.
