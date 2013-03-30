@@ -256,6 +256,38 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int nthreads = 0);
 
 
+
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), add to their value in place by 'val'.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, float val,
+                   ROI srcroi=ROI::All(), int nthreads=0);
+
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), add to their value in place by the
+/// scalars in val[0..nchans-1] (one per channel).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const float *val,
+                   ROI roi=ROI::All(), int nthreads=0);
+
 /// Add the pixels of two images A and B, putting the sum in dst.
 /// The 'options' flag controls behaviors, particular of what happens
 /// when A, B, and dst have differing data windows.  Note that dst must

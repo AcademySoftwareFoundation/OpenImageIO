@@ -625,6 +625,54 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+template<class Rtype>
+static bool
+add_inplace (ImageBuf &R, const float *val,
+             ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(add_inplace<Rtype>, boost::ref(R), val,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    for ( ;  !r.done();  ++r)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = r[c] + val[c];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::add (ImageBuf &dst, const float *val, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("add", add_inplace, dst.spec().format,
+                         dst, val, roi, nthreads);
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::add (ImageBuf &R, float val, ROI roi, int nthreads)
+{
+    int nc = R.nchannels();
+    float *vals = ALLOCA (float, nc);
+    for (int c = 0;  c < nc;  ++c)
+        vals[c] = val;
+    return add (R, vals, roi, nthreads);
+}
+
+
+
+
 namespace {
 
 template<class Rtype>
