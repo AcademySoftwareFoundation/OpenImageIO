@@ -1390,13 +1390,55 @@ action_cmul (int argc, const char *argv[])
                 else
                     scale[c] = 1.0f;
             }
-        }    
+        }
         int miplevels = ot.curimg->miplevels(s);
         for (int m = 0;  m < miplevels;  ++m)
             ImageBufAlgo::mul ((*R)(s,m), &scale[0]);
     }
 
     ot.function_times["cmul"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_cadd (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_abs, argc, argv))
+        return 0;
+
+    std::vector<std::string> addstrings;
+    Strutil::split (std::string(argv[1]), addstrings, ",");
+    if (addstrings.size() < 1)
+        return 0;   // Implicit addition by 0 if we can't figure it out
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    std::vector<float> val;
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int nchans = R->spec(s,0)->nchannels;
+        val.clear ();
+        val.resize (nchans, (float) atof(addstrings[0].c_str()));
+        if (addstrings.size() > 1) {
+            for (int c = 0;  c < nchans;  ++c) {
+                if (c < (int)addstrings.size())
+                    val[c] = (float) atof(addstrings[c].c_str());
+                else
+                    val[c] = 0.0f;
+            }
+        }
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m)
+            ImageBufAlgo::add ((*R)(s,m), &val[0]);
+    }
+
     return 0;
 }
 
@@ -2334,7 +2376,8 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
-                "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a constant or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",

@@ -54,3 +54,7 @@ Comparing "cmul1.exr" and "ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "ref/cmul2.exr"
 PASS
+Comparing "cadd1.exr" and "ref/cadd1.exr"
+PASS
+Comparing "cadd2.exr" and "ref/cadd2.exr"
+PASS
