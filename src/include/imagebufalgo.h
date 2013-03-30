@@ -56,6 +56,37 @@ OIIO_NAMESPACE_ENTER
 
 class Filter2D;  // forward declaration
 
+
+
+/// Some generalities about ImageBufAlgo functions:
+///
+/// All IBA functions take a ROI.  Only the pixels (and channels) in dst
+/// that are specified by the ROI will be altered; the default ROI is to
+/// alter all the pixels in dst.  Exceptions will be noted, including 
+/// functions that do not honor their channel range.
+///
+/// In general, IBA functions that are passed an initialized 'dst' or
+/// 'result' image do not reallocate it or alter its existing pixels
+/// that lie outside the ROI (exceptions will be noted). If passed an
+/// uninitialized result image, it will be reallocatd to be the size of
+/// the ROI (and with float pixels).  If the result image passed is
+/// uninitialized and also the ROI is undefined, the ROI will be the
+/// union of the pixel data regions of any input images.  (A small
+/// number of IBA functions, such as fill(), have only a result image
+/// and no input image; in such cases, it's an error to have both an
+/// uninitiailized result image and an undefined ROI.)
+///
+/// IBA functions that have an 'nthreads' parameter use it to specify
+/// how many threads (potentially) may be used, but it's not a
+/// guarantee.  If nthreads == 0, it will use the global OIIO attribute
+/// "nthreads".  If nthreads == 1, it guarantees that it will not launch
+/// any new threads.
+///
+/// All IBA functions return true on success, false on error (with an
+/// appropriate error message set in dst).
+
+
+
 namespace ImageBufAlgo {
 
 /// Zero out (set to 0, black) the image region.
@@ -256,6 +287,21 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int nthreads = 0);
 
 
+/// For all pixels within the designated region, add the pixels of two
+/// images A and B, putting the sum in dst.  All three images must have
+/// the same number of channels.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI srcroi=ROI::All(), int nthreads=0);
 
 /// For all pixels and channels of dst within region roi (defaulting to
 /// all the defined pixels of R), add to their value in place by 'val'.
@@ -288,15 +334,11 @@ bool OIIO_API add (ImageBuf &dst, float val,
 bool OIIO_API add (ImageBuf &dst, const float *val,
                    ROI roi=ROI::All(), int nthreads=0);
 
-/// Add the pixels of two images A and B, putting the sum in dst.
-/// The 'options' flag controls behaviors, particular of what happens
-/// when A, B, and dst have differing data windows.  Note that dst must
-/// not be the same image as A or B, and all three images must have the
-/// same number of channels.  A and B *must* be float images.
 
-bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
+/// DEPRECATED as of 1.2
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options);
 
-/// Enum describing options to be passed to ImageBufAlgo::add.
+/// DEPRECATED Enum describing options to be passed to ImageBufAlgo::add.
 /// Multiple options are allowed simultaneously by "or'ing" together.
 enum OIIO_API AddOptions
 {
@@ -308,15 +350,36 @@ enum OIIO_API AddOptions
 };
 
 
-/// For all pixels of R within region roi (defaulting to all the defined
-/// pixels in R), multiply their value by 'val'.  Use the given number
-/// of threads.
-bool OIIO_API mul (ImageBuf &R, float val, ROI roi=ROI::All(), int threads=0);
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), multiply their value in place by 'val'.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, float val,
+                   ROI roi=ROI::All(), int nthreads=0);
 
-/// For all pixels of R within region roi (defaulting to all the defined
-/// pixels in R), multiply their value by val[0..nchans-1]. Use the
-/// given number of threads.
-bool OIIO_API mul (ImageBuf &R, const float *val, ROI roi=ROI::All(), int threads=0);
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), multiply their value in place by the
+/// scalars in val[0..nchans-1] (one per channel).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, const float *val,
+                   ROI roi=ROI::All(), int nthreads=0);
 
 
 
@@ -340,8 +403,8 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
     bool unpremult);
 
 bool OIIO_API colorconvert (float * color, int nchannels,
-    const ColorProcessor * processor,
-    bool unpremult);
+                            const ColorProcessor * processor,
+                            bool unpremult);
 
 
 struct OIIO_API PixelStats {

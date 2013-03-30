@@ -558,6 +558,7 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
 
 
 
+// DEPRECATED version
 bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    int options)
@@ -622,6 +623,46 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+template<class Rtype, class Atype, class Btype>
+static bool
+add_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(add_impl<Rtype,Atype,Btype>,
+                        boost::ref(R), boost::cref(A), boost::cref(B),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    ImageBuf::ConstIterator<Btype> b (B, roi);
+    for ( ;  !r.done();  ++r, ++a, ++b)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = a[c] + b[c];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &A, &B);
+    OIIO_DISPATCH_COMMON_TYPES3 ("add", add_impl, dst.spec().format,
+                                 A.spec().format, B.spec().format,
+                                 dst, A, B, roi, nthreads);
+    return true;
+}
+
+
+
 template<class Rtype>
 static bool
 add_inplace (ImageBuf &R, const float *val,
@@ -670,39 +711,34 @@ ImageBufAlgo::add (ImageBuf &R, float val, ROI roi, int nthreads)
 
 
 
-namespace {
-
 template<class Rtype>
 static bool
 mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 {
-    if (nthreads == 1 || roi.npixels() < 1000) {
-        // For-sure single thread case
-        ImageBuf::Iterator<Rtype> r (R, roi);
-        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                r[c] = r[c] * val[c];
-    } else {
+    if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (boost::bind(mul_impl<Rtype>,
-                                                  boost::ref(R), val, _1, 1),
-                                      roi, nthreads);
+        ImageBufAlgo::parallel_image (
+            boost::bind(mul_impl<Rtype>, boost::ref(R), val,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
     }
+
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = r[c] * val[c];
     return true;
 }
 
 
-} // anon namespace
-
 
 bool
-ImageBufAlgo::mul (ImageBuf &R, const float *val, ROI roi, int nthreads)
+ImageBufAlgo::mul (ImageBuf &dst, const float *val, ROI roi, int nthreads)
 {
-    if (! roi.defined())
-        roi = get_roi (R.spec());
-    roi.chend = std::min (roi.chend, R.nchannels()); // clamp
-    OIIO_DISPATCH_TYPES ("mul", mul_impl, R.spec().format,
-                         R, val, roi, nthreads);
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("mul", mul_impl, dst.spec().format,
+                         dst, val, roi, nthreads);
     return true;
 }
 
