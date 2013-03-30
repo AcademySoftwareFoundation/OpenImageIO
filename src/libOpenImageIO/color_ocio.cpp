@@ -35,6 +35,7 @@
 #include "strutil.h"
 #include "color.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
@@ -420,8 +421,11 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            const ColorProcessor* processor, bool unpremult)
+                            const ColorProcessor* processor, bool unpremult,
+                            ROI roi, int nthreads)
 {
+    // FIXME -- currently, we do not split across threads.
+
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
@@ -431,17 +435,20 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     // If the processor is a no-op, no work needs to be done. Early exit.
     if (processor->isNoOp())
         return true;
-    
-    const ImageSpec &dstspec = dst.spec();
+
+    IBAprep (roi, &dst);
+    int width = roi.width();
     // Temporary space to hold one RGBA scanline
-    std::vector<float> scanline(dstspec.width*4, 0.0f);
+    std::vector<float> scanline(width*4, 0.0f);
     
-    // Only process up to, and including, the first 4 channels.
-    // This does let us process images with fewer than 4 channels, which is the intent
-    // FIXME: Instead of loading the first 4 channels, obey dstspec.alpha_channel index
-    //        (but first validate that the index is set properly for normal formats)
+    // Only process up to, and including, the first 4 channels.  This
+    // does let us process images with fewer than 4 channels, which is
+    // the intent.
+    // FIXME: Instead of loading the first 4 channels, obey
+    //        dstspec.alpha_channel index (but first validate that the
+    //        index is set properly for normal formats)
     
-    int channelsToCopy = std::min (4, dstspec.nchannels);
+    int channelsToCopy = std::min (4, roi.nchannels());
     
     // Walk through all data in our buffer. (i.e., crop or overscan)
     // FIXME: What about the display window?  Should this actually promote
@@ -462,25 +469,22 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     bool clearScanline = (channelsToCopy<4 && 
                           (processor->hasChannelCrosstalk() || unpremult));
     
-    for (int k = dstspec.z; k < dstspec.z+dstspec.depth; k++) {
-        for (int j = dstspec.y; j <  dstspec.y+dstspec.height; j++) {
+    for (int k = roi.zbegin; k < roi.zend; ++k) {
+        for (int j = roi.ybegin; j < roi.yend; ++j) {
             // Clear the scanline
-            if (clearScanline) {
+            if (clearScanline)
                 memset (&scanline[0], 0, sizeof(float)*scanline.size());
-            }
             
             // Load the scanline
-            dstPtr = &scanline[0];
-            for (int i = dstspec.x; i < dstspec.x+dstspec.width ; i++) {
-                src.getpixel (i, j, dstPtr, channelsToCopy);
-                dstPtr += 4;
-            }
+            src.get_pixel_channels (roi.xbegin, roi.xend, j, j+1, k, k+1,
+                                    0, channelsToCopy,
+                                TypeDesc::TypeFloat, &scanline[0],
+                                4*sizeof(float));
             
             // Optionally unpremult
-            if ((channelsToCopy>=4) && unpremult) {
-                float alpha = 0.0;
-                for (int i=0; i<dstspec.width; ++i) {
-                    alpha = scanline[4*i+3];
+            if ((channelsToCopy >= 4) && unpremult) {
+                for (int i = 0; i < width; ++i) {
+                    float alpha = scanline[4*i+3];
                     if (alpha > fltmin) {
                         scanline[4*i+0] /= alpha;
                         scanline[4*i+1] /= alpha;
@@ -490,15 +494,14 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             }
             
             // Apply the color transformation in place
-            processor->apply (&scanline[0], dstspec.width, 1, 4,
+            processor->apply (&scanline[0], width, 1, 4,
                               sizeof(float), 4*sizeof(float),
-                              dstspec.width*4*sizeof(float));
+                              width*4*sizeof(float));
             
             // Optionally premult
-            if ((channelsToCopy>=4) && unpremult) {
-                float alpha = 0.0;
-                for (int i=0; i<dstspec.width; ++i) {
-                    alpha = scanline[4*i+3];
+            if ((channelsToCopy >= 4) && unpremult) {
+                for (int i = 0; i < width; ++i) {
+                    float alpha = scanline[4*i+3];
                     if (alpha > fltmin) {
                         scanline[4*i+0] *= alpha;
                         scanline[4*i+1] *= alpha;
@@ -506,11 +509,11 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                     }
                 }
             }
-            
+
             // Store the scanline
             dstPtr = &scanline[0];
-            for (int i = dstspec.x; i < dstspec.x+dstspec.width ; i++) {
-                dst.setpixel (i, j, dstPtr, channelsToCopy);
+            for (int i = roi.xbegin; i < roi.xend ; i++) {
+                dst.setpixel (i, j, k, dstPtr, channelsToCopy);
                 dstPtr += 4;
             }
         }

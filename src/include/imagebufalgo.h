@@ -383,28 +383,36 @@ bool OIIO_API mul (ImageBuf &dst, const float *val,
 
 
 
-/// Apply a color transform to the pixel values
+/// Apply a color transform to the pixel values within the ROI.
 ///
-/// In-place operations (dst == src) are supported
-/// If unpremult is specified, unpremultiply before color conversion,
-/// then premultiply after the color conversion.  You'll may want to use this
-/// flag if your image contains an alpha channel
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
 ///
-/// Note: the dst image does not need to equal the src image, either in buffers
-///       or bit depths. (For example, it is common for the src buffer to be a
-///       lower bit depth image and the output image to be float).
-/// If the output buffer is less than floating-point, results may be quantized /
-/// clamped
-/// return true on success, false on failure
-
-
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-    const ColorProcessor * processor,
-    bool unpremult);
+                            const ColorProcessor *processor,
+                            bool unpremult,
+                            ROI roi=ROI::All(), int nthreads=0);
 
-bool OIIO_API colorconvert (float * color, int nchannels,
-                            const ColorProcessor * processor,
-                            bool unpremult);
+/// Apply a color transform in-place to just one color:
+/// color[0..nchannels-1].  nchannels should either be 3 or 4 (if 4, the
+/// last channel is alpha).
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel.
+bool OIIO_API colorconvert (float *color, int nchannels,
+                            const ColorProcessor *processor, bool unpremult);
 
 
 struct OIIO_API PixelStats {
