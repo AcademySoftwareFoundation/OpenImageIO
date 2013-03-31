@@ -756,153 +756,145 @@ ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
 
 
 
-bool
-ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
+inline void
+reset (ImageBufAlgo::PixelStats &p, int nchannels)
 {
+    const float inf = std::numeric_limits<float>::infinity();
+    p.min.clear ();          p.min.resize (nchannels, inf);
+    p.max.clear ();          p.max.resize (nchannels, -inf);
+    p.avg.clear ();          p.avg.resize (nchannels);
+    p.stddev.clear ();       p.stddev.resize (nchannels);
+    p.nancount.clear ();     p.nancount.resize (nchannels, 0);
+    p.infcount.clear ();     p.infcount.resize (nchannels, 0);
+    p.finitecount.clear ();  p.finitecount.resize (nchannels, 0);
+    p.sum.clear ();          p.sum.resize (nchannels, 0.0);
+    p.sum2.clear ();         p.sum2.resize (nchannels, 0.0);
+}
+
+
+inline void
+merge (ImageBufAlgo::PixelStats &sum, const ImageBufAlgo::PixelStats &p)
+{
+    ASSERT (sum.min.size() == p.min.size());
+    for (size_t c = 0, e = sum.min.size(); c < e;  ++c) {
+        sum.min[c] = std::min (sum.min[c], p.min[c]);
+        sum.max[c] = std::max (sum.max[c], p.max[c]);
+        sum.nancount[c] += p.nancount[c];
+        sum.infcount[c] += p.infcount[c];
+        sum.finitecount[c] += p.finitecount[c];
+        sum.sum[c] += p.sum[c];
+        sum.sum2[c] += p.sum2[c];
+    }
+}
+
+
+inline void
+val (ImageBufAlgo::PixelStats &p, int c, float value)
+{
+    if (isnan (value)) {
+        ++p.nancount[c];
+        return;
+    }
+    if (isinf (value)) {
+        ++p.infcount[c];
+        return;
+    }
+    ++p.finitecount[c];
+    p.sum[c] += value;
+    p.sum2[c] += value*value;
+    p.min[c] = std::min (value, p.min[c]);
+    p.max[c] = std::max (value, p.max[c]);
+}
+
+
+
+inline void
+finalize (ImageBufAlgo::PixelStats &p)
+{
+    for (size_t c = 0, e = p.min.size();  c < e;  ++c) {
+        if (p.finitecount[c] == 0) {
+            p.min[c] = 0.0;
+            p.max[c] = 0.0;
+            p.avg[c] = 0.0;
+            p.stddev[c] = 0.0;
+        } else {
+            double Count = static_cast<double>(p.finitecount[c]);
+            double davg = p.sum[c] / Count;
+            p.avg[c] = static_cast<float>(davg);
+            p.stddev[c] = static_cast<float>(sqrt(p.sum2[c]/Count - davg*davg));
+        }
+    }
+}
+
+
+
+bool
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    else
+        roi.chend = std::min (roi.chend, src.nchannels());
+
     int nchannels = src.spec().nchannels;
     if (nchannels == 0) {
         src.error ("%d-channel images not supported", nchannels);
         return false;
     }
 
-    if (src.spec().format != TypeDesc::FLOAT && ! src.deep()) {
-        src.error ("only 'float' images are supported");
-        return false;
-    }
-
-    // Local storage to allow for intermediate representations which
-    // are sometimes more precise than the final stats output.
-    
-    std::vector<float> min(nchannels);
-    std::vector<float> max(nchannels);
-    std::vector<long double> sum(nchannels);
-    std::vector<long double> sum2(nchannels);
-    std::vector<imagesize_t> nancount(nchannels);
-    std::vector<imagesize_t> infcount(nchannels);
-    std::vector<imagesize_t> finitecount(nchannels);
-    
-    // These tempsums are used as intermediate accumulation
-    // variables, to allow for higher precision in the case
-    // where the final sum is large, but we need to add together a
-    // bunch of smaller values (that while individually small, sum
-    // to a non-negligable value).
+    // Use local storage for smaller batches, then merge the batches
+    // into the final results.  This preserves precision for large
+    // images, where the running total may be too big to incorporate the
+    // contributions of individual pixel values without losing
+    // precision.
     //
-    // Through experimentation, we have found that if you skip this
-    // technique, in diabolical cases (gigapixel images, worst-case
-    // dynamic range, compilers that don't support long doubles)
-    // the precision for 'avg' is reduced to 1 part in 1e5.  This
-    // will work around the issue.
-    // 
     // This approach works best when the batch size is the sqrt of
     // numpixels, which makes the num batches roughly equal to the
     // number of pixels / batch.
+    PixelStats tmp;
+    reset (tmp, nchannels);
+    reset (stats, nchannels);
     
     int PIXELS_PER_BATCH = std::max (1024,
             static_cast<int>(sqrt((double)src.spec().image_pixels())));
     
-    std::vector<long double> tempsum(nchannels);
-    std::vector<long double> tempsum2(nchannels);
-    
-    for (int i=0; i<nchannels; ++i) {
-        min[i] = std::numeric_limits<float>::infinity();
-        max[i] = -std::numeric_limits<float>::infinity();
-        sum[i] = 0.0;
-        sum2[i] = 0.0;
-        tempsum[i] = 0.0;
-        tempsum2[i] = 0.0;
-        
-        nancount[i] = 0;
-        infcount[i] = 0;
-        finitecount[i] = 0;
-    }
-    
     if (src.deep()) {
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
+        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
             int samples = s.deep_samples();
             if (! samples)
                 continue;
             for (int c = 0;  c < nchannels;  ++c) {
                 for (int i = 0;  i < samples;  ++i) {
                     float value = s.deep_value (c, i);
-                    if (isnan (value)) {
-                        ++nancount[c];
-                        continue;
-                    }
-                    if (isinf (value)) {
-                        ++infcount[c];
-                        continue;
-                    }
-                    ++finitecount[c];
-                    tempsum[c] += value;
-                    tempsum2[c] += value*value;
-                    min[c] = std::min (value, min[c]);
-                    max[c] = std::max (value, max[c]);
-                    if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                        sum[c] += tempsum[c]; tempsum[c] = 0.0;
-                        sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
+                    val (tmp, c, value);
+                    if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
+                        merge (stats, tmp);
+                        reset (tmp, nchannels);
                     }
                 }
             }
         }
     } else {  // Non-deep case
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
+        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
             for (int c = 0;  c < nchannels;  ++c) {
                 float value = s[c];
-                if (isnan (value)) {
-                    ++nancount[c];
-                    continue;
-                }
-                if (isinf (value)) {
-                    ++infcount[c];
-                    continue;
-                }
-                ++finitecount[c];
-                tempsum[c] += value;
-                tempsum2[c] += value*value;
-                min[c] = std::min (value, min[c]);
-                max[c] = std::max (value, max[c]);
-                if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                    sum[c] += tempsum[c]; tempsum[c] = 0.0;
-                    sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
+                val (tmp, c, value);
+                if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
+                    merge (stats, tmp);
+                    reset (tmp, nchannels);
                 }
             }
         }
     }
-    
-    // Store results
-    stats.min.resize (nchannels);
-    stats.max.resize (nchannels);
-    stats.avg.resize (nchannels);
-    stats.stddev.resize (nchannels);
-    stats.nancount.resize (nchannels);
-    stats.infcount.resize (nchannels);
-    stats.finitecount.resize (nchannels);
-    
-    for (int c = 0;  c < nchannels;  ++c) {
-        if (finitecount[c] == 0) {
-            stats.min[c] = 0.0;
-            stats.max[c] = 0.0;
-            stats.avg[c] = 0.0;
-            stats.stddev[c] = 0.0;
-        } else {
-            // Add any residual tempsums into the final accumulation
-            sum[c] += tempsum[c]; tempsum[c] = 0.0;
-            sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
-            
-            double invCount = 1.0 / static_cast<double>(finitecount[c]);
-            double davg = sum[c] * invCount;
-            stats.min[c] = min[c];
-            stats.max[c] = max[c];
-            stats.avg[c] = static_cast<float>(davg);
-            stats.stddev[c] = static_cast<float>(sqrt(sum2[c]*invCount - davg*davg));
-        }
-        
-        stats.nancount[c] = nancount[c];
-        stats.infcount[c] = infcount[c];
-        stats.finitecount[c] = finitecount[c];
-    }
+
+    // Merge anything left over
+    merge (stats, tmp);
+
+    // Compute final results
+    finalize (stats);
     
     return true;
 };

@@ -423,14 +423,26 @@ struct OIIO_API PixelStats {
     std::vector<imagesize_t> nancount;
     std::vector<imagesize_t> infcount;
     std::vector<imagesize_t> finitecount;
+    std::vector<double> sum, sum2;  // for intermediate calculation
 };
 
 
-/// Compute statistics on the specified image (over all pixels in the
-/// data window of the current subimage and MIPmap level). Upon success,
+/// Compute statistics about the ROI of the specified image. Upon success,
 /// the returned vectors will have size == numchannels.  A FLOAT
 /// ImageBuf is required.
-bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src);
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi=ROI::All(), int nthreads=0);
+
 
 /// Struct holding all the results computed by ImageBufAlgo::compare().
 /// (maxx,maxy,maxz,maxc) gives the pixel coordintes (x,y,z) and color
