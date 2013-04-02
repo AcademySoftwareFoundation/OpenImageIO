@@ -1028,36 +1028,26 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
 
 
 
-namespace { // anonymous namespace
-
 template<typename SRCTYPE>
-bool resize_ (ImageBuf &dst, const ImageBuf &src,
-              int xbegin, int xend, int ybegin, int yend,
-              Filter2D *filter)
+static bool
+resize_ (ImageBuf &dst, const ImageBuf &src,
+         Filter2D *filter, ROI roi, int nthreads)
 {
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(resize_<SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), filter,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
-
-    if (dstspec.format.basetype != TypeDesc::FLOAT) {
-        dst.error ("only 'float' images are supported");
-        return false;
-    }
-    if (nchannels != srcspec.nchannels) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-
-    bool allocfilter = (filter == NULL);
-    if (allocfilter) {
-        // If no filter was provided, punt and just linearly interpolate.
-        float wratio = float(dstspec.full_width) / float(srcspec.full_width);
-        float hratio = float(dstspec.full_height) / float(srcspec.full_height);
-        float w = 2.0f * std::max (1.0f, wratio);
-        float h = 2.0f * std::max (1.0f, hratio);
-        filter = Filter2D::create ("triangle", w, h);
-    }
 
     // Local copies of the source image window, converted to float
     float srcfx = srcspec.full_x;
@@ -1079,16 +1069,8 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     float filterrad = filter->width() / 2.0f;
     // radi,radj is the filter radius, as an integer, in source pixels.  We
     // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
-    int radi = (int) ceilf (filterrad/xratio) + 1;
-    int radj = (int) ceilf (filterrad/yratio) + 1;
-
-#if 0
-    std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
-              << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
-    std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
-    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
-    std::cerr << "dst range " << xbegin << ' ' << xend << " x " << ybegin << ' ' << yend << "\n";
-#endif
+    int radi = (int) ceilf (filterrad/xratio);
+    int radj = (int) ceilf (filterrad/yratio);
 
     bool separable = filter->separable();
     float *column = NULL;
@@ -1097,7 +1079,16 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
         column = ALLOCA (float, (2 * radj + 1) * nchannels);
     }
 
-    for (int y = ybegin;  y < yend;  ++y) {
+#if 0
+    std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
+              << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
+    std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
+    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
+    std::cerr << "dst range " << roi << "\n";
+    std::cerr << "separable filter\n";
+#endif
+
+    for (int y = roi.ybegin;  y < roi.yend;  ++y) {
         // s,t are NDC space
         float t = (y+0.5f)*dstpixelheight;
         // src_xf, src_xf are image space float coordinates
@@ -1105,7 +1096,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
         // src_x, src_y are image space integer coordinates of the floor
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
-        for (int x = xbegin;  x < xend;  ++x) {
+        for (int x = roi.xbegin;  x < roi.xend;  ++x) {
             float s = (x+0.5f)*dstpixelwidth;
             float src_xf = srcfx + s * srcfw - 0.5f;
             int src_x;
@@ -1184,23 +1175,57 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
         }
     }
 
-    if (allocfilter)
-        Filter2D::destroy (filter);
     return true;
 }
 
-} // end anonymous namespace
 
 
+bool
+ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, ROI roi, int nthreads)
+{
+//    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    boost::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    bool allocfilter = (filter == NULL);
+    if (allocfilter) {
+        // If no filter was provided, punt and just linearly interpolate.
+        const ImageSpec &srcspec (src.spec());
+        const ImageSpec &dstspec (dst.spec());
+        float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+        float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+        float w = 2.0f * std::max (1.0f, wratio);
+        float h = 2.0f * std::max (1.0f, hratio);
+        filter = Filter2D::create ("triangle", w, h);
+        filterptr.reset (filter);
+    }
+
+    OIIO_DISPATCH_TYPES ("resize", resize_,
+                          src.spec().format,
+                          dst, src, filter, roi, nthreads);
+
+    return false;
+}
+
+
+
+// DEPRECATED as of 1.2
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
                       Filter2D *filter)
 {
-    OIIO_DISPATCH_TYPES ("resize", resize_, src.spec().format,
-                         dst, src, xbegin, xend, ybegin, yend, filter);
-    return false;
+    return resize (dst, src, filter, ROI (xbegin, xend, ybegin, yend, 0, 1));
 }
+
+
 
 namespace
 {

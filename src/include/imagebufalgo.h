@@ -310,15 +310,31 @@ std::string OIIO_API computePixelHashSHA1(const ImageBuf &src,
 
 
 
-/// Set dst, over the pixel range [xbegin,xend) x [ybegin,yend), to be a
-/// resized version of src (mapping such that the "full" image window of
-/// each correspond to each other, regardless of resolution).  The
-/// caller may explicitly pass a reconstruction filter, or resize() will
-/// choose a reasonable default if NULL is passed.  The dst buffer must
-/// be of type FLOAT.  If a filter is supplied, it will be used to weight
-/// the src pixels falling underneath it for each dst pixel; the filter's
-/// size is expressed in pixel units of the dst image.  If no filter is
-/// supplied, a default medium-quality (triangle) filter will be used.
+/// Set dst, over the region of interest, to be a resized version of the
+/// corresponding portion of src (mapping such that the "full" image
+/// window of each correspond to each other, regardless of resolution).
+///
+/// The caller may explicitly pass a reconstruction filter, or resize()
+/// will choose a reasonable default if NULL is passed.  If a filter is
+/// supplied, it will be used to weight the src pixels falling
+/// underneath it for each dst pixel; the filter's size is expressed in
+/// pixel units of the dst image.  If no filter is supplied, a default
+/// medium-quality (triangle) filter will be used.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter=NULL,
+                      ROI roi = ROI(), int nthreads = 0);
+
+/// DEPRECATED as of 1.2
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL);
