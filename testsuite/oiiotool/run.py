@@ -36,6 +36,9 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
             + " --fit 360x240 -d uint8 -o fit.tif >> out.txt ;\n")
+command += (oiio_app ("oiiotool") + " " 
+            + parent + "/oiio-images/grid.tif"
+            + " --fit 240x360 -d uint8 -o fit2.tif >> out.txt ;\n")
 
 # test --cmul
 # First, make a small gray swatch
@@ -74,7 +77,8 @@ command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
 
 # Outputs to check against references
 outputs = [ "filled.tif", "resize.tif", "resize2.tif",
-            "resize64.tif", "resize512.tif", "fit.tif",
+            "resize64.tif", "resize512.tif",
+            "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "out.txt" ]
