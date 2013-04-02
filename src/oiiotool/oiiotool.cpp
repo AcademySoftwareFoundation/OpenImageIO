@@ -53,6 +53,7 @@
 #include "filesystem.h"
 #include "filter.h"
 #include "color.h"
+#include "timer.h"
 
 #include "oiiotool.h"
 
@@ -67,7 +68,11 @@ static Oiiotool ot;
 
 Oiiotool::Oiiotool ()
     : imagecache(NULL),
-      return_value (EXIT_SUCCESS)
+      return_value (EXIT_SUCCESS),
+      total_readtime (false /*don't start timer*/),
+      total_writetime (false /*don't start timer*/),
+      total_imagecache_readtime (0.0),
+      enable_function_timing(true)
 {
     clear_options ();
 }
@@ -78,6 +83,7 @@ void
 Oiiotool::clear_options ()
 {
     verbose = false;
+    runstats = false;
     noclobber = false;
     allsubimages = false;
     printinfo = false;
@@ -143,8 +149,15 @@ Oiiotool::read (ImageRecRef img)
     if (img->elaborated())
         return;
 
-    // Cause the ImageRec to get read
+    // Cause the ImageRec to get read.  Try to compute how long it took.
+    // Subtract out ImageCache time, to avoid double-accounting it later.
+    float pre_ic_time, post_ic_time;
+    imagecache->getattribute ("stat:fileio_time", pre_ic_time);
+    total_readtime.start ();
     img->read ();
+    total_readtime.stop ();
+    imagecache->getattribute ("stat:fileio_time", post_ic_time);
+    total_imagecache_readtime += post_ic_time - pre_ic_time;
 
     // If this is the first tiled image we have come across, use it to
     // set our tile size (unless the user explicitly set a tile size, or
@@ -251,6 +264,7 @@ set_threads (int argc, const char *argv[])
 static int
 input_file (int argc, const char *argv[])
 {
+    Timer timer (ot.enable_function_timing);
     for (int i = 0;  i < argc;  i++) {
         int exists = 1;
         if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
@@ -278,6 +292,7 @@ input_file (int argc, const char *argv[])
         }
         ot.process_pending ();
     }
+    ot.function_times["input"] += timer();
     return 0;
 }
 
@@ -360,6 +375,8 @@ static int
 output_file (int argc, const char *argv[])
 {
     ASSERT (argc == 2 && !strcmp(argv[0],"-o"));
+    Timer timer (ot.enable_function_timing);
+    ot.total_writetime.start();
     std::string filename = argv[1];
     if (! ot.curimg.get()) {
         std::cerr << "oiiotool ERROR: -o " << filename << " did not have any current image to output.\n";
@@ -464,6 +481,8 @@ output_file (int argc, const char *argv[])
     }
 
     ot.curimg = saveimg;
+    ot.total_writetime.stop();
+    ot.function_times["output"] += timer();
     return 0;
 }
 
@@ -653,53 +672,22 @@ set_caption (int argc, const char *argv[])
 
 
 
-// Utility: split semicolon-separated list
-static void
-split_list (const std::string &list, std::vector<std::string> &items)
-{
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(";");
-    tokenizer tokens (list, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
-         tok_iter != tokens.end(); ++tok_iter) {
-        std::string t = *tok_iter;
-        while (t.length() && t[0] == ' ')
-            t.erase (t.begin());
-        if (t.length())
-            items.push_back (t);
-    }
-}
-
-
-
-// Utility: join list into a single semicolon-separated string
-static std::string
-join_list (const std::vector<std::string> &items)
-{
-    std::string s;
-    for (size_t i = 0;  i < items.size();  ++i) {
-        if (i > 0)
-            s += "; ";
-        s += items[i];
-    }
-    return s;
-}
-
-
-
 static bool
 do_set_keyword (ImageSpec &spec, const std::string &keyword)
 {
     std::string oldkw = spec.get_string_attribute ("Keywords");
     std::vector<std::string> oldkwlist;
     if (! oldkw.empty())
-        split_list (oldkw, oldkwlist);
+        Strutil::split (oldkw, oldkwlist, ";");
     bool dup = false;
-    BOOST_FOREACH (const std::string &ok, oldkwlist)
+    BOOST_FOREACH (std::string &ok, oldkwlist) {
+        ok = Strutil::strip (ok);
         dup |= (ok == keyword);
-    if (! dup)
+    }
+    if (! dup) {
         oldkwlist.push_back (keyword);
-    spec.attribute ("Keywords", join_list (oldkwlist));
+        spec.attribute ("Keywords", Strutil::join (oldkwlist, "; "));
+    }
     return true;
 }
 
@@ -791,6 +779,7 @@ set_origin (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, set_origin, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -806,6 +795,8 @@ set_origin (int argc, const char *argv[])
         spec.y = y;
         A->metadata_modified (true);
     }
+    
+    ot.function_times["origin"] += timer();
     return 0;
 }
 
@@ -816,6 +807,7 @@ set_fullsize (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, set_fullsize, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -832,6 +824,7 @@ set_fullsize (int argc, const char *argv[])
         spec.full_height = h;
         A->metadata_modified (true);
     }
+    ot.function_times["fullsize"] += timer();
     return 0;
 }
 
@@ -842,6 +835,7 @@ set_full_to_pixels (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, set_full_to_pixels, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -851,6 +845,7 @@ set_full_to_pixels (int argc, const char *argv[])
     spec.full_width = spec.width;
     spec.full_height = spec.height;
     A->metadata_modified (true);
+    ot.function_times["fullpixels"] += timer();
     return 0;
 }
 
@@ -872,6 +867,7 @@ action_colorconvert (int argc, const char *argv[])
     ASSERT (argc == 3);
     if (ot.postpone_callback (1, action_colorconvert, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     std::string fromspace = argv[1];
     std::string tospace = argv[2];
@@ -915,6 +911,7 @@ action_colorconvert (int argc, const char *argv[])
 
     ot.colorconfig.deleteColorProcessor (processor);
 
+    ot.function_times["colorconvert"] += timer();
     return 1;
 }
 
@@ -923,6 +920,7 @@ action_colorconvert (int argc, const char *argv[])
 static int
 action_tocolorspace (int argc, const char *argv[])
 {
+    // Don't time -- let it get accounted by colorconvert
     ASSERT (argc == 2);
     if (! ot.curimg.get()) {
         std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
@@ -950,6 +948,7 @@ action_unmip (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_unmip, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     bool mipmapped = false;
@@ -961,6 +960,7 @@ action_unmip (int argc, const char *argv[])
 
     ImageRecRef newimg (new ImageRec (*ot.curimg, -1, 0, true, true));
     ot.curimg = newimg;
+    ot.function_times["unmip"] += timer();
     return 0;
 }
 
@@ -971,6 +971,7 @@ set_channelnames (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, set_channelnames, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
     ImageRecRef A = ot.curimg;
     ot.read (A);
 
@@ -1001,6 +1002,7 @@ set_channelnames (int argc, const char *argv[])
             }
         }
     }
+    ot.function_times["chnames"] += timer();
     return 0;
 }
 
@@ -1068,6 +1070,7 @@ action_channels (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_channels, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ImageRecRef A (ot.pop());
     ot.read (A);
@@ -1129,6 +1132,7 @@ action_channels (int argc, const char *argv[])
         }
     }
 
+    ot.function_times["channels"] += timer();
     return 0;
 }
 
@@ -1139,6 +1143,7 @@ action_chappend (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_chappend, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
@@ -1168,6 +1173,7 @@ action_chappend (int argc, const char *argv[])
             R->update_spec_from_imagebuf(s,m);
         }
     }
+    ot.function_times["chappend"] += timer();
     return 0;
 }
 
@@ -1178,6 +1184,7 @@ action_selectmip (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_unmip, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     bool mipmapped = false;
@@ -1189,6 +1196,7 @@ action_selectmip (int argc, const char *argv[])
 
     ImageRecRef newimg (new ImageRec (*ot.curimg, -1, atoi(argv[1]), true, true));
     ot.curimg = newimg;
+    ot.function_times["selectmip"] += timer();
     return 0;
 }
 
@@ -1199,6 +1207,7 @@ action_select_subimage (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_select_subimage, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     if (ot.curimg->subimages() == 1)
@@ -1207,6 +1216,7 @@ action_select_subimage (int argc, const char *argv[])
     int subimage = std::min (atoi(argv[1]), ot.curimg->subimages());
     ImageRecRef A = ot.pop();
     ot.push (new ImageRec (*A, subimage));
+    ot.function_times["subimage"] += timer();
     return 0;
 }
 
@@ -1217,10 +1227,12 @@ action_diff (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_diff, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     int ret = do_action_diff (*ot.image_stack.back(), *ot.curimg, ot);
     if (ret != DiffErrOK && ret != DiffErrWarn)
         ot.return_value = EXIT_FAILURE;
+    ot.function_times["diff"] += timer();
     return 0;
 }
 
@@ -1231,6 +1243,7 @@ action_add (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_add, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
@@ -1258,6 +1271,7 @@ action_add (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["add"] += timer();
     return 0;
 }
 
@@ -1268,6 +1282,7 @@ action_sub (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_sub, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
@@ -1302,6 +1317,7 @@ action_sub (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["sub"] += timer();
     return 0;
 }
 
@@ -1312,6 +1328,7 @@ action_abs (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_abs, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -1335,6 +1352,7 @@ action_abs (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["abs"] += timer();
     return 0;
 }
 
@@ -1345,6 +1363,7 @@ action_cmul (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_abs, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     std::vector<std::string> scalestrings;
     Strutil::split (std::string(argv[1]), scalestrings, ",");
@@ -1377,6 +1396,7 @@ action_cmul (int argc, const char *argv[])
             ImageBufAlgo::mul ((*R)(s,m), &scale[0]);
     }
 
+    ot.function_times["cmul"] += timer();
     return 0;
 }
 
@@ -1387,6 +1407,7 @@ action_flip (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_flip, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -1412,6 +1433,7 @@ action_flip (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["flip"] += timer();
     return 0;
 }
 
@@ -1422,6 +1444,7 @@ action_flop (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_flop, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -1447,6 +1470,7 @@ action_flop (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["flop"] += timer();
     return 0;
 }
 
@@ -1457,6 +1481,7 @@ action_flipflop (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_flipflop, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -1485,6 +1510,7 @@ action_flipflop (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["flipflop"] += timer();
     return 0;
 }
 
@@ -1529,6 +1555,7 @@ static int
 action_create (int argc, const char *argv[])
 {
     ASSERT (argc == 3);
+    Timer timer (ot.enable_function_timing);
     int nchans = atoi (argv[2]);
     if (nchans < 1 || nchans > 1024) {
         std::cout << "Invalid number of channels: " << nchans << "\n";
@@ -1549,6 +1576,7 @@ action_create (int argc, const char *argv[])
     if (ot.curimg)
         ot.image_stack.push_back (ot.curimg);
     ot.curimg = img;
+    ot.function_times["create"] += timer();
     return 0;
 }
 
@@ -1558,6 +1586,7 @@ static int
 action_pattern (int argc, const char *argv[])
 {
     ASSERT (argc == 4);
+    Timer timer (ot.enable_function_timing);
     int nchans = atoi (argv[3]);
     if (nchans < 1 || nchans > 1024) {
         std::cout << "Invalid number of channels: " << nchans << "\n";
@@ -1621,6 +1650,7 @@ action_pattern (int argc, const char *argv[])
             ot.error (argv[0], ib.geterror());
     }
     ot.push (img);
+    ot.function_times["pattern"] += timer();
     return 0;
 }
 
@@ -1630,6 +1660,7 @@ static int
 action_capture (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
+    Timer timer (ot.enable_function_timing);
     int camera = 0;
 
     std::string cmd = argv[0];
@@ -1647,6 +1678,7 @@ action_capture (int argc, const char *argv[])
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
     (*img)().copy (ib);
     ot.push (img);
+    ot.function_times["capture"] += timer();
     return 0;
 }
 
@@ -1657,6 +1689,7 @@ action_crop (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_crop, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -1682,6 +1715,7 @@ action_crop (int argc, const char *argv[])
         A->metadata_modified (true);
     }
 
+    ot.function_times["crop"] += timer();
     return 0;
 }
 
@@ -1692,6 +1726,7 @@ action_croptofull (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_croptofull, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -1701,7 +1736,12 @@ action_croptofull (int argc, const char *argv[])
     std::string size = format_resolution (Aspec.full_width, Aspec.full_height,
                                           Aspec.full_x, Aspec.full_y);
     const char *newargv[2] = { "crop", size.c_str() };
-    return action_crop (2, newargv);
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
+    int result = action_crop (2, newargv);
+    ot.function_times["croptofull"] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
+    return result;
 }
 
 
@@ -1711,6 +1751,7 @@ action_resize (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_resize, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     std::string filtername;
     std::string cmd = argv[0];
@@ -1787,6 +1828,7 @@ action_resize (int argc, const char *argv[])
 
     if (filter)
         Filter2D::destroy (filter);
+    ot.function_times["resize"] += timer();
     return 0;
 }
 
@@ -1797,6 +1839,9 @@ action_fit (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_fit, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
 
     // Examine the top of stack
     ImageRecRef A = ot.top();
@@ -1885,6 +1930,8 @@ action_fit (int argc, const char *argv[])
                                  0, 0, (*A)(0,0));
     }
 
+    ot.function_times["fit"] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
     return 0;
 }
 
@@ -1895,6 +1942,7 @@ action_fixnan (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_fixnan, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     NonFiniteFixMode mode = NONFINITE_BOX3;
     if (!strcmp(argv[1], "black"))
@@ -1920,6 +1968,7 @@ action_fixnan (int argc, const char *argv[])
         }
     }
              
+    ot.function_times["fixnan"] += timer();
     return 0;
 }
 
@@ -1930,6 +1979,7 @@ action_over (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_over, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
@@ -1950,6 +2000,7 @@ action_over (int argc, const char *argv[])
     bool ok = ImageBufAlgo::over (Rib, Aib, Bib);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
+    ot.function_times["over"] += timer();
     return 0;
 }
 
@@ -1960,6 +2011,7 @@ action_zover (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_over, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     // Get optional flags
     bool z_zeroisinf = false;
@@ -1990,6 +2042,7 @@ action_zover (int argc, const char *argv[])
     bool ok = ImageBufAlgo::zover (Rib, Aib, Bib, z_zeroisinf);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
+    ot.function_times["zover"] += timer();
     return 0;
 }
 
@@ -2000,6 +2053,7 @@ action_fill (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_fill, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     // Read and copy the top-of-stack image
     ImageRecRef A (ot.pop());
@@ -2040,6 +2094,7 @@ action_fill (int argc, const char *argv[])
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
+    ot.function_times["fill"] += timer();
     return 0;
 }
 
@@ -2050,6 +2105,7 @@ action_text (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_text, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     // Read and copy the top-of-stack image
     ImageRecRef A (ot.pop());
@@ -2104,6 +2160,7 @@ action_text (int argc, const char *argv[])
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
+    ot.function_times["text"] += timer();
     return 0;
 }
 
@@ -2142,6 +2199,7 @@ action_histogram (int argc, const char *argv[])
     ASSERT (argc == 3);
     if (ot.postpone_callback (1, action_histogram, argc, argv))
         return 0;
+    Timer timer (ot.enable_function_timing);
 
     // Input image.
     ot.read ();
@@ -2190,6 +2248,7 @@ action_histogram (int argc, const char *argv[])
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
+    ot.function_times["histogram"] += timer();
     return 0;
 }
 
@@ -2209,6 +2268,7 @@ getargs (int argc, char *argv[])
                 "--help", &help, "Print help message",
                 "-v", &ot.verbose, "Verbose status messages",
                 "-q %!", &ot.verbose, "Quiet mode (turn verbose off)",
+                "--runstats", &ot.runstats, "Print runtime statistics",
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
                 "--metamatch %s", &ot.printinfo_metamatch,
@@ -2551,6 +2611,8 @@ handle_sequence (int argc, const char **argv)
 int
 main (int argc, char *argv[])
 {
+    Timer totaltime;
+
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
@@ -2568,6 +2630,26 @@ main (int argc, char *argv[])
             std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
                       << "' command never executed.\n";
         }
+    }
+
+    if (ot.runstats) {
+        float total_time = totaltime();
+        float unaccounted = total_time;
+        std::cout << "\n";
+        int threads = -1;
+        OIIO::getattribute ("threads", threads);
+        std::cout << "Threads: " << threads << "\n";
+        std::cout << "oiiotool runtime statistics:\n";
+        std::cout << "  Total time: " << Strutil::timeintervalformat(total_time,2) << "\n";
+        static const char *timeformat = "      %-12s : %5.2f\n";
+        for (Oiiotool::TimingMap::const_iterator func = ot.function_times.begin();
+             func != ot.function_times.end();  ++func) {
+            float t = func->second;
+            std::cout << Strutil::format (timeformat, func->first, t);
+            unaccounted -= t;
+        }
+        std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted,0.0f));
+        std::cout << ot.imagecache->getstats() << "\n";
     }
 
     return ot.return_value;

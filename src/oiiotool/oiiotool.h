@@ -33,6 +33,7 @@
 
 #include "imagebuf.h"
 #include "refcnt.h"
+#include "timer.h"
 
 
 OIIO_NAMESPACE_ENTER {
@@ -49,6 +50,7 @@ class Oiiotool {
 public:
     // General options
     bool verbose;
+    bool runstats;
     bool noclobber;
     bool allsubimages;
     bool printinfo;
@@ -85,6 +87,12 @@ public:
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
     ColorConfig colorconfig;                 // OCIO color config
+    Timer total_readtime;
+    Timer total_writetime;
+    double total_imagecache_readtime;
+    typedef std::map<std::string, float> TimingMap;
+    TimingMap function_times;
+    bool enable_function_timing;
 
     Oiiotool ();
 
