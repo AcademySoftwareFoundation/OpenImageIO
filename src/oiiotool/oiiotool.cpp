@@ -39,6 +39,7 @@
 #include <sstream>
 #include <utility>
 #include <ctype.h>
+#include <map>
 
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
@@ -210,6 +211,29 @@ Oiiotool::error (const std::string &command, const std::string &explanation)
         std::cerr << " (" << explanation << ")";
     std::cerr << "\n";
     exit (-1);
+}
+
+
+
+static int
+extract_options (std::map<std::string,std::string> &options,
+                 std::string command)
+{
+    // std::cout << "extract_options '" << command << "'\n";
+    int noptions = 0;
+    size_t pos;
+    while ((pos = command.find_first_of(":")) != std::string::npos) {
+        command = command.substr (pos+1, std::string::npos);
+        size_t e = command.find_first_of("=");
+        if (e != std::string::npos) {
+            std::string name = command.substr(0,e);
+            std::string value = command.substr(e+1,command.find_first_of(":")-(e+1));
+            options[name] = value;
+            ++noptions;
+            // std::cout << "'" << name << "' -> '" << value << "'\n";
+        }
+    }
+    return noptions;
 }
 
 
@@ -1787,19 +1811,31 @@ action_fit (int argc, const char *argv[])
     adjust_geometry (fit_full_width, fit_full_height, fit_full_x, fit_full_y,
                      argv[1], false);
 
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    std::string padopt = options["pad"];
+    bool pad = padopt.size() && atoi(padopt.c_str());
+    std::string filtername = options["filter"];
+    
     // Compute scaling factors and use action_resize to do the heavy lifting
-    float wfactor = float(fit_full_width) / Aspec->full_width;
-    float hfactor = float(fit_full_height) / Aspec->full_height;
+    float oldaspect = float(Aspec->full_width) / Aspec->full_height;
+    float newaspect = float(fit_full_width) / fit_full_height;
     int resize_full_width = fit_full_width;
     int resize_full_height = fit_full_height;
-    if (wfactor <= hfactor)
-        resize_full_height = int(Aspec->full_height * wfactor);
-    else
-        resize_full_width = int(Aspec->full_width * hfactor);
+    int xoffset = 0, yoffset = 0;
+
+    if (newaspect >= oldaspect) {  // same or wider than original
+        resize_full_width = int(resize_full_height * oldaspect + 0.5f);
+        xoffset = (fit_full_width - resize_full_width) / 2;
+    } else {  // narrower than original
+        resize_full_height = int(resize_full_width / oldaspect + 0.5f);
+        yoffset = (fit_full_height - resize_full_height) / 2;
+    }
+
     if (ot.verbose) {
         std::cout << "Fitting " 
                   << format_resolution(Aspec->full_width, Aspec->full_height,
-                                       Aspec->x, Aspec->y)
+                                       Aspec->full_x, Aspec->full_y)
                   << " into "
                   << format_resolution(fit_full_width, fit_full_height,
                                        fit_full_x, fit_full_y) 
@@ -1813,16 +1849,23 @@ action_fit (int argc, const char *argv[])
         fit_full_x != Aspec->full_x || fit_full_y != Aspec->full_y) {
         std::string resize = format_resolution (resize_full_width,
                                                 resize_full_height,
-                                                fit_full_x, fit_full_y);
-        const char *newargv[2] = { "resize", resize.c_str() };
+                                                0, 0);
+        std::string command = "resize";
+        if (filtername.size())
+            command += Strutil::format (":filter=%s", filtername);
+        const char *newargv[2] = { command.c_str(), resize.c_str() };
         action_resize (2, newargv);
         A = ot.top ();
         Aspec = A->spec(0,0);
+        A->spec(0,0)->full_width = fit_full_width;
+        A->spec(0,0)->full_height = fit_full_height;
+        A->spec(0,0)->x = xoffset;
+        A->spec(0,0)->y = yoffset;
         // Now A,Aspec are for the NEW resized top of stack
     }
 
-    if (fit_full_width != resize_full_width ||
-        fit_full_height != Aspec->full_height) {
+    if (pad && (fit_full_width != Aspec->width ||
+                fit_full_height != Aspec->height)) {
         // Needs padding
         ImageSpec newspec = *Aspec;
         newspec.width = newspec.full_width = fit_full_width;
@@ -1841,7 +1884,7 @@ action_fit (int argc, const char *argv[])
             ImageBufAlgo::paste (Rib, (fit_full_width-Aspec->full_height)/2, 0,
                                  0, 0, (*A)(0,0));
     }
-    
+
     return 0;
 }
 
@@ -2239,7 +2282,7 @@ getargs (int argc, char *argv[])
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
-                "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s)",
+                "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
