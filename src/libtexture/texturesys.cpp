@@ -32,6 +32,7 @@
 #include <math.h>
 #include <string>
 #include <sstream>
+#include <cstring>
 #include <list>
 
 #include <OpenEXR/ImathMatrix.h>
