@@ -134,6 +134,13 @@ be ignored.  If \emph{n} is greater than the number of channels in the
 input image, the additional channels will be filled with 0 values.
 \apiend
 
+\apiitem{--chnames {\rm \emph{a,b,...}}}
+Renames the channels of the output image.  All the channel names are
+concatenated together, separated by commas.  A ``blank'' entry will cause
+the channel to retain its previous value (for example, {\cf --chnames ,,,A}
+will rename channel 3 to be \qkw{A} and leave channels 0--2 as they were.
+\apiend
+
 \apiitem{--checknan}
 Checks every pixel of the input image to ensure that no NaN or Inf
 values are present.  If such non-finite pixel values are found, 

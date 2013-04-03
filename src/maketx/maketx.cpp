@@ -120,6 +120,7 @@ static bool prman = false;
 static bool oiio = false;
 static bool src_samples_border = false; // are src edge samples on the border?
 static bool ignore_unassoc = false;  // ignore unassociated alpha tags
+static std::string channelnames;
 
 static bool unpremult = false;
 static std::string incolorspace;
@@ -238,6 +239,7 @@ getargs (int argc, char *argv[])
                   "--old %!", &newmode, "",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
+                  "--chnames %s", &channelnames, "Rename channels (comma-separated)",
                   "-d %s", &dataformatname, "Set the output data format to one of: "
                           "uint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
@@ -1425,7 +1427,8 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
     bool unpremult = false;
     std::string incolorspace;
     std::string outcolorspace;
-    
+    std::string channelnames;
+
     filenames.clear();
 
     ArgParse ap;
@@ -1442,6 +1445,7 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
+                  "--chnames %s", &channelnames, "Rename channels (comma-separated)",
                   "-d %s", &dataformatname, "Set the output data format to one of: "
                           "uint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
@@ -1578,6 +1582,7 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
     if (filtername.size())
         configspec.attribute ("maketx:filtername", filtername);
     configspec.attribute ("maketx:nchannels", nchannels);
+    configspec.attribute ("maketx:channelnames", channelnames);
     if (fileformatname.size())
         configspec.attribute ("maketx:fileformatname", fileformatname);
     configspec.attribute ("maketx:prman_metadata", prman_metadata);
