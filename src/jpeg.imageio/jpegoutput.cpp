@@ -160,7 +160,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_cinfo.density_unit = 2; // RESUNIT_INCH;
     m_cinfo.X_density = 72;
     m_cinfo.Y_density = 72;
-    m_cinfo.write_JFIF_header = true;
+    m_cinfo.write_JFIF_header = TRUE;
 
     if (m_copy_coeffs) {
         // Back door for copy()
