@@ -906,7 +906,31 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         ImageBufAlgo::channels (*newsrc, *src, nchannels, NULL, NULL, NULL, true);
         std::swap (src, newsrc);
     }
-    
+
+    std::string channelnames = configspec.get_string_attribute ("maketx:channelnames");
+    if (channelnames.size()) {
+        std::vector<std::string> newchannelnames;
+        Strutil::split (channelnames, newchannelnames, ",");
+        ImageSpec &spec (src->specmod());  // writeable version
+        for (int c = 0; c < spec.nchannels; ++c) {
+            if (c < (int)newchannelnames.size() &&
+                newchannelnames[c].size()) {
+                std::string name = newchannelnames[c];
+                spec.channelnames[c] = name;
+                if (Strutil::iequals(name,"A") ||
+                    Strutil::iends_with(name,".A") ||
+                    Strutil::iequals(name,"Alpha") ||
+                    Strutil::iends_with(name,".Alpha"))
+                    spec.alpha_channel = c;
+                if (Strutil::iequals(name,"Z") ||
+                    Strutil::iends_with(name,".Z") ||
+                    Strutil::iequals(name,"Depth") ||
+                    Strutil::iends_with(name,".Depth"))
+                    spec.z_channel = c;
+            }
+        }
+    }
+
     if (shadowmode) {
         // Some special checks for shadow maps
         if (src->spec().nchannels != 1) {

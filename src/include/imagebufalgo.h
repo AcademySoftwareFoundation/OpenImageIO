@@ -646,6 +646,9 @@ enum OIIO_API MakeTextureMode {
 ///                              0 values or dropping channels, if it doesn't
 ///                              the number of channels in the input.
 ///                              (default: 0, meaning keep all input channels)
+///    maketx:channelnames (string)
+///                           If set, overrides the channel names of the
+///                              output image (comma-separated).
 ///    maketx:fileformatname (string)
 ///                           If set, will specify the output file format.
 ///                               (default: "", meaning infer the format from
