@@ -50,6 +50,13 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + " cmul-input.exr --cmul 1.5,1,0.5 -o cmul2.exr >> out.txt ;\n")
 
+# Test --cadd val (multiply all channels by the same scalar)
+command += (oiio_app ("oiiotool")
+            + " cmul-input.exr --cadd 0.25 -o cadd1.exr >> out.txt ;\n")
+# Test --cadd val,val,val... (multiply per-channel scalars)
+command += (oiio_app ("oiiotool")
+            + " cmul-input.exr --cadd 0,0.25,-0.25 -o cadd2.exr >> out.txt ;\n")
+
 # test histogram generation
 command += (oiio_app ("oiiotool") + " "
             + "ref/histogram_input.png"
@@ -81,6 +88,7 @@ outputs = [ "filled.tif", "resize.tif", "resize2.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
+            "cadd1.exr", "cadd2.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

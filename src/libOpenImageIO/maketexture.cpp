@@ -54,6 +54,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "thread.h"
 #include "filter.h"
 

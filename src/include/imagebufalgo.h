@@ -56,6 +56,37 @@ OIIO_NAMESPACE_ENTER
 
 class Filter2D;  // forward declaration
 
+
+
+/// Some generalities about ImageBufAlgo functions:
+///
+/// All IBA functions take a ROI.  Only the pixels (and channels) in dst
+/// that are specified by the ROI will be altered; the default ROI is to
+/// alter all the pixels in dst.  Exceptions will be noted, including 
+/// functions that do not honor their channel range.
+///
+/// In general, IBA functions that are passed an initialized 'dst' or
+/// 'result' image do not reallocate it or alter its existing pixels
+/// that lie outside the ROI (exceptions will be noted). If passed an
+/// uninitialized result image, it will be reallocatd to be the size of
+/// the ROI (and with float pixels).  If the result image passed is
+/// uninitialized and also the ROI is undefined, the ROI will be the
+/// union of the pixel data regions of any input images.  (A small
+/// number of IBA functions, such as fill(), have only a result image
+/// and no input image; in such cases, it's an error to have both an
+/// uninitiailized result image and an undefined ROI.)
+///
+/// IBA functions that have an 'nthreads' parameter use it to specify
+/// how many threads (potentially) may be used, but it's not a
+/// guarantee.  If nthreads == 0, it will use the global OIIO attribute
+/// "nthreads".  If nthreads == 1, it guarantees that it will not launch
+/// any new threads.
+///
+/// All IBA functions return true on success, false on error (with an
+/// appropriate error message set in dst).
+
+
+
 namespace ImageBufAlgo {
 
 /// Zero out (set to 0, black) the image region.
@@ -256,15 +287,58 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int nthreads = 0);
 
 
-/// Add the pixels of two images A and B, putting the sum in dst.
-/// The 'options' flag controls behaviors, particular of what happens
-/// when A, B, and dst have differing data windows.  Note that dst must
-/// not be the same image as A or B, and all three images must have the
-/// same number of channels.  A and B *must* be float images.
+/// For all pixels within the designated region, add the pixels of two
+/// images A and B, putting the sum in dst.  All three images must have
+/// the same number of channels.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI srcroi=ROI::All(), int nthreads=0);
 
-bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), add to their value in place by 'val'.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, float val,
+                   ROI srcroi=ROI::All(), int nthreads=0);
 
-/// Enum describing options to be passed to ImageBufAlgo::add.
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), add to their value in place by the
+/// scalars in val[0..nchans-1] (one per channel).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const float *val,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+
+/// DEPRECATED as of 1.2
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options);
+
+/// DEPRECATED Enum describing options to be passed to ImageBufAlgo::add.
 /// Multiple options are allowed simultaneously by "or'ing" together.
 enum OIIO_API AddOptions
 {
@@ -276,40 +350,69 @@ enum OIIO_API AddOptions
 };
 
 
-/// For all pixels of R within region roi (defaulting to all the defined
-/// pixels in R), multiply their value by 'val'.  Use the given number
-/// of threads.
-bool OIIO_API mul (ImageBuf &R, float val, ROI roi=ROI::All(), int threads=0);
-
-/// For all pixels of R within region roi (defaulting to all the defined
-/// pixels in R), multiply their value by val[0..nchans-1]. Use the
-/// given number of threads.
-bool OIIO_API mul (ImageBuf &R, const float *val, ROI roi=ROI::All(), int threads=0);
-
-
-
-/// Apply a color transform to the pixel values
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), multiply their value in place by 'val'.
 ///
-/// In-place operations (dst == src) are supported
-/// If unpremult is specified, unpremultiply before color conversion,
-/// then premultiply after the color conversion.  You'll may want to use this
-/// flag if your image contains an alpha channel
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
 ///
-/// Note: the dst image does not need to equal the src image, either in buffers
-///       or bit depths. (For example, it is common for the src buffer to be a
-///       lower bit depth image and the output image to be float).
-/// If the output buffer is less than floating-point, results may be quantized /
-/// clamped
-/// return true on success, false on failure
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, float val,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// For all pixels and channels of dst within region roi (defaulting to
+/// all the defined pixels of R), multiply their value in place by the
+/// scalars in val[0..nchans-1] (one per channel).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, const float *val,
+                   ROI roi=ROI::All(), int nthreads=0);
 
 
+
+/// Apply a color transform to the pixel values within the ROI.
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+///
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-    const ColorProcessor * processor,
-    bool unpremult);
+                            const ColorProcessor *processor,
+                            bool unpremult,
+                            ROI roi=ROI::All(), int nthreads=0);
 
-bool OIIO_API colorconvert (float * color, int nchannels,
-    const ColorProcessor * processor,
-    bool unpremult);
+/// Apply a color transform in-place to just one color:
+/// color[0..nchannels-1].  nchannels should either be 3 or 4 (if 4, the
+/// last channel is alpha).
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel.
+bool OIIO_API colorconvert (float *color, int nchannels,
+                            const ColorProcessor *processor, bool unpremult);
 
 
 struct OIIO_API PixelStats {
@@ -320,14 +423,26 @@ struct OIIO_API PixelStats {
     std::vector<imagesize_t> nancount;
     std::vector<imagesize_t> infcount;
     std::vector<imagesize_t> finitecount;
+    std::vector<double> sum, sum2;  // for intermediate calculation
 };
 
 
-/// Compute statistics on the specified image (over all pixels in the
-/// data window of the current subimage and MIPmap level). Upon success,
+/// Compute statistics about the ROI of the specified image. Upon success,
 /// the returned vectors will have size == numchannels.  A FLOAT
 /// ImageBuf is required.
-bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src);
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi=ROI::All(), int nthreads=0);
+
 
 /// Struct holding all the results computed by ImageBufAlgo::compare().
 /// (maxx,maxy,maxz,maxc) gives the pixel coordintes (x,y,z) and color
@@ -713,241 +828,9 @@ bool OIIO_API make_texture (MakeTextureMode mode,
 
 
 
-
-/// Helper template for generalized multithreading for image processing
-/// functions.  Some function/functor f is applied to every pixel the
-/// region of interest roi, dividing the region into multiple threads if
-/// threads != 1.  Note that threads == 0 indicates that the number of
-/// threads should be as set by the global OIIO "threads" attribute.
-///
-/// Most image operations will require additional arguments, including
-/// additional input and output images or other parameters.  The
-/// parallel_image template can still be used by employing the
-/// boost::bind (or std::bind, for C++11).  For example, suppose you
-/// have an image operation defined as:
-///     void my_image_op (ImageBuf &out, const ImageBuf &in,
-///                       float scale, ROI roi);
-/// Then you can parallelize it as follows:
-///     ImageBuf R /*result*/, A /*input*/;
-///     ROI roi = get_roi (R.spec());
-///     parallel_image (boost::bind(my_image_op,boost::ref(R),
-///                                 boost::cref(A),3.14,_1), roi);
-///
-template <class Func>
-void
-parallel_image (Func f, ROI roi, int nthreads=0)
-{
-    // Special case: threads <= 0 means to use the "threads" attribute
-    if (nthreads <= 0)
-        OIIO::getattribute ("threads", nthreads);
-
-    if (nthreads <= 1 || roi.npixels() < 1000) {
-        // Just one thread, or a small image region: use this thread only
-        f (roi);
-    } else {
-        // Spawn threads by dividing the region into y bands.
-        boost::thread_group threads;
-        int blocksize = std::max (1, (roi.height() + nthreads - 1) / nthreads);
-        int roi_ybegin = roi.ybegin;
-        int roi_yend = roi.yend;
-        for (int i = 0;  i < nthreads;  i++) {
-            roi.ybegin = roi_ybegin + i * blocksize;
-            roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
-            if (roi.ybegin >= roi.yend)
-                break;   // no more work to dole out
-            threads.add_thread (new boost::thread (f, roi));
-        }
-        threads.join_all ();
-    }
-}
-
-
-
-// Macro to call a type-specialzed version func<type>(R,...)
-#define OIIO_DISPATCH_TYPES(name,func,type,R,...)                       \
-    switch (type.basetype) {                                            \
-    case TypeDesc::FLOAT :                                              \
-        return func<float> (R, __VA_ARGS__); break;                     \
-    case TypeDesc::UINT8 :                                              \
-        return func<unsigned char> (R, __VA_ARGS__); break;             \
-    case TypeDesc::HALF  :                                              \
-        return func<half> (R, __VA_ARGS__); break;                      \
-    case TypeDesc::UINT16:                                              \
-        return func<unsigned short> (R, __VA_ARGS__); break;            \
-    case TypeDesc::INT8  :                                              \
-        return func<char> (R, __VA_ARGS__); break;                      \
-    case TypeDesc::INT16 :                                              \
-        return func<short> (R, __VA_ARGS__); break;                     \
-    case TypeDesc::UINT  :                                              \
-        return func<unsigned int> (R, __VA_ARGS__); break;              \
-    case TypeDesc::INT   :                                              \
-        return func<int> (R, __VA_ARGS__); break;                       \
-    case TypeDesc::DOUBLE:                                              \
-        return func<double> (R, __VA_ARGS__); break;                    \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
-        return false;                                                   \
-    }
-
-// Helper, do not call from the outside world.
-#define OIIO_DISPATCH_TYPES2_HELP(name,func,Atype,Btype,R,...)   \
-    switch (Btype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        return func<Atype,float> (R, __VA_ARGS__); break;               \
-    case TypeDesc::UINT8 :                                              \
-        return func<Atype,unsigned char> (R, __VA_ARGS__); break;       \
-    case TypeDesc::HALF  :                                              \
-        return func<Atype,half> (R, __VA_ARGS__); break;                \
-    case TypeDesc::UINT16:                                              \
-        return func<Atype,unsigned short> (R, __VA_ARGS__); break;      \
-    case TypeDesc::INT8 :                                               \
-        return func<Atype,char> (R, __VA_ARGS__); break;                \
-    case TypeDesc::INT16 :                                              \
-        return func<Atype,short> (R, __VA_ARGS__); break;               \
-    case TypeDesc::UINT :                                               \
-        return func<Atype,unsigned int> (R, __VA_ARGS__); break;        \
-    case TypeDesc::INT :                                                \
-        return func<Atype,int> (R, __VA_ARGS__); break;                 \
-    case TypeDesc::DOUBLE :                                             \
-        return func<Atype,double> (R, __VA_ARGS__); break;              \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        return false;                                                   \
-    }
-
-// Macro to call a type-specialzed version func<Atype,Btype>(R,...).
-#define OIIO_DISPATCH_TYPES2(name,func,Atype,Btype,R,...)               \
-    switch (Atype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,float,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned char,Btype,R,__VA_ARGS__); \
-    case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,half,Btype,R,__VA_ARGS__);  \
-    case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned short,Btype,R,__VA_ARGS__); \
-    case TypeDesc::INT8:                                                \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,char,Btype,R,__VA_ARGS__);  \
-    case TypeDesc::INT16:                                               \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,short,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT:                                                \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,unsigned int,Btype,R,__VA_ARGS__); \
-    case TypeDesc::INT:                                                 \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,int,Btype,R,__VA_ARGS__);   \
-    case TypeDesc::DOUBLE:                                              \
-        OIIO_DISPATCH_TYPES2_HELP(name,func,double,Btype,R,__VA_ARGS__);\
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
-        return false;                                                   \
-    }
-
-
-// Macro to call a type-specialzed version func<type>(R,...) for
-// the most common types, fail for anything else.
-#define OIIO_DISPATCH_COMMON_TYPES(name,func,type,R,...)                \
-    switch (type.basetype) {                                            \
-    case TypeDesc::FLOAT :                                              \
-        return func<float> (R, __VA_ARGS__); break;                     \
-    case TypeDesc::UINT8 :                                              \
-        return func<unsigned char> (R, __VA_ARGS__); break;             \
-    case TypeDesc::HALF  :                                              \
-        return func<half> (R, __VA_ARGS__); break;                      \
-    case TypeDesc::UINT16:                                              \
-        return func<unsigned short> (R, __VA_ARGS__); break;            \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
-        return false;                                                   \
-    }
-
-// Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,Atype,Btype,R,...)   \
-    switch (Btype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        return func<Atype,float> (R, __VA_ARGS__); break;               \
-    case TypeDesc::UINT8 :                                              \
-        return func<Atype,unsigned char> (R, __VA_ARGS__); break;       \
-    case TypeDesc::HALF  :                                              \
-        return func<Atype,half> (R, __VA_ARGS__); break;                \
-    case TypeDesc::UINT16:                                              \
-        return func<Atype,unsigned short> (R, __VA_ARGS__); break;      \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        return false;                                                   \
-    }
-
-// Macro to call a type-specialzed version func<Atype,Btype>(R,...) for
-// the most common types, fail for anything else.
-#define OIIO_DISPATCH_COMMON_TYPES2(name,func,Atype,Btype,R,...)        \
-    switch (Atype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,float,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,unsigned char,Btype,R,__VA_ARGS__); \
-    case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,half,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(name,func,unsigned short,Btype,R,__VA_ARGS__); \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
-        return false;                                                   \
-    }
-
-
-// Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES3_HELP2(name,func,Rtype,Atype,Btype,R,...) \
-    switch (Rtype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        return func<float,Atype,Btype> (R, __VA_ARGS__); break;         \
-    case TypeDesc::UINT8 :                                              \
-        return func<unsigned char,Atype,Btype> (R, __VA_ARGS__); break; \
-    case TypeDesc::HALF  :                                              \
-        return func<half,Atype,Btype> (R, __VA_ARGS__); break;          \
-    case TypeDesc::UINT16:                                              \
-        return func<unsigned short,Atype,Btype> (R, __VA_ARGS__); break; \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        return false;                                                   \
-    }
-
-// Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES3_HELP(name,func,Rtype,Atype,Btype,R,...) \
-    switch (Btype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(name,func,Rtype,Atype,float,R,__VA_ARGS); \
-    case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(name,func,Rtype,Atype,unsigned char,R,__VA_ARGS); \
-    case TypeDesc::HALF :                                               \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(name,func,Rtype,Atype,half,R,__VA_ARGS); \
-    case TypeDesc::UINT16 :                                             \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(name,func,Rtype,Atype,unsigned short,R,__VA_ARGS); \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        return false;                                                   \
-    }
-
-// Macro to call a type-specialzed version func<Rtype,Atype,Btype>(R,...)
-// for the most common types, fail for anything else.
-#define OIIO_DISPATCH_COMMON_TYPES3(name,func,Rtype,Atype,Btype,R,...)  \
-    switch (Atype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(name,func,Rtype,float,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(name,func,Rtype,unsigned char,Btype,R,__VA_ARGS__); \
-    case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(name,func,Rtype,half,Btype,R,__VA_ARGS__); \
-    case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(name,func,Rtype,unsigned short,Btype,R,__VA_ARGS__); \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
-        return false;                                                   \
-    }
-
-
-
 }  // end namespace ImageBufAlgo
-
 
 }
 OIIO_NAMESPACE_EXIT
 
-#endif // OPENIMAGEIO_IMAGEBUF_H
+#endif // OPENIMAGEIO_IMAGEBUFALGO_H
