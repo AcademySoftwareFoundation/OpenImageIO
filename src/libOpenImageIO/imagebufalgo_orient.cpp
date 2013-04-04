@@ -36,6 +36,7 @@
 
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "dassert.h"
 #include <stdexcept>
 
@@ -44,133 +45,90 @@ OIIO_NAMESPACE_ENTER
 namespace
 {
 
-bool
-TransformImageSpec(ImageSpec & spec, ImageBufAlgo::AlignedTransform t)
+template<class D, class S>
+bool flip_(ImageBuf &Rib, const ImageBuf &Aib)
 {
-    
-    if (t == ImageBufAlgo::TRANSFORM_NONE) {
-        return true;
+    const int nchans = Rib.nchannels();
+    const int firstscanline = Rib.ymin();
+    const int lastscanline = Rib.ymax();
+    ImageBuf::ConstIterator<S, D> a(Aib);
+    ImageBuf::Iterator<D, D> r(Rib);
+
+    for( ; ! r.done(); ++r) {
+        a.pos(r.x(), lastscanline - (r.y() - firstscanline));
+        for(int c = 0; c < nchans; ++c) {
+            r[c] = a[c];
+        }
     }
-    else if (t == ImageBufAlgo::TRANSFORM_FLIP) {
-        spec.y = spec.full_y + spec.full_height - spec.y - spec.height;
-    }
-    else if (t == ImageBufAlgo::TRANSFORM_FLOP) {
-        spec.x = spec.full_x + spec.full_width - spec.x - spec.width;
-    }
-    else if (t == ImageBufAlgo::TRANSFORM_FLIPFLOP) {
-        spec.x = spec.full_x + spec.full_width - spec.x - spec.width;
-        spec.y = spec.full_y + spec.full_height - spec.y - spec.height;
-    }
-    else {
-        return false;
-    }
-    
     return true;
 }
 
-// FIXME: Reorganize these to use iterators, at the native bit type.
-// This does a needless conversion to float and back (per pixel)
 
-// FIXME: These works for non-zero data windows, but
-// does it work for non-origin display windows?
-
-void
-FlipImageData (ImageBuf &dst, const ImageBuf &src)
+template<class D, class S>
+static
+bool flop_(ImageBuf &Rib, const ImageBuf &Aib)
 {
-    const ImageSpec & spec = dst.spec();
-    const int c0 = spec.full_y + spec.full_height - 1;
-    
-    std::vector<float> pixel (dst.spec().nchannels, 0.0f);
-    
-    // Walk though the output data window...
-    for (int k = spec.z; k < spec.z+spec.depth; k++) {
-        for (int j = spec.y; j < spec.y+spec.height; j++) {
-            int jIn = c0 - j;
-            
-            for (int i = spec.x; i < spec.x+spec.width ; i++) {
-                src.getpixel (i, jIn, k, &pixel[0]);
-                dst.setpixel (i, j, k, &pixel[0]);
-            }
-        }
+    const int nchans = Rib.nchannels();
+    const int firstcolumn = Rib.xmin();
+    const int lastcolumn = Rib.xmax();
+    ImageBuf::ConstIterator<S, D> a(Aib);
+    ImageBuf::Iterator<D, D> r(Rib);
+
+    for( ; ! r.done(); ++r) {
+        a.pos(lastcolumn - (r.x() - firstcolumn), r.y());
+        for(int c = 0; c < nchans; ++c)
+            r[c] = a[c];
     }
+    return true;
 }
 
-void
-FlopImageData (ImageBuf &dst, const ImageBuf &src)
-{
-    const ImageSpec & spec = dst.spec();
-    const int c1 = spec.full_x + spec.full_width - 1;
-    
-    std::vector<float> pixel (dst.spec().nchannels, 0.0f);
-    
-    // Walk though the output data window...
-    for (int k = spec.z; k < spec.z+spec.depth; k++) {
-        for (int j = spec.y; j < spec.y+spec.height; j++) {
-            for (int i = spec.x; i < spec.x+spec.width ; i++) {
-                int iIn = c1 - i;
-                src.getpixel (iIn, j, k, &pixel[0]);
-                dst.setpixel (i, j, k, &pixel[0]);
-            }
-        }
-    }
-}
 
-void
-FlipFlopImageData (ImageBuf &dst, const ImageBuf &src)
+template<class D, class S>
+static
+bool flipflop_(ImageBuf &Rib, const ImageBuf &Aib)
 {
-    const ImageSpec & spec = dst.spec();
-    const int c0 = spec.full_y + spec.full_height - 1;
-    const int c1 = spec.full_x + spec.full_width - 1;
-    
-    std::vector<float> pixel (dst.spec().nchannels, 0.0f);
-    
-    // Walk though the output data window...
-    for (int k = spec.z; k < spec.z+spec.depth; k++) {
-        for (int j = spec.y; j < spec.y+spec.height; j++) {
-            int jIn = c0 - j;
-            for (int i = spec.x; i < spec.x+spec.width ; i++) {
-                int iIn = c1 - i;
-                src.getpixel (iIn, jIn, k, &pixel[0]);
-                dst.setpixel (i, j, k, &pixel[0]);
-            }
+    const int nchans = Rib.nchannels();
+    const int firstscanline = Rib.ymin();
+    const int lastscanline = Rib.ymax();
+    const int firstcolumn = Rib.xmin();
+    const int lastcolumn = Rib.xmax();
+    ImageBuf::ConstIterator<S, D> a(Aib);
+    ImageBuf::Iterator<D, D> r(Rib);
+
+    for( ; !r.done(); ++r) {
+        a.pos (lastcolumn - (r.x() - firstcolumn),
+               lastscanline - (r.y() - firstscanline));
+        for(int c = 0; c < nchans; ++c)
+        {
+            r[c] = a[c];
         }
     }
+    return true;
 }
 
 } // Anonymous Namespace
 
 
-
-bool
-ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
+bool ImageBufAlgo::flip(ImageBuf &Rib, const ImageBuf &Aib)
 {
-    if (t == TRANSFORM_NONE) {
-        return dst.copy (src);
-    }
-    
-    ImageSpec dst_spec (src.spec());
-    if(!TransformImageSpec(dst_spec, t)) {
-        dst.error ("unknown transform type %d", (int)t);
-        return false;
-    }
-    
-    // Update the image (realloc with the new spec)
-    dst.alloc (dst_spec);
-    
-    if (t == TRANSFORM_FLIP) {
-        FlipImageData (dst, src);
-        return true;
-    }
-    else if (t == TRANSFORM_FLOP) {
-        FlopImageData (dst, src);
-        return true;
-    }
-    else if (t == TRANSFORM_FLIPFLOP) {
-        FlipFlopImageData (dst, src);
-        return true;
-    }
-    
-    dst.error ("unknown transform type %d", (int)t);
+    OIIO_DISPATCH_TYPES2("flip", flip_, Rib.spec().format, Aib.spec().format,
+                         Rib, Aib);
+    return false;
+}
+
+
+bool ImageBufAlgo::flop(ImageBuf &Rib, const ImageBuf &Aib)
+{
+    OIIO_DISPATCH_TYPES2("flop", flop_, Rib.spec().format, Aib.spec().format,
+                         Rib, Aib);
+    return false;
+}
+
+
+bool ImageBufAlgo::flipflop(ImageBuf &Rib, const ImageBuf &Aib)
+{
+    OIIO_DISPATCH_TYPES2("flipflop", flipflop_, Rib.spec().format, Aib.spec().format,
+                         Rib, Aib);
     return false;
 }
 

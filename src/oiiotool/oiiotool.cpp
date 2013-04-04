@@ -1478,7 +1478,6 @@ action_cadd (int argc, const char *argv[])
 }
 
 
-
 static int
 action_flip (int argc, const char *argv[])
 {
@@ -1497,20 +1496,11 @@ action_flip (int argc, const char *argv[])
         for (int m = 0;  m < miplevels;  ++m) {
             const ImageBuf &Aib ((*A)(s,m));
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstscanline = Rib.ymin();
-            int lastscanline = Rib.ymax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), lastscanline - (r.y() - firstscanline));
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
+            ImageBufAlgo::flip(Rib, Aib);
         }
     }
-             
-    ot.function_times["flip"] += timer();
+
+    ot.function_times["flip"] += timer();             
     return 0;
 }
 
@@ -1534,16 +1524,7 @@ action_flop (int argc, const char *argv[])
         for (int m = 0;  m < miplevels;  ++m) {
             const ImageBuf &Aib ((*A)(s,m));
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstcolumn = Rib.xmin();
-            int lastcolumn = Rib.xmax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (lastcolumn - (r.x() - firstcolumn), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
+            ImageBufAlgo::flop(Rib, Aib);
         }
     }
              
@@ -1571,19 +1552,7 @@ action_flipflop (int argc, const char *argv[])
         for (int m = 0;  m < miplevels;  ++m) {
             const ImageBuf &Aib ((*A)(s,m));
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstscanline = Rib.ymin();
-            int lastscanline = Rib.ymax();
-            int firstcolumn = Rib.xmin();
-            int lastcolumn = Rib.xmax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (lastcolumn - (r.x() - firstcolumn),
-                       lastscanline - (r.y() - firstscanline));
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
+            ImageBufAlgo::flipflop(Rib, Aib);
         }
     }
              
