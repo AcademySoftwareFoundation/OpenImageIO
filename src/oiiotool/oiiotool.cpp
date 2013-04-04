@@ -375,6 +375,11 @@ static int
 output_file (int argc, const char *argv[])
 {
     ASSERT (argc == 2 && !strcmp(argv[0],"-o"));
+
+    // Don't produce output if we've had a fatal error
+    if (ot.return_value == EXIT_FAILURE)
+        return 0;
+
     Timer timer (ot.enable_function_timing);
     ot.total_writetime.start();
     std::string filename = argv[1];
