@@ -1,0 +1,6 @@
+Comparing "flip.exr" and "ref/flip.exr"
+PASS
+Comparing "flop.exr" and "ref/flop.exr"
+PASS
+Comparing "flipflop.exr" and "ref/flipflop.exr"
+PASS

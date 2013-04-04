@@ -177,28 +177,14 @@ bool OIIO_API checker (ImageBuf &dst, int width,
 
 
 
-/// Enum describing options to be passed to transform
+/// flip the image (up<->down)
+bool OIIO_API flip(ImageBuf &Rib, const ImageBuf &Aib);
 
-enum OIIO_API AlignedTransform
-{
-    TRANSFORM_NONE = 0,
-    TRANSFORM_FLIP,        // Upside-down
-    TRANSFORM_FLOP,        // Left/Right Mirrored
-    TRANSFORM_FLIPFLOP,    // Upside-down + Mirrored (Same as 180 degree rotation)
-//  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
-//  TRANSFORM_ROT180,      // Rotate 180 degrees clockwise. Image remains in positive quadrant. (Same as FlipFlop)
-//  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
-};
+/// flop the image (left<->right)
+bool OIIO_API flop(ImageBuf &Rib, const ImageBuf &Aib);
 
-/// Transform the image, as specified in the options. All transforms are done
-/// with respect the display winow (full_size / full_origin), though data
-/// outside this area (overscan) is preserved.  This operation does not
-/// filter pixel values; all operations are pixel aligned. In-place operation
-/// (dst == src) is not supported.
-/// return true on success.
-
-bool OIIO_API transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t);
-
+/// flip + flop
+bool OIIO_API flipflop(ImageBuf &Rib, const ImageBuf &Aib);
 
 /// Generic channel shuffling -- copy src to dst, but with channels in
 /// the order channelorder[0..nchannels-1].  Does not support in-place
