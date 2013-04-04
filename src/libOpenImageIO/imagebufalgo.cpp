@@ -2092,5 +2092,137 @@ ImageBufAlgo::histogram_draw (ImageBuf &R,
     return true;
 }
 
+
+
+namespace { // anonymous namespace
+
+// Fully type-specialized version of ImageBufAlgo::contrast.
+template<class Rtype, class Atype>
+bool
+contrast_impl (ImageBuf &R, const ImageBuf &A,
+               const float* scale, const float* pivot,
+               bool luminance, bool clamptozero,
+               ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Multithread case -- recurse, splitting the domain
+        ImageBufAlgo::parallel_image (
+            boost::bind (contrast_impl<Rtype,Atype>, boost::ref(R),
+                         boost::cref(A), scale, pivot, luminance, clamptozero,
+                         _1 /*ROI*/, 1 /*threads*/),
+            roi, nthreads);
+        return true;
+    }
+    // Following... single-thread case
+
+    ImageBuf::ConstIterator<Atype, float> a (A, roi);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+    if (! luminance) {
+        int nchans = R.nchannels ();
+        for ( ; ! r.done(); r++, ++a) {
+            a.pos (r.x(), r.y(), r.z());
+            for (int i = 0; i < nchans; i++) {
+                float f = (a[i] - pivot[i]) * scale[i] + pivot[i];
+                if (clamptozero)
+                    f = std::max (0.0f, f);
+                r[i] = f;
+            }
+        }
+    } else {
+        for ( ; ! r.done(); r++, ++a) {
+            // Compute luminance L -- assume Rec709 primaries.
+            float L = 0.2126f*a[0] + 0.7152f*a[1] + 0.0722f*a[2];
+            // Modify contrast for L to get the new luminance L_new.
+            float L_new = (L - pivot[0])*scale[0] + pivot[0];
+
+            // Multiply the R, G and B components with L_new/L.
+            float ratio = L_new/L;
+            for (int i = 0;  i < 3;  ++i) {
+                float f = a[i] * ratio;
+                if (clamptozero) {
+                    r[i] = std::max (0.0f, a[i] * ratio);
+                    if (clamptozero)
+                        f = std::max (0.0f, f);
+                    r[i] = f;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A,
+                        const float* scale, const float* pivot,
+                        bool clamptozero,
+                        ROI roi, int threads)
+{
+    // Initialize output image R from input image A if needed.
+    if (! R.initialized()) {
+        ImageSpec newspec = A.spec();
+        newspec.set_format (TypeDesc::FLOAT);
+        R.reset ("contrast", newspec);
+    } else if (R.nchannels() != A.nchannels()) {
+        R.error ("Input and output images must have the same number of channels");
+        return false;
+    }
+
+    // If roi is not defined then initialize from R.
+    if (! roi.defined())
+        roi = get_roi (R.spec());
+    roi = roi_intersection (roi, get_roi (A.spec()));
+    roi = roi_intersection (roi, get_roi (R.spec()));
+    roi.chend = std::min (roi.chend, R.nchannels());
+
+    OIIO_DISPATCH_COMMON_TYPES2 ("contrast", contrast_impl,
+                                 R.spec().format, A.spec().format,
+                                 R, A, scale, pivot, false, clamptozero,
+                                 roi, threads);
+}
+
+
+
+bool
+ImageBufAlgo::contrast_lum (ImageBuf &R, const ImageBuf &A,
+                            float scale, float pivot,
+                            bool clamptozero,
+                            ROI roi, int threads)
+{
+    // If luminance==true, A must have exactly 3 non-alpha and non-z channels.
+    int nchannels = A.nchannels() - (A.spec().alpha_channel >= 0)
+                                  - (A.spec().z_channel >= 0);
+    if (nchannels != 3) {
+        R.error ("Input image must have exactly 3 non-alpha, non-z channels");
+        return false;
+    }
+
+    // Initialize output image R from input image A if needed.
+    if (! R.initialized()) {
+        ImageSpec newspec = A.spec();
+        newspec.set_format (TypeDesc::FLOAT);
+        R.reset ("contrast", newspec);
+    } else if (R.nchannels() != A.nchannels()) {
+        R.error ("Input and output images must have the same number of channels");
+        return false;
+    }
+
+    // If roi is not defined then initialize from R.
+    if (! roi.defined())
+        roi = get_roi (R.spec());
+    roi = roi_intersection (roi, get_roi (A.spec()));
+    roi = roi_intersection (roi, get_roi (R.spec()));
+    roi.chend = std::min (roi.chend, R.nchannels());
+
+    OIIO_DISPATCH_COMMON_TYPES2 ("contrast", contrast_impl,
+                                 R.spec().format, A.spec().format,
+                                 R, A, &scale, &pivot, true, clamptozero,
+                                 roi, threads);
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

@@ -2254,6 +2254,114 @@ action_histogram (int argc, const char *argv[])
 
 
 
+/// action_contrast ----------------------------------------------------------
+/// Usage:      ./oiiotool in --contrast:pivot=string:lum=int contrast -o out
+///
+/// in          - Input image whose contrast will be modified.
+/// pivot       - Optional list of floats separated by comma. If the list has
+///               just one value, then that value is used for all channels. If
+///               it has as many values as the number of channels in the input
+///               image, then each value is used for its respective channel.
+/// lum         - Optional int argument that can take two values, 0 or 1.
+///               If 0 (default), then contrast is modified for all channels.
+///               If 1, the first 3 channels are assumed RGB and contrast is
+///               applied to their luminance channel. It makes sense to use
+///               lum=1 only with one contrast and one pivot value.
+/// contrast    - List of floats separated by comma. If the list has just one
+///               value, then that value is used for all channels. If it has
+///               as many values as the number of channels in the input image,
+///               then each value is used for its respective channel.
+/// out         - Output image with modified contrast.
+///
+/// Examples:
+///  oiiotool in --contrast 0.1,0.2,0.3 -o out
+///  oiiotool in --contrast:pivot=0.4,0.5,0.6  0.1,0.2,0.3 -o out
+///  oiiotool in --contrast:pivot=0.4:lum=1 0.5 -o out
+/// --------------------------------------------------------------------------
+static int
+action_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_contrast, argc, argv))
+        return 0;
+
+    // Input image.
+    ot.read ();
+    ImageRecRef A (ot.pop());
+    const ImageBuf &Aib ((*A)());
+    int nchannels = Aib.spec().nchannels;
+
+    // Output image.
+    ImageSpec specR = Aib.spec();
+    specR.set_format (TypeDesc::FLOAT);
+    ot.push (new ImageRec ("contrast", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    // Get pivot, luminance, noclamp as optional arguments
+    int pivot_size = 1;
+    std::vector<float> pivot (nchannels, 0.5f);
+    bool lum = false;
+    bool clamptozero = true;
+    std::string cmd = argv[0], x;
+    size_t start, end;
+    while ((start = cmd.find_first_of (":")) != std::string::npos) {
+        cmd = cmd.substr (start+1, std::string::npos);
+        // If there are more optional arguments after this one, then take
+        // the substring to the next ':'.
+        if ((end = cmd.find_first_of (":")) != std::string::npos)
+            x = cmd.substr (0, end);
+        else
+            x = cmd;
+        if (Strutil::istarts_with (x, "pivot=")) {
+            // Split the pivot values.
+            x = x.substr (6, std::string::npos);
+            std::vector<std::string> pivot_values;
+            Strutil::split (x, pivot_values, ",");
+            pivot_size = pivot_values.size();
+            for (int i = 0; i < pivot_size; i++)
+                pivot[i] = (float) atof (pivot_values[i].c_str());
+        } else if (Strutil::istarts_with (x, "lum=")) {
+            lum = (bool) atoi (x.c_str() + 4);
+        } else if (Strutil::istarts_with (x, "clamp=")) {
+            clamptozero = (bool) atoi (x.c_str() + 6);
+        } else {
+            ot.error (argv[0], "Unknown optional argument");
+            return 0;
+        }
+    }
+
+    // Get contrast from command line.
+    int contrast_size;
+    std::vector<float> contrast (nchannels, 1.0f);
+    std::string contrast_string = argv[1];
+    std::vector<std::string> contrast_values;
+    Strutil::split (contrast_string, contrast_values, ",");
+    contrast_size = contrast_values.size();
+    for (int i = 0; i < contrast_size; i++)
+        contrast[i] = (float) atof (contrast_values[i].c_str());
+
+    // If lum=1 then only one pivot and one contrast value must be specified.
+    if (lum && (pivot_size != 1 || contrast_size != 1)) {
+        ot.error (argv[0], "When lum=1, exactly one pivot value and one "
+                  "contrast value must be specified");
+        return 0;
+    }
+
+    // Call the appropriate function.
+    bool ok;
+    if (lum)
+        ok = ImageBufAlgo::contrast_lum (Rib, Aib, contrast[0], pivot[0],
+                                         clamptozero);
+    else
+        ok = ImageBufAlgo::contrast (Rib, Aib, &contrast[0], &pivot[0],
+                                     clamptozero);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -2338,6 +2446,7 @@ getargs (int argc, char *argv[])
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
+                "--contrast %@ %s", action_contrast, NULL, "Modify contrast by applying a formula to all pixels (optional args: pivot, lum, clamp)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",

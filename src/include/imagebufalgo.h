@@ -709,6 +709,36 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             std::ostream *outstream = NULL);
 
 
+/// Scale the pixel-by-pixel difference between the input and a "pivot"
+/// color value.  That is,
+///
+///     R = (A - pivot) * scale + pivot
+///
+/// scale[] and pivot[] give per-channel multiplier and pivot values, and
+/// obviously must be of length at least equal to the number of channels in
+/// the input A and output R (which must be equal).
+///
+/// If clamptozero is true (the default), output pixels will be clamped
+/// to a minimum of zero; if false, it is possible that the output will
+/// end up with negative pixel values.
+///
+/// ROI can be used to restrict the range of pixels in R for which the 
+/// operation is carried out, defaulting to be R's entire pixel data region.
+bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
+                         const float *scale, const float *pivot,
+                         bool clamptozero=true,
+                         ROI roi=ROI::All(), int threads=0);
+
+/// Like ImageBufAlgo::contrast(), but scales each pixel in such a way
+/// as to apply a contrast to the luminance of the image.  This only
+/// works if the number of color channels (non-alpha, non-z) is exactly
+/// 3, and assumes a linear color space.
+bool DLLPUBLIC contrast_lum (ImageBuf &R, const ImageBuf &A,
+                             float scale, float pivot,
+                             bool clamptozero=true,
+                             ROI roi=ROI::All(), int threads=0);
+
+
 
 
 /// Helper template for generalized multithreading for image processing
