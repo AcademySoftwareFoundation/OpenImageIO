@@ -809,17 +809,14 @@ bool
 wrap_mirror (int &coord, int origin, int width)
 {
     coord -= origin;
-    bool negative = (coord < 0);
+    if (coord < 0)
+        coord = -coord - 1;
     int iter = coord / width;    // Which iteration of the pattern?
     coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width;
-        flip = !flip;
-    }
-    if (flip)
+    if (iter & 1)  // Odd iterations -- flip the sense
         coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
+    DASSERT_MSG (coord >= 0 && coord < width,
+                 "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     return true;
 }

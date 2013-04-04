@@ -41,6 +41,35 @@ OIIO_NAMESPACE_USING;
 
 
 
+inline int
+test_wrap (wrap_impl wrap, int coord, int origin, int width)
+{
+    wrap (coord, origin, width);
+    return coord;
+}
+
+
+void
+test_wrapmodes ()
+{
+    const int ori = 0;
+    const int w = 4;
+    static int
+        val[] = {-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -10},
+        cla[] = { 0,  0,  0,  0,  0,  0,  0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3},
+        per[] = { 1,  2,  3,  0,  1,  2,  3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1},
+        mir[] = { 1,  2,  3,  3,  2,  1,  0, 0, 1, 2, 3, 3, 2, 1, 0, 0, 1};
+
+    for (int i = 0; val[i] > -10; ++i) {
+        OIIO_CHECK_EQUAL (test_wrap (wrap_clamp, val[i], ori, w), cla[i]);
+        OIIO_CHECK_EQUAL (test_wrap (wrap_periodic, val[i], ori, w), per[i]);
+        OIIO_CHECK_EQUAL (test_wrap (wrap_periodic_pow2, val[i], ori, w), per[i]);
+        OIIO_CHECK_EQUAL (test_wrap (wrap_mirror, val[i], ori, w), mir[i]);
+    }
+}
+
+
+
 // Test iterators
 template <class ITERATOR>
 void iterator_read_test ()
@@ -237,6 +266,9 @@ void histogram_computation_test ()
 int
 main (int argc, char **argv)
 {
+    test_wrapmodes ();
+
+    // Lots of tests related to ImageBuf::Iterator
     iterator_read_test<ImageBuf::ConstIterator<float> > ();
     iterator_read_test<ImageBuf::Iterator<float> > ();
 
