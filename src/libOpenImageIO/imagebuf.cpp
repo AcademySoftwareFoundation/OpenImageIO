@@ -43,6 +43,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "imagecache.h"
 #include "dassert.h"
 #include "strutil.h"
