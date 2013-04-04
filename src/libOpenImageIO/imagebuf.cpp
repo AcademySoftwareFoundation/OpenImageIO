@@ -624,6 +624,11 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         std::cerr << "going to have to read " << m_name << ": "
                   << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
 #endif
+        // FIXME/N.B. - is it really best to go through the ImageCache
+        // for forced IB reads?  Are there circumstances in which we
+        // should just to a straight read_image() to avoid the extra
+        // copies or the memory use of having bytes both in the cache
+        // and in the IB?
     }
 
     if (convert != TypeDesc::UNKNOWN)
