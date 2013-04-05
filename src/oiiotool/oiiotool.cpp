@@ -2022,6 +2022,30 @@ action_fixnan (int argc, const char *argv[])
 
 
 static int
+action_fillholes (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fillholes, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    // Read and copy the top-of-stack image
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ImageRecRef B (new ImageRec (*A, 0, 0, true, false /*copy_pixels*/));
+    ot.push (B);
+    ImageBuf &Rib ((*B)(0,0));
+
+    bool ok = ImageBufAlgo::fillholes_pushpull (Rib, (*A)(0,0));
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    ot.function_times["fillholes"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_over (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_over, argc, argv))
@@ -2394,6 +2418,8 @@ getargs (int argc, char *argv[])
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
+                "--fillholes %@", action_fillholes, NULL,
+                    "Fill in holes (where alpha is not 1)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",

@@ -547,6 +547,25 @@ bool OIIO_API fixNonFinite(ImageBuf &dst, const ImageBuf &src,
                             int * pixelsFixed=NULL);
 
 
+/// Fill the holes using a push-pull technique.  The src image must have
+/// an alpha channel.  The dst image will end up with a copy of src, but
+/// will have an alpha of 1.0 everywhere, and any place where the alpha
+/// of src was < 1, dst will have a pixel color that is a plausible
+/// "filling" of the original alpha hole.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
+                                  ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Convert an IplImage, used by OpenCV and Intel's Image Libray, and
 /// set ImageBuf dst to be the same image (copying the pixels).  If
 /// convert is not set to UNKNOWN, try to establish dst as holding that

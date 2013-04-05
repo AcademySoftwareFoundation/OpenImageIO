@@ -982,12 +982,21 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{--fixnan {\rm \emph{streategy}}}
-Replace the new image with a copy in which any pixels that contained
+Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
 ``nonfinite'') are repaired.  If \emph{strategy} is {\cf black},
 nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
 {\cf box3}, nonfinite values will be replaced by the average of all the
 finite values within a $3 \times 3$ region surrounding the pixel.
+\apiend
+
+\apiitem{--fillholes}
+Replace the top image with a copy in which any pixels that had
+$\alpha < 1$ are ``filled'' in a smooth way using data from
+surrounding $\alpha > 0$ pixels, resulting in an image that is
+$\alpha = 1$ and plausible color everywhere.
+This can be used both to fill internal ``holes'' as well as to extend an
+image out.
 \apiend
 
 \apiitem{--text {\rm \emph{words}}}

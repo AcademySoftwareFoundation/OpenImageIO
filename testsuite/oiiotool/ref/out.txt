@@ -58,3 +58,5 @@ Comparing "cadd1.exr" and "ref/cadd1.exr"
 PASS
 Comparing "cadd2.exr" and "ref/cadd2.exr"
 PASS
+Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
+PASS
