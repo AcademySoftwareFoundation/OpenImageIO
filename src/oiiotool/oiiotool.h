@@ -140,7 +140,7 @@ public:
 
     ImageRecRef top () { return curimg; }
 
-    void error (const std::string &command, const std::string &explanation);
+    void error (const std::string &command, const std::string &explanation="");
 
 private:
     CallbackFunction m_pending_callback;

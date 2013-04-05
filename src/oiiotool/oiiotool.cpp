@@ -376,10 +376,6 @@ output_file (int argc, const char *argv[])
 {
     ASSERT (argc == 2 && !strcmp(argv[0],"-o"));
 
-    // Don't produce output if we've had a fatal error
-    if (ot.return_value == EXIT_FAILURE)
-        return 0;
-
     Timer timer (ot.enable_function_timing);
     ot.total_writetime.start();
     std::string filename = argv[1];
@@ -1237,6 +1233,10 @@ action_diff (int argc, const char *argv[])
     int ret = do_action_diff (*ot.image_stack.back(), *ot.curimg, ot);
     if (ret != DiffErrOK && ret != DiffErrWarn)
         ot.return_value = EXIT_FAILURE;
+
+    if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
+        ot.error ("Error doing --diff");
+
     ot.function_times["diff"] += timer();
     return 0;
 }
