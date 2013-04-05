@@ -65,6 +65,10 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --ch =0.25,B,G -o chanshuffle.tif >> out.txt ;\n")
 
+# test hole filling
+command += (oiio_app ("oiiotool") + " " 
+            + "ref/hole.tif --fillholes -o tahoe-filled.tif >> out.txt ;\n")
+
 # test sequences
 command += (oiio_app("oiiotool")
             + "fit.tif -o copyA.1-10#.jpg >> out.txt ;\n");
@@ -81,6 +85,7 @@ outputs = [ "filled.tif", "resize.tif", "resize2.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
+            "tahoe-filled.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

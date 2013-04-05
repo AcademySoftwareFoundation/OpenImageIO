@@ -39,6 +39,7 @@
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
@@ -1240,7 +1241,7 @@ bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
 {
-//    IBAprep (roi, &dst, &src);
+    IBAprep (roi, &dst, &src);
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
@@ -1974,6 +1975,106 @@ ImageBufAlgo::histogram_draw (ImageBuf &R,
     }
     return true;
 }
+
+
+
+// Helper for fillholes_pp: for any nonzero alpha pixels in dst, divide
+// all components by alpha.
+static bool
+divide_by_alpha (ImageBuf &dst, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(divide_by_alpha, boost::ref(dst),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    const ImageSpec &spec (dst.spec());
+    ASSERT (spec.format == TypeDesc::FLOAT);
+    int nc = spec.nchannels;
+    int ac = spec.alpha_channel;
+    for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+        float alpha = d[ac];
+        if (alpha != 0.0f) {
+            for (int c = 0; c < nc; ++c)
+                d[c] = d[c] / alpha;
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
+                                  ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    const ImageSpec &dstspec (dst.spec());
+    if (dstspec.nchannels != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dstspec.nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dstspec.alpha_channel < 0 ||
+        dstspec.alpha_channel != src.spec().alpha_channel) {
+        dst.error ("Must have alpha channels");
+        return false;
+    }
+
+    // We generate a bunch of temp images to form an image pyramid.
+    // These give us a place to stash them and make sure they are
+    // auto-deleted when the function exits.
+    std::vector<boost::shared_ptr<ImageBuf> > pyramid;
+
+    // First, make a writeable copy of the original image (converting
+    // to float as a convenience) as the top level of the pyramid.
+    ImageSpec topspec = src.spec();
+    topspec.set_format (TypeDesc::FLOAT);
+    ImageBuf *top = new ImageBuf ("top.exr", topspec);
+    paste (*top, 0, 0, 0, 0, src);
+    pyramid.push_back (boost::shared_ptr<ImageBuf>(top));
+
+    // Construct the rest of the pyramid by successive x/2 resizing and
+    // then dividing nonzero alpha pixels by their alpha (this "spreads
+    // out" the defined part of the image).
+    int w = src.spec().width, h = src.spec().height;
+    while (w > 1 || h > 1) {
+        w = std::max (1, w/2);
+        h = std::max (1, h/2);
+        ImageSpec smallspec (w, h, src.nchannels(), TypeDesc::FLOAT);
+        std::string name = Strutil::format ("small%d.exr", (int)pyramid.size());
+        ImageBuf *small = new ImageBuf (name, smallspec);
+        ImageBufAlgo::resize (*small, *pyramid.back());
+        divide_by_alpha (*small, get_roi(smallspec), nthreads);
+        pyramid.push_back (boost::shared_ptr<ImageBuf>(small));
+        //debug small->save();
+    }
+
+    // Now pull back up the pyramid by doing an alpha composite of level
+    // i over a resized level i+1, thus filling in the alpha holes.  By
+    // time we get to the top, pixels whose original alpha are
+    // unchanged, those with alpha < 1 are replaced by the blended
+    // colors of the higher pyramid levels.
+    for (int i = (int)pyramid.size()-2;  i >= 0;  --i) {
+        ImageBuf &big(*pyramid[i]), &small(*pyramid[i+1]);
+        ImageBuf blowup ("bigger", big.spec());
+        ImageBufAlgo::resize (blowup, small);
+        ImageBufAlgo::over (big, big, blowup);
+        //debug big.save (Strutil::format ("after%d.exr", i));
+    }
+
+    // Now copy the completed base layer of the pyramid back to the
+    // original requested output.
+    paste (dst, dstspec.x, dstspec.y, dstspec.z, 0, *pyramid[0]);
+
+    return true;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT
