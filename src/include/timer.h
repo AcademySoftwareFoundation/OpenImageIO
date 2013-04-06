@@ -94,6 +94,17 @@ public:
     {
         if (startnow)
             start();
+        else {
+            // Initialize m_starttime to avoid warnings
+#ifdef _WIN32
+            m_starttime = 0;
+#elif defined(__APPLE__)
+            m_starttime = 0;
+#else
+            m_starttime.tv_sec = 0;
+            m_starttime.tv_usec = 0;
+#endif
+        }
     }
 
     /// Destructor.
