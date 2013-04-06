@@ -127,6 +127,7 @@ void declare_paramvalue()
     class_<ParamValueList>("ParamValueList")
         .def("__getitem__", &ParamValueList_getitem,
             return_internal_reference<>())
+        .def("__iter__", boost::python::iterator<ParamValueList>())
         .def("__len__",     &ParamValueList::size)
         .def("grow",        &ParamValueList::grow,
             return_internal_reference<>())
