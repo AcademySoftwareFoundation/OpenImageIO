@@ -47,10 +47,14 @@ if (NOT CMAKE_COMPILER_IS_CLANG)
     endif ()
 endif ()
 
-# Strict warnings
+## turn on more detailed warnings and consider warnings as errors
+set (STOP_ON_WARNING ON CACHE BOOL "Stop building if there are any compiler warnings")
 if (NOT MSVC)
     add_definitions ("-Wall")
-endif()
+    if (STOP_ON_WARNING)
+        add_definitions ("-Werror")
+    endif ()
+endif ()
 
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     # CMake doesn't automatically know what do do with
