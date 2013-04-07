@@ -44,6 +44,7 @@
 #include "color.h"
 #include "thread.h"
 
+#include <limits>
 
 #ifndef __OPENCV_CORE_TYPES_H__
 struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
@@ -180,6 +181,50 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
 bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin,
                      const ImageBuf &src, ROI srcroi=ROI());
+
+/// Clamp the values of the pixels of dst in place (specified by roi) as
+/// follows: 
+/// min[0..nchans-1] specifies the minimum clamp value for each channel
+/// (if min is NULL, no minimum clamping is performed).
+/// max[0..nchans-1] specifies the maximum clamp value for each channel
+/// (if max is NULL, no maximum clamping is performed).
+/// If clampalpha01 is true, then additionally any alpha channel is
+/// clamped to the 0-1 range.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API clamp (ImageBuf &dst, 
+                     const float *min=NULL, const float *max=NULL,
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
+
+/// Clamp the values of the pixels of dst in place (specified by roi) as
+/// follows: 
+/// All channels are clamped to [min,max].
+/// If clampalpha01 is true, then additionally any alpha channel is
+/// clamped to the 0-1 range.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API clamp (ImageBuf &dst, 
+                     float min=-std::numeric_limits<float>::max(),
+                     float max=std::numeric_limits<float>::max(),
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
 
 
 /// Add the pixels of two images A and B, putting the sum in dst.

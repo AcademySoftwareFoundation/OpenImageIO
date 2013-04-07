@@ -586,6 +586,12 @@ value contains only numerals (with optional leading minus sign), it will
 be saved as {\cf int} metadata; if it also contains a decimal point, it
 will be saved as {\cf float} metadata; otherwise, it will be saved as
 a {\cf string} metadata.
+
+For example, you could explicitly set the IPTC location metadata fields
+with:
+\begin{code}
+        oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
+\end{code}
 \apiend
 
 \apiitem{--sattrib {\rm \emph{name value}}}
@@ -619,16 +625,6 @@ keywords.
 
 \apiitem{--clear-keywords}
 Clears all existing keywords in the current image.
-\apiend
-
-\apiitem{--attrib {\rm \emph{name text}}}
-Sets the named image metadata attribute to a string given by
-\emph{text}.  For example, you could explicitly set the IPTC location
-metadata fields with:
-
-\begin{code}
-        oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
-\end{code}
 \apiend
 
 \apiitem{--orientation {\rm \emph{orient}}}
@@ -986,7 +982,46 @@ nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
 finite values within a $3 \times 3$ region surrounding the pixel.
 \apiend
 
+\apiitem{--clamp}
+NEW
+Replace the top image with a copy in which pixel values have been
+clamped.  Optional arguments include:
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf min=}\emph{val} & Specify a minimum value for all channels. \\
+ & {\cf min=}\emph{val0,val1,...} & Specify minimum value for each 
+                                    channel individually. \\
+ & {\cf max=}\emph{val} & Specify a maximum value for all channels. \\
+ & {\cf max=}\emph{val0,val1,...} & Specify maximum value for each 
+                                    channel individually. \\
+ & {\cf clampalpha=}\emph{val} & If \emph{val} is nonzero, will 
+                                    additionally clamp the alpha channel
+                                    to [0,1].  (Default: 0, no
+                                    additional alpha clamp.)
+\end{tabular}
+
+If no value is given for either the minimum or maximum, it will NOT
+clamp in that direction.  For the variety of minimum and maximum that
+specify per-channel values, a missing value indicates that the
+corresponding channel should not be clamped.  
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --clamp:min=0} & Clamp all channels to a mimimum of 0 (all \\
+                        &  negative values are changed to 0). \\
+    {\cf --clamp:min=0:max=1} & Clamp all channels to [0,1]. \\
+    {\cf --clamp:clampalpha=1} & Clamp the designated alpha channel to [0,1]. \\
+    {\cf --clamp:min=,,0:max=,,3.0} & Clamp the third channel to [0,3],
+                                      do not clamp \\ & other channels.
+\end{tabular}
+
+\apiend
+
 \apiitem{--fillholes}
+\NEW
 Replace the top image with a copy in which any pixels that had
 $\alpha < 1$ are ``filled'' in a smooth way using data from
 surrounding $\alpha > 0$ pixels, resulting in an image that is

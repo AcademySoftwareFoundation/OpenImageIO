@@ -321,6 +321,71 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<class D>
+static bool
+clamp_ (ImageBuf &dst, const float *min, const float *max,
+        bool clampalpha01, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(clamp_<D>, boost::ref(dst), min, max, clampalpha01,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d) {
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = OIIO::clamp<float> (d[c], min[c], max[c]);
+    }
+    int a = dst.spec().alpha_channel;
+    if (clampalpha01 && a >= roi.chbegin && a < roi.chend) {
+        for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d) {
+            d[a] = OIIO::clamp<float> (d[a], 0.0f, 1.0f);
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::clamp (ImageBuf &dst, const float *min, const float *max,
+                     bool clampalpha01, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    std::vector<float> minvec, maxvec;
+    if (! min) {
+        minvec.resize (dst.nchannels(), -std::numeric_limits<float>::max());
+        min = &minvec[0];
+    }
+    if (! max) {
+        maxvec.resize (dst.nchannels(), std::numeric_limits<float>::max());
+        max = &maxvec[0];
+    }
+    OIIO_DISPATCH_TYPES ("clamp", clamp_, dst.spec().format, dst,
+                         min, max, clampalpha01, roi, nthreads);
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::clamp (ImageBuf &dst, float min, float max,
+                     bool clampalpha01, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    std::vector<float> minvec (dst.nchannels(), min);
+    std::vector<float> maxvec (dst.nchannels(), max);
+    OIIO_DISPATCH_TYPES ("clamp", clamp_, dst.spec().format, dst,
+                         &minvec[0], &maxvec[0], clampalpha01, roi, nthreads);
+    return false;
+}
+
+
+
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
