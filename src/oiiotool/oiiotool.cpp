@@ -1183,7 +1183,7 @@ action_chappend (int argc, const char *argv[])
 static int
 action_selectmip (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_unmip, argc, argv))
+    if (ot.postpone_callback (1, action_selectmip, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -1366,7 +1366,7 @@ action_abs (int argc, const char *argv[])
 static int
 action_cmul (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_abs, argc, argv))
+    if (ot.postpone_callback (1, action_cmul, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -1410,7 +1410,7 @@ action_cmul (int argc, const char *argv[])
 static int
 action_cadd (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_abs, argc, argv))
+    if (ot.postpone_callback (1, action_cadd, argc, argv))
         return 0;
 
     std::vector<std::string> addstrings;
@@ -2080,7 +2080,7 @@ action_over (int argc, const char *argv[])
 static int
 action_zover (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (2, action_over, argc, argv))
+    if (ot.postpone_callback (2, action_zover, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
