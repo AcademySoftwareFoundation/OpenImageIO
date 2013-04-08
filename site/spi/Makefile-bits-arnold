@@ -18,7 +18,7 @@ else
 ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${SP_OS}${variant}/lib"
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
 endif
 endif
 
