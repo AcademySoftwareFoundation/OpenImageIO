@@ -1,6 +1,29 @@
 Changes:
 
 
+Release 1.1.10 (13 Apr 2013)
+----------------------------
+* IBA::fillholes() and oiiotool --fillholes can smoothly fill in alpha
+  holes with nearby colors. Great for extrapolating the empty areas of
+  texture atlas images so that filtered texture lookups pull in a plausible
+  color at part edges.
+* IBA::clamp and oiiotool --clamp clamp pixel values to a scalar or
+  per-channel min and/or max, or clamp alpha to [0,1].
+* IBA::rangecompress()/rangeexpand(), and oiiotool --rangecompress /
+  --rangeexpand compress the excess >1 values of HDR images to a log
+  scale (leaving the <= 1 part linear), and re-expand to the usual
+  linear scale.  This is very helpful to reduce ringing artifacts that
+  can happen when an HDR image is resized with a good filter with negative
+  lobes (such as lanczos3), by doing a range compression, then the resize,
+  then range expansion. It's not mathematically correct and loses energy,
+  but it often makes a much more pleasing result.
+* maketx --hicomp does highlight compression -- automatically doing a
+  range compress before each high-quality resize step, and then a
+  range expansion and clamp-to-zero (squash negative pixels) after 
+  each resize.
+* DPX - when writing DPX files, properly set the pixel aspect ratio.
+
+
 Release 1.1.9 (2 Apr 2013)
 --------------------------
 * IBA::resize and oiiotool --resize/--fit: Bug fixes to resize filter
