@@ -65,6 +65,62 @@
 OIIO_NAMESPACE_ENTER
 {
 
+namespace ImageBufAlgo {
+void IBAprep (ROI &roi, ImageBuf *dst,
+              const ImageBuf *A=NULL, const ImageBuf *B=NULL);
+}
+
+
+void
+ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
+                       const ImageBuf *A, const ImageBuf *B)
+{
+    if (dst->initialized()) {
+        // Valid destination image.  Just need to worry about ROI.
+        if (roi.defined()) {
+            // Shrink-wrap ROI to the destination (including chend)
+            roi = roi_intersection (roi, get_roi(dst->spec()));
+        } else {
+            // No ROI? Set it to all of dst's pixel window.
+            roi = get_roi (dst->spec());
+        }
+    } else {
+        // Not an initialized destination image!
+        ASSERT ((A || roi.defined()) &&
+                "ImageBufAlgo without any guess about region of interest");
+        if (! roi.defined()) {
+            // No ROI -- make it the union of the pixel regions of the inputs
+            roi = get_roi (A->spec());
+            if (B)
+                roi = roi_union (roi, get_roi (B->spec()));
+        } else {
+            roi.chend = std::min (roi.chend, A->nchannels());
+        }
+        // Now we allocate space for dst.  Give it A's spec, but adjust
+        // the dimensions to match the ROI.
+        ImageSpec spec;
+        if (A) {
+            // If there's an input image, give dst A's spec (with
+            // modifications detailed below...)
+            spec = A->spec();
+            // For two inputs, if they aren't the same data type, punt and
+            // allocate a float buffer. If the user wanted something else,
+            // they should have pre-allocated dst with their desired format.
+            if (B && A->spec().format != B->spec().format)
+                spec.set_format (TypeDesc::FLOAT);
+        } else {
+            spec.set_format (TypeDesc::FLOAT);
+            spec.nchannels = roi.chend;
+            spec.default_channel_names ();
+        }
+        // Set the image dimensions based on ROI.
+        set_roi (spec, roi);
+        dst->alloc (spec);
+    }
+}
+
+
+
 namespace
 {
 
