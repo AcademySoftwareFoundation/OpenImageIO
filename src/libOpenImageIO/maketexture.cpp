@@ -196,17 +196,6 @@ copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 
 
 
-// Resize src into dst using a good quality filter,
-// for the pixel range [x0,x1) x [y0,y1).
-static void
-resize_block_HQ (ImageBuf &dst, const ImageBuf &src, ROI roi, Filter2D *filter)
-{
-    int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
-    ImageBufAlgo::resize (dst, src, x0, x1, y0, y1, filter);
-}
-
-
-
 template<class SRCTYPE>
 static void
 interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
@@ -536,6 +525,8 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
     if (envlatlmode && src_samples_border)
         fix_latl_edges (*img);
 
+    bool do_highlight_compensation = configspec.get_int_attribute ("maketx:highlightcomp", 0);
+
     Timer writetimer;
     if (! out->open (outputfilename.c_str(), outspec)) {
         outstream << "maketx ERROR: Could not open \"" << outputfilename
@@ -638,8 +629,13 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                         outstream << "  Downsampling filter \"" << filter->name() 
                                   << "\" width = " << filter->width() << "\n";
                     }
-                    ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*small), boost::cref(*img), _1, filter),
-                                                  OIIO::get_roi(small->spec()));
+                    if (do_highlight_compensation)
+                        ImageBufAlgo::rangecompress (*img);
+                    ImageBufAlgo::resize (*small, *img, filter);
+                    if (do_highlight_compensation) {
+                        ImageBufAlgo::rangeexpand (*small);
+                        ImageBufAlgo::clamp (*small, 0.0f, std::numeric_limits<float>::max(), true);
+                    }
                     Filter2D::destroy (filter);
                 }
             }
@@ -1215,7 +1211,6 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                   << " and an input image with overscan.";
         return false;
     }
-
     std::string filtername = configspec.get_string_attribute ("maketx:filtername", "box");
 
     double misc_time_3 = alltime.lap(); 
@@ -1246,8 +1241,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                 outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
                 return false;
             }
-            ImageBufAlgo::parallel_image (boost::bind(resize_block_HQ, boost::ref(*toplevel), boost::cref(*src), _1, filter),
-                                          OIIO::get_roi(dstspec));
+            ImageBufAlgo::resize (*toplevel, *src, filter);
             Filter2D::destroy (filter);
         }
     }

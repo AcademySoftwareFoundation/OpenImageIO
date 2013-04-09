@@ -83,6 +83,7 @@ static double stat_colorconverttime = 0;
 static bool checknan = false;
 static std::string fixnan = "none"; // none, black, box3
 static bool set_full_to_pixels = false;
+static bool do_highlight_compensation = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
@@ -253,6 +254,8 @@ getargs (int argc, char *argv[])
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s", &filtername, filter_help_string().c_str(),
+                  "--hicomp", &do_highlight_compensation,
+                          "Compress HDR range before resize, expand after.",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
                   "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
@@ -1338,11 +1341,18 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                                     small->xbegin(), small->xend(),
                                     small->ybegin(), small->yend(),
                                     nthreads);
-                else
+                else {
+                    if (do_highlight_compensation)
+                        ImageBufAlgo::rangecompress (*big);
                     parallel_image (resize_block_HQ, small, big,
                                     small->xbegin(), small->xend(),
                                     small->ybegin(), small->yend(),
                                     nthreads);
+                    if (do_highlight_compensation) {
+                        ImageBufAlgo::rangeexpand (*small);
+                        ImageBufAlgo::clamp (*small, 0.0f, std::numeric_limits<float>::max(), true);
+                    }
+                }
             }
 
             stat_miptime += miptimer();
@@ -1406,6 +1416,7 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
     bool checknan = false;
     std::string fixnan; // none, black, box3
     bool set_full_to_pixels = false;
+    bool do_highlight_compensation = false;
     std::string filtername;
     // Options controlling file metadata or mipmap creation
     float fovcot = 0.0f;
@@ -1458,6 +1469,8 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s", &filtername, filter_help_string().c_str(),
+                  "--hicomp", &do_highlight_compensation,
+                          "Compress HDR range before resize, expand after.",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
                   "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
@@ -1579,6 +1592,7 @@ newmode_getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:checknan", checknan);
     configspec.attribute ("maketx:fixnan", fixnan);
     configspec.attribute ("maketx:set_full_to_pixels", set_full_to_pixels);
+    configspec.attribute ("maketx:highlightcomp", (int)do_highlight_compensation);
     if (filtername.size())
         configspec.attribute ("maketx:filtername", filtername);
     configspec.attribute ("maketx:nchannels", nchannels);
