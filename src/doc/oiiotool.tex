@@ -983,7 +983,7 @@ finite values within a $3 \times 3$ region surrounding the pixel.
 \apiend
 
 \apiitem{--clamp}
-NEW
+\NEW
 Replace the top image with a copy in which pixel values have been
 clamped.  Optional arguments include:
 
@@ -1018,6 +1018,41 @@ corresponding channel should not be clamped.
                                       do not clamp \\ & other channels.
 \end{tabular}
 
+\apiend
+
+\apiitem{--rangecompress \\
+--rangeexpand}
+\NEW
+Range compression re-maps input values so that values $\le 1$ are
+unchanged, and values $> 1$ are encoded on a logarithmic scale, with a
+smooth transition between them.  Range expansion is the inverse
+mapping.  Range compression and expansion only applies to color
+channels; alpha or z channels will not be modified.
+
+If the image has at least 3 channels and the first three channels are
+not alpha or depth, they will be assumed to be RGB and the pixel scaling
+will be done using the luminance and applied equally to all color
+channels. This helps to preserve color even when remapping intensity.
+If these conditions are not met, or if this behavior is explicitly
+turned off with the optional {\cf luma=0} modifier, the remapping will
+happen to each color channel independently.
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf luma=}\emph{val} & If \emph{val} is 0, turns off the luma behavior.
+\end{tabular}
+
+Range compression and expansion can be useful in cases where high
+contrast super-white ($> 1$) pixels (such as very bright highlights in
+HDR captured or rendered images) can produce undesirable artifacts, such
+as if you resize an HDR image using a filter with negative lobes --
+which could result in objectionable ringing or even negative result
+pixel values.  For example,
+
+\begin{smallcode}
+    oiiotool hdr.exr --rangecompress --resize 512x512 --rangeexpand -o resized.exr
+\end{smallcode}
 \apiend
 
 \apiitem{--fillholes}

@@ -2104,6 +2104,76 @@ action_clamp (int argc, const char *argv[])
 
 
 static int
+action_rangecompress (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rangecompress, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::vector<std::string> addstrings;
+    Strutil::split (std::string(argv[1]), addstrings, ",");
+    if (addstrings.size() < 1)
+        return 0;   // Implicit addition by 0 if we can't figure it out
+
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    std::string useluma_str = options["luma"];
+    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) : true;
+
+    ImageRecRef A = ot.pop();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            ImageBufAlgo::rangecompress ((*R)(s,m), useluma);
+        }
+    }
+
+    ot.function_times["rangecompress"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rangeexpand (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rangeexpand, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::vector<std::string> addstrings;
+    Strutil::split (std::string(argv[1]), addstrings, ",");
+    if (addstrings.size() < 1)
+        return 0;   // Implicit addition by 0 if we can't figure it out
+
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    std::string useluma_str = options["luma"];
+    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) : true;
+
+    ImageRecRef A = ot.pop();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            ImageBufAlgo::rangeexpand ((*R)(s,m), useluma);
+        }
+    }
+
+    ot.function_times["rangeexpand"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_text (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_text, argc, argv))
@@ -2348,6 +2418,10 @@ getargs (int argc, char *argv[])
                     "Fill in holes (where alpha is not 1)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
+                "--rangecompress %@", action_rangecompress, NULL,
+                    "Compress the range of pixel values > 1 with a log scale (options: luma=0|1)",
+                "--rangeexpand %@", action_rangeexpand, NULL,
+                    "Un-rangecompress pixel values > 1 (options: luma=0|1)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Image stack manipulation:",
