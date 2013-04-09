@@ -2108,7 +2108,6 @@ action_rangecompress (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_rangecompress, argc, argv))
         return 0;
-    Timer timer (ot.enable_function_timing);
 
     std::vector<std::string> addstrings;
     Strutil::split (std::string(argv[1]), addstrings, ",");
@@ -2132,7 +2131,6 @@ action_rangecompress (int argc, const char *argv[])
         }
     }
 
-    ot.function_times["rangecompress"] += timer();
     return 0;
 }
 
@@ -2143,7 +2141,6 @@ action_rangeexpand (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_rangeexpand, argc, argv))
         return 0;
-    Timer timer (ot.enable_function_timing);
 
     std::vector<std::string> addstrings;
     Strutil::split (std::string(argv[1]), addstrings, ",");
@@ -2167,7 +2164,6 @@ action_rangeexpand (int argc, const char *argv[])
         }
     }
 
-    ot.function_times["rangeexpand"] += timer();
     return 0;
 }
 
