@@ -502,8 +502,10 @@ bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL,
                                ROI roi = ROI::All(), int nthreads=0);
 
 /// Does the requested channel have a given value over the ROI?  (For
-/// this function, the ROI's chbegin/chend are ignored.)  Return true
-/// if so, otherwise return false;
+/// this function, the ROI's chbegin/chend are ignored.)  Return true if
+/// so, otherwise return false.  If roi is not defined (the default), it
+/// will be understood to be all of the defined pixels and channels of
+/// source.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -514,10 +516,19 @@ bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL,
 bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val,
                                  ROI roi = ROI::All(), int nthreads = 0);
 
-/// Is the image monochrome? (i.e., are all channels the same value?)
-/// zero and one channel images always return true
-/// (current subimage, and current mipmap level)
-bool OIIO_API isMonochrome(const ImageBuf &src);
+/// Is the image monochrome within the ROI, i.e., for all pixels within
+/// the region, do all channels [roi.chbegin, roi.chend) have the same
+/// value?  If roi is not defined (the default), it will be understood
+/// to be all of the defined pixels and channels of source.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+bool OIIO_API isMonochrome (const ImageBuf &src,
+                            ROI roi = ROI::All(), int nthreads = 0);
 
 /// Compute the SHA-1 byte hash for all the pixels in the specifed
 /// region of the image.  If blocksize > 0, the function will compute

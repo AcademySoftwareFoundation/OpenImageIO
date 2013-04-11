@@ -1125,37 +1125,42 @@ ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
     // don't actually split by threads.  Maybe later.
 };
 
-namespace
-{
+
 
 template<typename T>
 static inline bool
-isMonochrome_ (const ImageBuf &src, int dummy)
+isMonochrome_ (const ImageBuf &src, ROI roi, int nthreads)
 {
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
     
     // Loop over all pixels ...
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s) {
-        T constvalue = s[0];
-        for (int c = 1;  c < nchannels;  ++c) {
-            if (s[c] != constvalue) {
+    for (ImageBuf::ConstIterator<T,T> s(src, roi);  ! s.done();  ++s) {
+        T constvalue = s[roi.chbegin];
+        for (int c = roi.chbegin+1;  c < roi.chend;  ++c)
+            if (s[c] != constvalue)
                 return false;
-            }
-        }
     }
-    
     return true;
 }
 
-}
 
 
 bool
-ImageBufAlgo::isMonochrome(const ImageBuf &src)
+ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    if (roi.nchannels() < 2)
+        return true;  // 1 or fewer channels are always "monochrome"
+
     OIIO_DISPATCH_TYPES ("isMonochrome", isMonochrome_, src.spec().format,
-                         src, 0);
+                         src, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
 
