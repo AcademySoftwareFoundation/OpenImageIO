@@ -1548,108 +1548,94 @@ namespace
 inline bool isfinite (half h) { return h.isFinite(); }
 
 
-template<typename SRCTYPE>
-bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
-                    ImageBufAlgo::NonFiniteFixMode mode,
-                    int * pixelsFixed)
+template<typename T>
+bool fixNonFinite_ (ImageBuf &dst, ImageBufAlgo::NonFiniteFixMode mode,
+                    int *pixelsFixed, ROI roi, int nthreads)
 {
-    if (mode == ImageBufAlgo::NONFINITE_NONE) {
-        if (! dst.copy (src))
-            return false;
-        if (pixelsFixed) *pixelsFixed = 0;
+    if (mode != ImageBufAlgo::NONFINITE_NONE &&
+        mode != ImageBufAlgo::NONFINITE_BLACK &&
+        mode != ImageBufAlgo::NONFINITE_BOX3) {
+        // Something went wrong
+        dst.error ("fixNonFinite: unknown repair mode");
+        return false;
+    }
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fixNonFinite_<T>, boost::ref(dst), mode, pixelsFixed,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
         return true;
     }
-    else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
-        // Replace non-finite pixels with black
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        while (pixel.valid()) {
-            bool fixed = false;
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
+
+    // Serial case
+
+    ROI dstroi = get_roi (dst.spec());
+    int count = 0;   // Number of pixels with nonfinite values
+
+    if (mode == ImageBufAlgo::NONFINITE_NONE) {
+        // Just count the number of pixels with non-finite values
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
                 if (! isfinite(value)) {
-                    (*pixel)[c] = 0.0;
+                    ++count;
+                    break;  // only count one per pixel
+                }
+            }
+        }
+    } else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
+        // Replace non-finite pixels with black
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
+            bool fixed = false;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
+                if (! isfinite(value)) {
+                    pixel[c] = T(0.0);
                     fixed = true;
                 }
             }
-            
-            if (fixed) ++count;
-            ++pixel;
+            if (fixed)
+                ++count;
         }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
-    }
-    else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
+    } else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
         // Replace non-finite pixels with a simple 3x3 window average
         // (the average excluding non-finite pixels, of course)
-        // 
-        // Warning: There is an inherent bug in this approach when src == dst
-        // As you progress across the image, the output buffer is also used
-        // as the input so there will be a directionality preference in the filling
-        // (I.e., updated values will be used only in the traversal direction).
-        // One can visualize this by disabling the isfinite check.
-
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        const int boxwidth = 1;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        
-        while (pixel.valid()) {
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
             bool fixed = false;
-            
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
                 if (! isfinite (value)) {
                     int numvals = 0;
-                    SRCTYPE sum = 0.0;
-                    
-                    int top    = pixel.x() - boxwidth;
-                    int bottom = pixel.x() + boxwidth;
-                    int left   = pixel.y() - boxwidth;
-                    int right  = pixel.y() + boxwidth;
-                    
-                    ImageBuf::Iterator<SRCTYPE,SRCTYPE> it (dst, top, bottom, left, right);
-                    while (it.valid()) {
-                        SRCTYPE v = it[c];
+                    T sum (0.0);
+                    ROI roi2 (pixel.x()-1, pixel.x()+2,
+                              pixel.y()-1, pixel.y()+2,
+                              pixel.z()-1, pixel.z()+2);
+                    roi2 = roi_intersection (roi2, dstroi);
+                    for (ImageBuf::Iterator<T,T> i(dst,roi2); !i.done(); ++i) {
+                        T v = i[c];
                         if (isfinite (v)) {
                             sum += v;
-                            numvals ++;
+                            ++numvals;
                         }
-                        ++it;
                     }
-                    
-                    if (numvals>0) {
-                        (*pixel)[c] = sum/numvals;
-                        fixed = true;
-                    }
-                    else {
-                        (*pixel)[c] = 0.0;
-                        fixed = true;
-                    }
+                    pixel[c] = numvals ? T(sum / numvals) : T(0.0);
+                    fixed = true;
                 }
             }
-            
-            if (fixed) ++count;
-            ++pixel;
+            if (fixed)
+                ++count;
         }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
     }
     
-    return false;
+    if (pixelsFixed) {
+        // Update pixelsFixed atomically -- that's what makes this whole
+        // function thread-safe.
+        *(atomic_int *)pixelsFixed += count;
+    }
+
+    return true;
 }
 
 } // anon namespace
@@ -1658,28 +1644,52 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
 
 /// Fix all non-finite pixels (nan/inf) using the specified approach
 bool
-ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode, int * pixelsFixed)
+ImageBufAlgo::fixNonFinite (ImageBuf &src, 
+                            NonFiniteFixMode mode, int *pixelsFixed,
+                            ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    // Initialize
+    if (pixelsFixed)
+        *pixelsFixed = 0;
+
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :
-        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<float> (src, mode, pixelsFixed, roi, nthreads);
     case TypeDesc::HALF  :
-        return fixNonFinite_<half> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<half> (src, mode, pixelsFixed, roi, nthreads);
     case TypeDesc::DOUBLE:
-        return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<double> (src, mode, pixelsFixed, roi, nthreads);
     default:
-        break;
+        // All other format types aren't capable of having nonfinite
+        // pixel values.
+        return true;
     }
-    
-    // Non-float images cannot have non-finite pixels,
-    // so all we have to do is copy the image and return
-    if (! dst.copy (src))
-        return false;
-    if (pixelsFixed) *pixelsFixed = 0;
-    return true;
 }
 
+
+
+// DEPRECATED 2-argument version
+bool
+ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode, int *pixelsFixed)
+{
+    ROI roi;
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if ((const ImageBuf *)&dst != &src)
+        if (! dst.copy (src))
+            return false;
+    return fixNonFinite (dst, mode, pixelsFixed, roi);
+}
 
 
 namespace {   // anonymous namespace

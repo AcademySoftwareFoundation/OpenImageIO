@@ -583,10 +583,39 @@ enum OIIO_API NonFiniteFixMode
     NONFINITE_BOX3 = 2,     ///< Replace nonfinite pixels with 3x3 finite average
 };
 
-/// Fix all non-finite pixels (nan/inf) using the specified approach
-bool OIIO_API fixNonFinite(ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode=NONFINITE_BOX3,
-                            int * pixelsFixed=NULL);
+/// Examine the values of src within the pixel and channel range
+/// designated by roi, and repair any non-finite (NaN/Inf) pixels.
+/// If pixelsFound is not NULL, store in it the number of pixels that
+/// contained non-finite value.
+///
+/// How the non-finite values are repaired
+/// is specified by one of the following modes:
+///   NONFINITE_NONE   do not alter the pixels (but do count the number
+///                       of nonfinite pixels in *pixelsFixed, if non-NULL).
+///   NONFINITE_BLACK  change non-finite values to 0.
+///   NONFINITE_BOX3   replace non-finite values by the average of any
+///                       finite pixels within a 3x3 window.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types, though it's a no-op for images with
+/// pixel data types that cannot represent NaN or Inf values.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API fixNonFinite (ImageBuf &dst, NonFiniteFixMode mode=NONFINITE_BOX3,
+                            int *pixelsFixed = NULL,
+                            ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED as of 1.2. Instead, use
+///     dst.copy(src);
+///     return fixNonFinite (dst, mode, pixelsFixed);
+bool OIIO_API fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode = NONFINITE_BOX3,
+                            int *pixelsFixed = NULL);
 
 
 /// Fill the holes using a push-pull technique.  The src image must have
