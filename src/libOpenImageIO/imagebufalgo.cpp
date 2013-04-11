@@ -1031,7 +1031,7 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                           A.spec().format, B.spec().format,
                           A, B, failthresh, warnthresh, result,
                           roi, nthreads);
-    // N.B. The nthreads argument is for symmetry with the rest of
+    // FIXME - The nthreads argument is for symmetry with the rest of
     // ImageBufAlgo and for future expansion. But for right now, we
     // don't actually split by threads.  Maybe later.
     return false;
@@ -1039,46 +1039,56 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
 
 
 
-namespace
-{
-
 template<typename T>
 static inline bool
-isConstantColor_ (const ImageBuf &src, float *color)
+isConstantColor_ (const ImageBuf &src, float *color,
+                  ROI roi, int nthreads)
 {
-    int nchannels = src.nchannels();
-    if (nchannels == 0)
-        return true;
-    
     // Iterate using the native typing (for speed).
-    ImageBuf::ConstIterator<T,T> s (src);
-    if (! s.valid())
-        return true;
-
-    // Store the first pixel
-    std::vector<T> constval (nchannels);
-    for (int c = 0;  c < nchannels;  ++c)
+    std::vector<T> constval (roi.nchannels());
+    ImageBuf::ConstIterator<T,T> s (src, roi);
+    for (int c = roi.chbegin;  c < roi.chend;  ++c)
         constval[c] = s[c];
 
     // Loop over all pixels ...
-    for ( ; s.valid ();  ++s) {
-        for (int c = 0;  c < nchannels;  ++c)
+    for ( ; ! s.done();  ++s) {
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
             if (constval[c] != s[c])
                 return false;
     }
     
-    if (color)
-        src.getpixel (src.xbegin(), src.ybegin(), src.zbegin(), color);
+    if (color) {
+        ImageBuf::ConstIterator<T,float> s (src, roi);
+        for (int c = 0;  c < roi.chbegin; ++c)
+            color[c] = 0.0f;
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            color[c] = s[c];
+        for (int c = roi.chend;  c < src.nchannels(); ++c)
+            color[c] = 0.0f;
+    }
+
     return true;
 }
 
-}
+
 
 bool
-ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
+ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
+                               ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    if (roi.nchannels() == 0)
+        return true;
+    
     OIIO_DISPATCH_TYPES ("isConstantColor", isConstantColor_,
-                         src.spec().format, src, color);
+                         src.spec().format, src, color, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
 

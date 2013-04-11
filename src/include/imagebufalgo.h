@@ -486,10 +486,22 @@ bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
 int OIIO_API compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
                            float luminance = 100, float fov = 45);
 
-/// Do all pixels for the entire image have the same channel values?  If
-/// color is not NULL, that constant value will be stored in
-/// color[0..nchannels-1].
-bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL);
+/// Do all pixels within the ROI have the same values for channels
+/// [roi.chbegin..roi.chend-1]?  If so, return true and store that color
+/// in color[chbegin...chend-1] (if color != NULL); otherwise return
+/// false.  If roi is not defined (the default), it will be understood
+/// to be all of the defined pixels and channels of source.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error.
+bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL,
+                               ROI roi = ROI::All(), int nthreads=0);
 
 /// Does the requested channel have a given value over the entire image?
 ///
