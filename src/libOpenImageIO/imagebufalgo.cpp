@@ -1095,13 +1095,12 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
 
 template<typename T>
 static inline bool
-isConstantChannel_ (const ImageBuf &src, int channel, float val)
+isConstantChannel_ (const ImageBuf &src, int channel, float val,
+                    ROI roi, int nthreads)
 {
-    if (channel < 0 || channel >= src.nchannels())
-        return false;  // that channel doesn't exist in the image
 
     T v = convert_type<float,T> (val);
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s)
+    for (ImageBuf::ConstIterator<T,T> s(src, roi);  !s.done();  ++s)
         if (s[channel] != v)
             return false;
     return true;
@@ -1109,10 +1108,21 @@ isConstantChannel_ (const ImageBuf &src, int channel, float val)
 
 
 bool
-ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
+ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
+                                 ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+
+    if (channel < 0 || channel >= src.nchannels())
+        return false;  // that channel doesn't exist in the image
+
     OIIO_DISPATCH_TYPES ("isConstantChannel", isConstantChannel_,
-                         src.spec().format, src, channel, val);
+                         src.spec().format, src, channel, val, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
 namespace

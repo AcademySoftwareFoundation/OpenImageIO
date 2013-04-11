@@ -498,14 +498,21 @@ int OIIO_API compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
 /// guarantees that it will not launch any new threads.
 ///
 /// Works for all pixel types.
-///
-/// Return true on success, false on error.
 bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL,
                                ROI roi = ROI::All(), int nthreads=0);
 
-/// Does the requested channel have a given value over the entire image?
+/// Does the requested channel have a given value over the ROI?  (For
+/// this function, the ROI's chbegin/chend are ignored.)  Return true
+/// if so, otherwise return false;
 ///
-bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val);
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val,
+                                 ROI roi = ROI::All(), int nthreads = 0);
 
 /// Is the image monochrome? (i.e., are all channels the same value?)
 /// zero and one channel images always return true
