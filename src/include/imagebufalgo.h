@@ -455,14 +455,27 @@ struct CompareResults {
     imagesize_t nwarn, nfail;
 };
 
-/// Numerically compare two images.  The images must be the same size
-/// and number of channels, and must both be FLOAT data.  The difference
-/// threshold (for any individual color channel in any pixel) for a
-/// "failure" is failthresh, and for a "warning" is warnthresh.  The
-/// results are stored in result.
+/// Numerically compare two images.  The difference threshold (for any
+/// individual color channel in any pixel) for a "failure" is
+/// failthresh, and for a "warning" is warnthresh.  The results are
+/// stored in result.  If roi is defined, pixels will be compared for
+/// the pixel and channel range that is specified.  If roi is not
+/// defined, the comparison will be for all channels, on the union of
+/// the defined pixel windows of the two images (for either image,
+/// undefined pixels will be assumed to be black).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error.
 bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
-                        float failthresh, float warnthresh,
-                        CompareResults &result);
+                       float failthresh, float warnthresh,
+                       CompareResults &result,
+                       ROI roi = ROI::All(), int nthreads=0);
 
 /// Compare two images using Hector Yee's perceptual metric, returning
 /// the number of pixels that fail the comparison.  The images must be

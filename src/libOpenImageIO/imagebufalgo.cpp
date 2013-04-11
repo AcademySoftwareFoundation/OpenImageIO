@@ -917,7 +917,7 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
         result.maxerror = f;
         result.maxx = a.x();
         result.maxy = a.y();
-        result.maxz = 0;  // FIXME -- doesn't work for volume images
+        result.maxz = a.z();
         result.maxc = chan;
     }
     if (! warned && f > warnthresh) {
@@ -932,18 +932,16 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
 
 
 
-bool
-ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
-                       float failthresh, float warnthresh,
-                       ImageBufAlgo::CompareResults &result)
+template <class Atype, class Btype>
+static bool
+compare_ (const ImageBuf &A, const ImageBuf &B,
+          float failthresh, float warnthresh,
+          ImageBufAlgo::CompareResults &result,
+          ROI roi, int nthreads)
 {
-    if (A.spec().format != TypeDesc::FLOAT &&
-        B.spec().format != TypeDesc::FLOAT) {
-        A.error ("ImageBufAlgo::compare only works on 'float' images.");
-        return false;
-    }
-    int npels = A.spec().width * A.spec().height * A.spec().depth;
-    int nvals = npels * A.spec().nchannels;
+    imagesize_t npels = roi.npixels();
+    imagesize_t nvals = npels * roi.nchannels();
+    int Achannels = A.nchannels(), Bchannels = B.nchannels();
 
     // Compare the two images.
     //
@@ -953,22 +951,20 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     result.maxx=0, result.maxy=0, result.maxz=0, result.maxc=0;
     result.nfail = 0, result.nwarn = 0;
     float maxval = 1.0;  // max possible value
-    ImageBuf::ConstIterator<float,float> a (A);
-    ImageBuf::ConstIterator<float,float> b (B);
+
+    ImageBuf::ConstIterator<Atype> a (A, roi, ImageBuf::WrapBlack);
+    ImageBuf::ConstIterator<Btype> b (B, roi, ImageBuf::WrapBlack);
     bool deep = A.deep();
-    if (B.deep() != A.deep())
-        return false;
     // Break up into batches to reduce cancelation errors as the error
     // sums become too much larger than the error for individual pixels.
     const int batchsize = 4096;   // As good a guess as any
-    for ( ;  a.valid();  ) {
+    for ( ;  ! a.done();  ) {
         double batcherror = 0;
         double batch_sqrerror = 0;
         if (deep) {
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
+            for (int i = 0;  i < batchsize && !a.done();  ++i, ++a, ++b) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
                     for (int s = 0, e = a.deep_samples(); s < e;  ++s) {
                         compare_value (a, c, a.deep_value(c,s),
                                        b.deep_value(c,s), result, maxval,
@@ -977,12 +973,12 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                     }
             }
         } else {  // non-deep
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
+            for (int i = 0;  i < batchsize && !a.done();  ++i, ++a, ++b) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
-                    compare_value (a, c, a[c], b[c], result, maxval,
-                                   batcherror, batch_sqrerror,
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    compare_value (a, c, c < Achannels ? a[c] : 0.0f,
+                                   c < Bchannels ? b[c] : 0.0f,
+                                   result, maxval, batcherror, batch_sqrerror,
                                    failed, warned, failthresh, warnthresh);
             }
         }
@@ -993,6 +989,34 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     result.rms_error = sqrt (totalsqrerror / nvals);
     result.PSNR = 20.0 * log10 (maxval / result.rms_error);
     return result.nfail == 0;
+}
+
+
+
+bool
+ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
+                       float failthresh, float warnthresh,
+                       ImageBufAlgo::CompareResults &result,
+                       ROI roi, int nthreads)
+{
+    // If no ROI is defined, use the union of the data windows of the two
+    // images.
+    if (! roi.defined())
+        roi = roi_union (get_roi(A.spec()), get_roi(B.spec()));
+    roi.chend = std::min (roi.chend, std::max(A.nchannels(), B.nchannels()));
+
+    // Deep and non-deep images cannot be compared
+    if (B.deep() != A.deep())
+        return false;
+
+    OIIO_DISPATCH_TYPES2 ("compare", compare_,
+                          A.spec().format, B.spec().format,
+                          A, B, failthresh, warnthresh, result,
+                          roi, nthreads);
+    // N.B. The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
+    return false;
 }
 
 
