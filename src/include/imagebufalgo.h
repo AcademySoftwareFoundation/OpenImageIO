@@ -428,8 +428,7 @@ struct OIIO_API PixelStats {
 
 
 /// Compute statistics about the ROI of the specified image. Upon success,
-/// the returned vectors will have size == numchannels.  A FLOAT
-/// ImageBuf is required.
+/// the returned vectors will have size == src.nchannels().
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use

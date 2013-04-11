@@ -829,9 +829,10 @@ finalize (ImageBufAlgo::PixelStats &p)
 
 
 
-bool
-ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
-                                 ROI roi, int nthreads)
+template <class T>
+static bool
+computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
+                    ROI roi, int nthreads)
 {
     if (! roi.defined())
         roi = get_roi (src.spec());
@@ -839,10 +840,6 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
         roi.chend = std::min (roi.chend, src.nchannels());
 
     int nchannels = src.spec().nchannels;
-    if (nchannels == 0) {
-        src.error ("%d-channel images not supported", nchannels);
-        return false;
-    }
 
     // Use local storage for smaller batches, then merge the batches
     // into the final results.  This preserves precision for large
@@ -853,7 +850,7 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     // This approach works best when the batch size is the sqrt of
     // numpixels, which makes the num batches roughly equal to the
     // number of pixels / batch.
-    PixelStats tmp;
+    ImageBufAlgo::PixelStats tmp;
     reset (tmp, nchannels);
     reset (stats, nchannels);
     
@@ -862,11 +859,11 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     
     if (src.deep()) {
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
+        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
             int samples = s.deep_samples();
             if (! samples)
                 continue;
-            for (int c = 0;  c < nchannels;  ++c) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 for (int i = 0;  i < samples;  ++i) {
                     float value = s.deep_value (c, i);
                     val (tmp, c, value);
@@ -879,8 +876,8 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
         }
     } else {  // Non-deep case
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
-            for (int c = 0;  c < nchannels;  ++c) {
+        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 float value = s[c];
                 val (tmp, c, value);
                 if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
@@ -899,6 +896,27 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     
     return true;
 };
+
+
+
+bool
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    else
+        roi.chend = std::min (roi.chend, src.nchannels());
+    int nchannels = src.spec().nchannels;
+    if (nchannels == 0) {
+        src.error ("%d-channel images not supported", nchannels);
+        return false;
+    }
+
+    OIIO_DISPATCH_TYPES ("computePixelStats", computePixelStats_,
+                         src.spec().format, src, stats, roi, nthreads);
+    return false;
+}
 
 
 
