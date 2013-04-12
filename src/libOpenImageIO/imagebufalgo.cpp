@@ -128,13 +128,18 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         // Not an initialized destination image!
         ASSERT ((A || roi.defined()) &&
                 "ImageBufAlgo without any guess about region of interest");
+        ROI full_roi;
         if (! roi.defined()) {
             // No ROI -- make it the union of the pixel regions of the inputs
             roi = get_roi (A->spec());
-            if (B)
+            full_roi = get_roi_full (A->spec());
+            if (B) {
                 roi = roi_union (roi, get_roi (B->spec()));
+                full_roi = roi_union (full_roi, get_roi_full (B->spec()));
+            }
         } else {
             roi.chend = std::min (roi.chend, A->nchannels());
+            full_roi = roi;
         }
         // Now we allocate space for dst.  Give it A's spec, but adjust
         // the dimensions to match the ROI.
@@ -155,6 +160,10 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         }
         // Set the image dimensions based on ROI.
         set_roi (spec, roi);
+        if (full_roi.defined())
+            set_roi_full (spec, full_roi);
+        else
+            set_roi_full (spec, roi);
         dst->alloc (spec);
     }
 }
@@ -709,6 +718,46 @@ ImageBufAlgo::add (ImageBuf &R, float val, ROI roi, int nthreads)
     return add (R, vals, roi, nthreads);
 }
 
+
+
+
+template<class Rtype, class Atype, class Btype>
+static bool
+sub_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(sub_impl<Rtype,Atype,Btype>,
+                        boost::ref(R), boost::cref(A), boost::cref(B),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    ImageBuf::ConstIterator<Btype> b (B, roi);
+    for ( ;  !r.done();  ++r, ++a, ++b)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = a[c] - b[c];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &A, &B);
+    OIIO_DISPATCH_COMMON_TYPES3 ("sub", sub_impl, dst.spec().format,
+                                 A.spec().format, B.spec().format,
+                                 dst, A, B, roi, nthreads);
+    return true;
+}
 
 
 

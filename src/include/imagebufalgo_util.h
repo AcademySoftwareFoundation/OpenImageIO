@@ -95,7 +95,11 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 /// Common preparation for IBA functions: Given an ROI (which may or may
 /// not be the default ROI::All()), destination image (which may or may
 /// not yet be allocated), and optional input images, adjust roi if
-/// necessary and allocate pixels for dst if necessary.
+/// necessary and allocate pixels for dst if necessary.  If dst is
+/// already initialized, it will keep its "full" (aka display) window,
+/// otherwise its full/display window will be set to the union of
+/// A's and B's full/display windows.  If you want something different,
+/// then define dest ahead of time!
 void OIIO_API IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A=NULL, const ImageBuf *B=NULL);
 
