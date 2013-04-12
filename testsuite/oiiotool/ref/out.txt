@@ -32,6 +32,8 @@ copyA.0009.jpg       :  360 x  240, 3 channel, uint8 jpeg
 copyA.0010.jpg       :  360 x  240, 3 channel, uint8 jpeg
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
+Comparing "resample.tif" and "ref/resample.tif"
+PASS
 Comparing "resize.tif" and "ref/resize.tif"
 PASS
 Comparing "resize2.tif" and "ref/resize2.tif"

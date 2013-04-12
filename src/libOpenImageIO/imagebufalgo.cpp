@@ -1590,6 +1590,91 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
+           ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(resample_<DSTTYPE,SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), interpolate,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+
+    // Local copies of the source image window, converted to float
+    float srcfx = srcspec.full_x;
+    float srcfy = srcspec.full_y;
+    float srcfw = srcspec.full_width;
+    float srcfh = srcspec.full_height;
+
+    float dstpixelwidth = 1.0f / (float)dstspec.full_width;
+    float dstpixelheight = 1.0f / (float)dstspec.full_height;
+    int nchannels = src.nchannels();
+    float *pel = ALLOCA (float, nchannels);
+
+    ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+    ImageBuf::ConstIterator<SRCTYPE> srcpel (src);
+    for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+        // s,t are NDC space
+        float t = (y+0.5f)*dstpixelheight;
+        // src_xf, src_xf are image space float coordinates
+        float src_yf = srcfy + t * srcfh - 0.5f;
+        // src_x, src_y are image space integer coordinates of the floor
+        int src_y;
+        (void) floorfrac (src_yf, &src_y);
+        for (int x = roi.xbegin;  x < roi.xend;  ++x) {
+            float s = (x+0.5f)*dstpixelwidth;
+            float src_xf = srcfx + s * srcfw - 0.5f;
+            int src_x;
+            (void) floorfrac (src_xf, &src_x);
+
+            if (interpolate) {
+                src.interppixel (src_xf, src_yf, pel);
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    out[c] = pel[c];
+            } else {
+                srcpel.pos (src_x, src_y, 0);
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    out[c] = srcpel[c];
+            }
+            ++out;
+        }
+    }
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
+                        bool interpolate, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+
+    OIIO_DISPATCH_TYPES2 ("resample", resample_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, interpolate, roi, nthreads);
+
+    return false;
+}
+
+
+
 namespace
 {
 

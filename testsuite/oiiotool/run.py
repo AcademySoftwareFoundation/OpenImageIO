@@ -16,6 +16,11 @@ command += (oiio_app("oiiotool")
             + " --create 256x256 3 --fill:color=1,.5,.5 256x256"
             + " --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif >> out.txt ;\n")
 
+# test resample
+command += (oiio_app ("oiiotool") + " " 
+            + parent + "/oiio-images/grid.tif"
+            + " --resample 128x128 -o resample.tif >> out.txt ;\n")
+
 # test resize
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -98,7 +103,7 @@ command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
 
 
 # Outputs to check against references
-outputs = [ "filled.tif", "resize.tif", "resize2.tif",
+outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",

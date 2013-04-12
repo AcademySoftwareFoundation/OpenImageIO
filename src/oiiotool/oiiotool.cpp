@@ -1773,6 +1773,45 @@ action_croptofull (int argc, const char *argv[])
 
 
 static int
+action_resample (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_resample, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    const ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+
+    adjust_geometry (newspec.width, newspec.height,
+                     newspec.x, newspec.y, argv[1], true);
+    if (newspec.width == Aspec.width && newspec.height == Aspec.height)
+        return 0;  // nothing to do
+
+    // Shrink-wrap full to match actual pixels; I'm not sure what else
+    // is appropriate, need to think it over.
+    newspec.full_x = newspec.x;
+    newspec.full_y = newspec.y;
+    newspec.full_width = newspec.width;
+    newspec.full_height = newspec.height;
+
+    ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
+
+    if (ot.verbose)
+        std::cout << "Resampling " << Aspec.width << "x" << Aspec.height
+                  << " to " << newspec.width << "x" << newspec.height << "\n";
+    const ImageBuf &Aib ((*A)(0,0));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    resample (Rib, Aib);
+
+    ot.function_times["resample"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_resize (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_resize, argc, argv))
@@ -2394,6 +2433,7 @@ getargs (int argc, char *argv[])
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
+                "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
