@@ -103,6 +103,65 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
 
 
 
+ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
+                    WinMerge pixwin, WinMerge fullwin,
+                    TypeDesc pixeltype)
+    : m_name(A.name()), m_elaborated(true),
+      m_metadata_modified(false), m_pixels_modified(false),
+      m_imagecache(A.m_imagecache)
+{
+    A.read ();
+    B.read ();
+    int subimages = (subimage_to_copy < 0) ? 
+                          std::min(A.subimages(), B.subimages()) : 1;
+    int first_subimage = clamp (subimage_to_copy, 0, subimages-1);
+    m_subimages.resize (subimages);
+    for (int s = 0;  s < subimages;  ++s) {
+        int srcsub = s + first_subimage;
+        m_subimages[s].m_miplevels.resize (1);
+        m_subimages[s].m_specs.resize (1);
+        const ImageBuf &Aib (A(srcsub));
+        const ImageBuf &Bib (B(srcsub));
+        const ImageSpec &Aspec (Aib.spec());
+        const ImageSpec &Bspec (Bib.spec());
+        ImageSpec spec = Aspec;
+        ROI Aroi = get_roi (Aspec), Aroi_full = get_roi_full (Aspec);
+        ROI Broi = get_roi (Bspec), Broi_full = get_roi_full (Bspec);
+        switch (pixwin) {
+        case WinMergeUnion :
+            set_roi (spec, roi_union (Aroi, Broi)); break;
+        case WinMergeIntersection :
+            set_roi (spec, roi_intersection (Aroi, Broi)); break;
+        case WinMergeA :
+            set_roi (spec, Aroi); break;
+        case WinMergeB :
+            set_roi (spec, Broi); break;
+        }
+        switch (fullwin) {
+        case WinMergeUnion :
+            set_roi_full (spec, roi_union (Aroi_full, Broi_full)); break;
+        case WinMergeIntersection :
+            set_roi_full (spec, roi_intersection (Aroi_full, Broi_full)); break;
+        case WinMergeA :
+            set_roi_full (spec, Aroi_full); break;
+        case WinMergeB :
+            set_roi_full (spec, Broi_full); break;
+        }
+        if (pixeltype != TypeDesc::UNKNOWN)
+            spec.set_format (pixeltype);
+        spec.nchannels = std::min (Aspec.nchannels, Bspec.nchannels);
+        spec.channelnames.resize (spec.nchannels);
+        spec.channelformats.clear ();
+
+        ImageBuf *ib = new ImageBuf ("", spec);
+
+        m_subimages[s].m_miplevels[0].reset (ib);
+        m_subimages[s].m_specs[0] = spec;
+    }
+}
+
+
+
 ImageRec::ImageRec (ImageBufRef img, bool copy_pixels)
     : m_name(img->name()), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(false),
