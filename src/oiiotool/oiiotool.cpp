@@ -2151,6 +2151,44 @@ action_blur (int argc, const char *argv[])
 
 
 
+static int
+action_unsharp (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_unsharp, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::map<std::string,std::string> options;
+    options["kernel"] = "gaussian";
+    options["width"] = "3";
+    options["contrast"] = "1";
+    options["threshold"] = "0";
+    extract_options (options, argv[0]);
+    std::string kernel = options["kernel"];
+    float width = strtof (options["width"].c_str(), NULL);
+    float contrast = strtof (options["contrast"].c_str(), NULL);
+    float threshold = strtof (options["threshold"].c_str(), NULL);
+
+    ImageRecRef A = ot.pop();
+    A->read();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
+                                 true /*writable*/, false /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::unsharp_mask (Rib, (*A)(s), kernel.c_str(),
+                                              width, contrast, threshold);
+        if (! ok)
+            ot.error ("unsharp", Rib.geterror());
+    }
+
+    ot.function_times["unsharp"] += timer();
+    return 0;
+}
+
+
+
 int
 action_fixnan (int argc, const char *argv[])
 {
@@ -2700,6 +2738,8 @@ getargs (int argc, char *argv[])
                     "Convolve with a kernel",
                 "--blur %@ %s", action_blur, NULL,
                     "Blur the image (arg: WxH; options: kernel=name)",
+                "--unsharp %@", action_unsharp, NULL,
+                    "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",

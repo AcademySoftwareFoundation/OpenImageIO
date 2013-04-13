@@ -2114,6 +2114,86 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
 
 
 
+// Helper function for unsharp mask to perform the thresholding
+static bool
+threshold_to_zero (ImageBuf &dst, float threshold,
+                   ROI roi, int nthreads)
+{
+    ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT);
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(threshold_to_zero, boost::ref(dst), threshold,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<float> p (dst, roi);  ! p.done();  ++p)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            if (fabsf(p[c]) < threshold)
+                p[c] = 0.0f;
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
+                            const char *kernel, float width,
+                            float contrast, float threshold,
+                            ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+
+    // Blur the source image, store in Blurry
+    ImageBuf K ("kernel");
+    if (! make_kernel (K, kernel, width, width)) {
+        dst.error ("%s", K.geterror());
+        return false;
+    }
+    ImageSpec BlurrySpec = src.spec();
+    BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
+    ImageBuf Blurry ("blurry", BlurrySpec);
+    if (! convolve (Blurry, src, K, true, roi, nthreads)) {
+        dst.error ("%s", Blurry.geterror());
+        return false;
+    }
+
+    // Compute the difference between the source image and the blurry
+    // version.  (We store it in the same buffer we used for the difference
+    // image.)
+    ImageBuf &Diff (Blurry);
+    bool ok = sub (Diff, src, Blurry, roi, nthreads);
+
+    if (ok && threshold > 0.0f)
+        ok = threshold_to_zero (Diff, threshold, roi, nthreads);
+
+    // Scale the difference image by the contrast
+    if (ok)
+        ok = mul (Diff, contrast, roi, nthreads);
+    if (! ok) {
+        dst.error ("%s", Diff.geterror());
+        return false;
+    }
+
+    // Add the scaled difference to the original, to get the final answer
+    ok = add (dst, src, Diff, roi, nthreads);
+
+    return ok;
+}
+
+
+
+
 namespace
 {
 

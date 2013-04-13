@@ -778,6 +778,39 @@ bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
                            float width, float height,
                            bool normalize = true);
 
+/// Replace the given ROI of dst with the a sharpened version of the
+/// corresponding region of src using the ``unsharp mask'' technique.
+/// Unsharp masking basically works by first blurring the image (low
+/// pass filter) subtracting this from the original image, then
+/// adding the residual back to the original emphasize the edges.
+/// Roughly speaking,
+///      dst = src + contrast * thresh(src - blur(src))
+///
+/// The specific blur can be selected by kernel name and width.  The
+/// contrast is a multiplier on the overall sharpening effect.  The
+/// thresholding step causes all differences less than 'threshold' to be
+/// squashed to zero, which can be useful for suppressing sharpening of
+/// low-contrast details (like noise) but allow sharpening of
+/// higher-contrast edges.
+///
+/// If roi is not defined, it defaults to the full size of dst (or src,
+/// if dst was undefined).  If dst is uninitialized, it will be
+/// allocated to be the size specified by roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
+                            const char *kernel="gaussian", float width = 3.0f,
+                            float contrast = 1.0f, float threshold = 0.0f,
+                            ROI roi = ROI::All(), int nthreads = 0);
+                            
 
 enum OIIO_API NonFiniteFixMode
 {

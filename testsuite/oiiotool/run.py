@@ -126,6 +126,11 @@ command += (oiio_app ("oiiotool")
             + "tahoe-small.jpg --blur 5x5 "
             + "-d uint8 -o gauss5x5-blur.tif >> out.txt ;\n")
 
+# test unsharp mask
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.jpg --unsharp "
+            + "-d uint8 -o unsharp.jpg >> out.txt ;\n")
+
 
 
 # test sequences
@@ -150,7 +155,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
-            "gauss5x5-blur.tif",
+            "gauss5x5-blur.tif", "unsharp.jpg",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

@@ -1066,6 +1066,30 @@ Optional appended arguments include:
 \apiend
 
 
+\apiitem{--unsharp}
+\NEW
+Unblur the top image using an ``unsharp mask.'' 
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf kernel=}\emph{name} & Name of the blur kernel (default: {\cf
+    gaussian}). \\
+ & {\cf width=}\emph{w} & Width of the blur kernel (default: 3). \\
+ & {\cf contrast=}\emph{c} & Contrast scale (default: 1.0) \\
+ & {\cf threshold=}\emph{t} & Threshold for applying the difference
+  (default: 0)
+\end{tabular}
+
+\noindend Examples:
+\begin{code}
+    oiiotool image.jpg --unsharp -o sharper.jpg
+
+    oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
+\end{code}
+\apiend
+
+
 \apiitem{--fixnan {\rm \emph{streategy}}}
 Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
