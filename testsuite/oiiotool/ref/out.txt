@@ -67,4 +67,7 @@ PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
 PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
+Comparing "unpremult.exr" and "ref/unpremult.exr"
+PASS
+Comparing "premult.exr" and "ref/premult.exr"
 PASS
