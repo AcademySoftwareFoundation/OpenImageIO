@@ -1734,6 +1734,36 @@ action_pattern (int argc, const char *argv[])
 
 
 static int
+action_kernel (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    Timer timer (ot.enable_function_timing);
+    int nchans = 1;
+    if (nchans < 1 || nchans > 1024) {
+        std::cout << "Invalid number of channels: " << nchans << "\n";
+        nchans = 3;
+    }
+
+    float w = 1.0f, h = 1.0f;
+    if (sscanf (argv[2], "%fx%f", &w, &h) != 2)
+        ot.error ("kernel", Strutil::format ("Unknown size %s", argv[2]));
+
+    ImageSpec spec (1, 1, nchans, TypeDesc::FLOAT);
+    ImageRecRef img (new ImageRec ("kernel", spec, ot.imagecache));
+    ImageBuf &ib ((*img)());
+    int ok = ImageBufAlgo::make_kernel (ib, argv[1], w, h);
+    if (! ok)
+        ot.error (argv[0], ib.geterror());
+    img->update_spec_from_imagebuf (0, 0);
+
+    ot.push (img);
+    ot.function_times["kernel"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_capture (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
@@ -2048,6 +2078,37 @@ action_fit (int argc, const char *argv[])
 
     ot.function_times["fit"] += timer();
     ot.enable_function_timing = old_enable_function_timing;
+    return 0;
+}
+
+
+
+static int
+action_convolve (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_convolve, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef K = ot.pop();  // kernel
+    ImageRecRef A = ot.pop();
+    A->read();
+    K->read();
+    const ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
+                                 true /*writable*/, false /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::convolve (Rib, (*A)(s), (*K)(0));
+        if (! ok)
+            ot.error ("convolve error: %s", Rib.geterror());
+    }
+
+    ot.function_times["convolve"] += timer();
     return 0;
 }
 
@@ -2577,6 +2638,8 @@ getargs (int argc, char *argv[])
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
                         "Create a patterned image (args: pattern, geom, channels)",
+                "--kernel %@ %s %s", action_kernel, NULL, NULL,
+                        "Create a centered convolution kernel (args: name, geom)",
                 "--capture %@", action_capture, NULL,
                         "Capture an image (options: camera=%d)",
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
@@ -2596,6 +2659,8 @@ getargs (int argc, char *argv[])
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
+                "--convolve %@", action_convolve, NULL,
+                    "Convolve with a kernel",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",

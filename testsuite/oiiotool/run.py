@@ -29,6 +29,11 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --resize 25% -o resize2.tif >> out.txt ;\n")
 
+# Make a small tahoe image, it'll be handy for other tests...
+command += (oiio_app ("oiiotool") + " " 
+            + parent + "/oiio-images/tahoe-gps.jpg"
+            + " --resize 25% -o tahoe-small.jpg >> out.txt ;\n")
+
 # test extreme resize
 command += (oiio_app ("oiiotool")
             + parent + "/oiio-images/grid.tif"
@@ -107,6 +112,16 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + " unpremult.exr --premult -o premult.exr >> out.txt ;\n")
 
+# test kernel
+command += (oiio_app ("oiiotool")
+            + "--kernel bspline 15x15 -o bsplinekernel.exr >> out.txt ;\n")
+
+# test convolve
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.jpg --kernel bspline 15x15 --convolve "
+            + "-d uint8 -o bspline-blur.tif >> out.txt ;\n")
+
+
 
 # test sequences
 command += (oiio_app("oiiotool")
@@ -129,6 +144,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "tahoe-filled.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
+            "bsplinekernel.exr", "bspline-blur.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

@@ -819,6 +819,30 @@ An $512 \times 512$ RGB image with a 16-pixel-wide checker pattern.
 \apiend
 
 
+\apiitem{--kernel {\rm \emph{name size}}}
+\NEW
+Create new 1-channel {\cf float} image big enough to hold the named
+kernel and size (size is expressed as \emph{width}{\cf x}\emph{height},
+e.g. {\cf 5x5}).  The \emph{width} and \emph{height} are allowed to be
+floating-point numbers. The kernel image will have its origin offset so
+that the kernel center is at (0,0), and and will be normalized (the sum
+of all pixel values will be 1.0).
+
+Kernel names can be: {\cf gaussian}, {\cf sharp-gaussian}, {\cf box},
+{\cf triangle}, {\cf blackman-harris}, {\cf mitchell}, {\cf b-spline},
+{\cf disk}.  There are also {\cf catmull-rom} and {\cf lanczos3}, but
+they are fixed-size kernels that don't scale with the width, and are
+therefore probably less useful in most cases.
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool --kernel gaussian 11x11 -o gaussian.exr
+\end{code}
+\apiend
+
+
+
 \apiitem{--capture}
 
 Capture a frame from a camera device, pushing it onto the image stack
@@ -1003,6 +1027,21 @@ Optional appended arguments include:
   blackman-harris} when increasing resolution, {\cf lanczos3} when
 decreasing resolution. \\
 \end{tabular}
+\apiend
+
+\apiitem{--convolve}
+\NEW
+Use the top image as a kernel to convolve the next image farther down
+the stack, replacing both with the result.
+
+\noindend Examples:
+\begin{code}
+    # Use a kernel image already prepared
+    oiiotool image.exr kernel.exr --convolve -o output.exr
+
+    # Construct a kernel image on the fly with --kernel
+    oiiotool image.exr --kernel gaussian 5x5 --convolve -o blurred.exr
+\end{code}
 \apiend
 
 \apiitem{--fixnan {\rm \emph{streategy}}}

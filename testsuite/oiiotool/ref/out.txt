@@ -67,6 +67,9 @@ PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
 PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
+Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
+PASS
+Comparing "bspline-blur.tif" and "ref/bspline-blur.tif"
 PASS
 Comparing "unpremult.exr" and "ref/unpremult.exr"
 PASS

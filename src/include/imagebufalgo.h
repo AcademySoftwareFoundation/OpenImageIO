@@ -739,6 +739,44 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate = true,
                         ROI roi = ROI::All(), int nthreads = 0);
 
+/// Replace the given ROI of dst with the convolution of src and
+/// a kernel.  If roi is not defined, it defaults to the full size
+/// of dst (or src, if dst was undefined).  If dst is uninitialized,
+/// it will be allocated to be the size specified by roi.  If 
+/// normalized is true, the kernel will be normalized for the 
+/// convolution, otherwise the original values will be used.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on any pixel data type for dst and src, but kernel MUST be
+/// a float image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src,
+                        const ImageBuf &kernel, bool normalize = true,
+                        ROI roi = ROI::All(), int nthreads = 0);
+
+/// Initialize dst to be a 1-channel FLOAT image of the named kernel.
+/// The size of the dst image will be big enough to contain the kernel
+/// given its size (width x height) and rounded up to odd resolution so
+/// that the center of the kernel can be at the center of the middle
+/// pixel.  The kernel image will be offset so that its center is at the
+/// (0,0) coordinate.  If normalize is true, the values will be
+/// normalized so that they sum to 1.0.
+///
+/// Kernel names can be: "gaussian", "sharp-gaussian", "box",
+/// "triangle", "blackman-harris", "mitchell", "b-spline", "disk".
+/// There are also "catmull-rom" and "lanczos3", but they are fixed-size
+/// kernels that don't scale with the width, and are therefore probably
+/// less useful in most cases.
+/// 
+bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
+                           float width, float height,
+                           bool normalize = true);
 
 
 enum OIIO_API NonFiniteFixMode
