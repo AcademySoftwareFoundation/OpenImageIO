@@ -97,6 +97,17 @@ command += (oiio_app ("oiiotool")
             + parent + "/oiio-images/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif >> out.txt ;\n")
 
+# test unpremult/premult
+command += (oiio_app ("oiiotool")
+            + " --pattern constant:color=.1,.1,.1,1 100x100 4 " 
+            + " --fill:color=.2,.2,.2,.5 30x30+50+50 "
+            + " -d half -o premulttarget.exr >> out.txt ;\n")
+command += (oiio_app ("oiiotool")
+            + " premulttarget.exr --unpremult -o unpremult.exr >> out.txt ;\n")
+command += (oiio_app ("oiiotool")
+            + " unpremult.exr --premult -o premult.exr >> out.txt ;\n")
+
+
 # test sequences
 command += (oiio_app("oiiotool")
             + "fit.tif -o copyA.1-10#.jpg >> out.txt ;\n");
@@ -117,6 +128,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "add.exr", "sub.exr",
             "tahoe-filled.tif",
             "grid-clamped.tif",
+            "unpremult.exr", "premult.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

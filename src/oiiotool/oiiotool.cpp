@@ -935,6 +935,54 @@ action_tocolorspace (int argc, const char *argv[])
 
 
 static int
+action_unpremult (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_unpremult, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::unpremult ((*R)(s,m));
+
+    ot.function_times["unpremult"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_premult (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_premult, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::premult ((*R)(s,m));
+
+    ot.function_times["premult"] += timer();
+    return 0;
+}
+
+
+
+static int
 output_tiles (int /*argc*/, const char *argv[])
 {
     // the ArgParse will have set the tile size, but we need this routine
@@ -2581,6 +2629,10 @@ getargs (int argc, char *argv[])
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                "--unpremult %@", action_unpremult, NULL,
+                    "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
+                "--premult %@", action_premult, NULL,
+                    "Multiply all color channels of the current image by the alpha",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {

@@ -1050,6 +1050,90 @@ ImageBufAlgo::rangeexpand (ImageBuf &dst, bool useluma,
 
 
 
+template<class Rtype>
+static bool
+unpremult_ (ImageBuf &R, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(unpremult_<Rtype>, boost::ref(R),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    int alpha_channel = R.spec().alpha_channel;
+    int z_channel = R.spec().z_channel;
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        float alpha = r[alpha_channel];
+        if (alpha == 0.0f || alpha == 1.0f)
+            continue;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            if (c != alpha_channel && c != z_channel)
+                r[c] = r[c] / alpha;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::unpremult (ImageBuf &dst,  ROI roi, int nthreads)
+{
+    if (dst.spec().alpha_channel < 0)
+        return true;
+
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("unpremult", unpremult_, dst.spec().format,
+                         dst, roi, nthreads);
+    return true;
+}
+
+
+
+template<class Rtype>
+static bool
+premult_ (ImageBuf &R, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(premult_<Rtype>, boost::ref(R),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    int alpha_channel = R.spec().alpha_channel;
+    int z_channel = R.spec().z_channel;
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        float alpha = r[alpha_channel];
+        if (alpha == 1.0f)
+            continue;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            if (c != alpha_channel && c != z_channel)
+                r[c] = r[c] * alpha;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::premult (ImageBuf &dst, ROI roi, int nthreads)
+{
+    if (dst.spec().alpha_channel < 0)
+        return true;
+
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("premult", premult_, dst.spec().format,
+                         dst, roi, nthreads);
+    return true;
+}
+
+
+
 inline void
 reset (ImageBufAlgo::PixelStats &p, int nchannels)
 {

@@ -520,6 +520,40 @@ bool OIIO_API colorconvert (float *color, int nchannels,
                             const ColorProcessor *processor, bool unpremult);
 
 
+/// Divide all color channels (those not alpha or z) of dst by the alpha
+/// value, to "un-premultiply" them.  This presumes that the image
+/// starts of as "associated alpha" a.k.a. "premultipled."  The
+/// alterations are restricted to the pixels and channels of the
+/// supplied ROI (which defaults to all of dst).  Pixels in which the
+/// alpha channel is 0 will not be modified (since the operation is
+/// undefined in that case).  This is a no-op if there is no identified
+/// alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API unpremult (ImageBuf &dst, ROI roi = ROI::All(), int nthreads = 0);
+
+/// Multipy all color channels (those not alpha or z) of dst by the
+/// alpha value, to "premultiply" them. This presumes that the image
+/// starts off as "unassociated alpha" a.k.a. "non-premultiplied."  The
+/// alterations are restricted to the pixels and channels of the
+/// supplied ROI (which defaults to all of dst).  This is a no-op if
+/// there is no identified alpha channel.
+///
+/// For all dst pixels and channels within the ROI, divide all color
+/// channels (those not alpha or z) by the alpha, to "un-premultiply"
+/// them.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API premult (ImageBuf &dst, ROI roi = ROI::All(), int nthreads = 0);
+
+
+
 struct OIIO_API PixelStats {
     std::vector<float> min;
     std::vector<float> max;

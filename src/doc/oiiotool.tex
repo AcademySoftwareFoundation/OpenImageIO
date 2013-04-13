@@ -1138,11 +1138,28 @@ from their existing color space (as best understood or guessed by OIIO)
 into the named \emph{tospace}.
 \apiend
 
-\apiitem{--tocolorspace {\rm \emph{fromspace tospace}}}
+\apiitem{--colorconvert {\rm \emph{fromspace tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from the named \emph{fromspace} color space into the named
 \emph{tospace} (disregarding any notion it may have previously had 
 about the color space of the current image).
+\apiend
+
+\apiitem{--unpremult}
+\NEW
+Divide all color channels (those not alpha or z) of the current image by
+the alpha value, to ``un-premultiply'' them.  This presumes that the
+image starts of as ``associated alpha,'' a.k.a.\ ``premultipled.''
+Pixels in which the alpha channel is 0 will not be modified (since the
+operation is undefined in that case).  This is a no-op if there is no
+identified alpha channel.
+\apiend
+
+\apiitem{--premult}
+\NEW
+Multiply all color channels (those not alpha or z) of the current image
+by the alpha value, to ``premultiply'' them.  This presumes that the
+image starts of as ``unassociated alpha,'' a.k.a.\ ``non-premultipled.''
 \apiend
 
 
