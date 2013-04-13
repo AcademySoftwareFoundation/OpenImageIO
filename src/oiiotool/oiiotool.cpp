@@ -251,6 +251,7 @@ extract_options (std::map<std::string,std::string> &options,
 
 
 
+
 static int
 set_threads (int argc, const char *argv[])
 {
@@ -2172,6 +2173,45 @@ action_fill (int argc, const char *argv[])
 
 
 static int
+action_clamp (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_clamp, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writeable*/, true /*copy_pixels*/));
+    ot.push (R);
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        int nchans = (*R)(s,0).nchannels();
+        const float big = std::numeric_limits<float>::max();
+        std::vector<float> min (nchans, -big);
+        std::vector<float> max (nchans, big);
+        std::map<std::string,std::string> options;
+        options["clampalpha"] = "0";  // initialize
+        extract_options (options, argv[0]);
+        Strutil::extract_from_list_string (min, options["min"]);
+        Strutil::extract_from_list_string (max, options["max"]);
+        bool clampalpha01 = strtol (options["clampalpha"].c_str(), NULL, 10);
+
+        for (int m = 0, miplevels=R->miplevels(s);  m < miplevels;  ++m) {
+            ImageBuf &Rib ((*R)(s,m));
+            bool ok = ImageBufAlgo::clamp (Rib, &min[0], &max[0], clampalpha01);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
+        }
+    }
+
+    ot.function_times["clamp"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_text (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_text, argc, argv))
@@ -2421,6 +2461,7 @@ getargs (int argc, char *argv[])
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
+                "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Image stack manipulation:",
