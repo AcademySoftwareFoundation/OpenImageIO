@@ -1044,6 +1044,28 @@ the stack, replacing both with the result.
 \end{code}
 \apiend
 
+\apiitem{--blur {\rm \emph{size}}}
+\NEW
+Blur the top image with a blur kernel of the given size expressed as
+\emph{width}{\cf x}\emph{height}.  (The sizes may be floating point 
+numbers.)
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf kernel=}\emph{name} & Kernel name. The default is {\cf
+  gaussian}.
+\end{tabular}
+
+\noindend Examples:
+\begin{code}
+    oiiotool image.jpg --blur 5x5 -o blurred.jpg
+
+    oiiotool image.jpg --blur:kernel=bspline 7x7 -o blurred.jpg
+\end{code}
+\apiend
+
+
 \apiitem{--fixnan {\rm \emph{streategy}}}
 Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
@@ -1135,6 +1157,7 @@ $\alpha = 1$ and plausible color everywhere.
 This can be used both to fill internal ``holes'' as well as to extend an
 image out.
 \apiend
+
 
 \apiitem{--text {\rm \emph{words}}}
 Draw (rasterize) text overtop of the current image.

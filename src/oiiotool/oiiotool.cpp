@@ -2094,8 +2094,6 @@ action_convolve (int argc, const char *argv[])
     ImageRecRef A = ot.pop();
     A->read();
     K->read();
-    const ImageSpec &Aspec (*A->spec(0,0));
-    ImageSpec newspec = Aspec;
 
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, false /*copy_pixels*/));
@@ -2105,10 +2103,49 @@ action_convolve (int argc, const char *argv[])
         ImageBuf &Rib ((*R)(s));
         bool ok = ImageBufAlgo::convolve (Rib, (*A)(s), (*K)(0));
         if (! ok)
-            ot.error ("convolve error: %s", Rib.geterror());
+            ot.error ("convolve", Rib.geterror());
     }
 
     ot.function_times["convolve"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_blur (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_blur, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::map<std::string,std::string> options;
+    options["kernel"] = "gaussian";
+    extract_options (options, argv[0]);
+    std::string kernopt = options["kernel"];
+
+    float w = 1.0f, h = 1.0f;
+    if (sscanf (argv[1], "%fx%f", &w, &h) != 2)
+        ot.error ("blur", Strutil::format ("Unknown size %s", argv[1]));
+    ImageBuf Kernel ("kernel");
+    if (! ImageBufAlgo::make_kernel (Kernel, kernopt.c_str(), w, h))
+        ot.error ("blur", Kernel.geterror());
+
+    ImageRecRef A = ot.pop();
+    A->read();
+
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
+                                 true /*writable*/, false /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::convolve (Rib, (*A)(s), Kernel);
+        if (! ok)
+            ot.error ("blur", Rib.geterror());
+    }
+
+    ot.function_times["blur"] += timer();
     return 0;
 }
 
@@ -2661,6 +2698,8 @@ getargs (int argc, char *argv[])
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
                 "--convolve %@", action_convolve, NULL,
                     "Convolve with a kernel",
+                "--blur %@ %s", action_blur, NULL,
+                    "Blur the image (arg: WxH; options: kernel=name)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",

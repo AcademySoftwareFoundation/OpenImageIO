@@ -75,3 +75,5 @@ Comparing "unpremult.exr" and "ref/unpremult.exr"
 PASS
 Comparing "premult.exr" and "ref/premult.exr"
 PASS
+Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
+PASS

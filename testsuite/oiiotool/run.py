@@ -121,6 +121,11 @@ command += (oiio_app ("oiiotool")
             + "tahoe-small.jpg --kernel bspline 15x15 --convolve "
             + "-d uint8 -o bspline-blur.tif >> out.txt ;\n")
 
+# test blur
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.jpg --blur 5x5 "
+            + "-d uint8 -o gauss5x5-blur.tif >> out.txt ;\n")
+
 
 
 # test sequences
@@ -145,6 +150,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
+            "gauss5x5-blur.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
