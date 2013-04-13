@@ -143,7 +143,7 @@ public:
     }
     static float gauss1d (float x) {
         x = fabsf(x);
-        return (x < 1.0f) ? expf (-2.0f * (x*x)) : 0.0f;
+        return (x < 1.0f) ? fast_expf (-2.0f * (x*x)) : 0.0f;
     }
     const std::string name (void) const { return "gaussian"; }
 private:
@@ -168,6 +168,48 @@ public:
     }
     float yfilt (float y) const {
         return FilterGaussian1D::gauss1d (y * m_hrad_inv);
+    }
+    const std::string name (void) const { return "gaussian"; }
+private:
+    float m_wrad_inv, m_hrad_inv;
+};
+
+
+
+class FilterSharpGaussian1D : public Filter1D {
+public:
+    FilterSharpGaussian1D (float width) : Filter1D(width), m_rad_inv(2.0f/width) { }
+    ~FilterSharpGaussian1D (void) { }
+    float operator() (float x) const {
+        return gauss1d (x * m_rad_inv);
+    }
+    static float gauss1d (float x) {
+        x = fabsf(x);
+        return (x < 1.0f) ? fast_expf (-4.0f * (x*x)) : 0.0f;
+    }
+    const std::string name (void) const { return "gaussian"; }
+private:
+    float m_rad_inv;
+};
+
+
+
+class FilterSharpGaussian2D : public Filter2D {
+public:
+    FilterSharpGaussian2D (float width, float height) 
+        : Filter2D(width,height), m_wrad_inv(2.0f/width),
+          m_hrad_inv(2.0f/height) { }
+    ~FilterSharpGaussian2D (void) { }
+    float operator() (float x, float y) const {
+        return FilterSharpGaussian1D::gauss1d (x * m_wrad_inv)
+             * FilterSharpGaussian1D::gauss1d (y * m_hrad_inv);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterSharpGaussian1D::gauss1d (x * m_wrad_inv);
+    }
+    float yfilt (float y) const {
+        return FilterSharpGaussian1D::gauss1d (y * m_hrad_inv);
     }
     const std::string name (void) const { return "gaussian"; }
 private:
@@ -496,6 +538,7 @@ FilterDesc filter1d_list[] = {
     { "box",             1,   1,    false,    true,     true },
     { "triangle",        1,   2,    false,    true,     true },
     { "gaussian",        1,   2,    false,    true,     true },
+    { "sharp-gaussian",  1,   2,    false,    true,     true },
     { "catrom",          1,   4,    false,    false,    true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
@@ -533,6 +576,8 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterTriangle1D (width);
     if (filtername == "gaussian")
         return new FilterGaussian1D (width);
+    if (filtername == "sharp-gaussian")
+        return new FilterSharpGaussian1D (width);
     if (filtername == "catmull-rom" || filtername == "catrom")
         return new FilterCatmullRom1D (width);
     if (filtername == "blackman-harris")
@@ -563,6 +608,7 @@ static FilterDesc filter2d_list[] = {
     { "box",             2,   1,    false,    true,     true  },
     { "triangle",        2,   2,    false,    true,     true  },
     { "gaussian",        2,   2,    false,    true,     true  },
+    { "sharp-gaussian",  2,   2,    false,    true,     true  },
     { "catrom",          2,   4,    true,     false,    true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
@@ -602,6 +648,8 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterTriangle2D (width, height);
     if (filtername == "gaussian")
         return new FilterGaussian2D (width, height);
+    if (filtername == "sharp-gaussian")
+        return new FilterSharpGaussian2D (width, height);
     if (filtername == "catmull-rom" || filtername == "catrom")
         return new FilterCatmullRom2D (width, height);
     if (filtername == "blackman-harris")
