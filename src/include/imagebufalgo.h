@@ -428,8 +428,7 @@ struct OIIO_API PixelStats {
 
 
 /// Compute statistics about the ROI of the specified image. Upon success,
-/// the returned vectors will have size == numchannels.  A FLOAT
-/// ImageBuf is required.
+/// the returned vectors will have size == src.nchannels().
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -455,14 +454,27 @@ struct CompareResults {
     imagesize_t nwarn, nfail;
 };
 
-/// Numerically compare two images.  The images must be the same size
-/// and number of channels, and must both be FLOAT data.  The difference
-/// threshold (for any individual color channel in any pixel) for a
-/// "failure" is failthresh, and for a "warning" is warnthresh.  The
-/// results are stored in result.
+/// Numerically compare two images.  The difference threshold (for any
+/// individual color channel in any pixel) for a "failure" is
+/// failthresh, and for a "warning" is warnthresh.  The results are
+/// stored in result.  If roi is defined, pixels will be compared for
+/// the pixel and channel range that is specified.  If roi is not
+/// defined, the comparison will be for all channels, on the union of
+/// the defined pixel windows of the two images (for either image,
+/// undefined pixels will be assumed to be black).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error.
 bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
-                        float failthresh, float warnthresh,
-                        CompareResults &result);
+                       float failthresh, float warnthresh,
+                       CompareResults &result,
+                       ROI roi = ROI::All(), int nthreads=0);
 
 /// Compare two images using Hector Yee's perceptual metric, returning
 /// the number of pixels that fail the comparison.  The images must be
@@ -474,19 +486,49 @@ bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
 int OIIO_API compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
                            float luminance = 100, float fov = 45);
 
-/// Do all pixels for the entire image have the same channel values?  If
-/// color is not NULL, that constant value will be stored in
-/// color[0..nchannels-1].
-bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL);
-
-/// Does the requested channel have a given value over the entire image?
+/// Do all pixels within the ROI have the same values for channels
+/// [roi.chbegin..roi.chend-1]?  If so, return true and store that color
+/// in color[chbegin...chend-1] (if color != NULL); otherwise return
+/// false.  If roi is not defined (the default), it will be understood
+/// to be all of the defined pixels and channels of source.
 ///
-bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val);
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL,
+                               ROI roi = ROI::All(), int nthreads=0);
 
-/// Is the image monochrome? (i.e., are all channels the same value?)
-/// zero and one channel images always return true
-/// (current subimage, and current mipmap level)
-bool OIIO_API isMonochrome(const ImageBuf &src);
+/// Does the requested channel have a given value over the ROI?  (For
+/// this function, the ROI's chbegin/chend are ignored.)  Return true if
+/// so, otherwise return false.  If roi is not defined (the default), it
+/// will be understood to be all of the defined pixels and channels of
+/// source.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val,
+                                 ROI roi = ROI::All(), int nthreads = 0);
+
+/// Is the image monochrome within the ROI, i.e., for all pixels within
+/// the region, do all channels [roi.chbegin, roi.chend) have the same
+/// value?  If roi is not defined (the default), it will be understood
+/// to be all of the defined pixels and channels of source.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+bool OIIO_API isMonochrome (const ImageBuf &src,
+                            ROI roi = ROI::All(), int nthreads = 0);
 
 /// Compute the SHA-1 byte hash for all the pixels in the specifed
 /// region of the image.  If blocksize > 0, the function will compute
@@ -541,10 +583,39 @@ enum OIIO_API NonFiniteFixMode
     NONFINITE_BOX3 = 2,     ///< Replace nonfinite pixels with 3x3 finite average
 };
 
-/// Fix all non-finite pixels (nan/inf) using the specified approach
-bool OIIO_API fixNonFinite(ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode=NONFINITE_BOX3,
-                            int * pixelsFixed=NULL);
+/// Examine the values of src within the pixel and channel range
+/// designated by roi, and repair any non-finite (NaN/Inf) pixels.
+/// If pixelsFound is not NULL, store in it the number of pixels that
+/// contained non-finite value.
+///
+/// How the non-finite values are repaired
+/// is specified by one of the following modes:
+///   NONFINITE_NONE   do not alter the pixels (but do count the number
+///                       of nonfinite pixels in *pixelsFixed, if non-NULL).
+///   NONFINITE_BLACK  change non-finite values to 0.
+///   NONFINITE_BOX3   replace non-finite values by the average of any
+///                       finite pixels within a 3x3 window.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types, though it's a no-op for images with
+/// pixel data types that cannot represent NaN or Inf values.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API fixNonFinite (ImageBuf &dst, NonFiniteFixMode mode=NONFINITE_BOX3,
+                            int *pixelsFixed = NULL,
+                            ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED as of 1.2. Instead, use
+///     dst.copy(src);
+///     return fixNonFinite (dst, mode, pixelsFixed);
+bool OIIO_API fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode = NONFINITE_BOX3,
+                            int *pixelsFixed = NULL);
 
 
 /// Fill the holes using a push-pull technique.  The src image must have

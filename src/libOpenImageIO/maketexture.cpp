@@ -1095,13 +1095,12 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         return false;
     }
     int pixelsFixed = 0;
-    if (!ImageBufAlgo::fixNonFinite (*src, *src, fixmode, &pixelsFixed)) {
+    if (! ImageBufAlgo::fixNonFinite (*src, fixmode, &pixelsFixed)) {
         outstream << "maketx ERROR: Error fixing nans/infs.\n";
         return false;
     }
-    if (verbose && pixelsFixed>0) {
+    if (verbose && pixelsFixed)
         outstream << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
-    }
     // FIXME -- we'd like to not call fixNonFinite if fixnan mode is
     // "none", or if we did the checknan and found no NaNs.  But deep
     // inside fixNonFinite, it forces a full read into local mem of any

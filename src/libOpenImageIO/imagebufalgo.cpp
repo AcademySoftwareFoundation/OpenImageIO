@@ -829,9 +829,10 @@ finalize (ImageBufAlgo::PixelStats &p)
 
 
 
-bool
-ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
-                                 ROI roi, int nthreads)
+template <class T>
+static bool
+computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
+                    ROI roi, int nthreads)
 {
     if (! roi.defined())
         roi = get_roi (src.spec());
@@ -839,10 +840,6 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
         roi.chend = std::min (roi.chend, src.nchannels());
 
     int nchannels = src.spec().nchannels;
-    if (nchannels == 0) {
-        src.error ("%d-channel images not supported", nchannels);
-        return false;
-    }
 
     // Use local storage for smaller batches, then merge the batches
     // into the final results.  This preserves precision for large
@@ -853,7 +850,7 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     // This approach works best when the batch size is the sqrt of
     // numpixels, which makes the num batches roughly equal to the
     // number of pixels / batch.
-    PixelStats tmp;
+    ImageBufAlgo::PixelStats tmp;
     reset (tmp, nchannels);
     reset (stats, nchannels);
     
@@ -862,11 +859,11 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     
     if (src.deep()) {
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
+        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
             int samples = s.deep_samples();
             if (! samples)
                 continue;
-            for (int c = 0;  c < nchannels;  ++c) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 for (int i = 0;  i < samples;  ++i) {
                     float value = s.deep_value (c, i);
                     val (tmp, c, value);
@@ -879,8 +876,8 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
         }
     } else {  // Non-deep case
         // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src, roi); ! s.done();  ++s) {
-            for (int c = 0;  c < nchannels;  ++c) {
+        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 float value = s[c];
                 val (tmp, c, value);
                 if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
@@ -902,6 +899,27 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
 
 
 
+bool
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    else
+        roi.chend = std::min (roi.chend, src.nchannels());
+    int nchannels = src.spec().nchannels;
+    if (nchannels == 0) {
+        src.error ("%d-channel images not supported", nchannels);
+        return false;
+    }
+
+    OIIO_DISPATCH_TYPES ("computePixelStats", computePixelStats_,
+                         src.spec().format, src, stats, roi, nthreads);
+    return false;
+}
+
+
+
 template<class BUFT>
 inline void
 compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
@@ -917,7 +935,7 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
         result.maxerror = f;
         result.maxx = a.x();
         result.maxy = a.y();
-        result.maxz = 0;  // FIXME -- doesn't work for volume images
+        result.maxz = a.z();
         result.maxc = chan;
     }
     if (! warned && f > warnthresh) {
@@ -932,18 +950,16 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
 
 
 
-bool
-ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
-                       float failthresh, float warnthresh,
-                       ImageBufAlgo::CompareResults &result)
+template <class Atype, class Btype>
+static bool
+compare_ (const ImageBuf &A, const ImageBuf &B,
+          float failthresh, float warnthresh,
+          ImageBufAlgo::CompareResults &result,
+          ROI roi, int nthreads)
 {
-    if (A.spec().format != TypeDesc::FLOAT &&
-        B.spec().format != TypeDesc::FLOAT) {
-        A.error ("ImageBufAlgo::compare only works on 'float' images.");
-        return false;
-    }
-    int npels = A.spec().width * A.spec().height * A.spec().depth;
-    int nvals = npels * A.spec().nchannels;
+    imagesize_t npels = roi.npixels();
+    imagesize_t nvals = npels * roi.nchannels();
+    int Achannels = A.nchannels(), Bchannels = B.nchannels();
 
     // Compare the two images.
     //
@@ -953,22 +969,20 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     result.maxx=0, result.maxy=0, result.maxz=0, result.maxc=0;
     result.nfail = 0, result.nwarn = 0;
     float maxval = 1.0;  // max possible value
-    ImageBuf::ConstIterator<float,float> a (A);
-    ImageBuf::ConstIterator<float,float> b (B);
+
+    ImageBuf::ConstIterator<Atype> a (A, roi, ImageBuf::WrapBlack);
+    ImageBuf::ConstIterator<Btype> b (B, roi, ImageBuf::WrapBlack);
     bool deep = A.deep();
-    if (B.deep() != A.deep())
-        return false;
     // Break up into batches to reduce cancelation errors as the error
     // sums become too much larger than the error for individual pixels.
     const int batchsize = 4096;   // As good a guess as any
-    for ( ;  a.valid();  ) {
+    for ( ;  ! a.done();  ) {
         double batcherror = 0;
         double batch_sqrerror = 0;
         if (deep) {
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
+            for (int i = 0;  i < batchsize && !a.done();  ++i, ++a, ++b) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
                     for (int s = 0, e = a.deep_samples(); s < e;  ++s) {
                         compare_value (a, c, a.deep_value(c,s),
                                        b.deep_value(c,s), result, maxval,
@@ -977,12 +991,12 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                     }
             }
         } else {  // non-deep
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
+            for (int i = 0;  i < batchsize && !a.done();  ++i, ++a, ++b) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
-                    compare_value (a, c, a[c], b[c], result, maxval,
-                                   batcherror, batch_sqrerror,
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    compare_value (a, c, c < Achannels ? a[c] : 0.0f,
+                                   c < Bchannels ? b[c] : 0.0f,
+                                   result, maxval, batcherror, batch_sqrerror,
                                    failed, warned, failthresh, warnthresh);
             }
         }
@@ -997,59 +1011,96 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
 
 
 
-namespace
+bool
+ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
+                       float failthresh, float warnthresh,
+                       ImageBufAlgo::CompareResults &result,
+                       ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the union of the data windows of the two
+    // images.
+    if (! roi.defined())
+        roi = roi_union (get_roi(A.spec()), get_roi(B.spec()));
+    roi.chend = std::min (roi.chend, std::max(A.nchannels(), B.nchannels()));
+
+    // Deep and non-deep images cannot be compared
+    if (B.deep() != A.deep())
+        return false;
+
+    OIIO_DISPATCH_TYPES2 ("compare", compare_,
+                          A.spec().format, B.spec().format,
+                          A, B, failthresh, warnthresh, result,
+                          roi, nthreads);
+    // FIXME - The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
+    return false;
+}
+
+
 
 template<typename T>
 static inline bool
-isConstantColor_ (const ImageBuf &src, float *color)
+isConstantColor_ (const ImageBuf &src, float *color,
+                  ROI roi, int nthreads)
 {
-    int nchannels = src.nchannels();
-    if (nchannels == 0)
-        return true;
-    
     // Iterate using the native typing (for speed).
-    ImageBuf::ConstIterator<T,T> s (src);
-    if (! s.valid())
-        return true;
-
-    // Store the first pixel
-    std::vector<T> constval (nchannels);
-    for (int c = 0;  c < nchannels;  ++c)
+    std::vector<T> constval (roi.nchannels());
+    ImageBuf::ConstIterator<T,T> s (src, roi);
+    for (int c = roi.chbegin;  c < roi.chend;  ++c)
         constval[c] = s[c];
 
     // Loop over all pixels ...
-    for ( ; s.valid ();  ++s) {
-        for (int c = 0;  c < nchannels;  ++c)
+    for ( ; ! s.done();  ++s) {
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
             if (constval[c] != s[c])
                 return false;
     }
     
-    if (color)
-        src.getpixel (src.xbegin(), src.ybegin(), src.zbegin(), color);
+    if (color) {
+        ImageBuf::ConstIterator<T,float> s (src, roi);
+        for (int c = 0;  c < roi.chbegin; ++c)
+            color[c] = 0.0f;
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            color[c] = s[c];
+        for (int c = roi.chend;  c < src.nchannels(); ++c)
+            color[c] = 0.0f;
+    }
+
     return true;
 }
 
-}
+
 
 bool
-ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
+ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
+                               ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    if (roi.nchannels() == 0)
+        return true;
+    
     OIIO_DISPATCH_TYPES ("isConstantColor", isConstantColor_,
-                         src.spec().format, src, color);
+                         src.spec().format, src, color, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
 
 
 template<typename T>
 static inline bool
-isConstantChannel_ (const ImageBuf &src, int channel, float val)
+isConstantChannel_ (const ImageBuf &src, int channel, float val,
+                    ROI roi, int nthreads)
 {
-    if (channel < 0 || channel >= src.nchannels())
-        return false;  // that channel doesn't exist in the image
 
     T v = convert_type<float,T> (val);
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s)
+    for (ImageBuf::ConstIterator<T,T> s(src, roi);  !s.done();  ++s)
         if (s[channel] != v)
             return false;
     return true;
@@ -1057,43 +1108,59 @@ isConstantChannel_ (const ImageBuf &src, int channel, float val)
 
 
 bool
-ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
+ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
+                                 ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+
+    if (channel < 0 || channel >= src.nchannels())
+        return false;  // that channel doesn't exist in the image
+
     OIIO_DISPATCH_TYPES ("isConstantChannel", isConstantChannel_,
-                         src.spec().format, src, channel, val);
+                         src.spec().format, src, channel, val, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
-namespace
-{
+
 
 template<typename T>
 static inline bool
-isMonochrome_ (const ImageBuf &src, int dummy)
+isMonochrome_ (const ImageBuf &src, ROI roi, int nthreads)
 {
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
     
     // Loop over all pixels ...
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s) {
-        T constvalue = s[0];
-        for (int c = 1;  c < nchannels;  ++c) {
-            if (s[c] != constvalue) {
+    for (ImageBuf::ConstIterator<T,T> s(src, roi);  ! s.done();  ++s) {
+        T constvalue = s[roi.chbegin];
+        for (int c = roi.chbegin+1;  c < roi.chend;  ++c)
+            if (s[c] != constvalue)
                 return false;
-            }
-        }
     }
-    
     return true;
 }
 
-}
 
 
 bool
-ImageBufAlgo::isMonochrome(const ImageBuf &src)
+ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    if (roi.nchannels() < 2)
+        return true;  // 1 or fewer channels are always "monochrome"
+
     OIIO_DISPATCH_TYPES ("isMonochrome", isMonochrome_, src.spec().format,
-                         src, 0);
+                         src, roi, nthreads);
+    // FIXME -  The nthreads argument is for symmetry with the rest of
+    // ImageBufAlgo and for future expansion. But for right now, we
+    // don't actually split by threads.  Maybe later.
 };
 
 
@@ -1481,108 +1548,94 @@ namespace
 inline bool isfinite (half h) { return h.isFinite(); }
 
 
-template<typename SRCTYPE>
-bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
-                    ImageBufAlgo::NonFiniteFixMode mode,
-                    int * pixelsFixed)
+template<typename T>
+bool fixNonFinite_ (ImageBuf &dst, ImageBufAlgo::NonFiniteFixMode mode,
+                    int *pixelsFixed, ROI roi, int nthreads)
 {
-    if (mode == ImageBufAlgo::NONFINITE_NONE) {
-        if (! dst.copy (src))
-            return false;
-        if (pixelsFixed) *pixelsFixed = 0;
+    if (mode != ImageBufAlgo::NONFINITE_NONE &&
+        mode != ImageBufAlgo::NONFINITE_BLACK &&
+        mode != ImageBufAlgo::NONFINITE_BOX3) {
+        // Something went wrong
+        dst.error ("fixNonFinite: unknown repair mode");
+        return false;
+    }
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fixNonFinite_<T>, boost::ref(dst), mode, pixelsFixed,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
         return true;
     }
-    else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
-        // Replace non-finite pixels with black
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        while (pixel.valid()) {
-            bool fixed = false;
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
+
+    // Serial case
+
+    ROI dstroi = get_roi (dst.spec());
+    int count = 0;   // Number of pixels with nonfinite values
+
+    if (mode == ImageBufAlgo::NONFINITE_NONE) {
+        // Just count the number of pixels with non-finite values
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
                 if (! isfinite(value)) {
-                    (*pixel)[c] = 0.0;
+                    ++count;
+                    break;  // only count one per pixel
+                }
+            }
+        }
+    } else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
+        // Replace non-finite pixels with black
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
+            bool fixed = false;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
+                if (! isfinite(value)) {
+                    pixel[c] = T(0.0);
                     fixed = true;
                 }
             }
-            
-            if (fixed) ++count;
-            ++pixel;
+            if (fixed)
+                ++count;
         }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
-    }
-    else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
+    } else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
         // Replace non-finite pixels with a simple 3x3 window average
         // (the average excluding non-finite pixels, of course)
-        // 
-        // Warning: There is an inherent bug in this approach when src == dst
-        // As you progress across the image, the output buffer is also used
-        // as the input so there will be a directionality preference in the filling
-        // (I.e., updated values will be used only in the traversal direction).
-        // One can visualize this by disabling the isfinite check.
-
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        const int boxwidth = 1;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        
-        while (pixel.valid()) {
+        for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
             bool fixed = false;
-            
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                T value = pixel[c];
                 if (! isfinite (value)) {
                     int numvals = 0;
-                    SRCTYPE sum = 0.0;
-                    
-                    int top    = pixel.x() - boxwidth;
-                    int bottom = pixel.x() + boxwidth;
-                    int left   = pixel.y() - boxwidth;
-                    int right  = pixel.y() + boxwidth;
-                    
-                    ImageBuf::Iterator<SRCTYPE,SRCTYPE> it (dst, top, bottom, left, right);
-                    while (it.valid()) {
-                        SRCTYPE v = it[c];
+                    T sum (0.0);
+                    ROI roi2 (pixel.x()-1, pixel.x()+2,
+                              pixel.y()-1, pixel.y()+2,
+                              pixel.z()-1, pixel.z()+2);
+                    roi2 = roi_intersection (roi2, dstroi);
+                    for (ImageBuf::Iterator<T,T> i(dst,roi2); !i.done(); ++i) {
+                        T v = i[c];
                         if (isfinite (v)) {
                             sum += v;
-                            numvals ++;
+                            ++numvals;
                         }
-                        ++it;
                     }
-                    
-                    if (numvals>0) {
-                        (*pixel)[c] = sum/numvals;
-                        fixed = true;
-                    }
-                    else {
-                        (*pixel)[c] = 0.0;
-                        fixed = true;
-                    }
+                    pixel[c] = numvals ? T(sum / numvals) : T(0.0);
+                    fixed = true;
                 }
             }
-            
-            if (fixed) ++count;
-            ++pixel;
+            if (fixed)
+                ++count;
         }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
     }
     
-    return false;
+    if (pixelsFixed) {
+        // Update pixelsFixed atomically -- that's what makes this whole
+        // function thread-safe.
+        *(atomic_int *)pixelsFixed += count;
+    }
+
+    return true;
 }
 
 } // anon namespace
@@ -1591,28 +1644,52 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
 
 /// Fix all non-finite pixels (nan/inf) using the specified approach
 bool
-ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode, int * pixelsFixed)
+ImageBufAlgo::fixNonFinite (ImageBuf &src, 
+                            NonFiniteFixMode mode, int *pixelsFixed,
+                            ROI roi, int nthreads)
 {
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    // Initialize
+    if (pixelsFixed)
+        *pixelsFixed = 0;
+
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :
-        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<float> (src, mode, pixelsFixed, roi, nthreads);
     case TypeDesc::HALF  :
-        return fixNonFinite_<half> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<half> (src, mode, pixelsFixed, roi, nthreads);
     case TypeDesc::DOUBLE:
-        return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
+        return fixNonFinite_<double> (src, mode, pixelsFixed, roi, nthreads);
     default:
-        break;
+        // All other format types aren't capable of having nonfinite
+        // pixel values.
+        return true;
     }
-    
-    // Non-float images cannot have non-finite pixels,
-    // so all we have to do is copy the image and return
-    if (! dst.copy (src))
-        return false;
-    if (pixelsFixed) *pixelsFixed = 0;
-    return true;
 }
 
+
+
+// DEPRECATED 2-argument version
+bool
+ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode, int *pixelsFixed)
+{
+    ROI roi;
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if ((const ImageBuf *)&dst != &src)
+        if (! dst.copy (src))
+            return false;
+    return fixNonFinite (dst, mode, pixelsFixed, roi);
+}
 
 
 namespace {   // anonymous namespace
