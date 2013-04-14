@@ -214,6 +214,19 @@ public:
     ImageRec (const std::string &name, int nsubimages,
               const int *miplevels, const ImageSpec *specs=NULL);
 
+    enum WinMerge { WinMergeUnion, WinMergeIntersection, WinMergeA, WinMergeB };
+
+    // Initialize a new ImageRec based on two exemplars.  Initialize
+    // just the single subimage_to_copy if >= 0, or all subimages if <0.
+    // The two WinMerge parameters pixwin and fullwin, dictate the
+    // policy for setting up the pixel data and full (display) windows,
+    // respectively.  If pixeltype not UNKNOWN, use that rather than
+    // A's pixel type (the default behavior).
+    ImageRec (ImageRec &imgA, ImageRec &imgB, int subimage_to_copy = -1,
+              WinMerge pixwin = WinMergeUnion,
+              WinMerge fullwin = WinMergeUnion,
+              TypeDesc pixeltype = TypeDesc::UNKNOWN);
+
     // Number of subimages
     int subimages() const { return (int) m_subimages.size(); }
 

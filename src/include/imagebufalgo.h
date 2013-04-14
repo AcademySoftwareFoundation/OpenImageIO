@@ -291,6 +291,10 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
 /// images A and B, putting the sum in dst.  All three images must have
 /// the same number of channels.
 ///
+/// If roi is not initialized, it will be set to the union of the pixel
+/// regions of A and B.  If dst is not initialized, it will be sized
+/// based on roi.
+///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
@@ -301,7 +305,7 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                   ROI srcroi=ROI::All(), int nthreads=0);
+                   ROI roi=ROI::All(), int nthreads=0);
 
 /// For all pixels and channels of dst within region roi (defaulting to
 /// all the defined pixels of R), add to their value in place by 'val'.
@@ -316,7 +320,7 @@ bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API add (ImageBuf &dst, float val,
-                   ROI srcroi=ROI::All(), int nthreads=0);
+                   ROI roi=ROI::All(), int nthreads=0);
 
 /// For all pixels and channels of dst within region roi (defaulting to
 /// all the defined pixels of R), add to their value in place by the
@@ -348,6 +352,26 @@ enum OIIO_API AddOptions
     ADD_RETAIN_WINDOWS = 2, ///< Honor the existing windows
     ADD_ALIGN_WINDOWS = 0,  ///< Default: align the windows before adding
 };
+
+
+/// For all pixels within the designated ROI, compute dst = A - B.
+/// All three images must have the same number of channels.
+///
+/// If roi is not initialized, it will be set to the union of the pixel
+/// regions of A and B.  If dst is not initialized, it will be sized
+/// based on roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi=ROI::All(), int nthreads=0);
 
 
 /// For all pixels and channels of dst within region roi (defaulting to
