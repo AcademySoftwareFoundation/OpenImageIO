@@ -1254,26 +1254,19 @@ action_add (int argc, const char *argv[])
     ImageRecRef A (ot.pop());
     ot.read (A);
     ot.read (B);
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
+    int subimages = R->subimages();
     for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            const ImageBuf &Bib ((*B)(s,m));
-            if (! same_size (Aib, Bib)) {
-                // FIXME: some day, there should be options of combining
-                // differing images somehow.
-                std::cerr << "oiiotool: " << argv[0] << " could not combine images of differing sizes\n";
-                continue;
-            }
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            bool ok = ImageBufAlgo::add (Rib, Aib, Bib);
-            if (! ok)
-                ot.error (argv[0], Rib.geterror());
-        }
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        const ImageBuf &Bib ((*B)(s));
+        bool ok = ImageBufAlgo::add (Rib, Aib, Bib);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
     }
              
     ot.function_times["add"] += timer();
@@ -1293,33 +1286,19 @@ action_sub (int argc, const char *argv[])
     ImageRecRef A (ot.pop());
     ot.read (A);
     ot.read (B);
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
+    int subimages = R->subimages();
     for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            const ImageBuf &Bib ((*B)(s,m));
-            if (! same_size (Aib, Bib)) {
-                // FIXME: some day, there should be options of combining
-                // differing images somehow.
-                std::cerr << "oiiotool: " << argv[0] << " could not combine images of differing sizes\n";
-                continue;
-            }
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::ConstIterator<float> b (Bib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), r.y());
-                b.pos (r.x(), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c] - b[c];
-            }
-        }
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        const ImageBuf &Bib ((*B)(s));
+        bool ok = ImageBufAlgo::sub (Rib, Aib, Bib);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
     }
              
     ot.function_times["sub"] += timer();
