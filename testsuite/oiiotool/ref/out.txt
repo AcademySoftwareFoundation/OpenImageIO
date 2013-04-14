@@ -66,3 +66,5 @@ Comparing "sub.exr" and "ref/sub.exr"
 PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
 PASS
+Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
+PASS
