@@ -600,6 +600,32 @@ bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                        Filter2D *filter=NULL);
 
 
+/// Set dst, over the region of interest, to be a resampled version of the
+/// corresponding portion of src (mapping such that the "full" image
+/// window of each correspond to each other, regardless of resolution).
+///
+/// Unlike ImageBufAlgo::resize(), resample does not take a filter; it
+/// just samples either with a bilinear interpolation (if interpolate is
+/// true, the default) or uses the single "closest" pixel (if
+/// interpolate is false).  This makes it a lot faster than a proper
+/// resize(), though obviously with lower quality (aliasing when
+/// downsizing, pixel replication when upsizing).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
+                        bool interpolate = true,
+                        ROI roi = ROI::All(), int nthreads = 0);
+
+
+
 enum OIIO_API NonFiniteFixMode
 {
     NONFINITE_NONE = 0,     ///< Do nothing

@@ -939,6 +939,24 @@ as necessary to make the pixel data window exactly cover
 the full/display window.
 \apiend
 
+\apiitem{--resample {\rm \emph{size}}}
+\NEW
+Replace the current image with a new image that is resampled to the
+given pixel data resolution rapidly, but at a low quality, by simply
+copying the ``closest'' pixel.  The \emph{size} is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+\\ or~~~~ \spc \emph{scale}{\verb|%|} \\
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --resample 1024x768}  &     new resolution w=100, h=120 \\
+    {\cf --resample 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
+    {\cf --resample 300{\verb|%|}}  & increase resolution by 3x
+\end{tabular}
+
+\apiend
+
 \apiitem{--resize {\rm \emph{size}}}
 Replace the current image with a new image that is resized to the 
 given pixel data resolution.  The \emph{size} is in the form 
