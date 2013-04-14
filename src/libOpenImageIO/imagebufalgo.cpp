@@ -314,11 +314,12 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
                 ybegin, ybegin+srcroi.height(),
                 zbegin, zbegin+srcroi.depth(),
                 chbegin, chbegin+srcroi.nchannels());
+    ROI dstroi_save = dstroi;  // save the original
     IBAprep (dstroi, &dst);
 
     // do the actual copying
     OIIO_DISPATCH_TYPES2 ("paste", paste_, dst.spec().format, src.spec().format,
-                          dst, dstroi, src, srcroi, nthreads);
+                          dst, dstroi_save, src, srcroi, nthreads);
     return false;
 }
 
