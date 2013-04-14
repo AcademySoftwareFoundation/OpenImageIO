@@ -298,6 +298,84 @@ void test_compare ()
 
 
 
+// Tests ImageBufAlgo::isConstantColor
+void test_isConstantColor ()
+{
+    std::cout << "test isConstantColor\n";
+    const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
+    ImageBufAlgo::fill (A, col);
+
+    float thecolor[CHANNELS] = { 0, 0, 0 };
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A), true);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, thecolor), true);
+    OIIO_CHECK_EQUAL (col[0], thecolor[0]);
+    OIIO_CHECK_EQUAL (col[1], thecolor[1]);
+    OIIO_CHECK_EQUAL (col[2], thecolor[2]);
+
+    // Now introduce a difference
+    const float another[CHANNELS] = { 0, 1, 1 };
+    A.setpixel (2, 2, 0, another, 3);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A), false);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, thecolor), false);
+
+    // Make sure ROI works
+    ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, NULL, roi), true);
+}
+
+
+
+// Tests ImageBufAlgo::isConstantChannel
+void test_isConstantChannel ()
+{
+    std::cout << "test isConstantChannel\n";
+    const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
+    ImageBufAlgo::fill (A, col);
+
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f), true);
+
+    // Now introduce a difference
+    const float another[CHANNELS] = { 0, 1, 1 };
+    A.setpixel (2, 2, 0, another, 3);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f), false);
+
+    // Make sure ROI works
+    ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f, roi), true);
+}
+
+
+
+// Tests ImageBufAlgo::isMonochrome
+void test_isMonochrome ()
+{
+    std::cout << "test isMonochrome\n";
+    const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    const float col[CHANNELS] = { 0.25, 0.25, 0.25 };
+    ImageBufAlgo::fill (A, col);
+
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A), true);
+
+    // Now introduce a difference
+    const float another[CHANNELS] = { 0.25, 0.25, 1 };
+    A.setpixel (2, 2, 0, another, 3);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A), false);
+
+    // Make sure ROI works
+    ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A, roi), true);
+}
+
+
+
 // Test ability to do a maketx directly from an ImageBuf
 void
 test_maketx_from_imagebuf()
@@ -339,6 +417,9 @@ main (int argc, char **argv)
     test_channel_append ();
     test_add ();
     test_compare ();
+    test_isConstantColor ();
+    test_isConstantChannel ();
+    test_isMonochrome ();
     test_maketx_from_imagebuf ();
     
     return unit_test_failures;
