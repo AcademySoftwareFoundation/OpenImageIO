@@ -2251,6 +2251,36 @@ action_fillholes (int argc, const char *argv[])
 
 
 static int
+action_paste (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_paste, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef BG (ot.pop());
+    ImageRecRef FG (ot.pop());
+    ot.read (BG);
+    ot.read (FG);
+
+    int x = 0, y = 0;
+    if (sscanf (argv[1], "%d%d", &x, &y) != 2) {
+        ot.error ("paste", Strutil::format ("Invalid offset '%s'", argv[1]));
+        return 0;
+    }
+
+    ImageRecRef R (new ImageRec (*BG, 0, 0, true /* writable*/, true /* copy */));
+    ot.push (R);
+
+    bool ok = ImageBufAlgo::paste ((*R)(), x, y, 0, 0, (*FG)());
+    if (! ok)
+        ot.error (argv[0], (*R)().geterror());
+    ot.function_times["paste"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_over (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_over, argc, argv))
@@ -2723,6 +2753,7 @@ getargs (int argc, char *argv[])
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",

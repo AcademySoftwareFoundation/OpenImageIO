@@ -900,6 +900,15 @@ comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
 \apiend
 
+\apiitem{--paste {\rm \emph{location}}}
+\NEW
+Takes two images -- the first is the ``foreground'' and the second is
+the ``background'' -- and uses the pixels of the foreground to replace
+those of the backgroud beginning at the upper left \emph{location}
+(expressed as {\cf +}\emph{xpos}{\cf +}\emph{ypos}, e.g., {\cf +100+50},
+or of course using {\cf -} for negative offsets).
+\apiend
+
 \apiitem{--over}
 \index{composite}
 Replace the \emph{two} top images with a new image that is the
