@@ -2281,6 +2281,63 @@ action_paste (int argc, const char *argv[])
 
 
 static int
+action_mosaic (int argc, const char *argv[])
+{
+    // Mosaic is tricky. We have to parse the argument before we know
+    // how many images it wants to pull off the stack.
+    int ximages = 0, yimages = 0;
+    if (sscanf (argv[1], "%dx%d", &ximages, &yimages) != 2 
+          || ximages < 1 || yimages < 1) {
+        ot.error ("mosaic", Strutil::format ("Invalid size '%s'", argv[1]));
+        return 0;
+    }
+    int nimages = ximages * yimages;
+
+    if (ot.postpone_callback (nimages, action_paste, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    int widest = 0, highest = 0, nchannels = 0;
+    std::vector<ImageRecRef> images (nimages);
+    for (int i = nimages-1;  i >= 0;  --i) {
+        ImageRecRef img = ot.pop();
+        images[i] = img;
+        ot.read (img);
+        widest = std::max (widest, img->spec()->full_width);
+        highest = std::max (highest, img->spec()->full_height);
+        nchannels = std::max (nchannels, img->spec()->nchannels);
+    }
+
+    std::map<std::string,std::string> options;
+    options["pad"] = "0";
+    extract_options (options, argv[0]);
+    int pad = strtol (options["pad"].c_str(), NULL, 10);
+
+    ImageSpec Rspec (ximages*widest + (ximages-1)*pad,
+                     yimages*highest + (yimages-1)*pad,
+                     nchannels, TypeDesc::FLOAT);
+    ImageRecRef R (new ImageRec ("mosaic", Rspec, ot.imagecache));
+    ot.push (R);
+
+    ImageBufAlgo::zero ((*R)());
+    for (int j = 0;  j < yimages;  ++j) {
+        int y = j * (highest + pad);
+        for (int i = 0;  i < ximages;  ++i) {
+            int x = i * (widest + pad);
+            bool ok = ImageBufAlgo::paste ((*R)(), x, y, 0, 0,
+                                           (*images[j*ximages+i])(0));
+            if (! ok)
+                ot.error (argv[0], (*R)().geterror());
+        }
+    }
+
+    ot.function_times["mosaic"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_over (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_over, argc, argv))
@@ -2754,6 +2811,8 @@ getargs (int argc, char *argv[])
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
+                "--mosaic %@ %s", action_mosaic, NULL,
+                        "Assemble images into a mosaic (arg: WxH; options: pad=0)",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",

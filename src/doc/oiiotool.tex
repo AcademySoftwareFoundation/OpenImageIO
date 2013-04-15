@@ -909,6 +909,26 @@ those of the backgroud beginning at the upper left \emph{location}
 or of course using {\cf -} for negative offsets).
 \apiend
 
+\apiitem{--mosaic {\rm \emph{size}}}
+\NEW
+Removes \emph{w}{\cf x}\emph{h} images, dictated by the
+\emph{size}, and turns them into a single image mosaic.
+Optional appended arguments
+include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf pad=}\emph{num} & Select the number of pixels of black padding
+    to add between images (default: 0).
+\end{tabular}
+
+\noindent Examples:
+\begin{code}
+    oiiotool left.tif right.tif --mosaic:pad=16 2x1 -o out.tif
+
+    oiiotool 0.tif 1.tif 2.tif 3.tif 4.tif --mosaic:pad=16 2x2 -o out.tif
+\end{code}
+\apiend
+
 \apiitem{--over}
 \index{composite}
 Replace the \emph{two} top images with a new image that is the
