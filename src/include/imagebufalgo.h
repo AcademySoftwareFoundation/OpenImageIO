@@ -44,6 +44,7 @@
 #include "color.h"
 #include "thread.h"
 
+#include <limits>
 
 #ifndef __OPENCV_CORE_TYPES_H__
 struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
@@ -286,6 +287,49 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      const ImageBuf &src, ROI srcroi=ROI::All(),
                      int nthreads = 0);
 
+/// Clamp the values of the pixels of dst in place (specified by roi) as
+/// follows: 
+/// min[0..nchans-1] specifies the minimum clamp value for each channel
+/// (if min is NULL, no minimum clamping is performed).
+/// max[0..nchans-1] specifies the maximum clamp value for each channel
+/// (if max is NULL, no maximum clamping is performed).
+/// If clampalpha01 is true, then additionally any alpha channel is
+/// clamped to the 0-1 range.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API clamp (ImageBuf &dst, 
+                     const float *min=NULL, const float *max=NULL,
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
+
+/// Clamp the values of the pixels of dst in place (specified by roi) as
+/// follows: 
+/// All channels are clamped to [min,max].
+/// If clampalpha01 is true, then additionally any alpha channel is
+/// clamped to the 0-1 range.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API clamp (ImageBuf &dst, 
+                     float min=-std::numeric_limits<float>::max(),
+                     float max=std::numeric_limits<float>::max(),
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
 
 /// For all pixels within the designated region, add the pixels of two
 /// images A and B, putting the sum in dst.  All three images must have
@@ -405,6 +449,43 @@ bool OIIO_API mul (ImageBuf &dst, float val,
 bool OIIO_API mul (ImageBuf &dst, const float *val,
                    ROI roi=ROI::All(), int nthreads=0);
 
+/// For all pixels and color channels of dst within region roi
+/// (defaulting to all the defined pixels of dst), rescale their range
+/// in the following way: values < 1 are unchanged, excess value > 1 is
+/// remapped to be logarithmically-encoded, with a smooth transition
+/// between them.  Alpha and z channels are not transformed.
+///
+/// If useluma is true, the luma of channels [roi.chbegin..roi.chbegin+2]
+/// (presumed to be R, G, and B) are used to compute a single scale
+/// factor for all color channels, rather than scaling all channels
+/// individually (which could result in a big color shift).
+///
+/// Some image operations (such as resizing with a "good" filter that
+/// contains negative lobes) can have objectional artifacts when applied
+/// to images with very high-contrast regions involving extra bright
+/// pixels (such as highlights in HDR captured or rendered images).  By
+/// compressing the range of super-hot >1 pixels, then performing the
+/// operation, then expanding the range of the result again, the result
+/// can be much more pleasing (even if not exactly correct).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types, although it's a trivial no-op for
+/// integer formats since they cannot encode values > 1.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = true,
+                             ROI roi = ROI::All(), int nthreads=0);
+
+/// rangeexpand is the opposite operation of rangecompress -- rescales
+/// the color channel values of an image whose super-white vaues were
+/// range compressed, back to a linear response.
+bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = true,
+                           ROI roi = ROI::All(), int nthreads=0);
 
 
 /// Apply a color transform to the pixel values within the ROI.
@@ -894,8 +975,14 @@ enum OIIO_API MakeTextureMode {
 ///                               to 0,0 (default: 0).
 ///    maketx:filtername (string)
 ///                           If set, will specify the name of a high-quality
-///                           filter to use when resampling for MIPmap levels.
-///                           Default: "", use simple bilinear resampling.
+///                              filter to use when resampling for MIPmap
+///                              levels. Default: "", use bilinear resampling.
+///    maketx:highlightcomp (int)
+///                           If nonzero, performs highlight compensation --
+///                              range compression and expansion around
+///                              the resize, plus clamping negative plxel
+///                              values to zero. This reduces ringing when
+///                              using filters with negative lobes.
 ///    maketx:nchannels (int) If nonzero, will specify how many channels
 ///                              the output texture should have, padding with
 ///                              0 values or dropping channels, if it doesn't

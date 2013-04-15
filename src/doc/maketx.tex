@@ -122,6 +122,42 @@ that are compatible with both OIIO and other texturing systems that
 require power-of-2 textures.
 \apiend
 
+\apiitem{--filter {\rm \emph{name}}}
+By default, the resizing step that generates successive MIP levels
+uses a triangle filter to bilinearly combine pixels (for MIP levels
+with even number of pixels, this is also equivalent to a box filter,
+which merely averages groups of 4 adjacent pixels).  This is fast,
+but for source images with high frequency content, can result in 
+aliasing or other artifacts in the lower-resolution MIP levels.
+
+The {\cf --filter} option selects a high-quality filter to use when
+resizing to generate successive MIP levels.  Choices include
+{\cf lanczos3} (our best recommendation for highest-quality filtering, a
+3-lobe Lanczos filter), {\cf box}, {\cf triangle}, {\cf catrom},
+{\cf blackman-harris}, {\cf gaussian}, {\cf mitchell}, {\cf bspline},
+{\cf radial-lanczos3}, {\cf disk}, {\cf sinc}.
+
+If you select a filter with negative lobes (including
+{\cf lanczos3}, {\cf sinc}, {\cf lanczos3}, or {\cf catrom}), and your
+source image is an HDR image with very high contrast regions that
+include pixels with values $>1$, you may also wish to use the
+{\cf --rangecompress} option to avoid ringing artifacts.
+\apiend
+
+\apiitem{--hicomp}
+\NEW
+Perform highlight compensation.  When HDR input data with high-contrast
+highlights is turned into a MIP-mapped texture using a high-quality
+filter with negative lobes (such as {\cf lanczos3}), objectionable
+ringing could appear near very high-contrast regions with pixel values
+$>1$. This option improves those areas by using range compression
+(transforming HDR excess values $> 1$ to be log-encoded) prior to each
+image filtered-resize step, and then expanded back to a linear format
+after the resize, and also clamping resulting pixel values to be
+non-negative.  This can result in some loss of energy, but often this is
+a preferable alternative to ringing artifacts in your upper MIP levels.
+\apiend
+
 \apiitem{--nomipmap}
 Causes the output to \emph{not} be MIP-mapped, i.e., only will have
 the highest-resolution level.

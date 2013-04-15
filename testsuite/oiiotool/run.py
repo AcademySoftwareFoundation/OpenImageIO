@@ -92,6 +92,11 @@ command += (oiio_app ("oiiotool") + " "
 command += (oiio_app ("oiiotool") + " " 
             + "ref/hole.tif --fillholes -o tahoe-filled.tif >> out.txt ;\n")
 
+# test clamping
+command += (oiio_app ("oiiotool")
+            + parent + "/oiio-images/grid.tif --resize 50%"
+            + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif >> out.txt ;\n")
+
 # test sequences
 command += (oiio_app("oiiotool")
             + "fit.tif -o copyA.1-10#.jpg >> out.txt ;\n");
@@ -111,6 +116,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",
             "tahoe-filled.tif",
+            "grid-clamped.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

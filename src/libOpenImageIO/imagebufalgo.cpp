@@ -343,7 +343,7 @@ crop_ (ImageBuf &dst, const ImageBuf &src,
     ImageBuf::ConstIterator<S,D> s (src, roi);
     ImageBuf::Iterator<D,D> d (dst, roi);
     for ( ;  ! d.done();  ++d, ++s) {
-        for (int c = roi.chbegin, i = 0;  c < roi.chend;  ++c, ++i)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
             d[c] = s[c];
     }
     return true;
@@ -363,6 +363,71 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     return false;
 }
 
+
+
+
+template<class D>
+static bool
+clamp_ (ImageBuf &dst, const float *min, const float *max,
+        bool clampalpha01, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(clamp_<D>, boost::ref(dst), min, max, clampalpha01,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d) {
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = OIIO::clamp<float> (d[c], min[c], max[c]);
+    }
+    int a = dst.spec().alpha_channel;
+    if (clampalpha01 && a >= roi.chbegin && a < roi.chend) {
+        for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d) {
+            d[a] = OIIO::clamp<float> (d[a], 0.0f, 1.0f);
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::clamp (ImageBuf &dst, const float *min, const float *max,
+                     bool clampalpha01, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    std::vector<float> minvec, maxvec;
+    if (! min) {
+        minvec.resize (dst.nchannels(), -std::numeric_limits<float>::max());
+        min = &minvec[0];
+    }
+    if (! max) {
+        maxvec.resize (dst.nchannels(), std::numeric_limits<float>::max());
+        max = &maxvec[0];
+    }
+    OIIO_DISPATCH_TYPES ("clamp", clamp_, dst.spec().format, dst,
+                         min, max, clampalpha01, roi, nthreads);
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::clamp (ImageBuf &dst, float min, float max,
+                     bool clampalpha01, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    std::vector<float> minvec (dst.nchannels(), min);
+    std::vector<float> maxvec (dst.nchannels(), max);
+    OIIO_DISPATCH_TYPES ("clamp", clamp_, dst.spec().format, dst,
+                         &minvec[0], &maxvec[0], clampalpha01, roi, nthreads);
+    return false;
+}
 
 
 
@@ -802,6 +867,185 @@ ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
     for (int c = 0;  c < nc;  ++c)
         vals[c] = val;
     return mul (R, vals, roi, nthreads);
+}
+
+
+
+inline float rangecompress (float x)
+{
+    // Formula courtesy of Sony Pictures Imageworks
+    const float x1 = 1.0, a = 1.2607481479644775391;
+    const float b = 0.28785100579261779785, c = -1.4042005538940429688;
+    float absx = fabsf(x);
+    if (absx <= x1)
+        return x;
+    return copysignf (a + b * logf(fabsf(c*absx + 1.0f)), x);
+}
+
+
+
+inline float rangeexpand (float y)
+{
+    // Formula courtesy of Sony Pictures Imageworks
+    const float x1 = 1.0, a = 1.2607481479644775391;
+    const float b = 0.28785100579261779785, c = -1.4042005538940429688;
+    float absy = fabsf(y);
+    if (absy <= x1)
+        return y;
+    float xIntermediate = expf ((absy - a)/b);
+    // Since the compression step includes an absolute value, there are
+    // two possible results here. If x < x1 it is the incorrect result,
+    // so pick the other value.
+    float x = (xIntermediate - 1.0f) / c;
+    if (x < x1)
+        x = (-xIntermediate - 1.0f) / c;
+    return copysign (x, y);
+}
+
+
+
+template<class Rtype>
+static bool
+rangecompress_ (ImageBuf &R, bool useluma, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(rangecompress_<Rtype>, boost::ref(R), useluma,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    const ImageSpec &Rspec (R.spec());
+    int alpha_channel = Rspec.alpha_channel;
+    int z_channel = Rspec.z_channel;
+    if (roi.nchannels() < 3 ||
+        (alpha_channel >= roi.chbegin && alpha_channel < roi.chbegin+3) ||
+        (z_channel >= roi.chbegin && z_channel < roi.chbegin+3)) {
+        useluma = false;  // No way to use luma
+    }
+
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        if (useluma) {
+            float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
+            if (fabsf(luma) <= 1.0f)
+                continue;  // Not HDR, no range compression needed
+            float scale = rangecompress (luma) / luma;
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == alpha_channel || c == z_channel)
+                    continue;
+                r[c] = r[c] * scale;
+            }
+        } else {
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == alpha_channel || c == z_channel)
+                    continue;
+                r[c] = rangecompress (r[c]);
+            }
+        }
+    }
+    return true;
+}
+
+
+
+template<class Rtype>
+static bool
+rangeexpand_ (ImageBuf &R, bool useluma, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(rangeexpand_<Rtype>, boost::ref(R), useluma,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    const ImageSpec &Rspec (R.spec());
+    int alpha_channel = Rspec.alpha_channel;
+    int z_channel = Rspec.z_channel;
+    if (roi.nchannels() < 3 ||
+        (alpha_channel >= roi.chbegin && alpha_channel < roi.chbegin+3) ||
+        (z_channel >= roi.chbegin && z_channel < roi.chbegin+3)) {
+        useluma = false;  // No way to use luma
+    }
+
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        if (useluma) {
+            float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
+            if (fabsf(luma) <= 1.0f)
+                continue;  // Not HDR, no range compression needed
+            float scale = rangeexpand (luma) / luma;
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == alpha_channel || c == z_channel)
+                    continue;
+                r[c] = r[c] * scale;
+            }
+        } else {
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == alpha_channel || c == z_channel)
+                    continue;
+                r[c] = rangeexpand (r[c]);
+            }
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::rangecompress (ImageBuf &dst, bool useluma,
+                             ROI roi, int nthreads)
+{
+    // If the data type can't handle extended range, this is a no-op
+    int basetype = dst.spec().format.basetype;
+    if (basetype != TypeDesc::FLOAT && basetype != TypeDesc::HALF &&
+        basetype != TypeDesc::DOUBLE)
+        return true;
+
+    IBAprep (roi, &dst);
+    switch (basetype) {
+    case TypeDesc::FLOAT:
+        return rangecompress_<float> (dst, useluma, roi, nthreads);
+    case TypeDesc::HALF:
+        return rangecompress_<half> (dst, useluma, roi, nthreads);
+    case TypeDesc::DOUBLE:
+        return rangecompress_<double> (dst, useluma, roi, nthreads);
+    default:
+        return true;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::rangeexpand (ImageBuf &dst, bool useluma,
+                           ROI roi, int nthreads)
+{
+    // If the data type can't handle extended range, this is a no-op
+    int basetype = dst.spec().format.basetype;
+    if (basetype != TypeDesc::FLOAT && basetype != TypeDesc::HALF &&
+        basetype != TypeDesc::DOUBLE)
+        return true;
+
+    IBAprep (roi, &dst);
+    switch (basetype) {
+    case TypeDesc::FLOAT:
+        return rangeexpand_<float> (dst, useluma, roi, nthreads);
+    case TypeDesc::HALF:
+        return rangeexpand_<half> (dst, useluma, roi, nthreads);
+    case TypeDesc::DOUBLE:
+        return rangeexpand_<double> (dst, useluma, roi, nthreads);
+    default:
+        return true;
+    }
+    return true;
 }
 
 
@@ -1327,7 +1571,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
         roi = get_roi (src.spec());
 
     // Fall back to whole-image hash for only one block
-    if (blocksize < 0 || blocksize >= roi.height())
+    if (blocksize <= 0 || blocksize >= roi.height())
         return simplePixelHashSHA1 (src, extrainfo, roi);
 
     // Request for 0 threads means "use the OIIO global thread count"
