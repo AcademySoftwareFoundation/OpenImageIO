@@ -1993,13 +1993,204 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                    dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
-
     OIIO_DISPATCH_TYPES2 ("resample", resample_,
                           dst.spec().format, src.spec().format,
                           dst, src, interpolate, roi, nthreads);
-
     return false;
 }
+
+
+
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
+           bool normalize, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(convolve_<DSTTYPE,SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), boost::cref(kernel), normalize,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+
+    float scale = 1.0f;
+    if (normalize) {
+        scale = 0.0f;
+        for (ImageBuf::ConstIterator<float> k (kernel); ! k.done(); ++k)
+            scale += k[0];
+        scale = 1.0f / scale;
+    }
+
+    float *sum = ALLOCA (float, roi.chend);
+    ROI kroi = get_roi (kernel.spec());
+    ImageBuf::Iterator<DSTTYPE> d (dst, roi);
+    ImageBuf::ConstIterator<DSTTYPE> s (src, roi, ImageBuf::WrapClamp);
+    for ( ; ! d.done();  ++d) {
+
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            sum[c] = 0.0f;
+
+        for (ImageBuf::ConstIterator<float> k (kernel, kroi); !k.done(); ++k) {
+            float kval = k[0];
+            s.pos (d.x() + k.x(), d.y() + k.y(), d.z() + k.z());
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                sum[c] += kval * s[c];
+        }
+        
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            d[c] = scale * sum[c];
+    }
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
+                        const ImageBuf &kernel, bool normalize,
+                        ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    OIIO_DISPATCH_TYPES2 ("convolve", convolve_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, kernel, normalize, roi, nthreads);
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
+                           float width, float height, bool normalize)
+{
+    int w = std::max (1, (int)ceilf(width));
+    int h = std::max (1, (int)ceilf(height));
+    // Round up size to odd
+    if (! (w & 1))
+        ++w;
+    if (! (h & 1))
+        ++h;
+    ImageSpec spec (w, h, 1 /*channels*/, TypeDesc::FLOAT);
+    spec.x = -w/2;
+    spec.y = -h/2;
+    spec.full_x = spec.x;
+    spec.full_y = spec.y;
+    spec.full_width = spec.width;
+    spec.full_height = spec.height;
+    dst.alloc (spec);
+
+    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    filter.reset (Filter2D::create (name, width, height));
+    if (filter.get()) {
+        float sum = 0;
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p) {
+            float val = (*filter)((float)p.x(), (float)p.y());
+            p[0] = val;
+            sum += val;
+        }
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = p[0] / sum;
+    } else {
+        // No filter -- make a box
+        float val = normalize ? 1.0f / ((w*h)) : 1.0f;
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = val;
+        dst.error ("Unknown kernel \"%s\"", name);
+        return false;
+    }
+    return true;
+}
+
+
+
+// Helper function for unsharp mask to perform the thresholding
+static bool
+threshold_to_zero (ImageBuf &dst, float threshold,
+                   ROI roi, int nthreads)
+{
+    ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT);
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(threshold_to_zero, boost::ref(dst), threshold,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<float> p (dst, roi);  ! p.done();  ++p)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            if (fabsf(p[c]) < threshold)
+                p[c] = 0.0f;
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
+                            const char *kernel, float width,
+                            float contrast, float threshold,
+                            ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+
+    // Blur the source image, store in Blurry
+    ImageBuf K ("kernel");
+    if (! make_kernel (K, kernel, width, width)) {
+        dst.error ("%s", K.geterror());
+        return false;
+    }
+    ImageSpec BlurrySpec = src.spec();
+    BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
+    ImageBuf Blurry ("blurry", BlurrySpec);
+    if (! convolve (Blurry, src, K, true, roi, nthreads)) {
+        dst.error ("%s", Blurry.geterror());
+        return false;
+    }
+
+    // Compute the difference between the source image and the blurry
+    // version.  (We store it in the same buffer we used for the difference
+    // image.)
+    ImageBuf &Diff (Blurry);
+    bool ok = sub (Diff, src, Blurry, roi, nthreads);
+
+    if (ok && threshold > 0.0f)
+        ok = threshold_to_zero (Diff, threshold, roi, nthreads);
+
+    // Scale the difference image by the contrast
+    if (ok)
+        ok = mul (Diff, contrast, roi, nthreads);
+    if (! ok) {
+        dst.error ("%s", Diff.geterror());
+        return false;
+    }
+
+    // Add the scaled difference to the original, to get the final answer
+    ok = add (dst, src, Diff, roi, nthreads);
+
+    return ok;
+}
+
 
 
 

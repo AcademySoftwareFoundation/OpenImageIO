@@ -72,3 +72,11 @@ Comparing "unpremult.exr" and "ref/unpremult.exr"
 PASS
 Comparing "premult.exr" and "ref/premult.exr"
 PASS
+Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
+PASS
+Comparing "bspline-blur.tif" and "ref/bspline-blur.tif"
+PASS
+Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
+PASS
+Comparing "unsharp.tif" and "ref/unsharp.tif"
+PASS

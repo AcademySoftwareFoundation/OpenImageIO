@@ -819,6 +819,30 @@ An $512 \times 512$ RGB image with a 16-pixel-wide checker pattern.
 \apiend
 
 
+\apiitem{--kernel {\rm \emph{name size}}}
+\NEW
+Create new 1-channel {\cf float} image big enough to hold the named
+kernel and size (size is expressed as \emph{width}{\cf x}\emph{height},
+e.g. {\cf 5x5}).  The \emph{width} and \emph{height} are allowed to be
+floating-point numbers. The kernel image will have its origin offset so
+that the kernel center is at (0,0), and and will be normalized (the sum
+of all pixel values will be 1.0).
+
+Kernel names can be: {\cf gaussian}, {\cf sharp-gaussian}, {\cf box},
+{\cf triangle}, {\cf blackman-harris}, {\cf mitchell}, {\cf b-spline},
+{\cf disk}.  There are also {\cf catmull-rom} and {\cf lanczos3}, but
+they are fixed-size kernels that don't scale with the width, and are
+therefore probably less useful in most cases.
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool --kernel gaussian 11x11 -o gaussian.exr
+\end{code}
+\apiend
+
+
+
 \apiitem{--capture}
 
 Capture a frame from a camera device, pushing it onto the image stack
@@ -1005,6 +1029,67 @@ decreasing resolution. \\
 \end{tabular}
 \apiend
 
+\apiitem{--convolve}
+\NEW
+Use the top image as a kernel to convolve the next image farther down
+the stack, replacing both with the result.
+
+\noindend Examples:
+\begin{code}
+    # Use a kernel image already prepared
+    oiiotool image.exr kernel.exr --convolve -o output.exr
+
+    # Construct a kernel image on the fly with --kernel
+    oiiotool image.exr --kernel gaussian 5x5 --convolve -o blurred.exr
+\end{code}
+\apiend
+
+\apiitem{--blur {\rm \emph{size}}}
+\NEW
+Blur the top image with a blur kernel of the given size expressed as
+\emph{width}{\cf x}\emph{height}.  (The sizes may be floating point 
+numbers.)
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf kernel=}\emph{name} & Kernel name. The default is {\cf
+  gaussian}.
+\end{tabular}
+
+\noindend Examples:
+\begin{code}
+    oiiotool image.jpg --blur 5x5 -o blurred.jpg
+
+    oiiotool image.jpg --blur:kernel=bspline 7x7 -o blurred.jpg
+\end{code}
+\apiend
+
+
+\apiitem{--unsharp}
+\NEW
+Unblur the top image using an ``unsharp mask.'' 
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf kernel=}\emph{name} & Name of the blur kernel (default: {\cf
+    gaussian}). \\
+ & {\cf width=}\emph{w} & Width of the blur kernel (default: 3). \\
+ & {\cf contrast=}\emph{c} & Contrast scale (default: 1.0) \\
+ & {\cf threshold=}\emph{t} & Threshold for applying the difference
+  (default: 0)
+\end{tabular}
+
+\noindend Examples:
+\begin{code}
+    oiiotool image.jpg --unsharp -o sharper.jpg
+
+    oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
+\end{code}
+\apiend
+
+
 \apiitem{--fixnan {\rm \emph{streategy}}}
 Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
@@ -1096,6 +1181,7 @@ $\alpha = 1$ and plausible color everywhere.
 This can be used both to fill internal ``holes'' as well as to extend an
 image out.
 \apiend
+
 
 \apiitem{--text {\rm \emph{words}}}
 Draw (rasterize) text overtop of the current image.
