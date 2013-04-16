@@ -279,7 +279,7 @@ public:
             char *d = (char *)data + y*ystride;
             for (int x = 0;  x < width;  ++x, d += xstride)
                 for (int c = 0;  c < channels;  ++c)
-                    *(float *)d = sRGB_to_linear (*(float *)d);
+                    ((float *)d)[c] = sRGB_to_linear (((float *)d)[c]);
         }
     }
 };
@@ -324,7 +324,7 @@ public:
             char *d = (char *)data + y*ystride;
             for (int x = 0;  x < width;  ++x, d += xstride)
                 for (int c = 0;  c < channels;  ++c)
-                    *(float *)d = Rec709_to_linear (*(float *)d);
+                    ((float *)d)[c] = Rec709_to_linear (((float *)d)[c]);
         }
     }
 };
