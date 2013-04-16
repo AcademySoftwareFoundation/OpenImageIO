@@ -838,6 +838,20 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 
 
 
+/// Fast float exp
+inline float fast_expf(float x)
+{
+#if defined(__x86_64__) && defined(__GNU_LIBRARY__) && defined(__GLIBC__ ) && defined(__GLIBC_MINOR__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 16
+    // On x86_64, versions of glibc < 2.16 have an issue where expf is
+    // much slower than the double version.  This was fixed in glibc 2.16.
+    return static_cast<float>(std::exp(static_cast<double>(x)));
+#else
+    return std::exp(x);
+#endif
+}
+
+
+
 #ifdef _WIN32
 // Windows doesn't define these functions from math.h
 #define hypotf _hypotf

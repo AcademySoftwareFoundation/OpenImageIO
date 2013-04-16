@@ -107,6 +107,26 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + " unpremult.exr --premult -o premult.exr >> out.txt ;\n")
 
+# test kernel
+command += (oiio_app ("oiiotool")
+            + "--kernel bspline 15x15 -o bsplinekernel.exr >> out.txt ;\n")
+
+# test convolve
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --kernel bspline 15x15 --convolve "
+            + "-d uint8 -o bspline-blur.tif >> out.txt ;\n")
+
+# test blur
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --blur 5x5 "
+            + "-d uint8 -o gauss5x5-blur.tif >> out.txt ;\n")
+
+# test unsharp mask
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --unsharp "
+            + "-d uint8 -o unsharp.tif >> out.txt ;\n")
+
+
 
 # test sequences
 command += (oiio_app("oiiotool")
@@ -129,6 +149,8 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "tahoe-filled.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
+            "bsplinekernel.exr", "bspline-blur.tif",
+            "gauss5x5-blur.tif", "unsharp.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
