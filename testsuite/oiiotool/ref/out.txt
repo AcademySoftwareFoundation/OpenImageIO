@@ -78,5 +78,5 @@ Comparing "bspline-blur.tif" and "ref/bspline-blur.tif"
 PASS
 Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
 PASS
-Comparing "unsharp.jpg" and "ref/unsharp.jpg"
+Comparing "unsharp.tif" and "ref/unsharp.tif"
 PASS

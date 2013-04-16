@@ -29,11 +29,6 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --resize 25% -o resize2.tif >> out.txt ;\n")
 
-# Make a small tahoe image, it'll be handy for other tests...
-command += (oiio_app ("oiiotool") + " " 
-            + parent + "/oiio-images/tahoe-gps.jpg"
-            + " --resize 25% -o tahoe-small.jpg >> out.txt ;\n")
-
 # test extreme resize
 command += (oiio_app ("oiiotool")
             + parent + "/oiio-images/grid.tif"
@@ -118,18 +113,18 @@ command += (oiio_app ("oiiotool")
 
 # test convolve
 command += (oiio_app ("oiiotool")
-            + "tahoe-small.jpg --kernel bspline 15x15 --convolve "
+            + "tahoe-small.tif --kernel bspline 15x15 --convolve "
             + "-d uint8 -o bspline-blur.tif >> out.txt ;\n")
 
 # test blur
 command += (oiio_app ("oiiotool")
-            + "tahoe-small.jpg --blur 5x5 "
+            + "tahoe-small.tif --blur 5x5 "
             + "-d uint8 -o gauss5x5-blur.tif >> out.txt ;\n")
 
 # test unsharp mask
 command += (oiio_app ("oiiotool")
-            + "tahoe-small.jpg --unsharp "
-            + "-d uint8 -o unsharp.jpg >> out.txt ;\n")
+            + "tahoe-small.tif --unsharp "
+            + "-d uint8 -o unsharp.tif >> out.txt ;\n")
 
 
 
@@ -155,7 +150,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
-            "gauss5x5-blur.tif", "unsharp.jpg",
+            "gauss5x5-blur.tif", "unsharp.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
