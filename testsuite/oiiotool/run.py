@@ -83,6 +83,21 @@ command += (oiio_app ("oiiotool") + " "
             + " --histogram:cumulative=1 256x256 0 "
             + "-o histogram_cumulative.tif >> out.txt ;\n")
 
+# test paste
+command += (oiio_app("oiiotool")
+            + parent + "/oiio-images/grid.tif "
+            + "--pattern checker 256x256 3 --paste +150+75 "
+            + "-o pasted.tif >> out.txt ;\n")
+
+# test mosaic
+command += (oiio_app("oiiotool")
+            + "--pattern constant:color=1,0,0 50x50 3 "
+            + "--pattern constant:color=0,1,0 50x50 3 "
+            + "--pattern constant:color=0,0,1 50x50 3 "
+            + "--pattern constant:color=1,1,1 50x50 3 "
+            + "--mosaic:pad=10 2x2 "
+            + "-d uint8 -o mosaic.tif >> out.txt ;\n")
+
 # test channel shuffling
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -143,6 +158,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
+            "pasted.tif", "mosaic.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",

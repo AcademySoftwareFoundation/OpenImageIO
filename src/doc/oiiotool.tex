@@ -881,13 +881,13 @@ consisting of the \emph{absolute value} of he old pixel value.
 \apiend
 
 \apiitem{--cadd {\rm \emph{value}} \\
---add {\rm \emph{value0,value1,value2...}}}
+--cadd {\rm \emph{value0,value1,value2...}}}
 \NEW
-Add a constant value to all the pixel values in the top image.
-If a single constant value is given, all color channels will have that
-value added.  Alternatively, a series of
-comma-separated constant values (with no spaces!) may be used to specifiy a
-different value to add to each channel in the image, respectively.
+Add a constant value to all the pixels in the current image.  If a
+single constant value is given, it will be added to all color channels.
+Alternatively, a series of comma-separated constant values (with no
+spaces!) may be used to specifiy a different value to add to each
+channel in the image, respectively.
 \apiend
 
 \apiitem{--cmul {\rm \emph{value}} \\
@@ -898,6 +898,35 @@ If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
 comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
+\apiend
+
+\apiitem{--paste {\rm \emph{location}}}
+\NEW
+Takes two images -- the first is the ``foreground'' and the second is
+the ``background'' -- and uses the pixels of the foreground to replace
+those of the backgroud beginning at the upper left \emph{location}
+(expressed as {\cf +}\emph{xpos}{\cf +}\emph{ypos}, e.g., {\cf +100+50},
+or of course using {\cf -} for negative offsets).
+\apiend
+
+\apiitem{--mosaic {\rm \emph{size}}}
+\NEW
+Removes \emph{w}{\cf x}\emph{h} images, dictated by the
+\emph{size}, and turns them into a single image mosaic.
+Optional appended arguments
+include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf pad=}\emph{num} & Select the number of pixels of black padding
+    to add between images (default: 0).
+\end{tabular}
+
+\noindent Examples:
+\begin{code}
+    oiiotool left.tif right.tif --mosaic:pad=16 2x1 -o out.tif
+
+    oiiotool 0.tif 1.tif 2.tif 3.tif 4.tif --mosaic:pad=16 2x2 -o out.tif
+\end{code}
 \apiend
 
 \apiitem{--over}
