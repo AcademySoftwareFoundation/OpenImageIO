@@ -1487,18 +1487,13 @@ action_flip (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::flip(Rib, Aib);
-        }
-    }
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
 
     ot.function_times["flip"] += timer();             
     return 0;
@@ -1515,19 +1510,14 @@ action_flop (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::flop(Rib, Aib);
-        }
-    }
-             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
+
     ot.function_times["flop"] += timer();
     return 0;
 }
@@ -1543,19 +1533,14 @@ action_flipflop (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::flipflop(Rib, Aib);
-        }
-    }
-             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
+
     ot.function_times["flipflop"] += timer();
     return 0;
 }

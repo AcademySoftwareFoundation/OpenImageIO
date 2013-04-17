@@ -54,6 +54,12 @@ Comparing "pasted.tif" and "ref/pasted.tif"
 PASS
 Comparing "mosaic.tif" and "ref/mosaic.tif"
 PASS
+Comparing "flip.tif" and "ref/flip.tif"
+PASS
+Comparing "flop.tif" and "ref/flop.tif"
+PASS
+Comparing "flipflop.tif" and "ref/flipflop.tif"
+PASS
 Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
 PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"
