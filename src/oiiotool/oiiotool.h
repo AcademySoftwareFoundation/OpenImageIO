@@ -186,6 +186,16 @@ public:
           m_imagecache(imagecache)
     { }
 
+    // Initialize an ImageRec with a collection of prepared ImageSpec's.
+    // The number of subimages is nsubimages, the number of MIP levels
+    // for each subimages is in miplevels[0..nsubimages-1] (if miplevels
+    // is NULL, allocate just one MIP level per subimage), and specs[]
+    // contains the specs for all the MIP levels of subimage 0, followed
+    // by all the specs for the MIP levels of subimage 1, and so on.
+    // If spec == NULL, the IB's will not be fully allocated/initialized.
+    ImageRec (const std::string &name, int nsubimages = 1,
+              const int *miplevels = NULL, const ImageSpec *specs=NULL);
+
     // Copy an existing ImageRec.  Copy just the single subimage_to_copy
     // if >= 0, or all subimages if <0.  Copy just the single
     // miplevel_to_copy if >= 0, or all MIP levels if <0.  If writable
@@ -204,15 +214,6 @@ public:
     // Initialize an ImageRec with the given spec.
     ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
-
-    // Initialize an ImageRec with a collection of prepared ImageSpec's.
-    // The number of subimages is nsubimages, the number of MIP levels
-    // for each subimages is in miplevels[0..nsubimages-1], and specs[]
-    // contains the specs for all the MIP levels of subimage 0, followed
-    // by all the specs for the MIP levels of subimage 1, and so on.
-    // If spec == NULL, the IB's will not be fully allocated/initialized.
-    ImageRec (const std::string &name, int nsubimages,
-              const int *miplevels, const ImageSpec *specs=NULL);
 
     enum WinMerge { WinMergeUnion, WinMergeIntersection, WinMergeA, WinMergeB };
 
