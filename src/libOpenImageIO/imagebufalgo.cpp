@@ -366,6 +366,89 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<class D, class S>
+static bool
+flip_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf::ConstIterator<S, D> s (src, roi);
+    ImageBuf::Iterator<D, D> d (dst, roi);
+    for ( ; ! d.done(); ++d) {
+        s.pos (d.x(), roi.yend-1 - (d.y() - roi.ybegin), d.z());
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::flip(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES2 ("flip", flip_,
+                          dst.spec().format, src.spec().format, dst, src,
+                          roi, nthreads);
+    return false;
+}
+
+
+
+template<class D, class S>
+static bool
+flop_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf::ConstIterator<S, D> s (src, roi);
+    ImageBuf::Iterator<D, D> d (dst, roi);
+    for ( ; ! d.done(); ++d) {
+        s.pos (roi.xend-1 - (d.x() - roi.xbegin), d.y(), d.z());
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::flop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES2 ("flop", flop_,
+                          dst.spec().format, src.spec().format, dst, src,
+                          roi, nthreads);
+    return false;
+}
+
+
+
+template<class D, class S>
+static bool
+flipflop_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    // Serial case
+    ImageBuf::ConstIterator<S, D> s (src, roi);
+    ImageBuf::Iterator<D, D> d (dst, roi);
+    for ( ; !d.done(); ++d) {
+        s.pos (roi.xend-1 - (d.x() - roi.xbegin),
+               roi.yend-1 - (d.y() - roi.ybegin), d.z());
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES2 ("flipflop", flipflop_,
+                          dst.spec().format, src.spec().format, dst, src,
+                          roi, nthreads);
+    return false;
+}
+
+
 
 template<class D>
 static bool

@@ -178,29 +178,6 @@ bool OIIO_API checker (ImageBuf &dst, int width,
 
 
 
-/// Enum describing options to be passed to transform
-
-enum OIIO_API AlignedTransform
-{
-    TRANSFORM_NONE = 0,
-    TRANSFORM_FLIP,        // Upside-down
-    TRANSFORM_FLOP,        // Left/Right Mirrored
-    TRANSFORM_FLIPFLOP,    // Upside-down + Mirrored (Same as 180 degree rotation)
-//  TRANSFORM_ROT90,       // Rotate 90 degrees clockwise. Image remains in positive quadrant.
-//  TRANSFORM_ROT180,      // Rotate 180 degrees clockwise. Image remains in positive quadrant. (Same as FlipFlop)
-//  TRANSFORM_ROT270,      // Rotate 270 degrees clockwise. Image remains in positive quadrant.
-};
-
-/// Transform the image, as specified in the options. All transforms are done
-/// with respect the display winow (full_size / full_origin), though data
-/// outside this area (overscan) is preserved.  This operation does not
-/// filter pixel values; all operations are pixel aligned. In-place operation
-/// (dst == src) is not supported.
-/// return true on success.
-
-bool OIIO_API transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t);
-
-
 /// Generic channel shuffling -- copy src to dst, but with channels in
 /// the order channelorder[0..nchannels-1].  Does not support in-place
 /// operation.  For any channel in which channelorder[i] < 0, it will
@@ -267,7 +244,6 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi = ROI::All(), int nthreads = 0);
 
 
-
 /// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
 /// src described by srcroi.  If srcroi is ROI::All(), the entirety of src
 /// will be used.  It will copy into channels [chbegin...], as many
@@ -286,6 +262,72 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin,
                      const ImageBuf &src, ROI srcroi=ROI::All(),
                      int nthreads = 0);
+
+
+/// Copy a subregion of src to the corresponding pixels of dst,
+/// but with the scanlines exchanged vertically.
+///
+/// Only the pixels (and channels) in dst that are specified by roi will
+/// be altered; the default roi is to alter all the pixels in dst.
+/// If dst is uninitialized, it will be resized to be a float ImageBuf
+/// large enough to hold the region specified by roi.  It is an error
+/// to pass both an uninitialied dst and an undefined roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API flip (ImageBuf &dst, const ImageBuf &src,
+                    ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy a subregion of src to the corresponding pixels of dst,
+/// but with the columns exchanged horizontally.
+///
+/// Only the pixels (and channels) in dst that are specified by roi will
+/// be altered; the default roi is to alter all the pixels in dst.
+/// If dst is uninitialized, it will be resized to be a float ImageBuf
+/// large enough to hold the region specified by roi.  It is an error
+/// to pass both an uninitialied dst and an undefined roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API flop (ImageBuf &dst, const ImageBuf &src,
+                    ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy a subregion of src to the corresponding pixels of dst, but with
+/// both the rows exchanged vertically and the columns exchanged
+/// horizontally (this is equivalent to a 180 degree rotation).
+///
+/// Only the pixels (and channels) in dst that are specified by roi will
+/// be altered; the default roi is to alter all the pixels in dst.
+/// If dst is uninitialized, it will be resized to be a float ImageBuf
+/// large enough to hold the region specified by roi.  It is an error
+/// to pass both an uninitialied dst and an undefined roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API flipflop (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi=ROI::All(), int nthreads=0);
+
 
 /// Clamp the values of the pixels of dst in place (specified by roi) as
 /// follows: 
