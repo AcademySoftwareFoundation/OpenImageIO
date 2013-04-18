@@ -60,6 +60,8 @@ Comparing "flop.tif" and "ref/flop.tif"
 PASS
 Comparing "flipflop.tif" and "ref/flipflop.tif"
 PASS
+Comparing "transpose.tif" and "ref/transpose.tif"
+PASS
 Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
 PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"

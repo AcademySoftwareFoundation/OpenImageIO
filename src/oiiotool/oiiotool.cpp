@@ -1548,6 +1548,33 @@ action_flipflop (int argc, const char *argv[])
 
 
 static int
+action_transpose (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_transpose, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    ImageRecRef R (new ImageRec ("transpose",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::transpose ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("transpose", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["transpose"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_pop (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
@@ -2773,6 +2800,7 @@ getargs (int argc, char *argv[])
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
+                "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",

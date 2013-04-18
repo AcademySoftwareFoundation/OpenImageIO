@@ -229,6 +229,53 @@ ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+transpose_ (ImageBuf &dst, const ImageBuf &src,
+            ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(transpose_<DSTTYPE,SRCTYPE>,
+                        boost::ref(dst), boost::cref(src),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
+    ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
+    for (  ;  ! s.done();  ++s) {
+        d.pos (s.y(), s.x(), s.z());
+        if (! d.exists())
+            continue;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::transpose (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    ROI dst_roi (roi.ybegin, roi.yend, roi.xbegin, roi.xend,
+                 roi.zbegin, roi.zend, roi.chbegin, roi.chend);
+    IBAprep (dst_roi, &dst);
+    OIIO_DISPATCH_TYPES2 ("transpose", transpose_, dst.spec().format,
+                          src.spec().format, dst, src, roi, nthreads);
+    return false;
+}
+
+
+
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,

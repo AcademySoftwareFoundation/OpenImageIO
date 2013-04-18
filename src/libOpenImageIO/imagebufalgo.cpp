@@ -127,7 +127,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                 full_roi = roi_union (full_roi, get_roi_full (B->spec()));
             }
         } else {
-            roi.chend = std::min (roi.chend, A->nchannels());
+            if (A)
+                roi.chend = std::min (roi.chend, A->nchannels());
             full_roi = roi;
         }
         // Now we allocate space for dst.  Give it A's spec, but adjust
