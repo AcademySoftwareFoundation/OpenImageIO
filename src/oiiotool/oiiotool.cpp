@@ -1666,39 +1666,27 @@ action_pattern (int argc, const char *argv[])
         if (! ok)
             ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"constant")) {
-        float *fill = ALLOCA (float, nchans);
-        for (int c = 0;  c < nchans;  ++c)
-            fill[c] = 1.0f;
-        size_t pos;
-        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
-            pattern = pattern.substr (pos+1, std::string::npos);
-            if (Strutil::istarts_with(pattern,"color=")) {
-                // Parse comma-separated color list
-                size_t numpos = 6;
-                for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
-                    fill[c] = (float) atof (pattern.c_str()+numpos);
-                    while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
-                        ++numpos;
-                    if (numpos < pattern.size())
-                        ++numpos;
-                }
-            }
-        }
-        bool ok = ImageBufAlgo::fill (ib, fill);
+        std::vector<float> fill (nchans, 1.0f);
+        std::map<std::string,std::string> options;
+        extract_options (options, pattern);
+        Strutil::extract_from_list_string (fill, options["color"]);
+        bool ok = ImageBufAlgo::fill (ib, &fill[0]);
         if (! ok)
             ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"checker")) {
-        int width = 8;
-        size_t pos;
-        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
-            pattern = pattern.substr (pos+1, std::string::npos);
-            if (Strutil::istarts_with(pattern,"width="))
-                width = atoi (pattern.substr(6, std::string::npos).c_str());
-            // FIXME: allow full 3-D size and offset to be specified
-        }
+        std::map<std::string,std::string> options;
+        options["width"] = "8";
+        options["height"] = "8";
+        options["depth"] = "8";
+        extract_options (options, pattern);
+        int width = Strutil::from_string<int> (options["width"]);
+        int height = Strutil::from_string<int> (options["height"]);
+        int depth = Strutil::from_string<int> (options["depth"]);
         std::vector<float> color1 (nchans, 0.0f);
         std::vector<float> color2 (nchans, 1.0f);
-        bool ok = ImageBufAlgo::checker (ib, width, width, width,
+        Strutil::extract_from_list_string (color1, options["color1"]);
+        Strutil::extract_from_list_string (color2, options["color2"]);
+        bool ok = ImageBufAlgo::checker (ib, width, height, depth,
                                          &color1[0], &color2[0], 0, 0, 0);
         if (! ok)
             ot.error (argv[0], ib.geterror());
