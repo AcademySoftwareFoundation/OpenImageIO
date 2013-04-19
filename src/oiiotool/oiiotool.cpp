@@ -1509,6 +1509,40 @@ action_cadd (int argc, const char *argv[])
 }
 
 
+
+static int
+action_chsum (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_chsum, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("chsum", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        std::vector<float> weight ((*A)(s).nchannels(), 1.0f);
+        std::map<std::string,std::string> options;
+        extract_options (options, argv[0]);
+        Strutil::extract_from_list_string (weight, options["weight"]);
+
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        bool ok = ImageBufAlgo::channel_sum (Rib, Aib, &weight[0]);
+        if (! ok)
+            ot.error ("chsum", Rib.geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["chsum"] += timer();
+    return 0;
+}
+
+
+
+
 static int
 action_flip (int argc, const char *argv[])
 {
@@ -2811,6 +2845,8 @@ getargs (int argc, char *argv[])
                 "--mul %@", action_mul, NULL, "Multiply two images",
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--chsum %@", action_chsum, NULL,
+                    "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--mosaic %@ %s", action_mosaic, NULL,
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",

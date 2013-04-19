@@ -532,6 +532,26 @@ bool OIIO_API mul (ImageBuf &dst, float val,
 bool OIIO_API mul (ImageBuf &dst, const float *val,
                    ROI roi=ROI::All(), int nthreads=0);
 
+/// Converts a multi-channel image into a 1-channel image via a weighted
+/// sum of channels.  For each pixel of src within the designated ROI
+/// (defaulting to all of src, if not defined), sum the channels
+/// designated by roi and store the result in channel 0 of dst.  If
+/// weights is not NULL, weight[i] will provide a per-channel weight for
+/// a weighted sum (rather than defaulting to 1.0 for each channel).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
+                           const float *weights=NULL, ROI roi=ROI::All(),
+                           int nthreads=0);
+
 /// For all pixels and color channels of dst within region roi
 /// (defaulting to all the defined pixels of dst), rescale their range
 /// in the following way: values < 1 are unchanged, excess value > 1 is

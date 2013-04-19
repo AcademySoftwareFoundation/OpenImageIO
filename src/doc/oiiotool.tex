@@ -906,6 +906,24 @@ comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
 \apiend
 
+\apiitem{--chsum}
+\NEW
+Replaces the top image by a copy that contains only 1 color channel,
+whose value at each pixel is the sum of all channels of the original
+image.  Using the optional {\cf weight} allows you to customize the
+weight of each channel in the sum.
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf weight=}\emph{r,g,...} & Specify the weight of each channel
+  (default: 1).
+\end{tabular}
+
+\noindent Example:
+\begin{code}
+    oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
+\end{code}
+\apiend
+
 \apiitem{--paste {\rm \emph{location}}}
 \NEW
 Takes two images -- the first is the ``foreground'' and the second is

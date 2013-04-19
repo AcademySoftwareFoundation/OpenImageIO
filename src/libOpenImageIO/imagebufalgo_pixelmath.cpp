@@ -396,6 +396,61 @@ ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
 
 
 
+template<class D, class S>
+static bool
+channel_sum_ (ImageBuf &dst, const ImageBuf &src,
+              const float *weights, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(channel_sum_<D,S>, boost::ref(dst), boost::cref(src),
+                        weights, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    ImageBuf::Iterator<D> d (dst, roi);
+    ImageBuf::ConstIterator<S> s (src, roi);
+    for ( ;  !d.done();  ++d, ++s) {
+        float sum = 0.0f;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            sum += s[c] * weights[c];
+        d[0] = sum;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
+                           const float *weights, ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    ROI dstroi = roi;
+    dstroi.chbegin = 0;
+    dstroi.chend = 1;
+    IBAprep (dstroi, &dst);
+
+    if (! weights) {
+        float *local_weights = ALLOCA (float, roi.chend);
+        for (int c = 0; c < roi.chend; ++c)
+            local_weights[c] = 1.0f;
+        weights = &local_weights[0];
+    }
+
+    OIIO_DISPATCH_TYPES2 ("channel_sum", channel_sum_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, weights, roi, nthreads);
+    return false;
+}
+
+
+
+
 inline float rangecompress (float x)
 {
     // Formula courtesy of Sony Pictures Imageworks
