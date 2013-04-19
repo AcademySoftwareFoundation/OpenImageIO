@@ -311,6 +311,46 @@ ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(mul_impl<Rtype,Atype,Btype>,
+                        boost::ref(R), boost::cref(A), boost::cref(B),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    ImageBuf::ConstIterator<Btype> b (B, roi);
+    for ( ;  !r.done();  ++r, ++a, ++b)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = a[c] * b[c];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &A, &B);
+    OIIO_DISPATCH_COMMON_TYPES3 ("mul", mul_impl, dst.spec().format,
+                                 A.spec().format, B.spec().format,
+                                 dst, A, B, roi, nthreads);
+    return true;
+}
+
+
+
 template<class Rtype>
 static bool
 mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)

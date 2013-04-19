@@ -1357,6 +1357,37 @@ action_sub (int argc, const char *argv[])
 
 
 static int
+action_mul (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_mul, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        const ImageBuf &Bib ((*B)(s));
+        bool ok = ImageBufAlgo::mul (Rib, Aib, Bib);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
+    }
+             
+    ot.function_times["mul"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_abs (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_abs, argc, argv))
@@ -2777,6 +2808,7 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--mul %@", action_mul, NULL, "Multiply two images",
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
