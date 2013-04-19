@@ -98,6 +98,18 @@ command += (oiio_app("oiiotool")
             + "--mosaic:pad=10 2x2 "
             + "-d uint8 -o mosaic.tif >> out.txt ;\n")
 
+# test flip
+command += (oiio_app ("oiiotool")
+            + "image.tif --flip -o flip.tif >> out.txt ;\n")
+
+# test flop
+command += (oiio_app ("oiiotool")
+            + "image.tif --flop -o flop.tif >> out.txt ;\n")
+
+# test flip-flop
+command += (oiio_app ("oiiotool")
+            + "image.tif --flipflop -o flipflop.tif >> out.txt ;\n")
+
 # test channel shuffling
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -159,6 +171,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "pasted.tif", "mosaic.tif",
+            "flip.tif", "flop.tif", "flipflop.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",

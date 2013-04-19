@@ -1478,7 +1478,6 @@ action_cadd (int argc, const char *argv[])
 }
 
 
-
 static int
 action_flip (int argc, const char *argv[])
 {
@@ -1488,29 +1487,15 @@ action_flip (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstscanline = Rib.ymin();
-            int lastscanline = Rib.ymax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), lastscanline - (r.y() - firstscanline));
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
-        }
-    }
-             
-    ot.function_times["flip"] += timer();
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
+
+    ot.function_times["flip"] += timer();             
     return 0;
 }
 
@@ -1525,28 +1510,14 @@ action_flop (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstcolumn = Rib.xmin();
-            int lastcolumn = Rib.xmax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (lastcolumn - (r.x() - firstcolumn), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
-        }
-    }
-             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
+
     ot.function_times["flop"] += timer();
     return 0;
 }
@@ -1562,31 +1533,14 @@ action_flipflop (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
 
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            int firstscanline = Rib.ymin();
-            int lastscanline = Rib.ymax();
-            int firstcolumn = Rib.xmin();
-            int lastcolumn = Rib.xmax();
-            for ( ; ! r.done(); ++r) {
-                a.pos (lastcolumn - (r.x() - firstcolumn),
-                       lastscanline - (r.y() - firstscanline));
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c];
-            }
-        }
-    }
-             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
+            ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
+
     ot.function_times["flipflop"] += timer();
     return 0;
 }
