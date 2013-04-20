@@ -276,6 +276,56 @@ ImageBufAlgo::transpose (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+circular_shift_ (ImageBuf &dst, const ImageBuf &src,
+                 int xshift, int yshift, int zshift,
+                 ROI dstroi, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(circular_shift_<DSTTYPE,SRCTYPE>,
+                        boost::ref(dst), boost::cref(src),
+                        xshift, yshift, zshift,
+                        dstroi, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    int width = dstroi.width(), height = dstroi.height(), depth = dstroi.depth();
+    ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
+    ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
+    for (  ;  ! s.done();  ++s) {
+        int dx = dstroi.xbegin + ((s.x() - dstroi.xbegin + xshift) % width);
+        int dy = dstroi.ybegin + ((s.y() - dstroi.ybegin + yshift) % height);
+        int dz = dstroi.zbegin + ((s.z() - dstroi.zbegin + zshift) % depth);
+        d.pos (dx, dy, dz);
+        if (! d.exists())
+            continue;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
+                              int xshift, int yshift, int zshift,
+                              ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    OIIO_DISPATCH_TYPES2 ("circular_shift", circular_shift_,
+                          dst.spec().format, src.spec().format, dst, src,
+                          xshift, yshift, zshift, roi, roi, nthreads);
+    return false;
+}
+
+
+
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,

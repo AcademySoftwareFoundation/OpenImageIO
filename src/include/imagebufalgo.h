@@ -351,6 +351,30 @@ bool OIIO_API transpose (ImageBuf &dst, const ImageBuf &src,
                          ROI roi=ROI::All(), int nthreads=0);
 
 
+/// Copy a subregion of src to the pixels of dst, but circularly
+/// shifting by the given amount.  To clarify, the circular shift
+/// of [0,1,2,3,4,5] by +2 is [4,5,0,1,2,3].
+///
+/// Only the pixels (and channels) of src that are specified by roi will
+/// be copied to dst; the default roi is to alter all the pixels in dst.
+/// If dst is uninitialized, it will be resized to be an ImageBuf large
+/// enough to hold the region specified by the transposed roi.  It is an
+/// error to pass both an uninitialied dst and an undefined roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API circular_shift (ImageBuf &dst, const ImageBuf &src,
+                              int xshift, int yshift, int zshift=0,
+                              ROI roi=ROI::All(), int nthreads=0);
+
+
 /// Clamp the values of the pixels of dst in place (specified by roi) as
 /// follows: 
 /// min[0..nchans-1] specifies the minimum clamp value for each channel

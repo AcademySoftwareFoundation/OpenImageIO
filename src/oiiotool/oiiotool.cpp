@@ -1640,6 +1640,39 @@ action_transpose (int argc, const char *argv[])
 
 
 static int
+action_cshift (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_cshift, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    int x = 0, y = 0, z = 0;
+    if (sscanf (argv[1], "%d%d%d", &x, &y, &z) < 2) {
+        ot.error ("cshift", Strutil::format ("Invalid shift offset '%s'", argv[1]));
+        return 0;
+    }
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    ImageRecRef R (new ImageRec ("cshift",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::circular_shift ((*R)(s), (*A)(s), x, y, z); 
+        if (! ok)
+            ot.error ("cshift", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["cshift"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_pop (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
@@ -2857,6 +2890,7 @@ getargs (int argc, char *argv[])
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
+                "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",

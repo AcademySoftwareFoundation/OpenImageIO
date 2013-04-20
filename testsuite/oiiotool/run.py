@@ -114,6 +114,10 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + "image.tif --transpose -o transpose.tif >> out.txt ;\n")
 
+# test cshift
+command += (oiio_app ("oiiotool")
+            + "image.tif --cshift +100+50 -o cshift.tif >> out.txt ;\n")
+
 # test channel shuffling
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -176,6 +180,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "pasted.tif", "mosaic.tif",
             "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
+            "cshift.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",
