@@ -392,8 +392,9 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                  csrc >= 0 && csrc < src.spec().nchannels)
             newspec.channelnames[c] = src.spec().channelnames[csrc];
         // otherwise, use the name of the source in that slot
-        else if (csrc >= 0 && csrc < src.spec().nchannels)
-            newspec.channelnames[c] = src.spec().channelnames[c];
+        else if (csrc >= 0 && csrc < src.spec().nchannels) {
+            newspec.channelnames[c] = src.spec().channelnames[csrc];
+        }
         // Use the names (or designation of the src image, if
         // shuffle_channel_names is true) to deduce the alpha and z channels.
         if ((shuffle_channel_names && csrc == src.spec().alpha_channel) ||
