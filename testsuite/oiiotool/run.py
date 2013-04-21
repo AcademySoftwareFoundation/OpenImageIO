@@ -161,6 +161,12 @@ command += (oiio_app ("oiiotool")
             + "tahoe-small.tif --unsharp "
             + "-d uint8 -o unsharp.tif >> out.txt ;\n")
 
+# test fft, ifft
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --ch 2 --fft -o fft.exr >> out.txt ;\n")
+command += (oiio_app ("oiiotool")
+            + "fft.exr --ifft --ch 0,0,0 -o ifft.exr >> out.txt ;\n")
+
 
 
 # test sequences
@@ -189,6 +195,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "unsharp.tif",
+            "fft.exr", "ifft.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

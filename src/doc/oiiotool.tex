@@ -1100,7 +1100,7 @@ decreasing resolution. \\
 Use the top image as a kernel to convolve the next image farther down
 the stack, replacing both with the result.
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     # Use a kernel image already prepared
     oiiotool image.exr kernel.exr --convolve -o output.exr
@@ -1123,7 +1123,7 @@ Optional appended arguments include:
   gaussian}.
 \end{tabular}
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     oiiotool image.jpg --blur 5x5 -o blurred.jpg
 
@@ -1147,11 +1147,36 @@ Optional appended arguments include:
   (default: 0)
 \end{tabular}
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     oiiotool image.jpg --unsharp -o sharper.jpg
 
     oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
+\end{code}
+\apiend
+
+
+\apiitem{--fft \\
+--ifft}
+\NEW
+Performs forward and inverse unitized discrete Fourier transform.
+The forward FFT always transforms only the first channel of the
+top image on the stack, and results in a 2-channel image (with real and
+imaginary channels).  The inverse FFT transforms the first two
+channels of the top image on the stack (assuming they are real and
+imaginary, respectively) and results in a single channel result (with
+the real component only of the spatial domain result).
+
+\noindent Examples:
+\begin{code}
+    # Select the blue channel and take its DCT
+    oiiotool image.jpg --ch 2 --fft -o fft.exr
+
+    # Reconstruct from the FFT
+    oiiotool fft.exr --ifft -o reconstructed.exr
+
+    # Output the power spectrum: real^2 + imag^2
+    oiiotool fft.exr --dup --mul --chsum -o powerspectrum.exr
 \end{code}
 \apiend
 

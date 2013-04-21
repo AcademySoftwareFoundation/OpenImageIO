@@ -939,6 +939,52 @@ bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Take the discrete Fourier transform (DFT) of the section of src
+/// denoted by roi, store it in dst.  If roi is not defined, it will be
+/// all of src's pixels.  Only one channel of src may be FFT'd at a
+/// time, so it will be the first channel described by roi (or, again,
+/// channel 0 if roi is undefined).  If not already in the correct
+/// format, it will be re-allocated to be a 2-channel float buffer of
+/// size width x height, with channel 0 being the "real" part and
+/// channel 1 being the the "imaginary" part.  The values returned are
+/// actually the unitary DFT, meaning that it is scaled by 1/sqrt(npixels).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data type for src; dst will always be reallocated 
+/// as FLOAT.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API fft (ImageBuf &dst, const ImageBuf &src,
+                   ROI roi = ROI::All(), int nthreads = 0);
+
+/// Take the inverse discrete Fourier transform of the section of src
+/// denoted by roi, store it in dst.  If roi is not defined, it will be
+/// all of src's pixels.
+///
+/// Src MUST be a 2-channel float image, and is assumed to be a complex
+/// frequency-domain signal with the "real" component in channel 0 and
+/// the "imaginary" component in channel 1.  Dst will end up being a
+/// float image of one channel (the real component is kept, the
+/// imaginary component of the spatial-domain will be discarded).
+/// Just as with fft(), the ifft() function is dealing with the unitary
+/// DFT, so it is scaled by 1/sqrt(npixels).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ifft (ImageBuf &dst, const ImageBuf &src,
+                    ROI roi = ROI::All(), int nthreads = 0);
+
+
 enum OIIO_API NonFiniteFixMode
 {
     NONFINITE_NONE = 0,     ///< Do nothing

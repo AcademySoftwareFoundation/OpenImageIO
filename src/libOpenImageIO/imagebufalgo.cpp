@@ -49,6 +49,7 @@
 #include "filter.h"
 #include "thread.h"
 #include "filesystem.h"
+#include "kissfft.hh"
 
 #ifdef USE_FREETYPE
 #include <ft2build.h>
@@ -734,6 +735,163 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
     ok = add (dst, src, Diff, roi, nthreads);
 
     return ok;
+}
+
+
+
+// Helper function: fft of the horizontal rows
+static bool
+hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,
+       ROI roi, int nthreads)
+{
+    ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT &&
+            src.spec().format.basetype == TypeDesc::FLOAT &&
+            dst.spec().nchannels == 2 && src.spec().nchannels == 2);
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind (hfft_, boost::ref(dst), boost::cref(src),
+                         inverse, unitary,
+                         _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    int width = roi.width();
+    float rescale = sqrtf (1.0f / width);
+    kissfft<float> F (width, inverse);
+    for (int z = roi.zbegin;  z < roi.zend;  ++z) {
+        for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+            std::complex<float> *s, *d;
+            s = (std::complex<float> *)src.pixeladdr(roi.xbegin, y, z);
+            d = (std::complex<float> *)dst.pixeladdr(roi.xbegin, y, z);
+            F.transform (s, d);
+            if (unitary)
+                for (int x = 0;  x < width;  ++x)
+                    d[x] *= rescale;
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
+                   ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    roi.chend = roi.chbegin+1;   // One channel only
+
+    // Construct a spec that describes the result
+    ImageSpec spec = src.spec();
+    spec.width = spec.full_width = roi.width();
+    spec.height = spec.full_height = roi.height();
+    spec.depth = spec.full_depth = 1;
+    spec.x = spec.full_x = 0;
+    spec.y = spec.full_y = 0;
+    spec.z = spec.full_z = 0;
+    spec.set_format (TypeDesc::FLOAT);
+    spec.channelformats.clear();
+    spec.nchannels = 2;
+    spec.channelnames.clear();
+    spec.channelnames.push_back ("real");
+    spec.channelnames.push_back ("imag");
+
+    // And a spec that describes the transposed intermediate
+    ImageSpec specT = spec;
+    std::swap (specT.width, specT.height);
+    std::swap (specT.full_width, specT.full_height);
+
+    // Resize dst
+    dst.reset (dst.name(), spec);
+
+    // Copy src to a 2-channel (for "complex") float buffer
+    ImageBuf A (src.name(), spec);   // zeros it out automatically
+    if (! ImageBufAlgo::paste (A, 0, 0, 0, 0, src, roi, nthreads)) {
+        dst.error ("%s", A.geterror());
+        return false;
+    }
+
+    // FFT the rows (into temp buffer B).
+    ImageBuf B ("fft", spec);
+    hfft_ (B, A, false /*inverse*/, true /*unitary*/,
+           get_roi(B.spec()), nthreads);
+
+    // Transpose and shift back to A
+    A.clear ();
+    ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
+
+    // FFT what was originally the columns (back to B)
+    B.reset ("fft", specT);
+    hfft_ (B, A, false /*inverse*/, true /*unitary*/,
+           get_roi(A.spec()), nthreads);
+
+    // Transpose again, into the dest
+    ImageBufAlgo::transpose (dst, B, ROI::All(), nthreads);
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
+                    ROI roi, int nthreads)
+{
+    if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
+        dst.error ("ifft can only be done on 2-channel float images");
+        return false;
+    }
+
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    roi.chbegin = 0;
+    roi.chend = 2;
+
+    // Construct a spec that describes the result
+    ImageSpec spec = src.spec();
+    spec.width = spec.full_width = roi.width();
+    spec.height = spec.full_height = roi.height();
+    spec.depth = spec.full_depth = 1;
+    spec.x = spec.full_x = 0;
+    spec.y = spec.full_y = 0;
+    spec.z = spec.full_z = 0;
+    spec.set_format (TypeDesc::FLOAT);
+    spec.channelformats.clear();
+    spec.nchannels = 2;
+    spec.channelnames.clear();
+    spec.channelnames.push_back ("real");
+    spec.channelnames.push_back ("imag");
+
+    // Inverse FFT the rows (into temp buffer B).
+    ImageBuf B ("ifft", spec);
+    hfft_ (B, src, true /*inverse*/, true /*unitary*/,
+           get_roi(B.spec()), nthreads);
+
+    // Transpose and shift back to A
+    ImageBuf A (src.name());
+    ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
+
+    // Inverse FFT what was originally the columns (back to B)
+    B.reset ("ifft", A.spec());
+    hfft_ (B, A, true /*inverse*/, true /*unitary*/,
+           get_roi(A.spec()), nthreads);
+
+    // Transpose again, into the dst, in the process throw out the
+    // imaginary part and go back to a single (real) channel.
+    spec.nchannels = 1;
+    spec.channelnames.clear ();
+    spec.channelnames.push_back ("R");
+    dst.reset (dst.name(), spec);
+    ROI Broi = get_roi(B.spec());
+    Broi.chend = 1;
+    ImageBufAlgo::transpose (dst, B, Broi, nthreads);
+
+    return true;
 }
 
 

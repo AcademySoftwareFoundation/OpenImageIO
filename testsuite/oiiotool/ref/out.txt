@@ -94,3 +94,7 @@ Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
 PASS
 Comparing "unsharp.tif" and "ref/unsharp.tif"
 PASS
+Comparing "fft.exr" and "ref/fft.exr"
+PASS
+Comparing "ifft.exr" and "ref/ifft.exr"
+PASS

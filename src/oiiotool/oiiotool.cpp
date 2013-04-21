@@ -2256,6 +2256,58 @@ action_unsharp (int argc, const char *argv[])
 
 
 
+static int
+action_fft (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fft, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read();
+    ImageRecRef R (new ImageRec ("fft", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::fft (Rib, (*A)(s));
+        R->update_spec_from_imagebuf (s);
+        if (! ok)
+            ot.error ("fft", Rib.geterror());
+    }
+
+    ot.function_times["fft"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_ifft (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ifft, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read();
+    ImageRecRef R (new ImageRec ("ifft", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::ifft (Rib, (*A)(s));
+        R->update_spec_from_imagebuf (s);
+        if (! ok)
+            ot.error ("ifft", Rib.geterror());
+    }
+
+    ot.function_times["ifft"] += timer();
+    return 0;
+}
+
+
+
 int
 action_fixnan (int argc, const char *argv[])
 {
@@ -2902,6 +2954,10 @@ getargs (int argc, char *argv[])
                     "Blur the image (arg: WxH; options: kernel=name)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
+                "--fft %@", action_fft, NULL,
+                    "Take the FFT of the image",
+                "--ifft %@", action_ifft, NULL,
+                    "Take the inverse FFT of the image",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
