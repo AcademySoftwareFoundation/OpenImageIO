@@ -371,7 +371,7 @@ IffInput::readimg()
                 std::vector<uint8_t> map;
                 if (littleendian()) {
                     int rgb16[] = { 0, 2, 4, 1, 3, 5 };
-                    int rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
+                    int rgba16[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
                     if (m_iff_header.pixel_channels == 3) {
                         map = std::vector<uint8_t>( rgb16, &rgb16[6] );
                     } else {
