@@ -311,6 +311,46 @@ ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+template<class Rtype, class Atype, class Btype>
+static bool
+mul_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(mul_impl<Rtype,Atype,Btype>,
+                        boost::ref(R), boost::cref(A), boost::cref(B),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    ImageBuf::ConstIterator<Btype> b (B, roi);
+    for ( ;  !r.done();  ++r, ++a, ++b)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = a[c] * b[c];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &A, &B);
+    OIIO_DISPATCH_COMMON_TYPES3 ("mul", mul_impl, dst.spec().format,
+                                 A.spec().format, B.spec().format,
+                                 dst, A, B, roi, nthreads);
+    return true;
+}
+
+
+
 template<class Rtype>
 static bool
 mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
@@ -353,6 +393,61 @@ ImageBufAlgo::mul (ImageBuf &R, float val, ROI roi, int nthreads)
         vals[c] = val;
     return mul (R, vals, roi, nthreads);
 }
+
+
+
+template<class D, class S>
+static bool
+channel_sum_ (ImageBuf &dst, const ImageBuf &src,
+              const float *weights, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(channel_sum_<D,S>, boost::ref(dst), boost::cref(src),
+                        weights, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    ImageBuf::Iterator<D> d (dst, roi);
+    ImageBuf::ConstIterator<S> s (src, roi);
+    for ( ;  !d.done();  ++d, ++s) {
+        float sum = 0.0f;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            sum += s[c] * weights[c];
+        d[0] = sum;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
+                           const float *weights, ROI roi, int nthreads)
+{
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    ROI dstroi = roi;
+    dstroi.chbegin = 0;
+    dstroi.chend = 1;
+    IBAprep (dstroi, &dst);
+
+    if (! weights) {
+        float *local_weights = ALLOCA (float, roi.chend);
+        for (int c = 0; c < roi.chend; ++c)
+            local_weights[c] = 1.0f;
+        weights = &local_weights[0];
+    }
+
+    OIIO_DISPATCH_TYPES2 ("channel_sum", channel_sum_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, weights, roi, nthreads);
+    return false;
+}
+
 
 
 

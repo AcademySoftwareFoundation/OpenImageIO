@@ -875,6 +875,12 @@ Replace the \emph{two} top images with a new image that is the difference
 between the first and second images.
 \apiend
 
+\apiitem{--mul}
+Replace the \emph{two} top images with a new image that the
+pixel-by-pixel, channel-by-channel multiplicative product of
+the first and second images.
+\apiend
+
 \apiitem{--abs}
 Replace the current image with a new image that has each pixel
 consisting of the \emph{absolute value} of he old pixel value.
@@ -898,6 +904,24 @@ If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
 comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
+\apiend
+
+\apiitem{--chsum}
+\NEW
+Replaces the top image by a copy that contains only 1 color channel,
+whose value at each pixel is the sum of all channels of the original
+image.  Using the optional {\cf weight} allows you to customize the
+weight of each channel in the sum.
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf weight=}\emph{r,g,...} & Specify the weight of each channel
+  (default: 1).
+\end{tabular}
+
+\noindent Example:
+\begin{code}
+    oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
+\end{code}
 \apiend
 
 \apiitem{--paste {\rm \emph{location}}}
@@ -971,6 +995,19 @@ with the leftmost column becoming the rightmost, and vice versa.
 \apiitem{--flipflop}
 Replace the current image with a new image that is both flipped and
 flopped, which is the same as a 180 degree rotation.
+\apiend
+
+\apiitem{--transpose}
+Replace the current image with a new image that is trasposed about
+the $xy$ axis (x and coordinates and size are flipped).
+\apiend
+
+\apiitem{--cshift {\rm \emph{offset}}}}
+Circularly shift the pixels of the image by the given offset (expressed
+as {\cf +10+100} to move by 10 pixels horizontally and 100 pixels
+vertically, or {\cf +50-30} to move by 50 pixels horizontally and
+$-30$ pixels vertically.  \emph{Circular} shifting means that the
+pixels wrap to the other side as they shift.
 \apiend
 
 \apiitem{--crop {\rm \emph{size}}}
@@ -1063,7 +1100,7 @@ decreasing resolution. \\
 Use the top image as a kernel to convolve the next image farther down
 the stack, replacing both with the result.
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     # Use a kernel image already prepared
     oiiotool image.exr kernel.exr --convolve -o output.exr
@@ -1086,7 +1123,7 @@ Optional appended arguments include:
   gaussian}.
 \end{tabular}
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     oiiotool image.jpg --blur 5x5 -o blurred.jpg
 
@@ -1110,11 +1147,36 @@ Optional appended arguments include:
   (default: 0)
 \end{tabular}
 
-\noindend Examples:
+\noindent Examples:
 \begin{code}
     oiiotool image.jpg --unsharp -o sharper.jpg
 
     oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
+\end{code}
+\apiend
+
+
+\apiitem{--fft \\
+--ifft}
+\NEW
+Performs forward and inverse unitized discrete Fourier transform.
+The forward FFT always transforms only the first channel of the
+top image on the stack, and results in a 2-channel image (with real and
+imaginary channels).  The inverse FFT transforms the first two
+channels of the top image on the stack (assuming they are real and
+imaginary, respectively) and results in a single channel result (with
+the real component only of the spatial domain result).
+
+\noindent Examples:
+\begin{code}
+    # Select the blue channel and take its DCT
+    oiiotool image.jpg --ch 2 --fft -o fft.exr
+
+    # Reconstruct from the FFT
+    oiiotool fft.exr --ifft -o reconstructed.exr
+
+    # Output the power spectrum: real^2 + imag^2
+    oiiotool fft.exr --dup --mul --chsum -o powerspectrum.exr
 \end{code}
 \apiend
 

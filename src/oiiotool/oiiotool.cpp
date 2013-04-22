@@ -1357,6 +1357,37 @@ action_sub (int argc, const char *argv[])
 
 
 static int
+action_mul (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_mul, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        const ImageBuf &Bib ((*B)(s));
+        bool ok = ImageBufAlgo::mul (Rib, Aib, Bib);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
+    }
+             
+    ot.function_times["mul"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_abs (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_abs, argc, argv))
@@ -1478,6 +1509,40 @@ action_cadd (int argc, const char *argv[])
 }
 
 
+
+static int
+action_chsum (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_chsum, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("chsum", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        std::vector<float> weight ((*A)(s).nchannels(), 1.0f);
+        std::map<std::string,std::string> options;
+        extract_options (options, argv[0]);
+        Strutil::extract_from_list_string (weight, options["weight"]);
+
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        bool ok = ImageBufAlgo::channel_sum (Rib, Aib, &weight[0]);
+        if (! ok)
+            ot.error ("chsum", Rib.geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["chsum"] += timer();
+    return 0;
+}
+
+
+
+
 static int
 action_flip (int argc, const char *argv[])
 {
@@ -1542,6 +1607,66 @@ action_flipflop (int argc, const char *argv[])
             ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
 
     ot.function_times["flipflop"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_transpose (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_transpose, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    ImageRecRef R (new ImageRec ("transpose",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::transpose ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("transpose", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["transpose"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_cshift (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_cshift, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    int x = 0, y = 0, z = 0;
+    if (sscanf (argv[1], "%d%d%d", &x, &y, &z) < 2) {
+        ot.error ("cshift", Strutil::format ("Invalid shift offset '%s'", argv[1]));
+        return 0;
+    }
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    ImageRecRef R (new ImageRec ("cshift",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::circular_shift ((*R)(s), (*A)(s), x, y, z); 
+        if (! ok)
+            ot.error ("cshift", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["cshift"] += timer();
     return 0;
 }
 
@@ -1639,39 +1764,27 @@ action_pattern (int argc, const char *argv[])
         if (! ok)
             ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"constant")) {
-        float *fill = ALLOCA (float, nchans);
-        for (int c = 0;  c < nchans;  ++c)
-            fill[c] = 1.0f;
-        size_t pos;
-        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
-            pattern = pattern.substr (pos+1, std::string::npos);
-            if (Strutil::istarts_with(pattern,"color=")) {
-                // Parse comma-separated color list
-                size_t numpos = 6;
-                for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
-                    fill[c] = (float) atof (pattern.c_str()+numpos);
-                    while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
-                        ++numpos;
-                    if (numpos < pattern.size())
-                        ++numpos;
-                }
-            }
-        }
-        bool ok = ImageBufAlgo::fill (ib, fill);
+        std::vector<float> fill (nchans, 1.0f);
+        std::map<std::string,std::string> options;
+        extract_options (options, pattern);
+        Strutil::extract_from_list_string (fill, options["color"]);
+        bool ok = ImageBufAlgo::fill (ib, &fill[0]);
         if (! ok)
             ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"checker")) {
-        int width = 8;
-        size_t pos;
-        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
-            pattern = pattern.substr (pos+1, std::string::npos);
-            if (Strutil::istarts_with(pattern,"width="))
-                width = atoi (pattern.substr(6, std::string::npos).c_str());
-            // FIXME: allow full 3-D size and offset to be specified
-        }
+        std::map<std::string,std::string> options;
+        options["width"] = "8";
+        options["height"] = "8";
+        options["depth"] = "8";
+        extract_options (options, pattern);
+        int width = Strutil::from_string<int> (options["width"]);
+        int height = Strutil::from_string<int> (options["height"]);
+        int depth = Strutil::from_string<int> (options["depth"]);
         std::vector<float> color1 (nchans, 0.0f);
         std::vector<float> color2 (nchans, 1.0f);
-        bool ok = ImageBufAlgo::checker (ib, width, width, width,
+        Strutil::extract_from_list_string (color1, options["color1"]);
+        Strutil::extract_from_list_string (color2, options["color2"]);
+        bool ok = ImageBufAlgo::checker (ib, width, height, depth,
                                          &color1[0], &color2[0], 0, 0, 0);
         if (! ok)
             ot.error (argv[0], ib.geterror());
@@ -2138,6 +2251,58 @@ action_unsharp (int argc, const char *argv[])
     }
 
     ot.function_times["unsharp"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_fft (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fft, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read();
+    ImageRecRef R (new ImageRec ("fft", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::fft (Rib, (*A)(s));
+        R->update_spec_from_imagebuf (s);
+        if (! ok)
+            ot.error ("fft", Rib.geterror());
+    }
+
+    ot.function_times["fft"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_ifft (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ifft, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read();
+    ImageRecRef R (new ImageRec ("ifft", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::ifft (Rib, (*A)(s));
+        R->update_spec_from_imagebuf (s);
+        if (! ok)
+            ot.error ("ifft", Rib.geterror());
+    }
+
+    ot.function_times["ifft"] += timer();
     return 0;
 }
 
@@ -2762,8 +2927,11 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--mul %@", action_mul, NULL, "Multiply two images",
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--chsum %@", action_chsum, NULL,
+                    "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--mosaic %@ %s", action_mosaic, NULL,
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",
@@ -2773,6 +2941,8 @@ getargs (int argc, char *argv[])
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
+                "--transpose %@", action_transpose, NULL, "Transpose the image",
+                "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
@@ -2784,6 +2954,10 @@ getargs (int argc, char *argv[])
                     "Blur the image (arg: WxH; options: kernel=name)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
+                "--fft %@", action_fft, NULL,
+                    "Take the FFT of the image",
+                "--ifft %@", action_ifft, NULL,
+                    "Take the inverse FFT of the image",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
