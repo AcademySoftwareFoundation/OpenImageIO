@@ -200,7 +200,8 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNMOutput::close ()
 {
-    m_file.close();
+    if (m_file.is_open())
+        m_file.close();
     return true;  
 }
 
