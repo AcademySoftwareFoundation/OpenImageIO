@@ -580,10 +580,12 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
         const char* name = ci.name();
         channelnames.push_back (name);
         if (red < 0 && (Strutil::iequals(name, "R") || Strutil::iequals(name, "Red") ||
-                        Strutil::iends_with(name,".R") || Strutil::iends_with(name,".Red")))
+                        Strutil::iends_with(name,".R") || Strutil::iends_with(name,".Red") ||
+                        Strutil::iequals(name, "real")))
             red = c;
         if (green < 0 && (Strutil::iequals(name, "G") || Strutil::iequals(name, "Green") ||
-                          Strutil::iends_with(name,".G") || Strutil::iends_with(name,".Green")))
+                          Strutil::iends_with(name,".G") || Strutil::iends_with(name,".Green") ||
+                          Strutil::iequals(name, "imag")))
             green = c;
         if (blue < 0 && (Strutil::iequals(name, "B") || Strutil::iequals(name, "Blue") ||
                          Strutil::iends_with(name,".B") || Strutil::iends_with(name,".Blue")))

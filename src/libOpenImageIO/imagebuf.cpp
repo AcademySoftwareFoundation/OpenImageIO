@@ -160,7 +160,7 @@ public:
 
     DeepData *deepdata () { return m_spec.deep ? &m_deepdata : NULL; }
     const DeepData *deepdata () const { return m_spec.deep ? &m_deepdata : NULL; }
-    bool initialized () const { return m_spec_valid || m_pixels_valid; }
+    bool initialized () const { return m_spec_valid && (m_localpixels || m_imagecache); }
     bool cachedpixels () const { return m_localpixels == NULL; }
 
     const void *pixeladdr (int x, int y, int z) const;
@@ -388,6 +388,7 @@ ImageBufImpl::clear ()
     m_pixel_bytes = 0;
     m_scanline_bytes = 0;
     m_plane_bytes = 0;
+    m_imagecache = NULL;
     m_deepdata.free ();
     m_blackpixel.clear ();
 }
@@ -463,6 +464,13 @@ void
 ImageBufImpl::alloc (const ImageSpec &spec)
 {
     m_spec = spec;
+
+    // Preclude a nonsensical size
+    m_spec.width = std::max (1, m_spec.width);
+    m_spec.height = std::max (1, m_spec.height);
+    m_spec.depth = std::max (1, m_spec.depth);
+    m_spec.nchannels = std::max (1, m_spec.nchannels);
+
     m_nativespec = spec;
     m_spec_valid = true;
     realloc ();

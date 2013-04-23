@@ -582,6 +582,9 @@ public:
     /// Is this ImageBuf object initialized?
     bool initialized () const;
 
+    /// Swap with another ImageBuf
+    void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
+
     friend class IteratorBase;
 
     class IteratorBase {

@@ -110,6 +110,14 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + "image.tif --flipflop -o flipflop.tif >> out.txt ;\n")
 
+# test transpose
+command += (oiio_app ("oiiotool")
+            + "image.tif --transpose -o transpose.tif >> out.txt ;\n")
+
+# test cshift
+command += (oiio_app ("oiiotool")
+            + "image.tif --cshift +100+50 -o cshift.tif >> out.txt ;\n")
+
 # test channel shuffling
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -153,6 +161,12 @@ command += (oiio_app ("oiiotool")
             + "tahoe-small.tif --unsharp "
             + "-d uint8 -o unsharp.tif >> out.txt ;\n")
 
+# test fft, ifft
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --ch 2 --fft -o fft.exr >> out.txt ;\n")
+command += (oiio_app ("oiiotool")
+            + "fft.exr --ifft --ch 0,0,0 -o ifft.exr >> out.txt ;\n")
+
 
 
 # test sequences
@@ -171,7 +185,8 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "pasted.tif", "mosaic.tif",
-            "flip.tif", "flop.tif", "flipflop.tif",
+            "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
+            "cshift.tif",
             "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",
@@ -180,6 +195,7 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "unsharp.tif",
+            "fft.exr", "ifft.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

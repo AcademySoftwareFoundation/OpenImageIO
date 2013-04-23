@@ -60,6 +60,10 @@ Comparing "flop.tif" and "ref/flop.tif"
 PASS
 Comparing "flipflop.tif" and "ref/flipflop.tif"
 PASS
+Comparing "transpose.tif" and "ref/transpose.tif"
+PASS
+Comparing "cshift.tif" and "ref/cshift.tif"
+PASS
 Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
 PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"
@@ -89,4 +93,8 @@ PASS
 Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
 PASS
 Comparing "unsharp.tif" and "ref/unsharp.tif"
+PASS
+Comparing "fft.exr" and "ref/fft.exr"
+PASS
+Comparing "ifft.exr" and "ref/ifft.exr"
 PASS
