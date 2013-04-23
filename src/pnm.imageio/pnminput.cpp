@@ -40,6 +40,8 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class PNMInput : public ImageInput {
 public:
+    PNMInput() { }
+    virtual ~PNMInput() { close(); }
     virtual const char* format_name (void) const { return "pnm"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
@@ -349,8 +351,7 @@ PNMInput::read_file_header ()
 bool
 PNMInput::open (const std::string &name, ImageSpec &newspec)
 {
-    if (m_file.is_open()) //close previously opened file
-        m_file.close();
+    close(); //close previously opened file
 
     Filesystem::open (m_file, name, std::ios::in|std::ios::binary);
 
@@ -369,7 +370,8 @@ PNMInput::open (const std::string &name, ImageSpec &newspec)
 bool
 PNMInput::close ()
 {
-    m_file.close();
+    if (m_file.is_open())
+        m_file.close();
     return true;
 }
 

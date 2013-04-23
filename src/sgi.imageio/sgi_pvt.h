@@ -90,7 +90,7 @@ namespace sgi_pvt {
 class SgiInput : public ImageInput {
  public:
     SgiInput () { init(); }
-    virtual ~SgiInput () { }
+    virtual ~SgiInput () { close(); }
     virtual const char *format_name (void) const { return "sgi"; }
     virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &spec);
@@ -139,7 +139,7 @@ class SgiInput : public ImageInput {
 class SgiOutput : public ImageOutput {
  public:
     SgiOutput () : m_fd(NULL) { }
-    virtual ~SgiOutput () { }
+    virtual ~SgiOutput () { close(); }
     virtual const char *format_name (void) const { return "sgi"; }
     virtual bool supports (const std::string &feature) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
