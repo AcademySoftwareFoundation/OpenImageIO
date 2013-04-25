@@ -29,47 +29,9 @@
 */
 
 
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/ImathBox.h>
-
-#include <Field3D/DenseField.h>
-#include <Field3D/MACField.h>
-#include <Field3D/SparseField.h>
-#include <Field3D/InitIO.h>
-#include <Field3D/Field3DFile.h>
-#include <Field3D/FieldMetadata.h>
-#ifndef FIELD3D_NS
-#define FIELD3D_NS Field3D
-#endif
-using namespace FIELD3D_NS;
-
-
-
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_ENTER {
 
 namespace f3dpvt {
-
-
-enum FieldType { Dense, Sparse, MAC };
-
-
-
-struct layerrecord {
-    std::string name;
-    std::string attribute;
-    std::string unique_name;
-    TypeDesc datatype;
-    FieldType fieldtype;
-    bool vecfield;      // true=vector, false=scalar
-    Box3i extents;
-    Box3i dataWindow;
-    ImageSpec spec;
-    FieldRes::Ptr field;
-
-    layerrecord () : vecfield(false) { }
-};
-
 
 
 // Define an abstract interface that allows us to get special information
@@ -84,16 +46,7 @@ public:
 };
 
 
-
-// Return a reference to the mutex that allows us to use f3d with multiple
-// threads.
-spin_mutex &field3d_mutex ();
-
-void oiio_field3d_initialize ();
-
-
 } // end namespace f3dpvt
 
-}
-OIIO_NAMESPACE_EXIT
+} OIIO_NAMESPACE_EXIT
 

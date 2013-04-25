@@ -35,37 +35,24 @@
 #include "dassert.h"
 #include "imageio.h"
 #include "thread.h"
+#include "filesystem.h"
 
 #include <OpenEXR/ImathVec.h>
 
 #include <boost/foreach.hpp>
 
-#include <Field3D/DenseField.h>
-#include <Field3D/MACField.h>
-#include <Field3D/SparseField.h>
-#include <Field3D/InitIO.h>
-#include <Field3D/Field3DFile.h>
-#include <Field3D/FieldMetadata.h>
-#ifndef FIELD3D_NS
-#define FIELD3D_NS Field3D
-#endif
-using namespace FIELD3D_NS;
-
 #include "field3d_pvt.h"
-#include "filesystem.h"
+using namespace OIIO_NAMESPACE::f3dpvt;
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-namespace pvt {
-
-spin_mutex &field3d_mutex () {
+spin_mutex &
+f3dpvt::field3d_mutex ()
+{
     static spin_mutex m;
     return m;
 }
-
-};
-
-using namespace pvt;
 
 
 
@@ -88,23 +75,6 @@ public:
                                float time) const;
 
 private:
-    enum FieldType { Dense, Sparse, MAC };
-
-    struct layerrecord {
-        std::string name;
-        std::string attribute;
-        std::string unique_name;
-        TypeDesc datatype;
-        FieldType fieldtype;
-        bool vecfield;      // true=vector, false=scalar
-        Box3i extents;
-        Box3i dataWindow;
-        ImageSpec spec;
-        FieldRes::Ptr field;
-
-        layerrecord () : vecfield(false) { }
-    };
-
     std::string m_name;
     Field3DInputFile *m_input;
     int m_subimage;                 ///< What subimage/field are we looking at?
@@ -150,7 +120,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 void
-oiio_field3d_initialize ()
+f3dpvt::oiio_field3d_initialize ()
 {
     static volatile bool initialized = false;
 
@@ -263,7 +233,7 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
 
     // Always appear tiled
     int b = 0;
-    if (lay.fieldtype == Sparse) {
+    if (lay.fieldtype == f3dpvt::Sparse) {
         if (datatype == TypeDesc::FLOAT)
             b = blocksize<float>(field);
         else if (datatype == TypeDesc::HALF)
@@ -328,9 +298,9 @@ void Field3DInput::read_layers (TypeDesc datatype)
             m_layers.resize (layernum+1);
             layerrecord &lay (m_layers.back());
             if (field_dynamic_cast<DenseField<Data_T> >(*i))
-                lay.fieldtype = Dense;
+                lay.fieldtype = f3dpvt::Dense;
             else if (field_dynamic_cast<SparseField<Data_T> >(*i))
-                lay.fieldtype = Sparse;
+                lay.fieldtype = f3dpvt::Sparse;
             else
                 ASSERT (0 && "unknown field type");
             read_one_layer (*i, lay, datatype, layernum);
@@ -348,11 +318,11 @@ void Field3DInput::read_layers (TypeDesc datatype)
             layerrecord &lay (m_layers.back());
             typedef FIELD3D_VEC3_T<Data_T> VecData_T;
             if (field_dynamic_cast<DenseField<VecData_T> >(*i))
-                lay.fieldtype = Dense;
+                lay.fieldtype = f3dpvt::Dense;
             else if (field_dynamic_cast<SparseField<VecData_T> >(*i))
-                lay.fieldtype = Sparse;
+                lay.fieldtype = f3dpvt::Sparse;
             else if (field_dynamic_cast<MACField<VecData_T> >(*i))
-                lay.fieldtype = MAC;
+                lay.fieldtype = f3dpvt::MAC;
             else
                 ASSERT (0 && "unknown field type");
             lay.vecfield = true;
@@ -462,7 +432,6 @@ Field3DInput::close ()
         m_name.clear ();
     }
 
-    m_subimage = -1;
     init ();  // Reset to initial state
     return true;
 }
@@ -519,7 +488,7 @@ bool Field3DInput::readtile (int x, int y, int z, T *data)
             return true;
         }
     }
-    return true;
+    return false;
 }
 
 
