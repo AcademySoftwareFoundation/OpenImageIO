@@ -743,14 +743,34 @@ bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
                        ROI roi = ROI::All(), int nthreads=0);
 
 /// Compare two images using Hector Yee's perceptual metric, returning
-/// the number of pixels that fail the comparison.  The images must be
-/// the same size, FLOAT, and in a linear color space.  Only the first
-/// three channels are compared.  Free parameters are the ambient
-/// luminance in the room and the field of view of the image display;
-/// our defaults are probably reasonable guesses for an office
-/// environment.
-int OIIO_API compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
-                           float luminance = 100, float fov = 45);
+/// the number of pixels that fail the comparison.  Only the first three
+/// channels (or first three channels specified by roi) are compared.
+/// Free parameters are the ambient luminance in the room and the field
+/// of view of the image display; our defaults are probably reasonable
+/// guesses for an office environment.  The 'result' structure will
+/// store the maxerror, and the maxx, maxy, maxz of the pixel that
+/// failed most severely.  (The other fields of the CompareResults
+/// are not used for Yee comparison.)
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.  But it's basically meaningless if the
+/// first three channels aren't RGB in a linear color space that sort
+/// of resembles AdobeRGB.
+///
+/// Return true on success, false on error.
+int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
+                          CompareResults &result,
+                          float luminance = 100, float fov = 45,
+                          ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED 1.2
+int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
+                          float luminance = 100, float fov = 45);
+
 
 /// Do all pixels within the ROI have the same values for channels
 /// [roi.chbegin..roi.chend-1]?  If so, return true and store that color
