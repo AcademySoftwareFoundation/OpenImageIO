@@ -895,14 +895,18 @@ bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src,
 /// (0,0) coordinate.  If normalize is true, the values will be
 /// normalized so that they sum to 1.0.
 ///
+/// If depth > 1, a volumetric kernel will be created.  Use with caution!
+///
 /// Kernel names can be: "gaussian", "sharp-gaussian", "box",
-/// "triangle", "blackman-harris", "mitchell", "b-spline", "disk".
-/// There are also "catmull-rom" and "lanczos3", but they are fixed-size
-/// kernels that don't scale with the width, and are therefore probably
-/// less useful in most cases.
+/// "triangle", "blackman-harris", "mitchell", "b-spline", "catmull-rom",
+/// "lanczos3", "disk", "binomial."
+/// 
+/// Note that "catmull-rom" and "lanczos3" are fixed-size kernels that
+/// don't scale with the width, and are therefore probably less useful
+/// in most cases.
 /// 
 bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
-                           float width, float height,
+                           float width, float height, float depth = 1.0f,
                            bool normalize = true);
 
 /// Replace the given ROI of dst with the a sharpened version of the
