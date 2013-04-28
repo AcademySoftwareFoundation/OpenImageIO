@@ -136,7 +136,8 @@ struct ImageCacheStatistics {
 class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache,
-                    ImageCachePerThreadInfo *thread_info, ustring filename);
+                    ImageCachePerThreadInfo *thread_info, ustring filename,
+                    ImageInput::Creator creator=NULL);
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
@@ -159,9 +160,10 @@ public:
     TextureOpt::Wrap swrap () const { return m_swrap; }
     TextureOpt::Wrap twrap () const { return m_twrap; }
     TextureOpt::Wrap rwrap () const { return m_rwrap; }
-    TypeDesc datatype () const { return m_datatype; }
+    TypeDesc datatype (int subimage) const { return m_subimages[subimage].datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
     ImageInput *imageinput () const { return m_input.get(); }
+    ImageInput::Creator creator () const { return m_inputcreator; }
 
     /// Load new data tile
     ///
@@ -178,9 +180,9 @@ public:
     /// file and return true.
     void release (void);
 
-    size_t channelsize () const { return m_channelsize; }
-    size_t pixelsize () const { return m_pixelsize; }
-    bool eightbit (void) const { return m_eightbit; }
+    size_t channelsize (int subimage) const { return m_subimages[subimage].channelsize; }
+    size_t pixelsize (int subimage) const { return m_subimages[subimage].pixelsize; }
+    bool eightbit (int subimage) const { return m_subimages[subimage].eightbit; }
     bool mipused (void) const { return m_mipused; }
     const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
 
@@ -212,17 +214,28 @@ public:
     ///
     struct SubimageInfo {
         std::vector<LevelInfo> levels;  ///< Extra per-level info
+        TypeDesc datatype;              ///< Type of pixels we store internally
+        unsigned int channelsize;       ///< Channel size, in bytes
+        unsigned int pixelsize;         ///< Pixel size, in bytes
         bool untiled;                   ///< Not tiled
         bool unmipped;                  ///< Not really MIP-mapped
         bool volume;                    ///< It's a volume image
         bool full_pixel_range;          ///< pixel data window matches image window
+        bool eightbit;                  ///< Eight bit?  (or float)
+
         // The scale/offset accounts for crops or overscans, converting
         // 0-1 texture space relative to the "display/full window" into 
         // 0-1 relative to the "pixel window".
         float sscale, soffset, tscale, toffset;
         ustring subimagename;
 
-        SubimageInfo () : untiled(false), unmipped(false) { }
+        SubimageInfo () : datatype(TypeDesc::UNKNOWN),
+                          channelsize(0), pixelsize(0),
+                          untiled(false), unmipped(false), volume(false),
+                          full_pixel_range(false), eightbit(false),
+                          sscale(1.0f), soffset(0.0f),
+                          tscale(1.0f), toffset(0.0f) { }
+        void init (const ImageSpec &spec, bool forcefloat);
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
         const ImageSpec &nativespec (int m) const { return levels[m].nativespec; }
@@ -257,13 +270,13 @@ public:
         m_validspec = false;
         m_subimages.clear ();
     }
-
+    
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
-    std::vector<SubimageInfo> m_subimages;  ///< Image on each subimage
+    std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOpt::Wrap m_swrap;       ///< Default wrap modes
     TextureOpt::Wrap m_twrap;       ///< Default wrap modes
@@ -272,13 +285,9 @@ private:
     Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
-    TypeDesc m_datatype;            ///< Type of pixels we store internally
     EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;           ///< are edge samples exactly on the border?
-    bool m_eightbit;                ///< Eight bit?  (or float)
-    unsigned int m_channelsize;     ///< Channel size, in bytes
-    unsigned int m_pixelsize;       ///< Pixel size, in bytes
     ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
     imagesize_t m_bytesread;        ///< Bytes read from this file
@@ -293,6 +302,7 @@ private:
     ustring m_fingerprint;          ///< Optional cryptographic fingerprint
     ImageCacheFile *m_duplicate;    ///< Is this a duplicate?
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
+    ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -331,6 +341,12 @@ private:
     void unlock_input_mutex () {
         m_input_mutex.unlock ();
     }
+
+    // Initialize a bunch of fields based on the ImageSpec.
+    // FIXME -- this is actually deeply flawed, many of these things only
+    // make sense if they are per subimage, not one value for the whole
+    // file. But it will require a bigger refactor to fix that.
+    void init_from_spec ();
 
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
@@ -453,7 +469,7 @@ public:
 
     /// Construct a new tile out of the pixels supplied.
     ///
-    ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
+    ImageCacheTile (const TileID &id, const void *pels, TypeDesc format,
                     stride_t xstride, stride_t ystride, stride_t zstride);
 
     ~ImageCacheTile ();
@@ -492,7 +508,8 @@ public:
     ///
     size_t memsize_needed () const {
         const ImageSpec &spec (file().spec(m_id.subimage(),m_id.miplevel()));
-        return spec.tile_pixels() * spec.nchannels * file().datatype().size();
+        TypeDesc datatype = file().datatype(id().subimage());
+        return spec.tile_pixels() * spec.nchannels * datatype.size();
     }
 
     /// Mark the tile as recently used.
@@ -711,7 +728,8 @@ public:
     /// which is ok because the file hash table has ref-counted pointers
     /// and those won't be freed until the texture system is destroyed.
     ImageCacheFile *find_file (ustring filename,
-                               ImageCachePerThreadInfo *thread_info);
+                               ImageCachePerThreadInfo *thread_info,
+                               ImageInput::Creator creator=NULL);
 
     /// Is the tile specified by the TileID already in the cache?
     bool tile_in_cache (const TileID &id,
@@ -756,6 +774,10 @@ public:
                             int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
+    virtual bool add_file (ustring filename, ImageInput::Creator creator);
+    virtual bool add_tile (ustring filename, int subimage, int miplevel,
+                     int x, int y, int z, TypeDesc format, const void *buffer,
+                     stride_t xstride, stride_t ystride, stride_t zstride);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no

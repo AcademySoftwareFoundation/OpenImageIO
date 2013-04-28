@@ -610,6 +610,39 @@ force is false, in actuality files will only be invalidated if their
 modification times have been changed since they were first opened.
 \apiend
 
+\subsection{Seeding the cache}
+\label{sec:imagecache:api:seeding}
+\NEW
+\apiitem{bool {\ce add_file} (ustring filename, ImageInput::Creator creator)}
+This creates a file entry in the cache that, instead of reading
+from disk, uses a custom \ImageInput to generate the image (note
+that it will have no effect if there's already an image by the
+same name in the cache).  The {\cf creator} is a factory that
+creates the custom \ImageInput and will be called like this:
+\begin{code}
+    ImageInput *in = creator();
+\end{code}
+
+Once created, the \ImageCache owns
+the \ImageInput and is responsible for destroying it when done.
+Custom \ImageInput's allow ``procedural'' images, among other
+things.  Also, this is the method you use to set up a
+``writeable'' \ImageCache images (perhaps with a type of \ImageInput
+that's just a stub that does as little as possible).
+\apiend
+
+\apiitem{bool {\ce add_tile} (ustring filename, int subimage, int miplevel,\\
+\bigspc        int x, int y, int z, TypeDesc format, const void *buffer,\\
+\bigspc        stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
+\bigspc        stride_t zstride=AutoStride}
+\NEW
+Preemptively add a tile corresponding to the named image, at the
+given subimage and MIP level.  The tile added is the one whose
+corner is (x,y,z), and buffer points to the pixels (in the given
+format, with supplied strides) which will be copied and inserted
+into the cache and made available for future lookups.
+\apiend
+
 \subsection{Errors and statistics}
 \label{sec:imagecache:api:geterror}
 \label{sec:imagecache:api:getstats}

@@ -451,8 +451,8 @@ TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
                 TileRef &tile (thread_info->tile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
-                    data += options.firstchannel * texfile->datatype().size();
-                    convert_types (texfile->datatype(), data,
+                    data += options.firstchannel * texfile->datatype(subimage).size();
+                    convert_types (texfile->datatype(subimage), data,
                                    format, result, actualchannels);
                     for (int c = actualchannels;  c < options.nchannels;  ++c)
                         convert_types (TypeDesc::FLOAT, &options.fill,
@@ -1220,7 +1220,8 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
     if (! levelinfo.onetile)
         return NULL;   // Only compute color for one-tile MIP levels
     const ImageSpec &spec (levelinfo.spec);
-    size_t pixelsize = texturefile.pixelsize();
+    size_t pixelsize = texturefile.pixelsize(subimage);
+    bool eightbit = texturefile.eightbit(subimage);
     if (! levelinfo.polecolorcomputed) {
         static spin_mutex mutex;   // Protect everybody's polecolor
         spin_lock lock (mutex);
@@ -1238,7 +1239,7 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
                 const unsigned char *texel = tile->bytedata() + y*spec.tile_width*pixelsize;
                 for (size_t i = 0;  i < width;  ++i, texel += pixelsize)
                     for (int c = 0;  c < spec.nchannels;  ++c)
-                        if (texturefile.eightbit())
+                        if (eightbit)
                             p[c] += uchar2float(texel[c]);
                         else
                             p[c] += ((const float *)texel)[c];
@@ -1330,7 +1331,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     TileRef &tile (thread_info->tile);
     if (! tile  ||  ! ok)
         return false;
-    size_t channelsize = texturefile.channelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
     int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
     DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
     if (channelsize == 1) {
@@ -1411,8 +1412,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool onetile = (s_onetile & t_onetile);
-    size_t channelsize = texturefile.channelsize();
-    size_t pixelsize = texturefile.pixelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
+    size_t pixelsize = texturefile.pixelsize(options.subimage);
     if (onetile &&
 //        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
         valid_storage.ivalid == all_valid) {
@@ -1640,8 +1641,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
     bool onetile = (s_onetile & t_onetile);
-    size_t channelsize = texturefile.channelsize();
-    size_t pixelsize = texturefile.pixelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
+    size_t pixelsize = texturefile.pixelsize(options.subimage);
     if (onetile & allvalid) {
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, options.subimage, miplevel,
@@ -1725,7 +1726,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     float g0y = wy[0] + wy[1]; float h0y = (wy[1] / g0y);
     float g1y = wy[2] + wy[3]; float h1y = (wy[3] / g1y);
 
-    if (texturefile.eightbit()) {
+    if (texturefile.eightbit(options.subimage)) {
         for (int c = 0;  c < nc; ++c) {
             float col[4];
             for (int j = 0;  j < 4; ++j) {

@@ -774,6 +774,10 @@ public:
         return e;
     }
 
+    /// An ImageInput::Creator is a function that creates and returns an
+    /// ImageInput.
+    typedef ImageInput* (*Creator)();
+
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!

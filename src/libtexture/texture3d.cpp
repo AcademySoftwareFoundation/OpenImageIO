@@ -315,7 +315,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     TileRef &tile (thread_info->tile);
     if (! tile  ||  ! ok)
         return false;
-    size_t channelsize = texturefile.channelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
     int tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
     int offset = spec.nchannels * tilepel + options.firstchannel;
     DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
@@ -418,8 +418,8 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool r_onetile = (tile_r != tiledepthmask) & (rtex[0]+1 == rtex[1]);
     bool onetile = (s_onetile & t_onetile & r_onetile);
-    size_t channelsize = texturefile.channelsize();
-    size_t pixelsize = texturefile.pixelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
+    size_t pixelsize = texturefile.pixelsize(options.subimage);
     if (onetile &&
         valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile

@@ -232,7 +232,8 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
 
 ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ImageCachePerThreadInfo *thread_info,
-                                ustring filename)
+                                ustring filename,
+                                ImageInput::Creator creator)
     : m_filename(filename), m_used(true), m_broken(false),
       m_texformat(TexFormatTexture),
       m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
@@ -241,7 +242,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
       m_imagecache(imagecache), m_duplicate(NULL),
-      m_total_imagesize(0)
+      m_total_imagesize(0),
+      m_inputcreator(creator)
 {
     m_filename = imagecache.resolve_filename (m_filename.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
@@ -253,6 +255,42 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
 ImageCacheFile::~ImageCacheFile ()
 {
     close ();
+}
+
+
+
+void
+ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
+{
+    volume = (spec.depth > 1 || spec.full_depth > 1);
+    full_pixel_range = (spec.x == spec.full_x &&
+                           spec.y == spec.full_y &&
+                           spec.z == spec.full_z &&
+                           spec.width == spec.full_width &&
+                           spec.height == spec.full_height &&
+                           spec.depth == spec.full_depth);
+    if (! full_pixel_range) {
+        sscale = float(spec.full_width) / spec.width;
+        soffset = float(spec.full_x-spec.x) / spec.width;
+        tscale = float(spec.full_height) / spec.height;
+        toffset = float(spec.full_y-spec.y) / spec.height;
+    } else {
+        sscale = tscale = 1.0f;
+        soffset = toffset = 0.0f;
+    }
+    subimagename = ustring (spec.get_string_attribute("oiio:subimagename"));
+    datatype = TypeDesc::FLOAT;
+    if (! forcefloat) {
+        // If we aren't forcing everything to be float internally, then 
+        // there are a few other types we allow.
+        // But at present, it's only UINT8 and FLOAT.
+        if (spec.format == TypeDesc::UINT8
+            /* future expansion:  || spec.format == AnotherFormat ... */)
+            datatype = spec.format;
+    }
+    channelsize = datatype.size();
+    pixelsize = channelsize * spec.nchannels;
+    eightbit = (datatype == TypeDesc::UINT8);
 }
 
 
@@ -269,8 +307,11 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if (m_broken)        // Already failed an open -- it's broken
         return false;
 
-    m_input.reset (ImageInput::create (m_filename.c_str(),
-                                       m_imagecache.plugin_searchpath().c_str()));
+    if (m_inputcreator)
+        m_input.reset (m_inputcreator());
+    else
+        m_input.reset (ImageInput::create (m_filename.c_str(),
+                                           m_imagecache.plugin_searchpath().c_str()));
     if (! m_input) {
         imagecache().error ("%s", OIIO::geterror().c_str());
         m_broken = true;
@@ -323,7 +364,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // keep track of the highest level discovered
     imagesize_t old_total_imagesize = m_total_imagesize;
     m_total_imagesize = 0;
-    int maxmip = 0;
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
@@ -332,23 +372,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             tempspec = nativespec;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
-                si.volume = (tempspec.depth > 1 || tempspec.full_depth > 1);
-                si.full_pixel_range = (tempspec.x == tempspec.full_x &&
-                                       tempspec.y == tempspec.full_y &&
-                                       tempspec.z == tempspec.full_z &&
-                                       tempspec.width == tempspec.full_width &&
-                                       tempspec.height == tempspec.full_height &&
-                                       tempspec.depth == tempspec.full_depth);
-                if (! si.full_pixel_range) {
-                    si.sscale = float(tempspec.full_width) / tempspec.width;
-                    si.soffset = float(tempspec.full_x-tempspec.x) / tempspec.width;
-                    si.tscale = float(tempspec.full_height) / tempspec.height;
-                    si.toffset = float(tempspec.full_y-tempspec.y) / tempspec.height;
-                } else {
-                    si.sscale = si.tscale = 1.0f;
-                    si.soffset = si.toffset = 0.0f;
-                }
-                si.subimagename = ustring (tempspec.get_string_attribute("oiio:subimagename"));
+                si.init (tempspec, imagecache().forcefloat());
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
@@ -388,7 +412,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;
-            maxmip = std::max (nmip, maxmip);
         } while (m_input->seek_subimage (nsubimages, nmip, nativespec));
 
         // Special work for non-MIPmapped images -- but only if "automip"
@@ -429,7 +452,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     s.tile_depth = d;
                 }
                 ++nmip;
-                maxmip = std::max (nmip, maxmip);
                 LevelInfo levelinfo (s, s);
                 si.levels.push_back (levelinfo);
             }
@@ -458,6 +480,15 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     thread_info->m_stats.files_totalsize -= old_total_imagesize;
     thread_info->m_stats.files_totalsize += m_total_imagesize;
 
+    init_from_spec ();  // Fill in the rest of the fields
+    return true;
+}
+
+
+
+void
+ImageCacheFile::init_from_spec ()
+{
     const ImageSpec &spec (this->spec(0,0));
     const ImageIOParameter *p;
 
@@ -476,7 +507,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         // For textures marked as such, doctor the full_width/full_height to
         // not be non-sensical.
         if (m_texformat == TexFormatTexture) {
-            for (int s = 0;  s < nsubimages;  ++s) {
+            for (int s = 0;  s < subimages();  ++s) {
                 for (int m = 0;  m < miplevels(s);  ++m) {
                     ImageSpec &spec (this->spec(s,m));
                     if (spec.full_width > spec.width)
@@ -548,25 +579,17 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             m_fingerprint = ustring (desc, found+strlen(prefix), 40);
     }
 
-    m_datatype = TypeDesc::FLOAT;
-    if (! m_imagecache.forcefloat()) {
-        // If we aren't forcing everything to be float internally, then 
-        // there are a few other types we allow.
-        if (spec.format == TypeDesc::UINT8)
-            m_datatype = spec.format;
-    }
-
-    m_channelsize = m_datatype.size();
-    m_pixelsize = m_channelsize * spec.nchannels;
-    m_eightbit = (m_datatype == TypeDesc::UINT8);
     m_mod_time = Filesystem::last_write_time (m_filename.string());
 
     // Set all mipmap level read counts to zero
+    int maxmip = 1;
+    for (int s = 0, nsubimages = subimages();  s < nsubimages;  ++s)
+        maxmip = std::max (maxmip, miplevels(s));
+    m_mipreadcount.clear ();
     m_mipreadcount.resize(maxmip, 0);
 
     DASSERT (! m_broken);
     m_validspec = true;
-    return true;
 }
 
 
@@ -910,7 +933,8 @@ ImageCacheFile::invalidate ()
 
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
-                           ImageCachePerThreadInfo *thread_info)
+                           ImageCachePerThreadInfo *thread_info,
+                           ImageInput::Creator creator)
 {
     ImageCacheStatistics &stats (thread_info->m_stats);
     ImageCacheFile *tf = NULL;
@@ -933,7 +957,7 @@ ImageCacheImpl::find_file (ustring filename,
             tf = found->second.get();
         } else {
             // No such entry in the file cache.  Add it, but don't open yet.
-            tf = new ImageCacheFile (*this, thread_info, filename);
+            tf = new ImageCacheFile (*this, thread_info, filename, creator);
             m_files.insert (filename, tf, false);
             newfile = true;
         }
@@ -974,12 +998,17 @@ ImageCacheImpl::find_file (ustring filename,
                     // fingerprint only considers source image pixel values.
                     // FIXME -- be sure to add extra tests
                     // here if more metadata have significance later!
-                    if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
-                        tf->m_rwrap == dup->m_rwrap &&
-                        tf->m_datatype == dup->m_datatype && 
-                        tf->m_envlayout == dup->m_envlayout &&
-                        tf->m_y_up == dup->m_y_up &&
-                        tf->m_sample_border == dup->m_sample_border) {
+                    bool match = (tf->subimages() == dup->subimages());
+                    match &= (tf->m_swrap == dup->m_swrap &&
+                              tf->m_twrap == dup->m_twrap &&
+                              tf->m_rwrap == dup->m_rwrap &&
+                              tf->m_envlayout == dup->m_envlayout &&
+                              tf->m_y_up == dup->m_y_up &&
+                              tf->m_sample_border == dup->m_sample_border);
+                    for (int s = 0, e = tf->subimages(); match && s < e; ++s) {
+                        match &= (tf->datatype(s) == dup->datatype(s));
+                    }
+                    if (match) {
                         tf->duplicate (dup);
                         tf->close ();
                         // std::cerr << "  duplicates " 
@@ -1142,7 +1171,8 @@ ImageCacheTile::ImageCacheTile (const TileID &id,
 
 
 
-ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
+ImageCacheTile::ImageCacheTile (const TileID &id, const void *pels,
+                    TypeDesc format,
                     stride_t xstride, stride_t ystride, stride_t zstride)
     : m_id (id) // , m_used(true)
 {
@@ -1151,16 +1181,17 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage(), id.miplevel()));
     size_t size = memsize_needed ();
-    ASSERT (size > 0 && memsize() == 0);
+    ASSERT_MSG (size > 0 && memsize() == 0, "size was %llu, memsize = %llu",
+                (unsigned long long)size, (unsigned long long)memsize());
     m_pixels.reset (new char [m_pixels_size = size]);
-    size_t dst_pelsize = spec.nchannels * file.datatype().size();
+    size_t dst_pelsize = file.pixelsize(id.subimage());
     m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
                              spec.tile_depth, pels, format, xstride, ystride,
-                             zstride, &m_pixels[0], file.datatype(),
+                             zstride, &m_pixels[0], file.datatype(id.subimage()),
                              dst_pelsize, dst_pelsize * spec.tile_width,
                              dst_pelsize * spec.tile_width * spec.tile_height);
     id.file().imagecache().incr_tiles (size);
-    m_pixels_ready = true;
+    m_pixels_ready = true;  // Caller sent us the pixels, no read necessary
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
 
@@ -1182,7 +1213,7 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
     ImageCacheFile &file (m_id.file());
     m_valid = file.read_tile (thread_info, m_id.subimage(), m_id.miplevel(),
                               m_id.x(), m_id.y(), m_id.z(),
-                              file.datatype(), &m_pixels[0]);
+                              file.datatype(m_id.subimage()), &m_pixels[0]);
     m_id.file().imagecache().incr_mem (size);
     if (! m_valid) {
         m_used = false;  // Don't let it hold mem if invalid
@@ -1224,8 +1255,7 @@ ImageCacheTile::data (int x, int y, int z) const
     z -= m_id.z();
     if (x < 0 || x >= (int)w || y < 0 || y >= (int)h || z < 0 || z >= (int)d)
         return NULL;
-    size_t pixelsize = spec.nchannels * m_id.file().datatype().size();
-    size_t offset = ((z * h + y) * w + x) * pixelsize;
+    size_t offset = ((z * h + y) * w + x) * m_id.file().pixelsize(m_id.subimage());
     return (const void *)&m_pixels[offset];
 }
 
@@ -2075,7 +2105,7 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
     }
     if ((dataname == s_cachedformat || dataname == s_cachedpixeltype) &&
             datatype == TypeDesc::TypeInt) {
-        *(int *)data = (int) file->m_datatype.basetype;
+        *(int *)data = (int) file->datatype(subimage).basetype;
         return true;
     }
     if (dataname == s_miplevels && datatype == TypeDesc::TypeInt) {
@@ -2240,7 +2270,7 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     // formatpixelsize, scanlinesize, and zplanesize assume contiguous
     // layout.  This may or may not be the same as the strides passed by
     // the caller.
-    TypeDesc cachetype = file->datatype();
+    TypeDesc cachetype = file->datatype(subimage);
     stride_t cache_stride = cachetype.size() * spec.nchannels;
     size_t formatsize = format.size();
     stride_t formatpixelsize = nchans * formatsize;
@@ -2388,8 +2418,50 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
     if (! tile)
         return NULL;
     ImageCacheTile * t = (ImageCacheTile *)tile;
-    format = t->file().datatype();
+    format = t->file().datatype(t->id().subimage());
     return t->data ();
+}
+
+
+
+bool
+ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator)
+{
+    if (! creator) {
+        error ("ImageCache::add_file must be given an ImageInput::Creator");
+        return false;
+    }
+    ImageCachePerThreadInfo *thread_info = get_perthread_info ();
+    ImageCacheFile *file = find_file (filename, thread_info, creator);
+    if (!file || file->broken())
+        return false;
+    return true;
+}
+
+
+
+bool
+ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
+                          int x, int y, int z,
+                          TypeDesc format, const void *buffer,
+                          stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    ImageCachePerThreadInfo *thread_info = get_perthread_info ();
+    ImageCacheFile *file = find_file (filename, thread_info);
+    if (! file || file->broken()) {
+        error ("Cannot add_tile for an image file that was not set up with add_file()");
+        return false;
+    }
+
+    TileID tileid (*file, subimage, miplevel, x, y, z);
+    ImageCacheTileRef tile = new ImageCacheTile (tileid, buffer, format,
+                                                 xstride, ystride, zstride);
+    if (! tile || ! tile->valid()) {
+        error ("Could not construct the tile; unknown reasons.");
+        return false;
+    }
+    add_tile_to_cache (tile, thread_info);
+    return true;
 }
 
 

@@ -227,6 +227,29 @@ public:
     /// the data type of the pixels in the disk file).
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const = 0;
 
+    /// This creates a file entry in the cache that, instead of reading
+    /// from disk, uses a custom ImageInput to generate the image (note
+    /// that it will have no effect if there's already an image by the
+    /// same name in the cache).  The 'creator' is a factory that
+    /// creates the custom ImageInput and will be called like this:
+    /// ImageInput *in = creator(); Once created, the ImageCache owns
+    /// the ImageInput and is responsible for destroying it when done.
+    /// Custom ImageInputs allow "procedural" images, among other
+    /// things.  Also, this is the method you use to set up a
+    /// "writeable" ImageCache images (perhaps with a type of ImageInput
+    /// that's just a stub that does as little as possible).
+    virtual bool add_file (ustring filename, ImageInput::Creator creator) = 0;
+
+    /// Preemptively add a tile corresponding to the named image, at the
+    /// given subimage and MIP level.  The tile added is the one whose
+    /// corner is (x,y,z), and buffer points to the pixels (in the given
+    /// format, with supplied strides) which will be copied and inserted
+    /// into the cache and made available for future lookups.
+    virtual bool add_tile (ustring filename, int subimage, int miplevel,
+                     int x, int y, int z, TypeDesc format, const void *buffer,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) = 0;
+
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error
     /// flags).  If no error has occurred since the last time geterror()
