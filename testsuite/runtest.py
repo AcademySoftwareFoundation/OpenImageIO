@@ -120,7 +120,7 @@ def info_command (file, extraargs="", safematch=0) :
 # compilers always match to every last floating point bit.
 def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
     command = (oiio_app("idiff") + "-a"
-               + " -fail 0"
+               + " -fail " + str(failthresh/4)
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(failthresh)
                + " -warn " + str(2*failthresh)
