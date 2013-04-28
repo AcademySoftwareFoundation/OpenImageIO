@@ -427,6 +427,10 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                    dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::resize does not support volume images");
+        return false;
+    }
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
@@ -537,6 +541,10 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::resample does not support volume images");
         return false;
     }
     OIIO_DISPATCH_TYPES2 ("resample", resample_,
@@ -699,6 +707,10 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                    dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::unsharp_mask does not support volume images");
+        return false;
+    }
 
     // Blur the source image, store in Blurry
     ImageBuf K ("kernel");
@@ -782,6 +794,10 @@ bool
 ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
                    ROI roi, int nthreads)
 {
+    if (src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::fft does not support volume images");
+        return false;
+    }
     if (! roi.defined())
         roi = get_roi (src.spec());
     roi.chend = roi.chbegin+1;   // One channel only
@@ -844,6 +860,10 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
 {
     if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
         dst.error ("ifft can only be done on 2-channel float images");
+        return false;
+    }
+    if (src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::ifft does not support volume images");
         return false;
     }
 
@@ -919,6 +939,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
                            int fontsize, const std::string &font_,
                            const float *textcolor)
 {
+    if (R.spec().depth > 1) {
+        R.error ("ImageBufAlgo::render_text does not support volume images");
+        return false;
+    }
+
 #ifdef USE_FREETYPE
     // If we know FT is broken, don't bother trying again
     if (ft_broken)
@@ -1065,6 +1090,10 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     if (dstspec.nchannels != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dstspec.nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::fillholes_pushpull does not support volume images");
         return false;
     }
     if (dstspec.alpha_channel < 0 ||

@@ -51,11 +51,12 @@
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
-#include "../field3d.imageio/field3d_pvt.h"
+#include "../field3d.imageio/field3d_backdoor.h"
 
 OIIO_NAMESPACE_ENTER
 {
-    using namespace pvt;
+using namespace pvt;
+using namespace f3dpvt;
 
 namespace {  // anonymous
 

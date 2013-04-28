@@ -397,6 +397,7 @@ main (int argc, char *argv[])
     else
         std::cout << "FAILURE\n";
 
+    imagecache->invalidate_all (true);
     ImageCache::destroy (imagecache);
     return ret;
 }

@@ -374,7 +374,7 @@ oiio_add_tests (webp
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
 
-oiio_add_tests (texture-field3d
+oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
 
 

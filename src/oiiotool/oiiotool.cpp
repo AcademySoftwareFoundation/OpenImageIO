@@ -1173,9 +1173,11 @@ action_channels (int argc, const char *argv[])
                             channels, values);
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
             // Shuffle the indexed/named channels
-            ImageBufAlgo::channels ((*R)(s,m), (*A)(s,m), (int)channels.size(),
-                                    &channels[0], &values[0], &newchannelnames[0],
-                                    false);
+            bool ok = ImageBufAlgo::channels ((*R)(s,m), (*A)(s,m),
+                                      (int)channels.size(), &channels[0],
+                                      &values[0], &newchannelnames[0], false);
+            if (! ok)
+                ot.error ("channels", (*R)(s,m).geterror());
             // Tricky subtlety: IBA::channels changed the underlying IB,
             // we may need to update the IRR's copy of the spec.
             R->update_spec_from_imagebuf(s,m);
@@ -1217,7 +1219,9 @@ action_chappend (int argc, const char *argv[])
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
             // Shuffle the indexed/named channels
-            ImageBufAlgo::channel_append ((*R)(s,m), (*A)(s,m), (*B)(s,m));
+            bool ok = ImageBufAlgo::channel_append ((*R)(s,m), (*A)(s,m), (*B)(s,m));
+            if (! ok)
+                ot.error ("chappend", (*R)(s,m).geterror());
             // Tricky subtlety: IBA::channels changed the underlying IB,
             // we may need to update the IRR's copy of the spec.
             R->update_spec_from_imagebuf(s,m);
@@ -1455,9 +1459,11 @@ action_cmul (int argc, const char *argv[])
                     scale[c] = 1.0f;
             }
         }
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m)
-            ImageBufAlgo::mul ((*R)(s,m), &scale[0]);
+        for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
+            bool ok = ImageBufAlgo::mul ((*R)(s,m), &scale[0]);
+            if (! ok)
+                ot.error ("cmul", (*R)(s,m).geterror());
+        }
     }
 
     ot.function_times["cmul"] += timer();
@@ -1499,9 +1505,11 @@ action_cadd (int argc, const char *argv[])
                     val[c] = 0.0f;
             }
         }
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m)
-            ImageBufAlgo::add ((*R)(s,m), &val[0]);
+        for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::add ((*R)(s,m), &val[0]);
+            if (! ok)
+                ot.error ("cadd", (*R)(s,m).geterror());
+        }
     }
 
     ot.function_times["cadd"] += timer();
@@ -1557,9 +1565,11 @@ action_flip (int argc, const char *argv[])
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
-            ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
-
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
+            if (! ok)
+                ot.error ("flip", (*R)(s,m).geterror());
+        }
     ot.function_times["flip"] += timer();             
     return 0;
 }
@@ -1580,8 +1590,11 @@ action_flop (int argc, const char *argv[])
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
-            ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
+            if (! ok)
+                ot.error ("flop", (*R)(s,m).geterror());
+        }
 
     ot.function_times["flop"] += timer();
     return 0;
@@ -1603,8 +1616,11 @@ action_flipflop (int argc, const char *argv[])
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
-            ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
+            if (! ok)
+                ot.error ("flipflop", (*R)(s,m).geterror());
+        }
 
     ot.function_times["flipflop"] += timer();
     return 0;
@@ -1946,12 +1962,11 @@ action_resample (int argc, const char *argv[])
 
     ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
 
-    if (ot.verbose)
-        std::cout << "Resampling " << Aspec.width << "x" << Aspec.height
-                  << " to " << newspec.width << "x" << newspec.height << "\n";
     const ImageBuf &Aib ((*A)(0,0));
     ImageBuf &Rib ((*ot.curimg)(0,0));
-    resample (Rib, Aib);
+    bool ok = ImageBufAlgo::resample (Rib, Aib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
 
     ot.function_times["resample"] += timer();
     return 0;
@@ -2036,12 +2051,12 @@ action_resize (int argc, const char *argv[])
     }
     const ImageBuf &Aib ((*A)(0,0));
     ImageBuf &Rib ((*ot.curimg)(0,0));
-    resize (Rib, Aib, Rib.xbegin(), Rib.xend(), Rib.ybegin(), Rib.yend(),
-            filter);
-
+    bool ok = ImageBufAlgo::resize (Rib, Aib, filter, get_roi(Rib.spec()));
     if (filter)
         Filter2D::destroy (filter);
     ot.function_times["resize"] += timer();
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
     return 0;
 }
 
@@ -2135,12 +2150,15 @@ action_fit (int argc, const char *argv[])
         ImageBuf &Rib ((*B)(0,0));
         ot.curimg = B;
         ImageBufAlgo::zero (Rib);
+        bool ok;
         if (Aspec->full_width == fit_full_width)
-            ImageBufAlgo::paste (Rib, 0, (fit_full_height-Aspec->full_height)/2,
-                                 0, 0, (*A)(0,0));
+            ok = ImageBufAlgo::paste (Rib, 0, (fit_full_height-Aspec->full_height)/2,
+                                      0, 0, (*A)(0,0));
         else
-            ImageBufAlgo::paste (Rib, (fit_full_width-Aspec->full_height)/2, 0,
-                                 0, 0, (*A)(0,0));
+            ok = ImageBufAlgo::paste (Rib, (fit_full_width-Aspec->full_height)/2, 0,
+                                      0, 0, (*A)(0,0));
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
     }
 
     ot.function_times["fit"] += timer();
@@ -2646,7 +2664,9 @@ action_rangecompress (int argc, const char *argv[])
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            ImageBufAlgo::rangecompress ((*R)(s,m), useluma);
+            bool ok = ImageBufAlgo::rangecompress ((*R)(s,m), useluma);
+            if (! ok)
+                ot.error (argv[0], (*R)(s,m).geterror());
         }
     }
 
@@ -2681,7 +2701,9 @@ action_rangeexpand (int argc, const char *argv[])
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            ImageBufAlgo::rangeexpand ((*R)(s,m), useluma);
+            bool ok = ImageBufAlgo::rangeexpand ((*R)(s,m), useluma);
+            if (! ok)
+                ot.error (argv[0], (*R)(s,m).geterror());
         }
     }
 
