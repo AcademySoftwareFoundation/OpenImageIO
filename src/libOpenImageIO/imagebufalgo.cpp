@@ -624,44 +624,76 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
 
 
 
+inline float binomial (int n, int k)
+{
+    float p = 1;
+    for (int i = 1;  i <= k;  ++i)
+        p *= float(n - (k-i)) / i;
+    return p;
+}
+
+
 bool
 ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
-                           float width, float height, bool normalize)
+                           float width, float height, float depth,
+                           bool normalize)
 {
     int w = std::max (1, (int)ceilf(width));
     int h = std::max (1, (int)ceilf(height));
+    int d = std::max (1, (int)ceilf(depth));
     // Round up size to odd
-    if (! (w & 1))
-        ++w;
-    if (! (h & 1))
-        ++h;
+    w |= 1;
+    h |= 1;
+    d |= 1;
     ImageSpec spec (w, h, 1 /*channels*/, TypeDesc::FLOAT);
+    spec.depth = d;
     spec.x = -w/2;
     spec.y = -h/2;
+    spec.z = -d/2;
     spec.full_x = spec.x;
     spec.full_y = spec.y;
+    spec.full_z = spec.z;
     spec.full_width = spec.width;
     spec.full_height = spec.height;
+    spec.full_depth = spec.depth;
     dst.alloc (spec);
 
-    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
-    filter.reset (Filter2D::create (name, width, height));
-    if (filter.get()) {
-        float sum = 0;
-        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p) {
-            float val = (*filter)((float)p.x(), (float)p.y());
-            p[0] = val;
-            sum += val;
-        }
+    if (Filter2D *filter = Filter2D::create (name, width, height)) {
+        // Named continuous filter from filter.h
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
-            p[0] = p[0] / sum;
+            p[0] = (*filter)((float)p.x(), (float)p.y());
+        delete filter;
+    } else if (!strcmp (name, "binomial")) {
+        // Binomial filter
+        float *wfilter = ALLOCA (float, width);
+        for (int i = 0;  i < width;  ++i)
+            wfilter[i] = binomial (width-1, i);
+        float *hfilter = (height == width) ? wfilter : ALLOCA (float, height);
+        if (height != width)
+            for (int i = 0;  i < height;  ++i)
+                hfilter[i] = binomial (height-1, i);
+        float *dfilter = ALLOCA (float, depth);
+        if (depth == 1)
+            dfilter[0] = 1;
+        else
+            for (int i = 0;  i < depth;  ++i)
+                dfilter[i] = binomial (depth-1, i);
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = wfilter[p.x()-spec.x] * hfilter[p.y()-spec.y] * dfilter[p.z()-spec.z];
     } else {
         // No filter -- make a box
-        float val = normalize ? 1.0f / ((w*h)) : 1.0f;
+        float val = normalize ? 1.0f / ((w*h*d)) : 1.0f;
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = val;
         dst.error ("Unknown kernel \"%s\"", name);
         return false;
+    }
+    if (normalize) {
+        float sum = 0;
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            sum += p[0];
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = p[0] / sum;
     }
     return true;
 }

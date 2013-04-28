@@ -539,10 +539,10 @@ FilterDesc filter1d_list[] = {
     { "triangle",        1,   2,    false,    true,     true },
     { "gaussian",        1,   2,    false,    true,     true },
     { "sharp-gaussian",  1,   2,    false,    true,     true },
-    { "catrom",          1,   4,    false,    false,    true },
+    { "catrom",          1,   4,    true,     false,    true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
-    { "lanczos3",        1,   6,    false,    false,    true },
+    { "lanczos3",        1,   6,    true,     false,    true },
     { "mitchell",        1,   3,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true }
 };
