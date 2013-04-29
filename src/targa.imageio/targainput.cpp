@@ -184,7 +184,12 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    m_alpha = (m_tga.attr & 0x0F) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+    m_alpha = TGA_ALPHA_NONE;
+    if (((m_tga.type == TYPE_RGB || m_tga.type == TYPE_RGB_RLE) && m_tga.bpp == 32)
+        || ((m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE) && m_tga.bpp > 8)) {
+        m_alpha = (m_tga.attr & 0x08) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+    }
+
 
     m_spec = ImageSpec ((int)m_tga.width, (int)m_tga.height,
                         // colour channels
