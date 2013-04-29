@@ -18,7 +18,7 @@ Comparing "../../../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CCM8.TGA
 ../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
-    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 2
     compression: "rle"
@@ -35,10 +35,10 @@ Reading ../../../../../TGAUTILS/CCM8.TGA
 Comparing "../../../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CTC16.TGA
-../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint4 targa
-    SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
-    channel list: R, G, B, A
-    oiio:BitsPerSample: 4
+../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 3 channel, uint5 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    oiio:BitsPerSample: 5
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -48,7 +48,7 @@ Reading ../../../../../TGAUTILS/CTC16.TGA
     Software: "TGAEdit 2.0"
     thumbnail_width: 64
     thumbnail_height: 64
-    thumbnail_nchannels: 4
+    thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
 Comparing "../../../../../TGAUTILS/CTC16.TGA" and "CTC16.TGA"
 PASS
@@ -107,7 +107,7 @@ Comparing "../../../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UCM8.TGA
 ../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
-    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
@@ -123,10 +123,10 @@ Reading ../../../../../TGAUTILS/UCM8.TGA
 Comparing "../../../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UTC16.TGA
-../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint4 targa
-    SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
-    channel list: R, G, B, A
-    oiio:BitsPerSample: 4
+../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 3 channel, uint5 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    oiio:BitsPerSample: 5
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 16 bit uncompressed true color image"
@@ -135,7 +135,7 @@ Reading ../../../../../TGAUTILS/UTC16.TGA
     Software: "TGAEdit 1.30"
     thumbnail_width: 64
     thumbnail_height: 64
-    thumbnail_nchannels: 4
+    thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
 Comparing "../../../../../TGAUTILS/UTC16.TGA" and "UTC16.TGA"
 PASS

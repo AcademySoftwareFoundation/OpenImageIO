@@ -184,7 +184,12 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    m_alpha = (m_tga.attr & 0x0F) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+    m_alpha = TGA_ALPHA_NONE;
+    if (((m_tga.type == TYPE_RGB || m_tga.type == TYPE_RGB_RLE) && m_tga.bpp == 32)
+        || ((m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE) && m_tga.bpp > 8)) {
+        m_alpha = (m_tga.attr & 0x08) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+    }
+
 
     m_spec = ImageSpec ((int)m_tga.width, (int)m_tga.height,
                         // colour channels
@@ -470,34 +475,16 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
     switch (m_tga.type) {
     case TYPE_PALETTED:
     case TYPE_PALETTED_RLE:
-        switch (bytespp) {
-        case 1:
-            k = in[0];
-            break;
-        case 2:
-            k = *((unsigned int *)in) & 0x0000FFFF;
-            if (bigendian())
-                swap_endian (&k);
-            break;
-        case 3:
-            k = *((unsigned int *)in) & 0x00FFFFFF;
-            if (bigendian())
-                swap_endian (&k);
-            break;
-        case 4:
-            k = *((unsigned int *)in);
-            if (bigendian())
-                swap_endian (&k);
-            break;
-        }
+        for (int i = 0;  i < bytespp;  ++i)
+            k |= in[i] << (8*i);  // Assemble it in little endian order
         k = (m_tga.cmap_first + k) * palbytespp;
         switch (palbytespp) {
         case 2:
             // see the comment for 16bpp RGB below for an explanation of this
-            out[2] = bit_range_convert<5, 8> ((palette[k + 1] & 0x7C) >> 2);
+            out[0] = bit_range_convert<5, 8> ((palette[k + 1] & 0x7C) >> 2);
             out[1] = bit_range_convert<5, 8> (((palette[k + 0] & 0xE0) >> 5)
                                             | ((palette[k + 1] & 0x03) << 3));
-            out[0] = bit_range_convert<5, 8> (palette[k + 0] & 0x1F);
+            out[2] = bit_range_convert<5, 8> (palette[k + 0] & 0x1F);
             break;
         case 3:
             out[0] = palette[k + 2];
