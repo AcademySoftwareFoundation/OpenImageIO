@@ -18,7 +18,7 @@ Comparing "../../../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CCM8.TGA
 ../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
-    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 2
     compression: "rle"
@@ -107,7 +107,7 @@ Comparing "../../../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UCM8.TGA
 ../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
-    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
