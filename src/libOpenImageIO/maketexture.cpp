@@ -239,7 +239,7 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
         ytexel = Imath::clamp (ytexel, buf.ymin(), buf.ymax());
         float w0 = (1.0f - yfrac) * sinf ((float)M_PI * (ytexel+0.5f)/(float)fh);
         float w1 = yfrac * sinf ((float)M_PI * (ynext+0.5f)/(float)fh);
-        yfrac = w0 / (w0 + w1);
+        yfrac = w1 / (w0 + w1);
     }
 
     // Bilinearly interpolate
