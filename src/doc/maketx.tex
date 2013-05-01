@@ -329,6 +329,20 @@ the second level from {\cf 128.tif}, the third from {\cf 64.tif}, and
 then subsequent levels will be the usual downsizings of {\cf 64.tif}.
 \apiend
 
+\apiitem{--envlatl}
+Creates a latitude-longitude environment map, rather than an ordinary
+texture map.
+\apiend
+
+\apiitem{--lightprobe}
+Creates a latitude-longitude environment map, but in contrast to
+{\cf --envlatl}, the original input image is assumed to be formatted
+as a \emph{light probe} image\footnote{See
+{\cf http://www.pauldebevec.com/Probes/} for examples and an explanation
+of the geometric layout.}.
+\apiend
+
+
 % --shadow --shadcube
 % --volshad --envlatl --envcube --lightprobe --latl2envcube --vertcross
 % --fov

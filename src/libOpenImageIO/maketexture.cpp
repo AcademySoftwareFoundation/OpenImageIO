@@ -405,6 +405,62 @@ check_nan_block (const ImageBuf &src, ROI roi, int &found_nonfinite)
 
 
 
+inline Imath::V3f
+latlong_to_dir (float s, float t, bool y_is_up=true)
+{
+    float theta = 2.0f*M_PI * s;
+    float phi = t * M_PI;
+    float sinphi, cosphi;
+    sincos (phi, &sinphi, &cosphi);
+    if (y_is_up)
+        return Imath::V3f (sinphi*sinf(theta), cosphi, -sinphi*cosf(theta));
+    else
+        return Imath::V3f (-sinphi*cosf(theta), -sinphi*sinf(theta), cosphi);
+}
+
+
+
+static bool
+lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
+                       ROI roi=ROI::All(), int nthreads=0)
+{
+    ASSERT (dst.initialized() && src.nchannels() == dst.nchannels());
+    if (! roi.defined())
+        roi = get_roi (dst.spec());
+    roi.chend = std::min (roi.chend, dst.nchannels());
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(lightprobe_to_envlatl, boost::ref(dst),
+                        boost::cref(src), y_is_up,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    const ImageSpec &dstspec (dst.spec());
+    int nchannels = dstspec.nchannels;
+    ASSERT (dstspec.format == TypeDesc::FLOAT);
+
+    float *pixel = ALLOCA (float, nchannels);
+    float dw = dstspec.width, dh = dstspec.height;
+    for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+        Imath::V3f V = latlong_to_dir ((d.x()+0.5f)/dw, (dh-1.0f-d.y()+0.5f)/dh, y_is_up);
+        float r = M_1_PI*acosf(V[2]) / hypotf(V[0],V[1]);
+        float u = (V[0]*r + 1.0f) * 0.5f;
+        float v = (V[1]*r + 1.0f) * 0.5f;
+        interppixel_NDC_clamped<float> (src, float(u), float(v), pixel, false);
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = pixel[c];
+    }
+
+    return true;
+}
+
+
+
 static void
 fix_latl_edges (ImageBuf &buf)
 {
@@ -731,22 +787,21 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         return false;
     }
 
-    ImageBuf *img = NULL;
+    boost::shared_ptr<ImageBuf> src;
     if (input == NULL) {
         // No buffer supplied -- create one to read the file
-        img = new ImageBuf(filename);
-        img->init_spec (filename, 0, 0); // force it to get the spec, not read
+        src.reset (new ImageBuf(filename));
+        src->init_spec (filename, 0, 0); // force it to get the spec, not read
     } else if (input->cachedpixels()) {
         // Image buffer supplied that's backed by ImageCache -- create a
         // copy (very light weight, just another cache reference)
-        img = new ImageBuf(*input);
+        src.reset (new ImageBuf(*input));
     } else {
         // Image buffer supplied that has pixels -- wrap it
-        img = new ImageBuf(input->name(), input->spec(),
-                           (void *)input->localpixels());
+        src.reset (new ImageBuf(input->name(), input->spec(),
+                                (void *)input->localpixels()));
     }
-
-    boost::shared_ptr<ImageBuf> src (img); // transfers ownership to src
+    ASSERT (src.get());
 
     if (! outputfilename.length()) {
         std::string fn = src->name();
@@ -780,7 +835,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
 
     bool shadowmode = (mode == ImageBufAlgo::MakeTxShadow);
-    bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl);
+    bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl || 
+                        mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe);
 
     // Find an ImageIO plugin that can open the output file, and open it
     std::string outformat = configspec.get_string_attribute ("maketx:fileformatname",
@@ -835,6 +891,21 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     stat_readtime += alltime.lap();
     STATUS (Strutil::format("read \"%s\"", src->name()), stat_readtime);
     
+    if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
+        ImageSpec newspec = src->spec();
+        newspec.width = newspec.full_width = src->spec().width;
+        newspec.height = newspec.full_height = src->spec().height/2;
+        newspec.tile_width = newspec.tile_height = 0;
+        newspec.format = TypeDesc::FLOAT;
+        boost::shared_ptr<ImageBuf> latlong (new ImageBuf(src->name(), newspec));
+        // Now lightprobe holds the original lightprobe, src is a blank
+        // image that will be the unwrapped latlong version of it.
+        lightprobe_to_envlatl (*latlong, *src, true);
+        // Carry on with the lat-long environment map from here on out
+        mode = ImageBufAlgo::MakeTxEnvLatl;
+        src = latlong;
+    }
+
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
     // Also note that this could affect the appearance when using "black"

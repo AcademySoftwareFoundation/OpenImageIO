@@ -72,15 +72,10 @@ static bool mipmapmode = false;
 static bool shadowmode = false;
 static bool envlatlmode = false;
 static bool envcubemode = false;
-//static bool lightprobemode = false;
+static bool lightprobemode = false;
 
 static ColorConfig colorconfig;
 
-
-// forward decl
-static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
-                          std::string outputfilename, ImageOutput *out,
-                          TypeDesc outputdatatype, bool mipmap);
 
 
 
@@ -244,6 +239,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "<SEPARATOR>", "Basic modes (default is plain texture):",
                   "--shadow", &shadowmode, "Create shadow map",
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
+                  "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
                   "--colorconvert %s %s", &incolorspace, &outcolorspace,
@@ -265,10 +261,11 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
         exit (EXIT_FAILURE);
     }
 
-    int optionsum = ((int)shadowmode + (int)envlatlmode + (int)envcubemode);
+    int optionsum = ((int)shadowmode + (int)envlatlmode + (int)envcubemode +
+                     (int)lightprobemode);
     if (optionsum > 1) {
         std::cerr << "maketx ERROR: At most one of the following options may be set:\n"
-                  << "\t--shadow --envlatl --envcube\n";
+                  << "\t--shadow --envlatl --envcube --lightprobe\n";
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -386,6 +383,8 @@ main (int argc, char *argv[])
         mode = ImageBufAlgo::MakeTxShadow;
     if (envlatlmode)
         mode = ImageBufAlgo::MakeTxEnvLatl;
+    if (lightprobemode)
+        mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
     bool ok = ImageBufAlgo::make_texture (mode, filenames[0],
                                           outputfilename, configspec,
                                           &std::cout);
