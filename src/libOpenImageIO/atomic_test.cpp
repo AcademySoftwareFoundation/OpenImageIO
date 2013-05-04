@@ -49,7 +49,7 @@ OIIO_NAMESPACE_USING;
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.
 
-static int iterations = 160000000;
+static int iterations = 40000000;
 static int numthreads = 16;
 static int ntrials = 1;
 static bool verbose = false;
@@ -184,16 +184,15 @@ int main (int argc, char *argv[])
 
     static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
-        int nt = threadcounts[i];
+        int nt = wedge ? threadcounts[i] : numthreads;
         int its = iterations/nt;
 
         double range;
         double t = time_trial (boost::bind(test_atomics,nt,its),
                                ntrials, &range);
 
-        std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
-                                      nt, Strutil::timeintervalformat(t),
-                                      t, range, its);
+        std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",
+                                      nt, t, range, its);
         if (! wedge)
             break;    // don't loop if we're not wedging
     }
