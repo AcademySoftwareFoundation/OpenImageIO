@@ -1209,7 +1209,9 @@ bool OIIO_API histogram_draw (ImageBuf &R,
 
 
 enum OIIO_API MakeTextureMode {
-    MakeTxTexture, MakeTxShadow, MakeTxEnvLatl, _MakeTxLast
+    MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
+    MakeTxEnvLatlFromLightProbe,
+    _MakeTxLast
 };
 
 /// Turn an image file (filename) into a tiled, MIP-mapped, texture file
