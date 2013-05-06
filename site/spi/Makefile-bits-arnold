@@ -60,7 +60,6 @@ ifeq ($(SP_OS), spinux1)
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
     endif
 
-
     MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
@@ -72,6 +71,16 @@ ifeq ($(SP_OS), spinux1)
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	  -DHDF5_LIBRARY_DIRS=/usr/lib64
+
+    ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
+    BOOSTVERS_UNDERSCORE = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    MY_CMAKE_FLAGS += \
+        -DBOOST_CUSTOM=1 \
+        -DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+        -DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+        -DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so"
+    endif
+
 endif  # endif spinux1
 
 

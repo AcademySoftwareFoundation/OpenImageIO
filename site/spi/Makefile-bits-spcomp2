@@ -92,6 +92,16 @@ else ifeq ($(SP_OS), lion)
       -DPYTHON_LIBRARY=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
       -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
       -DZLIB_ROOT=${MACPORTS_PREFIX}
+
+    ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
+    BOOSTVERS_UNDERSCORE = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    MY_CMAKE_FLAGS += \
+        -DBOOST_CUSTOM=1 \
+        -DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+        -DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+        -DBoost_LIBRARIES=optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so
+    endif
+
 else
 # Not sure how to obtain the correct GCC version but this returns the
 # version of GCC in the path.
