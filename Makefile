@@ -285,7 +285,7 @@ help:
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"
-	@echo "  make USE_TBB=0 ...          Don't use TBB"
+	@echo "  make USE_TBB=1 ...          Use TBB for atomics and spin locks"
 	@echo "  make USE_PYTHON=0 ...       Don't build the Python binding"
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
