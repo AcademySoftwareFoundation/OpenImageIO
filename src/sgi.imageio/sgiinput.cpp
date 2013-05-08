@@ -242,14 +242,13 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             }
             // If the high bit is zero, we copy the NEXT value, count times
             else {
-                value = (rle_scanline[i] << 8) | rle_scanline[i+1];
-                i += 2;
                 while (count--) {
                     DASSERT (limit > 0);
-                    *(unsigned short *)out = value;
-                    out += 2;
+                    *(out++) = rle_scanline[i];
+                    *(out++) = rle_scanline[i+1];
                     --limit;
                 }
+                i += 2;
             }
         }
     }
