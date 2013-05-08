@@ -50,7 +50,7 @@ OIIO_NAMESPACE_USING;
 // accumulated value is equal to iterations*threads, then the spin locks
 // worked.
 
-static int iterations = 160000000;
+static int iterations = 40000000;
 static int numthreads = 16;
 static int ntrials = 1;
 static bool verbose = false;
@@ -58,6 +58,7 @@ static bool wedge = false;
 
 static spin_mutex print_mutex;  // make the prints not clobber each other
 volatile long long accum = 0;
+float faccum = 0;
 spin_mutex mymutex;
 
 
@@ -71,10 +72,22 @@ do_accum (int iterations)
         std::cout << "thread " << boost::this_thread::get_id() 
                   << ", accum = " << accum << "\n";
     }
+#if 1
     for (int i = 0;  i < iterations;  ++i) {
         spin_lock lock (mymutex);
         accum += 1;
     }
+#else
+    // Alternate one that mixes in some math to make longer lock hold time,
+    // and also more to do between locks.  Interesting contrast in timings.
+    float last = 0.0f;
+    for (int i = 0;  i < iterations;  ++i) {
+        last = fmodf (sinf(last), 1.0f);
+        spin_lock lock (mymutex);
+        accum += 1;
+        faccum = fmod (sinf(faccum+last), 1.0f);
+    }
+#endif
 }
 
 
@@ -134,16 +147,15 @@ int main (int argc, char *argv[])
 
     static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
-        int nt = threadcounts[i];
+        int nt = wedge ? threadcounts[i] : numthreads;
         int its = iterations/nt;
 
         double range;
         double t = time_trial (boost::bind(test_spinlock,nt,its),
                                ntrials, &range);
 
-        std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
-                                      nt, Strutil::timeintervalformat(t),
-                                      t, range, its);
+        std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",
+                                      nt, t, range, its);
         if (! wedge)
             break;    // don't loop if we're not wedging
     }
