@@ -97,7 +97,7 @@ public:
         else {
             // Initialize m_starttime to avoid warnings
 #ifdef _WIN32
-            m_starttime = 0;
+            m_starttime.QuadPart = 0;
 #elif defined(__APPLE__)
             m_starttime = 0;
 #else
