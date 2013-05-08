@@ -2250,9 +2250,9 @@ action_unsharp (int argc, const char *argv[])
     options["threshold"] = "0";
     extract_options (options, argv[0]);
     std::string kernel = options["kernel"];
-    float width = strtof (options["width"].c_str(), NULL);
-    float contrast = strtof (options["contrast"].c_str(), NULL);
-    float threshold = strtof (options["threshold"].c_str(), NULL);
+    float width = (float) strtod (options["width"].c_str(), NULL);
+    float contrast = (float) strtod (options["contrast"].c_str(), NULL);
+    float threshold = (float) strtod (options["threshold"].c_str(), NULL);
 
     ImageRecRef A = ot.pop();
     A->read();

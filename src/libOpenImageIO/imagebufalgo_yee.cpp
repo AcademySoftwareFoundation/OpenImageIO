@@ -128,8 +128,8 @@ AdobeRGBToXYZ (ImageBuf &A, ROI roi, int nthreads)
 
     // Serial case
     for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
-        Color3f RGB (a[0], a[1], a[2]);
-        Color3f XYZ = AdobeRGBToXYZ (RGB);
+        Color3f rgb (a[0], a[1], a[2]);
+        Color3f XYZ = AdobeRGBToXYZ (rgb);
         a[0] = XYZ[0];
         a[1] = XYZ[1];
         a[2] = XYZ[2];

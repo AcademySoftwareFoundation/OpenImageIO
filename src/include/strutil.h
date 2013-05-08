@@ -225,7 +225,7 @@ template<> inline int from_string<int> (const std::string &s) {
 }
 // Special case for float
 template<> inline float from_string<float> (const std::string &s) {
-    return strtof (s.c_str(), NULL);
+    return (float)strtod (s.c_str(), NULL);
 }
 
 
