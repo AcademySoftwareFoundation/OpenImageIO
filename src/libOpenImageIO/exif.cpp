@@ -134,14 +134,14 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_EXPOSURETIME,	"ExposureTime",	TIFF_RATIONAL, 1 },
     { EXIFTAG_FNUMBER,	        "FNumber",	TIFF_RATIONAL, 1 },
     { EXIFTAG_EXPOSUREPROGRAM,	"Exif:ExposureProgram",	TIFF_SHORT, 1 }, // ?? translate to ascii names?
-    { EXIFTAG_SPECTRALSENSITIVITY,	"Exif:SpectralSensitivity",	TIFF_ASCII, 0 },
+    { EXIFTAG_SPECTRALSENSITIVITY,"Exif:SpectralSensitivity",	TIFF_ASCII, 0 },
     { EXIFTAG_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT, 1 },
     { EXIFTAG_OECF,	        "Exif:OECF",	TIFF_NOTYPE, 1 },	 // skip it
     { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_NOTYPE, 1 },	 // skip it
     { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII, 0 },
     { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII, 0 },
-    { EXIFTAG_COMPONENTSCONFIGURATION,	"Exif:ComponentsConfiguration",	TIFF_UNDEFINED, 1 },
-    { EXIFTAG_COMPRESSEDBITSPERPIXEL,	"Exif:CompressedBitsPerPixel",	TIFF_RATIONAL, 1 },
+    { EXIFTAG_COMPONENTSCONFIGURATION, "Exif:ComponentsConfiguration",	TIFF_UNDEFINED, 1 },
+    { EXIFTAG_COMPRESSEDBITSPERPIXEL,  "Exif:CompressedBitsPerPixel",	TIFF_RATIONAL, 1 },
     { EXIFTAG_SHUTTERSPEEDVALUE,"Exif:ShutterSpeedValue",	TIFF_SRATIONAL, 1 }, // APEX units
     { EXIFTAG_APERTUREVALUE,	"Exif:ApertureValue",	TIFF_RATIONAL, 1 },	// APEX units
     { EXIFTAG_BRIGHTNESSVALUE,	"Exif:BrightnessValue",	TIFF_SRATIONAL, 1 },
@@ -180,7 +180,7 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_EXPOSUREMODE,	"Exif:ExposureMode",	TIFF_SHORT, 1 },
     { EXIFTAG_WHITEBALANCE,	"Exif:WhiteBalance",	TIFF_SHORT, 1 },
     { EXIFTAG_DIGITALZOOMRATIO,	"Exif:DigitalZoomRatio",TIFF_RATIONAL, 1 },
-    { EXIFTAG_FOCALLENGTHIN35MMFILM,	"Exif:FocalLengthIn35mmFilm",	TIFF_SHORT, 1 },
+    { EXIFTAG_FOCALLENGTHIN35MMFILM, "Exif:FocalLengthIn35mmFilm",	TIFF_SHORT, 1 },
     { EXIFTAG_SCENECAPTURETYPE,	"Exif:SceneCaptureType",TIFF_SHORT, 1 },
     { EXIFTAG_GAINCONTROL,	"Exif:GainControl",	TIFF_RATIONAL, 1 },
     { EXIFTAG_CONTRAST,	        "Exif:Contrast",	TIFF_SHORT, 1 },
@@ -188,7 +188,13 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_SHARPNESS,	"Exif:Sharpness",	TIFF_SHORT, 1 },
     { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE, 1 },
     { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT, 1 },
-    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",	TIFF_ASCII, 0 },
+    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",   TIFF_ASCII, 0 },
+    { 42032,                    "Exif:CameraOwnerName",  TIFF_ASCII, 0 },
+    { 42033,                    "Exif:BodySerialNumber", TIFF_ASCII, 0 },
+    { 42034,                    "Exif:LensSpecification",TIFF_RATIONAL, 1 },
+    { 42035,                    "Exif:LensMake",         TIFF_ASCII, 0 },
+    { 42036,                    "Exif:LensModel",        TIFF_ASCII, 0 },
+    { 42037,                    "Exif:LensSerialNumber", TIFF_ASCII, 0 },
     { -1, NULL }  // signal end of table
 };
 
@@ -409,7 +415,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         int n = dirp->tdir_count;  // How many
         float *f = (float *) alloca (n * sizeof(float));
         for (int i = 0;  i < n;  ++i) {
-            unsigned int num, den;
+            int num, den;
             num = ((const int *) &(buf[dirp->tdir_offset]))[2*i+0];
             den = ((const int *) &(buf[dirp->tdir_offset]))[2*i+1];
             if (swab) {
