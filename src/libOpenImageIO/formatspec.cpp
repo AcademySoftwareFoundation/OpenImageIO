@@ -43,7 +43,7 @@
 #include "fmath.h"
 
 #include "imageio.h"
-#include "pugixml.hpp"
+#include <pugixml.hpp>
 
 
 OIIO_NAMESPACE_ENTER

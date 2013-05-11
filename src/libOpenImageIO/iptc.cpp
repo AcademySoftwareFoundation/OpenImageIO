@@ -56,10 +56,12 @@ static IIMtag iimtag [] = {
     {   4, "IPTC:ObjectAttributeReference", NULL, true },
     {   5, "IPTC:ObjectName", NULL, false },
     {   7, "IPTC:EditStatus", NULL, false },
+    {  10, "IPTC:Urgency", NULL, false },  // deprecated by IPTC
     {  12, "IPTC:SubjectReference", NULL, true },
     {  15, "IPTC:Category", NULL, false },
-//  20 is "SupplementalCategories", but has been deprecated by IPTC
-//    {  25, "Keywords", NULL, false },  // handled by special case
+    {  20, "IPTC:SupplementalCategories", NULL, true }, // deprecated by IPTC
+    {  22, "IPTC:FixtureIdentifier", NULL, false },
+    {  25, "Keywords", NULL, true },
     {  26, "IPTC:ContentLocationCode", NULL, true },
     {  27, "IPTC:ContentLocationName", NULL, true },
     {  30, "IPTC:ReleaseDate", NULL, false },
@@ -76,11 +78,11 @@ static IIMtag iimtag [] = {
     {  63, "IPTC:DigitalCreationTime", NULL, false },
     {  65, "IPTC:OriginatingProgram", "Software", false },
     {  70, "IPTC:ProgramVersion", NULL, false },
-    {  80, "IPTC:Creator", "Artist", true },
-    {  85, "IPTC:AuthorsPosition", NULL, true },
+    {  80, "IPTC:Creator", "Artist", true },  // sometimes called "byline"
+    {  85, "IPTC:AuthorsPosition", NULL, true }, // sometimes "byline title"
     {  90, "IPTC:City", NULL, false },
     {  92, "IPTC:Sublocation", NULL, false },
-    {  95, "IPTC:State", NULL, false },
+    {  95, "IPTC:State", NULL, false },  // sometimes "Province/State"
     { 100, "IPTC:CountryCode", NULL, false },
     { 101, "IPTC:Country", NULL, false },
     { 103, "IPTC:TransmissionReference", NULL, false },
@@ -91,7 +93,7 @@ static IIMtag iimtag [] = {
     { 118, "IPTC:Contact", NULL, false },
     { 120, "IPTC:Caption", "ImageDescription", false},
     { 121, "IPTC:LocalCaption", NULL, false},
-    { 122, "IPTC:CaptionWriter", NULL, false },  // should it be called Writer?
+    { 122, "IPTC:CaptionWriter", NULL, false },  // aka Writer/Editor
     // Note: 150-154 is audio sampling stuff
     { 184, "IPTC:JobID", NULL, false },
     { 185, "IPTC:MasterDocumentID", NULL, false },
@@ -128,8 +130,6 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
     std::cerr << "\n";
 #endif
 
-    std::string keywords;
-
     // Now there are a series of data blocks.  Each one starts with 1C
     // 02, then a single byte indicating the tag type, then 2 byte (big
     // endian) giving the tag length, then the data itself.  This
@@ -158,26 +158,28 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
 
             for (int i = 0;  iimtag[i].name;  ++i) {
                 if (tagtype == iimtag[i].tag) {
-                    spec.attribute (iimtag[i].name, s);
+                    if (iimtag[i].repeatable) {
+                        // For repeatable IIM tags, concatenate them
+                        // together separated by semicolons
+                        std::string old = spec.get_string_attribute (iimtag[i].name);
+                        if (old.size())
+                            old + "; ";
+                        spec.attribute (iimtag[i].name, old+s);
+                    } else {
+                        spec.attribute (iimtag[i].name, s);
+                    }
                     if (iimtag[i].anothername)
                         spec.attribute (iimtag[i].anothername, s);
+                    break;
                 }
             }
 
-            // Special case for keywords
-            if (tagtype == 25) {
-                if (keywords.length())
-                    keywords.append (std::string("; "));
-                keywords.append (s);
-            }
         }
 
         buf += tagsize;
         length -= tagsize;
     }
 
-    if (keywords.length())
-        spec.attribute ("Keywords", keywords);
     return true;
 }
 
@@ -208,32 +210,29 @@ encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc)
     
     const ImageIOParameter *p;
     for (int i = 0;  iimtag[i].name;  ++i) {
-        if ((p = spec.find_attribute (iimtag[i].name)))
-            encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
-                                     p->type(), p->data(), iptc);
+        if ((p = spec.find_attribute (iimtag[i].name))) {
+            if (iimtag[i].repeatable) {
+                std::string allvals (*(const char **)p->data());
+                std::vector<std::string> tokens;
+                Strutil::split (allvals, tokens, ";");
+                for (size_t i = 0, e = tokens.size();  i < e;  ++i) {
+                    tokens[i] = Strutil::strip (tokens[i]);
+                    if (tokens[i].size()) {
+                        const char *tok = &tokens[i][0];
+                        encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
+                                                 p->type(), &tok, iptc);
+                    }
+                }
+            } else {
+                // Regular, non-repeating
+                encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
+                                         p->type(), p->data(), iptc);
+            }
+        }
         if (iimtag[i].anothername) {
             if ((p = spec.find_attribute (iimtag[i].anothername)))
                 encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].anothername,
                                          p->type(), p->data(), iptc);
-        }
-    }
-
-    // Special case: Keywords
-    if ((p = spec.find_attribute ("Keywords", TypeDesc::STRING))) {
-        std::string allkeywords (*(const char **)p->data());
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(";");
-        tokenizer tokens (allkeywords, sep);
-        for (tokenizer::iterator tok_iter = tokens.begin();
-                 tok_iter != tokens.end(); ++tok_iter) {
-            std::string t = *tok_iter;
-            while (t.size() && t[0] == ' ')
-                t.erase (t.begin());
-            if (t.size()) {
-                const char *tptr = &t[0];
-                encode_iptc_iim_one_tag (25 /* tag number */, "Keywords",
-                                         TypeDesc::STRING, &tptr, iptc);
-            }
         }
     }
 }

@@ -38,6 +38,7 @@
 #include "strutil.h"
 #include "fmath.h"
 #include "imageio.h"
+#include <pugixml.hpp>
 
 #define DEBUG_XMP_READ  0
 #define DEBUG_XMP_WRITE 0
@@ -58,8 +59,10 @@ enum XMPspecial {
     DateConversion = 2,   // It's a date, may need conversion to canonical form
     TiffRedundant = 4,    // It's something that's part of normal TIFF tags
     ExifRedundant = 8,    // It's something included in Exif
-    Supress = 16,         // Explicitly supress it from XMP
-    IsList = 32           // Make a semicolon-separated list out of it
+    Suppress = 16,        // Explicitly suppress it from XMP
+    IsList = 32,          // Make a semicolon-separated list out of it
+    IsSeq = 64,           // Like List, but order matters
+    IsBool = 128          // Should be output as True/False
 };
 
 struct XMPtag {
@@ -81,9 +84,10 @@ static XMPtag xmptag [] = {
     { "photoshop:Instructions", "IPTC:Instructions", TypeDesc::STRING, 0 },
     { "photoshop:Source", "IPTC:Source", TypeDesc::STRING, 0 },
     { "photoshop:State", "IPTC:State", TypeDesc::STRING, 0 },
-    { "photoshop:SupplementalCategories", "IPTC:SupplementalCategories", TypeDesc::STRING, 0 },
+    { "photoshop:SupplementalCategories", "IPTC:SupplementalCategories", TypeDesc::STRING, IsList|Suppress },  // FIXME -- un-suppress when we have it working
     { "photoshop:TransmissionReference", "IPTC:TransmissionReference", TypeDesc::STRING, 0 },
     { "photoshop:Urgency", "photoshop:Urgency", TypeDesc::INT, 0 },
+
     { "tiff:Compression", "tiff:Compression", TypeDesc::INT, TiffRedundant },
     { "tiff:PlanarConfiguration", "tiff:PlanarConfiguration", TypeDesc::INT, TiffRedundant },
     { "tiff:PhotometricInterpretation", "tiff:PhotometricInterpretation", TypeDesc::INT, TiffRedundant },
@@ -92,72 +96,53 @@ static XMPtag xmptag [] = {
     { "tiff:XResolution", "XResolution", TypeDesc::FLOAT, Rational|TiffRedundant },
     { "tiff:YResolution", "YResolution", TypeDesc::FLOAT, Rational|TiffRedundant },
     { "tiff:ResolutionUnit", "ResolutionUnit", TypeDesc::INT, TiffRedundant },
+
     { "exif:ColorSpace", "Exif:ColorSpace", TypeDesc::INT, ExifRedundant },
-    { "xap:CreatorTool", "Software", TypeDesc::STRING, TiffRedundant },
-    { "xmp:CreatorTool", "Software", TypeDesc::STRING, TiffRedundant },
-    { "xap:CreateDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
+    { "exifEX:PhotographicSensitivity", "Exif:ISOSpeedRatings", TypeDesc::INT, ExifRedundant },
+
     { "xmp:CreateDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
-//    { "xap:ModifyDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
-//    { "xmp:ModifyDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
-    { "dc:format", "", TypeDesc::STRING, TiffRedundant|Supress },
+    { "xmp:CreatorTool", "Software", TypeDesc::STRING, TiffRedundant },
+    { "xmp:Label", "IPTC:Label", TypeDesc::STRING, 0 },
+    { "xmp:MetadataDate", "IPTC:MetadataDate", TypeDesc::STRING, DateConversion },
+    { "xmp:ModifyDate", "IPTC:ModifyDate", TypeDesc::STRING, DateConversion },
+    { "xmp:Rating", "IPTC:Rating", TypeDesc::INT, 0 },
+
+    { "xmpMM:DocumentID", "IPTC:DocumentID", TypeDesc::STRING, 0 },
+    { "xmpMM:History", "ImageHistory", TypeDesc::STRING, IsSeq|Suppress },
+    { "xmpMM:InstanceID", "IPTC:InstanceID", TypeDesc::STRING, 0 },
+    { "xmpMM:OriginalDocumentID", "IPTC:OriginalDocumentID", TypeDesc::STRING, 0 },
+
+    { "xmpRights:Marked", "IPTC:CopyrightStatus", TypeDesc::INT, IsBool },
+    { "xmpRights:WebStatement", "IPTC:CopyrightInfoURL", TypeDesc::STRING, 0 },
+    { "xmpRights:UsageTerms", "IPTC:RightsUsageTerms", TypeDesc::STRING, 0 },
+
+    { "dc:format", "", TypeDesc::STRING, TiffRedundant|Suppress },
     { "dc:Description", "ImageDescription", TypeDesc::STRING, TiffRedundant },
     { "dc:Creator", "Artist", TypeDesc::STRING, TiffRedundant },
     { "dc:Rights", "Copyright", TypeDesc::STRING, TiffRedundant },
     { "dc:title", "IPTC:ObjectName", TypeDesc::STRING, 0 },
     { "dc:subject", "Keywords", TypeDesc::STRING, IsList },
+
     { "Iptc4xmpCore:IntellectualGenre", "IPTC:IntellectualGenre", TypeDesc::STRING, 0 },
+    { "Iptc4xmpCore:CountryCode", "IPTC:CountryCode", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CreatorContactInfo", "IPTC:CreatorContactInfo", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:ContactInfoDetails", "IPTC:Contact", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CiAdrExtadr", "IPTC:ContactInfoAddress", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CiAdrCity", "IPTC:ContactInfoCity", TypeDesc::STRING, 0 },
-    { "Iptc4xmpCore:CiAddrRegion", "IPTC:ContactInfoState", TypeDesc::STRING, 0 },
+    { "Iptc4xmpCore:CiAdrRegion", "IPTC:ContactInfoState", TypeDesc::STRING, 0 },
+    { "Iptc4xmpCore:CiAdrPcode", "IPTC:ContactInfoPostalCode", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CiAdrCtry", "IPTC:ContactInfoCountry", TypeDesc::STRING, 0 },
-    { "Iptc4xmpCore:CiPcode", "IPTC:ContactInfoPostalCode", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CiEmailWork", "IPTC:ContactInfoEmail", TypeDesc::STRING, 0 },
-
     { "Iptc4xmpCore:CiTelWork", "IPTC:ContactInfoPhone", TypeDesc::STRING, 0 },
     { "Iptc4xmpCore:CiUrlWork", "IPTC:ContactInfoURL", TypeDesc::STRING, 0 },
+    { "Iptc4xmpCore:Location", "IPTC:Sublocation", TypeDesc::STRING, 0 },
+    { "Iptc4xmpCore:SubjectCode", "IPTC:SubjectCode", TypeDesc::STRING, IsList },
+    { "Iptc4xmpCore:Scene", "IPTC:SceneCode", TypeDesc::STRING, IsList },
+    { "Iptc4xmpExt:PersonInImage", "IPTC:PersonInImage", TypeDesc::STRING, IsList },
 
-#if 0
-    // Not handled: photoshop:SupplementalCategories
-#endif
     { "rdf:li", "" },  // ignore these strays
     { NULL, NULL }
 };
-
-
-
-// Utility: split semicolon-separated list
-static void
-split_list (const std::string &list, std::vector<std::string> &items)
-{
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(";");
-    tokenizer tokens (list, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
-         tok_iter != tokens.end(); ++tok_iter) {
-        std::string t = *tok_iter;
-        while (t.size() && t[0] == ' ')
-            t.erase (t.begin());
-        if (t.size())
-            items.push_back (t);
-    }
-}
-
-
-
-// Utility: join list into a single semicolon-separated string
-static std::string
-join_list (const std::vector<std::string> &items)
-{
-    std::string s;
-    for (size_t i = 0;  i < items.size();  ++i) {
-        if (i > 0)
-            s += "; ";
-        s += items[i];
-    }
-    return s;
-}
 
 
 
@@ -168,33 +153,39 @@ join_list (const std::vector<std::string> &items)
 static void
 add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 {
+#if DEBUG_XMP_READ
+    std::cerr << "add_attrib " << xmlname << ": '" << xmlvalue << "'\n";
+#endif
     for (int i = 0;  xmptag[i].xmpname;  ++i) {
         if (Strutil::iequals (xmptag[i].xmpname, xmlname)) {
             if (! xmptag[i].oiioname || ! xmptag[i].oiioname[0])
                 return;   // ignore it purposefully
             if (xmptag[i].oiiotype == TypeDesc::STRING) {
                 std::string val;
-                if (xmptag[i].special & IsList) {
+                if (xmptag[i].special & (IsList|IsSeq)) {
                     // Special case -- append it to a list
                     std::vector<std::string> items;
                     ImageIOParameter *p = spec.find_attribute (xmptag[i].oiioname, TypeDesc::STRING); 
                     bool dup = false;
                     if (p) {
-                        split_list (*(const char **)p->data(), items);
+                        Strutil::split (*(const char **)p->data(), items, ";");
                         for (size_t i = 0;  i < items.size();  ++i)
                             dup |= (items[i] == xmlvalue);
                         dup |= (xmlvalue == std::string(*(const char **)p->data()));
                     }
                     if (! dup)
                         items.push_back (xmlvalue);
-                    val = join_list (items);
+                    val = Strutil::join (items, "; ");
                 } else {
                     val = xmlvalue;
                 }
                 spec.attribute (xmptag[i].oiioname, val);
                 return;
             } else if (xmptag[i].oiiotype == TypeDesc::INT) {
-                spec.attribute (xmptag[i].oiioname, (int)atoi(xmlvalue));
+                if (xmptag[i].special & IsBool)
+                    spec.attribute (xmptag[i].oiioname, (int)Strutil::iequals(xmlvalue,"true"));
+                else  // ordinary int
+                    spec.attribute (xmptag[i].oiioname, (int)atoi(xmlvalue));
                 return;
             } else if (xmptag[i].oiiotype == TypeDesc::FLOAT) {
                 float f = atoi (xmlvalue);
@@ -239,6 +230,61 @@ extract_middle (const std::string &str, size_t pos,
 }
 
 
+static void
+decode_xmp_node (pugi::xml_node node, ImageSpec &spec,
+                 int level=1, const char *parentname=NULL, bool isList=false)
+{
+    std::string mylist;  // will accumulate for list items
+    for ( ;  node;  node = node.next_sibling()) {
+#if DEBUG_XMP_READ
+        std::cerr << "Level " << level << " " << node.name() << " = " << node.value() << "\n";
+#endif
+        // First, encode all attributes of this node
+        for (pugi::xml_attribute attr = node.first_attribute();
+             attr; attr = attr.next_attribute()) {
+#if DEBUG_XMP_READ
+            std::cerr << "   level " << level
+                      << " parent " << (parentname?parentname:"-")
+                      << " attr " << attr.name() << ' ' << attr.value() << "\n";
+#endif
+            if (Strutil::istarts_with(attr.name(), "xml:") ||
+                Strutil::istarts_with(attr.name(), "xmlns:"))
+                continue;   // xml attributes aren't image metadata
+            if (attr.name()[0] && attr.value()[0])
+                add_attrib (spec, attr.name(), attr.value());
+        }
+        if (Strutil::iequals(node.name(), "xmpMM::History")) {
+            // FIXME -- image history is complicated. Come back to it.
+            continue;
+        }
+        if (Strutil::iequals(node.name(), "rdf:Bag") ||
+            Strutil::iequals(node.name(), "rdf:Seq") ||
+            Strutil::iequals(node.name(), "rdf:Alt") ||
+            Strutil::iequals(node.name(), "rdf:li")) {
+            // Various kinds of lists.  Recuse, pass the parent name
+            // down, and let the child know it's part of a list.
+            decode_xmp_node (node.first_child(), spec, level+1, parentname, true);
+        } else {
+            // Not a list, but it's got children.  Recurse.
+            decode_xmp_node (node.first_child(), spec, level+1, node.name());
+        }
+
+        // If this node has a value but no name, it's definitely part
+        // of a list.  Accumulate the list items, separated by semicolons.
+        if (parentname && !node.name()[0] && node.value()[0]) {
+            if (mylist.size())
+                mylist += ";";
+            mylist += node.value();
+        }
+    }
+
+    // If we have accumulated a list, turn it into an attribute
+    if (parentname && mylist.size()) {
+        add_attrib (spec, parentname, mylist.c_str());
+    }
+}
+
+
 }   // anonymous namespace
 
 
@@ -250,69 +296,25 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
 #if DEBUG_XMP_READ
     std::cerr << "XMP dump:\n---\n" << xml << "\n---\n";
 #endif
-
-    // FIXME: we should replace this awkward regex matching with actual
-    // XML parsing with pugixml.
-
-    try {
-    // Instead of doing a true parse of the XML, we can get away with
-    // some simple pattern matching.
-    boost::regex xml_item_pattern ("<(\\w+:\\w+)>(.*)</(\\1)>", boost::regex::perl);
-    boost::regex xml_nested_pattern ("<(\\w+:\\w+)>.*<(\\w+:\\w+).*>.*</\\2>.*</(\\1)>", boost::regex::perl);
-
-    // Search in turn for all "<rdf:Description ... </rdf:Description>" blocks.
+    if (! xml.length())
+        return true;
     for (size_t startpos = 0, endpos = 0;
          extract_middle (xml, endpos, "<rdf:Description", "</rdf:Description>", startpos, endpos);  ) {
-        std::string rdf (xml, startpos+1, endpos-startpos-2);  // scooch in
-        // We have an rdf block, actually we scooched in by one char in each
-        // direction so that we don't accidentally match it looking for
-        // items inside it.
-        while (1) {
-            // Search for a simple "<ATTRIB...>VALUE</ATTRIB>" block
-            // within the RDF.
-            boost::match_results<std::string::const_iterator> what;
-            if (boost::regex_search (rdf, what, xml_item_pattern)) {
-                std::string attrib = what[1], value = what[2];
-                // OK, there are two cases.  It may be a simple value, or
-                // it may be nested XML items inside the value, which 
-                // happens for list items.
-                boost::match_results<std::string::const_iterator> nestwhat;
-                if (boost::regex_search (value, nestwhat, xml_nested_pattern) &&
-                      (nestwhat[1] == "rdf:Seq" || nestwhat[1] == "rdf:Alt") &&
-                      nestwhat[2] == "rdf:li") {
-                    // It's a list.  Look at each "<rdf:li...</rdf:li>"
-                    std::string list = nestwhat[0];
-                    std::string v;
-                    for (size_t s = 0, e = 0;
-                         extract_middle (list, e, "<rdf:li", "</rdf:li>", s, e); ) {
-                        std::string item (list, s, e-s);
-                        boost::match_results<std::string::const_iterator> w;
-                        if (boost::regex_search (item, w, xml_item_pattern)) {
-                            // OK, we're down to a single list item.
-                            if (v.length() && w.length())
-                                v += "; ";
-                            v += w[2];
-                        }
-                    }
-                    if (v.size())
-                        add_attrib (spec, attrib.c_str(), v.c_str());
-                } else {
-                    // Not a list -- just a straight-up attribute, add to spec
-                    add_attrib (spec, attrib.c_str(), value.c_str());
-                }
-                rdf = what.suffix();
-            } else {
-                // std::cerr << "NO MATCH ->" << rdf << "<-\n";
-                break;
-            }
-        }
-    }
-    } /* end of try */
-    catch (const std::exception &e) {
-#ifndef NDEBUG
-        std::cerr << "ERROR! '" << e.what() << "'\n";
+        // Turn that middle section into an XML document
+        std::string rdf (xml, startpos, endpos-startpos);  // scooch in
+#if DEBUG_XMP_READ
+        std::cerr << "RDF is:\n---\n" << rdf << "\n---\n";
 #endif
-        return false;
+        pugi::xml_document doc;
+        pugi::xml_parse_result parse_result = doc.load_buffer (&rdf[0], rdf.size());
+        if (! parse_result) {
+#if DEBUG_XMP_READ
+            std::cerr << "Error parsing XML\n";
+#endif
+            return true;
+        }
+        // Decode the contents of the XML document (it will recurse)
+        decode_xmp_node (doc.first_child(), spec);
     }
 
     return true;
@@ -320,61 +322,30 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
 
 
 
-// Convert from a single semicolon-separated string into an XMP list.
-static std::string
-encode_xmp_list_item (const std::string &val)
-{
-    bool anyfound = false;
-    std::string xml = "<rdf:Seq>";
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(";");
-    tokenizer tokens (val, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
-         tok_iter != tokens.end(); ++tok_iter) {
-        std::string t = *tok_iter;
-        while (t.size() && t[0] == ' ')
-            t.erase (t.begin());
-        if (t.size()) {
-            xml += Strutil::format ("<rdf:li>%s</rdf:li>", t.c_str());
-            anyfound = true;
-        }
-    }
-    xml += "</rdf:Seq>";
-    return anyfound ? xml : std::string();
-}
-
-
-
 // Turn one ImageIOParameter (whose xmp info we know) into a properly
 // serialized xmp string.
 static std::string
-encode_xmp_oneitem (const ImageIOParameterList::const_iterator &p,
-                    const XMPtag &xmptag)
+stringize (const ImageIOParameterList::const_iterator &p,
+           const XMPtag &xmptag)
 {
     if (p->type() == TypeDesc::STRING) {
         if (xmptag.special & DateConversion) {
             // FIXME -- convert to yyyy-mm-ddThh:mm:ss.sTZD
-            return std::string();
+            // return std::string();
         }
-        if (xmptag.special & IsList)
-            return Strutil::format ("  <%s>%s</%s>\n", xmptag.xmpname, 
-                                    encode_xmp_list_item (*(const char **)p->data()).c_str(),
-                                    xmptag.xmpname);
-        else 
-            return Strutil::format ("  <%s>%s</%s>\n", xmptag.xmpname, 
-                                    *(const char **)p->data(), xmptag.xmpname);
+        return std::string(*(const char **)p->data());
     } else if (p->type() == TypeDesc::INT) {
-        return Strutil::format ("  <%s>%d</%s>\n", xmptag.xmpname, 
-                                *(const int *)p->data(), xmptag.xmpname);
+        if (xmptag.special & IsBool)
+            return *(const int *)p->data() ? "True" : "False";
+        else // ordinary int
+            return Strutil::format ("%d", *(const int *)p->data());
     } else if (p->type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
             float_to_rational (*(const float *)p->data(), num, den);
-            return Strutil::format ("  <%s>%d/%d</%s>\n", xmptag.xmpname, 
-                                    num, den, xmptag.xmpname);
-        } else {
-            return Strutil::format ("  <%s>%g</%s>\n", xmptag.xmpname,
-                                    *(const float *)p->data(), xmptag.xmpname);
+            return Strutil::format ("%d/%d", num, den);
+        } else  {
+            return Strutil::format ("%g", *(const float *)p->data());
         }
     }
     return std::string();
@@ -382,70 +353,153 @@ encode_xmp_oneitem (const ImageIOParameterList::const_iterator &p,
 
 
 
-// Turn an entire category of XMP items into a properly serialized 
-// xml fragment.
-static std::string
-encode_xmp_category (const ImageSpec &spec, const char *xmlnamespace,
-                     const char *url, bool minimal=false)
+static void
+gather_xmp_attribs (const ImageSpec &spec,
+                    std::vector<std::pair<int,std::string> > &list)
 {
-    std::string category = std::string(xmlnamespace) + ':';
-    std::string xmp;
-    std::string xmp_minimal;
     // Loop over all params...
     for (ImageIOParameterList::const_iterator p = spec.extra_attribs.begin();
          p != spec.extra_attribs.end();  ++p) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        bool found = false;
         for (int i = 0;  xmptag[i].xmpname;  ++i) {
             if (! Strutil::iequals (p->name().c_str(), xmptag[i].oiioname))
                 continue;   // Name doesn't match
-            if (strncmp (xmptag[i].xmpname, category.c_str(), category.length()))
-                continue;   // Category doesn't match
-            if (xmptag[i].special & Supress) {
-                found = true;
-                break;   // Purposely supressing
+            if (xmptag[i].special & Suppress) {
+                break;   // Purposely suppressing
             }
+            std::string s = stringize (p,xmptag[i]);
+            if (s.size()) {
+                list.push_back (std::pair<int,std::string>(i, s));
+                //std::cerr << "  " << xmptag[i].xmpname << " = " << s << "\n"; 
+            }
+        }
+    }
+}
 
-            std::string x = encode_xmp_oneitem (p, xmptag[i]);
-            if (! x.empty()) {
-                found = true;
+
+
+enum XmpControl { XMP_suppress, XMP_nodes, XMP_attribs,
+                  XMP_SeqList, // sequential list
+                  XMP_BagList, // unordered list
+                  XMP_AltList  // alternate list, WTF is that?
+};
+
+
+// Turn an entire category of XMP items into a properly serialized 
+// xml fragment.
+static std::string
+encode_xmp_category (std::vector<std::pair<int,std::string> > &list,
+                     const char *xmlnamespace, const char *pattern,
+                     const char *exclude_pattern,
+                     const char *nodename, const char *url,
+                     bool minimal, XmpControl control)
+{
+    std::string category = std::string(xmlnamespace) + ':';
+    std::string xmp;
+    std::string xmp_minimal;
+
+#if DEBUG_XMP_WRITE
+    std::cerr << "Category " << xmlnamespace << ", pattern '" << pattern << "'\n";
+#endif
+    // Loop over all params...
+    bool found = false;
+    for (size_t li = 0;  li < list.size();  ++li) {
+        // For this param, see if there's a table entry with a matching
+        // name, where the xmp name is in the right category.
+        int i = list[li].first;
+        const std::string &val (list[li].second);
+        const char *xmpname (xmptag[i].xmpname);
+        if (control == XMP_attribs && (xmptag[i].special & (IsList|IsSeq)))
+            continue;   // Skip lists for attrib output
+        if (exclude_pattern && exclude_pattern[0] &&
+            Strutil::istarts_with (xmpname, exclude_pattern)) {
+            continue;
+        }
+        if (Strutil::istarts_with (xmpname, pattern)) {
+            std::string x;
+            if (control == XMP_attribs)
+                x = Strutil::format ("%s=\"%s\"", xmpname, val);
+            else if (control == XMP_AltList || control == XMP_BagList) {
+                std::vector<std::string> vals;
+                Strutil::split (val, vals, ";");
+                for (size_t i = 0;  i < vals.size();  ++i) {
+                    vals[i] = Strutil::strip (vals[i]);
+                    x += Strutil::format ("<rdf:li>%s</rdf:li>", vals[i]);
+                }
+            }
+            else
+                x = Strutil::format ("<%s>%s</%s>", xmpname, val, xmpname);
+            if (! x.empty() && control != XMP_suppress) {
+                if (! found) {
+//                    if (nodename && nodename[0]) {
+//                       x = Strutil::format("<%s ", nodename);
+//                    }
+                }
                 if (minimal && (xmptag[i].special & (TiffRedundant|ExifRedundant))) {
+                    if (xmp_minimal.size())
+                        xmp_minimal += ' ';
                     xmp_minimal += x;
                 } else {
+                    if (xmp.size())
+                        xmp += ' ';
                     xmp += x;
                 }
-            } else {
-#if (!defined(NDEBUG) || DEBUG_XMP_WRITE)
-                std::cerr << "encode_xmp_category: not sure about " << p->type().c_str() << " " << xmptag[i].oiioname << "\n";
+                found = true;
+#if DEBUG_XMP_WRITE
+                std::cerr << "  going to output '" << x << "'\n";
 #endif
             }
-        }
-        if (! found) {
-            // We have an attrib that wasn't in the table.  But if it is
-            // prefixed by the category name, go ahead and output it anyway.
-            if (! strncmp (p->name().c_str(), category.c_str(), category.length())) {
-                XMPtag dummytag;
-                dummytag.xmpname = p->name().c_str();
-                dummytag.oiioname = p->name().c_str();
-                dummytag.oiiotype = p->type();
-                dummytag.special = NothingSpecial;
-                xmp += encode_xmp_oneitem (p, dummytag);
-            }
+#if DEBUG_XMP_WRITE
+            else std::cerr << "  NOT going to output '" << x << "'\n";
+#endif
+            list.erase (list.begin()+li);
+            --li;
         }
     }
 
-    if (xmp.length())
-        xmp += xmp_minimal;
+    if (xmp.length() && xmp_minimal.length())
+        xmp += ' ' + xmp_minimal;
 
+#if 1
     if (xmp.length()) {
-        xmp = Strutil::format (" <rdf:Description rdf:about=\"\" "
-                               "xmlns:%s=\"%s\">\n", xmlnamespace, url)
-            + xmp
-            + " </rdf:Description>\n\n";
-    }
+        if (control == XMP_BagList)
+            xmp = Strutil::format ("<%s><rdf:Bag> %s </rdf:Bag></%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+        else if (control == XMP_SeqList)
+            xmp = Strutil::format ("<%s><rdf:Seq> %s </rdf:Seq></%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+        else if (control == XMP_AltList)
+            xmp = Strutil::format ("<%s><rdf:Alt> %s </rdf:Alt></%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+#if 0
+        else if (control == XMP_nodes)
+            xmp = Strutil::format("<%s>%s</%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+ nodename);
+#endif
 
-    return xmp;
+        std::string r;
+        r += Strutil::format ("<rdf:Description rdf:about=\"\" "
+                              "xmlns:%s=\"%s\"%s", xmlnamespace, url,
+                              (control == XMP_attribs) ? " " : ">");
+        r += xmp;
+        if (control == XMP_attribs)
+            r += "/> ";  // end the <rdf:Description...
+        else
+            r += " </rdf:Description>";
+        return r;
+    }
+#endif
+
+#if DEBUG_XMP_WRITE
+    std::cerr << "  Nothing to output\n";
+#endif
+    return std::string();
 }
 
 
@@ -453,36 +507,82 @@ encode_xmp_category (const ImageSpec &spec, const char *xmlnamespace,
 std::string 
 encode_xmp (const ImageSpec &spec, bool minimal)
 {
-    std::string head ("<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?> \n"
-                      "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"> \n"
-                      "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\n");
-    std::string foot ("</rdf:RDF>\n"
-                      "</x:xmpmeta>\n"
-                      "<?xpacket end=\"w\"?>");
+    std::vector<std::pair<int,std::string> > list;
+    gather_xmp_attribs (spec, list);
 
     std::string xmp;
-    xmp += encode_xmp_category (spec, "photoshop",
-                                "http://ns.adobe.com/photoshop/1.0/", minimal);
-    xmp += encode_xmp_category (spec, "tiff",
-                                "http://ns.adobe.com/tiff/1.0/", minimal);
-    xmp += encode_xmp_category (spec, "xap",
-                                "http://ns.adobe.com/xap/1.0/", minimal);
-    xmp += encode_xmp_category (spec, "xapRights",
-                                "http://ns.adobe.com/xap/1.0/rights/", minimal);
-    xmp += encode_xmp_category (spec, "xapMM",
-                                "http://ns.adobe.com/xap/1.0/mm/", minimal);
-    xmp += encode_xmp_category (spec, "dc",
-                                "http://purl.org/dc/elements/1.1/", minimal);
-    xmp += encode_xmp_category (spec, "Iptc4xmpCore",
+
+#if 1
+    // This stuff seems to work
+    xmp += encode_xmp_category (list, "photoshop", "photoshop:", NULL, NULL,
+                                "http://ns.adobe.com/photoshop/1.0/", minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "xmp", "xmp:Rating", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/", minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "xmp", "xmp:CreateDate", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
+    xmp += encode_xmp_category (list, "xmp", "xmp:ModifyDate", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
+    xmp += encode_xmp_category (list, "xmp", "xmp:MetadataDate", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
+    xmp += encode_xmp_category (list, "xmpRights", "xmpRights:UsageTerms", NULL, "xmpRights:UsageTerms",
+                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_AltList);
+    xmp += encode_xmp_category (list, "xmpRights", "xmpRights:", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "dc", "dc:subject", NULL, "dc:subject",
+                                "http://purl.org/dc/elements/1.1/", minimal, XMP_BagList);
+    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:SubjectCode",
+                                NULL, "Iptc4xmpCore:SubjectCode",
                                 "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                                minimal);
+                                false, XMP_BagList);
+    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:",
+                                "Iptc4xmpCore:Ci", NULL,
+                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                                minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:Ci", NULL,
+                                "Iptc4xmpCore:CreatorContactInfo",
+                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                                minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:Scene", NULL,
+                                "Iptc4xmpCore:Scene",
+                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                                minimal, XMP_BagList);
+
+    xmp += encode_xmp_category (list, "xmpMM", "xmpMM:", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/mm/", minimal, XMP_attribs);
+#endif
+
+    xmp += encode_xmp_category (list, "xmp", "xmp:", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/", minimal, XMP_nodes);
+
+    xmp += encode_xmp_category (list, "tiff", "tiff:", NULL, NULL,
+                                "http://ns.adobe.com/tiff/1.0/", minimal, XMP_attribs);
+#if 0
+    // Doesn't work yet
+    xmp += encode_xmp_category (list, "xapRights", "xapRights:", NULL, NULL,
+                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_attribs);
+//    xmp += encode_xmp_category (list, "dc", "dc:", NULL, NULL,
+//                                "http://purl.org/dc/elements/1.1/", minimal, XMP_attribs);
+
+#endif
+
 // FIXME exif xmp stRef stVer stJob xmpDM 
 
-    if (! xmp.empty())
-        xmp = head + xmp + foot;
+  if (! xmp.empty()) {
+      std::string head (
+            "<?xpacket begin=\"\xEF\xBB\xBF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?> "
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.5-c002 1.148022, 2012/07/15-18:06:45        \"> <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> "
+            );
+        std::string foot (" </rdf:RDF> </x:xmpmeta> <?xpacket end=\"w\"?>");
+        xmp = head + xmp 
+            + foot;
+    }
+
 
 #if DEBUG_XMP_WRITE
-    std::cerr << "xmp = \n---\n" << xmp << "\n---\n";
+    std::cerr << "xmp to write = \n---\n" << xmp << "\n---\n";
+    std::cerr << "\n\nHere's what I still haven't output:\n";
+    for (size_t i = 0; i < list.size(); ++i)
+        std::cerr << xmptag[list[i].first].xmpname << "\n";
 #endif
 
     return xmp;
