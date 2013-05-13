@@ -34,6 +34,7 @@
 #include <string>
 
 #include "dassert.h"
+#include "half.h"
 #include "ustring.h"
 #include "strutil.h"
 
@@ -254,6 +255,93 @@ TypeDesc::fromstring (const char *typestring)
     *this = t;
     return len;
 }
+
+    
+    
+template <class T> inline std::string
+sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
+         const char *aggregate_sep, const char *array_delim,
+         const char *array_sep, T *v) {
+    std::string val;
+    if (type.arraylen)
+        val += array_delim[0];
+    const size_t n = type.arraylen ? type.arraylen : 1;
+    for (size_t i = 0; i < n; ++i) {
+        if (type.aggregate > 1)
+            val += aggregate_delim[0];
+        for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
+            val += Strutil::format (format, *v);
+            if (type.aggregate > 1 && j < type.aggregate - 1)
+                val += aggregate_sep;
+        }
+        if (type.aggregate > 1)
+            val += aggregate_delim[1];
+        if (i < n - 1)
+            val += array_sep;
+    }
+    if (type.arraylen)
+        val += array_delim[1];
+    return val;
+}
+
+
+
+std::string tostring (TypeDesc type, const void *data,
+                      const char *float_fmt, const char *string_fmt,
+                      const char *aggregate_delim, const char *aggregate_sep,
+                      const char *array_delim, const char *array_sep) {
+    // Perhaps there is a way to use CType<> with a dynamic argument?
+    switch (type.basetype) {
+        case TypeDesc::UNKNOWN:
+            return sprintt (type, "%p", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (void **)data);
+        case TypeDesc::NONE:
+            return sprintt (type, "None", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (void **)data);
+        case TypeDesc::UCHAR:
+            return sprintt (type, "%uhh", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (unsigned char *)data);
+        case TypeDesc::CHAR:
+            return sprintt (type, "%dhh", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (char *)data);
+        case TypeDesc::USHORT:
+            return sprintt (type, "%uh", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (unsigned short *)data);
+        case TypeDesc::SHORT:
+            return sprintt (type, "%dh", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (short *)data);
+        case TypeDesc::UINT:
+            return sprintt (type, "%u", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (unsigned int *)data);
+        case TypeDesc::INT:
+            return sprintt (type, "%d", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (int *)data);
+        case TypeDesc::ULONGLONG:
+            return sprintt (type, "%ull", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (unsigned long long *)data);
+        case TypeDesc::LONGLONG:
+            return sprintt (type, "%dll", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (long long *)data);
+        case TypeDesc::HALF:
+            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (half *) data);
+        case TypeDesc::FLOAT:
+            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (float *)data);
+        case TypeDesc::DOUBLE:
+            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (double *)data);
+        case TypeDesc::STRING:
+            return sprintt (type, string_fmt, aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (char **)data);
+        case TypeDesc::PTR:
+            return sprintt (type, "%p", aggregate_delim, aggregate_sep,
+                            array_delim, array_sep, (void **)data);
+        default:
+            return "";
+    }
+}
+
 
 
 
