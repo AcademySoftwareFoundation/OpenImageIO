@@ -270,7 +270,7 @@ sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
         if (type.aggregate > 1)
             val += aggregate_delim[0];
         for (size_t j = 0; j < type.aggregate; ++j, ++v) {
-          std::string buf = Strutil::format(format, *v);
+            std::string buf = Strutil::format (format, *v);
             val += buf;
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += aggregate_sep;
