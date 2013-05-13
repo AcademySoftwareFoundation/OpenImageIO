@@ -34,6 +34,7 @@
 #include <string>
 
 #include "dassert.h"
+#include "half.h"
 #include "ustring.h"
 #include "strutil.h"
 
@@ -269,8 +270,7 @@ sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
         if (type.aggregate > 1)
             val += aggregate_delim[0];
         for (size_t j = 0; j < type.aggregate; ++j, ++v) {
-            char buf[128];
-            sprintf(buf, format, *v);
+          std::string buf = Strutil::format(format, *v);
             val += buf;
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += aggregate_sep;
@@ -323,11 +323,9 @@ std::string tostring (TypeDesc type, const void *data,
         case TypeDesc::LONGLONG:
             return sprintt (type, "%dll", aggregate_delim, aggregate_sep,
                             array_delim, array_sep, (long long *)data);
-#ifdef _HALF_H_
         case TypeDesc::HALF:
             return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, float((half *) data));
-#endif
+                            array_delim, array_sep, (half *) data);
         case TypeDesc::FLOAT:
             return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
                             array_delim, array_sep, (float *)data);
