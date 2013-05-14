@@ -1950,8 +1950,10 @@ action_resample (int argc, const char *argv[])
 
     adjust_geometry (newspec.width, newspec.height,
                      newspec.x, newspec.y, argv[1], true);
-    if (newspec.width == Aspec.width && newspec.height == Aspec.height)
+    if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
+        ot.push (A);  // Restore the original image
         return 0;  // nothing to do
+    }
 
     // Shrink-wrap full to match actual pixels; I'm not sure what else
     // is appropriate, need to think it over.
@@ -1998,8 +2000,10 @@ action_resize (int argc, const char *argv[])
 
     adjust_geometry (newspec.width, newspec.height,
                      newspec.x, newspec.y, argv[1], true);
-    if (newspec.width == Aspec.width && newspec.height == Aspec.height)
+    if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
+        ot.push (A);  // Restore the original image
         return 0;  // nothing to do
+    }
 
     // Shrink-wrap full to match actual pixels; I'm not sure what else
     // is appropriate, need to think it over.
