@@ -9,7 +9,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
-    ResolutionUnit: 0
+    ResolutionUnit: "in"
     DocumentName: "g.tif"
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -20,8 +20,6 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=9CA964417213269190944948273FB1F00A4A8393"
-    tiff:PageNumber: "0"
-    tiff:RowsPerStrip: "8"
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -33,7 +31,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
-    ResolutionUnit: 0
+    ResolutionUnit: "in"
     DocumentName: "g.tif"
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -44,8 +42,6 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
-    tiff:PageNumber: "0"
-    tiff:RowsPerStrip: "8"
 Reading checker-uint16.tx
 checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -61,10 +57,9 @@ checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-1chan.tx
 checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -77,13 +72,12 @@ checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     fovcot: 1
-    tiff:PhotometricInterpretation: 2
+    tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=1D0A2254373A69C054C08672041FC7DE3BAE5179"
-    tiff:RowsPerStrip: "32"
 Reading checker-16x32tile.tx
 checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -99,10 +93,9 @@ checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-seplzw.tx
 checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -116,12 +109,11 @@ checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     fovcot: 1
     tiff:PhotometricInterpretation: 2
-    tiff:PlanarConfiguration: 1
+    tiff:PlanarConfiguration: 2
     planarconfig: "separate"
     tiff:Compression: 5
     compression: "lzw"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-clamp.tx
 checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -137,10 +129,9 @@ checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-permir.tx
 checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -156,10 +147,9 @@ checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-nomip.tx
 checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
     SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
@@ -174,10 +164,9 @@ checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-camera.tx
 checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -193,12 +182,11 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     worldtocamera: 1 0 0 0 0 2 0 0 0 0 1 0 0 0 0 1
     worldtoscreen: 3 0 0 0 0 3 0 0 0 0 3 0 1 2 3 1
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading checker-opaque.tx
 checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -214,10 +202,9 @@ checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
-    tiff:RowsPerStrip: "32"
 Reading gray-mono.tx
 gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -230,13 +217,12 @@ gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     fovcot: 1
-    tiff:PhotometricInterpretation: 2
+    tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=24049CDF337F17E162291C7B626E0588A9D71160"
-    tiff:RowsPerStrip: "32"
 Reading pink-mono.tx
 pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -252,10 +238,9 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
-    tiff:RowsPerStrip: "32"
 Reading checker-prman.tx
 checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -269,12 +254,11 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     wrapmodes: "black,black"
     fovcot: 1
     tiff:PhotometricInterpretation: 2
-    tiff:PlanarConfiguration: 1
+    tiff:PlanarConfiguration: 2
     planarconfig: "separate"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
-    tiff:RowsPerStrip: "32"
 Reading nan.exr
 nan.exr              :   64 x   64, 3 channel, half openexr
     SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
@@ -345,10 +329,9 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
+    tiff:Compression: 8
     compression: "zip"
     IPTC:Caption: "foo bar SHA-1=1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB ConstantColor=[1,0,0]"
-    tiff:RowsPerStrip: "32"
 whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
     MIP 0 of 3 (4 x 2):
       Stats Min: 1.000000 1.000000 1.000000 (float)
