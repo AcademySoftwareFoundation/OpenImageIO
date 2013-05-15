@@ -94,6 +94,7 @@ set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
+set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
 set (USE_EXTERNAL_TBB OFF CACHE BOOL
      "Use system TBB library instead of bundled.")
 

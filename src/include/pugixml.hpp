@@ -17,6 +17,11 @@
 #include "pugiconfig.hpp"
 #include "version.h"
 
+// Signify that we use Pugixml embedded in OIIO.  If OIIO is compiled with
+// the system Pugi, this will not be defined.
+#define USING_OIIO_PUGI 1
+
+
 #ifndef PUGIXML_NO_STL
 namespace std
 {

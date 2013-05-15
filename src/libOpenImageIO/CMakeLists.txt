@@ -258,7 +258,6 @@ if (EMBEDPLUGINS)
                                ${HDF5_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
-                               ${OPENJPEG_LIBRARIES}
                           )
     link_openexr (OpenImageIO)
 endif ()
