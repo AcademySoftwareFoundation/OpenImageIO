@@ -1,6 +1,17 @@
 Changes:
 
 
+Release 1.1.11 (29 May 2013)
+----------------------------
+* IFF input: bug in endian swap of 16 bit IFF files.
+* oiiotool: fix a minor bug where tiled files were output inappropriately.
+  (Had been patched in master some time ago.)
+* fmath.h additions: safe_inversesqrt, safe_log, safe_log2, safe_log10,
+  safe_logb.  These are versions that clamp their inputs so that they
+  can't throw exceptions or return Inf or NaN.
+* Fix to not incorrectly print ImageCache stats for certain broken files.
+
+
 Release 1.1.10 (13 Apr 2013)
 ----------------------------
 * IBA::fillholes() and oiiotool --fillholes can smoothly fill in alpha
