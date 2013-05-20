@@ -123,6 +123,32 @@ command += (oiio_app ("oiiotool") + " "
             + parent + "/oiio-images/grid.tif"
             + " --ch =0.25,B,G -o chanshuffle.tif >> out.txt ;\n")
 
+# test --ch to separate RGBA from an RGBAZ file
+command += (oiio_app("oiiotool") 
+            + "src/rgbaz.exr --ch R,G,B,A -o ch-rgba.exr >> out.txt ;\n")
+command += (oiio_app("oiiotool") 
+            + "src/rgbaz.exr --ch Z -o ch-z.exr >> out.txt ;\n")
+
+# test --chappend to merge RGBA and Z
+command += (oiio_app("oiiotool") + "ch-rgba.exr ch-z.exr "
+            + "--chappend -o chappend-rgbaz.exr >> out.txt ;\n")
+
+# test --chnames to rename channels
+command += (oiio_app("oiiotool") 
+            + "src/rgbaz.exr --chnames Red,,,,Depth -o chname.exr >> out.txt ;\n")
+command += info_command ("chname.exr", safematch=1)
+
+# test -d to change data formats
+command += (oiio_app("oiiotool") + "src/rgbaz.exr "
+            + "-d half -o allhalf.exr >> out.txt ;\n")
+command += info_command ("allhalf.exr", safematch=1)
+
+# test -d NAME=fmt to change data format of one channel, and to make
+# sure oiiotool will output per-channel formats.
+command += (oiio_app("oiiotool") + "src/rgbaz.exr "
+            + "-d half -d Z=float -o rgbahalf-zfloat.exr >> out.txt ;\n")
+command += info_command ("rgbahalf-zfloat.exr", safematch=1)
+
 # test hole filling
 command += (oiio_app ("oiiotool") + " " 
             + "ref/hole.tif --fillholes -o tahoe-filled.tif >> out.txt ;\n")
@@ -187,7 +213,9 @@ outputs = [ "filled.tif", "resample.tif", "resize.tif", "resize2.tif",
             "pasted.tif", "mosaic.tif",
             "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
             "cshift.tif",
-            "chanshuffle.tif", "cmul1.exr", "cmul2.exr",
+            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
+            "chappend-rgbaz.exr", "chname.exr",
+            "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "add.exr", "sub.exr",
             "tahoe-filled.tif",

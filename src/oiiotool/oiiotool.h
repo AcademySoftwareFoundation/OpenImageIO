@@ -64,6 +64,7 @@ public:
 
     // Output options
     TypeDesc output_dataformat;
+    std::map<std::string,std::string> output_channelformats;
     int output_bitspersample;
     bool output_scanline;
     int output_tilewidth, output_tileheight;
