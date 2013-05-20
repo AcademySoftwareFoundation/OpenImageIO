@@ -635,7 +635,6 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
     // Figure out data types -- choose the highest range
     spec.format = TypeDesc::UNKNOWN;
     std::vector<TypeDesc> chanformat;
-    bool differing_chanformats = false;
     for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
         Imf::PixelType ptype = ci.channel().type;
         TypeDesc fmt = TypeDesc::HALF;
@@ -656,13 +655,22 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
             break;
         default: ASSERT (0);
         }
-        chanformat.push_back (fmt);
         pixeltype.push_back (ptype);
         chanbytes.push_back (fmt.size());
-        if (fmt != chanformat[0])
-            differing_chanformats = true;
+        if (chanformat.size() == 0)
+            chanformat.resize (spec.nchannels, fmt);
+        for (int i = 0;  i < spec.nchannels;  ++i) {
+            ASSERT ((int)spec.channelnames.size() > i);
+            if (spec.channelnames[i] == ci.name()) {
+                chanformat[i] = fmt;
+                break;
+            }
+        }
     }
     ASSERT (spec.format != TypeDesc::UNKNOWN);
+    bool differing_chanformats = false;
+    for (int c = 1;  c < spec.nchannels;  ++c)
+        differing_chanformats |= (chanformat[c] != chanformat[0]);
     if (differing_chanformats)
         spec.channelformats = chanformat;
 }
