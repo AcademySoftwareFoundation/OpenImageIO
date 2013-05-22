@@ -326,7 +326,7 @@ pause (int delay)
 {
 #if defined(__GNUC__)
     for (int i = 0; i < delay; ++i) {
-#if defined __arm__
+#if defined __arm__ || defined __s390__
         __asm__ __volatile__("NOP;");
 #else
         __asm__ __volatile__("pause;");
