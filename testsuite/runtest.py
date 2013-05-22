@@ -104,7 +104,7 @@ def oiio_app (app):
         return os.path.join (path, app, options.devenv_config, app) + " "
 
 
-# Construct a command that will compare two images, appending output to
+# Construct a command that will print info for an image, appending output to
 # the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
 # of fields that tend to change from run to run or release to release.
 def info_command (file, extraargs="", safematch=0) :

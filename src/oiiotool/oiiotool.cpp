@@ -95,6 +95,7 @@ Oiiotool::clear_options ()
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
     output_dataformat = TypeDesc::UNKNOWN;
+    output_channelformats.clear ();
     output_bitspersample = 0;
     output_scanline = false;
     output_tilewidth = 0;
@@ -300,6 +301,32 @@ input_file (int argc, const char *argv[])
 
 
 static void
+string_to_dataformat (const std::string &s, TypeDesc &dataformat, int &bits)
+{
+    if (s == "uint8") {
+        dataformat = TypeDesc::UINT8;   bits = 0;
+    } else if (s == "int8") {
+        dataformat = TypeDesc::INT8;    bits = 0;
+    } else if (s == "uint10") {
+        dataformat = TypeDesc::UINT16;  bits = 10;
+    } else if (s == "uint12") {
+        dataformat = TypeDesc::UINT16;  bits = 12;
+    } else if (s == "uint16") {
+        dataformat = TypeDesc::UINT16;  bits = 0;
+    } else if (s == "int16") {
+        dataformat = TypeDesc::INT16;   bits = 0;
+    } else if (s == "half") {
+        dataformat = TypeDesc::HALF;    bits = 0;
+    } else if (s == "float") {
+        dataformat = TypeDesc::FLOAT;   bits = 0;
+    } else if (s == "double") {
+        dataformat = TypeDesc::DOUBLE;  bits = 0;
+    }
+}
+
+
+
+static void
 adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
                        bool format_supports_tiles)
 {
@@ -310,8 +337,28 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
         else
             spec.erase_attribute ("oiio:BitsPerSample");
     }
-
-//        spec.channelformats.clear ();   // FIXME: why?
+    if (ot.output_channelformats.size()) {
+        spec.channelformats.clear ();
+        spec.channelformats.resize (spec.nchannels, spec.format);
+        bool allsame = true;
+        for (int c = 0;  c < spec.nchannels;  ++c) {
+            if (c >= (int)spec.channelnames.size())
+                break;
+            std::map<std::string,std::string>::const_iterator i = ot.output_channelformats.find (spec.channelnames[c]);
+            if (i != ot.output_channelformats.end()) {
+                int bits = 0;
+                string_to_dataformat (i->second, spec.channelformats[c], bits);
+            }
+            if (c > 0)
+                allsame &= (spec.channelformats[c] == spec.channelformats[0]);
+        }
+        if (allsame) {
+            spec.format = spec.channelformats[0];
+            spec.channelformats.clear();
+        }
+    } else {
+        spec.channelformats.clear ();
+    }
 
     // If we've had tiled input and scanline was not explicitly
     // requested, we'll try tiled output.
@@ -494,30 +541,36 @@ static int
 set_dataformat (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
-    std::string s (argv[1]);
-    ot.output_bitspersample = 0;  // use the default
-    if (s == "uint8")
-        ot.output_dataformat = TypeDesc::UINT8;
-    else if (s == "int8")
-        ot.output_dataformat = TypeDesc::INT8;
-    else if (s == "uint10") {
-        ot.output_dataformat = TypeDesc::UINT16;
-        ot.output_bitspersample = 10;
-    } 
-    else if (s == "uint12") {
-        ot.output_dataformat = TypeDesc::UINT16;
-        ot.output_bitspersample = 12;
+    std::vector<std::string> chans;
+    Strutil::split (argv[1], chans, ",");
+
+    if (chans.size() == 0) {
+        return 0;   // Nothing to do
     }
-    else if (s == "uint16")
-        ot.output_dataformat = TypeDesc::UINT16;
-    else if (s == "int16")
-        ot.output_dataformat = TypeDesc::INT16;
-    else if (s == "half")
-        ot.output_dataformat = TypeDesc::HALF;
-    else if (s == "float")
-        ot.output_dataformat = TypeDesc::FLOAT;
-    else if (s == "double")
-        ot.output_dataformat = TypeDesc::DOUBLE;
+
+    if (chans.size() == 1 && !strchr(chans[0].c_str(),'=')) {
+        // Of the form:   -d uint8    (for example)
+        // Just one default format designated, apply to all channels
+        ot.output_dataformat = TypeDesc::UNKNOWN;
+        ot.output_bitspersample = 0;
+        string_to_dataformat (chans[0], ot.output_dataformat,
+                              ot.output_bitspersample);
+        ot.output_channelformats.clear ();
+        return 0;  // we're done
+    }
+
+    // If we make it here, the format designator was of the form
+    //    name0=type0,name1=type1,...
+    for (size_t i = 0;  i < chans.size();  ++i) {
+        const char *eq = strchr(chans[i].c_str(),'=');
+        if (eq) {
+            std::string channame (chans[i], 0, eq - chans[i].c_str());
+            ot.output_channelformats[channame] = std::string (eq+1);
+        } else {
+            ot.error (argv[0], Strutil::format ("Malformed format designator \"%s\"", chans[i]));
+        }
+    }
+
     return 0;
 }
 
@@ -2904,8 +2957,9 @@ getargs (int argc, char *argv[])
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
                 "-d %@ %s", set_dataformat, NULL,
-                    "Set the output data format to one of: "
-                    "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
+                    "'-d TYPE' sets the output data format of all channels, "
+                    "'-d CHAN=TYPE' overrides a single named channel (multiple -d args are allowed). "
+                    "Data types include: uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "--scanline", &ot.output_scanline, "Output scanline images",
                 "--tile %@ %d %d", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
                     "Output tiled images (tilewidth, tileheight)",

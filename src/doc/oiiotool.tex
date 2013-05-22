@@ -197,6 +197,17 @@ unsigned pixels:
     oiiotool in.tif -d uint8 -o out.tif
 \end{code}
 
+\NEW
+For formats that support per-channel data formats, you can override
+the format for one particular channel using {\cf -d CHNAME=TYPE}.
+For example, assuming {\cf rgbaz.exr} is a {\cf float} RGBAZ file,
+and we wish to convert it to be {\cf half} for RGBA, and {\cf float}
+for Z.  That can be accomplished with the following command:
+
+\begin{code}
+    oiiotool rgbaz.tif -d half -d Z=float -o rgbaz2.exr
+\end{code}
+
 
 \subsection*{Changing the compression}
 
@@ -243,7 +254,7 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 
 \subsection*{Scale the values in an image}
 
-Reduce the brightness of the R, G, and B channels by 10%%,
+Reduce the brightness of the R, G, and B channels by 10\%,
 but leave the A channel at its original value:
 
 \begin{code}
@@ -479,12 +490,17 @@ Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.
 \apiend
 
-\apiitem{-d {\rm \emph{datatype}}}
+\apiitem{-d {\rm \emph{datatype}} \\
+-d {\rm \emph{channelname}{\cf =}\emph{datatype}}}
 
-Attempts to set the pixel data type of all subsequent outputs.  Valid
-choices are: {\cf uint8}, {\cf sint8}, 
+Attempts to set the pixel data type of all subsequent outputs.  If no
+channel is named, sets \emph{all} channels to be the specified data
+type.  If a specific channel is named, then the data type will be
+overridden for just that channel (multiple {\cf -d} commands may be
+used).
+
+Valid types are: {\cf uint8}, {\cf sint8}, 
 {\cf uint16}, {\cf sint16}, {\cf  half}, {\cf float}, {\cf double}.
-
 The types {\cf uint10} and {\cf uint12} may be used to request 10- or
 12-bit unsigned integers.  If the output file format does not support
 them, {\cf uint16} will be substituted.
