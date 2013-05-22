@@ -33,6 +33,10 @@ macro (SET_STATE_VAR varname)
   unset (tmp_lst)
 endmacro ()
 
+# To enforce that find_* functions do not use inadvertently existing versions
+if (OPENEXR_CUSTOM)
+  set (OPENEXR_FIND_OPTIONS "NO_DEFAULT_PATH")
+endif ()
 
 # Macro to search for an include directory
 macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
@@ -40,6 +44,7 @@ macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   find_path(${tmp_varname} ${includefile}
     HINTS ${${libpath_var}}
     PATH_SUFFIXES include
+    ${OPENEXR_FIND_OPTIONS}
   )
   if (${tmp_varname})
     mark_as_advanced (${tmp_varname})
@@ -56,11 +61,13 @@ macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
     NAMES ${libname}
     HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
+    ${OPENEXR_FIND_OPTIONS}
   )
   find_library(${tmp_prefix}_LIBRARY_DEBUG
     NAMES ${libname}d ${libname}_d ${libname}debug ${libname}_debug
     HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
+    ${OPENEXR_FIND_OPTIONS}
   )
   # Properly define ${tmp_prefix}_LIBRARY (cached) and ${tmp_prefix}_LIBRARIES
   select_library_configurations (${tmp_prefix})
