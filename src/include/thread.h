@@ -453,7 +453,12 @@ private:
 
     // Disallow copy construction by making private and unimplemented.
     atomic (atomic const &);
+
+#if defined __arm__
+} __attribute__((aligned(8)));
+#else
 };
+#endif
 
 
 #endif /* ! USE_TBB_ATOMIC */
