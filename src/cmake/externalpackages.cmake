@@ -91,9 +91,11 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set (Boost_ADDITIONAL_VERSIONS "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
-                               "1.43" "1.43.0" "1.42" "1.42.0" 
-                               "1.41" "1.41.0" "1.40" "1.40.0")
+if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
+  set (Boost_ADDITIONAL_VERSIONS "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
+                                 "1.43" "1.43.0" "1.42" "1.42.0"
+                                 "1.41" "1.41.0" "1.40" "1.40.0")
+endif ()
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()

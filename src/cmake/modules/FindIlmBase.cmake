@@ -35,14 +35,18 @@ macro (SET_STATE_VAR varname)
   unset (tmp_lst)
 endmacro ()
 
+# To enforce that find_* functions do not use inadvertently existing versions
+if (ILMBASE_CUSTOM)
+  set (ILMBASE_FIND_OPTIONS "NO_DEFAULT_PATH")
+endif ()
 
 # Macro to search for an include directory
 macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   string (TOUPPER ${prefix}_INCLUDE_DIR tmp_varname)
   find_path(${tmp_varname} ${includefile}
-    PATHS ${${libpath_var}}
+    HINTS ${${libpath_var}}
     PATH_SUFFIXES include
-    NO_DEFAULT_PATH
+    ${ILMBASE_FIND_OPTIONS}
   )
   if (${tmp_varname})
     mark_as_advanced (${tmp_varname})
@@ -57,15 +61,15 @@ macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
   string (TOUPPER ${prefix}_${libname} tmp_prefix)
   find_library(${tmp_prefix}_LIBRARY_RELEASE
     NAMES ${libname}
-    PATHS ${${libpath_var}}
+    HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
-    NO_DEFAULT_PATH
+    ${ILMBASE_FIND_OPTIONS}
   )
   find_library(${tmp_prefix}_LIBRARY_DEBUG
     NAMES ${libname}d ${libname}_d ${libname}debug ${libname}_debug
-    PATHS ${${libpath_var}}
+    HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
-    NO_DEFAULT_PATH
+    ${ILMBASE_FIND_OPTIONS}
   )
   # Properly define ${tmp_prefix}_LIBRARY (cached) and ${tmp_prefix}_LIBRARIES
   select_library_configurations (${tmp_prefix})
