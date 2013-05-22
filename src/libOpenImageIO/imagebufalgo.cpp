@@ -958,7 +958,7 @@ const char *default_font_name = "cour";
 #elif defined (__APPLE__)
 const char *default_font_name = "Courier New";
 #elif defined (_WIN32)
-const char *default_font_name = "Courier";
+const char *default_font_name = "cour";
 #else
 const char *default_font_name = "cour";
 #endif
