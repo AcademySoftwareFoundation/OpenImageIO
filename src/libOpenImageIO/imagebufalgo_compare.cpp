@@ -470,6 +470,75 @@ ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
 
 
 
+template<typename T>
+static bool
+color_count_ (const ImageBuf &src, atomic_ll *count,
+              int ncolors, const float *color, const float *eps,
+              ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(color_count_<T>, boost::ref(src),
+                        count, ncolors, color, eps,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    int nchannels = src.nchannels();
+    long long *n = ALLOCA (long long, ncolors);
+    for (int col = 0;  col < ncolors;  ++col)
+        n[col] = 0;
+    for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
+        int coloffset = 0;
+        for (int col = 0;  col < ncolors;  ++col, coloffset += nchannels) {
+            int match = 1;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                if (fabsf(p[c] - color[coloffset+c]) > eps[c]) {
+                    match = 0;
+                    break;
+                }
+            }
+            n[col] += match;
+        }
+    }
+
+    for (int col = 0;  col < ncolors;  ++col)
+        count[col] += n[col];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
+                           int ncolors, const float *color,
+                           const float *eps,
+                           ROI roi, int nthreads)
+{
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    if (! eps) {
+        float *localeps = ALLOCA (float, roi.chend);
+        for (int c = 0;  c < roi.chend;  ++c)
+            localeps[c] = 0.001f;
+        eps = localeps;
+    }
+
+    for (int col = 0;  col < ncolors;  ++col)
+        count[col] = 0;
+    OIIO_DISPATCH_TYPES ("color_count", color_count_, src.spec().format,
+                         src, (atomic_ll *)count, ncolors, color, eps,
+                         roi, nthreads);
+};
+
+
+
 namespace {
 
 std::string

@@ -419,6 +419,53 @@ many pixels differed, the maximum amount, etc.).  This command does not
 alter the image stack.
 \apiend
 
+\apiitem{--colorcount \emph{r1,g1,b1,...:r2,g2,b2,...:...}}
+\NEW
+Given a list of colors separated by colons or semicolons, where each
+color is a list of comma-separated values (for each channel), examine
+all pixels of the current image and print a short report of how many
+pixels matched each of the colors.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf eps=}\emph{r,g,b,...} & Tolerance for matching colors (default:
+  0.001 for all channels).
+\end{tabular}
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool test.tif --colorcount "0.792,0,0,1;0.722,0,0,1"
+\end{code}
+\noindent might produce the following output:
+\begin{code}
+   10290  0.792,0,0,1
+   11281  0.722,0,0,1
+\end{code}
+
+\noindent Notice that use of double quotes (\qkw{ }) around the list of
+color arguments, in order to make sure that the command shell does not
+interpret the semicolon ({\cf ;}) as a statement separator.  An
+alternate way to specify multiple colors is to separate them with a
+colon ({\cf :}), for example:
+\begin{code}
+    oiiotool test.tif --colorcount 0.792,0,0,1:0.722,0,0,1
+\end{code}
+
+\noindent Another example:
+
+\begin{code}
+    oiiotool test.tif --colorcount:eps=.01,.01,.01,1000 "0.792,0,0,1"
+\end{code}
+
+\noindent This example sets a larger epsilon for the R, G, and B 
+channels (so that, for example, a pixel with value [0.795,0,0] would
+also match), and by setting the epsilon to 1000 for the alpha channel,
+it effectively ensures that alpha will not be considered in the matching
+of pixels to the color value.
+\apiend
+
 \apiitem{--no-clobber}
 Sets ``no clobber'' mode, in which existing images on disk will never be 
 overridden, even if the {\cf -o} command specifies that file.
