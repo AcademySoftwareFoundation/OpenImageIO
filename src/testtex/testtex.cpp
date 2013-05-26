@@ -39,12 +39,16 @@
 
 #include <OpenEXR/ImathMatrix.h>
 #include <OpenEXR/ImathVec.h>
+#include <OpenEXR/half.h>
+
+#include <boost/bind.hpp>
 
 #include "argparse.h"
 #include "imageio.h"
 #include "ustring.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "texture.h"
 #include "fmath.h"
 #include "sysutil.h"
@@ -57,6 +61,7 @@ OIIO_NAMESPACE_USING
 static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";
 static bool verbose = false;
+static int nthreads = 0;
 static int output_xres = 512, output_yres = 512;
 static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
@@ -91,6 +96,9 @@ static bool testhash = false;
 static Imath::M33f xform;
 void *dummyptr;
 
+typedef void (*Mapping2D)(int,int,float&,float&,float&,float&,float&,float&);
+typedef void (*Mapping3D)(int,int,Imath::V3f&,Imath::V3f&,Imath::V3f&,Imath::V3f &);
+
 
 
 static int
@@ -122,6 +130,7 @@ getargs (int argc, const char *argv[])
                       "Resolution of output test image",
                   "-iters %d", &iters,
                       "Iterations for time trials",
+                  "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
                   "--blur %f", &sblur, "Add blur to texture lookup",
                   "--stblur %f %f", &sblur, &tblur, "Add blur (s, t) to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
@@ -421,9 +430,56 @@ map_warp_3D (int x, int y, Imath::V3f &P,
 
 
 
-template<class MAPPING>
 void
-test_plain_texture (MAPPING mapping)
+plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
+                  ROI roi)
+{
+    TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
+    TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
+    int nchannels = image.nchannels();
+
+    TextureOpt opt;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
+    opt.swidth = width;
+    opt.twidth = width;
+    opt.nchannels = nchannels;
+    opt.fill = (fill >= 0.0f) ? fill : 1.0f;
+    if (missing[0] >= 0)
+        opt.missingcolor = (float *)&missing;
+    TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
+    opt.anisotropic = anisotropic;
+
+    float *result = ALLOCA (float, nchannels);
+    for (ImageBuf::Iterator<float> p (image, roi);  ! p.done();  ++p) {
+        float s, t, dsdx, dtdx, dsdy, dtdy;
+        mapping (p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
+
+        // Call the texture system to do the filtering.
+        bool ok;
+        if (use_handle)
+            ok = texsys->texture (texture_handle, perthread_info, opt,
+                                  s, t, dsdx, dtdx, dsdy, dtdy, result);
+        else
+            ok = texsys->texture (filename, opt,
+                                  s, t, dsdx, dtdx, dsdy, dtdy, result);
+        if (! ok) {
+            std::string e = texsys->geterror ();
+            if (! e.empty())
+                std::cerr << "ERROR: " << e << "\n";
+        }
+
+        // Save filtered pixels back to the image.
+        for (int i = 0;  i < nchannels;  ++i)
+            result[i] *= scalefactor;
+        image.setpixel (p.x(), p.y(), result);
+    }
+}
+
+
+
+void
+test_plain_texture (Mapping2D mapping)
 {
     std::cerr << "Testing 2d texture " << filenames[0] << ", output = " 
               << output_filename << "\n";
@@ -433,53 +489,7 @@ test_plain_texture (MAPPING mapping)
     ImageBuf image (output_filename, outspec);
     ImageBufAlgo::zero (image);
 
-    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
-    Imath::M33f rot;    rot.rotate (radians(30.0f));
-    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
-    xform = scale * rot * trans;
-    xform.invert();
-
-    TextureOptions opt;
-    opt.sblur = sblur;
-    opt.tblur = tblur >= 0.0f ? tblur : sblur;
-    opt.swidth = width;
-    opt.twidth = width;
-    opt.nchannels = nchannels;
-    
-    float localfill = (fill >= 0.0f) ? fill : 1.0f;
-    opt.fill = localfill;
-    if (missing[0] >= 0)
-        opt.missingcolor.init ((float *)&missing, 0);
-//    opt.interpmode = TextureOptions::InterpSmartBicubic;
-//    opt.mipmode = TextureOptions::MipModeAniso;
-    TextureOptions::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
-    opt.anisotropic = anisotropic;
-
-    TextureOpt opt1;
-    opt1.sblur = sblur;
-    opt1.tblur = tblur >= 0.0f ? tblur : sblur;
-    opt1.swidth = width;
-    opt1.twidth = width;
-    opt1.nchannels = nchannels;
-    opt1.fill = localfill;
-    if (missing[0] >= 0)
-        opt1.missingcolor = (float *)&missing;
-    TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt1.swrap, opt1.twrap);
-    opt1.anisotropic = anisotropic;
-
-    int shadepoints = blocksize*blocksize;
-    float *s = ALLOCA (float, shadepoints);
-    float *t = ALLOCA (float, shadepoints);
-    Runflag *runflags = ALLOCA (Runflag, shadepoints);
-    float *dsdx = ALLOCA (float, shadepoints);
-    float *dtdx = ALLOCA (float, shadepoints);
-    float *dsdy = ALLOCA (float, shadepoints);
-    float *dtdy = ALLOCA (float, shadepoints);
-    float *result = ALLOCA (float, shadepoints*nchannels);
-    
     ustring filename = ustring (filenames[0]);
-    TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
-    TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
 
     for (int iter = 0;  iter < iters;  ++iter) {
         if (iters > 1 && filenames.size() > 1) {
@@ -489,75 +499,15 @@ test_plain_texture (MAPPING mapping)
             std::cerr << "iter " << iter << " file " << filename << "\n";
         }
 
-        // Iterate over blocks
-        for (int by = 0, b = 0;  by < output_yres;  by+=blocksize) {
-            for (int bx = 0;  bx < output_xres;  bx+=blocksize, ++b) {
-                // Trick: switch to other textures on later iterations, if any
-                if (iters == 1 && filenames.size() > 1) {
-                    // Use a different filename from block to block
-                    filename = ustring (filenames[b % (int)filenames.size()]);
-                }
-
-                // Process pixels within a block.  First save the texture warp
-                // (s,t) and derivatives into SIMD vectors.
-                int idx = 0;
-                for (int y = by; y < by+blocksize; ++y) {
-                    for (int x = bx; x < bx+blocksize; ++x) {
-                        if (x < output_xres && y < output_yres) {
-                            mapping (x, y, s[idx], t[idx],
-                                     dsdx[idx], dtdx[idx], dsdy[idx], dtdy[idx]);
-                            runflags[idx] = RunFlagOn;
-                        } else {
-                            runflags[idx] = RunFlagOff;
-                        }
-                        ++idx;
-                    }
-                }
-
-                // Call the texture system to do the filtering.
-                bool ok;
-                if (blocksize == 1) {
-                    if (use_handle)
-                        ok = texsys->texture (texture_handle, perthread_info, opt1,
-                                              s[0], t[0], dsdx[0], dtdx[0],
-                                              dsdy[0], dtdy[0], result);
-                    else
-                        ok = texsys->texture (filename, opt1,
-                                              s[0], t[0], dsdx[0], dtdx[0],
-                                              dsdy[0], dtdy[0], result);
-                } else {
-                    ok = texsys->texture (filename, opt, runflags, 0,
-                                          shadepoints, Varying(s), Varying(t),
-                                          Varying(dsdx), Varying(dtdx),
-                                          Varying(dsdy), Varying(dtdy), result);
-                }
-                if (! ok) {
-                    std::string e = texsys->geterror ();
-                    if (! e.empty())
-                        std::cerr << "ERROR: " << e << "\n";
-                }
-                for (int i = 0;  i < shadepoints*nchannels;  ++i)
-                    result[i] *= scalefactor;
-
-                // Save filtered pixels back to the image.
-                idx = 0;
-                for (int y = by; y < by+blocksize; ++y) {
-                    for (int x = bx; x < bx+blocksize; ++x) {
-                        if (runflags[idx]) {
-                            image.setpixel (x, y, result + idx*nchannels);
-                        }
-                        ++idx;
-                    }
-                }
-            }
-        }
+        ImageBufAlgo::parallel_image (boost::bind(plain_tex_region, boost::ref(image), filename, mapping, _1),
+                                      get_roi(image.spec()), nthreads);
 
         if (resetstats) {
             std::cout << texsys->getstats(2) << "\n";
             texsys->reset_stats ();
         }
     }
-    
+
     if (! image.save ()) 
         std::cerr << "Error writing " << output_filename 
                   << " : " << image.geterror() << "\n";
@@ -565,9 +515,54 @@ test_plain_texture (MAPPING mapping)
 
 
 
-template<class MAPPING>
 void
-test_texture3d (ustring filename, MAPPING mapping)
+tex3d_region (ImageBuf &image, ustring filename, Mapping3D mapping,
+              ROI roi)
+{
+    TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
+    TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
+    int nchannels = image.nchannels();
+
+    TextureOpt opt;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
+    opt.rblur = sblur;
+    opt.swidth = width;
+    opt.twidth = width;
+    opt.rwidth = width;
+    opt.nchannels = nchannels;
+    opt.fill = (fill >= 0 ? fill : 0.0f);
+    if (missing[0] >= 0)
+        opt.missingcolor = (float *)&missing;
+
+    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
+    opt.anisotropic = anisotropic;
+
+    float *result = ALLOCA (float, nchannels);
+    for (ImageBuf::Iterator<float> p (image, roi);  ! p.done();  ++p) {
+        Imath::V3f P, dPdx, dPdy, dPdz;
+        mapping (p.x(), p.y(), P, dPdx, dPdy, dPdz);
+
+        // Call the texture system to do the filtering.
+        bool ok = texsys->texture3d (texture_handle, perthread_info, opt, 
+                                     P, dPdx, dPdy, dPdz, result);
+        if (! ok) {
+            std::string e = texsys->geterror ();
+            if (! e.empty())
+                std::cerr << "ERROR: " << e << "\n";
+        }
+
+        // Save filtered pixels back to the image.
+        for (int i = 0;  i < nchannels;  ++i)
+            result[i] *= scalefactor;
+        image.setpixel (p.x(), p.y(), result);
+    }
+}
+
+
+
+void
+test_texture3d (ustring filename, Mapping3D mapping)
 {
     std::cerr << "Testing 3d texture " << filename << ", output = " 
               << output_filename << "\n";
@@ -577,83 +572,13 @@ test_texture3d (ustring filename, MAPPING mapping)
     ImageBuf image (output_filename, outspec);
     ImageBufAlgo::zero (image);
 
-    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
-    Imath::M33f rot;    rot.rotate (radians(30.0f));
-    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
-    xform = scale * rot * trans;
-    xform.invert();
-
-    TextureOptions opt;
-    opt.sblur = sblur;
-    opt.tblur = tblur >= 0.0f ? tblur : sblur;
-    opt.rblur = sblur;
-    opt.swidth = width;
-    opt.twidth = width;
-    opt.rwidth = width;
-    opt.nchannels = nchannels;
-    float localfill = (fill >= 0 ? fill : 0.0f);
-    opt.fill = localfill;
-    if (missing[0] >= 0)
-        opt.missingcolor.init ((float *)&missing, 0);
-
-    opt.swrap = opt.twrap = opt.rwrap = TextureOptions::WrapPeriodic;
-    opt.anisotropic = anisotropic;
-    int shadepoints = blocksize*blocksize;
-    Imath::V3f *P = ALLOCA (Imath::V3f, shadepoints);
-    Runflag *runflags = ALLOCA (Runflag, shadepoints);
-    Imath::V3f *dPdx = ALLOCA (Imath::V3f, shadepoints);
-    Imath::V3f *dPdy = ALLOCA (Imath::V3f, shadepoints);
-    Imath::V3f *dPdz = ALLOCA (Imath::V3f, shadepoints);
-    float *result = ALLOCA (float, shadepoints*nchannels);
-    
     for (int iter = 0;  iter < iters;  ++iter) {
-        // Iterate over blocks
-
         // Trick: switch to second texture, if given, for second iteration
         if (iter && filenames.size() > 1)
             filename = ustring (filenames[1]);
 
-        for (int by = 0;  by < output_yres;  by+=blocksize) {
-            for (int bx = 0;  bx < output_xres;  bx+=blocksize) {
-                // Process pixels within a block.  First save the texture warp
-                // (s,t) and derivatives into SIMD vectors.
-                int idx = 0;
-                for (int y = by; y < by+blocksize; ++y) {
-                    for (int x = bx; x < bx+blocksize; ++x) {
-                        if (x < output_xres && y < output_yres) {
-                            mapping (x, y, P[idx], dPdx[idx], dPdy[idx], dPdz[idx]);
-                            runflags[idx] = RunFlagOn;
-                        } else {
-                            runflags[idx] = RunFlagOff;
-                        }
-                        ++idx;
-                    }
-                }
-                // Call the texture system to do the filtering.
-                bool ok = texsys->texture3d (filename, opt, runflags, 0, shadepoints,
-                                             Varying(P), Varying(dPdx),
-                                             Varying(dPdy), Varying(dPdz),
-                                             result);
-                if (! ok) {
-                    std::string e = texsys->geterror ();
-                    if (! e.empty())
-                        std::cerr << "ERROR: " << e << "\n";
-                }
-                for (int i = 0;  i < shadepoints*nchannels;  ++i)
-                    result[i] *= scalefactor;
-
-                // Save filtered pixels back to the image.
-                idx = 0;
-                for (int y = by; y < by+blocksize; ++y) {
-                    for (int x = bx; x < bx+blocksize; ++x) {
-                        if (runflags[idx]) {
-                            image.setpixel (x, y, result + idx*nchannels);
-                        }
-                        ++idx;
-                    }
-                }
-            }
-        }
+        ImageBufAlgo::parallel_image (boost::bind(tex3d_region, boost::ref(image), filename, mapping, _1),
+                                      get_roi(image.spec()), nthreads);
     }
     
     if (! image.save ()) 
@@ -831,6 +756,8 @@ main (int argc, const char *argv[])
 {
     getargs (argc, argv);
 
+    OIIO::attribute ("threads", nthreads);
+
     texsys = TextureSystem::create ();
     std::cerr << "Created texture system\n";
     texsys->attribute ("statistics:level", 2);
@@ -878,6 +805,12 @@ main (int argc, const char *argv[])
     if (testhash) {
         test_hash ();
     }
+
+    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
+    Imath::M33f rot;    rot.rotate (radians(30.0f));
+    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
+    xform = scale * rot * trans;
+    xform.invert();
 
     if (iters > 0 && filenames.size()) {
         ustring filename (filenames[0]);
