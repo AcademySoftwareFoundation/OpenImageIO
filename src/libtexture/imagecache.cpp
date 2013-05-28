@@ -1521,7 +1521,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), bytesread_compare);
             out << "  Top files by bytes read:\n";
             for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
-                if (files[i]->broken())
+                if (files[i]->broken() || !files[i]->validspec())
                     continue;
                 out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
                                         files[i]->bytesread()/1024.0/1024.0,
@@ -1531,7 +1531,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), iotime_compare);
             out << "  Top files by I/O time:\n";
             for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
-                if (files[i]->broken())
+                if (files[i]->broken() || !files[i]->validspec())
                     continue;
                 out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
                                         Strutil::timeintervalformat (files[i]->iotime()).c_str(),
@@ -1542,7 +1542,7 @@ ImageCacheImpl::getstats (int level) const
             out << "  Files with slowest I/O rates:\n";
             int n = 0;
             BOOST_FOREACH (const ImageCacheFileRef &file, files) {
-                if (file->broken())
+                if (file->broken() || !file->validspec())
                     continue;
                 if (file->iotime() < 0.25)
                     continue;
