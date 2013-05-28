@@ -44,6 +44,7 @@
 #include "refcnt.h"
 #include "hash.h"
 #include "imagebuf.h"
+#include "unordered_map_concurrent.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -344,7 +345,8 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 /// Map file names to file references
 ///
-typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
+typedef unordered_map_concurrent<ustring,ImageCacheFileRef,ustringHash,std::equal_to<ustring>, 8> FilenameMap;
+typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
 
 
 
@@ -353,28 +355,36 @@ typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
 ///
 class TileID {
 public:
-    /// Default constructor -- do not define
+    /// Default constructor
     ///
-    TileID ();
+    TileID () : m_file(NULL) { }
 
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
     TileID (ImageCacheFile &file, int subimage, int miplevel,
             int x, int y, int z=0)
         : m_x(x), m_y(y), m_z(z), m_subimage(subimage),
-          m_miplevel(miplevel), m_file(file)
+          m_miplevel(miplevel), m_file(&file)
     { }
 
     /// Destructor is trivial, because we don't hold any resources
     /// of our own.  This is by design.
     ~TileID () { }
 
-    ImageCacheFile &file (void) const { return m_file; }
+    ImageCacheFile &file (void) const { return *m_file; }
+    ImageCacheFile *file_ptr (void) const { return m_file; }
     int subimage (void) const { return m_subimage; }
     int miplevel (void) const { return m_miplevel; }
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
+
+    void x (int v) { m_x = v; }
+    void y (int v) { m_y = v; }
+    void z (int v) { m_z = v; }
+
+    /// Is this an uninitialized tileID?
+    bool empty () const { return m_file == NULL; }
 
     /// Do the two ID's refer to the same tile?  
     ///
@@ -383,14 +393,14 @@ public:
         // probable rejection if they really are unequal.
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
                 a.m_subimage == b.m_subimage && 
-                a.m_miplevel == b.m_miplevel && (&a.m_file == &b.m_file));
+                a.m_miplevel == b.m_miplevel && (a.m_file == b.m_file));
     }
 
     /// Do the two ID's refer to the same tile, given that the
     /// caller *guarantees* that the two tiles point to the same
     /// file, subimage, and miplevel (so it only has to compare xyz)?
     friend bool equal_same_subimage (const TileID &a, const TileID &b) {
-        DASSERT ((&a.m_file == &b.m_file) &&
+        DASSERT ((a.m_file == b.m_file) &&
                  a.m_subimage == b.m_subimage && a.m_miplevel == b.m_miplevel);
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z);
     }
@@ -405,12 +415,12 @@ public:
         // original -- turned out not to fill hash buckets evenly
         return m_x * 53 + m_y * 97 + m_z * 193 + 
                m_subimage * 389 + m_miplevel * 1543 +
-               m_file.filename().hash() * 769;
+               m_file->filename().hash() * 769;
 #else
         // Good compromise!
         return bjhash::bjfinal (m_x+1543, m_y + 6151 + m_z*769,
                                 m_miplevel + (m_subimage<<8))
-                           + m_file.filename().hash();
+                           + m_file->filename().hash();
 #endif
     }
 
@@ -425,7 +435,7 @@ private:
     int m_x, m_y, m_z;        ///< x,y,z tile index within the subimage
     int m_subimage;           ///< subimage
     int m_miplevel;           ///< MIP-map level
-    ImageCacheFile &m_file;   ///< Which ImageCacheFile we refer to
+    ImageCacheFile *m_file;   ///< Which ImageCacheFile we refer to
 };
 
 
@@ -532,7 +542,7 @@ typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
 
 /// Hash table that maps TileID to ImageCacheTileRef -- this is the type of the
 /// main tile cache.
-typedef boost::unordered_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
+typedef unordered_map_concurrent<TileID, ImageCacheTileRef, TileID::Hasher, std::equal_to<TileID>, 32> TileCache;
 
 
 /// A very small amount of per-thread data that saves us from locking
@@ -704,34 +714,14 @@ public:
                                ImageCachePerThreadInfo *thread_info);
 
     /// Is the tile specified by the TileID already in the cache?
-    /// Assume the caller holds tilemutex, unless do_lock is true.
     bool tile_in_cache (const TileID &id,
-                        ImageCachePerThreadInfo *thread_info,
-                        bool do_lock = false) {
-        TileCache::iterator found;
-        if (do_lock) {
-            DASSERT (m_tilemutex_holder != thread_info &&
-                "tile_in_cache called with do_lock=true, but already locked!");
-            ic_read_lock lock (m_tilemutex);
-#ifndef NDEBUG
-            DASSERT (m_tilemutex_holder == NULL);
-//            m_tilemutex_holder = thread_info;
-#endif
-            found = m_tilecache.find (id);
-#ifndef NDEBUG
-//            m_tilemutex_holder = NULL;
-#endif
-        } else {
-            // Caller already holds the lock
-            DASSERT (m_tilemutex_holder == thread_info &&
-                     "tile_in_cache caller should be the tile lock holder");
-            found = m_tilecache.find (id);
-        }
+                        ImageCachePerThreadInfo *thread_info) {
+        TileCache::iterator found = m_tilecache.find (id);
         return (found != m_tilecache.end());
     }
 
-    /// Add the tile to the cache.  This will grab a unique lock to the
-    /// tilemutex, and will also enforce cache memory limits.
+    /// Add the tile to the cache.  This will also enforce cache memory
+    /// limits.
     void add_tile_to_cache (ImageCacheTileRef &tile,
                             ImageCachePerThreadInfo *thread_info);
 
@@ -742,8 +732,6 @@ public:
     /// per-thread microcache to boost our hit rate over the big cache.
     /// Inlined for speed.  The tile is marked as 'used'.
     bool find_tile (const TileID &id, ImageCachePerThreadInfo *thread_info) {
-        DASSERT (m_tilemutex_holder != thread_info &&
-                 "find_tile should not be holding the tile mutex when called");
         ++thread_info->m_stats.find_tile_calls;
         ImageCacheTileRef &tile (thread_info->tile);
         if (tile) {
@@ -852,19 +840,12 @@ public:
     /// depending on it (signalled by m_imagecache == NULL), delete it.
     static void cleanup_perthread_info (ImageCachePerThreadInfo *p);
 
-    /// Debugging aid -- which thread holds the tile mutex?
-    ImageCachePerThreadInfo* &tilemutex_holder() { return m_tilemutex_holder; }
-
-    /// Debugging aid -- which thread holds the file mutex?
-    ImageCachePerThreadInfo* &filemutex_holder() { return m_filemutex_holder; }
-
     /// Ensure that the max_memory_bytes is at least newsize bytes.
     /// Override the previous value if necessary, with thread-safety.
     void set_min_cache_size (long long newsize);
 
-    /// Wrapper around check_max_files that grabs the filemutex while it
-    /// does so.
-    void check_max_files_with_lock (ImageCachePerThreadInfo *thread_info);
+    /// Enforce the max number of open files.
+    void check_max_files (ImageCachePerThreadInfo *thread_info);
 
 private:
     void init ();
@@ -875,30 +856,8 @@ private:
     bool find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
                                ImageCachePerThreadInfo *thread_info);
 
-    /// Enforce the max number of open files.  This should only be invoked
-    /// when the caller holds m_filemutex.
-    void check_max_files (ImageCachePerThreadInfo *thread_info);
-
-    /// Enforce the max memory for tile data.  This should only be invoked
-    /// when the caller holds m_tilemutex.
+    /// Enforce the max memory for tile data.
     void check_max_mem (ImageCachePerThreadInfo *thread_info);
-
-    /// Debugging aid -- set which thread holds the tile mutex
-    void tilemutex_holder (ImageCachePerThreadInfo *p) {
-#ifndef NDEBUG
-        if (p)                                     // if we claim to own it,
-            DASSERT (m_tilemutex_holder == NULL);  // nobody else better!
-        m_tilemutex_holder = p;
-#endif
-    }
-    /// Debugging aid -- set which thread holds the file mutex
-    void filemutex_holder (ImageCachePerThreadInfo *p) {
-#ifndef NDEBUG
-        if (p)                                     // if we claim to own it,
-            DASSERT (m_filemutex_holder == NULL);  // nobody else better!
-        m_filemutex_holder = p;
-#endif
-    }
 
     /// Internal statistics printing routine
     ///
@@ -917,18 +876,11 @@ private:
     /// fingerprint table.
     ImageCacheFile *find_fingerprint (ustring finger, ImageCacheFile *file);
 
+    /// Clear all the per-thread microcaches.
+    void purge_perthread_microcaches ();
+
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints ();
-
-#if IMAGECACHE_USE_RW_MUTEX
-    typedef spin_rw_mutex ic_mutex;
-    typedef spin_rw_write_lock ic_read_lock;
-    typedef spin_rw_write_lock ic_write_lock;
-#else
-    typedef spin_mutex ic_mutex;
-    typedef spin_lock  ic_read_lock;
-    typedef spin_lock  ic_write_lock;
-#endif
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
@@ -953,18 +905,16 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     ustring m_substitute_image;  ///< Substitute this image for all others
 
-    mutable ic_mutex m_filemutex; ///< Thread safety for file cache
-    FilenameMap m_files;         ///< Map file names to ImageCacheFile's
-    FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    ImageCachePerThreadInfo *m_filemutex_holder; // debugging
+    mutable FilenameMap m_files; ///< Map file names to ImageCacheFile's
+    ustring m_file_sweep_name;   ///< Sweeper for "clock" paging algorithm
+    spin_mutex m_file_sweep_mutex; ///< Ensure only one in check_max_files
 
     spin_mutex m_fingerprints_mutex; ///< Protect m_fingerprints
-    FilenameMap m_fingerprints;  ///< Map fingerprints to files
+    FingerprintMap m_fingerprints;  ///< Map fingerprints to files
 
-    mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
     TileCache m_tilecache;       ///< Our in-memory tile cache
-    TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
-    ImageCachePerThreadInfo *m_tilemutex_holder;   // debugging
+    TileID m_tile_sweep_id;      ///< Sweeper for "clock" paging algorithm
+    spin_mutex m_tile_sweep_mutex; ///< Ensure only one in check_max_mem
 
     atomic_ll m_mem_used;        ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
