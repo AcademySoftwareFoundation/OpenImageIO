@@ -535,7 +535,79 @@ ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
     OIIO_DISPATCH_TYPES ("color_count", color_count_, src.spec().format,
                          src, (atomic_ll *)count, ncolors, color, eps,
                          roi, nthreads);
-};
+}
+
+
+
+template<typename T>
+static bool
+color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
+                    atomic_ll *highcount, atomic_ll *inrangecount,
+                    const float *low, const float *high,
+                    ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(color_range_check_<T>, boost::ref(src),
+                        lowcount, highcount, inrangecount, low, high,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    long long lc = 0, hc = 0, inrange = 0;
+    for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
+        bool lowval = false, highval = false;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            float f = p[c];
+            lowval |= (f < low[c]);
+            highval |= (f > high[c]);
+        }
+        if (lowval)
+            ++lc;
+        if (highval)
+            ++hc;
+        if (!lowval && !highval)
+            ++inrange;
+    }
+
+    if (lowcount)
+        *lowcount += lc;
+    if (highcount)
+        *highcount += hc;
+    if (inrangecount)
+        *inrangecount += inrange;
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
+                                 imagesize_t *highcount,
+                                 imagesize_t *inrangecount,
+                                 const float *low, const float *high,
+                                 ROI roi, int nthreads)
+{
+    // If no ROI is defined, use the data window of src.
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+
+    if (lowcount)
+        *lowcount = 0;
+    if (highcount)
+        *highcount = 0;
+    if (inrangecount)
+        *inrangecount = 0;
+    OIIO_DISPATCH_TYPES ("color_range_check", color_range_check_,
+                         src.spec().format,
+                         src, (atomic_ll *)lowcount, 
+                         (atomic_ll *)highcount, (atomic_ll *)inrangecount,
+                         low, high, roi, nthreads);
+}
 
 
 

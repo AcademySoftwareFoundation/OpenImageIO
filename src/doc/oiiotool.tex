@@ -466,6 +466,26 @@ it effectively ensures that alpha will not be considered in the matching
 of pixels to the color value.
 \apiend
 
+\apiitem{--rangecheck \emph{Rlow,Glow,Blow,...}  \emph{Rhi,Bhi,Ghi,...}}
+\NEW
+Given a two colors (each a comma-separated list of values for each
+channel), print a count of the number of pixels in the image that has
+channel values outside the [low,hi] range.  Any channels not
+specified will assume a low of 0.0 and high of 1.0.
+
+\noindent Example:
+
+\begin{code}
+    oiiotool test.exr --rangecheck 0,0,0 1,1,1
+\end{code}
+\noindent might produce the following output:
+\begin{code}
+     0  < 0,0,0
+   221  > 1,1,1
+ 65315  within range
+\end{code}
+\apiend
+
 \apiitem{--no-clobber}
 Sets ``no clobber'' mode, in which existing images on disk will never be 
 overridden, even if the {\cf -o} command specifies that file.

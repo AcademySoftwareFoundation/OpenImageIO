@@ -1341,7 +1341,7 @@ action_colorcount (int argc, const char *argv[])
     int nchannels = Aib.nchannels();
 
     // We assume ';' to split, but for the sake of some command shells,
-    // tha tuse ';' as a command separator, also accept ":".
+    // that use ';' as a command separator, also accept ":".
     std::vector<float> colorvalues;
     std::vector<std::string> colorstrings;
     if (strchr (argv[1], ':'))
@@ -1372,6 +1372,39 @@ action_colorcount (int argc, const char *argv[])
     }
 
     ot.function_times["colorcount"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rangecheck (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rangecheck, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageBuf &Aib ((*ot.curimg)(0,0));
+    int nchannels = Aib.nchannels();
+
+    std::vector<float> low(nchannels,0.0f), high(nchannels,1.0f);
+    Strutil::extract_from_list_string (low, argv[1], ",");
+    Strutil::extract_from_list_string (high, argv[2], ",");
+
+    imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
+    bool ok = ImageBufAlgo::color_range_check ((*ot.curimg)(0,0), &lowcount,
+                                               &highcount, &inrangecount,
+                                               &low[0], &high[0]);
+    if (ok) {
+        std::cout << Strutil::format("%8d  < %s\n", lowcount, argv[1]);
+        std::cout << Strutil::format("%8d  > %s\n", highcount, argv[2]);
+        std::cout << Strutil::format("%8d  within range\n", inrangecount);
+    } else {
+        ot.error ("rangecheck", (*ot.curimg)(0,0).geterror());
+    }
+
+    ot.function_times["rangecheck"] += timer();
     return 0;
 }
 
@@ -2998,6 +3031,8 @@ getargs (int argc, char *argv[])
                 "--hash", &ot.hash, "Print SHA-1 hash of each input image",
                 "--colorcount %@ %s", action_colorcount, NULL,
                     "Count of how many pixels have the given color (argument: color;color;...) (optional args: eps=color)",
+                "--rangecheck %@ %s %s", action_rangecheck, NULL, NULL,
+                    "Count of how many pixels are outside the low and high color arguments (each is a comma-separated color value list)",
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym

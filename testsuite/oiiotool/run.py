@@ -20,6 +20,10 @@ command += (oiio_app("oiiotool")
 command += (oiio_app("oiiotool")
             + " filled.tif --colorcount:eps=.1,.1,.1 0,0,0:1,.5,.5:0,1,0 >> out.txt ;\n")
 
+# test --rangecheck  (using the results of the --fill test)
+command += (oiio_app("oiiotool")
+            + " filled.tif --rangecheck 0,0,0 1,0.9,1 >> out.txt ;\n")
+
 # test resample
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
