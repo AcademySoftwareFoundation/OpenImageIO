@@ -1,5 +1,10 @@
 Changes:
 
+Release 0.10.17 (29 May 2013)
+-----------------------------
+* Fix to not incorrectly print ImageCache stats for certain broken files.
+
+
 Release 0.10.16 (25 Feb 2013)
 -----------------------------
 * Bug fix: make sure texture wrap mode "black" wins over the "fill" value
