@@ -96,6 +96,7 @@ static bool gray_to_rgb = false;
 static bool resetstats = false;
 static bool testhash = false;
 static bool wedge = false;
+static int ntrials = 1;
 static Imath::M33f xform;
 void *dummyptr;
 
@@ -166,6 +167,7 @@ getargs (int argc, const char *argv[])
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
                   "--testhash", &testhash, "Test the tile hashing function",
                   "--threadtimes %d", &threadtimes, "Do thread timings (arg = workload profile)",
+                  "--trials %d", &ntrials, "Number of trials for timings",
                   "--wedge", &wedge, "Wedge test",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
@@ -839,7 +841,7 @@ do_tex_thread_workout (int iterations, int mythread)
             {
             int file = i % 8;
             if (file < 2)        // everybody accesses the first 2 files
-                whichfile = file;
+                whichfile = std::min (file, nfiles-1);
             else                 // and a slowly changing set of 6 others
                 whichfile = (file+11*mythread+i/1000) % nfiles;
             pixel = i / nfiles;
@@ -952,7 +954,6 @@ main (int argc, const char *argv[])
     xform.invert();
 
     if (threadtimes) {
-        const int ntrials = 3;
         const int iterations = 2000000;
         std::cout << "Workload: " << workload_names[threadtimes] << "\n";
         std::cout << "texture cache size = " << cachesize << " MB\n";
