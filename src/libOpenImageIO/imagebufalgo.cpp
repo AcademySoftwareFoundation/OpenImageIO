@@ -831,7 +831,7 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
     if (! roi.defined())
-        roi = get_roi (src.spec());
+        roi = roi_union (get_roi (src.spec()), get_roi_full (src.spec()));
     roi.chend = roi.chbegin+1;   // One channel only
 
     // Construct a spec that describes the result
@@ -900,7 +900,7 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
     }
 
     if (! roi.defined())
-        roi = get_roi (src.spec());
+        roi = roi_union (get_roi (src.spec()), get_roi_full (src.spec()));
     roi.chbegin = 0;
     roi.chend = 2;
 
@@ -1144,7 +1144,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     ImageSpec topspec = src.spec();
     topspec.set_format (TypeDesc::FLOAT);
     ImageBuf *top = new ImageBuf ("top.exr", topspec);
-    paste (*top, 0, 0, 0, 0, src);
+    paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
     pyramid.push_back (boost::shared_ptr<ImageBuf>(top));
 
     // Construct the rest of the pyramid by successive x/2 resizing and

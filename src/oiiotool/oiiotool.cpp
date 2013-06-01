@@ -2430,10 +2430,11 @@ action_fillholes (int argc, const char *argv[])
     // Read and copy the top-of-stack image
     ImageRecRef A (ot.pop());
     ot.read (A);
-    ImageRecRef B (new ImageRec (*A, 0, 0, true, false /*copy_pixels*/));
+    ImageSpec spec = (*A)(0,0).spec();
+    set_roi (spec, roi_union (get_roi(spec), get_roi_full(spec)));
+    ImageRecRef B (new ImageRec("filled", spec, ot.imagecache));
     ot.push (B);
     ImageBuf &Rib ((*B)(0,0));
-
     bool ok = ImageBufAlgo::fillholes_pushpull (Rib, (*A)(0,0));
     if (! ok)
         ot.error (argv[0], Rib.geterror());
