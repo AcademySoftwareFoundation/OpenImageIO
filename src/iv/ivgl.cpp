@@ -875,7 +875,7 @@ IvGL::paint_pixelview ()
     gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
              0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1f);
 
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
+    if (1 /*xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()*/) {
         // Now we print text giving the mouse coordinates and the numerical
         // values of the pixel that the mouse is over.
         QFont font;
