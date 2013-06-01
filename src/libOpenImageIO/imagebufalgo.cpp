@@ -1144,7 +1144,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     ImageSpec topspec = src.spec();
     topspec.set_format (TypeDesc::FLOAT);
     ImageBuf *top = new ImageBuf ("top.exr", topspec);
-    paste (*top, 0, 0, 0, 0, src);
+    paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
     pyramid.push_back (boost::shared_ptr<ImageBuf>(top));
 
     // Construct the rest of the pyramid by successive x/2 resizing and
