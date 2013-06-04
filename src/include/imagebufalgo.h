@@ -816,6 +816,60 @@ bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val,
 bool OIIO_API isMonochrome (const ImageBuf &src,
                             ROI roi = ROI::All(), int nthreads = 0);
 
+/// Count how many pixels in the ROI match a list of colors.
+///
+/// The colors to match are in colors[0..nchans-1],
+/// colors[nchans..2*nchans-1], and so on, a total of ncolors
+/// consecutive colors of nchans each.
+///
+/// eps[0..nchans-1] are the error tolerances for a match, for each
+/// channel.  Setting eps[c] = numeric_limits<float>::max will
+/// effectively make it ignore the channel.  Passing eps == NULL will be
+/// interpreted as a tolerance of 0.001 for all channels (requires exact
+/// matches for 8 bit images, but allows a wee bit of imprecision for
+/// float images.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Upon success, return true and store the number of pixels that
+/// matched each color count[..ncolors-1].  If there is an error,
+/// returns false and sets an appropriate error message set in src.
+bool OIIO_API color_count (const ImageBuf &src,
+                           imagesize_t *count,
+                           int ncolors, const float *color,
+                           const float *eps=NULL,
+                           ROI roi=ROI::All(), int nthreads=0);
+
+/// Count how many pixels in the ROI are outside the value range.
+/// low[0..nchans-1] and high[0..nchans-1] are the low and high
+/// acceptable values for each color channel.  The number of pixels
+/// containing values that fall below the lower bound will be stored in
+/// *lowcount, the number of pixels containing values that fall above
+/// the upper bound will be stored in *highcount, and the number of
+/// pixels for which all channels fell within the bounds will be stored
+/// in *inrangecount.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+///
+/// Return true if the operation can be performed, false if there is
+/// some sort of error (and sets an appropriate error message in src).
+bool OIIO_API color_range_check (const ImageBuf &src,
+                                 imagesize_t *lowcount,
+                                 imagesize_t *highcount,
+                                 imagesize_t *inrangecount,
+                                 const float *low, const float *high,
+                                 ROI roi=ROI::All(), int nthreads=0);
+
 /// Compute the SHA-1 byte hash for all the pixels in the specifed
 /// region of the image.  If blocksize > 0, the function will compute
 /// separate SHA-1 hashes of each 'blocksize' batch of scanlines, then

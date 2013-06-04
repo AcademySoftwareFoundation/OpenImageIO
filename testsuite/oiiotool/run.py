@@ -16,6 +16,14 @@ command += (oiio_app("oiiotool")
             + " --create 256x256 3 --fill:color=1,.5,.5 256x256"
             + " --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif >> out.txt ;\n")
 
+# test --colorcount  (using the results of the --fill test)
+command += (oiio_app("oiiotool")
+            + " filled.tif --colorcount:eps=.1,.1,.1 0,0,0:1,.5,.5:0,1,0 >> out.txt ;\n")
+
+# test --rangecheck  (using the results of the --fill test)
+command += (oiio_app("oiiotool")
+            + " filled.tif --rangecheck 0,0,0 1,0.9,1 >> out.txt ;\n")
+
 # test resample
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"

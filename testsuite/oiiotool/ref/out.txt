@@ -20,6 +20,12 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Constant: Yes
     Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
     Monochrome: No
+       0  0,0,0
+   59136  1,.5,.5
+    6400  0,1,0
+       0  < 0,0,0
+    6400  > 1,0.9,1
+   59136  within range
 Reading chname.exr
 chname.exr           :   38 x   38, 5 channel, float openexr
     SHA-1: 6EB25E53358BF3ECDFECD04F662D335DE647A1A6
