@@ -381,7 +381,7 @@ public:
     /// the image.  (Note that this differs slightly from the member
     /// data channelformats, which is empty if there are not separate
     /// per-channel formats.)
-    void get_channelformats (std::vector<TypeDesc> &formats) {
+    void get_channelformats (std::vector<TypeDesc> &formats) const {
         formats = channelformats;
         if ((int)formats.size() < nchannels)
             formats.resize (nchannels, format);
