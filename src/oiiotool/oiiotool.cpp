@@ -2526,7 +2526,11 @@ deduce_sequence (std::string pattern, int framepadding,
     std::string directory = Filesystem::parent_path (pattern);
     if (directory.size() == 0) {
         directory = ".";
+#ifdef _WIN32
+        pattern = ".\\\\" + pattern;
+#else
         pattern = "./" + pattern;
+#endif
     }
 
     // The pattern is either a range (e.g., "1-15#"), or just a 
