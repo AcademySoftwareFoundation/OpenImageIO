@@ -263,7 +263,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_envlayout(LayoutTexture), m_y_up(false), m_sample_border(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
-      m_imagecache(imagecache), m_duplicate(NULL)
+      m_imagecache(imagecache), m_duplicate(NULL),
+      m_total_imagesize(0)
 {
     m_filename = imagecache.resolve_filename (m_filename.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
@@ -343,6 +344,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
     // Since each subimage can potentially have its own mipmap levels,
     // keep track of the highest level discovered
+    imagesize_t old_total_imagesize = m_total_imagesize;
+    m_total_imagesize = 0;
     int maxmip = 0;
     do {
         m_subimages.resize (nsubimages+1);
@@ -392,7 +395,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     tempspec.tile_depth = tempspec.depth;
                 }
             }
-            thread_info->m_stats.files_totalsize += tempspec.image_bytes();
+//            thread_info->m_stats.files_totalsize += tempspec.image_bytes();
+            m_total_imagesize += tempspec.image_bytes();
             // All MIP levels need the same number of channels
             if (nmip > 0 && tempspec.nchannels != spec(nsubimages,0).nchannels) {
                 // No idea what to do with a subimage that doesn't have the
@@ -473,6 +477,9 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         ++nsubimages;
     } while (m_input->seek_subimage (nsubimages, 0, nativespec));
     ASSERT ((size_t)nsubimages == m_subimages.size());
+
+    thread_info->m_stats.files_totalsize -= old_total_imagesize;
+    thread_info->m_stats.files_totalsize += m_total_imagesize;
 
     const ImageSpec &spec (this->spec(0,0));
     const ImageIOParameter *p;
