@@ -1181,8 +1181,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // conversion is required we will promote the src to floating point
     // (or there wont be enough precision potentially).  Also,
     // independently color convert the constant color metadata
-    std::string incolorspace = configspec.get_string_attribute ("incolorspace");
-    std::string outcolorspace = configspec.get_string_attribute ("outcolorspace");
+    std::string incolorspace = configspec.get_string_attribute ("maketx:incolorspace");
+    std::string outcolorspace = configspec.get_string_attribute ("maketx:outcolorspace");
     if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
         if (verbose)
             outstream << "  Converting from colorspace " << incolorspace 
