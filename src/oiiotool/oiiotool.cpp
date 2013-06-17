@@ -3459,6 +3459,12 @@ handle_sequence (int argc, const char **argv)
 int
 main (int argc, char *argv[])
 {
+// When Visual Studio is used float values in scientific format are printed 
+// with three digit exponent. We change this behavior to fit the Linux way.
+#ifdef _MSC_VER
+    _set_output_format (_TWO_DIGIT_EXPONENT);
+#endif
+
     Timer totaltime;
 
     ot.imagecache = ImageCache::create (false);
