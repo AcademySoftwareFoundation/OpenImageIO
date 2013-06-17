@@ -285,6 +285,13 @@ ImageBufImpl::~ImageBufImpl ()
 
 
 
+ImageBuf::ImageBuf ()
+    : m_impl (new ImageBufImpl (std::string(), NULL))
+{
+}
+
+
+
 ImageBuf::ImageBuf (const std::string &filename,
                     ImageCache *imagecache)
     : m_impl (new ImageBufImpl (filename, imagecache))
