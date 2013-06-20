@@ -196,10 +196,34 @@ ColorConfig::getColorSpaceNameByIndex (int index) const
 
 
 
+int
+ColorConfig::getNumLooks () const
+{
+#ifdef USE_OCIO
+    return getImpl()->config_->getNumLooks();
+#else
+    return 0;
+#endif
+}
+
+
+
+const char *
+ColorConfig::getLookNameByIndex (int index) const
+{
+#ifdef USE_OCIO
+    return getImpl()->config_->getLookNameByIndex (index);
+#else
+    return NULL;
+#endif
+}
+
+
+
 const char *
 ColorConfig::getColorSpaceNameByRole (const char *role) const
 {
-#if USE_OCIO
+#ifdef USE_OCIO
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (role);
         // Catch special case of obvious name synonyms
@@ -261,6 +285,7 @@ private:
     OCIO::ConstProcessorRcPtr m_p;
 };
 #endif
+
 
 
 // ColorProcessor that hard-codes sRGB-to-linear
@@ -400,6 +425,67 @@ ColorConfig::createColorProcessor (const char * inputColorSpace,
         // No OCIO, or the OCIO config doesn't know linear->sRGB
         return new ColorProcessor_Rec709_to_linear;
     }
+
+    return NULL;    // if we get this far, we've failed
+}
+
+
+
+ColorProcessor*
+ColorConfig::createLookTransform (const char * looks,
+                                  const char * inputColorSpace,
+                                  const char * outputColorSpace,
+                                  bool inverse,
+                                  const char *context_key,
+                                  const char *context_val) const
+{
+#ifdef USE_OCIO
+    // Ask OCIO to make a Processor that can handle the requested
+    // transformation.
+    if (getImpl()->config_) {
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        OCIO::LookTransformRcPtr transform = OCIO::LookTransform::Create();
+        transform->setLooks (looks);
+        OCIO::TransformDirection dir;
+        if (inverse) {
+            // The TRANSFORM_DIR_INVERSE applies an inverse for the
+            // end-to-end transform, which would otherwise do dst->inv
+            // look -> src.  This is an unintuitive result for the
+            // artist (who would expect in, out to remain unchanged), so
+            // we account for that here by flipping src/dst
+            transform->setSrc (outputColorSpace);
+            transform->setDst (inputColorSpace);
+            dir = OCIO::TRANSFORM_DIR_INVERSE;
+        } else { // forward
+            transform->setSrc (inputColorSpace);
+            transform->setDst (outputColorSpace);
+            dir = OCIO::TRANSFORM_DIR_FORWARD;
+        }
+        OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        if (context_key && context_key[0] && context_val && context_val[0]) {
+            OCIO::ContextRcPtr ctx = context->createEditableCopy();
+            ctx->setStringVar (context_key, context_val);
+            context = ctx;
+        }
+
+        OCIO::ConstProcessorRcPtr p;
+        try {
+            // Get the processor corresponding to this transform.
+            p = getImpl()->config_->getProcessor (context, transform, dir);
+        }
+        catch(OCIO::Exception &e) {
+            getImpl()->error_ = e.what();
+            return NULL;
+        }
+        catch(...) {
+            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
+            return NULL;
+        }
+    
+        getImpl()->error_ = "";
+        return new ColorProcessor_OCIO(p);
+    }
+#endif
 
     return NULL;    // if we get this far, we've failed
 }
@@ -573,6 +659,7 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     
     return true;
 }
+
 
 
 }

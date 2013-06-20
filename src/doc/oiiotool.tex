@@ -1081,11 +1081,13 @@ flopped, which is the same as a 180 degree rotation.
 \apiend
 
 \apiitem{--transpose}
+\NEW
 Replace the current image with a new image that is trasposed about
 the $xy$ axis (x and coordinates and size are flipped).
 \apiend
 
 \apiitem{--cshift {\rm \emph{offset}}}
+\NEW
 Circularly shift the pixels of the image by the given offset (expressed
 as {\cf +10+100} to move by 10 pixels horizontally and 100 pixels
 vertically, or {\cf +50-30} to move by 50 pixels horizontally and
@@ -1392,17 +1394,65 @@ image, it only changes \oiiotool's understanding of what color
 space those those pixels are in.
 \apiend
 
-\apiitem{--tocolorspace {\rm \emph{tospace}}}
-Replace the current image with a new image whose pixels are transformed
-from their existing color space (as best understood or guessed by OIIO)
-into the named \emph{tospace}.
-\apiend
-
 \apiitem{--colorconvert {\rm \emph{fromspace tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from the named \emph{fromspace} color space into the named
 \emph{tospace} (disregarding any notion it may have previously had 
-about the color space of the current image).
+about the color space of the current image).  
+
+If OIIO has been compiled with OpenColorIO support and the environment
+variable {\cf \$OCIO} is set to point to a valid OpenColorIO
+configuration file, you will have access to all the color spaces that
+are known by that OCIO configuration.  If {\cf \$OCIO} does not point to
+a valid configuration file or OIIO was not compiled with OCIO support,
+then the only color space transformats available are {\cf linear} to
+{\cf Rec709} (and vice versa) and {\cf linear} to {\cf sRGB} (and vice
+versa).
+
+If you ask for \oiiotool help ({\cf oiiotool --help}), at the very
+bottom you will see the list of all color spaces that \oiiotool knows
+about.
+\apiend
+
+\apiitem{--tocolorspace {\rm \emph{tospace}}}
+Replace the current image with a new image whose pixels are transformed
+from their existing color space (as best understood or guessed by OIIO)
+into the named \emph{tospace}.  This is equivalent to a use of
+{\cf oiiotool --colorconvert} where the \emph{fromspace} is
+automatically deduced.
+\apiend
+
+\apiitem{--ociolook {\rm \emph{lookname}}}
+\NEW
+Replace the current image with a new image whose pixels are transformed
+using the named OpenColorIO look description.  Optional appended
+arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf from=}\emph{val} & Assume the image is in the named color
+  space. If no {\cf from=} is supplied, it will try to deduce it
+  from the image's metadata or previous {\cf --iscolorspace}
+  directives. \\
+ & {\cf to=}\emph{val} & Convert to the named space after applying
+  the look. \\
+ & {\cf inverse=}\emph{val} & If \emph{val} is nonzero, inverts the 
+  color transformation and look application. \\
+ & {\cf key=}\emph{name} & \\
+ & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
+  OpenColorIO will used when applying the look. \\
+\end{tabular}
+
+This command is only meaningful if OIIO was compiled with OCIO support
+and the environment variable {\cf \$OCIO} is set to point to a valid
+OpenColorIO configuration file.  If you ask for \oiiotool help 
+({\cf oiiotool --help}), at the very bottom you will see the list of all
+looks that \oiiotool knows about.
+
+\noindent Examples:
+\begin{tinycode}
+  oiiotool in.jpg --ociolook:from=vd8:to=vd8:key=SHOT:value=pe0012 match -o cc.jpg
+\end{tinycode}
+
 \apiend
 
 \apiitem{--unpremult}

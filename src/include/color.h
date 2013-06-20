@@ -94,20 +94,52 @@ public:
     /// or NULL if none could be identified.
     const char * getColorSpaceNameByRole (const char *role) const;
     
+    /// Get the number of Looks defined in this configuration
+    int getNumLooks() const;
+    
+    /// Query the name of the specified Look.
+    const char * getLookNameByIndex(int index) const;
+
     /// Given the specified input and output ColorSpace, construct the
     /// processor.  It is possible that this will return NULL, if the
-    /// inputColorSpace doesnt exist, the outputColorSpace doesn't exist,
-    /// or if the specified transformation is illegal (for example, it may
-    /// require the inversion of a 3D-LUT, etc).   When the user is finished
-    /// with a ColorProcess, deleteColorProcessor should be called.
-    /// ColorProcessor(s) remain valid even if the ColorConfig that created
-    /// them no longer exists.
+    /// inputColorSpace doesnt exist, the outputColorSpace doesn't
+    /// exist, or if the specified transformation is illegal (for
+    /// example, it may require the inversion of a 3D-LUT, etc).  When
+    /// the user is finished with a ColorProcess, deleteColorProcessor
+    /// should be called.  ColorProcessor(s) remain valid even if the
+    /// ColorConfig that created them no longer exists.
     /// 
-    /// Multiple calls to this are potentially expensive.
-    
+    /// Multiple calls to this are potentially expensive, so you should
+    /// call once to create a ColorProcessor to use on an entire image
+    /// (or multiple images), NOT for every scanline or pixel
+    /// separately!
     ColorProcessor* createColorProcessor(const char * inputColorSpace,
                                          const char * outputColorSpace) const;
     
+    /// Given the named look(s), input and output color spaces,
+    /// construct a color processor that applies an OCIO look
+    /// transformation.  If inverse==true, construct the inverse
+    /// transformation.  The context_key and context_value can
+    /// optionally be used to establish an extra token/value pair in the
+    /// OCIO context.
+    ///
+    /// It is possible that this will return NULL, if one of the color
+    /// spaces or the look itself doesnt exist or is not allowed.  When
+    /// the user is finished with a ColorProcess, deleteColorProcessor
+    /// should be called.  ColorProcessor(s) remain valid even if the
+    /// ColorConfig that created them no longer exists.
+    /// 
+    /// Multiple calls to this are potentially expensive, so you should
+    /// call once to create a ColorProcessor to use on an entire image
+    /// (or multiple images), NOT for every scanline or pixel
+    /// separately!
+    ColorProcessor* createLookTransform (const char * looks,
+                                         const char * inputColorSpace,
+                                         const char * outputColorSpace,
+                                         bool inverse=false,
+                                         const char *context_key=NULL,
+                                         const char *context_value=NULL) const;
+
     /// Delete the specified ColorProcessor
     static void deleteColorProcessor(ColorProcessor * processor);
     

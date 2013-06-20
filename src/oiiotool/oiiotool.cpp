@@ -952,8 +952,13 @@ action_colorconvert (int argc, const char *argv[])
 
     ColorProcessor *processor =
         ot.colorconfig.createColorProcessor (fromspace.c_str(), tospace.c_str());
-    if (! processor)
+    if (! processor) {
+        if (ot.colorconfig.error())
+            ot.error ("colorconvert", ot.colorconfig.geterror());
+        else
+            ot.error ("colorconvert", "Could not construct the color transform");
         return 1;
+    }
 
     for (int s = 0, send = A->subimages();  s < send;  ++s) {
         for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
@@ -983,6 +988,68 @@ action_tocolorspace (int argc, const char *argv[])
     }
     const char *args[3] = { argv[0], "current", argv[1] };
     return action_colorconvert (3, args);
+}
+
+
+
+static int
+action_ociolook (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    if (ot.postpone_callback (1, action_ociolook, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::string lookname = argv[1];
+
+    std::map<std::string,std::string> options;
+    options["inverse"] = "0";
+    options["from"] = "current";
+    options["to"] = "current";
+    options["key"] = "";
+    options["value"] = "";
+    extract_options (options, argv[0]);
+    std::string fromspace = options["from"];
+    std::string tospace = options["to"];
+    std::string contextkey = options["key"];
+    std::string contextvalue = options["value"];
+    bool inverse = Strutil::from_string<int> (options["inverse"]);
+
+    ImageRecRef A = ot.curimg;
+    ot.read (A);
+    ot.pop ();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           0, true, true|false));
+
+    if (fromspace == "current" || fromspace == "")
+        fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
+    if (tospace == "current" || tospace == "")
+        tospace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
+
+    ColorProcessor *processor = ot.colorconfig.createLookTransform (
+            lookname.c_str(), fromspace.c_str(), tospace.c_str(),
+            inverse, contextkey.c_str(), contextvalue.c_str());
+    if (! processor) {
+        if (ot.colorconfig.error())
+            ot.error ("ociolook", ot.colorconfig.geterror());
+        else
+            ot.error ("ociolook", "Could not construct the look transform");
+        return 1;
+    }
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            if (! ok)
+                ot.error (argv[0], (*ot.curimg)(s,m).geterror());
+            ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
+        }
+    }
+
+    ot.colorconfig.deleteColorProcessor (processor);
+
+    ot.function_times["ociolook"] += timer();
+    return 1;
 }
 
 
@@ -3157,6 +3224,8 @@ getargs (int argc, char *argv[])
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                "--ociolook %@ %s", action_ociolook, NULL,
+                    "Apply the named OCIO look (optional args: fromspace=, tospace=, inverse=, key=, value=)",
                 "--unpremult %@", action_unpremult, NULL,
                     "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
                 "--premult %@", action_premult, NULL,
@@ -3186,6 +3255,19 @@ getargs (int argc, char *argv[])
         }
         int columns = Sysutil::terminal_columns() - 2;
         std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+
+        int nlooks = ot.colorconfig.getNumLooks();
+        if (nlooks) {
+            std::stringstream s;
+            s << "Known looks: ";
+            for (int i = 0;  i < nlooks;  ++i) {
+                const char *n = ot.colorconfig.getLookNameByIndex(i);
+                s << "\"" << n << "\"";
+                if (i < nlooks-1)
+                    s << ", ";
+            }
+            std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+        }
 
         exit (EXIT_FAILURE);
     }
