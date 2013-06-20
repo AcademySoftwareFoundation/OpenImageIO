@@ -1654,7 +1654,7 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                                        m_current_miplevel, x, y, z);
     }
 
-    size_t offset = ((z - tilezbegin) * th + (y - tileybegin)) * tw
+    size_t offset = ((z - tilezbegin) * (size_t) th + (y - tileybegin)) * (size_t) tw
                     + (x - tilexbegin);
     offset *= m_spec.pixel_bytes();
     DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
