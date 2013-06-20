@@ -1,6 +1,13 @@
 Changes:
 
 
+Release 1.1.11 (20 Jun 2013)
+----------------------------
+* Fix oiiotool '#' wildcard, was broken on Windows.
+* Fix an overflow problem that plagued 'maketx' when running on input
+  larger than 32k x 32k (among other possible failures).
+
+
 Release 1.1.11 (29 May 2013)
 ----------------------------
 * IFF input: bug in endian swap of 16 bit IFF files.
