@@ -1,5 +1,15 @@
 Changes:
 
+Release 1.0.12 (20 Jun 2013)
+----------------------------
+* Fix typo bug in ustring::find_last_not_of().
+* CMake variable OVERRIDE_SHARED_LIBRARY_SUFFIX allows you to override
+  the shared library suffix.
+* Fix to not incorrectly print ImageCache stats for certain broken files.
+* Fix an overflow problem that plagued 'maketx' when running on input
+  larger than 32k x 32k (among other possible failures).
+ 
+
 Release 1.0.11 (8 Nov 2012)
 ---------------------------
 * maketx bug fix: --monochrome-detect would do the wrong thing for
