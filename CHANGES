@@ -1,5 +1,11 @@
 Changes:
 
+Release 0.10.18 (20 Jun 2013)
+-----------------------------
+* Fix an overflow problem that plagued 'maketx' when running on input
+  larger than 32k x 32k (among other possible failures).
+
+
 Release 0.10.17 (29 May 2013)
 -----------------------------
 * Fix to not incorrectly print ImageCache stats for certain broken files.
