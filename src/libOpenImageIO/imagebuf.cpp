@@ -1286,8 +1286,8 @@ ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
         tile = m_imagecache->get_tile (m_name, subimage(), miplevel(), x, y, z);
     }
 
-    size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
-    offset += ((z - tilezbegin) * tw * th);
+    size_t offset = ((y - tileybegin) * (size_t)tw) + size_t(x - tilexbegin);
+    offset += ((z - tilezbegin) * size_t(tw) * size_t(th));
     offset *= spec().pixel_bytes();
     TypeDesc format;
     return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
