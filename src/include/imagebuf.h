@@ -164,11 +164,15 @@ class ImageBufImpl;   // Opaque pointer
 /// (translating to/from float automatically).
 class OIIO_API ImageBuf {
 public:
-    /// Construct an ImageBuf to read the named image.  
-    /// If name is the empty string (the default), it's a completely
-    /// uninitialized ImageBuf.
-    ImageBuf (const std::string &name = std::string(),
-              ImageCache *imagecache = NULL);
+    /// Construct an empty/uninitialized ImageBuf.  This is relatively
+    /// useless until you call reset().
+    ImageBuf ();
+
+    /// Construct an ImageBuf to read the named image -- but don't
+    /// actually read it yet!  If a non-NULL imagecache is supplied, it
+    /// will specifiy a custom ImageCache to use; if otherwise, the
+    /// global/shared ImageCache will be used.
+    ImageBuf (const std::string &name, ImageCache *imagecache = NULL);
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
@@ -207,6 +211,9 @@ public:
     /// data type as it used to be.
     void alloc (const ImageSpec &spec);
 
+    /// Is this ImageBuf object initialized?
+    bool initialized () const;
+
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
     /// force==true.  This uses ImageInput underneath, so will read any
@@ -224,11 +231,10 @@ public:
     bool init_spec (const std::string &filename,
                     int subimage, int miplevel);
 
-    /// Save the image or a subset thereof, with override for filename
-    /// ("" means use the original filename) and file format ("" indicates
-    /// to infer it from the filename).  This uses ImageOutput
-    /// underneath, so will write any file format for which an
-    /// appropriate imageio plugin can be found.
+    /// Save the image to the named file ("" means use the original
+    /// filename given when the ImageBuf was created or reset) and file
+    /// format ("" means to infer the type from the filename extension).
+    /// Return true if all went ok, false if there were errors writing.
     bool save (const std::string &filename = std::string(),
                const std::string &fileformat = std::string(),
                ProgressCallback progress_callback=NULL,
@@ -269,6 +275,9 @@ public:
     /// converted automatically to the data type of the app buffer.
     bool copy (const ImageBuf &src);
 
+    /// Swap with another ImageBuf
+    void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
+
     /// Error reporting for ImageBuf: call this with printf-like
     /// arguments.  Note however that this is fully typesafe!
     /// void error (const char *format, ...)
@@ -279,9 +288,9 @@ public:
     /// to retrieve via geterror().
     bool has_error (void) const;
 
-    /// Return info on the last error that occurred since geterror() was
-    /// called (or an empty string if no errors are pending).  This also
-    /// clears the error message for next time.
+    /// Return the text of all error messages issued since geterror()
+    /// was called (or an empty string if no errors are pending).  This
+    /// also clears the error message for next time.
     std::string geterror (void) const;
 
     /// Return a read-only (const) reference to the image spec that
@@ -358,31 +367,31 @@ public:
     void interppixel (float x, float y, float *pixel,
                       WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at image data NDC coordinates (x,y), where (0,0) is
-    /// the upper left corner of the pixel data window, (1,1) the lower
-    /// right corner of the pixel data.
+    /// Linearly interpolate at image data NDC coordinates (s,t), where
+    /// (0,0) is the upper left corner of the pixel data window, (1,1)
+    /// the lower right corner of the pixel data.
     /// FIXME -- lg thinks that this is stupid, and the only useful NDC
     /// space is the one used by interppixel_NDC_full.  We should deprecate
     /// this in the future.
-    void interppixel_NDC (float x, float y, float *pixel,
+    void interppixel_NDC (float s, float t, float *pixel,
                           WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at NDC (image) coordinates (x,y), where (0,0) is
+    /// Linearly interpolate at space coordinates (s,t), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
-    void interppixel_NDC_full (float x, float y, float *pixel,
+    void interppixel_NDC_full (float s, float t, float *pixel,
                                WrapMode wrap=WrapBlack) const;
 
-    /// Set the pixel value by x and y coordintes (on [0,res-1]),
-    /// from floating-point values in pixel[].  Set at most
-    /// maxchannels (will be clamped to the actual number of channels).
+    /// Set the pixel with coordinates (x,y,0) to have the values in
+    /// pixel[0..n-1].  The number of channels copied, n, is the minimum
+    /// of maxchannels and the actual number of channels in the image.
     void setpixel (int x, int y, const float *pixel, int maxchannels=1000) {
         setpixel (x, y, 0, pixel, maxchannels);
     }
 
-    /// Set the pixel value by x, y, z coordintes (on [0,res-1]),
-    /// from floating-point values in pixel[].  Set at most
-    /// maxchannels (will be clamped to the actual number of channels).
+    /// Set the pixel with coordinates (x,y,z) to have the values in
+    /// pixel[0..n-1].  The number of channels copied, n, is the minimum
+    /// of maxchannels and the actual number of channels in the image.
     void setpixel (int x, int y, int z,
                    const float *pixel, int maxchannels=1000);
 
@@ -392,15 +401,16 @@ public:
     void setpixel (int i, const float *pixel, int maxchannels=1000);
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend), channels [chbegin,chend) (all with exclusive
-    /// 'end'), specified as integer pixel coordinates, at the current
-    /// MIP-map level, storing the pixel values beginning at the address
-    /// specified by result and with the given strides (by default,
-    /// AutoStride means the usual contiguous packing of pixels).  It is
-    /// up to the caller to ensure that result points to an area of
-    /// memory big enough to accommodate the requested rectangle.
-    /// Return true if the operation could be completed, otherwise
-    /// return false.
+    /// [ybegin..yend) X [zbegin..zend), channels [chbegin,chend) (all
+    /// with exclusive 'end'), specified as integer pixel coordinates,
+    /// at the current subimage and MIP-map level, storing the pixel
+    /// values beginning at the address specified by result and with the
+    /// given strides (by default, AutoStride means the usual contiguous
+    /// packing of pixels) and converting into the data type described
+    /// by 'format'.  It is up to the caller to ensure that result
+    /// points to an area of memory big enough to accommodate the
+    /// requested rectangle.  Return true if the operation could be
+    /// completed, otherwise return false.
     bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
                              TypeDesc format, void *result,
@@ -409,17 +419,19 @@ public:
                              stride_t zstride=AutoStride) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) (with exclusive 'end'), specified as integer
-    /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result and
-    /// with the given strides (by default, AutoStride means the usual
-    /// contiguous packing of pixels).  It is up to the caller to ensure
-    /// that result points to an area of memory big enough to
-    /// accommodate the requested rectangle.  Return true if the
-    /// operation could be completed, otherwise return false.
+    /// [ybegin..yend) X [zbegin..zend) (with exclusive 'end'),
+    /// specified as integer pixel coordinates, at the current MIP-map
+    /// level, storing the pixel values beginning at the address
+    /// specified by result and with the given strides (by default,
+    /// AutoStride means the usual contiguous packing of pixels) and
+    /// converting into the data type described by 'format'.  It is up
+    /// to the caller to ensure that result points to an area of memory
+    /// big enough to accommodate the requested rectangle.  Return true
+    /// if the operation could be completed, otherwise return false.
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format,
-                     void *result, stride_t xstride=AutoStride,
+                     int zbegin, int zend,
+                     TypeDesc format, void *result,
+                     stride_t xstride=AutoStride,
                      stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride) const;
 
@@ -466,22 +478,6 @@ public:
         return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
                            &result[0]);
     }
-
-    /// Retrieve the number of deep data samples corresponding to pixel
-    /// (x,y,z).  Return 0 not a deep image or if the pixel is out of
-    /// range or has no deep samples.
-    int deep_samples (int x, int y, int z=0) const;
-
-    /// Return a pointer to the raw array of deep data samples for
-    /// channel c of pixel (x,y,z).  Return NULL if not a deep image or
-    /// if the pixel is out of range or has no deep samples.
-    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
-
-    /// Return the value (as a float) of sample s of channel c of pixel
-    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
-    /// coordinates or channel number are out of range or if it has no
-    /// deep samples.
-    float deep_value (int x, int y, int z, int c, int s) const;
 
     int orientation () const;
 
@@ -540,9 +536,9 @@ public:
 
     TypeDesc pixeltype () const;
 
-    /// A pointer to "local" pixels, if they are fully in RAM and not
-    /// backed by an ImageCache, or NULL otherwise.  (You can also test
-    /// it like a bool to find out if pixels are local.)
+    /// A raw pointer to "local" pixel memory, if they are fully in RAM
+    /// and not backed by an ImageCache, or NULL otherwise.  You can
+    /// also test it like a bool to find out if pixels are local.
     void *localpixels ();
     const void *localpixels () const;
 
@@ -552,15 +548,10 @@ public:
 
     ImageCache *imagecache () const;
 
-    /// Return the address where pixel (x,y) is stored in the image buffer.
-    /// Use with extreme caution!  Will return NULL if the pixel values
-    /// aren't local.
-    const void *pixeladdr (int x, int y) const { return pixeladdr (x, y, 0); }
-
     /// Return the address where pixel (x,y,z) is stored in the image buffer.
     /// Use with extreme caution!  Will return NULL if the pixel values
     /// aren't local.
-    const void *pixeladdr (int x, int y, int z) const;
+    const void *pixeladdr (int x, int y, int z=0) const;
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
     /// Use with extreme caution!  Will return NULL if the pixel values
@@ -575,15 +566,26 @@ public:
     /// Does this ImageBuf store deep data?
     bool deep () const;
 
+    /// Retrieve the number of deep data samples corresponding to pixel
+    /// (x,y,z).  Return 0 if not a deep image or if the pixel is out of
+    /// range or has no deep samples.
+    int deep_samples (int x, int y, int z=0) const;
+
+    /// Return a pointer to the raw array of deep data samples for
+    /// channel c of pixel (x,y,z).  Return NULL if the pixel
+    /// coordinates or channel number are out of range, if the
+    /// pixel/channel has no deep samples, or if the image is not deep.
+    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
+
+    /// Return the value (as a float) of sample s of channel c of pixel
+    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
+    /// coordinates or channel number are out of range or if it has no
+    /// deep samples.
+    float deep_value (int x, int y, int z, int c, int s) const;
+
     /// Retrieve the "deep" data.
     DeepData *deepdata ();
     const DeepData *deepdata () const;
-
-    /// Is this ImageBuf object initialized?
-    bool initialized () const;
-
-    /// Swap with another ImageBuf
-    void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
 
     friend class IteratorBase;
 
@@ -905,11 +907,11 @@ public:
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
-        Iterator (ImageBuf &ib, int x_, int y_, int z_=0,
+        Iterator (ImageBuf &ib, int x, int y, int z=0,
                   WrapMode wrap=WrapDefault)
             : IteratorBase(ib,wrap)
         {
-            pos (x_, y_, z_);
+            pos (x, y, z);
         }
         /// Construct read-write iteration region from ImageBuf and ROI.
         Iterator (ImageBuf &ib, const ROI &roi, WrapMode wrap=WrapDefault)

@@ -1,0 +1,842 @@
+\chapter{Image Buffers}
+\label{chap:imagebuf}
+\index{Image Buffers|(}
+\index{ImageBuf|(}
+
+\section{ImageBuf Introduction and Theory of Operation}
+\label{sec:imagebuf:intro}
+
+\ImageBuf is a utility class that stores an entire image.  It provides a
+nice API for reading, writing, and manipulating images as a single unit,
+without needing to worry about any of the details of storage or I/O.
+
+\smallskip
+
+\noindent An \ImageBuf can store its pixels in one of several ways:
+
+\begin{itemize}
+\item Allocate ``local storage'' to hold the image pixels
+internal to the \ImageBuf.  This storage will be freed when the
+\ImageBuf is destroyed.
+\item ``Wrap'' pixel memory already allocated by the calling application,
+which will continue to own that memory and be responsible for freeing
+it after the \ImageBuf is destroyed.
+\item Be ``backed'' by an \ImageCache, which will automatically be used
+to retreive pixels when requested, but the \ImageBuf will not allocate
+separate storage for it.  This brings all the advantages of the
+\ImageCache, but can only be used for read-only \ImageBuf's that
+reference a stored image file.
+\end{itemize}
+
+All I/O involving \ImageBuf (that is, calls to {\cf read}, {\cf write},
+and {\cf save}) are implemented in terms of \ImageCache, \ImageInput,
+and \ImageOutput underneath, and so support all of the image file
+formats supported by OIIO.
+
+\smallskip
+
+\noindent The \ImageBuf class definition requires that you
+\begin{code}
+  #include <OpenImageIO/imagebuf.h>
+\end{code}
+
+\subsection{Helper: \ROI}
+\indexapi{ROI}
+\index{region of interest}
+
+\ROI is a small helper struct that describes a rectangular region of
+pixels of an image (and a channel range).  An \ROI holds the following
+data members:
+
+\apiitem{int xbegin, xend, ybegin, yend, zbegin, zend; \\
+int chbegin, chend;}
+Describes the $x, y, z$ range of the region.  The {\cf end} values are
+\emph{exclusive}; that is, ({\cf xbegin, ybegin, zbegin}) is the first
+pixel included in the range, ({\cf xend-1, yend-1, zend-1}) is the last
+pixel included in the range, and ({\cf xend, yend, zend}) is \emph{one
+past the last pixel} in each dimension.
+
+Similarly, {\cf chbegin} and {\cf chend} describe a range of channels:
+{\cf chbegin} is the first channel, {\cf chend} is \emph{one past the last
+channel}.
+\apiend
+
+\smallskip
+
+\noindent \ROI has the following member functions and friends:
+
+\smallskip
+
+\apiitem{ROI ()}
+A default-constructed \ROI has an \emph{undefined} region, which
+is interpreted to mean all valid pixels and all valid channels of
+an image.
+\apiend
+
+\apiitem{bool ROI::defined () const}
+Returns {\cf true} if the \ROI is defined, having a specified region,
+or {\cf false} if the \ROI is undefined.
+\apiend
+
+\apiitem{static ROI ROI::All ()}
+Returns an undefined \ROI, which is interpreted to mean all valid pixels
+and all valid channels of an image.
+\apiend
+
+\apiitem{int ROI::width () const \\
+int ROI::height () const \\
+int ROI::depth () const}
+Returns the width, height, and depth, respectively, of a defined region.
+These do not return sensible values for an \ROI that is not {\cf defined()}.
+\apiend
+
+\apiitem{imagesize_t ROI::npixels () const}
+For an \ROI that is {\cf defined()}, returns the total number of pixels
+included in the region, or {\cf 0} for an undefined \ROI.
+\apiend
+
+\apiitem{imagesize_t ROI::nchannels () const}
+For an \ROI that is {\cf defined()}, returns the number of channels
+in the channel range.
+\apiend
+
+\apiitem{ROI roi_union (const ROI \&A, const ROI \&B) \\
+ROI roi_intersection (const ROI \&A, const ROI \&B)}
+Returns the union of two \ROI's (an \ROI that is exactly big enough
+to include all the pixels of both individual \ROI's) or intersection
+of two \ROI's (an \ROI that contains only the pixels that are contained
+in \emph{both} \ROI's).
+\apiend
+
+\apiitem{ROI get_roi (const ImageSpec \&spec) \\
+ROI get_roi_full (const ImageSpec \&spec)}
+Return the ROI describing {\cf spec}'s pixel data window (the {\cf x, y, z,
+width, height, depth} fields)
+or the full (display) window (the {\cf full_x, full_y, full_z,
+full_width, full_height, full_depth} fields), respectively.
+\apiend
+
+\apiitem{void set_roi (const ImageSpec \&spec, const ROI \&newroi) \\
+void set_roi_full (const ImageSpec \&spec, const ROI \&newroi)}
+Alters the {\cf spec} so to make its pixel data window 
+or the full (display) window match {\cf newroi}.
+\apiend
+
+
+
+\section{Constructing, reading, and writing an \ImageBuf}
+
+\subsection*{Default constructor of an empty \ImageBuf}
+
+\apiitem{ImageBuf ()}
+The default constructor makes an uninitialized \ImageBuf.  There isn't
+much you can do with an uninitialized buffer until you call {\cf reset()}.
+\apiend
+
+\apiitem{void clear ()}
+Resets the \ImageBuf to a pristine state identical to that of a freshly
+constructed \ImageBuf using the default constructor.
+\apiend
+
+
+\subsection*{Constructing and initializing a writeable \ImageBuf}
+
+\apiitem{ImageBuf (const std::string \&name, const ImageSpec \&spec)}
+Constructs a writeable \ImageBuf with the given specification (including
+resolution, data type, metadata, etc.), initially set to all black pixels.
+\apiend
+
+\apiitem{void reset (const std::string \&name, const ImageSpec \&spec)}
+Destroys any previous contents of the \ImageBuf and re-initializes it
+as a writeable all-black \ImageBuf with the given specification (including
+resolution, data type, metadata, etc.).
+\apiend
+
+\subsection*{Constructing a readable \ImageBuf and reading from a file}
+
+Constructing a readable \ImageBuf that will hold an image to be read
+from disk.
+
+\apiitem{ImageBuf (const std::string \&name, ImageCache *imagecache=NULL)}
+Construct an \ImageBuf that will be used to read the named file.  But
+don't read it yet!  If {\cf imagecache} is non-NULL, the custom
+\ImageCache will be used (if applicable); otherwise, a NULL imagecache
+indicates that the global/shared \ImageCache should be used.
+\apiend
+
+\apiitem{void reset (const std::string \&name, ImageCache *imagecache = NULL)}
+Destroys any previous contents of the \ImageBuf and re-initializes it
+to read the named file (but doesn't actually read yet).
+\apiend
+
+\apiitem{bool read (int subimage=0, int miplevel=0, bool force=false, \\
+   \bigspc            TypeDesc convert=TypeDesc::UNKNOWN, \\
+   \bigspc            ProgressCallback progress_callback=NULL, \\
+   \bigspc            void *progress_callback_data=NULL)}
+
+Reads the particular subimage and MIP level of the image.  Generally,
+this will skip the expensive read if the file has already been read into
+the \ImageBuf (at the specified subimage and MIP level).  It will clear
+and re-allocate memory if the previously allocated space was not
+appropriate for the size or data type of the image being read.
+If {\cf convert} is set to a specific type (not {\cf UNKNOWN}), the
+\ImageBuf memory will be allocated for that type specifically and
+converted upon read.
+
+In general, {\cf read()} will try not to do any I/O at the time of the
+{\cf read()} call, but rather to have the \ImageBuf ``backed'' by an
+\ImageCache, which will do the file I/O on demand, as pixel values are
+needed, and in that case the \ImageBuf doesn't actually allocate memory
+for the pixels (the data lives in the \ImageCache).  However, there are
+several conditions for which the \ImageCache will be bypassed, the
+\ImageBuf will allocate ``local'' memory, and the disk file will be read
+directly into allocated buffer at the time of the {\cf read()} call:
+(a) if the {\cf force} parameter is {\cf true}; (b) if the {\cf convert}
+parameter requests a data format conversion to a type that is not the
+native file type and also is not one of the internal types supported by
+the {\cf ImageCache} (specifically, {\cf FLOAT} and {\cf UINT8});
+(c) if the \ImageBuf already has local pixel memory allocated, or
+``wraps'' an application buffer.
+
+If {\cf progress_callback} is non-NULL, the underlying read, if
+expensive, may make several calls to
+\begin{code}
+  progress_callback(progress_callback_data, portion_done);
+\end{code}
+\noindent which allows you to implement some sort or progress meter.
+Note that if the \ImageBuf is backed by an \ImageCache, the
+progress callback will never be called, since no actual file I/O
+will occur at this time (\ImageCache will load tiles or scanlines
+on demand, as individual pixel values are needed).
+
+\apiend
+
+\apiitem{bool init_spec (const std::string \&filename,
+                    int subimage, int miplevel)}
+This call will read the \ImageSpec for the given file, subimage, and
+MIP level into the \ImageBuf, but will not read the pixels or allocate
+any local storage (until a subsequent call to {\cf read()}).  This is
+helpful if you have an \ImageBuf and you need to know information about
+the image, but don't want to do a full read yet, and maybe won't need
+to do the full read, depending on what's found in the spec.
+\apiend
+
+
+\subsection*{Constructing an \ImageBuf that ``wraps'' an application buffer}
+
+\apiitem{ImageBuf (const std::string \&name, const ImageSpec \&spec,
+  void *buffer)}
+Constructs an ImageBuf that "wraps" a memory buffer owned by the calling
+application.  It can write pixels to this buffer, but can't change its
+resolution or data type.
+\apiend
+
+
+\subsection*{Saving an \ImageBuf to a file}
+
+\apiitem{bool save (const std::string \&filename = std::string(), \\
+  \bigspc               const std::string \&fileformat = std::string(), \\
+  \bigspc               ProgressCallback progress_callback=NULL, \\
+  \bigspc               void *progress_callback_data=NULL) const}
+Save the image to the named file (an empty filename means use the original
+filename given when the ImageBuf was created or reset) and file
+format (an empty format means to infer the type from the filename
+extension).  Return {\cf true} if all went ok, {\cf false} if there were
+errors writing.
+\apiend
+
+\apiitem{bool write (ImageOutput *out, \\
+  \bigspc                ProgressCallback progress_callback=NULL, \\
+  \bigspc                void *progress_callback_data=NULL) const}
+Write the image to the open \ImageOutput {\cf out}.  Return {\cf true}
+if all went ok, {\cf false} if there were errors writing.  It does NOT
+close the file when it's done (and so may be called in a loop to write a
+multi-image file).
+\apiend
+
+
+\section{Getting and setting basic information about an \ImageBuf}
+
+\apiitem{bool initialized () const}
+Returns {\cf true} if the \ImageBuf is initialized, {\cf false} if not
+yet initialized.
+\apiend
+
+\apiitem{const ImageSpec \& spec () const \\
+const ImageSpec \& nativespec () const}
+
+The {\cf spec()} function returns a {\cf const} reference to an
+\ImageSpec that describes the image data held by the \ImageBuf.  
+
+The {\cf nativespec()} function returns a {\cf const} reference
+to an \ImageSpec that describes the actual data in the file that
+was read.
+
+These may differ --- for example, if a data format conversion was
+requested, if the buffer is backed by an \ImageCache which stores the
+pixels internally in a different data format than that of the file, or
+if the file had differing per-channel data formats (\ImageBuf must
+contain a single data format for all channels).
+\apiend
+
+
+\apiitem{const std::string \& name (void) const}
+Returns the name of the buffer (name of the file, for an
+\ImageBuf read from disk).
+\apiend
+
+\apiitem{const std::string \& file_format_name (void) const}
+Returns the name of the file format, for an \ImageBuf read from disk
+(for example, \qkw{openexr}).
+\apiend
+
+\apiitem{int subimage () const \\
+int nsubimages () const \\
+int miplevel () const \\
+int nmiplevels () const}
+The {\cf subimage()} and {\cf miplevel()} methods return the subimage and MIP
+level of the image held by the \ImageBuf (the file it came from may hold
+multiple subimages and/or MIP levels, but the \ImageBuf can only store
+one of those at any given time).
+
+The {\cf nsubimages()} method returns the total number of subimages in
+the file, and the {\cf nmiplevels()} method returns the total number
+of MIP levels in the currently-loaded subimage.
+\apiend
+
+\apiitem{int nchannels () const}
+Returns the number of channels stored in the buffer (this is equivalent
+to {\cf spec().nchannels}).
+\apiend
+
+\apiitem{int xbegin () const \\
+    int xend () const \\
+    int ybegin () const \\
+    int yend () const \\
+    int zbegin () const \\
+    int zend () const}
+Returns the {\cf [begin,end)} range of the pixel data window of the
+buffer.  These are equivalent to {\cf spec().x}, {\cf spec().x+spec().width},
+{\cf spec().y}, {\cf spec().y+spec().height},
+{\cf spec().z}, and {\cf spec().z+spec().depth}, respectively.
+\apiend
+
+\apiitem{int orientation () const \\
+    int oriented_width () const \\
+    int oriented_height () const \\
+    int oriented_x () const \\
+    int oriented_y () const \\
+    int oriented_full_width () const \\
+    int oriented_full_height () const \\
+    int oriented_full_x () const \\
+    int oriented_full_y () const
+}
+
+The {\cf orientation()} returns the interpretation of the layout
+(top/bottom, left/right) of the image, per the table in
+Section~\ref{metadata:orientation}.
+
+The oriented width, height, x, and y describe the pixel data window
+after taking the display orientation into consideration.  The
+\emph{full} versions the ``full'' (a.k.a.\ display) window after taking
+the display orientation into consideration.
+\apiend
+
+\apiitem{TypeDesc pixeltype () const}
+The data type of the pixels stored in the buffer (equivalent to
+{\cf spec().format}).
+\apiend
+
+\apiitem{void set_full (int xbegin, int xend, int ybegin, int yend, \\
+  \bigspc\spc       int zbegin, int zend, const float *bordercolor=NULL)}
+Alters the metadata of the spec in the \ImageBuf to reset the ``full''
+image size (a.k.a.\ ``display window'').  This does not affect the size
+of the pixel data window.
+\apiend
+
+\apiitem{ImageSpec \& specmod ()}
+This returns a \emph{writeable} reference to the \ImageSpec describing
+the buffer.  It's ok to modify most of the metadata, but if you modify
+the spec's {\cf format}, {\cf width}, {\cf height}, or {\cf depth}
+fields, you get the pain you deserve, as the \ImageBuf will no longer
+have correct knowledge of its pixel memory layout.  USE WITH EXTREME
+CAUTION.
+\apiend
+
+
+
+\section{Copying \ImageBuf's and blocks of pixels}
+
+\apiitem{bool copy (const ImageBuf \&src)}
+Copies {\cf src} to {\cf this} -- both pixel values and all metadata.
+\apiend
+
+\apiitem{void copy_metadata (const ImageBuf \&src)}
+Copies all metadata (except for {\cf format}, {\cf width}, {\cf height},
+{\cf depth} from {\cf src} to {\cf this}.
+\apiend
+
+\apiitem{bool copy_pixels (const ImageBuf \&src)}
+Copies the pixels of {\cf src} to {\cf this}, but does not change the
+metadata (other than format and resolution) of {\cf this}.
+\apiend
+
+\apiitem{void swap (ImageBuf \&other)}
+Swaps the entire contents of {\cf other} and {\cf this}.
+\apiend
+
+\apiitem{bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend, \\
+  \bigspc\bigspc            int zbegin, int zend, int chbegin, int chend,\\
+  \bigspc\bigspc            TypeDesc format, void *result,\\
+  \bigspc\bigspc            stride_t xstride=AutoStride,\\
+  \bigspc\bigspc            stride_t ystride=AutoStride,\\
+  \bigspc\bigspc            stride_t zstride=AutoStride) const}
+
+Retrieve the rectangle of pixels spanning {\cf [xbegin..xend)} $\times$
+{\cf [ybegin..yend)} $\times$ {\cf [zbegin..zend)}, channels 
+{\cf [chbegin,chend)} (all with exclusive
+end), specified as integer pixel coordinates, at the current subimage and
+MIP-map level, storing the pixel values beginning at the address
+specified by {\cf result} and with the given strides (by default,
+{\cf AutoStride} means the usual contiguous packing of pixels) and
+converting into the data type described by {\cf format}.  It is
+up to the caller to ensure that {\cf result} points to an area of
+memory big enough to accommodate the requested rectangle.
+Return {\cf true} if the operation could be completed, otherwise
+return {\cf false}.
+\apiend
+
+
+\apiitem{bool get_pixels (int xbegin, int xend, int ybegin, int yend, \\
+  \bigspc\bigspc                   int zbegin, int zend, TypeDesc format, \\
+  \bigspc\bigspc                   void *result, stride_t xstride=AutoStride,\\
+  \bigspc\bigspc                   stride_t ystride=AutoStride, \\
+  \bigspc\bigspc                   stride_t zstride=AutoStride) const}
+Retrieve the rectangle of pixels spanning {\cf [xbegin..xend)} $\times$
+{\cf [ybegin..yend)} $\times$ {\cf [zbegin..zend)} (all with exclusive
+end), specified as integer pixel coordinates, at the current subimage and
+MIP-map level, storing the pixel values beginning at the address
+specified by {\cf result} and with the given strides (by default,
+{\cf AutoStride} means the usual contiguous packing of pixels) and
+converting into the data type described by {\cf format}.  It is
+up to the caller to ensure that {\cf result} points to an area of
+memory big enough to accommodate the requested rectangle.
+Return {\cf true} if the operation could be completed, otherwise
+return {\cf false}.
+\apiend
+
+
+
+\section{Getting and setting individual pixel values -- simple but slow}
+
+\apiitem{float getchannel (int x, int y, int z, int c, \\
+  \bigspc\spc WrapMode wrap=WrapBlack) const}
+Returns the value of pixel {\cf x, y, z}, channel {\cf c}.  
+
+The {\cf wrap} describes what value should be returned if the {\cf x, y, z}
+coordinates are outside the pixel data window, and may be one of:
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, or {\cf WrapMirror}.
+\apiend
+
+
+\apiitem{void getpixel (int x, int y, int z, float *pixel, \\
+  \bigspc\spc int maxchannels=1000, WrapMode wrap=WrapBlack) const}
+Retrieves pixel ({\cf x, y, z}), placing its contents in
+{\cf pixel[0..n-1]}, where $n$ is the smaller of {\cf maxchannels}
+or the actual number of channels stored in the buffer.  It is up to
+the application to ensure that {\cf pixel} points to enough memory
+to hold the required number of channels.
+
+The {\cf wrap} describes what value should be returned if the {\cf x, y, z}
+coordinates are outside the pixel data window, and may be one of:
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, or {\cf WrapMirror}.
+\apiend
+
+
+\apiitem{void interppixel_NDC_full (float s, float t, float *pixel, \\
+  \bigspc                            WrapMode wrap=WrapBlack) const}
+Given 2D floating point image-space coordinates ({\cf s, t}), linearly
+interpolate the surrounding pixels to yield interpolated value
+{\cf pixel[0..n-1]}, where $n$ is the smaller of {\cf maxchannels}
+or the actual number of channels stored in the buffer.  It is up to
+the application to ensure that {\cf pixel} points to enough memory
+to hold the required number of channels.  The coordinates {\cf (s,t)}
+are in \emph{image space}, where (0,0) is the upper left corner
+of the full (a.k.a. ``display'') window and (1,1) is the lower right
+cornell of the full/display window.
+
+The {\cf wrap} describes how the image function should be computed
+outside the boundaries of the pixel data window, and may be one of:
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, or {\cf WrapMirror}.
+\apiend
+
+\apiitem{void setpixel (int x, int y, int z, const float *pixel, int maxchannels=1000)}
+Set the pixel with coordinates {\cf (x, y, z)} to have the values
+{\cf pixel[0..n-1]}.  The number of channels, {\cf n}, is the minimum of
+{\cf minchannels} and the actual number of channels in the image.
+\apiend
+
+
+\subsection*{Deep data in an \ImageBuf}
+
+\apiitem{bool deep () const}
+Returns {\cf true} if the \ImageBuf holds a ``deep'' image, {\cf false}
+if the \ImageBuf holds an ordinary pixel-based image.
+\apiend
+
+\apiitem{int deep_samples (int x, int y, int z=0) const}
+Returns the number of deep samples for the given pixel, or 0 if there
+are no deep samples for that pixel (including if the pixel coordinates
+are outside the data area).  For non-deep images, it will always return 0.
+\apiend
+
+\apiitem{const void *deep_pixel_ptr (int x, int y, int z, int c) const}
+Returns a pointer to the raw array of deep samples for channel {\cf c}
+of pixel {\cf (x,y,z)}.  This will return {\cf NULL} if the pixel
+coordinates or channel number are out of range, if the pixel/channel has
+no deep samples, or if the image is not deep.
+\apiend
+
+
+\apiitem{float deep_value (int x, int y, int z, int c, int s) const}
+Return the value (as a {\cf float}) of sample {\cf s} of channel {\cf c}
+of pixel {\cf (x,y,z)}.  Return {\cf 0.0} if not a deep image or if the
+pixel coordinates, channel number, or sample number are out of range, or
+if it has no deep samples.
+\apiend
+
+\section{Miscellaneous}
+
+\apiitem{void error (const char *format, ...) const}
+This can be used to register an error associated with this \ImageBuf.
+\apiend
+
+\apiitem{bool has_error (void) const}
+Returns {\cf true} if the \ImageBuf has had an error and has an error
+message to retrieve via {\cf geterror()}.
+\apiend
+
+\apiitem{std::string geterror (void) const}
+Return the text of all error messages issued since {\cf geterror()} was
+called (or an empty string if no errors are pending).  This also
+clears the error message for next time.
+\apiend
+
+\apiitem{void *localpixels (); \\
+    const void *localpixels () const;}
+Returns a raw pointer to the ``local'' pixel memory, if they are fully
+in RAM and not backed by an \ImageCache (in which case, {\cf NULL} will
+be returned).  You can also test it like a {\cf bool} to find out if
+pixels are local.
+\apiend
+
+\apiitem{const void *pixeladdr (int x, int y, int z=0) const \\
+void *pixeladdr (int x, int y, int z)}
+Return the address where pixel (x,y,z) is stored in the image buffer.
+Use with extreme caution!  Will return NULL if the pixel values
+aren't local (for example, if backed by an \ImageCache).
+\apiend
+
+
+
+\section{Iterators -- the fast way of accessing individual pixels}
+
+Sometimes you need to visit every pixel in an \ImageBuf (or at least,
+every pixel in a large region).  Using the {\cf getpixel} and {\cf
+  setpixel} for this purpose is simple but very slow.  But \ImageBuf
+provides templated {\cf Iterator} and {\cf ConstIterator} types
+that are very inexpensive and hide all the details of local versus
+cached storage.
+
+An {\cf Iterator} is associated with a particular \ImageBuf.  
+The {\cf Iterator} has a \emph{current pixel} coordinate that it is
+visiting, and an \emph{iteration range} that describes a rectangular
+region of pixels that it will visits as it advances.  It always starts
+at the upper left corner of the iteration region.  We say that
+the iterator is \emph{done} after it has visited every pixel in its
+iteration range.  We say that a pixel coordinate \emph{exists} if it is
+within the pixel data window of the \ImageBuf.  We say that a pixel
+coordinate is \emph{valid} if it is within the iteration range of the
+iterator.
+
+The {\cf ImageBuf::ConstIterator} is identical to the {\cf Iterator},
+except that {\cf ConstIterator} may be used on a {\cf const ImageBuf}
+and may not be used to alter the contents of the \ImageBuf.  For 
+simplicity, the remainder of this section will only discuss the 
+{\cf Iterator}.
+
+The {\cf Iterator<BUFT,USERT>} is templated based on two types: {\cf
+  BUFT} the type of the data stored in the \ImageBuf, and {\cf USERT}
+type type of the data that you want to manipulate with your code.  {\cf
+  USERT} defaults to {\cf float}, since usually you will want to do all
+your pixel math with {\cf float}.  We will thus use {\cf Iterator<T>}
+synonymously with {\cf Iterator<T,float>}.
+
+For the remainder of this section, we will assume that you have a
+{\cf float}-based \ImageBuf, for example, if it were set up like this:
+
+\begin{code}
+ImageBuf buf ("myfile.exr");
+buf.read (0, 0, true, TypeDesc::FLOAT);
+\end{code}
+
+
+\apiitem{Iterator<BUFT> (ImageBuf \&buf, WrapMode wrap=WrapDefault)}
+Initialize an iterator that will visit every pixel in the data window
+of {\cf buf}, and start it out pointing to the upper left corner of
+the data window.  The {\cf wrap} describes what values will be retrieved
+if the iterator is positioned outside the data window of the buffer.
+\apiend
+
+\apiitem{Iterator<BUFT> (ImageBuf \&buf, const ROI \&roi, WrapMode wrap=WrapDefault)}
+Initialize an iterator that will visit every pixel of {\cf buf} 
+within the region
+described by {\cf roi}, and start it out pointing to pixel ({\cf roi.xbegin, roi.ybegin, roi.zbegin}).
+The {\cf wrap} describes what values will be retrieved
+if the iterator is positioned outside the data window of the buffer.
+\apiend
+
+\apiitem{Iterator<BUFT> (ImageBuf \&buf, int x, int y, int z, WrapMode wrap=WrapDefault)}
+Initialize an iterator that will visit every pixel in the data window
+of {\cf buf}, and start it out pointing to pixel ({\cf x, y, z}).
+The {\cf wrap} describes what values will be retrieved
+if the iterator is positioned outside the data window of the buffer.
+\apiend
+
+\apiitem{Iterator::operator++ ()}
+The {\cf ++} operator advances the iterator to the next pixel in its
+iteration range.  (Both prefix and postfix increment operator are
+supported.)
+\apiend
+
+\apiitem{bool Iterator::done () const}
+Returns {\cf true} if the iterator has completed its visit of all pixels
+in its iteration range.
+\apiend
+
+\apiitem{ROI Iterator::range () const}
+Returns the iteration range of the iterator, expressed as an \ROI.
+\apiend
+
+\apiitem{int Iterator::x () const \\
+int Iterator::y () const \\
+int Iterator::z () const}
+Returns the $x$, $y$, and $z$ pixel coordinates, respectively, of the
+pixel that the iterator is currently visiting.
+\apiend
+
+\apiitem{bool Iterator::valid () const}
+Returns {\cf true} if the iterator's current pixel coordinates 
+are within its iteration range.
+\apiend
+
+\apiitem{bool Iterator::valid (int x, int y, int z=0) const}
+Returns {\cf true} if pixel coordinate ({\cf x, y, z}) are within the
+iterator's iteration range (regardless of where the iterator itself
+is currently pointing).
+\apiend
+
+\apiitem{bool Iterator::exists () const}
+Returns {\cf true} if the iterator's current pixel coordinates 
+are within the data window of the \ImageBuf.
+\apiend
+
+\apiitem{bool Iterator::exists (int x, int y, int z=0) const}
+Returns {\cf true} if pixel coordinate ({\cf x, y, z}) are within the
+pixel data window of the \ImageBuf (regardless of where the iterator itself
+is currently pointing).
+\apiend
+
+\apiitem{USERT\& Iterator::operator[] (int i)}
+The value of channel {\cf i} of the current pixel.  (The wrap
+mode, set up when the iterator was constructed, determines what value
+is returned if the iterator points outside the pixel data window of
+its buffer.)
+\apiend
+
+\apiitem{int Iterator::deep_samples () const}
+For deep images only, retrieves the number of deep samples for the
+current pixel.
+\apiend
+
+\apiitem{USERT\& Iterator::deep_value (int c, int s)}
+For deep images only, returns the value of channel {\cf c}, sample
+number {\cf s}, at the current pixel.
+\apiend
+
+\subsection*{Example: Visiting all pixels to compute an average color}
+
+\begin{code}
+void print_channel_averages (const std::string &filename)
+{
+    // Set up the ImageBuf and read the file
+    ImageBuf buf (filename);
+    bool ok = buf.read (0, 0, true, TypeDesc::FLOAT);  // Force a float buffer
+    if (! ok)
+        return;
+
+    // Initialize a vector to contain the running total
+    int nc = buf.nchannels();
+    std::vector<float> total (n, 0.0f);
+
+    // Iterate over all pixels of the image, summing channels separately
+    for (ImageBuf::ConstIterator<float> it (buf);  ! it.done();  ++it)
+        for (int c = 0;  c < nc;  ++c)
+            total[c] += it[c];
+
+    // Print the averages
+    imagesize_t npixels = buf.spec().image_pixels();
+    for (int c = 0;  c < nc;  ++c)
+        std::cout << "Channel " << c << " avg = " (total[c] / npixels) << "\n";
+}
+\end{code}
+
+
+\subsection*{Example: Set all pixels in a region to black}
+\label{makeblackexample}
+
+\begin{code}
+bool make_black (ImageBuf &buf, ROI region)
+{
+    if (buf.spec().format != TypeDesc::FLOAT)
+        return false;    // Assume it's a float buffer
+
+    // Clamp the region's channel range to the channels in the image
+    roi.chend = std::min (roi.chend, buf.nchannels);
+
+    // Iterate over all pixels in the region...
+    for (ImageBuf::Iterator<float> it (buf, region);  ! it.done();  ++it) {
+        if (! it.exists())   // Make sure the iterator is pointing
+            continue;        //   to a pixel in the data window
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            it[c] = 0.0f;  // clear the value
+    }
+    return true;
+}
+\end{code}
+
+
+\section{Dealing with buffer data types}
+
+The previous section on iterators presented examples and discussion
+based on the assumption that the \ImageBuf was guaranteed to store {\cf
+float} data and that you wanted all math to also be done as {\cf float}
+computations.  Here we will explain how to deal with buffers and files
+that contain different data types.
+
+\subsection*{Strategy 1: Only have {\cf float} data in your \ImageBuf}
+
+\noindent When creating your own buffers, make sure they are {\cf float}:
+
+\begin{code}
+    ImageSpec spec (640, 480, 3, TypeDesc::FLOAT); // <-- float buffer
+    ImageBuf buf ("mybuf", spec);
+\end{code}
+
+\noindent When using \ImageCache-backed buffers, force the \ImageCache
+to convert everything to {\cf float}:
+
+\begin{code}
+    // Just do this once, to set up the cache:
+    ImageCache *cache = ImageCache::create (true /* shared cache */);
+    cache->attribute ("forcefloat", 1);
+    ...
+    ImageBuf buf ("myfile.exr");   // Backed by the shared cache
+    buf.read ();                   // Will rely on cache, read lazily
+\end{code}
+
+\noindent Or force the read to convert to {\cf float} in the buffer if
+it's not a native type that would automatically stored as a {\cf float}
+internally to the \ImageCache:\footnote{\ImageCache only supports a
+limited set of types internally, currently only FLOAT and UINT8, and all
+other data types are converted to these automatically as they are read
+into the cache.}
+
+\begin{code}
+    ImageBuf buf ("myfile.exr");   // Backed by the shared cache
+    buf.read (0, 0, false /* don't force read to local mem */,
+              TypeDesc::FLOAT /* but do force conversion to float*/);
+\end{code}
+
+
+\noindent Or force a read into local memory unconditionally (rather
+than relying on the \ImageCache), and convert to {\cf float}:
+
+\begin{code}
+    ImageBuf buf ("myfile.exr");   // Backed by the shared cache
+    buf.read (0, 0, true /*force read*/,
+              TypeDesc::FLOAT /* force conversion */);
+\end{code}
+
+\subsection*{Strategy 2: Template your iterating functions based on
+buffer type}
+
+Consider the following alternate version of the {\cf make_black} function
+from Section~\ref{makeblackexample}:
+
+\begin{code}
+template<type BUFT>
+static bool make_black_impl (ImageBuf &buf, ROI region)
+{
+    // Clamp the region's channel range to the channels in the image
+    roi.chend = std::min (roi.chend, buf.nchannels);
+
+    // Iterate over all pixels in the region...
+    for (ImageBuf::Iterator<BUFT> it (buf, region);  ! it.done();  ++it) {
+        if (! it.exists())   // Make sure the iterator is pointing
+            continue;        //   to a pixel in the data window
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            it[c] = 0.0f;  // clear the value
+    }
+    return true;
+}
+
+bool make_black (ImageBuf &buf, ROI region)
+{
+    if (buf.spec().format == TypeDesc::FLOAT)
+        return make_black_impl<float> (buf, region);
+    else if (buf.spec().format == TypeDesc::HALF)
+        return make_black_impl<half> (buf, region);
+    else if (buf.spec().format == TypeDesc::UINT8)
+        return make_black_impl<unsigned char> (buf, region);
+    else if (buf.spec().format == TypeDesc::UINT16)
+        return make_black_impl<unsigned short> (buf, region);
+    else {
+        buf.error ("Unsupported pixel data format %s", buf.spec().format);
+        retrn false;
+    }
+}
+\end{code}
+
+In this example, we make an implementation that is templated on
+the buffer type, and then a wrapper that calls the appropriate
+template specialization for each of 4 common types (and logs
+an error in the buffer for any other types it encounters).
+
+In fact, {\cf imagebufalgo_util.h} provides a macro to do this (and
+several variants, which will be discussed in more detail in the next
+chapter).  You could rewrite the example even more simply:
+
+\begin{code}
+#include <OpenImageIO/imagebufalgo_util.h>
+
+template<type BUFT>
+static bool make_black_impl (ImageBuf &buf, ROI region)
+{
+    ... same as before ...
+}
+
+bool make_black (ImageBuf &buf, ROI region)
+{
+    OIIO_DISPATCH_COMMON_TYPES ("make_black", make_black_impl,
+                                 buf.spec().format, buf, region);
+}
+\end{code}
+
+\noindent This other type-dispatching helper macros will be discussed in more
+detail in Chapter~\ref{chap:imagebufalgo}.
+
+\index{ImageBuf|)}
+\index{Image Buffers|)}
+
+\chapwidthend
