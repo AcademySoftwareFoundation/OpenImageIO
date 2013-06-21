@@ -2358,10 +2358,9 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int miplevel,
     y = spec.y + ytile * spec.tile_height;
     z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, miplevel, x, y, z);
-    ImageCacheTileRef tile;
-    if (find_tile_main_cache (id, tile, thread_info)) {
+    if (find_tile(id, thread_info)) {
+        ImageCacheTileRef tile(thread_info->tile);
         tile->_incref();   // Fake an extra reference count
-        tile->use ();
         return (ImageCache::Tile *) tile.get();
     } else {
         return NULL;
