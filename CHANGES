@@ -5,15 +5,38 @@ Release 1.2 (in progress -- compared to 1.1.x)
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool commands:
-    --swap      Exchanges the top two items on the image stack.
-    --fit       Resize image to fit into a given resolution (keeping aspect).
-    --ch        Select/cull/reorder/add channels within an image.
-    --chappend  Merge two images by appending their color channels.
-    --chnames   Rename some or all of the color channels in an image.
-    --cmul      Multiply an imge by a scalar or per-channel constant.
-    --zover     Depth compositing
+    --swap        Exchanges the top two items on the image stack.
+    --fit         Resize image to fit into a given resolution (keeping aspect).
+    --ch          Select/cull/reorder/add channels within an image.
+    --chappend    Merge two images by appending their color channels.
+    --chnames     Rename some or all of the color channels in an image.
+    --zover       Depth compositing
+    --cadd        Add constant per-channel values to all pixels
+    --cmul        Multiply an imge by a scalar or per-channel constant.
+    --fillholes   Smoothly interpolate for hole filling.
+    --resample    Similar to --resize, but just uses closest pixel lookup.
+    --clamp       Clamp pixel values
+    --rangeexpand Expand range for certain HDR processing
+    --rangecompress  Compress range for certain HDR processing
+    --unpremult   Divide colors by alpha (un-premultiply).
+    --premult     Multiply colors by alpha.
+    --kernel      Make a convolution kernel using a filter name.
+    --convolve    Convolve two images.
+    --blur        Blur an image.
+    --unsharp     Sharpen an image using an unsharp mask.
+    --paste       Paste one image on another.
+    --mosaic      Create a rectilinear image mosaic.
+    --transpose   Transpose an image (flip along the diagonal axis)
+    --chsum       Sum all channels in each pixel
+    --cshift      Circular shift an image pixels
+    --fft --ifft  Forward and inverse Fourier transform
+    --colorcount  Counts how many pixels are one of a list of colors.
+    --rangecheck  Counts how many pixels fall outside the given range.
+    --ociolook    Apply OpenColorIO "looks"
 * oiiotool can loop over entire numeric frame ranges by specifying
   wildcard filenames such as "foo.#.tif" or "bar.1-10#.exr".
+* oiiotool --frames and --framepadding give more explicit control over
+  frame range wildcards.
 * Significant performance improvements when reading and writing images
   using the ImageBuf::read and ImageCache::get_pixels interfaces, and in
   some cases also when using regular ImageInput.  This also translates
@@ -23,8 +46,22 @@ Major new features and improvements:
 * Significant performance improvements when using ImageBuf::Iterator
   or ConstIterator to traverse the pixels in an ImageBuf, and the iterators
   now support "wrap" modes (black, clamp, periodic, mirror).
+* maketx --hicomp does "highlight compensation" by compressing the
+  HDR value range prior to inter-MIP resizes, then re-expanding the range.
+* Field3D writer (it could read f3d files before, but not write them).
+* idiff can now compare that are not the same size (treating pixels
+  beyond the pixel data window is being 0 valued).
+* maketx --lightprobe turns a "lightprobe" iamge into a latlong environment
+  map.
+* Significant improvements and fixes to EXIF, IPTC, and XMP metadata
+  reading and writing.
+* Significant thread scalability improvements to TextureSystem and
+  ImageCache.
+* Huge overhaul of functionality, style, and performance of the
+  entire ImageBufAlgo set of functions (see the "Public API changes"
+  section below, and the imagebufalgo.h file for details).
 
-API changes:
+Public API changes:
 * ImageOutput semantics change: If the spec passed to open() has
   spec.format set fo UNKNOWN, then select a default data format for the
   output file that is "most likely to be able to be read" and/or "most
@@ -37,6 +74,20 @@ API changes:
   change ImageBuf internals in the future without breaking API or link
   compatibility (and thus giving us more freedom to backport important
   improvements to prior releases).
+* Overhaul of ImageBufAlgo functions: they all take an ROI parameter;
+  use the DISPATCH macros to make them work with all pixel data types
+  where practical (previously, many supported float only); use Iterator
+  rather than getpixel/setpixel, leading to huge speed improvements;
+  multithread when operating on enough pixels, leading to huge speed
+  improvements; work on 3D (volume) images where applicable; always
+  gracefully handle uninitialized dest image or undefined ROI.
+* New ImageBufAlgo functions: channels(), channel_append(), mul(),
+  paste(), zover(), add() and mul() varieties that that add/multiply a
+  constant amount to all pixels, fillholes_pp(), resample(), clamp(),
+  rangecompress(), rangeexpand(), make_kernel(), unsharp_mask(),
+  transpose(), channel_sum(), circular_shift(), fft(), ifft(),
+  color_count(), color_range_check().
+  [look in imagebufalgo.h for documentation.]
 * ImageBufAlgo::make_texture() allows you to do the same thing that
   maketx does, but from inside an application and without launching a
   shell invocation of maketx.  Two varieties exist: one that takes a
@@ -48,7 +99,7 @@ API changes:
   a lot of algorithms using IB::Iterator, they can now be written to 
   rely on wrap behavior rather than being cluttered with checks for
   "if (it.exits())" clauses.
-* ImageBuflgo::computePixelHashSHA1 has been refactored to take ROI,
+* ImageBufAlgo::computePixelHashSHA1 has been refactored to take ROI,
   a block size, and thread count, and thus can be parallelized with threads.
   The block size means that rather than computing a single SHA-1 for all
   the pixels, it computes separate (parallel) SHA-1 for each group of
@@ -56,13 +107,60 @@ API changes:
   hashed blocks. This is just as strong a hash as before, thought the value
   is different than doing the whole thing at once, but by breaking it into
   blocks the computation can be multithreaded.
-* New ImageBufAlgo functions: channels(), channel_append(), mul(),
-  paste(), zover().  [look in imagebufalgo.h for documentation.]
+* ImageBuf::swap() makes it easy to swap two ImageBuf's.
+* ImageSpec::get_channelformats is now const (and always should have been).
 
 Fixes, minor enhancements, and performance improvements:
-* Texture -- make sure "black" wrap wins out over "fill" value when they
-  conflict (looking up an out-of-range channel beyond the pixel data window).
-* Texture "mirror" wrap mode was slightly incorrect and has been fixed.
+* TextureSystem improvements:
+  * Make sure "black" wrap wins out over "fill" value when they conflict
+    (looking up an out-of-range channel beyond the pixel data window).
+  * "mirror" wrap mode was slightly incorrect and has been fixed.
+* oiiotool improvements:
+  * oiiotool -v breaks down timing by individual function.
+  * oiiotool has been sped up by forcing read of the whole image up front
+      for reasonably-sized files (instead of relying on ImageCache).
+  * oiiotool does not write output images if fatal errors have occurred.
+  * oiiotool --diff: Better error handling.
+  * oiiotool --resize (and --fit): properly handle the case of resizing
+    to the same size as the original image.
+  * oiiotool -d CHAN=TYPE can set the output for just one channel.
+* ImageBufAlgo improvements:
+  * Internal overhaul of IBA::resize to greatly speed it up.
+  * Improve IBA::resize to handle the image edge better -- instead of 
+    clamping, just don't consider nonexistant pixels.
+  * More careful selection of filter when resizing (IBA::resize, oiiotool
+    --resize and --fit, and maketx).
+  * Fix IBA::paste() error when the foreground image runs off the end of
+    the background image.
+* Bug fix when computing SHA-1 hash of 0-sized images.
+* Image format support improvements:
+  * Bug fix where some format readers (PNM, SGI, and IFF) would leave the
+    file handle opened if the ImageInput was destroyed without calling 
+    close() first.  Now we guarantee that destroying the II always causes
+    the file to close().
+  * DPX: output allocation bug fix; properly set pixel aspect ratio for
+    DPX write.
+  * IFF: bug fix for endian swap for IFF file input.
+  * JPEG2000: fix warnings, make sure event manager transfer object
+    remains valid.
+  * OpenEXR: when reading, was botching the ordering of per-channel data
+    formats.
+  * SGI write: bug fix for the case of 15 bpp RLE encoding, was
+    double-swapping bytes.
+  * Targa: more robust check for presence of alpha channels; bug fix where
+    R and B channels were reversed for certain kinds of palette images.
+* maketx improvements:
+  * maketx --chnames allows you to rename the channels when you create a
+    texture.
+  * maketx bug fixes: incorrect weighting when resizing MIP levels for
+    latlong environment map images that could make visible artifacts
+    on some intermediate MIP levels.
+* encode_exif() didn't copy the right number of bytes.
+* Python bindings: ImageSpec extra_attribs now properly responds to
+  iterator calls.
+* Fix bug in sRGB -> linear conversion.
+* iv: make pixelview display coordinates & color even when outside the
+  data window.
 
 Build/test system improvements:
 * Many fixes to improve builds and eliminate warnings on Windows and MinGW.
@@ -84,6 +182,20 @@ Build/test system improvements:
   CMake variable OVERRIDE_SHARED_LIBRARY_SUFFIX.
 * Eliminated all uses of the custom DEBUG symbol, and instead use the
   more standard idiom "#ifndef NDEBUG".
+* Compatibility fixes for Python3.
+* MSVC 2008: Prevent a redefinition error when using boost::shared_ptr.
+* Fixes for compatibility with libtiff 4.0.
+* Fixes for MSVC debug mode having out-of-bound exceptions.
+* Fixes for libjpeg 9.x.
+* Compile to treat warnings as errors (you can disable this with 
+  STOP_ON_WARNING=0).
+* New filter: "sharp-gaussian".
+* Fix various Windows build errors.
+* Improvements to the build when finding IlmBase/OpenEXR.
+* Various fixes to compile on ARM architecture.
+* Fixes to compile on ESA/390 mainframe (!).
+* testtex --threadtimes, --trials, --iters, --nodup, --wedge.  These
+  are helpful in using testtext to benchmark the texture system.
 
 Developer goodies:
 * Improved ASSERT and DASSERT macros to not generate warning for certain
@@ -96,8 +208,77 @@ Developer goodies:
 * imagebufalgo.h improvements and expansion of the various DISPATCH_*
   macros.
 * New Filesystem utilities: parent_path(), get_directory_entries().
+* New Strutil utilities: extract_from_list_string
+* spinlock tweaks make it faster than TBB's spin locks!
+* By default, we no longer build or use TBB (it's considered deprecated,
+  but in 1.2 can still be turned on with USE_TBB=1).
+* In fmath.h, added definitions for safe_inversesqrt, safelog, safe_log2,
+  safe_log10, safe_logb.
+* In typedesc.h, added TypeDesc::tostring() function.
+* unordered_map_concurrent.h contains a template for a thread-safe
+  unordered_map that is very efficient even for large number of threads
+  simultaneously accessing it.
+* Documentation: Finally, a chapter in the PDF docs that fully describes
+  the ImageBuf class.
 
 
+Release 1.1.13 (24 Jun 2013)
+----------------------------
+* Texture: make sure wrap mode "black" wins over "fill" value when they
+  conflict.
+
+Release 1.1.12 (20 Jun 2013)
+----------------------------
+* Fix oiiotool '#' wildcard, was broken on Windows.
+* Fix an overflow problem that plagued 'maketx' when running on input
+  larger than 32k x 32k (among other possible failures).
+
+Release 1.1.11 (29 May 2013)
+----------------------------
+* IFF input: bug in endian swap of 16 bit IFF files.
+* oiiotool: fix a minor bug where tiled files were output inappropriately.
+  (Had been patched in master some time ago.)
+* fmath.h additions: safe_inversesqrt, safe_log, safe_log2, safe_log10,
+  safe_logb.  These are versions that clamp their inputs so that they
+  can't throw exceptions or return Inf or NaN.
+* Fix to not incorrectly print ImageCache stats for certain broken files.
+
+Release 1.1.10 (13 Apr 2013)
+----------------------------
+* IBA::fillholes() and oiiotool --fillholes can smoothly fill in alpha
+  holes with nearby colors. Great for extrapolating the empty areas of
+  texture atlas images so that filtered texture lookups pull in a plausible
+  color at part edges.
+* IBA::clamp and oiiotool --clamp clamp pixel values to a scalar or
+  per-channel min and/or max, or clamp alpha to [0,1].
+* IBA::rangecompress()/rangeexpand(), and oiiotool --rangecompress /
+  --rangeexpand compress the excess >1 values of HDR images to a log
+  scale (leaving the <= 1 part linear), and re-expand to the usual
+  linear scale.  This is very helpful to reduce ringing artifacts that
+  can happen when an HDR image is resized with a good filter with negative
+  lobes (such as lanczos3), by doing a range compression, then the resize,
+  then range expansion. It's not mathematically correct and loses energy,
+  but it often makes a much more pleasing result.
+* maketx --hicomp does highlight compression -- automatically doing a
+  range compress before each high-quality resize step, and then a
+  range expansion and clamp-to-zero (squash negative pixels) after 
+  each resize.
+* DPX - when writing DPX files, properly set the pixel aspect ratio.
+
+Release 1.1.9 (2 Apr 2013)
+--------------------------
+* IBA::resize and oiiotool --resize/--fit: Bug fixes to resize filter
+  size selection fix artifacts wherein extreme zooms could end up with
+  black stripes in places where the filters fell entirely between samples.
+* oiiotool --fit: fix subtle bugs with aspect ratio preservation for
+  images with differing data and display windows; and allow "filter=..."
+  to override the default filter used for fit.
+* Resize improvement: fix potential artifacts at the image edges resulting
+  from odd clamping behavior.
+* Even more frame range wildcard flexibility with oiiotool --frames and
+  --framepadding options.
+* oiiotool --resize and --fit (and the underlying IBA::resize()) have been
+  sped up significantly and are now also multithreaded.
 
 Release 1.1.8 (15 Mar 2013)
 ---------------------------
