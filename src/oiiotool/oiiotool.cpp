@@ -2934,48 +2934,17 @@ action_text (int argc, const char *argv[])
     const ImageSpec &Rspec = Rib.spec();
 
     // Set up defaults for text placement, size, font, color
-    int x = Rspec.x + Rspec.width/2;
-    int y = Rspec.y + Rspec.height/2;
-    int fontsize = 16;
-    std::string font = "";
-    float *textcolor = ALLOCA (float, Rspec.nchannels);
-    for (int c = 0;  c < Rspec.nchannels;  ++c)
-        textcolor[c] = 1.0f;
-
-    // Parse optional arguments for overrides
-    std::string command = argv[0];
-    size_t pos;
-    while ((pos = command.find_first_of(":")) != std::string::npos) {
-        command = command.substr (pos+1, std::string::npos);
-        if (Strutil::istarts_with(command,"x=")) {
-            x = atoi (command.c_str()+2);
-        } else if (Strutil::istarts_with(command,"y=")) {
-            y = atoi (command.c_str()+2);
-        } else if (Strutil::istarts_with(command,"size=")) {
-            fontsize = atoi (command.c_str()+5);
-        } else if (Strutil::istarts_with(command,"color=")) {
-            // Parse comma-separated color list
-            size_t numpos = 6;
-            for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
-                textcolor[c] = (float) atof (command.c_str()+numpos);
-                while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
-                    ++numpos;
-                if (numpos < command.size())
-                    ++numpos;
-            }
-        } else if (Strutil::istarts_with(command,"font=")) {
-            font = "";
-            size_t s = 5;
-            bool quote = (command[s] == '\"');
-            if (quote)
-                ++s;
-            for ( ; s < command.size() && command[s] != ':' && command[s] != '\"'; ++s)
-                font += command[s];
-        }
-    }
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    int x = options["x"].size() ? Strutil::from_string<int>(options["x"]) : (Rspec.x + Rspec.width/2);
+    int y = options["y"].size() ? Strutil::from_string<int>(options["y"]) : (Rspec.y + Rspec.height/2);
+    int fontsize = options["size"].size() ? Strutil::from_string<int>(options["size"]) : 16;
+    std::string font = options["font"];
+    std::vector<float> textcolor (Rspec.nchannels, 1.0f);
+    Strutil::extract_from_list_string (textcolor, options["color"]);
 
     bool ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
-                                         fontsize, font, textcolor);
+                                         fontsize, font, &textcolor[0]);
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
