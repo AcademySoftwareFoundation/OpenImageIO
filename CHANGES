@@ -1,6 +1,14 @@
 Changes:
 
 
+Release 1.1.13 (24 Jun 2013)
+----------------------------
+* Minor performance improvement to IC::get_tile, it wasn't using the
+  internal micro-cache before.
+* Texture: make sure wrap mode "black" wins over "fill" value when they
+  conflict.
+
+
 Release 1.1.12 (20 Jun 2013)
 ----------------------------
 * Fix oiiotool '#' wildcard, was broken on Windows.
