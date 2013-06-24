@@ -1,5 +1,11 @@
 Changes:
 
+Release 0.10.19 (24 Jun 2013)
+-----------------------------
+* Minor performance improvement to IC::get_tile, it wasn't using the
+  internal micro-cache before.
+
+
 Release 0.10.18 (20 Jun 2013)
 -----------------------------
 * Fix an overflow problem that plagued 'maketx' when running on input
