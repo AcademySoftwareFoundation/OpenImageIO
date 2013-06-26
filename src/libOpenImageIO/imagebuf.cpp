@@ -1306,7 +1306,7 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     if (s >= nsamps)
         return 0.0f;
     const void *ptr = impl()->m_deepdata.pointers[p*m_spec.nchannels+c];
-    TypeDesc t = m_spec.channelformat(c);
+    TypeDesc t = impl()->m_deepdata.channeltypes[c];
     switch (t.basetype) {
     case TypeDesc::FLOAT :
         return ((const float *)ptr)[s];

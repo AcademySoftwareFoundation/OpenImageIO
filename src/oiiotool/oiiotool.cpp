@@ -464,6 +464,9 @@ output_file (int argc, const char *argv[])
     for (int s = 0;  s < ir->subimages();  ++s) {
         ImageSpec spec = *ir->spec(s,0);
         adjust_output_options (spec, ot, supports_tiles);
+        // For deep files, must copy the native deep channelformats
+        if (spec.deep)
+            spec.channelformats = (*ir)(s,0).nativespec().channelformats;
         subimagespecs[s] = spec;
     }
 
