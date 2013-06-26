@@ -1174,7 +1174,7 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
         for (int c = 0;  c < nchans;  ++c) {
-            size_t chanbytes = m_spec.channelformat(c).size();
+            size_t chanbytes = deepdata.channeltypes[c].size();
             Imf::DeepSlice slice (m_pixeltype[c],
                                   (char *)(&deepdata.pointers[c]
                                            - m_spec.x * nchans
