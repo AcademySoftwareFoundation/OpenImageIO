@@ -53,6 +53,11 @@
 #include "thread.h"
 
 #ifdef USE_OPENSSL
+#ifdef __APPLE__
+// Newer OSX releaes mark OpenSSL functions as deprecated, in favor of
+// CDSA.  Make the warnings stop.
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations" 
+#endif
 #include <openssl/sha.h>
 #endif
 
