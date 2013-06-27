@@ -63,6 +63,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 static const uint32_t JPEG_MAGIC = 0xffd8ffe0, JPEG_MAGIC_OTHER_ENDIAN =  0xe0ffd8ff;
 static const uint32_t JPEG_MAGIC2 = 0xffd8ffe1, JPEG_MAGIC2_OTHER_ENDIAN =  0xe1ffd8ff;
+static const uint32_t JPEG_MAGIC3 = 0xffd8fffe, JPEG_MAGIC3_OTHER_ENDIAN =  0xfeffd8ff;
 
 
 // For explanations of the error handling, see the "example.c" in the
@@ -126,7 +127,8 @@ JpgInput::valid_file (const std::string &filename) const
     fclose (fd);
 
     if (magic != JPEG_MAGIC && magic != JPEG_MAGIC_OTHER_ENDIAN &&
-        magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN) {
+        magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN &&
+        magic != JPEG_MAGIC3 && magic != JPEG_MAGIC3_OTHER_ENDIAN) {
         ok = false;
     }
     return ok;
@@ -167,9 +169,10 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 
     rewind (m_fd);
     if (magic != JPEG_MAGIC && magic != JPEG_MAGIC_OTHER_ENDIAN &&
-        magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN) {
+        magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN &&
+        magic != JPEG_MAGIC3 && magic != JPEG_MAGIC3_OTHER_ENDIAN) {
         close_file ();
-        error ("\"%s\" is not a JPEG file, magic number doesn't match", name.c_str());
+        error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)", name.c_str(), magic);
         return false;
     }
 
