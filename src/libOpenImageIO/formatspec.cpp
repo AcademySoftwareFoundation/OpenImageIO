@@ -627,6 +627,12 @@ format_raw_metadata (const ImageIOParameter &p)
     } else if (element == TypeDesc::INT64) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
+    } else if (element == TypeDesc::UINT8) {
+      for (int i = 0;  i < n;  ++i)
+        out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const unsigned char *)p.data())[i]));
+    } else if (element == TypeDesc::INT8) {
+      for (int i = 0;  i < n;  ++i)
+        out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const char *)p.data())[i]));
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 p.type().basetype, p.type().aggregate,
@@ -884,7 +890,7 @@ static ExplanationTableEntry explanation[] = {
 
 
 std::string
-ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
+ImageSpec::attribute_value_string (const ImageIOParameter &p, bool human)
 {
     std::string out = format_raw_metadata (p);
 
