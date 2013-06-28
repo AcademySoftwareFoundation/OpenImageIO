@@ -19,6 +19,7 @@ if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
         add_definitions(-DFORCE_OPENGL_1)
     endif()
     add_executable (iv ${iv_srcs})
+    set_target_properties (iv PROPERTIES FOLDER "Tools")
     link_ilmbase (iv)
     target_link_libraries (iv OpenImageIO ${QT_LIBRARIES} ${OPENGL_LIBRARIES} 
                                ${Boost_LIBRARIES} ${CMAKE_DL_LIBS}

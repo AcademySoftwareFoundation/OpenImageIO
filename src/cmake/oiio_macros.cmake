@@ -31,7 +31,7 @@ macro (add_oiio_plugin)
     get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
     add_library (${_target_name} SHARED ${_plugin_DEFAULT_ARGS})
     target_link_libraries (${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES})
-    set_target_properties (${_target_name} PROPERTIES PREFIX "")
+    set_target_properties (${_target_name} PROPERTIES PREFIX "" FOLDER "Plugins")
     oiio_install_targets (${_target_name})
 endmacro ()
 
