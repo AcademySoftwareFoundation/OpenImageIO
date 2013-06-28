@@ -1,8 +1,18 @@
 Changes:
 
 
-Release 1.2 (in progress -- compared to 1.1.x)
+Release 1.3 (in progress -- compared to 1.2.x)
 ----------------------------------------------
+Major new features and improvements:
+Public API changes:
+Fixes, minor enhancements, and performance improvements:
+Build/test system improvements:
+Developer goodies:
+
+
+
+Release 1.2 (27 Jun 2013)
+-------------------------
 Major new features and improvements:
 * New oiiotool commands:
     --swap        Exchanges the top two items on the image stack.
