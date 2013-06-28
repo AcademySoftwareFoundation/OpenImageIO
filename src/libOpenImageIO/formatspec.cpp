@@ -890,7 +890,7 @@ static ExplanationTableEntry explanation[] = {
 
 
 std::string
-ImageSpec::attribute_value_string (const ImageIOParameter &p, bool human)
+ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
 {
     std::string out = format_raw_metadata (p);
 
