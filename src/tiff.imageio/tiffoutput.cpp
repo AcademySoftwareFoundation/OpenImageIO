@@ -201,7 +201,8 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 32);
     }
     TIFFSetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, m_spec.nchannels);
-    TIFFSetField (m_tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT); // always
+    int orientation = m_spec.get_int_attribute("Orientation", 1);
+    TIFFSetField (m_tif, TIFFTAG_ORIENTATION, orientation);
     
     int bps, sampformat;
     switch (m_spec.format.basetype) {
