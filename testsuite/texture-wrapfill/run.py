@@ -16,10 +16,10 @@ command += (oiio_app("oiiotool")
 
 command += testtex_command ("grid3.tif",
                             " -res 256 256 -automip " +
-                            " -wrap black -fill 0.5 -d uint8 -o out3.tif >> out.txt ;\n")
+                            " -wrap black -fill 0.5 -d uint8 -o out3.tif")
 
 command += testtex_command ("grid1.tif",
                             " -res 200 200 -automip --graytorgb " +
-                            " -wrap black -fill 0.5 -d uint8 -o out1.tif >> out.txt ;\n")
+                            " -wrap black -fill 0.5 -d uint8 -o out1.tif")
 
-outputs = [ "out1.tif" ]
+outputs = [ "out3.tif", "out1.tif" ]
