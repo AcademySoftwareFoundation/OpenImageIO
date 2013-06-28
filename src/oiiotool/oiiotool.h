@@ -91,7 +91,7 @@ public:
     Timer total_readtime;
     Timer total_writetime;
     double total_imagecache_readtime;
-    typedef std::map<std::string, float> TimingMap;
+    typedef std::map<std::string, double> TimingMap;
     TimingMap function_times;
     bool enable_function_timing;
 
