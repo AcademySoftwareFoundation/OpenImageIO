@@ -1004,6 +1004,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         search_dirs.push_back (h + "/Fonts");
         search_dirs.push_back (h + "/Library/Fonts");
     }
+    const char *systemRoot = getenv ("SystemRoot");
+    if (systemRoot && *systemRoot) {
+        std::string sysroot (systemRoot);
+        search_dirs.push_back (sysroot + "/Fonts");
+    }
     search_dirs.push_back ("/usr/share/fonts");
     search_dirs.push_back ("/Library/Fonts");
     search_dirs.push_back ("C:/Windows/Fonts");
