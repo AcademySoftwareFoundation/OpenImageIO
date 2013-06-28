@@ -46,7 +46,6 @@
 #include <cstdlib>
 #include <vector>
 #include <map>
-#include <sys/types.h>   // to safely get off_t
 
 #include "export.h"
 #include "version.h"
@@ -110,7 +109,7 @@ std::string OIIO_API vformat (const char *fmt, va_list ap)
 ///  - memformat(15300)         -> "14.9 KB"
 ///  - memformat(15300000)      -> "14.6 MB"
 ///  - memformat(15300000000LL) -> "14.2 GB"
-std::string OIIO_API memformat (off_t bytes, int digits=1);
+std::string OIIO_API memformat (long long bytes, int digits=1);
 
 /// Return a string expressing an elapsed time, in human readable form.
 /// e.g. "0:35.2"

@@ -1,5 +1,6 @@
 set (iinfo_srcs iinfo.cpp)
 add_executable (iinfo ${iinfo_srcs})
+set_target_properties (iinfo PROPERTIES FOLDER "Tools")
 if (MSVC)
     set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS psapi.lib)
 endif (MSVC)

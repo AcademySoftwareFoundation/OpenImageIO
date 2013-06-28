@@ -958,7 +958,7 @@ const char *default_font_name = "cour";
 #elif defined (__APPLE__)
 const char *default_font_name = "Courier New";
 #elif defined (_WIN32)
-const char *default_font_name = "Courier";
+const char *default_font_name = "cour";
 #else
 const char *default_font_name = "cour";
 #endif
@@ -1003,6 +1003,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         search_dirs.push_back (h + "/fonts");
         search_dirs.push_back (h + "/Fonts");
         search_dirs.push_back (h + "/Library/Fonts");
+    }
+    const char *systemRoot = getenv ("SystemRoot");
+    if (systemRoot && *systemRoot) {
+        std::string sysroot (systemRoot);
+        search_dirs.push_back (sysroot + "/Fonts");
     }
     search_dirs.push_back ("/usr/share/fonts");
     search_dirs.push_back ("/Library/Fonts");

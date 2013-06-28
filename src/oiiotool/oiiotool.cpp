@@ -2832,7 +2832,7 @@ action_clamp (int argc, const char *argv[])
         extract_options (options, argv[0]);
         Strutil::extract_from_list_string (min, options["min"]);
         Strutil::extract_from_list_string (max, options["max"]);
-        bool clampalpha01 = strtol (options["clampalpha"].c_str(), NULL, 10);
+        bool clampalpha01 = strtol (options["clampalpha"].c_str(), NULL, 10) != 0;
 
         for (int m = 0, miplevels=R->miplevels(s);  m < miplevels;  ++m) {
             ImageBuf &Rib ((*R)(s,m));
@@ -2863,7 +2863,7 @@ action_rangecompress (int argc, const char *argv[])
     std::map<std::string,std::string> options;
     extract_options (options, argv[0]);
     std::string useluma_str = options["luma"];
-    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) : true;
+    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) != 0 : true;
 
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
@@ -2900,7 +2900,7 @@ action_rangeexpand (int argc, const char *argv[])
     std::map<std::string,std::string> options;
     extract_options (options, argv[0]);
     std::string useluma_str = options["luma"];
-    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) : true;
+    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) != 0 : true;
 
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
@@ -3205,7 +3205,7 @@ getargs (int argc, char *argv[])
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {
-	std::cerr << ap.geterror() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -3459,6 +3459,12 @@ handle_sequence (int argc, const char **argv)
 int
 main (int argc, char *argv[])
 {
+// When Visual Studio is used float values in scientific format are printed 
+// with three digit exponent. We change this behavior to fit the Linux way.
+#ifdef _MSC_VER
+    _set_output_format (_TWO_DIGIT_EXPONENT);
+#endif
+
     Timer totaltime;
 
     ot.imagecache = ImageCache::create (false);
@@ -3481,8 +3487,8 @@ main (int argc, char *argv[])
     }
 
     if (ot.runstats) {
-        float total_time = totaltime();
-        float unaccounted = total_time;
+        double total_time = totaltime();
+        double unaccounted = total_time;
         std::cout << "\n";
         int threads = -1;
         OIIO::getattribute ("threads", threads);
@@ -3492,11 +3498,11 @@ main (int argc, char *argv[])
         static const char *timeformat = "      %-12s : %5.2f\n";
         for (Oiiotool::TimingMap::const_iterator func = ot.function_times.begin();
              func != ot.function_times.end();  ++func) {
-            float t = func->second;
+            double t = func->second;
             std::cout << Strutil::format (timeformat, func->first, t);
             unaccounted -= t;
         }
-        std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted,0.0f));
+        std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted, 0.0));
         std::cout << ot.imagecache->getstats() << "\n";
     }
 

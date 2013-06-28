@@ -9,7 +9,6 @@ cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
     cmake_policy (SET CMP0017 NEW)
 endif ()
-set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
@@ -29,6 +28,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     add_definitions ("-DNDEBUG")
 endif ()
 
+option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
+mark_as_advanced (CMAKE_USE_FOLDERS)
+if (CMAKE_USE_FOLDERS)
+    set_property (GLOBAL PROPERTY USE_FOLDERS ON)
+endif ()
 
 # Figure out which compiler we're using
 if (CMAKE_COMPILER_IS_GNUCC)
