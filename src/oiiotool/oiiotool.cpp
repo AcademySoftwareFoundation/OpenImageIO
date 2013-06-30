@@ -105,6 +105,7 @@ Oiiotool::clear_options ()
     output_planarconfig = "default";
     output_adjust_time = false;
     output_autocrop = true;
+    output_autotrim = false;
     diff_warnthresh = 1.0e-6f;
     diff_warnpercent = 0;
     diff_hardwarn = std::numeric_limits<float>::max();
@@ -130,6 +131,25 @@ format_resolution (int w, int h, int x, int y)
     return Strutil::format ("%dx%d%c%d%c%d", w, h,
                             x >= 0 ? '+' : '-', abs(x),
                             y >= 0 ? '+' : '-', abs(y));
+#endif
+}
+
+
+
+std::string
+format_resolution (int w, int h, int d, int x, int y, int z)
+{
+#if 0
+    // This should work...
+    return Strutil::format ("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
+    // ... but tinyformat doesn't print the sign for '0' values!  It
+    // appears to be a bug with iostream use of 'showpos' format flag,
+    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
+#else
+    return Strutil::format ("%dx%dx%d%c%d%c%d%c%d", w, h, d,
+                            x >= 0 ? '+' : '-', abs(x),
+                            y >= 0 ? '+' : '-', abs(y),
+                            z >= 0 ? '+' : '-', abs(z));
 #endif
 }
 
@@ -449,6 +469,30 @@ output_file (int argc, const char *argv[])
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir (ot.curimg);
 
+    // Handle --autotrim
+    if (supports_displaywindow && ot.output_autotrim) {
+        ROI origroi = get_roi(*ir->spec(0,0));
+        ROI roi = ImageBufAlgo::nonzero_region ((*ir)(0,0), origroi);
+        if (roi.npixels() == 0) {
+            // Special case -- all zero; but doctor to make it 1 zero pixel
+            roi = origroi;
+            roi.xend = roi.xbegin+1;
+            roi.yend = roi.ybegin+1;
+            roi.zend = roi.zbegin+1;
+        }
+        std::string crop = (ir->spec(0,0)->depth == 1)
+            ? format_resolution (roi.width(), roi.height(),
+                                 roi.xbegin, roi.ybegin)
+            : format_resolution (roi.width(), roi.height(), roi.depth(),
+                                 roi.xbegin, roi.ybegin, roi.zbegin);
+        const char *argv[] = { "crop", crop.c_str() };
+        int action_crop (int argc, const char *argv[]); // forward decl
+        action_crop (2, argv);
+        ir = ot.curimg;
+    }
+
+    // Automatically crop/pad if outputting to a format that doesn't
+    // support display windows, unless autocrop is disabled.
     if (! supports_displaywindow && ot.output_autocrop &&
         (ir->spec()->x != ir->spec()->full_x ||
          ir->spec()->y != ir->spec()->full_y ||
@@ -459,6 +503,9 @@ output_file (int argc, const char *argv[])
         action_croptofull (1, argv);
         ir = ot.curimg;
     }
+
+    // FIXME -- both autotrim and autocrop above neglect to handle
+    // MIPmaps or subimages with full generality.
 
     std::vector<ImageSpec> subimagespecs (ir->subimages());
     for (int s = 0;  s < ir->subimages();  ++s) {
@@ -2078,7 +2125,7 @@ action_capture (int argc, const char *argv[])
 
 
 
-static int
+int
 action_crop (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_crop, argc, argv))
@@ -3096,6 +3143,8 @@ getargs (int argc, char *argv[])
                     "Adjust file times to match DateTime metadata",
                 "--noautocrop %!", &ot.output_autocrop, 
                     "Do not automatically crop images whose formats don't support separate pixel data and full/display windows",
+                "--autotrim", &ot.output_autotrim, 
+                    "Automatically trim black borders upon output to file formats that support separate pixel data and full/display windows",
                 "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
                 "--attrib %@ %s %s", set_any_attribute, NULL, NULL, "Sets metadata attribute (name, value)",
                 "--sattrib %@ %s %s", set_string_attribute, NULL, NULL, "Sets string metadata attribute (name, value)",
