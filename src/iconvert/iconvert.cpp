@@ -507,6 +507,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 int
 main (int argc, char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv);
 
     OIIO::attribute ("threads", nthreads);

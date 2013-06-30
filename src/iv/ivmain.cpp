@@ -55,6 +55,7 @@
 #include "sysutil.h"
 #include "strutil.h"
 #include "imagecache.h"
+#include "filesystem.h"
 
 OIIO_NAMESPACE_USING;
 
@@ -113,6 +114,7 @@ getargs (int argc, char *argv[])
 int
 main (int argc, char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv);
 
     if (! foreground_mode)
