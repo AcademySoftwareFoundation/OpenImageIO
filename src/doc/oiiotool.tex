@@ -652,6 +652,16 @@ concepts of pixel data windows and full/display windows.  This is a
 non-issue for file formats that support these concepts, such as OpenEXR.
 \apiend
 
+\apiitem{--autotrim}
+\NEW % 1.2
+For subsequent outputs, if the output format supports separate pixel
+data and full/display windows, automatically trim the output so that
+it writes the minimal data window that contains all the non-zero valued
+pixels.  In other words, trim off any all-black border rows and columns
+before writing the file.
+\apiend
+
+
 \section{\oiiotool commands that change the current image metadata}
 
 This section describes \oiiotool commands that alter the metadata
@@ -799,27 +809,8 @@ on the stack being identical copies.
 \apiend
 
 \apiitem{--swap}
-\NEW
+\NEW % 1.2
 Swap the current image and the next one on the stack.
-\apiend
-
-\apiitem{--ch {\rm \emph{channellist}}}
-Replaces the top image with a new copy whose channels have been 
-reordered as given by the \emph{channellist}.  The {\cf channellist}
-is a comma-separated list of channel names and/or numbers (e.g., 
-\qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
-the valid range of input channels, or unknown names, will be replaced
-by black channels.
-\NEW A channel designation beginning with the {\cf =} character and followed
-by a number is a \emph{literal value} that will be used to fill that
-channel.  If the \emph{channellist} is shorter than the number of
-channels in the source image, unspecified channels will be omitted.
-\apiend
-
-\apiitem{--chappend}
-\NEW
-Replaces the top two images on the stack with a new image comprised of
-the channels of both images appended together.
 \apiend
 
 \apiitem{--selectmip {\rm \emph{level}}}
@@ -841,6 +832,24 @@ If the current image has multiple subimages, replace the current image
 with a new image consisting of only the given subimage.
 \apiend
 
+\apiitem{--ch {\rm \emph{channellist}}}
+Replaces the top image with a new copy whose channels have been 
+reordered as given by the \emph{channellist}.  The {\cf channellist}
+is a comma-separated list of channel names and/or numbers (e.g., 
+\qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
+the valid range of input channels, or unknown names, will be replaced
+by black channels.
+\NEW A channel designation beginning with the {\cf =} character and followed
+by a number is a \emph{literal value} that will be used to fill that
+channel.  If the \emph{channellist} is shorter than the number of
+channels in the source image, unspecified channels will be omitted.
+\apiend
+
+\apiitem{--chappend}
+\NEW  % 1.2
+Replaces the top two images on the stack with a new image comprised of
+the channels of both images appended together.
+\apiend
 
 
 \section{\oiiotool commands that make entirely new images}
