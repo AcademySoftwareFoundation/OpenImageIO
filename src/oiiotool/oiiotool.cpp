@@ -3522,6 +3522,7 @@ main (int argc, char *argv[])
     ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
 //    ot.imagecache->attribute ("autotile", 1024);
 
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {
         // Deal with sequence
 

@@ -322,7 +322,6 @@ ArgOption::add_argument (const char *argv)
 ArgParse::ArgParse (int argc, const char **argv)
     : m_argc(argc), m_argv(argv), m_global(NULL)
 {
-    Filesystem::convert_native_arguments (m_argc, m_argv);
 }
 
 
@@ -349,8 +348,6 @@ ArgParse::parse (int xargc, const char **xargv)
 {
     m_argc = xargc;
     m_argv = xargv;
-
-    Filesystem::convert_native_arguments (m_argc, m_argv);
 
     for (int i = 1; i < m_argc; i++) {
         if (m_argv[i][0] == '-' && 

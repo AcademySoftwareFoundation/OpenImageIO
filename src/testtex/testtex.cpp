@@ -51,6 +51,7 @@
 #include "imagebufalgo_util.h"
 #include "texture.h"
 #include "fmath.h"
+#include "filesystem.h"
 #include "sysutil.h"
 #include "strutil.h"
 #include "timer.h"
@@ -1002,6 +1003,7 @@ test_icwrite (int testicwrite)
 int
 main (int argc, const char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, argv);
     getargs (argc, argv);
 
     OIIO::attribute ("threads", nthreads);

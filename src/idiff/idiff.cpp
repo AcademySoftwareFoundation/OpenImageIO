@@ -43,6 +43,7 @@
 #include "imagecache.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "filesystem.h"
 
 #ifdef __APPLE__
  using std::isinf;
@@ -194,6 +195,7 @@ print_subimage (ImageBuf &img0, int subimage, int miplevel)
 int
 main (int argc, char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv);
 
     std::cout << "Comparing \"" << filenames[0] 
