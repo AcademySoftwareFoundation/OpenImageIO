@@ -285,7 +285,7 @@ adjust_spec (ImageSpec &outspec, const std::string &dataformatname)
 
 
 inline Imath::V3f
-warp (float x, float y, Imath::M33f &xform)
+warp (float x, float y, const Imath::M33f &xform)
 {
     Imath::V3f coord (x, y, 1.0f);
     coord *= xform;
@@ -295,12 +295,23 @@ warp (float x, float y, Imath::M33f &xform)
 
 
 inline Imath::V3f
-warp (float x, float y, float z, Imath::M33f &xform)
+warp (float x, float y, float z, const Imath::M33f &xform)
 {
     Imath::V3f coord (x, y, z);
     coord *= xform;
     coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
     return coord;
+}
+
+
+inline Imath::V2f
+warp_coord (float x, float y)
+{
+    Imath::V3f coord = warp (x/output_xres, y/output_yres, xform);
+    coord.x *= sscale;
+    coord.y *= tscale;
+    coord += offset;
+    return Imath::V2f (coord.x, coord.y);
 }
 
 
@@ -324,18 +335,9 @@ static void
 map_warp (int x, int y, float &s, float &t,
           float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
-    Imath::V3f coord = warp (float(x+0.5f)/output_xres, float(y+0.5f)/output_yres, xform);
-    coord.x *= sscale;
-    coord.y *= tscale;
-    coord += offset;
-    Imath::V3f coordx = warp (float(x+1.5f)/output_xres, float(y+0.5f)/output_yres, xform);
-    coordx.x *= sscale;
-    coordx.y *= tscale;
-    coordx += offset;
-    Imath::V3f coordy = warp (float(x+0.5f)/output_xres, float(y+1.5f)/output_yres, xform);
-    coordy.x *= sscale;
-    coordy.y *= tscale;
-    coordy += offset;
+    const Imath::V2f coord  = warp_coord (x+0.5f, y+0.5f);
+    const Imath::V2f coordx = warp_coord (x+1.5f, y+0.5f);
+    const Imath::V2f coordy = warp_coord (x+0.5f, y+1.5f);
     s = coord[0];
     t = coord[1];
     dsdx = coordx[0] - coord[0];
