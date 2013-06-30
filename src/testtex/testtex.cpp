@@ -359,21 +359,21 @@ map_tube (int x, int y, float &s, float &t,
     float theta = atan2f (yt, xt);
     // See OSL's Dual2 for partial derivs of
     // atan2, hypot, and 1/x
-    float denom = 1.0f / (xt*xt + yt*yt);
-    float dtheta_dx = yt*dxt_dx * denom;
-    float dtheta_dy = -xt*dyt_dy * denom;
-    s = 4.0f * theta / (2.0f * M_PI);
-    dsdx = 4.0f * dtheta_dx / (2.0f * M_PI);
-    dsdy = 4.0f * dtheta_dy / (2.0f * M_PI);
-    float h = hypot(xt,yt);
-    float dh_dx = xt*dxt_dx / h;
-    float dh_dy = yt*dyt_dy / h;
+    double denom = 1.0 / (xt*xt + yt*yt);
+    double dtheta_dx = yt*dxt_dx * denom;
+    double dtheta_dy = -xt*dyt_dy * denom;
+    s = float(4.0 * theta / (2.0 * M_PI));
+    dsdx = float(4.0 * dtheta_dx / (2.0 * M_PI));
+    dsdy = float(4.0 * dtheta_dy / (2.0 * M_PI));
+    double h = hypot(xt,yt);
+    double dh_dx = xt*dxt_dx / h;
+    double dh_dy = yt*dyt_dy / h;
     h *= M_SQRT2;
     dh_dx *= M_SQRT2; dh_dy *= M_SQRT2;
-    float hinv = 1.0f / h;
-    t = hinv;
-    dtdx = hinv * (-hinv * dh_dx);
-    dtdy = hinv * (-hinv * dh_dy);
+    double hinv = 1.0 / h;
+    t = float(hinv);
+    dtdx = float(hinv * (-hinv * dh_dx));
+    dtdy = float(hinv * (-hinv * dh_dy));
 }
 
 
@@ -397,7 +397,7 @@ map_filtertest (int x, int y, float &s, float &t,
 {
     float minoraxis = 1.0f/256;
     float majoraxis = minoraxis * lerp (1.0f, 32.0f, (float)x/(output_xres-1));
-    float angle = 2.0f * M_PI * (float)y/(output_yres-1);
+    float angle = (float)(2.0 * M_PI * (double)y/(output_yres-1));
     float sinangle, cosangle;
     sincos (angle, &sinangle, &cosangle);
     s = 0.5f;
@@ -975,8 +975,8 @@ main (int argc, const char *argv[])
             double t = time_trial (boost::bind(launch_tex_threads,nt,its),
                                    ntrials, &range);
             if (nt == 1)
-                single_thread_time = t;
-            float efficiency = (single_thread_time /*/nt*/) / t;
+                single_thread_time = (float)t;
+            float efficiency = (single_thread_time /*/nt*/) / (float)t;
             std::cout << Strutil::format ("%2d      %8.2f %6.1f%%    range %.2f\t(%d iters/thread)\n",
                                           nt, t, efficiency*100.0f, range, its);
             if (! wedge)
