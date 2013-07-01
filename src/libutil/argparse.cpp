@@ -532,7 +532,7 @@ ArgParse::usage () const
                     std::cout << std::string (maxlen + 2 - fmtlen, ' ');
                 else
                     std::cout << "\n    " << std::string (maxlen + 2, ' ');
-                std::cout << Strutil::wordwrap(opt->description(), columns-2, maxlen+2+4+2) << '\n';
+                std::cout << Strutil::wordwrap(opt->description(), columns-2, (int)maxlen+2+4+2) << '\n';
             }
         }
     }

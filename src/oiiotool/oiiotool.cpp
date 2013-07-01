@@ -1063,7 +1063,7 @@ action_ociolook (int argc, const char *argv[])
     std::string tospace = options["to"];
     std::string contextkey = options["key"];
     std::string contextvalue = options["value"];
-    bool inverse = Strutil::from_string<int> (options["inverse"]);
+    bool inverse = Strutil::from_string<int> (options["inverse"]) != 0;
 
     ImageRecRef A = ot.curimg;
     ot.read (A);
