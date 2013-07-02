@@ -292,7 +292,12 @@ main (int argc, char *argv[])
                     std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
                     if (img0.spec().depth > 1)
                         std::cout << ", " << cr.maxz;
-                    std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    if (cr.maxc < (int)img0.spec().channelnames.size())
+                        std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    else if (cr.maxc < (int)img1.spec().channelnames.size())
+                        std::cout << ", " << img1.spec().channelnames[cr.maxc] << ')';
+                    else
+                        std::cout << ", channel " << cr.maxc << ')';
                 }
                 std::cout << "\n";
 // when Visual Studio is used float values in scientific foramt are 
