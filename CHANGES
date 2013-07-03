@@ -120,7 +120,10 @@ Fixes, minor enhancements, and performance improvements:
   * oiiotool has been sped up by forcing read of the whole image up front
       for reasonably-sized files (instead of relying on ImageCache).
   * oiiotool does not write output images if fatal errors have occurred.
-  * oiiotool --diff: Better error handling.
+  * oiiotool --diff: Better error handling, better error printing, and
+    now it can compare images with differing data windows or channel
+    numbers ("missing" channels or pixels are presumed to be 0 for the
+    purposes of comparing).
   * oiiotool --resize (and --fit): properly handle the case of resizing
     to the same size as the original image.
   * oiiotool -d CHAN=TYPE can set the output for just one channel.
@@ -149,6 +152,7 @@ Fixes, minor enhancements, and performance improvements:
     double-swapping bytes.
   * Targa: more robust check for presence of alpha channels; bug fix where
     R and B channels were reversed for certain kinds of palette images.
+  * TIFF: Store the orientation flag properly when outputting a TIFF file.
 * maketx improvements:
   * maketx --chnames allows you to rename the channels when you create a
     texture.
