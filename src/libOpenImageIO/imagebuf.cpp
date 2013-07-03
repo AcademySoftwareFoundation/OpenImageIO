@@ -578,6 +578,8 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
                     ProgressCallback progress_callback,
                     void *progress_callback_data)
 {
+    if (m_clientpixels)
+        return true;        // Don't read client allocated images (no error)
     if (m_pixels_valid && !force &&
             subimage == m_current_subimage && miplevel == m_current_miplevel)
         return true;
