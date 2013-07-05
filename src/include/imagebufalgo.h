@@ -870,6 +870,21 @@ bool OIIO_API color_range_check (const ImageBuf &src,
                                  const float *low, const float *high,
                                  ROI roi=ROI::All(), int nthreads=0);
 
+/// Find the minimal rectangular region within roi (which defaults to
+/// the entire pixel data window of src) that consists of nonzero pixel
+/// values.  In other words, gives the region that is a "shrink-wraps"
+/// of src to exclude black border pixels.  Note that if the entire
+/// image was black, the ROI returned will contain no pixels.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types.
+OIIO_API ROI nonzero_region (const ImageBuf &src,
+                             ROI roi=ROI::All(), int nthreads=0);
+
 /// Compute the SHA-1 byte hash for all the pixels in the specifed
 /// region of the image.  If blocksize > 0, the function will compute
 /// separate SHA-1 hashes of each 'blocksize' batch of scanlines, then
