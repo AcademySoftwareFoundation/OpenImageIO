@@ -616,6 +616,57 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
 
 
 
+ROI
+ImageBufAlgo::nonzero_region (const ImageBuf &src, ROI roi, int nthreads)
+{
+    std::vector<float> zero (src.nchannels(), 0.0f);
+    std::vector<float> color (src.nchannels(), 0.0f);
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+    // Trim bottom
+    for ( ; roi.ybegin < roi.yend; --roi.yend) {
+        ROI test = roi;  test.ybegin = roi.yend-1;
+        if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+            break;
+    }
+    // Trim top
+    for ( ; roi.ybegin < roi.yend; ++roi.ybegin) {
+        ROI test = roi;  test.yend = roi.ybegin+1;
+        if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+            break;
+    }
+    // Trim right
+    for ( ; roi.xbegin < roi.xend; --roi.xend) {
+        ROI test = roi;  test.xbegin = roi.xend-1;
+        if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+            break;
+    }
+    // Trim left
+    for ( ; roi.xbegin < roi.xend; ++roi.xbegin) {
+        ROI test = roi;  test.xend = roi.xbegin+1;
+        if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+            break;
+    }
+    if (roi.depth() > 1) {
+        // Trim zbottom
+        for ( ; roi.zbegin < roi.zend; --roi.zend) {
+            ROI test = roi;  test.zbegin = roi.zend-1;
+            if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+                break;
+        }
+        // Trim ztop
+        for ( ; roi.zbegin < roi.zend; ++roi.zbegin) {
+            ROI test = roi;  test.zend = roi.zbegin+1;
+            if (! isConstantColor (src, &color[0], test, nthreads) || color != zero)
+                break;
+        }
+    }
+    return roi;
+}
+
+
+
+
 namespace {
 
 std::string
