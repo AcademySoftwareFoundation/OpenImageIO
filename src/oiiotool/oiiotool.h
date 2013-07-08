@@ -73,6 +73,7 @@ public:
     std::string output_planarconfig;
     bool output_adjust_time;
     bool output_autocrop;
+    bool output_autotrim;
 
     // Options for --diff
     float diff_warnthresh;
