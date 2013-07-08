@@ -4,7 +4,7 @@ project (OpenImageIO)
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 2)
 set (OIIO_VERSION_PATCH 0)
-set (OIIO_VERSION_RELEASE_TYPE "beta2")   # "dev", "betaX", "RCY", ""
+set (OIIO_VERSION_RELEASE_TYPE "")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)

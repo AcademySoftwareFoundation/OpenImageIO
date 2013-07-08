@@ -1,7 +1,7 @@
 Changes:
 
 
-Release 1.2 (27 Jun 2013)
+Release 1.2 (8 July 2013)
 -------------------------
 Major new features and improvements:
 * New oiiotool commands:
@@ -33,6 +33,7 @@ Major new features and improvements:
     --colorcount  Counts how many pixels are one of a list of colors.
     --rangecheck  Counts how many pixels fall outside the given range.
     --ociolook    Apply OpenColorIO "looks"
+    --autotrim    Shrinks pixel data window upon output to trim black edges.
 * oiiotool can loop over entire numeric frame ranges by specifying
   wildcard filenames such as "foo.#.tif" or "bar.1-10#.exr".
 * oiiotool --frames and --framepadding give more explicit control over
@@ -86,7 +87,7 @@ Public API changes:
   constant amount to all pixels, fillholes_pp(), resample(), clamp(),
   rangecompress(), rangeexpand(), make_kernel(), unsharp_mask(),
   transpose(), channel_sum(), circular_shift(), fft(), ifft(),
-  color_count(), color_range_check().
+  color_count(), color_range_check(), nonzero_region().
   [look in imagebufalgo.h for documentation.]
 * ImageBufAlgo::make_texture() allows you to do the same thing that
   maketx does, but from inside an application and without launching a
@@ -200,6 +201,7 @@ Build/test system improvements:
 * Fixes to compile on ESA/390 mainframe (!).
 * testtex --threadtimes, --trials, --iters, --nodup, --wedge.  These
   are helpful in using testtext to benchmark the texture system.
+* Improvements to make more tests work properly on Windows.
 
 Developer goodies:
 * Improved ASSERT and DASSERT macros to not generate warning for certain
