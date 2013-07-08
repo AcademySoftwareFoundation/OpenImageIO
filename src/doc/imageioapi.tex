@@ -632,6 +632,16 @@ general (pointer) form of {\cf getattribute()}:
 \apiend
 
 
+\apiitem{void {\ce declare_imageio_format} (const std::string \&format_name,\\
+\bigspc\bigspc\spc                    ImageInput::Creator input_creator, \\
+\bigspc\bigspc\spc                    const char **input_extensions,\\
+\bigspc\bigspc\spc                    ImageOutput::Creator output_creator, \\
+\bigspc\bigspc\spc                     const char **output_extensions)}
+\NEW
+Register the input and output `create' routines and list of file
+extensions for a particular format.
+\apiend
+
 
 \index{Image I/O API|)}
 

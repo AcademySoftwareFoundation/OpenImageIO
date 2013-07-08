@@ -11,6 +11,11 @@ Public API changes:
   images" to the IC.
 * ImageCache::add_tile() lets you add tiles to the ImageCache. The caller
   can initialize those tiles with any pixel values it chooses.
+* OIIO::declare_imageio_format() exposes a way to give OIIO a custom
+  ImageInput and/or ImageOutput (via factory functions) and associate them
+  with particular file extensions. This makes it especially easy for an
+  app to make a procedural image generator that looks to the entire rest
+  of OIIO like a regular image file. (1.3.1)
 
 Fixes, minor enhancements, and performance improvements:
 

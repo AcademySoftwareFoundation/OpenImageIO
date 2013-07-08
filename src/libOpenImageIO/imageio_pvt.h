@@ -46,10 +46,6 @@ OIIO_NAMESPACE_ENTER
 
 namespace pvt {
 
-/// Prototype for imageio factory prototype
-///
-typedef void* (*create_prototype)();
-
 /// Mutex allowing thread safety of ImageOutput internals
 ///
 extern recursive_mutex imageio_mutex;

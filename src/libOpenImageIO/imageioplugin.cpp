@@ -50,18 +50,19 @@ OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;
 
-typedef std::map <std::string, create_prototype> PluginMap;
+typedef std::map <std::string, ImageInput::Creator> InputPluginMap;
+typedef std::map <std::string, ImageOutput::Creator> OutputPluginMap;
 
 namespace {
 
 // Map format name to ImageInput creation
-static PluginMap input_formats;
+static InputPluginMap input_formats;
 // Map format name to ImageOutput creation
-static PluginMap output_formats;
+static OutputPluginMap output_formats;
 // Map file extension to ImageInput creation
-static PluginMap input_extensions;
+static InputPluginMap input_extensions;
 // Map file extension to ImageOutput creation
-static PluginMap output_extensions;
+static OutputPluginMap output_extensions;
 // Map format name to plugin handle
 static std::map <std::string, Plugin::Handle> plugin_handles;
 // Map format name to full path
@@ -81,14 +82,18 @@ add_if_missing (std::vector<std::string> &vec, const std::string &val)
         vec.push_back (val);
 }
 
+} // anon namespace
+
 
 
 /// Register the input and output 'create' routine and list of file
 /// extensions for a particular format.
-static void
-declare_plugin (const std::string &format_name,
-                create_prototype input_creator, const char **input_extensions,
-                create_prototype output_creator, const char **output_extensions)
+void
+declare_imageio_format (const std::string &format_name,
+                        ImageInput::Creator input_creator,
+                        const char **input_extensions,
+                        ImageOutput::Creator output_creator,
+                        const char **output_extensions)
 {
     std::vector<std::string> all_extensions;
     // Look for input creator and list of supported extensions
@@ -133,7 +138,6 @@ declare_plugin (const std::string &format_name,
 }
 
 
-
 static void
 catalog_plugin (const std::string &format_name,
                 const std::string &plugin_fullpath)
@@ -174,23 +178,23 @@ catalog_plugin (const std::string &format_name,
     plugin_filepaths[format_name] = plugin_fullpath;
     plugin_handles[format_name] = handle;
 
-    create_prototype input_creator =
-        (create_prototype) Plugin::getsym (handle, format_name+"_input_imageio_create");
+    ImageInput::Creator input_creator =
+        (ImageInput::Creator) Plugin::getsym (handle, format_name+"_input_imageio_create");
     const char **input_extensions =
         (const char **) Plugin::getsym (handle, format_name+"_input_extensions");
-    create_prototype output_creator =
-        (create_prototype) Plugin::getsym (handle, format_name+"_output_imageio_create");
+    ImageOutput::Creator output_creator =
+        (ImageOutput::Creator) Plugin::getsym (handle, format_name+"_output_imageio_create");
     const char **output_extensions =
         (const char **) Plugin::getsym (handle, format_name+"_output_extensions");
 
     if (input_creator || output_creator)
-        declare_plugin (format_name, input_creator, input_extensions,
-                        output_creator, output_extensions);
+        declare_imageio_format (format_name, input_creator, input_extensions,
+                                output_creator, output_extensions);
     else
         Plugin::close (handle);   // not useful
 }
 
-}
+
 
 #ifdef EMBED_PLUGINS
 
@@ -244,12 +248,12 @@ catalog_builtin_plugins ()
 {
 #ifdef EMBED_PLUGINS
     // Use DECLAREPLUG macro to make this more compact and easy to read.
-#define DECLAREPLUG(name)                                               \
-    declare_plugin (#name,                                              \
-                    (create_prototype) name ## _input_imageio_create,   \
-                    name ## _input_extensions,                          \
-                    (create_prototype) name ## _output_imageio_create,  \
-                    name ## _output_extensions)
+#define DECLAREPLUG(name)                                                 \
+    declare_imageio_format (#name,                                        \
+                   (ImageInput::Creator) name ## _input_imageio_create,   \
+                   name ## _input_extensions,                             \
+                   (ImageOutput::Creator) name ## _output_imageio_create, \
+                   name ## _output_extensions)
 
     DECLAREPLUG (bmp);
     DECLAREPLUG (cineon);
@@ -367,7 +371,7 @@ ImageOutput::create (const std::string &filename,
         return NULL;
     }
 
-    create_prototype create_function = output_formats[format];
+    ImageOutput::Creator create_function = output_formats[format];
     ASSERT (create_function != NULL);
     return (ImageOutput *) create_function();
 }
@@ -410,9 +414,9 @@ ImageInput::create (const std::string &filename,
                                  : pvt::plugin_searchpath.string());
 
     // Remember which prototypes we've already tried, so we don't double dip.
-    std::vector<create_prototype> formats_tried;
+    std::vector<ImageInput::Creator> formats_tried;
 
-    create_prototype create_function = NULL;
+    ImageInput::Creator create_function = NULL;
     std::string specific_error;
     if (input_formats.find (format) != input_formats.end()) {
         create_function = input_formats[format];
@@ -458,7 +462,7 @@ ImageInput::create (const std::string &filename,
         // doesn't yet exist).
         ImageSpec config;
         config.attribute ("nowait", (int)1);
-        for (PluginMap::const_iterator plugin = input_formats.begin();
+        for (InputPluginMap::const_iterator plugin = input_formats.begin();
              plugin != input_formats.end(); ++plugin)
         {
             // If we already tried this create function, don't do it again
@@ -468,7 +472,7 @@ ImageInput::create (const std::string &filename,
             formats_tried.push_back (plugin->second);  // remember
 
             ImageSpec tmpspec;
-            ImageInput *in = (ImageInput*) plugin->second();
+            ImageInput *in = plugin->second();
             if (! in)
                 continue;
             if (! do_open && ! in->valid_file(filename)) {
