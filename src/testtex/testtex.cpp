@@ -97,6 +97,7 @@ static bool resetstats = false;
 static bool testhash = false;
 static bool wedge = false;
 static int ntrials = 1;
+static int testicwrite = 0;
 static Imath::M33f xform;
 void *dummyptr;
 
@@ -169,6 +170,7 @@ getargs (int argc, const char *argv[])
                   "--threadtimes %d", &threadtimes, "Do thread timings (arg = workload profile)",
                   "--trials %d", &ntrials, "Number of trials for timings",
                   "--wedge", &wedge, "Wedge test",
+                  "--testicwrite %d", &testicwrite, "Test ImageCache write ability (1=seeded, 2=generated)",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -892,6 +894,111 @@ launch_tex_threads (int numthreads, int iterations)
 
 
 
+class GridImageInput : public ImageInput {
+public:
+    GridImageInput () : m_miplevel(-1) { }
+    virtual ~GridImageInput () { close(); }
+    virtual const char * format_name (void) const { return "grid"; }
+    virtual bool valid_file (const std::string &filename) const { return true; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) {
+        return seek_subimage (0, 0, newspec);
+    }
+    virtual bool close () { return true; }
+    virtual int current_miplevel (void) const { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) {
+        if (subimage > 0)
+            return false;
+        if (miplevel > 0 && automip /* if automip is on, don't generate MIP */)
+            return false;
+        if (miplevel == m_miplevel)
+            return true;
+        int res = 512;
+        res >>= miplevel;
+        if (res == 0)
+            return false;
+        m_spec = ImageSpec (res, res, 3, TypeDesc::FLOAT);
+        m_spec.tile_width = std::min (64, res);
+        m_spec.tile_height = std::min (64, res);
+        m_spec.tile_depth = 1;
+        newspec = m_spec;
+        m_miplevel = miplevel;
+        return true;
+    }
+    virtual bool read_native_scanline (int y, int z, void *data) { return false; }
+    virtual bool read_native_tile (int xbegin, int ybegin, int zbegin, void *data) {
+        float *tile = (float *)data;
+        for (int z = zbegin, zend = z+m_spec.tile_depth; z < zend; ++z)
+            for (int y = ybegin, yend = y+m_spec.tile_height; y < yend; ++y)
+                for (int x = xbegin, xend = x+m_spec.tile_width; x < xend; ++x) {
+                    tile[0] = float(x)/m_spec.width;
+                    tile[2] = float(y)/m_spec.height;
+                    tile[1] = (((x/16)&1) == ((y/16)&1)) ? 1.0f/(m_miplevel+1) : 0.05f;
+                    tile += m_spec.nchannels;
+                }
+        return true;
+    }
+private:
+    int m_miplevel;
+};
+
+
+
+ImageInput *make_grid_input () { return new GridImageInput; }
+
+
+
+void
+test_icwrite (int testicwrite)
+{
+    std::cout << "Testing IC write, mode " << testicwrite << "\n";
+
+    // The global "shared" ImageCache will be the same one the
+    // TextureSystem uses.
+    ImageCache *ic = ImageCache::create ();
+
+    // Set up the fake file ane add it
+    int tw = 64, th = 64;  // tile width and height
+    int nc = 3;  // channels
+    ImageSpec spec (512, 512, nc, TypeDesc::FLOAT);
+    spec.depth = 1;
+    spec.tile_width = tw;
+    spec.tile_height = th;
+    spec.tile_depth = 1;
+    ustring filename (filenames[0]);
+    bool ok = ic->add_file (filename, make_grid_input);
+    if (! ok)
+        std::cout << "ic->add_file error: " << ic->geterror() << "\n";
+    ASSERT (ok);
+
+    // Now add all the tiles if it's a seeded map
+    // testicwrite == 1 means to seed the first MIP level using add_tile.
+    // testicwrite == 2 does not use add_tile, but instead will rely on
+    // the make_grid_input custom ImageInput that constructs a pattern
+    // procedurally.
+    if (testicwrite == 1) {
+        std::vector<float> tile (spec.tile_pixels() * spec.nchannels);
+        for (int ty = 0;  ty < spec.height;  ty += th) {
+            for (int tx = 0;  tx < spec.width;  tx += tw) {
+                // Construct a tile
+                for (int y = 0; y < th; ++y)
+                    for (int x = 0; x < tw; ++x) {
+                        int index = (y*tw + x) * nc;
+                        int xx = x+tx, yy = y+ty;
+                        tile[index+0] = float(xx)/spec.width;
+                        tile[index+1] = float(yy)/spec.height;
+                        tile[index+2] = (!(xx%10) || !(yy%10)) ? 1.0f : 0.0f;
+                    }
+                bool ok = ic->add_tile (filename, 0, 0, tx, ty, 0, TypeDesc::FLOAT, &tile[0]);
+                if (! ok)
+                    std::cout << "ic->add_tile error: " << ic->geterror() << "\n";
+                ASSERT (ok);
+            }
+        }
+    }
+}
+
+
+
 int
 main (int argc, const char *argv[])
 {
@@ -934,6 +1041,10 @@ main (int argc, const char *argv[])
             dummyptr = &copy;  // This forces the optimizer to keep the loop
         }
         std::cout << "TextureOpt memcpy: " << t() << " ns\n";
+    }
+
+    if (testicwrite && filenames.size()) {
+        test_icwrite (testicwrite);
     }
 
     if (test_getimagespec) {
@@ -1014,7 +1125,7 @@ main (int argc, const char *argv[])
         }
         test_getimagespec_gettexels (filename);
     }
-    
+
     std::cout << "Memory use: "
               << Strutil::memformat (Sysutil::memory_used(true)) << "\n";
     TextureSystem::destroy (texsys);
