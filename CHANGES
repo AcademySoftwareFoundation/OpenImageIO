@@ -7,13 +7,16 @@ Major new features and improvements:
 
 Public API changes:
 * ImageCache::add_file() lets you seed the ImageCache with a "virtual file"
-  that will read from a custom ImageInput (passing a factory for the 
-  ImageInput).  This lets you add "procedural images" to the IC.
+  that will read from a custom ImageInput.  This lets you add "procedural
+  images" to the IC.
 * ImageCache::add_tile() lets you add tiles to the ImageCache. The caller
   can initialize those tiles with any pixel values it chooses.
 
 Fixes, minor enhancements, and performance improvements:
+
 Build/test system improvements:
+* Fix broken tests under Windows.
+
 Developer goodies:
 
 
