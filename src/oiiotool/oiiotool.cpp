@@ -3256,7 +3256,7 @@ getargs (int argc, char *argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage ();
-        exit (EXIT_FAILURE);
+        exit (EXIT_SUCCESS);
     }
     if (help || argc <= 1) {
         ap.usage ();
@@ -3290,7 +3290,7 @@ getargs (int argc, char *argv[])
             std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
         }
 
-        exit (EXIT_FAILURE);
+        exit (EXIT_SUCCESS);
     }
 
 }
