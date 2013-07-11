@@ -3246,7 +3246,7 @@ getargs (int argc, char *argv[])
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 "--ociolook %@ %s", action_ociolook, NULL,
-                    "Apply the named OCIO look (optional args: fromspace=, tospace=, inverse=, key=, value=)",
+                    "Apply the named OCIO look (optional args: from=, to=, inverse=, key=, value=)",
                 "--unpremult %@", action_unpremult, NULL,
                     "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
                 "--premult %@", action_premult, NULL,
