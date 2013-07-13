@@ -20,3 +20,4 @@ else
   include ${working_dir}/site/spi/Makefile-bits-arnold
 endif
 
+MY_CMAKE_FLAGS += -DSPI_TESTS=1

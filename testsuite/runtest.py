@@ -177,10 +177,20 @@ def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
     return cmd
 
 
-# Construct a command that will test 
+# Construct a command that will testtex
 def testtex_command (file, extraargs="") :
     cmd = (oiio_app("testtex") + " " + file + " " + extraargs + " " +
            " >> out.txt ;\n")
+    return cmd
+
+
+# Construct a command that will run oiiotool and append its output to out.txt
+def oiiotool (args, silent=False, concat=True) :
+    cmd = (oiio_app("oiiotool") + " " + args)
+    if not silent :
+        cmd += " >> out.txt"
+    if concat:
+        cmd += " ;\n"
     return cmd
 
 

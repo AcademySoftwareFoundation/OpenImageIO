@@ -388,6 +388,14 @@ oiio_add_tests (webp
 oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
 
+if (SPI_TESTS)
+  oiio_add_tests (spi
+    FOUNDVAR SPI_TESTS
+    IMAGEDIR spi-oiio-tests
+    URL "noplace -- it's SPI specific tests")
+endif ()
+
+
 
 #########################################################################
 # Packaging
