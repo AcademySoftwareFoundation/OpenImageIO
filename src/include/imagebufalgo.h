@@ -183,9 +183,9 @@ bool OIIO_API checker (ImageBuf &dst, int width,
 /// operation.  For any channel in which channelorder[i] < 0, it will
 /// just make dst channel i a constant color -- set to channelvalues[i]
 /// (if channelvalues != NULL) or 0.0 (if channelvalues == NULL).
-//
+///
 /// If channelorder is NULL, it will be interpreted as
-/// {0, 1, ..., nchannels-1} (meaning that it's only renaming channels,
+/// {0, 1, ..., nchannels-1}, meaning that it's only renaming channels,
 /// not reordering them.
 ///
 /// If newchannelnames is not NULL, it points to an array of new channel
@@ -420,8 +420,8 @@ bool OIIO_API clamp (ImageBuf &dst,
                      ROI roi = ROI::All(), int nthreads = 0);
 
 /// For all pixels within the designated region, add the pixels of two
-/// images A and B, putting the sum in dst.  All three images must have
-/// the same number of channels.
+/// images A and B, putting the sum in dst.  A and B must have the same
+/// number of channels.
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
 /// regions of A and B.  If dst is not initialized, it will be sized
@@ -560,8 +560,8 @@ bool OIIO_API mul (ImageBuf &dst, const float *val,
 /// sum of channels.  For each pixel of src within the designated ROI
 /// (defaulting to all of src, if not defined), sum the channels
 /// designated by roi and store the result in channel 0 of dst.  If
-/// weights is not NULL, weight[i] will provide a per-channel weight for
-/// a weighted sum (rather than defaulting to 1.0 for each channel).
+/// weights is not NULL, weight[i] will provide a per-channel weight
+/// (rather than defaulting to 1.0 for each channel).
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -588,7 +588,7 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
 /// individually (which could result in a big color shift).
 ///
 /// Some image operations (such as resizing with a "good" filter that
-/// contains negative lobes) can have objectional artifacts when applied
+/// contains negative lobes) can have objectionable artifacts when applied
 /// to images with very high-contrast regions involving extra bright
 /// pixels (such as highlights in HDR captured or rendered images).  By
 /// compressing the range of super-hot >1 pixels, then performing the
@@ -624,7 +624,7 @@ bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = true,
 /// In-place operations (dst == src) are supported.
 ///
 /// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You'll may want to use this
+/// premultiply after the color conversion.  You may want to use this
 /// flag if your image contains an alpha channel.
 ///
 /// Works with all data types.
@@ -823,7 +823,7 @@ bool OIIO_API isMonochrome (const ImageBuf &src,
 /// consecutive colors of nchans each.
 ///
 /// eps[0..nchans-1] are the error tolerances for a match, for each
-/// channel.  Setting eps[c] = numeric_limits<float>::max will
+/// channel.  Setting eps[c] = numeric_limits<float>::max() will
 /// effectively make it ignore the channel.  Passing eps == NULL will be
 /// interpreted as a tolerance of 0.001 for all channels (requires exact
 /// matches for 8 bit images, but allows a wee bit of imprecision for
@@ -847,12 +847,14 @@ bool OIIO_API color_count (const ImageBuf &src,
 
 /// Count how many pixels in the ROI are outside the value range.
 /// low[0..nchans-1] and high[0..nchans-1] are the low and high
-/// acceptable values for each color channel.  The number of pixels
-/// containing values that fall below the lower bound will be stored in
-/// *lowcount, the number of pixels containing values that fall above
-/// the upper bound will be stored in *highcount, and the number of
-/// pixels for which all channels fell within the bounds will be stored
-/// in *inrangecount.
+/// acceptable values for each color channel.
+///
+/// The number of pixels containing values that fall below the lower
+/// bound will be stored in *lowcount, the number of pixels containing
+/// values that fall above the upper bound will be stored in *highcount,
+/// and the number of pixels for which all channels fell within the
+/// bounds will be stored in *inrangecount. Any of these may be NULL,
+/// which simply means that the counts need not be collected or stored.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -893,7 +895,8 @@ OIIO_API ROI nonzero_region (const ImageBuf &src,
 /// (blocksize==0).  But by breaking up the hash into independent
 /// blocks, we can parallelize across multiple threads, given by
 /// nthreads (if nthreads is 0, it will use the global OIIO thread
-/// count).
+/// count).  The 'extrainfo' provides additional text that will be
+/// incorporated into the hash.
 std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
                                            const std::string &extrainfo = "",
                                            ROI roi = ROI::All(),
@@ -906,11 +909,11 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
 /// window of each correspond to each other, regardless of resolution).
 ///
 /// The caller may explicitly pass a reconstruction filter, or resize()
-/// will choose a reasonable default if NULL is passed.  If a filter is
-/// supplied, it will be used to weight the src pixels falling
-/// underneath it for each dst pixel; the filter's size is expressed in
-/// pixel units of the dst image.  If no filter is supplied, a default
-/// medium-quality (triangle) filter will be used.
+/// will choose a reasonable default if NULL is passed.  The filter is
+/// used to weight the src pixels falling underneath it for each dst
+/// pixel; the filter's size is expressed in pixel units of the dst
+/// image.  If no filter is supplied, a default medium-quality
+/// (triangle) filter will be used.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -957,7 +960,7 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 
 /// Replace the given ROI of dst with the convolution of src and
 /// a kernel.  If roi is not defined, it defaults to the full size
-/// of dst (or src, if dst was undefined).  If dst is uninitialized,
+/// of dst (or src, if dst was uninitialized).  If dst is uninitialized,
 /// it will be allocated to be the size specified by roi.  If 
 /// normalized is true, the kernel will be normalized for the 
 /// convolution, otherwise the original values will be used.
@@ -998,11 +1001,11 @@ bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
                            float width, float height, float depth = 1.0f,
                            bool normalize = true);
 
-/// Replace the given ROI of dst with the a sharpened version of the
+/// Replace the given ROI of dst with a sharpened version of the
 /// corresponding region of src using the ``unsharp mask'' technique.
 /// Unsharp masking basically works by first blurring the image (low
-/// pass filter) subtracting this from the original image, then
-/// adding the residual back to the original emphasize the edges.
+/// pass filter), subtracting this from the original image, then
+/// adding the residual back to the original to emphasize the edges.
 /// Roughly speaking,
 ///      dst = src + contrast * thresh(src - blur(src))
 ///
@@ -1037,7 +1040,7 @@ bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
 /// all of src's pixels.  Only one channel of src may be FFT'd at a
 /// time, so it will be the first channel described by roi (or, again,
 /// channel 0 if roi is undefined).  If not already in the correct
-/// format, it will be re-allocated to be a 2-channel float buffer of
+/// format, dst will be re-allocated to be a 2-channel float buffer of
 /// size width x height, with channel 0 being the "real" part and
 /// channel 1 being the the "imaginary" part.  The values returned are
 /// actually the unitary DFT, meaning that it is scaled by 1/sqrt(npixels).
@@ -1166,50 +1169,43 @@ bool OIIO_API capture_image (ImageBuf &dst, int cameranum = 0,
 
 
 
-/// Set R to the composite of A over B using the Porter/Duff definition
+/// Set dst to the composite of A over B using the Porter/Duff definition
 /// of "over", returning true upon success and false for any of a
-/// variety of failures (as described below).  All three buffers must
-/// have 'float' pixel data type.
+/// variety of failures (as described below).
 ///
-/// A and B must have valid alpha channels identified by their ImageSpec
-/// alpha_channel field, with the following two exceptions: (a) a
-/// 3-channel image with no identified alpha will be assumed to be RGB,
-/// alpha == 1.0; (b) a 4-channel image with no identified alpha will be
-/// assumed to be RGBA with alpha in channel [3].  If A or B do not have
-/// alpha channels (as determined by those rules) or if the number of
-/// non-alpha channels do not match between A and B, over() will fail,
-/// returning false.
+/// A and B (and dst, if already defined/allocated) must have valid alpha
+/// channels identified by their ImageSpec alpha_channel field.  If A or
+/// B do not have alpha channels (as determined by those rules) or if
+/// the number of non-alpha channels do not match between A and B,
+/// over() will fail, returning false.
 ///
-/// R is not already an initialized ImageBuf, it will be sized to
+/// If dst is not already an initialized ImageBuf, it will be sized to
 /// encompass the minimal rectangular pixel region containing the union
 /// of the defined pixels of A and B, and with a number of channels
 /// equal to the number of non-alpha channels of A and B, plus an alpha
-/// channel.  However, if R is already initialized, it will not be
+/// channel.  However, if dst is already initialized, it will not be
 /// resized, and the "over" operation will apply to its existing pixel
-/// data window.  In this case, R must have an alpha channel designated
+/// data window.  In this case, dst must have an alpha channel designated
 /// and must have the same number of non-alpha channels as A and B,
 /// otherwise it will fail, returning false.
 ///
-/// 'roi' specifies the region of R's pixels which will be computed;
+/// 'roi' specifies the region of dst's pixels which will be computed;
 /// existing pixels outside this range will not be altered.  If not
 /// specified, the default ROI value will be interpreted as a request to
-/// apply "A over B" to the entire region of R's pixel data.
+/// apply "A over B" to the entire region of dst's pixel data.
 ///
-/// A, B, and R need not perfectly overlap in their pixel data windows;
+/// A, B, and dst need not perfectly overlap in their pixel data windows;
 /// pixel values of A or B that are outside their respective pixel data
 /// window will be treated as having "zero" (0,0,0...) value.
 ///
-/// threads == 0, the default, indicates that over() should use as many
-/// CPU threads as are specified by the global OIIO "threads" attribute.
-/// Note that this is not a guarantee, for example, the implementation
-/// may choose to spawn fewer threads for images too small to make a
-/// large number of threads to be worthwhile.  Values of threads > 0 are
-/// a request for that specific number of threads, with threads == 1
-/// guaranteed to not spawn additional threads (this is especially
-/// useful if over() is being called from one thread of an
-/// already-multithreaded program).
-bool OIIO_API over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
-                     ROI roi = ROI::All(), int threads = 0);
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+bool OIIO_API over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                    ROI roi = ROI::All(), int threads = 0);
 
 
 /// Just like ImageBufAlgo::over(), but inputs A and B must have
@@ -1217,11 +1213,11 @@ bool OIIO_API over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// will determine which of A or B will be considered the foreground or
 /// background (lower z is foreground).  If z_zeroisinf is true, then
 /// z=0 values will be treated as if they are infinitely far away.
-bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      bool z_zeroisinf = false,
                      ROI roi = ROI::All(), int threads = 0);
 
-/// DEPRECATED -- preserved for link compatibility, but will be removed.
+/// DEPRECATED (1.2) -- preserved for link compatibility, but will be removed.
 bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
                      ROI roi, int threads = 0);
 
@@ -1283,12 +1279,18 @@ enum OIIO_API MakeTextureMode {
     _MakeTxLast
 };
 
-/// Turn an image file (filename) into a tiled, MIP-mapped, texture file
-/// (outputfilename).  The 'mode' describes what type of texture file we
-/// are creating.  If the outstream pointer is not NULL, it should point
-/// to a stream (for example, &std::out, or a pointer to a local 
-/// std::stringstream to capture output), which is where console output
-/// and error messages will be deposited.
+/// Turn an image into a tiled, MIP-mapped, texture file and write it to
+/// disk (outputfilename).  The 'mode' describes what type of texture
+/// file we are creating and may be one of:
+///    MakeTxTexture    Ordinary 2D texture
+///    MakeTxEnvLatl    Latitude-longitude environment map
+///    MakeTxEnvLatlFromLightProbe   Latitude-longitude environment map
+///                     constructed from a "light probe" image.
+///
+/// If the outstream pointer is not NULL, it should point to a stream
+/// (for example, &std::out, or a pointer to a local std::stringstream
+/// to capture output), which is where console output and error messages
+/// will be deposited.
 ///
 /// The 'config' is an ImageSpec that contains all the information and
 /// special instructions for making the texture.  Anything set in config
@@ -1392,7 +1394,7 @@ enum OIIO_API MakeTextureMode {
 ///                           If nonzero, will read the full input file locally
 ///                               if it is smaller than this threshold. Zero
 ///                               causes the system to make a good guess at
-//                                a reasonable threshold (e.g. 1 GB). (0)
+///                               a reasonable threshold (e.g. 1 GB). (0)
 ///    maketx:forcefloat (int)
 ///                           Forces a conversion through float data for
 ///                               the sake of ImageBuf math. (1)
@@ -1404,6 +1406,14 @@ enum OIIO_API MakeTextureMode {
 ///                               in the image, accumulated for each mip level
 ///                               with an odd resolution. (0)
 ///
+bool OIIO_API make_texture (MakeTextureMode mode,
+                            const ImageBuf &input,
+                            const std::string &outputfilename,
+                            const ImageSpec &config,
+                            std::ostream *outstream = NULL);
+
+/// Version of make_texture that starts with a filename and reads the input
+/// from that file, rather than being given an ImageBuf directly.
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::string &filename,
                             const std::string &outputfilename,
@@ -1418,13 +1428,6 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
 
-/// Version of make_texture that starts with an ImageBuf, rather than
-/// reading the input image from disk.
-bool OIIO_API make_texture (MakeTextureMode mode,
-                            const ImageBuf &input,
-                            const std::string &outputfilename,
-                            const ImageSpec &config,
-                            std::ostream *outstream = NULL);
 
 
 
