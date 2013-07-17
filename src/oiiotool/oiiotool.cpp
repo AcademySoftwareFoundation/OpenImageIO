@@ -1015,7 +1015,7 @@ action_colorconvert (int argc, const char *argv[])
             bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
             if (! ok)
                 ot.error (argv[0], (*ot.curimg)(s,m).geterror());
-            ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
+            ot.curimg->spec(s,m)->attribute ("oiio:Colorspace", tospace);
         }
     }
 
