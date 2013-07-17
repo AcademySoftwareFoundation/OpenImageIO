@@ -3246,7 +3246,7 @@ getargs (int argc, char *argv[])
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 "--ociolook %@ %s", action_ociolook, NULL,
-                    "Apply the named OCIO look (optional args: fromspace=, tospace=, inverse=, key=, value=)",
+                    "Apply the named OCIO look (optional args: from=, to=, inverse=, key=, value=)",
                 "--unpremult %@", action_unpremult, NULL,
                     "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
                 "--premult %@", action_premult, NULL,
@@ -3256,7 +3256,7 @@ getargs (int argc, char *argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage ();
-        exit (EXIT_FAILURE);
+        exit (EXIT_SUCCESS);
     }
     if (help || argc <= 1) {
         ap.usage ();
@@ -3290,7 +3290,7 @@ getargs (int argc, char *argv[])
             std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
         }
 
-        exit (EXIT_FAILURE);
+        exit (EXIT_SUCCESS);
     }
 
 }
