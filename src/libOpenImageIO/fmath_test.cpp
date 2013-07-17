@@ -72,8 +72,8 @@ void test_bit_range_convert ()
     OIIO_CHECK_EQUAL ((bit_range_convert<2,20>(3)), 1048575);
     OIIO_CHECK_EQUAL ((bit_range_convert<20,2>(1048575)), 3);
     OIIO_CHECK_EQUAL ((bit_range_convert<20,21>(1048575)), 2097151);
-    OIIO_CHECK_EQUAL ((bit_range_convert<32,32>(4294967295)), 4294967295);
-    OIIO_CHECK_EQUAL ((bit_range_convert<32,16>(4294967295)), 65535);
+    OIIO_CHECK_EQUAL ((bit_range_convert<32,32>(4294967295U)), 4294967295U);
+    OIIO_CHECK_EQUAL ((bit_range_convert<32,16>(4294967295U)), 65535);
 // These are not expected to work, since bit_range_convert only takes a
 // regular 'unsigned int' as parameter.  If we need >32 bit conversion,
 // we need to add a uint64_t version of bit_range_convert.
