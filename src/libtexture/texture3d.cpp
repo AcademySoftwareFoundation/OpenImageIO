@@ -378,10 +378,9 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 //    bool svalid[2], tvalid[2], rvalid[2];  // Valid texels?  false means black border
     union { bool bvalid[6]; unsigned long long ivalid; } valid_storage;
     valid_storage.ivalid = 0;
-    DASSERT (sizeof(valid_storage) >= 6*sizeof(bool));
+    DASSERT (sizeof(valid_storage) == 8);
     const unsigned long long none_valid = 0;
-    const unsigned long long all_valid = 0x010101010101LL;
-    DASSERT (__LITTLE_ENDIAN__ && "this trick won't work with big endian");
+    const unsigned long long all_valid = littleendian() ? 0x010101010101LL : 0x01010101010100LL;
     bool *svalid = valid_storage.bvalid;
     bool *tvalid = valid_storage.bvalid + 2;
     bool *rvalid = valid_storage.bvalid + 4;
