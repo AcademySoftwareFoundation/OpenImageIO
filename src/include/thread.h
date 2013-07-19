@@ -318,16 +318,17 @@ yield ()
 inline void
 pause (int delay)
 {
-#if defined(__GNUC__)
-    for (int i = 0; i < delay; ++i) {
-#if defined __arm__ || defined __s390__
-        __asm__ __volatile__("NOP;");
-#else
+#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+    for (int i = 0; i < delay; ++i)
         __asm__ __volatile__("pause;");
-#endif
-    }
+
+#elif defined(__GNUC__) && (defined(__arm__) || defined(__s390__))
+    for (int i = 0; i < delay; ++i)
+        __asm__ __volatile__("NOP;");
+
 #elif USE_TBB
     __TBB_Pause(delay);
+
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
 #if defined (_WIN64)
@@ -336,6 +337,7 @@ pause (int delay)
         _asm  pause
 #endif /* _WIN64 */
     }
+
 #else
     // No pause on this platform, just punt
     for (int i = 0; i < delay; ++i) ;
