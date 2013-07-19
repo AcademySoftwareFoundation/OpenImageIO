@@ -145,7 +145,6 @@ inline int blocksize (FieldRes::Ptr &f)
     typename SparseField<T>::Ptr sf (field_dynamic_cast<SparseField<T> >(f));
     if (sf)
         return sf->blockSize();
-    typedef FIELD3D_VEC3_T<T> VecData_T;
     typename SparseField<T>::Ptr vsf (field_dynamic_cast<SparseField<T> >(f));
     if (vsf)
         return vsf->blockSize();
