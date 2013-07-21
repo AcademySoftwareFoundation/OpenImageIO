@@ -149,19 +149,21 @@ Sysutil::this_program_path ()
 {
     char filename[10240];
     filename[0] = 0;
-    unsigned int size = sizeof(filename);
 
 #if defined(__linux__)
+    unsigned int size = sizeof(filename);
     int r = readlink ("/proc/self/exe", filename, size);
     ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
     if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
+    unsigned int size = sizeof(filename);
     int r = _NSGetExecutablePath (filename, &size);
     if (r == 0)
         r = size;
 #elif defined(_WIN32)
     // According to MSDN...
+    unsigned int size = sizeof(filename);
     int r = GetModuleFileName (NULL, filename, size);
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
@@ -169,7 +171,6 @@ Sysutil::this_program_path ()
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-//  char filename[1024];
     size_t cb = sizeof(filename);
     int r=1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
