@@ -3498,6 +3498,9 @@ handle_sequence (int argc, const char **argv)
             std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
                       << "' command never executed.\n";
         }
+        // Clear the stack at the end of each iteration
+        ot.curimg.reset ();
+        ot.image_stack.clear();
     }
 
     return true;
