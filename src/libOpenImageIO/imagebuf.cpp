@@ -53,6 +53,9 @@ OIIO_NAMESPACE_ENTER
 {
 
 
+static atomic_ll IB_local_mem_current;
+
+
 
 ROI
 get_roi (const ImageSpec &spec)
@@ -197,6 +200,7 @@ private:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
+    size_t m_allocated_size;     ///< How much memory we've allocated
     std::vector<char> m_blackpixel; ///< Pixel-sized zero bytes
     mutable std::string m_err;   ///< Last error message
 
@@ -215,7 +219,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
       m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
-      m_imagecache(imagecache)
+      m_imagecache(imagecache), m_allocated_size(0)
 {
     if (spec) {
         m_spec = *spec;
@@ -258,6 +262,8 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_deepdata(src.m_deepdata),
       m_blackpixel(src.m_blackpixel)
 {
+    m_allocated_size = src.m_localpixels ? src.m_spec.image_bytes() : 0;
+    IB_local_mem_current += m_allocated_size;
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
         if (src.m_clientpixels) {
@@ -281,6 +287,7 @@ ImageBufImpl::~ImageBufImpl ()
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
+    IB_local_mem_current -= m_allocated_size;
 }
 
 
@@ -452,8 +459,10 @@ ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
 void
 ImageBufImpl::realloc ()
 {
-    size_t newsize = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
-    m_pixels.reset (newsize ? new char [newsize] : NULL);
+    IB_local_mem_current -= m_allocated_size;
+    m_allocated_size = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
+    IB_local_mem_current += m_allocated_size;
+    m_pixels.reset (m_allocated_size ? new char [m_allocated_size] : NULL);
     m_localpixels = m_pixels.get();
     m_clientpixels = false;
     m_pixel_bytes = m_spec.pixel_bytes();
@@ -461,7 +470,7 @@ ImageBufImpl::realloc ()
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
     m_blackpixel.resize (m_pixel_bytes, 0);
 #if 0
-    std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
+    std::cerr << "ImageBuf " << m_name << " local allocation: " << m_allocated_size << "\n";
 #endif
 }
 
