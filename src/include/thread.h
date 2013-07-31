@@ -112,9 +112,7 @@ InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
 #endif
 
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
-# if !USE_TBB
-# define USE_GCC_ATOMICS 1
-# endif
+#define USE_GCC_ATOMICS
 #endif
 
 OIIO_NAMESPACE_ENTER
