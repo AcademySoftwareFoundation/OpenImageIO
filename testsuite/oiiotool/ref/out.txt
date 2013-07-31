@@ -20,13 +20,136 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Constant: Yes
     Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
     Monochrome: No
+       0  0,0,0
+   59136  1,.5,.5
+    6400  0,1,0
+       0  < 0,0,0
+    6400  > 1,0.9,1
+   59136  within range
+Reading chname.exr
+chname.exr           :   38 x   38, 5 channel, float openexr
+    SHA-1: 6EB25E53358BF3ECDFECD04F662D335DE647A1A6
+    channel list: Red, G, B, A, Depth
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zips"
+    Orientation: 1 (normal)
+    nuke/node_hash: ""
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
+Reading allhalf.exr
+allhalf.exr          :   38 x   38, 5 channel, half openexr
+    SHA-1: 1C71682E8D8F6DCDC2A7A7B23842DFEEC51438F2
+    channel list: R, G, B, A, Z
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zips"
+    Orientation: 1 (normal)
+    nuke/node_hash: ""
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
+Reading rgbahalf-zfloat.exr
+rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
+    SHA-1: 016C63636D60A350862DC8E697FEA0DEF4065EF2
+    channel list: R (half), G (half), B (half), A (half), Z (float)
+    full/display size: 40 x 40
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zips"
+    Orientation: 1 (normal)
+    nuke/node_hash: ""
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
+copyA.0001.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0002.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0003.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0004.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0005.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0006.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0007.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0008.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0009.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0010.jpg       :  360 x  240, 3 channel, uint8 jpeg
+Comparing "filled.tif" and "ref/filled.tif"
+PASS
+Comparing "autotrim.tif" and "ref/autotrim.tif"
+PASS
+Comparing "resample.tif" and "ref/resample.tif"
+PASS
 Comparing "resize.tif" and "ref/resize.tif"
 PASS
 Comparing "resize2.tif" and "ref/resize2.tif"
+PASS
+Comparing "resize64.tif" and "ref/resize64.tif"
+PASS
+Comparing "resize512.tif" and "ref/resize512.tif"
+PASS
+Comparing "fit.tif" and "ref/fit.tif"
+PASS
+Comparing "fit2.tif" and "ref/fit2.tif"
 PASS
 Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
 Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"
 PASS
+Comparing "pasted.tif" and "ref/pasted.tif"
+PASS
+Comparing "mosaic.tif" and "ref/mosaic.tif"
+PASS
+Comparing "flip.tif" and "ref/flip.tif"
+PASS
+Comparing "flop.tif" and "ref/flop.tif"
+PASS
+Comparing "flipflop.tif" and "ref/flipflop.tif"
+PASS
+Comparing "transpose.tif" and "ref/transpose.tif"
+PASS
+Comparing "cshift.tif" and "ref/cshift.tif"
+PASS
 Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
+PASS
+Comparing "ch-rgba.exr" and "ref/ch-rgba.exr"
+PASS
+Comparing "ch-z.exr" and "ref/ch-z.exr"
+PASS
+Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
+PASS
+Comparing "chname.exr" and "ref/chname.exr"
+PASS
+Comparing "cmul1.exr" and "ref/cmul1.exr"
+PASS
+Comparing "cmul2.exr" and "ref/cmul2.exr"
+PASS
+Comparing "cadd1.exr" and "ref/cadd1.exr"
+PASS
+Comparing "cadd2.exr" and "ref/cadd2.exr"
+PASS
+Comparing "add.exr" and "ref/add.exr"
+PASS
+Comparing "sub.exr" and "ref/sub.exr"
+PASS
+Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
+PASS
+Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
+PASS
+Comparing "unpremult.exr" and "ref/unpremult.exr"
+PASS
+Comparing "premult.exr" and "ref/premult.exr"
+PASS
+Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
+PASS
+Comparing "bspline-blur.tif" and "ref/bspline-blur.tif"
+PASS
+Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
+PASS
+Comparing "unsharp.tif" and "ref/unsharp.tif"
+PASS
+Comparing "fft.exr" and "ref/fft.exr"
+PASS
+Comparing "ifft.exr" and "ref/ifft.exr"
 PASS

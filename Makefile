@@ -112,6 +112,14 @@ ifneq (${USE_OCIO},)
 MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
 
+ifneq (${USE_OPENSSL},)
+MY_CMAKE_FLAGS += -DUSE_OPENSSL:BOOL=${USE_OPENSSL}
+endif
+
+ifneq (${USE_EXTERNAL_PUGIXML},)
+MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
+endif
+
 ifneq (${ILMBASE_HOME},)
 MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
 endif
@@ -125,6 +133,14 @@ endif
 
 ifneq (${LINKSTATIC},)
 MY_CMAKE_FLAGS += -DLINKSTATIC:BOOL=${LINKSTATIC}
+endif
+
+ifneq (${OIIO_BUILD_TOOLS},)
+MY_CMAKE_FLAGS += -DOIIO_BUILD_TOOLS:BOOL=${OIIO_BUILD_TOOLS}
+endif
+
+ifneq (${OIIO_BUILD_TESTS},)
+MY_CMAKE_FLAGS += -DOIIO_BUILD_TESTS:BOOL=${OIIO_BUILD_TESTS}
 endif
 
 ifneq (${SOVERSION},)
@@ -273,15 +289,19 @@ help:
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"
-	@echo "  make USE_TBB=0 ...          Don't use TBB"
+	@echo "  make USE_TBB=1 ...          Use TBB for atomics and spin locks"
 	@echo "  make USE_PYTHON=0 ...       Don't build the Python binding"
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
+	@echo "  make USE_OPENSSL=0 ...      Don't use OpenSSL even if found"
+	@echo "  make USE_EXTERNAL_PUGIXML=1 Use the system PugiXML, not the one in OIIO"
 	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
+	@echo "  make OIIO_BUILD_TOOLS=0 ... Skip building the command-line tools"
+	@echo "  make OIIO_BUILD_TESTS=0 ... Skip building the unit tests"
 	@echo ""
 

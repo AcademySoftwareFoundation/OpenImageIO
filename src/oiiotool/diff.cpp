@@ -130,26 +130,6 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
 
             ImageBuf &img0 (ir0(subimage,m));
             ImageBuf &img1 (ir1(subimage,m));
-
-            // Compare the dimensions of the images.  Fail if they
-            // aren't the same resolution and number of channels.  No
-            // problem, though, if they aren't the same data type.
-            if (! same_size (img0, img1)) {
-                print_subimage (ir0, subimage, m);
-                std::cout << "Images do not match in size: ";
-                std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
-                if (img0.spec().depth > 1)
-                    std::cout << "x" << img0.spec().depth;
-                std::cout << "x" << img0.spec().nchannels << ")";
-                std::cout << " versus ";
-                std::cout << "(" << img1.spec().width << "x" << img1.spec().height;
-                if (img1.spec().depth > 1)
-                    std::cout << "x" << img1.spec().depth;
-                std::cout << "x" << img1.spec().nchannels << ")\n";
-                ret = DiffErrDifferentSize;
-                break;
-            }
-
             int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
             if (npels == 0)
                 npels = 1;    // Avoid divide by zero for 0x0 images
@@ -189,15 +169,15 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
                     std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
                     if (img0.spec().depth > 1)
                         std::cout << ", " << cr.maxz;
-                    std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    if (cr.maxc < (int)img0.spec().channelnames.size())
+                        std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    else if (cr.maxc < (int)img1.spec().channelnames.size())
+                        std::cout << ", " << img1.spec().channelnames[cr.maxc] << ')';
+                    else
+                        std::cout << ", channel " << cr.maxc << ')';
                 }
                 std::cout << "\n";
-// when Visual Studio is used float values in scientific foramt are 
-// printed with three digit exponent. We change this behaviour to fit
-// Linux way
-#ifdef _MSC_VER
-                _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
+
                 std::streamsize precis = std::cout.precision();
                 std::cout << "  " << cr.nwarn << " pixels (" 
                           << std::setprecision(3) << (100.0*cr.nwarn / npels) 

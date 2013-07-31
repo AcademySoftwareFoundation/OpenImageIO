@@ -43,9 +43,9 @@
 #include <cstdarg>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 #include <vector>
 #include <map>
-#include <sys/types.h>   // to safely get off_t
 
 #include "export.h"
 #include "version.h"
@@ -109,7 +109,7 @@ std::string OIIO_API vformat (const char *fmt, va_list ap)
 ///  - memformat(15300)         -> "14.9 KB"
 ///  - memformat(15300000)      -> "14.6 MB"
 ///  - memformat(15300000000LL) -> "14.2 GB"
-std::string OIIO_API memformat (off_t bytes, int digits=1);
+std::string OIIO_API memformat (long long bytes, int digits=1);
 
 /// Return a string expressing an elapsed time, in human readable form.
 /// e.g. "0:35.2"
@@ -213,6 +213,56 @@ std::string OIIO_API join (const std::vector<std::string> &seq,
 
 
 
+// Helper template to convert from generic type to string
+template<typename T>
+inline T from_string (const std::string &s) {
+    return T(s); // Generic: assume there is an explicit converter
+}
+// Special case for int
+template<> inline int from_string<int> (const std::string &s) {
+    return strtol (s.c_str(), NULL, 10);
+}
+// Special case for float
+template<> inline float from_string<float> (const std::string &s) {
+    return (float)strtod (s.c_str(), NULL);
+}
+
+
+
+/// Given a string containing float values separated by a comma (or
+/// optionally another separator), extract the individual values,
+/// placing them into vals[] which is presumed to already contain
+/// defaults.  If only a single value was in the list, replace all
+/// elements of vals[] with the value. Otherwise, replace them in the
+/// same order.  A missing value will simply not be replaced.
+///
+/// For example, if T=float, suppose initially, vals[] = {0, 1, 2}, then
+///   "3.14"       results in vals[] = {3.14, 3.14, 3.14}
+///   "3.14,,-2.0" results in vals[] = {3.14, 1, -2.0}
+///
+/// This can work for type T = int, float, or any type for that has
+/// an explicit constructor from a std::string.
+template<class T>
+void extract_from_list_string (std::vector<T> &vals,
+                               const std::string &list,
+                               const std::string &sep = ",")
+{
+    size_t nvals = vals.size();
+    std::vector<std::string> valuestrings;
+    Strutil::split (list, valuestrings, sep);
+    for (size_t i = 0, e = valuestrings.size(); i < e; ++i) {
+        if (valuestrings[i].size())
+            vals[i] = from_string<T> (valuestrings[i]);
+    }
+    if (valuestrings.size() == 1) {
+        vals.resize (1);
+        vals.resize (nvals, vals[0]);
+    }
+}
+
+
+
+
 /// C++ functor wrapper class for using strhash for unordered_map or
 /// unordered_set.  The way this is used, in conjunction with
 /// StringEqual, to build an efficient hash map for char*'s or
@@ -282,7 +332,7 @@ std::wstring OIIO_API utf8_to_utf16(const std::string& utf8str);
 std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 #endif
 
-};  // namespace Strutil
+}  // namespace Strutil
 
 }
 OIIO_NAMESPACE_EXIT

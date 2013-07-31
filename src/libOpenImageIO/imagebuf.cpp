@@ -43,6 +43,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "imagecache.h"
 #include "dassert.h"
 #include "strutil.h"
@@ -50,6 +51,9 @@
 
 OIIO_NAMESPACE_ENTER
 {
+
+
+static atomic_ll IB_local_mem_current;
 
 
 
@@ -159,7 +163,7 @@ public:
 
     DeepData *deepdata () { return m_spec.deep ? &m_deepdata : NULL; }
     const DeepData *deepdata () const { return m_spec.deep ? &m_deepdata : NULL; }
-    bool initialized () const { return m_spec_valid || m_pixels_valid; }
+    bool initialized () const { return m_spec_valid && (m_localpixels || m_imagecache); }
     bool cachedpixels () const { return m_localpixels == NULL; }
 
     const void *pixeladdr (int x, int y, int z) const;
@@ -167,7 +171,11 @@ public:
 
     const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
-                    int &tilexend) const;
+                    int &tilexend, bool exists, ImageBuf::WrapMode wrap) const;
+
+    void do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
+
+    const void *blackpixel () const { return &m_blackpixel[0]; }
 
 private:
     ustring m_name;              ///< Filename of the image
@@ -192,6 +200,8 @@ private:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
+    size_t m_allocated_size;     ///< How much memory we've allocated
+    std::vector<char> m_blackpixel; ///< Pixel-sized zero bytes
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -209,7 +219,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
       m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
-      m_imagecache(imagecache)
+      m_imagecache(imagecache), m_allocated_size(0)
 {
     if (spec) {
         m_spec = *spec;
@@ -218,6 +228,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
         m_pixel_bytes = spec->pixel_bytes();
         m_scanline_bytes = spec->scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+        m_blackpixel.resize (m_pixel_bytes, 0);
     }
     if (buffer) {
         ASSERT (spec != NULL);
@@ -248,8 +259,11 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_plane_bytes(src.m_plane_bytes),
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
-      m_deepdata(src.m_deepdata)
+      m_deepdata(src.m_deepdata),
+      m_blackpixel(src.m_blackpixel)
 {
+    m_allocated_size = src.m_localpixels ? src.m_spec.image_bytes() : 0;
+    IB_local_mem_current += m_allocated_size;
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
         if (src.m_clientpixels) {
@@ -273,6 +287,14 @@ ImageBufImpl::~ImageBufImpl ()
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
+    IB_local_mem_current -= m_allocated_size;
+}
+
+
+
+ImageBuf::ImageBuf ()
+    : m_impl (new ImageBufImpl (std::string(), NULL))
+{
 }
 
 
@@ -380,7 +402,9 @@ ImageBufImpl::clear ()
     m_pixel_bytes = 0;
     m_scanline_bytes = 0;
     m_plane_bytes = 0;
+    m_imagecache = NULL;
     m_deepdata.free ();
+    m_blackpixel.clear ();
 }
 
 
@@ -435,15 +459,18 @@ ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
 void
 ImageBufImpl::realloc ()
 {
-    size_t newsize = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
-    m_pixels.reset (newsize ? new char [newsize] : NULL);
+    IB_local_mem_current -= m_allocated_size;
+    m_allocated_size = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
+    IB_local_mem_current += m_allocated_size;
+    m_pixels.reset (m_allocated_size ? new char [m_allocated_size] : NULL);
     m_localpixels = m_pixels.get();
     m_clientpixels = false;
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    m_blackpixel.resize (m_pixel_bytes, 0);
 #if 0
-    std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
+    std::cerr << "ImageBuf " << m_name << " local allocation: " << m_allocated_size << "\n";
 #endif
 }
 
@@ -453,6 +480,13 @@ void
 ImageBufImpl::alloc (const ImageSpec &spec)
 {
     m_spec = spec;
+
+    // Preclude a nonsensical size
+    m_spec.width = std::max (1, m_spec.width);
+    m_spec.height = std::max (1, m_spec.height);
+    m_spec.depth = std::max (1, m_spec.depth);
+    m_spec.nchannels = std::max (1, m_spec.nchannels);
+
     m_nativespec = spec;
     m_spec_valid = true;
     realloc ();
@@ -517,7 +551,8 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-    
+    m_blackpixel.resize (m_pixel_bytes, 0);
+
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -604,15 +639,21 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixel_bytes = m_spec.pixel_bytes();
         m_scanline_bytes = m_spec.scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-#ifdef DEBUG
+        m_blackpixel.resize (m_pixel_bytes, 0);
+#ifndef NDEBUG
         std::cerr << "read was not necessary -- using cache\n";
 #endif
         return true;
     } else {
-#ifdef DEBUG
+#ifndef NDEBUG
         std::cerr << "going to have to read " << m_name << ": "
                   << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
 #endif
+        // FIXME/N.B. - is it really best to go through the ImageCache
+        // for forced IB reads?  Are there circumstances in which we
+        // should just to a straight read_image() to avoid the extra
+        // copies or the memory use of having bytes both in the cache
+        // and in the IB?
     }
 
     if (convert != TypeDesc::UNKNOWN)
@@ -896,159 +937,48 @@ ImageBuf::initialized () const
 namespace {
 
 // Pixel-by-pixel copy fully templated by both data types.
+// The roi is guaranteed to exist in both images.
 template<class D, class S>
-void copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
-                    int ybegin, int yend, int zbegin, int zend, int nchannels)
+bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
 {
+    int nchannels = roi.nchannels();
     if (is_same<D,S>::value) {
         // If both bufs are the same type, just directly copy the values
-        ImageBuf::Iterator<D,D> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
-        ImageBuf::ConstIterator<D,D> s (src, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::Iterator<D,D> d (dst, roi);
+        ImageBuf::ConstIterator<D,D> s (src, roi);
         for ( ; ! d.done();  ++d, ++s) {
-            if (s.exists() && d.exists()) {
-                for (int c = 0;  c < nchannels;  ++c)
-                    d[c] = s[c];
-            }
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = s[c];
         }
     } else {
         // If the two bufs are different types, convert through float
-        ImageBuf::Iterator<D,float> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
-        ImageBuf::ConstIterator<S,float> s (dst, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::Iterator<D,float> d (dst, roi);
+        ImageBuf::ConstIterator<S,float> s (dst, roi);
         for ( ; ! d.done();  ++d, ++s) {
-            if (s.exists() && d.exists()) {
-                for (int c = 0;  c < nchannels;  ++c)
-                    d[c] = s[c];
-            }
+            for (int c = 0;  c < nchannels;  ++c)
+                d[c] = s[c];
         }
-    }        
-}
-
-
-// Call two-type template copy_pixels_2 based on src AND dst data type
-template<class S>
-void copy_pixels_ (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
-                   int ybegin, int yend, int zbegin, int zend, int nchannels)
-{
-    switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        copy_pixels_2<float,S> (dst, src, xbegin, xend, ybegin, yend,
-                                zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT8 :
-        copy_pixels_2<unsigned char,S> (dst, src, xbegin, xend, ybegin, yend,
-                                        zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT8  :
-        copy_pixels_2<char,S> (dst, src, xbegin, xend, ybegin, yend,
-                               zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT16:
-        copy_pixels_2<unsigned short,S> (dst, src, xbegin, xend, ybegin, yend,
-                                         zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT16 :
-        copy_pixels_2<short,S> (dst, src, xbegin, xend, ybegin, yend,
-                                zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT  :
-        copy_pixels_2<unsigned int,S> (dst, src, xbegin, xend, ybegin, yend,
-                                       zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT   :
-        copy_pixels_2<int,S> (dst, src, xbegin, xend, ybegin, yend,
-                              zbegin, zend, nchannels);
-        break;
-    case TypeDesc::HALF  :
-        copy_pixels_2<half,S> (dst, src, xbegin, xend, ybegin, yend,
-                               zbegin, zend, nchannels);
-        break;
-    case TypeDesc::DOUBLE:
-        copy_pixels_2<double,S> (dst, src, xbegin, xend, ybegin, yend,
-                                 zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT64:
-        copy_pixels_2<unsigned long long,S> (dst, src, xbegin, xend, ybegin, yend,
-                                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT64 :
-        copy_pixels_2<long long,S> (dst, src, xbegin, xend, ybegin, yend,
-                                    zbegin, zend, nchannels);
-        break;
-    default:
-        ASSERT (0);
     }
+    return true;
 }
 
-}
+} // anon namespace
+
+
 
 bool
 ImageBuf::copy_pixels (const ImageBuf &src)
 {
     // compute overlap
-    int xbegin = std::max (this->xbegin(), src.xbegin());
-    int xend = std::min (this->xend(), src.xend());
-    int ybegin = std::max (this->ybegin(), src.ybegin());
-    int yend = std::min (this->yend(), src.yend());
-    int zbegin = std::max (this->zbegin(), src.zbegin());
-    int zend = std::min (this->zend(), src.zend());
-    int nchannels = std::min (this->nchannels(), src.nchannels());
+    ROI myroi = get_roi(spec());
+    ROI roi = roi_intersection (myroi, get_roi(src.spec()));
 
     // If we aren't copying over all our pixels, zero out the pixels
-    if (xbegin != this->xbegin() || xend != this->xend() ||
-        ybegin != this->ybegin() || yend != this->yend() ||
-        zbegin != this->zbegin() || zend != this->zend() ||
-        nchannels != this->nchannels())
+    if (roi != myroi)
         ImageBufAlgo::zero (*this);
 
-    // Call template copy_pixels_ based on src data type
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        copy_pixels_<float> (*this, src, xbegin, xend, ybegin, yend,
-                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT8 :
-        copy_pixels_<unsigned char> (*this, src, xbegin, xend, ybegin, yend,
-                                     zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT8  :
-        copy_pixels_<char> (*this, src, xbegin, xend, ybegin, yend,
-                            zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT16:
-        copy_pixels_<unsigned short> (*this, src, xbegin, xend, ybegin, yend,
-                                      zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT16 :
-        copy_pixels_<short> (*this, src, xbegin, xend, ybegin, yend,
-                             zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT  :
-        copy_pixels_<unsigned int> (*this, src, xbegin, xend, ybegin, yend,
-                                    zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT   :
-        copy_pixels_<int> (*this, src, xbegin, xend, ybegin, yend,
-                           zbegin, zend, nchannels);
-        break;
-    case TypeDesc::HALF  :
-        copy_pixels_<half> (*this, src, xbegin, xend, ybegin, yend,
-                            zbegin, zend, nchannels);
-        break;
-    case TypeDesc::DOUBLE:
-        copy_pixels_<double> (*this, src, xbegin, xend, ybegin, yend,
-                              zbegin, zend, nchannels);
-        break;
-    case TypeDesc::UINT64:
-        copy_pixels_<unsigned long long> (*this, src, xbegin, xend, ybegin, yend,
-                                          zbegin, zend, nchannels);
-        break;
-    case TypeDesc::INT64 :
-        copy_pixels_<long long> (*this, src, xbegin, xend, ybegin, yend,
-                                 zbegin, zend, nchannels);
-        break;
-    default:
-        ASSERT (0);
-    }
+    OIIO_DISPATCH_TYPES2 ("copy_pixels", copy_pixels_2,
+                          spec().format, src.spec().format, *this, src, roi);
     return true;
 }
 
@@ -1102,122 +1032,120 @@ ImageBuf::copy (const ImageBuf &src)
 
 
 template<typename T>
-static inline float getchannel_ (const ImageBuf &buf, int x, int y, int c)
+static inline float getchannel_ (const ImageBuf &buf, int x, int y, int z,
+                                 int c, ImageBuf::WrapMode wrap)
 {
-    ImageBuf::ConstIterator<T> pixel (buf, x, y);
+    ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
     return pixel[c];
 }
 
 
 
 float
-ImageBuf::getchannel (int x, int y, int c) const
+ImageBuf::getchannel (int x, int y, int z, int c, WrapMode wrap) const
 {
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
-    switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : return getchannel_<float> (*this, x, y, c);
-    case TypeDesc::UINT8 : return getchannel_<unsigned char> (*this, x, y, c);
-    case TypeDesc::INT8  : return getchannel_<char> (*this, x, y, c);
-    case TypeDesc::UINT16: return getchannel_<unsigned short> (*this, x, y, c);
-    case TypeDesc::INT16 : return getchannel_<short> (*this, x, y, c);
-    case TypeDesc::UINT  : return getchannel_<unsigned int> (*this, x, y, c);
-    case TypeDesc::INT   : return getchannel_<int> (*this, x, y, c);
-    case TypeDesc::HALF  : return getchannel_<half> (*this, x, y, c);
-    case TypeDesc::DOUBLE: return getchannel_<double> (*this, x, y, c);
-    case TypeDesc::UINT64: return getchannel_<unsigned long long> (*this, x, y, c);
-    case TypeDesc::INT64 : return getchannel_<long long> (*this, x, y, c);
-    default:
-        ASSERT (0);
-        return 0.0f;
-    }
+    OIIO_DISPATCH_TYPES ("getchannel", getchannel_, spec().format,
+                         *this, x, y, z, c, wrap);
 }
 
 
 
 template<typename T>
-static inline void
-getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans)
+static bool
+getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans,
+           ImageBuf::WrapMode wrap)
 {
-    ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
-    if (pixel.exists()) {
-        for (int i = 0;  i < chans;  ++i)
-            result[i] = pixel[i];
-    } else {
-        for (int i = 0;  i < chans;  ++i)
-            result[i] = 0.0f;
-    }
+    ImageBuf::ConstIterator<T> pixel (buf, x, y, z, wrap);
+    for (int i = 0;  i < chans;  ++i)
+        result[i] = pixel[i];
+    return true;
+}
+
+
+
+inline bool
+getpixel_wrapper (int x, int y, int z, float *pixel, int nchans,
+                  ImageBuf::WrapMode wrap, const ImageBuf &ib)
+{
+    OIIO_DISPATCH_TYPES ("getpixel", getpixel_, ib.spec().format,
+                         ib, x, y, z, pixel, nchans, wrap);
 }
 
 
 
 void
-ImageBuf::getpixel (int x, int y, int z, float *pixel, int maxchannels) const
+ImageBuf::getpixel (int x, int y, int z, float *pixel, int maxchannels,
+                    WrapMode wrap) const
 {
-    int n = std::min (spec().nchannels, maxchannels);
-    switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : getpixel_<float> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT8 : getpixel_<unsigned char> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT8  : getpixel_<char> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT16: getpixel_<unsigned short> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT16 : getpixel_<short> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT  : getpixel_<unsigned int> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT   : getpixel_<int> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::HALF  : getpixel_<half> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::UINT64: getpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
-    case TypeDesc::INT64 : getpixel_<long long> (*this, x, y, z, pixel, n); break;
-    default:
-        ASSERT (0);
-    }
+    int nchans = std::min (spec().nchannels, maxchannels);
+    getpixel_wrapper (x, y, z, pixel, nchans, wrap, *this);
 }
 
 
 
-void
-ImageBuf::interppixel (float x, float y, float *pixel) const
+template <class T>
+static bool
+interppixel_ (const ImageBuf &img, float x, float y, float *pixel,
+              ImageBuf::WrapMode wrap)
 {
-    const int maxchannels = 64;  // Reasonable guess
-    float p[4][maxchannels];
-    DASSERT (spec().nchannels <= maxchannels && 
-             "You need to increase maxchannels in ImageBuf::interppixel");
-    int n = std::min (spec().nchannels, maxchannels);
+    int n = img.spec().nchannels;
+    float *localpixel = ALLOCA (float, n*4);
+    float *p[4] = { localpixel, localpixel+n, localpixel+2*n, localpixel+3*n };
     x -= 0.5f;
     y -= 0.5f;
     int xtexel, ytexel;
     float xfrac, yfrac;
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
-    // FIXME -- we know that getpixel is the slow way to look up.
-    // We should be using an iterator here.  Maybe also a full shortcut
-    // for the localpixels case.
-    getpixel (xtexel, ytexel, p[0], n);
-    getpixel (xtexel+1, ytexel, p[1], n);
-    getpixel (xtexel, ytexel+1, p[2], n);
-    getpixel (xtexel+1, ytexel+1, p[3], n);
+    ImageBuf::ConstIterator<T> it (img, xtexel, xtexel+2, ytexel, ytexel+2,
+                                   0, 1, wrap);
+    for (int i = 0;  i < 4;  ++i, ++it)
+        for (int c = 0; c < n; ++c)
+            p[i][c] = it[c];
     bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
+    return true;
+}
+
+
+
+inline bool
+interppixel_wrapper (float x, float y, float *pixel,
+                     ImageBuf::WrapMode wrap, const ImageBuf &img)
+{
+    OIIO_DISPATCH_TYPES ("interppixel", interppixel_, img.spec().format,
+                         img, x, y, pixel, wrap);
 }
 
 
 
 void
-ImageBuf::interppixel_NDC (float x, float y, float *pixel) const
+ImageBuf::interppixel (float x, float y, float *pixel, WrapMode wrap) const
+{
+    interppixel_wrapper (x, y, pixel, wrap, *this);
+}
+
+
+
+void
+ImageBuf::interppixel_NDC (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->m_spec);
     interppixel (static_cast<float>(spec.x) + x * static_cast<float>(spec.width),
                  static_cast<float>(spec.y) + y * static_cast<float>(spec.height),
-                 pixel);
+                 pixel, wrap);
 }
 
 
 
 void
-ImageBuf::interppixel_NDC_full (float x, float y, float *pixel) const
+ImageBuf::interppixel_NDC_full (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->m_spec);
     interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
                  static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
-                 pixel);
+                 pixel, wrap);
 }
 
 
@@ -1267,13 +1195,14 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 
 
-template<typename S, typename D>
-static inline void 
+template<typename D, typename S>
+static inline bool 
 get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend, 
-                     int chbegin, int chend, D *r,
+                     int chbegin, int chend, void *r_,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    D *r = (D *)r_;
     int w = (xend-xbegin), h = (yend-ybegin);
     int nchans = chend - chbegin;
     ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D), nchans, w, h);
@@ -1285,6 +1214,7 @@ get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
         for (int c = 0;  c < nchans;  ++c)
             rc[c] = p[c+chbegin];
     }
+    return true;
 }
 
 
@@ -1297,30 +1227,10 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    // Caveat: serious hack here.  To avoid duplicating code, use a
-    // #define.  Furthermore, exploit the CType<> template to construct
-    // the right C data type for the given BASETYPE.
-#define TYPECASE(B)                                                     \
-    case B : get_pixel_channels_<CType<B>::type,D>(*this,               \
-                       xbegin, xend, ybegin, yend, zbegin, zend,        \
-                       chbegin, chend, (D *)r, xstride, ystride, zstride); \
-             return true
-    
-    switch (spec().format.basetype) {
-        TYPECASE (TypeDesc::UINT8);
-        TYPECASE (TypeDesc::INT8);
-        TYPECASE (TypeDesc::UINT16);
-        TYPECASE (TypeDesc::INT16);
-        TYPECASE (TypeDesc::UINT);
-        TYPECASE (TypeDesc::INT);
-        TYPECASE (TypeDesc::HALF);
-        TYPECASE (TypeDesc::FLOAT);
-        TYPECASE (TypeDesc::DOUBLE);
-        TYPECASE (TypeDesc::UINT64);
-        TYPECASE (TypeDesc::INT64);
-    }
-    return false;
-#undef TYPECASE
+    OIIO_DISPATCH_TYPES2_HELP ("get_pixel_channels", get_pixel_channels_,
+                               D, spec().format, *this,
+                               xbegin, xend, ybegin, yend, zbegin, zend,
+                               chbegin, chend, r, xstride, ystride, zstride);
 }
 
 
@@ -1332,29 +1242,10 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    // For each possible base type that the user wants for a destination
-    // type, call a template specialization.
-#define TYPECASE(B)                                                     \
-    case B : return get_pixel_channels<CType<B>::type> (                \
-                             xbegin, xend, ybegin, yend, zbegin, zend,  \
-                             chbegin, chend, (CType<B>::type *)result,  \
-                             xstride, ystride, zstride)
-
-    switch (format.basetype) {
-        TYPECASE (TypeDesc::UINT8);
-        TYPECASE (TypeDesc::INT8);
-        TYPECASE (TypeDesc::UINT16);
-        TYPECASE (TypeDesc::INT16);
-        TYPECASE (TypeDesc::UINT);
-        TYPECASE (TypeDesc::INT);
-        TYPECASE (TypeDesc::HALF);
-        TYPECASE (TypeDesc::FLOAT);
-        TYPECASE (TypeDesc::DOUBLE);
-        TYPECASE (TypeDesc::UINT64);
-        TYPECASE (TypeDesc::INT64);
-    }
-    return false;
-#undef TYPECASE
+    OIIO_DISPATCH_TYPES2 ("get_pixel_channels", get_pixel_channels_,
+                          format, spec().format, *this,
+                          xbegin, xend, ybegin, yend, zbegin, zend,
+                          chbegin, chend, result, xstride, ystride, zstride);
 }
 
 
@@ -1424,7 +1315,7 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     if (s >= nsamps)
         return 0.0f;
     const void *ptr = impl()->m_deepdata.pointers[p*m_spec.nchannels+c];
-    TypeDesc t = m_spec.channelformat(c);
+    TypeDesc t = impl()->m_deepdata.channeltypes[c];
     switch (t.basetype) {
     case TypeDesc::FLOAT :
         return ((const float *)ptr)[s];
@@ -1699,12 +1590,68 @@ ImageBuf::pixeladdr (int x, int y, int z)
 
 
 const void *
+ImageBuf::blackpixel () const
+{
+    return impl()->blackpixel();
+}
+
+
+
+void
+ImageBufImpl::do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const
+{
+    if (wrap == ImageBuf::WrapBlack)
+        return;   // nothing to do
+    if (wrap == ImageBuf::WrapClamp) {
+        x = OIIO::clamp (x, m_spec.x, m_spec.x+m_spec.width-1);
+        y = OIIO::clamp (y, m_spec.y, m_spec.y+m_spec.height-1);
+        z = OIIO::clamp (z, m_spec.z, m_spec.z+m_spec.depth-1);
+        return;
+    }
+    if (wrap == ImageBuf::WrapPeriodic) {
+        wrap_periodic (x, m_spec.x, m_spec.width);
+        wrap_periodic (y, m_spec.y, m_spec.height);
+        wrap_periodic (z, m_spec.z, m_spec.depth);
+        return;
+    }
+    if (wrap == ImageBuf::WrapMirror) {
+        wrap_mirror (x, m_spec.x, m_spec.width);
+        wrap_mirror (y, m_spec.y, m_spec.height);
+        wrap_mirror (z, m_spec.z, m_spec.depth);
+        return;
+    }
+    ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
+}
+
+
+
+void
+ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
+{
+    m_impl->do_wrap (x, y, z, wrap);
+}
+
+
+
+const void *
 ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                       int &tilexbegin, int &tileybegin, int &tilezbegin,
-                      int &tilexend) const
+                      int &tilexend, bool exists,
+                      ImageBuf::WrapMode wrap) const
 {
+    if (! exists) {
+        // Special case -- (x,y,z) describes a location outside the data
+        // window.  Use the wrap mode to possibly give a meaningful data
+        // proxy to point to.
+        do_wrap (x, y, z, wrap);
+        if (wrap == ImageBuf::WrapBlack)
+            return &m_blackpixel; // Black points to a black pixel
+        // We've adjusted x,y,z, now fall through below to get the
+        // right tile
+    }
+
     int tw = m_spec.tile_width, th = m_spec.tile_height;
-    int td = std::max (1, m_spec.tile_depth);
+    int td = m_spec.tile_depth;  DASSERT(m_spec.tile_depth >= 1);
     DASSERT (tile == NULL || tilexend == (tilexbegin+tw));
     if (tile == NULL || x < tilexbegin || x >= tilexend ||
                         y < tileybegin || y >= (tileybegin+th) ||
@@ -1723,11 +1670,12 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                                        m_current_miplevel, x, y, z);
     }
 
-    size_t offset = ((z - tilezbegin) * th + (y - tileybegin)) * tw
+    size_t offset = ((z - tilezbegin) * (size_t) th + (y - tileybegin)) * (size_t) tw
                     + (x - tilexbegin);
     offset *= m_spec.pixel_bytes();
     DASSERTMSG (m_spec.pixel_bytes() == m_pixel_bytes,
                 "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+
     TypeDesc format;
     return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
 }
@@ -1737,10 +1685,11 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
 const void *
 ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin, int &tilezbegin,
-                  int &tilexend) const
+                  int &tilexend, bool exists,
+                  WrapMode wrap) const
 {
     return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
-                           tilexend);
+                           tilexend, exists, wrap);
 }
 
 

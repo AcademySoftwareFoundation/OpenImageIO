@@ -170,7 +170,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_datasize = dpx::kDouble;
     else {
         // use 16-bit unsigned integers as a failsafe
-        m_spec.format = TypeDesc::UINT16;
+        m_spec.set_format (TypeDesc::UINT16);
         m_datasize = dpx::kWord;
     }
 
@@ -348,7 +348,12 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         ("dpx:WhiteLevel", std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetIntegrationTimes (m_spec.get_float_attribute
         ("dpx:IntegrationTimes", std::numeric_limits<float>::quiet_NaN()));
-    
+    float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    int aspect_num, aspect_den;
+    float_to_rational (aspect, aspect_num, aspect_den);
+    m_dpx.header.SetAspectRatio (0, aspect_num);
+    m_dpx.header.SetAspectRatio (1, aspect_den);
+
     tmpstr = m_spec.get_string_attribute ("dpx:TimeCode", "");
     int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
     if (tmpstr.size () > 0)
@@ -389,8 +394,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         }*/
     }
 
-    // reserve space for the image data buffer
-    m_buf.reserve (m_bytes * m_spec.height);
+    // allocate space for the image data buffer
+    m_buf.resize (m_bytes * m_spec.height);
 
     return true;
 }

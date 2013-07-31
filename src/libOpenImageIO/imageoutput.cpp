@@ -45,6 +45,8 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
+#include <boost/scoped_array.hpp>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -371,7 +373,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     }
     
     // Convert from float to native format.
-    return convert_from_float (buf, &scratch[contiguoussize+floatsize], 
+    return parallel_convert_from_float (buf, &scratch[contiguoussize+floatsize], 
                        rectangle_values, m_spec.quant_black, m_spec.quant_white,
                        m_spec.quant_min, m_spec.quant_max,
                        m_spec.format);
@@ -485,7 +487,7 @@ ImageOutput::copy_image (ImageInput *in)
     // a time, to minimize mem footprint.
     bool native = supports("channelformats") && inspec.channelformats.size();
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
-    std::vector<char> pixels (inspec.image_bytes(native));
+    boost::scoped_array<char> pixels (new char [inspec.image_bytes(native)]);
     bool ok = in->read_image (format, &pixels[0]);
     if (ok)
         ok = write_image (format, &pixels[0]);

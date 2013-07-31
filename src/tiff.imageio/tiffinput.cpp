@@ -193,7 +193,7 @@ private:
         void *ptr = NULL;  // dummy -- expect it to stay NULL
         bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
         if (ptr) {
-#ifdef DEBUG
+#ifndef NDEBUG
             std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
                       << name << " " << (void *)ptr << "\n";
 #endif
@@ -768,7 +768,7 @@ TIFFInput::readspec (bool read_meta)
     // Search for an EXIF IFD in the TIFF file, and if found, rummage 
     // around for Exif fields.
 #if TIFFLIB_VERSION > 20050912    /* compat with old TIFF libs - skip Exif */
-    int exifoffset = 0;
+    toff_t exifoffset = 0;
     if (TIFFGetField (m_tif, TIFFTAG_EXIFIFD, &exifoffset) &&
             TIFFReadEXIFDirectory (m_tif, exifoffset)) {
         for (int i = 0;  exif_tag_table[i].name;  ++i)

@@ -48,6 +48,8 @@
 #include "imagecache.h"
 #include "dassert.h"
 
+#include <limits>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -65,7 +67,7 @@ struct ROI {
 
     /// Default constructor is an undefined region.
     ///
-    ROI () : xbegin(0), xend(-1), chbegin(0), chend(1000) { }
+    ROI () : xbegin(std::numeric_limits<int>::min()) { }
 
     /// Constructor with an explicitly defined region.
     ///
@@ -76,12 +78,16 @@ struct ROI {
     { }
 
     /// Is a region defined?
-    bool defined () const { return (xbegin <= xend); }
+    bool defined () const { return (xbegin != std::numeric_limits<int>::min()); }
 
     // Region dimensions.
     int width () const { return xend - xbegin; }
     int height () const { return yend - ybegin; }
     int depth () const { return zend - zbegin; }
+
+    /// Number of channels in the region.  Beware -- this defaults to a
+    /// huge number, and to be meaningful you must consider
+    /// std::min (imagebuf.nchannels(), roi.nchannels()).
     int nchannels () const { return chend - chbegin; }
 
     /// Total number of pixels in the region.
@@ -92,6 +98,36 @@ struct ROI {
         return w*h*d;
     }
 
+    /// Documentary sugar -- although the static ROI::All() function
+    /// simply returns the results of the default ROI constructor, it
+    /// makes it very clear when using as a default function argument
+    /// that it means "all" of the image.  For example,
+    ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
+    /// Doesn't that make it abundantly clear?
+    static ROI All () { return ROI(); }
+
+    /// Test equality of two ROIs
+    friend bool operator== (const ROI &a, const ROI &b) {
+        return (a.xbegin == b.xbegin && a.xend == b.xend &&
+                a.ybegin == b.ybegin && a.yend == b.yend &&
+                a.zbegin == b.zbegin && a.zend == b.zend &&
+                a.chbegin == b.chbegin && a.chend == b.chend);
+    }
+    /// Test inequality of two ROIs
+    friend bool operator!= (const ROI &a, const ROI &b) {
+        return (a.xbegin != b.xbegin || a.xend != b.xend ||
+                a.ybegin != b.ybegin || a.yend != b.yend ||
+                a.zbegin != b.zbegin || a.zend != b.zend ||
+                a.chbegin != b.chbegin || a.chend != b.chend);
+    }
+
+    /// Stream output of the range
+    friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
+        out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '
+            << roi.yend << ' ' << roi.zbegin << ' ' << roi.zend << ' '
+            << roi.chbegin << ' ' << roi.chend;
+        return out;
+    }
 };
 
 
@@ -128,11 +164,15 @@ class ImageBufImpl;   // Opaque pointer
 /// (translating to/from float automatically).
 class OIIO_API ImageBuf {
 public:
-    /// Construct an ImageBuf to read the named image.  
-    /// If name is the empty string (the default), it's a completely
-    /// uninitialized ImageBuf.
-    ImageBuf (const std::string &name = std::string(),
-              ImageCache *imagecache = NULL);
+    /// Construct an empty/uninitialized ImageBuf.  This is relatively
+    /// useless until you call reset().
+    ImageBuf ();
+
+    /// Construct an ImageBuf to read the named image -- but don't
+    /// actually read it yet!  If a non-NULL imagecache is supplied, it
+    /// will specifiy a custom ImageCache to use; if otherwise, the
+    /// global/shared ImageCache will be used.
+    ImageBuf (const std::string &name, ImageCache *imagecache = NULL);
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
@@ -171,6 +211,9 @@ public:
     /// data type as it used to be.
     void alloc (const ImageSpec &spec);
 
+    /// Is this ImageBuf object initialized?
+    bool initialized () const;
+
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
     /// force==true.  This uses ImageInput underneath, so will read any
@@ -188,11 +231,10 @@ public:
     bool init_spec (const std::string &filename,
                     int subimage, int miplevel);
 
-    /// Save the image or a subset thereof, with override for filename
-    /// ("" means use the original filename) and file format ("" indicates
-    /// to infer it from the filename).  This uses ImageOutput
-    /// underneath, so will write any file format for which an
-    /// appropriate imageio plugin can be found.
+    /// Save the image to the named file ("" means use the original
+    /// filename given when the ImageBuf was created or reset) and file
+    /// format ("" means to infer the type from the filename extension).
+    /// Return true if all went ok, false if there were errors writing.
     bool save (const std::string &filename = std::string(),
                const std::string &fileformat = std::string(),
                ProgressCallback progress_callback=NULL,
@@ -233,6 +275,9 @@ public:
     /// converted automatically to the data type of the app buffer.
     bool copy (const ImageBuf &src);
 
+    /// Swap with another ImageBuf
+    void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
+
     /// Error reporting for ImageBuf: call this with printf-like
     /// arguments.  Note however that this is fully typesafe!
     /// void error (const char *format, ...)
@@ -243,9 +288,9 @@ public:
     /// to retrieve via geterror().
     bool has_error (void) const;
 
-    /// Return info on the last error that occurred since geterror() was
-    /// called (or an empty string if no errors are pending).  This also
-    /// clears the error message for next time.
+    /// Return the text of all error messages issued since geterror()
+    /// was called (or an empty string if no errors are pending).  This
+    /// also clears the error message for next time.
     std::string geterror (void) const;
 
     /// Return a read-only (const) reference to the image spec that
@@ -294,9 +339,14 @@ public:
     ///
     int nchannels () const;
 
+    /// Wrap mode describes what happens when an iterator points to
+    /// a value outside the usual data range of an image.
+    enum WrapMode { WrapDefault, WrapBlack, WrapClamp, WrapPeriodic,
+                    WrapMirror, _WrapLast };
+
     /// Retrieve a single channel of one pixel.
     ///
-    float getchannel (int x, int y, int c) const;
+    float getchannel (int x, int y, int z, int c, WrapMode wrap=WrapBlack) const;
 
     /// Retrieve the pixel value by x and y coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
@@ -308,36 +358,40 @@ public:
     /// Retrieve the pixel value by x, y, z coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).
-    void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000) const;
+    void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000,
+                   WrapMode wrap=WrapBlack) const;
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner, (xres,yres) the lower right corner of
     /// the pixel data.
-    void interppixel (float x, float y, float *pixel) const;
+    void interppixel (float x, float y, float *pixel,
+                      WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at image data NDC coordinates (x,y), where (0,0) is
-    /// the upper left corner of the pixel data window, (1,1) the lower
-    /// right corner of the pixel data.
+    /// Linearly interpolate at image data NDC coordinates (s,t), where
+    /// (0,0) is the upper left corner of the pixel data window, (1,1)
+    /// the lower right corner of the pixel data.
     /// FIXME -- lg thinks that this is stupid, and the only useful NDC
     /// space is the one used by interppixel_NDC_full.  We should deprecate
     /// this in the future.
-    void interppixel_NDC (float x, float y, float *pixel) const;
+    void interppixel_NDC (float s, float t, float *pixel,
+                          WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at NDC (image) coordinates (x,y), where (0,0) is
+    /// Linearly interpolate at space coordinates (s,t), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
-    void interppixel_NDC_full (float x, float y, float *pixel) const;
+    void interppixel_NDC_full (float s, float t, float *pixel,
+                               WrapMode wrap=WrapBlack) const;
 
-    /// Set the pixel value by x and y coordintes (on [0,res-1]),
-    /// from floating-point values in pixel[].  Set at most
-    /// maxchannels (will be clamped to the actual number of channels).
+    /// Set the pixel with coordinates (x,y,0) to have the values in
+    /// pixel[0..n-1].  The number of channels copied, n, is the minimum
+    /// of maxchannels and the actual number of channels in the image.
     void setpixel (int x, int y, const float *pixel, int maxchannels=1000) {
         setpixel (x, y, 0, pixel, maxchannels);
     }
 
-    /// Set the pixel value by x, y, z coordintes (on [0,res-1]),
-    /// from floating-point values in pixel[].  Set at most
-    /// maxchannels (will be clamped to the actual number of channels).
+    /// Set the pixel with coordinates (x,y,z) to have the values in
+    /// pixel[0..n-1].  The number of channels copied, n, is the minimum
+    /// of maxchannels and the actual number of channels in the image.
     void setpixel (int x, int y, int z,
                    const float *pixel, int maxchannels=1000);
 
@@ -347,15 +401,16 @@ public:
     void setpixel (int i, const float *pixel, int maxchannels=1000);
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend), channels [chbegin,chend) (all with exclusive
-    /// 'end'), specified as integer pixel coordinates, at the current
-    /// MIP-map level, storing the pixel values beginning at the address
-    /// specified by result and with the given strides (by default,
-    /// AutoStride means the usual contiguous packing of pixels).  It is
-    /// up to the caller to ensure that result points to an area of
-    /// memory big enough to accommodate the requested rectangle.
-    /// Return true if the operation could be completed, otherwise
-    /// return false.
+    /// [ybegin..yend) X [zbegin..zend), channels [chbegin,chend) (all
+    /// with exclusive 'end'), specified as integer pixel coordinates,
+    /// at the current subimage and MIP-map level, storing the pixel
+    /// values beginning at the address specified by result and with the
+    /// given strides (by default, AutoStride means the usual contiguous
+    /// packing of pixels) and converting into the data type described
+    /// by 'format'.  It is up to the caller to ensure that result
+    /// points to an area of memory big enough to accommodate the
+    /// requested rectangle.  Return true if the operation could be
+    /// completed, otherwise return false.
     bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
                              TypeDesc format, void *result,
@@ -364,17 +419,19 @@ public:
                              stride_t zstride=AutoStride) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) (with exclusive 'end'), specified as integer
-    /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result and
-    /// with the given strides (by default, AutoStride means the usual
-    /// contiguous packing of pixels).  It is up to the caller to ensure
-    /// that result points to an area of memory big enough to
-    /// accommodate the requested rectangle.  Return true if the
-    /// operation could be completed, otherwise return false.
+    /// [ybegin..yend) X [zbegin..zend) (with exclusive 'end'),
+    /// specified as integer pixel coordinates, at the current MIP-map
+    /// level, storing the pixel values beginning at the address
+    /// specified by result and with the given strides (by default,
+    /// AutoStride means the usual contiguous packing of pixels) and
+    /// converting into the data type described by 'format'.  It is up
+    /// to the caller to ensure that result points to an area of memory
+    /// big enough to accommodate the requested rectangle.  Return true
+    /// if the operation could be completed, otherwise return false.
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format,
-                     void *result, stride_t xstride=AutoStride,
+                     int zbegin, int zend,
+                     TypeDesc format, void *result,
+                     stride_t xstride=AutoStride,
                      stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride) const;
 
@@ -421,22 +478,6 @@ public:
         return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
                            &result[0]);
     }
-
-    /// Retrieve the number of deep data samples corresponding to pixel
-    /// (x,y,z).  Return 0 not a deep image or if the pixel is out of
-    /// range or has no deep samples.
-    int deep_samples (int x, int y, int z=0) const;
-
-    /// Return a pointer to the raw array of deep data samples for
-    /// channel c of pixel (x,y,z).  Return NULL if not a deep image or
-    /// if the pixel is out of range or has no deep samples.
-    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
-
-    /// Return the value (as a float) of sample s of channel c of pixel
-    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
-    /// coordinates or channel number are out of range or if it has no
-    /// deep samples.
-    float deep_value (int x, int y, int z, int c, int s) const;
 
     int orientation () const;
 
@@ -495,9 +536,9 @@ public:
 
     TypeDesc pixeltype () const;
 
-    /// A pointer to "local" pixels, if they are fully in RAM and not
-    /// backed by an ImageCache, or NULL otherwise.  (You can also test
-    /// it like a bool to find out if pixels are local.)
+    /// A raw pointer to "local" pixel memory, if they are fully in RAM
+    /// and not backed by an ImageCache, or NULL otherwise.  You can
+    /// also test it like a bool to find out if pixels are local.
     void *localpixels ();
     const void *localpixels () const;
 
@@ -507,15 +548,10 @@ public:
 
     ImageCache *imagecache () const;
 
-    /// Return the address where pixel (x,y) is stored in the image buffer.
-    /// Use with extreme caution!  Will return NULL if the pixel values
-    /// aren't local.
-    const void *pixeladdr (int x, int y) const { return pixeladdr (x, y, 0); }
-
     /// Return the address where pixel (x,y,z) is stored in the image buffer.
     /// Use with extreme caution!  Will return NULL if the pixel values
     /// aren't local.
-    const void *pixeladdr (int x, int y, int z) const;
+    const void *pixeladdr (int x, int y, int z=0) const;
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
     /// Use with extreme caution!  Will return NULL if the pixel values
@@ -530,83 +566,69 @@ public:
     /// Does this ImageBuf store deep data?
     bool deep () const;
 
+    /// Retrieve the number of deep data samples corresponding to pixel
+    /// (x,y,z).  Return 0 if not a deep image or if the pixel is out of
+    /// range or has no deep samples.
+    int deep_samples (int x, int y, int z=0) const;
+
+    /// Return a pointer to the raw array of deep data samples for
+    /// channel c of pixel (x,y,z).  Return NULL if the pixel
+    /// coordinates or channel number are out of range, if the
+    /// pixel/channel has no deep samples, or if the image is not deep.
+    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
+
+    /// Return the value (as a float) of sample s of channel c of pixel
+    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
+    /// coordinates or channel number are out of range or if it has no
+    /// deep samples.
+    float deep_value (int x, int y, int z, int c, int s) const;
+
     /// Retrieve the "deep" data.
     DeepData *deepdata ();
     const DeepData *deepdata () const;
-
-    /// Is this ImageBuf object initialized?
-    bool initialized () const;
 
     friend class IteratorBase;
 
     class IteratorBase {
     public:
-        IteratorBase (const ImageBuf &ib)
+        IteratorBase (const ImageBuf &ib, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
+            init_ib (wrap);
             range_is_image ();
         }
 
-        IteratorBase (const ImageBuf &ib, int xbegin, int xend,
-                      int ybegin, int yend, int zbegin=0, int zend=1)
+        /// Construct valid iteration region from ImageBuf and ROI.
+        IteratorBase (const ImageBuf &ib, const ROI &roi, WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
-            m_rng_xbegin = std::max (xbegin, m_img_xbegin); 
-            m_rng_xend   = std::min (xend,   m_img_xend);
-            m_rng_ybegin = std::max (ybegin, m_img_ybegin);
-            m_rng_yend   = std::min (yend,   m_img_yend);
-            m_rng_zbegin = std::max (zbegin, m_img_zbegin);
-            m_rng_zend   = std::min (zend,   m_img_zend);
-        }
-
-        /// Construct read-write clamped valid iteration region from
-        /// ImageBuf and ROI.
-        IteratorBase (const ImageBuf &ib, const ROI &roi)
-            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
-        {
-            init_ib ();
+            init_ib (wrap);
             if (roi.defined()) {
-                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
-                m_rng_xend   = std::min (roi.xend,   m_img_xend);
-                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
-                m_rng_yend   = std::min (roi.yend,   m_img_yend);
-                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
-                m_rng_zend   = std::min (roi.zend,   m_img_zend);
+                m_rng_xbegin = roi.xbegin;
+                m_rng_xend   = roi.xend;
+                m_rng_ybegin = roi.ybegin;
+                m_rng_yend   = roi.yend;
+                m_rng_zbegin = roi.zbegin;
+                m_rng_zend   = roi.zend;
             } else {
                 range_is_image ();
             }
         }
 
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
                       int ybegin, int yend, int zbegin, int zend,
-                      bool unclamped)
+                      WrapMode wrap)
             : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
         {
-            init_ib ();
-            if (unclamped) {
-                m_rng_xbegin = xbegin;
-                m_rng_xend = xend;
-                m_rng_ybegin = ybegin;
-                m_rng_yend = yend;
-                m_rng_zbegin = zbegin;
-                m_rng_zend = zend;
-            } else {
-                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
-                m_rng_xend = std::min(xend,m_img_xend);
-                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
-                m_rng_yend = std::min(yend,m_img_yend);
-                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
-                m_rng_zend = std::min(zend,m_img_zend);
-            }
+            init_ib (wrap);
+            m_rng_xbegin = xbegin;
+            m_rng_xend   = xend;
+            m_rng_ybegin = ybegin;
+            m_rng_yend   = yend;
+            m_rng_zbegin = zbegin;
+            m_rng_zend   = zend;
         }
 
         IteratorBase (const IteratorBase &i)
@@ -616,7 +638,7 @@ public:
               m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
               m_tile(NULL), m_proxydata(i.m_proxydata)
         {
-            init_ib ();
+            init_ib (i.m_wrap);
         }
 
         ~IteratorBase () {
@@ -632,7 +654,7 @@ public:
             m_tile = NULL;
             m_proxydata = i.m_proxydata;
             m_ib = i.m_ib;
-            init_ib ();
+            init_ib (i.m_wrap);
             m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
             m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
             m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
@@ -649,9 +671,7 @@ public:
         ///
         int z () const { return m_z; }
 
-        /// Is the current location valid?  Locations outside the
-        /// designated region are invalid, as is an iterator that has
-        /// completed iterating over the whole region.
+        /// Is the current location within the designated iteration range?
         bool valid () const {
             return m_valid;
         }
@@ -691,6 +711,9 @@ public:
         /// Retrieve the number of deep data samples at this pixel.
         int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
 
+        /// Return the wrap mode
+        WrapMode wrap () const { return m_wrap; }
+
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
         void pos (int x_, int y_, int z_=0) {
@@ -700,19 +723,33 @@ public:
                 // within the iteration region.
                 m_x = x_;
                 pos_xincr ();
-                m_exists = (x_ < m_img_xend);
+                // Not necessary? m_exists = (x_ < m_img_xend);
+                DASSERT ((x_ < m_img_xend) == m_exists);
                 return;
             }
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e || m_deep)
-                m_proxydata = NULL;
-            else if (m_localpixels)
-                m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
-            else
+            if (m_localpixels) {
+                if (! e) {
+                    m_x = x_;  m_y = y_;  m_z = z_;
+                    if (m_wrap == WrapBlack) {
+                        m_proxydata = (char *)m_ib->blackpixel();
+                    } else {
+                        m_ib->do_wrap (x_, y_, z_, m_wrap);
+                        m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                    }
+                    m_valid = v;
+                    m_exists = e;
+                    return;
+                }
+                else
+                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+            }
+            else if (! m_deep)
                 m_proxydata = (char *)m_ib->retile (x_, y_, z_, m_tile,
                                                     m_tilexbegin, m_tileybegin,
-                                                    m_tilezbegin, m_tilexend);
+                                                    m_tilezbegin, m_tilexend,
+                                                    e, m_wrap);
             m_x = x_;  m_y = y_;  m_z = z_;
             m_valid = v;
             m_exists = e;
@@ -748,6 +785,12 @@ public:
             ++(*this);
         }
 
+        /// Return the iteration range
+        ROI range () const {
+            return ROI (m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
+                        m_rng_zbegin, m_rng_zend, 0, m_ib->nchannels());
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -765,15 +808,17 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
-        int m_nchannels, m_pixel_bytes;
+        int m_nchannels;
+        size_t m_pixel_bytes;
         char *m_proxydata;
+        WrapMode m_wrap;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
-        void init_ib () {
+        void init_ib (WrapMode wrap) {
             const ImageSpec &spec (m_ib->spec());
             m_deep = spec.deep;
-            m_localpixels = m_ib->localpixels();
+            m_localpixels = m_ib->localpixels() != NULL;
             m_img_xbegin = spec.x; m_img_xend = spec.x+spec.width;
             m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
             m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
@@ -783,6 +828,7 @@ public:
             m_x = 0xffffffff;
             m_y = 0xffffffff;
             m_z = 0xffffffff;
+            m_wrap = (wrap == WrapDefault ? WrapBlack : wrap);
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -799,20 +845,34 @@ public:
         void pos_xincr () {
             DASSERT (m_exists && m_valid);   // precondition
             DASSERT (valid(m_x,m_y,m_z));    // should be true by definition
-            if (m_x >= m_img_xend /*same as !exists() for this case*/) {
-                m_proxydata = NULL;
-                m_exists = false;
+            bool e = (m_x < m_img_xend);
+            if (m_localpixels) {
+                if (e)
+                    // Haven't run off the end, just increment
+                    m_proxydata += m_pixel_bytes;
+                else {
+                    m_exists = false;
+                    if (m_wrap == WrapBlack) {
+                        m_proxydata = (char *)m_ib->blackpixel();
+                    } else {
+                        int x = m_x, y = m_y, z = m_z;
+                        m_ib->do_wrap (x, y, z, m_wrap);
+                        m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                    }
+                }
             } else if (m_deep) {
                 m_proxydata = NULL;
-            } else if (m_localpixels) {
-                m_proxydata += m_pixel_bytes;
-            } else if (m_x < m_tilexend) {
-                // Haven't crossed a tile boundary, don't retile!
-                m_proxydata += m_pixel_bytes;
             } else {
-                m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
+                // Cached image
+                if (e && m_x < m_tilexend)
+                    // Haven't crossed a tile boundary, don't retile!
+                    m_proxydata += m_pixel_bytes;
+                else {
+                    m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
                                     m_tilexbegin, m_tileybegin, m_tilezbegin,
-                                    m_tilexend);
+                                    m_tilexend, e, m_wrap);
+                    m_exists = e;
+                }
             }
         }
     };
@@ -840,53 +900,38 @@ public:
     public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
-        Iterator (ImageBuf &ib)
-            : IteratorBase(ib)
+        Iterator (ImageBuf &ib, WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
-        Iterator (ImageBuf &ib, int x_, int y_, int z_=0)
-            : IteratorBase(ib)
+        Iterator (ImageBuf &ib, int x, int y, int z=0,
+                  WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
-            pos (x_, y_, z_);
+            pos (x, y, z);
         }
-        /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel.  The
-        /// iteration region will be clamped to the valid image range.
-        Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin=0, int zend=1)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
-        {
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
-        /// Construct read-write clamped valid iteration region from
-        /// ImageBuf and ROI.
-        Iterator (ImageBuf &ib, const ROI &roi)
-            : IteratorBase (ib, roi)
+        /// Construct read-write iteration region from ImageBuf and ROI.
+        Iterator (ImageBuf &ib, const ROI &roi, WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         Iterator (ImageBuf &ib, int xbegin, int xend,
-                  int ybegin, int yend, int zbegin, int zend,
-                  bool unclamped)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped)
+                  int ybegin, int yend, int zbegin=0, int zend=1,
+                  WrapMode wrap=WrapDefault)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Copy constructor.
         ///
         Iterator (Iterator &i)
-            : IteratorBase (i.m_ib)
+            : IteratorBase (i.m_ib, i.m_wrap)
         {
             pos (i.m_x, i.m_y, i.m_z);
         }
@@ -938,46 +983,32 @@ public:
     public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
-        ConstIterator (const ImageBuf &ib)
-            : IteratorBase(ib)
+        ConstIterator (const ImageBuf &ib, WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
-        ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0)
-            : IteratorBase(ib)
+        ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0,
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase(ib,wrap)
         {
             pos (x_, y_, z_);
         }
-        /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel.  The
-        /// iteration region will be clamped to the valid image range.
-        ConstIterator (const ImageBuf &ib, int xbegin, int xend,
-                       int ybegin, int yend, int zbegin=0, int zend=1)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend)
-        {
-            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }
-        /// Construct read-only clamped valid iteration region
-        /// from ImageBuf and ROI.
-        ConstIterator (const ImageBuf &ib, const ROI &roi)
-            : IteratorBase (ib, roi)
+        /// Construct read-only iteration region from ImageBuf and ROI.
+        ConstIterator (const ImageBuf &ib, const ROI &roi,
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase (ib, roi, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
-        /// over region, starting with the upper left pixel, and do NOT
-        /// clamp the region to the valid image pixels.  If "unclamped"
-        /// is true, the iteration region will NOT be clamped to the
-        /// image boundary, so you must use done() to test whether the
-        /// iteration is complete, versus valid() to test whether it's
-        /// pointing to a valid image pixel.
+        /// over region, starting with the upper left pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
-                       int ybegin, int yend, int zbegin, int zend,
-                       bool unclamped)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend,
-                           zbegin, zend, unclamped)
+                       int ybegin, int yend, int zbegin=0, int zend=1,
+                       WrapMode wrap=WrapDefault)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
@@ -1039,7 +1070,12 @@ protected:
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
                          int &tileybegin, int &tilezbegin,
-                         int &tilexend) const;
+                         int &tilexend, bool exists,
+                         WrapMode wrap=WrapDefault) const;
+
+    const void *blackpixel () const;
+
+    void do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);

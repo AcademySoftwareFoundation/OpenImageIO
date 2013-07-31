@@ -22,7 +22,7 @@ Comparing "ref/norle-16.sgi" and "norle-16.sgi"
 PASS
 Reading ref/rle-16.sgi
 ref/rle-16.sgi       :  100 x   63, 4 channel, uint16 sgi
-    SHA-1: 883A9F68264340CD10BDCC2D12E487E36EDCFC64
+    SHA-1: 6F0B94D6649760B785381A551E5F08C72712D02D
     channel list: R, G, B, A
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"

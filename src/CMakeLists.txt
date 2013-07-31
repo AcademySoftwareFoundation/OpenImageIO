@@ -2,14 +2,14 @@ project (OpenImageIO)
 
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
-set (OIIO_VERSION_MINOR 2)
-set (OIIO_VERSION_PATCH 0)
+set (OIIO_VERSION_MINOR 3)
+set (OIIO_VERSION_PATCH 1)
+set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
     cmake_policy (SET CMP0017 NEW)
 endif ()
-set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
@@ -21,10 +21,19 @@ if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release") 
 endif ()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_definitions ("-DDEBUG=1")
     set (DEBUGMODE ON)
 endif ()
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    # cmake bug workaround -- on some platforms, cmake doesn't set
+    # NDEBUG for RelWithDebInfo mode
+    add_definitions ("-DNDEBUG")
+endif ()
 
+option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
+mark_as_advanced (CMAKE_USE_FOLDERS)
+if (CMAKE_USE_FOLDERS)
+    set_property (GLOBAL PROPERTY USE_FOLDERS ON)
+endif ()
 
 # Figure out which compiler we're using
 if (CMAKE_COMPILER_IS_GNUCC)
@@ -43,10 +52,14 @@ if (NOT CMAKE_COMPILER_IS_CLANG)
     endif ()
 endif ()
 
-# Strict warnings
+## turn on more detailed warnings and consider warnings as errors
+set (STOP_ON_WARNING ON CACHE BOOL "Stop building if there are any compiler warnings")
 if (NOT MSVC)
     add_definitions ("-Wall")
-endif()
+    if (STOP_ON_WARNING)
+        add_definitions ("-Werror")
+    endif ()
+endif ()
 
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     # CMake doesn't automatically know what do do with
@@ -66,23 +79,27 @@ endif ()
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
+set (OIIO_BUILD_TOOLS ON CACHE BOOL "Build the command-line tools")
+set (OIIO_BUILD_TESTS ON CACHE BOOL "Build the unit tests")
 set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
 set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
 set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
 set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
-set (USE_TBB ON CACHE BOOL "Use TBB if needed")
+set (USE_TBB OFF CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
 set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
+set (USE_OPENSSL ON CACHE BOOL "Use OpenSSL if found")
 set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
+set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
 set (USE_EXTERNAL_TBB OFF CACHE BOOL
      "Use system TBB library instead of bundled.")
 
@@ -243,14 +260,17 @@ include (CTest)
 # Tell CMake to process the sub-directories
 add_subdirectory (libOpenImageIO)
 
-add_subdirectory (iconvert)
-add_subdirectory (idiff)
-add_subdirectory (igrep)
-add_subdirectory (iinfo)
-add_subdirectory (maketx)
-add_subdirectory (oiiotool)
-add_subdirectory (testtex)
-add_subdirectory (iv)
+if (OIIO_BUILD_TOOLS)
+  add_subdirectory (iconvert)
+  add_subdirectory (idiff)
+  add_subdirectory (igrep)
+  add_subdirectory (iinfo)
+  add_subdirectory (maketx)
+  add_subdirectory (oiiotool)
+  add_subdirectory (testtex)
+  add_subdirectory (iv)
+endif ()
+
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
     add_subdirectory (bmp.imageio)
@@ -322,7 +342,8 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
-                texture-skinny texture-fat
+                texture-skinny texture-fat texture-wrapfill
+                texture-icwrite
                )
 
 
@@ -335,6 +356,8 @@ oiio_add_tests (bmp
 oiio_add_tests (tiff-suite tiff-depths
     IMAGEDIR libtiffpic
     URL http://www.remotesensing.org/libtiff/images.html)
+
+oiio_add_tests (tiff-misc)
 
 oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
     IMAGEDIR openexr-images
@@ -358,7 +381,7 @@ oiio_add_tests (webp
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
 
-oiio_add_tests (texture-field3d
+oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
 
 

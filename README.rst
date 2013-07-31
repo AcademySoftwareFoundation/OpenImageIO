@@ -63,14 +63,18 @@ Licensing
 OpenImageIO is (c) Copyright 2008 by Larry Gritz and the other
 contributors.  All Rights Reserved.
 
-OpenImageIO is distributed using the modified BSD license.  Please read
-the "LICENSE" file for the legal wording.  The plain English bottom line
-is that OpenImageIO is free, as well as freely modifiable and
-redistributable (in both source and binary form).  You may use part or
-all of it in your own applications, whether proprietary or open, free or
-commercial or not.  Using it in a commercial or proprietary application
-DOES NOT obligate you to pay us, or to use any particular licensing
-terms in your own application.
+OpenImageIO is distributed using the modified BSD license (also known as
+the "new BSD" or "3-clause BSD" license).  Please read the "LICENSE"
+file for the legal wording.  The documentation is licensed under the
+Creative Commons Attribution 3.0 Unported License
+(http://creativecommons.org/licenses/by/3.0/).
+
+The plain English bottom line is that OpenImageIO is free, as well as
+freely modifiable and redistributable (in both source and binary form).
+You may use part or all of it in your own applications, whether
+proprietary or open, free or commercial or not.  Using it in a
+commercial or proprietary application DOES NOT obligate you to pay us,
+or to use any particular licensing terms in your own application.
 
 
 Web Resources

@@ -36,6 +36,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+#include <boost/regex.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -78,6 +79,14 @@ Filesystem::extension (const std::string &filepath, bool include_dot)
     if (! include_dot && !s.empty() && s[0] == '.')
         s.erase (0, 1);  // erase the first character
     return s;
+}
+
+
+
+std::string
+Filesystem::parent_path (const std::string &filepath)
+{
+    return boost::filesystem::path(filepath).parent_path().string();
 }
 
 
@@ -180,6 +189,38 @@ Filesystem::searchpath_find (const std::string &filename,
 
 
 bool
+Filesystem::get_directory_entries (const std::string &dirname,
+                                   std::vector<std::string> &filenames,
+                                   bool recursive,
+                                   const std::string &filter_regex)
+{
+    filenames.clear ();
+    if (dirname.size() && ! is_directory(dirname))
+        return false;
+    boost::filesystem::path dirpath (dirname.size() ? dirname : std::string("."));
+    boost::regex re (filter_regex);
+
+    if (recursive) {
+        for (boost::filesystem::recursive_directory_iterator s (dirpath);
+             s != boost::filesystem::recursive_directory_iterator();  ++s) {
+            std::string file = s->path().string();
+            if (!filter_regex.size() || boost::regex_search (file, re))
+                filenames.push_back (file);
+        }
+    } else {
+        for (boost::filesystem::directory_iterator s (dirpath);
+             s != boost::filesystem::directory_iterator();  ++s) {
+            std::string file = s->path().string();
+            if (!filter_regex.size() || boost::regex_search (file, re))
+                filenames.push_back (file);
+        }
+    }
+    return true;
+}
+
+
+
+bool
 Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
 {
     // "./foo" is considered absolute if dot_is_absolute is true.
@@ -207,7 +248,7 @@ Filesystem::exists (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::exists (path);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         r = false;
     }
     return r;
@@ -221,7 +262,7 @@ Filesystem::is_directory (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::is_directory (path);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         r = false;
     }
     return r;
@@ -235,7 +276,7 @@ Filesystem::is_regular (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::is_regular_file (path);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         r = false;
     }
     return r;
@@ -293,12 +334,17 @@ Filesystem::open (std::ofstream &stream,
 std::time_t
 Filesystem::last_write_time (const std::string& path)
 {
+    try {
 #ifdef _WIN32
-    std::wstring wpath = Strutil::utf8_to_utf16 (path);
-    return boost::filesystem::last_write_time (wpath);
+        std::wstring wpath = Strutil::utf8_to_utf16 (path);
+        return boost::filesystem::last_write_time (wpath);
 #else
-    return boost::filesystem::last_write_time (path);
+        return boost::filesystem::last_write_time (path);
 #endif
+    } catch (const std::exception &) {
+        // File doesn't exist
+        return 0;
+    }
 }
 
 
@@ -306,12 +352,16 @@ Filesystem::last_write_time (const std::string& path)
 void
 Filesystem::last_write_time (const std::string& path, std::time_t time)
 {
+    try {
 #ifdef _WIN32
-    std::wstring wpath = Strutil::utf8_to_utf16 (path);
-    boost::filesystem::last_write_time (wpath, time);
+        std::wstring wpath = Strutil::utf8_to_utf16 (path);
+        boost::filesystem::last_write_time (wpath, time);
 #else
-    boost::filesystem::last_write_time (path, time);
+        boost::filesystem::last_write_time (path, time);
 #endif
+    } catch (const std::exception &) {
+        // File doesn't exist
+    }
 }
 
 

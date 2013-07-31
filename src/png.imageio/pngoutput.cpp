@@ -127,6 +127,10 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
+    // If not uint8 or uint16, default to uint8
+    if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
+        m_spec.set_format (TypeDesc::UINT8);
+
     m_file = Filesystem::fopen (name, "wb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());

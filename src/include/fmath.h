@@ -838,6 +838,20 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 
 
 
+/// Fast float exp
+inline float fast_expf(float x)
+{
+#if defined(__x86_64__) && defined(__GNU_LIBRARY__) && defined(__GLIBC__ ) && defined(__GLIBC_MINOR__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 16
+    // On x86_64, versions of glibc < 2.16 have an issue where expf is
+    // much slower than the double version.  This was fixed in glibc 2.16.
+    return static_cast<float>(std::exp(static_cast<double>(x)));
+#else
+    return std::exp(x);
+#endif
+}
+
+
+
 #ifdef _WIN32
 // Windows doesn't define these functions from math.h
 #define hypotf _hypotf
@@ -875,7 +889,7 @@ roundf (float val) {
 #ifdef _MSC_VER
 template<class T>
 inline int isinf (T x) {
-    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(1.0f, x));
+    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(T(1.0), x));
 }
 #endif
 
@@ -963,7 +977,16 @@ truncf(float val)
     return (float)(int)val;
 }
 
-#endif
+using OIIO::roundf;
+using OIIO::truncf;
+using OIIO::expm1f;
+using OIIO::erff;
+using OIIO::erfcf;
+using OIIO::log2f;
+using OIIO::logbf;
+using OIIO::exp2f;
+
+#endif  /* _WIN32 */
 
 
 // Some systems have isnan, isinf and isfinite in the std namespace.
@@ -983,6 +1006,7 @@ log2f (float val) {
     return logf (val)/static_cast<float>(M_LN2);
 }
 
+using OIIO::log2f;
 #endif
 
 
@@ -1086,6 +1110,27 @@ inline float
 safe_sqrtf (float x)
 {
     return (x > 0.0f) ? sqrtf(x) : 0.0f;
+}
+
+/// Safe (clamping) inverse sqrt
+inline float safe_inversesqrt (float x) {
+    return (x > 0.0f) ? 1.0f/std::sqrt(x) : 0.0f;
+}
+
+inline float safe_log (float x) {
+    return (x > 0.0f) ? logf(x) : -std::numeric_limits<float>::max();
+}
+
+inline float safe_log2(float x) {
+    return (x > 0.0f) ? log2f(x) : -std::numeric_limits<float>::max();
+}
+
+inline float safe_log10(float x) {
+    return (x > 0.0f) ? log10f(x) : -std::numeric_limits<float>::max();
+}
+
+inline float safe_logb (float x) {
+    return (x != 0.0f) ? logbf(x) : -std::numeric_limits<float>::max();
 }
 
 

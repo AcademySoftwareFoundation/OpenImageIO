@@ -97,10 +97,11 @@ Sysutil::memory_used (bool resident)
     size_t size = 0;
     FILE *file = fopen("/proc/self/statm", "r");
     if (file) {
-        unsigned long vm = 0;
-        int n = fscanf (file, "%lu", &vm);  // Just need the first num: vm size
-        if (n == 1)
-            size = (size_t)vm * getpagesize();
+        unsigned long vm = 0, rss = 0;
+        int n = fscanf (file, "%lu %lu", &vm, &rss);
+        if (n == 2)
+            size = size_t(resident ? rss : vm);
+        size *= getpagesize();
         fclose (file);
     }
     return size;
@@ -124,7 +125,7 @@ Sysutil::memory_used (bool resident)
 
 #else
     // No idea what platform this is
-    ASSERT (0);
+    ASSERT (0 && "Need to implement Sysutil::memory_used on this platform");
     return 0;   // Punt
 #endif
 }
@@ -148,19 +149,21 @@ Sysutil::this_program_path ()
 {
     char filename[10240];
     filename[0] = 0;
-    unsigned int size = sizeof(filename);
 
 #if defined(__linux__)
+    unsigned int size = sizeof(filename);
     int r = readlink ("/proc/self/exe", filename, size);
     ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
     if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
+    unsigned int size = sizeof(filename);
     int r = _NSGetExecutablePath (filename, &size);
     if (r == 0)
         r = size;
 #elif defined(_WIN32)
     // According to MSDN...
+    unsigned int size = sizeof(filename);
     int r = GetModuleFileName (NULL, filename, size);
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
@@ -168,7 +171,6 @@ Sysutil::this_program_path ()
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-//  char filename[1024];
     size_t cb = sizeof(filename);
     int r=1;
     sysctl(mib, 4, filename, &cb, NULL, 0);

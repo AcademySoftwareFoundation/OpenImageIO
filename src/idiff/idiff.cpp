@@ -157,16 +157,6 @@ read_input (const std::string &filename, ImageBuf &img,
 
 
 
-static bool
-same_size (const ImageBuf &A, const ImageBuf &B)
-{
-    const ImageSpec &a (A.spec()), &b (B.spec());
-    return (a.width == b.width && a.height == b.height &&
-            a.depth == b.depth && a.nchannels == b.nchannels);
-}
-
-
-
 // function that standarize printing NaN and Inf values on
 // Windows (where they are in 1.#INF, 1.#NAN format) and all
 // others platform
@@ -218,9 +208,6 @@ main (int argc, char *argv[])
     else
         imagecache->attribute ("max_memory_MB", 2048.0);
     imagecache->attribute ("autotile", 256);
-#ifdef DEBUG
-    imagecache->attribute ("statistics:level", 2);
-#endif
     // force a full diff, even for files tagged with the same
     // fingerprint, just in case some mistake has been made.
     imagecache->attribute ("deduplicate", 0);
@@ -261,24 +248,6 @@ main (int argc, char *argv[])
                 ! read_input (filenames[1], img1, imagecache, subimage, m))
                 return ErrFile;
 
-            // Compare the dimensions of the images.  Fail if they
-            // aren't the same resolution and number of channels.  No
-            // problem, though, if they aren't the same data type.
-            if (! same_size (img0, img1)) {
-                print_subimage (img0, subimage, m);
-                std::cout << "Images do not match in size: ";
-                std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
-                if (img0.spec().depth > 1)
-                    std::cout << "x" << img0.spec().depth;
-                std::cout << "x" << img0.spec().nchannels << ")";
-                std::cout << " versus ";
-                std::cout << "(" << img1.spec().width << "x" << img1.spec().height;
-                if (img1.spec().depth > 1)
-                    std::cout << "x" << img1.spec().depth;
-                std::cout << "x" << img1.spec().nchannels << ")\n";
-                ret = ErrDifferentSize;
-                break;
-            }
             if (img0.deep() != img1.deep()) {
                 std::cout << "One image contains deep data, the other does not\n";
                 ret = ErrDifferentSize;
@@ -323,7 +292,12 @@ main (int argc, char *argv[])
                     std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
                     if (img0.spec().depth > 1)
                         std::cout << ", " << cr.maxz;
-                    std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    if (cr.maxc < (int)img0.spec().channelnames.size())
+                        std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                    else if (cr.maxc < (int)img1.spec().channelnames.size())
+                        std::cout << ", " << img1.spec().channelnames[cr.maxc] << ')';
+                    else
+                        std::cout << ", channel " << cr.maxc << ')';
                 }
                 std::cout << "\n";
 // when Visual Studio is used float values in scientific foramt are 
@@ -400,6 +374,7 @@ main (int argc, char *argv[])
     else
         std::cout << "FAILURE\n";
 
+    imagecache->invalidate_all (true);
     ImageCache::destroy (imagecache);
     return ret;
 }

@@ -66,7 +66,7 @@ unsigned int OIIO_API XXH_fast32 (const void* input, int len,
 // Same as XXH_fast(), but the resulting hash has stronger properties
 unsigned int OIIO_API XXH_strong32 (const void* input, int len,
                                     unsigned int seed=1771);
-};   // end namespace xxhash
+}   // end namespace xxhash
 
 
 
@@ -131,7 +131,7 @@ uint32_t OIIO_API hashlittle (const void *key, size_t length,
 uint32_t OIIO_API hashword (const uint32_t *key, size_t nwords,
                             uint32_t seed=1771);
 
-};   // end namespace bjhash
+}   // end namespace bjhash
 
 
 namespace murmur {
@@ -162,7 +162,7 @@ inline uint64_t fmix (uint64_t k)
     return k;
 }
 
-};  // end namespace murmur
+}  // end namespace murmur
 
 
 class CSHA1;  // opaque forward declaration

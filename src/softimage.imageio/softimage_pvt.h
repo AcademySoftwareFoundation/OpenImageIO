@@ -101,7 +101,7 @@ namespace softimage_pvt
         MIXED_RUN_LENGTH
     }; // enum encoding
 
-}; //namespace softimage_pvt
+} //namespace softimage_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
 

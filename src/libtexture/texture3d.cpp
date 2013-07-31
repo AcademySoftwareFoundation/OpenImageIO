@@ -33,8 +33,6 @@
 #include <string>
 #include <sstream>
 #include <list>
-#include <boost/tr1/memory.hpp>
-using namespace std::tr1;
 
 #include <OpenEXR/ImathMatrix.h>
 
@@ -53,11 +51,12 @@ using namespace std::tr1;
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
-#include "../field3d.imageio/field3d_pvt.h"
+#include "../field3d.imageio/field3d_backdoor.h"
 
 OIIO_NAMESPACE_ENTER
 {
-    using namespace pvt;
+using namespace pvt;
+using namespace f3dpvt;
 
 namespace {  // anonymous
 
@@ -65,7 +64,7 @@ static EightBitConverter<float> uchar2float;
 static ustring s_field3d ("field3d");
 
 
-};  // end anonymous namespace
+}  // end anonymous namespace
 
 namespace pvt {   // namespace pvt
 
@@ -141,19 +140,19 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     if (options.swrap == TextureOpt::WrapDefault)
         options.swrap = texturefile->swrap();
     if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic2;
+        options.swrap_func = wrap_periodic_pow2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOpt::WrapDefault)
         options.twrap = texturefile->twrap();
     if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic2;
+        options.twrap_func = wrap_periodic_pow2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
     if (options.rwrap == TextureOpt::WrapDefault)
         options.rwrap = texturefile->rwrap();
     if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
-        options.rwrap_func = wrap_periodic2;
+        options.rwrap_func = wrap_periodic_pow2;
     else
         options.rwrap_func = wrap_functions[(int)options.rwrap];
 
@@ -186,10 +185,7 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
     if (actualchannels < options.nchannels)
-        fill_channels (spec, options, result);
-    return ok;
-
-
+        fill_gray_channels (spec, options, result);
     return ok;
 }
 
@@ -226,14 +222,19 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
+    for (int c = 0;  c < options.nchannels;  ++c)
+        result[c] = 0;
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
     float* dresultdr = options.dresultdr;
-    for (int c = 0;  c < options.actualchannels;  ++c) {
-        result[c] = 0;
-        if (dresultds) dresultds[c] = 0;
-        if (dresultdt) dresultdt[c] = 0;
-        if (dresultdr) dresultdr[c] = 0;
+    if (dresultds) {
+        DASSERT (dresultdt && dresultdr);
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultds[c] = 0;
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdt[c] = 0;
+        for (int c = 0;  c < options.nchannels;  ++c)
+            dresultdr[c] = 0;
     }
     // If the user only provided us with one pointer, clear all to simplify
     // the rest of the code, but only after we zero out the data for them so
@@ -314,7 +315,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     TileRef &tile (thread_info->tile);
     if (! tile  ||  ! ok)
         return false;
-    size_t channelsize = texturefile.channelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
     int tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
     int offset = spec.nchannels * tilepel + options.firstchannel;
     DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
@@ -328,6 +329,14 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
         const float *texel = tile->data() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
+    }
+
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
     }
     return true;
 }
@@ -369,10 +378,9 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 //    bool svalid[2], tvalid[2], rvalid[2];  // Valid texels?  false means black border
     union { bool bvalid[6]; unsigned long long ivalid; } valid_storage;
     valid_storage.ivalid = 0;
-    DASSERT (sizeof(valid_storage) >= 6*sizeof(bool));
+    DASSERT (sizeof(valid_storage) == 8);
     const unsigned long long none_valid = 0;
-    const unsigned long long all_valid = 0x010101010101LL;
-    DASSERT (__LITTLE_ENDIAN__ && "this trick won't work with big endian");
+    const unsigned long long all_valid = littleendian() ? 0x010101010101LL : 0x01010101010100LL;
     bool *svalid = valid_storage.bvalid;
     bool *tvalid = valid_storage.bvalid + 2;
     bool *rvalid = valid_storage.bvalid + 4;
@@ -409,8 +417,8 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool r_onetile = (tile_r != tiledepthmask) & (rtex[0]+1 == rtex[1]);
     bool onetile = (s_onetile & t_onetile & r_onetile);
-    size_t channelsize = texturefile.channelsize();
-    size_t pixelsize = texturefile.pixelsize();
+    size_t channelsize = texturefile.channelsize(options.subimage);
+    size_t pixelsize = texturefile.pixelsize(options.subimage);
     if (onetile &&
         valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
@@ -459,7 +467,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                     savetile[k][j][i] = tile;
                     size_t tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
                     size_t offset = (spec.nchannels * tilepel + options.firstchannel) * channelsize;
-#if DEBUG
+#ifndef NDEBUG
                     if ((size_t)offset >= spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize)
                         std::cerr << "offset=" << offset << ", whd " << spec.tile_width << ' ' << spec.tile_height << ' ' << spec.tile_depth << " pixsize " << pixelsize << "\n";
 #endif
@@ -547,12 +555,24 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
         }
     }
 
+    // Add appropriate amount of "fill" color to extra channels in
+    // non-"black"-wrapped regions.
+    if (options.nchannels > options.actualchannels && options.fill) {
+        float f = trilerp (1.0f*(rvalid[0]*tvalid[0]*svalid[0]), 1.0f*(rvalid[0]*tvalid[0]*svalid[1]),
+                           1.0f*(rvalid[0]*tvalid[1]*svalid[0]), 1.0f*(rvalid[0]*tvalid[1]*svalid[1]),
+                           1.0f*(rvalid[1]*tvalid[0]*svalid[0]), 1.0f*(rvalid[1]*tvalid[0]*svalid[1]),
+                           1.0f*(rvalid[1]*tvalid[1]*svalid[0]), 1.0f*(rvalid[1]*tvalid[1]*svalid[1]),
+                           sfrac, tfrac, rfrac);
+        f *= weight * options.fill;
+        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+            accum[c] += f;
+    }
     return true;
 }
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

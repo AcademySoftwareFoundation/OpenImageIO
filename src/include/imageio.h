@@ -381,7 +381,7 @@ public:
     /// the image.  (Note that this differs slightly from the member
     /// data channelformats, which is empty if there are not separate
     /// per-channel formats.)
-    void get_channelformats (std::vector<TypeDesc> &formats) {
+    void get_channelformats (std::vector<TypeDesc> &formats) const {
         formats = channelformats;
         if ((int)formats.size() < nchannels)
             formats.resize (nchannels, format);
@@ -774,6 +774,11 @@ public:
         return e;
     }
 
+    /// An ImageInput::Creator is a function that creates and returns an
+    /// ImageInput.  Once invoked, the resulting ImageInput is owned by
+    /// the caller, who is responsible for deleting it when done with it.
+    typedef ImageInput* (*Creator)();
+
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
@@ -1064,6 +1069,11 @@ public:
         return e;
     }
 
+    /// An ImageOutput::Creator is a function that creates and returns an
+    /// ImageOutput.  Once invoked, the resulting ImageOutput is owned by
+    /// the caller, who is responsible for deleting it when done with it.
+    typedef ImageOutput* (*Creator)();
+
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
@@ -1180,6 +1190,15 @@ inline bool getattribute (const std::string &name, std::string &val) {
 }
 
 
+/// Register the input and output 'create' routines and list of file
+/// extensions for a particular format.
+OIIO_API void declare_imageio_format (const std::string &format_name,
+                                      ImageInput::Creator input_creator,
+                                      const char **input_extensions,
+                                      ImageOutput::Creator output_creator,
+                                      const char **output_extensions);
+
+
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
 OIIO_API int quantize (float value, int quant_black, int quant_white,
@@ -1191,8 +1210,14 @@ OIIO_API int quantize (float value, int quant_black, int quant_white,
 /// conversion.  If dst_type is UNKNWON, it will be assumed to be the
 /// same as src_type.
 OIIO_API bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *to, int n,
-                              int alpha_channel = -1, int z_channel = -1);
+                              TypeDesc dst_type, void *dst, int n);
+
+/// DEPRECATED -- for some reason we had a convert_types that took
+/// alpha_channel and z_channel parameters, but never did anything
+/// with them.
+OIIO_API bool convert_types (TypeDesc src_type, const void *src,
+                             TypeDesc dst_type, void *dst, int n,
+                             int alpha_channel, int z_channel = -1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -1211,6 +1236,18 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                               stride_t dst_xstride, stride_t dst_ystride,
                               stride_t dst_zstride,
                               int alpha_channel = -1, int z_channel = -1);
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads.
+OIIO_API bool parallel_convert_image (
+               int nchannels, int width, int height, int depth,
+               const void *src, TypeDesc src_type,
+               stride_t src_xstride, stride_t src_ystride,
+               stride_t src_zstride,
+               void *dst, TypeDesc dst_type,
+               stride_t dst_xstride, stride_t dst_ystride,
+               stride_t dst_zstride,
+               int alpha_channel=-1, int z_channel=-1, int nthreads=0);
 
 
 /// Helper routine for data conversion: Copy an image of nchannels x
@@ -1270,6 +1307,21 @@ OIIO_API bool decode_xmp (const std::string &xml, ImageSpec &spec);
 /// plugin.  If 'minimal' is true, then don't encode things that would
 /// be part of ordinary TIFF or exif tags.
 OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
+
+// All the wrap_foo functions implement a wrap mode, wherein coord is
+// altered to be origin <= coord < origin+width.  The return value
+// indicates if the resulting wrapped value is valid (example, for
+// wrap_black, values outside the region are invalid and do not modify
+// the coord parameter).
+OIIO_API bool wrap_black (int &coord, int origin, int width);
+OIIO_API bool wrap_clamp (int &coord, int origin, int width);
+OIIO_API bool wrap_periodic (int &coord, int origin, int width);
+OIIO_API bool wrap_periodic_pow2 (int &coord, int origin, int width);
+OIIO_API bool wrap_mirror (int &coord, int origin, int width);
+
+// Typedef for the function signature of a wrap implementation.
+typedef bool (*wrap_impl) (int &coord, int origin, int width);
+
 
 // to force correct linkage on some systems
 OIIO_API void _ImageIO_force_link ();

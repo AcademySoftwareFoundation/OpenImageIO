@@ -22,7 +22,8 @@ There are two kinds of data that are important to \product:
 Both internal and file data is stored in a particular \emph{data format}
 that describes the numerical encoding of the values.  \product
 understands several types of data encodings, and there is 
-a special type, \TypeDesc, that allows their enumeration.
+a special type, \TypeDesc, that allows their enumeration and
+is described in the header file {\cf OpenImageIO/typedesc.h}.
 A \TypeDesc describes a base data format type, aggregation into simple
 vector and matrix types, and an array length (if
 it's an array).
@@ -143,6 +144,7 @@ than images) can describe many types not used by
 \emph{metadata} for certain image file formats (see
 Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details).
+
 
 \section{Image Specification: {\cf ImageSpec}}
 \label{sec:ImageSpec}
@@ -541,7 +543,7 @@ attribute is a string), the attribute will not be modified, and {\cf
 
 \apiitem{int threads}
 \vspace{10pt}
-\index{threads}
+\index{threads} \label{sec:attribute:threads}
 Some \product operations can be accelerated if allowed to spawn multiple
 threads to parallelize the task.  (Examples: decompressing multiple
 simultaneously-read OpenEXR scanlines, or many \ImageBuf operations.)
@@ -631,6 +633,16 @@ general (pointer) form of {\cf getattribute()}:
 
 \apiend
 
+
+\apiitem{void {\ce declare_imageio_format} (const std::string \&format_name,\\
+\bigspc\bigspc\spc                    ImageInput::Creator input_creator, \\
+\bigspc\bigspc\spc                    const char **input_extensions,\\
+\bigspc\bigspc\spc                    ImageOutput::Creator output_creator, \\
+\bigspc\bigspc\spc                     const char **output_extensions)}
+\NEW
+Register the input and output `create' routines and list of file
+extensions for a particular format.
+\apiend
 
 
 \index{Image I/O API|)}

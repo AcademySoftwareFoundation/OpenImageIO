@@ -115,7 +115,7 @@ public:
     /// Debugging message with printf-like formatted error message.
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
-#ifdef DEBUG
+#ifndef NDEBUG
     void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 #else
     void debug (const char * /*format*/, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
@@ -126,7 +126,7 @@ public:
     void vError   (const char *format, va_list argptr);
     void vSevere  (const char *format, va_list argptr);
     void vMessage (const char *format, va_list argptr);
-#ifdef DEBUG
+#ifndef NDEBUG
     void vDebug   (const char *format, va_list argptr);
 #else
     void vDebug   (const char *, va_list) { }
@@ -137,7 +137,7 @@ public:
     void error   (const std::string &msg) { (*this)(EH_ERROR, msg); }
     void severe  (const std::string &msg) { (*this)(EH_SEVERE, msg); }
     void message (const std::string &msg) { (*this)(EH_MESSAGE, msg); }
-#ifdef DEBUG
+#ifndef NDEBUG
     void debug   (const std::string &msg) { (*this)(EH_DEBUG, msg); }
 #else
     void debug   (const std::string &) { }

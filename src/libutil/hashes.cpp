@@ -1,6 +1,5 @@
 #include <stdio.h>      /* defines printf for tests */
 #include <time.h>       /* defines time_t for timings in the test */
-#include <stdint.h>     /* defines uint32_t etc */
 #if defined(__linux__) || defined(__APPLE__)
 # include <sys/param.h>  /* attempt to define endianness */
 #endif
@@ -8,6 +7,7 @@
 # include <endian.h>    /* attempt to define endianness */
 #endif
 
+#include "fmath.h"
 #include "hash.h"
 
 OIIO_NAMESPACE_ENTER {

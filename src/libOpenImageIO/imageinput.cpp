@@ -41,6 +41,9 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
+#include <boost/scoped_array.hpp>
+
+
 OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;
@@ -200,7 +203,7 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
 
     const imagesize_t limit = 16*1024*1024;   // Allocate 16 MB, or 1 scanline
     int chunk = std::max (1, int(limit / native_scanline_bytes));
-    std::vector<unsigned char> buf (chunk * native_scanline_bytes);
+    boost::scoped_array<char> buf (new char [chunk * native_scanline_bytes]);
 
     bool ok = true;
     int scanline_values = m_spec.width * nchans;
@@ -217,7 +220,7 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             if (contiguous) {
                 ok = convert_types (m_spec.format, &buf[0], format, data, chunkvalues);
             } else {
-                ok = convert_image (nchans, m_spec.width, nscanlines, 1, 
+                ok = parallel_convert_image (nchans, m_spec.width, nscanlines, 1, 
                                     &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
                                     data, format, xstride, ystride, zstride);
             }
@@ -281,7 +284,7 @@ ImageInput::read_native_scanlines (int ybegin, int yend, int z,
 
     size_t native_pixel_bytes = m_spec.pixel_bytes (true);
     size_t native_ystride = m_spec.width * native_pixel_bytes;
-    std::vector<char> buf (native_ystride);
+    boost::scoped_array<char> buf (new char [native_ystride]);
     yend = std::min (yend, spec().y+spec().height);
     for (int y = ybegin;  y < yend;  ++y) {
         bool ok = read_native_scanline (y, z, &buf[0]);
@@ -333,7 +336,7 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
     // Complex case -- either changing data type or stride
     size_t tile_values = (size_t)m_spec.tile_pixels() * m_spec.nchannels;
 
-    std::vector<char> buf (m_spec.tile_bytes(true));
+    boost::scoped_array<char> buf (new char [m_spec.tile_bytes(true)]);
     bool ok = read_native_tile (x, y, z, &buf[0]);
     if (! ok)
         return false;
@@ -510,7 +513,7 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t tilezstride = tileystride * m_spec.tile_height;
     stride_t ystride = (xend-xbegin) * pixel_bytes;
     stride_t zstride = (yend-ybegin) * ystride;
-    std::vector<char> pels (m_spec.tile_bytes(true));
+    boost::scoped_array<char> pels (new char [m_spec.tile_bytes(true)]);
     for (int z = zbegin;  z < zend;  z += m_spec.tile_depth) {
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
             for (int x = xbegin;  x < xend;  x += m_spec.tile_width) {
@@ -562,7 +565,7 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t subset_ystride = (xend-xbegin) * subset_bytes;
     stride_t subset_zstride = (yend-ybegin) * subset_ystride;
 
-    std::vector<char> pels (m_spec.tile_bytes(true));
+    boost::scoped_array<char> pels (new char [m_spec.tile_bytes(true)]);
     for (int z = zbegin;  z < zend;  z += m_spec.tile_depth) {
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
             for (int x = xbegin;  x < xend;  x += m_spec.tile_width) {

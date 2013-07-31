@@ -120,8 +120,8 @@ int ImageBufWrap::nchannels() const {
     return m_buf->nchannels();
 }
 
-float ImageBufWrap::getchannel (int x, int y, int z) const {
-    return m_buf->getchannel(x, y, z);
+float ImageBufWrap::getchannel (int x, int y, int z, int c) const {
+    return m_buf->getchannel(x, y, z, c);
 }
 void ImageBufWrap::getpixel (int x, int y, float *pixel,
                             int maxchannels=1000) const {

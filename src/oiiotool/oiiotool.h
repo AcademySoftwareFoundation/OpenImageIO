@@ -33,6 +33,7 @@
 
 #include "imagebuf.h"
 #include "refcnt.h"
+#include "timer.h"
 
 
 OIIO_NAMESPACE_ENTER {
@@ -49,6 +50,7 @@ class Oiiotool {
 public:
     // General options
     bool verbose;
+    bool runstats;
     bool noclobber;
     bool allsubimages;
     bool printinfo;
@@ -62,6 +64,7 @@ public:
 
     // Output options
     TypeDesc output_dataformat;
+    std::map<std::string,std::string> output_channelformats;
     int output_bitspersample;
     bool output_scanline;
     int output_tilewidth, output_tileheight;
@@ -70,6 +73,7 @@ public:
     std::string output_planarconfig;
     bool output_adjust_time;
     bool output_autocrop;
+    bool output_autotrim;
 
     // Options for --diff
     float diff_warnthresh;
@@ -85,26 +89,16 @@ public:
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
     ColorConfig colorconfig;                 // OCIO color config
+    Timer total_readtime;
+    Timer total_writetime;
+    double total_imagecache_readtime;
+    typedef std::map<std::string, double> TimingMap;
+    TimingMap function_times;
+    bool enable_function_timing;
 
-    Oiiotool ()
-        : verbose(false), noclobber(false), allsubimages(false),
-          printinfo(false), printstats(false), hash(false),
-          updatemode(false),
-          threads(0),
-          output_dataformat(TypeDesc::UNKNOWN), output_bitspersample(0),
-          output_scanline(false), output_tilewidth(0), output_tileheight(0),
-          output_compression(""), output_quality(-1),
-          output_planarconfig("default"),
-          output_adjust_time(false), output_autocrop(true),
-          diff_warnthresh(1.0e-6f), diff_warnpercent(0),
-          diff_hardwarn(std::numeric_limits<float>::max()),
-          diff_failthresh(1.0e-6f), diff_failpercent(0),
-          diff_hardfail(std::numeric_limits<float>::max()),
-          imagecache(NULL),
-          return_value (EXIT_SUCCESS),
-          m_pending_callback(NULL), m_pending_argc(0)
-    {
-    }
+    Oiiotool ();
+
+    void clear_options ();
 
     // Force img to be read at this point.
     void read (ImageRecRef img);
@@ -146,7 +140,9 @@ public:
         return r;
     }
 
-    void error (const std::string &command, const std::string &explanation);
+    ImageRecRef top () { return curimg; }
+
+    void error (const std::string &command, const std::string &explanation="");
 
 private:
     CallbackFunction m_pending_callback;
@@ -192,6 +188,16 @@ public:
           m_imagecache(imagecache)
     { }
 
+    // Initialize an ImageRec with a collection of prepared ImageSpec's.
+    // The number of subimages is nsubimages, the number of MIP levels
+    // for each subimages is in miplevels[0..nsubimages-1] (if miplevels
+    // is NULL, allocate just one MIP level per subimage), and specs[]
+    // contains the specs for all the MIP levels of subimage 0, followed
+    // by all the specs for the MIP levels of subimage 1, and so on.
+    // If spec == NULL, the IB's will not be fully allocated/initialized.
+    ImageRec (const std::string &name, int nsubimages = 1,
+              const int *miplevels = NULL, const ImageSpec *specs=NULL);
+
     // Copy an existing ImageRec.  Copy just the single subimage_to_copy
     // if >= 0, or all subimages if <0.  Copy just the single
     // miplevel_to_copy if >= 0, or all MIP levels if <0.  If writable
@@ -211,13 +217,18 @@ public:
     ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
 
-    // Initialize an ImageRec with a collection of prepared ImageSpec's.
-    // The number of subimages is nsubimages, the number of MIP levels
-    // for each subimages is in miplevels[0..nsubimages-1], and specs[]
-    // contains the specs for all the MIP levels of subimage 0, followed
-    // by all the specs for the MIP levels of subimage 1, and so on.
-    ImageRec (const std::string &name, int nsubimages,
-              const int *miplevels, const ImageSpec *specs);
+    enum WinMerge { WinMergeUnion, WinMergeIntersection, WinMergeA, WinMergeB };
+
+    // Initialize a new ImageRec based on two exemplars.  Initialize
+    // just the single subimage_to_copy if >= 0, or all subimages if <0.
+    // The two WinMerge parameters pixwin and fullwin, dictate the
+    // policy for setting up the pixel data and full (display) windows,
+    // respectively.  If pixeltype not UNKNOWN, use that rather than
+    // A's pixel type (the default behavior).
+    ImageRec (ImageRec &imgA, ImageRec &imgB, int subimage_to_copy = -1,
+              WinMerge pixwin = WinMergeUnion,
+              WinMerge fullwin = WinMergeUnion,
+              TypeDesc pixeltype = TypeDesc::UNKNOWN);
 
     // Number of subimages
     int subimages() const { return (int) m_subimages.size(); }

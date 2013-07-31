@@ -97,7 +97,7 @@ OIIO_API std::string geterror (void);
 
 
 
-};  // namespace Plugin
+}  // namespace Plugin
 
 }
 OIIO_NAMESPACE_EXIT

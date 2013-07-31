@@ -35,6 +35,7 @@
 #include "strutil.h"
 #include "color.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
@@ -195,10 +196,34 @@ ColorConfig::getColorSpaceNameByIndex (int index) const
 
 
 
+int
+ColorConfig::getNumLooks () const
+{
+#ifdef USE_OCIO
+    return getImpl()->config_->getNumLooks();
+#else
+    return 0;
+#endif
+}
+
+
+
+const char *
+ColorConfig::getLookNameByIndex (int index) const
+{
+#ifdef USE_OCIO
+    return getImpl()->config_->getLookNameByIndex (index);
+#else
+    return NULL;
+#endif
+}
+
+
+
 const char *
 ColorConfig::getColorSpaceNameByRole (const char *role) const
 {
-#if USE_OCIO
+#ifdef USE_OCIO
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (role);
         // Catch special case of obvious name synonyms
@@ -262,6 +287,7 @@ private:
 #endif
 
 
+
 // ColorProcessor that hard-codes sRGB-to-linear
 class ColorProcessor_sRGB_to_linear : public ColorProcessor {
 public:
@@ -278,7 +304,7 @@ public:
             char *d = (char *)data + y*ystride;
             for (int x = 0;  x < width;  ++x, d += xstride)
                 for (int c = 0;  c < channels;  ++c)
-                    *(float *)d = sRGB_to_linear (*(float *)d);
+                    ((float *)d)[c] = sRGB_to_linear (((float *)d)[c]);
         }
     }
 };
@@ -323,7 +349,7 @@ public:
             char *d = (char *)data + y*ystride;
             for (int x = 0;  x < width;  ++x, d += xstride)
                 for (int c = 0;  c < channels;  ++c)
-                    *(float *)d = Rec709_to_linear (*(float *)d);
+                    ((float *)d)[c] = Rec709_to_linear (((float *)d)[c]);
         }
     }
 };
@@ -405,6 +431,67 @@ ColorConfig::createColorProcessor (const char * inputColorSpace,
 
 
 
+ColorProcessor*
+ColorConfig::createLookTransform (const char * looks,
+                                  const char * inputColorSpace,
+                                  const char * outputColorSpace,
+                                  bool inverse,
+                                  const char *context_key,
+                                  const char *context_val) const
+{
+#ifdef USE_OCIO
+    // Ask OCIO to make a Processor that can handle the requested
+    // transformation.
+    if (getImpl()->config_) {
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        OCIO::LookTransformRcPtr transform = OCIO::LookTransform::Create();
+        transform->setLooks (looks);
+        OCIO::TransformDirection dir;
+        if (inverse) {
+            // The TRANSFORM_DIR_INVERSE applies an inverse for the
+            // end-to-end transform, which would otherwise do dst->inv
+            // look -> src.  This is an unintuitive result for the
+            // artist (who would expect in, out to remain unchanged), so
+            // we account for that here by flipping src/dst
+            transform->setSrc (outputColorSpace);
+            transform->setDst (inputColorSpace);
+            dir = OCIO::TRANSFORM_DIR_INVERSE;
+        } else { // forward
+            transform->setSrc (inputColorSpace);
+            transform->setDst (outputColorSpace);
+            dir = OCIO::TRANSFORM_DIR_FORWARD;
+        }
+        OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        if (context_key && context_key[0] && context_val && context_val[0]) {
+            OCIO::ContextRcPtr ctx = context->createEditableCopy();
+            ctx->setStringVar (context_key, context_val);
+            context = ctx;
+        }
+
+        OCIO::ConstProcessorRcPtr p;
+        try {
+            // Get the processor corresponding to this transform.
+            p = getImpl()->config_->getProcessor (context, transform, dir);
+        }
+        catch(OCIO::Exception &e) {
+            getImpl()->error_ = e.what();
+            return NULL;
+        }
+        catch(...) {
+            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
+            return NULL;
+        }
+    
+        getImpl()->error_ = "";
+        return new ColorProcessor_OCIO(p);
+    }
+#endif
+
+    return NULL;    // if we get this far, we've failed
+}
+
+
+
 void
 ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 {
@@ -420,8 +507,11 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            const ColorProcessor* processor, bool unpremult)
+                            const ColorProcessor* processor, bool unpremult,
+                            ROI roi, int nthreads)
 {
+    // FIXME -- currently, we do not split across threads.
+
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
@@ -431,17 +521,20 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     // If the processor is a no-op, no work needs to be done. Early exit.
     if (processor->isNoOp())
         return true;
-    
-    const ImageSpec &dstspec = dst.spec();
+
+    IBAprep (roi, &dst);
+    int width = roi.width();
     // Temporary space to hold one RGBA scanline
-    std::vector<float> scanline(dstspec.width*4, 0.0f);
+    std::vector<float> scanline(width*4, 0.0f);
     
-    // Only process up to, and including, the first 4 channels.
-    // This does let us process images with fewer than 4 channels, which is the intent
-    // FIXME: Instead of loading the first 4 channels, obey dstspec.alpha_channel index
-    //        (but first validate that the index is set properly for normal formats)
+    // Only process up to, and including, the first 4 channels.  This
+    // does let us process images with fewer than 4 channels, which is
+    // the intent.
+    // FIXME: Instead of loading the first 4 channels, obey
+    //        dstspec.alpha_channel index (but first validate that the
+    //        index is set properly for normal formats)
     
-    int channelsToCopy = std::min (4, dstspec.nchannels);
+    int channelsToCopy = std::min (4, roi.nchannels());
     
     // Walk through all data in our buffer. (i.e., crop or overscan)
     // FIXME: What about the display window?  Should this actually promote
@@ -462,25 +555,22 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     bool clearScanline = (channelsToCopy<4 && 
                           (processor->hasChannelCrosstalk() || unpremult));
     
-    for (int k = dstspec.z; k < dstspec.z+dstspec.depth; k++) {
-        for (int j = dstspec.y; j <  dstspec.y+dstspec.height; j++) {
+    for (int k = roi.zbegin; k < roi.zend; ++k) {
+        for (int j = roi.ybegin; j < roi.yend; ++j) {
             // Clear the scanline
-            if (clearScanline) {
+            if (clearScanline)
                 memset (&scanline[0], 0, sizeof(float)*scanline.size());
-            }
             
             // Load the scanline
-            dstPtr = &scanline[0];
-            for (int i = dstspec.x; i < dstspec.x+dstspec.width ; i++) {
-                src.getpixel (i, j, dstPtr, channelsToCopy);
-                dstPtr += 4;
-            }
+            src.get_pixel_channels (roi.xbegin, roi.xend, j, j+1, k, k+1,
+                                    0, channelsToCopy,
+                                TypeDesc::TypeFloat, &scanline[0],
+                                4*sizeof(float));
             
             // Optionally unpremult
-            if ((channelsToCopy>=4) && unpremult) {
-                float alpha = 0.0;
-                for (int i=0; i<dstspec.width; ++i) {
-                    alpha = scanline[4*i+3];
+            if ((channelsToCopy >= 4) && unpremult) {
+                for (int i = 0; i < width; ++i) {
+                    float alpha = scanline[4*i+3];
                     if (alpha > fltmin) {
                         scanline[4*i+0] /= alpha;
                         scanline[4*i+1] /= alpha;
@@ -490,15 +580,14 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             }
             
             // Apply the color transformation in place
-            processor->apply (&scanline[0], dstspec.width, 1, 4,
+            processor->apply (&scanline[0], width, 1, 4,
                               sizeof(float), 4*sizeof(float),
-                              dstspec.width*4*sizeof(float));
+                              width*4*sizeof(float));
             
             // Optionally premult
-            if ((channelsToCopy>=4) && unpremult) {
-                float alpha = 0.0;
-                for (int i=0; i<dstspec.width; ++i) {
-                    alpha = scanline[4*i+3];
+            if ((channelsToCopy >= 4) && unpremult) {
+                for (int i = 0; i < width; ++i) {
+                    float alpha = scanline[4*i+3];
                     if (alpha > fltmin) {
                         scanline[4*i+0] *= alpha;
                         scanline[4*i+1] *= alpha;
@@ -506,11 +595,11 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                     }
                 }
             }
-            
+
             // Store the scanline
             dstPtr = &scanline[0];
-            for (int i = dstspec.x; i < dstspec.x+dstspec.width ; i++) {
-                dst.setpixel (i, j, dstPtr, channelsToCopy);
+            for (int i = roi.xbegin; i < roi.xend ; i++) {
+                dst.setpixel (i, j, k, dstPtr, channelsToCopy);
                 dstPtr += 4;
             }
         }
@@ -570,6 +659,7 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     
     return true;
 }
+
 
 
 }

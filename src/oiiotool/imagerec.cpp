@@ -62,6 +62,31 @@ using namespace ImageBufAlgo;
 
 
 
+ImageRec::ImageRec (const std::string &name, int nsubimages,
+                    const int *miplevels, const ImageSpec *specs)
+    : m_name(name), m_elaborated(true),
+      m_metadata_modified(false), m_pixels_modified(true),
+      m_imagecache(NULL)
+{
+    int specnum = 0;
+    m_subimages.resize (nsubimages);
+    for (int s = 0;  s < nsubimages;  ++s) {
+        int mips = miplevels ? miplevels[s] : 1;
+        m_subimages[s].m_miplevels.resize (mips);
+        m_subimages[s].m_specs.resize (mips);
+        for (int m = 0;  m < mips;  ++m) {
+            ImageBuf *ib = specs ? new ImageBuf (name, specs[specnum])
+                                 : new ImageBuf (name);
+            m_subimages[s].m_miplevels[m].reset (ib);
+            if (specs)
+                m_subimages[s].m_specs[m] = specs[specnum];
+            ++specnum;
+        }
+    }
+}
+
+
+
 ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
                     int miplevel_to_copy, bool writable, bool copy_pixels)
     : m_name(img.name()), m_elaborated(true),
@@ -86,18 +111,8 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
             if (writable || img.pixels_modified() || !copy_pixels) {
                 // Make our own copy of the pixels
                 ib = new ImageBuf (img.name(), srcspec);
-                if (copy_pixels) {
-                    ImageBuf::ConstIterator<float> src (srcib);
-                    ASSERT (src.rawptr());
-                    ImageBuf::Iterator<float> dst (*ib);
-                    int nchans = ib->nchannels();
-                    while (! src.done()) {
-                        for (int c = 0;  c < nchans;  ++c)
-                            dst[c] = src[c];
-                        ++src;
-                        ++dst;
-                    }
-                }
+                if (copy_pixels)
+                    ib->copy_pixels (srcib);
             } else {
                 // The other image is not modified, and we don't need to be
                 // writable, either.
@@ -108,6 +123,65 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = srcspec;
         }
+    }
+}
+
+
+
+ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
+                    WinMerge pixwin, WinMerge fullwin,
+                    TypeDesc pixeltype)
+    : m_name(A.name()), m_elaborated(true),
+      m_metadata_modified(false), m_pixels_modified(false),
+      m_imagecache(A.m_imagecache)
+{
+    A.read ();
+    B.read ();
+    int subimages = (subimage_to_copy < 0) ? 
+                          std::min(A.subimages(), B.subimages()) : 1;
+    int first_subimage = clamp (subimage_to_copy, 0, subimages-1);
+    m_subimages.resize (subimages);
+    for (int s = 0;  s < subimages;  ++s) {
+        int srcsub = s + first_subimage;
+        m_subimages[s].m_miplevels.resize (1);
+        m_subimages[s].m_specs.resize (1);
+        const ImageBuf &Aib (A(srcsub));
+        const ImageBuf &Bib (B(srcsub));
+        const ImageSpec &Aspec (Aib.spec());
+        const ImageSpec &Bspec (Bib.spec());
+        ImageSpec spec = Aspec;
+        ROI Aroi = get_roi (Aspec), Aroi_full = get_roi_full (Aspec);
+        ROI Broi = get_roi (Bspec), Broi_full = get_roi_full (Bspec);
+        switch (pixwin) {
+        case WinMergeUnion :
+            set_roi (spec, roi_union (Aroi, Broi)); break;
+        case WinMergeIntersection :
+            set_roi (spec, roi_intersection (Aroi, Broi)); break;
+        case WinMergeA :
+            set_roi (spec, Aroi); break;
+        case WinMergeB :
+            set_roi (spec, Broi); break;
+        }
+        switch (fullwin) {
+        case WinMergeUnion :
+            set_roi_full (spec, roi_union (Aroi_full, Broi_full)); break;
+        case WinMergeIntersection :
+            set_roi_full (spec, roi_intersection (Aroi_full, Broi_full)); break;
+        case WinMergeA :
+            set_roi_full (spec, Aroi_full); break;
+        case WinMergeB :
+            set_roi_full (spec, Broi_full); break;
+        }
+        if (pixeltype != TypeDesc::UNKNOWN)
+            spec.set_format (pixeltype);
+        spec.nchannels = std::min (Aspec.nchannels, Bspec.nchannels);
+        spec.channelnames.resize (spec.nchannels);
+        spec.channelformats.clear ();
+
+        ImageBuf *ib = new ImageBuf ("", spec);
+
+        m_subimages[s].m_miplevels[0].reset (ib);
+        m_subimages[s].m_specs[0] = spec;
     }
 }
 
@@ -152,28 +226,6 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
 
 
 
-ImageRec::ImageRec (const std::string &name, int nsubimages,
-                    const int *miplevels, const ImageSpec *specs)
-    : m_name(name), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(true),
-      m_imagecache(NULL)
-{
-    int specnum = 0;
-    m_subimages.resize (nsubimages);
-    for (int s = 0;  s < nsubimages;  ++s) {
-        m_subimages[s].m_miplevels.resize (miplevels[s]);
-        m_subimages[s].m_specs.resize (miplevels[s]);
-        for (int m = 0;  m < miplevels[s];  ++m) {
-            ImageBuf *ib = new ImageBuf (name, specs[specnum]);
-            m_subimages[s].m_miplevels[m].reset (ib);
-            m_subimages[s].m_specs[m] = specs[specnum];
-            ++specnum;
-        }
-    }
-}
-
-
-
 bool
 ImageRec::read ()
 {
@@ -181,7 +233,8 @@ ImageRec::read ()
         return true;
     static ustring u_subimages("subimages"), u_miplevels("miplevels");
     int subimages = 0;
-    if (! m_imagecache->get_image_info (ustring(name()), 0, 0, u_subimages,
+    ustring uname (name());
+    if (! m_imagecache->get_image_info (uname, 0, 0, u_subimages,
                                         TypeDesc::TypeInt, &subimages)) {
         std::cerr << "ERROR: file \"" << name() << "\" not found.\n";
         return false;  // Image not found
@@ -190,13 +243,23 @@ ImageRec::read ()
 
     for (int s = 0;  s < subimages;  ++s) {
         int miplevels = 0;
-        m_imagecache->get_image_info (ustring(name()), s, 0, u_miplevels,
+        m_imagecache->get_image_info (uname, s, 0, u_miplevels,
                                       TypeDesc::TypeInt, &miplevels);
         m_subimages[s].m_miplevels.resize (miplevels);
         m_subimages[s].m_specs.resize (miplevels);
         for (int m = 0;  m < miplevels;  ++m) {
+            // Force a read now for reasonable-sized first images in the
+            // file. This can greatly speed up the multithread case for
+            // tiled images by not having multiple threads working on the
+            // same image lock against each other on the file handle.
+            // We guess that "reasonable size" is 50 MB, that's enough to
+            // hold a 2048x1536 RGBA float image.  Larger things will 
+            // simply fall back on ImageCache.
+            bool forceread = (s == 0 && m == 0 &&
+                              m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
-            bool ok = ib->read (s, m);
+            bool ok = ib->read (s, m, forceread,
+                                TypeDesc::FLOAT /* force float */);
             ASSERT (ok);
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = ib->spec();

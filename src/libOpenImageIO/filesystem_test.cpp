@@ -63,9 +63,15 @@ void test_filename_searchpath_find ()
     dirs.push_back ("..");
     std::string s;
 
+#if _WIN32
+# define SEPARATOR "\\"
+#else
+# define SEPARATOR "/"
+#endif
+
     // non-recursive search success
     s = Filesystem::searchpath_find ("License.txt", dirs, false, false);
-    OIIO_CHECK_EQUAL (s, "../License.txt");
+    OIIO_CHECK_EQUAL (s, ".." SEPARATOR "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
     s = Filesystem::searchpath_find ("version.h", dirs, false, false);
@@ -73,7 +79,7 @@ void test_filename_searchpath_find ()
 
     // recursive search success (file is in a subdirectory)
     s = Filesystem::searchpath_find ("version.h", dirs, false, true);
-    OIIO_CHECK_EQUAL (s, "../include/version.h");
+    OIIO_CHECK_EQUAL (s, ".." SEPARATOR "include" SEPARATOR "version.h");
 }
 
 

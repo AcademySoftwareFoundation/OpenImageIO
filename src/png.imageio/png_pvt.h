@@ -542,7 +542,7 @@ destroy_write_struct (png_structp& sp, png_infop& ip)
 
 
 
-};  // namespace PNG_pvt
+}  // namespace PNG_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
 

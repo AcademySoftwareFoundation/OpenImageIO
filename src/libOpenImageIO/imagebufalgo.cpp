@@ -28,19 +28,12 @@
   (This is the Modified BSD License)
 */
 
-/* This header has to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "SHA1.h"
-
 /// \file
 /// Implementation of ImageBufAlgo algorithms.
 
-#include <boost/version.hpp>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
-#include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -50,11 +43,13 @@
 
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "imagebufalgo_util.h"
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
 #include "thread.h"
 #include "filesystem.h"
+#include "kissfft.hh"
 
 #ifdef USE_FREETYPE
 #include <ft2build.h>
@@ -62,857 +57,232 @@
 #endif
 
 
+///////////////////////////////////////////////////////////////////////////
+// Guidelines for ImageBufAlgo functions:
+//
+// * Signature will always be:
+//       bool function (ImageBuf &R /* result */, 
+//                      const ImageBuf &A, ...other input images...,
+//                      ...other parameters...
+//                      ROI roi = ROI::All(),
+//                      int nthreads = 0);
+// * The ROI should restrict the operation to those pixels (and channels)
+//   specified. Default ROI::All() means perform the operation on all
+//   pixel in R's data window.
+// * It's ok to omit ROI and threads from the few functions that
+//   (a) can't possibly be parallelized, and (b) do not make sense to
+//   apply to anything less than the entire image.
+// * Be sure to clamp the channel range to those actually used.
+// * If R is initialized, do not change any pixels outside the ROI.
+//   If R is uninitialized, redefine ROI to be the union of the input
+//   images' data windows and allocate R to be that size.
+// * Try to always do the "reasonable thing" rather than be too brittle.
+// * For errors (where there is no "reasonable thing"), set R's error
+//   condition using R.error() with R.error() and return false.
+// * Always use IB::Iterators/ConstIterator, NEVER use getpixel/setpixel.
+// * Use the iterator Black or Clamp wrap modes to avoid lots of special
+//   cases inside the pixel loops.
+// * Use OIIO_DISPATCH_* macros to call type-specialized templated
+//   implemenations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
+//   to tame the cross-product of types, especially for binary functions
+//   (A,B inputs as well as R output).
+///////////////////////////////////////////////////////////////////////////
+
 
 OIIO_NAMESPACE_ENTER
 {
 
-namespace
+
+// Convenient helper struct to bundle a 3-int describing a block size.
+struct Dim3 {
+    int x, y, z;
+    Dim3 (int x, int y=1, int z=1) : x(x), y(y), z(z) { }
+};
+
+
+
+void
+ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
+                       const ImageBuf *A, const ImageBuf *B)
 {
+    if (dst->initialized()) {
+        // Valid destination image.  Just need to worry about ROI.
+        if (roi.defined()) {
+            // Shrink-wrap ROI to the destination (including chend)
+            roi = roi_intersection (roi, get_roi(dst->spec()));
+        } else {
+            // No ROI? Set it to all of dst's pixel window.
+            roi = get_roi (dst->spec());
+        }
+    } else {
+        // Not an initialized destination image!
+        ASSERT ((A || roi.defined()) &&
+                "ImageBufAlgo without any guess about region of interest");
+        ROI full_roi;
+        if (! roi.defined()) {
+            // No ROI -- make it the union of the pixel regions of the inputs
+            roi = get_roi (A->spec());
+            full_roi = get_roi_full (A->spec());
+            if (B) {
+                roi = roi_union (roi, get_roi (B->spec()));
+                full_roi = roi_union (full_roi, get_roi_full (B->spec()));
+            }
+        } else {
+            if (A)
+                roi.chend = std::min (roi.chend, A->nchannels());
+            full_roi = roi;
+        }
+        // Now we allocate space for dst.  Give it A's spec, but adjust
+        // the dimensions to match the ROI.
+        ImageSpec spec;
+        if (A) {
+            // If there's an input image, give dst A's spec (with
+            // modifications detailed below...)
+            spec = A->spec();
+            // For two inputs, if they aren't the same data type, punt and
+            // allocate a float buffer. If the user wanted something else,
+            // they should have pre-allocated dst with their desired format.
+            if (B && A->spec().format != B->spec().format)
+                spec.set_format (TypeDesc::FLOAT);
+        } else {
+            spec.set_format (TypeDesc::FLOAT);
+            spec.nchannels = roi.chend;
+            spec.default_channel_names ();
+        }
+        // Set the image dimensions based on ROI.
+        set_roi (spec, roi);
+        if (full_roi.defined())
+            set_roi_full (spec, full_roi);
+        else
+            set_roi_full (spec, roi);
+        dst->alloc (spec);
+    }
+}
+
+
 
 template<typename T>
-static inline void
-fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
+static bool
+fill_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 {
-    int chbegin = roi.chbegin;
-    int chend = std::min (roi.chend, dst.nchannels());
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fill_<T>, boost::ref(dst), values,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
-        for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
-            p[c] = values[i];
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            p[c] = values[c];
+    return true;
 }
 
-}
 
 bool
-ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
+ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
 {
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
-    switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT : fill_<float> (dst, pixel, roi); break;
-    case TypeDesc::UINT8 : fill_<unsigned char> (dst, pixel, roi); break;
-    case TypeDesc::UINT16: fill_<unsigned short> (dst, pixel, roi); break;
-    case TypeDesc::HALF  : fill_<half> (dst, pixel, roi); break;
-    case TypeDesc::INT8  : fill_<char> (dst, pixel, roi); break;
-    case TypeDesc::INT16 : fill_<short> (dst, pixel, roi); break;
-    case TypeDesc::UINT  : fill_<unsigned int> (dst, pixel, roi); break;
-    case TypeDesc::INT   : fill_<int> (dst, pixel, roi); break;
-    case TypeDesc::UINT64: fill_<unsigned long long> (dst, pixel, roi); break;
-    case TypeDesc::INT64 : fill_<long long> (dst, pixel, roi); break;
-    case TypeDesc::DOUBLE: fill_<double> (dst, pixel, roi); break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
-        return false;
-    }
-    
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format,
+                         dst, pixel, roi, nthreads);
     return true;
 }
 
 
 bool
-ImageBufAlgo::zero (ImageBuf &dst, ROI roi)
+ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
 {
-    int chans = std::min (dst.nchannels(), roi.nchannels());
-    float *zero = ALLOCA(float,chans);
-    memset (zero, 0, chans*sizeof(float));
-    return fill (dst, zero, roi);
+    IBAprep (roi, &dst);
+    float *zero = ALLOCA(float,roi.chend);
+    memset (zero, 0, roi.chend*sizeof(float));
+    return fill (dst, zero, roi, nthreads);
+}
+
+
+
+template<typename T>
+static bool
+checker_ (ImageBuf &dst, Dim3 size,
+          const float *color1, const float *color2,
+          Dim3 offset,
+          ROI roi, int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(checker_<T>, boost::ref(dst),
+                        size, color1, color2, offset,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int v = (p.z()-offset.z)/size.z + (p.y()-offset.y)/size.y
+              + (p.x()-offset.x)/size.x;
+        if (v & 1)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color2[c];
+        else
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color1[c];
+    }
+    return true;
 }
 
 
 
 bool
-ImageBufAlgo::checker (ImageBuf &dst,
-                       int width,
-                       const float *color1,
-                       const float *color2,
-                       int xbegin, int xend,
-                       int ybegin, int yend,
+ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
+                       const float *color1, const float *color2,
+                       int xoffset, int yoffset, int zoffset,
+                       ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst);
+    OIIO_DISPATCH_TYPES ("checker", checker_, dst.spec().format,
+                         dst, Dim3(width, height, depth), color1, color2,
+                         Dim3(xoffset, yoffset, zoffset), roi, nthreads);
+    return true;
+}
+
+/// DEPRECATED as of 1.2
+bool
+ImageBufAlgo::checker (ImageBuf &dst, int width,
+                       const float *color1, const float *color2,
+                       int xbegin, int xend, int ybegin, int yend,
                        int zbegin, int zend)
 {
-    for (int k = zbegin; k < zend; k++)
-        for (int j = ybegin; j < yend; j++)
-            for (int i = xbegin; i < xend; i++) {
-                int p = (k-zbegin)/width + (j-ybegin)/width + (i-xbegin)/width;
-                if (p & 1)
-                    dst.setpixel (i, j, k, color2);
-                else
-                    dst.setpixel (i, j, k, color1);
-            }
-    return true;
+    return checker (dst, width, width, width, color1, color2, 0, 0, 0,
+                    ROI(xbegin,xend,ybegin,yend,zbegin,zend), 0);
 }
 
 
 
-namespace {
-
-template<class T>
-bool crop_ (ImageBuf &dst, const ImageBuf &src,
-            int xbegin, int xend, int ybegin, int yend,
-            const float *bordercolor)
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+resize_ (ImageBuf &dst, const ImageBuf &src,
+         Filter2D *filter, ROI roi, int nthreads)
 {
-    int nchans = dst.nchannels();
-    T *border = ALLOCA (T, nchans);
-    const ImageIOParameter *p = src.spec().find_attribute ("oiio:bordercolor");
-    if (p && p->type().basetype == TypeDesc::FLOAT &&
-        (int)p->type().numelements() >= nchans) {
-        for (int c = 0;  c < nchans;  ++c)
-            border[c] = convert_type<float,T>(((float *)p->data())[0]);
-    } else {
-        for (int c = 0;  c < nchans;  ++c)
-            border[c] = T(0);
-    }
-
-    ImageBuf::Iterator<T,T> d (dst, xbegin, xend, ybegin, yend);
-    ImageBuf::ConstIterator<T,T> s (src);
-    for ( ;  ! d.done();  ++d) {
-        s.pos (d.x(), d.y());
-        if (s.valid()) {
-            for (int c = 0;  c < nchans;  ++c)
-                d[c] = s[c];
-        } else {
-            for (int c = 0;  c < nchans;  ++c)
-                d[c] = border[c];
-        }
-    }
-    return true;
-}
-
-};  // anon namespace
-
-
-
-bool 
-ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
-                    int xbegin, int xend, int ybegin, int yend,
-                    const float *bordercolor)
-{
-    ImageSpec dst_spec = src.spec();
-    dst_spec.x = xbegin;
-    dst_spec.y = ybegin;
-    dst_spec.width = xend-xbegin;
-    dst_spec.height = yend-ybegin;
-    
-    // create new ImageBuffer
-    if (!dst.pixels_valid())
-        dst.alloc (dst_spec);
-
-    // do the actual copying
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return crop_<float> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT8 :
-        return crop_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT8  :
-        return crop_<char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT16:
-        return crop_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT16 :
-        return crop_<short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT  :
-        return crop_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT   :
-        return crop_<int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::UINT64:
-        return crop_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::INT64 :
-        return crop_<long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::HALF  :
-        return crop_<half> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    case TypeDesc::DOUBLE:
-        return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
-        break;
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-    
-    ASSERT (0);
-    return false;
-}
-
-
-
-
-bool
-ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
-                        int nchannels, const int *channelorder,
-                        bool shuffle_channel_names)
-{
-    // Not intended to create 0-channel images.
-    if (nchannels <= 0) {
-        dst.error ("%d-channel images not supported", nchannels);
-        return false;
-    }
-    // If we dont have a single source channel,
-    // hard to know how big to make the additional channels
-    if (src.spec().nchannels == 0) {
-        dst.error ("%d-channel images not supported", src.spec().nchannels);
-        return false;
-    }
-
-    // If channelorder is NULL, it will be interpreted as
-    // {0, 1, ..., nchannels-1}.
-    int *local_channelorder = NULL;
-    if (! channelorder) {
-        local_channelorder = ALLOCA (int, nchannels);
-        for (int c = 0;  c < nchannels;  ++c)
-            local_channelorder[c] = c;
-        channelorder = local_channelorder;
-    }
-
-    // If this is the identity transformation, just do a simple copy
-    bool inorder = true;
-    for (int c = 0;  c < nchannels;   ++c)
-        inorder &= (channelorder[c] == c);
-    if (nchannels == src.spec().nchannels && inorder) {
-        return dst.copy (src);
-    }
-
-    // Construct a new ImageSpec that describes the desired channel ordering.
-    ImageSpec newspec = src.spec();
-    newspec.nchannels = nchannels;
-    newspec.default_channel_names ();
-    if (shuffle_channel_names) {
-        newspec.alpha_channel = -1;
-        newspec.z_channel = -1;
-        for (int c = 0; c < nchannels;  ++c) {
-            int csrc = channelorder[c];
-            if (csrc >= 0 && csrc < src.spec().nchannels) {
-                newspec.channelnames[c] = src.spec().channelnames[csrc];
-                if (csrc == src.spec().alpha_channel)
-                    newspec.alpha_channel = c;
-                if (csrc == src.spec().z_channel)
-                    newspec.z_channel = c;
-            }
-        }
-    }
-
-    // Update the image (realloc with the new spec)
-    dst.alloc (newspec);
-
-    // Copy the channels individually
-    stride_t dstxstride = AutoStride, dstystride = AutoStride, dstzstride = AutoStride;
-    ImageSpec::auto_stride (dstxstride, dstystride, dstzstride,
-                            newspec.format.size(), newspec.nchannels,
-                            newspec.width, newspec.height);
-    int channelsize = newspec.format.size();
-    char *pixels = (char *) dst.pixeladdr (dst.xbegin(), dst.ybegin(),
-                                           dst.zbegin());
-    for (int c = 0;  c < nchannels;  ++c) {
-        if (channelorder[c] >= 0 && channelorder[c] < src.spec().nchannels) {
-            int csrc = channelorder[c];
-            src.get_pixel_channels (src.xbegin(), src.xend(),
-                                    src.ybegin(), src.yend(),
-                                    src.zbegin(), src.zend(),
-                                    csrc, csrc+1, newspec.format, pixels,
-                                    dstxstride, dstystride, dstzstride);
-        }
-        pixels += channelsize;
-    }
-    return true;
-}
-
-
-
-bool
-ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
-{
-    // Not intended to create 0-channel images.
-    if (numChannels <= 0) {
-        dst.error ("%d-channel images not supported", numChannels);
-        return false;
-    }
-    // If we dont have a single source channel,
-    // hard to know how big to make the additional channels
-    if (src.spec().nchannels == 0) {
-        dst.error ("%d-channel images not supported", src.spec().nchannels);
-        return false;
-    }
-
-    if (numChannels == src.spec().nchannels) {
-        return dst.copy (src);
-    }
-    
-    // Update the ImageSpec
-    // (should this be moved to a helper function in the imagespec.h?
-    ImageSpec dst_spec = src.spec();
-    dst_spec.nchannels = numChannels;
-    
-    if (numChannels < src.spec().nchannels) {
-        // Reduce the number of formats, and names, if needed
-        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels)
-            dst_spec.channelformats.resize(numChannels);
-        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels)
-            dst_spec.channelnames.resize(numChannels);
-        
-        if (dst_spec.alpha_channel < numChannels-1) {
-            dst_spec.alpha_channel = -1;
-        }
-        if (dst_spec.z_channel < numChannels-1) {
-            dst_spec.z_channel = -1;
-        }
-    } else {
-        // Increase the number of formats, and names, if needed
-        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels) {
-            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
-                dst_spec.channelformats.push_back(dst_spec.format);
-            }
-        }
-        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels) {
-            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
-                dst_spec.channelnames.push_back (Strutil::format("channel%d", c));
-            }
-        }
-    }
-    
-    // Update the image (realloc with the new spec)
-    dst.alloc (dst_spec);
-    
-    std::vector<float> pixel(numChannels, 0.0f);
-    
-    // Walk though the data window. I.e., the crop window in a small image
-    // or the overscanned area in a large image.
-    for (int k = dst_spec.z; k < dst_spec.z+dst_spec.depth; k++) {
-        for (int j = dst_spec.y; j < dst_spec.y+dst_spec.height; j++) {
-            for (int i = dst_spec.x; i < dst_spec.x+dst_spec.width ; i++) {
-                src.getpixel (i, j, k, &pixel[0]);
-                dst.setpixel (i, j, k, &pixel[0]);
-            }
-        }
-    }
-    
-    return true;
-}
-
-
-
-
-bool
-ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                   int options)
-{
-    // Sanity checks
-    
-    // dst must be distinct from A and B
-    if ((const void *)&A == (const void *)&dst ||
-        (const void *)&B == (const void *)&dst) {
-        dst.error ("destination image must be distinct from source");
-        return false;
-    }
-    
-    // all three images must have the same number of channels
-    if (A.spec().nchannels != B.spec().nchannels) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   A.spec().nchannels, B.spec().nchannels);
-        return false;
-    }
-    
-    // If dst has not already been allocated, set it to the right size,
-    // make it unconditinally float
-    if (! dst.pixels_valid()) {
-        ImageSpec dstspec = A.spec();
-        dstspec.set_format (TypeDesc::TypeFloat);
-        dst.alloc (dstspec);
-    }
-    // Clear dst pixels if instructed to do so
-    if (options & ADD_CLEAR_DST) {
-        zero (dst);
-    }
-      
-    ASSERT (A.spec().format == TypeDesc::FLOAT &&
-            B.spec().format == TypeDesc::FLOAT &&
-            dst.spec().format == TypeDesc::FLOAT);
-    
-    ImageBuf::ConstIterator<float,float> a (A);
-    ImageBuf::ConstIterator<float,float> b (B);
-    ImageBuf::Iterator<float> d (dst);
-    int nchannels = A.nchannels();
-    // Loop over all pixels in A
-    for ( ; a.valid();  ++a) {  
-        // Point the iterators for B and dst to the corresponding pixel
-        if (options & ADD_RETAIN_WINDOWS) {
-            b.pos (a.x(), a.y());
-        } else {
-            // ADD_ALIGN_WINDOWS: make B line up with A
-            b.pos (a.x()-A.xbegin()+B.xbegin(), a.y()-A.ybegin()+B.ybegin());
-        }
-        d.pos (a.x(), b.y());
-        
-        if (! b.valid() || ! d.valid())
-            continue;   // Skip pixels that don't align
-        
-        // Add the pixel
-        for (int c = 0;  c < nchannels;  ++c)
-              d[c] = a[c] + b[c];
-    }
-    
-    return true;
-}
-
-
-bool
-ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
-{
-    int nchannels = src.spec().nchannels;
-    if (nchannels == 0) {
-        src.error ("%d-channel images not supported", nchannels);
-        return false;
-    }
-
-    if (src.spec().format != TypeDesc::FLOAT && ! src.deep()) {
-        src.error ("only 'float' images are supported");
-        return false;
-    }
-
-    // Local storage to allow for intermediate representations which
-    // are sometimes more precise than the final stats output.
-    
-    std::vector<float> min(nchannels);
-    std::vector<float> max(nchannels);
-    std::vector<long double> sum(nchannels);
-    std::vector<long double> sum2(nchannels);
-    std::vector<imagesize_t> nancount(nchannels);
-    std::vector<imagesize_t> infcount(nchannels);
-    std::vector<imagesize_t> finitecount(nchannels);
-    
-    // These tempsums are used as intermediate accumulation
-    // variables, to allow for higher precision in the case
-    // where the final sum is large, but we need to add together a
-    // bunch of smaller values (that while individually small, sum
-    // to a non-negligable value).
-    //
-    // Through experimentation, we have found that if you skip this
-    // technique, in diabolical cases (gigapixel images, worst-case
-    // dynamic range, compilers that don't support long doubles)
-    // the precision for 'avg' is reduced to 1 part in 1e5.  This
-    // will work around the issue.
-    // 
-    // This approach works best when the batch size is the sqrt of
-    // numpixels, which makes the num batches roughly equal to the
-    // number of pixels / batch.
-    
-    int PIXELS_PER_BATCH = std::max (1024,
-            static_cast<int>(sqrt((double)src.spec().image_pixels())));
-    
-    std::vector<long double> tempsum(nchannels);
-    std::vector<long double> tempsum2(nchannels);
-    
-    for (int i=0; i<nchannels; ++i) {
-        min[i] = std::numeric_limits<float>::infinity();
-        max[i] = -std::numeric_limits<float>::infinity();
-        sum[i] = 0.0;
-        sum2[i] = 0.0;
-        tempsum[i] = 0.0;
-        tempsum2[i] = 0.0;
-        
-        nancount[i] = 0;
-        infcount[i] = 0;
-        finitecount[i] = 0;
-    }
-    
-    if (src.deep()) {
-        // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
-            int samples = s.deep_samples();
-            if (! samples)
-                continue;
-            for (int c = 0;  c < nchannels;  ++c) {
-                for (int i = 0;  i < samples;  ++i) {
-                    float value = s.deep_value (c, i);
-                    if (isnan (value)) {
-                        ++nancount[c];
-                        continue;
-                    }
-                    if (isinf (value)) {
-                        ++infcount[c];
-                        continue;
-                    }
-                    ++finitecount[c];
-                    tempsum[c] += value;
-                    tempsum2[c] += value*value;
-                    min[c] = std::min (value, min[c]);
-                    max[c] = std::max (value, max[c]);
-                    if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                        sum[c] += tempsum[c]; tempsum[c] = 0.0;
-                        sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
-                    }
-                }
-            }
-        }
-    } else {  // Non-deep case
-        // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
-            for (int c = 0;  c < nchannels;  ++c) {
-                float value = s[c];
-                if (isnan (value)) {
-                    ++nancount[c];
-                    continue;
-                }
-                if (isinf (value)) {
-                    ++infcount[c];
-                    continue;
-                }
-                ++finitecount[c];
-                tempsum[c] += value;
-                tempsum2[c] += value*value;
-                min[c] = std::min (value, min[c]);
-                max[c] = std::max (value, max[c]);
-                if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                    sum[c] += tempsum[c]; tempsum[c] = 0.0;
-                    sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
-                }
-            }
-        }
-    }
-    
-    // Store results
-    stats.min.resize (nchannels);
-    stats.max.resize (nchannels);
-    stats.avg.resize (nchannels);
-    stats.stddev.resize (nchannels);
-    stats.nancount.resize (nchannels);
-    stats.infcount.resize (nchannels);
-    stats.finitecount.resize (nchannels);
-    
-    for (int c = 0;  c < nchannels;  ++c) {
-        if (finitecount[c] == 0) {
-            stats.min[c] = 0.0;
-            stats.max[c] = 0.0;
-            stats.avg[c] = 0.0;
-            stats.stddev[c] = 0.0;
-        } else {
-            // Add any residual tempsums into the final accumulation
-            sum[c] += tempsum[c]; tempsum[c] = 0.0;
-            sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
-            
-            double invCount = 1.0 / static_cast<double>(finitecount[c]);
-            double davg = sum[c] * invCount;
-            stats.min[c] = min[c];
-            stats.max[c] = max[c];
-            stats.avg[c] = static_cast<float>(davg);
-            stats.stddev[c] = static_cast<float>(sqrt(sum2[c]*invCount - davg*davg));
-        }
-        
-        stats.nancount[c] = nancount[c];
-        stats.infcount[c] = infcount[c];
-        stats.finitecount[c] = finitecount[c];
-    }
-    
-    return true;
-};
-
-
-
-template<class BUFT>
-inline void
-compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
-               float aval, float bval, ImageBufAlgo::CompareResults &result,
-               float &maxval, double &batcherror, double &batch_sqrerror,
-               bool &failed, bool &warned, float failthresh, float warnthresh)
-{
-    maxval = std::max (maxval, std::max (aval, bval));
-    double f = fabs (aval - bval);
-    batcherror += f;
-    batch_sqrerror += f*f;
-    if (f > result.maxerror) {
-        result.maxerror = f;
-        result.maxx = a.x();
-        result.maxy = a.y();
-        result.maxz = 0;  // FIXME -- doesn't work for volume images
-        result.maxc = chan;
-    }
-    if (! warned && f > warnthresh) {
-        ++result.nwarn;
-        warned = true;
-    }
-    if (! failed && f > failthresh) {
-        ++result.nfail;
-        failed = true;
-    }
-}
-
-
-
-bool
-ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
-                       float failthresh, float warnthresh,
-                       ImageBufAlgo::CompareResults &result)
-{
-    if (A.spec().format != TypeDesc::FLOAT &&
-        B.spec().format != TypeDesc::FLOAT) {
-        A.error ("ImageBufAlgo::compare only works on 'float' images.");
-        return false;
-    }
-    int npels = A.spec().width * A.spec().height * A.spec().depth;
-    int nvals = npels * A.spec().nchannels;
-
-    // Compare the two images.
-    //
-    double totalerror = 0;
-    double totalsqrerror = 0;
-    result.maxerror = 0;
-    result.maxx=0, result.maxy=0, result.maxz=0, result.maxc=0;
-    result.nfail = 0, result.nwarn = 0;
-    float maxval = 1.0;  // max possible value
-    ImageBuf::ConstIterator<float,float> a (A);
-    ImageBuf::ConstIterator<float,float> b (B);
-    bool deep = A.deep();
-    if (B.deep() != A.deep())
-        return false;
-    // Break up into batches to reduce cancelation errors as the error
-    // sums become too much larger than the error for individual pixels.
-    const int batchsize = 4096;   // As good a guess as any
-    for ( ;  a.valid();  ) {
-        double batcherror = 0;
-        double batch_sqrerror = 0;
-        if (deep) {
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
-                bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
-                    for (int s = 0, e = a.deep_samples(); s < e;  ++s) {
-                        compare_value (a, c, a.deep_value(c,s),
-                                       b.deep_value(c,s), result, maxval,
-                                       batcherror, batch_sqrerror,
-                                       failed, warned, failthresh, warnthresh);
-                    }
-            }
-        } else {  // non-deep
-            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-                b.pos (a.x(), a.y());  // ensure alignment
-                bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c)
-                    compare_value (a, c, a[c], b[c], result, maxval,
-                                   batcherror, batch_sqrerror,
-                                   failed, warned, failthresh, warnthresh);
-            }
-        }
-        totalerror += batcherror;
-        totalsqrerror += batch_sqrerror;
-    }
-    result.meanerror = totalerror / nvals;
-    result.rms_error = sqrt (totalsqrerror / nvals);
-    result.PSNR = 20.0 * log10 (maxval / result.rms_error);
-    return result.nfail == 0;
-}
-
-
-
-namespace
-{
-
-template<typename T>
-static inline bool
-isConstantColor_ (const ImageBuf &src, float *color)
-{
-    int nchannels = src.nchannels();
-    if (nchannels == 0)
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(resize_<DSTTYPE,SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), filter,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
         return true;
-    
-    // Iterate using the native typing (for speed).
-    ImageBuf::ConstIterator<T,T> s (src);
-    if (! s.valid())
-        return true;
-
-    // Store the first pixel
-    std::vector<T> constval (nchannels);
-    for (int c = 0;  c < nchannels;  ++c)
-        constval[c] = s[c];
-
-    // Loop over all pixels ...
-    for ( ; s.valid ();  ++s) {
-        for (int c = 0;  c < nchannels;  ++c)
-            if (constval[c] != s[c])
-                return false;
     }
-    
-    if (color)
-        src.getpixel (src.xbegin(), src.ybegin(), src.zbegin(), color);
-    return true;
-}
 
-}
+    // Serial case
 
-bool
-ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
-{
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantColor_<float> (src, color); break;
-    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (src, color); break;
-    case TypeDesc::INT8  : return isConstantColor_<char> (src, color); break;
-    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (src, color); break;
-    case TypeDesc::INT16 : return isConstantColor_<short> (src, color); break;
-    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (src, color); break;
-    case TypeDesc::INT   : return isConstantColor_<int> (src, color); break;
-    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (src, color); break;
-    case TypeDesc::INT64 : return isConstantColor_<long long> (src, color); break;
-    case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
-    case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-};
-
-
-
-template<typename T>
-static inline bool
-isConstantChannel_ (const ImageBuf &src, int channel, float val)
-{
-    if (channel < 0 || channel >= src.nchannels())
-        return false;  // that channel doesn't exist in the image
-
-    T v = convert_type<float,T> (val);
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s)
-        if (s[channel] != v)
-            return false;
-    return true;
-}
-
-
-bool
-ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
-{
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantChannel_<float> (src, channel, val); break;
-    case TypeDesc::UINT8 : return isConstantChannel_<unsigned char> (src, channel, val); break;
-    case TypeDesc::INT8  : return isConstantChannel_<char> (src, channel, val); break;
-    case TypeDesc::UINT16: return isConstantChannel_<unsigned short> (src, channel, val); break;
-    case TypeDesc::INT16 : return isConstantChannel_<short> (src, channel, val); break;
-    case TypeDesc::UINT  : return isConstantChannel_<unsigned int> (src, channel, val); break;
-    case TypeDesc::INT   : return isConstantChannel_<int> (src, channel, val); break;
-    case TypeDesc::UINT64: return isConstantChannel_<unsigned long long> (src, channel, val); break;
-    case TypeDesc::INT64 : return isConstantChannel_<long long> (src, channel, val); break;
-    case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
-    case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-};
-
-namespace
-{
-
-template<typename T>
-static inline bool
-isMonochrome_ (const ImageBuf &src)
-{
-    int nchannels = src.nchannels();
-    if (nchannels < 2) return true;
-    
-    // Loop over all pixels ...
-    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s) {
-        T constvalue = s[0];
-        for (int c = 1;  c < nchannels;  ++c) {
-            if (s[c] != constvalue) {
-                return false;
-            }
-        }
-    }
-    
-    return true;
-}
-
-}
-
-
-bool
-ImageBufAlgo::isMonochrome(const ImageBuf &src)
-{
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isMonochrome_<float> (src); break;
-    case TypeDesc::UINT8 : return isMonochrome_<unsigned char> (src); break;
-    case TypeDesc::INT8  : return isMonochrome_<char> (src); break;
-    case TypeDesc::UINT16: return isMonochrome_<unsigned short> (src); break;
-    case TypeDesc::INT16 : return isMonochrome_<short> (src); break;
-    case TypeDesc::UINT  : return isMonochrome_<unsigned int> (src); break;
-    case TypeDesc::INT   : return isMonochrome_<int> (src); break;
-    case TypeDesc::UINT64: return isMonochrome_<unsigned long long> (src); break;
-    case TypeDesc::INT64 : return isMonochrome_<long long> (src); break;
-    case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
-    case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
-    default:
-        src.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-};
-
-std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
-                                   const std::string & extrainfo)
-{
-    std::string hash_digest;
-    
-    CSHA1 sha;
-    sha.Reset ();
-    
-    // Do one scanline at a time, to keep to < 2^32 bytes each
-    imagesize_t scanline_bytes = src.spec().scanline_bytes();
-    ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
-    std::vector<unsigned char> tmp (scanline_bytes);
-    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
-        for (int y = src.ymin(), yend=src.yend();  y < yend;  ++y) {
-            src.get_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
-                            src.spec().format, &tmp[0]);
-            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
-        }
-    }
-    
-    // If extra info is specified, also include it in the sha computation
-    if(!extrainfo.empty()) {
-        sha.Update ((const unsigned char*) extrainfo.c_str(), extrainfo.size());
-    }
-    
-    sha.Final ();
-    sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
-    
-    return hash_digest;
-}
-
-std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
-{
-    return computePixelHashSHA1 (src, "");
-}
-
-
-
-namespace { // anonymous namespace
-
-template<typename SRCTYPE>
-bool resize_ (ImageBuf &dst, const ImageBuf &src,
-              int xbegin, int xend, int ybegin, int yend,
-              Filter2D *filter)
-{
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
-
-    if (dstspec.format.basetype != TypeDesc::FLOAT) {
-        dst.error ("only 'float' images are supported");
-        return false;
-    }
-    if (nchannels != srcspec.nchannels) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-
-    bool allocfilter = (filter == NULL);
-    if (allocfilter) {
-        // If no filter was provided, punt and just linearly interpolate
-        filter = Filter2D::create ("triangle", 2.0f, 2.0f);
-    }
 
     // Local copies of the source image window, converted to float
     float srcfx = srcspec.full_x;
@@ -934,16 +304,8 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     float filterrad = filter->width() / 2.0f;
     // radi,radj is the filter radius, as an integer, in source pixels.  We
     // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
-    int radi = (int) ceilf (filterrad/xratio) + 1;
-    int radj = (int) ceilf (filterrad/yratio) + 1;
-
-#if 0
-    std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
-              << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
-    std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
-    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
-    std::cerr << "dst range " << xbegin << ' ' << xend << " x " << ybegin << ' ' << yend << "\n";
-#endif
+    int radi = (int) ceilf (filterrad/xratio);
+    int radj = (int) ceilf (filterrad/yratio);
 
     bool separable = filter->separable();
     float *column = NULL;
@@ -952,7 +314,17 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
         column = ALLOCA (float, (2 * radj + 1) * nchannels);
     }
 
-    for (int y = ybegin;  y < yend;  ++y) {
+#if 0
+    std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
+              << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
+    std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
+    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
+    std::cerr << "dst range " << roi << "\n";
+    std::cerr << "separable filter\n";
+#endif
+
+    ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+    for (int y = roi.ybegin;  y < roi.yend;  ++y) {
         // s,t are NDC space
         float t = (y+0.5f)*dstpixelheight;
         // src_xf, src_xf are image space float coordinates
@@ -960,7 +332,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
         // src_x, src_y are image space integer coordinates of the floor
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
-        for (int x = xbegin;  x < xend;  ++x) {
+        for (int x = roi.xbegin;  x < roi.xend;  ++x) {
             float s = (x+0.5f)*dstpixelwidth;
             float src_xf = srcfx + s * srcfw - 0.5f;
             int src_x;
@@ -974,26 +346,15 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 float *p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
                     totalweight = 0.0f;
-                    int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
+                    int yy = src_y+j;
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
-                                                           yclamped, yclamped+1,
-                                                           0, 1, true);
+                                                             yy, yy+1, 0, 1);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        if (w == 0.0f)
-                            continue;
-                        totalweight += w;
-                        if (srcpel.exists()) {
+                        if (w != 0.0f && srcpel.exists()) {
                             for (int c = 0;  c < nchannels;  ++c)
                                 p[c] += w * srcpel[c];
-                        } else {
-                            // Outside data window -- construct a clamped
-                            // iterator for just that pixel
-                            int xclamped = Imath::clamp (src_x+i, src.xmin(), src.xmax());
-                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
-                            clamped.pos (xclamped, yclamped);
-                            for (int c = 0;  c < nchannels;  ++c)
-                                p[c] += w * clamped[c];
+                            totalweight += w;
                         }
                     }
                     if (totalweight != 0.0f) {
@@ -1005,36 +366,31 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 totalweight = 0.0f;
                 p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    float w = filter->yfilt (yratio * (j-src_yf_frac));
-                    totalweight += w;
-                    for (int c = 0;  c < nchannels;  ++c)
-                        pel[c] += w * p[c];
+                    int yy = src_y+j;
+                    if (yy >= src.ymin() && yy <= src.ymax()) {
+                        float w = filter->yfilt (yratio * (j-src_yf_frac));
+                        totalweight += w;
+                        for (int c = 0;  c < nchannels;  ++c)
+                            pel[c] += w * p[c];
+                    }
                 }
 
             } else {
                 // Non-separable
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
-                                                       0, 1, true);
+                                                       0, 1);
                 for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = (*filter)(xratio * (i-src_xf_frac),
                                             yratio * (j-src_yf_frac));
                         if (w == 0.0f)
                             continue;
-                        totalweight += w;
                         DASSERT (! srcpel.done());
                         if (srcpel.exists()) {
                             for (int c = 0;  c < nchannels;  ++c)
                                 pel[c] += w * srcpel[c];
-                        } else {
-                            // Outside data window -- construct a clamped
-                            // iterator for just that pixel
-                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
-                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
-                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
-                            for (int c = 0;  c < nchannels;  ++c)
-                                pel[c] += w * clamped[c];
+                            totalweight += w;
                         }
                     }
                 }
@@ -1043,386 +399,551 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 
             // Rescale pel to normalize the filter, then write it to the
             // image.
+            DASSERT (out.x() == x && out.y() == y);
             if (totalweight == 0.0f) {
                 // zero it out
                 for (int c = 0;  c < nchannels;  ++c)
-                    pel[c] = 0.0f;
+                    out[c] = 0.0f;
             } else {
                 for (int c = 0;  c < nchannels;  ++c)
-                    pel[c] /= totalweight;
+                    out[c] = pel[c] / totalweight;
             }
-            dst.setpixel (x, y, pel);
+            ++out;
         }
     }
 
-    if (allocfilter)
-        Filter2D::destroy (filter);
     return true;
 }
 
-} // end anonymous namespace
 
 
+bool
+ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::resize does not support volume images");
+        return false;
+    }
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    boost::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    bool allocfilter = (filter == NULL);
+    if (allocfilter) {
+        // If no filter was provided, punt and just linearly interpolate.
+        const ImageSpec &srcspec (src.spec());
+        const ImageSpec &dstspec (dst.spec());
+        float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+        float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+        float w = 2.0f * std::max (1.0f, wratio);
+        float h = 2.0f * std::max (1.0f, hratio);
+        filter = Filter2D::create ("triangle", w, h);
+        filterptr.reset (filter);
+    }
+
+    OIIO_DISPATCH_TYPES2 ("resize", resize_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, filter, roi, nthreads);
+
+    return false;
+}
+
+
+
+// DEPRECATED as of 1.2
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
                       Filter2D *filter)
 {
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return resize_<float> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT8 :
-        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT8  :
-        return resize_<char> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT16:
-        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT16 :
-        return resize_<short> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT  :
-        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT   :
-        return resize_<int> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::UINT64:
-        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::INT64 :
-        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::HALF  :
-        return resize_<half> (dst, src, xbegin, xend, ybegin, yend, filter);
-    case TypeDesc::DOUBLE:
-        return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
-    default:
-        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
-        return false;
-    }
-
-    ASSERT (0);
-    return false;
-}
-
-namespace
-{
-
-// Make sure isfinite is defined for 'half'
-inline bool isfinite (half h) { return h.isFinite(); }
-
-
-template<typename SRCTYPE>
-bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
-                    ImageBufAlgo::NonFiniteFixMode mode,
-                    int * pixelsFixed)
-{
-    if (mode == ImageBufAlgo::NONFINITE_NONE) {
-        if (! dst.copy (src))
-            return false;
-        if (pixelsFixed) *pixelsFixed = 0;
-        return true;
-    }
-    else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
-        // Replace non-finite pixels with black
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        while (pixel.valid()) {
-            bool fixed = false;
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
-                if (! isfinite(value)) {
-                    (*pixel)[c] = 0.0;
-                    fixed = true;
-                }
-            }
-            
-            if (fixed) ++count;
-            ++pixel;
-        }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
-    }
-    else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
-        // Replace non-finite pixels with a simple 3x3 window average
-        // (the average excluding non-finite pixels, of course)
-        // 
-        // Warning: There is an inherent bug in this approach when src == dst
-        // As you progress across the image, the output buffer is also used
-        // as the input so there will be a directionality preference in the filling
-        // (I.e., updated values will be used only in the traversal direction).
-        // One can visualize this by disabling the isfinite check.
-
-        int count = 0;
-        int nchannels = src.spec().nchannels;
-        const int boxwidth = 1;
-        
-        // Copy the input to the output
-        if (! dst.copy (src))
-            return false;
-        
-        ImageBuf::Iterator<SRCTYPE,SRCTYPE> pixel (dst);
-        
-        while (pixel.valid()) {
-            bool fixed = false;
-            
-            for (int c = 0;  c < nchannels;  ++c) {
-                SRCTYPE value = pixel[c];
-                if (! isfinite (value)) {
-                    int numvals = 0;
-                    SRCTYPE sum = 0.0;
-                    
-                    int top    = pixel.x() - boxwidth;
-                    int bottom = pixel.x() + boxwidth;
-                    int left   = pixel.y() - boxwidth;
-                    int right  = pixel.y() + boxwidth;
-                    
-                    ImageBuf::Iterator<SRCTYPE,SRCTYPE> it (dst, top, bottom, left, right);
-                    while (it.valid()) {
-                        SRCTYPE v = it[c];
-                        if (isfinite (v)) {
-                            sum += v;
-                            numvals ++;
-                        }
-                        ++it;
-                    }
-                    
-                    if (numvals>0) {
-                        (*pixel)[c] = sum/numvals;
-                        fixed = true;
-                    }
-                    else {
-                        (*pixel)[c] = 0.0;
-                        fixed = true;
-                    }
-                }
-            }
-            
-            if (fixed) ++count;
-            ++pixel;
-        }
-        
-        if (pixelsFixed) *pixelsFixed = count;
-        return true;
-    }
-    
-    return false;
-}
-
-} // anon namespace
-
-
-
-/// Fix all non-finite pixels (nan/inf) using the specified approach
-bool
-ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode, int * pixelsFixed)
-{
-    switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT :
-        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
-    case TypeDesc::HALF  :
-        return fixNonFinite_<half> (dst, src, mode, pixelsFixed);
-    case TypeDesc::DOUBLE:
-        return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
-    default:
-        break;
-    }
-    
-    // Non-float images cannot have non-finite pixels,
-    // so all we have to do is copy the image and return
-    if (! dst.copy (src))
-        return false;
-    if (pixelsFixed) *pixelsFixed = 0;
-    return true;
+    return resize (dst, src, filter, ROI (xbegin, xend, ybegin, yend, 0, 1));
 }
 
 
 
-namespace {   // anonymous namespace
-
-// Fully type-specialized version of over.
-template<class Rtype, class Atype, class Btype>
-bool
-over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
+           ROI roi, int nthreads)
 {
-    if (R.spec().format != BaseTypeFromC<Rtype>::value ||
-        A.spec().format != BaseTypeFromC<Atype>::value ||
-        B.spec().format != BaseTypeFromC<Btype>::value) {
-        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
-                 R.spec().format, A.spec().format, B.spec().format);
-        return false;   // double check that types match
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(resample_<DSTTYPE,SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), interpolate,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
     }
 
-    // Output image R.
-    const ImageSpec &specR = R.spec();
-    int channels_R = specR.nchannels;
+    // Serial case
 
-    // Input image A.
-    const ImageSpec &specA = A.spec();
-    int alpha_index_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_index_A >= 0);
-    int channels_A = specA.nchannels;
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
 
-    // Input image B.
-    const ImageSpec &specB = B.spec();
-    int alpha_index_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_index_B >= 0);
-    int channels_B = specB.nchannels;
+    // Local copies of the source image window, converted to float
+    float srcfx = srcspec.full_x;
+    float srcfy = srcspec.full_y;
+    float srcfw = srcspec.full_width;
+    float srcfh = srcspec.full_height;
 
-    int channels_AB = std::min (channels_A, channels_B);
+    float dstpixelwidth = 1.0f / (float)dstspec.full_width;
+    float dstpixelheight = 1.0f / (float)dstspec.full_height;
+    int nchannels = src.nchannels();
+    float *pel = ALLOCA (float, nchannels);
 
-    ImageBuf::ConstIterator<Atype, float> a (A);
-    ImageBuf::ConstIterator<Btype, float> b (B);
-    ImageBuf::Iterator<Rtype, float> r (R, roi);
-    for ( ; ! r.done(); r++) {
-        a.pos (r.x(), r.y(), r.z());
-        b.pos (r.x(), r.y(), r.z());
+    ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+    ImageBuf::ConstIterator<SRCTYPE> srcpel (src);
+    for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+        // s,t are NDC space
+        float t = (y+0.5f)*dstpixelheight;
+        // src_xf, src_xf are image space float coordinates
+        float src_yf = srcfy + t * srcfh - 0.5f;
+        // src_x, src_y are image space integer coordinates of the floor
+        int src_y;
+        (void) floorfrac (src_yf, &src_y);
+        for (int x = roi.xbegin;  x < roi.xend;  ++x) {
+            float s = (x+0.5f)*dstpixelwidth;
+            float src_xf = srcfx + s * srcfw - 0.5f;
+            int src_x;
+            (void) floorfrac (src_xf, &src_x);
 
-        if (! a.valid()) {
-            if (! b.valid()) {
-                // a and b invalid.
-                for (int c = 0; c < channels_R; c++) { r[c] = 0.0f; }
+            if (interpolate) {
+                src.interppixel (src_xf, src_yf, pel);
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    out[c] = pel[c];
             } else {
-                // a invalid, b valid.
-                for (int c = 0; c < channels_B; c++) { r[c] = b[c]; }
-                if (! has_alpha_B) { r[3] = 1.0f; }
+                srcpel.pos (src_x, src_y, 0);
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    out[c] = srcpel[c];
             }
-            continue;
+            ++out;
         }
+    }
 
-        if (! b.valid()) {
-            // a valid, b invalid.
-            for (int c = 0; c < channels_A; c++) { r[c] = a[c]; }
-            if (! has_alpha_A) { r[3] = 1.0f; }
-            continue;
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
+                        bool interpolate, ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::resample does not support volume images");
+        return false;
+    }
+    OIIO_DISPATCH_TYPES2 ("resample", resample_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, interpolate, roi, nthreads);
+    return false;
+}
+
+
+
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
+           bool normalize, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(convolve_<DSTTYPE,SRCTYPE>, boost::ref(dst),
+                        boost::cref(src), boost::cref(kernel), normalize,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+
+    float scale = 1.0f;
+    if (normalize) {
+        scale = 0.0f;
+        for (ImageBuf::ConstIterator<float> k (kernel); ! k.done(); ++k)
+            scale += k[0];
+        scale = 1.0f / scale;
+    }
+
+    float *sum = ALLOCA (float, roi.chend);
+    ROI kroi = get_roi (kernel.spec());
+    ImageBuf::Iterator<DSTTYPE> d (dst, roi);
+    ImageBuf::ConstIterator<DSTTYPE> s (src, roi, ImageBuf::WrapClamp);
+    for ( ; ! d.done();  ++d) {
+
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            sum[c] = 0.0f;
+
+        for (ImageBuf::ConstIterator<float> k (kernel, kroi); !k.done(); ++k) {
+            float kval = k[0];
+            s.pos (d.x() + k.x(), d.y() + k.y(), d.z() + k.z());
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                sum[c] += kval * s[c];
         }
+        
+        for (int c = roi.chbegin; c < roi.chend; ++c)
+            d[c] = scale * sum[c];
+    }
 
-        // At this point, a and b are valid.
-        float alpha_A = has_alpha_A 
-                        ? clamp (a[alpha_index_A], 0.0f, 1.0f) : 1.0f;
-        float one_minus_alpha_A = 1.0f - alpha_A;
-        for (int c = 0;  c < channels_AB;  c++)
-            r[c] = a[c] + one_minus_alpha_A * b[c];
-        if (channels_R != channels_AB) {
-            // R has 4 channels, A or B has 3 channels -> alpha channel is 3.
-            r[3] = alpha_A + one_minus_alpha_A * (has_alpha_B ? b[3] : 1.0f);
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
+                        const ImageBuf &kernel, bool normalize,
+                        ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    OIIO_DISPATCH_TYPES2 ("convolve", convolve_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, kernel, normalize, roi, nthreads);
+    return false;
+}
+
+
+
+inline float binomial (int n, int k)
+{
+    float p = 1;
+    for (int i = 1;  i <= k;  ++i)
+        p *= float(n - (k-i)) / i;
+    return p;
+}
+
+
+bool
+ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
+                           float width, float height, float depth,
+                           bool normalize)
+{
+    int w = std::max (1, (int)ceilf(width));
+    int h = std::max (1, (int)ceilf(height));
+    int d = std::max (1, (int)ceilf(depth));
+    // Round up size to odd
+    w |= 1;
+    h |= 1;
+    d |= 1;
+    ImageSpec spec (w, h, 1 /*channels*/, TypeDesc::FLOAT);
+    spec.depth = d;
+    spec.x = -w/2;
+    spec.y = -h/2;
+    spec.z = -d/2;
+    spec.full_x = spec.x;
+    spec.full_y = spec.y;
+    spec.full_z = spec.z;
+    spec.full_width = spec.width;
+    spec.full_height = spec.height;
+    spec.full_depth = spec.depth;
+    dst.alloc (spec);
+
+    if (Filter2D *filter = Filter2D::create (name, width, height)) {
+        // Named continuous filter from filter.h
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = (*filter)((float)p.x(), (float)p.y());
+        delete filter;
+    } else if (!strcmp (name, "binomial")) {
+        // Binomial filter
+        float *wfilter = ALLOCA (float, width);
+        for (int i = 0;  i < width;  ++i)
+            wfilter[i] = binomial (width-1, i);
+        float *hfilter = (height == width) ? wfilter : ALLOCA (float, height);
+        if (height != width)
+            for (int i = 0;  i < height;  ++i)
+                hfilter[i] = binomial (height-1, i);
+        float *dfilter = ALLOCA (float, depth);
+        if (depth == 1)
+            dfilter[0] = 1;
+        else
+            for (int i = 0;  i < depth;  ++i)
+                dfilter[i] = binomial (depth-1, i);
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = wfilter[p.x()-spec.x] * hfilter[p.y()-spec.y] * dfilter[p.z()-spec.z];
+    } else {
+        // No filter -- make a box
+        float val = normalize ? 1.0f / ((w*h*d)) : 1.0f;
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = val;
+        dst.error ("Unknown kernel \"%s\"", name);
+        return false;
+    }
+    if (normalize) {
+        float sum = 0;
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            sum += p[0];
+        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+            p[0] = p[0] / sum;
+    }
+    return true;
+}
+
+
+
+// Helper function for unsharp mask to perform the thresholding
+static bool
+threshold_to_zero (ImageBuf &dst, float threshold,
+                   ROI roi, int nthreads)
+{
+    ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT);
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(threshold_to_zero, boost::ref(dst), threshold,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<float> p (dst, roi);  ! p.done();  ++p)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            if (fabsf(p[c]) < threshold)
+                p[c] = 0.0f;
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
+                            const char *kernel, float width,
+                            float contrast, float threshold,
+                            ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    if (dst.nchannels() != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::unsharp_mask does not support volume images");
+        return false;
+    }
+
+    // Blur the source image, store in Blurry
+    ImageBuf K ("kernel");
+    if (! make_kernel (K, kernel, width, width)) {
+        dst.error ("%s", K.geterror());
+        return false;
+    }
+    ImageSpec BlurrySpec = src.spec();
+    BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
+    ImageBuf Blurry ("blurry", BlurrySpec);
+    if (! convolve (Blurry, src, K, true, roi, nthreads)) {
+        dst.error ("%s", Blurry.geterror());
+        return false;
+    }
+
+    // Compute the difference between the source image and the blurry
+    // version.  (We store it in the same buffer we used for the difference
+    // image.)
+    ImageBuf &Diff (Blurry);
+    bool ok = sub (Diff, src, Blurry, roi, nthreads);
+
+    if (ok && threshold > 0.0f)
+        ok = threshold_to_zero (Diff, threshold, roi, nthreads);
+
+    // Scale the difference image by the contrast
+    if (ok)
+        ok = mul (Diff, contrast, roi, nthreads);
+    if (! ok) {
+        dst.error ("%s", Diff.geterror());
+        return false;
+    }
+
+    // Add the scaled difference to the original, to get the final answer
+    ok = add (dst, src, Diff, roi, nthreads);
+
+    return ok;
+}
+
+
+
+// Helper function: fft of the horizontal rows
+static bool
+hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,
+       ROI roi, int nthreads)
+{
+    ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT &&
+            src.spec().format.basetype == TypeDesc::FLOAT &&
+            dst.spec().nchannels == 2 && src.spec().nchannels == 2);
+
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind (hfft_, boost::ref(dst), boost::cref(src),
+                         inverse, unitary,
+                         _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    int width = roi.width();
+    float rescale = sqrtf (1.0f / width);
+    kissfft<float> F (width, inverse);
+    for (int z = roi.zbegin;  z < roi.zend;  ++z) {
+        for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+            std::complex<float> *s, *d;
+            s = (std::complex<float> *)src.pixeladdr(roi.xbegin, y, z);
+            d = (std::complex<float> *)dst.pixeladdr(roi.xbegin, y, z);
+            F.transform (s, d);
+            if (unitary)
+                for (int x = 0;  x < width;  ++x)
+                    d[x] *= rescale;
         }
     }
     return true;
 }
 
-}    // anonymous namespace
 
 
 bool
-ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
-                    int nthreads)
+ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
+                   ROI roi, int nthreads)
 {
-    // Output image R.
-    const ImageSpec &specR = R.spec();
-    int alpha_R =  specR.alpha_channel;
-    int has_alpha_R = (alpha_R >= 0);
-    int channels_R = specR.nchannels;
-    int non_alpha_R = channels_R - has_alpha_R;
-    bool initialized_R = R.initialized();
-
-    // Input image A.
-    const ImageSpec &specA = A.spec();
-    int alpha_A =  specA.alpha_channel;
-    int has_alpha_A = (alpha_A >= 0);
-    int channels_A = specA.nchannels;
-    int non_alpha_A = has_alpha_A ? (channels_A - 1) : 3;
-    bool A_not_34 = channels_A != 3 && channels_A != 4;
-
-    // Input image B.
-    const ImageSpec &specB = B.spec();
-    int alpha_B =  specB.alpha_channel;
-    int has_alpha_B = (alpha_B >= 0);
-    int channels_B = specB.nchannels;
-    int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
-    bool B_not_34 = channels_B != 3 && channels_B != 4;
-
-    // At present, this operation only supports ImageBuf's containing
-    // float pixel data.
-    if (R.spec().format != TypeDesc::TypeFloat ||
-        A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat) {
-        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
-                   R.spec().format, A.spec().format, B.spec().format);
+    if (src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::fft does not support volume images");
         return false;
     }
-
-    // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0) {
-        R.error ("'over' does not support Z channels");
-        return false;
-    }
-
-    // If input images A and B have different number of non-alpha channels
-    // then return false.
-    if (non_alpha_A != non_alpha_B) {
-        R.error ("inputs had different numbers of color channels");
-        return false;
-    }
-
-    // A or B has number of channels different than 3 and 4, and it does
-    // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B)) {
-        R.error ("inputs must have alpha channels (or be implicitly RGB or RGBA)");
-        return false;
-    }
-
-    // A or B has zero or one channel -> return false.
-    if (channels_A <= 1 || channels_B <= 1) {
-        R.error ("unsupported number of channels");
-        return false;
-    }
-
-    // Initialized R -> use as allocated.  
-    // Uninitialized R -> size it to the union of A and B.
-    ImageSpec newspec = ImageSpec ();
-    ROI union_AB = roi_union (get_roi(specA), get_roi(specB));
-    set_roi (newspec, union_AB);
-    if ((! has_alpha_A && ! has_alpha_B)
-        || (has_alpha_A && ! has_alpha_B && alpha_A == channels_A - 1)
-        || (! has_alpha_A && has_alpha_B && alpha_B == channels_B - 1)) {
-        if (! initialized_R) {
-            newspec.nchannels = 4;
-            newspec.alpha_channel =  3;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != 3 || alpha_R != 3) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
-        if (! initialized_R) {
-            newspec.nchannels = channels_A;
-            newspec.alpha_channel =  alpha_A;
-            R.reset ("over", newspec);
-        } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
-                R.error ("unsupported channel layout");
-                return false;
-            }
-        }
-    } else {
-        R.error ("unsupported channel layout");
-        return false;
-    }
-
-    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
     if (! roi.defined())
-        roi = get_roi (R.spec());
+        roi = roi_union (get_roi (src.spec()), get_roi_full (src.spec()));
+    roi.chend = roi.chbegin+1;   // One channel only
 
-    parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
-                                 boost::cref(A), boost::cref(B), _1),
-                           roi, nthreads);
-    return ! R.has_error();
+    // Construct a spec that describes the result
+    ImageSpec spec = src.spec();
+    spec.width = spec.full_width = roi.width();
+    spec.height = spec.full_height = roi.height();
+    spec.depth = spec.full_depth = 1;
+    spec.x = spec.full_x = 0;
+    spec.y = spec.full_y = 0;
+    spec.z = spec.full_z = 0;
+    spec.set_format (TypeDesc::FLOAT);
+    spec.channelformats.clear();
+    spec.nchannels = 2;
+    spec.channelnames.clear();
+    spec.channelnames.push_back ("real");
+    spec.channelnames.push_back ("imag");
+
+    // And a spec that describes the transposed intermediate
+    ImageSpec specT = spec;
+    std::swap (specT.width, specT.height);
+    std::swap (specT.full_width, specT.full_height);
+
+    // Resize dst
+    dst.reset (dst.name(), spec);
+
+    // Copy src to a 2-channel (for "complex") float buffer
+    ImageBuf A (src.name(), spec);   // zeros it out automatically
+    if (! ImageBufAlgo::paste (A, 0, 0, 0, 0, src, roi, nthreads)) {
+        dst.error ("%s", A.geterror());
+        return false;
+    }
+
+    // FFT the rows (into temp buffer B).
+    ImageBuf B ("fft", spec);
+    hfft_ (B, A, false /*inverse*/, true /*unitary*/,
+           get_roi(B.spec()), nthreads);
+
+    // Transpose and shift back to A
+    A.clear ();
+    ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
+
+    // FFT what was originally the columns (back to B)
+    B.reset ("fft", specT);
+    hfft_ (B, A, false /*inverse*/, true /*unitary*/,
+           get_roi(A.spec()), nthreads);
+
+    // Transpose again, into the dest
+    ImageBufAlgo::transpose (dst, B, ROI::All(), nthreads);
+
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
+                    ROI roi, int nthreads)
+{
+    if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
+        dst.error ("ifft can only be done on 2-channel float images");
+        return false;
+    }
+    if (src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::ifft does not support volume images");
+        return false;
+    }
+
+    if (! roi.defined())
+        roi = roi_union (get_roi (src.spec()), get_roi_full (src.spec()));
+    roi.chbegin = 0;
+    roi.chend = 2;
+
+    // Construct a spec that describes the result
+    ImageSpec spec = src.spec();
+    spec.width = spec.full_width = roi.width();
+    spec.height = spec.full_height = roi.height();
+    spec.depth = spec.full_depth = 1;
+    spec.x = spec.full_x = 0;
+    spec.y = spec.full_y = 0;
+    spec.z = spec.full_z = 0;
+    spec.set_format (TypeDesc::FLOAT);
+    spec.channelformats.clear();
+    spec.nchannels = 2;
+    spec.channelnames.clear();
+    spec.channelnames.push_back ("real");
+    spec.channelnames.push_back ("imag");
+
+    // Inverse FFT the rows (into temp buffer B).
+    ImageBuf B ("ifft", spec);
+    hfft_ (B, src, true /*inverse*/, true /*unitary*/,
+           get_roi(B.spec()), nthreads);
+
+    // Transpose and shift back to A
+    ImageBuf A (src.name());
+    ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
+
+    // Inverse FFT what was originally the columns (back to B)
+    B.reset ("ifft", A.spec());
+    hfft_ (B, A, true /*inverse*/, true /*unitary*/,
+           get_roi(A.spec()), nthreads);
+
+    // Transpose again, into the dst, in the process throw out the
+    // imaginary part and go back to a single (real) channel.
+    spec.nchannels = 1;
+    spec.channelnames.clear ();
+    spec.channelnames.push_back ("R");
+    dst.reset (dst.name(), spec);
+    ROI Broi = get_roi(B.spec());
+    Broi.chend = 1;
+    ImageBufAlgo::transpose (dst, B, Broi, nthreads);
+
+    return true;
 }
 
 
@@ -1437,7 +958,7 @@ const char *default_font_name = "cour";
 #elif defined (__APPLE__)
 const char *default_font_name = "Courier New";
 #elif defined (_WIN32)
-const char *default_font_name = "Courier";
+const char *default_font_name = "cour";
 #else
 const char *default_font_name = "cour";
 #endif
@@ -1450,6 +971,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
                            int fontsize, const std::string &font_,
                            const float *textcolor)
 {
+    if (R.spec().depth > 1) {
+        R.error ("ImageBufAlgo::render_text does not support volume images");
+        return false;
+    }
+
 #ifdef USE_FREETYPE
     // If we know FT is broken, don't bother trying again
     if (ft_broken)
@@ -1477,6 +1003,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         search_dirs.push_back (h + "/fonts");
         search_dirs.push_back (h + "/Fonts");
         search_dirs.push_back (h + "/Library/Fonts");
+    }
+    const char *systemRoot = getenv ("SystemRoot");
+    if (systemRoot && *systemRoot) {
+        std::string sysroot (systemRoot);
+        search_dirs.push_back (sysroot + "/Fonts");
     }
     search_dirs.push_back ("/usr/share/fonts");
     search_dirs.push_back ("/Library/Fonts");
@@ -1555,148 +1086,108 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 }
 
 
-namespace { // anonymous namespace
 
-/// histogram_impl -----------------------------------------------------------
-/// Fully type-specialized version of histogram.
-///
-/// Pixel values in min->max range are mapped to 0->(bins-1) range, so that
-/// each value is placed in the appropriate bin. The formula used is:
-/// y = (x-min) * bins/(max-min), where y is the value in the 0->(bins-1)
-/// range and x is the value in the min->max range. There is one special
-/// case x==max for which the formula is not used and x is assigned to the
-/// last bin at position (bins-1) in the vector histogram.
-/// --------------------------------------------------------------------------
-template<class Atype>
-bool
-histogram_impl (const ImageBuf &A, int channel,
-                std::vector<imagesize_t> &histogram, int bins,
-                float min, float max, imagesize_t *submin,
-                imagesize_t *supermax, ROI roi)
+// Helper for fillholes_pp: for any nonzero alpha pixels in dst, divide
+// all components by alpha.
+static bool
+divide_by_alpha (ImageBuf &dst, ROI roi, int nthreads)
 {
-    // Double check A's type.
-    if (A.spec().format != BaseTypeFromC<Atype>::value) {
-        A.error ("Unsupported pixel data format '%s'", A.spec().format);
-        return false;
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(divide_by_alpha, boost::ref(dst),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
     }
 
-    // Initialize.
-    ImageBuf::ConstIterator<Atype, float> a (A, roi);
-    float ratio = bins / (max-min);
-    int bins_minus_1 = bins-1;
-    bool submin_ok = submin != NULL;
-    bool supermax_ok = supermax != NULL;
-    if (submin_ok)
-        *submin = 0;
-    if (supermax_ok)
-        *supermax = 0;
-    histogram.assign(bins, 0);
-
-    // Compute histogram.
-    for ( ; ! a.done(); a++) {
-        float c = a[channel];
-        if (c >= min && c < max) {
-            // Map range min->max to 0->(bins-1).
-            histogram[ (int) ((c-min) * ratio) ]++;
-        } else if (c == max) {
-            histogram[bins_minus_1]++;
-        } else {
-            if (submin_ok && c < min)
-                (*submin)++;
-            else if (supermax_ok)
-                (*supermax)++;
+    // Serial case
+    const ImageSpec &spec (dst.spec());
+    ASSERT (spec.format == TypeDesc::FLOAT);
+    int nc = spec.nchannels;
+    int ac = spec.alpha_channel;
+    for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+        float alpha = d[ac];
+        if (alpha != 0.0f) {
+            for (int c = 0; c < nc; ++c)
+                d[c] = d[c] / alpha;
         }
     }
     return true;
 }
 
-} // anonymous namespace
-
-
-
-bool
-ImageBufAlgo::histogram (const ImageBuf &A, int channel,
-                         std::vector<imagesize_t> &histogram, int bins,
-                         float min, float max, imagesize_t *submin,
-                         imagesize_t *supermax, ROI roi)
-{
-    if (A.spec().format != TypeDesc::TypeFloat) {
-        A.error ("Unsupported pixel data format '%s'", A.spec().format);
-        return false;
-    }
-
-    if (A.nchannels() == 0) {
-        A.error ("Input image must have at least 1 channel");
-        return false;
-    }
-
-    if (channel < 0 || channel >= A.nchannels()) {
-        A.error ("Invalid channel %d for input image with channels 0 to %d",
-                  channel, A.nchannels()-1);
-        return false;
-    }
-
-    if (bins < 1) {
-        A.error ("The number of bins must be at least 1");
-        return false;
-    }
-
-    if (max <= min) {
-        A.error ("Invalid range, min must be strictly smaller than max");
-        return false;
-    }
-
-    // Specified ROI -> use it. Unspecified ROI -> initialize from A.
-    if (! roi.defined())
-        roi = get_roi (A.spec());
-
-    histogram_impl<float> (A, channel, histogram, bins, min, max,
-                                  submin, supermax, roi);
-
-    return ! A.has_error();
-}
-
 
 
 bool
-ImageBufAlgo::histogram_draw (ImageBuf &R,
-                              const std::vector<imagesize_t> &histogram)
+ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
+                                  ROI roi, int nthreads)
 {
-    // Fail if there are no bins to draw.
-    int bins = histogram.size();
-    if (bins == 0) {
-        R.error ("There are no bins to draw, the histogram is empty");
+    IBAprep (roi, &dst, &src);
+    const ImageSpec &dstspec (dst.spec());
+    if (dstspec.nchannels != src.nchannels()) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dstspec.nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dst.spec().depth > 1 || src.spec().depth > 1) {
+        dst.error ("ImageBufAlgo::fillholes_pushpull does not support volume images");
+        return false;
+    }
+    if (dstspec.alpha_channel < 0 ||
+        dstspec.alpha_channel != src.spec().alpha_channel) {
+        dst.error ("Must have alpha channels");
         return false;
     }
 
-    // Check R and modify it if needed.
-    int height = R.spec().height;
-    if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
-        R.spec().width != bins) {
-        ImageSpec newspec = ImageSpec (bins, height, 1, TypeDesc::FLOAT);
-        R.reset ("dummy", newspec);
+    // We generate a bunch of temp images to form an image pyramid.
+    // These give us a place to stash them and make sure they are
+    // auto-deleted when the function exits.
+    std::vector<boost::shared_ptr<ImageBuf> > pyramid;
+
+    // First, make a writeable copy of the original image (converting
+    // to float as a convenience) as the top level of the pyramid.
+    ImageSpec topspec = src.spec();
+    topspec.set_format (TypeDesc::FLOAT);
+    ImageBuf *top = new ImageBuf ("top.exr", topspec);
+    paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
+    pyramid.push_back (boost::shared_ptr<ImageBuf>(top));
+
+    // Construct the rest of the pyramid by successive x/2 resizing and
+    // then dividing nonzero alpha pixels by their alpha (this "spreads
+    // out" the defined part of the image).
+    int w = src.spec().width, h = src.spec().height;
+    while (w > 1 || h > 1) {
+        w = std::max (1, w/2);
+        h = std::max (1, h/2);
+        ImageSpec smallspec (w, h, src.nchannels(), TypeDesc::FLOAT);
+        std::string name = Strutil::format ("small%d.exr", (int)pyramid.size());
+        ImageBuf *small = new ImageBuf (name, smallspec);
+        ImageBufAlgo::resize (*small, *pyramid.back());
+        divide_by_alpha (*small, get_roi(smallspec), nthreads);
+        pyramid.push_back (boost::shared_ptr<ImageBuf>(small));
+        //debug small->save();
     }
 
-    // Fill output image R with white color.
-    ImageBuf::Iterator<float, float> r (R);
-    for ( ; ! r.done(); ++r)
-        r[0] = 1;
-
-    // Draw histogram left->right, bottom->up.
-    imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
-    for (int b = 0; b < bins; b++) {
-        int bin_height = (int) ((float)histogram[b]/(float)max*height + 0.5f);
-        if (bin_height != 0) {
-            // Draw one bin at column b.
-            for (int j = 1; j <= bin_height; j++) {
-                int row = height - j;
-                r.pos (b, row);
-                r[0] = 0;
-            }
-        }
+    // Now pull back up the pyramid by doing an alpha composite of level
+    // i over a resized level i+1, thus filling in the alpha holes.  By
+    // time we get to the top, pixels whose original alpha are
+    // unchanged, those with alpha < 1 are replaced by the blended
+    // colors of the higher pyramid levels.
+    for (int i = (int)pyramid.size()-2;  i >= 0;  --i) {
+        ImageBuf &big(*pyramid[i]), &small(*pyramid[i+1]);
+        ImageBuf blowup ("bigger", big.spec());
+        ImageBufAlgo::resize (blowup, small);
+        ImageBufAlgo::over (big, big, blowup);
+        //debug big.save (Strutil::format ("after%d.exr", i));
     }
+
+    // Now copy the completed base layer of the pyramid back to the
+    // original requested output.
+    paste (dst, dstspec.x, dstspec.y, dstspec.z, 0, *pyramid[0]);
+
     return true;
 }
+
 
 }
 OIIO_NAMESPACE_EXIT

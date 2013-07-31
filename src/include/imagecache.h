@@ -211,7 +211,8 @@ public:
     /// pixel coordinates.  An opaque pointer to the tile will be
     /// returned, or NULL if no such file (or tile within the file)
     /// exists or can be read.  The tile will not be purged from the
-    /// cache until after release_tile() is called on the tile pointer.
+    /// cache until after release_tile() is called on the tile pointer
+    /// the same number of times that get_tile() was called (refcnt).
     /// This is thread-safe!
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
                                 int x, int y, int z) = 0;
@@ -225,6 +226,29 @@ public:
     /// the pixels are internally stored in (which may be different than
     /// the data type of the pixels in the disk file).
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const = 0;
+
+    /// This creates a file entry in the cache that, instead of reading
+    /// from disk, uses a custom ImageInput to generate the image (note
+    /// that it will have no effect if there's already an image by the
+    /// same name in the cache).  The 'creator' is a factory that
+    /// creates the custom ImageInput and will be called like this:
+    /// ImageInput *in = creator(); Once created, the ImageCache owns
+    /// the ImageInput and is responsible for destroying it when done.
+    /// Custom ImageInputs allow "procedural" images, among other
+    /// things.  Also, this is the method you use to set up a
+    /// "writeable" ImageCache images (perhaps with a type of ImageInput
+    /// that's just a stub that does as little as possible).
+    virtual bool add_file (ustring filename, ImageInput::Creator creator) = 0;
+
+    /// Preemptively add a tile corresponding to the named image, at the
+    /// given subimage and MIP level.  The tile added is the one whose
+    /// corner is (x,y,z), and buffer points to the pixels (in the given
+    /// format, with supplied strides) which will be copied and inserted
+    /// into the cache and made available for future lookups.
+    virtual bool add_tile (ustring filename, int subimage, int miplevel,
+                     int x, int y, int z, TypeDesc format, const void *buffer,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) = 0;
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error

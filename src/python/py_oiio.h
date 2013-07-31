@@ -201,7 +201,7 @@ public:
     int subimage() const;
     int nsubimages() const;
     int nchannels() const;
-    float getchannel (int, int, int) const;
+    float getchannel (int, int, int, int) const;
     void getpixel (int, int, float*, int) const;
     void interppixel (float, float, float*) const;
     void interppixel_NDC (float, float, float*) const;

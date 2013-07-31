@@ -105,7 +105,7 @@ ErrorHandler::vMessage (const char *format, va_list argptr)
 }
 
 
-#ifdef DEBUG
+#ifndef NDEBUG
 void
 ErrorHandler::vDebug (const char *format, va_list argptr)
 {
@@ -175,7 +175,7 @@ ErrorHandler::message (const char *format, ...)
 
 
 
-#ifdef DEBUG
+#ifndef NDEBUG
 void
 ErrorHandler::debug (const char *format, ...)
 {
@@ -210,7 +210,7 @@ ErrorHandler::operator() (int errcode, const std::string &msg)
         fprintf (stderr, "SEVERE ERROR: %s\n", msg.c_str());
         break;
     case EH_DEBUG :
-#ifndef DEBUG
+#ifdef NDEBUG
         break;
 #endif
     default :

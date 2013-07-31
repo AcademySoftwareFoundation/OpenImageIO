@@ -243,6 +243,18 @@ struct OIIO_API TypeDesc {
 
 
 
+/// Return a string containing the data values formatted according
+/// to the type and the optional formatting arguments.
+std::string tostring (TypeDesc type, const void *data,
+                      const char *float_fmt = "%f",         // E.g. "%g"
+                      const char *string_fmt = "%s",        // E.g. "\"%s\""
+                      const char aggregate_delim[2] = "()", // Both sides of vector
+                      const char *aggregate_sep = ",",      // E.g. ", "
+                      const char array_delim[2] = "{}",     // Both sides of array
+                      const char *array_sep = ",");         // E.g. "; "
+
+
+
 /// A template mechanism for getting the a base type from C type
 ///
 template<typename T> struct BaseTypeFromC {};

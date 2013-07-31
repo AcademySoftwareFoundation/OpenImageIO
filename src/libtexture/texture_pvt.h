@@ -413,17 +413,10 @@ private:
     /// results.
     bool missing_texture (TextureOpt &options, float *result);
 
-    /// Correctly fill in channels that were requested but not present
-    /// in the file.
-    void fill_channels (const ImageSpec &spec, TextureOpt &options, float *result);
+    /// Handle gray-to-RGB promotion.
+    void fill_gray_channels (const ImageSpec &spec, TextureOpt &options, float *result);
 
-    typedef bool (*wrap_impl) (int &coord, int origin, int width);
-    static bool wrap_black (int &coord, int origin, int width);
-    static bool wrap_clamp (int &coord, int origin, int width);
-    static bool wrap_periodic (int &coord, int origin, int width);
-    static bool wrap_periodic2 (int &coord, int origin, int width);
     static bool wrap_periodic_sharedborder (int &coord, int origin, int width);
-    static bool wrap_mirror (int &coord, int origin, int width);
     static const wrap_impl wrap_functions[];
 
     /// Helper function for lat-long environment maps: compute a "pole"
@@ -548,7 +541,7 @@ TextureSystemImpl::st_to_texel (float s, float t, TextureFile &texturefile,
 
 
 
-};  // end namespace pvt
+}  // end namespace pvt
 
 }
 OIIO_NAMESPACE_EXIT

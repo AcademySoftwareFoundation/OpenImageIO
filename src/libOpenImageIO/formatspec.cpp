@@ -43,7 +43,7 @@
 #include "fmath.h"
 
 #include "imageio.h"
-#include "pugixml.hpp"
+#include <pugixml.hpp>
 
 
 OIIO_NAMESPACE_ENTER
@@ -575,11 +575,12 @@ namespace {  // make an anon namespace
 
 
 static std::string
-format_raw_metadata (const ImageIOParameter &p)
+format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
 {
     std::string out;
     TypeDesc element = p.type().elementtype();
-    int n = p.type().numelements() * p.nvalues();
+    int nfull = p.type().numelements() * p.nvalues();
+    int n = std::min (nfull, maxsize);
     if (element == TypeDesc::STRING) {
         for (int i = 0;  i < n;  ++i) {
             const char *s = ((const char **)p.data())[i];
@@ -627,11 +628,19 @@ format_raw_metadata (const ImageIOParameter &p)
     } else if (element == TypeDesc::INT64) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
+    } else if (element == TypeDesc::UINT8) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const unsigned char *)p.data())[i]));
+    } else if (element == TypeDesc::INT8) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const char *)p.data())[i]));
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 p.type().basetype, p.type().aggregate,
                 p.type().vecsemantics);
     }
+    if (n < nfull)
+        out += ", ...";
     return out;
 }
 
@@ -879,14 +888,14 @@ static ExplanationTableEntry explanation[] = {
     { NULL, NULL, NULL }
 }; 
 
-}; // end anon namespace
+} // end anon namespace
 
 
 
 std::string
 ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
 {
-    std::string out = format_raw_metadata (p);
+    std::string out = format_raw_metadata (p, human ? 16 : 1024);
 
     if (human) {
         std::string nice;

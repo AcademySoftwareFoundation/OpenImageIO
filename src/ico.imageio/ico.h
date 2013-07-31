@@ -90,7 +90,7 @@ struct ico_header {
 };
 
 
-};  // namespace ICO_pvt
+}  // namespace ICO_pvt
 
 
 OIIO_PLUGIN_NAMESPACE_END

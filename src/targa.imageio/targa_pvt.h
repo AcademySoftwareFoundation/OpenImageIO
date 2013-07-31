@@ -100,7 +100,7 @@ enum tga_alpha_type {
     // values 128-255 are unassigned
 };
 
-};  // namespace TGA_pvt
+}  // namespace TGA_pvt
 
 
 

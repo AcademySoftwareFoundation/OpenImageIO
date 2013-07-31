@@ -41,6 +41,16 @@
 #include <boost/algorithm/string.hpp>
 
 #ifdef _WIN32
+// defining NOMINMAX to prevent problems with std::min/std::max
+// and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
+// when including windows.h
+#ifdef _MSC_VER
+# define WIN32_LEAN_AND_MEAN
+# define VC_EXTRALEAN
+# ifndef NOMINMAX
+#   define NOMINMAX
+# endif
+#endif
 #include <windows.h>
 #include <shellapi.h>
 #endif
@@ -113,13 +123,13 @@ Strutil::vformat (const char *fmt, va_list ap)
 
 
 std::string
-Strutil::memformat (off_t bytes, int digits)
+Strutil::memformat (long long bytes, int digits)
 {
     const long long KB = (1<<10);
     const long long MB = (1<<20);
     const long long GB = (1<<30);
     const char *units = "B";
-    double d = bytes;
+    double d = (double)bytes;
     if (bytes >= GB) {
         units = "GB";
         d = (double)bytes / GB;
@@ -435,7 +445,7 @@ Strutil::utf8_to_utf16 (const std::string& str)
     std::wstring native;
     
     native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], (int)native.size());
 
     return native;
 }
@@ -448,7 +458,7 @@ Strutil::utf16_to_utf8 (const std::wstring& str)
     std::string utf8;
 
     utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
-    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], (int)utf8.size(), NULL, NULL);
 
     return utf8;
 }

@@ -397,7 +397,7 @@ void
 IvImage::invalidate ()
 {
     ustring filename (name());
-    clear ();
+    reset (filename.string());
     m_thumbnail_valid = false;
     m_image_valid = false;
     if (imagecache())

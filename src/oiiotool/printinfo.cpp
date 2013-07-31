@@ -46,6 +46,7 @@
 #include "imagebufalgo.h"
 #include "hash.h"
 #include "oiiotool.h"
+#include "fmath.h"
 
 OIIO_NAMESPACE_USING;
 using namespace OiioTool;
@@ -76,12 +77,14 @@ print_sha1 (ImageInput *input)
             printf ("    SHA-1: unable to compute, image is too big\n");
             return;
         }
-        std::vector<unsigned char> buf((size_t)size);
-        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
-            printf ("    SHA-1: unable to compute, could not read image\n");
-            return;
+        else if (size != 0) {
+            std::vector<unsigned char> buf((size_t)size);
+            if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+                printf ("    SHA-1: unable to compute, could not read image\n");
+                return;
+            }
+            sha.appendvec (buf);
         }
-        sha.appendvec (buf);
     }
 
     printf ("    SHA-1: %s\n", sha.digest().c_str());
@@ -113,7 +116,12 @@ read_input (const std::string &filename, ImageBuf &img,
 static void
 print_stats_num (float val, int maxval, bool round)
 {
-    if (maxval == 0) {
+    // Ensure uniform printing of NaN and Inf on all platforms
+    if (isnan(val))
+        printf ("nan");
+    else if (isinf(val))
+        printf ("inf");
+    else if (maxval == 0) {
         printf("%f",val);
     } else {
         float fval = val * static_cast<float>(maxval);
@@ -247,7 +255,7 @@ print_stats (const std::string &filename,
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
         for (size_t p = 0;  p < npixels;  ++p) {
-            int c = dd->nsamples[p];
+            size_t c = size_t(dd->nsamples[p]);
             totalsamples += c;
             if (c > maxsamples)
                 maxsamples = c;
