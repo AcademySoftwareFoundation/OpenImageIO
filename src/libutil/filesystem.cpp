@@ -389,5 +389,124 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
 #endif
 }
 
+
+
+bool
+Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
+{
+    numbers.clear ();
+
+    // Split the sequence description into comma-separated subranges.
+    std::vector<std::string> ranges;
+    Strutil::split (desc, ranges, ",");
+
+    // For each subrange...
+    BOOST_FOREACH (const std::string &s, ranges) {
+        // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
+        // If START>FINISH or if STEP<0, then count down.
+        // If 'y' is used, generate the complement.
+        std::vector<std::string> range;
+        Strutil::split (s, range, "-", 1);
+        int first = strtol (range[0].c_str(), NULL, 10);
+        int last = first;
+        int step = 1;
+        bool complement = false;
+        if (range.size() > 1) {
+            last = strtol (range[1].c_str(), NULL, 10);
+            if (const char *x = strchr (range[1].c_str(), 'x'))
+                step = (int) strtol (x+1, NULL, 10);
+            else if (const char *x = strchr (range[1].c_str(), 'y')) {
+                step = (int) strtol (x+1, NULL, 10);
+                complement = true;
+            }
+            if (step == 0)
+                step = 1;
+            if (step < 0 && first < last)
+                std::swap (first, last);
+            if (first > last && step > 0)
+                step = -step;
+        }
+        int end = last + (step > 0 ? 1 : -1);
+        int itstep = step > 0 ? 1 : -1;
+        for (int i = first; i != end; i += itstep) {
+            if ((abs(i-first) % abs(step) == 0) != complement)
+                numbers.push_back (i);
+        }
+    }
+    return true;
+}
+
+
+
+bool
+Filesystem::enumerate_file_sequence (const char *pattern_,
+                                     const char *sequence_override,
+                                     int framepadding_override,
+                                     std::vector<int> &numbers,
+                                     std::vector<std::string> &filenames)
+{
+    std::string pattern (pattern_);
+
+#if 0
+    // Isolate the directory name (or '.' if none was specified)
+    std::string directory = Filesystem::parent_path (pattern);
+    if (directory.size() == 0) {
+        directory = ".";
+#ifdef _WIN32
+        pattern = ".\\\\" + pattern;
+#else
+        pattern = "./" + pattern;
+#endif
+    }
+#endif
+
+    // The pattern is either a range (e.g., "1-15#"), or just a 
+    // set of hash marks (e.g. "####").
+#define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
+#define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
+#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "(#|@)+"
+    static boost::regex sequence_re (SEQUENCE_SPEC);
+    // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
+    boost::match_results<std::string::const_iterator> range_match;
+    if (! boost::regex_search (pattern, range_match, sequence_re)) {
+        // Not a range
+        return false;
+    }
+
+    // It's a range. Generate the names by iterating through the numbers.
+    std::string thematch (range_match[0].first, range_match[0].second);
+    // std::cout << "Match: '" << thematch << "'\n";
+    std::string thesequence (range_match[1].first, range_match[1].second);
+    std::string thehashes (range_match[2].first, range_match[2].second);
+    std::string prefix (range_match.prefix().first, range_match.prefix().second);
+    std::string suffix (range_match.suffix().first, range_match.suffix().second);
+
+    // Compute the amount of padding desired
+    int padding = 0;
+    for (int i = (int)thematch.length()-1;  i >= 0;  --i) {
+        if (thematch[i] == '#')
+            padding += 4;
+        else if (thematch[i] == '@')
+            padding += 1;
+    }
+    if (framepadding_override > 0)
+        padding = framepadding_override;
+    std::string fmt = Strutil::format ("%%0%dd", padding);
+
+    if (sequence_override && sequence_override[0])
+        thesequence = sequence_override;
+
+    enumerate_sequence (thesequence.c_str(), numbers);
+
+    for (size_t i = 0, e = numbers.size(); i < e; ++i) {
+        std::string f = prefix + Strutil::format (fmt.c_str(), numbers[i]) + suffix;
+        filenames.push_back (f);
+    }
+
+    return true;
+}
+
+
+
 }
 OIIO_NAMESPACE_EXIT
