@@ -3276,155 +3276,27 @@ getargs (int argc, char *argv[])
 
 
 
-// Given a sequence description, generate numbers.
-static void
-generate_sequence (std::string seqdesc, int framepadding,
-                   std::vector<std::string> &numbers)
-{
-    numbers.clear ();
-    std::string format = Strutil::format ("%%0%dd", framepadding);
-
-    // Split the sequence description into comma-separated subranges.
-    std::vector<std::string> sequences;
-    Strutil::split (seqdesc, sequences, ",");
-
-    // For each subrange...
-    BOOST_FOREACH (std::string s, sequences) {
-        // It's START, START-END, or START-ENDxSTEP
-        std::vector<std::string> range;
-        Strutil::split (s, range, "-");
-        int first = strtol (range[0].c_str(), NULL, 10);
-        int last = first;
-        int step = 1;
-        if (range.size() > 1) {
-            last = strtol (range[1].c_str(), NULL, 10);
-            if (const char *x = strchr (range[1].c_str(), 'x'))
-                step = std::max (1, (int) strtol (x+1, NULL, 10));
-        }
-        for (int i = first; i <= last; i += step)
-            numbers.push_back (Strutil::format (format.c_str(), i));
-    }
-    // std::cout << "Sequence " << Strutil::join(numbers, " ") << "\n";
-}
-
-
-
-// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), produce a
-// list of matching filenames.  Explicit ranges enumerate the range,
-// whereas full numeric wildcards search for existing files.
-static bool
-deduce_sequence (std::string pattern, int framepadding,
-                 std::vector<std::string> &filenames,
-                 std::vector<std::string> &numbers)
-{
-    filenames.clear ();
-
-    // Isolate the directory name (or '.' if none was specified)
-    std::string directory = Filesystem::parent_path (pattern);
-    if (directory.size() == 0) {
-        directory = ".";
-#ifdef _WIN32
-        pattern = ".\\\\" + pattern;
-#else
-        pattern = "./" + pattern;
-#endif
-    }
-
-    // The pattern is either a range (e.g., "1-15#"), or just a 
-    // set of hash marks (e.g. "####").
-    static boost::regex range_re ("([0-9]+)\\-([0-9]+)#+");
-    static boost::regex hash_re ("#+");
-
-    boost::match_results<std::string::const_iterator> range_match;
-    if (boost::regex_search (pattern, range_match, range_re)) {
-        // It's a range. Generate the names by iterating through the
-        // numbers.  
-        std::string prefix (range_match.prefix().first, range_match.prefix().second);
-        std::string suffix (range_match.suffix().first, range_match.suffix().second);
-        std::string r1 (range_match[1].first, range_match[1].second);
-        std::string r2 (range_match[2].first, range_match[2].second);
-        int rangefirst = (int) strtol (r1.c_str(), NULL, 10);
-        int rangelast = (int) strtol (r2.c_str(), NULL, 10);
-        // Only save the numbers if it's not already filled in.
-        bool save_numbers = (numbers.size() == 0);
-
-        // There are two cases: either the files exist, or they don't.
-        // Check the first one and assume it's the same for all.
-        for (int r = rangefirst; r <= rangelast; ++r) {
-            // Try up to 4 leading zeroes
-            std::string f, num;
-            for (int i = 1; i <= framepadding; ++i) {
-                std::string fmt = Strutil::format ("%%0%dd", i);
-                std::string num = Strutil::format (fmt.c_str(), r);
-                f = prefix + num + suffix;
-                if (Filesystem::exists (f))
-                    break;  // found it
-            }
-            // At this point, we either have an f that exists, or f is
-            // the file with 4 digit number.
-            filenames.push_back (f);
-            if (save_numbers)
-                numbers.push_back (f);
-        }
-
-    } else if (numbers.size()) {
-        // Numeric wildcard, and an earlier argument has already
-        // expanded into a specific series of numbers.  We MUST make
-        // this wildcard expand to the same set of numbers.
-        for (size_t i = 0; i < numbers.size(); ++i) {
-            std::string f = boost::regex_replace (pattern, hash_re, numbers[i]);
-            filenames.push_back (f);
-        }
-
-    } else {
-        // Numeric wildcard, but we don't yet have a prescribed frame
-        // range, so search the directories for matches.
-
-        pattern = boost::regex_replace (pattern, hash_re, "([0-9]+)");
-        pattern = "^" + pattern + "$";
-        bool ok = Filesystem::get_directory_entries (directory, filenames,
-                                                     false, pattern);
-        if (! ok)
-            return false;
-
-        boost::regex pattern_re (pattern);
-        for (size_t i = 0; i < filenames.size(); ++i) {
-            boost::match_results<std::string::const_iterator> match;
-            bool ok = boost::regex_search (filenames[i], match, pattern_re);
-            ASSERT (ok);  // should have matched
-            std::string num (match[1].first, match[1].second);
-            numbers.push_back (num);
-        }
-    }
-
-
-//    std::cout << "Matches: \n\t" << Strutil::join (filenames, "\n\t") << "\n";
-    return true;
-}
-
-
-
 // Check if any of the command line arguments contains numeric ranges or
 // wildcards.  If not, just return 'false'.  But if they do, the
 // remainder of processing will happen here (and return 'true').
 static bool 
 handle_sequence (int argc, const char **argv)
 {
-    // First, scan the original command line arguments for '#'
-    // characters.  Any found indicate that there are numeric rnage or
+    // First, scan the original command line arguments for '#' or '@'
+    // characters.  Any found indicate that there are numeric range or
     // wildcards to deal with.  Also look for --frames and --framepadding
     // options.
-    std::string framenumbers_string;
-    int framepadding = 4;
+    std::string framespec = "";
+    int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     bool is_sequence = false;
     for (int a = 1;  a < argc;  ++a) {
-        if (strchr (argv[a], '#')) {
+        if (strchr (argv[a], '#') || strchr (argv[a], '@')) {
             is_sequence = true;
             sequence_args.push_back (a);
         }
         if (! strcmp (argv[a], "--frames") && a < argc-1) {
-            framenumbers_string = argv[++a];
+            framespec = argv[++a];
         }
         else if (! strcmp (argv[a], "--framepadding") && a < argc-1) {
             int f = atoi (argv[++a]);
@@ -3437,21 +3309,18 @@ handle_sequence (int argc, const char **argv)
     if (! is_sequence)
         return false;
 
-    std::vector<std::string> numbers;
-
-    // If an explicit frame sequence was given, elaborate it.
-    if (framenumbers_string.size())
-        generate_sequence (framenumbers_string, framepadding, numbers);
-
     // For each of the arguments that contains a wildcard, use
     // deduce_sequence to fully elaborate all the filenames in the
     // sequence.  It's an error if the sequences are not all of the
     // same length.
-    std::vector< std::vector<std::string> > filenames (argc+1);
+    std::vector< std::vector<std::string> > filenames (argc+1); 
+    std::vector<int> frame_numbers;
     size_t nfilenames = 0;
     for (size_t i = 0;  i < sequence_args.size();  ++i) {
         int a = sequence_args[i];
-        deduce_sequence (argv[a], framepadding, filenames[a], numbers);
+        Filesystem::enumerate_file_sequence (argv[a], framespec.c_str(),
+                                             framepadding, frame_numbers,
+                                             filenames[a]);
         if (i == 0) {
             nfilenames = filenames[a].size();
         } else if (nfilenames != filenames[a].size()) {
