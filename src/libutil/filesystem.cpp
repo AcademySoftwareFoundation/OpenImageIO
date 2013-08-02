@@ -310,6 +310,7 @@ Filesystem::open (std::ifstream &stream,
     // Windows std::ifstream accepts non-standard wchar_t* 
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     stream.open (wpath.c_str(), mode);
+    stream.seekg (0, std::ios_base::beg); // force seek, otherwise broken
 #else
     stream.open (path.c_str(), mode);
 #endif
