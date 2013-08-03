@@ -46,8 +46,7 @@ void test_format ()
                       "'  3' '003' '3  '");
 
     // Test '+' format modifier
-// FIXME -- this fails at the moment, due to tinyformat error
-//    OIIO_CHECK_EQUAL (Strutil::format ("%+d%+d%+d", 3, -3, 0), "+3-3+0");
+    OIIO_CHECK_EQUAL (Strutil::format ("%+d%+d%+d", 3, -3, 0), "+3-3+0");
 
     // FIXME -- we should make comprehensive tests here
 }

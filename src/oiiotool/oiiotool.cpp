@@ -121,17 +121,7 @@ Oiiotool::clear_options ()
 std::string
 format_resolution (int w, int h, int x, int y)
 {
-#if 0
-    // This should work...
     return Strutil::format ("%dx%d%+d%+d", w, h, x, y);
-    // ... but tinyformat doesn't print the sign for '0' values!  It
-    // appears to be a bug with iostream use of 'showpos' format flag,
-    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
-#else
-    return Strutil::format ("%dx%d%c%d%c%d", w, h,
-                            x >= 0 ? '+' : '-', abs(x),
-                            y >= 0 ? '+' : '-', abs(y));
-#endif
 }
 
 
@@ -139,18 +129,7 @@ format_resolution (int w, int h, int x, int y)
 std::string
 format_resolution (int w, int h, int d, int x, int y, int z)
 {
-#if 0
-    // This should work...
     return Strutil::format ("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
-    // ... but tinyformat doesn't print the sign for '0' values!  It
-    // appears to be a bug with iostream use of 'showpos' format flag,
-    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
-#else
-    return Strutil::format ("%dx%dx%d%c%d%c%d%c%d", w, h, d,
-                            x >= 0 ? '+' : '-', abs(x),
-                            y >= 0 ? '+' : '-', abs(y),
-                            z >= 0 ? '+' : '-', abs(z));
-#endif
 }
 
 

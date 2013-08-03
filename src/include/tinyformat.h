@@ -717,7 +717,7 @@ inline void format(FormatIterator& fmtIter)
 
 // Define N-argument format function.
 //
-// There's two cases here: c++0x and c++98.
+// There's two cases here: C++11 and C++98.
 #ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
 
 // First, the simple definition for C++11:
