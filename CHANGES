@@ -1,6 +1,26 @@
 Changes:
 
 
+Release 1.2.1 (5 Aug 2013)
+---------------------------
+* oiiotool: Fix memory leak when processing frame range.
+* Docs improvement: full documentation of ImageBufAlgo.
+* oiiotool --help now returns a success error code, not a failure.
+* oiiotool: fix incorrect help message about --ociolook.
+* oiiotool: Fix typo in "oiio:Colorspace" attribute name that interfered
+  with correct color space conversion in --colorconvert.
+* Many fixes for compiler warnings on various platforms: fmath_test.cpp,
+  field3dinput.cpp, sysutil.cpp, argparse.cpp, oiiotool.cpp.
+* Fixes problems on little-endian architecture with texture3d.cpp.
+* Fix compilation problems on architectures with gcc, but no 'pause' 
+  instruction.
+* Fix build search path for correctly finding libopenjpeg 1.5.
+* Work around bug in older MSVC versions wherein Filesystem::open needed
+  to explicitly seek to the beginning of a file.
+* Build fixes for FreeBSD.
+* Fix testsuite/oiiotool on Windows -- windows shell doesn't expand wildcards.
+
+
 Release 1.2 (8 July 2013)
 -------------------------
 Major new features and improvements:
