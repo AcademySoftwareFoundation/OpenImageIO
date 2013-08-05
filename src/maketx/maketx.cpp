@@ -369,6 +369,7 @@ main (int argc, char *argv[])
     Timer alltimer;
 
     ImageSpec configspec;
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv, configspec);
 
     OIIO::attribute ("threads", nthreads);

@@ -171,16 +171,6 @@ OIIO_API void last_write_time (const std::string& path, std::time_t time);
 ///
 OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 
-#ifdef _WIN32
-// Conversion to windows native wide char file path
-//
-OIIO_API std::wstring path_to_windows_native (const std::string& path);
-
-// Conversion from windows native wide char file path
-//
-OIIO_API std::string path_from_windows_native (const std::wstring& wpath);
-#endif
-
 };  // namespace Filesystem
 
 }

@@ -1042,7 +1042,7 @@ action_ociolook (int argc, const char *argv[])
     std::string tospace = options["to"];
     std::string contextkey = options["key"];
     std::string contextvalue = options["value"];
-    bool inverse = Strutil::from_string<int> (options["inverse"]);
+    bool inverse = Strutil::from_string<int> (options["inverse"]) != 0;
 
     ImageRecRef A = ot.curimg;
     ot.read (A);
@@ -3504,6 +3504,7 @@ main (int argc, char *argv[])
     ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
 //    ot.imagecache->attribute ("autotile", 1024);
 
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {
         // Deal with sequence
 
