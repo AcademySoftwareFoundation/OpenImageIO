@@ -28,6 +28,8 @@
   (This is the Modified BSD License)
 */
 
+#include <sstream>
+
 #include "imageio.h"
 #include "filesystem.h"
 #include "unittest.h"
@@ -84,10 +86,73 @@ void test_filename_searchpath_find ()
 
 
 
+static void
+test_seq (const char *str, const char *expected)
+{
+    std::vector<int> sequence;
+    Filesystem::enumerate_sequence (str, sequence);
+    std::stringstream joined;
+    for (size_t i = 0;  i < sequence.size();  ++i) {
+        if (i)
+            joined << " ";
+        joined << sequence[i];
+    }
+    std::cout << "  \"" << str << "\" -> " << joined.str() << "\n";
+    OIIO_CHECK_EQUAL (joined.str(), std::string(expected));
+}
+
+
+
+static void
+test_file_seq (const char *pattern, const char *override,
+               const std::string &expected)
+{
+    std::vector<int> numbers;
+    std::vector<std::string> names;
+
+    Filesystem::enumerate_file_sequence (pattern, override, 0, numbers, names);
+    std::string joined = Strutil::join(names, " ");
+    std::cout << "  " << pattern;
+    if (override)
+        std::cout << " + " << override;
+    std::cout << " -> " << joined << "\n";
+    OIIO_CHECK_EQUAL (joined, expected);
+}
+
+
+
+void test_frame_sequences ()
+{
+    std::cout << "Testing frame number sequences:\n";
+    test_seq ("3", "3");
+    test_seq ("1-5", "1 2 3 4 5");
+    test_seq ("5-1", "5 4 3 2 1");
+    test_seq ("1-3,6,10-12", "1 2 3 6 10 11 12");
+    test_seq ("1-5x2", "1 3 5");
+    test_seq ("1-5y2", "2 4");
+    std::cout << "\n";
+
+    test_file_seq ("foo.1-5#.exr", NULL, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+    test_file_seq ("foo.5-1#.exr", NULL, "foo.0005.exr foo.0004.exr foo.0003.exr foo.0002.exr foo.0001.exr");
+    test_file_seq ("foo.1-3,6,10-12#.exr", NULL, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0006.exr foo.0010.exr foo.0011.exr foo.0012.exr");
+    test_file_seq ("foo.1-5x2#.exr", NULL, "foo.0001.exr foo.0003.exr foo.0005.exr");
+    test_file_seq ("foo.1-5y2#.exr", NULL, "foo.0002.exr foo.0004.exr");
+
+    test_file_seq ("foo.#.exr", "1-5", "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+    test_file_seq ("foo.#.exr", "1-5x2", "foo.0001.exr foo.0003.exr foo.0005.exr");
+
+    test_file_seq ("foo.1-3@@.exr", NULL, "foo.01.exr foo.02.exr foo.03.exr");
+    test_file_seq ("foo.1-3@#.exr", NULL, "foo.00001.exr foo.00002.exr foo.00003.exr");
+    std::cout << "\n";
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_filename_decomposition ();
     test_filename_searchpath_find ();
+    test_frame_sequences ();
 
     return unit_test_failures;
 }

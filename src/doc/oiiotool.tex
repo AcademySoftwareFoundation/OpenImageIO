@@ -58,16 +58,17 @@ images.  In effect, this will execute the \oiiotool command several
 times, making substitutions to the sequence arguments in turn.
 
 Image sequences are specified by having filename arguments to
-oiiotool use either a numeric wildcard (designated by ``{\cf \#}'') or an
-explicit numeric range (designated such as ``{\cf 1-10\#}''), or
-spelling out a more complex pattern with {\cf --frames}.  For example:
+oiiotool use either a numeric range wildcard (designated such as
+``{\cf 1-10\#}''), or spelling out a more complex pattern with 
+{\cf --frames}.  For example:
 
 \begin{code}
-    oiiotool big.#.tif --resize 100x100 -o small.#.tif
+    oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
+
+    oiiotool --frames 1-3 big.#.tif --resize 100x100 -o small.#.tif
 \end{code}
 
-\noindent If there are files {\cf big0001.tif}, {\cf big0002.tif}, and
-{\cf big0003.tif}, will be the equivalent of having issued the following
+\noindent Either of those will be the equivalent of having issued the following
 sequence of commands:
 
 \begin{code}
@@ -76,19 +77,16 @@ sequence of commands:
     oiiotool big.0003.tif --resize 100x100 -o small.0003.tif
 \end{code}
 
-\noindent The following is also equivalent:
+The frame range may be forwards ({\cf 1-5}) or backwards ({\cf 5-1}),
+and may give a step size to skip frames ({\cf 1-5x2} means 1, 3, 5) or
+take the complement of the step size set ({\cf 1-5y2} means 2, 4) and
+may combine subsequences with a comma.
 
-\begin{code}
-    oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
-\end{code}
-
-You can also explicitly use the {\cf --frames} to specify a frame
-sequence very flexibly as a sequence of comma-separated subsequences,
-where each subsequence is a single frame (e.g., {\cf 100}), a range of
-frames ({\cf 100-150}), or a frame range with step size ({\cf 100-150x4}).
-An optional {\cf --framepadding} can be used to change the default number
-of digits (with leading zeroes applied) that the frame numbers should
-have.  It defaults to 4.
+The wildcard characters themselves specify how many digits to pad
+with leading zeroes, with {\cf \#} indicating 4 digits and {\cf @}
+indicating one digit (these may be combined: {\cf \#@@} means 6 digits).
+An optional {\cf --framepadding} can also be used to override the number
+of padding digits.
 For example,
 \begin{code}
     oiiotool --framepadding 3 --frames 3,4,10-20x2 blah.#.tif
