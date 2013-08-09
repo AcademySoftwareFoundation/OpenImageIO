@@ -161,9 +161,10 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
                     if (iimtag[i].repeatable) {
                         // For repeatable IIM tags, concatenate them
                         // together separated by semicolons
+                        s = Strutil::strip (s);
                         std::string old = spec.get_string_attribute (iimtag[i].name);
                         if (old.size())
-                            old + "; ";
+                            old += "; ";
                         spec.attribute (iimtag[i].name, old+s);
                     } else {
                         spec.attribute (iimtag[i].name, s);
@@ -195,6 +196,7 @@ encode_iptc_iim_one_tag (int tag, const char *name, TypeDesc type,
         iptc.push_back ((char)tag);
         const char *str = ((const char **)data)[0];
         int tagsize = strlen(str);
+        tagsize = std::min (tagsize, 0xffff - 1); // Prevent 16 bit overflow
         iptc.push_back ((char)(tagsize >> 8));
         iptc.push_back ((char)(tagsize & 0xff));
         iptc.insert (iptc.end(), str, str+tagsize);
@@ -215,10 +217,10 @@ encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc)
                 std::string allvals (*(const char **)p->data());
                 std::vector<std::string> tokens;
                 Strutil::split (allvals, tokens, ";");
-                for (size_t i = 0, e = tokens.size();  i < e;  ++i) {
-                    tokens[i] = Strutil::strip (tokens[i]);
-                    if (tokens[i].size()) {
-                        const char *tok = &tokens[i][0];
+                for (size_t t = 0, e = tokens.size();  t < e;  ++t) {
+                    tokens[t] = Strutil::strip (tokens[t]);
+                    if (tokens[t].size()) {
+                        const char *tok = &tokens[t][0];
                         encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
                                                  p->type(), &tok, iptc);
                     }
