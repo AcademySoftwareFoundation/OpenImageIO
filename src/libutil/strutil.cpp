@@ -339,6 +339,34 @@ Strutil::iends_with (const char *a, const char *b)
 }
 
 
+bool
+Strutil::contains (const std::string &a, const std::string &b)
+{
+    return boost::algorithm::contains (a, b);
+}
+
+
+bool
+Strutil::contains (const char *a, const char *b)
+{
+    return boost::algorithm::contains (a, b);
+}
+
+
+bool
+Strutil::icontains (const std::string &a, const std::string &b)
+{
+    return boost::algorithm::icontains (a, b, loc);
+}
+
+
+bool
+Strutil::icontains (const char *a, const char *b)
+{
+    return boost::algorithm::icontains (a, b, loc);
+}
+
+
 void
 Strutil::to_lower (std::string &a)
 {
