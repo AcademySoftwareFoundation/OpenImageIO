@@ -146,8 +146,26 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     png_init_io (m_png, m_file);
-    png_set_compression_level (m_png, 6 /* medium speed vs size tradeoff */);
 
+	if (!m_spec.find_attribute("Compression")){
+		png_set_compression_level (m_png, 6 /* medium speed vs size tradeoff */);
+	}
+	else{
+		std::string zip_level=m_spec.get_string_attribute("Compression","PNG_Z_DEFAULT_COMPRESSION");
+		if(zip_level=="PNG_Z_DEFAULT"||zip_level=="PNG_Z_DEFAULT_COMPRESSION"){
+			png_set_compression_level (m_png, 6);
+		}
+		else if(zip_level=="PNG_Z_BEST_SPEED"){
+			png_set_compression_level (m_png, 1); //best speed
+		}
+		else if(zip_level=="PNG_Z_Best_COMPRESSION"){
+			png_set_compression_level (m_png, 9);
+		}
+		else if(zip_level=="PNG_Z_NO_COMPRESSION"){
+			png_set_compression_level (m_png, 0);
+		}
+	}
+	
     PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext);
 
     return true;

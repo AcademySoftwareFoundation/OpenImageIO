@@ -204,6 +204,13 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     int orientation = m_spec.get_int_attribute("Orientation", 1);
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, orientation);
     
+	// write possible ICC profile
+	unsigned char* profile;
+	unsigned int size;
+	if(m_spec.get_icc_profile(profile,size)){
+		TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, profile, size);
+	}
+
     int bps, sampformat;
     switch (m_spec.format.basetype) {
     case TypeDesc::INT8:
@@ -261,8 +268,9 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // Default to LZW compression if no request came with the user spec
-    if (! m_spec.find_attribute("compression"))
-        m_spec.attribute ("compression", "lzw");
+	if (! m_spec.find_attribute("Compression")){
+        m_spec.attribute ("Compression", "lzw");
+	}
 
     ImageIOParameter *param;
     const char *str = NULL;
@@ -346,6 +354,8 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                 compress = COMPRESSION_PACKBITS;
             else if (Strutil::iequals (str, "ccittrle"))
                 compress = COMPRESSION_CCITTRLE;
+			else if (Strutil::iequals (str, "tiff_deflate"))
+				compress = COMPRESSION_DEFLATE;
         }
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
         // Use predictor when using compression
