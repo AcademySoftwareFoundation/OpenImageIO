@@ -96,7 +96,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_PLUGIN_EXPORTS_END
 
 
-
 bool
 JpgOutput::open (const std::string &name, const ImageSpec &newspec,
                  OpenMode mode)
@@ -149,6 +148,22 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     // Set image and compression parameters
     m_cinfo.image_width = m_spec.width;
     m_cinfo.image_height = m_spec.height;
+	
+	int progressive_jpeg=0; // False
+	const ImageIOParameter *progressive=newspec.find_attribute("JpegProgressive",TypeDesc::INT);
+	if(progressive){
+		progressive_jpeg=*(const int*)progressive->data();
+		if(progressive_jpeg==1){
+			jpeg_simple_progression(&m_cinfo);
+		}
+	}
+
+	int optimize_coding=0; //False
+	const ImageIOParameter *optimize_cod=newspec.find_attribute("OptimizeCoding",TypeDesc::INT);
+	if(optimize_cod){
+		optimize_coding=*(const int*)optimize_cod->data();
+		m_cinfo.optimize_coding = optimize_coding; // TRUE
+	}
 
     if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
         m_cinfo.input_components = 3;
@@ -232,8 +247,25 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&block[0], block.size());
     }
 
-    m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
-
+	m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
+	// Write ICC profile, if we have anything
+	unsigned char* icc_profile=NULL;
+	unsigned int length=0;
+	if(m_spec.get_icc_profile(icc_profile,length)){
+		unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
+		unsigned char* profile=(unsigned char*)malloc((length+ICC_HEADER_SIZE)*sizeof(unsigned char));
+		if(profile == NULL) return false;
+		memcpy(profile,icc_signature,12);
+		for(long i=0;i<(int)length;i+=MAX_DATA_BYTES_IN_MARKER){
+			long total_length=length+ICC_HEADER_SIZE;
+			unsigned marker_size=std::min(total_length,MAX_DATA_BYTES_IN_MARKER);
+			profile[12]=(unsigned char) ((i / MAX_DATA_BYTES_IN_MARKER) + 1);
+			profile[13]=(unsigned char) (length/MAX_DATA_BYTES_IN_MARKER + 1);
+			memcpy(profile+ICC_HEADER_SIZE, icc_profile,length); 
+			jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,total_length);
+		}
+		free(profile);
+	}
     return true;
 }
 

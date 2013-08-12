@@ -30,7 +30,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     )
 endif()
 
-set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
+set (libOpenImageIO_srcs exif.cpp formatspec.cpp icc_profile.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
@@ -145,7 +145,6 @@ if (EMBEDPLUGINS)
     find_package (ZLIB REQUIRED)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
-
     add_definitions ("-DEMBED_PLUGINS=1")
 
     if (FIELD3D_FOUND AND USE_FIELD3D)
@@ -242,7 +241,6 @@ if (FREETYPE_FOUND)
     include_directories (${FREETYPE_INCLUDE_DIRS})
     target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
 endif ()
-
 
 
 if (WIN32)
