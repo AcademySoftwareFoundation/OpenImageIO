@@ -22,10 +22,10 @@ bool read_jpeg_icc_profile(unsigned char* icc_data, unsigned int icc_datasize, I
 	unsigned char* icc_buf=NULL;
 	int total_length=0;
 
-	const int MAX_SEQ_NO = 255;			// sufficient since marker numbers are bytes
-	unsigned char marker_present[MAX_SEQ_NO+1];	// 1 if marker found
-	unsigned data_length[MAX_SEQ_NO+1];	// size of profile data in marker
-	unsigned data_offset[MAX_SEQ_NO+1];	// offset for data in marker
+	const int MAX_SEQ_NO = 255;			
+	unsigned char marker_present[MAX_SEQ_NO+1];	 // one extra is used to store the flag if marker is found, set to one if marker is found
+	unsigned data_length[MAX_SEQ_NO+1];		// store the size of each marker
+	unsigned data_offset[MAX_SEQ_NO+1];		// store the offset of each marker
 	
 	memset(marker_present,0,(MAX_SEQ_NO+1));
 	num_markers=icc_data[13];
