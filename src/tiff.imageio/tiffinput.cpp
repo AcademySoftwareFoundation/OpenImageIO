@@ -506,7 +506,7 @@ TIFFInput::readspec (bool read_meta)
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
-
+	
     if (read_meta) {
         // clear the whole m_spec and start fresh
         m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
@@ -534,8 +534,14 @@ TIFFInput::readspec (bool read_meta)
     // FIXME? - TIFF spec describes the positions as in resolutionunit.
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
-
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
+	
+	/// read color profile
+	unsigned int iccSize=0;
+	unsigned char *iccBuf=NULL;
+	TIFFGetField(m_tif,TIFFTAG_ICCPROFILE, &iccSize, &iccBuf);
+	create_icc_profile(iccBuf,iccSize,m_spec);
+    
+	if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
           && width > 0)
         m_spec.full_width = width;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1

@@ -231,6 +231,13 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
             std::string xml ((const char *)m->data, m->data_length);
             decode_xmp (xml, m_spec);
         }
+		else if (m->marker == (JPEG_APP0+2)&&
+			! strcmp((const char *)m->data, "ICC_PROFILE")){
+#ifndef NDEBUG
+            std::cerr << "Found APP2 ICC_PROFILE! length " << m->data_length << "\n";
+#endif
+			read_jpeg_icc_profile((unsigned char*)m->data,m->data_length,m_spec);
+		}
         else if (m->marker == (JPEG_APP0+13) &&
                 ! strcmp ((const char *)m->data, "Photoshop 3.0"))
             jpeg_decode_iptc ((unsigned char *)m->data);

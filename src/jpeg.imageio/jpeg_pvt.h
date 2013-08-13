@@ -107,7 +107,8 @@ class JpgInput : public ImageInput {
     friend class JpgOutput;
 };
 
-
+#define MAX_DATA_BYTES_IN_MARKER 65519L
+#define ICC_HEADER_SIZE 14
 
 OIIO_PLUGIN_NAMESPACE_END
 
