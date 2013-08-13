@@ -1,0 +1,11 @@
+Declare "exrcompression" "uniform string"
+Display "tst.EXRCOMP.exr" "exr" "rgba" "exrcompression" ["EXRCOMP"]
+Quantize "rgba" 0 0 0 0
+Format 720 486 1
+Projection "perspective" "fov" [35]
+Translate 0 0 8
+WorldBegin
+	Translate 0 -1.3 0
+	Rotate -90 1 0 0
+	Geometry "teapot"
+WorldEnd

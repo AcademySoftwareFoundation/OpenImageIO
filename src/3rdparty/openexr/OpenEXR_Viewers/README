@@ -1,0 +1,95 @@
+ABOUT THE OPENEXR_VIEWERS LIBRARIES
+----------------------------
+
+exrdisplay:
+
+exrdisplay is a simple still image viewer that optionally applies color
+transforms to OpenEXR images, using ctl as explained in this document: 
+
+    doc/OpenEXRViewers.pdf
+
+exrdisplay requires FLTK 1.1 or greater and OpenGL.
+
+playexr:
+
+playexr is a program that plays back OpenEXR image sequences, optionally
+with CTL support, applying rendering and display transforms in line with
+the current discussions at the AMPAS Image Interchange Framework committee
+(September 2006).
+
+The playexr directory contains the source code for the playback program,
+and two sample CTL transforms (one rendering and one display transform).
+
+playexr requires OpenGL, GLUT and the Cg hardware shading language.
+
+
+If you have installed the OpenEXR_CTL package, exrdisplay and playexr
+will automatically be built with CTL support.  If you don't have
+OpenEXR_CTL, the programs will still work, but CTL support will be
+disabled.
+
+If you have questions about using the OpenEXR_Viewers package, you 
+may want to join our developer mailing list.  See http://www.openexr.com 
+for details.
+
+
+LICENSE
+-------
+
+The OpenEXR_Viewers source code distribution is free software.  See the file
+named COPYING (included in this distribution) for details.
+
+
+BUILDING OPENEXR_VIEWERS
+----------------
+
+Building OpenEXR_Viewers requires the OpenEXR library.  CTL support in
+OpenEXR_Viewers requires the OpenEXR_CTL library.
+
+If you want to build the 'exrdisplay' image viewer, you'll need FLTK
+1.1 or higher.
+
+If you want to buyild the playexr image viewer, you'll need GLUT
+and the Cg hardware shading language.
+
+Your OS distribution may already include these libraries, or supply
+packages for them.  That is the preferred way to obtain them for use
+with OpenEXR.  If not, you can obtain the source code for FLTK from:
+
+   http://www.fltk.org
+
+and you can download the NVIDIA Cg SDK from
+http://developer.nvidia.com.
+
+If you're building OpenEXR_VIEWERS on a Windows platform, see README.win32
+for instructions.  The remainder of this file applies only to GNU/Linux or
+other UNIX-like systems.
+
+After installing the required libraries, to build OpenEXR_Viewers on
+GNU/Linux or other UNIX-like systems, do this:
+
+./configure
+make
+make install
+
+unless you obtained OpenEXR_Viewers directly from CVS, in which case you
+should first read README.CVS.
+
+If you have the Nvidia Cg SDK and you want to build support for
+fragment shaders into exrdisplay, specify the path to the SDK using
+the "--with-cg-prefix" flag.  There are some additional compile-time
+configuration options available; type `./configure --help` for more
+information.
+
+See README.OSX for details on building OpenEXR in MacOS X.
+
+Do `make check` to run the OpenEXR confidence tests.  They should all
+pass; if you find a test that does not pass on your system, please let
+us know.
+
+Other UNIX variants haven't been tested, but should be easy to build.
+Let us know if you're having problems porting OpenEXR to a particular
+platform.
+
+All include files needed to use the OpenEXR libraries are installed in the 
+OpenEXR subdirectory of the install prefix, e.g. /usr/local/include/OpenEXR.

@@ -1,0 +1,90 @@
+
+############################################################################
+                    Building the OpenEXR Photoshop plug-in
+
+                   By Paul Schneider (pauls@ilm.com) 5-15-03
+############################################################################
+
+
+The Macintosh build requires Metrowerks CodeWarrior 8.3 (or higher).
+The Windows build requires Microsoft Visual C++ 6.0 (or higher).
+
+1) install the Photoshop SDK
+
+These projects expect that you have checked the "Photoshop" 
+module out to the same root directory that contains the other
+OpenEXR modules, and that you have added a directory called 
+"sdk" to the Photoshop module that contains the Adobe Photoshop
+SDK.  Your source tree should look like this:
+
+|- MacCodeWarrior
+|- OpenEXR
+|- Photoshop
+      |- doc
+      |- mac
+      |- rsrc
+      |- sdk
+      |   |- PhotoshopAPI
+      |   |- PhotoshopUtils
+      |   |- resources
+      |- src
+      |- win32
+|- zlib
+
+Note that this distribution does not include the Photoshop SDK because of
+licensing issues.  You must be a registered Adobe developer to obtain this
+SDK.  Visit www.adobe.com to learn more.
+
+The "Photoshop/sdk/resources" folder can be found here:
+
+{Photoshop SDK}/samplecode/resources
+
+This contains the tools necessary to create the PiPL resources on the Windows platform. 
+If you're unfamiliar with PiPLs, there is some excellent documentation available
+in the Photoshop SDK.
+
+Note that if you're only interested in building the Windows version of this plug-in,
+you don't need to check out the "MacCodeWarrior" module from the OpenEXR repository.
+If you plan to make changes for submission to CVS, though, please make sure they
+work correctly on both platforms.
+
+2) build zlib
+
+Both the Mac and Windows builds require a static library, "zlib.lib", to be built.
+The Macintosh project will look for the library in "MacCodeWarrior/zlib-1.1.3",
+while the Windows project will look for the library in "zlib".  
+
+Zlib source is not included with this distribution because of licensing issues.
+The source is available for download at www.gzip.org/zlib/ and is very easy to
+build on any platform.
+
+3) build the plug-ins
+
+Macintosh: 
+
+- open the project file "Photoshop/mac/EXRFormat.mcp" in CodeWarrior.
+- build the target "Plugin".
+
+This will build both Carbon and Classic versions of the plug-in in the
+package "Photoshop/mac/EXRFormat".  It will also turn this folder into
+a package, but you may have to log out and log back in to see this change 
+in the Finder.
+
+
+Windows:
+
+- open the project file "Photoshop/win32/EXRFormat.dsw" in VC++.
+- you will be asked to locate the file "SimpleFormat.dsp".  Choose 
+  "Photoshop/win32/EXRFormat.dsp".  If you know how to stop VC++ from
+  asking for this file, please let me know.\
+- build the target "Win32 - Release".
+
+This will create the plug-in "Photoshop/win32/Release/EXRFormat.8bi"
+
+4) install the plug-in:
+
+Copy the built plug-in to the "Plug-Ins" folder located in the directory
+where Photoshop lives.
+
+5) Enjoy!
+
