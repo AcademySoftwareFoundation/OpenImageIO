@@ -1426,6 +1426,63 @@ action_select_subimage (int argc, const char *argv[])
 
 
 static int
+action_subimage_append (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_subimage_append, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+
+    // Find the MIP levels in all the subimages of both A and B
+    std::vector<int> allmiplevels;
+    for (int s = 0;  s < A->subimages();  ++s) {
+        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+    }
+    for (int s = 0;  s < B->subimages();  ++s) {
+        int miplevels = ot.allsubimages ? B->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+    }
+
+    // Create the replacement ImageRec
+    ImageRecRef R (new ImageRec(A->name(), (int)allmiplevels.size(),
+                                &allmiplevels[0]));
+    ot.push (R);
+
+    // Subimage by subimage, MIP level by MIP level, copy
+    int sub = 0;
+    for (int s = 0;  s <  A->subimages();  ++s, ++sub) {
+        for (int m = 0;  m < A->miplevels(s);  ++m) {
+            bool ok = (*R)(sub,m).copy ((*A)(s,m));
+            if (! ok)
+                ot.error ("siappend", (*R)(sub,m).geterror());
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(sub,m);
+        }
+    }
+    for (int s = 0;  s <  B->subimages();  ++s, ++sub) {
+        for (int m = 0;  m < B->miplevels(s);  ++m) {
+            bool ok = (*R)(sub,m).copy ((*B)(s,m));
+            if (! ok)
+                ot.error ("siappend", (*R)(sub,m).geterror());
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(sub,m);
+        }
+    }
+
+    ot.function_times["siappend"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_colorcount (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_colorcount, argc, argv))
@@ -3211,6 +3268,8 @@ getargs (int argc, char *argv[])
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
                 "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
+                "--siappend %@", action_subimage_append, NULL,
+                    "Append the last two images into one multi-subimage image",
                 "--pop %@", action_pop, NULL,
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,
