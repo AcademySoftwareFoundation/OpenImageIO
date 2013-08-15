@@ -574,15 +574,13 @@ DPXInput::read_native_scanline (int y, int z, void *data)
 
     if (m_wantRaw) {
         // fast path - just read the scanline in
-        if (!m_dpx.ReadBlock (data, m_dpx.header.ComponentDataSize (m_subimage),
-            block, m_dpx.header.ImageDescriptor (m_subimage)))
+        if (!m_dpx.ReadBlock (m_subimage, (unsigned char *)data, block))
             return false;
     } else {
         // read the scanline and convert to RGB
         void *ptr = m_dataPtr == NULL ? data : (void *)m_dataPtr;
 
-        if (!m_dpx.ReadBlock (ptr, m_dpx.header.ComponentDataSize (m_subimage),
-            block, m_dpx.header.ImageDescriptor (m_subimage)))
+        if (!m_dpx.ReadBlock (m_subimage, (unsigned char *)ptr, block))
             return false;
 
         if (!dpx::ConvertToRGB (m_dpx.header, m_subimage, ptr, data, block))
