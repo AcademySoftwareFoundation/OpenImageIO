@@ -437,9 +437,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
                 mode = ImageOutput::AppendSubimage;
             else
                 mode = ImageOutput::Create;
-
             if (! out->open (tempname.c_str(), outspec, mode)) {
-                std::string err = geterror();
+                std::string err = out->geterror();
                 std::cerr << "iconvert ERROR: " 
                           << (err.length() ? err : Strutil::format("Could not open \"%s\"", out_filename))
                           << "\n";
