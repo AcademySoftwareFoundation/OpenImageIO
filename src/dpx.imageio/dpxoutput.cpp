@@ -270,6 +270,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
                           m_spec.get_float_attribute ("dpx:HighQuantity", std::numeric_limits<float>::quiet_NaN()),
                           m_spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
                           m_spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
+        std::string desc = m_spec.get_string_attribute ("ImageDescription", "");
+        m_dpx.header.SetDescription (s, desc.c_str());
     }
 
     m_dpx.header.SetXScannedSize (m_spec.get_float_attribute
@@ -334,6 +336,19 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     float_to_rational (aspect, aspect_num, aspect_den);
     m_dpx.header.SetAspectRatio (0, aspect_num);
     m_dpx.header.SetAspectRatio (1, aspect_den);
+    m_dpx.header.SetXOffset ((unsigned int)std::max (0, m_spec.x));
+    m_dpx.header.SetYOffset ((unsigned int)std::max (0, m_spec.y));
+    m_dpx.header.SetXOriginalSize ((unsigned int)m_spec.full_width);
+    m_dpx.header.SetYOriginalSize ((unsigned int)m_spec.full_height);
+
+    static int DpxOrientations[] = { 0,
+        dpx::kLeftToRightTopToBottom, dpx::kRightToLeftTopToBottom,
+        dpx::kLeftToRightBottomToTop, dpx::kRightToLeftBottomToTop, 
+        dpx::kTopToBottomLeftToRight, dpx::kTopToBottomRightToLeft, 
+        dpx::kBottomToTopLeftToRight, dpx::kBottomToTopRightToLeft };
+    int orient = m_spec.get_int_attribute ("Orientation", 0);
+    orient = DpxOrientations[clamp (orient, 0, 8)];
+    m_dpx.header.SetImageOrientation ((dpx::Orientation)orient);
 
     std::string timecode = m_spec.get_string_attribute ("dpx:TimeCode", "");
     int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
