@@ -227,21 +227,6 @@ namespace dpx
 		bool ReadImage(const int element, void *data);
 
 		/*!
-		 * \brief Read an image element into a buffer that matches the image description type
-		 *
-		 * The DataSize allows the user to specific the buffer DataSize which can differ
-		 * from the image element.  It is possible, for example, to read an 8-bit per
-		 * component (3 components per pixel for RGB) into 16-bits.
-		 *
-		 * \param data buffer
-		 * \param size size of the buffer component
-		 * \param desc element description type
-		 * \return success true/false
-		 */	
-		bool ReadImage(void *data, const DataSize size = kWord,  
-			const Descriptor desc = kRGB);
-
-		/*!
 		 * \brief Read a rectangular image block into a buffer from the specified image element
 		 *
 		 * \param element element (0-7)
@@ -250,19 +235,6 @@ namespace dpx
 		 * \return success true/false
 		 */	
 		bool ReadBlock(const int element, unsigned char *data, Block &block);
-
-		/*!
-		 * \brief Read a rectangular image block into a buffer from the image element
-		 * specified by the Descriptor type
-		 *
-		 * \param data buffer
-		 * \param size size of the buffer component
-		 * \param block image area to read
-		 * \param desc element description type
-		 * \return success true/false
-		 */			
-		bool ReadBlock(void *data, const DataSize size, Block &block,
-			const Descriptor desc = kRGB);
 
 		/*!
 		 * \brief Read the user data into a buffer.  

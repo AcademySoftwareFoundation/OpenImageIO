@@ -80,3 +80,57 @@ Comparing "../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16
 PASS
 Comparing "input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
 PASS
+stereo.dpx :   80 x   60, 3 channel, uint10 dpx
+    2 subimages: 80x60 80x60 
+ subimage  0:   80 x   60, 3 channel, uint10 dpx
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    dpx:Transfer: "Undefined"
+    dpx:Colorimetric: "User defined"
+    Software: "OpenImageIO 1.3.2dev http://www.openimageio.org"
+    ImageDescription: "view angle: left"
+    PixelAspectRatio: 1
+    dpx:ImageDescriptor: "RGB"
+    dpx:DittoKey: 1
+    dpx:EndOfLinePadding: 0
+    dpx:EndOfImagePadding: 0
+    dpx:Version: "V2.0"
+    dpx:Packing: "Filled, method A"
+    dpx:Signal: "Undefined"
+    Stats Min: 0 0 0 (of 1023)
+    Stats Max: 1023 1023 1023 (of 1023)
+    Stats Avg: 18.64 18.64 18.64 (of 1023)
+    Stats StdDev: 131.01 131.01 131.01 (of 1023)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4800 4800 4800 
+    Constant: No
+    Monochrome: Yes
+ subimage  1:   80 x   60, 3 channel, uint10 dpx
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    dpx:Transfer: "Undefined"
+    dpx:Colorimetric: "User defined"
+    Software: "OpenImageIO 1.3.2dev http://www.openimageio.org"
+    ImageDescription: "view angle: left"
+    PixelAspectRatio: 1
+    dpx:ImageDescriptor: "RGB"
+    dpx:DittoKey: 1
+    dpx:EndOfLinePadding: 0
+    dpx:EndOfImagePadding: 0
+    dpx:Version: "V2.0"
+    dpx:Packing: "Filled, method A"
+    dpx:Signal: "Undefined"
+    Stats Min: 0 0 0 (of 1023)
+    Stats Max: 1023 1023 1023 (of 1023)
+    Stats Avg: 24.44 24.44 24.44 (of 1023)
+    Stats StdDev: 147.83 147.83 147.83 (of 1023)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4800 4800 4800 
+    Constant: No
+    Monochrome: Yes
+Comparing "stereo.dpx" and "ref/stereo.dpx"
+PASS
