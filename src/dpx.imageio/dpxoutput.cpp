@@ -260,17 +260,18 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     for (int s = 0;  s < m_subimages_to_write;  ++s) {
         prep_subimage (s, false);
         m_dpx.header.SetBitDepth (s, m_bitdepth);
-        bool datasign = (m_spec.format == TypeDesc::INT8 ||
-                         m_spec.format == TypeDesc::INT16);
+        ImageSpec &spec (m_subimage_specs[s]);
+        bool datasign = (spec.format == TypeDesc::INT8 ||
+                         spec.format == TypeDesc::INT16);
         m_dpx.SetElement (s, m_desc, m_bitdepth, m_transfer, m_cmetr,
                           m_packing, dpx::kNone, datasign,
-                          m_spec.get_int_attribute ("dpx:LowData", 0xFFFFFFFF),
-                          m_spec.get_float_attribute ("dpx:LowQuantity", std::numeric_limits<float>::quiet_NaN()),
-                          m_spec.get_int_attribute ("dpx:HighData", 0xFFFFFFFF),
-                          m_spec.get_float_attribute ("dpx:HighQuantity", std::numeric_limits<float>::quiet_NaN()),
-                          m_spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
-                          m_spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
-        std::string desc = m_spec.get_string_attribute ("ImageDescription", "");
+                          spec.get_int_attribute ("dpx:LowData", 0xFFFFFFFF),
+                          spec.get_float_attribute ("dpx:LowQuantity", std::numeric_limits<float>::quiet_NaN()),
+                          spec.get_int_attribute ("dpx:HighData", 0xFFFFFFFF),
+                          spec.get_float_attribute ("dpx:HighQuantity", std::numeric_limits<float>::quiet_NaN()),
+                          spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
+                          spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
+        std::string desc = spec.get_string_attribute ("ImageDescription", "");
         m_dpx.header.SetDescription (s, desc.c_str());
     }
 
