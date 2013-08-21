@@ -270,7 +270,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
                           m_spec.get_float_attribute ("dpx:HighQuantity", std::numeric_limits<float>::quiet_NaN()),
                           m_spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
                           m_spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
-        std::string desc = m_spec.get_string_attribute ("ImageDescription", "");
+        std::string desc = m_subimage_specs[s].get_string_attribute ("ImageDescription", "");
         m_dpx.header.SetDescription (s, desc.c_str());
     }
 
