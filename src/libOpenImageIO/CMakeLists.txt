@@ -160,6 +160,16 @@ if (EMBEDPLUGINS)
         set (HDF5_LIBRARIES "")
     endif ()
 
+    if (GIF_FOUND AND USE_GIF)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../gif.imageio/gifinput.cpp
+             ../gif.imageio/gifoutput.cpp)
+        include_directories (${GIF_INCLUDE_DIR})
+        add_definitions("-DUSE_GIF")
+    else()
+        message (STATUS "GIF plugin will not be built")
+    endif()
+
     if (OPENJPEG_FOUND AND USE_OPENJPEG)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
              ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
@@ -258,6 +268,7 @@ if (EMBEDPLUGINS)
                                ${HDF5_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
+                               ${GIF_LIBRARY}
                           )
     link_openexr (OpenImageIO)
 endif ()
