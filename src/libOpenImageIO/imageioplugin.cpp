@@ -214,6 +214,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (dpx);
     PLUGENTRY (field3d);
     PLUGENTRY (fits);
+    PLUGENTRY (gif);
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
     PLUGENTRY (iff);
@@ -263,6 +264,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (field3d);
 #endif
     DECLAREPLUG (fits);
+#ifdef USE_GIF
+    DECLAREPLUG (gif);
+#endif
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
     DECLAREPLUG (iff);
