@@ -338,7 +338,7 @@ endif()
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                dpx ico png psd rla sgi
+                dpx gif ico png psd rla sgi
                 maketx
                 texture-blurtube texture-fill texture-filtersize
                 texture-gray texture-grid
