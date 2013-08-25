@@ -27,3 +27,13 @@ Reading ../../../../../oiio-images/gif_tahoe.gif
     SHA-1: FB29B5E79C01217F6FF7306194D4CDF23BBBA0EF
     channel list: R, G, B
     gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_tahoe_interlaced.gif
+../../../../../oiio-images/gif_tahoe_interlaced.gif : 2048 x 1536, 3 channel, uint8 gif
+    SHA-1: 74CC342439FB5C6180C4BDE575FA817BF35A9F33
+    channel list: R, G, B
+    gif:Interlacing: 1
+Reading ../../../../../oiio-images/gif_bluedot.gif
+../../../../../oiio-images/gif_bluedot.gif :    1 x    1, 3 channel, uint8 gif
+    SHA-1: D699C11B42E27B746F565C0EABF18AE1A78853AD
+    channel list: R, G, B
+    gif:Interlacing: 0
