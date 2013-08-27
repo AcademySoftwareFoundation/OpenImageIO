@@ -75,8 +75,6 @@ public:
     int m_background_color;          ///< Background (transparent) color index
     int m_subimage;                  ///< Current subimage index
     int m_next_scanline;             ///< Next scanline to read
-    bool m_cache_scanlines;          ///< Should current subimage scanlines be
-                                     ///  internally cached?
     std::vector<unsigned char> m_cached_data; ///< Cached scanlines in native
                                               ///  format
     
@@ -133,7 +131,6 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
     m_filename = name;
     m_subimage = -1;
     m_next_scanline = -1;
-    m_cache_scanlines = false;
     m_cached_data.clear ();
     
     return seek_subimage (0, 0, newspec);
@@ -146,9 +143,9 @@ GIFInput::decode_line_number (int line_number) {
     if ((line_number + 1) % 2 == 0) // 4th tile 1/2 sized
         return (m_spec.height + line_number) / 2;
     if ((line_number + 2) % 4 == 0) // 3rd tile 1/4 sized
-        return (m_spec.height + line_number + 2) / 4;
+        return (m_spec.height + line_number - 2) / 4;
     if ((line_number + 4) % 8 == 0) // 2nd tile 1/8 sized
-        return (m_spec.height + line_number + 4) / 8;
+        return (m_spec.height + line_number) / 8;
 
     // line_number % 8 == 0  (1st tile 1/8 sized)
     return line_number / 8;
@@ -201,7 +198,7 @@ GIFInput::read_native_scanline (int _y, int z, void *data)
     // decode scanline index if image is interlaced
     int gif_y = interlacing ? decode_line_number (_y) : _y;
 
-    if (m_cache_scanlines) {
+    if (interlacing) { // gif is interlaced so cache the scanlines
         int scanlines_cached = m_cached_data.size() / m_spec.width;
         if (gif_y >= scanlines_cached) {
             // scanline is not cached yet, read the scanline and preceding ones
@@ -217,7 +214,7 @@ GIFInput::read_native_scanline (int _y, int z, void *data)
         
         translate_scanline (&m_cached_data[gif_y * m_spec.width], data);
         
-    } else { // no scanlines caching
+    } else { // no interlacing, thus no scanlines caching
         if (m_next_scanline > gif_y) {
             // requested scanline is located before the one to read next
             // random access is not supported, so reopen the file, find
