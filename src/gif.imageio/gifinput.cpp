@@ -28,13 +28,10 @@
   (This is the Modified BSD License)
 */
 
-#include <cstdio>
-#include <iostream>
+#include <boost/scoped_array.hpp>
 #include <vector>
 #include <gif_lib.h>
 
-#include "filesystem.h"
-#include "fmath.h"
 #include "imageio.h"
 
 // GIFLIB:
@@ -224,38 +221,38 @@ GIFInput::read_native_scanline (int _y, int z, void *data)
             }
         
             int remaining_size = m_spec.width * gif_y;
-            std::vector<unsigned char> buffer (remaining_size);
-            if (DGifGetLine (m_gif_file, buffer.data(), remaining_size)
+            boost::scoped_array<unsigned char> buffer
+                (new unsigned char[remaining_size]);
+            if (DGifGetLine (m_gif_file, buffer.get(), remaining_size)
                 == GIF_ERROR) {
                 report_last_error ();
                 return false;
             }
-            buffer.clear();
         
         } else if (m_next_scanline < gif_y) {
             // requested scanline is located after the one to read next
             // skip the lines in between
             int delta_size = m_spec.width * (gif_y - m_next_scanline);
-            std::vector<unsigned char> buffer (delta_size);
+            boost::scoped_array<unsigned char> buffer
+                (new unsigned char[delta_size]);
             if (DGifGetLine (m_gif_file,
-                             buffer.data(),
+                             buffer.get(),
                              delta_size) == GIF_ERROR) {
                 report_last_error ();
                 return false;
             }
-            buffer.clear();
         }
 
         // read the requested scanline
-        std::vector<unsigned char> fscanline (m_spec.width);
+        boost::scoped_array<unsigned char> fscanline
+                (new unsigned char[m_spec.width]);
         if (DGifGetLine (m_gif_file,
-                         fscanline.data(),
+                         fscanline.get(),
                          m_spec.width) == GIF_ERROR) {
             report_last_error ();
             return false;
         }
-        translate_scanline (fscanline.data(), data);
-        fscanline.clear ();
+        translate_scanline (fscanline.get(), data);
     }
 
     m_next_scanline = gif_y + 1;
@@ -427,14 +424,14 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         if (m_subimage != -1 && m_next_scanline < m_spec.height) {
             int remaining_size =
                 m_spec.width * (m_spec.height - m_next_scanline);
-            std::vector<unsigned char> buffer (remaining_size);
+            boost::scoped_array<unsigned char> buffer
+                (new unsigned char[remaining_size]);
             if (DGifGetLine (m_gif_file,
-                             buffer.data(),
+                             buffer.get(),
                              remaining_size) == GIF_ERROR) {
                 report_last_error ();
                 return false;
             }
-            buffer.clear();
         }
 
         // ..and skip the rest of preceding subimages
@@ -443,14 +440,14 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                 return false;
             }
             int image_size = newspec.width * newspec.height;
-            std::vector<unsigned char> buffer (image_size);
+            boost::scoped_array<unsigned char> buffer
+                (new unsigned char[image_size]);
             if (DGifGetLine (m_gif_file,
-                             buffer.data(),
+                             buffer.get(),
                              image_size) == GIF_ERROR) {
                 report_last_error ();
                 return false;
             }
-            buffer.clear();
         }
     }
 
