@@ -156,7 +156,7 @@ GIFInput::decode_line_number (int line_number) {
 void
 GIFInput::translate_scanline (unsigned char *gif_scanline, void *data)
 {
-    std::vector<unsigned char> outscanline (m_spec.width * m_spec.nchannels);
+    unsigned char *outscanline = (unsigned char *)data;
     GifColorType *colormap = m_local_colormap != NULL ?
         m_local_colormap : m_global_colormap;
     if (m_spec.nchannels == 3) {
@@ -180,9 +180,6 @@ GIFInput::translate_scanline (unsigned char *gif_scanline, void *data)
                 (m_background_color == gif_scanline[i] ? 0x00 : 0xff);
         }
     }
-
-    memcpy (data, outscanline.data(), outscanline.size());
-    outscanline.clear();    
 }
 
 
