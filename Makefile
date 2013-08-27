@@ -297,6 +297,7 @@ help:
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
 	@echo "  make USE_OPENSSL=0 ...      Don't use OpenSSL even if found"
 	@echo "  make USE_EXTERNAL_PUGIXML=1 Use the system PugiXML, not the one in OIIO"
+	@echo "  make FIELD3D_HOME=path ...  Custom Field3D installation"
 	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
