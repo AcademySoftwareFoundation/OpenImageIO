@@ -76,11 +76,6 @@ if (CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-Qunused-arguments")
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC)
-    # Disable warning to prevent gcc 4.8 from failing.
-    add_definitions ("-Wno-unused-local-typedefs")
-endif ()
-
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
