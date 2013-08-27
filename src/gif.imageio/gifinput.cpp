@@ -160,7 +160,7 @@ GIFInput::translate_scanline (unsigned char *gif_scanline, void *data)
     GifColorType *colormap = m_local_colormap != NULL ?
         m_local_colormap : m_global_colormap;
     if (m_spec.nchannels == 3) {
-        for (int i = 0; i < (int)m_spec.width; i++) {
+        for (int i = 0; i < m_spec.width; i++) {
             outscanline[3 * i] =
                 (unsigned char)colormap[gif_scanline[i]].Red;
             outscanline[3 * i + 1] =
@@ -169,7 +169,7 @@ GIFInput::translate_scanline (unsigned char *gif_scanline, void *data)
                 (unsigned char)colormap[gif_scanline[i]].Blue;
         }
     } else {
-        for (int i = 0; i < (int)m_spec.width; i++) {
+        for (int i = 0; i < m_spec.width; i++) {
             outscanline[4 * i] =
                 (unsigned char)colormap[gif_scanline[i]].Red;
             outscanline[4 * i + 1] =
