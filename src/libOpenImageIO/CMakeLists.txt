@@ -268,9 +268,11 @@ if (EMBEDPLUGINS)
                                ${HDF5_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
-                               ${GIF_LIBRARY}
                           )
     link_openexr (OpenImageIO)
+    if (USE_GIF AND GIF_FOUND)
+        target_link_libraries (OpenImageIO ${GIF_LIBRARY})
+    endif ()
 endif ()
 
 if (USE_EXTERNAL_PUGIXML)
