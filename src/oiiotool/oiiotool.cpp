@@ -121,17 +121,7 @@ Oiiotool::clear_options ()
 std::string
 format_resolution (int w, int h, int x, int y)
 {
-#if 0
-    // This should work...
     return Strutil::format ("%dx%d%+d%+d", w, h, x, y);
-    // ... but tinyformat doesn't print the sign for '0' values!  It
-    // appears to be a bug with iostream use of 'showpos' format flag,
-    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
-#else
-    return Strutil::format ("%dx%d%c%d%c%d", w, h,
-                            x >= 0 ? '+' : '-', abs(x),
-                            y >= 0 ? '+' : '-', abs(y));
-#endif
 }
 
 
@@ -139,18 +129,7 @@ format_resolution (int w, int h, int x, int y)
 std::string
 format_resolution (int w, int h, int d, int x, int y, int z)
 {
-#if 0
-    // This should work...
     return Strutil::format ("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
-    // ... but tinyformat doesn't print the sign for '0' values!  It
-    // appears to be a bug with iostream use of 'showpos' format flag,
-    // specific to certain gcc libs, perhaps only on OSX.  Workaround:
-#else
-    return Strutil::format ("%dx%dx%d%c%d%c%d%c%d", w, h, d,
-                            x >= 0 ? '+' : '-', abs(x),
-                            y >= 0 ? '+' : '-', abs(y),
-                            z >= 0 ? '+' : '-', abs(z));
-#endif
 }
 
 
@@ -1063,7 +1042,7 @@ action_ociolook (int argc, const char *argv[])
     std::string tospace = options["to"];
     std::string contextkey = options["key"];
     std::string contextvalue = options["value"];
-    bool inverse = Strutil::from_string<int> (options["inverse"]);
+    bool inverse = Strutil::from_string<int> (options["inverse"]) != 0;
 
     ImageRecRef A = ot.curimg;
     ot.read (A);
@@ -1441,6 +1420,63 @@ action_select_subimage (int argc, const char *argv[])
     ImageRecRef A = ot.pop();
     ot.push (new ImageRec (*A, subimage));
     ot.function_times["subimage"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_subimage_append (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_subimage_append, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+
+    // Find the MIP levels in all the subimages of both A and B
+    std::vector<int> allmiplevels;
+    for (int s = 0;  s < A->subimages();  ++s) {
+        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+    }
+    for (int s = 0;  s < B->subimages();  ++s) {
+        int miplevels = ot.allsubimages ? B->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+    }
+
+    // Create the replacement ImageRec
+    ImageRecRef R (new ImageRec(A->name(), (int)allmiplevels.size(),
+                                &allmiplevels[0]));
+    ot.push (R);
+
+    // Subimage by subimage, MIP level by MIP level, copy
+    int sub = 0;
+    for (int s = 0;  s <  A->subimages();  ++s, ++sub) {
+        for (int m = 0;  m < A->miplevels(s);  ++m) {
+            bool ok = (*R)(sub,m).copy ((*A)(s,m));
+            if (! ok)
+                ot.error ("siappend", (*R)(sub,m).geterror());
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(sub,m);
+        }
+    }
+    for (int s = 0;  s <  B->subimages();  ++s, ++sub) {
+        for (int m = 0;  m < B->miplevels(s);  ++m) {
+            bool ok = (*R)(sub,m).copy ((*B)(s,m));
+            if (! ok)
+                ot.error ("siappend", (*R)(sub,m).geterror());
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(sub,m);
+        }
+    }
+
+    ot.function_times["siappend"] += timer();
     return 0;
 }
 
@@ -3232,6 +3268,8 @@ getargs (int argc, char *argv[])
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
                 "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
+                "--siappend %@", action_subimage_append, NULL,
+                    "Append the last two images into one multi-subimage image",
                 "--pop %@", action_pop, NULL,
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,
@@ -3297,155 +3335,27 @@ getargs (int argc, char *argv[])
 
 
 
-// Given a sequence description, generate numbers.
-static void
-generate_sequence (std::string seqdesc, int framepadding,
-                   std::vector<std::string> &numbers)
-{
-    numbers.clear ();
-    std::string format = Strutil::format ("%%0%dd", framepadding);
-
-    // Split the sequence description into comma-separated subranges.
-    std::vector<std::string> sequences;
-    Strutil::split (seqdesc, sequences, ",");
-
-    // For each subrange...
-    BOOST_FOREACH (std::string s, sequences) {
-        // It's START, START-END, or START-ENDxSTEP
-        std::vector<std::string> range;
-        Strutil::split (s, range, "-");
-        int first = strtol (range[0].c_str(), NULL, 10);
-        int last = first;
-        int step = 1;
-        if (range.size() > 1) {
-            last = strtol (range[1].c_str(), NULL, 10);
-            if (const char *x = strchr (range[1].c_str(), 'x'))
-                step = std::max (1, (int) strtol (x+1, NULL, 10));
-        }
-        for (int i = first; i <= last; i += step)
-            numbers.push_back (Strutil::format (format.c_str(), i));
-    }
-    // std::cout << "Sequence " << Strutil::join(numbers, " ") << "\n";
-}
-
-
-
-// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), produce a
-// list of matching filenames.  Explicit ranges enumerate the range,
-// whereas full numeric wildcards search for existing files.
-static bool
-deduce_sequence (std::string pattern, int framepadding,
-                 std::vector<std::string> &filenames,
-                 std::vector<std::string> &numbers)
-{
-    filenames.clear ();
-
-    // Isolate the directory name (or '.' if none was specified)
-    std::string directory = Filesystem::parent_path (pattern);
-    if (directory.size() == 0) {
-        directory = ".";
-#ifdef _WIN32
-        pattern = ".\\\\" + pattern;
-#else
-        pattern = "./" + pattern;
-#endif
-    }
-
-    // The pattern is either a range (e.g., "1-15#"), or just a 
-    // set of hash marks (e.g. "####").
-    static boost::regex range_re ("([0-9]+)\\-([0-9]+)#+");
-    static boost::regex hash_re ("#+");
-
-    boost::match_results<std::string::const_iterator> range_match;
-    if (boost::regex_search (pattern, range_match, range_re)) {
-        // It's a range. Generate the names by iterating through the
-        // numbers.  
-        std::string prefix (range_match.prefix().first, range_match.prefix().second);
-        std::string suffix (range_match.suffix().first, range_match.suffix().second);
-        std::string r1 (range_match[1].first, range_match[1].second);
-        std::string r2 (range_match[2].first, range_match[2].second);
-        int rangefirst = (int) strtol (r1.c_str(), NULL, 10);
-        int rangelast = (int) strtol (r2.c_str(), NULL, 10);
-        // Only save the numbers if it's not already filled in.
-        bool save_numbers = (numbers.size() == 0);
-
-        // There are two cases: either the files exist, or they don't.
-        // Check the first one and assume it's the same for all.
-        for (int r = rangefirst; r <= rangelast; ++r) {
-            // Try up to 4 leading zeroes
-            std::string f, num;
-            for (int i = 1; i <= framepadding; ++i) {
-                std::string fmt = Strutil::format ("%%0%dd", i);
-                std::string num = Strutil::format (fmt.c_str(), r);
-                f = prefix + num + suffix;
-                if (Filesystem::exists (f))
-                    break;  // found it
-            }
-            // At this point, we either have an f that exists, or f is
-            // the file with 4 digit number.
-            filenames.push_back (f);
-            if (save_numbers)
-                numbers.push_back (f);
-        }
-
-    } else if (numbers.size()) {
-        // Numeric wildcard, and an earlier argument has already
-        // expanded into a specific series of numbers.  We MUST make
-        // this wildcard expand to the same set of numbers.
-        for (size_t i = 0; i < numbers.size(); ++i) {
-            std::string f = boost::regex_replace (pattern, hash_re, numbers[i]);
-            filenames.push_back (f);
-        }
-
-    } else {
-        // Numeric wildcard, but we don't yet have a prescribed frame
-        // range, so search the directories for matches.
-
-        pattern = boost::regex_replace (pattern, hash_re, "([0-9]+)");
-        pattern = "^" + pattern + "$";
-        bool ok = Filesystem::get_directory_entries (directory, filenames,
-                                                     false, pattern);
-        if (! ok)
-            return false;
-
-        boost::regex pattern_re (pattern);
-        for (size_t i = 0; i < filenames.size(); ++i) {
-            boost::match_results<std::string::const_iterator> match;
-            bool ok = boost::regex_search (filenames[i], match, pattern_re);
-            ASSERT (ok);  // should have matched
-            std::string num (match[1].first, match[1].second);
-            numbers.push_back (num);
-        }
-    }
-
-
-//    std::cout << "Matches: \n\t" << Strutil::join (filenames, "\n\t") << "\n";
-    return true;
-}
-
-
-
 // Check if any of the command line arguments contains numeric ranges or
 // wildcards.  If not, just return 'false'.  But if they do, the
 // remainder of processing will happen here (and return 'true').
 static bool 
 handle_sequence (int argc, const char **argv)
 {
-    // First, scan the original command line arguments for '#'
-    // characters.  Any found indicate that there are numeric rnage or
+    // First, scan the original command line arguments for '#' or '@'
+    // characters.  Any found indicate that there are numeric range or
     // wildcards to deal with.  Also look for --frames and --framepadding
     // options.
-    std::string framenumbers_string;
-    int framepadding = 4;
+    std::string framespec = "";
+    int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     bool is_sequence = false;
     for (int a = 1;  a < argc;  ++a) {
-        if (strchr (argv[a], '#')) {
+        if (strchr (argv[a], '#') || strchr (argv[a], '@')) {
             is_sequence = true;
             sequence_args.push_back (a);
         }
         if (! strcmp (argv[a], "--frames") && a < argc-1) {
-            framenumbers_string = argv[++a];
+            framespec = argv[++a];
         }
         else if (! strcmp (argv[a], "--framepadding") && a < argc-1) {
             int f = atoi (argv[++a]);
@@ -3458,21 +3368,18 @@ handle_sequence (int argc, const char **argv)
     if (! is_sequence)
         return false;
 
-    std::vector<std::string> numbers;
-
-    // If an explicit frame sequence was given, elaborate it.
-    if (framenumbers_string.size())
-        generate_sequence (framenumbers_string, framepadding, numbers);
-
     // For each of the arguments that contains a wildcard, use
     // deduce_sequence to fully elaborate all the filenames in the
     // sequence.  It's an error if the sequences are not all of the
     // same length.
-    std::vector< std::vector<std::string> > filenames (argc+1);
+    std::vector< std::vector<std::string> > filenames (argc+1); 
+    std::vector<int> frame_numbers;
     size_t nfilenames = 0;
     for (size_t i = 0;  i < sequence_args.size();  ++i) {
         int a = sequence_args[i];
-        deduce_sequence (argv[a], framepadding, filenames[a], numbers);
+        Filesystem::enumerate_file_sequence (argv[a], framespec.c_str(),
+                                             framepadding, frame_numbers,
+                                             filenames[a]);
         if (i == 0) {
             nfilenames = filenames[a].size();
         } else if (nfilenames != filenames[a].size()) {
@@ -3525,6 +3432,7 @@ main (int argc, char *argv[])
     ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
 //    ot.imagecache->attribute ("autotile", 1024);
 
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {
         // Deal with sequence
 

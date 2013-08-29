@@ -71,10 +71,10 @@ ImageRec::ImageRec (const std::string &name, int nsubimages,
     int specnum = 0;
     m_subimages.resize (nsubimages);
     for (int s = 0;  s < nsubimages;  ++s) {
-        int mips = miplevels ? miplevels[s] : 1;
-        m_subimages[s].m_miplevels.resize (mips);
-        m_subimages[s].m_specs.resize (mips);
-        for (int m = 0;  m < mips;  ++m) {
+        int nmips = miplevels ? miplevels[s] : 1;
+        m_subimages[s].m_miplevels.resize (nmips);
+        m_subimages[s].m_specs.resize (nmips);
+        for (int m = 0;  m < nmips;  ++m) {
             ImageBuf *ib = specs ? new ImageBuf (name, specs[specnum])
                                  : new ImageBuf (name);
             m_subimages[s].m_miplevels[m].reset (ib);

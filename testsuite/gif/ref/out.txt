@@ -1,0 +1,44 @@
+Reading ../../../../../oiio-images/gif_animation.gif
+../../../../../oiio-images/gif_animation.gif :   10 x   10, 3 channel, uint8 gif
+    3 subimages: 10x10 20x20 30x30 
+ subimage  0:   10 x   10, 3 channel, uint8 gif
+    SHA-1: 74DA8D1F72256D1E6BA2C379A902B74A549A4FC3
+    channel list: R, G, B
+    gif:DelayMs: 1230
+    gif:Interlacing: 0
+ subimage  1:   20 x   20, 3 channel, uint8 gif
+    SHA-1: 697CB4AF27DF31D38FBDFFCE0799A68197DB811C
+    channel list: R, G, B
+    gif:DelayMs: 1230
+    gif:Interlacing: 0
+ subimage  2:   30 x   30, 3 channel, uint8 gif
+    SHA-1: 3CF612475D2B8C81968A243A0E0B74FF28E2F0BC
+    channel list: R, G, B
+    gif:DelayMs: 1230
+    gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_oiio_logo_with_alpha.gif
+../../../../../oiio-images/gif_oiio_logo_with_alpha.gif :  135 x  135, 4 channel, uint8 gif
+    SHA-1: 8EDEB5C51B7C376D2526BAC0E3CFE2BE500F4115
+    channel list: R, G, B, A
+    ImageDescription: "oiio logo with alpha"
+    gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_tahoe.gif
+../../../../../oiio-images/gif_tahoe.gif : 2048 x 1536, 3 channel, uint8 gif
+    SHA-1: FB29B5E79C01217F6FF7306194D4CDF23BBBA0EF
+    channel list: R, G, B
+    gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_tahoe_interlaced.gif
+../../../../../oiio-images/gif_tahoe_interlaced.gif : 2048 x 1536, 3 channel, uint8 gif
+    SHA-1: FB29B5E79C01217F6FF7306194D4CDF23BBBA0EF
+    channel list: R, G, B
+    gif:Interlacing: 1
+Reading ../../../../../oiio-images/gif_bluedot.gif
+../../../../../oiio-images/gif_bluedot.gif :    1 x    1, 3 channel, uint8 gif
+    SHA-1: D699C11B42E27B746F565C0EABF18AE1A78853AD
+    channel list: R, G, B
+    gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_diagonal_interlaced.gif
+../../../../../oiio-images/gif_diagonal_interlaced.gif :  200 x  200, 3 channel, uint8 gif
+    SHA-1: 31B97C008117F6925A4D15ECE852B84B481DE8A3
+    channel list: R, G, B
+    gif:Interlacing: 1

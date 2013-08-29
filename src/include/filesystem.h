@@ -171,15 +171,44 @@ OIIO_API void last_write_time (const std::string& path, std::time_t time);
 ///
 OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 
-#ifdef _WIN32
-// Conversion to windows native wide char file path
-//
-OIIO_API std::wstring path_to_windows_native (const std::string& path);
+/// Turn a sequence description string into a vector of integers.
+/// The sequence description can be any of the following
+///  * A value (e.g., "3")
+///  * A value range ("1-10", "10-1", "1-10x3", "1-10y3"):
+///     START-FINISH        A range, inclusive of start & finish
+///     START-FINISHxSTEP   A range with step size
+///     START-FINISHySTEP   The complement of a stepped range, that is,
+///                           all numbers within the range that would
+///                           NOT have been selected by 'x'.
+///     Note that START may be > FINISH, or STEP may be negative.
+///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
+/// Retrn true upon success, false if the description was too malformed
+/// to generate a sequence.
+OIIO_API bool enumerate_sequence (const char *desc,
+                                  std::vector<int> &numbers);
 
-// Conversion from windows native wide char file path
-//
-OIIO_API std::string path_from_windows_native (const std::wstring& wpath);
-#endif
+/// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), expand the
+/// wildcard to the list of frame numbers and filenames.  The wildcard
+/// consists of a numeric specification that follows the description of
+/// Filesystem::enumerate_sequence, followed by a combination of '#' and
+/// '@' characters.  The '#' and '@' specify padding of 4 and 1 digits,
+/// respectively, and may be combined.  For example, "1-3#" will expand
+/// to "0001", "0002", "003"; "1-3@@" will expand to "01", "02", "03";
+/// "1-3#@" expands to "00001", "00002", "00003".
+///
+/// If sequence_override is non-NULL and non-empty, it overrides any
+/// numeric sequence notation in the overall pattern.  If
+/// framepadding_override is > 0, it overrides any specific padding
+/// amount in the original pattern.
+///
+/// Retrn true upon success, false if the description was too malformed
+/// to generate a sequence.
+OIIO_API bool enumerate_file_sequence (const char *pattern,
+                                       const char *sequence_override,
+                                       int framepadding_override,
+                                       std::vector<int> &numbers,
+                                       std::vector<std::string> &filenames);
+
 
 };  // namespace Filesystem
 

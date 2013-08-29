@@ -108,6 +108,14 @@ ifneq (${USE_OPENJPEG},)
 MY_CMAKE_FLAGS += -DUSE_OPENJPEG:BOOL=${USE_OPENJPEG}
 endif
 
+ifneq (${USE_GIF},)
+MY_CMAKE_FLAGS += -DUSE_GIF:BOOL=${USE_GIF}
+endif
+
+ifneq (${GIF_DIR},)
+MY_CMAKE_FLAGS += -DGIF_DIR:STRING=${GIF_DIR}
+endif
+
 ifneq (${USE_OCIO},)
 MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
@@ -294,9 +302,12 @@ help:
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
+	@echo "  make USE_GIF=0 ...          Don't build the GIF plugin"
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
 	@echo "  make USE_OPENSSL=0 ...      Don't use OpenSSL even if found"
 	@echo "  make USE_EXTERNAL_PUGIXML=1 Use the system PugiXML, not the one in OIIO"
+	@echo "  make FIELD3D_HOME=path ...  Custom Field3D installation"
+	@echo "  make GIF_DIR=path ...       Custom GIFLIB installation"
 	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"

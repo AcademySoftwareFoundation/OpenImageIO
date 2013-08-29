@@ -157,6 +157,7 @@ parse_files (int argc, const char *argv[])
 int
 main (int argc, const char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, argv);
     ArgParse ap;
     ap.options ("igrep -- search images for matching metadata\n"
                 OIIO_INTRO_STRING "\n"

@@ -186,6 +186,15 @@ bool OIIO_API iends_with (const char *a, const char *b);
 bool OIIO_API iends_with (const std::string &a, const std::string &b);
 bool OIIO_API iends_with (const char *a, const char *b);
 
+/// Does 'a' contain the string 'b' within it?
+bool OIIO_API contains (const std::string &a, const std::string &b);
+bool OIIO_API contains (const char *a, const char *b);
+
+/// Does 'a' contain the string 'b' within it, using a case-insensitive
+/// comparison?
+bool OIIO_API icontains (const std::string &a, const std::string &b);
+bool OIIO_API icontains (const char *a, const char *b);
+
 /// Convert to upper case, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
 void OIIO_API to_lower (std::string &a);

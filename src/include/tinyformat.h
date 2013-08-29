@@ -26,70 +26,53 @@
 // DEALINGS IN THE SOFTWARE.
 
 //------------------------------------------------------------------------------
-// Tinyformat: A minimal type safe printf-replacement library for C++
+// Tinyformat: A minimal type safe printf replacement
 //
-// This library aims to support 95% of casual C++ string formatting needs with
-// a single lightweight header file.  Anything you can do with this library
-// can also be done with the standard C++ streams, but probably with
-// considerably more typing :)
+// tinyformat.h is a type safe printf replacement library in a single C++
+// header file.  Design goals include:
 //
-// Design goals:
-//
-// * Simplicity and minimalism.  A single header file to include and distribute
-//   with your own projects.
 // * Type safety and extensibility for user defined types.
-// * Parse standard C99 format strings, and support most features.
-// * Support as many commonly used ``printf()`` features as practical without
-//   compromising on simplicity.
+// * C99 printf() compatibility, to the extent possible using std::ostream
+// * Simplicity and minimalism.  A single header file to include and distribute
+//   with your projects.
+// * Augment rather than replace the standard stream formatting mechanism
+// * C++98 support, with optional C++11 niceties
 //
 //
 // Example usage
 // -------------
 //
-// To print the date, we might have
+// To print a date to std::cout:
 //
-// std::string weekday = "Wednesday";
-// const char* month = "July";
-// long day = 27;
-// int hour = 14;
-// int min = 44;
+//   std::string weekday = "Wednesday";
+//   const char* month = "July";
+//   size_t day = 27;
+//   long hour = 14;
+//   int min = 44;
 //
-// tfm::format(std::cout, "%s, %s %d, %.2d:%.2d\n",
-//             weekday, month, day, hour, min);
+//   tfm::printf("%s, %s %d, %.2d:%.2d\n", weekday, month, day, hour, min);
 //
-// (The types here are intentionally odd to emphasize the type safety of the
-// interface.)  The same thing could be achieved using either of the two
-// convenience functions.  One returns a std::string:
+// The strange types here emphasize the type safety of the interface; it is
+// possible to print a std::string using the "%s" conversion, and a
+// size_t using the "%d" conversion.  A similar result could be achieved
+// using either of the tfm::format() functions.  One prints on a user provided
+// stream:
 //
-// std::string date = tfm::format("%s, %s %d, %.2d:%.2d\n",
-//                                weekday, month, day, hour, min);
-// std::cout << date;
+//   tfm::format(std::cerr, "%s, %s %d, %.2d:%.2d\n",
+//               weekday, month, day, hour, min);
 //
-// The other prints to the std::cout stream:
+// The other returns a std::string:
 //
-// tfm::printf("%s, %s %d, %.2d:%.2d\n", weekday, month, day, hour, min);
+//   std::string date = tfm::format("%s, %s %d, %.2d:%.2d\n",
+//                                  weekday, month, day, hour, min);
+//   std::cout << date;
 //
-//
-// Brief outline of functionality
-// ------------------------------
-//
-// (For full docs, see the accompanying README)
+// These are the three primary interface functions.
 //
 //
-// Interface functions:
-//
-//  template<typename T1, typename T2, ...>
-//  void format(std::ostream& stream, const char* formatString,
-//              const T1& value1, const T2& value1, ...)
-//
-//  template<typename T1, typename T2, ...>
-//  std::string format(const char* formatString,
-//                     const T1& value1, const T2& value1, ...)
-//
-//  template<typename T1, typename T2, ...>
-//  void printf(const char* formatString,
-//              const T1& value1, const T2& value1, ...)
-//
+// Additional API information
+// --------------------------
+// (For more complete documentation, see the accompanying README.)
 //
 // Error handling: Define TINYFORMAT_ERROR to customize the error handling for
 // format strings which are unsupported or have the wrong number of format
@@ -116,8 +99,8 @@ namespace tfm = tinyformat;
 // Error handling; calls assert() by default.
 // #define TINYFORMAT_ERROR(reasonString) your_error_handler(reasonString)
 
-// Define for C++0x variadic templates which make the code shorter & more
-// general.  If you don't define this, C++0x support is autodetected below.
+// Define for C++11 variadic templates which make the code shorter & more
+// general.  If you don't define this, C++11 support is autodetected below.
 // #define TINYFORMAT_USE_VARIADIC_TEMPLATES
 
 
@@ -145,6 +128,11 @@ namespace tfm = tinyformat;
 #   define TINYFORMAT_NOINLINE
 #endif
 
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20080201
+//  std::showpos is broken on old libstdc++ as provided with OSX.  See
+//  http://gcc.gnu.org/ml/libstdc++/2007-11/msg00075.html
+#   define TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+#endif
 
 namespace tinyformat {
 
@@ -165,9 +153,10 @@ struct is_convertible
         static const T1& makeT1();
     public:
 #       ifdef _MSC_VER
-        // Disable spurious loss of precision warning in tryConvert(makeT1())
+        // Disable spurious loss of precision warnings in tryConvert(makeT1())
 #       pragma warning(push)
 #       pragma warning(disable:4244)
+#       pragma warning(disable:4267)
 #       endif
         // Standard trick: the (...) version of tryConvert will be chosen from
         // the overload set only if the version taking a T2 doesn't match.
@@ -181,12 +170,20 @@ struct is_convertible
 };
 
 
+// Detect when a type is not a wchar_t string
+template<typename T> struct is_wchar { typedef int tinyformat_wchar_is_not_supported; };
+template<> struct is_wchar<wchar_t*> {};
+template<> struct is_wchar<const wchar_t*> {};
+template<int n> struct is_wchar<const wchar_t[n]> {};
+template<int n> struct is_wchar<wchar_t[n]> {};
+
+
 // Format the value by casting to type fmtT.  This default implementation
 // should never be called.
 template<typename T, typename fmtT, bool convertible = is_convertible<T, fmtT>::value>
 struct formatValueAsType
 {
-    static void invoke(std::ostream& out, const T& value) { assert(0); }
+    static void invoke(std::ostream& /*out*/, const T& /*value*/) { assert(0); }
 };
 // Specialized version for types that can actually be converted to fmtT, as
 // indicated by the "convertible" template parameter.
@@ -197,13 +194,33 @@ struct formatValueAsType<T,fmtT,true>
         { out << static_cast<fmtT>(value); }
 };
 
+#ifdef TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+template<typename T, bool convertible = is_convertible<T, int>::value>
+struct formatZeroIntegerWorkaround
+{
+    static bool invoke(std::ostream& /**/, const T& /**/) { return false; }
+};
+template<typename T>
+struct formatZeroIntegerWorkaround<T,true>
+{
+    static bool invoke(std::ostream& out, const T& value)
+    {
+        if (static_cast<int>(value) == 0 && out.flags() & std::ios::showpos)
+        {
+            out << "+0";
+            return true;
+        }
+        return false;
+    }
+};
+#endif // TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
 
 // Convert an arbitrary type to integer.  The version with convertible=false
 // throws an error.
 template<typename T, bool convertible = is_convertible<T,int>::value>
 struct convertToInt
 {
-    static int invoke(const T& value)
+    static int invoke(const T& /*value*/)
     {
         TINYFORMAT_ERROR("tinyformat: Cannot convert from argument type to "
                          "integer for use as variable width or precision");
@@ -235,9 +252,15 @@ struct convertToInt<T,true>
 // operator<< to format the type T, with special cases for the %c and %p
 // conversions.
 template<typename T>
-inline void formatValue(std::ostream& out, const char* fmtBegin,
+inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
                         const char* fmtEnd, const T& value)
 {
+#ifndef TINYFORMAT_ALLOW_WCHAR_STRINGS
+    // Since we don't support printing of wchar_t using "%ls", make it fail at
+    // compile time in preference to printing as a void* at runtime.
+    typedef typename detail::is_wchar<T>::tinyformat_wchar_is_not_supported DummyType;
+    (void) DummyType();
+#endif
     // The mess here is to support the %c and %p conversions: if these
     // conversions are active we try to convert the type to a char or const
     // void* respectively and format that instead of the value itself.  For the
@@ -249,6 +272,9 @@ inline void formatValue(std::ostream& out, const char* fmtBegin,
         detail::formatValueAsType<T, char>::invoke(out, value);
     else if(canConvertToVoidPtr && *(fmtEnd-1) == 'p')
         detail::formatValueAsType<T, const void*>::invoke(out, value);
+#ifdef TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+    else if(detail::formatZeroIntegerWorkaround<T>::invoke(out, value)) /**/;
+#endif
     else
         out << value;
 }
@@ -256,7 +282,7 @@ inline void formatValue(std::ostream& out, const char* fmtBegin,
 
 // Overloaded version for char types to support printing as an integer
 #define TINYFORMAT_DEFINE_FORMATVALUE_CHAR(charType)                  \
-inline void formatValue(std::ostream& out, const char* fmtBegin,      \
+inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,  \
                         const char* fmtEnd, charType value)           \
 {                                                                     \
     switch(*(fmtEnd-1))                                               \
@@ -284,17 +310,18 @@ class FormatIterator
         // Flags for features not representable with standard stream state
         enum ExtraFormatFlags
         {
+            Flag_None                = 0,
             Flag_TruncateToPrecision = 1<<0, // truncate length to stream precision()
             Flag_SpacePadPositive    = 1<<1, // pad positive values with spaces
             Flag_VariableWidth       = 1<<2, // variable field width in arg list
-            Flag_VariablePrecision   = 1<<3, // variable field precision in arg list
+            Flag_VariablePrecision   = 1<<3  // variable field precision in arg list
         };
 
         // out is the output stream, fmt is the full format string
         FormatIterator(std::ostream& out, const char* fmt)
             : m_out(out),
             m_fmt(fmt),
-            m_extraFlags(0),
+            m_extraFlags(Flag_None),
             m_wantWidth(false),
             m_wantPrecision(false),
             m_variableWidth(0),
@@ -342,8 +369,8 @@ class FormatIterator
         // stream.  Return true if formatting proceeded (generic version always
         // returns false)
         template<typename T>
-        static bool formatCStringTruncate(std::ostream& out, const T& value,
-                                        std::streamsize truncLen)
+        static bool formatCStringTruncate(std::ostream& /*out*/, const T& /*value*/,
+                                        std::streamsize /*truncLen*/)
         {
             return false;
         }
@@ -398,6 +425,10 @@ class FormatIterator
                                                  int variableWidth,
                                                  int variablePrecision);
 
+        // Private copy & assign: Kill gcc warnings with -Weffc++
+        FormatIterator(const FormatIterator&);
+        FormatIterator& operator=(const FormatIterator&);
+
         // Stream, current format string & state
         std::ostream& m_out;
         const char* m_fmt;
@@ -417,12 +448,12 @@ class FormatIterator
 
 // Accept a value for formatting into the internal stream.
 template<typename T>
-TINYFORMAT_NOINLINE  //< greatly reduces bloat in optimized builds
+TINYFORMAT_NOINLINE  // < greatly reduces bloat in optimized builds
 void FormatIterator::accept(const T& value)
 {
     // Parse the format string
     const char* fmtEnd = 0;
-    if(m_extraFlags == 0 && !m_wantWidth && !m_wantPrecision)
+    if(m_extraFlags == Flag_None && !m_wantWidth && !m_wantPrecision)
     {
         m_fmt = printFormatStringLiteral(m_out, m_fmt);
         fmtEnd = streamStateFromFormat(m_out, m_extraFlags, m_fmt, 0, 0);
@@ -488,7 +519,7 @@ void FormatIterator::accept(const T& value)
         else
             m_out << result;
     }
-    m_extraFlags = 0;
+    m_extraFlags = Flag_None;
     m_fmt = fmtEnd;
 }
 
@@ -520,7 +551,7 @@ inline const char* FormatIterator::streamStateFromFormat(std::ostream& out,
     out.unsetf(std::ios::adjustfield | std::ios::basefield |
                std::ios::floatfield | std::ios::showbase | std::ios::boolalpha |
                std::ios::showpoint | std::ios::showpos | std::ios::uppercase);
-    extraFlags = 0;
+    extraFlags = Flag_None;
     bool precisionSet = false;
     bool widthSet = false;
     const char* c = fmtStart + 1;
@@ -642,7 +673,9 @@ inline const char* FormatIterator::streamStateFromFormat(std::ostream& out,
             out.flags(out.flags() & ~std::ios::floatfield);
             break;
         case 'a': case 'A':
-            break; // C99 hexadecimal floating point??  punt!
+            TINYFORMAT_ERROR("tinyformat: the %a and %A conversion specs "
+                             "are not supported");
+            break;
         case 'c':
             // Handled as special case inside formatValue()
             break;
@@ -685,10 +718,10 @@ inline void format(FormatIterator& fmtIter)
 
 // Define N-argument format function.
 //
-// There's two cases here: c++0x and c++98.
+// There's two cases here: C++11 and C++98.
 #ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
 
-// First, the simple definition for C++0x:
+// First, the simple definition for C++11:
 template<typename T1, typename... Args>
 void format(FormatIterator& fmtIter, const T1& value1, const Args&... args)
 {
@@ -826,12 +859,13 @@ void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, 
 // Define the macro TINYFORMAT_WRAP_FORMAT, which can be used to wrap a call
 // to tfm::format for C++98 support.
 //
-// We make this available in both C++0x and C++98 mode for convenience so that
-// users can choose not to write out the C++0x version if they're primarily
-// interested in C++98 support, but still have things work with C++0x.
+// We make this available in both C++11 and C++98 mode for convenience so that
+// users can choose not to write out the C++11 version if they're primarily
+// interested in C++98 support, but still have things work with C++11.
 //
-// Note that TINYFORMAT_WRAP_EXTRA_ARGS cannot be a macro parameter because it
-// must expand to a comma separated list (or nothing, as used for printf below)
+// Note that TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS cannot be a macro parameter
+// because it must expand to a comma separated list (or nothing, as used for
+// printf below)
 
 /*[[[cog
 cog.outl(formatAsMacro(
@@ -851,11 +885,6 @@ returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt
 cog.outl()
 
 ]]]*/
-#ifndef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-#endif
-
-
 #define TINYFORMAT_WRAP_FORMAT(returnType, funcName, funcDeclSuffix,       \
                                bodyPrefix, streamName, bodySuffix)         \
 inline                                                                     \
@@ -985,7 +1014,7 @@ returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
 // Again, there's two cases.
 #ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
 
-// C++0x - the simple case
+// C++11 - the simple case
 template<typename... Args>
 void format(std::ostream& out, const char* fmt, const Args&... args)
 {
@@ -1007,13 +1036,15 @@ void printf(const char* fmt, const Args&... args)
     format(std::cout, fmt, args...);
 }
 
+// Define for consistency with C++98 mode
+#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
+
 #else
 
 // C++98 - define the convenience functions using the wrapping macros
 
 // template<typename... Args>
 // void format(std::ostream& out, const char* fmt, const Args&... args)
-#undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
 #define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS std::ostream& out,
 TINYFORMAT_WRAP_FORMAT(void, format, /*empty*/, /*empty*/, out, /*empty*/)
 #undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS

@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 3)
-set (OIIO_VERSION_PATCH 1)
+set (OIIO_VERSION_PATCH 2)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
@@ -95,6 +95,7 @@ set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
 set (USE_OPENSSL ON CACHE BOOL "Use OpenSSL if found")
 set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
+set (USE_GIF ON CACHE BOOL "Use GIF if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
@@ -279,6 +280,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (dpx.imageio)
     add_subdirectory (field3d.imageio)
     add_subdirectory (fits.imageio)
+    add_subdirectory (gif.imageio)
     add_subdirectory (hdr.imageio)
     add_subdirectory (ico.imageio)
     add_subdirectory (iff.imageio)
@@ -336,7 +338,7 @@ endif()
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                dpx ico png psd rla sgi
+                dpx gif ico png psd rla sgi
                 maketx
                 texture-blurtube texture-fill texture-filtersize
                 texture-gray texture-grid
