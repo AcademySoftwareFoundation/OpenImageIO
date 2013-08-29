@@ -1,0 +1,180 @@
+\chapter{Python Bindings}
+\label{chap:pythonbindings}
+\indexapi{Python|()}
+
+\section{Overview}
+
+\OpenImageIO provides Python language bindings for much of its
+functionality.
+
+\smallskip
+
+You must ensure that the environment variable {\cf PYTHONPATH} includes
+the {\cf python} subdirectory of the \OpenImageIO installation.
+
+\smallskip
+
+A Python program must import the {\cf OpenImageIO} package:
+\begin{code}
+    import OpenImageIO
+\end{code}
+\noindent In most of our examples below, we assume that for the sake
+of brevity, we will alias the package name as follows:
+\begin{code}
+    import OpenImageIO as oiio
+\end{code}
+
+\section{TypeDesc}
+
+\apiitem{BASETYPE}
+The {\cf BASETYPE} enum corresponds to the C++ {\cf TypeDesc::BASETYPE} and
+contains the following values: \\
+{\cf UNKNOWN NONE UINT8 INT8 UINT16 INT16 UINT32 INT32 UINT64 INT64 \\
+HALF FLOAT DOUBLE STRING PTR} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{AGGREGATE}
+The {\cf AGGREGATE} enum corresponds to the C++ {\cf TypeDesc::AGGREGATE} and
+contains the following values: \\
+{\cf SCALAR VEC2 VEC3 VEC4 MATRIX44} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{VECSEMANTICS}
+The {\cf VECSEMANTICS} enum corresponds to the C++ {\cf TypeDesc::VECSEMANTICS} and
+contains the following values: \\
+{\cf NOXFORM COLOR POINT VECTOR NORMAL} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{TypeDesc () \\
+TypeDesc (basetype) \\
+TypeDesc (basetype, aggregate) \\
+TypeDesc (basetype, aggregate, vecsemantics) \\
+TypeDesc (basetype, aggregate, vecsemantics, arraylen) \\
+TypeDesc (str)}
+
+Construct a {\cf TypeDesc} object.  
+
+\noindent Examples:
+\begin{code}
+    import OpenImageIO as oiio
+
+    # make a default (UNKNOWN) TypeDesc
+    t = oiio.TypeDesc()
+
+    # make a TypeDesc describing an unsigned 8 bit int
+    t = oiio.TypeDesc(oiio.UINT8)
+
+    # make a TypeDesc describing an array of 14 'half' values
+    t = oiio.TypeDesc(oiio.HALF, oiio.SCALAR, oiio.NOXFORM, 14)
+
+    # make a TypeDesc describing a float point
+    t = oiio.TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT)
+
+    # Some constructors from a string description
+    t = oiio.TypeDesc("uint8")
+    t = oiio.TypeDesc("half[14]")
+    t = oiio.TypeDesc("point")     # equiv to FLOAT, VEC3, POINT
+\end{code}
+\apiend
+
+\apiitem{TypeDesc.TypeFloat() \\
+TypeDesc.TypeInt() \\
+TypeDesc.TypeString() \\
+TypeDesc.TypeColor() \\
+TypeDesc.TypePoint() \\
+TypeDesc.TypeVector() \\
+TypeDesc.TypeNormal() \\
+TypeDesc.TypeMatrix()}
+Pre-constructed \TypeDesc objects for some common types.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc.TypeFloat()
+\end{code}
+\apiend
+
+\apiitem{string {\ce str} (TypeDesc)}
+Returns a string that describes the \TypeDesc.
+
+\noindent Example:
+\begin{code}
+    print str(oiio.TypeDesc(oiio.UINT16))
+
+    > int16
+\end{code}
+\apiend
+
+\apiitem{TypeDesc.{\ce basetype} \\
+TypeDesc.{\ce aggregate} \\
+TypeDesc.{\ce vecsemantics} \\
+TypeDesc.{\ce arraylen}}
+Access to the raw fields in the \TypeDesc.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc(...)
+    if t.basetype == oiio.FLOAT :
+        print "It's made of floats"
+\end{code}
+\apiend
+
+\apiitem{int TypeDesc.{\ce size} () \\
+int TypeDesc.{\ce basesize} () \\
+TypeDesc TypeDesc.{\ce elementtype} () \\
+int TypeDesc.{\ce numelements} () \\
+int TypeDesc.{\ce elementsize} ()}
+The {\cf size()} is the size in bytes, of the type described.  The
+{\cf basesize()} is the size in bytes of the {\cf basetype}.
+
+The {\cf elementtype()} is the type of each array element, if it is an
+array, or just the full type if it is not an array.  The {\cf elementsize()}
+is the size, in bytes, of the {\cf elementtype} (thus, returning the same
+value as {\cf size()} if the type is not an array).  The {\cf numelements()}
+method returns {\cf arraylen} if it is an array, or {\cf 1} if it is not
+an array.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc("point[2]")
+    print "size =", t.size()
+    print "elementtype =", t.elementtype()
+    print "elementsize =", t.elementsize()
+
+    > size = 24
+    > elementtype = point
+    > elementsize = 12
+\end{code}
+\apiend
+
+\apiitem{bool typedesc {\ce ==} typedesc \\
+bool typedesc {\ce !=} typedesc \\
+bool TypeDesc.{\ce equivalent} (typedesc) \\}
+Test for equality or inequality.  The {\cf equivalent()} method is more
+forgiving than {\cf ==}, in that it considers {\cf POINT}, {\cf VECTOR},
+and {\cf NORMAL} vector semantics to not constitute a difference from one
+another.
+
+\noindent Example:
+\begin{code}
+    f = oiio.TypeDesc("float")
+    p = oiio.TypeDesc("point")
+    v = oiio.TypeDesc("vector")
+    print "float==point?", (f == p)
+    print "vector==point?", (v == p)
+    print "float.equivalent(point)?", f.equivalent(p)
+    print "vector.equivalent(point)?", v.equivalent(p)
+
+    > float==point? False
+    > vector==point? False
+    > float.equivalent(point)? False
+    > vector.equivalent(point)? True
+\end{code}
+\apiend
+
+
+\index{Python|)}
+
+\chapwidthend
