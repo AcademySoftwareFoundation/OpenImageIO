@@ -285,6 +285,10 @@ if (USE_FIELD3D)
         # variables HDF5_INCLUDE_DIRS and HDF5_LIBRARIES.
     else ()
         find_package (HDF5 COMPONENTS CXX)
+        set (HDF5_LIBRARIES ${HDF5_LIBRARIES_RELEASE})
+        # The above line forces use of the release version of HDF5
+        # libraries; even when we compile OIIO in debug mode, we don't
+        # want the debug versions of HDF5 (which may not even be installed).
     endif ()
     if (VERBOSE)
         message (STATUS "HDF5_FOUND=${HDF5_FOUND}")
