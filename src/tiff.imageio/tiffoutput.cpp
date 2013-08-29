@@ -206,7 +206,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     
 	// write possible ICC profile
 	unsigned char* profile=NULL;
-	unsigned int size=0;
+	unsigned long size=0;
 	if(m_spec.get_icc_profile(profile,size)){
 		TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, profile, size);
 	}
@@ -268,8 +268,8 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // Default to LZW compression if no request came with the user spec
-	if (! m_spec.find_attribute("Compression")){
-        m_spec.attribute ("Compression", "lzw");
+	if (! m_spec.find_attribute("compression")){
+        m_spec.attribute ("compression", "lzw");
 	}
 
     ImageIOParameter *param;

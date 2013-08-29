@@ -460,7 +460,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
 
 	/// read embedded color profile
 	unsigned char* profile=NULL;
-	unsigned int length=0;
+	unsigned long length=0;
 	if(spec.get_icc_profile(profile,length)){
 		png_set_iCCP(sp,ip,"Embedded Profile", 0, (png_const_bytep)profile,length);
 	}

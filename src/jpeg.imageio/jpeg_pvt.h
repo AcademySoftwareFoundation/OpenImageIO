@@ -108,7 +108,7 @@ class JpgInput : public ImageInput {
 };
 
 #define MAX_DATA_BYTES_IN_MARKER 65519L
-#define ICC_HEADER_SIZE 14
+#define ICC_HEADER_SIZE 14  /// 'ICC_PROFILE ' contains 12 characters, the 13th byte stores the seq num and the 14th byte stores the number of markers 
 
 OIIO_PLUGIN_NAMESPACE_END
 

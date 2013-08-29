@@ -86,6 +86,9 @@ my_error_exit (j_common_ptr cinfo)
 }
 
 
+
+/// read embedded color profile from APP2 marker of JPEG
+static
 bool read_jpeg_icc_profile(unsigned char *icc_data, unsigned int size, ImageSpec &spec){
 	int num_markers = 0;
 	int seq_no;
@@ -103,7 +106,7 @@ bool read_jpeg_icc_profile(unsigned char *icc_data, unsigned int size, ImageSpec
 	if(seq_no<=0&&seq_no>num_markers){
 		return false;
 	}
-	const int ICCHeaderSize=14; 
+	const int ICCHeaderSize=14;  ///
 	data_length[seq_no]=size - ICCHeaderSize;
 	for(seq_no=1;seq_no <= num_markers; seq_no++){
 

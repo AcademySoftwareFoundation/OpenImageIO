@@ -536,10 +536,11 @@ TIFFInput::readspec (bool read_meta)
     // it all wrong?
 	
 	// read embedded color profile from TIFFTAG and store it into m_spec
-	unsigned int iccSize=0;
+	unsigned long iccSize=0;
 	unsigned char *iccBuf=NULL;
 	TIFFGetField(m_tif,TIFFTAG_ICCPROFILE, &iccSize, &iccBuf);
-	m_spec.set_icc_profile(iccBuf,iccSize);
+	/// if iccBuf is not NULL and iccSize is not zero, a color profile will be create in m_spec.
+	m_spec.set_icc_profile(iccBuf,iccSize); 
     
 	if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
           && width > 0)
