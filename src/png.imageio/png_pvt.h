@@ -168,7 +168,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 		png_uint_32 profile_length=0;
 		int compression_type;
 		png_get_iCCP(sp,ip,&profile_name,&compression_type,&profile_data,&profile_length);
-		create_icc_profile(profile_data,profile_length,spec);
+		spec.set_icc_profile(profile_data,profile_length);
 	}
 
     png_timep mod_time;
@@ -458,8 +458,9 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
     }
 
-	unsigned char* profile;
-	unsigned int length;
+	/// read embedded color profile
+	unsigned char* profile=NULL;
+	unsigned int length=0;
 	if(spec.get_icc_profile(profile,length)){
 		png_set_iCCP(sp,ip,"Embedded Profile", 0, (png_const_bytep)profile,length);
 	}

@@ -86,6 +86,51 @@ my_error_exit (j_common_ptr cinfo)
 }
 
 
+bool read_jpeg_icc_profile(unsigned char *icc_data, unsigned int size, ImageSpec &spec){
+	int num_markers = 0;
+	int seq_no;
+	unsigned char* icc_buf=NULL;
+	int total_length=0;
+
+	const int MAX_SEQ_NO = 255;			
+	unsigned char marker_present[MAX_SEQ_NO+1];	 // one extra is used to store the flag if marker is found, set to one if marker is found
+	unsigned data_length[MAX_SEQ_NO+1];		// store the size of each marker
+	unsigned data_offset[MAX_SEQ_NO+1];		// store the offset of each marker
+	
+	memset(marker_present,0,(MAX_SEQ_NO+1));
+	num_markers=icc_data[13];
+	seq_no=icc_data[12];
+	if(seq_no<=0&&seq_no>num_markers){
+		return false;
+	}
+	const int ICCHeaderSize=14; 
+	data_length[seq_no]=size - ICCHeaderSize;
+	for(seq_no=1;seq_no <= num_markers; seq_no++){
+
+		marker_present[seq_no]=1;
+
+		data_offset[seq_no]=total_length;
+		total_length += data_length[seq_no];
+	}
+
+	if(total_length <=0) return false; // found only empty markers
+	
+	icc_buf = (unsigned char* )malloc(total_length*sizeof(unsigned char));
+	if (icc_buf==NULL)
+		return false;	// out of memory
+	
+	seq_no = icc_data[12];
+	unsigned char* dst_ptr=icc_buf+data_offset[seq_no];
+	unsigned char* src_ptr=icc_data+ICCHeaderSize;
+	int length=data_length[seq_no];
+	while(length--){
+		*dst_ptr++=*src_ptr++;
+	}
+	
+	spec.set_icc_profile(icc_buf,total_length);
+
+	return true;
+}
 
 static void
 my_output_message (j_common_ptr cinfo)

@@ -205,8 +205,8 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, orientation);
     
 	// write possible ICC profile
-	unsigned char* profile;
-	unsigned int size;
+	unsigned char* profile=NULL;
+	unsigned int size=0;
 	if(m_spec.get_icc_profile(profile,size)){
 		TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, profile, size);
 	}

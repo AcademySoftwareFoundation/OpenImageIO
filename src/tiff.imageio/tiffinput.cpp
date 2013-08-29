@@ -535,11 +535,11 @@ TIFFInput::readspec (bool read_meta)
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
 	
-	/// read color profile
+	// read embedded color profile from TIFFTAG and store it into m_spec
 	unsigned int iccSize=0;
 	unsigned char *iccBuf=NULL;
 	TIFFGetField(m_tif,TIFFTAG_ICCPROFILE, &iccSize, &iccBuf);
-	create_icc_profile(iccBuf,iccSize,m_spec);
+	m_spec.set_icc_profile(iccBuf,iccSize);
     
 	if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
           && width > 0)
