@@ -408,8 +408,15 @@ TGAOutput::write_tga20_data_fields ()
         pad (4);
 
         // alpha type - one byte
-        unsigned char at = (m_spec.nchannels % 2 == 0)
-                             ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+        unsigned char at = TGA_ALPHA_NONE;
+
+        if (m_spec.nchannels % 2 == 0) {
+            if (m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0))
+                at = TGA_ALPHA_USEFUL;
+            else
+                at = TGA_ALPHA_PREMULTIPLIED;
+        }
+
         if (!fwrite(&at))
             return false;
 
