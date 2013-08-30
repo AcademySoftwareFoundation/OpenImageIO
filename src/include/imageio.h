@@ -390,10 +390,10 @@ public:
 	/// Return the embedded color profile of an image, 
 	/// the embedded color profile may have different size. 
 	/// If the image contains no color proflie, the profile pointer is NULL and the size is zero.
-	bool get_icc_profile(const unsigned char* profile, unsigned long& size);
+	bool get_icc_profile(unsigned char* &profile, unsigned long& size);
 
 	/// Set a color profile for an image.
-	bool set_icc_profile(unsigned char* profile, unsigned long size);
+	bool set_icc_profile(const unsigned char* profile, unsigned long size);
 
 };
 

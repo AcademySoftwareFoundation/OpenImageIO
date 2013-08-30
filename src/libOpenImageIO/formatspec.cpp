@@ -253,7 +253,7 @@ ImageSpec::channel_bytes (int chan, bool native) const
         return channelformats[chan].size();
 }
 
-bool ImageSpec::get_icc_profile(const unsigned char* profile, unsigned long& size){
+bool ImageSpec::get_icc_profile(unsigned char* &profile, unsigned long& size){
 		 bool flag=false;
 		 ImageIOParameter* icc_profile_parameter=find_attribute("icc-profile");
 		 if(icc_profile_parameter!=NULL){
@@ -263,7 +263,7 @@ bool ImageSpec::get_icc_profile(const unsigned char* profile, unsigned long& siz
 				flag=false;
 			 }
 			 else{
-				flag=true;
+			    flag=true;
 			 }
 		 }
 		 else{
@@ -274,7 +274,7 @@ bool ImageSpec::get_icc_profile(const unsigned char* profile, unsigned long& siz
 		 return flag;
 }
 
-bool ImageSpec::set_icc_profile(unsigned char* profile, unsigned long size){
+bool ImageSpec::set_icc_profile(const unsigned char* profile, unsigned long size){
 	bool flag=false;
 	if(profile!=NULL&&size!=0){
 			erase_attribute("icc-profile");
