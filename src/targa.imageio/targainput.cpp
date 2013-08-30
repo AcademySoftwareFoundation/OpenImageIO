@@ -462,7 +462,8 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     if (m_spec.alpha_channel != -1 && m_alpha != TGA_ALPHA_PREMULTIPLIED)
-        m_spec.attribute ("oiio:UnassociatedAlpha", 1);
+        if (m_keep_unassociated_alpha)
+            m_spec.attribute ("oiio:UnassociatedAlpha", 1);
 
     fseek (m_file, ofs, SEEK_SET);
 
