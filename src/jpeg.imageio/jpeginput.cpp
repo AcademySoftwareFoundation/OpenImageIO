@@ -89,7 +89,7 @@ my_error_exit (j_common_ptr cinfo)
 
 /// read embedded color profile from APP2 marker of JPEG
 static
-bool read_jpeg_icc_profile(unsigned char *icc_data, unsigned int size, ImageSpec &spec){
+bool read_jpeg_icc_profile(unsigned char *jpeg_icc_data, unsigned int size, ImageSpec &spec){
 	int num_markers = 0;
 	int seq_no;
 	unsigned char* icc_buf=NULL;
@@ -101,35 +101,24 @@ bool read_jpeg_icc_profile(unsigned char *icc_data, unsigned int size, ImageSpec
 	unsigned data_offset[MAX_SEQ_NO+1];		// store the offset of each marker
 	
 	memset(marker_present,0,(MAX_SEQ_NO+1));
-	num_markers=icc_data[13];
-	seq_no=icc_data[12];
+	num_markers=jpeg_icc_data[13];
+	seq_no=jpeg_icc_data[12];
 	if(seq_no<=0&&seq_no>num_markers){
 		return false;
 	}
-	const int ICCHeaderSize=14;  ///
-	data_length[seq_no]=size - ICCHeaderSize;
+	data_length[seq_no]=size - ICC_HEADER_SIZE;
 	for(seq_no=1;seq_no <= num_markers; seq_no++){
-
 		marker_present[seq_no]=1;
-
 		data_offset[seq_no]=total_length;
 		total_length += data_length[seq_no];
 	}
 
 	if(total_length <=0) return false; // found only empty markers
-	
 	icc_buf = (unsigned char* )malloc(total_length*sizeof(unsigned char));
 	if (icc_buf==NULL)
 		return false;	// out of memory
-	
-	seq_no = icc_data[12];
-	unsigned char* dst_ptr=icc_buf+data_offset[seq_no];
-	unsigned char* src_ptr=icc_data+ICCHeaderSize;
-	int length=data_length[seq_no];
-	while(length--){
-		*dst_ptr++=*src_ptr++;
-	}
-	
+	seq_no = jpeg_icc_data[12];
+	memcpy(icc_buf+data_offset[seq_no], jpeg_icc_data+ICC_HEADER_SIZE,data_length[seq_no]); 
 	spec.set_icc_profile(icc_buf,total_length);
 
 	return true;

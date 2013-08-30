@@ -354,8 +354,6 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                 compress = COMPRESSION_PACKBITS;
             else if (Strutil::iequals (str, "ccittrle"))
                 compress = COMPRESSION_CCITTRLE;
-			else if (Strutil::iequals (str, "tiff_deflate"))
-				compress = COMPRESSION_DEFLATE;
         }
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
         // Use predictor when using compression

@@ -224,13 +224,13 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     // Write XMP packet, if we have anything
-    std::string xmp = encode_xmp (m_spec, true);
-    if (! xmp.empty()) {
-        static char prefix[] = "http://ns.adobe.com/xap/1.0/";
-        std::vector<char> block (prefix, prefix+strlen(prefix)+1);
-        block.insert (block.end(), xmp.c_str(), xmp.c_str()+xmp.length());
-        jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&block[0], block.size());
-    }
+	std::string xmp = encode_xmp (m_spec, true);
+	if (! xmp.empty()) {
+		static char prefix[] = "http://ns.adobe.com/xap/1.0/";
+		std::vector<char> block (prefix, prefix+strlen(prefix)+1);
+		block.insert (block.end(), xmp.c_str(), xmp.c_str()+xmp.length());
+		jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&block[0], block.size());
+	}
 
 	m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 	//write embedded color profile to JPEG APP2 marker

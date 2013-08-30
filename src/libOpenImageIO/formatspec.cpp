@@ -275,16 +275,11 @@ bool ImageSpec::get_icc_profile(const unsigned char* profile, unsigned long& siz
 }
 
 bool ImageSpec::set_icc_profile(unsigned char* profile, unsigned long size){
-	unsigned char* icc_buf=NULL;
 	bool flag=false;
 	if(profile!=NULL&&size!=0){
-	icc_buf = (unsigned char* )malloc(size*sizeof(unsigned char));
-		if(icc_buf){
-			memcpy(icc_buf,profile,size);
 			erase_attribute("icc-profile");
 			attribute ("icc-profile", TypeDesc(TypeDesc::UINT8, size), profile);
 			flag=true;
-		}
 	}
 	return flag;
 }

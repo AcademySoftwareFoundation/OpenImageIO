@@ -146,8 +146,6 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     png_init_io (m_png, m_file);
-
-	
 	png_set_compression_level (m_png, 6 /* medium speed vs size tradeoff */);
 	
 	

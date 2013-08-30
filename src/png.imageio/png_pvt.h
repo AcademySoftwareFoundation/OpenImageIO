@@ -162,6 +162,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         }
     }
 
+	/// read PNG color profile
 	if(png_get_valid(sp,ip, PNG_INFO_iCCP)){
 		png_charp profile_name=NULL;
 		png_bytep profile_data=NULL;
@@ -458,7 +459,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
     }
 
-	/// read embedded color profile
+	/// write embedded color profile
 	unsigned char* profile=NULL;
 	unsigned long length=0;
 	if(spec.get_icc_profile(profile,length)){
