@@ -235,19 +235,18 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
 	m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 	//write embedded color profile to JPEG APP2 marker
 	unsigned char* icc_profile=NULL;
-	unsigned long length=0;
-	if(m_spec.get_icc_profile(icc_profile,length)){
+	unsigned long icc_data_size=0;
+	if(m_spec.get_icc_profile(icc_profile,icc_data_size)){
 		unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
-		unsigned char* profile=(unsigned char*)malloc((length+ICC_HEADER_SIZE)*sizeof(unsigned char));
+		unsigned char* profile=(unsigned char*)malloc((icc_data_size+ICC_HEADER_SIZE)*sizeof(unsigned char));
 		if(profile != NULL){ 
-			long total_length=length+ICC_HEADER_SIZE;
 			memcpy(profile,icc_signature,12);
-			profile[13]=(unsigned char) (length/MAX_DATA_BYTES_IN_MARKER + 1);
-			for(long i=0;i<(int)length;i+=MAX_DATA_BYTES_IN_MARKER){
-				unsigned marker_size=std::min((long)length-i,MAX_DATA_BYTES_IN_MARKER);
+			for(long i=0;i<(int)icc_data_size;i+=MAX_DATA_BYTES_IN_MARKER){
+				unsigned marker_size=std::min((long)icc_data_size-i,MAX_DATA_BYTES_IN_MARKER);
 				profile[12]=(unsigned char) ((i / MAX_DATA_BYTES_IN_MARKER) + 1);
-				memcpy(profile+ICC_HEADER_SIZE, icc_profile,length); 
-				jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,marker_size);
+				profile[13]=(unsigned char) (icc_data_size/MAX_DATA_BYTES_IN_MARKER + 1);
+				memcpy(profile+ICC_HEADER_SIZE, icc_profile+i,marker_size); 
+				jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,marker_size+ICC_HEADER_SIZE);
 			}
 			free(profile);
 		}
