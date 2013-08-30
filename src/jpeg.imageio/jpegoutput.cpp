@@ -247,7 +247,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
 				unsigned marker_size=std::min((long)length-i,MAX_DATA_BYTES_IN_MARKER);
 				profile[12]=(unsigned char) ((i / MAX_DATA_BYTES_IN_MARKER) + 1);
 				memcpy(profile+ICC_HEADER_SIZE, icc_profile,length); 
-				jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,total_length);
+				jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,marker_size);
 			}
 			free(profile);
 		}

@@ -539,10 +539,11 @@ TIFFInput::readspec (bool read_meta)
 	unsigned long iccSize=0;
 	unsigned char *iccBuf=NULL;
 	TIFFGetField(m_tif,TIFFTAG_ICCPROFILE, &iccSize, &iccBuf);
-	/// if iccBuf is not NULL and iccSize is not zero, a color profile will be create in m_spec.
-	m_spec.set_icc_profile(iccBuf,iccSize); 
-    
-	if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
+	/// if iccBuf is not NULL and iccSize is not zero, a color profile will be create in m_spec，
+    /// otherwise, it will be ignored by set_icc_profile function.
+    m_spec.set_icc_profile(iccBuf,iccSize); 
+
+    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
           && width > 0)
         m_spec.full_width = width;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1
