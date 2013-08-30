@@ -1,8 +1,6 @@
 #!/usr/bin/env python 
 
 import OpenImageIO as oiio
-import array
-import sys
 
 
 # Test that every expected enum value of BASETYPE exists
