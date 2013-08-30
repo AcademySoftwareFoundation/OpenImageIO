@@ -160,7 +160,8 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
     png_set_sig_bytes (m_png, 8);  // already read 8 bytes
 
     PNG_pvt::read_info (m_png, m_info, m_bit_depth, m_color_type,
-                        m_interlace_type, m_bg, m_spec);
+                        m_interlace_type, m_bg, m_spec,
+                        m_keep_unassociated_alpha);
 
     newspec = spec ();
     m_next_scanline = 0;

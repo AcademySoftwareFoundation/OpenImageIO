@@ -64,6 +64,8 @@ private:
     png_structp m_png;                ///< PNG read structure pointer
     png_infop m_info;                 ///< PNG image info structure pointer
     int m_color_type;                 ///< PNG color model type
+    bool m_convert_alpha;             ///< Do we deassociate alpha?
+    float m_gamma;                    ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
 
@@ -72,6 +74,8 @@ private:
         m_file = NULL;
         m_png = NULL;
         m_info = NULL;
+        m_convert_alpha = true;
+        m_gamma = 1.0;
         m_pngtext.clear ();
     }
 
@@ -148,7 +152,8 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     png_init_io (m_png, m_file);
     png_set_compression_level (m_png, 6 /* medium speed vs size tradeoff */);
 
-    PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext);
+    PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext,
+                         m_convert_alpha, m_gamma);
 
     return true;
 }
@@ -219,16 +224,15 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
     }
 
     // PNG specifically dictates unassociated (un-"premultiplied") alpha
-    if (m_spec.alpha_channel != -1) {
-        float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0f);
+    if (m_convert_alpha) {
         if (m_spec.format == TypeDesc::UINT16)
             deassociateAlpha ((unsigned short *)data, m_spec.width,
                               m_spec.nchannels, m_spec.alpha_channel,
-                              gamma);
+                              m_gamma);
         else
             deassociateAlpha ((unsigned char *)data, m_spec.width,
                               m_spec.nchannels, m_spec.alpha_channel,
-                              gamma);
+                              m_gamma);
     }
 
     // PNG is always big endian
