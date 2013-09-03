@@ -274,17 +274,10 @@ private:
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename, PerThreadInfo *thread_info) {
-        // Per-thread microcache that prevents locking of the file mutex
-        TextureFile *texturefile = thread_info->find_file (filename);
-        if (! texturefile) {
-            // Fall back on the master cache
-            texturefile = m_imagecache->find_file (filename, thread_info);
-            if (!texturefile || texturefile->broken())
-                error ("%s", m_imagecache->geterror().c_str());
-            thread_info->filename (filename, texturefile);
-        }
+        TextureFile *texturefile = m_imagecache->find_file (filename, thread_info);
+        if (!texturefile || texturefile->broken())
+            error ("%s", m_imagecache->geterror().c_str());
         return texturefile;
-
     }
 
     /// Find the tile specified by id.  If found, return true and place
