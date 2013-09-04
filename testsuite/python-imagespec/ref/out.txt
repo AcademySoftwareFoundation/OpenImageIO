@@ -1,0 +1,101 @@
+ctr: null
+  resolution (width,height,depth) =  0 0 1
+  origin (x,y,z) =  0 0 0
+  full res =  0 0 0
+  full origin =  0 0 0
+  untiled
+  format =  unknown
+  nchannels =  0
+  channelformats =  ()
+  channel names =  ()
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  quantization: black=0, white=255, min=0, max=255
+
+ctr: UINT16
+  resolution (width,height,depth) =  0 0 1
+  origin (x,y,z) =  0 0 0
+  full res =  0 0 0
+  full origin =  0 0 0
+  untiled
+  format =  uint16
+  nchannels =  0
+  channelformats =  ()
+  channel names =  ()
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  quantization: black=0, white=65535, min=0, max=65535
+
+ctr: 640x480,3 UINT8
+  resolution (width,height,depth) =  640 480 1
+  origin (x,y,z) =  0 0 0
+  full res =  640 480 1
+  full origin =  0 0 0
+  untiled
+  format =  uint8
+  nchannels =  3
+  channelformats =  ()
+  channel names =  ('R', 'G', 'B')
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  quantization: black=0, white=255, min=0, max=255
+
+lots of fields
+  resolution (width,height,depth) =  640 480 1
+  origin (x,y,z) =  1 2 3
+  full res =  1280 960 7
+  full origin =  4 5 6
+  tile size =  32 64 16
+  format =  float
+  nchannels =  5
+  channelformats =  (2, 2, 2, 2, 11)
+  channel names =  ('R', 'G', 'B', 'A', 'channel4')
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  quantization: black=0, white=0, min=0, max=0
+
+channel bytes = 4
+  channel_bytes(1) = 4 native 1
+  channel_bytes(4) = 4 native 4
+pixel bytes = 20 native 8
+scanline bytes = 12800 native 5120
+tile bytes = 655360 native 262144
+image bytes = 6144000 native 2457600
+tile pixels = 32768
+image_pixels = 307200
+size_t_safe = True
+
+get_int_attribute('foo_int') retrieves 14
+get_int_attribute('foo_int',21) with default retrieves 14
+get_int_attribute('foo_no',23) retrieves 23
+get_float_attribute('foo_float') retrieves 3.1400001049
+get_float_attribute('foo_float_no') retrieves 0.0
+get_float_attribute('foo_float_no',2.7) retrieves 2.70000004768
+get_string_attribute('foo_str') retrieves blah
+get_string_attribute('foo_str_no') retrieves 
+get_string_attribute('foo_str_no','xx') retrieves xx
+
+get_attribute('foo_int') retrieves 14
+get_attribute('foo_float') retrieves 3.1400001049
+get_attribute('foo_str') retrieves blah
+get_attribute('foo_vector') retrieves (1.0, 0.0, 11.0)
+get_attribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
+get_attribute('foo_no') retrieves None
+
+extra_attribs size is 5
+0 foo_str string blah
+"blah"
+1 foo_int int 14
+14
+2 foo_float float 3.1400001049
+3.14
+3 foo_vector vector (1.0, 0.0, 11.0)
+1 0 11
+4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
+1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+
+Done.

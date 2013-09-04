@@ -1,0 +1,430 @@
+\chapter{Python Bindings}
+\label{chap:pythonbindings}
+\indexapi{Python|()}
+
+\section{Overview}
+
+\OpenImageIO provides Python language bindings for much of its
+functionality.
+
+\smallskip
+
+You must ensure that the environment variable {\cf PYTHONPATH} includes
+the {\cf python} subdirectory of the \OpenImageIO installation.
+
+\smallskip
+
+A Python program must import the {\cf OpenImageIO} package:
+\begin{code}
+    import OpenImageIO
+\end{code}
+\noindent In most of our examples below, we assume that for the sake
+of brevity, we will alias the package name as follows:
+\begin{code}
+    import OpenImageIO as oiio
+\end{code}
+
+\section{TypeDesc}
+
+The \TypeDesc class that describes data types of pixels and metadata,
+described in detail in Section~\ref{sec:TypeDesc}, is replicated for Python.
+
+\apiitem{BASETYPE}
+The {\cf BASETYPE} enum corresponds to the C++ {\cf TypeDesc::BASETYPE} and
+contains the following values: \\
+{\cf UNKNOWN NONE UINT8 INT8 UINT16 INT16 UINT32 INT32 UINT64 INT64 \\
+HALF FLOAT DOUBLE STRING PTR} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{AGGREGATE}
+The {\cf AGGREGATE} enum corresponds to the C++ {\cf TypeDesc::AGGREGATE} and
+contains the following values: \\
+{\cf SCALAR VEC2 VEC3 VEC4 MATRIX44} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{VECSEMANTICS}
+The {\cf VECSEMANTICS} enum corresponds to the C++ {\cf TypeDesc::VECSEMANTICS} and
+contains the following values: \\
+{\cf NOXFORM COLOR POINT VECTOR NORMAL} \\
+These names are also exported to the {\cf OpenImageIO} namespace.
+\apiend
+
+\apiitem{TypeDesc () \\
+TypeDesc (basetype) \\
+TypeDesc (basetype, aggregate) \\
+TypeDesc (basetype, aggregate, vecsemantics) \\
+TypeDesc (basetype, aggregate, vecsemantics, arraylen) \\
+TypeDesc (str)}
+
+Construct a {\cf TypeDesc} object.  
+
+\noindent Examples:
+\begin{code}
+    import OpenImageIO as oiio
+
+    # make a default (UNKNOWN) TypeDesc
+    t = oiio.TypeDesc()
+
+    # make a TypeDesc describing an unsigned 8 bit int
+    t = oiio.TypeDesc(oiio.UINT8)
+
+    # make a TypeDesc describing an array of 14 'half' values
+    t = oiio.TypeDesc(oiio.HALF, oiio.SCALAR, oiio.NOXFORM, 14)
+
+    # make a TypeDesc describing a float point
+    t = oiio.TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT)
+
+    # Some constructors from a string description
+    t = oiio.TypeDesc("uint8")
+    t = oiio.TypeDesc("half[14]")
+    t = oiio.TypeDesc("point")     # equiv to FLOAT, VEC3, POINT
+\end{code}
+\apiend
+
+\apiitem{TypeDesc.TypeFloat() \\
+TypeDesc.TypeInt() \\
+TypeDesc.TypeString() \\
+TypeDesc.TypeColor() \\
+TypeDesc.TypePoint() \\
+TypeDesc.TypeVector() \\
+TypeDesc.TypeNormal() \\
+TypeDesc.TypeMatrix()}
+Pre-constructed \TypeDesc objects for some common types.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc.TypeFloat()
+\end{code}
+\apiend
+
+\apiitem{string {\ce str} (TypeDesc)}
+Returns a string that describes the \TypeDesc.
+
+\noindent Example:
+\begin{code}
+    print str(oiio.TypeDesc(oiio.UINT16))
+
+    > int16
+\end{code}
+\apiend
+
+\apiitem{TypeDesc.{\ce basetype} \\
+TypeDesc.{\ce aggregate} \\
+TypeDesc.{\ce vecsemantics} \\
+TypeDesc.{\ce arraylen}}
+Access to the raw fields in the \TypeDesc.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc(...)
+    if t.basetype == oiio.FLOAT :
+        print "It's made of floats"
+\end{code}
+\apiend
+
+\apiitem{int TypeDesc.{\ce size} () \\
+int TypeDesc.{\ce basesize} () \\
+TypeDesc TypeDesc.{\ce elementtype} () \\
+int TypeDesc.{\ce numelements} () \\
+int TypeDesc.{\ce elementsize} ()}
+The {\cf size()} is the size in bytes, of the type described.  The
+{\cf basesize()} is the size in bytes of the {\cf basetype}.
+
+The {\cf elementtype()} is the type of each array element, if it is an
+array, or just the full type if it is not an array.  The {\cf elementsize()}
+is the size, in bytes, of the {\cf elementtype} (thus, returning the same
+value as {\cf size()} if the type is not an array).  The {\cf numelements()}
+method returns {\cf arraylen} if it is an array, or {\cf 1} if it is not
+an array.
+
+\noindent Example:
+\begin{code}
+    t = oiio.TypeDesc("point[2]")
+    print "size =", t.size()
+    print "elementtype =", t.elementtype()
+    print "elementsize =", t.elementsize()
+
+    > size = 24
+    > elementtype = point
+    > elementsize = 12
+\end{code}
+\apiend
+
+\apiitem{bool typedesc {\ce ==} typedesc \\
+bool typedesc {\ce !=} typedesc \\
+bool TypeDesc.{\ce equivalent} (typedesc) \\}
+Test for equality or inequality.  The {\cf equivalent()} method is more
+forgiving than {\cf ==}, in that it considers {\cf POINT}, {\cf VECTOR},
+and {\cf NORMAL} vector semantics to not constitute a difference from one
+another.
+
+\noindent Example:
+\begin{code}
+    f = oiio.TypeDesc("float")
+    p = oiio.TypeDesc("point")
+    v = oiio.TypeDesc("vector")
+    print "float==point?", (f == p)
+    print "vector==point?", (v == p)
+    print "float.equivalent(point)?", f.equivalent(p)
+    print "vector.equivalent(point)?", v.equivalent(p)
+
+    > float==point? False
+    > vector==point? False
+    > float.equivalent(point)? False
+    > vector.equivalent(point)? True
+\end{code}
+\apiend
+
+
+\section{ImageSpec}
+
+The \ImageSpec class that describes an image, explained in deail in
+Section~\ref{sec:ImageSpec}, is replicated for Python.
+
+\apiitem{{\ce ImageSpec} ()\\
+{\ce ImageSpec} (basetype) \\
+{\ce ImageSpec} (typedesc) \\
+{\ce ImageSpec} (xres, yres, nchannels, basetype) \\
+{\ce ImageSpec} (xres, yres, nchannels, typespec)}
+Constructors of an \ImageSpec. These correspond directly to the constructors
+in the C++ bindings.
+
+\noindent Example:
+\begin{code}
+    import OpenImageIO as oiio
+    ...
+
+    # default ctr
+    s = oiio.ImageSpec()
+
+    # construct with known pixel type, unknown resolution
+    s = oiio.ImageSpec(oiio.UINT8)
+
+    # construct with known resolution, channels, pixel data type
+    s = oiio.ImageSpec(640, 480, 4, oiio.HALF)
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce width}, ImageSpec.{\ce height}, ImageSpec.{\ce depth} \\
+ImageSpec.{\ce x}, ImageSpec.{\ce y}, ImageSpec.{\ce z}}
+Resolution and offset of the image data ({\cf int} values).
+
+\noindent Example:
+\begin{code}
+    s = oiio.ImageSpec (...)
+    print "Data window is ({},{})-({},{})".format (s.x, s.x+s.width-1,
+                                                   s.y, s.y+s.height-1)
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce full_width}, ImageSpec.{\ce full_height}, ImageSpec.{\ce full_depth} \\
+ImageSpec.{\ce full_x}, ImageSpec.{\ce full_y}, ImageSpec.{\ce full_z}}
+Resolution and offset of the ``full'' display window ({\cf int} values).
+\apiend
+
+\apiitem{ImageSpec.{\ce tile_width}, ImageSpec.{\ce tile_height}, ImageSpec.{\ce tile_depth}}
+For tiled images, the resolution of the tiles ({\cf int} values).  Will be
+{\cf 0} for  untiled images.
+\apiend
+
+\apiitem{typedesc ImageSpec.{\ce format}}
+A \TypeDesc describing the pixel data.
+\apiend
+
+\apiitem{int ImageSpec.{\ce nchannels}}
+An {\cf int} giving the number of color channels in the image.
+\apiend
+
+\apiitem{ImageSpec.{\ce channelnames}}
+A tuple of strings containing the names of each color channel.
+\apiend
+
+\apiitem{ImageSpec.{\ce channelformats}}
+If all color channels have the same format, that will be {\cf ImageSpec.format},
+and {\cf channelformats} will be {\cf None}.  However, if there are different
+formats per channel, they will be stored in {\cf channelformats} as a tuple
+of BASETYPE values, and {\cf format} will contain the ``widest'' of them.
+
+\noindent Example:
+\begin{code}
+    if spec.channelformats == None:
+        print "All color channels are", str(spec.format)
+    else:
+        print "Channel formats: "
+        for i in range(len(spec.channelformats)):
+            print "\t", str(oiio.TypeDesc(spec.channelformats[i]))
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce alpha_channel} \\
+ImageSpec.{\ce z_channel}}
+The channel index containing the alpha or depth channel, respectively, or
+-1 if either one does not exist or cannot be identified.
+\apiend
+
+\apiitem{ImageSpec.{\ce deep}}
+Hold {\cf True} if the image is a \emph{deep} (multiple samples per pixel)
+image, of {\cf False} if it is an ordinary image.
+\apiend
+
+\apiitem{ImageSpec.{\ce quant_black} \\
+ImageSpec.{\ce quant_white} \\
+ImageSpec.{\ce quant_min} \\
+ImageSpec.{\ce quant_max}}
+The quantization parameters used when the \ImageSpec is used to specify
+how to open a file for output (refer to
+Section~\ref{sec:imageoutput:quantization} for
+a more complete explanation of each of these parameters.)
+\apiend
+
+\apiitem{ImageSpec.{\ce set_format} (basetype) \\
+ImageSpec.{\ce set_format} (typedesc)}
+Given a {\cf BASETYPE} or a \TypeDesc, sets the {\cf format} field and
+also sets all the {\cf quantize} fields to the defaults for the given
+data format.
+
+\noindent Example:
+\begin{code}
+    s = oiio.ImageSpec ()
+    s.set_format (oiio.UINT8)
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce default_channel_names} ()}
+Sets {\cf channel_names} to the default names given the value of
+the {\cf nchannels} field.
+\apiend
+
+\apiitem{ImageSpec.{\ce format_from_quantize} (black, white, min, max)}
+Given the quantization parameters, returns a \TypeDesc giving the best
+data format that matches the quantization.
+\apiend
+
+\apiitem{ImageSpec.{\ce channel_bytes} () \\
+ImageSpec.{\ce channel_bytes} (channel, native=False)}
+Returns the size of a single channel value, in bytes (as an
+{\cf int}).
+(Analogous to the C++ member functions, see 
+Section~\ref{sec:ImageSpecMemberFuncs} for details.)
+\apiend
+
+\apiitem{ImageSpec.{\ce pixel_bytes} () \\
+ImageSpec.{\ce pixel_bytes} (native) \\
+ImageSpec.{\ce pixel_bytes} (chbegin, chend) \\
+ImageSpec.{\ce pixel_bytes} (chbegin, chend, native=False)}
+Returns the size of a pixel, in bytes (as an {\cf int}).
+(Analogous to the C++ member functions, see 
+Section~\ref{sec:ImageSpecMemberFuncs} for details.)
+\apiend
+
+\apiitem{ImageSpec.{\ce scanline_bytes} (native=False) \\
+ImageSpec.{\ce tile_bytes} (native=False) \\
+ImageSpec.{\ce image_bytes} (native=False)}
+Returns the size of a scanline, tile, or the full image, in bytes (as an
+{\cf int}). (Analogous to the C++ member functions, see 
+Section~\ref{sec:ImageSpecMemberFuncs} for details.)
+\apiend
+
+\apiitem{ImageSpec.{\ce tile_pixels} () \\
+ImageSpec.{\ce image_pixels} ()}
+Returns the number of pixels in a tile or the full image, respectively
+(as an {\cf int}). (Analogous to the C++ member functions, see 
+Section~\ref{sec:ImageSpecMemberFuncs} for details.)
+\apiend
+
+\apiitem{ImageSpec.{\ce attribute} (name, int) \\
+ImageSpec.{\ce attribute} (name, float) \\
+ImageSpec.{\ce attribute} (name, string) \\
+ImageSpec.{\ce attribute} (name, typedesc, data) \\}
+Sets a metadata value in the {\cf extra_attribs}.  If the metadata item
+is a single {\cf int}, {\cf float}, or {\cf string}, you can pass it
+directly. For other types, you must pass the \TypeDesc and then the
+data (for aggregate types or arrays, pass multiple values as a tuple).
+
+\noindent Example:
+\begin{code}
+    s = oiio.ImageSpec (...)
+    s.attribute ("foo_str", "blah")
+    s.attribute ("foo_int", 14)
+    s.attribute ("foo_float", 3.14)
+    s.attribute ("foo_vector", oiio.TypeDesc.TypeVector, (1, 0, 11))
+    s.attribute ("foo_matrix", oiio.TypeDesc.TypeMatrix,
+                 (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce get_attribute} (name) \\
+ImageSpec.{\ce get_attribute} (name, typedesc)}
+Retrieves a named metadata value from {\cf extra_attribs}.  The generic
+{\cf get_attribute()} function returns it regardless of type, or {\cf None}
+if the attribute does not exist.  The typed variety will only succeed
+if the attribute is actually of that type specified.
+
+\noindent Example:
+\begin{code}
+    foo = s.get_attribute ("foo")   # None if not found
+    foo = s.get_attribute ("foo", oiio.FLOAT)  # None if not found AND float
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce get_int_attribute} (name, defaultval=0) \\
+ImageSpec.{\ce get_float_attribute} (name, defaultval=0.0) \\
+ImageSpec.{\ce get_string_attribute} (name, defaultval="")}
+Retrieves a named metadata value from {\cf extra_attribs}, if it is
+found and is of the given type; returns the default value (or a passed
+value) if not found.
+
+\noindent Example:
+\begin{code}
+    # If "foo" is not found, or if it's not an int, return 0
+    foo = s.get_int_attribute ("foo")
+
+    # If "foo" is not found, or if it's not a string, return "blah"
+    foo = s.get_string_attribute ("foo", "blah")
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce extra_attribs}}
+Direct access to the {\cf extra_attribs} named metadata, appropriate for
+iterating over the entire list rather than searching for a particular named
+value.
+
+\vspace{-10pt}
+\apiitem{len(extra_attribs)}
+\vspace{10pt}
+Returns the number of extra attributes.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].name}
+\vspace{10pt}
+The name of the indexed attribute.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].type}
+\vspace{10pt}
+The type of the indexed attribute, as a \TypeDesc.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].value}
+\vspace{10pt}
+The value of the indexed attribute.
+\apiend
+
+\noindent Example:
+\begin{code}
+    s = oiio.ImageSpec(...)
+    ...
+    print "extra_attribs size is", len(s.extra_attribs)
+    for i in range(len(s.extra_attribs)) :
+        print i, s.extra_attribs[i].name, s.extra_attribs[i].type, " :"
+        print "\t", s.extra_attribs[i].value
+    print
+\end{code}
+\apiend
+
+
+\index{Python|)}
+
+\chapwidthend

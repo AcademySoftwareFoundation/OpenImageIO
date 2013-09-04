@@ -33,8 +33,33 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
+using self_ns::str;
 
-/// Declare the OIIO typedesc type to Python
+
+
+static TypeDesc::BASETYPE TypeDesc_get_basetype (const TypeDesc &t) {
+    return (TypeDesc::BASETYPE)t.basetype;
+}
+static TypeDesc::AGGREGATE TypeDesc_get_aggregate (const TypeDesc &t) {
+    return (TypeDesc::AGGREGATE)t.aggregate;
+}
+static TypeDesc::VECSEMANTICS TypeDesc_get_vecsemantics (const TypeDesc &t) {
+    return (TypeDesc::VECSEMANTICS)t.vecsemantics;
+}
+static void TypeDesc_set_basetype (TypeDesc &t, TypeDesc::BASETYPE val) {
+    t.basetype = val;
+}
+static void TypeDesc_set_aggregate (TypeDesc &t, TypeDesc::AGGREGATE val) {
+    t.aggregate = val;
+}
+static void TypeDesc_set_vecsemantics (TypeDesc &t, TypeDesc::VECSEMANTICS val) {
+    t.vecsemantics = val;
+}
+
+
+
+
+// Declare the OIIO TypeDesc type to Python
 void declare_typedesc() {
 
     enum_<TypeDesc::BASETYPE>("BASETYPE")
@@ -49,13 +74,20 @@ void declare_typedesc() {
         .value("SHORT",     TypeDesc::SHORT)
         .value("INT16",     TypeDesc::INT16)
         .value("UINT",      TypeDesc::UINT)
+        .value("UINT32",    TypeDesc::UINT32)
         .value("INT",       TypeDesc::INT)
+        .value("INT32",     TypeDesc::INT32)
+        .value("ULONGLONG", TypeDesc::ULONGLONG)
+        .value("UINT64",    TypeDesc::UINT64)
+        .value("LONGLONG",  TypeDesc::LONGLONG)
+        .value("INT64",     TypeDesc::INT64)
         .value("HALF",      TypeDesc::HALF)
         .value("FLOAT",     TypeDesc::FLOAT)
         .value("DOUBLE",    TypeDesc::DOUBLE)
         .value("STRING",    TypeDesc::STRING)
         .value("PTR",       TypeDesc::PTR)
         .value("LASTBASE",  TypeDesc::LASTBASE)
+        .export_values()
     ;
 
     enum_<TypeDesc::AGGREGATE>("AGGREGATE")
@@ -64,6 +96,7 @@ void declare_typedesc() {
         .value("VEC3",      TypeDesc::VEC3)
         .value("VEC4",      TypeDesc::VEC4)
         .value("MATRIX44",  TypeDesc::MATRIX44)
+        .export_values()
     ;
     
     enum_<TypeDesc::VECSEMANTICS>("VECSEMANTICS")
@@ -72,33 +105,59 @@ void declare_typedesc() {
         .value("POINT",    TypeDesc::POINT)
         .value("VECTOR",   TypeDesc::VECTOR)
         .value("NORMAL",   TypeDesc::NORMAL)
+        .export_values()
     ;
 
     class_<TypeDesc>("TypeDesc")
-        .def_readwrite("basetype",      &TypeDesc::basetype)
-        .def_readwrite("aggregate",     &TypeDesc::aggregate)
-        .def_readwrite("vecsemantics",  &TypeDesc::vecsemantics)
+        // basetype, aggregate, and vecsemantics should look like BASETYPE,
+        // AGGREGATE, VECSEMANTICS, but since they are stored as unsigned
+        // char, def_readwrite() doesn't do the right thing. Instead, we
+        // use set_foo/get_foo wrappers, but from Python it looks like
+        // regular member access.
+        .add_property("basetype", &TypeDesc_get_basetype, &TypeDesc_set_basetype)
+        .add_property("aggregate", &TypeDesc_get_aggregate, &TypeDesc_set_aggregate)
+        .add_property("vecsemantics", &TypeDesc_get_vecsemantics, &TypeDesc_set_vecsemantics)
         .def_readwrite("arraylen",      &TypeDesc::arraylen)
-
+        // Constructors: () [defined implicitly], (base), (base, agg), 
+        // (base,agg,vecsem), (base,agg,vecsem,arraylen), string.
         .def(init<TypeDesc::BASETYPE>())
         .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE>())
         .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS>())
-        .def(init<TypeDesc::BASETYPE, int>())
-        .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
         .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS, int>())
-        .def(init<const char *>()) //not sure how to test these inits from python
-        .def("c_str",        &TypeDesc::c_str)
-        .def("numelements",  &TypeDesc::numelements)
-        .def("size",         &TypeDesc::size)
-        .def("elementtype",  &TypeDesc::elementtype)
-        .def("elementsize",  &TypeDesc::elementsize)
-        .def("basesize",     &TypeDesc::basesize)
-        .def("fromstring",   &TypeDesc::fromstring)   //not  sure  how  to  test  this
-        //to do: operator overloads
-        
-        .def("unarray", &TypeDesc::unarray)
+        .def(init<const char *>())
+        // Unfortunately, overloading the int varieties, as we do in C++,
+        // doesn't seem to work properly, it can't distinguish between an
+        // int and an AGGREGATE, for example. Maybe in C++11 with strong
+        // enum typing, it will work. But for now, we must forego these
+        // variants of the constructors:
+        //   .def(init<TypeDesc::BASETYPE, int>())
+        //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
+        .def("c_str",            &TypeDesc::c_str)
+        .def("numelements",      &TypeDesc::numelements)
+        .def("size",             &TypeDesc::size)
+        .def("elementtype",      &TypeDesc::elementtype)
+        .def("elementsize",      &TypeDesc::elementsize)
+        .def("basesize",         &TypeDesc::basesize)
+        .def("fromstring",       &TypeDesc::fromstring)
+        .def("equivalent",       &TypeDesc::equivalent)
+        .def("unarray",          &TypeDesc::unarray)
 
-        //to do: static members        
+        // overloaded operators
+        .def(self == other<TypeDesc>())    // operator==
+        .def(self != other<TypeDesc>())    // operator!=
+
+        // Define Python str(TypeDesc), it automatically uses '<<'
+        .def(str(self))    // __str__
+
+        // Static members of pre-constructed types
+        .def_readonly("TypeFloat",  &TypeDesc::TypeFloat)
+        .def_readonly("TypeColor",  &TypeDesc::TypeColor)
+        .def_readonly("TypeString", &TypeDesc::TypeString)
+        .def_readonly("TypeInt",    &TypeDesc::TypeInt)
+        .def_readonly("TypePoint",  &TypeDesc::TypePoint)
+        .def_readonly("TypeVector", &TypeDesc::TypeVector)
+        .def_readonly("TypeNormal", &TypeDesc::TypeNormal)
+        .def_readonly("TypeMatrix", &TypeDesc::TypeMatrix)
     ;
 
 }

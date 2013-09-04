@@ -138,6 +138,13 @@ struct OIIO_API TypeDesc {
     /// type could be assembled, set base to UNKNOWN.
     TypeDesc (const char *typestring);
 
+    /// Copy constructor.
+    TypeDesc (const TypeDesc &t)
+        : basetype(t.basetype), aggregate(t.aggregate),
+          vecsemantics(t.vecsemantics), reserved(0), arraylen(t.arraylen)
+          { }
+
+
     /// Return the name, for printing and whatnot.  For example,
     /// "float", "int[5]", "normal"
     const char *c_str() const;
@@ -225,7 +232,12 @@ struct OIIO_API TypeDesc {
     friend bool equivalent (TypeDesc a, TypeDesc b) {
         return a.basetype == b.basetype && a.aggregate == b.aggregate &&
                a.arraylen == b.arraylen;
-    }        
+    }
+    /// Member version of equivalent
+    bool equivalent (TypeDesc b) const {
+        return this->basetype == b.basetype && this->aggregate == b.aggregate &&
+               this->arraylen == b.arraylen;
+    }
 
     /// Demote the type to a non-array
     ///
