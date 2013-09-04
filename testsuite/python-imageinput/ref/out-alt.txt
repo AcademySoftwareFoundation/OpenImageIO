@@ -1,0 +1,127 @@
+Could not open "badname.tif"
+	Error:  OpenImageIO could not open "badname.tif" as tif: Could not open file: badname.tif: Cannot open
+
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+  resolution 2048x1536+0+0
+  untiled
+  3 channels: ('R', 'G', 'B')
+  format =  uint8
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+  oiio:ColorSpace = "sRGB"
+  Make = "HTC"
+  Model = "T-Mobile G1"
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = 2
+  Software = "title;va"
+  Exif:YCbCrPositioning = 1
+  Exif:DateTimeOriginal = "2009:02:21 08:32:04"
+  Exif:DateTimeDigitized = "2009:02:21 08:32:04"
+  Exif:ColorSpace = 1
+  Exif:PixelXDimension = 2048
+  Exif:PixelYDimension = 1536
+  Exif:WhiteBalance = 0
+  GPS:LatitudeRef = "N"
+  GPS:Latitude = 39.0
+  GPS:LongitudeRef = "W"
+  GPS:Longitude = 120.0
+  GPS:AltitudeRef = 0
+  GPS:Altitude = 0.0
+  GPS:TimeStamp = 17.0
+  GPS:MapDatum = "WGS-84"
+  GPS:DateStamp = "1915:08:08"
+
+Opened "../../../../../oiio-images/grid.tx" as a tiff
+  resolution 1024x1024+0+0
+  tile size  64x64x1
+  4 channels: ('R', 'G', 'B', 'A')
+  format =  uint8
+  alpha channel =  3
+  z channel =  -1
+  deep =  False
+  oiio:BitsPerSample = 8
+  Orientation = 1
+  XResolution = 72.0
+  YResolution = 72.0
+  ResolutionUnit = 0
+  Software = "maketx g.tif -o grid.tx"
+  DateTime = "2009:09:12  0:53:24"
+  DocumentName = "g.tif"
+  textureformat = "Plain Texture"
+  wrapmodes = "black,black"
+  fovcot = 1.0
+  tiff:PhotometricInterpretation = 2
+  tiff:PlanarConfiguration = 1
+  planarconfig = "contig"
+  tiff:Compression = 8
+  compression = "zip"
+  IPTC:OriginatingProgram = "maketx g.tif -o grid.tx"
+  tiff:PageNumber = "0"
+Subimage 0 MIP level 1 :
+  resolution 512x512+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 2 :
+  resolution 256x256+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 3 :
+  resolution 128x128+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 4 :
+  resolution 64x64+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 5 :
+  resolution 32x32+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 6 :
+  resolution 16x16+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 7 :
+  resolution 8x8+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 8 :
+  resolution 4x4+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 9 :
+  resolution 2x2+0+0
+  tile size  64x64x1
+Subimage 0 MIP level 10 :
+  resolution 1x1+0+0
+  tile size  64x64x1
+
+Testing read_image:
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = array('B', [40, 35, 57])
+@ (2047, 1535) = array('B', [37, 56, 89])
+@ (1024, 768) = array('B', [137, 183, 233])
+
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = array('f', [0.15686275064945221, 0.13725490868091583, 0.22352941334247589])
+@ (2047, 1535) = array('f', [0.14509804546833038, 0.21960784494876862, 0.3490196168422699])
+@ (1024, 768) = array('f', [0.5372549295425415, 0.71764707565307617, 0.91372549533843994])
+
+Testing read_scanline:
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = array('B', [40, 35, 57])
+@ (0, 1535) = array('B', [82, 94, 136])
+
+Testing read_tile:
+Opened "../../../../../oiio-images/grid.tx" as a tiff
+@ (32, 32) = array('B', [0, 0, 0, 255])
+@ (160, 160) = array('B', [255, 127, 127, 255])
+
+Testing read_scanlines:
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = array('B', [40, 35, 57])
+@ (2047, 1535) = array('B', [37, 56, 89])
+@ (1024, 768) = array('B', [137, 183, 233])
+
+Testing read_tiles:
+Opened "../../../../../oiio-images/grid.tx" as a tiff
+@ (0, 0) = array('B', [0, 0, 0, 249])
+@ (1023, 1023) = array('B', [0, 0, 0, 249])
+@ (512, 512) = array('B', [0, 0, 0, 255])
+
+Done.

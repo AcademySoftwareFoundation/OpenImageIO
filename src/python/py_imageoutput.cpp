@@ -126,15 +126,8 @@ bool ImageOutputWrap::write_image (TypeDesc format, object &buffer,
 {
 
     const void *array = make_read_buffer(buffer);
-    if (function==handle<>(Py_None)) {
-        return m_output->write_image(format, array, xstride, ystride, 
-                                zstride, NULL, NULL);
-    }
-    else {
-        return m_output->write_image(format, array, xstride, ystride, zstride, 
-                            &PyProgressCallback, &function);
-    }
-    
+    return m_output->write_image(format, array, xstride, ystride, 
+                                 zstride, NULL, NULL);
 }
 
 //for testing if m_output looks ok
@@ -195,7 +188,6 @@ void declare_imageoutput()
 		.value("AppendSubimage", ImageOutput::AppendSubimage)
                 .value("AppendMIPLevel", ImageOutput::AppendMIPLevel)
 		.export_values();
-    scope().attr("AutoStride") = AutoStride;
 }
 
 } // namespace PyOpenImageIO

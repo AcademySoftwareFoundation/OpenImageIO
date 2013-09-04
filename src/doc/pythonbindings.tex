@@ -25,6 +25,7 @@ of brevity, we will alias the package name as follows:
 \end{code}
 
 \section{TypeDesc}
+\label{sec:pythontypedesc}
 
 The \TypeDesc class that describes data types of pixels and metadata,
 described in detail in Section~\ref{sec:TypeDesc}, is replicated for Python.
@@ -179,6 +180,7 @@ another.
 
 
 \section{ImageSpec}
+\label{sec:pythonimagespec}
 
 The \ImageSpec class that describes an image, explained in deail in
 Section~\ref{sec:ImageSpec}, is replicated for Python.
@@ -421,6 +423,371 @@ The value of the indexed attribute.
         print i, s.extra_attribs[i].name, s.extra_attribs[i].type, " :"
         print "\t", s.extra_attribs[i].value
     print
+\end{code}
+\apiend
+
+
+\newpage
+\subsection*{Example: Header info}
+
+Here is an illustrative example of the use of \ImageSpec, a working Python
+function that opens a file and prints all the relevant header
+information:
+
+\begin{tinycode}
+#!/usr/bin/env python 
+import OpenImageIO as oiio
+
+# Print the contents of an ImageSpec
+def print_imagespec (spec, subimage=0, mip=0) :
+    if spec.depth <= 1 :
+        print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
+    else :
+        print ("  resolution %dx%d%x%d+d%+d%+d" % 
+               (spec.width, spec.height, spec.depth, spec.x, spec.y, spec.z))
+    if (spec.width != spec.full_width or spec.height != spec.full_height
+        or spec.depth != spec.full_depth) :
+        if spec.full_depth <= 1 :
+            print ("  full res   %dx%d%+d%+d" % 
+                   (spec.full_width, spec.full_height, spec.full_x, spec.full_y))
+        else :
+            print ("  full res   %dx%d%x%d+d%+d%+d" % 
+                   (spec.full_width, spec.full_height, spec.full_depth,
+                    spec.full_x, spec.full_y, spec.full_z))
+    if spec.tile_width :
+        print ("  tile size  %dx%dx%d" % 
+               (spec.tile_width, spec.tile_height, spec.tile_depth))
+    else :
+        print "  untiled"
+    if mip >= 1 :
+        return
+    print "  " + str(spec.nchannels), "channels:", spec.channelnames
+    print "  format = ", str(spec.format)
+    if spec.channelformats :
+        print "  channelformats = ", spec.channelformats
+    print "  alpha channel = ", spec.alpha_channel
+    print "  z channel = ", spec.z_channel
+    print "  deep = ", spec.deep
+    for i in range(len(spec.extra_attribs)) :
+        if type(spec.extra_attribs[i].value) == str :
+            print " ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\""
+        else :
+            print " ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
+
+
+def poor_mans_iinfo (filename) :
+    input = oiio.ImageInput.open (filename)
+    if not input :
+        print 'Could not open "' + filename + '"'
+        print "\tError: ", oiio.geterror()
+        return
+    print 'Opened "' + filename + '" as a ' + input.format_name()
+    sub = 0
+    mip = 0
+    while True :
+        if sub > 0 or mip > 0 :
+            print "Subimage", sub, "MIP level", mip, ":"
+        print_imagespec (input.spec(), mip=mip)
+        mip = mip + 1
+        if input.seek_subimage (sub, mip) :
+            continue    # proceed to next MIP level
+        else :
+            sub = sub + 1
+            mip = 0
+            if input.seek_subimage (sub, mip) :
+                continue    # proceed to next subimage
+        break  # no more MIP levels or subimages
+    input.close ()
+\end{tinycode}
+
+
+\section{ImageInput}
+\label{sec:pythonimageinput}
+
+See Chapter~\ref{chap:imageinput} for detailed explanations of the
+C++ \ImageInput class APIs. The Python APIs are very similar. The biggest
+difference is that in C++, the various {\cf read_*} functions write the
+pixel values into an already-allocated array that belongs to the caller,
+whereas the Python versions allocate and return an array holding the pixel
+values (or {\cf None} if the read failed).
+
+
+\apiitem{ImageInput.{\ce open} (filename) \\
+ImageInput.{\ce open} (filename, config_imagespec)}
+Creates an \ImageInput object and opens the named file.  Returns the
+open \ImageInput upon success, or {\cf None} if it failed to open the
+file (after which, {\cf OpenImageIO.geterror()} will contain an error
+message).  In the second form, the optional \ImageSpec argument 
+{\cf config} contains attributes that may set certain options when opening
+the file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open ("tahoe.jpg")
+    if input == None :
+        print "Error:", oiio.geterror()
+        return
+\end{code}
+\apiend
+
+\apiitem{bool ImageInput.{\ce close} ()}
+Closes an open image file, returning {\cf True} if successful, {\cf False}
+otherwise.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    ...
+    input.close ()
+\end{code}
+\apiend
+
+
+\apiitem{str ImageInput.{\ce format_name} ()}
+Returns the format name of the open file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    if input :
+        print filename, "was a", input.format_name(), "file."
+        input.close ()
+  
+\end{code}
+\apiend
+
+\apiitem{ImageSpec ImageInput.{\ce spec} ()}
+Returns the \ImageSpec corresponding to the currently open subimage and
+MIP level of the file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec()
+    print "resolution ", spec.width, "x", spec.height
+\end{code}
+\apiend
+
+\apiitem{int ImageInput.{\ce current_subimage} () \\
+int ImageInput.{\ce current_miplevel} ()}
+Returns the current subimage and/or MIP level of the file.
+\apiend
+
+\apiitem{bool ImageInput.{\ce seek_subimage} (subimage, miplevel)}
+Repositions the file pointer to the given subimage and MIP level within the
+file (starting with {\cf 0}).  This function returns {\cf True} upon success,
+{\cf False} upon failure (which may include the file not having the
+specified subimage or MIP level).
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    mip = 0
+    while True :
+        ok = input.seek_subimage (0, mip)
+        if not ok :
+            break;
+        spec = input.spec()
+        print "MIP level", mip, "is", spec.width, "x", spec.height
+\end{code}
+\apiend
+
+\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.UNKNOWN)}
+Read the entire image and return the pixels as an array of
+$\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
+values (or {\cf None} if an error occurred).  The array will be of the type
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or  if the
+argument is missing or is {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
+appropriate data type that is the ``smallest'' type that can hold the actual
+types in the file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec ()
+    pixels = input.read_image (oiio.FLOAT)
+    print "The first pixel is", pixels[0:spec.nchannels]
+    print "The second pixel is", pixels[spec.nchannels:(2*spec.nchannels)]
+    input.close ()
+\end{code}
+\apiend
+
+\apiitem{array ImageInput.{\ce read_scanline} (y, z, type=OpenImageIO.UNKNOWN)}
+Read scanline number {\cf y} from depth plane {\cf z} from the open file,
+returning it as an array of $\mathit{width} \times \mathit{nchannels}$
+values (or {\cf None} if an error occurred). The array will be of the type
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or if the
+argument is missing or is {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
+appropriate data type.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec ()
+    if spec.tile_width == 0 :
+        for y in range(spec.y, spec.y+spec.height) :
+            pixels = input.read_scanline (y, spec.z, oiio.FLOAT)
+            # process the scanline
+    else :
+        print "It's a tiled file"
+    input.close ()
+\end{code}
+\apiend
+
+\apiitem{array ImageInput.{\ce read_tile} (x, y, z, type=OpenImageIO.UNKNOWN)}
+Read the tile whose upper left corner is pixel {\cf (x,y,z)} from the open
+file, returning it as an array of
+$\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
+values (or {\cf None} if an error occurred). The array will be of the type
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or if the
+argument is missing or {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
+appropriate data type.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec ()
+    if spec.tile_width > 0 :
+        for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
+            for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
+                for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
+                    pixels = input.read_tile (x, y, z, oiio.FLOAT)
+                    # process the tile
+    else :
+        print "It's a scanline file"
+    input.close ()
+\end{code}
+\apiend
+
+\apiitem{array ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
+\bigspc\bigspc\spc type=OpenImageIO.UNKNOWN) \\
+array ImageInput.{\ce read_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
+    \bigspc\bigspc\spc chbegin, chend, type=OpenImageIO.UNKNOWN)}
+Similar to the C++ routines, these functions read multiple scanlines or 
+tiles at once, which in some cases may be more efficient than reading
+each scanline or tile separately.  Additionally, they allow you to read only
+a subset of channels.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec ()
+
+    # Read the whole image, the equivalent of
+    #     pixels = input.read_image (type)
+    # but do it using read_scanlines or read_tiles:
+    if spec.tile_width == 0 :
+        pixels = input.read_scanlines (spec.y, spec.y+spec.height, 0,
+                                       0, spec.nchannels, oiio.FLOAT)
+    else :
+        pixels = input.read_tiles (spec.x, spec.x+spec.width,
+                                   spec.y, spec.y+spec.height,
+                                   spec.z, spec.z+spec.depth,
+                                   0, spec.nchannels, oiio.FLOAT)
+\end{code}
+\apiend
+
+\apiitem{str ImageInput.{\ce geterror} ()}
+Retrieves the error message from the latest failed operation on an open
+file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (filename)
+    if not input :
+        print "Open error:", oiio.geterror()
+        # N.B. error on open must be retrieved with the global geterror(),
+        # since there is no ImageInput object!
+    else :
+        pixels = input.read_image (oiio.FLOAT)
+        if not pixels :
+            print "Read_image error:", input.geterror()
+        input.close ()
+\end{code}
+\apiend
+
+\newpage
+\subsection*{Example: Reading pixel values from a file to find min/max}
+
+\begin{code}
+#!/usr/bin/env python 
+import OpenImageIO as oiio
+
+def find_min_max (filename) :
+    input = oiio.ImageInput.open (filename)
+    if not input :
+        print 'Could not open "' + filename + '"'
+        print "\tError: ", oiio.geterror()
+        return
+    spec = input.spec()
+    nchans = spec.nchannels
+    pixels = input.read_image(oiio.FLOAT)
+    if not pixels :
+        print "Could not read:", input.geterror()
+        return
+    input.close()    # we're done with the file at this point
+    minval = pixels[0:nchans]   # initialize to the first pixel value
+    maxval = pixels[0:nchans]
+    i = 0    # absolute index
+    for z in range(spec.depth) :
+        for y in range(spec.height) :
+            for x in range(spec.width) :
+                for c in range(nchans) :
+                    if pixels[i+c] < minval[c] :
+                        minval[c] = pixels[i+c]
+                    if pixels[i+c] > maxval[c] :
+                        maxval[c] = pixels[i+c]
+                i = i + nchans   # advance the index
+    print "Min values per channel were", minval
+    print "Max values per channel were", maxval
+\end{code}
+\newpage
+
+
+\section{ImageOutput}
+\label{sec:pythonimageoutput}
+
+Coming soon.
+
+\section{ImageBuf}
+\label{sec:pythonimagebuf}
+
+Coming soon.
+
+\section{ImageBufAlgo}
+\label{sec:pythonimagebufalgo}
+
+Coming soon.
+
+
+\section{Miscellaneous Utilities}
+\label{sec:pythonmiscapi}
+
+In the main {\cf OpenImageIO} module, there are a number of values and
+functions that are useful.  These correspond to the C++ API functions
+explained in Section~\ref{sec:miscapi}, please refer there for details.
+
+\apiitem{int {\ce openimageio_version}}
+The \product version number, 10000 for each
+major version, 100 for each minor version, 1 for each patch.  For
+example, \product 1.2.3 would return a value of 10203.
+\apiend
+
+\apiitem{str {\ce geterror} ()}
+Retrieves the latest global error.
+\apiend
+
+\apiitem{bool {\ce attribute} (name, typedesc, value) \\
+bool {\ce attribute} (name, int_value) \\
+bool {\ce attribute} (name, float_value) \\
+bool {\ce attribute} (name, str_value)}
+Sets a global attribute (see Section~\ref{sec:miscapi} for details),
+returning {\cf True} upon success, or {\cf False} if it was not a
+recognized attribute.  
+
+\noindent Example:
+\begin{code}
+    oiio.attribute ("threads", 0)
 \end{code}
 \apiend
 
