@@ -33,76 +33,346 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using std::string;
 
-/// Accessor for channelnames, converts a vector<string> to a tuple
-object ImageSpec_get_channelnames(const ImageSpec& imageSpec)
+
+// Accessor for channelnames, converts a vector<string> to a tuple
+static object
+ImageSpec_get_channelnames(const ImageSpec& spec)
 {
-    PyObject* result = PyTuple_New(imageSpec.channelnames.size());
-
-    for (unsigned int i = 0; i < imageSpec.channelnames.size(); ++i) {
+    size_t size = spec.channelnames.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i) {
 #if PY_MAJOR_VERSION >= 3
-        PyObject* name = PyUnicode_FromString(imageSpec.channelnames[i].c_str());
+        PyObject* name = PyUnicode_FromString(spec.channelnames[i].c_str());
 #else
-        PyObject* name = PyString_FromString(imageSpec.channelnames[i].c_str());
+        PyObject* name = PyString_FromString(spec.channelnames[i].c_str());
 #endif
         PyTuple_SetItem(result, i, name);
     }
-
     return object(handle<>(result));
 }
 
-/// Mutator for channelnames, sets a vector<string> using a tuple
-void ImageSpec_set_channelnames(ImageSpec& imageSpec, const tuple& channelnames)
+// Mutator for channelnames, sets a vector<string> using a tuple
+static void
+ImageSpec_set_channelnames(ImageSpec& spec, const tuple& channelnames)
 {
-    const unsigned int length = len(channelnames);
-    imageSpec.channelnames.resize(length);
-
-    for (unsigned i = 0; i < length; ++i) {
-        imageSpec.channelnames[i] = extract<string>(channelnames[i]);
+    const size_t length = len(channelnames);
+    spec.channelnames.resize(length);
+    for (size_t i = 0; i < length; ++i) {
+        extract<std::string> e (channelnames[i]);
+        spec.channelnames[i] = e.check() ? e() : std::string();
     }
 }
 
-/// In this version we lose some functionality - all the inputs are
-/// assumed to have been autostride.
-object ImageSpec_auto_stride_1(const TypeDesc& format, int nchannels,
-                              int width, int height)
+
+// Accessor for channelformats, converts a vector<TypeDesc> to a tuple
+// of ints holding the BASETYPE.
+static object
+ImageSpec_get_channelformats(const ImageSpec& spec)
+{
+    size_t size = spec.channelformats.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyInt_FromLong((long)spec.channelformats[i].basetype));
+    return object(handle<>(result));
+}
+
+// Mutator for channelformats, initialized using a tuple whose int entries
+// give the BASETYPE values.
+static void
+ImageSpec_set_channelformats(ImageSpec& spec, const tuple& channelformats)
+{
+    const size_t length = len(channelformats);
+    spec.channelformats.resize(length);
+    for (size_t i = 0; i < length; ++i) {
+        extract<int> e (channelformats[i]);
+        int base = e.check() ? e() : 0;
+        spec.channelformats[i] = (TypeDesc::BASETYPE)base;
+    }
+}
+
+
+#if 0
+// In this version we lose some functionality - all the inputs are
+// assumed to have been autostride.
+static object
+ImageSpec_auto_stride_1(const TypeDesc& format, int nchannels,
+                        int width, int height)
 {
     stride_t x = AutoStride, y = AutoStride, z = AutoStride;
     ImageSpec::auto_stride(x, y, z, format, nchannels, width, height);
     return object(handle<>(Py_BuildValue("(iii)", x, y, z)));
 }
 
-/// xstride is assumed to have been AutoStride.
-stride_t ImageSpec_auto_stride_2(const TypeDesc& format, int nchannels)
+// xstride is assumed to have been AutoStride.
+static stride_t ImageSpec_auto_stride_2(const TypeDesc& format, int nchannels)
 {
     stride_t x = AutoStride;
     ImageSpec::auto_stride(x, format, nchannels);
     return x;
 }
+#endif
 
 
-stride_t ImageSpec_channel_bytes_1(ImageSpec& spec)
+static stride_t ImageSpec_channel_bytes_1(ImageSpec& spec)
 {
     return spec.channel_bytes ();
 }
 
-stride_t ImageSpec_channel_bytes_2(ImageSpec& spec, int chan, bool native)
+static stride_t ImageSpec_channel_bytes_2(ImageSpec& spec, int chan)
+{
+    return spec.channel_bytes (chan);
+}
+
+static stride_t ImageSpec_channel_bytes_3(ImageSpec& spec, int chan, bool native)
 {
     return spec.channel_bytes (chan, native);
 }
 
 
 
-stride_t ImageSpec_pixel_bytes_1(ImageSpec& spec, bool native)
+static stride_t ImageSpec_pixel_bytes_0(ImageSpec& spec)
+{
+    return spec.pixel_bytes ();
+}
+
+static stride_t ImageSpec_pixel_bytes_1(ImageSpec& spec, bool native)
 {
     return spec.pixel_bytes (native);
 }
 
-stride_t ImageSpec_pixel_bytes_2(ImageSpec& spec, int chbegin, int chend, bool native)
+static stride_t ImageSpec_pixel_bytes_2(ImageSpec& spec, int chbegin, int chend)
+{
+    return spec.pixel_bytes (chbegin, chend);
+}
+
+static stride_t ImageSpec_pixel_bytes_3(ImageSpec& spec, int chbegin, int chend, bool native)
 {
     return spec.pixel_bytes (chbegin, chend, native);
 }
+
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_channel_bytes_overloads,
+                                       channel_bytes, 0, 2)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_scanline_bytes_overloads,
+                                       scanline_bytes, 0, 1)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_tile_bytes_overloads,
+                                       tile_bytes, 0, 1)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_image_bytes_overloads,
+                                       image_bytes, 0, 1)
+
+
+static void
+ImageSpec_set_format_2(ImageSpec& spec, TypeDesc::BASETYPE basetype)
+{
+    spec.set_format (basetype);
+}
+
+
+static void
+ImageSpec_attribute_int (ImageSpec& spec, const std::string &name, int val)
+{
+    spec.attribute (name, val);
+}
+
+
+static void
+ImageSpec_attribute_float (ImageSpec& spec, const std::string &name, float val)
+{
+    spec.attribute (name, val);
+}
+
+
+static void
+ImageSpec_attribute_string (ImageSpec& spec, const std::string &name,
+                            const std::string &val)
+{
+    spec.attribute (name, val);
+}
+
+
+
+template<typename T>
+static void my_extract (std::vector<T> &vals, const object &obj)
+{
+    extract<const tuple&> tup (obj);
+    if (tup.check()) {
+        // tuple case: recurse
+        for (int i = 0, e = len(tup()); i < e; ++i)
+            my_extract<T> (vals, tup()[i]);
+    } else {
+        // non-tuple case
+        extract<T> t (obj);
+        vals.push_back (t.check() ? t() : T());
+    }
+}
+
+
+template<typename T>
+static void my_extract (std::vector<T> &vals, const tuple &tup)
+{
+    for (int i = 0, e = len(tup); i < e; ++i)
+        my_extract<T> (vals, tup[i]);
+}
+
+
+static void
+ImageSpec_attribute_typed (ImageSpec& spec, const std::string &name,
+                           TypeDesc type, object &obj)
+{
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            spec.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            spec.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate) {
+            std::vector<ustring> u;
+            for (size_t i = 0, e = vals.size(); i < e; ++i)
+                u.push_back (ustring(vals[i]));
+            spec.attribute (name, type, &u[0]);
+        }
+        return;
+    }
+}
+
+
+
+static void
+ImageSpec_attribute_tuple_typed (ImageSpec& spec, const std::string &name,
+                           TypeDesc type, tuple &obj)
+{
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            spec.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            spec.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        my_extract (vals, obj);
+        if (vals.size() == type.numelements()*type.aggregate) {
+            std::vector<ustring> u;
+            for (size_t i = 0, e = vals.size(); i < e; ++i)
+                u.push_back (ustring(vals[i]));
+            spec.attribute (name, type, &u[0]);
+        }
+        return;
+    }
+}
+
+
+
+template<typename T, typename FUNC>
+static object my_pythonize (const T *vals, TypeDesc type, FUNC f)
+{
+    if (type.arraylen == 0 && type.aggregate == TypeDesc::SCALAR) {
+        // scalar case
+        return object (vals[0]);
+    }
+    // Array/aggregate case -- return a tuple
+    int size = type.numelements() * type.aggregate;
+    PyObject* result = PyTuple_New (size);
+    for (int i = 0;  i < size;  ++i)
+        PyTuple_SetItem(result, i, f(vals[i]));
+    return object(handle<>(result));
+}
+
+
+static object
+ImageSpec_get_attribute_typed (const ImageSpec& spec,
+                               const std::string &name, TypeDesc type)
+{
+    const ImageIOParameter *p = spec.find_attribute (name, type);
+    if (!p)
+        return object();   // None
+    type = p->type();
+    if (type.basetype == TypeDesc::INT) {
+        return my_pythonize ((const int *)p->data(), type, PyInt_FromLong);
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        return my_pythonize ((const float *)p->data(), type, PyFloat_FromDouble);
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        return my_pythonize ((const char **)p->data(), type, PyString_FromString);
+    }
+    return object();
+}
+
+
+static object
+ImageSpec_get_attribute_untyped (const ImageSpec& spec,
+                                 const std::string &name)
+{
+    return ImageSpec_get_attribute_typed (spec, name, TypeDesc::UNKNOWN);
+}
+
+
+
+static int
+ImageSpec_get_int_attribute (const ImageSpec& spec, const char *name)
+{
+    return spec.get_int_attribute (name);
+}
+
+
+static int
+ImageSpec_get_int_attribute_d (const ImageSpec& spec, const char *name,
+                               int defaultval)
+{
+    return spec.get_int_attribute (name, defaultval);
+}
+
+
+static float
+ImageSpec_get_float_attribute (const ImageSpec& spec, const char *name)
+{
+    return spec.get_float_attribute (name);
+}
+
+
+static float
+ImageSpec_get_float_attribute_d (const ImageSpec& spec, const char *name,
+                                 float defaultval)
+{
+    return spec.get_float_attribute (name, defaultval);
+}
+
+
+static std::string
+ImageSpec_get_string_attribute (const ImageSpec& spec, const char *name)
+{
+    return spec.get_string_attribute (name);
+}
+
+
+static std::string
+ImageSpec_get_string_attribute_d (const ImageSpec& spec, const char *name,
+                                  const char *defaultval)
+{
+    return spec.get_string_attribute (name, defaultval);
+}
+
+
 
 
 
@@ -114,6 +384,7 @@ void declare_imagespec()
         .def_readwrite("z",             &ImageSpec::z)
         .def_readwrite("width",         &ImageSpec::width)
         .def_readwrite("height",        &ImageSpec::height)
+        .def_readwrite("depth",         &ImageSpec::depth)
         .def_readwrite("full_x",        &ImageSpec::full_x)
         .def_readwrite("full_y",        &ImageSpec::full_y)
         .def_readwrite("full_z",        &ImageSpec::full_z)
@@ -127,63 +398,66 @@ void declare_imagespec()
         .def_readwrite("nchannels",     &ImageSpec::nchannels)
         .add_property("channelnames",   &ImageSpec_get_channelnames,
                                         &ImageSpec_set_channelnames)
+        .add_property("channelformats", &ImageSpec_get_channelformats,
+                                        &ImageSpec_set_channelformats)
         .def_readwrite("alpha_channel", &ImageSpec::alpha_channel)
         .def_readwrite("z_channel",     &ImageSpec::z_channel)
+        .def_readwrite("deep",          &ImageSpec::deep)
         .def_readwrite("quant_black",   &ImageSpec::quant_black)
         .def_readwrite("quant_white",   &ImageSpec::quant_white)
         .def_readwrite("quant_min",     &ImageSpec::quant_min)
         .def_readwrite("quant_max",     &ImageSpec::quant_max)
         .add_property("extra_attribs", 
             make_getter(&ImageSpec::extra_attribs))//ImageIOParameterList
+        
         .def(init<int, int, int, TypeDesc>())
+        .def(init<int, int, int, TypeDesc::BASETYPE>())
         .def(init<TypeDesc>())
+        .def(init<TypeDesc::BASETYPE>())
         .def(init<const ImageSpec&>())
         .def("set_format",              &ImageSpec::set_format)
+        .def("set_format",              &ImageSpec_set_format_2)
         .def("default_channel_names",   &ImageSpec::default_channel_names)
         .def("format_from_quantize",    &ImageSpec::format_from_quantize)
         .staticmethod("format_from_quantize")
         .def("channel_bytes",           &ImageSpec_channel_bytes_1)
         .def("channel_bytes",           &ImageSpec_channel_bytes_2)
+        .def("channel_bytes",           &ImageSpec_channel_bytes_3)
+        .def("pixel_bytes",             &ImageSpec_pixel_bytes_0)
         .def("pixel_bytes",             &ImageSpec_pixel_bytes_1)
         .def("pixel_bytes",             &ImageSpec_pixel_bytes_2)
-        .def("scanline_bytes",          &ImageSpec::scanline_bytes)
+        .def("pixel_bytes",             &ImageSpec_pixel_bytes_3)
+        .def("scanline_bytes",          &ImageSpec::scanline_bytes,
+             ImageSpec_scanline_bytes_overloads(args("native")))
+        .def("tile_bytes",          &ImageSpec::tile_bytes,
+             ImageSpec_tile_bytes_overloads(args("native")))
+        .def("image_bytes",          &ImageSpec::image_bytes,
+             ImageSpec_image_bytes_overloads(args("native")))
         .def("tile_pixels",             &ImageSpec::tile_pixels)
-        .def("tile_bytes",              &ImageSpec::tile_bytes)
         .def("image_pixels",            &ImageSpec::image_pixels)
-        .def("image_bytes",             &ImageSpec::image_bytes)
         .def("size_t_safe",             &ImageSpec::size_t_safe) 
-         // auto_stride is overloaded so needs explicit function casts
-        .def("auto_stride",     &ImageSpec_auto_stride_1)
-        .def("auto_stride",     &ImageSpec_auto_stride_2)
-        .staticmethod("auto_stride")
+
+        // For now, do not expose auto_stride.  It's not obvious that
+        // anybody will want to do pointer work and strides from Python.
+        //
+        // auto_stride is overloaded so needs explicit function casts
+        // .def("auto_stride",             &ImageSpec_auto_stride_1)
+        // .def("auto_stride",             &ImageSpec_auto_stride_2)
+        // .staticmethod("auto_stride")
  
-        //to do: everything from here is yet to be tested from python
-        .def("attribute", (void (ImageSpec::*)(const std::string&,
-                                TypeDesc, const void*)) 
-                                &ImageSpec::attribute)
-
-        .def("attribute", (void (ImageSpec::*)(const std::string&, unsigned int))
-                                &ImageSpec::attribute)
-
-        .def("attribute", (void (ImageSpec::*)(const std::string&, int)) 
-                                &ImageSpec::attribute)
-
-        .def("attribute", (void (ImageSpec::*)(const std::string&, float ))
-                                &ImageSpec::attribute)
-
-        .def("attribute", (void (ImageSpec::*)(const std::string&, const char*))
-                                &ImageSpec::attribute)
-
-        .def("attribute", (void (ImageSpec::*)(const std::string&, const std::string&))
-                                &ImageSpec::attribute)
-
-
-        //to add: ImageIoParameter * find_attribute() (both)
-        
-        // TODO: Default arguments of these 3 functions not exposed properly
-        .def("get_int_attribute", &ImageSpec::get_int_attribute) 
-        .def("get_float_attribute", &ImageSpec::get_float_attribute)
-        .def("get_string_attribute", &ImageSpec::get_string_attribute)
+        .def("attribute", &ImageSpec_attribute_float)
+        .def("attribute", &ImageSpec_attribute_int)
+        .def("attribute", &ImageSpec_attribute_string)
+        .def("attribute", &ImageSpec_attribute_typed)
+        .def("attribute", &ImageSpec_attribute_tuple_typed)
+        .def("get_int_attribute", &ImageSpec_get_int_attribute)
+        .def("get_int_attribute", &ImageSpec_get_int_attribute_d)
+        .def("get_float_attribute", &ImageSpec_get_float_attribute)
+        .def("get_float_attribute", &ImageSpec_get_float_attribute_d)
+        .def("get_string_attribute", &ImageSpec_get_string_attribute)
+        .def("get_string_attribute", &ImageSpec_get_string_attribute_d)
+        .def("get_attribute", &ImageSpec_get_attribute_typed)
+        .def("get_attribute", &ImageSpec_get_attribute_untyped)
 
         .def("metadata_val", &ImageSpec::metadata_val)
     ;          
