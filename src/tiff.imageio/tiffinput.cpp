@@ -506,7 +506,7 @@ TIFFInput::readspec (bool read_meta)
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
-
+	
     if (read_meta) {
         // clear the whole m_spec and start fresh
         m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
@@ -534,6 +534,14 @@ TIFFInput::readspec (bool read_meta)
     // FIXME? - TIFF spec describes the positions as in resolutionunit.
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
+	
+	// read embedded color profile from TIFFTAG and store it into m_spec
+	unsigned long iccSize=0;
+	unsigned char *iccBuf=NULL;
+	TIFFGetField(m_tif,TIFFTAG_ICCPROFILE, &iccSize, &iccBuf);
+	/// if iccBuf is not NULL and iccSize is not zero, a color profile will be create in m_spec，
+    /// otherwise, it will be ignored by set_icc_profile function.
+    m_spec.set_icc_profile(iccBuf,iccSize); 
 
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
           && width > 0)

@@ -386,6 +386,15 @@ public:
         if ((int)formats.size() < nchannels)
             formats.resize (nchannels, format);
     }
+
+	/// Return the embedded color profile of an image, 
+	/// the embedded color profile may have different size. 
+	/// If the image contains no color proflie, the profile pointer is NULL and the size is zero.
+	bool get_icc_profile(unsigned char* &profile, unsigned long& size);
+
+	/// Set a color profile for an image.
+	bool set_icc_profile(const unsigned char* profile, unsigned long size);
+
 };
 
 
@@ -1264,6 +1273,8 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                            stride_t src_zstride,
                            void *dst, stride_t dst_xstride,
                            stride_t dst_ystride, stride_t dst_zstride);
+
+
 
 /// Decode a raw Exif data block and save all the metadata in an
 /// ImageSpec.  Return true if all is ok, false if the exif block was

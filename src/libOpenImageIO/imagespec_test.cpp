@@ -195,6 +195,28 @@ void test_imagespec_attribute_from_string ()
 }
 
 
+void test_color_profile_read_and_writing(){
+	ImageSpec spec;
+	
+	unsigned long profile_size=1000;
+	unsigned char* in_dummy_profile=(unsigned char*)malloc(profile_size*sizeof(unsigned char));	
+	for(int i=0;i<profile_size;i++){
+		in_dummy_profile[i]=(unsigned char)(i%255);
+	};
+	spec.set_icc_profile(in_dummy_profile,profile_size);
+	free(in_dummy_profile);
+	unsigned char* out_dummy_profile=NULL;
+	unsigned long out_size=0;
+	spec.get_icc_profile(out_dummy_profile,out_size);
+	OIIO_CHECK_EQUAL (profile_size,out_size);
+	for(int i=0;i<out_size;i++){
+		OIIO_CHECK_EQUAL (i%255,out_dummy_profile[i]);
+	}
+
+
+
+}
+
 
 
 int main (int argc, char *argv[])
@@ -202,6 +224,6 @@ int main (int argc, char *argv[])
     test_imagespec_pixels ();
     test_imagespec_metadata_val ();
     test_imagespec_attribute_from_string ();
-
+	test_color_profile_read_and_writing();
     return unit_test_failures;
 }

@@ -96,7 +96,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_PLUGIN_EXPORTS_END
 
 
-
 bool
 JpgOutput::open (const std::string &name, const ImageSpec &newspec,
                  OpenMode mode)
@@ -149,6 +148,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     // Set image and compression parameters
     m_cinfo.image_width = m_spec.width;
     m_cinfo.image_height = m_spec.height;
+	
 
     if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
         m_cinfo.input_components = 3;
@@ -224,16 +224,33 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     // Write XMP packet, if we have anything
-    std::string xmp = encode_xmp (m_spec, true);
-    if (! xmp.empty()) {
-        static char prefix[] = "http://ns.adobe.com/xap/1.0/";
-        std::vector<char> block (prefix, prefix+strlen(prefix)+1);
-        block.insert (block.end(), xmp.c_str(), xmp.c_str()+xmp.length());
-        jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&block[0], block.size());
-    }
+	std::string xmp = encode_xmp (m_spec, true);
+	if (! xmp.empty()) {
+		static char prefix[] = "http://ns.adobe.com/xap/1.0/";
+		std::vector<char> block (prefix, prefix+strlen(prefix)+1);
+		block.insert (block.end(), xmp.c_str(), xmp.c_str()+xmp.length());
+		jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&block[0], block.size());
+	}
 
-    m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
-
+	m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
+	//write embedded color profile to JPEG APP2 marker
+	unsigned char* icc_profile=NULL;
+	unsigned long icc_data_size=0;
+	if(m_spec.get_icc_profile(icc_profile,icc_data_size)){
+		unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
+		unsigned char* profile=(unsigned char*)malloc((icc_data_size+ICC_HEADER_SIZE)*sizeof(unsigned char));
+		if(profile != NULL){ 
+			memcpy(profile,icc_signature,12);
+			for(long i=0;i<(int)icc_data_size;i+=MAX_DATA_BYTES_IN_MARKER){
+				unsigned marker_size=std::min((long)icc_data_size-i,MAX_DATA_BYTES_IN_MARKER);
+				profile[12]=(unsigned char) ((i / MAX_DATA_BYTES_IN_MARKER) + 1);
+				profile[13]=(unsigned char) (icc_data_size/MAX_DATA_BYTES_IN_MARKER + 1);
+				memcpy(profile+ICC_HEADER_SIZE, icc_profile+i,marker_size); 
+				jpeg_write_marker(&m_cinfo, JPEG_APP0+2, profile,marker_size+ICC_HEADER_SIZE);
+			}
+			free(profile);
+		}
+	}
     return true;
 }
 

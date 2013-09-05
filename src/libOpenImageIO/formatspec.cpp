@@ -253,6 +253,36 @@ ImageSpec::channel_bytes (int chan, bool native) const
         return channelformats[chan].size();
 }
 
+bool ImageSpec::get_icc_profile(unsigned char* &profile, unsigned long& size){
+		 bool flag=false;
+		 ImageIOParameter* icc_profile_parameter=find_attribute("icc-profile");
+		 if(icc_profile_parameter!=NULL){
+			 profile=(unsigned char*)icc_profile_parameter->data();
+			 size=icc_profile_parameter->type().size();
+			 if(profile==NULL||size==0){
+				flag=false;
+			 }
+			 else{
+			    flag=true;
+			 }
+		 }
+		 else{
+			profile=NULL;
+			size=0;
+			flag=false;
+		 }
+		 return flag;
+}
+
+bool ImageSpec::set_icc_profile(const unsigned char* profile, unsigned long size){
+	bool flag=false;
+	if(profile!=NULL&&size!=0){
+			erase_attribute("icc-profile");
+			attribute ("icc-profile", TypeDesc(TypeDesc::UINT8, size), profile);
+			flag=true;
+	}
+	return flag;
+}
 
 
 size_t
@@ -568,7 +598,6 @@ ImageSpec::get_string_attribute (const std::string &name,
         return std::string (*(const char **)p->data());
     else return val;
 }
-
 
 
 namespace {  // make an anon namespace

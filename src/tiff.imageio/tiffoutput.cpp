@@ -204,6 +204,13 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     int orientation = m_spec.get_int_attribute("Orientation", 1);
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, orientation);
     
+	// write possible ICC profile
+	unsigned char* profile=NULL;
+	unsigned long size=0;
+	if(m_spec.get_icc_profile(profile,size)){
+		TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, profile, size);
+	}
+
     int bps, sampformat;
     switch (m_spec.format.basetype) {
     case TypeDesc::INT8:
@@ -263,6 +270,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     // Default to LZW compression if no request came with the user spec
     if (! m_spec.find_attribute("compression"))
         m_spec.attribute ("compression", "lzw");
+	
 
     ImageIOParameter *param;
     const char *str = NULL;
