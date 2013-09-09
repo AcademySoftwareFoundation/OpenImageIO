@@ -117,7 +117,6 @@ private:
     /// Friend declaration for ImageOutputWrap::copy_image
     friend class ImageOutputWrap;
     ImageInput *m_input;
-    void* make_write_buffer (object&, Py_ssize_t);
 public:
 	virtual ~ImageInputWrap();
     static object create(const std::string&, const std::string&);
@@ -149,20 +148,46 @@ class ImageOutputWrap {
 private:
     friend class ImageBufWrap;
     ImageOutput *m_output;
-    const void *make_read_buffer(object&);
+    const void *make_read_buffer (object &buffer, imagesize_t size);
 public:
     virtual ~ImageOutputWrap();
     static boost::python::object create(const std::string&, const std::string&);
     const ImageSpec &spec() const;
     bool open (const std::string&, const ImageSpec&, ImageOutput::OpenMode);
+    bool open_specs (const std::string&, tuple &specs);
     bool close();
-    bool write_scanline(int, int, TypeDesc, boost::python::object&, stride_t);
-    bool write_tile(int, int, int, TypeDesc, boost::python::object&,
-                    stride_t, stride_t, stride_t);
-    bool write_rectangle(int, int, int, int, int, int, TypeDesc,
-                        boost::python::object&, stride_t, stride_t, stride_t);
-    bool write_image (TypeDesc, object&, stride_t, stride_t, stride_t, object);
-    void print_pointer(); //for testing only
+    bool write_scanline (int, int, TypeDesc, boost::python::object&,
+                         stride_t xstride=AutoStride);
+    bool write_scanline_bt (int, int, TypeDesc::BASETYPE,
+                            boost::python::object&, stride_t xstride=AutoStride);
+    bool write_scanlines (int, int, int, TypeDesc, boost::python::object&,
+                         stride_t xstride=AutoStride);
+    bool write_scanlines_bt (int, int, int, TypeDesc::BASETYPE,
+                            boost::python::object&, stride_t xstride=AutoStride);
+    bool write_tile (int, int, int, TypeDesc, boost::python::object&,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride);
+    bool write_tile_bt (int, int, int, TypeDesc::BASETYPE,
+                        boost::python::object&, stride_t xstride=AutoStride,
+                        stride_t ystride=AutoStride,
+                        stride_t zstride=AutoStride);
+    bool write_tiles (int, int, int, int, int, int,
+                      TypeDesc, boost::python::object&,
+                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                      stride_t zstride=AutoStride);
+    bool write_tiles_bt (int, int, int, int, int, int,
+                         TypeDesc::BASETYPE, boost::python::object&,
+                         stride_t xstride=AutoStride,
+                         stride_t ystride=AutoStride,
+                         stride_t zstride=AutoStride);
+    bool write_image (TypeDesc format, object &buffer,
+                      stride_t xstride=AutoStride,
+                      stride_t ystride=AutoStride,
+                      stride_t zstride=AutoStride);
+    bool write_image_bt (TypeDesc::BASETYPE basetype, object &buffer,
+                         stride_t xstride=AutoStride,
+                         stride_t ystride=AutoStride,
+                         stride_t zstride=AutoStride);
     bool copy_image (ImageInputWrap *iiw);
     const char *format_name () const;
     bool supports (const std::string&) const;

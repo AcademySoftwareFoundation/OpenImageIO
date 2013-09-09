@@ -1,0 +1,19 @@
+Copied scanline.tif to grid-image.tif as image
+Copied scanline.tif to grid-scanline.tif as scanline
+Copied scanline.tif to grid-scanlines.tif as scanlines
+Copied tiled.tif to grid-timage.tif as image
+Copied tiled.tif to grid-tile.tif as tile
+Copied tiled.tif to grid-tiles.tif as tiles
+Done.
+Comparing "grid-image.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-scanline.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-scanlines.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-timage.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-tile.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-tiles.tif" and "../../../../../oiio-images/grid.tif"
+PASS

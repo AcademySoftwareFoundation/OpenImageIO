@@ -207,6 +207,8 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     scope().attr("VERSION_MINOR") = OIIO_VERSION_MINOR;
     scope().attr("VERSION_PATCH") = OIIO_VERSION_PATCH;
     scope().attr("INTRO_STRING") = OIIO_INTRO_STRING;
+
+    boost::python::numeric::array::set_module_and_type("array", "array");
 }
 
 } // namespace PyOpenImageIO

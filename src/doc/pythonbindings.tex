@@ -688,8 +688,8 @@ a subset of channels.
 \apiend
 
 \apiitem{str ImageInput.{\ce geterror} ()}
-Retrieves the error message from the latest failed operation on an open
-file.
+Retrieves the error message from the latest failed operation on an
+ImageInput.
 
 \noindent Example:
 \begin{code}
@@ -747,7 +747,231 @@ def find_min_max (filename) :
 \section{ImageOutput}
 \label{sec:pythonimageoutput}
 
-Coming soon.
+See Chapter~\ref{chap:imageoutput} for detailed explanations of the
+C++ \ImageOutput class APIs. The Python APIs are very similar.
+
+\apiitem{ImageOutput ImageOutput.{\ce create} (fileformat, plugin_searchpath="")}
+
+Create a new \ImageOutput capable of writing the named file format (which may
+also be a file name, with the type deduced from the extension).  There
+is an optional parameter giving an colon-separated search path for finding
+\ImageOutput plugins.  The function returns an \ImageOutput object, or
+{\cf None} upon error (in which case, {OpenImageIO.geterror()} may be used
+to retrieve the error message).
+
+\noindent Example:
+\begin{code}
+    import OpenImageIO as oiio
+    output = oiio.ImageOutput.create ("myfile.tif")
+    if not output :
+        print "Error:", oiio.geterror()
+\end{code}
+\apiend
+
+\apiitem{str ImageOutput.{\ce format_name} ()}
+The file format name of a created \ImageOutput.
+
+\noindent Example:
+\begin{code}
+    output = oiio.ImageOutput.create (filename)
+    if output :
+        print "Created output", filename, "as a", output.format_name()
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce supports} (feature)}
+For a created \ImageOutput, returns {\cf True} if the file format supports
+the named feature (such as \qkw{tiles}, \qkw{mipmap}, etc., see
+Section~\ref{sec:supportsfeaturelist} for the full list), or {\cf False}
+if this file format does not support the feature.
+
+\noindent Example:
+\begin{code}
+    output = oiio.ImageOutput.create (filename)
+    if output :
+        print output.format_name(), "supports..."
+        print "tiles?", output.supports("tiles")
+        print "multi-image?", output.supports("multiimage")
+        print "MIP maps?", output.supports("mipmap")
+        print "per-channel formats?", output.supports("channelformats")
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce open} (filename, imagespec, mode)}
+Opens the named output file, with an \ImageSpec describing the image to
+be output.  The {\cf mode} may be one of {\cf OpenImageIO.Create},
+{\cf OpenImageIO.AppendSubimage}, or {\cf OpenImageIO.AppendMIPLevel}.
+See Section~\ref{sec:imageoutputopen} for details.  Returns {\cf True}
+upon success, {\cf False} upon failure (error messages retrieved via
+{\cf ImageOutput.geterror()}.)
+
+\noindent Example:
+\begin{code}
+    output = oiio.ImageOutput.create (filename)
+    if not output :
+        print "Error:", oiio.geterror()
+    spec = oiio.ImageSpec (640, 480, 3, oiio.UINT8)
+    ok = output.open (filename, spec, oiio.Create)
+    if not ok :
+        print "Could not open", filename, ":", output.geterror()
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce open} (filename, (imagespec, ...))}
+This variety of {\cf open()} is used specifically for multi-subimage files.
+A \emph{tuple} of \ImageSpec objects is passed, one for each subimage
+that will be written to the file.  After each subimage is written, then
+a regular call to {\cf open(name, newspec, {\ce AppendSubimage})} moves
+on to the next subimage.
+\apiend
+
+\apiitem{bool ImageOutput.{\ce close} ()}
+Closes an open output.
+\apiend
+
+\apiitem{ImageSpec ImageOutput.{\ce spec} ()}
+Retrieves the \ImageSpec of the currently-open output image.
+\apiend
+
+\apiitem{bool ImageOutput.{\ce write_image} (typedesc, pixels, xstride=AutoStride, \\
+\bigspc\bigspc\spc ystride=AutoStride, zstride=AutoStride)}
+Write the currently opened image all at once.  The {\cf pixels} parameter
+should be an {\cf array} containing data elements of the type described by
+the \TypeDesc.  Optional strides describe data layout in the array (the
+default values of {\cf AutoStride} are used if the data are contiguous).
+Returns {\cf True} upon success, {\cf False} upon failure.
+
+\noindent Example:
+\begin{code}
+    # This example reads a scanline file, then converts it to tiled
+    # and writes to the same name.
+
+    input = oiio.ImageInput.open (filename)
+    spec = input.spec ()
+    pixels = input.read_image (oiio.FLOAT)
+    input.close ()
+
+    output = oiio.ImageOutput.create (filename)
+    if output.supports("tiles") :
+        spec.tile_width = 64
+        spec.tile_height = 64
+        output.open (filename, spec, oiio.Create)
+        output.write_image (oiio.FLOAT, pixels)
+        output.close ()
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce write_scanline} (y, z, typesdesc, pixels, \\
+\bigspc\bigspc xstride=AutoStride) \\
+bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, typesdesc, pixels, \\
+\bigspc\bigspc xstride=AutoStride)}
+
+Write one or many scanlines to the currently open file.
+
+\noindent Example:
+\begin{code}
+    # Copy a TIFF image to JPEG by copying scanline by scanline.
+    input = oiio.ImageInput.open ("in.tif")
+    spec = input.spec ()
+    output = oiio.ImageOutput.create ("out.jpg")
+    output.open (filename, spec, oiio.Create)
+    for z in range(spec.z, spec.z+spec.depth) :
+        for y in range(spec.y, spec.y+spec.height) :
+            pixels = input.read_scanline (y, z, oiio.FLOAT)
+            output.write_scanline (y, z, oiio.FLOAT, pixels)
+    output.close ()
+    input.close ()
+
+    # The same example, but copying a whole "plane" of scanlines at a time:
+    ...
+    for z in range(spec.z, spec.z+spec.depth) :
+        pixels = input.read_scanlines (spec.y, spec.y+spec.height,
+                                       z, oiio.FLOAT)
+        output.write_scanlines (spec.y, spec.y+spec.height,
+                                z, oiio.FLOAT, pixels)
+    ...
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, typesdesc, pixels, \\
+\bigspc\bigspc\spc xstride=AutoStride, ystride=AutoStride, \\
+\bigspc\bigspc\spc zstride=AutoStride) \\
+bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
+\bigspc\bigspc\spc  xstride=AutoStride, ystride=AutoStride, \\
+\bigspc\bigspc\spc  zstride=AutoStride)}
+
+Write one or many tiles to the currently open file.
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (in_filename)
+    spec = input.spec ()
+    output = oiio.ImageOutput.create (out_filename)
+    output.open (out_filename, spec, oiio.Create)
+    for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
+        for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
+            for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
+                pixels = input.read_tile (x, y, z, oiio.FLOAT)
+                output.read_tile (x, y, z, oiio.FLOAT, pixels)
+    output.close ()
+    input.close ()
+
+    # The same example, but copying a whole row of of tiles at a time:
+    ...
+    for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
+        for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
+            pixels = input.read_tiles (spec.x, spec.x+spec.width,
+                                       y, y+tile_width,
+                                       z, z+tile_width, oiio.FLOAT)
+            output.read_tile (spec.x, spec.x+spec.width,
+                              y, y+tile_width, z, z+tile_width,
+                              oiio.FLOAT, pixels)
+    ...
+\end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce copy_image} (imageinput)}
+Copy the current image of the open input to the open output. (The reason
+this may be preferred in some circumstances is that, if input and
+output were the same kind of input file format, they may have a special
+efficient technique to copy pixels unaltered, for example by avoiding the 
+decompression/recompression round trip.)
+
+\noindent Example:
+\begin{code}
+    input = oiio.ImageInput.open (in_filename)
+    spec = input.spec ()
+    output = oiio.ImageOutput.create (out_filename)
+    output.open (filename, spec, oiio.Create)
+    output.copy_image (input)
+    output.close ()
+    input.close ()
+\end{code}
+\apiend
+
+\apiitem{str ImageOuput.{\ce geterror} ()}
+Retrieves the error message from the latest failed operation on an open
+file.
+
+\noindent Example:
+\begin{code}
+    output = oiio.ImageOutput.create (filename)
+    if not output :
+        print "Create error:", oiio.geterror()
+        # N.B. error on create must be retrieved with the global geterror(),
+        # since there is no ImageOutput object!
+    else :
+        ok = output.open (filename, spec, oiio.Create)
+        if not ok :
+            print "Open error:", output.geterror()
+        ok = output.write_image (oiio.FLOAT, pixels)
+        if not ok :
+            print "Write error:", output.geterror()
+        output.close ()
+\end{code}
+\apiend
+
+
 
 \section{ImageBuf}
 \label{sec:pythonimagebuf}

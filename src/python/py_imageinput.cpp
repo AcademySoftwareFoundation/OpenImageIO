@@ -134,24 +134,6 @@ bool ImageInputWrap::seek_subimage(int subimage, int miplevel)
 
 
 
-// This function prepares a buffer for writing to it from c++
-void* ImageInputWrap::make_write_buffer (object &buffer, Py_ssize_t expected_len)
-{
-    void *array;
-    Py_ssize_t len;
-    int success;
-    success = PyObject_AsWriteBuffer(buffer.ptr(), &array, &len);
-    if (success != 0) throw_error_already_set();
-
-    if (len < expected_len) {
-        PyErr_SetString(PyExc_IndexError, "Buffer size is smaller than data size");
-        throw_error_already_set();
-    }
-    return array;
-}
-
-
-
 const char *
 python_array_code (TypeDesc format)
 {
