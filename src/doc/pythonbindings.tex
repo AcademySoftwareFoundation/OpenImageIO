@@ -179,6 +179,85 @@ another.
 \apiend
 
 
+\section{ROI}
+\label{sec:pythonroi}
+
+The \ROI class that describes an image extent or region of interest,
+explained in deail in Section~\ref{sec:ROI}, is replicated for Python.
+
+\apiitem{{\ce ROI} () \\
+{\ce ROI} (xbegin, xend, ybegin, yend) \\
+{\ce ROI} (xbegin, xend, ybegin, yend, zbegin, zend) \\
+{\ce ROI} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend)}
+Construct an \ROI with the given bounds.  The constructor with no 
+arguments makes an \ROI that is ``undefined.''
+
+\noindent Example:
+\begin{code}
+    import OpenImageIO as oiio
+    ...
+    roi = oiio.ROI (0, 640, 0, 480, 0, 1, 0, 4)   # video res RGBA
+\end{code}
+\apiend
+
+\apiitem{int ROI.{\ce xbegin} \\
+int ROI.{\ce xend} \\
+int ROI.{\ce ybegin} \\
+int ROI.{\ce yend} \\
+int ROI.{\ce zbegin} \\
+int ROI.{\ce zend} \\
+int ROI.{\ce chbegin} \\
+int ROI.{\ce chend}}
+The basic fields of the \ROI.
+\apiend
+
+\apiitem{ROI ROI.{\ce All}}
+A pre-constructed undefined \ROI.
+\apiend
+
+\apiitem{bool ROI.{\ce defined}}
+{\cf True} if the \ROI is defined, {\cf False} if the \ROI is undefined.
+\apiend
+
+\apiitem{int ROI.{\ce width} \\
+int ROI.{\ce height} \\
+int ROI.{\ce depth} \\
+int ROI.{\ce nchannels}}
+The number of pixels in each dimension, and the number of channels,
+as described by the \ROI.
+\apiend
+
+\apiitem{int ROI.{\ce npixels}}
+The total number of pixels in the region described by the \ROI.
+\apiend
+
+
+\apiitem{ROI {\ce get_roi} (imagespec) \\
+ROI {\ce get_roi_full} (imagespec)}
+Returns the \ROI corresponding to the pixel data window of the given
+\ImageSpec, or the display/full window, respectively.
+
+\noindent Example:
+\begin{code}
+    spec = oiio.ImageSpec(...)
+    roi = oiio.get_roi(spec)
+\end{code}
+\apiend
+
+\apiitem{{\ce set_roi} (imagespec, roi) \\
+{\ce set_roi_full} (imagespec, roi)}
+Alter the \ImageSpec's resolution and offset to match the passed \ROI.
+
+\noindent Example:
+\begin{code}
+    # spec is an ImageSpec
+    # The following sets the full (display) window to be equal to the
+    # pixel data window:
+    oiio.set_roi_full (spec, oiio.get_roi(spec))
+\end{code}
+\apiend
+
+
 \section{ImageSpec}
 \label{sec:pythonimagespec}
 
