@@ -28,6 +28,10 @@ A \TypeDesc describes a base data format type, aggregation into simple
 vector and matrix types, and an array length (if
 it's an array).
 
+The remainder of this section describes the C++ API for \TypeDesc.
+See Section~\ref{sec:pythontypedesc} for the corresponding Python
+bindings.
+
 \TypeDesc supports the following base data format types, given by the
 enumerated type {\cf BASETYPE}:
 
@@ -174,6 +178,10 @@ format specification of a single image.  It contains:
   arbitrarily-named and -typed data that may help describe the image or
   its disk representation.
 \end{itemize}
+
+The remainder of this section describes the C++ API for \ImageSpec.
+See Section~\ref{sec:pythonimagespec} for the corresponding Python
+bindings.
 
 \subsection{\ImageSpec Data Members}
 
@@ -501,6 +509,8 @@ formats.)
 
 These helper functions are not part of any other \OpenImageIO class,
 they just exist in the {\cf OpenImageIO} namespace as general utilities.
+(See Section~\ref{sec:pythonmiscapi} for the corresponding Python
+bindings.)
 
 \apiitem{int {\ce openimageio_version} ()}
 \index{version}

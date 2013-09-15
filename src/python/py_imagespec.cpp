@@ -192,51 +192,27 @@ ImageSpec_attribute_string (ImageSpec& spec, const std::string &name,
 
 
 
-template<typename T>
-static void my_extract (std::vector<T> &vals, const object &obj)
-{
-    extract<const tuple&> tup (obj);
-    if (tup.check()) {
-        // tuple case: recurse
-        for (int i = 0, e = len(tup()); i < e; ++i)
-            my_extract<T> (vals, tup()[i]);
-    } else {
-        // non-tuple case
-        extract<T> t (obj);
-        vals.push_back (t.check() ? t() : T());
-    }
-}
-
-
-template<typename T>
-static void my_extract (std::vector<T> &vals, const tuple &tup)
-{
-    for (int i = 0, e = len(tup); i < e; ++i)
-        my_extract<T> (vals, tup[i]);
-}
-
-
 static void
 ImageSpec_attribute_typed (ImageSpec& spec, const std::string &name,
                            TypeDesc type, object &obj)
 {
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate)
             spec.attribute (name, type, &vals[0]);
         return;
     }
     if (type.basetype == TypeDesc::FLOAT) {
         std::vector<float> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate)
             spec.attribute (name, type, &vals[0]);
         return;
     }
     if (type.basetype == TypeDesc::STRING) {
         std::vector<std::string> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
             for (size_t i = 0, e = vals.size(); i < e; ++i)
@@ -255,21 +231,21 @@ ImageSpec_attribute_tuple_typed (ImageSpec& spec, const std::string &name,
 {
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate)
             spec.attribute (name, type, &vals[0]);
         return;
     }
     if (type.basetype == TypeDesc::FLOAT) {
         std::vector<float> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate)
             spec.attribute (name, type, &vals[0]);
         return;
     }
     if (type.basetype == TypeDesc::STRING) {
         std::vector<std::string> vals;
-        my_extract (vals, obj);
+        py_to_stdvector (vals, obj);
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
             for (size_t i = 0, e = vals.size(); i < e; ++i)
@@ -282,22 +258,6 @@ ImageSpec_attribute_tuple_typed (ImageSpec& spec, const std::string &name,
 
 
 
-template<typename T, typename FUNC>
-static object my_pythonize (const T *vals, TypeDesc type, FUNC f)
-{
-    if (type.arraylen == 0 && type.aggregate == TypeDesc::SCALAR) {
-        // scalar case
-        return object (vals[0]);
-    }
-    // Array/aggregate case -- return a tuple
-    int size = type.numelements() * type.aggregate;
-    PyObject* result = PyTuple_New (size);
-    for (int i = 0;  i < size;  ++i)
-        PyTuple_SetItem(result, i, f(vals[i]));
-    return object(handle<>(result));
-}
-
-
 static object
 ImageSpec_get_attribute_typed (const ImageSpec& spec,
                                const std::string &name, TypeDesc type)
@@ -307,13 +267,13 @@ ImageSpec_get_attribute_typed (const ImageSpec& spec,
         return object();   // None
     type = p->type();
     if (type.basetype == TypeDesc::INT) {
-        return my_pythonize ((const int *)p->data(), type, PyInt_FromLong);
+        return C_to_val_or_tuple ((const int *)p->data(), type, PyInt_FromLong);
     }
     if (type.basetype == TypeDesc::FLOAT) {
-        return my_pythonize ((const float *)p->data(), type, PyFloat_FromDouble);
+        return C_to_val_or_tuple ((const float *)p->data(), type, PyFloat_FromDouble);
     }
     if (type.basetype == TypeDesc::STRING) {
-        return my_pythonize ((const char **)p->data(), type, PyString_FromString);
+        return C_to_val_or_tuple ((const char **)p->data(), type, PyString_FromString);
     }
     return object();
 }
