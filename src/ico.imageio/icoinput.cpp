@@ -219,7 +219,7 @@ ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         png_set_sig_bytes (m_png, 8);  // already read 8 bytes
 
         PNG_pvt::read_info (m_png, m_info, m_bpp, m_color_type, 
-                            m_interlace_type, m_bg, m_spec);
+                            m_interlace_type, m_bg, m_spec, true);
 
         m_spec.attribute ("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 

@@ -8,7 +8,6 @@ Reading ../../../../../oiio-images/oiio-logo-no-alpha.png
     ResolutionUnit: "inch"
     XResolution: 72.009
     YResolution: 72.009
-    oiio:UnassociatedAlpha: 1
 Comparing "../../../../../oiio-images/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
 PASS
 Reading ../../../../../oiio-images/oiio-logo-with-alpha.png
@@ -21,6 +20,5 @@ Reading ../../../../../oiio-images/oiio-logo-with-alpha.png
     ResolutionUnit: "inch"
     XResolution: 72.009
     YResolution: 72.009
-    oiio:UnassociatedAlpha: 1
 Comparing "../../../../../oiio-images/oiio-logo-with-alpha.png" and "oiio-logo-with-alpha.png"
 PASS

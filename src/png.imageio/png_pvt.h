@@ -124,8 +124,8 @@ get_background (png_structp& sp, png_infop& ip, ImageSpec& spec,
 ///
 inline void
 read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
-           int& interlace_type,
-           Imath::Color3f& bg, ImageSpec& spec)
+           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
+           bool keep_unassociated_alpha)
 {
     png_read_info (sp, ip);
 
@@ -212,8 +212,10 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     interlace_type = png_get_interlace_type (sp, ip);
 
-    // PNG files are always "unassociated alpha"
-    spec.attribute ("oiio:UnassociatedAlpha", (int)1);
+    // PNG files are always "unassociated alpha" but we convert to associated
+    // unless requested otherwise
+    if (keep_unassociated_alpha)
+        spec.attribute ("oiio:UnassociatedAlpha", (int)1);
 
     // FIXME -- look for an XMP packet in an iTXt chunk.
 }
@@ -421,7 +423,8 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
 ///
 inline void
 write_info (png_structp& sp, png_infop& ip, int& color_type,
-            ImageSpec& spec, std::vector<png_text>& text)
+            ImageSpec& spec, std::vector<png_text>& text,
+            bool& convert_alpha, float& gamma)
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -435,12 +438,17 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
 
     png_set_oFFs (sp, ip, spec.x, spec.y, PNG_OFFSET_PIXEL);
 
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha
+    convert_alpha = spec.alpha_channel != -1 &&
+                    !spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+
+    gamma = spec.get_float_attribute ("oiio:Gamma", 1.0);
+
     std::string colorspace = spec.get_string_attribute ("oiio:ColorSpace");
     if (Strutil::iequals (colorspace, "Linear")) {
         png_set_gAMA (sp, ip, 1.0);
     }
     else if (Strutil::iequals (colorspace, "GammaCorrected")) {
-        float gamma = spec.get_float_attribute ("oiio:Gamma", 1.0);
         png_set_gAMA (sp, ip, 1.0f/gamma);
     }
     else if (Strutil::iequals (colorspace, "sRGB")) {

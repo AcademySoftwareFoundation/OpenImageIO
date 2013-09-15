@@ -64,12 +64,16 @@ private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
     bool m_want_rle;                  ///< Whether the client asked for RLE
+    bool m_convert_alpha;             ///< Do we deassociate alpha?
+    float m_gamma;                    ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     int m_idlen;                      ///< Length of the TGA ID block
 
     // Initialize private members to pre-opened state
     void init (void) {
         m_file = NULL;
+        m_convert_alpha = true;
+        m_gamma = 1.0;
     }
 
     // Helper function to write the TGA 2.0 data fields, called by close()
@@ -199,6 +203,14 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     // currently only RGB RLE is supported
     m_want_rle = (m_spec.get_string_attribute ("compression", "none")
                  != std::string("none")) && m_spec.nchannels >= 3;
+
+    // TGA does not dictate unassociated (un-"premultiplied") alpha but many
+    // implementations assume it even if we set TGA_ALPHA_PREMULTIPLIED, so
+    // always write unassociated alpha
+    m_convert_alpha = m_spec.alpha_channel != -1 &&
+                      !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+
+    m_gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0);
 
     // prepare and write Targa header
     tga_header tga;
@@ -380,12 +392,11 @@ TGAOutput::write_tga20_data_fields ()
 
         // gamma -- two shorts, giving a ratio
         if (Strutil::iequals (m_spec.get_string_attribute("oiio:ColorSpace"), "GammaCorrected")) {
-            float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0);
             // FIXME: invent a smarter way to convert to a vulgar fraction?
             // NOTE: the spec states that only 1 decimal place of precision
             // is needed, thus the expansion by 10
             // numerator
-            fwrite (uint16_t(gamma*10.0f));
+            fwrite (uint16_t(m_gamma*10.0f));
             fwrite (uint16_t(10));
         } else {
             // just dump two zeros in there
@@ -495,6 +506,37 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
 
 
 
+template <class T>
+static void 
+deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
+{
+    unsigned int max = std::numeric_limits<T>::max();
+    if (gamma == 1){
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel])
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel) {
+                        unsigned int f = data[c];
+                        f = (f * max) / data[alpha_channel];
+                        data[c] = (T) std::min (max, f);
+                    }
+    }
+    else {
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel]) {
+                // See associateAlpha() for an explanation.
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel)
+                        data[c] = static_cast<T> (std::min (max,
+                                (unsigned int)(data[c] * alpha_deassociate)));
+            }
+    }
+}
+
+
+
 bool
 TGAOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
@@ -506,6 +548,12 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
+    }
+
+    if (m_convert_alpha) {
+        deassociateAlpha ((unsigned char *)data, m_spec.width,
+                          m_spec.nchannels, m_spec.alpha_channel,
+                          m_gamma);
     }
 
     unsigned char *bdata = (unsigned char *)data;
