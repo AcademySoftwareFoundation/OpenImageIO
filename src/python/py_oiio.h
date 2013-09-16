@@ -67,7 +67,7 @@ bool PyProgressCallback(void*, float);
 
 // Suck up one or more presumed T values into a vector<T>
 template<typename T>
-static void py_to_stdvector (std::vector<T> &vals, const object &obj)
+void py_to_stdvector (std::vector<T> &vals, const object &obj)
 {
     extract<const tuple&> tup (obj);
     if (tup.check()) {
@@ -84,7 +84,7 @@ static void py_to_stdvector (std::vector<T> &vals, const object &obj)
 
 // Suck up a tuple of presumed T values into a vector<T>
 template<typename T>
-static void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
+void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
 {
     for (int i = 0, e = len(tup); i < e; ++i)
         py_to_stdvector<T> (vals, tup[i]);
@@ -97,7 +97,7 @@ static void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
 // Python tuple.  FUNC is a conversion function such as PyInt_FromLong,
 // PyFloat_FromDouble, or PyString_FromString.
 template<typename T, typename FUNC>
-static object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
+object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
 {
     if (type.arraylen == 0 && type.aggregate == TypeDesc::SCALAR) {
         // scalar case
@@ -242,92 +242,6 @@ public:
     void invalidate_all (bool);
 };
 
-
-class ImageBufWrap {
-private:
-    ImageBuf *m_buf;
-public:
-
-    ImageBufWrap (const std::string&name = std::string(),
-                  ImageCacheWrap*icw = NULL);
-    ImageBufWrap (const std::string&, const ImageSpec&) ;  
-    void clear ();
-    void reset_to_new_image (const std::string&, ImageCache*);
-    void reset_to_blank_image (const std::string&, const ImageSpec&);
-    void alloc (const ImageSpec&);
-    // TODO: How to wrap ProgressCallback?
-    /*
-    bool read (int subimage=0, bool force=false, 
-                TypeDesc convert=TypeDesc::UNKNOWN,
-                ProgressCallback progress_callback=NULL,
-                void *progress_callback_data=NULL);        
-       
-    bool save (const std::string &filename = std::string(),
-                const std::string &fileformat = std::string(),
-                ProgressCallback progress_callback=NULL,
-                void *progress_callback_data=NULL) const;
-
-    bool write (ImageOutputWrap *out,
-                ProgressCallback progress_callback=NULL,
-                void *progress_callback_data=NULL) const;  
-    */
-
-    bool init_spec (const std::string&, int, int);
-    const ImageSpec &spec() const;
-    const std::string &name() const;
-    const std::string &file_format_name() const;
-    int subimage() const;
-    int nsubimages() const;
-    int nchannels() const;
-    float getchannel (int, int, int, int) const;
-    void getpixel (int, int, float*, int) const;
-    void interppixel (float, float, float*) const;
-    void interppixel_NDC (float, float, float*) const;
-    void setpixel_xy (int, int, const float*, int);
-    void setpixel_i (int, const float*, int);
-
-    // These copy_pixel methods require the user to send an appropriate
-    // area of memory ("*result"), which would make little sense from Python.
-    // The user *could* create an appropriately sized array in Python by
-    // filling it with the correct amount of dummy data, but would
-    // this defeat the purpose of Python? Instead, the wrapper could
-    // allocate that array, fill it, and return it to Python. This is the way
-    // ImageInput.read_image() was wrapped.
-    bool get_pixels (int, int, int, int, int, int, TypeDesc, void*) const;
-
-    // TODO: handle T and <T>. Don't know how to handle this with B.P, 
-    // though haven't given it much thought yet.
-    /*
-    bool get_pixels_convert (int xbegin, int xend, int ybegin, int yend,
-                                T *result) const; 
-    bool get_pixels_convert_safer (int xbegin, int xend, int ybegin,
-                                int yend, std::vector<T> &result) const;
-    */
-    
-    int orientation() const; 
-    int oriented_width() const;
-    int oriented_height() const;
-    int oriented_x() const;
-    int oriented_y() const;
-    int oriented_full_width() const;
-    int oriented_full_height() const;
-    int oriented_full_x() const;
-    int oriented_full_y() const;
-    int xbegin() const;
-    int xend() const;
-    int ybegin() const;
-    int yend() const;
-    int xmin();
-    int xmax();
-    int ymin();
-    int ymax();
-    void zero();
-    bool pixels_valid () const;
-    bool localpixels () const;
-    //TODO: class Iterator and ConstIterator
-
-    std::string geterror()const;
-};
 
 
 } // namespace PyOpenImageIO
