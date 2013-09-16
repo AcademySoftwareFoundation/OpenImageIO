@@ -152,8 +152,6 @@ static stride_t ImageSpec_pixel_bytes_3(ImageSpec& spec, int chbegin, int chend,
 }
 
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_channel_bytes_overloads,
-                                       channel_bytes, 0, 2)
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_scanline_bytes_overloads,
                                        scanline_bytes, 0, 1)
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageSpec_tile_bytes_overloads,
