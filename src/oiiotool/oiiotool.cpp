@@ -868,18 +868,24 @@ set_origin (int argc, const char *argv[])
     ot.read ();
     ImageRecRef A = ot.curimg;
     ImageSpec &spec (*A->spec(0,0));
-    int x = spec.x, y = spec.y;
-    int w = spec.width, h = spec.height;
+    int x = spec.x, y = spec.y, z = spec.z;
+    int w = spec.width, h = spec.height, d = spec.depth;
 
     adjust_geometry (w, h, x, y, argv[1]);
-    if (spec.width != w || spec.height != h)
+    if (spec.width != w || spec.height != h || spec.depth != d)
         std::cerr << argv[0] << " can't be used to change the size, only the origin\n";
     if (spec.x != x || spec.y != y) {
         spec.x = x;
         spec.y = y;
+        spec.z = z;
+        // That updated the private spec of the ImageRec. In this case
+        // we really need to update the underlying IB as well.
+        ImageSpec &ibspec = (*A)(0,0).specmod();
+        ibspec.x = x;
+        ibspec.y = y;
+        ibspec.z = z;
         A->metadata_modified (true);
     }
-    
     ot.function_times["origin"] += timer();
     return 0;
 }
@@ -923,11 +929,26 @@ set_full_to_pixels (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.curimg;
-    ImageSpec &spec (*A->spec(0,0));
-    spec.full_x = spec.x;
-    spec.full_y = spec.y;
-    spec.full_width = spec.width;
-    spec.full_height = spec.height;
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            ImageSpec &spec = *A->spec(s,m);
+            spec.full_x = spec.x;
+            spec.full_y = spec.y;
+            spec.full_z = spec.z;
+            spec.full_width = spec.width;
+            spec.full_height = spec.height;
+            spec.full_depth = spec.depth;
+            // That updated the private spec of the ImageRec. In this case
+            // we really need to update the underlying IB as well.
+            ImageSpec &ibspec = (*A)(s,m).specmod();
+            ibspec.full_x = spec.x;
+            ibspec.full_y = spec.y;
+            ibspec.full_z = spec.z;
+            ibspec.full_width = spec.width;
+            ibspec.full_height = spec.height;
+            ibspec.full_depth = spec.depth;
+        }
+    }
     A->metadata_modified (true);
     ot.function_times["fullpixels"] += timer();
     return 0;
@@ -975,7 +996,7 @@ action_colorconvert (int argc, const char *argv[])
     ot.pop ();
     ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                            ot.allsubimages ? -1 : 0, true, false));
-    
+
     if (fromspace == "current")
         fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
 
@@ -995,6 +1016,7 @@ action_colorconvert (int argc, const char *argv[])
             if (! ok)
                 ot.error (argv[0], (*ot.curimg)(s,m).geterror());
             ot.curimg->spec(s,m)->attribute ("oiio:Colorspace", tospace);
+//        ot.curimg->metadata_modified (true);
         }
     }
 
