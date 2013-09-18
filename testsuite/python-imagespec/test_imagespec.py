@@ -24,7 +24,8 @@ def print_imagespec (spec, msg="") :
     print "  deep = ", spec.deep
     print ("  quantization: black=%d, white=%d, min=%d, max=%d" 
            % (spec.quant_black, spec.quant_white, spec.quant_min, spec.quant_max))
-    # FIXME - extra_attribs
+    for i in range(len(spec.extra_attribs)) :
+        print "  ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
     print
 
 

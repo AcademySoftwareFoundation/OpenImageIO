@@ -31,7 +31,6 @@
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
 #undef SIZEOF_LONG
 #include <boost/python.hpp>
-#include <boost/python/enum.hpp>
 #include "imageio.h"
 #include "py_oiio.h"
 
@@ -41,11 +40,12 @@ namespace PyOpenImageIO
 using namespace boost::python;
 
 object ImageOutputWrap::create (const std::string &filename, 
-                            const std::string& plugin_searchpath="")
+                                const std::string& plugin_searchpath="")
 {
     ImageOutputWrap *iow = new ImageOutputWrap;
     iow->m_output = ImageOutput::create(filename, plugin_searchpath);
     if (iow->m_output == NULL) {
+        delete iow;
         return object(handle<>(Py_None));
     }
     else {
@@ -53,21 +53,44 @@ object ImageOutputWrap::create (const std::string &filename,
     }
 }
 
+
 ImageOutputWrap::~ImageOutputWrap()
 {
     delete m_output;
 }
+
 
 const ImageSpec& ImageOutputWrap::spec () const
 {
     return m_output->spec();
 }
 
+
 bool ImageOutputWrap::open (const std::string &name, const ImageSpec &newspec,
                             ImageOutput::OpenMode mode=ImageOutput::Create)
 {
     return m_output->open(name, newspec, mode);
 }
+
+
+bool ImageOutputWrap::open_specs (const std::string &name, tuple &specs)
+{
+    const size_t length = len(specs);
+    if (length == 0)
+        return false;
+    std::vector<ImageSpec> Cspecs (length);
+    for (size_t i = 0; i < length; ++i) {
+        extract<ImageSpec> s (specs[i]);
+        if (! s.check()) {
+            // Tuple item was not an ImageSpec
+            return false;
+        }
+        Cspecs[i] = s();
+    }
+    return m_output->open (name, int(length), &Cspecs[0]);
+}
+
+
 
 bool ImageOutputWrap::close()
 {
@@ -76,91 +99,170 @@ bool ImageOutputWrap::close()
     
 // this function creates a read buffer from PyObject which will be used
 // for all write_<something> functions.
-const void* ImageOutputWrap::make_read_buffer(object &buffer)
+const void *
+ImageOutputWrap::make_read_buffer (object &buffer, imagesize_t size)
 {
-    const void *buf; 
-    Py_ssize_t len;
+    const void *buf = NULL; 
+    Py_ssize_t len = 0;
     int success = PyObject_AsReadBuffer(buffer.ptr(), &buf, &len);
-    if (success != 0) throw_error_already_set();
+    if (success != 0 || imagesize_t(len) < size) {
+        throw_error_already_set();
+    }
     return buf;
 }
 
-// TESTME
-bool ImageOutputWrap::write_scanline(int y, int z, TypeDesc format, object &buffer,
-                                        stride_t xstride=AutoStride)
+
+bool
+ImageOutputWrap::write_scanline (int y, int z, TypeDesc format, object &buffer,
+                                 stride_t xstride)
 {
-    const void *array = make_read_buffer(buffer);
+    const void *array = make_read_buffer (buffer, m_output->spec().scanline_bytes());
     return m_output->write_scanline(y, z, format, array, xstride);
 }
 
-// TESTME
-bool ImageOutputWrap::write_tile(int x, int y, int z, TypeDesc format, object &buffer,
-                                stride_t xstride=AutoStride,
-                                stride_t ystride=AutoStride,
-                                stride_t zstride=AutoStride)
+
+bool
+ImageOutputWrap::write_scanline_bt (int y, int z, TypeDesc::BASETYPE format,
+                                    object &buffer, stride_t xstride)
 {
-    const void *array = make_read_buffer(buffer);
+    return write_scanline (y, z, format, buffer, xstride);
+}
+
+
+bool
+ImageOutputWrap::write_scanlines (int ybegin, int yend, int z,
+                                  TypeDesc format, object &buffer,
+                                  stride_t xstride)
+{
+    const void *array = make_read_buffer (buffer, m_output->spec().scanline_bytes());
+    return m_output->write_scanlines(ybegin, yend, z, format, array, xstride);
+}
+
+
+bool
+ImageOutputWrap::write_scanlines_bt (int ybegin, int yend, int z,
+                                     TypeDesc::BASETYPE format,
+                                     object &buffer, stride_t xstride)
+{
+    return write_scanlines (ybegin, yend, z, format, buffer, xstride);
+}
+
+
+
+bool
+ImageOutputWrap::write_tile (int x, int y, int z, TypeDesc format,
+                             object &buffer, stride_t xstride,
+                             stride_t ystride, stride_t zstride)
+{
+    imagesize_t size = m_output->spec().tile_bytes();
+    const void *array = make_read_buffer(buffer, size);
     return m_output->write_tile(x, y, z, format, array, xstride, ystride, zstride);    
 }
 
-// TESTME
-bool ImageOutputWrap::write_rectangle(int xbegin, int xend, int ybegin, int yend,
-                                     int zbegin, int zend, TypeDesc format, 
-                                    object &buffer, stride_t xstride=AutoStride,
-                                    stride_t ystride=AutoStride,
-                                    stride_t zstride=AutoStride)
+bool
+ImageOutputWrap::write_tile_bt (int x, int y, int z, TypeDesc::BASETYPE format,
+                                object &buffer, stride_t xstride,
+                                stride_t ystride, stride_t zstride)
 {
-    const void *array = make_read_buffer(buffer);
-    return m_output->write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
-                                     format, array, xstride, ystride, zstride);
+    return write_tile(x, y, z, format, buffer, xstride, ystride, zstride);    
 }
 
-// The write_image method is a bit different from the c++ interface. 
-// "function" is a function which takes a float, and the 
-// PyProgressCallback function is called automatically.
-bool ImageOutputWrap::write_image (TypeDesc format, object &buffer,
-                                    stride_t xstride=AutoStride,
-                                    stride_t ystride=AutoStride,
-                                    stride_t zstride=AutoStride,
-                                object function=object(handle<>(Py_None)))
-{
 
-    const void *array = make_read_buffer(buffer);
-    if (function==handle<>(Py_None)) {
-        return m_output->write_image(format, array, xstride, ystride, 
-                                zstride, NULL, NULL);
-    }
-    else {
-        return m_output->write_image(format, array, xstride, ystride, zstride, 
-                            &PyProgressCallback, &function);
-    }
-    
+
+bool
+ImageOutputWrap::write_tiles (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
+                              object &buffer, stride_t xstride,
+                              stride_t ystride, stride_t zstride)
+{
+    imagesize_t size = m_output->spec().tile_bytes();
+    const void *array = make_read_buffer(buffer, size);
+    return m_output->write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                                  format, array, xstride, ystride, zstride);    
 }
 
-//for testing if m_output looks ok
-void ImageOutputWrap::print_pointer()
+bool
+ImageOutputWrap::write_tiles_bt (int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend, TypeDesc::BASETYPE format,
+                                 object &buffer, stride_t xstride,
+                                 stride_t ystride, stride_t zstride)
 {
-    std::cout << m_output << std::endl;
+    return write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                        format, buffer, xstride, ystride, zstride);    
 }
+
+
+
+bool
+ImageOutputWrap::write_image (TypeDesc format, object &buffer,
+                              stride_t xstride, stride_t ystride,
+                              stride_t zstride)
+{
+    imagesize_t size = m_output->spec().image_bytes();
+    const void *array = make_read_buffer (buffer, size);
+    if (array)
+        return m_output->write_image (format, array, xstride, ystride, zstride);
+    return false;
+}
+
+
+bool
+ImageOutputWrap::write_image_bt (TypeDesc::BASETYPE format, object &data,
+                                 stride_t xstride, stride_t ystride,
+                                 stride_t zstride)
+{
+    return write_image (format, data, xstride, ystride, zstride);
+}
+
+
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_image_overloads,
+                                       write_image, 2, 5)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_image_bt_overloads,
+                                       write_image_bt, 2, 5)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_scanline_overloads,
+                                       write_scanline, 4, 5)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_scanline_bt_overloads,
+                                       write_scanline_bt, 4, 5)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_scanlines_overloads,
+                                       write_scanlines, 5, 6)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_scanlines_bt_overloads,
+                                       write_scanlines_bt, 5, 6)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_tile_overloads,
+                                       write_tile, 5, 8)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_tile_bt_overloads,
+                                       write_tile_bt, 5, 8)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_tiles_overloads,
+                                       write_tiles, 8, 11)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageOutputWrap_write_tiles_bt_overloads,
+                                       write_tiles_bt, 8, 11)
+
+
 
 bool ImageOutputWrap::copy_image (ImageInputWrap *iiw)
 {
     return m_output->copy_image(iiw->m_input);
 }
 
+
 const char* ImageOutputWrap::format_name (void) const
 {
     return m_output->format_name();
 }
+
 
 bool ImageOutputWrap::supports (const std::string &feature) const
 {
     return m_output->supports(feature);
 }
 
+
 std::string ImageOutputWrap::geterror()const  {
     return m_output->geterror();
 }
+
 
 
 void declare_imageoutput()
@@ -174,28 +276,37 @@ void declare_imageoutput()
         .def("spec",            &ImageOutputWrap::spec, 
               return_value_policy<copy_const_reference>())
         .def("open",            &ImageOutputWrap::open)
+        .def("open",            &ImageOutputWrap::open_specs)
         .def("close",           &ImageOutputWrap::close)
-        .def("write_tile",      &ImageOutputWrap::write_tile,
-             (arg("xstride")=AutoStride, arg("ystride")=AutoStride,
-              arg("zstride")=AutoStride))
+        .def("write_image",     &ImageOutputWrap::write_image,
+             ImageOutputWrap_write_image_overloads())
+        .def("write_image",     &ImageOutputWrap::write_image_bt,
+             ImageOutputWrap_write_image_bt_overloads())
         .def("write_scanline",  &ImageOutputWrap::write_scanline,
-              arg("xstride")=AutoStride)
-        .def("write_rectangle", &ImageOutputWrap::write_rectangle, 
-             (arg("xstride")=AutoStride, arg("ystride")=AutoStride,
-              arg("zstride")=AutoStride))
-        .def("write_image",     &ImageOutputWrap::write_image, 
-             (arg("xstride")=AutoStride, arg("ystride")=AutoStride,
-              arg("zstride")=AutoStride, arg("function")=object(handle<>(Py_None))))
-        .def("print_pointer",   &ImageOutputWrap::print_pointer)//for testing
+             ImageOutputWrap_write_scanline_overloads())
+        .def("write_scanline",  &ImageOutputWrap::write_scanline_bt,
+             ImageOutputWrap_write_scanline_bt_overloads())
+        .def("write_scanlines",  &ImageOutputWrap::write_scanlines,
+             ImageOutputWrap_write_scanlines_overloads())
+        .def("write_scanlines",  &ImageOutputWrap::write_scanlines_bt,
+             ImageOutputWrap_write_scanlines_bt_overloads())
+        .def("write_tile",      &ImageOutputWrap::write_tile,
+             ImageOutputWrap_write_tile_overloads())
+        .def("write_tile",      &ImageOutputWrap::write_tile_bt,
+             ImageOutputWrap_write_tile_bt_overloads())
+        .def("write_tiles",      &ImageOutputWrap::write_tiles,
+             ImageOutputWrap_write_tiles_overloads())
+        .def("write_tiles",      &ImageOutputWrap::write_tiles_bt,
+             ImageOutputWrap_write_tiles_bt_overloads())
+// FIXME - write_deep_{image,scanlines,tiles}
         .def("copy_image",      &ImageOutputWrap::copy_image)
         .def("geterror",        &ImageOutputWrap::geterror)
     ;
     enum_<ImageOutput::OpenMode>("ImageOutputOpenMode")
-                .value("Create", ImageOutput::Create )
+        .value("Create", ImageOutput::Create )
 		.value("AppendSubimage", ImageOutput::AppendSubimage)
-                .value("AppendMIPLevel", ImageOutput::AppendMIPLevel)
+        .value("AppendMIPLevel", ImageOutput::AppendMIPLevel)
 		.export_values();
-    scope().attr("AutoStride") = AutoStride;
 }
 
 } // namespace PyOpenImageIO
