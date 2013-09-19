@@ -206,7 +206,6 @@ void ImageBuf_test_appbuffer ()
 
     // Read it back and make sure it matches the original
     ImageBuf B ("A.tif");
-    B.read ();
     for (int y = 0;  y < HEIGHT;  ++y)
         for (int x = 0;  x < WIDTH;  ++x)
             OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, 0),
