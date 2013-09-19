@@ -23,7 +23,6 @@ have an error message set.  Below is an example:
 
 \begin{code}
     ImageBuf src ("input.exr");
-    buf.read ();
     ImageBuf dst;   // will be the output image
     ...
     bool ok = ImageBufAlgo::crop (dst, src);
@@ -105,7 +104,6 @@ no region is specified.
 \noindent Examples:
 \begin{code}
     ImageBuf dst ("myfile.exr");
-    dst.read ();
     ...
 
     // Zero out whole buffer, keeping it the same size
@@ -162,7 +160,7 @@ image.
 \begin{code}
     // Create a new 640x480 RGB image, fill it with a two-toned gray
     // checkerboard, the checkers being 64x64 pixels each.
-    ImageBuf A ("myimage", ImageSpec(640, 480, 3, TypeDesc::FLOAT);
+    ImageBuf A (ImageSpec(640, 480, 3, TypeDesc::FLOAT);
     float dark[3] = { 0.1, 0.1, 0.1 };
     float light[3] = { 0.4, 0.4, 0.4 };
     ImageBufAlgo::checker (A, 64, 64, 1, dark, light, 0, 0, 0);
@@ -188,7 +186,7 @@ least equal to the number of channels in {\cf dst}).
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A (640, 480, 4, TypeDesc::FLOAT);
+    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
 
     ImageBufAlgo::render_text (A, 50, 100, "Hello, world");
 
@@ -310,8 +308,8 @@ the entirety of src will be used.  It will copy into channels
 \noindent Examples:
 \begin{code}
     // Paste small.exr on top of big.exr at offset (100,100)
-    ImageBuf Big ("big.exr");  Big.read();
-    ImageBuf Small ("small.exr");  Small.read();
+    ImageBuf Big ("big.exr");
+    ImageBuf Small ("small.exr");
     ImageBufAlgo::paste (Big, 100, 100, 0, 0, Small);
 \end{code}
 \apiend
@@ -326,7 +324,7 @@ of {\cf dst}, but with the scanlines exchanged vertically.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");  A.read();
+    ImageBuf A ("tahoe.exr");
     ImageBuf B;
     ImageBufAlgo::flip (B, A);
 \end{code}
@@ -341,7 +339,7 @@ of {\cf dst}, but with the columns exchanged horizontally.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");  A.read();
+    ImageBuf A ("tahoe.exr");
     ImageBuf B;
     ImageBufAlgo::flop (B, A);
 \end{code}
@@ -358,7 +356,7 @@ columns exchanged horizontally (this is equivalent to a 180 degree rotation).
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");  A.read();
+    ImageBuf A ("tahoe.exr");
     ImageBuf B;
     ImageBufAlgo::flipflop (B, A);
 \end{code}
@@ -376,7 +374,7 @@ set {\cf dst[y,x] = src[x,y]}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");  A.read();
+    ImageBuf A ("tahoe.exr");
     ImageBuf B;
     ImageBufAlgo::transpose (B, A);
 \end{code}
@@ -395,7 +393,7 @@ shift of $[0,1,2,3,4,5]$ by $+2$ is $[4,5,0,1,2,3]$.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");  A.read();
+    ImageBuf A ("tahoe.exr");
     ImageBuf B;
     ImageBufAlgo::circular_shift (B, A, 200, 100);
 \end{code}
@@ -422,7 +420,7 @@ will be used.
 \noindent Examples:
 \begin{code}
     // Resize the image to 640x480, using the default filter
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
     ImageBuf Dst;
     ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBufAlgo::resize (Dst, Src, NULL, roi);
@@ -450,7 +448,7 @@ downsizing, pixel replication when upsizing).
 \noindent Examples:
 \begin{code}
     // Resample quickly to 320x240, using the default filter
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
     ImageBuf Dst;
     ROI roi (0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBufAlgo::resample (Dst, Src, NULL, roi);
@@ -473,8 +471,8 @@ images {\cf A} and {\cf B}, putting the sum in {\cf dst}.  {\cf A} and
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
-    ImageBuf B ("b.exr");  B.read();
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
     ImageBuf Sum;
     ImageBufAlgo::add (Sum, A, B);
 \end{code}
@@ -492,7 +490,7 @@ version, {\cf val[]} supplies a different value for each channel.
 \noindent Examples:
 \begin{code}
     // Add 0.2 to channels 0-2
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::add (A, 0.2, roi);
@@ -512,8 +510,8 @@ of {\cf B} from those of {\cf A}, putting the results into {\cf dst}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
-    ImageBuf B ("b.exr");  B.read();
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
     ImageBuf Difference;
     ImageBufAlgo::sub (Difference, A, B);
 \end{code}
@@ -532,8 +530,8 @@ of images {\cf A} and {\cf B} (channel by channel), putting the sum in
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
-    ImageBuf B ("b.exr");  B.read();
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
     ImageBuf Product;
     ImageBufAlgo::mul (Product, A, B);
 \end{code}
@@ -551,7 +549,7 @@ version, {\cf val[]} supplies a different multiplicative value for each channel.
 \noindent Examples:
 \begin{code}
     // Reduce intensity of channels 0-2 by 50%
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::mul (A, 0.5, roi);
@@ -575,7 +573,7 @@ per-channel weight (rather than defaulting to 1.0 for each channel).
     // Compute luminance via a weighted sum of R,G,B
     // (assuming Rec709 primaries and a linear scale)
     float luma_weights[3] = { .2126, .7152, .0722 };
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ImageBuf B;
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
@@ -668,7 +666,7 @@ and {\cf rangeexpand}).
     // do range compression, then resize, then re-expand the range.
 
     // 1. Read the original image
-    ImageBuf Src ("tahoeHDR.exr");  Src.read();
+    ImageBuf Src ("tahoeHDR.exr");
 
     // 2. Range compress to a logarithmic scale
     ImageBuf Compressed;
@@ -702,8 +700,8 @@ alpha channel.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("fg.exr");  A.read();
-    ImageBuf B ("bg.exr");  B.read();
+    ImageBuf A ("fg.exr");
+    ImageBuf B ("bg.exr");
     ImageBuf Composite;
     ImageBufAlgo::over (Composite, A, B);
 \end{code}
@@ -728,8 +726,8 @@ as if they are infinitely far away.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
-    ImageBuf B ("b.exr");  B.read();
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
     ImageBuf Composite;
     ImageBufAlgo::zover (Composite, A, B);
 \end{code}
@@ -766,7 +764,7 @@ struct PixelStats {
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ImageBufAlgo::PixelStats stats;
     ImageBufAlgo::computePixelStats (stats, A);
     for (int c = 0;  c < A.nchannels();  ++c) {
@@ -807,8 +805,8 @@ struct CompareResults {
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
-    ImageBuf B ("b.exr");  B.read();
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
     ImageBufAlgo::CompareResults comp;
     ImageBufAlgo::compare (A, B, 1.0f/255.0f, 0.0f, comp);
     if (comp.nwarn == 0 && comp.nfail == 0) {
@@ -851,7 +849,7 @@ the values in {\cf color[roi.chbegin...roi.chend-1]}.  Otherwise, return
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     std::vector<float> color (A.nchannels());
     if (ImageBufAlgo::isConstantColor (A, &color[0])) {
         std::cout << "The image has the same value in all pixels: ";
@@ -875,7 +873,7 @@ values given by \\ {\cf color[roi.chbegin...roi.chend-1]}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     float testcolor[3] = { 1, 0, 0 };
     ROI roi = get_roi (A.spec());
     roi.chend = std::min (3, roi.chend);  // only test RGB, not alpha
@@ -899,7 +897,7 @@ given {\cf channel} value {\cf val}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     int alpha = A.spec().alpha_channel;
     if (alpha < 0)
         std::cout << "The image does not have an alpha channel\n";
@@ -923,7 +921,7 @@ understood to be all of the defined pixels and channels of source.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ROI roi = get_roi (A.spec());
     roi.chend = std::min (3, roi.chend);  // only test RGB, not alpha
     if (ImageBufAlgo::isMonochrome (A, roi))
@@ -962,7 +960,7 @@ allows a wee bit of imprecision for {\cf float} images.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     int n = A.nchannels();
 
     // Try to match two colors: pure red and green
@@ -1002,7 +1000,7 @@ stored.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ROI roi = get_roi (A.spec());
     roi.chend = std::min (roi.chend, 4);  // only compare RGBA
 
@@ -1037,7 +1035,7 @@ incorporated into the hash.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     std::string hash;
     hash = ImageBufAlgo::computePixelHashSHA1 (A, "", ROI::All(), 64);
 \end{code}
@@ -1060,7 +1058,7 @@ the number of pixels whose value was $>$ {\cf max}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
     const int bins = 4;
     std::vector<imagesize_t> hist (bins, 0);
     imagesize_t submin=0, supermax=0;
@@ -1144,7 +1142,7 @@ convolution, otherwise the original values will be used.
 \noindent Examples:
 \begin{code}
     // Blur an image with a 5x5 Gaussian kernel
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
     ImageBuf K;
     ImageBufAlgo::make_kernel (K, "gaussian", 5.0f, 5.0f);
     ImageBuf Blurred;
@@ -1174,7 +1172,7 @@ by $1/\sqrt{\mathrm{npixels}}$.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
 
     // Take the DFT of the first channel of Src
     ImageBuf Freq;
@@ -1222,7 +1220,7 @@ pixel data types that cannot represent {\cf NaN} or {\cf Inf} values.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf Src ("tahoe.exr");  Src.read();
+    ImageBuf Src ("tahoe.exr");
     int pixelsFixed = 0;
     ImageBufAlgo::fixNonFinite (Src, ImageBufAlgo::NONFINITE_BOX3,
                                 &pixelsFixed);
@@ -1245,7 +1243,7 @@ of src was < 1, dst will have a pixel color that is a plausible
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf Src ("holes.exr");  Src.read();
+    ImageBuf Src ("holes.exr");
     ImageBuf Filled;
     ImageBufAlgo::fillholes_pushpull (Filled, Src);
 \end{code}
@@ -1279,7 +1277,7 @@ higher-contrast edges.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf Blurry ("tahoe.exr");  Blurry.read();
+    ImageBuf Blurry ("tahoe.exr");
     ImageBuf Sharp;
     ImageBufAlgo::unsharp_mask (Sharp, "gaussian", 5.0f, Blurry);
 \end{code}
@@ -1318,7 +1316,7 @@ are from \qkw{sRGB} to \qkw{linear} and vice versa.
     #include <OpenImageIO/color.h>
     using namespace OIIO;
 
-    ImageBuf Src ("tahoe.jpg");  Src.read();
+    ImageBuf Src ("tahoe.jpg");
     ImageBuf Dst;
     ColorConfig cc;
     ColorProcessor *processor = cc.createColorProcessor ("sRGB", "linear");
@@ -1342,7 +1340,7 @@ that case).  This is a no-op if there is no identified alpha channel.
 \noindent Examples:
 \begin{code}
     // Convert from associated alpha to unassociated alpha
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ImageBufAlgo::unpremult (A);
 \end{code}
 \apiend
@@ -1360,7 +1358,7 @@ there is no identified alpha channel.
 \noindent Examples:
 \begin{code}
     // Convert from unassociated alpha to associated alpha
-    ImageBuf A ("a.exr");  A.read();
+    ImageBuf A ("a.exr");
     ImageBufAlgo::premult (A);
 \end{code}
 \apiend
@@ -1528,7 +1526,7 @@ created.  The full list of supported configuration options is:
     //             -o texture.exr
     // is equivalent to:
 
-    ImageBufAlgo Input ("in.exr");  Input.read();
+    ImageBufAlgo Input ("in.exr");
     ImageSpec config;
     config.attribute ("maketx:highlightcomp", 1);
     config.attribute ("maketx:filtername", "lanczos3");
