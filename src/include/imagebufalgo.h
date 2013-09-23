@@ -613,7 +613,22 @@ bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = true,
 /// range compressed, back to a linear response.
 bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = true,
                            ROI roi = ROI::All(), int nthreads=0);
-
+/// Apply a color transform to the pixel values within the ROI, inplace.
+///
+/// If roi is not defined it will be all src
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in src).
+bool OIIO_API colorconvert (ImageBuf &src,
+                            const ColorProcessor *processor,
+                            bool unpremult,
+                            ROI roi=ROI::All(), int nthreads=0);
 
 /// Apply a color transform to the pixel values within the ROI.
 ///
