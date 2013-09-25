@@ -52,7 +52,6 @@ an example:
 
 \subsubsection*{Frame sequences}
 
-\NEW
 It is also possible to have \oiiotool operate on numbered sequences of
 images.  In effect, this will execute the \oiiotool command several
 times, making substitutions to the sequence arguments in turn.
@@ -195,7 +194,6 @@ unsigned pixels:
     oiiotool in.tif -d uint8 -o out.tif
 \end{code}
 
-\NEW
 For formats that support per-channel data formats, you can override
 the format for one particular channel using {\cf -d CHNAME=TYPE}.
 For example, assuming {\cf rgbaz.exr} is a {\cf float} RGBAZ file,
@@ -391,7 +389,6 @@ are printed.
 
 \apiitem{--metamatch \emph{regex} \\
 --no-metamatch \emph{regex}}
-\NEW
 Regular expressions to restrict which metadata are output when using
 {\cf oiiotool --info -v}.  The {\cf --metamatch} expression causes only
 metadata whose name matches to print; non-matches are not output.  The
@@ -418,7 +415,6 @@ alter the image stack.
 \apiend
 
 \apiitem{--colorcount \emph{r1,g1,b1,...:r2,g2,b2,...:...}}
-\NEW
 Given a list of colors separated by colons or semicolons, where each
 color is a list of comma-separated values (for each channel), examine
 all pixels of the current image and print a short report of how many
@@ -465,7 +461,6 @@ of pixels to the color value.
 \apiend
 
 \apiitem{--rangecheck \emph{Rlow,Glow,Blow,...}  \emph{Rhi,Bhi,Ghi,...}}
-\NEW
 Given a two colors (each a comma-separated list of values for each
 channel), print a count of the number of pixels in the image that has
 channel values outside the [low,hi] range.  Any channels not
@@ -497,7 +492,6 @@ present in the hardware.
 
 \apiitem{--frames \emph{seq}\\
 --framepadding \emph{n}}
-\NEW
 Describes the frame range to substitute for the {\cf \#} wildcard.  The
 sequence is a comma-separated list of subsequences; each subsequence
 is a single frame (e.g., {\cf 100}), a range of frames ({\cf 100-150}),
@@ -651,7 +645,6 @@ non-issue for file formats that support these concepts, such as OpenEXR.
 \apiend
 
 \apiitem{--autotrim}
-\NEW % 1.2
 For subsequent outputs, if the output format supports separate pixel
 data and full/display windows, automatically trim the output so that
 it writes the minimal data window that contains all the non-zero valued
@@ -807,7 +800,6 @@ on the stack being identical copies.
 \apiend
 
 \apiitem{--swap}
-\NEW % 1.2
 Swap the current image and the next one on the stack.
 \apiend
 
@@ -843,14 +835,14 @@ is a comma-separated list of channel names and/or numbers (e.g.,
 \qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
 the valid range of input channels, or unknown names, will be replaced
 by black channels.
-\NEW A channel designation beginning with the {\cf =} character and followed
+\NEW % 1.3?
+A channel designation beginning with the {\cf =} character and followed
 by a number is a \emph{literal value} that will be used to fill that
 channel.  If the \emph{channellist} is shorter than the number of
 channels in the source image, unspecified channels will be omitted.
 \apiend
 
 \apiitem{--chappend}
-\NEW  % 1.2
 Replaces the top two images on the stack with a new image comprised of
 the channels of both images appended together.
 \apiend
@@ -916,7 +908,6 @@ An $512 \times 512$ RGB image with a 16-pixel-wide checker pattern.
 
 
 \apiitem{--kernel {\rm \emph{name size}}}
-\NEW
 Create new 1-channel {\cf float} image big enough to hold the named
 kernel and size (size is expressed as \emph{width}{\cf x}\emph{height},
 e.g. {\cf 5x5}).  The \emph{width} and \emph{height} are allowed to be
@@ -984,7 +975,6 @@ consisting of the \emph{absolute value} of he old pixel value.
 
 \apiitem{--cadd {\rm \emph{value}} \\
 --cadd {\rm \emph{value0,value1,value2...}}}
-\NEW
 Add a constant value to all the pixels in the current image.  If a
 single constant value is given, it will be added to all color channels.
 Alternatively, a series of comma-separated constant values (with no
@@ -994,7 +984,6 @@ channel in the image, respectively.
 
 \apiitem{--cmul {\rm \emph{value}} \\
 --cmul {\rm \emph{value0,value1,value2...}}}
-\NEW
 Multiply all the pixel values in the top image by a constant value.
 If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
@@ -1003,7 +992,6 @@ different multiplier for each channel in the image, respectively.
 \apiend
 
 \apiitem{--chsum}
-\NEW
 Replaces the top image by a copy that contains only 1 color channel,
 whose value at each pixel is the sum of all channels of the original
 image.  Using the optional {\cf weight} allows you to customize the
@@ -1021,7 +1009,6 @@ weight of each channel in the sum.
 \apiend
 
 \apiitem{--paste {\rm \emph{location}}}
-\NEW
 Takes two images -- the first is the ``foreground'' and the second is
 the ``background'' -- and uses the pixels of the foreground to replace
 those of the backgroud beginning at the upper left \emph{location}
@@ -1030,7 +1017,6 @@ or of course using {\cf -} for negative offsets).
 \apiend
 
 \apiitem{--mosaic {\rm \emph{size}}}
-\NEW
 Removes \emph{w}{\cf x}\emph{h} images, dictated by the
 \emph{size}, and turns them into a single image mosaic.
 Optional appended arguments
@@ -1060,7 +1046,6 @@ and must contain an alpha channel.
 
 \apiitem{--zover}
 \index{depth composite}
-\NEW
 Replace the \emph{two} top images with a new image that is a \emph{depth
 composite} of the two images -- the operation is the 
 Porter/Duff ``over'' composite, but each pixel individually will choose
@@ -1094,13 +1079,11 @@ flopped, which is the same as a 180 degree rotation.
 \apiend
 
 \apiitem{--transpose}
-\NEW
 Replace the current image with a new image that is trasposed about
 the $xy$ axis (x and coordinates and size are flipped).
 \apiend
 
 \apiitem{--cshift {\rm \emph{offset}}}
-\NEW
 Circularly shift the pixels of the image by the given offset (expressed
 as {\cf +10+100} to move by 10 pixels horizontally and 100 pixels
 vertically, or {\cf +50-30} to move by 50 pixels horizontally and
@@ -1134,7 +1117,6 @@ the full/display window.
 \apiend
 
 \apiitem{--resample {\rm \emph{size}}}
-\NEW
 Replace the current image with a new image that is resampled to the
 given pixel data resolution rapidly, but at a low quality, by simply
 copying the ``closest'' pixel.  The \emph{size} is in the form 
@@ -1176,7 +1158,6 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{--fit {\rm \emph{size}}}
-\NEW
 Replace the current image with a new image that is resized to fit
 into the given pixel data resolution, keeping the original aspect ratio
 and padding with black pixels if the requested image size does not
@@ -1194,7 +1175,6 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{--convolve}
-\NEW
 Use the top image as a kernel to convolve the next image farther down
 the stack, replacing both with the result.
 
@@ -1209,7 +1189,6 @@ the stack, replacing both with the result.
 \apiend
 
 \apiitem{--blur {\rm \emph{size}}}
-\NEW
 Blur the top image with a blur kernel of the given size expressed as
 \emph{width}{\cf x}\emph{height}.  (The sizes may be floating point 
 numbers.)
@@ -1231,7 +1210,6 @@ Optional appended arguments include:
 
 
 \apiitem{--unsharp}
-\NEW
 Unblur the top image using an ``unsharp mask.'' 
 
 Optional appended arguments include:
@@ -1256,7 +1234,6 @@ Optional appended arguments include:
 
 \apiitem{--fft \\
 --ifft}
-\NEW
 Performs forward and inverse unitized discrete Fourier transform.
 The forward FFT always transforms only the first channel of the
 top image on the stack, and results in a 2-channel image (with real and
@@ -1289,7 +1266,6 @@ finite values within a $3 \times 3$ region surrounding the pixel.
 \apiend
 
 \apiitem{--clamp}
-\NEW
 Replace the top image with a copy in which pixel values have been
 clamped.  Optional arguments include:
 
@@ -1328,7 +1304,6 @@ corresponding channel should not be clamped.
 
 \apiitem{--rangecompress \\
 --rangeexpand}
-\NEW
 Range compression re-maps input values to a logarithmic scale.
 Range expansion is the inverse mapping back to a linear scale.
 Range compression and expansion only applies to color
@@ -1360,7 +1335,6 @@ pixel values.  For example,
 \apiend
 
 \apiitem{--fillholes}
-\NEW
 Replace the top image with a copy in which any pixels that had
 $\alpha < 1$ are ``filled'' in a smooth way using data from
 surrounding $\alpha > 0$ pixels, resulting in an image that is
@@ -1434,7 +1408,6 @@ automatically deduced.
 \apiend
 
 \apiitem{--ociolook {\rm \emph{lookname}}}
-\NEW
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO look description.  Optional appended
 arguments include:
@@ -1467,7 +1440,6 @@ looks that \oiiotool knows about.
 \apiend
 
 \apiitem{--unpremult}
-\NEW
 Divide all color channels (those not alpha or z) of the current image by
 the alpha value, to ``un-premultiply'' them.  This presumes that the
 image starts of as ``associated alpha,'' a.k.a.\ ``premultipled.''
@@ -1477,7 +1449,6 @@ identified alpha channel.
 \apiend
 
 \apiitem{--premult}
-\NEW
 Multiply all color channels (those not alpha or z) of the current image
 by the alpha value, to ``premultiply'' them.  This presumes that the
 image starts of as ``unassociated alpha,'' a.k.a.\ ``non-premultipled.''
