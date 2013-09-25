@@ -4,9 +4,16 @@ Changes:
 Release 1.3 (in progress -- compared to 1.2.x)
 ----------------------------------------------
 Major new features and improvements:
+* Huge overhaul of the Python bindings: TypeDesc, ImageSpec, ImageInput,
+  ImageOutput.  The Python bindings were pretty rusty, badly tested,
+  undocumented, and had not kept up with recent changes in the C++ APIs.
+  That's all fixed now, the Python APIs are finally first-class citizens
+  (including full functionality, unit tests, and docs), and we intend to
+  keep it that way.
 * The ability for an application to supply custom ImageInput and associate
   them with a file extension. Those II's can do anything, including 
   generate image data procedurally.
+* GIF reader
 
 Public API changes:
 * ImageCache::add_file() lets you seed the ImageCache with a "virtual file"
@@ -27,11 +34,43 @@ Fixes, minor enhancements, and performance improvements:
 * oiiotool improvements:
   * --autotrim   Shrinks pixel data window upon output to trim black 
     edges. (1.3.2)
+  * --slappend   Appends subimages of top two images on the stack. (1.2.2)
   * Fix memory leak when processing frame range. (1.2.1/1.3.2)
   * --help now returns a success error code, not a failure. (1.2.1/1.3.2)
   * Fix incorrect help message about --ociolook. (1.2.1/1.3.2)
   * Fix typo in "oiio:Colorspace" attribute name that interfered
     with correct color space conversion in --colorconvert. (1.2.1)
+  * Many fixes and improvements to XMP & IPTC metadata handling.
+  * Multithread speed improvement when opening files by reducing how
+    much time ImageInput::create and/or ImageOutput::create hold a
+    global mutex.
+  * oiiotool --origin and --fullpixels, when operating on cropped or
+    overscanned image, could sometimes do the wrong thing. (1.2.2/1.3.3)
+  * oiiotool --colorconvert did not work properly when the color
+    transformation was detected to be a no-op. (1.2.2/1.3.3)
+  * oiiotool --fit did not handle padding properly. (1.2.2/1.3.3)
+* ImageBufAlgo improvements:
+  * colorconvert() did not work properly when the color transformation was
+    detected to be a no-op.
+* DPX:
+  * support multi-image (often used for stereo frames).
+  * Fixed DPX input that didn't recognized offset/cropped images.
+    (1.2.2/1.3.3)
+  * Fixed DPX output crash with cropped images. (1.2.2/1.3.3)
+* ImageCache/TextureSystem: More careful with texture de-duplication --
+  texture value lookups use de-duplication, but metadata lookups (e.g.,
+  get_texture_info) uses the metadata from the original file.
+* JPEG: fixed that some JPEG files were not being recognized because of
+  magic number issues.
+* TGA: Correctly unassociate alpha if it's from an unasociated file;
+  also, always write unassociated data because so few Targa readers in
+  the wild seem to properly handle associated alpha.
+* PNG: More correct handling of unassociated alpha.
+* TIFF: More correct handling of unassociated alpha.
+* We changed the behavior of range compression/expansion.  We swear
+  the new way is better.  This affects ImageBufAlgo::rangecompress and
+  rangeexpand, oiiotool --rangecompress/--rangeexpand, and maketx --hicomp.
+  (1.3.3)
 
 Build/test system improvements:
 * Fix broken tests under Windows. (1.3.2)
@@ -47,6 +86,11 @@ Build/test system improvements:
 * Build fixes for FreeBSD. (1.2.1/1.3.2)
 * Fix testsuite/oiiotool on Windows -- windows shell doesn't expand
   wildcards. (1.2.1/1.3.2)
+* Fix warnings for new GCC 4.8 compiler.
+* Always search for and use the release HDF5 libraries, not the debugging
+  ones, even when building debug OIIO (this fixes errors when a system
+  does not have the debugging HDF5 libraries installed).
+* Extensive unit tests in the testsuite for the Python bindings.
 
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
@@ -55,6 +99,8 @@ Developer goodies:
 * Now each command line tools explicitly converts to UTF native arguments,
   rather than relying on it happening in ArgParse (which no longer does
   so). (1.3.2)
+* Strutil::contains() and icontains().
+
 
 
 Release 1.2.1 (5 Aug 2013)
