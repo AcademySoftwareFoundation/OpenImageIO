@@ -518,11 +518,21 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
 
-    // If the processor is a no-op, no work needs to be done. Early exit.
-    if (processor->isNoOp())
+    // If the processor is a no-op and the conversion is being done
+    // in place, no work needs to be done. Early exit.
+    if (processor->isNoOp() && (&dst == &src))
         return true;
 
-    IBAprep (roi, &dst);
+    IBAprep (roi, &dst, &src);
+
+    // If the processor is a no-op (and it's not an in-place conversion),
+    // use paste() to simplify the operation.
+    if (processor->isNoOp()) {
+        roi.chend = std::max (roi.chbegin+4, roi.chend);
+        return ImageBufAlgo::paste (dst, roi.xbegin, roi.ybegin, roi.zbegin,
+                                    roi.chbegin, src, roi, nthreads);
+    }
+
     int width = roi.width();
     // Temporary space to hold one RGBA scanline
     std::vector<float> scanline(width*4, 0.0f);
