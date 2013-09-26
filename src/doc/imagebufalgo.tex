@@ -628,9 +628,9 @@ performed, and if {\cf max} is \NULL, no maximum clamping is performed.
 \apiend
 
 
-\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, bool useluma = true, \\
+\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, bool useluma = false, \\
         \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0) \\
-bool {\ce rangeexpand} (ImageBuf \&dst, bool useluma = true, \\
+bool {\ce rangeexpand} (ImageBuf \&dst, bool useluma = false, \\
         \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!rangecompress} \indexapi{rangecompress}
 \index{ImageBufAlgo!rangeexpand} \indexapi{rangeexpand}
@@ -639,20 +639,18 @@ Some image operations (such as resizing with a ``good'' filter that
 contains negative lobes) can have objectionable artifacts when applied
 to images with very high-contrast regions involving extra bright pixels
 (such as highlights in HDR captured or rendered images).  One way to
-address this is by compressing the range of super-hot $>1$ pixels, then
+address this is by compressing the range of pixel values, then
 performing the operation (such as a resize), then re-expanding the range
 of the result again.  This approach can yield results that are much more
 pleasing (even if not exactly mathematically correct).
 
 The {\cf rangecompress} operation does the following: For all pixels and
 color channels of {\cf dst} within region {\cf roi} (defaulting to all
-the defined pixels of {\cf dst}), alter their values in place to rescale
-their range in the following way: values $< 1$ are unchanged, excess
-value $> 1$ is remapped to be logarithmically-encoded, with a smooth
-transition between them.  Alpha and z channels are not transformed.
+the defined pixels of {\cf dst}), apply a logarithmic transformation on
+their values.  Alpha and z channels are not transformed.
 
 The {\cf rangeexpand} operation is the opposite of {\cf rangecompress}:
-it rescales the color channel values that are $> 1$ back to a linear
+it rescales the logarithmic color channel values back to a linear
 response.
 
 If {\cf useluma} is true, the luma of the first three channels (presumed
@@ -672,7 +670,7 @@ and {\cf rangeexpand}).
     // 1. Read the original image
     ImageBuf Src ("tahoeHDR.exr");  Src.read();
 
-    // 2. Range compress
+    // 2. Range compress to a logarithmic scale
     ImageBuf Compressed;
     Compressed.copy (Src);
     ImageBufAlgo::rangecompress (Compressed);

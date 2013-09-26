@@ -576,42 +576,36 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
                            const float *weights=NULL, ROI roi=ROI::All(),
                            int nthreads=0);
 
-/// For all pixels and color channels of dst within region roi
-/// (defaulting to all the defined pixels of dst), rescale their range
-/// in the following way: values < 1 are unchanged, excess value > 1 is
-/// remapped to be logarithmically-encoded, with a smooth transition
-/// between them.  Alpha and z channels are not transformed.
+/// For all pixels and color channels of dst within region roi (defaulting
+/// to all the defined pixels of dst), rescale their range with a
+/// logarithmic transformation. Alpha and z channels are not transformed.
 ///
 /// If useluma is true, the luma of channels [roi.chbegin..roi.chbegin+2]
 /// (presumed to be R, G, and B) are used to compute a single scale
 /// factor for all color channels, rather than scaling all channels
-/// individually (which could result in a big color shift).
+/// individually (which could result in a color shift).
 ///
 /// Some image operations (such as resizing with a "good" filter that
 /// contains negative lobes) can have objectionable artifacts when applied
-/// to images with very high-contrast regions involving extra bright
-/// pixels (such as highlights in HDR captured or rendered images).  By
-/// compressing the range of super-hot >1 pixels, then performing the
-/// operation, then expanding the range of the result again, the result
-/// can be much more pleasing (even if not exactly correct).
+/// to images with very high-contrast regions involving extra bright pixels
+/// (such as highlights in HDR captured or rendered images).  By compressing
+/// the range pixel values, then performing the operation, then expanding
+/// the range of the result again, the result can be much more pleasing
+/// (even if not exactly correct).
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
 /// guarantees that it will not launch any new threads.
 ///
-/// Works for all pixel types, although it's a trivial no-op for
-/// integer formats since they cannot encode values > 1.
-///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
-bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = true,
+bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = false,
                              ROI roi = ROI::All(), int nthreads=0);
 
 /// rangeexpand is the opposite operation of rangecompress -- rescales
-/// the color channel values of an image whose super-white vaues were
-/// range compressed, back to a linear response.
-bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = true,
+/// the logarithmic color channel values back to a linear response.
+bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = false,
                            ROI roi = ROI::All(), int nthreads=0);
 
 
@@ -1357,7 +1351,8 @@ enum OIIO_API MakeTextureMode {
 ///                              range compression and expansion around
 ///                              the resize, plus clamping negative plxel
 ///                              values to zero. This reduces ringing when
-///                              using filters with negative lobes.
+///                              using filters with negative lobes on HDR
+///                              images.
 ///    maketx:nchannels (int) If nonzero, will specify how many channels
 ///                              the output texture should have, padding with
 ///                              0 values or dropping channels, if it doesn't
