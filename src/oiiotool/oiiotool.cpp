@@ -2443,35 +2443,20 @@ action_fit (int argc, const char *argv[])
         action_resize (2, newargv);
         A = ot.top ();
         Aspec = A->spec(0,0);
-        A->spec(0,0)->full_width = fit_full_width;
-        A->spec(0,0)->full_height = fit_full_height;
-        A->spec(0,0)->x = xoffset;
-        A->spec(0,0)->y = yoffset;
+        A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
+        A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = fit_full_height;
+        A->spec(0,0)->full_x = (*A)(0,0).specmod().full_x = fit_full_x;
+        A->spec(0,0)->full_y = (*A)(0,0).specmod().full_y = fit_full_y;
+        A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
+        A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
         // Now A,Aspec are for the NEW resized top of stack
     }
 
     if (pad && (fit_full_width != Aspec->width ||
                 fit_full_height != Aspec->height)) {
         // Needs padding
-        ImageSpec newspec = *Aspec;
-        newspec.width = newspec.full_width = fit_full_width;
-        newspec.height = newspec.full_height = fit_full_height;
-        newspec.x = newspec.full_x = fit_full_x;
-        newspec.y = newspec.full_y = fit_full_y;
-        newspec.set_format (TypeDesc::FLOAT);
-        ImageRecRef B (new ImageRec (A->name(), newspec, ot.imagecache));
-        ImageBuf &Rib ((*B)(0,0));
-        ot.curimg = B;
-        ImageBufAlgo::zero (Rib);
-        bool ok;
-        if (Aspec->full_width == fit_full_width)
-            ok = ImageBufAlgo::paste (Rib, 0, (fit_full_height-Aspec->full_height)/2,
-                                      0, 0, (*A)(0,0));
-        else
-            ok = ImageBufAlgo::paste (Rib, (fit_full_width-Aspec->full_height)/2, 0,
-                                      0, 0, (*A)(0,0));
-        if (! ok)
-            ot.error (argv[0], Rib.geterror());
+        const char *argv[] = { "croptofull" };
+        action_croptofull (1, argv);
     }
 
     ot.function_times["fit"] += timer();
