@@ -180,6 +180,14 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     m_spec = ImageSpec (m_dpx.header.Width(), m_dpx.header.Height(),
         m_dpx.header.ImageElementComponentCount(subimage), typedesc);
+
+    m_spec.x = m_dpx.header.xOffset;
+    m_spec.y = m_dpx.header.yOffset;
+    if (m_dpx.header.xOriginalSize)
+        m_spec.full_width = m_dpx.header.xOriginalSize;
+    if (m_dpx.header.yOriginalSize)
+        m_spec.full_height = m_dpx.header.yOriginalSize;
+
     // fill channel names
     m_spec.channelnames.clear ();
     switch (m_dpx.header.ImageDescriptor(subimage)) {

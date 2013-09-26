@@ -430,7 +430,7 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
                           data = &m_scratch[0];
     }
 
-    unsigned char *dst = &m_buf[y * m_bytes];
+    unsigned char *dst = &m_buf[(y-m_spec.y) * m_bytes];
     if (m_wantRaw)
         // fast path - just dump the scanline into the buffer
         memcpy (dst, data, m_spec.scanline_bytes ());
