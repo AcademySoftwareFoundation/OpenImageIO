@@ -341,7 +341,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 dpx gif ico png psd rla sgi
                 python-typedesc python-imagespec python-roi
                 python-imageinput python-imageoutput
-                python-imagebuf
+                python-imagebuf python-imagebufalgo
                 maketx
                 texture-blurtube texture-crop texture-cropover
                 texture-fill texture-filtersize

@@ -59,6 +59,7 @@ void declare_typedesc();
 void declare_roi();
 void declare_imagecache();
 void declare_imagebuf();
+void declare_imagebufalgo();
 void declare_paramvalue();
 void declare_global();
 
@@ -92,6 +93,20 @@ void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
 
 
 
+// Convert an array of T values into either tuple. FUNC is a conversion
+// function such as PyInt_FromLong, PyFloat_FromDouble, or
+// PyString_FromString.
+template<typename T, typename FUNC>
+object C_to_tuple (const T *vals, int size, FUNC f)
+{
+    PyObject* result = PyTuple_New (size);
+    for (int i = 0;  i < size;  ++i)
+        PyTuple_SetItem(result, i, f(vals[i]));
+    return object(handle<>(result));
+}
+
+
+
 // Convert an array of T values (described by type) into either a simple
 // Python object (if it's an int, float, or string and a SCALAR) or a
 // Python tuple.  FUNC is a conversion function such as PyInt_FromLong,
@@ -105,10 +120,7 @@ object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
     }
     // Array/aggregate case -- return a tuple
     int size = type.numelements() * type.aggregate;
-    PyObject* result = PyTuple_New (size);
-    for (int i = 0;  i < size;  ++i)
-        PyTuple_SetItem(result, i, f(vals[i]));
-    return object(handle<>(result));
+    return C_to_tuple (vals, size, f);
 }
 
 

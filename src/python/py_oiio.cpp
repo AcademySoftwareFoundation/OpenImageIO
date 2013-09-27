@@ -193,6 +193,8 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     declare_imagebuf();
     declare_imagecache();
 
+    declare_imagebufalgo();
+    
     // Global (OpenImageIO scope) functiona and symbols
     def("attribute",    &oiio_attribute_float);
     def("attribute",    &oiio_attribute_int);
