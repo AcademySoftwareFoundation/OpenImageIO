@@ -223,8 +223,10 @@ checker_ (ImageBuf &dst, Dim3 size,
 
     // Serial case
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        int v = (p.z()-offset.z)/size.z + (p.y()-offset.y)/size.y
-              + (p.x()-offset.x)/size.x;
+        int xtile = (p.x()-offset.x)/size.x;  xtile += (p.x()<offset.x);
+        int ytile = (p.y()-offset.y)/size.y;  ytile += (p.y()<offset.y);
+        int ztile = (p.z()-offset.z)/size.z;  ztile += (p.z()<offset.z);
+        int v = xtile + ytile + ztile;
         if (v & 1)
             for (int c = roi.chbegin;  c < roi.chend;  ++c)
                 p[c] = color2[c];
