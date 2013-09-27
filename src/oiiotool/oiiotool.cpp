@@ -2945,15 +2945,10 @@ action_rangecompress (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    std::vector<std::string> addstrings;
-    Strutil::split (std::string(argv[1]), addstrings, ",");
-    if (addstrings.size() < 1)
-        return 0;   // Implicit addition by 0 if we can't figure it out
-
     std::map<std::string,std::string> options;
     extract_options (options, argv[0]);
     std::string useluma_str = options["luma"];
-    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) != 0 : true;
+    bool useluma = useluma_str.size() && atoi(useluma_str.c_str()) != 0;
 
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
@@ -2982,15 +2977,10 @@ action_rangeexpand (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    std::vector<std::string> addstrings;
-    Strutil::split (std::string(argv[1]), addstrings, ",");
-    if (addstrings.size() < 1)
-        return 0;   // Implicit addition by 0 if we can't figure it out
-
     std::map<std::string,std::string> options;
     extract_options (options, argv[0]);
     std::string useluma_str = options["luma"];
-    bool useluma = useluma_str.size() ? atoi(useluma_str.c_str()) != 0 : true;
+    bool useluma = useluma_str.size() && atoi(useluma_str.c_str()) != 0;
 
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,

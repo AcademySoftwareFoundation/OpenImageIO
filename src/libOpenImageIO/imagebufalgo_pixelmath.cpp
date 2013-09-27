@@ -454,8 +454,14 @@ ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
 inline float rangecompress (float x)
 {
     // Formula courtesy of Sony Pictures Imageworks
+#if 0    /* original coeffs -- identity transform for vals < 1 */
     const float x1 = 1.0, a = 1.2607481479644775391;
     const float b = 0.28785100579261779785, c = -1.4042005538940429688;
+#else    /* but received wisdom is that these work better */
+    const float x1 = 0.18, a = -0.54576885700225830078;
+    const float b = 0.18351669609546661377, c = 284.3577880859375;
+#endif
+
     float absx = fabsf(x);
     if (absx <= x1)
         return x;
@@ -467,8 +473,14 @@ inline float rangecompress (float x)
 inline float rangeexpand (float y)
 {
     // Formula courtesy of Sony Pictures Imageworks
+#if 0    /* original coeffs -- identity transform for vals < 1 */
     const float x1 = 1.0, a = 1.2607481479644775391;
     const float b = 0.28785100579261779785, c = -1.4042005538940429688;
+#else    /* but received wisdom is that these work better */
+    const float x1 = 0.18, a = -0.54576885700225830078;
+    const float b = 0.18351669609546661377, c = 284.3577880859375;
+#endif
+
     float absy = fabsf(y);
     if (absy <= x1)
         return y;
@@ -510,8 +522,6 @@ rangecompress_ (ImageBuf &R, bool useluma, ROI roi, int nthreads)
     for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
         if (useluma) {
             float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-            if (fabsf(luma) <= 1.0f)
-                continue;  // Not HDR, no range compression needed
             float scale = rangecompress (luma) / luma;
             for (int c = roi.chbegin; c < roi.chend; ++c) {
                 if (c == alpha_channel || c == z_channel)
@@ -557,8 +567,6 @@ rangeexpand_ (ImageBuf &R, bool useluma, ROI roi, int nthreads)
     for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
         if (useluma) {
             float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-            if (fabsf(luma) <= 1.0f)
-                continue;  // Not HDR, no range compression needed
             float scale = rangeexpand (luma) / luma;
             for (int c = roi.chbegin; c < roi.chend; ++c) {
                 if (c == alpha_channel || c == z_channel)
@@ -582,23 +590,9 @@ bool
 ImageBufAlgo::rangecompress (ImageBuf &dst, bool useluma,
                              ROI roi, int nthreads)
 {
-    // If the data type can't handle extended range, this is a no-op
-    int basetype = dst.spec().format.basetype;
-    if (basetype != TypeDesc::FLOAT && basetype != TypeDesc::HALF &&
-        basetype != TypeDesc::DOUBLE)
-        return true;
-
     IBAprep (roi, &dst);
-    switch (basetype) {
-    case TypeDesc::FLOAT:
-        return rangecompress_<float> (dst, useluma, roi, nthreads);
-    case TypeDesc::HALF:
-        return rangecompress_<half> (dst, useluma, roi, nthreads);
-    case TypeDesc::DOUBLE:
-        return rangecompress_<double> (dst, useluma, roi, nthreads);
-    default:
-        return true;
-    }
+    OIIO_DISPATCH_TYPES ("rangecompress", rangecompress_, dst.spec().format,
+                         dst, useluma, roi, nthreads);
     return true;
 }
 
@@ -608,23 +602,9 @@ bool
 ImageBufAlgo::rangeexpand (ImageBuf &dst, bool useluma,
                            ROI roi, int nthreads)
 {
-    // If the data type can't handle extended range, this is a no-op
-    int basetype = dst.spec().format.basetype;
-    if (basetype != TypeDesc::FLOAT && basetype != TypeDesc::HALF &&
-        basetype != TypeDesc::DOUBLE)
-        return true;
-
     IBAprep (roi, &dst);
-    switch (basetype) {
-    case TypeDesc::FLOAT:
-        return rangeexpand_<float> (dst, useluma, roi, nthreads);
-    case TypeDesc::HALF:
-        return rangeexpand_<half> (dst, useluma, roi, nthreads);
-    case TypeDesc::DOUBLE:
-        return rangeexpand_<double> (dst, useluma, roi, nthreads);
-    default:
-        return true;
-    }
+    OIIO_DISPATCH_TYPES ("rangeexpand", rangeexpand_, dst.spec().format,
+                         dst, useluma, roi, nthreads);
     return true;
 }
 

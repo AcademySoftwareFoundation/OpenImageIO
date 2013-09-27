@@ -151,7 +151,8 @@ highlights is turned into a MIP-mapped texture using a high-quality
 filter with negative lobes (such as {\cf lanczos3}), objectionable
 ringing could appear near very high-contrast regions with pixel values
 $>1$. This option improves those areas by using range compression
-(transforming HDR excess values $> 1$ to be log-encoded) prior to each
+(transforming values from a linear to a logarithmic scale that greatly
+compresses the values $> 1$) prior to each
 image filtered-resize step, and then expanded back to a linear format
 after the resize, and also clamping resulting pixel values to be
 non-negative.  This can result in some loss of energy, but often this is
