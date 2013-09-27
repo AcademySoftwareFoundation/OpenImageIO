@@ -17,6 +17,6 @@ command += oiio_app("idiff") + " input_rgb_mattes.tif output_rgb_mattes.dpx >> o
 #command += (oiio_app("oiiotool") + "--create 80x60 3 --text:x=10 Right "
 #            + "--caption \"view angle: right\" -d uint10 -o R.dpx >> out.txt;")
 command += (oiio_app("oiiotool") + "ref/L.dpx ref/R.dpx --siappend -o stereo.dpx >> out.txt;")
-command += (oiio_app("iinfo") + "-v -a --stats stereo.dpx >> out.txt;")
+command += info_command("stereo.dpx", safematch=True, hash=False, extraargs="--stats")
 command += oiio_app("idiff") + "-a stereo.dpx ref/stereo.dpx >> out.txt;"
 
