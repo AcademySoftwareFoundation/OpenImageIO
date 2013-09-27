@@ -147,7 +147,7 @@ number of channels in the image, whichever is smaller.
 
 \apiitem{bool checker (ImageBuf \&dst, float width, float height, float depth, \\
 \bigspc const float *color1, const float *color2, \\
-\bigspc int xoffset, int yoffset, int zoffset, \\
+\bigspc int xoffset=0, int yoffset=0, int zoffset=0, \\
 \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!checker} \indexapi{checker}
 Set the pixels in the destination image within the specified region
