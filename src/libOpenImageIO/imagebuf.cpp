@@ -798,6 +798,12 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
                                   m_spec.z, m_spec.z+m_spec.depth,
                                   m_spec.format, m_localpixels)) {
         m_pixels_valid = true;
+        // If forcing a full read, make sure the spec reflects the
+        // nativespec's tile sizes, rather than that imposed by the
+        // ImageCache.
+        m_spec.tile_width = m_nativespec.tile_width;
+        m_spec.tile_height = m_nativespec.tile_height;
+        m_spec.tile_depth = m_nativespec.tile_depth;
     } else {
         m_pixels_valid = false;
         error ("%s", m_imagecache->geterror ());
@@ -881,7 +887,18 @@ ImageBuf::write (const std::string &_filename, const std::string &_fileformat,
         error ("%s", geterror());
         return false;
     }
-    if (! out->open (filename.c_str(), spec())) {
+
+    // Tricky detail: there are all sorts of ways that the spec may look
+    // tiled (including if it was backed by an ImageCache). There's no good
+    // way to handle this, so we always try to write an ImageBuf as a scanline
+    // image.  If the app wants to write an ImageBuf as a tiled file and knows what it's
+    // doing, it should create the ImageOutput itself, with a tiled spec,
+    // and call the variety of write() that takes the ImageOutput* directly.
+    ImageSpec newspec = spec();
+    newspec.tile_width  = 0;
+    newspec.tile_height = 0;
+    newspec.tile_depth  = 0;
+    if (! out->open (filename.c_str(), newspec)) {
         error ("%s", out->geterror());
         return false;
     }
@@ -906,9 +923,17 @@ ImageBufImpl::copy_metadata (const ImageBufImpl &src)
     m_spec.full_width = srcspec.full_width;
     m_spec.full_height = srcspec.full_height;
     m_spec.full_depth = srcspec.full_depth;
-    m_spec.tile_width = srcspec.tile_width;
-    m_spec.tile_height = srcspec.tile_height;
-    m_spec.tile_depth = srcspec.tile_depth;
+    if (src.storage() == ImageBuf::IMAGECACHE) {
+        // If we're copying metadata from a cached image, be sure to
+        // get the file's tile size, not the cache's tile size.
+        m_spec.tile_width = src.nativespec().tile_width;
+        m_spec.tile_height = src.nativespec().tile_height;
+        m_spec.tile_depth = src.nativespec().tile_depth;
+    } else {
+        m_spec.tile_width = srcspec.tile_width;
+        m_spec.tile_height = srcspec.tile_height;
+        m_spec.tile_depth = srcspec.tile_depth;
+    }
     m_spec.extra_attribs = srcspec.extra_attribs;
 }
 
@@ -1141,9 +1166,10 @@ ImageBuf::copy_pixels (const ImageBuf &src)
 bool
 ImageBuf::copy (const ImageBuf &src)
 {
-    if (! impl()->m_spec_valid && ! impl()->m_pixels_valid) {
+    src.impl()->validate_pixels ();
+    if (storage() == UNINITIALIZED) {
         // uninitialized
-        if (! src.impl()->m_spec_valid && ! src.impl()->m_pixels_valid)
+        if (src.storage() == UNINITIALIZED)
             return true;   // uninitialized=uninitialized is a nop
         // uninitialized = initialized : set up *this with local storage
         reset (src.name(), src.spec());

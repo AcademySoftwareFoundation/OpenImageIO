@@ -144,6 +144,11 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             // they should have pre-allocated dst with their desired format.
             if (B && A->spec().format != B->spec().format)
                 spec.set_format (TypeDesc::FLOAT);
+            // No good can come from automatically polluting an ImageBuf
+            // with some other ImageBuf's tile sizes.
+            spec.tile_width = 0;
+            spec.tile_height = 0;
+            spec.tile_depth = 0;
         } else {
             spec.set_format (TypeDesc::FLOAT);
             spec.nchannels = roi.chend;
