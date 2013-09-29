@@ -67,7 +67,9 @@ struct ROI {
 
     /// Default constructor is an undefined region.
     ///
-    ROI () : xbegin(std::numeric_limits<int>::min()) { }
+    ROI () : xbegin(std::numeric_limits<int>::min()), xend(0),
+             ybegin(0), yend(0), zbegin(0), zend(0), chbegin(0), chend(0)
+    { }
 
     /// Constructor with an explicitly defined region.
     ///
