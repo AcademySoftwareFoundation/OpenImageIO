@@ -163,7 +163,7 @@ flip_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::flip(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst);
+    IBAprep (roi, &dst, &src);
     OIIO_DISPATCH_TYPES2 ("flip", flip_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
@@ -190,7 +190,7 @@ flop_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::flop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst);
+    IBAprep (roi, &dst, &src);
     OIIO_DISPATCH_TYPES2 ("flop", flop_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
@@ -220,7 +220,7 @@ bool
 ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
                         ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst);
+    IBAprep (roi, &dst, &src);
     OIIO_DISPATCH_TYPES2 ("flipflop", flipflop_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
