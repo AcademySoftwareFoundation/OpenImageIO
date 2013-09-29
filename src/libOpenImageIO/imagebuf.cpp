@@ -1167,48 +1167,14 @@ bool
 ImageBuf::copy (const ImageBuf &src)
 {
     src.impl()->validate_pixels ();
-    if (storage() == UNINITIALIZED) {
-        // uninitialized
-        if (src.storage() == UNINITIALIZED)
-            return true;   // uninitialized=uninitialized is a nop
-        // uninitialized = initialized : set up *this with local storage
-        reset (src.name(), src.spec());
-    }
-
-    bool selfcopy = (&src == this);
-
-    if (cachedpixels()) {
-        if (selfcopy) {  // special case: self copy of ImageCache loads locally
-            return read (subimage(), miplevel(), true /*force*/);
-        }
-        reset (src.name(), src.spec());
-        // Now it has local pixels
-    }
-
-    if (selfcopy)
+    if (this == &src)     // self-assignment
         return true;
-
-    if (impl()->m_localpixels) {
-        if (storage() == APPBUFFER) {
-            // app-owned memory
-            const ImageSpec &srcspec (src.spec());
-            ImageSpec &spec (this->specmod());
-            if (spec.width != srcspec.width ||
-                spec.height != srcspec.height ||
-                spec.depth != srcspec.depth ||
-                spec.nchannels != srcspec.nchannels) {
-                // size doesn't match, fail
-                return false;
-            }
-            this->copy_metadata (src);
-        } else {
-            // locally owned memory -- we can fully resize it
-            reset (src.name(), src.spec());
-        }
-        return this->copy_pixels (src);
+    if (src.storage() == UNINITIALIZED) {    // buf = uninitialized
+        clear();
+        return true;
     }
-
-    return false;   // all other cases fail
+    reset (src.name(), src.spec());
+    return this->copy_pixels (src);
 }
 
 
