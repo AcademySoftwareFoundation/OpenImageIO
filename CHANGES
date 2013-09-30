@@ -4,18 +4,20 @@ Changes:
 Release 1.3 (in progress -- compared to 1.2.x)
 ----------------------------------------------
 Major new features and improvements:
-* Huge overhaul of the Python bindings: TypeDesc, ImageSpec, ImageInput,
-  ImageOutput.  The Python bindings were pretty rusty, badly tested,
-  undocumented, and had not kept up with recent changes in the C++ APIs.
-  That's all fixed now, the Python APIs are finally first-class citizens
-  (including full functionality, unit tests, and docs), and we intend to
-  keep it that way.
+* Huge overhaul of the Python bindings: TypeDesc, ImageSpec (1.3.2),
+  ImageInput, ImageOutput (1.3.3), ROI, ImageBuf (1.3.4).  The Python
+  bindings were pretty rusty, badly tested, undocumented, and had not
+  kept up with recent changes in the C++ APIs.  That's all fixed now,
+  the Python APIs are finally first-class citizens (including full
+  functionality, unit tests, and docs), and we intend to keep it that
+  way.
 * The ability for an application to supply custom ImageInput and associate
   them with a file extension. Those II's can do anything, including 
   generate image data procedurally.
 * GIF reader
 
 Public API changes:
+* Large overhaul of the Python bindings. See the (finally existing!) docs.
 * ImageCache::add_file() lets you seed the ImageCache with a "virtual file"
   that will read from a custom ImageInput.  This lets you add "procedural
   images" to the IC.
@@ -28,19 +30,25 @@ Public API changes:
   of OIIO like a regular image file. (1.3.2)
 * New ImageBufAlgo functions:
   * nonzero_region() returns the shrink-wrapped nonzero pixel data window.
-    (1.3.2)
+   (1.3.2)
+* ImageBuf::read() and init_spec() are no longer required, somewhat
+  simplifying application code that uses ImageBuf.  All ImageBuf API
+  calls automatically read the spec and/or pixels from their named file
+  if they are needed, if it has not already been done.  (1.3.4)
+* ImageBuf::save() is deprecated, and ImageBuf::write() is now preferred
+  (naming symmetry).  (1.3.4)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool improvements:
   * --autotrim   Shrinks pixel data window upon output to trim black 
     edges. (1.3.2)
-  * --slappend   Appends subimages of top two images on the stack. (1.2.2)
+  * --siappend   Appends subimages of top two images on the stack. (1.2.2)
   * Fix memory leak when processing frame range. (1.2.1/1.3.2)
   * --help now returns a success error code, not a failure. (1.2.1/1.3.2)
   * Fix incorrect help message about --ociolook. (1.2.1/1.3.2)
   * Fix typo in "oiio:Colorspace" attribute name that interfered
     with correct color space conversion in --colorconvert. (1.2.1)
-  * Many fixes and improvements to XMP & IPTC metadata handling.
+  * Many fixes and improvements to XMP & IPTC metadata handling. (1.2.2)
   * Multithread speed improvement when opening files by reducing how
     much time ImageInput::create and/or ImageOutput::create hold a
     global mutex.
@@ -48,10 +56,22 @@ Fixes, minor enhancements, and performance improvements:
     overscanned image, could sometimes do the wrong thing. (1.2.2/1.3.3)
   * oiiotool --colorconvert did not work properly when the color
     transformation was detected to be a no-op. (1.2.2/1.3.3)
-  * oiiotool --fit did not handle padding properly. (1.2.2/1.3.3)
+  * oiiotool --fit did not handle padding or offsets properly. (1.2.2/1.3.3)
+  * 'oiiotool --pattern checker' was incorrect when nonzero offsets were
+    used. (1.2.3/1.3.4)
+  * oiiotool --runstats prints the total time/memory on every iteration
+    when doing file sequence wildcard iteration. (1.3.4)
 * ImageBufAlgo improvements:
   * colorconvert() did not work properly when the color transformation was
     detected to be a no-op.
+  * checker() was incorrect when nonzero offsets were used.
+  * checker() now has default values of 0 for the 'offset' parameters
+    (and so may be omitted if you want 0 offsets). (1.3.4)
+* ImageBuf:
+  * ImageBuf::write() writes untiled images by default, fixing some
+    tricky issues when IB's start thinking they're tiled because of
+    interaction with the ImageCache (which makes everything look tiled).
+  * ImageBuf::file_format_name() never worked properly, now is fixed (1.3.4)
 * DPX:
   * support multi-image (often used for stereo frames).
   * Fixed DPX input that didn't recognized offset/cropped images.
@@ -89,8 +109,10 @@ Build/test system improvements:
 * Fix warnings for new GCC 4.8 compiler.
 * Always search for and use the release HDF5 libraries, not the debugging
   ones, even when building debug OIIO (this fixes errors when a system
-  does not have the debugging HDF5 libraries installed).
+  does not have the debugging HDF5 libraries installed). (1.2.2/1.3.3)
 * Extensive unit tests in the testsuite for the Python bindings.
+* Fix compiler error on MIPS platform. (1.2.2/1.3.3)
+* Add FIELD3D_HOME description to 'make help' (1.2.2/1.3.3)
 
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
@@ -99,8 +121,28 @@ Developer goodies:
 * Now each command line tools explicitly converts to UTF native arguments,
   rather than relying on it happening in ArgParse (which no longer does
   so). (1.3.2)
-* Strutil::contains() and icontains().
+* Strutil::contains() and icontains(). (1.2.2/1.3.3)
 
+
+
+Release 1.2.2 (1 Oct 2013)
+--------------------------
+* New features:
+  * New oiiotool --siappend : append subimages of top two images on stack.
+  * Utilities: added Strutil::contains() and icontains().
+* Fixes:
+  * Fixes in handling XMP & IPTC metadata.
+  * oiiotool --origin and --fullpixels did not correctly propagate their
+    changes to the output images.
+  * oiiotool --colorconvert (and the underlying ImageBufAlgo::colorconvert)
+    could crash if given a color conversion recognized as a no-op.
+  * DPX output could crash when writing crop images.
+  * DPX input was not recognizing the proper image offset or originalsize.
+  * oiiotool --fit wasn't padding correctly or modifying offsets properly.
+* Build fixes:
+  * Fix compiler error on MIPS platform.
+  * Add FIELD3D_HOME description to 'make help'
+  * Always use the HDF5 release libraries (for Field3D), not the debug ones.
 
 
 Release 1.2.1 (5 Aug 2013)
