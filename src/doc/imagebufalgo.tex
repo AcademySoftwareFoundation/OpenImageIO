@@ -401,7 +401,10 @@ shift of $[0,1,2,3,4,5]$ by $+2$ is $[4,5,0,1,2,3]$.
 
 
 \apiitem{bool {\ce resize} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc Filter2D *filter=NULL,
+        \bigspc  const std::string filtername="", float filtersize=0, \\
+        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce resize} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc Filter2D *filter,
         \bigspc  ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!resize} \indexapi{resize}
 Set {\cf dst}, over the region of interest, to be a resized version of the
@@ -409,12 +412,11 @@ corresponding portion of {\cf src} (mapping such that the ``full'' image
 window of each correspond to each other, regardless of resolution).  If
 {\cf dst} is not yet initialized, it will be sized according to {\cf roi}.
 
-The caller may explicitly pass a reconstruction filter, or {\cf resize()}
-will choose a reasonable default if \NULL is passed.  The filter is used
-to weight the {\cf src} pixels falling underneath it for each {\cf dst}
-pixel; the filter's size is expressed in pixel units of the dst image.
-If no filter is supplied, a default medium-quality (triangle) filter
-will be used.
+The caller may explicitly pass a reconstruction filter, or specify one by
+name and size, or if the name is the empty string {\cf resize()} will choose
+a reasonable high-quality default if \NULL is passed.  The filter is used to
+weight the {\cf src} pixels falling underneath it for each {\cf dst} pixel;
+the filter's size is expressed in pixel units of the dst image.
 
 \smallskip
 \noindent Examples:
@@ -423,7 +425,7 @@ will be used.
     ImageBuf Src ("tahoe.exr");
     ImageBuf Dst;
     ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
-    ImageBufAlgo::resize (Dst, Src, NULL, roi);
+    ImageBufAlgo::resize (Dst, Src, "", 0, roi);
 \end{code}
 \apiend
 

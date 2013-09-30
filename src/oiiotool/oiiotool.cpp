@@ -2323,50 +2323,16 @@ action_resize (int argc, const char *argv[])
 
     ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
 
-    // Resize ratio
-    float wratio = float(newspec.full_width) / float(Aspec.full_width);
-    float hratio = float(newspec.full_height) / float(Aspec.full_height);
-
-    if (filtername.empty()) {
-        // No filter name supplied -- pick a good default
-        if (wratio > 1.0f || hratio > 1.0f)
-            filtername = "blackman-harris";
-        else
-            filtername = "lanczos3";
-    }
-    Filter2D *filter = NULL;
-    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
-        FilterDesc fd;
-        Filter2D::get_filterdesc (i, &fd);
-        if (fd.name == filtername) {
-            float w = fd.width * std::max (1.0f, wratio);
-            float h = fd.width * std::max (1.0f, hratio);
-            filter = Filter2D::create (filtername, w, h);
-            break;
-        }
-    }
-    if (! filter) {
-        ot.error (argv[0], Strutil::format("Filter \"%s\" not recognized",
-                                           filtername));
-        return false;
-    }
-
     if (ot.verbose) {
         std::cout << "Resizing " << Aspec.width << "x" << Aspec.height
                   << " to " << newspec.width << "x" << newspec.height 
-                  << " using ";
-        if (filter) {
-            std::cout << filter->name();
-        } else {
-            std::cout << "default";
-        }
-        std::cout << " filter\n";
+                  << " using " 
+                  << (filtername.size() ? filtername.c_str() : "default")
+                  << " filter\n";
     }
     const ImageBuf &Aib ((*A)(0,0));
     ImageBuf &Rib ((*ot.curimg)(0,0));
-    bool ok = ImageBufAlgo::resize (Rib, Aib, filter, get_roi(Rib.spec()));
-    if (filter)
-        Filter2D::destroy (filter);
+    bool ok = ImageBufAlgo::resize (Rib, Aib, filtername, 0.0f, get_roi(Rib.spec()));
     ot.function_times["resize"] += timer();
     if (! ok)
         ot.error (argv[0], Rib.geterror());
