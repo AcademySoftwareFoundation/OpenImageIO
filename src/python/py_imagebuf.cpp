@@ -46,7 +46,7 @@ ImageBufWrap::ImageBufWrap (const std::string &name,
     // TODO: this isn't done properly. It should not take NULL as 
     // 2nd argument, the proper way would be icw->Cache
     // It's like this just for the initial tests.
-    m_buf = new ImageBuf(name, NULL);
+    m_buf = new ImageBuf(name, 0, 0, NULL);
 }
 
 void ImageBufWrap::clear () {
