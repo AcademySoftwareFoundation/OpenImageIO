@@ -1,6 +1,26 @@
 Changes:
 
 
+Release 1.2.2 (1 Oct 2013)
+--------------------------
+* New features:
+  * New oiiotool --siappend : append subimages of top two images on stack.
+  * Utilities: added Strutil::contains() and icontains().
+* Fixes:
+  * Fixes in handling XMP & IPTC metadata.
+  * oiiotool --origin and --fullpixels did not correctly propagate their
+    changes to the output images.
+  * oiiotool --colorconvert (and the underlying ImageBufAlgo::colorconvert)
+    could crash if given a color conversion recognized as a no-op.
+  * DPX output could crash when writing crop images.
+  * DPX input was not recognizing the proper image offset or originalsize.
+  * oiiotool --fit wasn't padding correctly or modifying offsets properly.
+* Build fixes:
+  * Fix compiler error on MIPS platform.
+  * Add FIELD3D_HOME description to 'make help'
+  * Always use the HDF5 release libraries (for Field3D), not the debug ones.
+
+
 Release 1.2.1 (5 Aug 2013)
 ---------------------------
 * oiiotool: Fix memory leak when processing frame range.
