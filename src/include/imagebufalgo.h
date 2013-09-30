@@ -167,7 +167,7 @@ inline bool OIIO_API fill (ImageBuf &dst, const float *pixel,
 /// message set in dst).
 bool OIIO_API checker (ImageBuf &dst, int width, int height, int depth,
                        const float *color1, const float *color2,
-                       int xoffset, int yoffset, int zoffset,
+                       int xoffset=0, int yoffset=0, int zoffset=0,
                        ROI roi=ROI::All(), int nthreads=0);
 
 /// DEPRECATED as of 1.2
