@@ -133,6 +133,8 @@ Comparing "add.exr" and "ref/add.exr"
 PASS
 Comparing "sub.exr" and "ref/sub.exr"
 PASS
+Comparing "chsum.tif" and "ref/chsum.tif"
+PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
 PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"

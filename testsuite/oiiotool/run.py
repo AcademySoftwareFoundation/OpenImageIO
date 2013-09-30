@@ -85,6 +85,11 @@ command += (oiio_app ("oiiotool")
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --sub -d half -o sub.exr >> out.txt ;\n")
 
+# test --chsum
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
+            + "-d uint8 -o chsum.tif >> out.txt ;\n")
+
 # test histogram generation
 command += (oiio_app ("oiiotool") + " "
             + "ref/histogram_input.png"
@@ -232,7 +237,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "chappend-rgbaz.exr", "chname.exr",
             "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
-            "add.exr", "sub.exr",
+            "add.exr", "sub.exr", "chsum.tif",
             "tahoe-filled.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
