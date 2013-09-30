@@ -1162,6 +1162,20 @@ will infer it from the extension of the file name).
 \end{code}
 \apiend
 
+\apiitem{bool ImageBuf.{\ce set_write_format} (format=oiio.UNKNOWN) \\
+bool ImageBuf.{\ce set_write_tiles} (width=0, height=0, depth=0)}
+Override the data format or tile size in a subsequent call to {\cf write()}.
+
+\noindent Example:
+\begin{code}
+    # Conversion to a tiled float file
+    buf = oiio.ImageBuf ("in.tif")
+    buf.set_write_format (oiio.FLOAT)
+    buf.set_write_tiles (64, 64)
+    buf.write ("out.tif")
+\end{code}
+\apiend
+
 \apiitem{ImageSpec ImageBuf.{\ce spec}() \\
 ImageSpec ImageBuf.{\ce nativespec}()}
 {\cf ImageBuf.spec()} returns the \ImageSpec that describes the contents of

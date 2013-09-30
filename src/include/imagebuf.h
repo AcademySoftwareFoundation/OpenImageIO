@@ -284,6 +284,14 @@ public:
                 ProgressCallback progress_callback=NULL,
                 void *progress_callback_data=NULL) const;
 
+    /// Inform the ImageBuf what data format you'd like for any subsequent
+    /// write().
+    void set_write_format (TypeDesc format);
+
+    /// Inform the ImageBuf what tile size (or no tiling, for 0) for
+    /// any subsequent write().
+    void set_write_tiles (int width=0, int height=0, int depth=0);
+
     /// DEPRECATED (1.3) synonym for write().  Kept for now for backward
     /// compatibility.
     bool save (const std::string &filename = std::string(),
