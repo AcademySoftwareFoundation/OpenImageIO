@@ -3338,6 +3338,8 @@ getargs (int argc, char *argv[])
 static bool 
 handle_sequence (int argc, const char **argv)
 {
+    Timer totaltime;
+
     // First, scan the original command line arguments for '#' or '@'
     // characters.  Any found indicate that there are numeric range or
     // wildcards to deal with.  Also look for --frames and --framepadding
@@ -3405,6 +3407,11 @@ handle_sequence (int argc, const char **argv)
         // Clear the stack at the end of each iteration
         ot.curimg.reset ();
         ot.image_stack.clear();
+
+        if (ot.runstats)
+            std::cout << "End iteration " << i << ": "
+                    << Strutil::timeintervalformat(totaltime(),2) << "  "
+                    << Strutil::memformat(Sysutil::memory_used()) << "\n";
     }
 
     return true;
