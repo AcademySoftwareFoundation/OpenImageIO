@@ -218,6 +218,11 @@ private:
     std::string m_rle_buffer;
     //Index of the transparent color, if any (for Indexed color mode only)
     int16_t m_transparency_index;
+    //Background color
+    double m_background_color[4];
+    ///< Do not convert unassociated alpha
+    bool m_keep_unassociated_alpha;
+
 
     FileHeader m_header;
     ColorModeData m_color_data;
@@ -249,6 +254,8 @@ private:
     bool load_resource_1005 (uint32_t length);
     //Alpha Channel Names
     bool load_resource_1006 (uint32_t length);
+    //Background Color
+    bool load_resource_1010 (uint32_t length);
     //JPEG thumbnail (Photoshop 4.0)
     bool load_resource_1033 (uint32_t length);
     //JPEG thumbnail (Photoshop 5.0)
@@ -311,6 +318,60 @@ private:
     // store the RGB data in dst
     //-Modify validate_header function to not reject that color mode
     //-Modify convert_to_rgb function to call <colormode>_to_rgb
+
+    // Convert from photoshop native alpha to
+    // associated/premultiplied
+    template <class T>
+    void removeBackground (T *data, int size, int nchannels, int alpha_channel, double *background) {
+        // RGB = CompRGB - (1 - alpha) * Background;
+        double scale = std::numeric_limits<T>::is_integer ?
+            1.0/std::numeric_limits<T>::max() : 1.0;
+
+        for ( ;  size;  --size, data += nchannels)
+            for (int c = 0;  c < nchannels;  c++)
+                if (c != alpha_channel) {
+                    double alpha = data[alpha_channel] * scale;
+                    double f = data[c];
+
+                    data[c] = T (f - (((1.0 - alpha) * background[c]) / scale));
+                }
+
+    }
+
+    template <class T>
+    void unassociateAlpha (T *data, int size, int nchannels, int alpha_channel, double *background) {
+        // RGB = (CompRGB - (1 - alpha) * Background) / alpha
+        double scale = std::numeric_limits<T>::is_integer ?
+            1.0/std::numeric_limits<T>::max() : 1.0;
+
+        for ( ;  size;  --size, data += nchannels)
+            for (int c = 0;  c < nchannels;  c++)
+                if (c != alpha_channel) {
+                    double alpha = data[alpha_channel] * scale;
+                    double f = data[c];
+
+                    if (alpha > 0.0)
+                        data[c] = T ((f - (((1.0 - alpha) * background[c]) / scale)) / alpha) ;
+                    else
+                        data[c] = 0;
+                }
+    }
+
+    template <class T>
+    void associateAlpha (T *data, int size, int nchannels, int alpha_channel) {
+        double scale = std::numeric_limits<T>::is_integer ?
+            1.0/std::numeric_limits<T>::max() : 1.0;
+        for ( ;  size;  --size, data += nchannels)
+            for (int c = 0;  c < nchannels;  c++)
+                if (c != alpha_channel) {
+                    double f = data[c];
+                    data[c] = T (f * (data[alpha_channel] * scale));
+                }
+    }
+
+    void background_to_assocalpha (int n, void *data);
+    void background_to_unassalpha (int n, void *data);
+    void unassalpha_to_assocalpha (int n, void *data);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -395,6 +456,7 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
     ADD_LOADER(1005),
     ADD_LOADER(1006),
+    ADD_LOADER(1010),
     ADD_LOADER(1033),
     ADD_LOADER(1036),
     ADD_LOADER(1047),
@@ -531,6 +593,10 @@ PSDInput::open (const std::string &name, ImageSpec &newspec,
                 const ImageSpec &config)
 {
     m_WantRaw = config.get_int_attribute ("psd:RawData", 0) != 0;
+
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+        m_keep_unassociated_alpha = true;
+
     return open (name, newspec);
 }
 
@@ -557,6 +623,66 @@ PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_subimage = subimage;
     newspec = m_spec = m_specs[subimage];
     return true;
+}
+
+
+
+void
+PSDInput::background_to_assocalpha (int n, void *data)
+{
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        removeBackground ((unsigned char *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    case TypeDesc::UINT16:
+        removeBackground ((unsigned short *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    case TypeDesc::UINT32:
+        removeBackground ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    default:
+        break;
+    }
+}
+
+
+
+void
+PSDInput::background_to_unassalpha (int n, void *data)
+{
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        unassociateAlpha ((unsigned char *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    case TypeDesc::UINT16:
+        unassociateAlpha ((unsigned short *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    case TypeDesc::UINT32:
+        unassociateAlpha ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    default:
+        break;
+    }
+}
+
+
+
+void
+PSDInput::unassalpha_to_assocalpha (int n, void *data)
+{
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        associateAlpha ((unsigned char *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::UINT16:
+        associateAlpha ((unsigned short *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::UINT32:
+        associateAlpha ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    default:
+        break;
+    }
 }
 
 
@@ -588,6 +714,38 @@ PSDInput::read_native_scanline (int y, int z, void *data)
         if (!convert_to_rgb (dst))
             return false;
     }
+
+    // PSD specifically dictates unassociated (un-"premultiplied") alpha.
+    // Convert to associated unless we were requested not to do so.
+    //
+    // Composite layer (subimage 0) is mixed with background, which
+    // affects the alpha (aka white borders if background not removed).
+    //
+    // Composite:
+    // m_keep_unassociated_alpha true: remove background and convert to unassociated
+    // m_keep_unassociated_alpha false: remove background only
+    //
+    // Other Layers:
+    // m_keep_unassociated_alpha true: do nothing
+    // m_keep_unassociated_alpha false: convert to associated
+    //
+    //
+    if (m_spec.alpha_channel != -1) {
+        if (m_subimage == 0) {
+            if (m_keep_unassociated_alpha) {
+                background_to_unassalpha (m_spec.width, data);
+            } else {
+                background_to_assocalpha (m_spec.width, data);
+            }
+        } else {
+            if (m_keep_unassociated_alpha) {
+                // do nothing - leave as it is
+            } else {
+                unassalpha_to_assocalpha (m_spec.width, data);
+            }
+        }
+    }
+
     return true;
 }
 
@@ -610,6 +768,11 @@ PSDInput::init ()
     m_channel_buffers.clear ();
     m_rle_buffer.clear ();
     m_transparency_index = -1;
+    m_keep_unassociated_alpha = false;
+    m_background_color[0] = 1.0;
+    m_background_color[1] = 1.0;
+    m_background_color[2] = 1.0;
+    m_background_color[3] = 1.0;
 }
 
 
@@ -891,6 +1054,26 @@ PSDInput::load_resource_1006 (uint32_t length)
         m_alpha_names.push_back (name);
     }
     return check_io ();
+}
+
+
+
+bool
+PSDInput::load_resource_1010 (uint32_t length)
+{
+    const double int8_to_dbl = 1.0 / 0xFF;
+    int8_t color_id;
+    int32_t color;
+
+    read_bige<int8_t> (color_id);
+    read_bige<int32_t> (color);
+
+    m_background_color[0] = ((color) & 0xFF) * int8_to_dbl;
+    m_background_color[1] = ((color >> 8) & 0xFF) * int8_to_dbl;
+    m_background_color[2] = ((color >> 16) & 0xFF) * int8_to_dbl;
+    m_background_color[3] = ((color >> 24) & 0xFF) * int8_to_dbl;
+
+    return true;
 }
 
 
@@ -1514,6 +1697,10 @@ PSDInput::setup ()
         if (transparency)
             channels.push_back (layer.channel_id_map[ChannelID_Transparency]);
     }
+
+    if (m_spec.alpha_channel != -1)
+        if (m_keep_unassociated_alpha)
+            m_spec.attribute ("oiio:UnassociatedAlpha", 1);
 }
 
 
