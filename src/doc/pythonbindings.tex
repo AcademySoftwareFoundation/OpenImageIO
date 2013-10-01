@@ -179,6 +179,85 @@ another.
 \apiend
 
 
+\section{ROI}
+\label{sec:pythonroi}
+
+The \ROI class that describes an image extent or region of interest,
+explained in deail in Section~\ref{sec:ROI}, is replicated for Python.
+
+\apiitem{{\ce ROI} () \\
+{\ce ROI} (xbegin, xend, ybegin, yend) \\
+{\ce ROI} (xbegin, xend, ybegin, yend, zbegin, zend) \\
+{\ce ROI} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend)}
+Construct an \ROI with the given bounds.  The constructor with no 
+arguments makes an \ROI that is ``undefined.''
+
+\noindent Example:
+\begin{code}
+    import OpenImageIO as oiio
+    ...
+    roi = oiio.ROI (0, 640, 0, 480, 0, 1, 0, 4)   # video res RGBA
+\end{code}
+\apiend
+
+\apiitem{int ROI.{\ce xbegin} \\
+int ROI.{\ce xend} \\
+int ROI.{\ce ybegin} \\
+int ROI.{\ce yend} \\
+int ROI.{\ce zbegin} \\
+int ROI.{\ce zend} \\
+int ROI.{\ce chbegin} \\
+int ROI.{\ce chend}}
+The basic fields of the \ROI.
+\apiend
+
+\apiitem{ROI ROI.{\ce All}}
+A pre-constructed undefined \ROI.
+\apiend
+
+\apiitem{bool ROI.{\ce defined}}
+{\cf True} if the \ROI is defined, {\cf False} if the \ROI is undefined.
+\apiend
+
+\apiitem{int ROI.{\ce width} \\
+int ROI.{\ce height} \\
+int ROI.{\ce depth} \\
+int ROI.{\ce nchannels}}
+The number of pixels in each dimension, and the number of channels,
+as described by the \ROI.
+\apiend
+
+\apiitem{int ROI.{\ce npixels}}
+The total number of pixels in the region described by the \ROI.
+\apiend
+
+
+\apiitem{ROI {\ce get_roi} (imagespec) \\
+ROI {\ce get_roi_full} (imagespec)}
+Returns the \ROI corresponding to the pixel data window of the given
+\ImageSpec, or the display/full window, respectively.
+
+\noindent Example:
+\begin{code}
+    spec = oiio.ImageSpec(...)
+    roi = oiio.get_roi(spec)
+\end{code}
+\apiend
+
+\apiitem{{\ce set_roi} (imagespec, roi) \\
+{\ce set_roi_full} (imagespec, roi)}
+Alter the \ImageSpec's resolution and offset to match the passed \ROI.
+
+\noindent Example:
+\begin{code}
+    # spec is an ImageSpec
+    # The following sets the full (display) window to be equal to the
+    # pixel data window:
+    oiio.set_roi_full (spec, oiio.get_roi(spec))
+\end{code}
+\apiend
+
+
 \section{ImageSpec}
 \label{sec:pythonimagespec}
 
@@ -976,8 +1055,375 @@ file.
 \section{ImageBuf}
 \label{sec:pythonimagebuf}
 
-Coming soon.
+See Chapter~\ref{chap:imagebuf} for detailed explanations of the
+C++ \ImageBuf class APIs. The Python APIs are very similar.
 
+\apiitem{ImageBuf {\ce ImageBuf} ()}
+Construct a new, empty \ImageBuf. The \ImageBuf is uninitialized and is
+awaiting a call to {\cf reset()} or {\cf copy()} before it is useful.
+\apiend
+
+\apiitem{ImageBuf {\ce ImageBuf} (filename) \\
+ImageBuf {\ce ImageBuf} (filename, subimage, miplevel)}
+
+Construct a read-only \ImageBuf that will read from the named file.
+Optionally, a specific subimage or MIP level may be specified (defaulting to
+0).
+
+\noindent Example:
+\begin{code}
+    import OpenImageIO as oiio
+    ...
+    buf = oiio.ImageBuf ("grid.tif")
+\end{code}
+\apiend
+
+\apiitem{ImageBuf {\ce ImageBuf} (imagespec)}
+
+Construct a writeable \ImageBuf of the dimensions and data format specified
+by an \ImageSpec.
+
+\noindent Example:
+\begin{code}
+    spec = oiio.ImageSpec (640, 480, 3, oiio.FLOAT)
+    buf = oiio.ImageBuf (spec)
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce clear} ()}
+Return the \ImageBuf to its pristine, uninitialized state.
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf (...)
+
+    # The following two commands are equivalent:
+    buf = oiio.ImageBuf()     # 1 - assign a new blank ImageBuf
+    buf.clear()               # 2 - clear the existing ImageBuf
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce reset} (filename) \\
+ImageBuf.{\ce reset} (filename, subimage, miplevel) \\
+ImageBuf.{\ce reset} (imagespec)}
+Restore the \ImageBuf to its newly-constructed state, either to read from
+a filename (optionally specifying a subimage and MIP level) or a writeable
+\ImageBuf specified by an \ImageSpec.
+\apiend
+
+\apiitem{bool ImageBuf.{\ce read} (subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN)}
+Explicitly read the image from the file (of a file-reading \ImageBuf), optionally
+specifying a particular subimage and MIP level.  If {\cf force} is {\cf True},
+will force an allocation of memory and a full read (versus the default of
+relying on an underlying \ImageCache).  If {\cf convert} is not
+the default of {\cf UNKNOWN}, it will force the \ImageBuf to convert the
+image to the specified data format (versus keeping it in the native 
+format or relying on the \ImageCache to make a data formatting decision).
+
+Note that a call to {\cf read()} is not necessary --- any \ImageBuf API call
+that accesses pixel values will trigger a file read if it has not yet been
+done.
+
+The {\cf read()} method will return {\cf True} for success, or {\cf False}
+if the read could not be performed (in which case, a {\cf geterror()} call
+will retrieve the specific error message).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("mytexture.exr")
+    buf.read (0, 2, True)
+    # That forces an allocation and read of MIP level 2
+\end{code}
+\apiend
+
+\apiitem{bool ImageBuf.{\ce init_spec} (filename, subimage=0, miplevel=0)}
+
+Explicitly read just the header from a file-reading \ImageBuf (if the header
+has not yet been read), optionally specifying a particular subimage and MIP
+level. The {\cf init_spec()} method will return {\cf True} for success, or
+{\cf False} if the read could not be performed (in which case, a {\cf
+geterror()} call will retrieve the specific error message).
+
+Note that a call to {\cf init_spec()} is not necessary --- any \ImageBuf API
+call that accesses the spec will read it automatically it has not yet been
+done.
+\apiend
+
+\apiitem{bool ImageBuf.{\ce write} (filename, fileformat="")}
+Write the contents of the \ImageBuf to the named file.  Optionally, {\cf
+fileformat} can specify a particular file format to use (by default, it
+will infer it from the extension of the file name).
+
+\noindent Example:
+\begin{code}
+    # No-frills conversion of a TIFF file to JPEG
+    buf = oiio.ImageBuf ("in.tif")
+    buf.write ("out.jpg")
+\end{code}
+\apiend
+
+\apiitem{ImageSpec ImageBuf.{\ce spec}() \\
+ImageSpec ImageBuf.{\ce nativespec}()}
+{\cf ImageBuf.spec()} returns the \ImageSpec that describes the contents of
+the \ImageBuf.  {\cf ImageBuf.nativespec()} returns an \ImageSpec that
+describes the contents of the file that the \ImageBuf was read from (this
+may differ from {\cf ImageBuf.spec()} due to format conversions, or any
+changes made to the \ImageBuf after the file was read, such as adding
+metadata).
+
+Handy rule of thumb: {\cf spec()} describes the buffer, {\cf nativespec()}
+describes the original file it came from.
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("in.tif")
+    print "Resolution is", buf.spec().width, "x", buf.spec().height
+\end{code}
+\apiend
+
+\apiitem{ImageSpec ImageBuf.{\ce specmod}()}
+{\cf ImageBuf.specmod()} provides writeable access to the \ImageSpec that
+describes the contents of the \ImageBuf.  Be very careful!  It is safe
+to modify certain metadata, but if you change the data format or resolution
+fields, you will get the chaos you deserve.
+
+\noindent Example:
+\begin{code}
+    # Read an image, add a caption metadata, write it back out in place
+    buf = oiio.ImageBuf ("file.tif")
+    buf.specmod().attribute ("ImageDescription", "my photo")
+    buf.write ("file.tif")
+\end{code}
+\apiend
+
+\apiitem{str ImageBuf.{\ce name} \\
+str ImageBuf.{\ce file_format_name}}
+The file name and name of the file format of the image.
+\apiend
+
+\apiitem{int ImageBuf.{\ce subimage} \\
+int ImageBuf.{\ce miplevel} \\
+int ImageBuf.{\ce nsubimages} \\
+int ImageBuf.{\ce nmiplevels}}
+Several fields giving information about the current subimage and MIP
+level, and the total numbers thereof in the file.
+\apiend
+
+\apiitem{int ImageBuf.{\ce xbegin} \\
+int ImageBuf.{\ce xend} \\
+int ImageBuf.{\ce ybegin} \\
+int ImageBuf.{\ce yend} \\
+int ImageBuf.{\ce zbegin} \\
+int ImageBuf.{\ce zend}}
+The range of valid pixel data window. Remember that the {\cf end} is 
+\emph{one past} the last pixel.
+\apiend
+
+\apiitem{int ImageBuf.{\ce xmin} \\
+int ImageBuf.{\ce xmax} \\
+int ImageBuf.{\ce ymin} \\
+int ImageBuf.{\ce ymax} \\
+int ImageBuf.{\ce zmin} \\
+int ImageBuf.{\ce zmax}}
+The minimum and maximum (inclusive) coordinates of the pixel data window.
+\apiend
+
+\apiitem{int ImageBuf.{\ce orientation} \\
+int ImageBuf.{\ce oriented_width} \\
+int ImageBuf.{\ce oriented_height} \\
+int ImageBuf.{\ce oriented_x} \\
+int ImageBuf.{\ce oriented_y} \\
+int ImageBuf.{\ce oriented_full_width} \\
+int ImageBuf.{\ce oriented_full_height} \\
+int ImageBuf.{\ce oriented_full_x} \\
+int ImageBuf.{\ce oriented_full_y}}
+The {\cf orientation} field gives the suggested display oriententation of
+the image (see Section~\ref{metadata:orientation}).
+
+The other fields are helpers that give the width, height, and origin
+(as well as ``full'' or ``display'' resolution and origin), taking the
+intended orientation into consideration.
+\apiend
+
+\apiitem{ROI ImageBuf.{\ce roi} \\
+ROI ImageBuf.{\ce roi_full}}
+These fields return an \ROI description of the pixel data window
+({\cf roi}) and the full (a.k.a.\ ``display'') window ({\cf roi_full}).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("tahoe.jpg")
+    print "Resolution is", buf.roi.width, "x", buf.roi.height
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce set_full} (roi)}
+Changes the ``full'' (a.k.a. ``display'') window to the specified ROI.
+
+\noindent Example:
+\begin{code}
+    newroi = oiio.ROI (0, 1024, 0, 768)
+    buf.set_full (newroi)
+\end{code}
+\apiend
+
+\apiitem{bool ImageBuf.{\ce pixels_valid}}
+Will be {\cf True} if the file has already been read and the pixels are
+valid. (It is always {\cf True} for writeable \ImageBuf's.)
+There should be few good reasons to access these, since the spec and pixels
+will be automatically be read when they are needed. 
+\apiend
+
+\apiitem{TypeDesc ImageBuf.{\ce pixeltype}}
+Returns the description of the data type of the pixels stored within the
+\ImageBuf.
+\apiend
+
+\apiitem{bool ImageBuf.{\ce deep}}
+Will be {\cf True} if the file contains ``deep'' pixel data, or {\cf False}
+for an ordinary images.
+\apiend
+
+\apiitem{ImageBuf.{\ce copy_metadata} (other_imagebuf)}
+Replaces the metadata (all \ImageSpec items, except for the data format
+and pixel data window size) with the corresponding metadata from the
+other \ImageBuf.
+\apiend
+
+\apiitem{ImageBuf.{\ce copy_pixels} (other_imagebuf)}
+Replace the pixels in this \ImageBuf with the values from the other
+\ImageBuf.
+\apiend
+
+\apiitem{ImageBuf.{\ce copy} (other_imagebuf)}
+Make this \ImageBuf a complete copy of the other \ImageBuf.
+
+\noindent Example:
+\begin{code}
+    A = oiio.ImageBuf()
+    B = oiio.ImageBuf("B.tif")
+    A.copy (B)
+    # Now A is a separate, duplicate copy of "B.tif"
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce swap} (other_imagebuf)}
+Swaps the content of this \ImageBuf and the other \ImageBuf.
+
+\noindent Example:
+\begin{code}
+    A = oiio.ImageBuf("A.tif")
+    B = oiio.ImageBuf("B.tif")
+    A.swap (B)
+    # Now B contains the "A.tif" image and A contains the "B.tif" image
+\end{code}
+\apiend
+
+\apiitem{tuple ImageBuf.{\ce getpixel} (x, y, z=0, wrap=oiio.WrapBlack)}
+Retrieves pixel $(x,y,z)$ from the buffer and return it as a tuple of
+{\cf float} values, one for each color channel.  The {\cf x, y, z} values
+are {\cf int} pixel coordinates.  The optional {\cf wrap} parameter
+describes what should happen if the coordinates are outside the pixel data
+window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("tahoe.jpg")
+    p = buf.getpixel (50, 50)
+    print p
+
+    > (0.37, 0.615, 0.97)
+\end{code}
+\apiend
+
+\apiitem{float ImageBuf.{\ce getchannel} (x, y, z, channel, wrap=oiio.WrapBlack)}
+Retrieves just a single channel value from pixel $(x,y,z)$ from the buffer
+and returns it as a {\cf float} value.  The optional {\cf wrap} parameter
+describes what should happen if the coordinates are outside the pixel data
+window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("tahoe.jpg")
+    green = buf.getchannel (50, 50, 0, 1)
+\end{code}
+\apiend
+
+\apiitem{tuple ImageBuf.{\ce interppixel} (x, y, wrap=oiio.WrapBlack)}
+Interpolates the image value at coordinates $(x,y)$ and return it as a tuple
+of {\cf float} values, one for each color channel.  The {\cf x, y} values
+are continuous {\cf float} coordinates in ``pixel space.''   The optional
+{\cf wrap} parameter describes what should happen if the coordinates are
+outside the pixel data window (and may be: {\cf WrapBlack, WrapClamp,
+WrapPeriodic, WrapMirror}).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("tahoe.jpg")
+    midx = float(buf.xbegin + buf.xend) / 2.0
+    midy = float(buf.ybegin + buf.yend) / 2.0
+    p = buf.interpixel (midx, midy)
+    # Now p is the interpolated value from right in the center of
+    # the data window
+\end{code}
+\apiend
+
+\apiitem{tuple ImageBuf.{\ce interppixel_NDC_full} (x, y, wrap=oiio.WrapBlack)}
+
+Interpolates the image value at coordinates $(x,y)$ and return it as a tuple
+of {\cf float} values, one for each color channel.  The {\cf x, y} values
+are continuous, normalized {\cf float} coordinates in ``NDC space,'' where
+{\cf (0,0)} is the upper left corner of the full (a.k.a.\ ``display'')
+window, and {\cf (1,1)} is the lower right corner of the full/display
+window. The  {\cf wrap} parameter describes what should happen if the
+coordinates are outside the pixel data window (and may be: {\cf WrapBlack,
+WrapClamp, WrapPeriodic, WrapMirror}).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("tahoe.jpg")
+    p = buf.interpixel_NDC_full (0.5, 0.5)
+    # Now p is the interpolated value from right in the center of
+    # the display window
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce setpixel} (x, y, pixel_value) \\
+ImageBuf.{\ce setpixel} (x, y, z, pixel_value)}
+Sets pixel $(x,y,z)$ to be the {\cf pixel_value}, expressed as a tuple of
+{\cf float}s (one for each color channel).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf (oiio.ImageSpec (640, 480, 3, oiio.UINT8))
+
+    # Set the whole image to red (the dumb slow way, but it works):
+    for y in range(buf.ybegin, buf.yend) :
+        for x in range(buf.xbegin, buf.xend) :
+            buf.setpixel (x, y, (1.0, 0.0, 0.0))
+\end{code}
+\apiend
+
+\apiitem{bool ImageBuf.{\ce has_error} \\
+str ImageBuf.{\ce geterror} ()}
+The {\cf ImageBuf.has_error} field will be {\cf True} if an error has
+occurred in the \ImageBuf, in which case the {\cf geterror()} method will
+retrieve the error message (and clear it afterwards).
+
+\noindent Example:
+\begin{code}
+    buf = oiio.ImageBuf ("in.tif")
+    buf.read ()   # force a read
+    if buf.has_error :
+        print "Error reading the file:", buf.geterror()
+    buf.write ("out.jpg")
+    if buf.has_error :
+        print "Could not convert the file:", buf.geterror()
+\end{code}
+\apiend
+
+
+\newpage
 \section{ImageBufAlgo}
 \label{sec:pythonimagebufalgo}
 

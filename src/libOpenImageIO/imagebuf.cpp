@@ -667,10 +667,15 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
     m_nsubimages = 0;
     m_nmiplevels = 0;
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
+    static ustring s_fileformat("fileformat");
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
                                   TypeDesc::TypeInt, &m_nsubimages);
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
                                   TypeDesc::TypeInt, &m_nmiplevels);
+    const char *fmt = NULL;
+    m_imagecache->get_image_info (m_name, subimage, miplevel,
+                                  s_fileformat, TypeDesc::TypeString, &fmt);
+    m_fileformat = ustring(fmt);
     m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
     m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true);
     m_pixel_bytes = m_spec.pixel_bytes();
@@ -790,7 +795,6 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_spec.format = convert;
     m_orientation = m_spec.get_int_attribute ("orientation", 1);
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
-
     realloc ();
     if (m_imagecache->get_pixels (m_name, subimage, miplevel,
                                   m_spec.x, m_spec.x+m_spec.width,
@@ -982,6 +986,7 @@ ImageBuf::name (void) const
 const std::string &
 ImageBuf::file_format_name (void) const
 {
+    impl()->validate_spec ();
     return impl()->m_fileformat.string();
 }
 
