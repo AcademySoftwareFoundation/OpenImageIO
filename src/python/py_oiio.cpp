@@ -185,6 +185,7 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     declare_typedesc();
     declare_paramvalue();
     declare_imagespec();
+    declare_roi();
 
     // Main OIIO I/O classes
     declare_imageinput();
