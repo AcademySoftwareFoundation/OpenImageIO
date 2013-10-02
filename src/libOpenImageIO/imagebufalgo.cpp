@@ -585,7 +585,7 @@ convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
     float *sum = ALLOCA (float, roi.chend);
     ROI kroi = get_roi (kernel.spec());
     ImageBuf::Iterator<DSTTYPE> d (dst, roi);
-    ImageBuf::ConstIterator<DSTTYPE> s (src, roi, ImageBuf::WrapClamp);
+    ImageBuf::ConstIterator<SRCTYPE> s (src, roi, ImageBuf::WrapClamp);
     for ( ; ! d.done();  ++d) {
 
         for (int c = roi.chbegin; c < roi.chend; ++c)
