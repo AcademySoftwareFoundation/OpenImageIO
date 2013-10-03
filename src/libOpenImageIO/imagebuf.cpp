@@ -682,6 +682,22 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
     m_blackpixel.resize (m_pixel_bytes, 0);
+
+    // Subtlety: m_nativespec will have the true formats of the file, but
+    // we rig m_spec to reflect what it will look like in the cache.
+    // This may make m_spec appear to change if there's a subsequent read()
+    // that forces a full read into local memory, but what else can we do?
+    // It causes havoc for it to suddenly change in the other direction
+    // when the file is lazily read.
+    int peltype = TypeDesc::UNKNOWN;
+    m_imagecache->get_image_info (m_name, subimage, miplevel,
+                                  ustring("cachedpixeltype"),
+                                  TypeDesc::TypeInt, &peltype);
+    if (peltype != TypeDesc::UNKNOWN) {
+        m_spec.format = (TypeDesc::BASETYPE)peltype;
+        m_spec.channelformats.clear();
+    }
+
     if (m_nsubimages) {
         m_badfile = false;
         m_orientation = m_spec.get_int_attribute ("orientation", 1);
@@ -729,12 +745,6 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         return false;
     }
 
-    // Set our current spec to the requested subimage
-    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel) ||
-        ! m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true)) {
-        m_err = m_imagecache->geterror ();
-        return false;
-    }
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
 
@@ -793,6 +803,8 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
 
     if (convert != TypeDesc::UNKNOWN)
         m_spec.format = convert;
+    else
+        m_spec.format = m_nativespec.format;
     m_orientation = m_spec.get_int_attribute ("orientation", 1);
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     realloc ();

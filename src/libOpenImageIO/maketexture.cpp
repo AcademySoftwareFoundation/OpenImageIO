@@ -854,10 +854,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         return false;
     }
 
-    // The cache might mess with the apparent data format.  But for the 
-    // purposes of what we should output, figure it out now, before the
-    // file has been read and cached.
-    TypeDesc out_dataformat = src->spec().format;
+    // The cache might mess with the apparent data format, so make sure
+    // it's the nativespec that we consult for data format of the file.
+    TypeDesc out_dataformat = src->nativespec().format;
 
     if (configspec.format != TypeDesc::UNKNOWN)
         out_dataformat = configspec.format;
