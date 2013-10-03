@@ -1241,7 +1241,7 @@ bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
                      ROI roi, int threads = 0);
 
 
-/// Render a text string into image R, essentially doing an "over" of
+/// Render a text string into image dst, essentially doing an "over" of
 /// the character into the existing pixel data.  The baseline of the
 /// first character will start at position (x,y).  The font is given by
 /// fontname as a full pathname to the font file (defaulting to some
@@ -1250,19 +1250,19 @@ bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// opaque white (1.0,1.0,...) in all channels, unless textcolor is
 /// supplied (and is expected to point to a float array of length at
 /// least equal to R.spec().nchannels).
-bool OIIO_API render_text (ImageBuf &R, int x, int y,
-                            const std::string &text,
-                            int fontsize=16, const std::string &fontname="",
-                            const float *textcolor = NULL);
+bool OIIO_API render_text (ImageBuf &dst, int x, int y,
+                           const std::string &text,
+                           int fontsize=16, const std::string &fontname="",
+                           const float *textcolor = NULL);
 
 
 /// ImageBufAlgo::histogram --------------------------------------------------
 /// Parameters:
-/// A           - Input image that contains the one channel to be histogramed.
-///               A must contain float pixel data and have at least 1 channel,
+/// src         - Input image that contains the one channel to be histogramed.
+///               src must contain float pixel data and have at least 1 channel,
 ///               but it can have more.
-/// channel     - Only this channel in A will be histogramed. It must satisfy
-///               0 <= channel < A.nchannels().
+/// channel     - Only this channel in src will be histogramed. It must satisfy
+///               0 <= channel < src.nchannels().
 /// histogram   - Clear old content and store the histogram here.
 /// bins        - Number of bins must be at least 1.
 /// min, max    - Pixel values outside of the min->max range are not used for
@@ -1273,22 +1273,22 @@ bool OIIO_API render_text (ImageBuf &R, int x, int y,
 ///               roi is not defined then the full size image will be
 ///               histogramed.
 /// --------------------------------------------------------------------------
-bool OIIO_API histogram (const ImageBuf &A, int channel,
-                          std::vector<imagesize_t> &histogram, int bins=256,
-                          float min=0, float max=1, imagesize_t *submin=NULL,
-                          imagesize_t *supermax=NULL, ROI roi=ROI::All());
+bool OIIO_API histogram (const ImageBuf &src, int channel,
+                         std::vector<imagesize_t> &histogram, int bins=256,
+                         float min=0, float max=1, imagesize_t *submin=NULL,
+                         imagesize_t *supermax=NULL, ROI roi=ROI::All());
 
 
 
 /// ImageBufAlgo::histogram_draw ---------------------------------------------
 /// Parameters:
-/// R           - The histogram will be drawn in the output image R. R must
+/// dst         - The histogram will be drawn in the image dst. which must
 ///               have only 1 channel with float pixel data, and width equal
 ///               to the number of bins, that is elements in histogram.
 /// histogram   - The histogram to be drawn, must have at least 1 bin.
 /// --------------------------------------------------------------------------
-bool OIIO_API histogram_draw (ImageBuf &R,
-                               const std::vector<imagesize_t> &histogram);
+bool OIIO_API histogram_draw (ImageBuf &dst,
+                              const std::vector<imagesize_t> &histogram);
 
 
 
