@@ -308,6 +308,12 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
             m_storage = ImageBuf::LOCALBUFFER;
         }
         m_spec_valid = true;
+    } else if (filename.length() > 0) {
+        ASSERT (buffer == NULL);
+        // If a filename was given, read the spec and set it up as an
+        // ImageCache-backed image.  Reallocate later if an explicit read()
+        // is called to force read into a local buffer.
+        read (subimage, miplevel);
     } else {
         ASSERT (buffer == NULL);
     }
@@ -541,6 +547,13 @@ ImageBufImpl::reset (const std::string &filename, int subimage,
     m_current_miplevel = miplevel;
     if (imagecache)
         m_imagecache = imagecache;
+
+    if (m_name.length() > 0) {
+        // If a filename was given, read the spec and set it up as an
+        // ImageCache-backed image.  Reallocate later if an explicit read()
+        // is called to force read into a local buffer.
+        read (subimage, miplevel);
+    }
 }
 
 
