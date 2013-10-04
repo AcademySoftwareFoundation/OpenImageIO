@@ -327,7 +327,7 @@ main (int argc, char *argv[])
             // right now, because ImageBuf doesn't really know how to
             // write subimages.
             if (diffimage.size() && (cr.maxerror != 0 || !outdiffonly)) {
-                ImageBuf diff (diffimage, img0.spec());
+                ImageBuf diff (img0.spec());
                 ImageBuf::ConstIterator<float,float> pix0 (img0);
                 ImageBuf::ConstIterator<float,float> pix1 (img1);
                 ImageBuf::Iterator<float,float> pixdiff (diff);
@@ -349,7 +349,7 @@ main (int argc, char *argv[])
                     }
                 }
 
-                diff.save (diffimage);
+                diff.write (diffimage);
 
                 // Clear diff image name so we only save the first
                 // non-matching subimage.

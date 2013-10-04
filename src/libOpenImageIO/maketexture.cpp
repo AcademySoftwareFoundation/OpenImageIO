@@ -630,7 +630,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 if (smallspec.nchannels != outspec.nchannels) {
                     outstream << "WARNING: Custom mip level \"" << mipimages[0]
                               << " had the wrong number of channels.\n";
-                    boost::shared_ptr<ImageBuf> t (new ImageBuf (mipimages[0], smallspec));
+                    boost::shared_ptr<ImageBuf> t (new ImageBuf (smallspec));
                     ImageBufAlgo::channels(*t, *small, outspec.nchannels,
                                            NULL, NULL, NULL, true);
                     std::swap (t, small);
@@ -896,7 +896,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         newspec.height = newspec.full_height = src->spec().height/2;
         newspec.tile_width = newspec.tile_height = 0;
         newspec.format = TypeDesc::FLOAT;
-        boost::shared_ptr<ImageBuf> latlong (new ImageBuf(src->name(), newspec));
+        boost::shared_ptr<ImageBuf> latlong (new ImageBuf(newspec));
         // Now lightprobe holds the original lightprobe, src is a blank
         // image that will be the unwrapped latlong version of it.
         lightprobe_to_envlatl (*latlong, *src, true);
@@ -946,7 +946,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
           ImageBufAlgo::isConstantChannel(*src,src->spec().alpha_channel,1.0f)) {
         if (verbose)
             outstream << "  Alpha==1 image detected. Dropping the alpha channel.\n";
-        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".noalpha", src->spec()));
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->spec()));
         ImageBufAlgo::channels (*newsrc, *src, src->nchannels()-1,
                                 NULL, NULL, NULL, true);
         std::swap (src, newsrc);   // N.B. the old src will delete
@@ -959,7 +959,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
           ImageBufAlgo::isMonochrome(*src)) {
         if (verbose)
             outstream << "  Monochrome image detected. Converting to single channel texture.\n";
-        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".monochrome", src->spec()));
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->spec()));
         ImageBufAlgo::channels (*newsrc, *src, 1, NULL, NULL, NULL, true);
         std::swap (src, newsrc);
     }
@@ -969,7 +969,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     if ((nchannels > 0) && (nchannels != src->nchannels())) {
         if (verbose)
             outstream << "  Overriding number of channels to " << nchannels << "\n";
-        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->name() + ".channels", src->spec()));
+        boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->spec()));
         ImageBufAlgo::channels (*newsrc, *src, nchannels, NULL, NULL, NULL, true);
         std::swap (src, newsrc);
     }
@@ -1196,7 +1196,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             // that is float.
             ImageSpec floatSpec = src->spec();
             floatSpec.set_format (TypeDesc::FLOAT);
-            ccSrc.reset (new ImageBuf ("bitdepth promoted", floatSpec));
+            ccSrc.reset (new ImageBuf (floatSpec));
         }
 
         ColorConfig colorconfig;
@@ -1293,7 +1293,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         toplevel = src;
     } else  if (! do_resize) {
         // Need format conversion, but no resize -- just copy the pixels
-        toplevel.reset (new ImageBuf ("temp", dstspec));
+        toplevel.reset (new ImageBuf (dstspec));
         ImageBufAlgo::parallel_image (boost::bind(copy_block,boost::ref(*toplevel),boost::cref(*src),_1),
                                       OIIO::get_roi(dstspec));
     } else {
@@ -1301,7 +1301,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (verbose)
             outstream << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        toplevel.reset (new ImageBuf ("temp", dstspec));
+        toplevel.reset (new ImageBuf (dstspec));
         if (filtername == "box" || filtername == "triangle")
             ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));

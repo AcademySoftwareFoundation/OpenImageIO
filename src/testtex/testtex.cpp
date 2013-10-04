@@ -510,7 +510,7 @@ test_plain_texture (Mapping2D mapping)
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     adjust_spec (outspec, dataformatname);
-    ImageBuf image (output_filename, outspec);
+    ImageBuf image (outspec);
     ImageBufAlgo::zero (image);
 
     ustring filename = filenames[0];
@@ -532,7 +532,7 @@ test_plain_texture (Mapping2D mapping)
         }
     }
 
-    if (! image.save ()) 
+    if (! image.write (output_filename)) 
         std::cerr << "Error writing " << output_filename 
                   << " : " << image.geterror() << "\n";
 }
@@ -583,7 +583,7 @@ test_texture3d (ustring filename, Mapping3D mapping)
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     adjust_spec (outspec, dataformatname);
-    ImageBuf image (output_filename, outspec);
+    ImageBuf image (outspec);
     ImageBufAlgo::zero (image);
 
     for (int iter = 0;  iter < iters;  ++iter) {
@@ -595,7 +595,7 @@ test_texture3d (ustring filename, Mapping3D mapping)
                                       get_roi(image.spec()), nthreads);
     }
     
-    if (! image.save ()) 
+    if (! image.write (output_filename)) 
         std::cerr << "Error writing " << output_filename 
                   << " : " << image.geterror() << "\n";
 }
@@ -635,7 +635,7 @@ test_getimagespec_gettexels (ustring filename)
     int w = spec.width / std::max(1,2<<miplevel);
     int h = spec.height / std::max(1,2<<miplevel);
     ImageSpec postagespec (w, h, spec.nchannels, TypeDesc::FLOAT);
-    ImageBuf buf ("postage.exr", postagespec);
+    ImageBuf buf (postagespec);
     TextureOptions opt;
     opt.nchannels = spec.nchannels;
     if (missing[0] >= 0)
@@ -652,7 +652,7 @@ test_getimagespec_gettexels (ustring filename)
             imagesize_t offset = (y*w + x) * spec.nchannels;
             buf.setpixel (x, y, &tmp[offset]);
         }
-    buf.save ();
+    buf.write ("postage.exr");
 }
 
 
