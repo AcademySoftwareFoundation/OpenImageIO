@@ -9,6 +9,10 @@
 #   - Set the variable OPENEXR_CUSTOM to True
 #   - Set the variable OPENEXR_CUSTOM_LIBRARY to the name of the library to
 #     use, e.g. "SpiIlmImf"
+#   - Optionally set the variable OPENEXR_CUSTOM_INCLUDE_DIR to any
+#     particularly weird place that the OpenEXR/*.h files may be found
+#   - Optionally set the variable OPENEXR_CUSTOM_LIB_DIR to any
+#     particularly weird place that the libraries files may be found
 #
 # This module defines the following variables:
 #
@@ -108,11 +112,13 @@ endif ()
 
 # Generic search paths
 set (OpenEXR_generic_include_paths
+  ${OPENEXR_CUSTOM_INCLUDE_DIR}
   /usr/include
   /usr/local/include
   /sw/include
   /opt/local/include)
 set (OpenEXR_generic_library_paths
+  ${OPENEXR_CUSTOM_LIB_DIR}
   /usr/lib
   /usr/local/lib
   /sw/lib

@@ -50,11 +50,25 @@ ifeq ($(SP_OS), spinux1)
     # the standard libGL.  This attempts to detect which libGL to use.
     SPINUX_GL_LIB = /usr/lib64/xorg.nvidia.3d/libGL.so
     MY_CMAKE_FLAGS += $(if $(wildcard ${SPINUX_GL_LIB}), -DOPENGL_gl_LIBRARY=${SPINUX_GL_LIB})
-    MY_CMAKE_FLAGS += \
-     -DILMBASE_CUSTOM=1 \
-     -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
-     -DOPENEXR_CUSTOM=1 \
-     -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
+    ifneq (,$(wildcard /usr/include/OpenEXR2))
+        MY_CMAKE_FLAGS += \
+	  -DILMBASE_CUSTOM=1 \
+	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
+	  -DOPENEXR_CUSTOM=1 \
+	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"
+    else
+        MY_CMAKE_FLAGS += \
+	  -DILMBASE_CUSTOM=1 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64 \
+	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
+	  -DOPENEXR_CUSTOM=1 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64 \
+	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
+    endif
     MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
 else ifeq ($(SP_OS), lion)
     COMPILER=clang
@@ -92,6 +106,16 @@ else ifeq ($(SP_OS), lion)
       -DPYTHON_LIBRARY=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
       -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
       -DZLIB_ROOT=${MACPORTS_PREFIX}
+
+    ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
+    BOOSTVERS_UNDERSCORE = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    MY_CMAKE_FLAGS += \
+        -DBOOST_CUSTOM=1 \
+        -DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+        -DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+        -DBoost_LIBRARIES=optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so;optimized;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt-${BOOSTVERS_UNDERSCORE}.so
+    endif
+
 else
 # Not sure how to obtain the correct GCC version but this returns the
 # version of GCC in the path.
