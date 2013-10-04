@@ -87,6 +87,10 @@ bool
 ImageBufAlgo::clamp (ImageBuf &dst, const float *min, const float *max,
                      bool clampalpha01, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place clamp requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     std::vector<float> minvec, maxvec;
     if (! min) {
@@ -108,6 +112,10 @@ bool
 ImageBufAlgo::clamp (ImageBuf &dst, float min, float max,
                      bool clampalpha01, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place clamp requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     std::vector<float> minvec (dst.nchannels(), min);
     std::vector<float> maxvec (dst.nchannels(), max);
@@ -250,6 +258,10 @@ add_inplace (ImageBuf &R, const float *val,
 bool
 ImageBufAlgo::add (ImageBuf &dst, const float *val, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place add requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     OIIO_DISPATCH_TYPES ("add", add_inplace, dst.spec().format,
                          dst, val, roi, nthreads);
@@ -376,6 +388,10 @@ mul_impl (ImageBuf &R, const float *val, ROI roi, int nthreads)
 bool
 ImageBufAlgo::mul (ImageBuf &dst, const float *val, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place mul requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     OIIO_DISPATCH_TYPES ("mul", mul_impl, dst.spec().format,
                          dst, val, roi, nthreads);
@@ -590,6 +606,10 @@ bool
 ImageBufAlgo::rangecompress (ImageBuf &dst, bool useluma,
                              ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place rangecompress requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     OIIO_DISPATCH_TYPES ("rangecompress", rangecompress_, dst.spec().format,
                          dst, useluma, roi, nthreads);
@@ -602,6 +622,10 @@ bool
 ImageBufAlgo::rangeexpand (ImageBuf &dst, bool useluma,
                            ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place rangeexpand requires the ImageBuf to be initialized");
+        return false;
+    }
     IBAprep (roi, &dst);
     OIIO_DISPATCH_TYPES ("rangeexpand", rangeexpand_, dst.spec().format,
                          dst, useluma, roi, nthreads);
@@ -639,8 +663,13 @@ unpremult_ (ImageBuf &R, ROI roi, int nthreads)
 
 
 bool
-ImageBufAlgo::unpremult (ImageBuf &dst,  ROI roi, int nthreads)
+ImageBufAlgo::unpremult (ImageBuf &dst, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place unpremult requires the ImageBuf to be initialized");
+        return false;
+    }
+
     if (dst.spec().alpha_channel < 0)
         return true;
 
@@ -683,6 +712,11 @@ premult_ (ImageBuf &R, ROI roi, int nthreads)
 bool
 ImageBufAlgo::premult (ImageBuf &dst, ROI roi, int nthreads)
 {
+    if (! dst.initialized()) {
+        dst.error ("in-place premult requires the ImageBuf to be initialized");
+        return false;
+    }
+
     if (dst.spec().alpha_channel < 0)
         return true;
 
