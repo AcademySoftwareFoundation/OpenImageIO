@@ -464,6 +464,63 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
 
 
+bool
+ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
+                      const std::string &filtername_, float fwidth,
+                      ROI roi, int nthreads)
+{
+    IBAprep (roi, &dst, &src);
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+    if (dstspec.nchannels != srcspec.nchannels) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
+        return false;
+    }
+    if (dstspec.depth > 1 || srcspec.depth > 1) {
+        dst.error ("ImageBufAlgo::resize does not support volume images");
+        return false;
+    }
+
+    // Resize ratios
+    float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+    float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    std::string filtername = filtername_;
+    if (filtername.empty()) {
+        // No filter name supplied -- pick a good default
+        if (wratio > 1.0f || hratio > 1.0f)
+            filtername = "blackman-harris";
+        else
+            filtername = "lanczos3";
+    }
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc (i, &fd);
+        if (fd.name == filtername) {
+            float w = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, wratio);
+            float h = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, hratio);
+            filter.reset (Filter2D::create (filtername, w, h));
+            break;
+        }
+    }
+    if (! filter) {
+        dst.error ("Filter \"%s\" not recognized", filtername);
+        return false;
+    }
+
+    OIIO_DISPATCH_TYPES2 ("resize", resize_,
+                          dstspec.format, srcspec.format,
+                          dst, src, filter.get(), roi, nthreads);
+
+    return false;
+}
+
+
+
 // DEPRECATED as of 1.2
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
@@ -1169,7 +1226,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
         ImageSpec smallspec (w, h, src.nchannels(), TypeDesc::FLOAT);
         std::string name = Strutil::format ("small%d.exr", (int)pyramid.size());
         ImageBuf *small = new ImageBuf (name, smallspec);
-        ImageBufAlgo::resize (*small, *pyramid.back());
+        ImageBufAlgo::resize (*small, *pyramid.back(), "triangle");
         divide_by_alpha (*small, get_roi(smallspec), nthreads);
         pyramid.push_back (boost::shared_ptr<ImageBuf>(small));
         //debug small->save();
@@ -1183,7 +1240,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     for (int i = (int)pyramid.size()-2;  i >= 0;  --i) {
         ImageBuf &big(*pyramid[i]), &small(*pyramid[i+1]);
         ImageBuf blowup ("bigger", big.spec());
-        ImageBufAlgo::resize (blowup, small);
+        ImageBufAlgo::resize (blowup, small, "triangle");
         ImageBufAlgo::over (big, big, blowup);
         //debug big.save (Strutil::format ("after%d.exr", i));
     }

@@ -902,6 +902,31 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
 /// corresponding portion of src (mapping such that the "full" image
 /// window of each correspond to each other, regardless of resolution).
 ///
+/// The filter is used to weight the src pixels falling underneath it for
+/// each dst pixel.  The caller may specify a reconstruction filter by name
+/// and width (expressed  in pixels unts of the dst image), or resize() will
+/// choose a reasonable default high-quality default filter (blackman-harris
+/// when upsizing, lanczos3 when downsizing) if the empty string is passed
+/// or if filterwidth is 0.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
+                      const std::string &filtername = "",
+                      float filterwidth = 0.0f,
+                      ROI roi = ROI::All(), int nthreads = 0);
+
+/// Set dst, over the region of interest, to be a resized version of the
+/// corresponding portion of src (mapping such that the "full" image
+/// window of each correspond to each other, regardless of resolution).
+///
 /// The caller may explicitly pass a reconstruction filter, or resize()
 /// will choose a reasonable default if NULL is passed.  The filter is
 /// used to weight the src pixels falling underneath it for each dst
@@ -919,7 +944,7 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
-                      Filter2D *filter=NULL,
+                      Filter2D *filter,
                       ROI roi = ROI::All(), int nthreads = 0);
 
 /// DEPRECATED as of 1.2
