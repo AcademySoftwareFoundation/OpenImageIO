@@ -1149,7 +1149,7 @@ bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
     } else {
         // If the two bufs are different types, convert through float
         ImageBuf::Iterator<D,float> d (dst, roi);
-        ImageBuf::ConstIterator<S,float> s (dst, roi);
+        ImageBuf::ConstIterator<S,float> s (src, roi);
         for ( ; ! d.done();  ++d, ++s) {
             for (int c = 0;  c < nchannels;  ++c)
                 d[c] = s[c];
