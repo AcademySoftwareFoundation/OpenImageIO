@@ -1754,7 +1754,7 @@ action_cmul (int argc, const char *argv[])
             }
         }
         for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
-            bool ok = ImageBufAlgo::mul ((*R)(s,m), &scale[0]);
+            bool ok = ImageBufAlgo::mul ((*R)(s,m), (*R)(s,m), &scale[0]);
             if (! ok)
                 ot.error ("cmul", (*R)(s,m).geterror());
         }
@@ -1800,7 +1800,7 @@ action_cadd (int argc, const char *argv[])
             }
         }
         for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::add ((*R)(s,m), &val[0]);
+            bool ok = ImageBufAlgo::add ((*R)(s,m), (*R)(s,m), &val[0]);
             if (! ok)
                 ot.error ("cadd", (*R)(s,m).geterror());
         }
@@ -2861,7 +2861,7 @@ action_clamp (int argc, const char *argv[])
     A->read ();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
-                                 true /*writeable*/, true /*copy_pixels*/));
+                                 true /*writeable*/, false /*copy_pixels*/));
     ot.push (R);
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         int nchans = (*R)(s,0).nchannels();
@@ -2877,7 +2877,8 @@ action_clamp (int argc, const char *argv[])
 
         for (int m = 0, miplevels=R->miplevels(s);  m < miplevels;  ++m) {
             ImageBuf &Rib ((*R)(s,m));
-            bool ok = ImageBufAlgo::clamp (Rib, &min[0], &max[0], clampalpha01);
+            ImageBuf &Aib ((*A)(s,m));
+            bool ok = ImageBufAlgo::clamp (Rib, Aib, &min[0], &max[0], clampalpha01);
             if (! ok)
                 ot.error (argv[0], Rib.geterror());
         }
@@ -2904,12 +2905,12 @@ action_rangecompress (int argc, const char *argv[])
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
-                                 true /*writable*/, true /*copy_pixels*/));
+                                 true /*writable*/, false /*copy_pixels*/));
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::rangecompress ((*R)(s,m), useluma);
+            bool ok = ImageBufAlgo::rangecompress ((*R)(s,m), (*A)(s,m), useluma);
             if (! ok)
                 ot.error (argv[0], (*R)(s,m).geterror());
         }
@@ -2936,12 +2937,12 @@ action_rangeexpand (int argc, const char *argv[])
     ImageRecRef A = ot.pop();
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
-                                 true /*writable*/, true /*copy_pixels*/));
+                                 true /*writable*/, false /*copy_pixels*/));
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::rangeexpand ((*R)(s,m), useluma);
+            bool ok = ImageBufAlgo::rangeexpand ((*R)(s,m), (*A)(s,m), useluma);
             if (! ok)
                 ot.error (argv[0], (*R)(s,m).geterror());
         }

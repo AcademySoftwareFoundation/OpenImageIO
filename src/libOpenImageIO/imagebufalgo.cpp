@@ -101,10 +101,15 @@ struct Dim3 {
 
 
 
-void
+bool
 ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A, const ImageBuf *B)
 {
+    if ((A && !A->initialized()) || (B && !B->initialized())) {
+        if (dst)
+            dst->error ("Uninitialized input image");
+        return false;
+    }
     if (dst->initialized()) {
         // Valid destination image.  Just need to worry about ROI.
         if (roi.defined()) {
@@ -113,6 +118,13 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         } else {
             // No ROI? Set it to all of dst's pixel window.
             roi = get_roi (dst->spec());
+        }
+        // If the dst is initialized but is a cached image, we'll need
+        // to fully read it into allocated memory so that we're able
+        // to write to it subsequently.
+        if (dst->storage() == ImageBuf::IMAGECACHE) {
+            dst->read (dst->subimage(), dst->miplevel(), true /*force*/);
+            ASSERT (dst->storage() == ImageBuf::LOCALBUFFER);
         }
     } else {
         // Not an initialized destination image!
@@ -162,6 +174,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             set_roi_full (spec, roi);
         dst->alloc (spec);
     }
+    return true;
 }
 
 
@@ -191,7 +204,8 @@ bool
 ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
 {
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
-    IBAprep (roi, &dst);
+    if (! IBAprep (roi, &dst))
+        return false;
     OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format,
                          dst, pixel, roi, nthreads);
     return true;
@@ -201,7 +215,8 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
 bool
 ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst);
+    if (! IBAprep (roi, &dst))
+        return false;
     float *zero = ALLOCA(float,roi.chend);
     memset (zero, 0, roi.chend*sizeof(float));
     return fill (dst, zero, roi, nthreads);
@@ -250,22 +265,12 @@ ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
                        int xoffset, int yoffset, int zoffset,
                        ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst);
+    if (! IBAprep (roi, &dst))
+        return false;
     OIIO_DISPATCH_TYPES ("checker", checker_, dst.spec().format,
                          dst, Dim3(width, height, depth), color1, color2,
                          Dim3(xoffset, yoffset, zoffset), roi, nthreads);
     return true;
-}
-
-/// DEPRECATED as of 1.2
-bool
-ImageBufAlgo::checker (ImageBuf &dst, int width,
-                       const float *color1, const float *color2,
-                       int xbegin, int xend, int ybegin, int yend,
-                       int zbegin, int zend)
-{
-    return checker (dst, width, width, width, color1, color2, 0, 0, 0,
-                    ROI(xbegin,xend,ybegin,yend,zbegin,zend), 0);
 }
 
 
@@ -438,7 +443,8 @@ bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
@@ -479,7 +485,8 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       const std::string &filtername_, float fwidth,
                       ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
     if (dstspec.nchannels != srcspec.nchannels) {
@@ -527,17 +534,6 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                           dst, src, filter.get(), roi, nthreads);
 
     return false;
-}
-
-
-
-// DEPRECATED as of 1.2
-bool
-ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
-                      int xbegin, int xend, int ybegin, int yend,
-                      Filter2D *filter)
-{
-    return resize (dst, src, filter, ROI (xbegin, xend, ybegin, yend, 0, 1));
 }
 
 
@@ -615,7 +611,8 @@ bool
 ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate, ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
@@ -688,7 +685,8 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
                         const ImageBuf &kernel, bool normalize,
                         ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
@@ -811,7 +809,8 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             float contrast, float threshold,
                             ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
                    dst.spec().nchannels, src.spec().nchannels);
@@ -1200,7 +1199,8 @@ bool
 ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
                                   ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     const ImageSpec &dstspec (dst.spec());
     if (dstspec.nchannels != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 

@@ -374,15 +374,5 @@ ImageBufAlgo::compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
 }
 
 
-
-int
-ImageBufAlgo::compare_Yee (const ImageBuf &A, const ImageBuf &B,
-                           float luminance, float fov)
-{
-    CompareResults result;
-    return compare_Yee (A, B, result, luminance, fov);
-}
-
-
 }
 OIIO_NAMESPACE_EXIT

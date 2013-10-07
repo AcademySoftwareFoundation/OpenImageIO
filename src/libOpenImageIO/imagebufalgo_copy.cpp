@@ -329,18 +329,6 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
-                        bool shuffle_channel_names)
-{
-    // DEPRECATED -- just provide link compatibility
-    return channels (dst, src, nchannels, channelorder, NULL, NULL,
-                     shuffle_channel_names);
-}
-
-
-
-bool
-ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
-                        int nchannels, const int *channelorder,
                         const float *channelvalues,
                         const std::string *newchannelnames,
                         bool shuffle_channel_names)
@@ -437,14 +425,6 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
         pixels += channelsize;
     }
     return true;
-}
-
-
-
-bool
-ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
-{
-    return ImageBufAlgo::channels (dst, src, numChannels, NULL, NULL, NULL, true);
 }
 
 

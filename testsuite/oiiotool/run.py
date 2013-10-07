@@ -28,6 +28,10 @@ command += (oiio_app("oiiotool")
 command += (oiio_app("oiiotool")
             + " filled.tif --rangecheck 0,0,0 1,0.9,1 >> out.txt ;\n")
 
+# test --rangecompress & --rangeexpand
+command += oiiotool ("tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
+command += oiiotool ("rangecompress.tif --rangeexpand -d uint8 -o rangeexpand.tif")
+
 # test resample
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -240,6 +244,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "add.exr", "sub.exr", "chsum.tif",
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif",
+            "rangecompress.tif", "rangeexpand.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
