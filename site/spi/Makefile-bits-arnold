@@ -89,7 +89,7 @@ ifeq ($(SP_OS), spinux1)
 
     ifneq (${SPCOMP2_USE_BOOSTVERS}, 1)
 	BOOSTVERS=1.51
-    endif ()
+    endif
     BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
