@@ -609,7 +609,51 @@ bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = false,
                            ROI roi = ROI::All(), int nthreads=0);
 
 
-/// Apply a color transform to the pixel values within the ROI.
+/// Copy pixels within the ROI from src to dst, applying a color transform.
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+///
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            const char *from, const char *to,
+                            bool unpremult=false,
+                            ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
+/// "look" transform.
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+///
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
+                        const char *looks, const char *from, const char *to,
+                        bool unpremult=false, bool inverse=false,
+                        const char *key=NULL, const char *value=NULL,
+                        ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy pixels within the ROI from src to dst, applying a color transform.
 ///
 /// If dst is not yet initialized, it will be allocated to the same
 /// size as specified by roi.  If roi is not defined it will be all

@@ -1290,9 +1290,12 @@ higher-contrast edges.
 \label{sec:iba:color}
 
 \apiitem{bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc const ColorProcessor *processor, bool unpremult, \\
-  \bigspc\spc  ROI roi=ROI::All(), nthreads=0)}
-\index{ImageBufAlgo!colorconvert} \indexapi{colorconverr}
+  \bigspc\spc const char *from, const char *to, bool unpremult=false, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc const ColorProcessor *processor, bool unpremult=false, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying a color transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
@@ -1302,14 +1305,18 @@ If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
 then premultiply again after the color conversion.  You may want to use
 this flag if your image contains an alpha channel.
 
-The {\cf ColorProcessor} is a special object created by a 
-{\cf ColorConfig} (see {\cf OpenImageIO/color.h} for details).  If OIIO
-was built with OpenColorIO support enabled, then the {\cf ColorProcessor}
-may transform among any two spaces supported by the active OCIO
-configuration, or may be a ``look'' transformation created by
-{\cf ColorConfig::createLookTransform}.  If OIIO was not built with
-OpenColorIO support enabled, then the only transformations available
-are from \qkw{sRGB} to \qkw{linear} and vice versa.
+The first form of this function specifies the ``from''
+and ``to'' color spaces by name.
+The second form is passed a {\cf ColorProcessor},
+which is is a special object created by a
+{\cf ColorConfig} (see {\cf OpenImageIO/color.h} for details).
+
+If OIIO was built with OpenColorIO support enabled, then the transformation
+may be between any two spaces supported by the active OCIO configuration, or
+may be a ``look'' transformation created by {\cf
+ColorConfig::createLookTransform}.  If OIIO was not built with OpenColorIO
+support enabled, then the only transformations available are from \qkw{sRGB}
+to \qkw{linear} and vice versa.
 
 \smallskip
 \noindent Examples:
@@ -1321,9 +1328,43 @@ are from \qkw{sRGB} to \qkw{linear} and vice versa.
     ImageBuf Src ("tahoe.jpg");
     ImageBuf Dst;
     ColorConfig cc;
-    ColorProcessor *processor = cc.createColorProcessor ("sRGB", "linear");
+    ColorProcessor *processor = cc.createColorProcessor ("vd8", "lnf");
     ImageBufAlgo::colorconvert (Dst, Src, processor, true);
     ColorProcessor::deleteColorProcessor (processor);
+
+    // Equivalent, though possibly less efficient if you will be
+    // converting many images using the same transformation:
+    ImageBuf Src ("tahoe.jpg");
+    ImageBuf Dst;
+    ImageBufAlgo::colorconvert (Dst, Src, "vd8", "lnf", true);
+\end{code}
+\apiend
+
+\apiitem{bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc const char *looks, const char *from, const char *to, \\
+  \bigspc\spc bool inverse=false, bool unpremult=false, \\
+  \bigspc\spc const char *key, const char *value, \\
+  \bigspc\spc ROI roi=ROI::All(), nthreads=0)}
+\index{ImageBufAlgo!ociolook} \indexapi{ociolook}
+Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
+applying an OpenColorIO ``look'' transform to the pixel values.
+In-place operations ({\cf dst} and {\cf src} being the same image)
+are supported.
+
+If {\cf inverse} is {\cf true}, it will reverse the color transformation
+and look application.
+
+If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
+then premultiply again after the color conversion.  You may want to use
+this flag if your image contains an alpha channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Src ("tahoe.jpg");
+    ImageBuf Dst;
+    ImageBufAlgo::ociolook (Dst, Src, "look", "vd8", "lnf", false, false,
+                            "key", "value");
 \end{code}
 \apiend
 
