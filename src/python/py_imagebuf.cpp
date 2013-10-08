@@ -108,6 +108,13 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_write_overloads,
                                 ImageBuf_write, 2, 3)
 
 
+void
+ImageBuf_set_write_format (ImageBuf &buf, TypeDesc::BASETYPE format)
+{
+    buf.set_write_format (format);
+}
+
+
 
 void
 ImageBuf_set_full (ImageBuf &buf, int xbegin, int xend, int ybegin, int yend,
@@ -254,6 +261,10 @@ void declare_imagebuf()
         .def("write", &ImageBuf_write,
              ImageBuf_write_overloads())
         // FIXME -- write(ImageOut&)
+//        .def("set_write_format", &ImageBuf::set_write_format)
+        .def("set_write_format", &ImageBuf_set_write_format)
+        .def("set_write_tiles", &ImageBuf::set_write_tiles,
+             (arg("width")=0, arg("height")=0, arg("depth")=0))
 
         .def("spec", &ImageBuf::spec,
                 return_value_policy<copy_const_reference>())

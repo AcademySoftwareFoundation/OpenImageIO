@@ -274,6 +274,11 @@ Write the image to the named file in the named format
 (an empty format means to infer the type from the filename
 extension).  Return {\cf true} if all went ok, {\cf false} if there were
 errors writing.
+
+By default, it will always write a scanline-oriented file, unless the
+{\cf set_write_tiles()} method has been used to override this.
+Also, it will use the data format of the buffer itself, unless the
+{\cf set_write_format()} method has been used to override the data format.
 \apiend
 
 \apiitem{bool write (ImageOutput *out, \\
@@ -283,6 +288,14 @@ Write the image to the open \ImageOutput {\cf out}.  Return {\cf true}
 if all went ok, {\cf false} if there were errors writing.  It does NOT
 close the file when it's done (and so may be called in a loop to write a
 multi-image file).
+\apiend
+
+\apiitem{void set_write_format (TypeDesc format=TypeDesc::UNKNOWN) \\
+set set_write_tiles (int width=0, int height=0, int depth=0)}
+\NEW % 1.3
+These methods allow the caller to override the data format and tile
+sizing when using the {\cf write()} function (the variety that does
+not take an open {\cf ImageOutput*}).
 \apiend
 
 

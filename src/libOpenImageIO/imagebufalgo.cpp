@@ -809,14 +809,14 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
     }
 
     // Blur the source image, store in Blurry
-    ImageBuf K ("kernel");
+    ImageBuf K;
     if (! make_kernel (K, kernel, width, width)) {
         dst.error ("%s", K.geterror());
         return false;
     }
     ImageSpec BlurrySpec = src.spec();
     BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
-    ImageBuf Blurry ("blurry", BlurrySpec);
+    ImageBuf Blurry (BlurrySpec);
     if (! convolve (Blurry, src, K, true, roi, nthreads)) {
         dst.error ("%s", Blurry.geterror());
         return false;
@@ -922,14 +922,14 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
     dst.reset (dst.name(), spec);
 
     // Copy src to a 2-channel (for "complex") float buffer
-    ImageBuf A (src.name(), spec);   // zeros it out automatically
+    ImageBuf A (spec);   // zeros it out automatically
     if (! ImageBufAlgo::paste (A, 0, 0, 0, 0, src, roi, nthreads)) {
         dst.error ("%s", A.geterror());
         return false;
     }
 
     // FFT the rows (into temp buffer B).
-    ImageBuf B ("fft", spec);
+    ImageBuf B (spec);
     hfft_ (B, A, false /*inverse*/, true /*unitary*/,
            get_roi(B.spec()), nthreads);
 
@@ -938,7 +938,7 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
     ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
 
     // FFT what was originally the columns (back to B)
-    B.reset ("fft", specT);
+    B.reset (specT);
     hfft_ (B, A, false /*inverse*/, true /*unitary*/,
            get_roi(A.spec()), nthreads);
 
@@ -984,16 +984,16 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
     spec.channelnames.push_back ("imag");
 
     // Inverse FFT the rows (into temp buffer B).
-    ImageBuf B ("ifft", spec);
+    ImageBuf B (spec);
     hfft_ (B, src, true /*inverse*/, true /*unitary*/,
            get_roi(B.spec()), nthreads);
 
     // Transpose and shift back to A
-    ImageBuf A (src.name());
+    ImageBuf A;
     ImageBufAlgo::transpose (A, B, ROI::All(), nthreads);
 
     // Inverse FFT what was originally the columns (back to B)
-    B.reset ("ifft", A.spec());
+    B.reset (A.spec());
     hfft_ (B, A, true /*inverse*/, true /*unitary*/,
            get_roi(A.spec()), nthreads);
 
@@ -1212,7 +1212,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     // to float as a convenience) as the top level of the pyramid.
     ImageSpec topspec = src.spec();
     topspec.set_format (TypeDesc::FLOAT);
-    ImageBuf *top = new ImageBuf ("top.exr", topspec);
+    ImageBuf *top = new ImageBuf (topspec);
     paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
     pyramid.push_back (boost::shared_ptr<ImageBuf>(top));
 
@@ -1224,8 +1224,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
         w = std::max (1, w/2);
         h = std::max (1, h/2);
         ImageSpec smallspec (w, h, src.nchannels(), TypeDesc::FLOAT);
-        std::string name = Strutil::format ("small%d.exr", (int)pyramid.size());
-        ImageBuf *small = new ImageBuf (name, smallspec);
+        ImageBuf *small = new ImageBuf (smallspec);
         ImageBufAlgo::resize (*small, *pyramid.back(), "triangle");
         divide_by_alpha (*small, get_roi(smallspec), nthreads);
         pyramid.push_back (boost::shared_ptr<ImageBuf>(small));
@@ -1239,7 +1238,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     // colors of the higher pyramid levels.
     for (int i = (int)pyramid.size()-2;  i >= 0;  --i) {
         ImageBuf &big(*pyramid[i]), &small(*pyramid[i+1]);
-        ImageBuf blowup ("bigger", big.spec());
+        ImageBuf blowup (big.spec());
         ImageBufAlgo::resize (blowup, small, "triangle");
         ImageBufAlgo::over (big, big, blowup);
         //debug big.save (Strutil::format ("after%d.exr", i));

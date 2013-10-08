@@ -510,7 +510,7 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
         if (dstspec.z_channel < 0 && B.spec().z_channel >= 0)
             dstspec.z_channel = B.spec().z_channel + A.nchannels();
         set_roi (dstspec, roi);
-        dst.reset (dst.name(), dstspec);
+        dst.reset (dstspec);
     }
 
     // For now, only support float destination, and equivalent A and B

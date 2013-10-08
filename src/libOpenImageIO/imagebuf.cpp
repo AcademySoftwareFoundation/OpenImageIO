@@ -266,6 +266,10 @@ private:
     DeepData m_deepdata;         ///< Deep data
     size_t m_allocated_size;     ///< How much memory we've allocated
     std::vector<char> m_blackpixel; ///< Pixel-sized zero bytes
+    TypeDesc m_write_format;     /// Format to use for write()
+    int m_write_tile_width;
+    int m_write_tile_height;
+    int m_write_tile_depth;
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -285,7 +289,9 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
       m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
-      m_imagecache(imagecache), m_allocated_size(0)
+      m_imagecache(imagecache), m_allocated_size(0),
+      m_write_format(TypeDesc::UNKNOWN), m_write_tile_width(0),
+      m_write_tile_height(0), m_write_tile_depth(1)
 {
     if (spec) {
         m_spec = *spec;
@@ -302,6 +308,12 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
             m_storage = ImageBuf::LOCALBUFFER;
         }
         m_spec_valid = true;
+    } else if (filename.length() > 0) {
+        ASSERT (buffer == NULL);
+        // If a filename was given, read the spec and set it up as an
+        // ImageCache-backed image.  Reallocate later if an explicit read()
+        // is called to force read into a local buffer.
+        read (subimage, miplevel);
     } else {
         ASSERT (buffer == NULL);
     }
@@ -328,7 +340,11 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
       m_deepdata(src.m_deepdata),
-      m_blackpixel(src.m_blackpixel)
+      m_blackpixel(src.m_blackpixel),
+      m_write_format(src.m_write_format),
+      m_write_tile_width(src.m_write_tile_width),
+      m_write_tile_height(src.m_write_tile_height),
+      m_write_tile_depth(src.m_write_tile_depth)
 {
     m_spec_valid = src.m_spec_valid;
     m_pixels_valid = src.m_pixels_valid;
@@ -505,6 +521,10 @@ ImageBufImpl::clear ()
     m_imagecache = NULL;
     m_deepdata.free ();
     m_blackpixel.clear ();
+    m_write_format = TypeDesc::UNKNOWN;
+    m_write_tile_width = 0;
+    m_write_tile_height = 0;
+    m_write_tile_depth = 0;
 }
 
 
@@ -527,6 +547,13 @@ ImageBufImpl::reset (const std::string &filename, int subimage,
     m_current_miplevel = miplevel;
     if (imagecache)
         m_imagecache = imagecache;
+
+    if (m_name.length() > 0) {
+        // If a filename was given, read the spec and set it up as an
+        // ImageCache-backed image.  Reallocate later if an explicit read()
+        // is called to force read into a local buffer.
+        read (subimage, miplevel);
+    }
 }
 
 
@@ -841,6 +868,23 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
 
 
 
+void
+ImageBuf::set_write_format (TypeDesc format)
+{
+    impl()->m_write_format = format;
+}
+
+
+void
+ImageBuf::set_write_tiles (int width, int height, int depth)
+{
+    impl()->m_write_tile_width = width;
+    impl()->m_write_tile_height = height;
+    impl()->m_write_tile_depth = std::max (1, depth);
+}
+
+
+
 bool
 ImageBuf::write (ImageOutput *out,
                  ProgressCallback progress_callback,
@@ -904,16 +948,27 @@ ImageBuf::write (const std::string &_filename, const std::string &_fileformat,
         return false;
     }
 
-    // Tricky detail: there are all sorts of ways that the spec may look
-    // tiled (including if it was backed by an ImageCache). There's no good
-    // way to handle this, so we always try to write an ImageBuf as a scanline
-    // image.  If the app wants to write an ImageBuf as a tiled file and knows what it's
-    // doing, it should create the ImageOutput itself, with a tiled spec,
-    // and call the variety of write() that takes the ImageOutput* directly.
+    // Write scanline files by default, but if the file type allows tiles,
+    // user can override via ImageBuf::set_write_tiles(), or by using the
+    // variety of IB::write() that takes the open ImageOutput* directly.
     ImageSpec newspec = spec();
-    newspec.tile_width  = 0;
-    newspec.tile_height = 0;
-    newspec.tile_depth  = 0;
+    if (out->supports("tiles") && impl()->m_write_tile_width > 0) {
+        newspec.tile_width  = impl()->m_write_tile_width;
+        newspec.tile_height = impl()->m_write_tile_height;
+        newspec.tile_depth  = std::max (1, impl()->m_write_tile_depth);
+    } else {
+        newspec.tile_width  = 0;
+        newspec.tile_height = 0;
+        newspec.tile_depth  = 0;
+    }
+    // Allow for format override via ImageBuf::set_write_format()
+    if (impl()->m_write_format != TypeDesc::UNKNOWN) {
+        newspec.set_format (impl()->m_write_format);
+        newspec.channelformats.clear();
+    } else {
+        newspec.set_format (nativespec().format);
+        newspec.channelformats = nativespec().channelformats;
+    }
     if (! out->open (filename.c_str(), newspec)) {
         error ("%s", out->geterror());
         return false;

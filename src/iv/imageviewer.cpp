@@ -803,7 +803,7 @@ ImageViewer::saveAs()
                                          tr(s_file_filters));
     if (name.isEmpty())
         return;
-    bool ok = img->save (name.toStdString(), "", image_progress_callback, this);
+    bool ok = img->write (name.toStdString(), "", image_progress_callback, this);
     if (! ok) {
         std::cerr << "Save failed: " << img->geterror() << "\n";
     }
@@ -822,7 +822,7 @@ ImageViewer::saveWindowAs()
                                          QString(img->name().c_str()));
     if (name.isEmpty())
         return;
-    img->save (name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write (name.toStdString(), "", image_progress_callback, this);  // FIXME
 }
 
 
@@ -838,7 +838,7 @@ ImageViewer::saveSelectionAs()
                                          QString(img->name().c_str()));
     if (name.isEmpty())
         return;
-    img->save (name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write (name.toStdString(), "", image_progress_callback, this);  // FIXME
 }
 
 

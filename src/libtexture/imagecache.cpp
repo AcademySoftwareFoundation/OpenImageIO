@@ -709,7 +709,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
     spec.auto_stride(xstride, ystride, zstride, format, spec.nchannels, tw, th);
     ImageSpec lospec (tw, th, spec.nchannels, TypeDesc::FLOAT);
-    ImageBuf lores ("tmp", lospec);
+    ImageBuf lores (lospec);
 
     // Figure out the range of texels we need for this tile
     x -= spec.x;
