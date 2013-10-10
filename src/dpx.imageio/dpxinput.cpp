@@ -183,9 +183,9 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_spec.x = m_dpx.header.xOffset;
     m_spec.y = m_dpx.header.yOffset;
-    if (m_dpx.header.xOriginalSize)
+    if ((int)m_dpx.header.xOriginalSize > 0)
         m_spec.full_width = m_dpx.header.xOriginalSize;
-    if (m_dpx.header.yOriginalSize)
+    if ((int)m_dpx.header.yOriginalSize > 0)
         m_spec.full_height = m_dpx.header.yOriginalSize;
 
     // fill channel names
@@ -578,7 +578,7 @@ DPXInput::close ()
 bool
 DPXInput::read_native_scanline (int y, int z, void *data)
 {
-    dpx::Block block(0, y, m_dpx.header.Width () - 1, y);
+    dpx::Block block(0, y-m_spec.y, m_dpx.header.Width () - 1, y-m_spec.y);
 
     if (m_wantRaw) {
         // fast path - just read the scanline in
