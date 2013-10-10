@@ -127,6 +127,14 @@ ifneq (${OPENEXR_HOME},)
 MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
 endif
 
+ifneq (${OCIO_HOME},)
+MY_CMAKE_FLAGS += -DOCIO_PATH:STRING=${OCIO_HOME}
+endif
+
+ifneq (${BOOST_HOME},)
+MY_CMAKE_FLAGS += -DBOOST_ROOT:STRING=${BOOST_HOME}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -300,6 +308,8 @@ help:
 	@echo "  make FIELD3D_HOME=path ...  Custom Field3D installation"
 	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
+	@echo "  make OCIO_HOME=path ...     Custom OpenColorIO installation"
+	@echo "  make BOOST_HOME=path ...    Custom Boost installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo "  make OIIO_BUILD_TOOLS=0 ... Skip building the command-line tools"
