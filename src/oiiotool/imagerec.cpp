@@ -241,6 +241,7 @@ ImageRec::read ()
     }
     m_subimages.resize (subimages);
 
+    bool allok = true;
     for (int s = 0;  s < subimages;  ++s) {
         int miplevels = 0;
         m_imagecache->get_image_info (uname, s, 0, u_miplevels,
@@ -260,7 +261,7 @@ ImageRec::read ()
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
             bool ok = ib->read (s, m, forceread,
                                 TypeDesc::FLOAT /* force float */);
-            ASSERT (ok);
+            allok &= ok;
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = ib->spec();
             // For ImageRec purposes, we need to restore a few of the
@@ -275,5 +276,5 @@ ImageRec::read ()
 
     m_time = Filesystem::last_write_time (name());
     m_elaborated = true;
-    return true;
+    return allok;
 }
