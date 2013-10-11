@@ -33,6 +33,7 @@
 #include <gif_lib.h>
 
 #include "imageio.h"
+#include "thread.h"
 
 // GIFLIB:
 // http://giflib.sourceforge.net/
@@ -467,13 +468,26 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
 
 
+static spin_mutex gif_error_mutex;
+
+
 void
 GIFInput::report_last_error (void)
 {
+    // N.B. Only GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the
+    // error is guaranteed to be specific to this open file.  We use a  spin
+    // mutex to prevent a thread clash for older versions, but it still
+    // appears to be a global call, so we can't be absolutely sure that the
+    // error was for *this* file.  So if you're using giflib prior to
+    // version 5, beware.
 #if GIFLIB_MAJOR >= 5
-    error (GifErrorString (m_gif_file->Error));
+    error ("%s", GifErrorString (m_gif_file->Error));
+#elif GIFLIB_MAJOR == 4 && GIFLIB_MINOR >= 2
+    spin_lock lock (gif_error_mutex);
+    error ("%s", GifErrorString());
 #else
-    error (GifErrorString());
+    spin_lock lock (gif_error_mutex);
+    error ("GIF error %d", GifLastError());
 #endif
 }
 
