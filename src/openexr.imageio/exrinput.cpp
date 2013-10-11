@@ -51,7 +51,12 @@
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
+#include <OpenEXR/ImfVecAttribute.h>
+#include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
+#include <OpenEXR/ImfStringVectorAttribute.h>
+#include <OpenEXR/ImfTimeCodeAttribute.h>
+#include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/IexBaseExc.h>
@@ -523,8 +528,15 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::FloatAttribute *fattr;
         const Imf::StringAttribute *sattr;
         const Imf::M44fAttribute *mattr;
-        const Imf::V3fAttribute *vattr;
-        const Imf::V2fAttribute *v2attr;
+        const Imf::V3fAttribute *v3fattr;
+        const Imf::V3iAttribute *v3iattr;
+        const Imf::V2fAttribute *v2fattr;
+        const Imf::V2iAttribute *v2iattr;
+        const Imf::StringVectorAttribute *svattr;
+        const Imf::Box2iAttribute *b2iattr;
+        const Imf::Box2fAttribute *b2fattr;
+        const Imf::TimeCodeAttribute *tattr;
+        const Imf::KeyCodeAttribute *kcattr;
         const char *name = hit.name();
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
@@ -546,12 +558,68 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             (mattr = header->findTypedAttribute<Imf::M44fAttribute> (name)))
             spec.attribute (oname, TypeDesc::TypeMatrix, &(mattr->value()));
         else if (type == "v3f" &&
-                 (vattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeVector, &(vattr->value()));
+                 (v3fattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
+            spec.attribute (oname, TypeDesc::TypeVector, &(v3fattr->value()));
+        else if (type == "v3i" &&
+                 (v3iattr = header->findTypedAttribute<Imf::V3iAttribute> (name))) {
+            TypeDesc v3 (TypeDesc::INT, TypeDesc::VEC3, TypeDesc::VECTOR);
+            spec.attribute (oname, v3, &(v3iattr->value()));
+        }
         else if (type == "v2f" &&
-                 (v2attr = header->findTypedAttribute<Imf::V2fAttribute> (name))) {
+                 (v2fattr = header->findTypedAttribute<Imf::V2fAttribute> (name))) {
             TypeDesc v2 (TypeDesc::FLOAT,TypeDesc::VEC2);
-            spec.attribute (oname, v2, &(v2attr->value()));
+            spec.attribute (oname, v2, &(v2fattr->value()));
+        }
+        else if (type == "v2i" &&
+                 (v2iattr = header->findTypedAttribute<Imf::V2iAttribute> (name))) {
+            TypeDesc v2 (TypeDesc::INT,TypeDesc::VEC2);
+            spec.attribute (oname, v2, &(v2iattr->value()));
+        }
+        else if (type == "stringvector" &&
+            (svattr = header->findTypedAttribute<Imf::StringVectorAttribute> (name))) {
+            std::vector<std::string> strvec = svattr->value();
+            TypeDesc sv (TypeDesc::STRING, strvec.size());
+            spec.attribute(oname, sv, &strvec[0]);
+        }
+        else if (type == "box2i" &&
+                 (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute> (name))) {
+            TypeDesc bx (TypeDesc::INT, TypeDesc::VEC2, 2);
+            int box[4];
+			box[0] = b2iattr->value().min[0];
+			box[1] = b2iattr->value().min[1];
+			box[2] = b2iattr->value().max[0];
+			box[3] = b2iattr->value().max[1];
+            spec.attribute (oname, bx, box);
+        }
+        else if (type == "box2f" &&
+                 (b2fattr = header->findTypedAttribute<Imf::Box2fAttribute> (name))) {
+            TypeDesc bx (TypeDesc::FLOAT, TypeDesc::VEC2, 2);
+            float box[4];
+			box[0] = b2fattr->value().min[0];
+			box[1] = b2fattr->value().min[1];
+			box[2] = b2fattr->value().max[0];
+			box[3] = b2fattr->value().max[1];
+            spec.attribute (oname, bx, box);
+        }
+		else if (type == "timecode" &&
+                 (tattr = header->findTypedAttribute<Imf::TimeCodeAttribute> (name))) {
+			unsigned int timecode[2];
+			timecode[0] = tattr->value().timeAndFlags(Imf::TimeCode::TV60_PACKING); //TV60 returns unchanged _time
+			timecode[1] = tattr->value().userData();
+            spec.attribute(oname, TypeDesc::TypeTimeCode, timecode);
+        }
+        else if (type == "keycode" &&
+                 (kcattr = header->findTypedAttribute<Imf::KeyCodeAttribute> (name))) {
+            const Imf::KeyCode *k = &kcattr->value();
+            unsigned int keycode[7];
+            keycode[0] = k->filmMfcCode();
+            keycode[1] = k->filmType();
+            keycode[2] = k->prefix();
+            keycode[3] = k->count();
+            keycode[4] = k->perfOffset();
+            keycode[5] = k->perfsPerFrame();
+            keycode[6] = k->perfsPerCount();
+            spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
         }
         else {
 #if 0
