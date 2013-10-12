@@ -158,6 +158,7 @@ if (EMBEDPLUGINS)
         message (STATUS "Field3D plugin will not be built")
         set (FIELD3D_LIBRARY "")
         set (HDF5_LIBRARIES "")
+        set (HDF5_CXX_LIBRARIES "")
     endif ()
 
     if (OPENJPEG_FOUND AND USE_OPENJPEG)
@@ -255,7 +256,7 @@ if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
                                ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
                                ${FIELD3D_LIBRARY}
-                               ${HDF5_LIBRARIES}
+                               ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
                           )
