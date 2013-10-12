@@ -305,8 +305,12 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     float xratio = float(dstspec.full_width) / srcfw; // 2 upsize, 0.5 downsize
     float yratio = float(dstspec.full_height) / srcfh;
 
-    float dstpixelwidth = 1.0f / (float)dstspec.full_width;
-    float dstpixelheight = 1.0f / (float)dstspec.full_height;
+    float dstfx = dstspec.full_x;
+    float dstfy = dstspec.full_y;
+    float dstfw = dstspec.full_width;
+    float dstfh = dstspec.full_height;
+    float dstpixelwidth = 1.0f / dstfw;
+    float dstpixelheight = 1.0f / dstfh;
     float *pel = ALLOCA (float, nchannels);
     float filterrad = filter->width() / 2.0f;
     // radi,radj is the filter radius, as an integer, in source pixels.  We
@@ -333,14 +337,14 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     ImageBuf::Iterator<DSTTYPE> out (dst, roi);
     for (int y = roi.ybegin;  y < roi.yend;  ++y) {
         // s,t are NDC space
-        float t = (y+0.5f)*dstpixelheight;
+        float t = (y-dstfy+0.5f)*dstpixelheight;
         // src_xf, src_xf are image space float coordinates
         float src_yf = srcfy + t * srcfh - 0.5f;
         // src_x, src_y are image space integer coordinates of the floor
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
         for (int x = roi.xbegin;  x < roi.xend;  ++x) {
-            float s = (x+0.5f)*dstpixelwidth;
+            float s = (x-dstfx+0.5f)*dstpixelwidth;
             float src_xf = srcfx + s * srcfw - 0.5f;
             int src_x;
             float src_xf_frac = floorfrac (src_xf, &src_x);
@@ -551,6 +555,7 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
 
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
+    int nchannels = src.nchannels();
 
     // Local copies of the source image window, converted to float
     float srcfx = srcspec.full_x;
@@ -558,23 +563,26 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
     float srcfw = srcspec.full_width;
     float srcfh = srcspec.full_height;
 
-    float dstpixelwidth = 1.0f / (float)dstspec.full_width;
-    float dstpixelheight = 1.0f / (float)dstspec.full_height;
-    int nchannels = src.nchannels();
+    float dstfx = dstspec.full_x;
+    float dstfy = dstspec.full_y;
+    float dstfw = dstspec.full_width;
+    float dstfh = dstspec.full_height;
+    float dstpixelwidth = 1.0f / dstfw;
+    float dstpixelheight = 1.0f / dstfh;
     float *pel = ALLOCA (float, nchannels);
 
     ImageBuf::Iterator<DSTTYPE> out (dst, roi);
     ImageBuf::ConstIterator<SRCTYPE> srcpel (src);
     for (int y = roi.ybegin;  y < roi.yend;  ++y) {
         // s,t are NDC space
-        float t = (y+0.5f)*dstpixelheight;
+        float t = (y-dstfy+0.5f)*dstpixelheight;
         // src_xf, src_xf are image space float coordinates
         float src_yf = srcfy + t * srcfh - 0.5f;
         // src_x, src_y are image space integer coordinates of the floor
         int src_y;
         (void) floorfrac (src_yf, &src_y);
         for (int x = roi.xbegin;  x < roi.xend;  ++x) {
-            float s = (x+0.5f)*dstpixelwidth;
+            float s = (x-dstfx+0.5f)*dstpixelwidth;
             float src_xf = srcfx + s * srcfw - 0.5f;
             int src_x;
             (void) floorfrac (src_xf, &src_x);
