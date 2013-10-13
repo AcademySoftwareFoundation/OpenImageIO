@@ -1778,14 +1778,14 @@ ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
 
 
 ROI
-ImageBuf::roi ()
+ImageBuf::roi () const
 {
     return get_roi(spec());
 }
 
 
 ROI
-ImageBuf::roi_full ()
+ImageBuf::roi_full () const
 {
     return get_roi_full(spec());
 }

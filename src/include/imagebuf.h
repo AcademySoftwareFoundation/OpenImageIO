@@ -599,10 +599,10 @@ public:
                    int zbegin, int zend, const float *bordercolor);
 
     /// Return pixel data window for this ImageBuf as a ROI.
-    ROI roi ();
+    ROI roi () const;
 
     /// Return full/display window for this ImageBuf as a ROI.
-    ROI roi_full ();
+    ROI roi_full () const;
 
     /// Set full/display window for this ImageBuf to a ROI.
     /// Does NOT change the channels of the spec, regardless of newroi.
