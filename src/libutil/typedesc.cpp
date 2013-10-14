@@ -133,6 +133,10 @@ TypeDesc::c_str () const
         result = basetype_name[basetype];
     else if (aggregate == MATRIX44 && basetype == FLOAT)
         result = "matrix";
+    else if (aggregate == VEC2 && basetype == UINT && vecsemantics == TIMECODE)
+        result = "timecode";
+    else if (aggregate == VEC7 && basetype == INT && vecsemantics == KEYCODE)
+        result = "keycode";
     else if (vecsemantics == NOXFORM) {
         const char *agg = "";
         switch (aggregate) {
@@ -150,12 +154,15 @@ TypeDesc::c_str () const
         case POINT  : vec = "point"; break;
         case VECTOR : vec = "vector"; break;
         case NORMAL : vec = "normal"; break;
+        case TIMECODE : vec = "timecode"; break;
+        case KEYCODE : vec = "keycode"; break;
         default: ASSERT (0 && "Invalid vector semantics");
         }
         const char *agg = "";
         switch (aggregate) {
         case VEC2 : agg = "2"; break;
         case VEC4 : agg = "4"; break;
+        case VEC7 : agg = "7"; break;
         case MATRIX44 : agg = "matrix"; break;
         }
         result = std::string (vec) + std::string (agg);
@@ -353,6 +360,8 @@ const TypeDesc TypeDesc::TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::
 const TypeDesc TypeDesc::TypeMatrix (TypeDesc::FLOAT,TypeDesc::MATRIX44);
 const TypeDesc TypeDesc::TypeString (TypeDesc::STRING);
 const TypeDesc TypeDesc::TypeInt (TypeDesc::INT);
+const TypeDesc TypeDesc::TypeTimeCode (TypeDesc::UINT, TypeDesc::VEC2, TypeDesc::TIMECODE);
+const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::VEC7, TypeDesc::KEYCODE);
 
 
 }
