@@ -95,10 +95,9 @@ crowd out the other application threads.
 \apiitem{bool zero (ImageBuf \&dst, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!zero} \indexapi{zero}
 Set the destination image pixels to 0 within the specified region.
-This operation is performed in-place.  Either {\cf dst} needs to
-be initialized, or {\cf roi} needs to be defined, since if {\cf dst}
-is not yet initialized, there's no way to know how big to make it if
-no region is specified.
+This operation is performed in-place.  The {\cf dst} buffer needs to
+already be an initialized \ImageBuf, otherwise there's no way to know how
+big to make it or what data type it should have.
 
 \smallskip
 \noindent Examples:
@@ -113,7 +112,7 @@ no region is specified.
     ImageBufAlgo::zero (dst, ROI (0, 100, 0, 100));
 
     // Zero out just the green channel, leave everything else the same
-    ROI roi = get_roi (dst.spec());
+    ROI roi = dst.roi ();
     roi.chbegin = 1; // green
     roi.chend = 2;   // one past the end of the channel region
     ImageBufAlgo::zero (dst, roi);
@@ -178,7 +177,7 @@ the antialiased character into the existing pixel data.  The baseline of the
 first character will start at position ({\cf x, y}).  The font is given by
 {\cf fontname} as a full pathname to the font file (defaulting to some
 reasonable system font if not supplied at all), and with a nominal
-height of {\cf fontheight} (in pixels).  The characters will be drawn in
+height of {\cf fontsize} (in pixels).  The characters will be drawn in
 opaque white (1.0 in all channels), unless {\cf textcolor} is
 supplied (and is expected to point to a {\cf float} array of length at
 least equal to the number of channels in {\cf dst}).
@@ -259,7 +258,7 @@ semantic change at all, if you catch the drift.
 \apiend
 
 \apiitem{bool channel_append (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!channel_append} \indexapi{channel_append}
 Append the channels of {\cf A} and {\cf B} together into {\cf dst} over
 the region of interest.  If the region passed is uninitialized (the
@@ -280,7 +279,7 @@ region.
 
 
 \apiitem{bool crop (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.
 
@@ -295,9 +294,9 @@ Reset {\cf dst} to be the specified region of {\cf src}.
 \apiend
 
 
-\apiitem{bool paste (ImageBuf \&dst, int xbgin, int ybegin, int zbegin,
+\apiitem{bool paste (ImageBuf \&dst, int xbegin, int ybegin, int zbegin,
   int chbegin, \\
-  \bigspc const ImageBuf \&src, ROI srcroi=ROI::All(), nthreads=0)}
+  \bigspc const ImageBuf \&src, ROI srcroi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!paste} \indexapi{paste}
 Copy into {\cf dst}, beginning at {\cf (xbegin, ybegin, zbegin)}, the pixels of
 {\cf src} described by {\cf srcroi}.  If {\cf srcroi} is {\cf ROI::All()},
@@ -315,8 +314,8 @@ the entirety of src will be used.  It will copy into channels
 \apiend
 
 
-\apiitem{bool flip (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce flip} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flip} \indexapi{flip}
 Copy {\cf src} (or a subregion of {\cf src}) to the corresponding pixels
 of {\cf dst}, but with the scanlines exchanged vertically.
@@ -331,8 +330,8 @@ of {\cf dst}, but with the scanlines exchanged vertically.
 \apiend
 
 
-\apiitem{bool flop (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce flop} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flop} \indexapi{flop}
 Copy {\cf src} (or a subregion of {\cf src}) to the corresponding pixels
 of {\cf dst}, but with the columns exchanged horizontally.
@@ -346,8 +345,8 @@ of {\cf dst}, but with the columns exchanged horizontally.
 \apiend
 
 
-\apiitem{bool flipflop (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce flipflop} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flipflop} \indexapi{flipflop}
 Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
 of {\cf dst}, but with both the rows exchanged vertically and the
@@ -363,8 +362,8 @@ columns exchanged horizontally (this is equivalent to a 180 degree rotation).
 \apiend
 
 
-\apiitem{bool transpose (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce transpose} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!transpose} \indexapi{transpose}
 Copy {\cf src} (or a subregion of {\cf src} to the corresponding 
 transposed ($x \leftrightarrow y$) pixels
@@ -381,9 +380,9 @@ set {\cf dst[y,x] = src[x,y]}.
 \apiend
 
 
-\apiitem{bool circular_shift (ImageBuf \&dst, const ImageBuf \&src, \\
+\apiitem{bool {\ce circular_shift} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc int xshift, int yshift, int zshift=0, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!circular_shift} \indexapi{circular_shift}
 
 Copy {\cf src} (or a subregion of {\cf src} to the pixels of {\cf dst},
@@ -402,10 +401,10 @@ shift of $[0,1,2,3,4,5]$ by $+2$ is $[4,5,0,1,2,3]$.
 
 \apiitem{bool {\ce resize} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  const std::string filtername="", float filtersize=0, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce resize} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc Filter2D *filter,
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc Filter2D *filter, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!resize} \indexapi{resize}
 Set {\cf dst}, over the region of interest, to be a resized version of the
 corresponding portion of {\cf src} (mapping such that the ``full'' image
@@ -432,7 +431,7 @@ the filter's size is expressed in pixel units of the dst image.
 
 \apiitem{bool {\ce resample} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc bool interpolate = true,
-        \bigspc ROI roi=ROI::All(), nthreads=0)}
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!resample} \indexapi{resample}
 Set {\cf dst}, over the region of interest, to be a resized version of the
 corresponding portion of {\cf src} (mapping such that the ``full'' image
@@ -463,11 +462,11 @@ downsizing, pixel replication when upsizing).
 \label{sec:iba:arith}
 
 \apiitem{bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0)}
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!add} \indexapi{add}
 
 For all pixels and channels within the designated region, set
@@ -485,28 +484,27 @@ All of the images must have the same number of channels.
     ImageBufAlgo::add (Sum, A, B);
 
     // Add 0.2 to channels 0-2 of A
-    ImageBuf A ("a.exr"), B;
+    ImageBuf A ("a.exr"), Sum;
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
-    ImageBufAlgo::add (B, A, 0.2, roi);
+    ImageBufAlgo::add (Sum, A, 0.2, roi);
 \end{code}
 \apiend
 
 
 
 \apiitem{bool sub (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0)}
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!sub} \indexapi{sub}
 
-For all pixels within the designated region, subtract the pixel values
-of {\cf B} from those of {\cf A}, putting the results into {\cf dst}.
-{\cf B} is either an image,
-a float (added to all channels) or a per-channel float array.
-All of the images must have the same number of channels.
+For all pixels within the designated region, subtract {\cf B} from {\cf A},
+putting the results into {\cf dst}. {\cf B} is either an image, a float
+(added to all channels) or a per-channel float array. All of the images must
+have the same number of channels.
 
 \smallskip
 \noindent Examples:
@@ -520,12 +518,12 @@ All of the images must have the same number of channels.
 
 
 
-\apiitem{bool mul (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+\apiitem{bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
-        \bigspc ROI roi=ROI::All(), nthreads=0)}
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!mul} \indexapi{mul}
 
 For all pixels within the designated region, multiply the pixel values
@@ -550,8 +548,9 @@ All of the images must have the same number of channels.
 \apiend
 
 
-\apiitem{bool channel_sum (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc const float *weights=NULL, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce channel_sum} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc\spc const float *weights=NULL, \\
+        \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!channel_sum} \indexapi{channel_sum}
 Converts a multi-channel image into a 1-channel image via a weighted sum
 of channels.  For each pixel of {\cf src} within the designated ROI
@@ -568,20 +567,20 @@ per-channel weight (rather than defaulting to 1.0 for each channel).
     float luma_weights[3] = { .2126, .7152, .0722 };
     ImageBuf A ("a.exr");
     ImageBuf B;
-    ROI roi = get_roi (A.spec());
+    ROI roi = A.roi();
     roi.chbegin = 0;  roi.chend = 3;
-    ImageBufAlgo::channel_sum (B, A);
+    ImageBufAlgo::channel_sum (B, A, luma_weights, roi);
 \end{code}
 \apiend
 
 
-\apiitem{bool clamp (ImageBuf \&dst, const ImageBuf \&src, \\
+\apiitem{bool {\ce clamp} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc float min = -std::numeric_limits<float>::max(), \\
   \bigspc float max = std::numeric_limits<float>::max(), \\
-  \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), nthreads=0) \\
-bool clamp (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce clamp} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc const float *min = NULL, const float *max = NULL, \\
-  \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), nthreads=0)}
+  \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!clamp} \indexapi{clamp}
 
 Copy pixels from {\cf src} to {\cf src} (within the {\cf roi}), clamping
@@ -619,10 +618,10 @@ performed, and if {\cf max} is \NULL, no maximum clamping is performed.
 \apiend
 
 
-\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, const ImageBuf &src, bool useluma = false, \\
-        \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0) \\
-bool {\ce rangeexpand} (ImageBuf \&dst, const ImageBuf &src, bool useluma = false, \\
-        \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, const ImageBuf \&src, bool useluma = false, \\
+        \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce rangeexpand} (ImageBuf \&dst, const ImageBuf \&src, bool useluma = false, \\
+        \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!rangecompress} \indexapi{rangecompress}
 \index{ImageBufAlgo!rangeexpand} \indexapi{rangeexpand}
 
@@ -669,9 +668,7 @@ and {\cf rangeexpand}).
     // 3. Now do the resize
     ImageBuf Dst;
     ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Compressed.nchannels());
-    Filter2D *filter = Filter2D::create ("lanczos3", 6, 6);
-    ImageBufAlgo::resize (Dst, Comrpessed, filter, roi);
-    Filter2D::destroy (filter);
+    ImageBufAlgo::resize (Dst, Comrpessed, "lanczos3", 6.0, roi);
 
     // 4. Expand range to be linear again (operate in-place)
     ImageBufAlgo::rangeexpand (Dst, Dst);
@@ -679,8 +676,8 @@ and {\cf rangeexpand}).
 \apiend
 
 
-\apiitem{bool over (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce over} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!over} \indexapi{over}
 
 For all pixels within the designated region, combine the pixels of
@@ -701,8 +698,8 @@ alpha channel.
 \apiend
 
 
-\apiitem{bool zover (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  bool z_zeroisinf = false, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce zover} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  bool z_zeroisinf = false, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!zover} \indexapi{zover}
 
 For all pixels within the designated region, combine the pixels of
@@ -732,7 +729,7 @@ as if they are infinitely far away.
 \label{sec:iba:stats}
 
 \apiitem{bool {\ce computePixelStats} (PixelStats \&stats, const ImageBuf \&src, \\
-   \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0)}
+   \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!computePixelStats} \indexapi{computePixelStats}
 
 Compute statistics about the ROI of the image {\cf src}, storing results
@@ -775,7 +772,7 @@ struct PixelStats {
 
 \apiitem{bool {\ce compare} (const ImageBuf \&A, const ImageBuf \&B, \\
   \bigspc float failthresh, float warnthresh, CompareResults \&result,\\
-   \bigspc  ROI roi=ROI::All(), nthreads=0)}
+   \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!compare} \indexapi{compare}
 
 Numerically compare two images.  The difference threshold (for any
@@ -811,8 +808,8 @@ struct CompareResults {
         std::cout << "RMS error was " << comp.rms_error << "\n";
         std::cout << "PSNR was " << comp.PSNR << "\n";
         std::cout << "largest error was " << comp.maxerror 
-                  << " on pixel (" << maxx << "," << maxy << "," << maxz
-                  << "), channel " << maxc << "\n";
+                  << " on pixel (" << comp.maxx << "," << comp.maxy 
+                  << "," << comp.maxz << "), channel " << comp.maxc << "\n";
     }
 \end{code}
 \apiend
@@ -824,14 +821,14 @@ struct CompareResults {
 
 \apiitem{int {\ce compare_Yee} (const ImageBuf \&A, const ImageBuf \&B, \\
   \bigspc CompareResults \&result, float luminance, float fov, \\
-   \bigspc  ROI roi=ROI::All(), nthreads=0)}
+   \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!compare_Yee} \indexapi{compare_Yee}
 \apiend
 \end{comment}
 
 
 \apiitem{bool {\ce isConstantColor} (const ImageBuf \&src, float *color, \\
- \bigspc\bigspc         ROI roi=ROI::All(), nthreads=0)}
+ \bigspc\bigspc         ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!isConstantColor} \indexapi{isConstantColor}
 
 If all pixels of {\cf src} within the ROI have the same values (for the
@@ -855,33 +852,9 @@ the values in {\cf color[roi.chbegin...roi.chend-1]}.  Otherwise, return
 \end{code}
 \apiend
 
-\begin{comment}
-\apiitem{bool {\ce isConstantValue} (const ImageBuf \&src, const float *color, \\
- \bigspc\bigspc         ROI roi=ROI::All(), nthreads=0)}
-\index{ImageBufAlgo!isConstantValue} \indexapi{isConstantValue}
-
-Returns {\cf true} if all pixels of {\cf src} within the ROI have the
-values given by \\ {\cf color[roi.chbegin...roi.chend-1]}.
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    ImageBuf A ("a.exr");
-    float testcolor[3] = { 1, 0, 0 };
-    ROI roi = get_roi (A.spec());
-    roi.chend = std::min (3, roi.chend);  // only test RGB, not alpha
-    if (ImageBufAlgo::isConstantValue (A, testcolor)) {
-        std::cout << "The image is solid red everywhere\n";
-    } else {
-        std::cout << "The image is not solid red\n";
-    }
-\end{code}
-\apiend
-\end{comment}
-
 
 \apiitem{bool {\ce isConstantChannel} (const ImageBuf \&src, int channel, float val, \\
- \bigspc\bigspc         ROI roi=ROI::All(), nthreads=0)}
+ \bigspc\bigspc         ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!isConstantChannel} \indexapi{isConstantChannel}
 
 Returns {\cf true} if all pixels of {\cf src} within the ROI have the
@@ -902,7 +875,7 @@ given {\cf channel} value {\cf val}.
 \apiend
 
 \apiitem{bool {\ce isMonochrome} (const ImageBuf \&src, 
-          ROI roi=ROI::All(), nthreads=0)}
+          ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!isMonochrome} \indexapi{isMonochrome}
 
 Returns {\cf true} if the image is monochrome within the ROI, that is,
@@ -925,7 +898,7 @@ understood to be all of the defined pixels and channels of source.
 
 \apiitem{bool {\ce color_count} (const ImageBuf \&src, imagesize_t *count,\\
         \bigspc  int ncolors, const float *color, const float *eps=NULL,  \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!color_count} \indexapi{color_count}
 
 Count how many pixels in the image (within the ROI) match a list of colors.
@@ -974,7 +947,7 @@ allows a wee bit of imprecision for {\cf float} images.
    imagesize_t *lowcount, \\ \bigspc imagesize_t *highcount, imagesize_t
   *inrangecount, \\
   \bigspc const float *low, const float *high, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!color_range_check} \indexapi{color_range_check}
 
 Count how many pixels in the image (within the ROI) are outside the
@@ -1012,7 +985,7 @@ stored.
 
 \apiitem{std::string {\ce computePixelHashSHA1} (const ImageBuf \&src, \\
   \bigspc\bigspc const std::string \&extrainfo = "", \\
-  \bigspc\bigspc  ROI roi=ROI::All(), int blocksize=0, nthreads=0)}
+  \bigspc\bigspc  ROI roi=ROI::All(), int blocksize=0, int nthreads=0)}
 \index{ImageBufAlgo!computePixelHashSHA1} \indexapi{computePixelHashSHA1}
 
 Compute the SHA-1 byte hash for all the pixels in the specifed region of
@@ -1121,7 +1094,7 @@ cases.
 
 \apiitem{bool {\ce convolve} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc const ImageBuf \&kernel, bool normalize = true, \\
-  \bigspc  ROI roi=ROI::All(), nthreads=0)}
+  \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!convolve} \indexapi{convolve}
 Replace the given ROI of {\cf dst} with the convolution of {\cf src} and
 a kernel.  If {\cf roi} is not defined, it defaults to the full size
@@ -1144,9 +1117,9 @@ convolution, otherwise the original values will be used.
 \apiend
 
 \apiitem{bool {\ce fft} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
         bool {\ce ifft} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fft} \indexapi{fft}
 \index{ImageBufAlgo!ifft} \indexapi{ifft}
 
@@ -1186,7 +1159,7 @@ by $1/\sqrt{\mathrm{npixels}}$.
 \apiitem{bool {\ce fixNonFinite} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc NonFiniteFixMode mode = NONFINITE_BOX3, \\
   \bigspc\spc int *pixelsFixed = NULL, \\
-  \bigspc\spc  ROI roi=ROI::All(), nthreads=0)}
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
 
 Copy pixel values from {\cf src} to {\cf dst} (within the pixel and channel
@@ -1215,7 +1188,7 @@ pixel data types that cannot represent {\cf NaN} or {\cf Inf} values.
 \begin{code}
     ImageBuf Src ("tahoe.exr");
     int pixelsFixed = 0;
-    ImageBufAlgo::fixNonFinite (Src, ImageBufAlgo::NONFINITE_BOX3,
+    ImageBufAlgo::fixNonFinite (Src, Src, ImageBufAlgo::NONFINITE_BOX3,
                                 &pixelsFixed);
     std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
 \end{code}
@@ -1223,7 +1196,7 @@ pixel data types that cannot represent {\cf NaN} or {\cf Inf} values.
 
 
 \apiitem{bool {\ce fillholes_pushpull} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fillholes_pushpull} \indexapi{fillholes_pushpull}
 Copy the specified ROI of {\cf src} to {\cf dst} and fill any 
 holes (pixels where alpha $< 1$) with plausible values using a push-pull
@@ -1246,7 +1219,7 @@ of src was < 1, dst will have a pixel color that is a plausible
 \apiitem{bool {\ce unsharp_mask} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc const char *kernel = "gaussian", float width = 3.0f, \\
   \bigspc\spc float contrast = 1.0f, float threshold = 0.0f, \\
-  \bigspc\spc  ROI roi=ROI::All(), nthreads=0)}
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!unsharp_mask} \indexapi{unsharp_mask}
 
 Replace the given ROI of {\cf dst} with a sharpened version of the
@@ -1335,7 +1308,7 @@ to \qkw{linear} and vice versa.
   \bigspc\spc const char *looks, const char *from, const char *to, \\
   \bigspc\spc bool inverse=false, bool unpremult=false, \\
   \bigspc\spc const char *key, const char *value, \\
-  \bigspc\spc ROI roi=ROI::All(), nthreads=0)}
+  \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``look'' transform to the pixel values.
@@ -1360,7 +1333,8 @@ this flag if your image contains an alpha channel.
 \apiend
 
 
-\apiitem{bool {\ce unpremult} (ImageBuf \&dst, const ImageBuf \&src, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce unpremult} (ImageBuf \&dst, const ImageBuf \&src,\\
+  \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!unpremult} \indexapi{unpremult}
 Copy pixels from {\cf src} to {\cf dst}, and in the process 
 divide all color channels (those not alpha or z) 
@@ -1381,7 +1355,8 @@ that case).  This is just a copy if there is no identified alpha channel
 \end{code}
 \apiend
 
-\apiitem{bool {\ce premult} (ImageBuf \&dst, const ImageBuf \&src, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce premult} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!premult} \indexapi{premult}
 Copy pixels from {\cf src} to {\cf dst}, and in the process 
 multiply all color channels (those not alpha or z) 
@@ -1564,7 +1539,7 @@ created.  The full list of supported configuration options is:
     //             -o texture.exr
     // is equivalent to:
 
-    ImageBufAlgo Input ("in.exr");
+    ImageBuf Input ("in.exr");
     ImageSpec config;
     config.attribute ("maketx:highlightcomp", 1);
     config.attribute ("maketx:filtername", "lanczos3");
@@ -1640,7 +1615,7 @@ alter {\cf dst}.
 
 \begin{comment}
 \apiitem{bool {\ce blah} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!blah} \indexapi{blah}
 Blah.
 \smallskip
