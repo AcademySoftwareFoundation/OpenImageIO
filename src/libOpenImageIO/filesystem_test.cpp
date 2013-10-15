@@ -119,8 +119,6 @@ test_file_seq (const char *pattern, const char *override,
     OIIO_CHECK_EQUAL (joined, expected);
 }
 
-
-
 void test_frame_sequences ()
 {
     std::cout << "Testing frame number sequences:\n";
@@ -143,6 +141,11 @@ void test_frame_sequences ()
 
     test_file_seq ("foo.1-3@@.exr", NULL, "foo.01.exr foo.02.exr foo.03.exr");
     test_file_seq ("foo.1-3@#.exr", NULL, "foo.00001.exr foo.00002.exr foo.00003.exr");
+
+    test_file_seq ("foo.1-5%04d.exr", NULL, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+    test_file_seq ("foo.%04d.exr", "1-5", "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+    test_file_seq ("foo.%4d.exr", "1-5", "foo.   1.exr foo.   2.exr foo.   3.exr foo.   4.exr foo.   5.exr");
+    test_file_seq ("foo.%d.exr", "1-5", "foo.1.exr foo.2.exr foo.3.exr foo.4.exr foo.5.exr");
     std::cout << "\n";
 }
 
