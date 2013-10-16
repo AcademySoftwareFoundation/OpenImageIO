@@ -552,7 +552,9 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
               size_t &peak_mem)
 {
     bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl);
-
+    bool orig_was_overscan =
+        (img->spec().x || img->spec().y || img->spec().z ||
+         img->spec().full_x || img->spec().full_y || img->spec().full_z);
     ImageSpec outspec = outspec_template;
     outspec.set_format (outputdatatype);
 
@@ -672,7 +674,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 
-                if (filtername == "box")
+                if (filtername == "box" && !orig_was_overscan)
                     ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
                 else {
@@ -1028,36 +1030,27 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // Copy the input spec
     ImageSpec srcspec = src->spec();
     ImageSpec dstspec = srcspec;
-    bool orig_was_volume = srcspec.depth > 1 || srcspec.full_depth > 1;
-    bool orig_was_crop = (srcspec.x > srcspec.full_x ||
-                          srcspec.y > srcspec.full_y ||
-                          srcspec.z > srcspec.full_z ||
-                          srcspec.x+srcspec.width < srcspec.full_x+srcspec.full_width ||
-                          srcspec.y+srcspec.height < srcspec.full_y+srcspec.full_height ||
-                          srcspec.z+srcspec.depth < srcspec.full_z+srcspec.full_depth);
-    bool orig_was_overscan = (srcspec.x < srcspec.full_x &&
-                              srcspec.y < srcspec.full_y &&
-                              srcspec.x+srcspec.width > srcspec.full_x+srcspec.full_width &&
-                              srcspec.y+srcspec.height > srcspec.full_y+srcspec.full_height &&
-                              (!orig_was_volume || (srcspec.z < srcspec.full_z &&
-                                                    srcspec.z+srcspec.depth > srcspec.full_z+srcspec.full_depth)));
-    // Make the output not a crop window
-    if (orig_was_crop) {
-        dstspec.x = 0;
-        dstspec.y = 0;
-        dstspec.z = 0;
-        dstspec.width = srcspec.full_width;
-        dstspec.height = srcspec.full_height;
-        dstspec.depth = srcspec.full_depth;
-        dstspec.full_x = 0;
-        dstspec.full_y = 0;
-        dstspec.full_z = 0;
-        dstspec.full_width = dstspec.width;
-        dstspec.full_height = dstspec.height;
-        dstspec.full_depth = dstspec.depth;
+
+    bool do_resize = false;
+    // If the pixel window is not a superset of the display window, pad it
+    // with black.
+    ROI roi = get_roi(dstspec);
+    ROI roi_full = get_roi_full(dstspec);
+    roi.xbegin = std::min (roi.xbegin, roi_full.xbegin);
+    roi.ybegin = std::min (roi.ybegin, roi_full.ybegin);
+    roi.zbegin = std::min (roi.zbegin, roi_full.zbegin);
+    roi.xend = std::max (roi.xend, roi_full.xend);
+    roi.yend = std::max (roi.yend, roi_full.yend);
+    roi.zend = std::max (roi.zend, roi_full.zend);
+    if (roi != get_roi(srcspec)) {
+        do_resize = true;   // do the resize if we were a cropped image
+        set_roi (dstspec, roi);
     }
-    if (orig_was_overscan)
+
+    bool orig_was_overscan = (roi != roi_full);
+    if (orig_was_overscan) {
         configspec.attribute ("wrapmodes", "black,black");
+    }
 
     if ((dstspec.x < 0 || dstspec.y < 0 || dstspec.z < 0) &&
         (out && !out->supports("negativeorigin"))) {
@@ -1141,7 +1134,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                      srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
         ImageBufAlgo::parallel_image (boost::bind(check_nan_block, *src, _1, boost::ref(found_nonfinite)),
-                                      OIIO::get_roi(dstspec));
+                                      OIIO::get_roi(srcspec));
         if (found_nonfinite) {
             if (found_nonfinite > 3)
                 outstream << "maketx ERROR: ...and Nan/Inf at "
@@ -1258,13 +1251,9 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         dstspec.full_height = dstspec.height;
     }
 
-    bool do_resize = false;
     // Resize if we're up-resing for pow2
     if (dstspec.width != srcspec.width || dstspec.height != srcspec.height ||
           dstspec.full_depth != srcspec.full_depth)
-        do_resize = true;
-    // resize if the original was a crop
-    if (orig_was_crop)
         do_resize = true;
     // resize if we're converting from non-border sampling to border sampling
     // (converting TO an OpenEXR environment map).
@@ -1302,10 +1291,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             outstream << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
         toplevel.reset (new ImageBuf (dstspec));
-        if (filtername == "box" || filtername == "triangle")
+        if ((filtername == "box" || filtername == "triangle")
+            && !orig_was_overscan) {
             ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));
-        else {
+        } else {
             Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), filtername);
             if (! filter) {
                 outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
