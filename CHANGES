@@ -68,6 +68,7 @@ Fixes, minor enhancements, and performance improvements:
     when doing file sequence wildcard iteration. (1.3.4)
   * Eliminated a particular situation that might hit an ASSERT. Instead,
     bubble up a real error message. (1.3.4)
+  * oiiotool --resize and --resample fixed for overscan images (1.3.5)  
 * ImageBufAlgo improvements:
   * colorconvert() did not work properly when the color transformation was
     detected to be a no-op.
@@ -78,6 +79,8 @@ Fixes, minor enhancements, and performance improvements:
     (1.2.3/1.3.4)
   * Better dealing with cases of IBA functions detecting and issuing
     errors when inputs that must be initialized are not. (1.3.4)
+  * resize() and resample() fixed to more robustly handle overscan
+    images. (1.3.5)
 * ImageBuf:
   * ImageBuf::write() writes untiled images by default, fixing some
     tricky issues when IB's start thinking they're tiled because of
@@ -105,6 +108,8 @@ Fixes, minor enhancements, and performance improvements:
   the new way is better.  This affects ImageBufAlgo::rangecompress and
   rangeexpand, oiiotool --rangecompress/--rangeexpand, and maketx --hicomp.
   (1.3.3)
+* maketx fixed to handle inputs that are a mixture of cropped and 
+  overscanned. (1.3.5)
 
 Build/test system improvements:
 * Fix broken tests under Windows. (1.3.2)
@@ -132,6 +137,8 @@ Build/test system improvements:
   easier to have site-specific hints for these packages' locations. (1.3.4)
 * Add BOOST_HOME and OCIO_HOME controls from the top-level Makefile wrapper.
   (1.3.4)
+* Accommodate new cmake release that slightly changes the HDF5 library
+  naming. (1.3.5)
 
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
