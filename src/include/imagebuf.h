@@ -806,20 +806,22 @@ public:
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
             if (m_localpixels) {
-                if (! e) {
+                if (e)
+                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                else {  // pixel not in data window
                     m_x = x_;  m_y = y_;  m_z = z_;
                     if (m_wrap == WrapBlack) {
                         m_proxydata = (char *)m_ib->blackpixel();
                     } else {
-                        m_ib->do_wrap (x_, y_, z_, m_wrap);
-                        m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                        if (m_ib->do_wrap (x_, y_, z_, m_wrap))
+                            m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                        else
+                            m_proxydata = (char *)m_ib->blackpixel();
                     }
                     m_valid = v;
                     m_exists = e;
                     return;
                 }
-                else
-                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
             }
             else if (! m_deep)
                 m_proxydata = (char *)m_ib->retile (x_, y_, z_, m_tile,
@@ -932,8 +934,10 @@ public:
                         m_proxydata = (char *)m_ib->blackpixel();
                     } else {
                         int x = m_x, y = m_y, z = m_z;
-                        m_ib->do_wrap (x, y, z, m_wrap);
-                        m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                        if (m_ib->do_wrap (x, y, z, m_wrap))
+                            m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                        else
+                            m_proxydata = (char *)m_ib->blackpixel();
                     }
                 }
             } else if (m_deep) {
@@ -1151,7 +1155,11 @@ protected:
 
     const void *blackpixel () const;
 
-    void do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
+    // Given x,y,z known to be outside the pixel data range, and a wrap
+    // mode, alter xyz to implement the wrap. Return true if the resulting
+    // x,y,z is within the valid pixel data window, false if it still is
+    // not.
+    bool do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);

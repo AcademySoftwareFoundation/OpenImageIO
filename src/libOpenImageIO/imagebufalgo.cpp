@@ -313,6 +313,7 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     float dstpixelheight = 1.0f / dstfh;
     float *pel = ALLOCA (float, nchannels);
     float filterrad = filter->width() / 2.0f;
+
     // radi,radj is the filter radius, as an integer, in source pixels.  We
     // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
     int radi = (int) ceilf (filterrad/xratio);
@@ -334,18 +335,28 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     std::cerr << "separable filter\n";
 #endif
 
+
+    // We're going to loop over all output pixels we're interested in.
+    //
+    // (s,t) = NDC space coordinates of the output sample we are computing.
+    //     This is the "sample point".
+    // (src_xf, src_xf) = source pixel space float coordinates of the
+    //     sample we're computing. We want to compute the weighted sum
+    //     of all the source image pixels that fall under the filter when
+    //     centered at that location.
+    // (src_x, src_y) = image space integer coordinates of the floor,
+    //     i.e., the closest pixel in the source image.
+    // src_xf_frac and src_yf_frac are the position within that pixel
+    //     of our sample.
     ImageBuf::Iterator<DSTTYPE> out (dst, roi);
     for (int y = roi.ybegin;  y < roi.yend;  ++y) {
-        // s,t are NDC space
         float t = (y-dstfy+0.5f)*dstpixelheight;
-        // src_xf, src_xf are image space float coordinates
-        float src_yf = srcfy + t * srcfh - 0.5f;
-        // src_x, src_y are image space integer coordinates of the floor
+        float src_yf = srcfy + t * srcfh;
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
         for (int x = roi.xbegin;  x < roi.xend;  ++x) {
             float s = (x-dstfx+0.5f)*dstpixelwidth;
-            float src_xf = srcfx + s * srcfw - 0.5f;
+            float src_xf = srcfx + s * srcfw;
             int src_x;
             float src_xf_frac = floorfrac (src_xf, &src_x);
             for (int c = 0;  c < nchannels;  ++c)
@@ -359,13 +370,13 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
                     totalweight = 0.0f;
                     int yy = src_y+j;
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
-                                                             yy, yy+1, 0, 1);
+                                                             yy, yy+1, 0, 1, ImageBuf::WrapClamp);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
-                        float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        if (w != 0.0f && srcpel.exists()) {
+                        float w = filter->xfilt (xratio * (i-(src_xf_frac-0.5f)));
+                        totalweight += w;
+                        if (w != 0.0f) {
                             for (int c = 0;  c < nchannels;  ++c)
                                 p[c] += w * srcpel[c];
-                            totalweight += w;
                         }
                     }
                     if (totalweight != 0.0f) {
@@ -377,32 +388,27 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
                 totalweight = 0.0f;
                 p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    int yy = src_y+j;
-                    if (yy >= src.ymin() && yy <= src.ymax()) {
-                        float w = filter->yfilt (yratio * (j-src_yf_frac));
-                        totalweight += w;
-                        for (int c = 0;  c < nchannels;  ++c)
-                            pel[c] += w * p[c];
-                    }
+                    float w = filter->yfilt (yratio * (j-(src_yf_frac-0.5f)));
+                    totalweight += w;
+                    for (int c = 0;  c < nchannels;  ++c)
+                        pel[c] += w * p[c];
                 }
 
             } else {
                 // Non-separable
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
-                                                       0, 1);
+                                                       0, 1, ImageBuf::WrapClamp);
                 for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
-                        float w = (*filter)(xratio * (i-src_xf_frac),
-                                            yratio * (j-src_yf_frac));
+                        float w = (*filter)(xratio * (i-(src_xf_frac-0.5f)),
+                                            yratio * (j-(src_yf_frac-0.5f)));
+                        totalweight += w;
                         if (w == 0.0f)
                             continue;
                         DASSERT (! srcpel.done());
-                        if (srcpel.exists()) {
-                            for (int c = 0;  c < nchannels;  ++c)
-                                pel[c] += w * srcpel[c];
-                            totalweight += w;
-                        }
+                        for (int c = 0;  c < nchannels;  ++c)
+                            pel[c] += w * srcpel[c];
                     }
                 }
                 DASSERT (srcpel.done());
