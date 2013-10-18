@@ -963,8 +963,8 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
 
     yend = std::min (yend, spec().y+spec().height);
     bool native = (format == TypeDesc::UNKNOWN);
-    imagesize_t scanlinebytes = spec().scanline_bytes(native);
-    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    imagesize_t scanlinebytes = spec().scanline_bytes(true);
+    size_t pixel_bytes = m_spec.pixel_bytes (true);
     if (native && xstride == AutoStride)
         xstride = (stride_t) pixel_bytes;
     stride_t zstride = AutoStride;
