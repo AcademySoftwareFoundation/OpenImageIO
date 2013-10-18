@@ -339,7 +339,6 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
     if (ot.output_channelformats.size()) {
         spec.channelformats.clear ();
         spec.channelformats.resize (spec.nchannels, spec.format);
-        bool allsame = true;
         for (int c = 0;  c < spec.nchannels;  ++c) {
             if (c >= (int)spec.channelnames.size())
                 break;
@@ -348,9 +347,11 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
                 int bits = 0;
                 string_to_dataformat (i->second, spec.channelformats[c], bits);
             }
-            if (c > 0)
-                allsame &= (spec.channelformats[c] == spec.channelformats[0]);
         }
+        bool allsame = true;
+        if (spec.channelnames.size())
+            for (int c = 1;  c < spec.nchannels;  ++c)
+                allsame &= (spec.channelformats[c] == spec.channelformats[0]);
         if (allsame) {
             spec.format = spec.channelformats[0];
             spec.channelformats.clear();
