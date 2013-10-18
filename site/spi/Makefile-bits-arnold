@@ -41,9 +41,11 @@ ifeq ($(SP_OS), spinux1)
 
     ## custom compiler: clang
     ifeq (${LLVM_DIRECTORY},)
-        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.2
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.3
     endif
-    ifeq (${COMPILER}, clang)
+
+    ## default compiler is clang
+    ifeq (${COMPILER},)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
