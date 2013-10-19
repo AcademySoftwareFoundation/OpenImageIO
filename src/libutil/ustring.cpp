@@ -114,7 +114,7 @@ ustring::TableRep::TableRep (const char *s, size_t len)
     dummy_capacity = len;
     dummy_refcount = 1;   // so it never frees
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)
     // We don't want the internal 'string str' to redundantly store the
     // chars, along with our own allocation.  So we use our knowledge of
     // the internal structure of gcc strings to make it point to our chars!
@@ -148,7 +148,7 @@ ustring::TableRep::TableRep (const char *s, size_t len)
 
 ustring::TableRep::~TableRep ()
 {
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)
     // Doctor the string to be empty again before destroying.
     ASSERT (str.c_str() == c_str());
     std::string empty;
@@ -209,7 +209,7 @@ ustring::make_unique (const char *str)
             table[result] = rep;
             ++ustring_stats_unique;
             ustring_stats_memory += size;
-#ifndef __GNUC__
+#if ! (defined(__GNUC__) && !defined(_LIBCPP_VERSION))
             ustring_stats_memory += len+1;  // non-GNU replicates the chars
 #endif
             return result;
