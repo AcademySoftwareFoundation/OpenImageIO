@@ -997,30 +997,14 @@ action_colorconvert (int argc, const char *argv[])
     ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                            ot.allsubimages ? -1 : 0, true, false));
 
-    if (fromspace == "current")
-        fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
-
-    ColorProcessor *processor =
-        ot.colorconfig.createColorProcessor (fromspace.c_str(), tospace.c_str());
-    if (! processor) {
-        if (ot.colorconfig.error())
-            ot.error ("colorconvert", ot.colorconfig.geterror());
-        else
-            ot.error ("colorconvert", "Could not construct the color transform");
-        return 1;
-    }
-
     for (int s = 0, send = A->subimages();  s < send;  ++s) {
         for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
-            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m),
+                                 fromspace.c_str(), tospace.c_str(), false);
             if (! ok)
                 ot.error (argv[0], (*ot.curimg)(s,m).geterror());
-            ot.curimg->spec(s,m)->attribute ("oiio:Colorspace", tospace);
-//        ot.curimg->metadata_modified (true);
         }
     }
-
-    ot.colorconfig.deleteColorProcessor (processor);
 
     ot.function_times["colorconvert"] += timer();
     return 1;

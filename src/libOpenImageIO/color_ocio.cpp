@@ -505,6 +505,49 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 // Image Processing Implementations
 
 
+static boost::shared_ptr<ColorConfig> default_colorconfig;  // default color config
+static spin_mutex colorconfig_mutex;
+
+
+
+bool
+ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            const char *from, const char *to,
+                            bool unpremult, ROI roi, int nthreads)
+{
+    if (!from || !from[0] || !strcmp(from, "current")) {
+        std::string s = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
+        from = ustring(s).c_str();
+    }
+    if (!from || !to) {
+        dst.error ("Unknown color space name");
+        return false;
+    }
+    ColorConfig *config = NULL;
+    ColorProcessor *processor = NULL;
+    {
+        spin_lock lock (colorconfig_mutex);
+        config = default_colorconfig.get();
+        if (! config)
+            default_colorconfig.reset (config = new ColorConfig);
+        processor = config->createColorProcessor (from, to);
+        if (! processor) {
+            if (config->error())
+                dst.error ("%s", config->geterror());
+            else
+                dst.error ("Could not construct the color transform");
+            return false;
+        }
+    }
+    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    if (ok)
+        dst.specmod().attribute ("oiio:ColorSpace", to);
+    config->deleteColorProcessor (processor);
+    return ok;
+}
+
+
+
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             const ColorProcessor* processor, bool unpremult,
@@ -616,6 +659,51 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     }
     
     return true;
+}
+
+
+
+bool
+ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
+                        const char *looks, const char *from, const char *to,
+                        bool inverse, bool unpremult,
+                        const char *key, const char *value,
+                        ROI roi, int nthreads)
+{
+    if (!from || !from[0] || !strcmp(from, "current")) {
+        std::string s = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
+        from = ustring(s).c_str();
+    }
+    if (!to || !to[0] || !strcmp(to, "current")) {
+        std::string s = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
+        to = ustring(s).c_str();
+    }
+    if (!from || !to) {
+        dst.error ("Unknown color space name");
+        return false;
+    }
+    ColorConfig *config = NULL;
+    ColorProcessor *processor = NULL;
+    {
+        spin_lock lock (colorconfig_mutex);
+        config = default_colorconfig.get();
+        if (! config)
+            default_colorconfig.reset (config = new ColorConfig);
+        processor = config->createLookTransform (looks, from, to, inverse,
+                                                 key, value);
+        if (! processor) {
+            if (config->error())
+                dst.error ("%s", config->geterror());
+            else
+                dst.error ("Could not construct the color transform");
+            return false;
+        }
+    }
+    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    if (ok)
+        dst.specmod().attribute ("oiio:ColorSpace", to);
+    config->deleteColorProcessor (processor);
+    return ok;
 }
 
 
