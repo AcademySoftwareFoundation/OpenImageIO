@@ -134,13 +134,6 @@ bool OIIO_API zero (ImageBuf &dst, ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API fill (ImageBuf &dst, const float *values,
                     ROI roi=ROI::All(), int nthreads=0);
 
-/// DEPRECATED as of 1.2
-inline bool OIIO_API fill (ImageBuf &dst, const float *pixel,
-                           int xbegin, int xend, int ybegin, int yend,
-                           int zbegin=0, int zend=1) {
-    return fill (dst, pixel, ROI(xbegin,xend,ybegin,yend,zbegin,zend));
-}
-
 
 
 /// Fill a subregion of the volume with a checkerboard with origin
@@ -169,12 +162,6 @@ bool OIIO_API checker (ImageBuf &dst, int width, int height, int depth,
                        const float *color1, const float *color2,
                        int xoffset=0, int yoffset=0, int zoffset=0,
                        ROI roi=ROI::All(), int nthreads=0);
-
-/// DEPRECATED as of 1.2
-bool OIIO_API checker (ImageBuf &dst, int width,
-                       const float *color1, const float *color2,
-                       int xbegin, int xend, int ybegin, int yend,
-                       int zbegin=0, int zend=1);
 
 
 
@@ -207,16 +194,6 @@ bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                         const float *channelvalues=NULL,
                         const std::string *newchannelnames=NULL,
                         bool shuffle_channel_names=false);
-
-/// DEPRECATED as of 1.2 -- you should use
-/// channels (dst, src, nchannels, channelorder, NULL, NULL, shuffle);
-bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
-                        int nchannels, const int *channelorder,
-                        bool shuffle_channel_names);
-
-/// DEPRECATED as of 1.2-- you should instead use the more general
-/// channels (dst, src, numChannels, NULL, NULL, NULL, true);
-bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
 
 /// Append the channels of A and B together into dst over the region of
@@ -375,8 +352,8 @@ bool OIIO_API circular_shift (ImageBuf &dst, const ImageBuf &src,
                               ROI roi=ROI::All(), int nthreads=0);
 
 
-/// Clamp the values of the pixels of dst in place (specified by roi) as
-/// follows: 
+/// Copy pixels from src to dst (within the ROI), clamping the values
+/// as follows:
 /// min[0..nchans-1] specifies the minimum clamp value for each channel
 /// (if min is NULL, no minimum clamping is performed).
 /// max[0..nchans-1] specifies the maximum clamp value for each channel
@@ -393,13 +370,13 @@ bool OIIO_API circular_shift (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
-bool OIIO_API clamp (ImageBuf &dst, 
+bool OIIO_API clamp (ImageBuf &dst, const ImageBuf &src,
                      const float *min=NULL, const float *max=NULL,
                      bool clampalpha01 = false,
                      ROI roi = ROI::All(), int nthreads = 0);
 
-/// Clamp the values of the pixels of dst in place (specified by roi) as
-/// follows: 
+/// Copy pixels from src to dst (within the ROI), clamping the values of
+/// as follows:
 /// All channels are clamped to [min,max].
 /// If clampalpha01 is true, then additionally any alpha channel is
 /// clamped to the 0-1 range.
@@ -413,15 +390,27 @@ bool OIIO_API clamp (ImageBuf &dst,
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API clamp (ImageBuf &dst, const ImageBuf &src,
+                     float min=-std::numeric_limits<float>::max(),
+                     float max=std::numeric_limits<float>::max(),
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED (1.3) in-place version
+bool OIIO_API clamp (ImageBuf &dst, 
+                     const float *min=NULL, const float *max=NULL,
+                     bool clampalpha01 = false,
+                     ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED (1.3) in-place version
 bool OIIO_API clamp (ImageBuf &dst, 
                      float min=-std::numeric_limits<float>::max(),
                      float max=std::numeric_limits<float>::max(),
                      bool clampalpha01 = false,
                      ROI roi = ROI::All(), int nthreads = 0);
 
-/// For all pixels within the designated region, add the pixels of two
-/// images A and B, putting the sum in dst.  A and B must have the same
-/// number of channels.
+/// For all pixels within the designated region, set dst = A + B.
+/// All three images must have the same number of channels.
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
 /// regions of A and B.  If dst is not initialized, it will be sized
@@ -433,57 +422,57 @@ bool OIIO_API clamp (ImageBuf &dst,
 /// guarantees that it will not launch any new threads.
 ///
 /// Works only for pixel types float, half, uint8, uint16.
+/// It is permitted for dst and A to be the same image.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi=ROI::All(), int nthreads=0);
 
-/// For all pixels and channels of dst within region roi (defaulting to
-/// all the defined pixels of R), add to their value in place by 'val'.
+/// For all pixels and channels of dst within the designated region, set 
+/// dst = A + B.  (B must point to nchannels floats.)
+///
+/// If roi is not initialized, it will be set to the pixel region of A.
+/// If dst is not initialized, it will be sized based on roi.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
 /// guarantees that it will not launch any new threads.
 ///
-/// Works for all pixel types.
+/// Works for all pixel types. It is permitted for dst and A to be the
+/// same image.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// For all pixels and channels of dst within the designated region, set 
+/// dst = A + B.  (B is a single float that is added to all channels.)
+///
+/// If roi is not initialized, it will be set to the pixel region of A.
+/// If dst is not initialized, it will be sized based on roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types. It is permitted for dst and A to be the
+/// same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, float B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// DEPRECATED as of 1.3 -- in-place add
 bool OIIO_API add (ImageBuf &dst, float val,
                    ROI roi=ROI::All(), int nthreads=0);
-
-/// For all pixels and channels of dst within region roi (defaulting to
-/// all the defined pixels of R), add to their value in place by the
-/// scalars in val[0..nchans-1] (one per channel).
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Works for all pixel types.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+/// DEPRECATED as of 1.3 -- in-place add
 bool OIIO_API add (ImageBuf &dst, const float *val,
                    ROI roi=ROI::All(), int nthreads=0);
-
-
-/// DEPRECATED as of 1.2
-bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options);
-
-/// DEPRECATED Enum describing options to be passed to ImageBufAlgo::add.
-/// Multiple options are allowed simultaneously by "or'ing" together.
-enum OIIO_API AddOptions
-{
-    ADD_DEFAULT = 0,
-    ADD_RETAIN_DST = 1,     ///< Retain dst pixels outside the region
-    ADD_CLEAR_DST = 0,      ///< Default: clear all the dst pixels first
-    ADD_RETAIN_WINDOWS = 2, ///< Honor the existing windows
-    ADD_ALIGN_WINDOWS = 0,  ///< Default: align the windows before adding
-};
 
 
 /// For all pixels within the designated ROI, compute dst = A - B.
@@ -499,11 +488,51 @@ enum OIIO_API AddOptions
 /// guarantees that it will not launch any new threads.
 ///
 /// Works only for pixel types float, half, uint8, uint16.
+/// It is permitted for dst and A to be the same image.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi=ROI::All(), int nthreads=0);
+
+/// For all pixels and channels of dst within the designated region, set 
+/// dst = A - B.  (B must point to nchannels floats.)
+///
+/// If roi is not initialized, it will be set to the pixel region of A.
+/// If dst is not initialized, it will be sized based on roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types. It is permitted for dst and A to be the
+/// same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// For all pixels and channels of dst within the designated region, set 
+/// dst = A - B.  (B is a single float that is added to all channels.)
+///
+/// If roi is not initialized, it will be set to the pixel region of A.
+/// If dst is not initialized, it will be sized based on roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works for all pixel types. It is permitted for dst and A to be the
+/// same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, float B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
 
 /// For all pixels within the designated ROI, compute dst = A * B.
 /// All three images must have the same number of channels.
@@ -526,23 +555,27 @@ bool OIIO_API mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 /// For all pixels and channels of dst within region roi (defaulting to
-/// all the defined pixels of R), multiply their value in place by 'val'.
+/// all the defined pixels of R), set R = A * B.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
 /// guarantees that it will not launch any new threads.
 ///
-/// Works for all pixel types.
+/// Works for all pixel types.  It is permissible for dst and A to be
+/// the same image.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, const ImageBuf &A, float B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// DEPRECATED in-place version. (1.3)
 bool OIIO_API mul (ImageBuf &dst, float val,
                    ROI roi=ROI::All(), int nthreads=0);
 
 /// For all pixels and channels of dst within region roi (defaulting to
-/// all the defined pixels of R), multiply their value in place by the
-/// scalars in val[0..nchans-1] (one per channel).
+/// all the defined pixels of R), set R = A * B.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
@@ -553,8 +586,13 @@ bool OIIO_API mul (ImageBuf &dst, float val,
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API mul (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+/// DEPRECATED in-place version. (1.3)
 bool OIIO_API mul (ImageBuf &dst, const float *val,
                    ROI roi=ROI::All(), int nthreads=0);
+
 
 /// Converts a multi-channel image into a 1-channel image via a weighted
 /// sum of channels.  For each pixel of src within the designated ROI
@@ -576,9 +614,11 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
                            const float *weights=NULL, ROI roi=ROI::All(),
                            int nthreads=0);
 
-/// For all pixels and color channels of dst within region roi (defaulting
-/// to all the defined pixels of dst), rescale their range with a
-/// logarithmic transformation. Alpha and z channels are not transformed.
+/// For all pixels and color channels within region roi (defaulting to all
+/// the defined pixels of dst), copy pixels from src to dst, rescaling their
+/// range with a logarithmic transformation. Alpha and z channels are not
+/// transformed.  If dst is not already defined and allocated, it will be
+/// sized based on src and roi.
 ///
 /// If useluma is true, the luma of channels [roi.chbegin..roi.chbegin+2]
 /// (presumed to be R, G, and B) are used to compute a single scale
@@ -600,11 +640,21 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
-bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = false,
+bool OIIO_API rangecompress (ImageBuf &dst, const ImageBuf &src,
+                             bool useluma = false,
                              ROI roi = ROI::All(), int nthreads=0);
 
 /// rangeexpand is the opposite operation of rangecompress -- rescales
 /// the logarithmic color channel values back to a linear response.
+bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
+                           bool useluma = false,
+                           ROI roi = ROI::All(), int nthreads=0);
+
+/// DEPRECATED in-place version (1.3)
+bool OIIO_API rangecompress (ImageBuf &dst, bool useluma = false,
+                             ROI roi = ROI::All(), int nthreads=0);
+
+/// DEPRECATED in-place version (1.3)
 bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = false,
                            ROI roi = ROI::All(), int nthreads=0);
 
@@ -685,27 +735,35 @@ bool OIIO_API colorconvert (float *color, int nchannels,
                             const ColorProcessor *processor, bool unpremult);
 
 
-/// Divide all color channels (those not alpha or z) of dst by the alpha
-/// value, to "un-premultiply" them.  This presumes that the image
-/// starts of as "associated alpha" a.k.a. "premultipled."  The
-/// alterations are restricted to the pixels and channels of the
-/// supplied ROI (which defaults to all of dst).  Pixels in which the
-/// alpha channel is 0 will not be modified (since the operation is
-/// undefined in that case).  This is a no-op if there is no identified
-/// alpha channel.
+/// Copy pixels from dst to src, and in the process divide all color
+/// channels (those not alpha or z) by the alpha value, to "un-premultiply"
+/// them.  This presumes that the image starts of as "associated alpha"
+/// a.k.a. "premultipled."  The alterations are restricted to the pixels and
+/// channels of the supplied ROI (which defaults to all of src).  Pixels in
+/// which the alpha channel is 0 will not be modified (since the operation
+/// is undefined in that case).  This is just a copy if there is no
+/// identified alpha channel (and a no-op if dst and src are the same
+/// image).
 ///
 /// Works with all data types.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED (1.3) in-place version
 bool OIIO_API unpremult (ImageBuf &dst, ROI roi = ROI::All(), int nthreads = 0);
 
-/// Multipy all color channels (those not alpha or z) of dst by the
-/// alpha value, to "premultiply" them. This presumes that the image
-/// starts off as "unassociated alpha" a.k.a. "non-premultiplied."  The
-/// alterations are restricted to the pixels and channels of the
-/// supplied ROI (which defaults to all of dst).  This is a no-op if
-/// there is no identified alpha channel.
+/// Copy pixels from dst to src, and in the process multiply all color
+/// channels (those not alpha or z) by the alpha value, to "-premultiply"
+/// them.  This presumes that the image starts off as "unassociated alpha"
+/// a.k.a. "non-premultiplied."  The alterations are restricted to the
+/// pixels and channels of the supplied ROI (which defaults to all of src).
+/// Pixels in which the alpha channel is 0 will not be modified (since the
+/// operation is undefined in that case).  This is just a copy if there is
+/// no identified alpha channel (and a no-op if dst and src are the same
+/// image).
 ///
 /// For all dst pixels and channels within the ROI, divide all color
 /// channels (those not alpha or z) by the alpha, to "un-premultiply"
@@ -715,6 +773,10 @@ bool OIIO_API unpremult (ImageBuf &dst, ROI roi = ROI::All(), int nthreads = 0);
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
+bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src,
+                       ROI roi = ROI::All(), int nthreads = 0);
+
+/// DEPRECATED (1.3) in-place version
 bool OIIO_API premult (ImageBuf &dst, ROI roi = ROI::All(), int nthreads = 0);
 
 
@@ -804,10 +866,6 @@ int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
                           CompareResults &result,
                           float luminance = 100, float fov = 45,
                           ROI roi = ROI::All(), int nthreads = 0);
-
-/// DEPRECATED 1.2
-int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
-                          float luminance = 100, float fov = 45);
 
 
 /// Do all pixels within the ROI have the same values for channels
@@ -991,11 +1049,6 @@ bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter,
                       ROI roi = ROI::All(), int nthreads = 0);
 
-/// DEPRECATED as of 1.2
-bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
-                       int xbegin, int xend, int ybegin, int yend,
-                       Filter2D *filter=NULL);
-
 
 /// Set dst, over the region of interest, to be a resampled version of the
 /// corresponding portion of src (mapping such that the "full" image
@@ -1151,13 +1204,13 @@ enum OIIO_API NonFiniteFixMode
     NONFINITE_BOX3 = 2,     ///< Replace nonfinite pixels with 3x3 finite average
 };
 
-/// Examine the values of src within the pixel and channel range
-/// designated by roi, and repair any non-finite (NaN/Inf) pixels.
-/// If pixelsFound is not NULL, store in it the number of pixels that
-/// contained non-finite value.
+/// Copy the values of src (within the ROI) to dst, while repairing  any
+/// non-finite (NaN/Inf) pixels. If pixelsFound is not NULL, store in it the
+/// number of pixels that contained non-finite value.  It is permissible
+/// to operate in-place (with src and dst referring to the same image).
 ///
-/// How the non-finite values are repaired
-/// is specified by one of the following modes:
+/// How the non-finite values are repaired is specified by one of the
+/// following modes:
 ///   NONFINITE_NONE   do not alter the pixels (but do count the number
 ///                       of nonfinite pixels in *pixelsFixed, if non-NULL).
 ///   NONFINITE_BLACK  change non-finite values to 0.
@@ -1169,21 +1222,20 @@ enum OIIO_API NonFiniteFixMode
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
 /// guarantees that it will not launch any new threads.
 ///
-/// Works on all pixel data types, though it's a no-op for images with
+/// Works on all pixel data types, though it's just a copy for images with
 /// pixel data types that cannot represent NaN or Inf values.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
-bool OIIO_API fixNonFinite (ImageBuf &dst, NonFiniteFixMode mode=NONFINITE_BOX3,
+bool OIIO_API fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode=NONFINITE_BOX3,
                             int *pixelsFixed = NULL,
                             ROI roi = ROI::All(), int nthreads = 0);
 
-/// DEPRECATED as of 1.2. Instead, use
-///     dst.copy(src);
-///     return fixNonFinite (dst, mode, pixelsFixed);
-bool OIIO_API fixNonFinite (ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode = NONFINITE_BOX3,
-                            int *pixelsFixed = NULL);
+/// DEPRECATED (1.3) in-place version
+bool OIIO_API fixNonFinite (ImageBuf &dst, NonFiniteFixMode mode=NONFINITE_BOX3,
+                            int *pixelsFixed = NULL,
+                            ROI roi = ROI::All(), int nthreads = 0);
 
 
 /// Fill the holes using a push-pull technique.  The src image must have
@@ -1268,7 +1320,7 @@ bool OIIO_API capture_image (ImageBuf &dst, int cameranum = 0,
 ///
 /// Works on all pixel data types.
 bool OIIO_API over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                    ROI roi = ROI::All(), int threads = 0);
+                    ROI roi = ROI::All(), int nthreads = 0);
 
 
 /// Just like ImageBufAlgo::over(), but inputs A and B must have
@@ -1278,11 +1330,8 @@ bool OIIO_API over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 /// z=0 values will be treated as if they are infinitely far away.
 bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      bool z_zeroisinf = false,
-                     ROI roi = ROI::All(), int threads = 0);
+                     ROI roi = ROI::All(), int nthreads = 0);
 
-/// DEPRECATED (1.2) -- preserved for link compatibility, but will be removed.
-bool OIIO_API zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
-                     ROI roi, int threads = 0);
 
 
 /// Render a text string into image dst, essentially doing an "over" of

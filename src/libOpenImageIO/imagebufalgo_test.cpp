@@ -386,7 +386,7 @@ test_maketx_from_imagebuf()
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A (spec);
     float pink[] = { .5, .3, .3 }, green[] = { .1, .5, .1 };
-    ImageBufAlgo::checker (A, 4, pink, green, 0, WIDTH, 0, HEIGHT, 0, 1);
+    ImageBufAlgo::checker (A, 4, 4, 4, pink, green);
 
     // Write it
     const char *pgname = "oiio-pgcheck.tx";

@@ -267,8 +267,10 @@ main (int argc, char *argv[])
             ImageBufAlgo::compare (img0, img1, failthresh, warnthresh, cr);
 
             int yee_failures = 0;
-            if (perceptual && ! img0.deep())
-                yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
+            if (perceptual && ! img0.deep()) {
+                ImageBufAlgo::CompareResults cr;
+                yee_failures = ImageBufAlgo::compare_Yee (img0, img1, cr);
+            }
 
             if (cr.nfail > (failpercent/100.0 * npels) || cr.maxerror > hardfail ||
                 yee_failures > (failpercent/100.0 * npels)) {

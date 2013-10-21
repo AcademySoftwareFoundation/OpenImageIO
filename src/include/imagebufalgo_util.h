@@ -99,8 +99,10 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 /// already initialized, it will keep its "full" (aka display) window,
 /// otherwise its full/display window will be set to the union of
 /// A's and B's full/display windows.  If you want something different,
-/// then define dest ahead of time!
-void OIIO_API IBAprep (ROI &roi, ImageBuf *dst,
+/// then define dest ahead of time!  Also, if A or B inputs are specified
+/// but not initialized or broken, it's an error so return false.  If all
+/// is ok, return true.
+bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A=NULL, const ImageBuf *B=NULL);
 
 

@@ -462,52 +462,51 @@ downsizing, pixel replication when upsizing).
 \section{Image arithmetic}
 \label{sec:iba:arith}
 
-\apiitem{bool add (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!add} \indexapi{add}
 
-For all pixels within the designated region, add the pixel values of
-images {\cf A} and {\cf B}, putting the sum in {\cf dst}.  {\cf A} and
-{\cf B} must have the same number of channels.
+For all pixels and channels within the designated region, set
+{\cf dst} to the sum of image {\cf A} and {\cf B}.  {\cf B} is either an image,
+a float (added to all channels) or a per-channel float array.
+All of the images must have the same number of channels.
 
 \smallskip
 \noindent Examples:
 \begin{code}
+    // Add images A and B, assign to Sum
     ImageBuf A ("a.exr");
     ImageBuf B ("b.exr");
     ImageBuf Sum;
     ImageBufAlgo::add (Sum, A, B);
-\end{code}
-\apiend
 
-\apiitem{bool add (ImageBuf \&dst, float val, ROI roi=ROI::All(), nthreads=0) \\
-bool add (ImageBuf \&dst, const float *val, ROI roi=ROI::All(), nthreads=0)}
-\index{ImageBufAlgo!add} \indexapi{add}
-
-For all pixels and channels of {\cf dst} within the designated region
-{\cf roi}, add {\cf val} to all pixels, in-place.  For the second 
-version, {\cf val[]} supplies a different value for each channel.
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    // Add 0.2 to channels 0-2
-    ImageBuf A ("a.exr");
+    // Add 0.2 to channels 0-2 of A
+    ImageBuf A ("a.exr"), B;
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
-    ImageBufAlgo::add (A, 0.2, roi);
+    ImageBufAlgo::add (B, A, 0.2, roi);
 \end{code}
 \apiend
 
 
 
 \apiitem{bool sub (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!sub} \indexapi{sub}
 
 For all pixels within the designated region, subtract the pixel values
 of {\cf B} from those of {\cf A}, putting the results into {\cf dst}.
-{\cf A} and {\cf B} must have the same number of channels.
+{\cf B} is either an image,
+a float (added to all channels) or a per-channel float array.
+All of the images must have the same number of channels.
 
 \smallskip
 \noindent Examples:
@@ -522,12 +521,18 @@ of {\cf B} from those of {\cf A}, putting the results into {\cf dst}.
 
 
 \apiitem{bool mul (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
-        \bigspc  ROI roi=ROI::All(), nthreads=0)}
+        \bigspc  ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0) \\
+bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!mul} \indexapi{mul}
 
 For all pixels within the designated region, multiply the pixel values
-of images {\cf A} and {\cf B} (channel by channel), putting the sum in
-{\cf dst}.  {\cf A} and {\cf B} must have the same number of channels.
+of image {\cf A} by {\cf B} (channel by channel), putting the product in
+{\cf dst}.  {\cf B} is either an image,
+a float (added to all channels) or a per-channel float array.
+All of the images must have the same number of channels.
 
 \smallskip
 \noindent Examples:
@@ -536,25 +541,11 @@ of images {\cf A} and {\cf B} (channel by channel), putting the sum in
     ImageBuf B ("b.exr");
     ImageBuf Product;
     ImageBufAlgo::mul (Product, A, B);
-\end{code}
-\apiend
 
-\apiitem{bool mul (ImageBuf \&dst, float val, ROI roi=ROI::All(), nthreads=0) \\
-bool mul (ImageBuf \&dst, const float *val, ROI roi=ROI::All(), nthreads=0)}
-\index{ImageBufAlgo!mul} \indexapi{mul}
-
-For all pixels and channels of {\cf dst} within the designated region
-{\cf roi}, multiply all pixel values by {\cf val}, in-place.  For the second 
-version, {\cf val[]} supplies a different multiplicative value for each channel.
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    // Reduce intensity of channels 0-2 by 50%
-    ImageBuf A ("a.exr");
+    // Reduce intensity of A's channels 0-2 by 50%
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
-    ImageBufAlgo::mul (A, 0.5, roi);
+    ImageBufAlgo::mul (A, A, 0.5, roi);
 \end{code}
 \apiend
 
@@ -584,16 +575,16 @@ per-channel weight (rather than defaulting to 1.0 for each channel).
 \apiend
 
 
-\apiitem{bool clamp (ImageBuf \&dst, \\
+\apiitem{bool clamp (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc float min = -std::numeric_limits<float>::max(), \\
   \bigspc float max = std::numeric_limits<float>::max(), \\
   \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), nthreads=0) \\
-bool clamp (ImageBuf \&dst, \\
+bool clamp (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc const float *min = NULL, const float *max = NULL, \\
   \bigspc bool clampalpha01 = false, ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!clamp} \indexapi{clamp}
 
-Clamp the values of the pixels of {\cf dst} in place (specified by {\cf roi})
+Copy pixels from {\cf src} to {\cf src} (within the {\cf roi}), clamping
 between the {\cf min} and {\cf max} values.  Additionally, if
 {\cf clampalpha01} is {\cf true}, then any alpha 
 channel is clamped to the 0--1 range.
@@ -611,11 +602,11 @@ performed, and if {\cf max} is \NULL, no maximum clamping is performed.
 \smallskip
 \noindent Examples:
 \begin{code}
-    // Clamp image buffer A to the [0,1] range for all pixels.
-    ImageBufAlgo::clamp (A, 0.0f, 1.0f);
+    // Clamp image buffer A in-place to the [0,1] range for all pixels.
+    ImageBufAlgo::clamp (A, A, 0.0f, 1.0f);
 
     // Just clamp alpha to [0,1]
-    ImageBufAlgo::clamp (A, -std::numeric_limits<float>::max(),
+    ImageBufAlgo::clamp (A, A, -std::numeric_limits<float>::max(),
                          std::numeric_limits<float>::max(), true);
 
     // Clamp R & G to [0,0.5], leave other channels alone
@@ -623,14 +614,14 @@ performed, and if {\cf max} is \NULL, no maximum clamping is performed.
     std::vector<float> max (A.nchannels(), std::numeric_limits<float>::max());
     min[0] = 0.0f;  max[0] = 0.5f;
     min[1] = 0.0f;  max[1] = 0.5f;
-    ImageBufAlgo::clamp (A, &min[0], &max[0], false);
+    ImageBufAlgo::clamp (A, A, &min[0], &max[0], false);
 \end{code}
 \apiend
 
 
-\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, bool useluma = false, \\
+\apiitem{bool {\ce rangecompress} (ImageBuf \&dst, const ImageBuf &src, bool useluma = false, \\
         \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0) \\
-bool {\ce rangeexpand} (ImageBuf \&dst, bool useluma = false, \\
+bool {\ce rangeexpand} (ImageBuf \&dst, const ImageBuf &src, bool useluma = false, \\
         \bigspc\bigspc  ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!rangecompress} \indexapi{rangecompress}
 \index{ImageBufAlgo!rangeexpand} \indexapi{rangeexpand}
@@ -645,12 +636,13 @@ of the result again.  This approach can yield results that are much more
 pleasing (even if not exactly mathematically correct).
 
 The {\cf rangecompress} operation does the following: For all pixels and
-color channels of {\cf dst} within region {\cf roi} (defaulting to all
-the defined pixels of {\cf dst}), apply a logarithmic transformation on
-their values.  Alpha and z channels are not transformed.
+color channels of {\cf src} within region {\cf roi} (defaulting to all
+the defined pixels of {\cf src}), copy the pixels to {\cf dst}
+while applying a logarithmic transformation on
+their values.  Alpha and z channels are copied but not transformed.
 
-The {\cf rangeexpand} operation is the opposite of {\cf rangecompress}:
-it rescales the logarithmic color channel values back to a linear
+The {\cf rangeexpand} operation is the opposite of {\cf rangecompress}: it
+copies while rescaling the logarithmic color channel values back to a linear
 response.
 
 If {\cf useluma} is true, the luma of the first three channels (presumed
@@ -672,8 +664,7 @@ and {\cf rangeexpand}).
 
     // 2. Range compress to a logarithmic scale
     ImageBuf Compressed;
-    Compressed.copy (Src);
-    ImageBufAlgo::rangecompress (Compressed);
+    ImageBufAlgo::rangecompress (Compressed, Src);
 
     // 3. Now do the resize
     ImageBuf Dst;
@@ -682,8 +673,8 @@ and {\cf rangeexpand}).
     ImageBufAlgo::resize (Dst, Comrpessed, filter, roi);
     Filter2D::destroy (filter);
 
-    // 4. Expand range to be linear again
-    ImageBufAlgo::rangeexpand (Dst);
+    // 4. Expand range to be linear again (operate in-place)
+    ImageBufAlgo::rangeexpand (Dst, Dst);
 \end{code}
 \apiend
 
@@ -1192,16 +1183,16 @@ by $1/\sqrt{\mathrm{npixels}}$.
 \section{Image Enhancement / Restoration}
 \label{sec:iba:enhance}
 
-\apiitem{bool {\ce fixNonFinite} (ImageBuf \&dst, \\
+\apiitem{bool {\ce fixNonFinite} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc NonFiniteFixMode mode = NONFINITE_BOX3, \\
   \bigspc\spc int *pixelsFixed = NULL, \\
   \bigspc\spc  ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
 
-Examine the values of {\cf src} within the pixel and channel range
-designated by {\cf roi}, and repair (in place) any non-finite ({\cf NaN} or {\cf Inf})
-pixels.  If {\cf pixelsFound} is not \NULL, store in it the number of pixels
-that contained non-finite value.
+Copy pixel values from {\cf src} to {\cf dst} (within the pixel and channel
+range designated by {\cf roi}), and repair any non-finite ({\cf NaN} or {\cf
+Inf}) pixels.  If {\cf pixelsFound} is not \NULL, store in it the number of
+pixels that contained non-finite value.
 
 How the non-finite values are repaired is specified by one of the
 following modes:
@@ -1215,7 +1206,7 @@ following modes:
                      finite pixels within a 3x3 window.
 \end{description}
 
-This works on all pixel data types, though it's a no-op for images with
+This works on all pixel data types, though it's just a copy for images with
 pixel data types that cannot represent {\cf NaN} or {\cf Inf} values.
 
 
@@ -1369,40 +1360,44 @@ this flag if your image contains an alpha channel.
 \apiend
 
 
-\apiitem{bool {\ce unpremult} (ImageBuf \&dst, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce unpremult} (ImageBuf \&dst, const ImageBuf \&src, ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!unpremult} \indexapi{unpremult}
-Divide all color channels (those not alpha or z) of {\cf dst} in place
+Copy pixels from {\cf src} to {\cf dst}, and in the process 
+divide all color channels (those not alpha or z) 
 by the alpha value, to ``un-premultiply'' them.  This presumes that the
 image starts of as ``associated alpha'' a.k.a.\ ``premultipled.''  The
 alterations are restricted to the pixels and channels of the supplied
-ROI (which defaults to all of {\cf dst}).  Pixels in which the alpha
+ROI (which defaults to all of {\cf src}).  Pixels in which the alpha
 channel is 0 will not be modified (since the operation is undefined in
-that case).  This is a no-op if there is no identified alpha channel.
+that case).  This is just a copy if there is no identified alpha channel
+(and a no-op if {\cf dst} and {\cf src} are the same image).
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    // Convert from associated alpha to unassociated alpha
+    // Convert in-place from associated alpha to unassociated alpha
     ImageBuf A ("a.exr");
-    ImageBufAlgo::unpremult (A);
+    ImageBufAlgo::unpremult (A, A);
 \end{code}
 \apiend
 
-\apiitem{bool {\ce premult} (ImageBuf \&dst, ROI roi=ROI::All(), nthreads=0)}
+\apiitem{bool {\ce premult} (ImageBuf \&dst, const ImageBuf \&src, ROI roi=ROI::All(), nthreads=0)}
 \index{ImageBufAlgo!premult} \indexapi{premult}
-Multiply all color channels (those not alpha or z) of {\cf dst} in place
+Copy pixels from {\cf src} to {\cf dst}, and in the process 
+multiply all color channels (those not alpha or z) 
 by the alpha value, to ``premultiply'' them.  This presumes that the
 image starts of as ``unassociated alpha'' a.k.a.\ ``non-premultipled.''
 The alterations are restricted to the pixels and channels of the
-supplied ROI (which defaults to all of {\cf dst}).  This is a no-op if
-there is no identified alpha channel.
+supplied ROI (which defaults to all of {\cf src}).  This is just a copy
+if there is no identified alpha channel
+(and a no-op if {\cf dst} and {\cf src} are the same image).
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    // Convert from unassociated alpha to associated alpha
+    // Convert in-place from unassociated alpha to associated alpha
     ImageBuf A ("a.exr");
-    ImageBufAlgo::premult (A);
+    ImageBufAlgo::premult (A, A);
 \end{code}
 \apiend
 
