@@ -315,8 +315,12 @@ public:
     static TextureSystem *create (bool shared=true);
 
     /// Destroy a TextureSystem that was created using
-    /// TextureSystem::create().
+    /// TextureSystem::create().  For the variety that takes a
+    /// teardown_imagecache parameter, if set to true it will cause the
+    /// underlying ImageCache to be fully destroyed, even if it's the
+    /// "shared" ImageCache.
     static void destroy (TextureSystem *x);
+    static void destroy (TextureSystem *x, bool teardown_imagecache);
 
     TextureSystem (void) { }
     virtual ~TextureSystem () { }

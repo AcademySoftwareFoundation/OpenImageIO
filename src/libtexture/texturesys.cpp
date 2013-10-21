@@ -66,8 +66,6 @@ OIIO_NAMESPACE_ENTER
 
 namespace {  // anonymous
 
-static shared_ptr<TextureSystemImpl> shared_texsys;
-static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
 
 }  // end anonymous namespace
@@ -77,21 +75,22 @@ TextureSystem *
 TextureSystem::create (bool shared)
 {
     ImageCache *ic = ImageCache::create (shared);
-#if 0
-    if (shared) {
-        // They requested a shared texsys.  If a shared texsys already
-        // exists, just return it, otherwise record the new cache.
-        lock_guard guard (shared_texsys_mutex);
-        if (! shared_texsys.get())
-            shared_texsys.reset (new TextureSystemImpl (ic));
-#ifndef NDEBUG
-        std::cerr << " shared TextureSystem is "
-                  << (void *)shared_texsys.get() << "\n";
-#endif
-        return shared_texsys.get ();
-    }
-#endif
     return new TextureSystemImpl (ic);
+}
+
+
+
+void
+TextureSystem::destroy (TextureSystem *x, bool teardown_imagecache)
+{
+    if (! x)
+        return;
+    TextureSystemImpl *impl = (TextureSystemImpl *) x;
+    if (teardown_imagecache) {
+        ImageCache::destroy (impl->m_imagecache, true);
+        impl->m_imagecache = NULL;
+    }
+    delete (TextureSystemImpl *) impl;
 }
 
 
@@ -99,10 +98,7 @@ TextureSystem::create (bool shared)
 void
 TextureSystem::destroy (TextureSystem *x)
 {
-    // Delete only if it's a private one
-//    lock_guard guard (shared_texsys_mutex);
-//    if (x != shared_texsys.get())
-        delete (TextureSystemImpl *) x;
+    destroy (x, false);
 }
 
 

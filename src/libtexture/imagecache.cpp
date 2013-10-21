@@ -2440,36 +2440,68 @@ ImageCacheImpl::invalidate (ustring filename)
 void
 ImageCacheImpl::invalidate_all (bool force)
 {
+    // Special case: invalidate EVERYTHING -- we can take some shortcuts
+    // to do it all in one shot.
+    if (force) {
+        // Clear the whole tile cache
+        std::vector<TileID> tiles_to_delete;
+        for (TileCache::iterator t = m_tilecache.begin(), e = m_tilecache.end();
+             t != e;  ++t) {
+            tiles_to_delete.push_back (t->second->id());
+        }
+        BOOST_FOREACH (const TileID &id, tiles_to_delete) {
+            m_tilecache.erase (id);
+        }
+        // Invalidate (close and clear spec) all individual files
+        for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
+                 fileit != e;  ++fileit) {
+            fileit->second->invalidate ();
+        }
+        // Clear fingerprints list
+        clear_fingerprints ();
+        // Mark the per-thread microcaches as invalid
+        purge_perthread_microcaches ();
+        return;
+    }
+
+    // Not forced... we need to look for particular files that seem
+    // to need invalidation.
+
     // Make a list of all files that need to be invalidated
     std::vector<ustring> all_files;
-
     for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
              fileit != e;  ++fileit) {
         ImageCacheFileRef &f (fileit->second);
         ustring name = f->filename();
         recursive_lock_guard guard (f->m_input_mutex);
+        // If the file was broken when we opened it, or if it no longer
+        // exists, definitely invalidate it.
         if (f->broken() || ! Filesystem::exists(name.string())) {
             all_files.push_back (name);
             continue;
         }
-        std::time_t t = Filesystem::last_write_time (name.string());
         // Invalidate the file if it has been modified since it was
-        // last opened, or if 'force' is true.
-        bool inval = force || (t != f->mod_time());
-        for (int s = 0;  !inval && s < f->subimages();  ++s) {
+        // last opened.
+        std::time_t t = Filesystem::last_write_time (name.string());
+        if (t != f->mod_time()) {
+            all_files.push_back (name);
+            continue;
+        }
+        // Invalidate if any unmipped subimage...
+        // ... didn't automip, but automip is now on
+        // ... did automip, but automip is now off
+        for (int s = 0;  s < f->subimages();  ++s) {
             ImageCacheFile::SubimageInfo &sub (f->subimageinfo(s));
-            // Invalidate if any unmipped subimage:
-            // ... didn't automip, but automip is now on
-            // ... did automip, but automip is now off
             if (sub.unmipped &&
                 ((m_automip && f->miplevels(s) <= 1) ||
-                 (!m_automip && f->miplevels(s) > 1)))
-                inval = true;
+                 (!m_automip && f->miplevels(s) > 1))) {
+                all_files.push_back (name);
+                break;
+            }
         }
-        if (inval)
-            all_files.push_back (name);
     }
 
+    // Now, invalidate all the files in our "needs invalidation" list
     BOOST_FOREACH (ustring f, all_files) {
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate (f);
@@ -2630,22 +2662,32 @@ ImageCache::create (bool shared)
 
 
 void
-ImageCache::destroy (ImageCache *x)
+ImageCache::destroy (ImageCache *x, bool teardown)
 {
-    // If this is not a shared cache, delete it for real.  But if it is
-    // the same as the shared cache, don't really delete it, since others
-    // may be using it now, or may request a shared cache some time in
-    // the future.  Don't worry that it will leak; because shared_image_cache
-    // is itself a shared_ptr, when the process ends it will properly
-    // destroy the shared cache.
+    if (! x)
+        return;
     spin_lock guard (shared_image_cache_mutex);
     if (x == shared_image_cache.get()) {
-        // Don't destroy the shared cache, but do invalidate and close the files.
-        ((ImageCacheImpl *)x)->invalidate_all ();
+        // This is the shared cache, so don't really delete it. Invalidate
+        // it fully, closing the files and throwing out any tiles that 
+        // nobody is currently holding references to.  But only delete the
+        // IC fully if 'teardown' is true, and even then, it won't destroy
+        // until nobody else is still holding a shared_ptr to it.
+        ((ImageCacheImpl *)x)->invalidate_all (teardown);
+        if (teardown)
+            shared_image_cache.reset ();
     } else {
         // Not a shared cache, we are the only owner, so truly destroy it.
         delete (ImageCacheImpl *) x;
     }
+}
+
+
+
+void
+ImageCache::destroy (ImageCache *x)
+{
+    destroy (x, false);
 }
 
 }

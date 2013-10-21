@@ -110,7 +110,7 @@ will be created and returned.
 
 \apiend
 
-\apiitem{static void ImageCache::{\ce destroy} (ImageCache *x)}
+\apiitem{static void ImageCache::{\ce destroy} (ImageCache *x, bool teardown=false)}
 Destroys an allocated \ImageCache, including freeing all system
 resources that it holds.
 
@@ -123,7 +123,10 @@ allocator than the main program).
 It is safe to destroy even a shared \ImageCache, as the implementation
 of {\cf destroy()} will recognize a shared one and only truly release
 its resources if it has been requested to be destroyed as many times as
-shared \ImageCache's were created.
+shared \ImageCache's were created.  For a shared \ImageCache, if the
+{\cf teardown} parameter is {\cf true}, it will try to truly destroy the
+shared cache if nobody else is still holding a reference (otherwise,
+it will leave it intact).
 \apiend
 
 \subsection{Setting options and limits for the image cache}

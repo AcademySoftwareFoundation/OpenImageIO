@@ -390,16 +390,20 @@ completely unique \ImageCache will be created that is private to this
 particular \TextureSystem.
 \apiend
 
-\apiitem{static void TextureSystem::{\ce destroy} (TextureSystem *x)}
+\apiitem{static void TextureSystem::{\ce destroy} (TextureSystem *x, \\
+\bigspc\bigspc bool teardown_imagecache=false)}
 Destroys an allocated \TextureSystem, including freeing all system
-resources that it holds.
+resources that it holds (such as its underlying \ImageCache).
 
 This is necessary to ensure that the memory is freed in a way that
 matches the way it was allocated within the library.  Note that simply
 using {\cf delete} on the pointer will not always work (at least,
 not on some platforms in which a DSO/DLL can end up using a different
 allocator than the main program).
-\apiend
+
+If {\cf teardown_imagecache} is {\cf true}, and the \TextureSystem's
+underlying \ImageCache is the \emph{shared} one, then that \ImageCache will
+be thoroughly destroyed, not merely releasing the reference. \apiend
 
 \subsection{Setting options and limits for the texture system}
 \label{sec:texturesys:api:options}
