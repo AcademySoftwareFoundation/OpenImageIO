@@ -1418,8 +1418,15 @@ ImageCacheImpl::getstats (int level) const
 
     std::ostringstream out;
     if (level > 0) {
-        out << "OpenImageIO ImageCache statistics (" << (void*)this 
-            << ") ver " << OIIO_VERSION_STRING << "\n";
+        out << "OpenImageIO ImageCache statistics (";
+        {
+            spin_lock guard (shared_image_cache_mutex);
+            if ((void *)this == (void *)shared_image_cache.get())
+                out << "shared";
+            else
+                out << (void *)this;
+        }
+        out << ") ver " << OIIO_VERSION_STRING << "\n";
         if (stats.unique_files) {
             out << "  Images : " << stats.unique_files << " unique\n";
             out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
