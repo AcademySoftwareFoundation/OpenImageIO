@@ -353,6 +353,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     float_to_rational (aspect, aspect_num, aspect_den);
     m_dpx.header.SetAspectRatio (0, aspect_num);
     m_dpx.header.SetAspectRatio (1, aspect_den);
+    m_dpx.header.SetXOffset ((unsigned int)std::max (0, m_spec.x));
+    m_dpx.header.SetYOffset ((unsigned int)std::max (0, m_spec.y));
 
     tmpstr = m_spec.get_string_attribute ("dpx:TimeCode", "");
     int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
