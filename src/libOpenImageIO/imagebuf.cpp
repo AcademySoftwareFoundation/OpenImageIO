@@ -187,7 +187,7 @@ public:
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
                     int &tilexend, bool exists, ImageBuf::WrapMode wrap) const;
 
-    void do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
+    bool do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const;
 
     const void *blackpixel () const {
         validate_spec ();
@@ -1855,39 +1855,53 @@ ImageBuf::blackpixel () const
 
 
 
-void
+bool
 ImageBufImpl::do_wrap (int &x, int &y, int &z, ImageBuf::WrapMode wrap) const
 {
     const ImageSpec &m_spec (this->spec());
-    if (wrap == ImageBuf::WrapBlack)
-        return;   // nothing to do
-    if (wrap == ImageBuf::WrapClamp) {
-        x = OIIO::clamp (x, m_spec.x, m_spec.x+m_spec.width-1);
-        y = OIIO::clamp (y, m_spec.y, m_spec.y+m_spec.height-1);
-        z = OIIO::clamp (z, m_spec.z, m_spec.z+m_spec.depth-1);
-        return;
+
+    // Double check that we're outside the data window -- supposedly a
+    // precondition of calling this method.
+    DASSERT (! (x >= m_spec.x && x < m_spec.x+m_spec.width &&
+                y >= m_spec.y && y < m_spec.y+m_spec.height &&
+                z >= m_spec.z && z < m_spec.z+m_spec.depth));
+
+    // Wrap based on the display window
+    if (wrap == ImageBuf::WrapBlack) {
+        // no remapping to do
+        return false;  // still outside the data window
     }
-    if (wrap == ImageBuf::WrapPeriodic) {
-        wrap_periodic (x, m_spec.x, m_spec.width);
-        wrap_periodic (y, m_spec.y, m_spec.height);
-        wrap_periodic (z, m_spec.z, m_spec.depth);
-        return;
+    else if (wrap == ImageBuf::WrapClamp) {
+        x = OIIO::clamp (x, m_spec.full_x, m_spec.full_x+m_spec.full_width-1);
+        y = OIIO::clamp (y, m_spec.full_y, m_spec.full_y+m_spec.full_height-1);
+        z = OIIO::clamp (z, m_spec.full_z, m_spec.full_z+m_spec.full_depth-1);
     }
-    if (wrap == ImageBuf::WrapMirror) {
-        wrap_mirror (x, m_spec.x, m_spec.width);
-        wrap_mirror (y, m_spec.y, m_spec.height);
-        wrap_mirror (z, m_spec.z, m_spec.depth);
-        return;
+    else if (wrap == ImageBuf::WrapPeriodic) {
+        wrap_periodic (x, m_spec.full_x, m_spec.full_width);
+        wrap_periodic (y, m_spec.full_y, m_spec.full_height);
+        wrap_periodic (z, m_spec.full_z, m_spec.full_depth);
     }
-    ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
+    else if (wrap == ImageBuf::WrapMirror) {
+        wrap_mirror (x, m_spec.full_x, m_spec.full_width);
+        wrap_mirror (y, m_spec.full_y, m_spec.full_height);
+        wrap_mirror (z, m_spec.full_z, m_spec.full_depth);
+    }
+    else {
+        ASSERT_MSG (0, "unknown wrap mode %d", (int)wrap);
+    }
+
+    // Now determine if the new position is within the data window
+    return (x >= m_spec.x && x < m_spec.x+m_spec.width &&
+            y >= m_spec.y && y < m_spec.y+m_spec.height &&
+            z >= m_spec.z && z < m_spec.z+m_spec.depth);
 }
 
 
 
-void
+bool
 ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
 {
-    m_impl->do_wrap (x, y, z, wrap);
+    return m_impl->do_wrap (x, y, z, wrap);
 }
 
 
@@ -1901,13 +1915,20 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
     if (! exists) {
         // Special case -- (x,y,z) describes a location outside the data
         // window.  Use the wrap mode to possibly give a meaningful data
-        // proxy to point to.
-        do_wrap (x, y, z, wrap);
-        if (wrap == ImageBuf::WrapBlack)
-            return &m_blackpixel; // Black points to a black pixel
-        // We've adjusted x,y,z, now fall through below to get the
-        // right tile
+        // proxy to point to.  
+        if (! do_wrap (x, y, z, wrap)) {
+            // After wrapping, the new xyz point outside the data window.
+            // So return the black pixel.
+            return &m_blackpixel;
+        }
+        // We've adjusted x,y,z, and know the wrapped coordinates are in the
+        // pixel data window, so now fall through below to get the right
+        // tile.
     }
+
+    DASSERT (x >= m_spec.x && x < m_spec.x+m_spec.width &&
+             y >= m_spec.y && y < m_spec.y+m_spec.height &&
+             z >= m_spec.z && z < m_spec.z+m_spec.depth);
 
     int tw = m_spec.tile_width, th = m_spec.tile_height;
     int td = m_spec.tile_depth;  DASSERT(m_spec.tile_depth >= 1);
