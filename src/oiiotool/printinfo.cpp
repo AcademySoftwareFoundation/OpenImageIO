@@ -38,6 +38,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
+#include <OpenEXR/half.h>
 
 #include "argparse.h"
 #include "strutil.h"
@@ -88,6 +89,82 @@ print_sha1 (ImageInput *input)
     }
 
     printf ("    SHA-1: %s\n", sha.digest().c_str());
+}
+
+
+
+static void
+dump_data (ImageInput *input)
+{
+    const ImageSpec &spec (input->spec());
+    if (spec.deep) {
+        // Special handling of deep data
+        DeepData dd;
+        if (! input->read_native_deep_image (dd)) {
+            printf ("    dump data: could not read image\n");
+            return;
+        }
+        int nc = spec.nchannels;
+        TypeDesc *types = &dd.channeltypes[0];
+        for (int z = 0, pixel = 0;  z < spec.depth;  ++z) {
+            for (int y = 0;  y < spec.height;  ++y) {
+                for (int x = 0;  x < spec.width;  ++x, ++pixel) {
+                    int nsamples = dd.nsamples[pixel];
+                    std::cout << "    Pixel (";
+                    if (spec.depth > 1 || spec.z != 0)
+                        std::cout << Strutil::format("%d, %d, %d",
+                                             x+spec.x, y+spec.y, z+spec.z);
+                    else
+                        std::cout << Strutil::format("%d, %d",
+                                                     x+spec.x, y+spec.y);
+                    std::cout << "): " << nsamples << " samples" 
+                              << (nsamples ? ":" : "");
+                    for (int s = 0;  s < nsamples;  ++s) {
+                        if (s)
+                            std::cout << " / ";
+                        for (int c = 0;  c < nc;  ++c) {
+                            std::cout << " " << spec.channelnames[c] << "=";
+                            const char *ptr = (const char *)dd.pointers[pixel*nc+c];
+                            TypeDesc t = types[c];
+                            ptr += s * t.size();
+                            if (t.basetype == TypeDesc::FLOAT) {
+                                std::cout << *(const float *)ptr;
+                            } else if (t.basetype == TypeDesc::HALF) {
+                                std::cout << *(const half *)ptr;
+                            } else if (t.basetype == TypeDesc::UINT) {
+                                std::cout << *(const unsigned int *)ptr;
+                            }
+                        }
+                    }
+                    std::cout << "\n";
+                }
+            }
+        }
+
+    } else {
+        std::vector<float> buf(spec.image_pixels() * spec.nchannels);
+        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+            printf ("    dump data: could not read image\n");
+            return;
+        }
+        const float *ptr = &buf[0];
+        for (int z = 0;  z < spec.depth;  ++z) {
+            for (int y = 0;  y < spec.height;  ++y) {
+                for (int x = 0;  x < spec.width;  ++x) {
+                    if (spec.depth > 1 || spec.z != 0)
+                        std::cout << Strutil::format("    Pixel (%d, %d, %d):",
+                                             x+spec.x, y+spec.y, z+spec.z);
+                    else
+                        std::cout << Strutil::format("    Pixel (%d, %d):",
+                                             x+spec.x, y+spec.y);
+                    for (int c = 0;  c < spec.nchannels;  ++c, ++ptr) {
+                        std::cout << ' ' << (*ptr);
+                    }
+                    std::cout << "\n";
+                }
+            }
+        }
+    }
 }
 
 
@@ -472,6 +549,12 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
 
     if (opt.verbose)
         print_metadata (spec, filename, opt, field_re, field_exclude_re);
+
+    if (opt.dumpdata) {
+        ImageSpec tmp;
+        input->seek_subimage (current_subimage, 0, tmp);
+        dump_data (input);
+    }
 
     if (opt.compute_stats && (opt.metamatch.empty() ||
                           boost::regex_search ("stats", field_re))) {
