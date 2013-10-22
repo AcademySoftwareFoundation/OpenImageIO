@@ -629,6 +629,11 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
     if (! spec.find_attribute("compression"))
         spec.attribute ("compression", "zip");
 
+    // It seems that zips is the only compression that can reliably work
+    // on deep files.
+    if (spec.deep)
+        spec.attribute ("compression", "zips");
+
     // Default to increasingY line order, same as EXR.
     if (! spec.find_attribute("openexr:lineOrder"))
         spec.attribute ("openexr:lineOrder", "increasingY");
