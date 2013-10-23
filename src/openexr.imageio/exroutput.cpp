@@ -629,6 +629,11 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
     if (! spec.find_attribute("compression"))
         spec.attribute ("compression", "zip");
 
+    // It seems that zips is the only compression that can reliably work
+    // on deep files.
+    if (spec.deep)
+        spec.attribute ("compression", "zips");
+
     // Default to increasingY line order, same as EXR.
     if (! spec.find_attribute("openexr:lineOrder"))
         spec.attribute ("openexr:lineOrder", "increasingY");
@@ -1246,12 +1251,15 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         }
         m_deep_tiled_output_part->setFrameBuffer (frameBuffer);
 
+        int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
+        int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
         int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
         int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
 
         // Write the pixels
-        m_deep_tiled_output_part->writeTiles (0, xtiles-1, 0, ytiles-1,
-                                                 m_miplevel, m_miplevel);
+        m_deep_tiled_output_part->writeTiles (firstxtile, firstxtile+xtiles-1,
+                                              firstytile, firstytile+ytiles-1,
+                                              m_miplevel, m_miplevel);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());

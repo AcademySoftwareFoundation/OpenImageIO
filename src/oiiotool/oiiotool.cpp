@@ -88,6 +88,7 @@ Oiiotool::clear_options ()
     allsubimages = false;
     printinfo = false;
     printstats = false;
+    dumpdata = false;
     hash = false;
     updatemode = false;
     threads = 0;
@@ -277,11 +278,12 @@ input_file (int argc, const char *argv[])
         if (ot.verbose)
             std::cout << "Reading " << argv[0] << "\n";
         ot.push (ImageRecRef (new ImageRec (argv[i], ot.imagecache)));
-        if (ot.printinfo || ot.printstats) {
+        if (ot.printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
             pio.verbose = ot.verbose;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
+            pio.dumpdata = ot.dumpdata;
             pio.compute_sha1 = ot.hash;
             pio.metamatch = ot.printinfo_metamatch;
             pio.nometamatch = ot.printinfo_nometamatch;
@@ -3099,6 +3101,7 @@ getargs (int argc, char *argv[])
                 "--no-metamatch %s", &ot.printinfo_nometamatch,
                     "Regex: which metadata is excluded with -info -v",
                 "--stats", &ot.printstats, "Print pixel statistics on all inputs",
+                "--dumpdata", &ot.dumpdata, "Print all pixel data values",
                 "--hash", &ot.hash, "Print SHA-1 hash of each input image",
                 "--colorcount %@ %s", action_colorcount, NULL,
                     "Count of how many pixels have the given color (argument: color;color;...) (optional args: eps=color)",

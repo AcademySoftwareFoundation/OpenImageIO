@@ -55,6 +55,7 @@ public:
     bool allsubimages;
     bool printinfo;
     bool printstats;
+    bool dumpdata;
     bool hash;
     bool updatemode;
     int threads;
@@ -316,13 +317,15 @@ struct print_info_options {
     bool subimages;
     bool compute_sha1;
     bool compute_stats;
+    bool dumpdata;
     std::string metamatch;
     std::string nometamatch;
     size_t namefieldlength;
 
     print_info_options ()
         : verbose(false), filenameprefix(false), sum(false), subimages(false),
-          compute_sha1(false), compute_stats(false), namefieldlength(20)
+          compute_sha1(false), compute_stats(false), dumpdata(false),
+          namefieldlength(20)
     {}
 };
 
