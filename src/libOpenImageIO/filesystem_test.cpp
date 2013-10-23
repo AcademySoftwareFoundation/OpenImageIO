@@ -29,6 +29,7 @@
 */
 
 #include <sstream>
+#include <fstream>
 
 #include "imageio.h"
 #include "filesystem.h"
@@ -109,8 +110,14 @@ test_file_seq (const char *pattern, const char *override,
 {
     std::vector<int> numbers;
     std::vector<std::string> names;
+    std::string normalized_pattern;
+    std::string frame_range;
 
-    Filesystem::enumerate_file_sequence (pattern, override, 0, numbers, names);
+    Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
+    if (override && strlen(override) > 0)
+        frame_range = override;
+    Filesystem::enumerate_sequence(frame_range.c_str(), numbers);
+    Filesystem::enumerate_file_sequence (normalized_pattern, numbers, names);
     std::string joined = Strutil::join(names, " ");
     std::cout << "  " << pattern;
     if (override)
@@ -118,6 +125,26 @@ test_file_seq (const char *pattern, const char *override,
     std::cout << " -> " << joined << "\n";
     OIIO_CHECK_EQUAL (joined, expected);
 }
+
+
+
+static void
+test_scan_file_seq (const char *pattern, const std::string &expected)
+{
+    std::vector<int> numbers;
+    std::vector<std::string> names;
+    std::string normalized_pattern;
+    std::string frame_range;
+
+    Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
+    Filesystem::scan_for_matching_filenames (normalized_pattern, numbers, names);
+    std::string joined = Strutil::join(names, " ");
+    std::cout << "  " << pattern;
+    std::cout << " -> " << joined << "\n";
+    OIIO_CHECK_EQUAL (joined, expected);
+}
+
+
 
 void test_frame_sequences ()
 {
@@ -151,11 +178,34 @@ void test_frame_sequences ()
 
 
 
+void test_scan_sequences ()
+{
+    std::cout << "Testing frame sequence scanning:\n";
+
+    std::vector< std::string > filenames;
+
+    for (size_t i = 1; i <= 5; i++) {
+        std::string fn = Strutil::format ("foo.%04d.exr", i);
+        filenames.push_back (fn);
+        std::ofstream f(fn.c_str());
+        f.close();
+    }
+
+#ifdef _WIN32
+    test_scan_file_seq ("foo.#.exr", ".\\foo.0001.exr .\\foo.0002.exr .\\foo.0003.exr .\\foo.0004.exr .\\foo.0005.exr");
+#else
+    test_scan_file_seq ("foo.#.exr", "./foo.0001.exr ./foo.0002.exr ./foo.0003.exr ./foo.0004.exr ./foo.0005.exr");
+#endif
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_filename_decomposition ();
     test_filename_searchpath_find ();
     test_frame_sequences ();
+    test_scan_sequences ();
 
     return unit_test_failures;
 }
