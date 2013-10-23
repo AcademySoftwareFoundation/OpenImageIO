@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <algorithm>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
@@ -436,29 +437,13 @@ Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
     return true;
 }
 
-
-
 bool
-Filesystem::enumerate_file_sequence (const char *pattern_,
-                                     const char *sequence_override,
-                                     int framepadding_override,
-                                     std::vector<int> &numbers,
-                                     std::vector<std::string> &filenames)
+Filesystem::parse_pattern (const char *pattern_,
+                           int framepadding_override,
+                           std::string &normalized_pattern,
+                           std::string &framespec)
 {
     std::string pattern (pattern_);
-
-#if 0
-    // Isolate the directory name (or '.' if none was specified)
-    std::string directory = Filesystem::parent_path (pattern);
-    if (directory.size() == 0) {
-        directory = ".";
-#ifdef _WIN32
-        pattern = ".\\\\" + pattern;
-#else
-        pattern = "./" + pattern;
-#endif
-    }
-#endif
 
     // The pattern is either a range (e.g., "1-15#"), a
     // set of hash marks (e.g. "####"), or a printf-style format
@@ -504,20 +489,92 @@ Filesystem::enumerate_file_sequence (const char *pattern_,
 
     // std::cout << "Format: '" << fmt << "'\n";
 
-    if (sequence_override && sequence_override[0])
-        thesequence = sequence_override;
+    normalized_pattern = prefix + fmt + suffix;
+    framespec = thesequence;
 
-    enumerate_sequence (thesequence.c_str(), numbers);
+    return true;
+}
 
+bool
+Filesystem::enumerate_file_sequence (const std::string &pattern,
+                                     const std::vector<int> &numbers,
+                                     std::vector<std::string> &filenames)
+{
     for (size_t i = 0, e = numbers.size(); i < e; ++i) {
-        std::string f = prefix + Strutil::format (fmt.c_str(), numbers[i]) + suffix;
+        std::string f = Strutil::format (pattern.c_str(), numbers[i]);
         filenames.push_back (f);
     }
 
     return true;
 }
 
+bool
+Filesystem::scan_for_matching_filenames(const std::string &pattern_,
+                                        std::vector<int> &numbers,
+                                        std::vector<std::string> &filenames)
+{
+    std::string pattern = pattern_;
 
+    // Isolate the directory name (or '.' if none was specified)
+    std::string directory = Filesystem::parent_path (pattern);
+    if (directory.size() == 0) {
+        directory = ".";
+#ifdef _WIN32
+        pattern = ".\\\\" + pattern;
+#else
+        pattern = "./" + pattern;
+#endif
+    }
+
+    if (! boost::filesystem::exists(directory))
+        return false;
+
+    // build a regex that matches the pattern
+    boost::regex format_re ("%0([0-9]+)d");
+    boost::match_results<std::string::const_iterator> format_match;
+    if (! boost::regex_search (pattern, format_match, format_re))
+        return false;
+
+    std::string thepadding (format_match[1].first, format_match[1].second);
+    std::string prefix (format_match.prefix().first, format_match.prefix().second);
+    std::string suffix (format_match.suffix().first, format_match.suffix().second);
+
+    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + "})" + suffix;
+    boost::regex pattern_re (pattern_re_str);
+
+    std::vector< std::pair< int, std::string > > matches;
+
+    boost::filesystem::directory_iterator end_it;
+#ifdef _WIN32
+    std::wstring wdirectory = Strutil::utf8_to_utf16 (directory);
+    for (boost::filesystem::directory_iterator it(wdirectory); it != end_it; ++it) {
+#else
+    for (boost::filesystem::directory_iterator it(directory); it != end_it; ++it) {
+#endif
+        if (boost::filesystem::is_regular_file(it->status())) {
+            const std::string f = it->path().string();
+
+            boost::match_results<std::string::const_iterator> frame_match;
+            if (boost::regex_match (f, frame_match, pattern_re)) {
+                std::string thenumber (frame_match[1].first, frame_match[1].second);
+
+                int frame = (int)strtol (thenumber.c_str(), NULL, 10);
+
+                matches.push_back (std::make_pair (frame, f));
+            }
+        }
+    }
+
+    // filesystem order is undefined, so return sorted sequences
+    std::sort (matches.begin(), matches.end());
+
+    for (size_t i = 0; i < matches.size(); ++i) {
+        numbers.push_back (matches[i].first);
+        filenames.push_back (matches[i].second);
+    }
+
+    return true;
+}
 
 }
 OIIO_NAMESPACE_EXIT

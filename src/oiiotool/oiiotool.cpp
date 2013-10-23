@@ -3299,11 +3299,18 @@ handle_sequence (int argc, const char **argv)
     std::string framespec = "";
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
+    std::vector<bool> sequence_is_output;
     bool is_sequence = false;
     for (int a = 1;  a < argc;  ++a) {
+        bool is_output = false;
+        if (! strcmp (argv[a], "-o") && a < argc-1) {
+            is_output = true;
+            a++;
+        }
         if (strchr (argv[a], '#') || strchr (argv[a], '@') || strchr (argv[a], '%')) {
             is_sequence = true;
             sequence_args.push_back (a);
+            sequence_is_output.push_back (is_output);
         }
         if (! strcmp (argv[a], "--frames") && a < argc-1) {
             framespec = argv[++a];
@@ -3319,23 +3326,62 @@ handle_sequence (int argc, const char **argv)
     if (! is_sequence)
         return false;
 
-    // For each of the arguments that contains a wildcard, use
-    // deduce_sequence to fully elaborate all the filenames in the
-    // sequence.  It's an error if the sequences are not all of the
-    // same length.
+    // For each of the arguments that contains a wildcard, get a normalized
+    // pattern in printf style (e.g. "foo.%04d.exr"). Next, either expand the
+    // frame pattern to a list of frame numbers and use enumerate_file_sequence
+    // to fully elaborate all the filenames in the sequence, or if no frame
+    // range was specified, scan the filesystem for matching frames. Output
+    // sequences without explicit frame ranges inherit the frame numbers of
+    // the first input sequence. It's an error if the sequences are not all
+    // of the same length.
     std::vector< std::vector<std::string> > filenames (argc+1); 
-    std::vector<int> frame_numbers;
+    std::vector< std::vector<int> > frame_numbers (argc+1);
+    std::string normalized_pattern, sequence_framespec;
     size_t nfilenames = 0;
-    for (size_t i = 0;  i < sequence_args.size();  ++i) {
+    bool result;
+    for (size_t i = 0; i < sequence_args.size(); ++i) {
         int a = sequence_args[i];
-        Filesystem::enumerate_file_sequence (argv[a], framespec.c_str(),
-                                             framepadding, frame_numbers,
-                                             filenames[a]);
+        result = Filesystem::parse_pattern (argv[a],
+                                            framepadding,
+                                            normalized_pattern,
+                                            sequence_framespec);
+        if (! result) {
+            ot.error (Strutil::format("Could not parse pattern: %s",
+                                      argv[a]), "");
+            return true;
+        }
+
+        // --frames overrides sequence framespec
+        if (! framespec.empty())
+            sequence_framespec = framespec;
+
+        if (! sequence_framespec.empty()) {
+            Filesystem::enumerate_sequence (sequence_framespec.c_str(),
+                                            frame_numbers[a]);
+            Filesystem::enumerate_file_sequence (normalized_pattern,
+                                                 frame_numbers[a],
+                                                 filenames[a]);
+        } else if (sequence_is_output[i]) {
+            // use frame numbers from first sequence
+            Filesystem::enumerate_file_sequence (normalized_pattern,
+                                                 frame_numbers[sequence_args[0]],
+                                                 filenames[a]);
+        } else if (! sequence_is_output[i]) {
+            result = Filesystem::scan_for_matching_filenames (normalized_pattern,
+                                                              frame_numbers[a],
+                                                              filenames[a]);
+            if (! result) {
+                ot.error (Strutil::format("No filenames found matching pattern: %s",
+                                          argv[a]), "");
+                return true;
+            }
+        }
+
         if (i == 0) {
             nfilenames = filenames[a].size();
         } else if (nfilenames != filenames[a].size()) {
-            ot.error (Strutil::format("Not all sequence specifications matched: %s vs. %s",
-                                      argv[sequence_args[0]], argv[a]), "");
+            ot.error (Strutil::format("Not all sequence specifications matched: %s (%d frames) vs. %s (%d frames)",
+                                      argv[sequence_args[0]], nfilenames, argv[a], filenames[a].size()), "");
             return true;
         }
     }
@@ -3349,8 +3395,10 @@ handle_sequence (int argc, const char **argv)
             size_t a = sequence_args[j];
             seq_argv[a] = filenames[a][i].c_str();
         }
+
         ot.clear_options (); // Careful to reset all command line options!
         getargs (argc, (char **)&seq_argv[0]);
+
         ot.process_pending ();
         if (ot.pending_callback()) {
             std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
