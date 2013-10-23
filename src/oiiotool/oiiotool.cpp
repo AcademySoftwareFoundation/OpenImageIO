@@ -3108,8 +3108,8 @@ getargs (int argc, char *argv[])
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym
                 "--threads %@ %d", set_threads, &ot.threads, "Number of threads (default 0 == #cores)",
-                "--frames %s", NULL, "Frame range for '#' wildcards",
-                "--framepadding %d", NULL, "Frame number padding digits",
+                "--frames %s", NULL, "Frame range for '#' or printf-style wildcards",
+                "--framepadding %d", NULL, "Frame number padding digits (ignored when using printf-style wildcards)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
@@ -3292,7 +3292,7 @@ handle_sequence (int argc, const char **argv)
 {
     Timer totaltime;
 
-    // First, scan the original command line arguments for '#' or '@'
+    // First, scan the original command line arguments for '#', '@' or '%0Nd'
     // characters.  Any found indicate that there are numeric range or
     // wildcards to deal with.  Also look for --frames and --framepadding
     // options.
@@ -3301,7 +3301,7 @@ handle_sequence (int argc, const char **argv)
     std::vector<int> sequence_args;  // Args with sequence numbers
     bool is_sequence = false;
     for (int a = 1;  a < argc;  ++a) {
-        if (strchr (argv[a], '#') || strchr (argv[a], '@')) {
+        if (strchr (argv[a], '#') || strchr (argv[a], '@') || strchr (argv[a], '%')) {
             is_sequence = true;
             sequence_args.push_back (a);
         }

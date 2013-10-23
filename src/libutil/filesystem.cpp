@@ -460,11 +460,12 @@ Filesystem::enumerate_file_sequence (const char *pattern_,
     }
 #endif
 
-    // The pattern is either a range (e.g., "1-15#"), or just a 
-    // set of hash marks (e.g. "####").
+    // The pattern is either a range (e.g., "1-15#"), a
+    // set of hash marks (e.g. "####"), or a printf-style format
+    // string (e.g. "%04d").
 #define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
-#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "(#|@)+"
+#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
     static boost::regex sequence_re (SEQUENCE_SPEC);
     // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
     boost::match_results<std::string::const_iterator> range_match;
@@ -475,23 +476,33 @@ Filesystem::enumerate_file_sequence (const char *pattern_,
 
     // It's a range. Generate the names by iterating through the numbers.
     std::string thematch (range_match[0].first, range_match[0].second);
-    // std::cout << "Match: '" << thematch << "'\n";
     std::string thesequence (range_match[1].first, range_match[1].second);
-    std::string thehashes (range_match[2].first, range_match[2].second);
+    std::string thehashes (range_match[9].first, range_match[9].second);
+    std::string theformat (range_match[11].first, range_match[11].second);
     std::string prefix (range_match.prefix().first, range_match.prefix().second);
     std::string suffix (range_match.suffix().first, range_match.suffix().second);
 
-    // Compute the amount of padding desired
-    int padding = 0;
-    for (int i = (int)thematch.length()-1;  i >= 0;  --i) {
-        if (thematch[i] == '#')
-            padding += 4;
-        else if (thematch[i] == '@')
-            padding += 1;
+    // std::cout << "theformat: " << theformat << "\n";
+
+    std::string fmt;
+    if (theformat.length() > 0) {
+        fmt = theformat;
     }
-    if (framepadding_override > 0)
-        padding = framepadding_override;
-    std::string fmt = Strutil::format ("%%0%dd", padding);
+    else {
+        // Compute the amount of padding desired
+        int padding = 0;
+        for (int i = (int)thematch.length()-1;  i >= 0;  --i) {
+            if (thematch[i] == '#')
+                padding += 4;
+            else if (thematch[i] == '@')
+                padding += 1;
+        }
+        if (framepadding_override > 0)
+            padding = framepadding_override;
+        fmt = Strutil::format ("%%0%dd", padding);
+    }
+
+    // std::cout << "Format: '" << fmt << "'\n";
 
     if (sequence_override && sequence_override[0])
         thesequence = sequence_override;
