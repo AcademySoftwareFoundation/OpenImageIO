@@ -58,16 +58,21 @@ times, making substitutions to the sequence arguments in turn.
 
 Image sequences are specified by having filename arguments to
 oiiotool use either a numeric range wildcard (designated such as
-``{\cf 1-10\#}''), or spelling out a more complex pattern with 
+``{\cf 1-10\#}'' or a {\cf printf}-like notation ``{\cf 1-10\%d}''),
+or spelling out a more complex pattern with
 {\cf --frames}.  For example:
 
 \begin{code}
     oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
 
+    oiiotool big.1-3%04d.tif --resize 100x100 -o small.1-3%04d.tif
+
     oiiotool --frames 1-3 big.#.tif --resize 100x100 -o small.#.tif
+
+    oiiotool --frames 1-3 big.%04d.tif --resize 100x100 -o small.%04d.tif
 \end{code}
 
-\noindent Either of those will be the equivalent of having issued the following
+\noindent Any of those will be the equivalent of having issued the following
 sequence of commands:
 
 \begin{code}
@@ -81,7 +86,8 @@ and may give a step size to skip frames ({\cf 1-5x2} means 1, 3, 5) or
 take the complement of the step size set ({\cf 1-5y2} means 2, 4) and
 may combine subsequences with a comma.
 
-The wildcard characters themselves specify how many digits to pad
+If you are using the {\cf \#} or {\cf @} wildcards, then
+the wildcard characters themselves specify how many digits to pad
 with leading zeroes, with {\cf \#} indicating 4 digits and {\cf @}
 indicating one digit (these may be combined: {\cf \#@@} means 6 digits).
 An optional {\cf --framepadding} can also be used to override the number
@@ -94,6 +100,11 @@ For example,
 {\cf blah.010.tif}, {\cf blah.012.tif}, 
 {\cf blah.014.tif}, {\cf blah.016.tif}, {\cf blah.018.tif}, 
 {\cf blah.020.tif}.
+
+Alternately, you can use the {\cf printf} notation, such as
+\begin{code}
+    oiiotool --frames 3,4,10-20x2 blah.%03d.tif
+\end{code}
 
 
 \section{\oiiotool Tutorial / Recipes}
@@ -344,12 +355,12 @@ and naming it ``Z'' so it will be recognized as a $z$ channel:
 \noindent Composite foreground images over background images for a
 series of files with frame numbers in their names:
 \begin{code}
-    oiiotool fg.1-50#.exr bg.1-50#.exr --over -o comp.1-50#.exr
+    oiiotool fg.1-50%04d.exr bg.1-50%04d.exr --over -o comp.1-50%04d.exr
 \end{code}
 
 \noindent Or,
 \begin{code}
-    oiiotool --frames 1-50 fg.#.exr bg.#.exr --over -o comp.#.exr
+    oiiotool --frames 1-50 fg.%04d.exr bg.%04d.exr --over -o comp.%04d.exr
 \end{code}
 
 
@@ -492,7 +503,8 @@ present in the hardware.
 
 \apiitem{--frames \emph{seq}\\
 --framepadding \emph{n}}
-Describes the frame range to substitute for the {\cf \#} wildcard.  The
+Describes the frame range to substitute for the {\cf \#} or {\cf \%0Nd} 
+numeric wildcards.  The
 sequence is a comma-separated list of subsequences; each subsequence
 is a single frame (e.g., {\cf 100}), a range of frames ({\cf 100-150}),
 or a frame range with step ({\cf 100-150x4} means {\cf  100,104,108,...}).
