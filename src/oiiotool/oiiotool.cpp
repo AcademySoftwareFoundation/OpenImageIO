@@ -3299,12 +3299,18 @@ handle_sequence (int argc, const char **argv)
     // characters.  Any found indicate that there are numeric range or
     // wildcards to deal with.  Also look for --frames and --framepadding
     // options.
+#define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
+#define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
+#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
+    static boost::regex sequence_re (SEQUENCE_SPEC);
     std::string framespec = "";
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     bool is_sequence = false;
     for (int a = 1;  a < argc;  ++a) {
-        if (strchr (argv[a], '#') || strchr (argv[a], '@') || strchr (argv[a], '%')) {
+        std::string strarg (argv[a]);
+        boost::match_results<std::string::const_iterator> range_match;
+        if (boost::regex_search (strarg, range_match, sequence_re)) {
             is_sequence = true;
             sequence_args.push_back (a);
         }
