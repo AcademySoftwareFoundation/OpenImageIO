@@ -584,28 +584,22 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         else if (type == "box2i" &&
                  (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute> (name))) {
             TypeDesc bx (TypeDesc::INT, TypeDesc::VEC2, 2);
-            int box[4];
-			box[0] = b2iattr->value().min[0];
-			box[1] = b2iattr->value().min[1];
-			box[2] = b2iattr->value().max[0];
-			box[3] = b2iattr->value().max[1];
-            spec.attribute (oname, bx, box);
+            spec.attribute (oname, bx, &b2iattr->value());
         }
         else if (type == "box2f" &&
                  (b2fattr = header->findTypedAttribute<Imf::Box2fAttribute> (name))) {
             TypeDesc bx (TypeDesc::FLOAT, TypeDesc::VEC2, 2);
-            float box[4];
-			box[0] = b2fattr->value().min[0];
-			box[1] = b2fattr->value().min[1];
-			box[2] = b2fattr->value().max[0];
-			box[3] = b2fattr->value().max[1];
-            spec.attribute (oname, bx, box);
+            spec.attribute (oname, bx, &b2fattr->value());
         }
-		else if (type == "timecode" &&
+        else if (type == "timecode" &&
                  (tattr = header->findTypedAttribute<Imf::TimeCodeAttribute> (name))) {
-			unsigned int timecode[2];
-			timecode[0] = tattr->value().timeAndFlags(Imf::TimeCode::TV60_PACKING); //TV60 returns unchanged _time
-			timecode[1] = tattr->value().userData();
+            unsigned int timecode[2];
+            timecode[0] = tattr->value().timeAndFlags(Imf::TimeCode::TV60_PACKING); //TV60 returns unchanged _time
+            timecode[1] = tattr->value().userData();
+
+            // Elevate "timeCode" to smpte:TimeCode
+            if (oname == "timeCode")
+                oname = "smpte:TimeCode";
             spec.attribute(oname, TypeDesc::TypeTimeCode, timecode);
         }
         else if (type == "keycode" &&
@@ -619,6 +613,10 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             keycode[4] = k->perfOffset();
             keycode[5] = k->perfsPerFrame();
             keycode[6] = k->perfsPerCount();
+
+            // Elevate "keyCode" to smpte:KeyCode
+            if (oname == "keyCode")
+                oname = "smpte:KeyCode";
             spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
         }
         else {
