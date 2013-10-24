@@ -200,10 +200,10 @@ int
 ColorConfig::getNumLooks () const
 {
 #ifdef USE_OCIO
-    return getImpl()->config_->getNumLooks();
-#else
-    return 0;
+    if (getImpl()->config_)
+        return getImpl()->config_->getNumLooks();
 #endif
+    return 0;
 }
 
 
@@ -212,10 +212,10 @@ const char *
 ColorConfig::getLookNameByIndex (int index) const
 {
 #ifdef USE_OCIO
-    return getImpl()->config_->getLookNameByIndex (index);
-#else
-    return NULL;
+    if (getImpl()->config_)
+        return getImpl()->config_->getLookNameByIndex (index);
 #endif
+    return NULL;
 }
 
 
