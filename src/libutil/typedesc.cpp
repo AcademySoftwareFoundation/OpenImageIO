@@ -162,7 +162,6 @@ TypeDesc::c_str () const
         switch (aggregate) {
         case VEC2 : agg = "2"; break;
         case VEC4 : agg = "4"; break;
-        case VEC7 : agg = "7"; break;
         case MATRIX44 : agg = "matrix"; break;
         }
         result = std::string (vec) + std::string (agg);
