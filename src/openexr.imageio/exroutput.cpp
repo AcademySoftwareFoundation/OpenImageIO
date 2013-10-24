@@ -789,6 +789,12 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
+    // SMPTE types
+    if (Strutil::iequals (xname, "smpte:TimeCode"))
+        xname = "timeCode";
+    if (Strutil::iequals (xname, "smpte:KeyCode"))
+        xname = "keyCode";
+
     // Supress planarconfig!
     if (Strutil::iequals (xname, "planarconfig") || Strutil::iequals (xname, "tiff:planarconfig"))
         return true;
@@ -821,101 +827,106 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // General handling of attributes
 
     // Scalar
-    if (type.aggregate == TypeDesc::SCALAR && type.arraylen <= 0) {
+    if (type.arraylen == 0) {
+        if (type.aggregate == TypeDesc::SCALAR) {
 
-        if (type == TypeDesc::INT || type == TypeDesc::UINT) {
-            header.insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
+            if (type == TypeDesc::INT || type == TypeDesc::UINT) {
+                header.insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
+                return true;
+            }
+            if (type == TypeDesc::INT16) {
+                header.insert (xname.c_str(), Imf::IntAttribute (*(short*)data));
+                return true;
+            }
+            if (type == TypeDesc::UINT16) {
+                header.insert (xname.c_str(), Imf::IntAttribute (*(unsigned short*)data));
+                return true;
+            }
+            if (type == TypeDesc::FLOAT) {
+                header.insert (xname.c_str(), Imf::FloatAttribute (*(float*)data));
+                return true;
+            }
+            if (type == TypeDesc::HALF) {
+                header.insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
+                return true;
+            }
+            if (type == TypeDesc::TypeString) {
+                header.insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
+                return true;
+            }
+        }
+        // Single instance of aggregate type
+        else if (type.vecsemantics != TypeDesc::TIMECODE && type.vecsemantics != TypeDesc::KEYCODE) {
+            if (type.aggregate == TypeDesc::VEC2) {
+                switch (type.basetype) {
+                    case TypeDesc::UINT:
+                    case TypeDesc::INT:
+                    // TODO could probably handle U/INT16 here too
+                        header.insert (xname.c_str(), Imf::V2iAttribute (*(Imath::V2i*)data));
+                        return true;
+                    case TypeDesc::FLOAT:
+                        header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
+                        return true;
+                    case TypeDesc::DOUBLE:
+                        header.insert (xname.c_str(), Imf::V2dAttribute (*(Imath::V2d*)data));
+                        return true;
+                    case TypeDesc::STRING:
+                        Imf::StringVector v;
+                        v.push_back(((std::string*)data)[0]);
+                        v.push_back(((std::string*)data)[1]);
+                        header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
+                        return true;
+                }
+            }
+            if (type.aggregate == TypeDesc::VEC3) {
+                switch (type.basetype) {
+                    case TypeDesc::UINT:
+                    case TypeDesc::INT:
+                    // TODO could probably handle U/INT16 here too
+                        header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
+                        return true;
+                    case TypeDesc::FLOAT:
+                        header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
+                        return true;
+                    case TypeDesc::DOUBLE:
+                        header.insert (xname.c_str(), Imf::V3dAttribute (*(Imath::V3d*)data));
+                        return true;
+                    case TypeDesc::STRING:
+                        Imf::StringVector v;
+                        v.push_back(((std::string*)data)[0]);
+                        v.push_back(((std::string*)data)[1]);
+                        v.push_back(((std::string*)data)[2]);
+                        header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
+                        return true;
+                }
+            }
+            if (type.aggregate == TypeDesc::MATRIX44) {
+                switch (type.basetype) {
+                    case TypeDesc::FLOAT:
+                        header.insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
+                        return true;
+                    case TypeDesc::DOUBLE:
+                        header.insert (xname.c_str(), Imf::M44dAttribute (*(Imath::M44d*)data));
+                        return true;
+                }
+            }
+        }
+        // TimeCode
+        else if (type == TypeDesc::TypeTimeCode )
+        {
+            header.insert(xname.c_str(), Imf::TimeCodeAttribute (*(Imf::TimeCode*)data));
             return true;
         }
-        if (type == TypeDesc::INT16) {
-            header.insert (xname.c_str(), Imf::IntAttribute (*(short*)data));
-            return true;
-        }
-        if (type == TypeDesc::UINT16) {
-            header.insert (xname.c_str(), Imf::IntAttribute (*(unsigned short*)data));
-            return true;
-        }
-        if (type == TypeDesc::FLOAT) {
-            header.insert (xname.c_str(), Imf::FloatAttribute (*(float*)data));
-            return true;
-        }
-        if (type == TypeDesc::HALF) {
-            header.insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
-            return true;
-        }
-        if (type == TypeDesc::TypeString) {
-            header.insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
+        // KeyCode
+        else if (type == TypeDesc::TypeKeyCode )
+        {
+            header.insert(xname.c_str(), Imf::KeyCodeAttribute (*(Imf::KeyCode*)data));
             return true;
         }
     }
-    // Single instance of aggregate type
-    else if (type.arraylen <= 0 && (type.vecsemantics != TypeDesc::TIMECODE && 
-                                    type.vecsemantics != TypeDesc::KEYCODE  )) {
-        if (type.aggregate == TypeDesc::VEC2) {
-            switch (type.basetype) {
-                case TypeDesc::UINT:
-                case TypeDesc::INT:
-                // TODO could probably handle U/INT16 here too
-                    header.insert (xname.c_str(), Imf::V2iAttribute (*(Imath::V2i*)data));
-                    return true;
-                case TypeDesc::FLOAT:
-                    header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
-                    return true;
-                case TypeDesc::DOUBLE:
-                    header.insert (xname.c_str(), Imf::V2dAttribute (*(Imath::V2d*)data));
-                    return true;
-                case TypeDesc::STRING:
-                    Imf::StringVector v;
-                    v.push_back(((std::string*)data)[0]);
-                    v.push_back(((std::string*)data)[1]);
-                    header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
-                    return true;
-            }
-        }
-        if (type.aggregate == TypeDesc::VEC3) {
-            switch (type.basetype) {
-                case TypeDesc::UINT:
-                case TypeDesc::INT:
-                // TODO could probably handle U/INT16 here too
-                    header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
-                    return true;
-                case TypeDesc::FLOAT:
-                    header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
-                    return true;
-                case TypeDesc::DOUBLE:
-                    header.insert (xname.c_str(), Imf::V3dAttribute (*(Imath::V3d*)data));
-                    return true;
-                case TypeDesc::STRING:
-                    Imf::StringVector v;
-                    v.push_back(((std::string*)data)[0]);
-                    v.push_back(((std::string*)data)[1]);
-                    v.push_back(((std::string*)data)[2]);
-                    header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
-                    return true;
-            }
-        }
-        if (type.aggregate == TypeDesc::MATRIX44) {
-            switch (type.basetype) {
-                case TypeDesc::FLOAT:
-                    header.insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
-                    return true;
-                case TypeDesc::DOUBLE:
-                    header.insert (xname.c_str(), Imf::M44dAttribute (*(Imath::M44d*)data));
-                    return true;
-            }
-        }
-    }
-    // TimeCode
-    else if (type.arraylen <= 0 && type == TypeDesc::TypeTimeCode )
-    {
-        header.insert(xname.c_str(), Imf::TimeCodeAttribute (*(Imf::TimeCode*)data));
-        return true;
-    }
-    // KeyCode
-    else if (type.arraylen <= 0 && type == TypeDesc::TypeKeyCode )
-    {
-        header.insert(xname.c_str(), Imf::KeyCodeAttribute (*(Imf::KeyCode*)data));
-        return true;
+    // Unknown length arrays (Don't know how to handle these yet)
+    else if (type.arraylen < 0) {
+        return false;
     }
     // Arrays
     else {
