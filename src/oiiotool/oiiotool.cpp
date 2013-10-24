@@ -1083,6 +1083,72 @@ action_ociolook (int argc, const char *argv[])
 
 
 static int
+action_ociodisplay (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    if (ot.postpone_callback (1, action_ociodisplay, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::string displayname = argv[1];
+    std::string viewname = argv[2];
+
+    // TODO: this would be useful, but I don't like the syntax
+//    if (displayname == "")
+//        displayname = ot.colorconfig.getDefaultDisplayName();
+//    if (viewname == "")
+//        viewname = ot.colorconfig.getDefaultViewName();
+
+    std::map<std::string,std::string> options;
+    options["from"] = "current";
+    options["key"] = "";
+    options["value"] = "";
+    extract_options (options, argv[0]);
+    std::string fromspace = options["from"];
+    std::string contextkey = options["key"];
+    std::string contextvalue = options["value"];
+    bool override_looks = options.find("looks") != options.end();
+
+    ImageRecRef A = ot.curimg;
+    ot.read (A);
+    ot.pop ();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           0, true, true|false));
+
+    if (fromspace == "current" || fromspace == "")
+        fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
+
+    ColorProcessor *processor = ot.colorconfig.createDisplayTransform (
+            displayname.c_str(), viewname.c_str(), fromspace.c_str(),
+            override_looks ? options["looks"].c_str() : 0,
+            contextkey.c_str(), contextvalue.c_str());
+    if (! processor) {
+        if (ot.colorconfig.error())
+            ot.error ("ociodisplay", ot.colorconfig.geterror());
+        else
+            ot.error ("ociodisplay", "Could not construct the display transform");
+        return 1;
+    }
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            if (! ok)
+                ot.error (argv[0], (*ot.curimg)(s,m).geterror());
+            // TODO: what should the oiio::Colorspace attribute be set to in this case?
+            //ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
+        }
+    }
+
+    ot.colorconfig.deleteColorProcessor (processor);
+
+    ot.function_times["ociodisplay"] += timer();
+    return 1;
+}
+
+
+
+static int
 action_unpremult (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_unpremult, argc, argv))
@@ -3256,6 +3322,8 @@ getargs (int argc, char *argv[])
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 "--ociolook %@ %s", action_ociolook, NULL,
                     "Apply the named OCIO look (optional args: from=, to=, inverse=, key=, value=)",
+                "--ociodisplay %@ %s %s", action_ociodisplay, NULL, NULL,
+                    "Apply the named OCIO display and view (optional args: from=, looks=, key=, value=)",
                 "--unpremult %@", action_unpremult, NULL,
                     "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
                 "--premult %@", action_premult, NULL,
@@ -3296,6 +3364,37 @@ getargs (int argc, char *argv[])
                 if (i < nlooks-1)
                     s << ", ";
             }
+            std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+        }
+
+        const char *default_display = ot.colorconfig.getDefaultDisplayName();
+        int ndisplays = ot.colorconfig.getNumDisplays();
+        if (ndisplays) {
+            std::stringstream s;
+            s << "Known displays: ";
+            for (int i = 0; i < ndisplays; ++i) {
+                const char *d = ot.colorconfig.getDisplayNameByIndex(i);
+                s << "\"" << d << "\"";
+                if (! strcmp(d, default_display))
+                    s << "*";
+                const char *default_view = ot.colorconfig.getDefaultViewName(d);
+                int nviews = ot.colorconfig.getNumViews(d);
+                if (nviews) {
+                    s << " (views: ";
+                    for (int i = 0; i < nviews; ++i) {
+                        const char *v = ot.colorconfig.getViewNameByIndex(d, i);
+                        s << "\"" << v << "\"";
+                        if (! strcmp(v, default_view))
+                            s << "*";
+                        if (i < nviews-1)
+                            s << ", ";
+                    }
+                    s << ")";
+                }
+                if (i < ndisplays-1)
+                    s << ", ";
+            }
+            s << " (* = default)";
             std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
         }
 
