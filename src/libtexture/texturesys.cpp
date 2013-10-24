@@ -224,8 +224,7 @@ TextureSystemImpl::getstats (int level, bool icstats) const
     bool anytexture = (stats.texture_queries + stats.texture3d_queries +
                        stats.shadow_queries + stats.environment_queries);
     if (level > 0 && anytexture) {
-        out << "OpenImageIO Texture statistics (" << (void*)this
-            << ", cache = " << (void *)m_imagecache << ")\n";
+        out << "OpenImageIO Texture statistics\n";
         out << "  Queries/batches : \n";
         out << "    texture     :  " << stats.texture_queries
             << " queries in " << stats.texture_batches << " batches\n";
