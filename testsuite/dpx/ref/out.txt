@@ -33,6 +33,7 @@ Reading ../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx
     dpx:WhiteLevel: 0
     dpx:IntegrationTimes: 0
     dpx:Packing: "Filled, method A"
+    smpte:TimeCode: 0, 0
     dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
@@ -73,6 +74,7 @@ Reading ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx
     dpx:WhiteLevel: 0
     dpx:IntegrationTimes: 0
     dpx:Packing: "Filled, method A"
+    smpte:TimeCode: 0, 0
     dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
