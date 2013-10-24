@@ -33,6 +33,8 @@
 
 #include "typedesc.h"
 #include "imageio.h"
+#include "smpte_keycode.h"
+#include "smpte_timecode.h"
 #include "fmath.h"
 #include "strutil.h"
 
@@ -455,12 +457,35 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (!tmpstr.empty ())
         m_spec.attribute ("dpx:Packing", tmpstr);
 
-    if (m_dpx.header.timeCode != 0xFFFFFFFF) {
-        m_dpx.header.TimeCode(buf);
-        m_spec.attribute ("dpx:TimeCode", buf);
+    if (m_dpx.header.filmManufacturingIdCode[0] != 0) {
+        int kc[7];
+        SMPTE_KeyCode keycode(m_dpx.header.filmManufacturingIdCode,
+                              m_dpx.header.filmType,
+                              m_dpx.header.prefix,
+                              m_dpx.header.count,
+                              m_dpx.header.perfsOffset,
+                              m_dpx.header.format);
+
+        keycode.toArray(kc);
+        m_spec.attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, kc);
     }
+
+    if (m_dpx.header.timeCode != 0xFFFFFFFF) {
+
+        unsigned int timecode[2] = {m_dpx.header.timeCode, m_dpx.header.userBits};
+        m_spec.attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, timecode);
+
+        // This attribute is dpx specific and is left in for backwards compatability.
+        // Users should utilise the new smpte:TimeCode attribute instead
+        SMPTE_TimeCode tc(m_dpx.header.timeCode, m_dpx.header.userBits);
+        m_spec.attribute ("dpx:TimeCode", tc.toString());
+    }
+
+    // This attribute is dpx specific and is left in for backwards compatability.
+    // Users should utilise the new smpte:TimeCode attribute instead
     if (m_dpx.header.userBits != 0xFFFFFFFF)
         m_spec.attribute ("dpx:UserBits", m_dpx.header.userBits);
+
     if (m_dpx.header.sourceTimeDate[0]) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)

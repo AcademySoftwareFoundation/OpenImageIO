@@ -38,6 +38,7 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "smpte_keycode.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -293,9 +294,6 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     if (tmpstr.size () > 0)
         m_dpx.header.SetVersion (tmpstr.c_str ());*/
     std::string tmpstr;
-    tmpstr = m_spec.get_string_attribute ("dpx:Format", "");
-    if (tmpstr.size () > 0)
-        m_dpx.header.SetFormat (tmpstr.c_str ());
     tmpstr = m_spec.get_string_attribute ("dpx:FrameId", "");
     if (tmpstr.size () > 0)
         m_dpx.header.SetFrameId (tmpstr.c_str ());
@@ -350,13 +348,40 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     orient = DpxOrientations[clamp (orient, 0, 8)];
     m_dpx.header.SetImageOrientation ((dpx::Orientation)orient);
 
-    std::string timecode = m_spec.get_string_attribute ("dpx:TimeCode", "");
-    int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
-    if (timecode.size () > 0)
-        m_dpx.header.SetTimeCode (timecode.c_str ());
-    else if (tmpint != ~0)
+    ImageIOParameter *tc = m_spec.find_attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, true);
+    if (tc) {
+        unsigned int *timecode = (unsigned int*) tc->data();
+        m_dpx.header.timeCode = timecode[0];
+        m_dpx.header.userBits = timecode[1];
+    }
+    else {
+        std::string timecode = m_spec.get_string_attribute ("dpx:TimeCode", "");
+        int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
+        if (timecode.size () > 0)
+            m_dpx.header.SetTimeCode (timecode.c_str ());
+        else if (tmpint != ~0)
         m_dpx.header.timeCode = tmpint;
-    m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
+        m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
+    }
+
+    ImageIOParameter *kc = m_spec.find_attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, true);
+    if (kc) {
+        int *array = (int*) kc->data();
+        SMPTE_KeyCode keycode(array[0], array[1], array[2], array[3], array[4], array[5], array[6]);
+        // Set the values from the keycode object
+        keycode.filmMfcCode(m_dpx.header.filmManufacturingIdCode);
+        keycode.filmType(m_dpx.header.filmType);
+        keycode.perfOffset(m_dpx.header.perfsOffset);
+        keycode.prefix(m_dpx.header.prefix);
+        keycode.count(m_dpx.header.count);
+        keycode.format(m_dpx.header.format);
+
+        // See if there is an overloaded dpx:Format
+        std::string format = m_spec.get_string_attribute ("dpx:Format", "");
+        if (format.size () > 0)
+            m_dpx.header.SetFormat (format.c_str ());
+    }
+
     std::string srcdate = m_spec.get_string_attribute ("dpx:SourceDateTime", "");
     if (srcdate.size () >= 19) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
