@@ -27,6 +27,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND libOpenImageIO_hdrs
           ../include/pugiconfig.hpp
           ../include/pugixml.hpp
+          ../include/pugixml.cpp
     )
 endif()
 
@@ -61,9 +62,9 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ${libOpenImageIO_hdrs}
                          )
 
-if (NOT USE_EXTERNAL_PUGIXML)
-    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
-endif ()
+#if (NOT USE_EXTERNAL_PUGIXML)
+#    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
+#endif ()
 
 # Include our own TBB if using it
 if (USE_TBB AND USE_EXTERNAL_TBB)
