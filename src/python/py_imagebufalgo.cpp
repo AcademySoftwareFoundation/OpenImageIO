@@ -497,6 +497,11 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("channel_append")
 
+        .def("flatten", &ImageBufAlgo::flatten,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("flatten")
+
         .def("crop", &ImageBufAlgo::crop,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))

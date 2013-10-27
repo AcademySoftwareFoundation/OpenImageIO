@@ -38,6 +38,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           imagebufalgo.cpp
                           imagebufalgo_compare.cpp
                           imagebufalgo_copy.cpp
+                          imagebufalgo_deep.cpp
                           imagebufalgo_pixelmath.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
                           maketexture.cpp

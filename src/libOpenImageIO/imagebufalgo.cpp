@@ -103,7 +103,8 @@ struct Dim3 {
 
 bool
 ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
-                       const ImageBuf *A, const ImageBuf *B)
+                       const ImageBuf *A, const ImageBuf *B,
+                       ImageSpec *force_spec)
 {
     if ((A && !A->initialized()) || (B && !B->initialized())) {
         if (dst)
@@ -150,7 +151,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         if (A) {
             // If there's an input image, give dst A's spec (with
             // modifications detailed below...)
-            spec = A->spec();
+            spec = force_spec ? (*force_spec) : A->spec();
             // For two inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
             // they should have pre-allocated dst with their desired format.
@@ -161,6 +162,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             spec.tile_width = 0;
             spec.tile_height = 0;
             spec.tile_depth = 0;
+        } else if (force_spec) {
+            spec = *force_spec;
         } else {
             spec.set_format (TypeDesc::FLOAT);
             spec.nchannels = roi.chend;

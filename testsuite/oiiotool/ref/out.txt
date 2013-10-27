@@ -121,6 +121,8 @@ Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
 PASS
 Comparing "chname.exr" and "ref/chname.exr"
 PASS
+Comparing "flat.exr" and "ref/flat.exr"
+PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "ref/cmul2.exr"

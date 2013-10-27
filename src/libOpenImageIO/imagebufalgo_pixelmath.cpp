@@ -1193,7 +1193,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     if (! initialized_R) {
         ImageSpec newspec = specA;
         set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
-        R.reset ("over", newspec);
+        R.reset (newspec);
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
@@ -1270,7 +1270,7 @@ ImageBufAlgo::zover (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (! initialized_R) {
         ImageSpec newspec = specA;
         set_roi (newspec, roi_union (get_roi(specA), get_roi(specB)));
-        R.reset ("zover", newspec);
+        R.reset (newspec);
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
