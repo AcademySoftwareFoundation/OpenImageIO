@@ -95,7 +95,7 @@ main (int argc, char **argv)
     }
 
     const int interval = 100000;  // 1/10 sec
-    const double eps = 1e-3;   // slop we allow in our timings
+    const double eps = 1e-2;   // slop we allow in our timings
 
     // Verify that Timer(false) doesn't start
     Timer all(true);
