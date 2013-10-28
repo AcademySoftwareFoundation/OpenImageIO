@@ -8,7 +8,7 @@ set (public_headers argparse.h color.h dassert.h errorhandler.h export.h
     )
 
 if (NOT USE_EXTERNAL_PUGIXML)
-    list (APPEND public_headers pugixml.hpp pugiconfig.hpp)
+    list (APPEND public_headers pugixml.hpp pugiconfig.hpp pugixml.cpp)
 endif()
 
 message(STATUS "Create version.h from version.h.in")
