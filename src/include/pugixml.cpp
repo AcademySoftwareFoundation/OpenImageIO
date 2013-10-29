@@ -103,17 +103,17 @@ using std::memmove;
 #endif
 
 #ifdef PUGIXML_HEADER_ONLY
-#	define PUGI__NS_BEGIN namespace pugi { namespace impl {
-#	define PUGI__NS_END } }
+#	define PUGI__NS_BEGIN OIIO_NAMESPACE_ENTER { namespace pugi { namespace impl {
+#	define PUGI__NS_END } } } OIIO_NAMESPACE_EXIT
 #	define PUGI__FN inline
 #	define PUGI__FN_NO_INLINE inline
 #else
 #	if defined(_MSC_VER) && _MSC_VER < 1300 // MSVC6 seems to have an amusing bug with anonymous namespaces inside namespaces
-#		define PUGI__NS_BEGIN namespace pugi { namespace impl {
-#		define PUGI__NS_END } }
+#		define PUGI__NS_BEGIN OIIO_NAMESPACE_ENTER { namespace pugi { namespace impl {
+#		define PUGI__NS_END } } } OIIO_NAMESPACE_EXIT
 #	else
-#		define PUGI__NS_BEGIN namespace pugi { namespace impl { namespace {
-#		define PUGI__NS_END } } }
+#		define PUGI__NS_BEGIN OIIO_NAMESPACE_ENTER { namespace pugi { namespace impl { namespace {
+#		define PUGI__NS_END } } } } OIIO_NAMESPACE_EXIT
 #	endif
 #	define PUGI__FN
 #	define PUGI__FN_NO_INLINE PUGI__NO_INLINE
@@ -458,6 +458,7 @@ PUGI__NS_BEGIN
 	}
 PUGI__NS_END
 
+OIIO_NAMESPACE_ENTER {
 namespace pugi
 {
 	/// A 'name=value' XML attribute structure.
@@ -501,6 +502,7 @@ namespace pugi
 		xml_attribute_struct*	first_attribute;		///< First attribute
 	};
 }
+} OIIO_NAMESPACE_EXIT
 
 PUGI__NS_BEGIN
 	struct xml_document_struct: public xml_node_struct, public xml_allocator
@@ -3652,6 +3654,7 @@ PUGI__NS_BEGIN
 	}
 PUGI__NS_END
 
+OIIO_NAMESPACE_ENTER {
 namespace pugi
 {
 	PUGI__FN xml_writer_file::xml_writer_file(void* file_): file(file_)
@@ -5375,6 +5378,7 @@ namespace pugi
 		return impl::xml_memory::deallocate;
 	}
 }
+} OIIO_NAMESPACE_EXIT
 
 #if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
 namespace std
@@ -9622,6 +9626,7 @@ PUGI__NS_BEGIN
 	}
 PUGI__NS_END
 
+OIIO_NAMESPACE_ENTER {
 namespace pugi
 {
 #ifndef PUGIXML_NO_EXCEPTIONS
@@ -10187,6 +10192,7 @@ namespace pugi
 		return query.evaluate_node_set(*this);
 	}
 }
+} OIIO_NAMESPACE_EXIT
 
 #endif
 
