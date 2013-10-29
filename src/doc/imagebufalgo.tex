@@ -1245,7 +1245,7 @@ higher-contrast edges.
 \begin{code}
     ImageBuf Blurry ("tahoe.exr");
     ImageBuf Sharp;
-    ImageBufAlgo::unsharp_mask (Sharp, "gaussian", 5.0f, Blurry);
+    ImageBufAlgo::unsharp_mask (Sharp, Blurry, "gaussian", 5.0f);
 \end{code}
 \apiend
 
