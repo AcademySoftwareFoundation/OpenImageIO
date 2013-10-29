@@ -31,6 +31,7 @@
 
 #include "tbb_stddef.h"
 #include <stdexcept>
+#include <new>
 
 #if __TBB_EXCEPTIONS && !defined(__EXCEPTIONS) && !defined(_CPPUNWIND) && !defined(__SUNPRO_CC)
 #error The current compilation environment does not support exception handling. Please set __TBB_EXCEPTIONS to 0 in tbb_config.h
