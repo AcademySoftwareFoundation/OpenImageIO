@@ -22,6 +22,9 @@
 #ifndef HEADER_PUGIXML_HPP
 #define HEADER_PUGIXML_HPP
 
+#include "version.h"
+#define USING_OIIO_PUGI 1
+
 // Include stddef.h for size_t and ptrdiff_t
 #include <stddef.h>
 
@@ -72,6 +75,7 @@
 #	define PUGIXML_CHAR char
 #endif
 
+OIIO_NAMESPACE_ENTER {
 namespace pugi
 {
 	// Character type used for all internal storage and operations; depends on PUGIXML_WCHAR_MODE
@@ -1216,6 +1220,7 @@ namespace pugi
 	allocation_function PUGIXML_FUNCTION get_memory_allocation_function();
 	deallocation_function PUGIXML_FUNCTION get_memory_deallocation_function();
 }
+} OIIO_NAMESPACE_EXIT
 
 #if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
 namespace std
