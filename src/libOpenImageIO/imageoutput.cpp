@@ -113,7 +113,7 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 
     bool ok = true;
     stride_t pixelsize = format.size() * m_spec.nchannels;
-    std::vector<char> buf;
+    boost::scoped_array<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
@@ -130,7 +130,8 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                     ok &= write_tile (x, y, z, format, tilestart,
                                      xstride, ystride, zstride);
                 } else {
-                    buf.resize (pixelsize * m_spec.tile_pixels());
+                    if (! buf.get())
+                        buf.reset (new char [pixelsize * m_spec.tile_pixels()]);
                     OIIO::copy_image (m_spec.nchannels, xw, yh, zd,
                                 tilestart, pixelsize, xstride, ystride, zstride,
                                 &buf[0], pixelsize, pixelsize*m_spec.tile_width,

@@ -904,7 +904,7 @@ ImageBuf::write (ImageOutput *out,
         ok = out->write_deep_image (impl->m_deepdata);
     } else {
         // Backed by ImageCache
-        std::vector<char> tmp (m_spec.image_bytes());
+        boost::scoped_array<char> tmp (new char [m_spec.image_bytes()]);
         get_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
                     m_spec.format, &tmp[0]);
         ok = out->write_image (m_spec.format, &tmp[0], as, as, as,
