@@ -24,7 +24,7 @@ command += "python test_imagebufalgo.py > out.txt ;"
 # Checkout outputs -- some of the refs are in the oiiotool test dir
 for f in [ "black.tif", "filled.tif", "checker.tif",
            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
-           "chappend-rgbaz.exr",
+           "chappend-rgbaz.exr", "flat.exr",
            "crop.tif", "pasted.tif",
            "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
            "cshift.tif", "cadd1.exr", "cadd2.exr", "add.exr", "sub.exr",

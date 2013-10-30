@@ -68,6 +68,11 @@ try:
                                  ImageBuf("ch-z.exr"))
     write (b, "chappend-rgbaz.exr")
 
+    # flatten
+    b = ImageBuf()
+    ImageBufAlgo.flatten (b, ImageBuf("../oiiotool/src/deepalpha.exr"))
+    write (b, "flat.exr")
+
     # crop
     b = ImageBuf()
     ImageBufAlgo.crop (b, grid, oiio.ROI(50,150,200,600))

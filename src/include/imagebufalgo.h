@@ -206,6 +206,27 @@ bool OIIO_API channel_append (ImageBuf &dst, const ImageBuf &A,
                               int nthreads=0);
 
 
+/// Set dst to the ``flattened'' composite of deep image src.  That is, it
+/// converts a deep image to a simple flat image by front-to-back
+/// compositing the samples within each pixel.  If src is already a non-
+/// deep/flat image, it will just copy pixel values from src to dst. If dst
+/// is not already an initialized ImageBuf, it will be sized to match src
+/// (but made non-deep).
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+bool OIIO_API flatten (ImageBuf &dst, const ImageBuf &src,
+                       ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Reset dst to be the specified region of src.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may

@@ -2801,6 +2801,34 @@ action_zover (int argc, const char *argv[])
 
 
 static int
+action_flatten (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_flatten, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    const ImageBuf &Aib ((*A)());
+    const ImageSpec &specA = Aib.spec();
+
+    // Create output image specification.
+    ImageSpec specR = specA;
+    specR.deep = false;
+
+    ot.push (new ImageRec ("flatten", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    bool ok = ImageBufAlgo::flatten (Rib, Aib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+    ot.function_times["flatten"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_fill (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_fill, argc, argv))
@@ -3216,6 +3244,7 @@ getargs (int argc, char *argv[])
                     "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",
                 "--chappend %@", action_chappend, NULL,
                     "Append the channels of the last two images",
+                "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",

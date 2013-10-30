@@ -792,6 +792,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         }
         m_spec = m_nativespec;   // Deep images always use native data
         m_pixels_valid = true;
+        m_storage = ImageBuf::LOCALBUFFER;
         return true;
     }
 

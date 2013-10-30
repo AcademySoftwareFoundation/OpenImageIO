@@ -9,7 +9,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1078
+    openexr:chunkCount: 1078
     name: "rgba.left"
     nuke/node_hash: "b4ea9f917764b762"
     Copyright: "Copyright 2012 Weta Digital Ltd"
@@ -25,7 +25,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1078
+    openexr:chunkCount: 1078
     name: "depth.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
@@ -40,7 +40,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1078
+    openexr:chunkCount: 1078
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
@@ -55,7 +55,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1078
+    openexr:chunkCount: 1078
     name: "depth.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
@@ -85,13 +85,13 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 761
+    openexr:chunkCount: 761
     name: "rgba.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
-    version: 1
+    openexr:version: 1
     view: "left"
  subimage  1: 1452 x  761, 5 channel, float openexr
     SHA-1: 4318FB751F2C30955AC745FFFCF47E8BB932C8D1
@@ -101,13 +101,13 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     full/display origin: 0, 0
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 761
+    openexr:chunkCount: 761
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
-    version: 1
+    openexr:version: 1
     view: "right"
 ../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000169 0.000083 0.000092 0.015625 127.872681 (float)
@@ -133,26 +133,26 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     channel list: R (half), G (half), B (half), A (half), Z (float)
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1080
+    openexr:chunkCount: 1080
     name: "rgba.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
-    version: 1
+    openexr:version: 1
     view: "left"
  subimage  1: 1920 x 1080, 5 channel, float openexr
     SHA-1: 11F6FB62B0F1080F78DBA6464FCC92C30D3162AF
     channel list: R (half), G (half), B (half), A (half), Z (float)
     oiio:ColorSpace: "Linear"
     compression: "zips"
-    chunkCount: 1080
+    openexr:chunkCount: 1080
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
-    version: 1
+    openexr:version: 1
     view: "right"
 ../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000099 0.000341 0.000152 0.015625 72.493698 (float)
