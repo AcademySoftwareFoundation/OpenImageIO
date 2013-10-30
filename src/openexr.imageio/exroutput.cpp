@@ -819,6 +819,16 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         }
     }
 
+    // A few EXR things to suppress -- they should be added automatically by
+    // the library, don't mess it up by inadvertently copying it wrong from
+    // the user or from a file we read.
+    if (Strutil::iequals(xname, "type") ||
+        Strutil::iequals(xname, "version") ||
+        Strutil::iequals(xname, "chunkCount") ||
+        Strutil::iequals(xname, "maxSamplesPerPixel")) {
+        return false;
+    }
+
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
     if (type == TypeDesc::INT || type == TypeDesc::UINT) {
