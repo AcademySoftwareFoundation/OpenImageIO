@@ -1,6 +1,28 @@
 Changes:
 
 
+Release 1.2.3 (1 Nov 2013)
+--------------------------
+* 'oiiotool --pattern checker' (and ImageBufAlgo::checker) was
+  incorrect when nonzero offsets were used.
+* ImageBufAlgo::unsharp_mask() bug when src and dst were different
+  data formats.
+* PSD: fix handling of associated vs unassociated alpha.
+* Fixed bug that caused incorrect ImageBuf::copy_pixels() when the two
+  IB's had different data types.
+* Add BOOST_HOME and OCIO_HOME controls from the top-level Makefile wrapper.
+* Several OpenEXR 2.0 deep file fixes: only some compression types
+  supported, write_tiles passed wrong parameters, must suppress some
+  attribute names.
+* DPX - several fixes to properly handle images with nonzero origins.
+* Fixes for recent cmake not finding HDF5 properly.
+* Many fixes to make OIIO compile with libc++ (clang's new C++ library,
+  and the default on OSX Mavericks).
+* Fix OpenEXR write_scanlines handling of per-channel data types.
+* Upgraded PugiXML to a more modern version (necessary for clean compile
+  with libc++).
+
+
 Release 1.2.2 (1 Oct 2013)
 --------------------------
 * New features:
