@@ -103,8 +103,8 @@ Simple 64-bit FP sine wave pattern for testing of FITS readers"
 Comparing "../../../../../fits-images/pg93/tst0006.fits" and "tst0006.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0007.fits
-../../../../../fits-images/pg93/tst0007.fits :    0 x    0, 1 channel, float fits
-    SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+../../../../../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
+    SHA-1: 32FB2E046F09E6DC814A6040B03706174EAE7229
     channel list: A
     Object: "IEEE 32-bit test"
     Origin: "ESO"
@@ -159,8 +159,8 @@ So best of luck with the decoding"
 Comparing "../../../../../fits-images/pg93/tst0007.fits" and "tst0007.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0008.fits
-../../../../../fits-images/pg93/tst0008.fits :    0 x    0, 1 channel, double fits
-    SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+../../../../../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
+    SHA-1: 5C21742E65AF385B106DE98BE7004190C6F2E2BC
     channel list: A
     Object: "IEEE 64-bit test"
     Origin: "ESO"

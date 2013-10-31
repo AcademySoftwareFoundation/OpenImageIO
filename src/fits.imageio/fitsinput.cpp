@@ -279,6 +279,8 @@ FitsInput::read_fits_header (void)
         }
         if (keyname == "NAXIS") {
             m_naxes = atoi (&card[10]);
+            if (m_naxes == 1)  // 1 axis is w x 1 image
+                m_spec.height = m_spec.full_height = 1;
             continue;
         }
         if (keyname == "NAXIS1") {
