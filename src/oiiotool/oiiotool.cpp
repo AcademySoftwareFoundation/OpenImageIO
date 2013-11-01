@@ -1118,29 +1118,18 @@ action_ociodisplay (int argc, const char *argv[])
     if (fromspace == "current" || fromspace == "")
         fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
 
-    ColorProcessor *processor = ot.colorconfig.createDisplayTransform (
-            displayname.c_str(), viewname.c_str(), fromspace.c_str(),
-            override_looks ? options["looks"].c_str() : 0,
-            contextkey.c_str(), contextvalue.c_str());
-    if (! processor) {
-        if (ot.colorconfig.error())
-            ot.error ("ociodisplay", ot.colorconfig.geterror());
-        else
-            ot.error ("ociodisplay", "Could not construct the display transform");
-        return 1;
-    }
-
     for (int s = 0, send = A->subimages();  s < send;  ++s) {
         for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
-            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            bool ok = ImageBufAlgo::ociodisplay (
+                    (*ot.curimg)(s,m), (*A)(s,m),
+                    displayname.c_str(), viewname.c_str(),
+                    fromspace.c_str(), 
+                    override_looks ? options["looks"].c_str() : 0, false,
+                    contextkey.c_str(), contextvalue.c_str());
             if (! ok)
                 ot.error (argv[0], (*ot.curimg)(s,m).geterror());
-            // TODO: what should the oiio::Colorspace attribute be set to in this case?
-            //ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
         }
     }
-
-    ot.colorconfig.deleteColorProcessor (processor);
 
     ot.function_times["ociodisplay"] += timer();
     return 1;

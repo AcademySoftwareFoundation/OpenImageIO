@@ -835,6 +835,45 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
 
     
 bool
+ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                           const char *display, const char *view,
+                           const char *from, const char *looks,
+                           bool unpremult,
+                           const char *key, const char *value,
+                           ROI roi, int nthreads)
+{
+    if (!from || !from[0] || !strcmp(from, "current")) {
+        std::string s = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
+        from = ustring(s).c_str();
+    }
+    if (!from) {
+        dst.error ("Unknown color space name");
+        return false;
+    }
+    ColorConfig *config = NULL;
+    ColorProcessor *processor = NULL;
+    {
+        spin_lock lock (colorconfig_mutex);
+        config = default_colorconfig.get();
+        if (! config)
+            default_colorconfig.reset (config = new ColorConfig);
+        processor = config->createDisplayTransform (display, view, from, looks, key, value);
+        if (! processor) {
+            if (config->error())
+                dst.error ("%s", config->geterror());
+            else
+                dst.error ("Could not construct the color transform");
+            return false;
+        }
+    }
+    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    config->deleteColorProcessor (processor);
+    return ok;
+}
+
+
+
+bool
 ImageBufAlgo::colorconvert (float * color, int nchannels,
                             const ColorProcessor* processor, bool unpremult)
 {
