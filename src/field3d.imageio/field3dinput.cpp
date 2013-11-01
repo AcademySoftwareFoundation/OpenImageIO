@@ -131,6 +131,9 @@ f3dpvt::oiio_field3d_initialize ()
             // Minimize Field3D's own internal caching
             SparseFileManager::singleton().setLimitMemUse(true); // Enables cache
             SparseFileManager::singleton().setMaxMemUse(20.0f); // In MB
+#if (100*FIELD3D_MAJOR_VER + FIELD3D_MINOR_VER) >= 104
+            Msg::setVerbosity (0); // Turn off console messages from F3D
+#endif
             initialized = true;
         }
     }
