@@ -273,19 +273,19 @@ if (USE_FIELD3D)
         # N.B. For a custom version, the caller had better set up the
         # variables HDF5_INCLUDE_DIRS and HDF5_LIBRARIES.
     else ()
-        find_package (HDF5 COMPONENTS CXX)
-        set (HDF5_LIBRARIES ${HDF5_LIBRARIES_RELEASE})
-        # The above line forces use of the release version of HDF5
-        # libraries; even when we compile OIIO in debug mode, we don't
-        # want the debug versions of HDF5 (which may not even be installed).
+        find_library (HDF5_LIBRARY
+                      NAMES hdf5
+                      PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                      /usr/local/lib
+                      /opt/local/lib
+                     )
+        if (HDF5_LIBRARY)
+            set (HDF5_FOUND true)
+        endif ()
     endif ()
     if (VERBOSE)
         message (STATUS "HDF5_FOUND=${HDF5_FOUND}")
-        message (STATUS "HDF5_INCLUDE_DIRS=${HDF5_INCLUDE_DIRS}")
-        message (STATUS "HDF5_C_LIBRARIES=${HDF5_C_LIBRARIES}")
-        message (STATUS "HDF5_CXX_LIBRARIES=${HDF5_CXX_LIBRARIES}")
-        message (STATUS "HDF5_LIBRARIES=${HDF5_LIBRARIES}")
-        message (STATUS "HDF5_LIBRARY_DIRS=${HDF5_LIBRARY_DIRS}")
+        message (STATUS "HDF5_LIBRARY=${HDF5_LIBRARY}")
     endif ()
 endif ()
 if (USE_FIELD3D AND HDF5_FOUND)
@@ -313,9 +313,7 @@ if (USE_FIELD3D AND HDF5_FOUND)
             message (STATUS "Field3D library = ${FIELD3D_LIBRARY}")
         endif ()
         add_definitions ("-DUSE_FIELD3D=1")
-        include_directories ("${HDF5_INCLUDE_DIRS}")
         include_directories ("${FIELD3D_INCLUDES}")
-        # link_directories ("${HDF5_INCLUDE_DIRS}")
     else ()
         message (STATUS "Field3D not found")
         add_definitions ("-UUSE_FIELD3D")
