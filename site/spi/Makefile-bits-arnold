@@ -9,18 +9,31 @@ $(info Including spi/Makefile-bits-arnold)
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
 
-## OS X machines
+## Official OS X build machines with special conventions
 ifeq (${SP_OS}, lion)
+    platform := lion
+    SPCOMP2_COMPILER ?= clang
+    INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+    ifeq (${OCIO_PATH},)
+        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
+    endif
+    ifeq (${FIELD3D_HOME},)
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
+    endif
     MY_CMAKE_FLAGS += \
-        -DBUILD_WITH_INSTALL_RPATH=1 \
+	-DOCIO_PATH=${OCIO_PATH} \
+	-DFIELD3D_HOME=${FIELD3D_HOME} \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${SP_OS}${variant}/lib"
-else
+endif
+
+
+## Generic OSX machines (including LG's laptop)
 ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
 endif
-endif
+
 
 ## Spinux (current)
 ifeq ($(SP_OS), spinux1)
