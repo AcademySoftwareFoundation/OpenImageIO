@@ -75,7 +75,7 @@
   #define OIIO_EXPORT __declspec(dllexport)
   #define OIIO_LOCAL
 #else
-  #if __GNUC__ >= 4
+  #if (10000*__GNUC__ + 100*__GNUC_MINOR__ + __GNUC_PATCHLEVEL__) > 40102
     #define OIIO_IMPORT __attribute__ ((visibility ("default")))
     #define OIIO_EXPORT __attribute__ ((visibility ("default")))
     #define OIIO_LOCAL  __attribute__ ((visibility ("hidden")))
