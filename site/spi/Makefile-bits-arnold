@@ -49,7 +49,7 @@ ifeq ($(SP_OS), spinux1)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
     ifeq (${FIELD3D_HOME},)
-        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v401"
     endif
 
     ## custom compiler: clang
