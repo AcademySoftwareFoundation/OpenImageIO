@@ -29,6 +29,7 @@
 */
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <ctime>
@@ -54,6 +55,7 @@
 # include <mach-o/dyld.h>
 # include <unistd.h>
 # include <sys/ioctl.h>
+# include <sys/sysctl.h>
 #endif
 
 #ifdef _WIN32
@@ -123,9 +125,78 @@ Sysutil::memory_used (bool resident)
         return counters.PagefileUsage;
     else return 0;
 
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // FIXME -- does somebody know a good method for figuring this out for
+    // FreeBSD?
+    return 0;   // Punt
 #else
     // No idea what platform this is
     ASSERT (0 && "Need to implement Sysutil::memory_used on this platform");
+    return 0;   // Punt
+#endif
+}
+
+
+
+size_t
+Sysutil::physical_memory ()
+{
+#if defined(__linux__)
+    size_t size = 0;
+    FILE *file = fopen ("/proc/meminfo", "r");
+    if (file) {
+        char buf[1024];
+        while (fgets (buf, sizeof(buf), file)) {
+            if (! strncmp (buf, "MemTotal:", 9)) {
+                size = 1024 * (size_t) strtol (buf+9, NULL, 10);
+                break;
+            }
+        }
+        fclose (file);
+    }
+    return size;
+
+#elif defined(__APPLE__)
+    // man 3 sysctl   ...or...
+    // https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/sysctl.3.html
+    // http://stackoverflow.com/questions/583736/determine-physical-mem-size-programmatically-on-osx
+    int mib[2] = { CTL_HW, HW_MEMSIZE };
+    int64_t physical_memory;
+    size_t length = sizeof(physical_memory);
+    sysctl (mib, 2, &physical_memory, &length, NULL, 0);
+    return size_t(physical_memory);
+
+#elif defined(_WIN32)
+    // According to MSDN
+    // (http://msdn.microsoft.com/en-us/library/windows/desktop/aa366589(v=vs.85).aspx
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof (statex);
+    GlobalMemoryStatusEx (&statex);
+    return size_t (statex.ullTotalPhys);  // Total physical memory
+    // N.B. Other fields nice to know (in bytes, except for dwMemoryLoad):
+    //        statex.dwMemoryLoad      Percent of memory in use
+    //        statex.ullAvailPhys      Free physical memory
+    //        statex.ullTotalPageFile  Total size of paging file
+    //        statex.ullAvailPageFile  Free mem in paging file
+    //        statex.ullTotalVirtual   Total virtual memory
+    //        statex.ullAvailVirtual   Free virtual memory
+
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // man 3 sysctl   ...or...
+    // http://www.freebsd.org/cgi/man.cgi?query=sysctl&sektion=3
+    // FIXME -- Does this accept a size_t?  Or only an int?  I can't
+    // seem to find an online resource that indicates that FreeBSD has a
+    // HW_MEMESIZE like Linux and OSX have, or a HW_PHYSMEM64 like
+    // OpenBSD has.
+    int mib[2] = { CTL_HW, HW_PHYSMEM };
+    size_t physical_memory;
+    size_t length = sizeof(physical_memory);
+    sysctl (mib, 2, &physical_memory, &length, NULL, 0);
+    return physical_memory;
+
+#else
+    // No idea what platform this is
+    ASSERT (0 && "Need to implement Sysutil::physical_memory on this platform");
     return 0;   // Punt
 #endif
 }

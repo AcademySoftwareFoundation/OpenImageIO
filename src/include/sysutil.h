@@ -112,6 +112,9 @@ namespace Sysutil {
 /// thread).
 OIIO_API size_t memory_used (bool resident=true);
 
+/// The amount of physical RAM on this machine, in bytes.
+/// If it can't figure it out, it will return 0.
+OIIO_API size_t physical_memory ();
 
 /// Convert calendar time pointed by 'time' into local time and save it in
 /// 'converted_time' variable
