@@ -66,6 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <unistd.h>
 
 #include "filesystem.h"
 
