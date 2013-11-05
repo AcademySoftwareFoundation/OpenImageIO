@@ -83,6 +83,8 @@ static ustring s_format ("format"), s_cachedformat ("cachedformat");
 static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
 static ustring s_exists ("exists");
 static ustring s_subimages ("subimages"), s_miplevels ("miplevels");
+static ustring s_datawindow ("datawindow"), s_displaywindow ("displaywindow");
+
 
 // Functor to compare filenames
 static bool
@@ -2131,8 +2133,42 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
         *(int *)data = file->miplevels(subimage);
         return true;
     }
-    // FIXME - "viewingmatrix"
-    // FIXME - "projectionmatrix"
+    if (dataname == s_datawindow && datatype.basetype == TypeDesc::INT &&
+        (datatype == TypeDesc(TypeDesc::INT,4) ||
+         datatype == TypeDesc(TypeDesc::INT,6))) {
+        int *d = (int *)data;
+        if (datatype.arraylen == 4) {
+            d[0] = spec.x;
+            d[1] = spec.y;
+            d[2] = spec.x + spec.width - 1;
+            d[3] = spec.y + spec.height - 1;
+        } else {
+            d[0] = spec.x;
+            d[1] = spec.y;
+            d[2] = spec.z;
+            d[3] = spec.x + spec.width - 1;
+            d[4] = spec.y + spec.height - 1;
+            d[5] = spec.z + spec.depth - 1;
+        }
+    }
+    if (dataname == s_displaywindow && datatype.basetype == TypeDesc::INT &&
+        (datatype == TypeDesc(TypeDesc::INT,4) ||
+         datatype == TypeDesc(TypeDesc::INT,6))) {
+        int *d = (int *)data;
+        if (datatype.arraylen == 4) {
+            d[0] = spec.full_x;
+            d[1] = spec.full_y;
+            d[2] = spec.full_x + spec.full_width - 1;
+            d[3] = spec.full_y + spec.full_height - 1;
+        } else {
+            d[0] = spec.full_x;
+            d[1] = spec.full_y;
+            d[2] = spec.full_z;
+            d[3] = spec.full_x + spec.full_width - 1;
+            d[4] = spec.full_y + spec.full_height - 1;
+            d[5] = spec.full_z + spec.full_depth - 1;
+        }
+    }
 
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
