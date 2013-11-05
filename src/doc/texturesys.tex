@@ -1170,6 +1170,18 @@ all accessible through the same API calls.
 \item[\rm \kw{channels}] The number of color channels in the file 
 (an integer).
 
+\item[\rm \kw{datawindow}] 
+Returns the pixel data window of the image, which is either an array of 4
+integers (returning xmin, ymin, xmax, ymax) or an array of 6 integers
+(returning xmin, ymin, zmin, xmax, ymax, zmax). The $z$ values may be useful
+for 3D/volumetric images; for 2D images they will be 0).
+
+\item[\rm \kw{displaywindow}] 
+Returns the display (a.k.a.\ full) window of the image, which is either an
+array of 4 integers (returning xmin, ymin, xmax, ymax) or an array of 6
+integers (returning xmin, ymin, zmin, xmax, ymax, zmax). The $z$ values may
+be useful for 3D/volumetric images; for 2D images they will be 0).
+
 \item[\rm \kw{viewingmatrix}] The viewing matrix, which is a
 $4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
   TypeDesc(FLOAT,MATRIX)}).
