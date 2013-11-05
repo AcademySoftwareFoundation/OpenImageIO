@@ -27,6 +27,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND libOpenImageIO_hdrs
           ../include/pugiconfig.hpp
           ../include/pugixml.hpp
+          ../include/pugixml.cpp
     )
 endif()
 
@@ -37,6 +38,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           imagebufalgo.cpp
                           imagebufalgo_compare.cpp
                           imagebufalgo_copy.cpp
+                          imagebufalgo_deep.cpp
                           imagebufalgo_pixelmath.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
                           maketexture.cpp
@@ -61,9 +63,9 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ${libOpenImageIO_hdrs}
                          )
 
-if (NOT USE_EXTERNAL_PUGIXML)
-    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
-endif ()
+#if (NOT USE_EXTERNAL_PUGIXML)
+#    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
+#endif ()
 
 # Include our own TBB if using it
 if (USE_TBB AND USE_EXTERNAL_TBB)
@@ -157,8 +159,18 @@ if (EMBEDPLUGINS)
     else ()
         message (STATUS "Field3D plugin will not be built")
         set (FIELD3D_LIBRARY "")
-        set (HDF5_LIBRARIES "")
+        set (HDF5_LIBRARY "")
     endif ()
+
+    if (GIF_FOUND AND USE_GIF)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../gif.imageio/gifinput.cpp
+             ../gif.imageio/gifoutput.cpp)
+        include_directories (${GIF_INCLUDE_DIR})
+        add_definitions("-DUSE_GIF")
+    else()
+        message (STATUS "GIF plugin will not be built")
+    endif()
 
     if (OPENJPEG_FOUND AND USE_OPENJPEG)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -255,11 +267,14 @@ if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
                                ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
                                ${FIELD3D_LIBRARY}
-                               ${HDF5_LIBRARIES}
+                               ${HDF5_LIBRARY}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
                           )
     link_openexr (OpenImageIO)
+    if (USE_GIF AND GIF_FOUND)
+        target_link_libraries (OpenImageIO ${GIF_LIBRARY})
+    endif ()
 endif ()
 
 if (USE_EXTERNAL_PUGIXML)

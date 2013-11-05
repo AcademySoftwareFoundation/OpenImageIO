@@ -26,70 +26,69 @@
 // DEALINGS IN THE SOFTWARE.
 
 //------------------------------------------------------------------------------
-// Tinyformat: A minimal type safe printf-replacement library for C++
+// Tinyformat: A minimal type safe printf replacement
 //
-// This library aims to support 95% of casual C++ string formatting needs with
-// a single lightweight header file.  Anything you can do with this library
-// can also be done with the standard C++ streams, but probably with
-// considerably more typing :)
+// tinyformat.h is a type safe printf replacement library in a single C++
+// header file.  Design goals include:
 //
-// Design goals:
-//
-// * Simplicity and minimalism.  A single header file to include and distribute
-//   with your own projects.
 // * Type safety and extensibility for user defined types.
-// * Parse standard C99 format strings, and support most features.
-// * Support as many commonly used ``printf()`` features as practical without
-//   compromising on simplicity.
+// * C99 printf() compatibility, to the extent possible using std::ostream
+// * Simplicity and minimalism.  A single header file to include and distribute
+//   with your projects.
+// * Augment rather than replace the standard stream formatting mechanism
+// * C++98 support, with optional C++11 niceties
 //
 //
-// Example usage
-// -------------
+// Main interface example usage
+// ----------------------------
 //
-// To print the date, we might have
+// To print a date to std::cout:
 //
-// std::string weekday = "Wednesday";
-// const char* month = "July";
-// long day = 27;
-// int hour = 14;
-// int min = 44;
+//   std::string weekday = "Wednesday";
+//   const char* month = "July";
+//   size_t day = 27;
+//   long hour = 14;
+//   int min = 44;
 //
-// tfm::format(std::cout, "%s, %s %d, %.2d:%.2d\n",
-//             weekday, month, day, hour, min);
+//   tfm::printf("%s, %s %d, %.2d:%.2d\n", weekday, month, day, hour, min);
 //
-// (The types here are intentionally odd to emphasize the type safety of the
-// interface.)  The same thing could be achieved using either of the two
-// convenience functions.  One returns a std::string:
+// The strange types here emphasize the type safety of the interface; it is
+// possible to print a std::string using the "%s" conversion, and a
+// size_t using the "%d" conversion.  A similar result could be achieved
+// using either of the tfm::format() functions.  One prints on a user provided
+// stream:
 //
-// std::string date = tfm::format("%s, %s %d, %.2d:%.2d\n",
-//                                weekday, month, day, hour, min);
-// std::cout << date;
+//   tfm::format(std::cerr, "%s, %s %d, %.2d:%.2d\n",
+//               weekday, month, day, hour, min);
 //
-// The other prints to the std::cout stream:
+// The other returns a std::string:
 //
-// tfm::printf("%s, %s %d, %.2d:%.2d\n", weekday, month, day, hour, min);
+//   std::string date = tfm::format("%s, %s %d, %.2d:%.2d\n",
+//                                  weekday, month, day, hour, min);
+//   std::cout << date;
 //
-//
-// Brief outline of functionality
-// ------------------------------
-//
-// (For full docs, see the accompanying README)
+// These are the three primary interface functions.
 //
 //
-// Interface functions:
+// User defined format functions
+// -----------------------------
 //
-//  template<typename T1, typename T2, ...>
-//  void format(std::ostream& stream, const char* formatString,
-//              const T1& value1, const T2& value1, ...)
+// Simulating variadic templates in C++98 is pretty painful since it requires
+// writing out the same function for each desired number of arguments.  To make
+// this bearable tinyformat comes with a set of macros which are used
+// internally to generate the API, but which may also be used in user code.
 //
-//  template<typename T1, typename T2, ...>
-//  std::string format(const char* formatString,
-//                     const T1& value1, const T2& value1, ...)
+// The three macros TINYFORMAT_ARGTYPES(n), TINYFORMAT_VARARGS(n) and
+// TINYFORMAT_PASSARGS(n) will generate a list of n argument types,
+// type/name pairs and argument names respectively when called with an integer
+// n between 1 and 16.  We can use these to define a macro which generates the
+// desired user defined function with n arguments.  To generate all 16 user
+// defined function bodies, use the macro TINYFORMAT_FOREACH_ARGNUM.  For an
+// example, see the implementation of printf() at the end of the source file.
 //
-//  template<typename T1, typename T2, ...>
-//  void printf(const char* formatString,
-//              const T1& value1, const T2& value1, ...)
 //
+// Additional API information
+// --------------------------
 //
 // Error handling: Define TINYFORMAT_ERROR to customize the error handling for
 // format strings which are unsupported or have the wrong number of format
@@ -97,10 +96,6 @@
 //
 // User defined types: Uses operator<< for user defined types by default.
 // Overload formatValue() for more control.
-//
-// Wrapping tfm::format inside a user defined format function: See the macros
-// TINYFORMAT_WRAP_FORMAT and TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS.
-
 
 
 #ifndef TINYFORMAT_H_INCLUDED
@@ -116,8 +111,8 @@ namespace tfm = tinyformat;
 // Error handling; calls assert() by default.
 // #define TINYFORMAT_ERROR(reasonString) your_error_handler(reasonString)
 
-// Define for C++0x variadic templates which make the code shorter & more
-// general.  If you don't define this, C++0x support is autodetected below.
+// Define for C++11 variadic templates which make the code shorter & more
+// general.  If you don't define this, C++11 support is autodetected below.
 // #define TINYFORMAT_USE_VARIADIC_TEMPLATES
 
 
@@ -145,6 +140,11 @@ namespace tfm = tinyformat;
 #   define TINYFORMAT_NOINLINE
 #endif
 
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20080201
+//  std::showpos is broken on old libstdc++ as provided with OSX.  See
+//  http://gcc.gnu.org/ml/libstdc++/2007-11/msg00075.html
+#   define TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+#endif
 
 namespace tinyformat {
 
@@ -165,9 +165,10 @@ struct is_convertible
         static const T1& makeT1();
     public:
 #       ifdef _MSC_VER
-        // Disable spurious loss of precision warning in tryConvert(makeT1())
+        // Disable spurious loss of precision warnings in tryConvert(makeT1())
 #       pragma warning(push)
 #       pragma warning(disable:4244)
+#       pragma warning(disable:4267)
 #       endif
         // Standard trick: the (...) version of tryConvert will be chosen from
         // the overload set only if the version taking a T2 doesn't match.
@@ -181,12 +182,20 @@ struct is_convertible
 };
 
 
+// Detect when a type is not a wchar_t string
+template<typename T> struct is_wchar { typedef int tinyformat_wchar_is_not_supported; };
+template<> struct is_wchar<wchar_t*> {};
+template<> struct is_wchar<const wchar_t*> {};
+template<int n> struct is_wchar<const wchar_t[n]> {};
+template<int n> struct is_wchar<wchar_t[n]> {};
+
+
 // Format the value by casting to type fmtT.  This default implementation
 // should never be called.
 template<typename T, typename fmtT, bool convertible = is_convertible<T, fmtT>::value>
 struct formatValueAsType
 {
-    static void invoke(std::ostream& out, const T& value) { assert(0); }
+    static void invoke(std::ostream& /*out*/, const T& /*value*/) { assert(0); }
 };
 // Specialized version for types that can actually be converted to fmtT, as
 // indicated by the "convertible" template parameter.
@@ -197,13 +206,33 @@ struct formatValueAsType<T,fmtT,true>
         { out << static_cast<fmtT>(value); }
 };
 
+#ifdef TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+template<typename T, bool convertible = is_convertible<T, int>::value>
+struct formatZeroIntegerWorkaround
+{
+    static bool invoke(std::ostream& /**/, const T& /**/) { return false; }
+};
+template<typename T>
+struct formatZeroIntegerWorkaround<T,true>
+{
+    static bool invoke(std::ostream& out, const T& value)
+    {
+        if (static_cast<int>(value) == 0 && out.flags() & std::ios::showpos)
+        {
+            out << "+0";
+            return true;
+        }
+        return false;
+    }
+};
+#endif // TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
 
 // Convert an arbitrary type to integer.  The version with convertible=false
 // throws an error.
 template<typename T, bool convertible = is_convertible<T,int>::value>
 struct convertToInt
 {
-    static int invoke(const T& value)
+    static int invoke(const T& /*value*/)
     {
         TINYFORMAT_ERROR("tinyformat: Cannot convert from argument type to "
                          "integer for use as variable width or precision");
@@ -235,9 +264,14 @@ struct convertToInt<T,true>
 // operator<< to format the type T, with special cases for the %c and %p
 // conversions.
 template<typename T>
-inline void formatValue(std::ostream& out, const char* fmtBegin,
+inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
                         const char* fmtEnd, const T& value)
 {
+#ifndef TINYFORMAT_ALLOW_WCHAR_STRINGS
+    // Since we don't support printing of wchar_t using "%ls", make it fail at
+    // compile time in preference to printing as a void* at runtime.
+    typedef typename detail::is_wchar<T>::tinyformat_wchar_is_not_supported DummyType;
+#endif
     // The mess here is to support the %c and %p conversions: if these
     // conversions are active we try to convert the type to a char or const
     // void* respectively and format that instead of the value itself.  For the
@@ -249,6 +283,9 @@ inline void formatValue(std::ostream& out, const char* fmtBegin,
         detail::formatValueAsType<T, char>::invoke(out, value);
     else if(canConvertToVoidPtr && *(fmtEnd-1) == 'p')
         detail::formatValueAsType<T, const void*>::invoke(out, value);
+#ifdef TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
+    else if(detail::formatZeroIntegerWorkaround<T>::invoke(out, value)) /**/;
+#endif
     else
         out << value;
 }
@@ -256,7 +293,7 @@ inline void formatValue(std::ostream& out, const char* fmtBegin,
 
 // Overloaded version for char types to support printing as an integer
 #define TINYFORMAT_DEFINE_FORMATVALUE_CHAR(charType)                  \
-inline void formatValue(std::ostream& out, const char* fmtBegin,      \
+inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,  \
                         const char* fmtEnd, charType value)           \
 {                                                                     \
     switch(*(fmtEnd-1))                                               \
@@ -274,6 +311,126 @@ TINYFORMAT_DEFINE_FORMATVALUE_CHAR(unsigned char)
 #undef TINYFORMAT_DEFINE_FORMATVALUE_CHAR
 
 
+//------------------------------------------------------------------------------
+// Tools for emulating variadic templates in C++98.  The basic idea here is
+// stolen from the boost preprocessor metaprogramming library and cut down to
+// be just general enough for what we need.
+
+#define TINYFORMAT_ARGTYPES(n) TINYFORMAT_ARGTYPES_ ## n
+#define TINYFORMAT_VARARGS(n) TINYFORMAT_VARARGS_ ## n
+#define TINYFORMAT_PASSARGS(n) TINYFORMAT_PASSARGS_ ## n
+#define TINYFORMAT_PASSARGS_TAIL(n) TINYFORMAT_PASSARGS_TAIL_ ## n
+
+// To keep it as transparent as possible, the macros below have been generated
+// using python via the excellent cog.py code generation script.  This avoids
+// the need for a bunch of complex (but more general) preprocessor tricks as
+// used in boost.preprocessor.
+//
+// To rerun the code generation in place, use `cog.py -r tinyformat.h`
+// (see http://nedbatchelder.com/code/cog).  Alternatively you can just create
+// extra versions by hand.
+
+/*[[[cog
+maxParams = 16
+
+def makeCommaSepLists(lineTemplate, elemTemplate, startInd=1):
+    for j in range(startInd,maxParams+1):
+        list = ', '.join([elemTemplate % {'i':i} for i in range(startInd,j+1)])
+        cog.outl(lineTemplate % {'j':j, 'list':list})
+
+makeCommaSepLists('#define TINYFORMAT_ARGTYPES_%(j)d %(list)s',
+                  'class T%(i)d')
+
+cog.outl()
+makeCommaSepLists('#define TINYFORMAT_VARARGS_%(j)d %(list)s',
+                  'const T%(i)d& v%(i)d')
+
+cog.outl()
+makeCommaSepLists('#define TINYFORMAT_PASSARGS_%(j)d %(list)s', 'v%(i)d')
+
+cog.outl()
+cog.outl('#define TINYFORMAT_PASSARGS_TAIL_1')
+makeCommaSepLists('#define TINYFORMAT_PASSARGS_TAIL_%(j)d , %(list)s',
+                  'v%(i)d', startInd = 2)
+
+cog.outl()
+cog.outl('#define TINYFORMAT_FOREACH_ARGNUM(m) \\\n    ' +
+         ' '.join(['m(%d)' % (j,) for j in range(1,maxParams+1)]))
+]]]*/
+#define TINYFORMAT_ARGTYPES_1 class T1
+#define TINYFORMAT_ARGTYPES_2 class T1, class T2
+#define TINYFORMAT_ARGTYPES_3 class T1, class T2, class T3
+#define TINYFORMAT_ARGTYPES_4 class T1, class T2, class T3, class T4
+#define TINYFORMAT_ARGTYPES_5 class T1, class T2, class T3, class T4, class T5
+#define TINYFORMAT_ARGTYPES_6 class T1, class T2, class T3, class T4, class T5, class T6
+#define TINYFORMAT_ARGTYPES_7 class T1, class T2, class T3, class T4, class T5, class T6, class T7
+#define TINYFORMAT_ARGTYPES_8 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8
+#define TINYFORMAT_ARGTYPES_9 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9
+#define TINYFORMAT_ARGTYPES_10 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10
+#define TINYFORMAT_ARGTYPES_11 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11
+#define TINYFORMAT_ARGTYPES_12 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12
+#define TINYFORMAT_ARGTYPES_13 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13
+#define TINYFORMAT_ARGTYPES_14 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14
+#define TINYFORMAT_ARGTYPES_15 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15
+#define TINYFORMAT_ARGTYPES_16 class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16
+
+#define TINYFORMAT_VARARGS_1 const T1& v1
+#define TINYFORMAT_VARARGS_2 const T1& v1, const T2& v2
+#define TINYFORMAT_VARARGS_3 const T1& v1, const T2& v2, const T3& v3
+#define TINYFORMAT_VARARGS_4 const T1& v1, const T2& v2, const T3& v3, const T4& v4
+#define TINYFORMAT_VARARGS_5 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5
+#define TINYFORMAT_VARARGS_6 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6
+#define TINYFORMAT_VARARGS_7 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7
+#define TINYFORMAT_VARARGS_8 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8
+#define TINYFORMAT_VARARGS_9 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9
+#define TINYFORMAT_VARARGS_10 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10
+#define TINYFORMAT_VARARGS_11 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11
+#define TINYFORMAT_VARARGS_12 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12
+#define TINYFORMAT_VARARGS_13 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12, const T13& v13
+#define TINYFORMAT_VARARGS_14 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12, const T13& v13, const T14& v14
+#define TINYFORMAT_VARARGS_15 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12, const T13& v13, const T14& v14, const T15& v15
+#define TINYFORMAT_VARARGS_16 const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12, const T13& v13, const T14& v14, const T15& v15, const T16& v16
+
+#define TINYFORMAT_PASSARGS_1 v1
+#define TINYFORMAT_PASSARGS_2 v1, v2
+#define TINYFORMAT_PASSARGS_3 v1, v2, v3
+#define TINYFORMAT_PASSARGS_4 v1, v2, v3, v4
+#define TINYFORMAT_PASSARGS_5 v1, v2, v3, v4, v5
+#define TINYFORMAT_PASSARGS_6 v1, v2, v3, v4, v5, v6
+#define TINYFORMAT_PASSARGS_7 v1, v2, v3, v4, v5, v6, v7
+#define TINYFORMAT_PASSARGS_8 v1, v2, v3, v4, v5, v6, v7, v8
+#define TINYFORMAT_PASSARGS_9 v1, v2, v3, v4, v5, v6, v7, v8, v9
+#define TINYFORMAT_PASSARGS_10 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10
+#define TINYFORMAT_PASSARGS_11 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11
+#define TINYFORMAT_PASSARGS_12 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12
+#define TINYFORMAT_PASSARGS_13 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13
+#define TINYFORMAT_PASSARGS_14 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14
+#define TINYFORMAT_PASSARGS_15 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15
+#define TINYFORMAT_PASSARGS_16 v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16
+
+#define TINYFORMAT_PASSARGS_TAIL_1
+#define TINYFORMAT_PASSARGS_TAIL_2 , v2
+#define TINYFORMAT_PASSARGS_TAIL_3 , v2, v3
+#define TINYFORMAT_PASSARGS_TAIL_4 , v2, v3, v4
+#define TINYFORMAT_PASSARGS_TAIL_5 , v2, v3, v4, v5
+#define TINYFORMAT_PASSARGS_TAIL_6 , v2, v3, v4, v5, v6
+#define TINYFORMAT_PASSARGS_TAIL_7 , v2, v3, v4, v5, v6, v7
+#define TINYFORMAT_PASSARGS_TAIL_8 , v2, v3, v4, v5, v6, v7, v8
+#define TINYFORMAT_PASSARGS_TAIL_9 , v2, v3, v4, v5, v6, v7, v8, v9
+#define TINYFORMAT_PASSARGS_TAIL_10 , v2, v3, v4, v5, v6, v7, v8, v9, v10
+#define TINYFORMAT_PASSARGS_TAIL_11 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11
+#define TINYFORMAT_PASSARGS_TAIL_12 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12
+#define TINYFORMAT_PASSARGS_TAIL_13 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13
+#define TINYFORMAT_PASSARGS_TAIL_14 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14
+#define TINYFORMAT_PASSARGS_TAIL_15 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15
+#define TINYFORMAT_PASSARGS_TAIL_16 , v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16
+
+#define TINYFORMAT_FOREACH_ARGNUM(m) \
+    m(1) m(2) m(3) m(4) m(5) m(6) m(7) m(8) m(9) m(10) m(11) m(12) m(13) m(14) m(15) m(16)
+//[[[end]]]
+
+
+
 namespace detail {
 
 // Class holding current position in format string and an output stream into
@@ -284,17 +441,18 @@ class FormatIterator
         // Flags for features not representable with standard stream state
         enum ExtraFormatFlags
         {
+            Flag_None                = 0,
             Flag_TruncateToPrecision = 1<<0, // truncate length to stream precision()
             Flag_SpacePadPositive    = 1<<1, // pad positive values with spaces
             Flag_VariableWidth       = 1<<2, // variable field width in arg list
-            Flag_VariablePrecision   = 1<<3, // variable field precision in arg list
+            Flag_VariablePrecision   = 1<<3  // variable field precision in arg list
         };
 
         // out is the output stream, fmt is the full format string
         FormatIterator(std::ostream& out, const char* fmt)
             : m_out(out),
             m_fmt(fmt),
-            m_extraFlags(0),
+            m_extraFlags(Flag_None),
             m_wantWidth(false),
             m_wantPrecision(false),
             m_variableWidth(0),
@@ -342,8 +500,8 @@ class FormatIterator
         // stream.  Return true if formatting proceeded (generic version always
         // returns false)
         template<typename T>
-        static bool formatCStringTruncate(std::ostream& out, const T& value,
-                                        std::streamsize truncLen)
+        static bool formatCStringTruncate(std::ostream& /*out*/, const T& /*value*/,
+                                        std::streamsize /*truncLen*/)
         {
             return false;
         }
@@ -398,6 +556,10 @@ class FormatIterator
                                                  int variableWidth,
                                                  int variablePrecision);
 
+        // Private copy & assign: Kill gcc warnings with -Weffc++
+        FormatIterator(const FormatIterator&);
+        FormatIterator& operator=(const FormatIterator&);
+
         // Stream, current format string & state
         std::ostream& m_out;
         const char* m_fmt;
@@ -417,12 +579,12 @@ class FormatIterator
 
 // Accept a value for formatting into the internal stream.
 template<typename T>
-TINYFORMAT_NOINLINE  //< greatly reduces bloat in optimized builds
+TINYFORMAT_NOINLINE  // < greatly reduces bloat in optimized builds
 void FormatIterator::accept(const T& value)
 {
     // Parse the format string
     const char* fmtEnd = 0;
-    if(m_extraFlags == 0 && !m_wantWidth && !m_wantPrecision)
+    if(m_extraFlags == Flag_None && !m_wantWidth && !m_wantPrecision)
     {
         m_fmt = printFormatStringLiteral(m_out, m_fmt);
         fmtEnd = streamStateFromFormat(m_out, m_extraFlags, m_fmt, 0, 0);
@@ -488,7 +650,7 @@ void FormatIterator::accept(const T& value)
         else
             m_out << result;
     }
-    m_extraFlags = 0;
+    m_extraFlags = Flag_None;
     m_fmt = fmtEnd;
 }
 
@@ -520,7 +682,7 @@ inline const char* FormatIterator::streamStateFromFormat(std::ostream& out,
     out.unsetf(std::ios::adjustfield | std::ios::basefield |
                std::ios::floatfield | std::ios::showbase | std::ios::boolalpha |
                std::ios::showpoint | std::ios::showpos | std::ios::uppercase);
-    extraFlags = 0;
+    extraFlags = Flag_None;
     bool precisionSet = false;
     bool widthSet = false;
     const char* c = fmtStart + 1;
@@ -642,7 +804,9 @@ inline const char* FormatIterator::streamStateFromFormat(std::ostream& out,
             out.flags(out.flags() & ~std::ios::floatfield);
             break;
         case 'a': case 'A':
-            break; // C99 hexadecimal floating point??  punt!
+            TINYFORMAT_ERROR("tinyformat: the %a and %A conversion specs "
+                             "are not supported");
+            break;
         case 'c':
             // Handled as special case inside formatValue()
             break;
@@ -677,18 +841,21 @@ inline const char* FormatIterator::streamStateFromFormat(std::ostream& out,
 
 
 //------------------------------------------------------------------------------
-// Private format function on top of which the public interface is implemented
-inline void format(FormatIterator& fmtIter)
+// Private format function on top of which the public interface is implemented.
+// We enforce a mimimum of one value to be formatted to prevent bugs looking like
+//
+//   const char* myStr = "100% broken";
+//   printf(myStr);   // Parses % as a format specifier
+#ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
+
+template<typename T1>
+void format(FormatIterator& fmtIter, const T1& value1)
 {
+    fmtIter.accept(value1);
     fmtIter.finish();
 }
 
-// Define N-argument format function.
-//
-// There's two cases here: c++0x and c++98.
-#ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
-
-// First, the simple definition for C++0x:
+// General version for C++11
 template<typename T1, typename... Args>
 void format(FormatIterator& fmtIter, const T1& value1, const Args&... args)
 {
@@ -698,124 +865,22 @@ void format(FormatIterator& fmtIter, const T1& value1, const Args&... args)
 
 #else
 
-// For C++98 we don't have variadic templates so we need to generate code
-// outside the language.  We could do this with some ugly macros but instead
-// let's use a short snippet of python code with the help of the excellent cog
-// code generation script ( http://nedbatchelder.com/code/cog/ )
+inline void format(FormatIterator& fmtIter)
+{
+    fmtIter.finish();
+}
 
-/*[[[cog
+// General version for C++98
+#define TINYFORMAT_MAKE_FORMAT_DETAIL(n)                                  \
+template<TINYFORMAT_ARGTYPES(n)>                                          \
+void format(detail::FormatIterator& fmtIter, TINYFORMAT_VARARGS(n))       \
+{                                                                         \
+    fmtIter.accept(v1);                                                   \
+    format(fmtIter TINYFORMAT_PASSARGS_TAIL(n));                          \
+}
 
-maxParams = 12
-
-# prepend a comma if the string isn't empty.
-def prependComma(str):
-    return '' if str == '' else ', ' + str
-
-# Append backslashes to lines so they appear as a macro in C++
-# lineLen is the desired padding before the backslash
-def formatAsMacro(str, lineLen=75):
-    lines = str.splitlines()
-    lines = [l+' '*max(1, lineLen-len(l)) for l in lines]
-    return '\\\n'.join(lines) + '\\'
-
-# Fill out the given string template.
-def fillTemplate(template, minParams=0, formatFunc=lambda s: s):
-    for i in range(minParams,maxParams+1):
-        paramRange = range(1,i+1)
-        templateSpec = ', '.join(['typename T%d' % (j,) for j in paramRange])
-        if templateSpec == '':
-            templateSpec = 'inline'
-        else:
-            templateSpec = 'template<%s>' % (templateSpec,)
-        paramList = prependComma(', '.join(['const T%d& v%d' % (j,j)
-                                            for j in paramRange]))
-        argList = prependComma(', '.join(['v%d' % (j,) for j in paramRange]))
-        argListNoHead = prependComma(', '.join(['v%d' % (j,)
-                                                for j in paramRange[1:]]))
-        cog.outl(formatFunc(template % locals()))
-
-fillTemplate(
-'''%(templateSpec)s
-void format(FormatIterator& fmtIter %(paramList)s)
-{
-    fmtIter.accept(v1);
-    format(fmtIter%(argListNoHead)s);
-}''', minParams=1)
-
-]]]*/
-template<typename T1>
-void format(FormatIterator& fmtIter , const T1& v1)
-{
-    fmtIter.accept(v1);
-    format(fmtIter);
-}
-template<typename T1, typename T2>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2);
-}
-template<typename T1, typename T2, typename T3>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3);
-}
-template<typename T1, typename T2, typename T3, typename T4>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7, v8);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7, v8, v9);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7, v8, v9, v10);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
-}
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12>
-void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12)
-{
-    fmtIter.accept(v1);
-    format(fmtIter, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
-}
-//[[[end]]]
+TINYFORMAT_FOREACH_ARGNUM(TINYFORMAT_MAKE_FORMAT_DETAIL)
+#undef TINYFORMAT_MAKE_FORMAT_DETAIL
 
 #endif // End C++98 variadic template emulation for format()
 
@@ -823,38 +888,78 @@ void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, 
 
 
 //------------------------------------------------------------------------------
-// Define the macro TINYFORMAT_WRAP_FORMAT, which can be used to wrap a call
-// to tfm::format for C++98 support.
-//
-// We make this available in both C++0x and C++98 mode for convenience so that
-// users can choose not to write out the C++0x version if they're primarily
-// interested in C++98 support, but still have things work with C++0x.
-//
-// Note that TINYFORMAT_WRAP_EXTRA_ARGS cannot be a macro parameter because it
-// must expand to a comma separated list (or nothing, as used for printf below)
+// Implement all the main interface functions here in terms of detail::format()
 
-/*[[[cog
-cog.outl(formatAsMacro(
-'''#define TINYFORMAT_WRAP_FORMAT(returnType, funcName, funcDeclSuffix,
-                               bodyPrefix, streamName, bodySuffix)'''))
+#ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
 
-fillTemplate(
-r'''%(templateSpec)s
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt
-                    %(paramList)s) funcDeclSuffix
+// C++11 - the simple case
+template<typename T1, typename... Args>
+void format(std::ostream& out, const char* fmt, const T1& v1, const Args&... args)
 {
-    bodyPrefix
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);
-    tinyformat::detail::format(fmtIter%(argList)s);
-    bodySuffix
-}''', minParams=0, formatFunc=formatAsMacro)
-cog.outl()
+    detail::FormatIterator fmtIter(out, fmt);
+    format(fmtIter, v1, args...);
+}
 
-]]]*/
-#ifndef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
+template<typename T1, typename... Args>
+std::string format(const char* fmt, const T1& v1, const Args&... args)
+{
+    std::ostringstream oss;
+    format(oss, fmt, v1, args...);
+    return oss.str();
+}
+
+template<typename T1, typename... Args>
+void printf(const char* fmt, const T1& v1, const Args&... args)
+{
+    format(std::cout, fmt, v1, args...);
+}
+
+#else
+
+// C++98 - define the interface functions using the wrapping macros
+#define TINYFORMAT_MAKE_FORMAT_FUNCS(n)                                   \
+                                                                          \
+template<TINYFORMAT_ARGTYPES(n)>                                          \
+void format(std::ostream& out, const char* fmt, TINYFORMAT_VARARGS(n))    \
+{                                                                         \
+    tinyformat::detail::FormatIterator fmtIter(out, fmt);                 \
+    tinyformat::detail::format(fmtIter, TINYFORMAT_PASSARGS(n));          \
+}                                                                         \
+                                                                          \
+template<TINYFORMAT_ARGTYPES(n)>                                          \
+std::string format(const char* fmt, TINYFORMAT_VARARGS(n))                \
+{                                                                         \
+    std::ostringstream oss;                                               \
+    tinyformat::format(oss, fmt, TINYFORMAT_PASSARGS(n));                 \
+    return oss.str();                                                     \
+}                                                                         \
+                                                                          \
+template<TINYFORMAT_ARGTYPES(n)>                                          \
+void printf(const char* fmt, TINYFORMAT_VARARGS(n))                       \
+{                                                                         \
+    tinyformat::format(std::cout, fmt, TINYFORMAT_PASSARGS(n));           \
+}
+
+TINYFORMAT_FOREACH_ARGNUM(TINYFORMAT_MAKE_FORMAT_FUNCS)
+#undef TINYFORMAT_MAKE_FORMAT_FUNCS
+
 #endif
 
+
+//------------------------------------------------------------------------------
+// Define deprecated wrapping macro for backward compatibility in tinyformat
+// 1.x.  Will be removed in version 2!
+#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
+#define TINYFORMAT_WRAP_FORMAT_N(n, returnType, funcName, funcDeclSuffix,  \
+                                 bodyPrefix, streamName, bodySuffix)       \
+template<TINYFORMAT_ARGTYPES(n)>                                           \
+returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt,     \
+                    TINYFORMAT_VARARGS(n)) funcDeclSuffix                  \
+{                                                                          \
+    bodyPrefix                                                             \
+    tinyformat::format(streamName, fmt, TINYFORMAT_PASSARGS(n));           \
+    bodySuffix                                                             \
+}                                                                          \
 
 #define TINYFORMAT_WRAP_FORMAT(returnType, funcName, funcDeclSuffix,       \
                                bodyPrefix, streamName, bodySuffix)         \
@@ -863,173 +968,26 @@ returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
                     ) funcDeclSuffix                                       \
 {                                                                          \
     bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter);                                   \
+    tinyformat::detail::FormatIterator(streamName, fmt).finish();          \
     bodySuffix                                                             \
 }                                                                          \
-template<typename T1>                                                      \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1) funcDeclSuffix                         \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1);                               \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2>                                         \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2) funcDeclSuffix           \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2);                           \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3>                            \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3);                       \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4>               \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4);                   \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5>  \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5);               \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6);           \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7);       \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7, v8);   \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7, v8, v9); \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10); \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11); \
-    bodySuffix                                                             \
-}                                                                          \
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12> \
-returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt      \
-                    , const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5, const T6& v6, const T7& v7, const T8& v8, const T9& v9, const T10& v10, const T11& v11, const T12& v12) funcDeclSuffix \
-{                                                                          \
-    bodyPrefix                                                             \
-    tinyformat::detail::FormatIterator fmtIter(streamName, fmt);           \
-    tinyformat::detail::format(fmtIter, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12); \
-    bodySuffix                                                             \
-}                                                                          \
+TINYFORMAT_WRAP_FORMAT_N(1 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(2 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(3 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(4 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(5 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(6 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(7 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(8 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(9 , returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(10, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(11, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(12, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(13, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(14, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(15, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
+TINYFORMAT_WRAP_FORMAT_N(16, returnType, funcName, funcDeclSuffix, bodyPrefix, streamName, bodySuffix) \
 
-//[[[end]]]
-
-
-//------------------------------------------------------------------------------
-// Implement all the main interface functions here in terms of detail::format()
-
-// Again, there's two cases.
-#ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
-
-// C++0x - the simple case
-template<typename... Args>
-void format(std::ostream& out, const char* fmt, const Args&... args)
-{
-    detail::FormatIterator fmtIter(out, fmt);
-    format(fmtIter, args...);
-}
-
-template<typename... Args>
-std::string format(const char* fmt, const Args&... args)
-{
-    std::ostringstream oss;
-    format(oss, fmt, args...);
-    return oss.str();
-}
-
-template<typename... Args>
-void printf(const char* fmt, const Args&... args)
-{
-    format(std::cout, fmt, args...);
-}
-
-#else
-
-// C++98 - define the convenience functions using the wrapping macros
-
-// template<typename... Args>
-// void format(std::ostream& out, const char* fmt, const Args&... args)
-#undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS std::ostream& out,
-TINYFORMAT_WRAP_FORMAT(void, format, /*empty*/, /*empty*/, out, /*empty*/)
-#undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-
-// Define to nothing for format & printf; leave defined for convenience.
-#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
-
-// std::string format(const char* fmt, const Args&... args);
-TINYFORMAT_WRAP_FORMAT(std::string, format, /*empty*/,
-                       std::ostringstream oss;, oss,
-                       return oss.str();)
-
-// void printf(const char* fmt, const Args&... args)
-TINYFORMAT_WRAP_FORMAT(void, printf, /*empty*/, /*empty*/, std::cout, /*empty*/)
-
-#endif
 
 } // namespace tinyformat
 

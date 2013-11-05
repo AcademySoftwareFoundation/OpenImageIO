@@ -27,6 +27,7 @@ Major contributors (roughly in order of joining the project):
     Jeremy Selan         Color space issues, maketx improvements, OpenColorIO
                            integration
     Daniel Wyatt         PSD
+    Mariusz Szczepanczyk GIF
 
 Other contributors (alphabetically):
 
@@ -35,6 +36,7 @@ Other contributors (alphabetically):
     Shane Ambler
     Basileios Anastasatos
     Cassian Andrei
+    Mark Boorer
     Solomon Boulos
     Nicolas Burtnyk
     Kevin Brightwell
@@ -47,6 +49,7 @@ Other contributors (alphabetically):
     Sebastian Elsner
     Julien Enche
     Marcos Fajardo
+    Delai Felinto
     Henri Fousse
     Vitor Franchi
     Manuel Gamito
@@ -60,18 +63,19 @@ Other contributors (alphabetically):
     Alexander Kuleshov
     Pete Larabell
     Michel Lerenard
+    Rui Li
     Hugh Macdonald
     Lukasz Maliszewski
     Justina Mikonyte
     Paul Molodowitch
     Ramon Montoya
     Alexander Murashko
-    Rui Li
-    Ryen
+    Samuel Nicholas
     M Joonas Pihlaja
     Carl Rand
     Sam Richards
     Jeremy Rose
+    Ryen
     Alex Schworer
     Aman Shah
     Richard Shaw
@@ -81,6 +85,7 @@ Other contributors (alphabetically):
     Ott Tinn
     Edgar Velazquez-Armendariz
     Matteo F. Vescovi
+    Mark Visser
     Brecht Van Lommel
     Wormszer
     Xo Wang

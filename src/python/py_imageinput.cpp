@@ -79,25 +79,36 @@ ImageInputWrap::~ImageInputWrap()
     delete m_input;
 }
 
-const char* ImageInputWrap::format_name()const {
+const char* ImageInputWrap::format_name() const {
     return m_input->format_name();
 }
 
-bool ImageInputWrap::open_regular (const std::string &name, 
-                                ImageSpec &newspec)
+bool ImageInputWrap::valid_file (const std::string &filename) const
 {
+    return m_input->valid_file (filename);
+}
+
+bool ImageInputWrap::open_regular (const std::string &name)
+{
+    ImageSpec newspec;
     return m_input->open(name, newspec);
 }
 
 bool ImageInputWrap::open_with_config (const std::string &name, 
-                        ImageSpec &newspec, const ImageSpec &config)
+                                       const ImageSpec &config)
 {
+    ImageSpec newspec;
     return m_input->open(name, newspec, config);
 }
 
-const ImageSpec&  ImageInputWrap::spec() const
+const ImageSpec& ImageInputWrap::spec() const
 {
     return m_input->spec();
+}
+
+bool ImageInputWrap::supports (const std::string &feature) const
+{
+    return m_input->supports (feature);
 }
 
 bool ImageInputWrap::close()
@@ -110,145 +121,273 @@ int ImageInputWrap::current_subimage() const
     return m_input->current_subimage();
 }
 
-bool ImageInputWrap::seek_subimage(int subimage, int miplevel, ImageSpec &newspec)
+int ImageInputWrap::current_miplevel() const
 {
-    return m_input->seek_subimage (subimage, miplevel, newspec);
+    return m_input->current_miplevel();
 }
 
-/*      **deprecated**
-// This is a bit different from the C++ interface.
-// The function is called with no arguments, and returns a 
-// python array. 
-object ImageInputWrap::read_image_simple () {
-    ImageSpec spec = m_input->spec();
-    //std::cout << "c_str: " << spec.format.c_str() << std::endl;
-    int size = spec.image_bytes();
-    float *data = new float[size];
-    // FIXME: should raise an exception instead of returning Py_None
-    if (!m_input->read_image(data)) return object(handle<>(Py_None));
-
-    object arr_module(handle<>(PyImport_ImportModule("array")));
-   
-    object array = arr_module.attr("array")("f");
-    object string_py(
-        handle<>(
-            PyString_FromStringAndSize(
-                    reinterpret_cast<const char*>(data),
-                    sizeof(float) * size)));
-
-    array.attr("fromstring")(string_py);
-    return array;
-}
-
-// Again, different from the C++ interface. User doesn't pass
-// an array - it is generated here and returned to Python.
-// other arguments not yet exposed to Python.
-object ImageInputWrap::read_image (TypeDesc format)  {
-    ImageSpec spec = m_input->spec();
-    int size = spec.image_bytes();
-    char *data = new char[size];
-    //FIXME: expose arguments to python (as default arguments)
-    if (!m_input->read_image(format, data, AutoStride, AutoStride, 
-        AutoStride, NULL, NULL )) return object(handle<>(Py_None));
-
-    object arr_module(handle<>(PyImport_ImportModule("array")));
-    object array = arr_module.attr("array")("B");
-    object string_py(
-        handle<>(
-            PyString_FromStringAndSize(
-                    reinterpret_cast<const char*>(data),
-                    sizeof(char) * size)));
-
-    array.attr("fromstring")(string_py);
-    return array;
-}
-*/
-
-// This function prepares a buffer for writing to it from c++
-void* ImageInputWrap::make_write_buffer (object &buffer, Py_ssize_t expected_len)
+bool ImageInputWrap::seek_subimage(int subimage, int miplevel)
 {
-    void *array;
-    Py_ssize_t len;
-    int success;
-    success = PyObject_AsWriteBuffer(buffer.ptr(), &array, &len);
-    if (success != 0) throw_error_already_set();
+    ImageSpec dummyspec;
+    return m_input->seek_subimage (subimage, miplevel, dummyspec);
+}
 
-    if (len < expected_len) {
-        PyErr_SetString(PyExc_IndexError, "Buffer size is smaller than data size");
-        throw_error_already_set();
+
+
+const char *
+python_array_code (TypeDesc format)
+{
+    switch (format.basetype) {
+    case TypeDesc::UINT8 :  return "B";
+    case TypeDesc::INT8 :   return "b";
+    case TypeDesc::UINT16 : return "H";
+    case TypeDesc::INT16 :  return "h";
+    case TypeDesc::UINT32 : return "I";
+    case TypeDesc::INT32 :  return "i";
+    case TypeDesc::FLOAT :  return "f";
+    case TypeDesc::DOUBLE : return "d";
+    default :               return "f";   // Punt -- return float
     }
+}
+
+
+
+object
+C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
+{
+    // Construct a Python array, convert the buffer we read into a string
+    // and then into the array.
+    object arr_module(handle<>(PyImport_ImportModule("array")));
+    object array = arr_module.attr("array")(python_array_code(type));
+#if PY_MAJOR_VERSION >= 3
+    object string_py(handle<>(PyBytes_FromStringAndSize(data, size)));
+#else
+    object string_py(handle<>(PyString_FromStringAndSize(data, size)));
+#endif
+#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
+    array.attr("fromstring")(string_py);
+#else
+    array.attr("frombytes")(string_py);
+#endif
     return array;
 }
+
+
 
 // The read_image method is a bit different from the c++ interface. 
 // "function" is a function which takes a float, and the 
 // PyProgressCallback function is called automatically.
-bool ImageInputWrap::read_image(TypeDesc format, object &buffer,
-                                    stride_t xstride=AutoStride, 
-                                    stride_t ystride=AutoStride, 
-                                    stride_t zstride=AutoStride,
-                                    object function=object(handle<>(Py_None)))
+object
+ImageInputWrap::read_image (TypeDesc format)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().image_pixels() * m_input->spec().nchannels * format.basesize());
-    if (function==handle<>(Py_None)) {
-        return m_input->read_image(format, write_buf, xstride, ystride, zstride,
-                                    NULL, NULL);
+    // Allocate our own temp buffer and try to read the image into it.
+    // If the read fails, return None.
+    const ImageSpec &spec = m_input->spec();
+    size_t size = (size_t) spec.image_pixels() * spec.nchannels * format.size();
+    char *data = new char[size];
+    if (!m_input->read_image(format, data)) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
     }
-    else {
-        return m_input->read_image(format, write_buf, xstride, ystride, zstride,
-                                    &PyProgressCallback, &function);
+
+    object array = C_array_to_Python_array (data, format, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
+}
+
+
+object
+ImageInputWrap_read_image_bt (ImageInputWrap& in, TypeDesc::BASETYPE format)
+{
+    return in.read_image (format);
+}
+
+
+object
+ImageInputWrap_read_image_default (ImageInputWrap& in)
+{
+    return in.read_image (TypeDesc::UNKNOWN);
+}
+
+
+
+object
+ImageInputWrap::read_scanline (int y, int z, TypeDesc format)
+{
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    const ImageSpec &spec = m_input->spec();
+    size_t size = (size_t) spec.width * spec.nchannels * format.size();
+    char *data = new char[size];
+    if (!m_input->read_scanline (y, z, format, data)) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
     }
+
+    object array = C_array_to_Python_array (data, format, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
 }
 
-bool ImageInputWrap::read_scanline(int y, int z, TypeDesc format, object &buffer,
-                stride_t xstride=AutoStride)
+
+object
+ImageInputWrap_read_scanline_bt (ImageInputWrap& in, int y, int z,
+                                 TypeDesc::BASETYPE format)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().width * m_input->spec().nchannels * format.basesize());
-    return m_input->read_scanline(y, z, format, write_buf, xstride);
+    return in.read_scanline (y, z, format);
 }
 
-// TESTME
-bool ImageInputWrap::read_scanline_simple(int y, int z, object &buffer)
+
+object
+ImageInputWrap_read_scanline_default (ImageInputWrap& in, int y, int z)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().width * m_input->spec().nchannels * sizeof(float));
-    return m_input->read_scanline(y, z, reinterpret_cast<float*>(write_buf));    
+    return in.read_scanline (y, z, TypeDesc::UNKNOWN);
 }
 
-// TESTME
-bool ImageInputWrap::read_tile(int x, int y, int z, TypeDesc format, 
-                                object &buffer, stride_t xstride=AutoStride, 
-                                stride_t ystride=AutoStride,
-                                stride_t zstride=AutoStride)
+
+
+object
+ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
+                                int chbegin, int chend, TypeDesc format)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().tile_pixels() * m_input->spec().nchannels * format.basesize());
-    return m_input->read_tile(x, y, z, format, write_buf, 
-                                xstride, ystride, zstride);
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    ASSERT (m_input);
+    const ImageSpec &spec = m_input->spec();
+    chend = clamp (chend, chbegin+1, spec.nchannels);
+    int nchans = chend - chbegin;
+    size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
+    char *data = new char[size];
+    if (!m_input->read_scanlines (ybegin, yend, z, format, data)) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
+    }
+
+    object array = C_array_to_Python_array (data, format, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
 }
 
-// TESTME
-bool ImageInputWrap::read_tile_simple(int x, int y, int z, object &buffer)
+
+object
+ImageInputWrap_read_scanlines_bt (ImageInputWrap& in, int ybegin, int yend,
+                                  int z, int chbegin, int chend,
+                                  TypeDesc::BASETYPE format)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().tile_pixels() * m_input->spec().nchannels * sizeof(float));
-    return m_input->read_tile(x, y, z, reinterpret_cast<float*>(write_buf));
+    return in.read_scanlines (ybegin, yend, z, chbegin, chend, format);
 }
 
-// TESTME
-bool ImageInputWrap::read_native_scanline(int y, int z, object &buffer)
+
+object
+ImageInputWrap_read_scanlines_default (ImageInputWrap& in, int ybegin, int yend,
+                                       int z, int chbegin, int chend)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().scanline_bytes());
-    return m_input->read_native_scanline(y, z, write_buf);
+    return in.read_scanlines (ybegin, yend, z, chbegin, chend, TypeDesc::UNKNOWN);
 }
 
-// TESTME
-bool ImageInputWrap::read_native_tile(int x, int y, int z, object &buffer)
+
+
+object
+ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
 {
-    void *write_buf = make_write_buffer(buffer, m_input->spec().tile_bytes());
-    return m_input->read_native_tile(x, y, z, write_buf);
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    const ImageSpec &spec = m_input->spec();
+    size_t size = (size_t) spec.tile_pixels() * spec.nchannels * format.size();
+    char *data = new char[size];
+    if (!m_input->read_tile (x, y, z, format, data)) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
+    }
+
+    object array = C_array_to_Python_array (data, format, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
 }
 
-std::string ImageInputWrap::geterror()const  {
+
+object
+ImageInputWrap_read_tile_bt (ImageInputWrap& in,
+                             int x, int y, int z, TypeDesc::BASETYPE format)
+{
+    return in.read_tile (x, y, z, format);
+}
+
+
+object
+ImageInputWrap_read_tile_default (ImageInputWrap& in,
+                                  int x, int y, int z)
+{
+    return in.read_tile (x, y, z, TypeDesc::UNKNOWN);
+}
+
+
+
+object
+ImageInputWrap::read_tiles (int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend, int chbegin, int chend,
+                            TypeDesc format)
+{
+    // Allocate our own temp buffer and try to read the scanline into it.
+    // If the read fails, return None.
+    const ImageSpec &spec = m_input->spec();
+    chend = clamp (chend, chbegin+1, spec.nchannels);
+    int nchans = chend - chbegin;
+    size_t size = (size_t) ((xend-xbegin) * (yend-ybegin) * 
+                            (zend-zbegin) * nchans * format.size());
+    char *data = new char[size];
+    if (!m_input->read_tiles (xbegin, xend, ybegin, yend,
+                              zbegin, zend, chbegin, chend, format, data)) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
+    }
+
+    object array = C_array_to_Python_array (data, format, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
+}
+
+
+object
+ImageInputWrap_read_tiles_bt (ImageInputWrap& in,
+                              int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, int chbegin, int chend,
+                              TypeDesc::BASETYPE format)
+{
+    return in.read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                          chbegin, chend, format);
+}
+
+
+object
+ImageInputWrap_read_tiles_default (ImageInputWrap& in,
+                                   int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend, int chbegin, int chend)
+{
+    return in.read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                          chbegin, chend, TypeDesc::UNKNOWN);
+}
+
+
+
+
+std::string
+ImageInputWrap::geterror() const
+{
     return m_input->geterror();
 }
+
+
 
 void declare_imageinput()
 {
@@ -258,25 +397,36 @@ void declare_imageinput()
         .staticmethod("create")
         .def("open", &ImageInputWrap::open_static_regular,
              (arg("filename")))
+        .def("open", &ImageInputWrap::open_static_with_config,
+             (arg("filename")))
         .staticmethod("open")
         .def("format_name",      &ImageInputWrap::format_name)
-//        .def("open",             &ImageInputWrap::open_regular)
-//        .def("open",             &ImageInputWrap::open_with_config)
+        .def("valid_file",       &ImageInputWrap::valid_file)
+        // .def("open",             &ImageInputWrap::open_regular)
+        // .def("open",             &ImageInputWrap::open_with_config)
         .def("spec",             &ImageInputWrap::spec, 
              return_value_policy<copy_const_reference>())
+        .def("supports",         &ImageInputWrap::supports)
         .def("close",            &ImageInputWrap::close)
         .def("current_subimage", &ImageInputWrap::current_subimage)
+        .def("current_miplevel", &ImageInputWrap::current_miplevel)
         .def("seek_subimage",    &ImageInputWrap::seek_subimage)
-        .def("read_image",       &ImageInputWrap::read_image,
-             (arg("xstride")=AutoStride, arg("ystride")=AutoStride,
-              arg("zstride")=AutoStride, arg("function")=object(handle<>(Py_None))))
-        .def("read_scanline",    &ImageInputWrap::read_scanline,
-             arg("xstride")=AutoStride)
-        .def("read_scanline",    &ImageInputWrap::read_scanline_simple)
+        .def("read_scanline",    &ImageInputWrap::read_scanline)
+        .def("read_scanline",    &ImageInputWrap_read_scanline_bt)
+        .def("read_scanline",    &ImageInputWrap_read_scanline_default)
+        .def("read_scanlines",   &ImageInputWrap::read_scanlines)
+        .def("read_scanlines",   &ImageInputWrap_read_scanlines_bt)
+        .def("read_scanlines",   &ImageInputWrap_read_scanlines_default)
         .def("read_tile",        &ImageInputWrap::read_tile)
-        .def("read_tile",        &ImageInputWrap::read_tile_simple)
-        .def("read_native_scanline", &ImageInputWrap::read_native_scanline)
-        .def("read_native_tile", &ImageInputWrap::read_native_tile)
+        .def("read_tile",        &ImageInputWrap_read_tile_bt)
+        .def("read_tile",        &ImageInputWrap_read_tile_default)
+        .def("read_tiles",       &ImageInputWrap::read_tiles)
+        .def("read_tiles",       &ImageInputWrap_read_tiles_bt)
+        .def("read_tiles",       &ImageInputWrap_read_tiles_default)
+        .def("read_image",       &ImageInputWrap::read_image)
+        .def("read_image",       &ImageInputWrap_read_image_bt)
+        .def("read_image",       &ImageInputWrap_read_image_default)
+//FIXME: read_native_deep_{scanlines,tiles,image}
         .def("geterror",         &ImageInputWrap::geterror)
     ;
 }

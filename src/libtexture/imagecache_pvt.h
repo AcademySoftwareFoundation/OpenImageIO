@@ -727,9 +727,12 @@ public:
     /// no such file can be found.  This returns a plain old pointer,
     /// which is ok because the file hash table has ref-counted pointers
     /// and those won't be freed until the texture system is destroyed.
+    /// If header_only is true, we are finding the file only for the sake
+    /// of header information (e.g., called by get_image_info).
     ImageCacheFile *find_file (ustring filename,
                                ImageCachePerThreadInfo *thread_info,
-                               ImageInput::Creator creator=NULL);
+                               ImageInput::Creator creator=NULL,
+                               bool header_only=false);
 
     /// Is the tile specified by the TileID already in the cache?
     bool tile_in_cache (const TileID &id,

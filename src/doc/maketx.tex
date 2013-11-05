@@ -80,7 +80,7 @@ that support it.
 \apiend
 
 \apiitem{--compression {\rm \emph{method}}}
-\NEW Sets the compression method for the output image (the default is to try
+Sets the compression method for the output image (the default is to try
 to use \qkw{zip} compression, if it is available).
 \apiend
 
@@ -145,13 +145,13 @@ include pixels with values $>1$, you may also wish to use the
 \apiend
 
 \apiitem{--hicomp}
-\NEW
 Perform highlight compensation.  When HDR input data with high-contrast
 highlights is turned into a MIP-mapped texture using a high-quality
 filter with negative lobes (such as {\cf lanczos3}), objectionable
 ringing could appear near very high-contrast regions with pixel values
 $>1$. This option improves those areas by using range compression
-(transforming HDR excess values $> 1$ to be log-encoded) prior to each
+(transforming values from a linear to a logarithmic scale that greatly
+compresses the values $> 1$) prior to each
 image filtered-resize step, and then expanded back to a linear format
 after the resize, and also clamping resulting pixel values to be
 non-negative.  This can result in some loss of energy, but often this is
@@ -194,7 +194,6 @@ region surrounding the pixel.
 \apiend
 
 \apiitem{--fullpixels}
-\NEW
 Resets the ``full'' (or ``display'') pixel range to be the ``data''
 range.  This is used to deal with input images that appear, in their
 headers, to be crop windows or overscanned images, but you want to treat
@@ -263,7 +262,7 @@ textures whose alpha is 1.0 everywhere.
 \apiend
 
 \apiitem{--ignore-unassoc}
-\NEW Ignore any header tags in the input images that indicate that the
+Ignore any header tags in the input images that indicate that the
 input has ``unassociated'' alpha.  When this option is used, color
 channels with unassociated alpha will not be automatically multiplied
 by alpha to turn them into associated alpha. This is also a good way

@@ -67,7 +67,9 @@ struct ROI {
 
     /// Default constructor is an undefined region.
     ///
-    ROI () : xbegin(std::numeric_limits<int>::min()) { }
+    ROI () : xbegin(std::numeric_limits<int>::min()), xend(0),
+             ybegin(0), yend(0), zbegin(0), zend(0), chbegin(0), chend(0)
+    { }
 
     /// Constructor with an explicitly defined region.
     ///
@@ -168,16 +170,38 @@ public:
     /// useless until you call reset().
     ImageBuf ();
 
-    /// Construct an ImageBuf to read the named image -- but don't
-    /// actually read it yet!  If a non-NULL imagecache is supplied, it
-    /// will specifiy a custom ImageCache to use; if otherwise, the
+    /// Construct an ImageBuf to read the named image (at the designated
+    /// subimage/MIPlevel -- but don't actually read it yet!   The image
+    /// will actually be read when other methods need to access the spec
+    /// and/or pixels, or when an explicit call to init_spec() or read() is
+    /// made, whichever comes first. If a non-NULL imagecache is supplied,
+    /// it will specifiy a custom ImageCache to use; if otherwise, the
     /// global/shared ImageCache will be used.
-    ImageBuf (const std::string &name, ImageCache *imagecache = NULL);
+    ImageBuf (const std::string &name, int subimage=0, int miplevel=0,
+              ImageCache *imagecache = NULL);
+
+    /// Construct an ImageBuf to read the named image -- but don't actually
+    /// read it yet!  The image will actually be read when other methods
+    /// need to access the spec and/or pixels, or when an explicit call to
+    /// init_spec() or read() is made, whichever comes first. If a non-NULL
+    /// imagecache is supplied, it will specifiy a custom ImageCache to use;
+    /// if otherwise, the global/shared ImageCache will be used.
+    ImageBuf (const std::string &name, ImageCache *imagecache);
+
+    /// Construct an Imagebuf given a proposed spec describing the image
+    /// size and type, and allocate storage for the pixels of the image
+    /// (whose values will be uninitialized).
+    ImageBuf (const ImageSpec &spec);
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
     /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
+
+    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
+    /// calling application.  It can write pixels to this buffer, but
+    /// can't change its resolution or data type.
+    ImageBuf (const ImageSpec &spec, void *buffer);
 
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
@@ -192,13 +216,29 @@ public:
     ///
     ~ImageBuf ();
 
+    /// Description of where the pixels live for this ImageBuf.
+    enum IBStorage { UNINITIALIZED,   // no pixel memory
+                     LOCALBUFFER,     // The IB owns the memory
+                     APPBUFFER,       // The IB wraps app's memory
+                     IMAGECACHE       // Backed by ImageCache
+                   };
+
     /// Restore the ImageBuf to an uninitialized state.
     ///
     void clear ();
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
-    void reset (const std::string &name, ImageCache *imagecache = NULL);
+    void reset (const std::string &name, int subimage, int miplevel,
+                ImageCache *imagecache = NULL);
+
+    /// Forget all previous info, reset this ImageBuf to a new image
+    /// that is uninitialized (no pixel values, no size or spec).
+    void reset (const std::string &name, ImageCache *imagecache=NULL);
+
+    /// Forget all previous info, reset this ImageBuf to a blank
+    /// image of the given dimensions.
+    void reset (const ImageSpec &spec);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
@@ -209,7 +249,12 @@ public:
     /// already has allocated pixels, their values will not be preserved
     /// if the new spec does not describe an image of the same size and
     /// data type as it used to be.
+    /// DEPRECATED (1.3) -- I don't see any reason why this should be
+    /// favored over reset(spec).
     void alloc (const ImageSpec &spec);
+
+    /// Which type of storage is being used for the pixels?
+    IBStorage storage () const;
 
     /// Is this ImageBuf object initialized?
     bool initialized () const;
@@ -231,10 +276,24 @@ public:
     bool init_spec (const std::string &filename,
                     int subimage, int miplevel);
 
-    /// Save the image to the named file ("" means use the original
-    /// filename given when the ImageBuf was created or reset) and file
-    /// format ("" means to infer the type from the filename extension).
-    /// Return true if all went ok, false if there were errors writing.
+    /// Write the image to the named file and file format ("" means to infer
+    /// the type from the filename extension). Return true if all went ok,
+    /// false if there were errors writing.
+    bool write (const std::string &filename,
+                const std::string &fileformat = std::string(),
+                ProgressCallback progress_callback=NULL,
+                void *progress_callback_data=NULL) const;
+
+    /// Inform the ImageBuf what data format you'd like for any subsequent
+    /// write().
+    void set_write_format (TypeDesc format);
+
+    /// Inform the ImageBuf what tile size (or no tiling, for 0) for
+    /// any subsequent write().
+    void set_write_tiles (int width=0, int height=0, int depth=0);
+
+    /// DEPRECATED (1.3) synonym for write().  Kept for now for backward
+    /// compatibility.
     bool save (const std::string &filename = std::string(),
                const std::string &fileformat = std::string(),
                ProgressCallback progress_callback=NULL,
@@ -527,10 +586,27 @@ public:
     int zmax () const;
 
     /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
+    /// [ybegin,yend) x [zbegin,zend).
+    void set_full (int xbegin, int xend, int ybegin, int yend,
+                   int zbegin, int zend);
+
+    /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
     /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
     /// set the spec's "oiio:bordercolor" attribute.
+    /// DEPRECATED (1.3) -- we don't use the 'bordercolor' parameter, and
+    /// it seems strange, so let's phase it out.
     void set_full (int xbegin, int xend, int ybegin, int yend,
-                   int zbegin, int zend, const float *bordercolor=NULL);
+                   int zbegin, int zend, const float *bordercolor);
+
+    /// Return pixel data window for this ImageBuf as a ROI.
+    ROI roi () const;
+
+    /// Return full/display window for this ImageBuf as a ROI.
+    ROI roi_full () const;
+
+    /// Set full/display window for this ImageBuf to a ROI.
+    /// Does NOT change the channels of the spec, regardless of newroi.
+    void set_roi_full (const ROI &newroi);
 
     bool pixels_valid (void) const;
 
@@ -730,20 +806,22 @@ public:
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
             if (m_localpixels) {
-                if (! e) {
+                if (e)
+                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                else {  // pixel not in data window
                     m_x = x_;  m_y = y_;  m_z = z_;
                     if (m_wrap == WrapBlack) {
                         m_proxydata = (char *)m_ib->blackpixel();
                     } else {
-                        m_ib->do_wrap (x_, y_, z_, m_wrap);
-                        m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                        if (m_ib->do_wrap (x_, y_, z_, m_wrap))
+                            m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
+                        else
+                            m_proxydata = (char *)m_ib->blackpixel();
                     }
                     m_valid = v;
                     m_exists = e;
                     return;
                 }
-                else
-                    m_proxydata = (char *)m_ib->pixeladdr (x_, y_, z_);
             }
             else if (! m_deep)
                 m_proxydata = (char *)m_ib->retile (x_, y_, z_, m_tile,
@@ -818,7 +896,7 @@ public:
         void init_ib (WrapMode wrap) {
             const ImageSpec &spec (m_ib->spec());
             m_deep = spec.deep;
-            m_localpixels = m_ib->localpixels() != NULL;
+            m_localpixels = (m_ib->localpixels() != NULL);
             m_img_xbegin = spec.x; m_img_xend = spec.x+spec.width;
             m_img_ybegin = spec.y; m_img_yend = spec.y+spec.height;
             m_img_zbegin = spec.z; m_img_zend = spec.z+spec.depth;
@@ -856,8 +934,10 @@ public:
                         m_proxydata = (char *)m_ib->blackpixel();
                     } else {
                         int x = m_x, y = m_y, z = m_z;
-                        m_ib->do_wrap (x, y, z, m_wrap);
-                        m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                        if (m_ib->do_wrap (x, y, z, m_wrap))
+                            m_proxydata = (char *)m_ib->pixeladdr (x, y, z);
+                        else
+                            m_proxydata = (char *)m_ib->blackpixel();
                     }
                 }
             } else if (m_deep) {
@@ -1075,7 +1155,11 @@ protected:
 
     const void *blackpixel () const;
 
-    void do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
+    // Given x,y,z known to be outside the pixel data range, and a wrap
+    // mode, alter xyz to implement the wrap. Return true if the resulting
+    // x,y,z is within the valid pixel data window, false if it still is
+    // not.
+    bool do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);

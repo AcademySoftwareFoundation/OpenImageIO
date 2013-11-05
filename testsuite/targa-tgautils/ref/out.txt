@@ -72,7 +72,7 @@ Comparing "../../../../../TGAUTILS/CTC24.TGA" and "CTC24.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CTC32.TGA
 ../../../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
-    SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
+    SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
     compression: "rle"
@@ -158,7 +158,7 @@ Comparing "../../../../../TGAUTILS/UTC24.TGA" and "UTC24.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UTC32.TGA
 ../../../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
-    SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
+    SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"

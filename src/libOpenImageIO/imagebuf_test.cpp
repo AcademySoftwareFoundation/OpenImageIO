@@ -82,7 +82,7 @@ void iterator_read_test ()
         { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
     };
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec, buf);
+    ImageBuf A (spec, buf);
 
     ITERATOR p (A);
     OIIO_CHECK_EQUAL (p[0], 0.0f);
@@ -132,7 +132,7 @@ void iterator_wrap_test (ImageBuf::WrapMode wrap, std::string wrapname)
         { {0,3,12}, {1,3,13}, {2,3,14}, {3,3,15} }
     };
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec, buf);
+    ImageBuf A (spec, buf);
 
     std::cout << "iterator_wrap_test " << wrapname << ":";
     int i = 0;
@@ -196,17 +196,16 @@ void ImageBuf_test_appbuffer ()
         { 0, 0, 0, 0, 0, 0, 0, 0 }
     };
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec, buf);
+    ImageBuf A (spec, buf);
 
     // Make sure A now points to the buffer
     OIIO_CHECK_EQUAL ((void *)A.pixeladdr (0, 0, 0), (void *)buf);
 
     // write it
-    A.save ("A.tif");
+    A.write ("A.tif");
 
     // Read it back and make sure it matches the original
     ImageBuf B ("A.tif");
-    B.read ();
     for (int y = 0;  y < HEIGHT;  ++y)
         for (int x = 0;  x < WIDTH;  ++x)
             OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, 0),
@@ -234,7 +233,7 @@ void histogram_computation_test ()
 
     // Create input image with three regions with different pixel values.
     ImageSpec spec (INPUT_WIDTH, INPUT_HEIGHT, 1, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
 
     float value[] = {0.2f};
     ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 0, 8));

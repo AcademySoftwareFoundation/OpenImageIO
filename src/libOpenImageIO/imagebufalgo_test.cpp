@@ -56,7 +56,7 @@ void test_zero_fill ()
     spec.alpha_channel = 3;
 
     // Create a buffer -- pixels should be undefined
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     
     // Set a pixel to an odd value, make sure it takes
     const float arbitrary1[CHANNELS] = { 0.2, 0.3, 0.4, 0.5 };
@@ -122,8 +122,8 @@ void test_crop ()
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     spec.alpha_channel = 3;
     ImageBuf A, B;
-    A.reset ("A", spec);
-    B.reset ("B", spec);
+    A.reset (spec);
+    B.reset (spec);
     float arbitrary1[4];
     arbitrary1[0] = 0.2;
     arbitrary1[1] = 0.3;
@@ -157,7 +157,7 @@ void test_paste ()
     std::cout << "test paste\n";
     // Create the source image, make it a gradient
     ImageSpec Aspec (4, 4, 3, TypeDesc::FLOAT);
-    ImageBuf A ("A", Aspec);
+    ImageBuf A (Aspec);
     for (ImageBuf::Iterator<float> it (A);  !it.done();  ++it) {
         it[0] = float(it.x()) / float(Aspec.width-1);
         it[1] = float(it.y()) / float(Aspec.height-1);
@@ -166,7 +166,7 @@ void test_paste ()
 
     // Create destination image -- black it out
     ImageSpec Bspec (8, 8, 3, TypeDesc::FLOAT);
-    ImageBuf B ("B", Bspec);
+    ImageBuf B (Bspec);
     float gray[3] = { .1, .1, .1 };
     ImageBufAlgo::fill (B, gray);
 
@@ -200,8 +200,8 @@ void test_channel_append ()
 {
     std::cout << "test channel_append\n";
     ImageSpec spec (2, 2, 1, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
-    ImageBuf B ("B", spec);
+    ImageBuf A (spec);
+    ImageBuf B (spec);
     float Acolor = 0.1, Bcolor = 0.2;
     ImageBufAlgo::fill (A, &Acolor);
     ImageBufAlgo::fill (B, &Bcolor);
@@ -230,14 +230,14 @@ void test_add ()
     spec.alpha_channel = 3;
 
     // Create buffers
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
     ImageBufAlgo::fill (A, Aval);
-    ImageBuf B ("B", spec);
+    ImageBuf B (spec);
     const float Bval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
     ImageBufAlgo::fill (B, Bval);
 
-    ImageBuf C ("C", spec);
+    ImageBuf C (spec);
     ImageBufAlgo::add (C, A, B);
 
     for (int j = 0;  j < HEIGHT;  ++j) {
@@ -259,8 +259,8 @@ void test_compare ()
     // Construct two identical 50% grey images
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
-    ImageBuf B ("B", spec);
+    ImageBuf A (spec);
+    ImageBuf B (spec);
     const float grey[CHANNELS] = { 0.5, 0.5, 0.5 };
     ImageBufAlgo::fill (A, grey);
     ImageBufAlgo::fill (B, grey);
@@ -304,7 +304,7 @@ void test_isConstantColor ()
     std::cout << "test isConstantColor\n";
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
     ImageBufAlgo::fill (A, col);
 
@@ -334,7 +334,7 @@ void test_isConstantChannel ()
     std::cout << "test isConstantChannel\n";
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
     ImageBufAlgo::fill (A, col);
 
@@ -358,7 +358,7 @@ void test_isMonochrome ()
     std::cout << "test isMonochrome\n";
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     const float col[CHANNELS] = { 0.25, 0.25, 0.25 };
     ImageBufAlgo::fill (A, col);
 
@@ -384,9 +384,9 @@ test_maketx_from_imagebuf()
     // Make a checkerboard
     const int WIDTH = 16, HEIGHT = 16, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    ImageBuf A ("A", spec);
+    ImageBuf A (spec);
     float pink[] = { .5, .3, .3 }, green[] = { .1, .5, .1 };
-    ImageBufAlgo::checker (A, 4, pink, green, 0, WIDTH, 0, HEIGHT, 0, 1);
+    ImageBufAlgo::checker (A, 4, 4, 4, pink, green);
 
     // Write it
     const char *pgname = "oiio-pgcheck.tx";

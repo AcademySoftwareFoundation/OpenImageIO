@@ -629,6 +629,11 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
     if (! spec.find_attribute("compression"))
         spec.attribute ("compression", "zip");
 
+    // It seems that zips is the only compression that can reliably work
+    // on deep files.
+    if (spec.deep)
+        spec.attribute ("compression", "zips");
+
     // Default to increasingY line order, same as EXR.
     if (! spec.find_attribute("openexr:lineOrder"))
         spec.attribute ("openexr:lineOrder", "increasingY");
@@ -814,6 +819,16 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         }
     }
 
+    // A few EXR things to suppress -- they should be added automatically by
+    // the library, don't mess it up by inadvertently copying it wrong from
+    // the user or from a file we read.
+    if (Strutil::iequals(xname, "type") ||
+        Strutil::iequals(xname, "version") ||
+        Strutil::iequals(xname, "chunkCount") ||
+        Strutil::iequals(xname, "maxSamplesPerPixel")) {
+        return false;
+    }
+
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
     if (type == TypeDesc::INT || type == TypeDesc::UINT) {
@@ -963,8 +978,8 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
 
     yend = std::min (yend, spec().y+spec().height);
     bool native = (format == TypeDesc::UNKNOWN);
-    imagesize_t scanlinebytes = spec().scanline_bytes(native);
-    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    imagesize_t scanlinebytes = spec().scanline_bytes(true);
+    size_t pixel_bytes = m_spec.pixel_bytes (true);
     if (native && xstride == AutoStride)
         xstride = (stride_t) pixel_bytes;
     stride_t zstride = AutoStride;
@@ -1246,12 +1261,15 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         }
         m_deep_tiled_output_part->setFrameBuffer (frameBuffer);
 
+        int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
+        int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
         int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
         int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
 
         // Write the pixels
-        m_deep_tiled_output_part->writeTiles (0, xtiles-1, 0, ytiles-1,
-                                                 m_miplevel, m_miplevel);
+        m_deep_tiled_output_part->writeTiles (firstxtile, firstxtile+xtiles-1,
+                                              firstytile, firstytile+ytiles-1,
+                                              m_miplevel, m_miplevel);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());

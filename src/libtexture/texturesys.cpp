@@ -224,8 +224,7 @@ TextureSystemImpl::getstats (int level, bool icstats) const
     bool anytexture = (stats.texture_queries + stats.texture3d_queries +
                        stats.shadow_queries + stats.environment_queries);
     if (level > 0 && anytexture) {
-        out << "OpenImageIO Texture statistics (" << (void*)this
-            << ", cache = " << (void *)m_imagecache << ")\n";
+        out << "OpenImageIO Texture statistics\n";
         out << "  Queries/batches : \n";
         out << "    texture     :  " << stats.texture_queries
             << " queries in " << stats.texture_batches << " batches\n";
@@ -1891,7 +1890,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     float scale = 100;
     int w = 256, h = 256;
     ImageSpec spec (w, h, 3);
-    ImageBuf ib (name, spec);
+    ImageBuf ib (spec);
     static float dark[3] = { 0.2, 0.2, 0.2 };
     static float white[3] = { 1, 1, 1 };
     static float grey[3] = { 0.5, 0.5, 0.5 };
@@ -1930,7 +1929,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
                                            yy-size/2, yy+size/2+1));
     }
 
-    ib.save ();
+    ib.write (name);
 }
 
 

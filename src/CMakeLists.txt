@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 3)
-set (OIIO_VERSION_PATCH 1)
+set (OIIO_VERSION_PATCH 5)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
@@ -42,14 +42,10 @@ if (CMAKE_COMPILER_IS_GNUCC)
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
     message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
 endif ()
-if (NOT CMAKE_COMPILER_IS_CLANG)
-    message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
-    string (REGEX MATCH clang CMAKE_COMPILER_IS_CLANG ${CMAKE_CXX_COMPILER})
-    message (STATUS "CMAKE_COMPILER_IS_CLANG is '${CMAKE_COMPILER_IS_CLANG}'")
-    if (CMAKE_COMPILER_IS_CLANG)
-        set (CMAKE_COMPILER_IS_CLANG 1)
-        message (STATUS "Using clang as the compiler")
-    endif ()
+message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set (CMAKE_COMPILER_IS_CLANG 1)
+    message (STATUS "Using clang as the compiler")
 endif ()
 
 ## turn on more detailed warnings and consider warnings as errors
@@ -95,6 +91,7 @@ set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
 set (USE_OPENSSL ON CACHE BOOL "Use OpenSSL if found")
 set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
+set (USE_GIF ON CACHE BOOL "Use GIF if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
@@ -279,6 +276,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (dpx.imageio)
     add_subdirectory (field3d.imageio)
     add_subdirectory (fits.imageio)
+    add_subdirectory (gif.imageio)
     add_subdirectory (hdr.imageio)
     add_subdirectory (ico.imageio)
     add_subdirectory (iff.imageio)
@@ -336,9 +334,13 @@ endif()
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                dpx ico png psd rla sgi
+                dpx gif ico png psd rla sgi
+                python-typedesc python-imagespec python-roi
+                python-imageinput python-imageoutput
+                python-imagebuf python-imagebufalgo
                 maketx
-                texture-blurtube texture-fill texture-filtersize
+                texture-blurtube texture-crop texture-cropover
+                texture-fill texture-filtersize
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
@@ -383,6 +385,14 @@ oiio_add_tests (webp
 
 oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
+
+if (SPI_TESTS)
+  oiio_add_tests (spi
+    FOUNDVAR SPI_TESTS
+    IMAGEDIR spi-oiio-tests
+    URL "noplace -- it's SPI specific tests")
+endif ()
+
 
 
 #########################################################################

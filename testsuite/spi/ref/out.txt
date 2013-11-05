@@ -1,0 +1,4 @@
+Comparing "fit_lg10.dpx" and "../../../../../spi-oiio-tests/ref/fit_lg10.dpx"
+PASS
+Comparing "dpxoverscan_lg16.dpx" and "../../../../../spi-oiio-tests/ref/dpxoverscan_lg16.dpx"
+PASS

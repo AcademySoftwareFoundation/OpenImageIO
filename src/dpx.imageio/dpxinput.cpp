@@ -180,6 +180,14 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     m_spec = ImageSpec (m_dpx.header.Width(), m_dpx.header.Height(),
         m_dpx.header.ImageElementComponentCount(subimage), typedesc);
+
+    m_spec.x = m_dpx.header.xOffset;
+    m_spec.y = m_dpx.header.yOffset;
+    if ((int)m_dpx.header.xOriginalSize > 0)
+        m_spec.full_width = m_dpx.header.xOriginalSize;
+    if ((int)m_dpx.header.yOriginalSize > 0)
+        m_spec.full_height = m_dpx.header.yOriginalSize;
+
     // fill channel names
     m_spec.channelnames.clear ();
     switch (m_dpx.header.ImageDescriptor(subimage)) {
@@ -570,19 +578,17 @@ DPXInput::close ()
 bool
 DPXInput::read_native_scanline (int y, int z, void *data)
 {
-    dpx::Block block(0, y, m_dpx.header.Width () - 1, y);
+    dpx::Block block(0, y-m_spec.y, m_dpx.header.Width () - 1, y-m_spec.y);
 
     if (m_wantRaw) {
         // fast path - just read the scanline in
-        if (!m_dpx.ReadBlock (data, m_dpx.header.ComponentDataSize (m_subimage),
-            block, m_dpx.header.ImageDescriptor (m_subimage)))
+        if (!m_dpx.ReadBlock (m_subimage, (unsigned char *)data, block))
             return false;
     } else {
         // read the scanline and convert to RGB
         void *ptr = m_dataPtr == NULL ? data : (void *)m_dataPtr;
 
-        if (!m_dpx.ReadBlock (ptr, m_dpx.header.ComponentDataSize (m_subimage),
-            block, m_dpx.header.ImageDescriptor (m_subimage)))
+        if (!m_dpx.ReadBlock (m_subimage, (unsigned char *)ptr, block))
             return false;
 
         if (!dpx::ConvertToRGB (m_dpx.header, m_subimage, ptr, data, block))

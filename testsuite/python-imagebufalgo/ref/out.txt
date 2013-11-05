@@ -1,0 +1,86 @@
+Comparison: of flip.tif and flop.tif
+  mean = 0.00687588584816
+  rms  = 0.0511750114577
+  PSNR = 25.8188410286
+  max  = 0.450980424881
+  max @ (214, 88, 0, 0)
+  warns 2034 fails 2034
+isConstantColor on pink image is (1.0, 0.501960813999176, 0.501960813999176)
+isConstantColor on checker is  None
+Is cmul1.exr monochrome?  True
+Is cmul2.exr monochrome?  False
+Nonzero region is:  100 180 100 180 0 1 0 3
+SHA-1 of bsplinekernel.exr is: D5826B66A5313F9A32D42C5CF49C90EC4E7F84BF
+Done.
+Comparing "black.tif" and "ref/black.tif"
+PASS
+Comparing "filled.tif" and "../oiiotool/ref/filled.tif"
+PASS
+Comparing "checker.tif" and "ref/checker.tif"
+PASS
+Comparing "chanshuffle.tif" and "../oiiotool/ref/chanshuffle.tif"
+PASS
+Comparing "ch-rgba.exr" and "../oiiotool/ref/ch-rgba.exr"
+PASS
+Comparing "ch-z.exr" and "../oiiotool/ref/ch-z.exr"
+PASS
+Comparing "chappend-rgbaz.exr" and "../oiiotool/ref/chappend-rgbaz.exr"
+PASS
+Comparing "flat.exr" and "../oiiotool/ref/flat.exr"
+PASS
+Comparing "crop.tif" and "ref/crop.tif"
+PASS
+Comparing "pasted.tif" and "../oiiotool/ref/pasted.tif"
+PASS
+Comparing "flip.tif" and "../oiiotool/ref/flip.tif"
+PASS
+Comparing "flop.tif" and "../oiiotool/ref/flop.tif"
+PASS
+Comparing "flipflop.tif" and "../oiiotool/ref/flipflop.tif"
+PASS
+Comparing "transpose.tif" and "../oiiotool/ref/transpose.tif"
+PASS
+Comparing "cshift.tif" and "../oiiotool/ref/cshift.tif"
+PASS
+Comparing "cadd1.exr" and "../oiiotool/ref/cadd1.exr"
+PASS
+Comparing "cadd2.exr" and "../oiiotool/ref/cadd2.exr"
+PASS
+Comparing "add.exr" and "../oiiotool/ref/add.exr"
+PASS
+Comparing "sub.exr" and "../oiiotool/ref/sub.exr"
+PASS
+Comparing "cmul1.exr" and "../oiiotool/ref/cmul1.exr"
+PASS
+Comparing "cmul2.exr" and "../oiiotool/ref/cmul2.exr"
+PASS
+Comparing "chsum.tif" and "../oiiotool/ref/chsum.tif"
+PASS
+Comparing "grid-clamped.tif" and "../oiiotool/ref/grid-clamped.tif"
+PASS
+Comparing "rangecompress.tif" and "../oiiotool/ref/rangecompress.tif"
+PASS
+Comparing "rangeexpand.tif" and "../oiiotool/ref/rangeexpand.tif"
+PASS
+Comparing "resize.tif" and "../oiiotool/ref/resize.tif"
+PASS
+Comparing "resample.tif" and "../oiiotool/ref/resample.tif"
+PASS
+Comparing "bsplinekernel.exr" and "../oiiotool/ref/bsplinekernel.exr"
+PASS
+Comparing "bspline-blur.tif" and "../oiiotool/ref/bspline-blur.tif"
+PASS
+Comparing "unsharp.tif" and "../oiiotool/ref/unsharp.tif"
+PASS
+Comparing "fft.exr" and "../oiiotool/ref/fft.exr"
+PASS
+Comparing "ifft.exr" and "../oiiotool/ref/ifft.exr"
+PASS
+Comparing "tahoe-filled.tif" and "../oiiotool/ref/tahoe-filled.tif"
+PASS
+Comparing "box3.exr" and "../oiiotool-fixnan/ref/box3.exr"
+PASS
+Comparing "a_over_b.exr" and "../oiiotool-composite/ref/a_over_b.exr"
+PASS
+Comparing "tahoe-small.tx" and "ref/tahoe-small.tx"
+PASS

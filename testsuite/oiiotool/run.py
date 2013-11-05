@@ -28,6 +28,10 @@ command += (oiio_app("oiiotool")
 command += (oiio_app("oiiotool")
             + " filled.tif --rangecheck 0,0,0 1,0.9,1 >> out.txt ;\n")
 
+# test --rangecompress & --rangeexpand
+command += oiiotool ("tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
+command += oiiotool ("rangecompress.tif --rangeexpand -d uint8 -o rangeexpand.tif")
+
 # test resample
 command += (oiio_app ("oiiotool") + " " 
             + parent + "/oiio-images/grid.tif"
@@ -84,6 +88,11 @@ command += (oiio_app ("oiiotool")
             + " --pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --sub -d half -o sub.exr >> out.txt ;\n")
+
+# test --chsum
+command += (oiio_app ("oiiotool")
+            + "tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
+            + "-d uint8 -o chsum.tif >> out.txt ;\n")
 
 # test histogram generation
 command += (oiio_app ("oiiotool") + " "
@@ -161,6 +170,9 @@ command += (oiio_app("oiiotool") + "src/rgbaz.exr "
             + "-d half -d Z=float -o rgbahalf-zfloat.exr >> out.txt ;\n")
 command += info_command ("rgbahalf-zfloat.exr", safematch=1)
 
+# test --flatten
+command += oiiotool("src/deepalpha.exr --flatten -o flat.exr")
+
 # test hole filling
 command += (oiio_app ("oiiotool") + " " 
             + "ref/hole.tif --fillholes -o tahoe-filled.tif >> out.txt ;\n")
@@ -210,7 +222,9 @@ command += (oiio_app ("oiiotool")
 # test sequences
 command += (oiio_app("oiiotool")
             + "fit.tif -o copyA.1-10#.jpg >> out.txt ;\n");
-command += (oiio_app("oiiotool") + " --info copyA.*.jpg >> out.txt ;\n")
+command += (oiio_app("oiiotool") + " --info "
+            + " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)])
+            + " >> out.txt ;\n")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -227,11 +241,13 @@ outputs = [ "filled.tif", "autotrim.tif",
             "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
-            "chappend-rgbaz.exr", "chname.exr",
+            "chappend-rgbaz.exr", "chname.exr", "flat.exr",
             "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
-            "add.exr", "sub.exr",
+            "add.exr", "sub.exr", "chsum.tif",
+            "rgbahalf-zfloat.exr",
             "tahoe-filled.tif",
+            "rangecompress.tif", "rangeexpand.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",

@@ -71,12 +71,12 @@ ImageRec::ImageRec (const std::string &name, int nsubimages,
     int specnum = 0;
     m_subimages.resize (nsubimages);
     for (int s = 0;  s < nsubimages;  ++s) {
-        int mips = miplevels ? miplevels[s] : 1;
-        m_subimages[s].m_miplevels.resize (mips);
-        m_subimages[s].m_specs.resize (mips);
-        for (int m = 0;  m < mips;  ++m) {
-            ImageBuf *ib = specs ? new ImageBuf (name, specs[specnum])
-                                 : new ImageBuf (name);
+        int nmips = miplevels ? miplevels[s] : 1;
+        m_subimages[s].m_miplevels.resize (nmips);
+        m_subimages[s].m_specs.resize (nmips);
+        for (int m = 0;  m < nmips;  ++m) {
+            ImageBuf *ib = specs ? new ImageBuf (specs[specnum])
+                                 : new ImageBuf ();
             m_subimages[s].m_miplevels[m].reset (ib);
             if (specs)
                 m_subimages[s].m_specs[m] = specs[specnum];
@@ -110,7 +110,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
             ImageBuf *ib = NULL;
             if (writable || img.pixels_modified() || !copy_pixels) {
                 // Make our own copy of the pixels
-                ib = new ImageBuf (img.name(), srcspec);
+                ib = new ImageBuf (srcspec);
                 if (copy_pixels)
                     ib->copy_pixels (srcib);
             } else {
@@ -178,7 +178,7 @@ ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
         spec.channelnames.resize (spec.nchannels);
         spec.channelformats.clear ();
 
-        ImageBuf *ib = new ImageBuf ("", spec);
+        ImageBuf *ib = new ImageBuf (spec);
 
         m_subimages[s].m_miplevels[0].reset (ib);
         m_subimages[s].m_specs[0] = spec;
@@ -217,7 +217,7 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
         m_subimages[s].m_miplevels.resize (miplevels);
         m_subimages[s].m_specs.resize (miplevels);
         for (int m = 0;  m < miplevels;  ++m) {
-            ImageBuf *ib = new ImageBuf (name, spec);
+            ImageBuf *ib = new ImageBuf (spec);
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = spec;
         }
@@ -241,6 +241,7 @@ ImageRec::read ()
     }
     m_subimages.resize (subimages);
 
+    bool allok = true;
     for (int s = 0;  s < subimages;  ++s) {
         int miplevels = 0;
         m_imagecache->get_image_info (uname, s, 0, u_miplevels,
@@ -260,7 +261,7 @@ ImageRec::read ()
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
             bool ok = ib->read (s, m, forceread,
                                 TypeDesc::FLOAT /* force float */);
-            ASSERT (ok);
+            allok &= ok;
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = ib->spec();
             // For ImageRec purposes, we need to restore a few of the
@@ -275,5 +276,5 @@ ImageRec::read ()
 
     m_time = Filesystem::last_write_time (name());
     m_elaborated = true;
-    return true;
+    return allok;
 }

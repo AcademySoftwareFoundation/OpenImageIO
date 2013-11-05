@@ -54,7 +54,7 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     screenWindowWidth: 1
 Reading rgbahalf-zfloat.exr
 rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
-    SHA-1: 016C63636D60A350862DC8E697FEA0DEF4065EF2
+    SHA-1: 9324AFD44451321A8D87E09F656C7B86E827E5CD
     channel list: R (half), G (half), B (half), A (half), Z (float)
     full/display size: 40 x 40
     full/display origin: 0, 0
@@ -121,6 +121,8 @@ Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
 PASS
 Comparing "chname.exr" and "ref/chname.exr"
 PASS
+Comparing "flat.exr" and "ref/flat.exr"
+PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "ref/cmul2.exr"
@@ -133,7 +135,15 @@ Comparing "add.exr" and "ref/add.exr"
 PASS
 Comparing "sub.exr" and "ref/sub.exr"
 PASS
+Comparing "chsum.tif" and "ref/chsum.tif"
+PASS
+Comparing "rgbahalf-zfloat.exr" and "ref/rgbahalf-zfloat.exr"
+PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
+PASS
+Comparing "rangecompress.tif" and "ref/rangecompress.tif"
+PASS
+Comparing "rangeexpand.tif" and "ref/rangeexpand.tif"
 PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
 PASS

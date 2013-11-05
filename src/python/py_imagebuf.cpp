@@ -29,266 +29,311 @@
 */
 
 #include "py_oiio.h"
+#include "sysutil.h"
+
 
 namespace PyOpenImageIO
 {
 using namespace boost::python;
 
-// constructors
-ImageBufWrap::ImageBufWrap (const std::string &name, 
-                            const ImageSpec &spec)
+
+
+std::string
+ImageBuf_name (const ImageBuf &buf)
 {
-    m_buf = new ImageBuf(name, spec);
-}
-
-ImageBufWrap::ImageBufWrap (const std::string &name,
-                            ImageCacheWrap *icw) {
-    // TODO: this isn't done properly. It should not take NULL as 
-    // 2nd argument, the proper way would be icw->Cache
-    // It's like this just for the initial tests.
-    m_buf = new ImageBuf(name, NULL);
-}
-
-void ImageBufWrap::clear () {
-    m_buf->clear();
-}
-void 
-ImageBufWrap::reset_to_new_image (const std::string &name = std::string(), 
-            ImageCache *imagecache = NULL) {
-    m_buf->reset(name, imagecache);
-}
-void ImageBufWrap:: reset_to_blank_image (const std::string &name, 
-                                            const ImageSpec &spec) {
-    m_buf->reset(name, spec);
+    return buf.name();
 }
 
 
-void ImageBufWrap::alloc (const ImageSpec &spec) {
-    m_buf->alloc(spec);
-}
-
-// TODO: How to wrap ProgressCallback?
-/*
-bool ImageBufWrap::read (int subimage=0, bool force=false, 
-            TypeDesc convert=TypeDesc::UNKNOWN,
-            ProgressCallback progress_callback=NULL,
-            void *progress_callback_data=NULL) {
-    return m_buf->read(subimage, force, convert, progress_callback, 
-                    progress_callback_data);        
-}    
-
-bool ImageBufWrap::save (const std::string &filename = std::string(),
-            const std::string &fileformat = std::string(),
-            ProgressCallback progress_callback=NULL,
-            void *progress_callback_data=NULL) const {
-
-    return m_buf->save(filename, fileformat, progress_callback,
-                    progress_callback_data);
-}
-
-//TODO: besides PC, check if IOW* works ok  
-bool ImageBufWrap::write (ImageOutputWrap *out,
-            ProgressCallback progress_callback=NULL,
-            void *progress_callback_data=NULL) const {
-    
-    return m_buf->write(out->Output, progress_callback,
-                        progress_callback_data);        
-}
-*/
-
-bool ImageBufWrap::init_spec (const std::string &filename,
-                              int subimage, int miplevel)
+std::string
+ImageBuf_file_format_name (const ImageBuf &buf)
 {
-    return m_buf->init_spec(filename, subimage, miplevel);
-}
-const ImageSpec& ImageBufWrap::spec() const {
-    return m_buf->spec();
-}
-const std::string& ImageBufWrap::name() const {
-    return m_buf->name();
-}
-const std::string& ImageBufWrap::file_format_name() const {
-    return m_buf->file_format_name();
-}
-int ImageBufWrap::subimage() const {
-    return m_buf->subimage();
-}
-int ImageBufWrap::nsubimages() const {
-    return m_buf->nsubimages();
-}
-int ImageBufWrap::nchannels() const {
-    return m_buf->nchannels();
+    return buf.file_format_name();
 }
 
-float ImageBufWrap::getchannel (int x, int y, int z, int c) const {
-    return m_buf->getchannel(x, y, z, c);
-}
-void ImageBufWrap::getpixel (int x, int y, float *pixel,
-                            int maxchannels=1000) const {
-    m_buf->getpixel(x, y, pixel, maxchannels);
-}
-void ImageBufWrap::interppixel (float x, float y, float *pixel) const {
-    m_buf->interppixel(x, y, pixel);
-}    
-void ImageBufWrap::interppixel_NDC (float x, float y, float *pixel) const {
-    m_buf->interppixel_NDC(x, y, pixel);
-}
-void ImageBufWrap::setpixel_xy (int x, int y, const float *pixel, 
-                                int maxchannels=1000) {
-    m_buf->setpixel(x, y, pixel, maxchannels);
-}
-void ImageBufWrap::setpixel_i (int i, const float *pixel, 
-                                int maxchannels=1000) {
-    m_buf->setpixel(i, pixel, maxchannels);
+
+void
+ImageBuf_reset_name (ImageBuf &buf, const std::string &name)
+{
+    buf.reset (name);
 }
 
-// These get_pixels methods require the user to send an appropriate
-// area of memory ("*result"), which would make little sense from Python.
-// The user *could* create an appropriately sized array in Python by
-// filling it with the correct amount of dummy data, but would
-// this defeat the purpose of Python? Instead, the wrapper could
-// allocate that array, fill it, and return it to Python. This is the way
-// ImageInput.read_image() was wrapped.
-bool ImageBufWrap::get_pixels (int xbegin, int xend, int ybegin, int yend,
-                                int zbegin, int zend,
-                                TypeDesc format, void *result) const {
-    return m_buf->get_pixels(xbegin, xend, ybegin, yend, zbegin, zend,
-                              format, result);
+void
+ImageBuf_reset_name2 (ImageBuf &buf, const std::string &name,
+                      int subimage, int miplevel)
+{
+    buf.reset (name, subimage, miplevel);
 }
 
-// TODO: handle T and <T>. Don't know how to handle this with B.P, 
-// but haven't given it much thought yet.
-/*
-bool get_pixels_convert (int xbegin, int xend, int ybegin, int yend,
-                            T *result) const {
-    return m_buf->get_pixels (xbegin, xend, ybegin, yend, result);
-} 
-bool get_pixels_convert_safer (int xbegin, int xend, int ybegin,
-                            int yend, std::vector<T> &result) const {
-    return m_buf->get_pixels(xbegin, xend, ybegin, yend, result);
+void
+ImageBuf_reset_spec (ImageBuf &buf, const ImageSpec &spec)
+{
+    buf.reset (spec);
 }
-*/
 
-int ImageBufWrap::orientation() const { 
-    return m_buf->orientation(); 
-}
-int ImageBufWrap::oriented_width() const {
-    return m_buf->oriented_width();
-}
-int ImageBufWrap::oriented_height() const {
-    return m_buf->oriented_height();
-}
-int ImageBufWrap::oriented_x() const {
-    return m_buf->oriented_x();
-}
-int ImageBufWrap::oriented_y() const {
-    return m_buf->oriented_y();
-}
-int ImageBufWrap::oriented_full_width() const {
-    return m_buf->oriented_full_width();
-}
-int ImageBufWrap::oriented_full_height() const {
-    return m_buf->oriented_full_height();
-}
-int ImageBufWrap::oriented_full_x() const {
-    return m_buf->oriented_full_x();
-}
-int ImageBufWrap::oriented_full_y() const {
-    return m_buf->oriented_full_y();
-}    
-int ImageBufWrap::xbegin() const {
-    return m_buf->xbegin();
-}
-int ImageBufWrap::xend() const {
-    return m_buf->xend();
-}
-int ImageBufWrap::ybegin() const {
-    return m_buf->ybegin();
-}
-int ImageBufWrap::yend() const {
-    return m_buf->yend();
-}
-int ImageBufWrap::xmin() {
-    return m_buf->xmin();
-}
-int ImageBufWrap::xmax() {
-    return m_buf->xmax();
-}
-int ImageBufWrap::ymin() {
-    return m_buf->ymin();
-}
-int ImageBufWrap::ymax() {
-    return m_buf->ymax();
-}
-bool ImageBufWrap::pixels_valid () const {
-    return m_buf->pixels_valid();
-}
-bool ImageBufWrap::localpixels () const {
-    return m_buf->localpixels();
-}
-//TODO: class Iterator and ConstIterator
 
-std::string ImageBufWrap::geterror()const  {
-    return m_buf->geterror();
+
+bool
+ImageBuf_read (ImageBuf &buf, int subimage=0, int miplevel=0,
+               bool force=false, TypeDesc convert=TypeDesc::UNKNOWN)
+{
+    return buf.read (subimage, miplevel, force, convert);
 }
+
+
+bool
+ImageBuf_read2 (ImageBuf &buf, int subimage=0, int miplevel=0,
+                bool force=false,
+                TypeDesc::BASETYPE convert=TypeDesc::UNKNOWN)
+{
+    return buf.read (subimage, miplevel, force, convert);
+}
+
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_read_overloads,
+                                ImageBuf_read, 1, 5)
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_read2_overloads,
+                                ImageBuf_read2, 1, 5)
+
+
+bool
+ImageBuf_write (const ImageBuf &buf, const std::string &filename,
+                const std::string &fileformat="")
+{
+    return buf.write (filename, fileformat);
+}
+
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_write_overloads,
+                                ImageBuf_write, 2, 3)
+
+
+void
+ImageBuf_set_write_format (ImageBuf &buf, TypeDesc::BASETYPE format)
+{
+    buf.set_write_format (format);
+}
+
+
+
+void
+ImageBuf_set_full (ImageBuf &buf, int xbegin, int xend, int ybegin, int yend,
+                   int zbegin, int zend)
+{
+    buf.set_full (xbegin, xend, ybegin, yend, zbegin, zend);
+}
+
+
+
+float
+ImageBuf_getchannel (const ImageBuf &buf, int x, int y, int z, int c,
+                     ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+{
+    return buf.getchannel(x, y, z, c, wrap);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_getchannel_overloads,
+                                ImageBuf_getchannel, 5, 6)
+
+
+
+object
+ImageBuf_getpixel (const ImageBuf &buf, int x, int y, int z=0,
+                   ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+{
+    int nchans = buf.nchannels();
+    float *pixel = ALLOCA (float, nchans);
+    buf.getpixel (x, y, z, pixel, nchans, wrap);
+    PyObject *result = PyTuple_New (nchans);
+    for (int i = 0;  i < nchans;  ++i)
+        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
+    return object(handle<>(result));
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_getpixel_overloads,
+                                ImageBuf_getpixel, 3, 5)
+
+
+
+object
+ImageBuf_interppixel (const ImageBuf &buf, float x, float y,
+                      ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+{
+    int nchans = buf.nchannels();
+    float *pixel = ALLOCA (float, nchans);
+    buf.interppixel (x, y, pixel, wrap);
+    PyObject *result = PyTuple_New (nchans);
+    for (int i = 0;  i < nchans;  ++i)
+        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
+    return object(handle<>(result));
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_overloads,
+                                ImageBuf_interppixel, 3, 4)
+
+
+
+object
+ImageBuf_interppixel_NDC (const ImageBuf &buf, float x, float y,
+                          ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+{
+    int nchans = buf.nchannels();
+    float *pixel = ALLOCA (float, nchans);
+    buf.interppixel_NDC (x, y, pixel, wrap);
+    return C_to_val_or_tuple (pixel, TypeDesc(TypeDesc::FLOAT,nchans),
+                              PyFloat_FromDouble);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_NDC_overloads,
+                                ImageBuf_interppixel_NDC, 3, 4)
+
+
+
+object
+ImageBuf_interppixel_NDC_full (const ImageBuf &buf, float x, float y,
+                               ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+{
+    int nchans = buf.nchannels();
+    float *pixel = ALLOCA (float, nchans);
+    buf.interppixel_NDC_full (x, y, pixel, wrap);
+    PyObject *result = PyTuple_New (nchans);
+    for (int i = 0;  i < nchans;  ++i)
+        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
+    return object(handle<>(result));
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_NDC_full_overloads,
+                                ImageBuf_interppixel_NDC_full, 3, 4)
+
+
+
+void
+ImageBuf_setpixel (ImageBuf &buf, int x, int y, int z, tuple p)
+{
+    std::vector<float> pixel;
+    py_to_stdvector (pixel, p);
+    if (pixel.size())
+        buf.setpixel (x, y, z, &pixel[0], pixel.size());
+}
+
+void
+ImageBuf_setpixel2 (ImageBuf &buf, int x, int y, tuple p)
+{
+    ImageBuf_setpixel (buf, x, y, 0, p);
+}
+
+void
+ImageBuf_setpixel1 (ImageBuf &buf, int i, tuple p)
+{
+    std::vector<float> pixel;
+    py_to_stdvector (pixel, p);
+    if (pixel.size())
+        buf.setpixel (i, &pixel[0], pixel.size());
+}
+
+
 
 void declare_imagebuf()
 {
-    class_<ImageBufWrap, boost::noncopyable> cls ("ImageBuf",
-            init<const std::string&, const ImageSpec&>());
-    cls.def(init<const std::string&, ImageCacheWrap*>());
-    
-    cls.def("clear", &ImageBufWrap::clear);
-    cls.def("reset", &ImageBufWrap::reset_to_new_image);
-    cls.def("reset", &ImageBufWrap::reset_to_blank_image);    
-    cls.def("alloc", &ImageBufWrap::alloc);
-    //cls.def("read", &ImageBufWrap::read);    
-    //cls.def("save", &ImageBufWrap::save);
-    //cls.def("write", &ImageBufWrap::write);
-    cls.def("init_spec", &ImageBufWrap::init_spec);
+    enum_<ImageBuf::WrapMode>("WrapMode")
+        .value("WrapDefault",  ImageBuf::WrapDefault )
+        .value("WrapBlack",    ImageBuf::WrapBlack )
+        .value("WrapClamp",    ImageBuf::WrapClamp )
+        .value("WrapPeriodic", ImageBuf::WrapPeriodic )
+        .value("WrapMirror",   ImageBuf::WrapMirror )
+        .export_values();
 
-    cls.def("spec", &ImageBufWrap::spec, 
-                return_value_policy<copy_const_reference>());
+    class_<ImageBuf, boost::noncopyable> ("ImageBuf")
+        .def(init<const std::string&>())
+        .def(init<const std::string&, int, int>())
+        .def(init<const ImageSpec&>())
 
-    cls.def("name", &ImageBufWrap::name, 
-                return_value_policy<copy_const_reference>());
+        .def("clear", &ImageBuf::clear)
+        .def("reset", &ImageBuf_reset_name)
+        .def("reset", &ImageBuf_reset_name2)
+        .def("reset", &ImageBuf_reset_spec)
+        .add_property ("initialized", &ImageBuf::initialized)
+        .def("init_spec", &ImageBuf::init_spec)
+        .def("read",  &ImageBuf_read,
+             ImageBuf_read_overloads())
+        .def("read",  &ImageBuf_read2,
+             ImageBuf_read2_overloads())
+        .def("write", &ImageBuf_write,
+             ImageBuf_write_overloads())
+        // FIXME -- write(ImageOut&)
+//        .def("set_write_format", &ImageBuf::set_write_format)
+        .def("set_write_format", &ImageBuf_set_write_format)
+        .def("set_write_tiles", &ImageBuf::set_write_tiles,
+             (arg("width")=0, arg("height")=0, arg("depth")=0))
 
-    cls.def("file_format_name", &ImageBufWrap::file_format_name, 
-                return_value_policy<copy_const_reference>());
+        .def("spec", &ImageBuf::spec,
+                return_value_policy<copy_const_reference>())
+        .def("nativespec", &ImageBuf::nativespec,
+                return_value_policy<copy_const_reference>())
+        .def("specmod", &ImageBuf::specmod,
+             return_value_policy<reference_existing_object>())
+        .add_property("name", &ImageBuf_name)
+        .add_property("file_format_name", &ImageBuf_file_format_name)
+        .add_property("subimage", &ImageBuf::subimage)
+        .add_property("nsubimages", &ImageBuf::nsubimages)
+        .add_property("miplevel", &ImageBuf::miplevel)
+        .add_property("nmiplevels", &ImageBuf::nmiplevels)
+        .add_property("nchannels", &ImageBuf::nchannels)
+        .add_property("orientation", &ImageBuf::orientation)
+        .add_property("oriented_width", &ImageBuf::oriented_width)
+        .add_property("oriented_height", &ImageBuf::oriented_height)
+        .add_property("oriented_x", &ImageBuf::oriented_x)
+        .add_property("oriented_y", &ImageBuf::oriented_y)
+        .add_property("oriented_full_width", &ImageBuf::oriented_full_width)
+        .add_property("oriented_full_height", &ImageBuf::oriented_full_height)
+        .add_property("oriented_full_x", &ImageBuf::oriented_full_x)
+        .add_property("oriented_full_y", &ImageBuf::oriented_full_y)
+        .add_property("xbegin", &ImageBuf::xbegin)
+        .add_property("xend", &ImageBuf::xend)
+        .add_property("ybegin", &ImageBuf::ybegin)
+        .add_property("yend", &ImageBuf::yend)
+        .add_property("zbegin", &ImageBuf::zbegin)
+        .add_property("zend", &ImageBuf::zend)
+        .add_property("xmin", &ImageBuf::xmin)
+        .add_property("xmax", &ImageBuf::xmax)
+        .add_property("ymin", &ImageBuf::ymin)
+        .add_property("ymax", &ImageBuf::ymax)
+        .add_property("zmin", &ImageBuf::zmin)
+        .add_property("zmax", &ImageBuf::zmax)
+        .add_property("roi", &ImageBuf::roi)
+        .add_property("roi_full",
+                      &ImageBuf::roi_full, &ImageBuf::set_roi_full)
+        .def("set_full", &ImageBuf_set_full)
 
-    cls.def("subimage", &ImageBufWrap::subimage);
-    cls.def("nsubimages", &ImageBufWrap::nsubimages);
-    cls.def("nchannels", &ImageBufWrap::nchannels);
-    cls.def("getchannel", &ImageBufWrap::getchannel);
-    cls.def("getpixel", &ImageBufWrap::getpixel);
-    cls.def("interppixel", &ImageBufWrap::interppixel);
-    cls.def("interppixel_NDC", &ImageBufWrap::interppixel_NDC);
-    cls.def("setpixel", &ImageBufWrap::setpixel_xy);
-    cls.def("setpixel", &ImageBufWrap::setpixel_i);
-    cls.def("get_pixels", &ImageBufWrap::get_pixels);
-    //cls.def("get_pixels", &ImageBufWrap::get_pixels_convert);
-    //cls.def("get_pixels", &ImageBufWrap::get_pixels_convert_safer);
-    cls.def("orientation", &ImageBufWrap::orientation);
-    cls.def("oriented_width", &ImageBufWrap::oriented_width);
-    cls.def("oriented_height", &ImageBufWrap::oriented_height);
-    cls.def("oriented_x", &ImageBufWrap::oriented_x);
-    cls.def("oriented_y", &ImageBufWrap::oriented_y);
-    cls.def("oriented_full_width", &ImageBufWrap::oriented_full_width);
-    cls.def("oriented_full_height", &ImageBufWrap::oriented_full_height);
-    cls.def("oriented_full_x", &ImageBufWrap::oriented_full_x);
-    cls.def("oriented_full_y", &ImageBufWrap::oriented_full_y);
-    cls.def("xbegin", &ImageBufWrap::xbegin);
-    cls.def("xend", &ImageBufWrap::xend);
-    cls.def("ybegin", &ImageBufWrap::ybegin);
-    cls.def("yend", &ImageBufWrap::yend);
-    cls.def("xmin", &ImageBufWrap::xmin);
-    cls.def("xmax", &ImageBufWrap::xmax);
-    cls.def("ymin", &ImageBufWrap::ymin);
-    cls.def("ymax", &ImageBufWrap::ymax);
-    cls.def("pixels_valid", &ImageBufWrap::pixels_valid);
-    cls.def("localpixels", &ImageBufWrap::localpixels);
-    cls.def("geterror",    &ImageBufWrap::geterror);
-    
+        .add_property("pixels_valid", &ImageBuf::pixels_valid)
+        .add_property("pixeltype", &ImageBuf::pixeltype)
+        .add_property("deep", &ImageBuf::deep)
+        .add_property("has_error",   &ImageBuf::has_error)
+        .def("geterror",    &ImageBuf::geterror)
+
+        .def("copy_metadata", &ImageBuf::copy_metadata)
+        .def("copy_pixels", &ImageBuf::copy_pixels)
+        .def("copy", &ImageBuf::copy)
+        .def("swap", &ImageBuf::swap)
+
+        .def("getchannel", &ImageBuf_getchannel,
+             ImageBuf_getchannel_overloads())
+        .def("getpixel", &ImageBuf_getpixel,
+             ImageBuf_getpixel_overloads())
+        .def("interppixel", &ImageBuf_interppixel,
+             ImageBuf_interppixel_overloads())
+        .def("interppixel_NDC", &ImageBuf_interppixel_NDC,
+             ImageBuf_interppixel_NDC_overloads())
+        .def("interppixel_NDC_full", &ImageBuf_interppixel_NDC_full,
+             ImageBuf_interppixel_NDC_full_overloads())
+        .def("setpixel", &ImageBuf_setpixel)
+        .def("setpixel", &ImageBuf_setpixel2)
+        .def("setpixel", &ImageBuf_setpixel1)
+        // FIXME - get_pixels, get_pixel_channels
+
+        // FIXME -- do we want to provide pixel iterators?
+    ;
+
 }
 
 } // namespace PyOpenImageIO

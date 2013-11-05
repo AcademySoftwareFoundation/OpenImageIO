@@ -4,33 +4,219 @@ Changes:
 Release 1.3 (in progress -- compared to 1.2.x)
 ----------------------------------------------
 Major new features and improvements:
+* Huge overhaul of the Python bindings: TypeDesc, ImageSpec (1.3.2),
+  ImageInput, ImageOutput (1.3.3), ROI, ImageBuf (1.3.4), ImageBufAlgo
+  (1.3.6).  The Python bindings were pretty rusty, badly tested,
+  undocumented, and had not kept up with recent changes in the C++ APIs.
+  That's all fixed now, the Python APIs are finally first-class citizens
+  (including full functionality, unit tests, and docs), and we intend to
+  keep it that way.
 * The ability for an application to supply custom ImageInput and associate
   them with a file extension. Those II's can do anything, including 
   generate image data procedurally.
+* GIF reader
 
 Public API changes:
-* ImageCache::add_file() lets you seed the ImageCache with a "virtual file"
-  that will read from a custom ImageInput.  This lets you add "procedural
-  images" to the IC.
-* ImageCache::add_tile() lets you add tiles to the ImageCache. The caller
-  can initialize those tiles with any pixel values it chooses.
+* Large overhaul of the Python bindings. See the (finally existing!) docs.
+* ImageBufAlgo:
+  * New functions: nonzero_region(); resize() variety that lets you
+    specify the filter by name; 2-argument (non-in-place) versions of
+    add, sub, mul, rangecompress, rangeexpand, unpremult, premult, clamp
+    fixNonFinite; sub() varieties that take float or float* operands.
+  * Removed several IBA functions that have been deprecated since 1.2.
+  * Deprecated the single-image in-place versions of add, sub, mul, rangecompress,
+    rangeexpand, unpremult, premult, clamp fixNonFinite.
+* ImageBuf:
+  * read() and init_spec() are no longer required, somewhat simplifying
+    application code that uses ImageBuf.  All ImageBuf API calls
+    automatically read the spec and/or pixels from their named file if
+    they are needed, if it has not already been done.  (1.3.4)
+  * save() is deprecated, and new ImageBuf::write() is now preferred
+    (naming symmetry). (1.3.4)
+  * New set_write_format() and IB::set_write_tiles() allow override of
+    default choices for data format and tile size for subsequent calls
+    to ImageBuf::write(). (1.3.4)
+* ImageCache:
+  * ImageCache::add_file() lets you seed the ImageCache with a "virtual file"
+    that will read from a custom ImageInput.  This lets you add "procedural
+    images" to the IC.
+  * ImageCache::add_tile() lets you add tiles to the ImageCache. The caller
+    can initialize those tiles with any pixel values it chooses.
 * OIIO::declare_imageio_format() exposes a way to give OIIO a custom
   ImageInput and/or ImageOutput (via factory functions) and associate them
   with particular file extensions. This makes it especially easy for an
   app to make a procedural image generator that looks to the entire rest
-  of OIIO like a regular image file. (1.3.1)
-* New ImageBufAlgo functions:
-  * nonzero_region() returns the shrink-wrapped nonzero pixel data window.
+  of OIIO like a regular image file. (1.3.2)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool improvements:
-  * --autotrim   Shrinks pixel data window upon output to trim black edges.
+  * --autotrim   Shrinks pixel data window upon output to trim black 
+    edges. (1.3.2)
+  * --siappend   Appends subimages of top two images on the stack. (1.2.2)
+  * --datadump will print all pixel values of an image (debugging tool) (1.3.6)
+  * --flatten turns a "deep" image into a flat one by depth-compositing within
+    each pixel (1.3.6).
+  * Fix memory leak when processing frame range. (1.2.1/1.3.2)
+  * --help now returns a success error code, not a failure. (1.2.1/1.3.2)
+  * Fix incorrect help message about --ociolook. (1.2.1/1.3.2)
+  * Fix typo in "oiio:Colorspace" attribute name that interfered
+    with correct color space conversion in --colorconvert. (1.2.1)
+  * Many fixes and improvements to XMP & IPTC metadata handling. (1.2.2)
+  * Multithread speed improvement when opening files by reducing how
+    much time ImageInput::create and/or ImageOutput::create hold a
+    global mutex.
+  * oiiotool --origin and --fullpixels, when operating on cropped or
+    overscanned image, could sometimes do the wrong thing. (1.2.2/1.3.3)
+  * oiiotool --colorconvert did not work properly when the color
+    transformation was detected to be a no-op. (1.2.2/1.3.3)
+  * oiiotool --fit did not handle padding or offsets properly. (1.2.2/1.3.3)
+  * 'oiiotool --pattern checker' was incorrect when nonzero offsets were
+    used. (1.2.3/1.3.4)
+  * oiiotool --runstats prints the total time/memory on every iteration
+    when doing file sequence wildcard iteration. (1.3.4)
+  * Eliminated a particular situation that might hit an ASSERT. Instead,
+    bubble up a real error message. (1.3.4)
+  * oiiotool --resize and --resample fixed for overscan images (1.3.5)  
+  * --ociolook applies OCIO looks. (1.3.6)
+  * Supports printf-style frame range wildcards ('%04d') in addition to the
+    '#' style. (1.3.6)
+* ImageBufAlgo improvements:
+  * colorconvert() did not work properly when the color transformation was
+    detected to be a no-op.
+  * colorconvert(): added a variety that specifies color spaces by name.
+  * New ociolook() function applies OCIO "looks." (1.3.6)
+  * checker() was incorrect when nonzero offsets were used.
+  * checker() now has default values of 0 for the 'offset' parameters
+    (and so may be omitted if you want 0 offsets). (1.3.4)
+  * unsharp_mask() bug when src and dst were different data formats.
+    (1.2.3/1.3.4)
+  * Better dealing with cases of IBA functions detecting and issuing
+    errors when inputs that must be initialized are not. (1.3.4)
+  * New nonzero_region() returns the shrink-wrapped nonzero pixel data window.
+    (1.3.2)
+  * resize() has a new variety that lets you specify the filter by name
+    (rather than allocating ans passing a Filter2D*).
+  * resize() and resample() fixed to more robustly handle overscan
+    images. (1.3.5)
+* ImageBuf:
+  * ImageBuf::write() writes untiled images by default, fixing some
+    tricky issues when IB's start thinking they're tiled because of
+    interaction with the ImageCache (which makes everything look tiled).
+  * ImageBuf::file_format_name() never worked properly, now is fixed (1.3.4)
+  * Fixed bug that caused incorrect ImageBuf::copy_pixels() when the two
+    IB's had different data types.  (1.3.4/1.2.3)
+  * Improved iterator's handling of how overscanned pixels interact
+    with wrap modes. (1.3.6)
+* DPX:
+  * support multi-image (often used for stereo frames).
+  * Fixed DPX input that didn't recognized offset/cropped images.
+    (1.2.2/1.3.3, another fix in 1.3.4)
+  * Fixed DPX output crash with cropped images. (1.2.2/1.3.3)
+* OpenEXR: fixed write_scanlines handling of per-channel data types (1.3.6)
+* Several OpenEXR 2.0 deep file fixes: only some compression types
+  supported, write_tiles passed wrong parameters, must suppress some
+  attribute names. (1.2.3/1.3.6)
+* JPEG: fixed that some JPEG files were not being recognized because of
+  magic number issues.
+* TGA: Correctly unassociate alpha if it's from an unasociated file;
+  also, always write unassociated data because so few Targa readers in
+  the wild seem to properly handle associated alpha.
+* PNG: More correct handling of unassociated alpha.
+* TIFF: More correct handling of unassociated alpha.
+* PSD: fix handling of associated vs unassociated alpha. (1.2.3)
+* ImageCache/TextureSystem: More careful with texture de-duplication --
+  texture value lookups use de-duplication, but metadata lookups (e.g.,
+  get_texture_info) uses the metadata from the original file.
+* We changed the behavior of range compression/expansion.  We swear
+  the new way is better.  This affects ImageBufAlgo::rangecompress and
+  rangeexpand, oiiotool --rangecompress/--rangeexpand, and maketx --hicomp.
+  (1.3.3)
+* maketx fixed to handle inputs that are a mixture of cropped and 
+  overscanned. (1.3.5)
+* Fix segfault if OCIO is set to a non-existant file. (1.3.6)
+* Slight performance increase when writing images to disk (1.3.6)
 
 Build/test system improvements:
-* Fix broken tests under Windows.
+* Fix broken tests under Windows. (1.3.2)
+* Many fixes for compiler warnings on various platforms: fmath_test.cpp,
+  field3dinput.cpp, sysutil.cpp, argparse.cpp, oiiotool.cpp. (1.2.1/1.3.2)
+* Fixes problems on little-endian architecture with texture3d.cpp.
+  (1.2.1/1.3.2)
+* Fix compilation problems on architectures with gcc, but no 'pause' 
+  instruction. (1.2.1/1.3.2)
+* Fix build search path for correctly finding libopenjpeg 1.5. (1.2.1)
+* Work around bug in older MSVC versions wherein Filesystem::open needed
+  to explicitly seek to the beginning of a file. (1.2.1/1.3.2)
+* Build fixes for FreeBSD. (1.2.1/1.3.2)
+* Fix testsuite/oiiotool on Windows -- windows shell doesn't expand
+  wildcards. (1.2.1/1.3.2)
+* Fix warnings for new GCC 4.8 compiler.
+* Always search for and use the release HDF5 libraries, not the debugging
+  ones, even when building debug OIIO (this fixes errors when a system
+  does not have the debugging HDF5 libraries installed). (1.2.2/1.3.3)
+* Extensive unit tests in the testsuite for the Python bindings.
+* Fix compiler error on MIPS platform. (1.2.2/1.3.3)
+* Add FIELD3D_HOME description to 'make help' (1.2.2/1.3.3)
+* Add cmake variables ILMBASE_CUSTOM_INCLUDE_DIR, ILMBASE_CUSTOM_LIB_DIR,
+  OPENEXR_CUSTOM_INCLUDE_DIR, and OPENEXR_CUSTOM_LIB_DIR to make it
+  easier to have site-specific hints for these packages' locations. (1.3.4)
+* Add BOOST_HOME and OCIO_HOME controls from the top-level Makefile wrapper.
+  (1.3.4/1.2.3)
+* Accommodate new cmake release that slightly changes the HDF5 library
+  naming. (1.3.5)
+* Various fixes to make the code compile properly with libc++ (clang's
+  rewrite of the C++ standard library). (1.3.6)
+* Updated PugiXML (partly to help compilation with libc++) (1.3.6)
 
 Developer goodies:
+* Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
+* Merge improved "tinyformat" that fixes a bug in some old glibc versions
+  (1.3.2).
+* Now each command line tools explicitly converts to UTF native arguments,
+  rather than relying on it happening in ArgParse (which no longer does
+  so). (1.3.2)
+* Strutil::contains() and icontains(). (1.2.2/1.3.3)
 
+
+
+Release 1.2.2 (1 Oct 2013)
+--------------------------
+* New features:
+  * New oiiotool --siappend : append subimages of top two images on stack.
+  * Utilities: added Strutil::contains() and icontains().
+* Fixes:
+  * Fixes in handling XMP & IPTC metadata.
+  * oiiotool --origin and --fullpixels did not correctly propagate their
+    changes to the output images.
+  * oiiotool --colorconvert (and the underlying ImageBufAlgo::colorconvert)
+    could crash if given a color conversion recognized as a no-op.
+  * DPX output could crash when writing crop images.
+  * DPX input was not recognizing the proper image offset or originalsize.
+  * oiiotool --fit wasn't padding correctly or modifying offsets properly.
+* Build fixes:
+  * Fix compiler error on MIPS platform.
+  * Add FIELD3D_HOME description to 'make help'
+  * Always use the HDF5 release libraries (for Field3D), not the debug ones.
+
+
+Release 1.2.1 (5 Aug 2013)
+---------------------------
+* oiiotool: Fix memory leak when processing frame range.
+* Docs improvement: full documentation of ImageBufAlgo.
+* oiiotool --help now returns a success error code, not a failure.
+* oiiotool: fix incorrect help message about --ociolook.
+* oiiotool: Fix typo in "oiio:Colorspace" attribute name that interfered
+  with correct color space conversion in --colorconvert.
+* Many fixes for compiler warnings on various platforms: fmath_test.cpp,
+  field3dinput.cpp, sysutil.cpp, argparse.cpp, oiiotool.cpp.
+* Fixes problems on little-endian architecture with texture3d.cpp.
+* Fix compilation problems on architectures with gcc, but no 'pause' 
+  instruction.
+* Fix build search path for correctly finding libopenjpeg 1.5.
+* Work around bug in older MSVC versions wherein Filesystem::open needed
+  to explicitly seek to the beginning of a file.
+* Build fixes for FreeBSD.
+* Fix testsuite/oiiotool on Windows -- windows shell doesn't expand wildcards.
 
 
 Release 1.2 (8 July 2013)

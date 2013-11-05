@@ -264,6 +264,10 @@ private:
         // Ones we don't rename -- OpenEXR convention matches ours
         m_map["wrapmodes"] = "wrapmodes";
         m_map["aperture"] = "FNumber";
+        // Ones to prefix with openexr:
+        m_map["version"] = "openexr:version";
+        m_map["chunkCount"] = "openexr:chunkCount";
+        m_map["maxSamplesPerPixel"] = "openexr:maxSamplesPerPixel";
         // Ones to skip because we handle specially
         m_map["channels"] = "";
         m_map["compression"] = "";

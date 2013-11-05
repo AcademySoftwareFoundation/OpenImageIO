@@ -43,6 +43,7 @@
 #include "imagecache.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "filesystem.h"
 
 #ifdef __APPLE__
  using std::isinf;
@@ -194,6 +195,7 @@ print_subimage (ImageBuf &img0, int subimage, int miplevel)
 int
 main (int argc, char *argv[])
 {
+    Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv);
 
     std::cout << "Comparing \"" << filenames[0] 
@@ -265,8 +267,10 @@ main (int argc, char *argv[])
             ImageBufAlgo::compare (img0, img1, failthresh, warnthresh, cr);
 
             int yee_failures = 0;
-            if (perceptual && ! img0.deep())
-                yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
+            if (perceptual && ! img0.deep()) {
+                ImageBufAlgo::CompareResults cr;
+                yee_failures = ImageBufAlgo::compare_Yee (img0, img1, cr);
+            }
 
             if (cr.nfail > (failpercent/100.0 * npels) || cr.maxerror > hardfail ||
                 yee_failures > (failpercent/100.0 * npels)) {
@@ -325,7 +329,7 @@ main (int argc, char *argv[])
             // right now, because ImageBuf doesn't really know how to
             // write subimages.
             if (diffimage.size() && (cr.maxerror != 0 || !outdiffonly)) {
-                ImageBuf diff (diffimage, img0.spec());
+                ImageBuf diff (img0.spec());
                 ImageBuf::ConstIterator<float,float> pix0 (img0);
                 ImageBuf::ConstIterator<float,float> pix1 (img1);
                 ImageBuf::Iterator<float,float> pixdiff (diff);
@@ -347,7 +351,7 @@ main (int argc, char *argv[])
                     }
                 }
 
-                diff.save (diffimage);
+                diff.write (diffimage);
 
                 // Clear diff image name so we only save the first
                 // non-matching subimage.

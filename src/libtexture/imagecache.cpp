@@ -248,6 +248,10 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_filename = imagecache.resolve_filename (m_filename.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
     // reflected by the fact that m_validspec is false.
+    m_Mlocal.makeIdentity();
+    m_Mproj.makeIdentity();
+    m_Mtex.makeIdentity();
+    m_Mras.makeIdentity();
 }
 
 
@@ -705,7 +709,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
     spec.auto_stride(xstride, ystride, zstride, format, spec.nchannels, tw, th);
     ImageSpec lospec (tw, th, spec.nchannels, TypeDesc::FLOAT);
-    ImageBuf lores ("tmp", lospec);
+    ImageBuf lores (lospec);
 
     // Figure out the range of texels we need for this tile
     x -= spec.x;
@@ -934,20 +938,22 @@ ImageCacheFile::invalidate ()
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
                            ImageCachePerThreadInfo *thread_info,
-                           ImageInput::Creator creator)
+                           ImageInput::Creator creator,
+                           bool header_only)
 {
-    ImageCacheStatistics &stats (thread_info->m_stats);
-    ImageCacheFile *tf = NULL;
-    bool newfile = false;
-
     // Debugging aid: attribute "substitute_image" forces all image
     // references to be to one named file.
     if (m_substitute_image)
         filename = m_substitute_image;
 
+    // Shortcut - check the per-thread microcache before grabbing a more
+    // expensive lock on the shared file cache.
+    ImageCacheFile *tf = thread_info->find_file (filename);
+
     // Part 1 - make sure the ImageCacheFile entry exists and is in the
     // file cache.  For this part, we need to lock the file cache.
-    {
+    bool newfile = false;
+    if (! tf) {  // was not found in microcache
 #if IMAGECACHE_TIME_STATS
         Timer timer;
 #endif
@@ -965,9 +971,9 @@ ImageCacheImpl::find_file (ustring filename,
 
         if (newfile)
             check_max_files (thread_info);
-
+        thread_info->filename (filename, tf);  // add to the microcache
 #if IMAGECACHE_TIME_STATS
-        stats.find_file_time += timer();
+        thread_info->m_stats.find_file_time += timer();
 #endif
     }
 
@@ -981,6 +987,7 @@ ImageCacheImpl::find_file (ustring filename,
             tf->open (thread_info);
             DASSERT (tf->m_broken || tf->validspec());
             double createtime = timer();
+            ImageCacheStatistics &stats (thread_info->m_stats);
             stats.fileio_time += createtime;
             stats.fileopen_time += createtime;
             tf->iotime() += createtime;
@@ -1023,15 +1030,20 @@ ImageCacheImpl::find_file (ustring filename,
     }
 
     // if this is a duplicate texture, switch to the canonical copy
-    if (tf->duplicate())
-        tf = tf->duplicate();
-    else {
+    if (tf->duplicate()) {
+        if (! header_only)
+            tf = tf->duplicate();
+        // N.B. If looking up header info (i.e., get_image_info, rather
+        // than getting pixels, use the original not the duplicate, since
+        // metadata may differ even if pixels are identical).
+    } else {
         // not a duplicate -- if opening the first time, count as unique
         if (newfile)
-            ++stats.unique_files;
+            ++thread_info->m_stats.unique_files;
     }
 
-    tf->use ();  // Mark it as recently used
+    if (! header_only)
+        tf->use ();  // Mark it as recently used
     return tf;
 }
 
@@ -1406,8 +1418,15 @@ ImageCacheImpl::getstats (int level) const
 
     std::ostringstream out;
     if (level > 0) {
-        out << "OpenImageIO ImageCache statistics (" << (void*)this 
-            << ") ver " << OIIO_VERSION_STRING << "\n";
+        out << "OpenImageIO ImageCache statistics (";
+        {
+            spin_lock guard (shared_image_cache_mutex);
+            if ((void *)this == (void *)shared_image_cache.get())
+                out << "shared";
+            else
+                out << (void *)this;
+        }
+        out << ") ver " << OIIO_VERSION_STRING << "\n";
         if (stats.unique_files) {
             out << "  Images : " << stats.unique_files << " unique\n";
             out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
@@ -2045,7 +2064,7 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
                                 TypeDesc datatype, void *data)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info);
+    ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
     if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
@@ -2158,7 +2177,7 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
                            bool native)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info);
+    ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return NULL;

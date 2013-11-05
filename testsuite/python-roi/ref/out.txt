@@ -1,0 +1,36 @@
+ROI() = -2147483648 0 0 0 0 0 0 0
+r.defined = False
+ROI(0, 640, 100, 200) = 0 640 100 200 0 1 0 10000
+ROI(0, 640, 100, 480, 0, 1, 0, 4) = 0 640 0 480 0 1 0 4
+r.xbegin = 0
+r.xend = 640
+r.ybegin = 0
+r.yend = 480
+r.zbegin = 0
+r.zend = 1
+r.chbegin = 0
+r.chend = 4
+r.defined =  True
+r.width =  640
+r.height =  480
+r.depth =  1
+r.nchannels =  4
+r.npixels =  307200
+
+ROI.All = -2147483648 0 0 0 0 0 0 0
+
+r == r2 (expect yes):  True
+r != r2 (expect no):  False
+r == r3 (expect no):  False
+r != r3 (expect yes):  True
+
+A = 0 10 0 8 0 1 0 4
+B = 5 15 -1 10 0 1 0 4
+ROI.union(A,B) = 0 15 -1 10 0 1 0 4
+ROI.intersection(A,B) = 5 10 0 8 0 1 0 4
+
+Spec's roi is 0 640 0 480 0 1 0 3
+After set, roi is 3 5 7 9 0 1 0 3
+After set, roi_full is 13 15 17 19 0 1 0 3
+
+Done.

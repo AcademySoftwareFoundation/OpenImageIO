@@ -1,6 +1,8 @@
 if (NOT BOOST_CUSTOM)
     find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
-    find_package (Boost 1.34 REQUIRED COMPONENTS python)
+    find_package (Boost 1.42 REQUIRED COMPONENTS python)
+else ()
+    find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
 endif ()
 
 if (APPLE)
@@ -15,8 +17,9 @@ endif ()
 if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
 
     set (python_srcs py_imageinput.cpp py_imageoutput.cpp
-         py_imagecache.cpp py_imagespec.cpp
-         py_imagebuf.cpp py_typedesc.cpp py_paramvalue.cpp
+         py_imagecache.cpp py_imagespec.cpp py_roi.cpp
+         py_imagebuf.cpp py_imagebufalgo.cpp
+         py_typedesc.cpp py_paramvalue.cpp
          py_oiio.cpp)
 
     message (STATUS "Python found ${PYTHONLIBS_FOUND} ")

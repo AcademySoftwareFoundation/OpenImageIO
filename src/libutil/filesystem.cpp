@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <algorithm>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
@@ -310,6 +311,7 @@ Filesystem::open (std::ifstream &stream,
     // Windows std::ifstream accepts non-standard wchar_t* 
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     stream.open (wpath.c_str(), mode);
+    stream.seekg (0, std::ios_base::beg); // force seek, otherwise broken
 #else
     stream.open (path.c_str(), mode);
 #endif
@@ -386,6 +388,194 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
         argv[i] = ustring (utf8_arg).c_str();
     }
 #endif
+}
+
+
+
+bool
+Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
+{
+    numbers.clear ();
+
+    // Split the sequence description into comma-separated subranges.
+    std::vector<std::string> ranges;
+    Strutil::split (desc, ranges, ",");
+
+    // For each subrange...
+    BOOST_FOREACH (const std::string &s, ranges) {
+        // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
+        // If START>FINISH or if STEP<0, then count down.
+        // If 'y' is used, generate the complement.
+        std::vector<std::string> range;
+        Strutil::split (s, range, "-", 1);
+        int first = strtol (range[0].c_str(), NULL, 10);
+        int last = first;
+        int step = 1;
+        bool complement = false;
+        if (range.size() > 1) {
+            last = strtol (range[1].c_str(), NULL, 10);
+            if (const char *x = strchr (range[1].c_str(), 'x'))
+                step = (int) strtol (x+1, NULL, 10);
+            else if (const char *x = strchr (range[1].c_str(), 'y')) {
+                step = (int) strtol (x+1, NULL, 10);
+                complement = true;
+            }
+            if (step == 0)
+                step = 1;
+            if (step < 0 && first < last)
+                std::swap (first, last);
+            if (first > last && step > 0)
+                step = -step;
+        }
+        int end = last + (step > 0 ? 1 : -1);
+        int itstep = step > 0 ? 1 : -1;
+        for (int i = first; i != end; i += itstep) {
+            if ((abs(i-first) % abs(step) == 0) != complement)
+                numbers.push_back (i);
+        }
+    }
+    return true;
+}
+
+bool
+Filesystem::parse_pattern (const char *pattern_,
+                           int framepadding_override,
+                           std::string &normalized_pattern,
+                           std::string &framespec)
+{
+    std::string pattern (pattern_);
+
+    // The pattern is either a range (e.g., "1-15#"), a
+    // set of hash marks (e.g. "####"), or a printf-style format
+    // string (e.g. "%04d").
+#define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
+#define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
+#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
+    static boost::regex sequence_re (SEQUENCE_SPEC);
+    // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
+    boost::match_results<std::string::const_iterator> range_match;
+    if (! boost::regex_search (pattern, range_match, sequence_re)) {
+        // Not a range
+        return false;
+    }
+
+    // It's a range. Generate the names by iterating through the numbers.
+    std::string thematch (range_match[0].first, range_match[0].second);
+    std::string thesequence (range_match[1].first, range_match[1].second);
+    std::string thehashes (range_match[9].first, range_match[9].second);
+    std::string theformat (range_match[11].first, range_match[11].second);
+    std::string prefix (range_match.prefix().first, range_match.prefix().second);
+    std::string suffix (range_match.suffix().first, range_match.suffix().second);
+
+    // std::cout << "theformat: " << theformat << "\n";
+
+    std::string fmt;
+    if (theformat.length() > 0) {
+        fmt = theformat;
+    }
+    else {
+        // Compute the amount of padding desired
+        int padding = 0;
+        for (int i = (int)thematch.length()-1;  i >= 0;  --i) {
+            if (thematch[i] == '#')
+                padding += 4;
+            else if (thematch[i] == '@')
+                padding += 1;
+        }
+        if (framepadding_override > 0)
+            padding = framepadding_override;
+        fmt = Strutil::format ("%%0%dd", padding);
+    }
+
+    // std::cout << "Format: '" << fmt << "'\n";
+
+    normalized_pattern = prefix + fmt + suffix;
+    framespec = thesequence;
+
+    return true;
+}
+
+
+
+bool
+Filesystem::enumerate_file_sequence (const std::string &pattern,
+                                     const std::vector<int> &numbers,
+                                     std::vector<std::string> &filenames)
+{
+    for (size_t i = 0, e = numbers.size(); i < e; ++i) {
+        std::string f = Strutil::format (pattern.c_str(), numbers[i]);
+        filenames.push_back (f);
+    }
+    return true;
+}
+
+
+
+bool
+Filesystem::scan_for_matching_filenames(const std::string &pattern_,
+                                        std::vector<int> &numbers,
+                                        std::vector<std::string> &filenames)
+{
+    std::string pattern = pattern_;
+
+    // Isolate the directory name (or '.' if none was specified)
+    std::string directory = Filesystem::parent_path (pattern);
+    if (directory.size() == 0) {
+        directory = ".";
+#ifdef _WIN32
+        pattern = ".\\\\" + pattern;
+#else
+        pattern = "./" + pattern;
+#endif
+    }
+
+    if (! boost::filesystem::exists(directory))
+        return false;
+
+    // build a regex that matches the pattern
+    boost::regex format_re ("%0([0-9]+)d");
+    boost::match_results<std::string::const_iterator> format_match;
+    if (! boost::regex_search (pattern, format_match, format_re))
+        return false;
+
+    std::string thepadding (format_match[1].first, format_match[1].second);
+    std::string prefix (format_match.prefix().first, format_match.prefix().second);
+    std::string suffix (format_match.suffix().first, format_match.suffix().second);
+
+    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + "})" + suffix;
+    boost::regex pattern_re (pattern_re_str);
+
+    std::vector< std::pair< int, std::string > > matches;
+
+    boost::filesystem::directory_iterator end_it;
+#ifdef _WIN32
+    std::wstring wdirectory = Strutil::utf8_to_utf16 (directory);
+    for (boost::filesystem::directory_iterator it(wdirectory); it != end_it; ++it) {
+#else
+    for (boost::filesystem::directory_iterator it(directory); it != end_it; ++it) {
+#endif
+        if (boost::filesystem::is_regular_file(it->status())) {
+            const std::string f = it->path().string();
+            boost::match_results<std::string::const_iterator> frame_match;
+            if (boost::regex_match (f, frame_match, pattern_re)) {
+                std::string thenumber (frame_match[1].first, frame_match[1].second);
+
+                int frame = (int)strtol (thenumber.c_str(), NULL, 10);
+
+                matches.push_back (std::make_pair (frame, f));
+            }
+        }
+    }
+
+    // filesystem order is undefined, so return sorted sequences
+    std::sort (matches.begin(), matches.end());
+
+    for (size_t i = 0; i < matches.size(); ++i) {
+        numbers.push_back (matches[i].first);
+        filenames.push_back (matches[i].second);
+    }
+
+    return true;
 }
 
 }

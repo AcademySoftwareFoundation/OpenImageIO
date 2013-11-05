@@ -9,18 +9,31 @@ $(info Including spi/Makefile-bits-arnold)
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
 
-## OS X machines
+## Official OS X build machines with special conventions
 ifeq (${SP_OS}, lion)
+    platform := lion
+    SPCOMP2_COMPILER ?= clang
+    INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+    ifeq (${OCIO_PATH},)
+        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
+    endif
+    ifeq (${FIELD3D_HOME},)
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
+    endif
     MY_CMAKE_FLAGS += \
-        -DBUILD_WITH_INSTALL_RPATH=1 \
+	-DOCIO_PATH=${OCIO_PATH} \
+	-DFIELD3D_HOME=${FIELD3D_HOME} \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${SP_OS}${variant}/lib"
-else
+endif
+
+
+## Generic OSX machines (including LG's laptop)
 ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
 endif
-endif
+
 
 ## Spinux (current)
 ifeq ($(SP_OS), spinux1)
@@ -36,14 +49,16 @@ ifeq ($(SP_OS), spinux1)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
     ifeq (${FIELD3D_HOME},)
-        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}/v227"
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v401"
     endif
 
     ## custom compiler: clang
     ifeq (${LLVM_DIRECTORY},)
-        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.2
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.3
     endif
-    ifeq (${COMPILER}, clang)
+
+    ## default compiler is clang
+    ifeq (${COMPILER},)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
@@ -60,18 +75,44 @@ ifeq ($(SP_OS), spinux1)
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
     endif
 
-
-    MY_CMAKE_FLAGS += \
+    ifneq (,$(wildcard /usr/include/OpenEXR2))
+        MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
+	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
+	  -DOPENEXR_CUSTOM=1 \
+	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"
+    else
+        MY_CMAKE_FLAGS += \
+	  -DILMBASE_CUSTOM=1 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
-	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf" \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64 \
+	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
+    endif
+    MY_CMAKE_FLAGS += \
 	  -DOCIO_PATH=${OCIO_PATH} \
 	  -DFIELD3D_HOME=${FIELD3D_HOME} \
           -DHDF5_CUSTOM=1 \
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	  -DHDF5_LIBRARY_DIRS=/usr/lib64
+
+    ifneq (${SPCOMP2_USE_BOOSTVERS}, 1)
+	BOOSTVERS=1.51
+    endif
+    BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    MY_CMAKE_FLAGS += \
+	-DBOOST_CUSTOM=1 \
+	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+	-DBoost_python_FOUND=1 -Doiio_boost_PYTHON_FOUND=1 \
+	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/libpython2.6.so"
+
 endif  # endif spinux1
 
 
