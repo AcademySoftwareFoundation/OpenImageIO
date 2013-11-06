@@ -1222,13 +1222,13 @@ namespace pugi
 }
 } OIIO_NAMESPACE_EXIT
 
-#if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
+#if !defined(PUGIXML_NO_STL) && ((defined(_MSC_VER) && _MSC_VER < 1400) || defined(__ICC))
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection for older versions (MSVC7/IC8 and earlier)
-	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_node_iterator&);
-	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_attribute_iterator&);
-	std::forward_iterator_tag PUGIXML_FUNCTION _Iter_cat(const pugi::xml_named_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const OpenImageIO::pugi::xml_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION _Iter_cat(const OpenImageIO::pugi::xml_attribute_iterator&);
+	std::forward_iterator_tag PUGIXML_FUNCTION _Iter_cat(const OpenImageIO::pugi::xml_named_node_iterator&);
 }
 #endif
 
@@ -1236,9 +1236,9 @@ namespace std
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection
-	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_node_iterator&);
-	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_attribute_iterator&);
-	std::forward_iterator_tag PUGIXML_FUNCTION __iterator_category(const pugi::xml_named_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const OpenImageIO::pugi::xml_node_iterator&);
+	std::bidirectional_iterator_tag PUGIXML_FUNCTION __iterator_category(const OpenImageIO::pugi::xml_attribute_iterator&);
+	std::forward_iterator_tag PUGIXML_FUNCTION __iterator_category(const OpenImageIO::pugi::xml_named_node_iterator&);
 }
 #endif
 
