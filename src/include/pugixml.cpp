@@ -5380,21 +5380,21 @@ namespace pugi
 }
 } OIIO_NAMESPACE_EXIT
 
-#if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
+#if !defined(PUGIXML_NO_STL) && ((defined(_MSC_VER) && _MSC_VER < 1400) || defined(__ICC))
 namespace std
 {
 	// Workarounds for (non-standard) iterator category detection for older versions (MSVC7/IC8 and earlier)
-	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const pugi::xml_node_iterator&)
+	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const OpenImageIO::pugi::xml_node_iterator&)
 	{
 		return std::bidirectional_iterator_tag();
 	}
 
-	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const pugi::xml_attribute_iterator&)
+	PUGI__FN std::bidirectional_iterator_tag _Iter_cat(const OpenImageIO::pugi::xml_attribute_iterator&)
 	{
 		return std::bidirectional_iterator_tag();
 	}
 
-	PUGI__FN std::forward_iterator_tag _Iter_cat(const pugi::xml_named_node_iterator&)
+	PUGI__FN std::forward_iterator_tag _Iter_cat(const OpenImageIO::pugi::xml_named_node_iterator&)
 	{
 		return std::forward_iterator_tag();
 	}
