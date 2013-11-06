@@ -128,6 +128,7 @@ public:
     void unlock () { }
     void lock_shared () { }
     void unlock_shared () { }
+    bool try_lock () { return true; }
 };
 
 /// Null lock that can be substituted for a real one to test how much
@@ -219,7 +220,9 @@ using boost::thread_specific_ptr;
 inline int
 atomic_exchange_and_add (volatile int *at, int x)
 {
-#ifdef USE_GCC_ATOMICS
+#ifdef NOTHREADS
+    int r = *at;  *at += x;  return r;
+#elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add ((int *)at, x);
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
@@ -237,7 +240,9 @@ atomic_exchange_and_add (volatile int *at, int x)
 inline long long
 atomic_exchange_and_add (volatile long long *at, long long x)
 {
-#ifdef USE_GCC_ATOMICS
+#ifdef NOTHREADS
+    long long r = *at;  *at += x;  return r;
+#elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add (at, x);
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
@@ -261,11 +266,17 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 ///        *at = newval;  return true;
 ///    } else {
 ///        return false;
-///
+///    }
 inline bool
 atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 {
-#ifdef USE_GCC_ATOMICS
+#ifdef NOTHREADS
+    if (*at == compareval) {
+        *at = newval;  return true;
+    } else {
+        return false;
+    }
+#elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
@@ -282,7 +293,13 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 inline bool
 atomic_compare_and_exchange (volatile long long *at, long long compareval, long long newval)
 {
-#ifdef USE_GCC_ATOMICS
+#ifdef NOTHREADS
+    if (*at == compareval) {
+        *at = newval;  return true;
+    } else {
+        return false;
+    }
+#elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
