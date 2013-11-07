@@ -41,6 +41,7 @@
 #define OPENIMAGEIO_SYSUTIL_H
 
 #include <string>
+#include <time.h>
 
 #ifdef __MINGW32__
 #include <malloc.h> // for alloca

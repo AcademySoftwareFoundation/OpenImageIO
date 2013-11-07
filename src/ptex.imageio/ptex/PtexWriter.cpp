@@ -66,6 +66,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#if defined (__FreeBSD__)
+#include <unistd.h>
+#endif
 
 #include "filesystem.h"
 
