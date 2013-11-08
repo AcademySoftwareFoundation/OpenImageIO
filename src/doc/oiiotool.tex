@@ -1190,7 +1190,18 @@ Optional appended arguments include:
  & {\cf filter=}\emph{name} & Filter name. The default is {\cf
   blackman-harris} when increasing resolution, {\cf lanczos3} when
 decreasing resolution. \\
+ & {\cf pad=}\emph{p} & If the argument is nonzero, will pad with
+  black pixels to make the resulting image exactly the size specified, if
+  the source and desired size are not the same aspect ratio.
 \end{tabular}
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool in.exr --fit:pad=1 640x480 -o out.exr
+
+    oiiotool in.exr --fit 1024x1024 -o out.exr
+\end{code}
 \apiend
 
 \apiitem{--convolve}
