@@ -68,8 +68,10 @@ public:
     static ImageCache *create (bool shared=true);
 
     /// Destroy a ImageCache that was created using ImageCache::create().
-    ///
+    /// The variety that takes a 'teardown' parameter, when set to true,
+    /// will fully destroy even a "shared" ImageCache.
     static void destroy (ImageCache * x);
+    static void destroy (ImageCache * x, bool teardown);
 
     ImageCache (void) { }
     virtual ~ImageCache () { }

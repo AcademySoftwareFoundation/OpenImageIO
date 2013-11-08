@@ -457,8 +457,7 @@ private:
     mutable thread_specific_ptr< std::string > m_errormessage;
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
-    friend class ImageCacheFile;
-    friend class ImageCacheTile;
+    friend class TextureSystem;
 };
 
 
