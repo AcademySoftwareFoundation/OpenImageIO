@@ -2,8 +2,8 @@ project(documentation)
 
 set (public_docs
      openimageio.pdf
-     ${OpenImageIO_SOURCE_DIR}/../LICENSE
-     ${OpenImageIO_SOURCE_DIR}/../CHANGES
+     "${OpenImageIO_SOURCE_DIR}/../LICENSE"
+     "${OpenImageIO_SOURCE_DIR}/../CHANGES"
 )
 
 if (INSTALL_DOCS)
@@ -27,7 +27,7 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
         list (APPEND manpage_files ${outfile})
         add_custom_command (OUTPUT ${outfile}
             COMMAND ${tool} --help |
-            ${PYTHON_EXECUTABLE} ${documentation_SOURCE_DIR}/help2man_preformat.py |
+            ${PYTHON_EXECUTABLE} "${documentation_SOURCE_DIR}/help2man_preformat.py" |
             ${TXT2MAN} -v OpenImageIO -s 1 -t ${tool} > ${outfile}
             DEPENDS ${tool} help2man_preformat.py)
     endforeach()

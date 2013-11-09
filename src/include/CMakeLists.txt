@@ -16,8 +16,8 @@ message(STATUS "Create version.h from version.h.in")
 # namespace defined in version.h
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
 set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
-configure_file(version.h.in ${CMAKE_BINARY_DIR}/include/version.h @ONLY)
-list(APPEND public_headers ${CMAKE_BINARY_DIR}/include/version.h)
+configure_file(version.h.in "${CMAKE_BINARY_DIR}/include/version.h" @ONLY)
+list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/version.h")
 
 install (FILES ${public_headers} DESTINATION ${INCLUDE_INSTALL_DIR}
          COMPONENT developer)

@@ -1,17 +1,17 @@
 if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
     include (${QT_USE_FILE})
     include_directories (${QT_INCLUDES} ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDES})
-    add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp
+    add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp"
                         DEPENDS imageviewer.h imageviewer.cpp
                         COMMAND ${QT_MOC_EXECUTABLE}
-                        ARGS ${PROJECT_SOURCE_DIR}/iv/imageviewer.h
-                           -o ${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp
+                        ARGS "${PROJECT_SOURCE_DIR}/iv/imageviewer.h"
+                           -o "${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp"
                         )
     add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/iv/moc_ivgl.cpp
                         DEPENDS ivgl.h ivgl.cpp
                         COMMAND ${QT_MOC_EXECUTABLE}
-                        ARGS ${PROJECT_SOURCE_DIR}/iv/ivgl.h
-                           -o ${CMAKE_BINARY_DIR}/iv/moc_ivgl.cpp
+                        ARGS "${PROJECT_SOURCE_DIR}/iv/ivgl.h"
+                           -o "${CMAKE_BINARY_DIR}/iv/moc_ivgl.cpp"
                         )
     set (iv_srcs imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp 
                  ivpref.cpp ivmain.cpp moc_imageviewer.cpp moc_ivgl.cpp)

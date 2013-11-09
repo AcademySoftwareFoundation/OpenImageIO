@@ -8,7 +8,7 @@ setup_path (THIRD_PARTY_TOOLS_HOME
 
 # Add all third party tool directories to the include and library paths so
 # that they'll be correctly found by the various FIND_PACKAGE() invocations.
-if (THIRD_PARTY_TOOLS_HOME AND EXISTS ${THIRD_PARTY_TOOLS_HOME})
+if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
     set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" ${CMAKE_INCLUDE_PATH})
     # Detect third party tools which have been successfully built using the
     # lock files which are placed there by the external project Makefile.
@@ -53,7 +53,7 @@ endmacro ()
 
 find_package (OpenEXR REQUIRED)
 
-if (EXISTS ${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h)
+if (EXISTS "${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h")
     add_definitions (-DUSE_OPENEXR_VERSION2=1)
     setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
     if (VERBOSE)
@@ -67,8 +67,8 @@ else ()
 endif ()
 mark_as_advanced (OPENEXR_VERSION)
 
-include_directories (${OPENEXR_INCLUDE_DIR})
-include_directories (${OPENEXR_INCLUDE_DIR}/OpenEXR)
+include_directories ("${OPENEXR_INCLUDE_DIR}")
+include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
 macro (LINK_OPENEXR target)
     target_link_libraries (${target} ${OPENEXR_LIBRARIES})
 endmacro ()
@@ -275,7 +275,7 @@ if (USE_FIELD3D)
     else ()
         find_library (HDF5_LIBRARY
                       NAMES hdf5
-                      PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                      PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
                       /usr/local/lib
                       /opt/local/lib
                      )
@@ -293,18 +293,18 @@ if (USE_FIELD3D AND HDF5_FOUND)
         message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
     endif ()
     if (FIELD3D_HOME)
-        set (FIELD3D_INCLUDES ${FIELD3D_HOME}/include)
+        set (FIELD3D_INCLUDES "${FIELD3D_HOME}/include")
     else ()
         find_path (FIELD3D_INCLUDES Field3D/Field.h
-                   ${THIRD_PARTY_TOOLS}/include
-                   ${PROJECT_SOURCE_DIR}/include
-                   ${FIELD3D_HOME}/include
+                   "${THIRD_PARTY_TOOLS}/include"
+                   "${PROJECT_SOURCE_DIR}/include"
+                   "${FIELD3D_HOME}/include"
                   )
     endif ()
     find_library (FIELD3D_LIBRARY
                   NAMES Field3D
-                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-                  ${FIELD3D_HOME}/lib
+                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
+                        "${FIELD3D_HOME}/lib"
                  )
     if (FIELD3D_INCLUDES AND FIELD3D_LIBRARY)
         set (FIELD3D_FOUND TRUE)
@@ -340,13 +340,13 @@ if (VERBOSE)
     message (STATUS "WEBP_HOME=${WEBP_HOME}")
 endif ()
 find_path (WEBP_INCLUDE_DIR webp/encode.h
-           ${THIRD_PARTY_TOOLS}/include
-           ${PROJECT_SOURCE_DIR}/include  
-           ${WEBP_HOME}/)
+           "${THIRD_PARTY_TOOLS}/include"
+           "${PROJECT_SOURCE_DIR}/include"
+           "${WEBP_HOME}")
 find_library (WEBP_LIBRARY
               NAMES webp
-              PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-              ${WEBP_HOME}/
+              PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
+              "${WEBP_HOME}"
              )
 if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
     set (WEBP_FOUND TRUE)
@@ -378,25 +378,25 @@ endif()
 
 if (USE_OPENCV)
     find_path (OpenCV_INCLUDE_DIR opencv/cv.h
-               ${THIRD_PARTY_TOOLS}/include
-               ${PROJECT_SOURCE_DIR}/include  
-               ${OpenCV_HOME}/include
+               "${THIRD_PARTY_TOOLS}/include"
+               "${PROJECT_SOURCE_DIR}/include"
+               "${OpenCV_HOME}/include"
                /usr/local/include
                /opt/local/include
                )
     find_library (OpenCV_LIBS
                   NAMES opencv_core
-                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-                        ${PROJECT_SOURCE_DIR}/lib
-                        ${OpenCV_HOME}/lib
+                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
+                        "${PROJECT_SOURCE_DIR}/lib"
+                        "${OpenCV_HOME}/lib"
                         /usr/local/lib
                         /opt/local/lib
                  )
     find_library (OpenCV_LIBS_highgui
                   NAMES opencv_highgui
-                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-                        ${PROJECT_SOURCE_DIR}/lib
-                        ${OpenCV_HOME}/lib
+                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
+                        "${PROJECT_SOURCE_DIR}/lib"
+                        "${OpenCV_HOME}/lib"
                         /usr/local/lib
                         /opt/local/lib
                  )

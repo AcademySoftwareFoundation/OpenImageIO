@@ -261,7 +261,7 @@ if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
 endif ()
 link_ilmbase (OpenImageIO)
-add_dependencies (OpenImageIO ${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map)
+add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")
 
 if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
