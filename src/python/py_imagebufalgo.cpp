@@ -364,6 +364,32 @@ IBA_ociolook (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
 
 
 
+bool
+IBA_ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                 const std::string &display, const std::string &view,
+                 const object &from, const object &looks,
+                 bool unpremult,
+                 const std::string &context_key, const std::string &context_value,
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    std::string from_str, looks_str;
+
+    if (from != object())
+        from_str = extract<std::string>(from);
+    if (looks != object())
+        looks_str = extract<std::string>(looks);
+
+    return ImageBufAlgo::ociodisplay (dst, src,
+                                      display.c_str(), view.c_str(),
+                                      from == object() ? 0 : from_str.c_str(),
+                                      looks == object() ? 0 : looks_str.c_str(),
+                                      unpremult,
+                                      context_key.c_str(), context_value.c_str(),
+                                      roi, nthreads);
+}
+
+
+
 object
 IBA_isConstantColor (const ImageBuf &src,
                      ROI roi = ROI::All(), int nthreads = 0)
@@ -626,6 +652,15 @@ void declare_imagebufalgo()
               arg("context_key")="", arg("context_value")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ociolook")
+
+        .def("ociodisplay", &IBA_ociodisplay,
+             (arg("dst"), arg("src"),
+              arg("display"), arg("view"),
+              arg("from")=object(), arg("looks")=object(),
+              arg("unpremult")=false,
+              arg("context_key")="", arg("context_value")="",
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("ociodisplay")
 
         // computePixelStats, 
 
