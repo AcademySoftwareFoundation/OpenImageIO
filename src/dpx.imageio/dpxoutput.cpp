@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <iomanip>
 
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
@@ -38,7 +39,6 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
-#include "smpte_keycode.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -116,6 +116,10 @@ private:
     /// Helper function - retrieve libdpx descriptor for string
     ///
     dpx::Descriptor get_descriptor_from_string (const std::string &str);
+
+    /// Helper function - set keycode values from int array
+    ///
+    void set_keycode_values (int *array);
 };
 
 
@@ -348,7 +352,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     orient = DpxOrientations[clamp (orient, 0, 8)];
     m_dpx.header.SetImageOrientation ((dpx::Orientation)orient);
 
-    ImageIOParameter *tc = m_spec.find_attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, true);
+    ImageIOParameter *tc = m_spec.find_attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, false);
     if (tc) {
         unsigned int *timecode = (unsigned int*) tc->data();
         m_dpx.header.timeCode = timecode[0];
@@ -364,17 +368,10 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
     }
 
-    ImageIOParameter *kc = m_spec.find_attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, true);
+    ImageIOParameter *kc = m_spec.find_attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, false);
     if (kc) {
         int *array = (int*) kc->data();
-        SMPTE_KeyCode keycode(array[0], array[1], array[2], array[3], array[4], array[5], array[6]);
-        // Set the values from the keycode object
-        keycode.filmMfcCode(m_dpx.header.filmManufacturingIdCode);
-        keycode.filmType(m_dpx.header.filmType);
-        keycode.perfOffset(m_dpx.header.perfsOffset);
-        keycode.prefix(m_dpx.header.prefix);
-        keycode.count(m_dpx.header.count);
-        keycode.format(m_dpx.header.format);
+        set_keycode_values(array);
 
         // See if there is an overloaded dpx:Format
         std::string format = m_spec.get_string_attribute ("dpx:Format", "");
@@ -666,6 +663,71 @@ DPXOutput::get_descriptor_from_string (const std::string &str)
         return dpx::kCbYCrA;
     //else if (Strutil::iequals (str, "Undefined"))
         return dpx::kUndefinedDescriptor;
+}
+
+
+void
+DPXOutput::set_keycode_values (int *array)
+{
+    // Manufacturer code
+    {
+        std::stringstream ss;
+        ss << std::setfill('0');
+        ss << std::setw(2) << array[0];
+        memcpy(m_dpx.header.filmManufacturingIdCode, ss.str().c_str(), 2);
+    }
+
+    // Film type
+    {
+        std::stringstream ss;
+        ss << std::setfill('0');
+        ss << std::setw(2) << array[1];
+        memcpy(m_dpx.header.filmType, ss.str().c_str(), 2);
+    }
+
+    // Prefix
+    {
+        std::stringstream ss;
+        ss << std::setfill('0');
+        ss << std::setw(6) << array[2];
+        memcpy(m_dpx.header.prefix, ss.str().c_str(), 6);
+    }
+
+    // Count
+    {
+        std::stringstream ss;
+        ss << std::setfill('0');
+        ss << std::setw(4) << array[3];
+        memcpy(m_dpx.header.count, ss.str().c_str(), 4);
+    }
+
+    // Perforation Offset
+    {
+        std::stringstream ss;
+        ss << std::setfill('0');
+        ss << std::setw(2) << array[4];
+        memcpy(m_dpx.header.perfsOffset, ss.str().c_str(), 2);
+    }
+
+    // Format
+    int &perfsPerFrame = array[5];
+    int &perfsPerCount = array[6];
+
+    if (perfsPerFrame == 15 && perfsPerCount == 120) {
+        strcpy(m_dpx.header.format, "8kimax");
+    }
+    else if (perfsPerFrame == 8 && perfsPerCount == 64) {
+        strcpy(m_dpx.header.format, "VistaVision");
+    }
+    else if (perfsPerFrame == 4 && perfsPerCount == 64) {
+        strcpy(m_dpx.header.format, "Full Aperture");
+    }
+    else if (perfsPerFrame == 3 && perfsPerCount == 64) {
+        strcpy(m_dpx.header.format, "3perf");
+    }
+    else {
+        strcpy(m_dpx.header.format, "Unknown");
+    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END
