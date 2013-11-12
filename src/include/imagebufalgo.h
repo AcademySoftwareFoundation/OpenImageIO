@@ -724,6 +724,32 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
                         const char *key=NULL, const char *value=NULL,
                         ROI roi=ROI::All(), int nthreads=0);
 
+/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
+/// "display" transform.  If from or looks are NULL, it will not
+/// override the look or source color space (subtly different than
+/// passing "", the empty string, which means to use no look or source
+/// space).
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Works with all data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                        const char *display, const char *view,
+                        const char *from=NULL, const char *looks=NULL,
+                        bool unpremult=false,
+                        const char *key=NULL, const char *value=NULL,
+                        ROI roi=ROI::All(), int nthreads=0);
+
 /// Copy pixels within the ROI from src to dst, applying a color transform.
 ///
 /// If dst is not yet initialized, it will be allocated to the same

@@ -140,6 +140,52 @@ public:
                                          const char *context_key=NULL,
                                          const char *context_value=NULL) const;
 
+    /// Get the number of displays defined in this configuration
+    int getNumDisplays() const;
+
+    /// Query the name of the specified display.
+    const char * getDisplayNameByIndex(int index) const;
+
+    /// Get the number of views for a given display defined in this configuration
+    int getNumViews(const char * display) const;
+
+    /// Query the name of the specified view for the specified display
+    const char * getViewNameByIndex(const char * display, int index) const;
+
+    /// Query the name of the default display
+    const char * getDefaultDisplayName() const;
+
+    /// Query the name of the default view for the specified display
+    const char * getDefaultViewName(const char * display) const;
+
+    /// Construct a processor to transform from the given color space
+    /// to the color space of the given display and view. You may optionally
+    /// override the looks that are, by default, used with the display/view
+    /// combination. Looks is a potentially comma (or colon) delimited list
+    /// of lookNames, where +/- prefixes are optionally allowed to denote
+    /// forward/inverse transformation (and forward is assumed in the
+    /// absence of either). It is possible to remove all looks from the
+    /// display by passing an empty string. The context_key and context_value
+    /// can optionally be used to establish an extra token/value pair in the
+    /// OCIO context.
+    ///
+    /// It is possible that this will return NULL, if one of the color
+    /// spaces or the display or view doesn't exist or is not allowed.  When
+    /// the user is finished with a ColorProcess, deleteColorProcessor
+    /// should be called.  ColorProcessor(s) remain valid even if the
+    /// ColorConfig that created them no longer exists.
+    ///
+    /// Multiple calls to this are potentially expensive, so you should
+    /// call once to create a ColorProcessor to use on an entire image
+    /// (or multiple images), NOT for every scanline or pixel
+    /// separately!
+    ColorProcessor* createDisplayTransform (const char * display,
+                                            const char * view,
+                                            const char * inputColorSpace,
+                                            const char * looks=NULL,
+                                            const char * context_key=NULL,
+                                            const char * context_value=NULL) const;
+
     /// Delete the specified ColorProcessor
     static void deleteColorProcessor(ColorProcessor * processor);
     

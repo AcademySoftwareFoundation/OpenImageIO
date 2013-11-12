@@ -1469,6 +1469,35 @@ looks that \oiiotool knows about.
 
 \apiend
 
+apiitem{--ociodisplay {\rm \emph{displayname viewname}}}
+Replace the current image with a new image whose pixels are transformed
+using the named OpenColorIO ``display'' transformation given by the
+\emph{displayname} and \emph{viewname}.  Optional appended
+arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf from=}\emph{val} & Assume the image is in the named color
+  space. If no {\cf from=} is supplied, it will try to deduce it
+  from the image's metadata or previous {\cf --iscolorspace}
+  directives. \\
+ & {\cf key=}\emph{name} & \\
+ & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
+  OpenColorIO will used when applying the look. \\
+\end{tabular}
+
+This command is only meaningful if OIIO was compiled with OCIO support
+and the environment variable {\cf \$OCIO} is set to point to a valid
+OpenColorIO configuration file.  If you ask for \oiiotool help 
+({\cf oiiotool --help}), at the very bottom you will see the list of all
+looks that \oiiotool knows about.
+
+\noindent Examples:
+\begin{tinycode}
+  oiiotool in.exr --ociodisplay:from=lnf:key=SHOT:value=pe0012 sRGB Film -o cc.jpg
+\end{tinycode}
+
+\apiend
+
 \apiitem{--unpremult}
 Divide all color channels (those not alpha or z) of the current image by
 the alpha value, to ``un-premultiply'' them.  This presumes that the
