@@ -12,8 +12,6 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/osdep.h
                          ../include/paramlist.h
                          ../include/plugin.h
-                         ../include/smpte_keycode.h
-                         ../include/smpte_timecode.h
                          ../include/SHA1.h
                          ../include/strutil.h
                          ../include/sysutil.h
@@ -51,8 +49,6 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
                           ../libutil/SHA1.cpp 
-                          ../libutil/smpte_keycode.cpp
-                          ../libutil/smpte_timecode.cpp
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
                           ../libutil/typedesc.cpp 
