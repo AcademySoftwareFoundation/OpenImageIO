@@ -2347,7 +2347,27 @@ are supported.
     Src = ImageBuf ("tahoe.jpg")
     Dst = ImageBuf ()
     ImageBufAlgo.ociolook (Dst, Src, "look", "vd8", "lnf", False, False,
-                            "key", "value")
+                            key="SHOT", value="pe0012")
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
+  \bigspc\spc from=None, looks=None, unpremult=False, key="", value="", \\
+  \bigspc\spc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
+Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
+applying an OpenColorIO ``display'' transform to the pixel values.
+In-place operations ({\cf dst} and {\cf src} being the same image)
+are supported.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Src = ImageBuf ("tahoe.exr")
+    Dst = ImageBuf ()
+    ImageBufAlgo.ociodisplay (Dst, Src, "sRGB", "Film", "lnf", False,
+                              key="SHOT", value="pe0012")
 \end{code}
 \apiend
 

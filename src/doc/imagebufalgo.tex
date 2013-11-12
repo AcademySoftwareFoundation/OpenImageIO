@@ -1325,13 +1325,14 @@ to \qkw{linear} and vice versa.
 \apiitem{bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc const char *looks, const char *from, const char *to, \\
   \bigspc\spc bool inverse=false, bool unpremult=false, \\
-  \bigspc\spc const char *key, const char *value, \\
+  \bigspc\spc const char *key=NULL, const char *value=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``look'' transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.
+are supported.  The {\cf key} and {\cf value} may optionally be used
+to establish a context (for example, a shot-specific transform).
 
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
 and look application.
@@ -1346,7 +1347,40 @@ this flag if your image contains an alpha channel.
     ImageBuf Src ("tahoe.jpg");
     ImageBuf Dst;
     ImageBufAlgo::ociolook (Dst, Src, "look", "vd8", "lnf", false, false,
-                            "key", "value");
+                            "SHOT", "pe0012");
+\end{code}
+\apiend
+
+
+\apiitem{bool {\ce ociodisplay} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc const char *display, const char *view, \\
+  \bigspc\spc const char *from=NULL, const char *looks=NULL, bool unpremult=false, \\
+  \bigspc\spc const char *key=NULL, const char *value=NULL, \\
+  \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
+Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
+applying an OpenColorIO ``display'' transform to the pixel values.
+In-place operations ({\cf dst} and {\cf src} being the same image)
+are supported.  If {\cf from} or {\cf looks} are {\cf NULL}, it will not
+override the look or source color space (subtly different than
+passing \qkw{}, the empty string, which means to use no look or source
+space).  The {\cf key} and {\cf value} may optionally be used
+to establish a context (for example, a shot-specific transform).
+
+If {\cf inverse} is {\cf true}, it will reverse the color transformation
+and look application.
+
+If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
+then premultiply again after the color conversion.  You may want to use
+this flag if your image contains an alpha channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Src ("tahoe.exr");
+    ImageBuf Dst;
+    ImageBufAlgo::ociodisplay (Dst, Src, "sRGB", "Film", "lnf", NULL,
+                               false, "SHOT", "pe0012");
 \end{code}
 \apiend
 
