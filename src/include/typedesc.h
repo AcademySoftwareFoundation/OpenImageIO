@@ -84,7 +84,7 @@ struct OIIO_API TypeDesc {
                     HALF, FLOAT, DOUBLE, STRING, PTR, LASTBASE };
     /// AGGREGATE describes whether our type is a simple scalar of
     /// one of the BASETYPE's, or one of several simple aggregates.
-    enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, VEC7=7, MATRIX44=16 };
+    enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, MATRIX44=16 };
     /// VECSEMANTICS describes, for non-SCALAR aggregates, whether our
     /// type is like a color (raw values) or if it has coordinate
     /// transformation rules similar to a point, vector (direction),

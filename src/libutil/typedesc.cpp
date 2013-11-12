@@ -128,15 +128,18 @@ TypeDesc::c_str () const
 {
     // FIXME : how about a per-thread cache of the last one or two, so
     // we don't have to re-assemble strings all the time?
+
+    // Timecode and Keycode are hard coded
+    if (basetype == UINT && vecsemantics == TIMECODE && arraylen == 2)
+        return ustring("timecode").c_str();
+    else if (basetype == INT && vecsemantics == KEYCODE && arraylen == 7)
+        return ustring("keycode").c_str();
+
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
     else if (aggregate == MATRIX44 && basetype == FLOAT)
         result = "matrix";
-    else if (aggregate == VEC2 && basetype == UINT && vecsemantics == TIMECODE)
-        result = "timecode";
-    else if (aggregate == VEC7 && basetype == INT && vecsemantics == KEYCODE)
-        result = "keycode";
     else if (vecsemantics == NOXFORM) {
         const char *agg = "";
         switch (aggregate) {
@@ -154,8 +157,6 @@ TypeDesc::c_str () const
         case POINT  : vec = "point"; break;
         case VECTOR : vec = "vector"; break;
         case NORMAL : vec = "normal"; break;
-        case TIMECODE : vec = "timecode"; break;
-        case KEYCODE : vec = "keycode"; break;
         default: ASSERT (0 && "Invalid vector semantics");
         }
         const char *agg = "";
@@ -359,8 +360,8 @@ const TypeDesc TypeDesc::TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::
 const TypeDesc TypeDesc::TypeMatrix (TypeDesc::FLOAT,TypeDesc::MATRIX44);
 const TypeDesc TypeDesc::TypeString (TypeDesc::STRING);
 const TypeDesc TypeDesc::TypeInt (TypeDesc::INT);
-const TypeDesc TypeDesc::TypeTimeCode (TypeDesc::UINT, TypeDesc::VEC2, TypeDesc::TIMECODE);
-const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::VEC7, TypeDesc::KEYCODE);
+const TypeDesc TypeDesc::TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
 
 
 }
