@@ -43,23 +43,23 @@ endmacro ()
 # add_dll_fils ()
 #
 macro (add_dll_files)
-    install (FILES ${Boost_LIBRARY_DIRS}/boost_date_time-vc90-mt-1_38.dll
-                   ${Boost_LIBRARY_DIRS}/boost_filesystem-vc90-mt-1_38.dll
-                   ${Boost_LIBRARY_DIRS}/boost_regex-vc90-mt-1_38.dll
-                   ${Boost_LIBRARY_DIRS}/boost_system-vc90-mt-1_38.dll
-                   ${Boost_LIBRARY_DIRS}/boost_thread-vc90-mt-1_38.dll
-                   ${QT_BINARY_DIR}/QtCore4.dll
-                   ${QT_BINARY_DIR}/QtGui4.dll
-                   ${QT_BINARY_DIR}/QtOpenGL4.dll
-                   ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Imath.dll
-                   ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Half.dll
-                   ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/IlmThread.dll
-                   ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Iex.dll
-                   ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib/IlmImf.dll
-                   ${ZLIB_INCLUDE_DIR}/../lib/zlib1.dll
-                   ${PNG_PNG_INCLUDE_DIR}/../lib/libpng13.dll
-                   ${TIFF_INCLUDE_DIR}/../lib/libtiff.dll
-                   ${GLEW_INCLUDES}/../lib/glew32.dll
+    install (FILES "${Boost_LIBRARY_DIRS}/boost_date_time-vc90-mt-1_38.dll"
+                   "${Boost_LIBRARY_DIRS}/boost_filesystem-vc90-mt-1_38.dll"
+                   "${Boost_LIBRARY_DIRS}/boost_regex-vc90-mt-1_38.dll"
+                   "${Boost_LIBRARY_DIRS}/boost_system-vc90-mt-1_38.dll"
+                   "${Boost_LIBRARY_DIRS}/boost_thread-vc90-mt-1_38.dll"
+                   "${QT_BINARY_DIR}/QtCore4.dll"
+                   "${QT_BINARY_DIR}/QtGui4.dll"
+                   "${QT_BINARY_DIR}/QtOpenGL4.dll"
+                   "${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Imath.dll"
+                   "${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Half.dll"
+                   "${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/IlmThread.dll"
+                   "${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Iex.dll"
+                   "${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib/IlmImf.dll"
+                   "${ZLIB_INCLUDE_DIR}/../lib/zlib1.dll"
+                   "${PNG_PNG_INCLUDE_DIR}/../lib/libpng13.dll"
+                   "${TIFF_INCLUDE_DIR}/../lib/libtiff.dll"
+                   "${GLEW_INCLUDES}/../lib/glew32.dll"
              DESTINATION bin COMPONENT user)
 endmacro ()
 
@@ -119,7 +119,7 @@ macro (oiio_add_tests)
                 message (STATUS "TEST ${_testname}: ${CMAKE_BINARY_DIR}/testsuite/runtest.py ${_testdir} ${_extra_test_args}")
             endif ()
             add_test (${_add_test_args}
-                      ${CMAKE_BINARY_DIR}/testsuite/runtest.py
+                      "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
                       ${_testdir}
                       ${_extra_test_args})
         endforeach ()

@@ -13,7 +13,7 @@ endif ()
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
-if (${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
 endif ()
 
@@ -127,7 +127,7 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
         # Turn default symbol visibility to hidden
         set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
         add_definitions (${VISIBILITY_COMMAND})
-        if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
             # Linux: also hide all the symbols of dependent libraries to
             # prevent clashes if an app using OIIO is linked against
             # other verions of our dependencies.
@@ -161,8 +161,8 @@ include (externalpackages)
 
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${CMAKE_BINARY_DIR}/include/
+    "${CMAKE_SOURCE_DIR}/include/"
+    "${CMAKE_BINARY_DIR}/include/"
 )
 
 
@@ -326,8 +326,8 @@ add_subdirectory (doc)
 
 # Make a copy of the testsuite into the build area
 if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
-    file (COPY ${PROJECT_SOURCE_DIR}/../testsuite
-          DESTINATION ${CMAKE_BINARY_DIR})
+    file (COPY "${PROJECT_SOURCE_DIR}/../testsuite"
+          DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
 # List all the individual testsuite tests here:
@@ -406,10 +406,12 @@ set (CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
 set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/doc/Description.txt")
 set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-${platform})
-#SET (CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/..)
-exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt")
+#SET (CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_SOURCE_DIR}/..")
+file (COPY "${PROJECT_SOURCE_DIR}/../LICENSE" DESTINATION "${CMAKE_BINARY_DIR}")
+file (RENAME "${CMAKE_BINARY_DIR}/LICENSE" "${CMAKE_BINARY_DIR}/License.txt")
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt")
-exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../README.rst ${CMAKE_BINARY_DIR}/Readme.rst")
+file (COPY "${PROJECT_SOURCE_DIR}/../README.rst" DESTINATION "${CMAKE_BINARY_DIR}")
+file (RENAME "${CMAKE_BINARY_DIR}/README.rst" "${CMAKE_BINARY_DIR}/Readme.rst")
 set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.rst")
 set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/doc/Welcome.txt")
 #SET (CPACK_STRIP_FILES Do we need this?)
