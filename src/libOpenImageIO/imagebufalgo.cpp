@@ -104,7 +104,7 @@ struct Dim3 {
 bool
 ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A, const ImageBuf *B,
-                       ImageSpec *force_spec)
+                       ImageSpec *force_spec, int prepflags)
 {
     if ((A && !A->initialized()) || (B && !B->initialized())) {
         if (dst)
@@ -177,6 +177,31 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             set_roi_full (spec, roi);
         dst->alloc (spec);
     }
+    if (prepflags & IBAprep_REQUIRE_ALPHA) {
+        if (dst->spec().alpha_channel < 0 ||
+              (A && A->spec().alpha_channel < 0) ||
+              (B && B->spec().alpha_channel < 0)) {
+            dst->error ("images must have alpha channels");
+            return false;
+        }
+    }
+    if (prepflags & IBAprep_REQUIRE_Z) {
+        if (dst->spec().z_channel < 0 ||
+              (A && A->spec().z_channel < 0) ||
+              (B && B->spec().z_channel < 0)) {
+            dst->error ("images must have depth channels");
+            return false;
+        }
+    }
+    if (prepflags & IBAprep_REQUIRE_SAME_NCHANNELS) {
+        int n = dst->spec().nchannels;
+        if ((A && A->spec().nchannels != n) ||
+            (B && B->spec().nchannels != n)) {
+            dst->error ("images must have the same number of channels");
+            return false;
+        }
+    }
+
     return true;
 }
 
