@@ -89,7 +89,7 @@ struct OIIO_API TypeDesc {
     /// type is like a color (raw values) or if it has coordinate
     /// transformation rules similar to a point, vector (direction),
     /// or surface normal.
-    enum VECSEMANTICS { NOXFORM=0, COLOR, POINT, VECTOR, NORMAL };
+    enum VECSEMANTICS { NOXFORM=0, COLOR, POINT, VECTOR, NORMAL, TIMECODE, KEYCODE };
 
     unsigned char basetype;     ///< C data type at the heart of our type
     unsigned char aggregate;    ///< What kind of AGGREGATE is it?
@@ -251,6 +251,8 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeVector;
     static const TypeDesc TypeNormal;
     static const TypeDesc TypeMatrix;
+    static const TypeDesc TypeTimeCode;
+    static const TypeDesc TypeKeyCode;
 };
 
 
