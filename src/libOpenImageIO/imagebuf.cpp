@@ -1645,7 +1645,7 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
         // proxy to point to.
         do_wrap (x, y, z, wrap);
         if (wrap == ImageBuf::WrapBlack)
-            return &m_blackpixel; // Black points to a black pixel
+            return &m_blackpixel[0]; // Black points to a black pixel
         // We've adjusted x,y,z, now fall through below to get the
         // right tile
     }
