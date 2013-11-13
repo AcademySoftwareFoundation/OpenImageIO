@@ -93,24 +93,31 @@ by the enumerated type {\cf AGGREGATE}:
 \end{tabular}
 \medskip
 
-\noindent And optionally, several vector transformation
-semantics, described by the enumerated type {\cf VECSEMANTICS}:
+\noindent And optionally, a hint about the semantics of the data,
+described by the enumerated type {\cf VECSEMANTICS}:\footnote{It's
+unfortunately called {\cf VECSEMANTICS} because it used to be used
+strictly for 3-vectors. If we were to do it over again, it would just
+be {\cf SEMANTICS}.}
 
 \medskip
 \begin{tabular}{p{1in} p{4.25in}}
-{\cf NOXFORM} & indicates that the item is not a spatial quantity that
-  undergoes any particular transformation. \\
-{\cf COLOR} & indicates that the item is a ``color,'' not a spatial
+{\cf NOSEMANTICS} & nothing special known. \\
+{\cf COLOR} & indicates a vector that is intended to represent
+  a ``color,'' not a spatial
   quantity (and of course therefore does not undergo a transformation). \\
-{\cf POINT} &  indicates that the item represents a
+{\cf POINT} &  indicates a vector that represents a
   spatial position and should be transformed by a $4 \times 4$ matrix
   as if it had a 4th component of 1. \\
-{\cf VECTOR} &  indicates that the item represents a
+{\cf VECTOR} &  indicates a vector that represents a
   spatial direction and should be transformed by a $4 \times 4$ matrix
   as if it had a 4th component of 0. \\
-{\cf NORMAL} &  indicates that the item represents a
+{\cf NORMAL} &  indicates a vector that represents a
   surface normal and should be transformed like a vector, but using the
-  inverse-transpose of a $4 \times 4$ matrix.
+  inverse-transpose of a $4 \times 4$ matrix. \\
+{\cf TIMECODE} & indicates an {\cf int[2]} representing the standard
+  4-byte encoding of an SMPTE timecode. \\
+{\cf KEYCODE} & indicates an {\cf int[7]} representing the standard
+  28-byte encoding of an SMPTE keycode. \\
 \end{tabular}
 \medskip
 
