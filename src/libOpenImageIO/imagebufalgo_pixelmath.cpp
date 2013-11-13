@@ -1081,6 +1081,27 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     for ( ; ! r.done(); ++r, ++a, ++b) {
         float az = 0.0f, bz = 0.0f;
         bool a_is_closer = true;  // will remain true if !zcomp
+#if 1
+        if (! a.exists()) {
+            // ASSERT (a[0] == 0.0f);
+            if (! b.exists()) {
+                // a and b outside their data window -- "empty" pixels
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    r[c] = 0.0f;
+            } else {
+                // a doesn't exist, but b does -- copy B
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    r[c] = b[c];
+            }
+            continue;
+        }
+        if (! b.exists()) {
+            // a exists, b does not -- copy A
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                r[c] = a[c];
+            continue;
+        }
+#endif
         if (zcomp && has_z) {
             az = a[z_channel];
             bz = b[z_channel];
@@ -1094,7 +1115,7 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
             // A over B
             float alpha = clamp (a[alpha_channel], 0.0f, 1.0f);
             float one_minus_alpha = 1.0f - alpha;
-            for (int c = 0;  c < nchannels;  c++)
+            for (int c = roi.chbegin;  c < roi.chend;  c++)
                 r[c] = a[c] + one_minus_alpha * b[c];
             if (has_z)
                 r[z_channel] = (alpha != 0.0) ? a[z_channel] : b[z_channel];
@@ -1102,7 +1123,7 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
             // B over A -- because we're doing a Z composite
             float alpha = clamp (b[alpha_channel], 0.0f, 1.0f);
             float one_minus_alpha = 1.0f - alpha;
-            for (int c = 0;  c < nchannels;  c++)
+            for (int c = roi.chbegin;  c < roi.chend;  c++)
                 r[c] = b[c] + one_minus_alpha * a[c];
             r[z_channel] = (alpha != 0.0) ? b[z_channel] : a[z_channel];
         }
