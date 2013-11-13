@@ -6,7 +6,7 @@ type '(default)'
     c_str "unknown"
     basetype UNKNOWN
     aggregate SCALAR
-    vecsemantics NOXFORM
+    vecsemantics NOSEMANTICS
     arraylen 0
     str(t) = "unknown"
     size = 0
@@ -18,7 +18,7 @@ type 'UINT8'
     c_str "uint8"
     basetype UINT8
     aggregate SCALAR
-    vecsemantics NOXFORM
+    vecsemantics NOSEMANTICS
     arraylen 0
     str(t) = "uint8"
     size = 1
@@ -42,7 +42,7 @@ type 'FLOAT, SCALAR, NOXFORM, array of 6'
     c_str "float[6]"
     basetype FLOAT
     aggregate SCALAR
-    vecsemantics NOXFORM
+    vecsemantics NOSEMANTICS
     arraylen 6
     str(t) = "float[6]"
     size = 24
@@ -67,7 +67,7 @@ type 'float[2]'
     c_str "float[2]"
     basetype FLOAT
     aggregate SCALAR
-    vecsemantics NOXFORM
+    vecsemantics NOSEMANTICS
     arraylen 2
     str(t) = "float[2]"
     size = 8
@@ -91,7 +91,7 @@ type 'uint16'
     c_str "uint16"
     basetype UINT16
     aggregate SCALAR
-    vecsemantics NOXFORM
+    vecsemantics NOSEMANTICS
     arraylen 0
     str(t) = "uint16"
     size = 2
@@ -128,5 +128,9 @@ type 'TypeNormal'
     c_str "normal"
 type 'TypeMatrix'
     c_str "matrix"
+type 'TypeTimeCode'
+    c_str "timecode"
+type 'TypeKeyCode'
+    c_str "keycode"
 
 Done.

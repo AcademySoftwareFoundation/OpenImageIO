@@ -38,11 +38,14 @@ def basetype_enum_test():
 # Test that every expected enum value of AGGREGATE exists
 def aggregate_enum_test():
     try:
+        oiio.NOSEMANTICS
         oiio.SCALAR
         oiio.VEC2
         oiio.VEC3
         oiio.VEC4
         oiio.MATRIX44
+        oiio.TIMECODE
+        oiio.KEYCODE
         print "Passed AGGREGATE"
     except:
         print "Failed AGGREGATE"
@@ -124,14 +127,16 @@ try:
     print
 
     # Test the static data member types of pre-constructed types
-    breakdown_test (oiio.TypeDesc.TypeFloat,  "TypeFloat",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeColor,  "TypeColor",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeString, "TypeString", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeInt,    "TypeInt",    verbose=False)
-    breakdown_test (oiio.TypeDesc.TypePoint,  "TypePoint",  verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeVector, "TypeVector", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeNormal, "TypeNormal", verbose=False)
-    breakdown_test (oiio.TypeDesc.TypeMatrix, "TypeMatrix", verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeFloat,    "TypeFloat",    verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeColor,    "TypeColor",    verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeString,   "TypeString",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeInt,      "TypeInt",      verbose=False)
+    breakdown_test (oiio.TypeDesc.TypePoint,    "TypePoint",    verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeVector,   "TypeVector",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeNormal,   "TypeNormal",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeMatrix,   "TypeMatrix",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeTimeCode, "TypeTimeCode", verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeKeyCode,  "TypeKeyCode",  verbose=False)
     print
 
     print "Done."

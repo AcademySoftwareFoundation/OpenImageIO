@@ -85,11 +85,17 @@ struct OIIO_API TypeDesc {
     /// AGGREGATE describes whether our type is a simple scalar of
     /// one of the BASETYPE's, or one of several simple aggregates.
     enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, MATRIX44=16 };
-    /// VECSEMANTICS describes, for non-SCALAR aggregates, whether our
-    /// type is like a color (raw values) or if it has coordinate
-    /// transformation rules similar to a point, vector (direction),
-    /// or surface normal.
-    enum VECSEMANTICS { NOXFORM=0, COLOR, POINT, VECTOR, NORMAL };
+    /// VECSEMANTICS gives hints about what the data represent (for
+    /// example, if a spatial vector, whether it should transform as
+    /// a point, direction vector, or surface normal).
+    enum VECSEMANTICS { NOXFORM=0, NOSEMANTICS=0,  // no semantic hints
+                        COLOR,    // color
+                        POINT,    // spatial location
+                        VECTOR,   // spatial direction
+                        NORMAL,   // surface normal
+                        TIMECODE, // SMPTE timecode (should be int[2])
+                        KEYCODE   // SMPTE keycode (should be int[7])
+                      };
 
     unsigned char basetype;     ///< C data type at the heart of our type
     unsigned char aggregate;    ///< What kind of AGGREGATE is it?
@@ -251,6 +257,8 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeVector;
     static const TypeDesc TypeNormal;
     static const TypeDesc TypeMatrix;
+    static const TypeDesc TypeTimeCode;
+    static const TypeDesc TypeKeyCode;
 };
 
 

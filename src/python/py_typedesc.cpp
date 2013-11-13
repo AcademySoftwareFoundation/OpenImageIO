@@ -101,10 +101,13 @@ void declare_typedesc() {
     
     enum_<TypeDesc::VECSEMANTICS>("VECSEMANTICS")
         .value("NOXFORM",  TypeDesc::NOXFORM)
+        .value("NOSEMANTICS", TypeDesc::NOSEMANTICS)
         .value("COLOR",    TypeDesc::COLOR)
         .value("POINT",    TypeDesc::POINT)
         .value("VECTOR",   TypeDesc::VECTOR)
         .value("NORMAL",   TypeDesc::NORMAL)
+        .value("TIMECODE", TypeDesc::TIMECODE)
+        .value("KEYCODE",  TypeDesc::KEYCODE)
         .export_values()
     ;
 
@@ -150,14 +153,16 @@ void declare_typedesc() {
         .def(str(self))    // __str__
 
         // Static members of pre-constructed types
-        .def_readonly("TypeFloat",  &TypeDesc::TypeFloat)
-        .def_readonly("TypeColor",  &TypeDesc::TypeColor)
-        .def_readonly("TypeString", &TypeDesc::TypeString)
-        .def_readonly("TypeInt",    &TypeDesc::TypeInt)
-        .def_readonly("TypePoint",  &TypeDesc::TypePoint)
-        .def_readonly("TypeVector", &TypeDesc::TypeVector)
-        .def_readonly("TypeNormal", &TypeDesc::TypeNormal)
-        .def_readonly("TypeMatrix", &TypeDesc::TypeMatrix)
+        .def_readonly("TypeFloat",    &TypeDesc::TypeFloat)
+        .def_readonly("TypeColor",    &TypeDesc::TypeColor)
+        .def_readonly("TypeString",   &TypeDesc::TypeString)
+        .def_readonly("TypeInt",      &TypeDesc::TypeInt)
+        .def_readonly("TypePoint",    &TypeDesc::TypePoint)
+        .def_readonly("TypeVector",   &TypeDesc::TypeVector)
+        .def_readonly("TypeNormal",   &TypeDesc::TypeNormal)
+        .def_readonly("TypeMatrix",   &TypeDesc::TypeMatrix)
+        .def_readonly("TypeTimeCode", &TypeDesc::TypeTimeCode)
+        .def_readonly("TypeKeyCode",  &TypeDesc::TypeKeyCode)
     ;
 
 }
