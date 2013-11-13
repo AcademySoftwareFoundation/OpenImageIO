@@ -1920,7 +1920,7 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
         if (! do_wrap (x, y, z, wrap)) {
             // After wrapping, the new xyz point outside the data window.
             // So return the black pixel.
-            return &m_blackpixel;
+            return &m_blackpixel[0];
         }
         // We've adjusted x,y,z, and know the wrapped coordinates are in the
         // pixel data window, so now fall through below to get the right
