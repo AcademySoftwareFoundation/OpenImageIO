@@ -1081,27 +1081,6 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     for ( ; ! r.done(); ++r, ++a, ++b) {
         float az = 0.0f, bz = 0.0f;
         bool a_is_closer = true;  // will remain true if !zcomp
-#if 1
-        if (! a.exists()) {
-            // ASSERT (a[0] == 0.0f);
-            if (! b.exists()) {
-                // a and b outside their data window -- "empty" pixels
-                for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                    r[c] = 0.0f;
-            } else {
-                // a doesn't exist, but b does -- copy B
-                for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                    r[c] = b[c];
-            }
-            continue;
-        }
-        if (! b.exists()) {
-            // a exists, b does not -- copy A
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                r[c] = a[c];
-            continue;
-        }
-#endif
         if (zcomp && has_z) {
             az = a[z_channel];
             bz = b[z_channel];
