@@ -221,7 +221,7 @@ cmakesetup:
 		cd ${build_dir} ; \
 		cmake -DCMAKE_INSTALL_PREFIX=${INSTALLDIR}/${dist_dir} \
 			${MY_CMAKE_FLAGS} -DBOOST_ROOT=${BOOST_HOME} \
-			../../src ; \
+			../.. ; \
 	 fi)
 
 # 'make cmake' does a basic build (after first setting it up)

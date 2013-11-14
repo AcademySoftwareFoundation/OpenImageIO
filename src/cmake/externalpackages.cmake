@@ -2,7 +2,7 @@
 # Find libraries
 
 setup_path (THIRD_PARTY_TOOLS_HOME 
-#            "${PROJECT_SOURCE_DIR}/../../external/dist/${platform}"
+#            "${PROJECT_SOURCE_DIR}/../external/dist/${platform}"
             "unknown"
             "Location of third party libraries in the external project")
 
@@ -297,7 +297,7 @@ if (USE_FIELD3D AND HDF5_FOUND)
     else ()
         find_path (FIELD3D_INCLUDES Field3D/Field.h
                    "${THIRD_PARTY_TOOLS}/include"
-                   "${PROJECT_SOURCE_DIR}/include"
+                   "${PROJECT_SOURCE_DIR}/src/include"
                    "${FIELD3D_HOME}/include"
                   )
     endif ()
@@ -341,7 +341,7 @@ if (VERBOSE)
 endif ()
 find_path (WEBP_INCLUDE_DIR webp/encode.h
            "${THIRD_PARTY_TOOLS}/include"
-           "${PROJECT_SOURCE_DIR}/include"
+           "${PROJECT_SOURCE_DIR}/src/include"
            "${WEBP_HOME}")
 find_library (WEBP_LIBRARY
               NAMES webp
