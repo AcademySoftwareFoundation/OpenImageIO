@@ -1,7 +1,7 @@
 Changes:
 
 
-Release 1.3 (in progress -- compared to 1.2.x)
+Release 1.3 (14 Nov 2013 -- compared to 1.2.x)
 ----------------------------------------------
 Major new features and improvements:
 * Huge overhaul of the Python bindings: TypeDesc, ImageSpec (1.3.2),
@@ -192,7 +192,8 @@ Build/test system improvements:
 * Fix to __attribute__(visibility) for gcc < 4.1.2 (1.3.6)
 * Improve the CMake build files to fully quote path constructions to make
   it more robust for builds with paths containing spaces. (1.3.7)
-
+* Moved the main CMakeLists.txt file to the top level directory, per usual
+  CMake conventions. (1.3.7)
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
 * Merge improved "Tinyformat" that fixes a bug in some old glibc versions

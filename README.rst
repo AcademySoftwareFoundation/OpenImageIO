@@ -55,12 +55,14 @@ OpenImageIO consists of:
   and manipulating whole images in memory, and a collection of the
   most useful computations you might want to do involving those images.
 
+* Python bindings for all of the major APIs.
+
 
 
 Licensing
 ---------
 
-OpenImageIO is (c) Copyright 2008 by Larry Gritz and the other
+OpenImageIO is (c) Copyright 2008-2013 by Larry Gritz and the other
 contributors.  All Rights Reserved.
 
 OpenImageIO is distributed using the modified BSD license (also known as
