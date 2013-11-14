@@ -167,7 +167,8 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     rewind (m_fd);
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         close_file ();
-        error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)", name.c_str(), magic);
+        error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
+               name.c_str(), magic);
         return false;
     }
 

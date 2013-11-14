@@ -951,6 +951,22 @@ The history of the image or document.
 \apiend
 
 
+\section{SMPTE metadata}
+\label{sec:metadata:smpte}
+\index{SMPTE metadata}
+
+\apiitem{"smpte:TimeCode" : int[2]}
+SMPTE time code, encoded as an array of 2 32-bit integers (as a
+\TypeDesc, it will be tagged with vecsemantics {\cf TIMECODE}).
+\apiend
+
+\apiitem{"smpte:KeyCode" : int[7]}
+SMPTE key code, encoded as an array of 7 32-bit integers (as a
+\TypeDesc, it will be tagged with vecsemantics {\cf KEYCODE}).
+\apiend
+
+
+
 
 \section{Extension conventions}
 

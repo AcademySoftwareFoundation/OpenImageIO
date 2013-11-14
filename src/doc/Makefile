@@ -6,15 +6,15 @@ all: openimageio.pdf
 
 # document making rule: use pdflatex
 openimageio.pdf: *.tex *.aux
-	${PDFLATEX} openimageio
+	${PDFLATEX} openimageio.tex
 
 
 # special command 'make index' to regenerate the index
 index: openimageio_index
 
 openimageio_index:
-	${PDFLATEX} openimageio
-	${PDFLATEX} openimageio
+	${PDFLATEX} openimageio.tex
+	${PDFLATEX} openimageio.tex
 	makeindex openimageio
-	${PDFLATEX} openimageio
+	${PDFLATEX} openimageio.tex
 

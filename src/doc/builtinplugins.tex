@@ -110,11 +110,16 @@ OIIO Attribute & Type & DPX header data or explanation \\
 \qkw{DateTime} & string & Creation date/time \\
 \qkw{Orientation} & int & the orientation of the DPX image data (see
   \ref{metadata:orientation}) \\
-\qkw{oiio:BitsPerSample} & int & the true bits per sample of the DPX file. \\
 \qkw{compression} & string & The compression type \\
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
+\qkw{oiio:BitsPerSample} & int & the true bits per sample of the DPX file. \\
 \qkw{oiio:Endian} & string & When writing, force a particular endianness
-                             for the output file (\qkw{little} or \qkw{big})
+                             for the output file (\qkw{little} or \qkw{big}) \\
+\qkw{smpte:TimeCode} & int[2] & SMPTE time code (vecsemantics will be
+                                marked as TIMECODE) \\
+\qkw{smpte:KeyCode} & int[7] & SMPTE key code (vecsemantics will be
+                                marked as KEYCODE) \\
+
 \end{tabular} 
 
 \noindent\begin{tabular}{p{1.8in}|p{0.65in}|p{2.75in}}
@@ -522,6 +527,10 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
     Environment} for OpenEXR environment maps.  Non-environment
   non-MIP-mapped OpenEXR files will not set this attribute. \\
 \qkw{wrapmodes} & string & wrapmodes \\
+\qkw{smpte:TimeCode} & int[2] & SMPTE time code (vecsemantics will be
+                                marked as TIMECODE) \\
+\qkw{smpte:KeyCode} & int[7] & SMPTE key code (vecsemantics will be
+                                marked as KEYCODE) \\
 %\qkw{oiio:updirection} & string & Will be set to \qkw{y} for OpenEXR
 % latlong environment maps to indicate that OpenEXR dictates a
 % right-handed, ``$y$ is up'' coordinate system. \\

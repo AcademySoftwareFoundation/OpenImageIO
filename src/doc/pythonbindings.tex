@@ -50,7 +50,7 @@ These names are also exported to the {\cf OpenImageIO} namespace.
 \apiitem{VECSEMANTICS}
 The {\cf VECSEMANTICS} enum corresponds to the C++ {\cf TypeDesc::VECSEMANTICS} and
 contains the following values: \\
-{\cf NOXFORM COLOR POINT VECTOR NORMAL} \\
+{\cf NOSEMANTICS COLOR POINT VECTOR NORMAL TIMECODE KEYCODE} \\
 These names are also exported to the {\cf OpenImageIO} namespace.
 \apiend
 
@@ -74,7 +74,7 @@ Construct a {\cf TypeDesc} object.
     t = TypeDesc(oiio.UINT8)
 
     # make a TypeDesc describing an array of 14 'half' values
-    t = TypeDesc(oiio.HALF, oiio.SCALAR, oiio.NOXFORM, 14)
+    t = TypeDesc(oiio.HALF, oiio.SCALAR, oiio.NOSEMANTICS, 14)
 
     # make a TypeDesc describing a float point
     t = TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT)
