@@ -202,11 +202,17 @@ catalog_plugin (const std::string &format_name,
 // list of file extensions, for the standard plugins that come with OIIO.
 // These won't be used unless EMBED_PLUGINS is defined.  Use the PLUGENTRY
 // macro to make the declaration compact and easy to read.
-#define PLUGENTRY(name)                                 \
+#define INPUTPLUG(name)                                 \
     ImageInput *name ## _input_imageio_create ();       \
-    ImageOutput *name ## _output_imageio_create ();     \
-    extern const char *name ## _output_extensions[];    \
     extern const char *name ## _input_extensions[];
+
+#define OUTPUTPLUG(name)                                \
+    ImageOutput *name ## _output_imageio_create ();     \
+    extern const char *name ## _output_extensions[];    
+
+#define PLUGENTRY(name)                                 \
+    INPUTPLUG(name)                                     \
+    OUTPUTPLUG(name)
 
     PLUGENTRY (bmp);
     PLUGENTRY (cineon);
@@ -225,6 +231,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (pnm);
     PLUGENTRY (psd);
     PLUGENTRY (ptex);
+    INPUTPLUG (raw);
     PLUGENTRY (rla);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
@@ -233,6 +240,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (targa);
     PLUGENTRY (webp);
     PLUGENTRY (zfile);
+
 
 
 #endif // defined(EMBED_PLUGINS)
@@ -279,6 +287,13 @@ catalog_builtin_plugins ()
     DECLAREPLUG (pnm);
     DECLAREPLUG (psd);
     DECLAREPLUG (ptex);
+#ifdef USE_RAW
+    declare_imageio_format ("raw",
+        (ImageInput::Creator) raw_input_imageio_create, 
+        raw_input_extensions,
+        NULL,
+        NULL);
+#endif
     DECLAREPLUG (rla);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO

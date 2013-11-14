@@ -334,6 +334,20 @@ endif()
 # end OpenJpeg setup_path
 ###########################################################################
 
+# LibRaw
+if (USE_RAW)
+	find_package(LibRaw)
+	if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
+		set (RAW_FOUND TRUE)
+		include_directories(${LibRaw_INCLUDE_DIR})
+	else ()
+		set (RAW_FOUND FALSE)
+	endif()
+endif()
+
+#end LibRaw setup
+###########################################################################
+
 # WebP setup
 
 if (VERBOSE)
