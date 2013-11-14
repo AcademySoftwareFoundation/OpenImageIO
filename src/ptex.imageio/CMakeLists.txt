@@ -1,11 +1,11 @@
 find_package (ZLIB)
 
 if (ZLIB_FOUND)
-	if (WIN32)
+    if (WIN32)
         add_definitions ("-DPTEX_EXPORTS")
-	endif()
+    endif()
     include_directories (${ZLIB_INCLUDE_DIR})
-	add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
+    add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
                  ptex/PtexCache.cpp
                  ptex/PtexFilters.cpp
                  ptex/PtexHalf.cpp
