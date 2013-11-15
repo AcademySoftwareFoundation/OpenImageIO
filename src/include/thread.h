@@ -93,7 +93,6 @@
 #  pragma intrinsic (_InterlockedExchangeAdd)
 #  pragma intrinsic (_InterlockedCompareExchange)
 #  pragma intrinsic (_InterlockedCompareExchange64)
-#  pragma intrinsic (_ReadWriteBarrier)
 #  if defined(_WIN64)
 #    pragma intrinsic(_InterlockedExchangeAdd64)
 #  endif
@@ -564,16 +563,14 @@ public:
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__GNUC__)
         // Fastest way to do it is with a store with "release" semantics
-        __asm__ __volatile__("": : :"memory");
-        m_locked = 0;
-        // N.B. GCC gives us an intrinsic that is even better, an atomic
-        // assignment of 0 with "release" barrier semantics:
-        //  __sync_lock_release (&m_locked);
-        // But empirically we found it not as performant as the above.
+        __sync_lock_release (&m_locked);
+        //   Equivalent, x86 specific code:
+        //   __asm__ __volatile__("": : :"memory");
+        //   m_locked = 0;
 #elif defined(_MSC_VER)
-        _ReadWriteBarrier();
+        MemoryBarrier ();
         m_locked = 0;
 #else
         // Otherwise, just assign zero to the atomic (but that's a full 
