@@ -191,21 +191,8 @@ private:
     /// seconds.
     static double diff (const value_t &then, const value_t &now) {
 #ifdef _WIN32
-        // From MSDN web site
-        value_t freq;
-        QueryPerformanceFrequency (&freq);
-        return (double)(now.QuadPart - then.QuadPart) / (double)freq.QuadPart;
+        return (double)(now.QuadPart - then.QuadPart) * seconds_per_tick;
 #elif defined(__APPLE__)
-        // NOTE(boulos): Both this value and that of the windows
-        // counterpart above only need to be calculated once. In
-        // Manta, we stored this on the side as a scaling factor but
-        // that would require a .cpp file (meaning timer.h can't just
-        // be used as a header). It is also claimed that since
-        // Leopard, Apple returns 1 for both numer and denom.
-        mach_timebase_info_data_t time_info;
-        mach_timebase_info(&time_info);
-        double seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
-          static_cast<double>(time_info.denom);
         value_t d = (now>then) ? now-then : then-now;
         return d * seconds_per_tick;
 #else
@@ -213,6 +200,9 @@ private:
                      static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);
 #endif
     }
+
+    static double seconds_per_tick;
+    friend class TimerSetupOnce;
 };
 
 
