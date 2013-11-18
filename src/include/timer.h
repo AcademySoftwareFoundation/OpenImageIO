@@ -79,14 +79,7 @@ OIIO_NAMESPACE_ENTER
 ///
 class Timer {
 public:
-#ifdef _WIN32
-    typedef LARGE_INTEGER value_t;
-    // Sheesh, why can't they use a standard type like stdint's int64_t?
-#elif defined(__APPLE__)
     typedef unsigned long long value_t;
-#else
-    typedef struct timeval value_t;
-#endif
 
     /// Constructor -- reset at zero, and start timing unless optional
     /// 'startnow' argument is false.
@@ -96,14 +89,7 @@ public:
             start();
         else {
             // Initialize m_starttime to avoid warnings
-#ifdef _WIN32
-            m_starttime.QuadPart = 0;
-#elif defined(__APPLE__)
             m_starttime = 0;
-#else
-            m_starttime.tv_sec = 0;
-            m_starttime.tv_usec = 0;
-#endif
         }
     }
 
@@ -176,29 +162,24 @@ private:
     /// Platform-dependent grab of current time, expressed as value_t.
     ///
     value_t now (void) const {
-        value_t n;
 #ifdef _WIN32
+        LARGE_INTEGER n;
         QueryPerformanceCounter (&n);   // From MSDN web site
+        return n.QuadPart;
 #elif defined(__APPLE__)
-        n = mach_absolute_time();
+        return mach_absolute_time();
 #else
-        gettimeofday (&n, NULL);
+        struct timeval t;
+        gettimeofday (&t, NULL);
+        return (unsigned long long) t.tv_sec*1000000ull + t.tv_usec;
 #endif
-        return n;
     }
 
     /// Platform-dependent difference between two times, expressed in
     /// seconds.
     static double diff (const value_t &then, const value_t &now) {
-#ifdef _WIN32
-        return (double)(now.QuadPart - then.QuadPart) * seconds_per_tick;
-#elif defined(__APPLE__)
         value_t d = (now>then) ? now-then : then-now;
         return d * seconds_per_tick;
-#else
-        return fabs (static_cast<double>(now.tv_sec  - then.tv_sec) +
-                     static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);
-#endif
     }
 
     static double seconds_per_tick;

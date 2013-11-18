@@ -37,7 +37,7 @@
 OIIO_NAMESPACE_ENTER
 {
 
-double Timer::seconds_per_tick = 0.0;
+double Timer::seconds_per_tick = 1.0e-6;
 
 
 class TimerSetupOnce {
