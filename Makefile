@@ -80,6 +80,10 @@ ifneq (${NOTHREADS},)
 MY_CMAKE_FLAGS += -DNOTHREADS:BOOL=${NOTHREADS}
 endif
 
+ifneq (${OIIO_THREAD_ALLOW_DCLP},)
+MY_CMAKE_FLAGS += -DOIIO_THREAD_ALLOW_DCLP:BOOL=${OIIO_THREAD_ALLOW_DCLP}
+endif
+
 ifneq (${NAMESPACE},)
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
 endif
@@ -320,6 +324,8 @@ help:
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make OCIO_HOME=path ...     Custom OpenColorIO installation"
 	@echo "  make BOOST_HOME=path ...    Custom Boost installation"
+	@echo "  make NOTHREADS=1 ...        Build with threading support turned off"
+	@echo "  make OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo "  make OIIO_BUILD_TOOLS=0 ... Skip building the command-line tools"
