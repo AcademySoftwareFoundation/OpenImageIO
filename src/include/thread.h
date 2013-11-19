@@ -93,7 +93,6 @@
 #  pragma intrinsic (_InterlockedExchangeAdd)
 #  pragma intrinsic (_InterlockedCompareExchange)
 #  pragma intrinsic (_InterlockedCompareExchange64)
-#  pragma intrinsic (_ReadWriteBarrier)
 #  if defined(_WIN64)
 #    pragma intrinsic(_InterlockedExchangeAdd64)
 #  endif
@@ -114,6 +113,18 @@ InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
 #define USE_GCC_ATOMICS
 #endif
+
+
+// OIIO_THREAD_ALLOW_DCLP, if set to 0, prevents us from using a dodgy
+// "double checked lock pattern" (DCLP).  We are very careful to construct
+// it safely and correctly, and these uses improve thread performance for
+// us.  But it confuses Thread Sanitizer, so this switch allows you to turn
+// it off. Also set to 0 if you don't believe that we are correct in
+// allowing this construct on all platforms.
+#ifndef OIIO_THREAD_ALLOW_DCLP
+#define OIIO_THREAD_ALLOW_DCLP 1
+#endif
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -549,31 +560,39 @@ public:
         // found that OIIO_UNLIKELY makes this just a bit faster on 
         // gcc x86/x86_64 systems.
         while (! OIIO_UNLIKELY(try_lock())) {
-            do {
-                backoff();
-            } while (m_locked);
-
+#if OIIO_THREAD_ALLOW_DCLP
             // The full try_lock() involves a compare_and_swap, which
             // writes memory, and that will lock the bus.  But a normal
             // read of m_locked will let us spin until the value
             // changes, without locking the bus. So it's faster to
             // check in this manner until the mutex appears to be free.
+            // HOWEVER... Thread Sanitizer things this is an instance of
+            // an unsafe "double checked lock pattern" (DCLP) and flags it
+            // as an error. I think it's a false negative, because the
+            // outer loop is still an atomic check, the inner non-atomic
+            // loop only serves to delay, and can't lead to a true data
+            // race. But we provide this build-time switch to, at least,
+            // give a way to use tsan for other checks.
+            do {
+                backoff();
+            } while (m_locked);
+#else
+            backoff();
+#endif
         }
     }
 
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__GNUC__)
         // Fastest way to do it is with a store with "release" semantics
-        __asm__ __volatile__("": : :"memory");
-        m_locked = 0;
-        // N.B. GCC gives us an intrinsic that is even better, an atomic
-        // assignment of 0 with "release" barrier semantics:
-        //  __sync_lock_release (&m_locked);
-        // But empirically we found it not as performant as the above.
+        __sync_lock_release (&m_locked);
+        //   Equivalent, x86 specific code:
+        //   __asm__ __volatile__("": : :"memory");
+        //   m_locked = 0;
 #elif defined(_MSC_VER)
-        _ReadWriteBarrier();
+        MemoryBarrier ();
         m_locked = 0;
 #else
         // Otherwise, just assign zero to the atomic (but that's a full 
@@ -668,8 +687,13 @@ public:
         // Spin until the last reader is done, at which point we will be
         // the sole owners and nobody else (reader or writer) can acquire
         // the resource until we release it.
+#if OIIO_THREAD_ALLOW_DCLP
         while (*(volatile int *)&m_readers > 0)
                 ;
+#else
+        while (m_readers > 0)
+                ;
+#endif
     }
 
     /// Release the writer lock.
