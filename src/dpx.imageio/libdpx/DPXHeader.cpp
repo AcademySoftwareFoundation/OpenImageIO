@@ -79,8 +79,8 @@ void dpx::GenericHeader::Reset()
 	// File Information
 	this->magicNumber = MAGIC_COOKIE;
 	this->imageOffset = ~0;
-	EmptyString(this->version, 8);
-	::strcpy(this->version, SMPTE_VERSION);
+	EmptyString(this->version, sizeof(this->version));
+	OIIO::Strutil::safe_strcpy(this->version, SMPTE_VERSION, sizeof(this->version));
 	fileSize = sizeof(dpx::Header);
 	this->dittoKey = 1;									// new
 
@@ -99,32 +99,32 @@ void dpx::GenericHeader::Reset()
 	this->industrySize = 256 + 128;
 
 	this->userSize = 0;
-	EmptyString(this->fileName, 100);
-	EmptyString(this->creationTimeDate, 24);
-	EmptyString(this->creator, 100);
-	EmptyString(this->project, 200);
-	EmptyString(this->copyright, 200);
+	EmptyString(this->fileName, sizeof(this->fileName));
+	EmptyString(this->creationTimeDate, sizeof(this->creationTimeDate));
+	EmptyString(this->creator, sizeof(this->creator));
+	EmptyString(this->project, sizeof(this->project));
+	EmptyString(this->copyright, sizeof(this->copyright));
 	this->encryptKey = 0xffffffff;
-	EmptyString(this->reserved1, 104);
+	EmptyString(this->reserved1, sizeof(this->reserved1));
 
 	// Image Information
 	this->imageOrientation = kUndefinedOrientation;
 	this->numberOfElements = 0xffff;
 	this->pixelsPerLine = this->linesPerElement = 0xffffffff;
-	EmptyString(this->reserved2, 52);
+	EmptyString(this->reserved2, sizeof(this->reserved2));
 
 	// Image Orientation
 	this->xOffset = this->yOffset = 0xffffffff;
 	this->xCenter = this->yCenter = std::numeric_limits<float>::quiet_NaN();
 	this->xOriginalSize = this->yOriginalSize = 0xffffffff;
-	EmptyString(this->sourceImageFileName, 100);
-	EmptyString(this->sourceTimeDate, 24);
-	EmptyString(this->inputDevice, 32);
-	EmptyString(this->inputDeviceSerialNumber, 32);
+	EmptyString(this->sourceImageFileName, sizeof(this->sourceImageFileName));
+	EmptyString(this->sourceTimeDate, sizeof(this->sourceTimeDate));
+	EmptyString(this->inputDevice, sizeof(this->inputDevice));
+	EmptyString(this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
 	this->border[0] = this->border[1] = this->border[2] = this->border[3] = 0xffff;
 	this->aspectRatio[0] = this->aspectRatio[1] = 0xffffffff;
 	this->xScannedSize = this->yScannedSize = std::numeric_limits<float>::quiet_NaN();
-	EmptyString(this->reserved3, 28);
+	EmptyString(this->reserved3, sizeof(this->reserved3));
 }
 
 
@@ -137,17 +137,17 @@ dpx::IndustryHeader::IndustryHeader()
 void dpx::IndustryHeader::Reset()
 {
 	// Motion Picture Industry Specific
-	EmptyString(this->filmManufacturingIdCode, 2);
-	EmptyString(this->filmType, 2);
-	EmptyString(this->perfsOffset, 2);
-	EmptyString(this->prefix, 6);
-	EmptyString(this->count, 4);
-	EmptyString(this->format, 32);
+	EmptyString(this->filmManufacturingIdCode, sizeof(this->filmManufacturingIdCode));
+	EmptyString(this->filmType, sizeof(this->filmType));
+	EmptyString(this->perfsOffset, sizeof(this->perfsOffset));
+	EmptyString(this->prefix, sizeof(this->prefix));
+	EmptyString(this->count, sizeof(this->count));
+	EmptyString(this->format, sizeof(this->format));
 	this->framePosition = this->sequenceLength = this->heldCount = 0xffffffff;
 	this->frameRate = this->shutterAngle = std::numeric_limits<float>::quiet_NaN();
-	EmptyString(this->frameId, 32);
-	EmptyString(this->slateInfo, 200);
-	EmptyString(this->reserved4, 56);
+	EmptyString(this->frameId, sizeof(this->frameId));
+	EmptyString(this->slateInfo, sizeof(this->slateInfo));
+	EmptyString(this->reserved4, sizeof(this->reserved4));
 
 	// Television Industry Specific
 	this->timeCode = this->userBits = 0xffffffff;
@@ -158,7 +158,7 @@ void dpx::IndustryHeader::Reset()
 	this->timeOffset = this->gamma = std::numeric_limits<float>::quiet_NaN();
 	this->blackLevel = this->blackGain = std::numeric_limits<float>::quiet_NaN();
 	this->breakPoint = this->whiteLevel = this->integrationTimes = std::numeric_limits<float>::quiet_NaN();
-	EmptyString(this->reserved5, 76);
+	EmptyString(this->reserved5, sizeof(this->reserved5));
 }
 
 
@@ -175,7 +175,7 @@ dpx::ImageElement::ImageElement()
 	this->bitDepth = 0xff;
 	this->packing = this->encoding = 0xffff;
 	this->dataOffset = this->endOfLinePadding = this->endOfImagePadding = 0xffffffff;
-	EmptyString(this->description, 32);
+	EmptyString(this->description, sizeof(this->description));
 }
 
 
