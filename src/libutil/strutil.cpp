@@ -493,5 +493,24 @@ Strutil::utf16_to_utf8 (const std::wstring& str)
 #endif
 
 
+
+char *
+Strutil::safe_strcpy (char *dst, const char *src, size_t size)
+{
+    if (src) {
+        for (size_t i = 0;  i < size;  ++i) {
+            if (! (dst[i] = src[i]))
+                return dst;   // finished, and copied the 0 character
+        }
+        // If we got here, we have gotten to the maximum length, and still
+        // no terminating 0, so add it!
+        dst[size-1] = 0;
+    } else {
+        dst[0] = 0;
+    }
+    return dst;
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

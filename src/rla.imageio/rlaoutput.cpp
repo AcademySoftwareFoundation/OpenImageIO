@@ -284,7 +284,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     
     std::string s = m_spec.get_string_attribute ("oiio:ColorSpace", "Unknown");
     if (Strutil::iequals(s, "Linear"))
-        strcpy (m_rla.Gamma, "1.0");
+        Strutil::safe_strcpy (m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
     else if (Strutil::iequals(s, "GammaCorrected"))
         snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
             m_spec.get_float_attribute ("oiio:Gamma", 1.f));
@@ -347,8 +347,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
 
     snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
         m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
-    strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
-        "rgb").c_str ());
+    Strutil::safe_strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
+        "rgb"), sizeof(m_rla.ColorChannel));
     m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
 
     STRING_FIELD (Time, "rla:Time");
@@ -386,7 +386,7 @@ RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
                 break;
         }
     } else
-        strcpy (dst, default_val);
+        Strutil::safe_strcpy (dst, default_val, field_size);
 }
 
 
