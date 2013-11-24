@@ -685,11 +685,16 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             VaryingRef<float> dsdy, VaryingRef<float> dtdy,
                             float *result)
 {
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    if (! texture_handle)
+        return false;
     bool ok = true;
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             TextureOpt opt (options, i);
-            ok &= texture (filename, opt, s[i], t[i], dsdx[i], dtdx[i],
+            ok &= texture (texture_handle, thread_info,
+                           opt, s[i], t[i], dsdx[i], dtdx[i],
                            dsdy[i], dtdy[i], result+i*options.nchannels);
         }
     }
