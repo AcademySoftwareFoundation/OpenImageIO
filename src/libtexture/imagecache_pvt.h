@@ -805,12 +805,12 @@ public:
         ++m_stat_open_files_created;
         ++m_stat_open_files_current;
         if (m_stat_open_files_current > m_stat_open_files_peak)
-            m_stat_open_files_peak = m_stat_open_files_current;
+            m_stat_open_files_peak = (int)m_stat_open_files_current;
         // FIXME -- can we make an atomic_max?
     }
 
     /// Called when a file is closed, so that the system can track
-    /// the number of simultyaneously-opened files.
+    /// the number of simultaneously-opened files.
     void decr_open_files (void) {
         --m_stat_open_files_current;
     }
@@ -821,7 +821,7 @@ public:
         ++m_stat_tiles_created;
         ++m_stat_tiles_current;
         if (m_stat_tiles_current > m_stat_tiles_peak)
-            m_stat_tiles_peak = m_stat_tiles_current;
+            m_stat_tiles_peak = (int)m_stat_tiles_current;
         m_mem_used += size;
     }
 
@@ -958,35 +958,6 @@ private:
     atomic_int m_stat_open_files_created;
     atomic_int m_stat_open_files_current;
     atomic_int m_stat_open_files_peak;
-
-    // Simulate an atomic double with a long long!
-    void incr_time_stat (double &stat, double incr) {
-        stat += incr;
-        return;
-#ifdef NOTHREADS
-        stat += incr;
-#else
-        DASSERT (sizeof (atomic_ll) == sizeof(double));
-        double oldval, newval;
-        long long *lloldval = (long long *)&oldval;
-        long long *llnewval = (long long *)&newval;
-        atomic_ll *llstat = (atomic_ll *)&stat;
-        // Make long long and atomic_ll pointers to the doubles in question.
-        do { 
-            // Grab the double bits, shove into a long long
-            *lloldval = *llstat;
-            // increment
-            newval = oldval + incr;
-            // Now try to atomically swap it, and repeat until we've
-            // done it with nobody else interfering.
-#  if USE_TBB_ATOMIC
-        } while (llstat->compare_and_swap (*llnewval,*lloldval) != *lloldval);
-#  else
-        } while (llstat->bool_compare_and_swap (*llnewval,*lloldval));
-#  endif
-#endif
-    }
-
 };
 
 
