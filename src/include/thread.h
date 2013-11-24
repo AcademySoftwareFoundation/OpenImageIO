@@ -53,7 +53,14 @@
 #   define NOMINMAX
 # endif
 #endif
- 
+
+#if __cplusplus >= 201103L
+# define CPP11
+# include <atomic>
+# include <mutex>
+# include <thread>
+#endif
+
 #include <boost/version.hpp>
 #if defined(__GNUC__) && (BOOST_VERSION == 104500)
 // gcc reports errors inside some of the boost headers with boost 1.45
@@ -200,6 +207,13 @@ typedef null_mutex recursive_mutex;
 typedef null_lock<mutex> lock_guard;
 typedef null_lock<recursive_mutex> recursive_lock_guard;
 
+#elif defined(CPP11)
+
+typedef std::mutex mutex;
+typedef std::recursive_mutex recursive_mutex;
+typedef std::lock_guard< std::mutex > lock_guard;
+typedef std::lock_guard< std::recursive_mutex > recursive_lock_guard;
+using boost::thread_specific_ptr;
 
 #else
 
@@ -383,6 +397,8 @@ private:
 
 #if USE_TBB_ATOMIC
 using tbb::atomic;
+#elif defined(CPP11)
+using std::atomic;
 #else
 // If we're not using TBB's atomic, we need to define our own atomic<>.
 
@@ -405,10 +421,6 @@ public:
     /// Retrieve value
     ///
     operator T() const { return atomic_exchange_and_add (&m_val, 0); }
-
-    /// Fast retrieval of value, no interchange, don't care about memory
-    /// fences.
-    T fast_value () const { return m_val; }
 
     /// Assign new value.
     ///
@@ -495,6 +507,52 @@ typedef null_lock<spin_mutex> spin_lock;
 typedef tbb::spin_mutex spin_mutex;
 typedef tbb::spin_mutex::scoped_lock spin_lock;
 
+#elif defined(CPP11)
+
+class spin_mutex {
+public:
+    spin_mutex() : m_locked(false) {}
+
+    void lock() {
+        atomic_backoff backoff;
+        while (!OIIO_UNLIKELY(try_lock())) {
+            do {
+                backoff();
+            } while (m_locked.load(std::memory_order_relaxed));
+        }
+    }
+
+    bool try_lock() {
+        bool expected = false;
+        return m_locked.compare_exchange_weak(
+                        expected, true,
+                        std::memory_order_release,
+                        std::memory_order_relaxed);
+    }
+
+    void unlock() {
+        m_locked.store(false, std::memory_order_release);
+    }
+
+    /// Helper class: scoped lock for a spin_mutex -- grabs the lock upon
+    /// construction, releases the lock when it exits scope.
+    class lock_guard {
+    public:
+        lock_guard (spin_mutex &fm) : m_fm(fm) {m_fm.lock();}
+        ~lock_guard () {m_fm.unlock();}
+    private:
+        lock_guard() = delete;
+        lock_guard(const lock_guard& other) = delete;
+        lock_guard& operator = (const lock_guard& other) = delete;
+        spin_mutex & m_fm;
+    };
+private:
+    spin_mutex(const spin_mutex&) = delete;
+    spin_mutex& operator=(const spin_mutex&) = delete;
+    std::atomic<bool> m_locked;
+};
+
+typedef spin_mutex::lock_guard spin_lock;
 
 #else
 
@@ -635,14 +693,6 @@ public:
 
     ~spin_rw_mutex (void) { }
 
-    /// Copy constructor -- initialize to unlocked.
-    ///
-    spin_rw_mutex (const spin_rw_mutex &) { m_readers = 0; }
-
-    /// Assignment does not do anything, since lockedness should not
-    /// transfer.
-    const spin_rw_mutex& operator= (const spin_rw_mutex&) { return *this; }
-
     /// Acquire the reader lock.
     ///
     void read_lock () {
@@ -668,8 +718,13 @@ public:
         // Spin until the last reader is done, at which point we will be
         // the sole owners and nobody else (reader or writer) can acquire
         // the resource until we release it.
+#ifdef CPP11
+        while (m_readers.load(std::memory_order_relaxed) > 0)
+            ;
+#else
         while (*(volatile int *)&m_readers > 0)
-                ;
+            ;
+#endif
     }
 
     /// Release the writer lock.
@@ -706,6 +761,9 @@ public:
     };
 
 private:
+    spin_rw_mutex(const spin_rw_mutex& other);// Do not implement
+    spin_rw_mutex& operator= (const spin_rw_mutex& other);// Do not implement
+
     OIIO_CACHE_ALIGN
     spin_mutex m_locked;   // write lock
     char pad1_[OIIO_CACHE_LINE_SIZE-sizeof(spin_mutex)];
