@@ -55,6 +55,14 @@ using boost::algorithm::iequals;
 
 #include "oiiotool.h"
 
+#if defined(__APPLE__) || __cplusplus >= 201103L
+# define IS_INF(X) std::isinf(X)
+# define IS_NAN(X) std::isnan(X)
+#else
+# define IS_INF(X) ::isinf(X)
+# define IS_NAN(X) ::isnan(X)
+#endif
+
 OIIO_NAMESPACE_USING
 using namespace OiioTool;
 
@@ -70,9 +78,9 @@ using namespace ImageBufAlgo;
 inline void
 safe_double_print (double val)
 {
-    if (isnan (val))
+    if (IS_NAN (val))
         std::cout << "nan";
-    else if (isinf (val))
+    else if (IS_INF (val))
         std::cout << "inf";
     else
         std::cout << val;
