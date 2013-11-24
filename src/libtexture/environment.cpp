@@ -250,11 +250,17 @@ TextureSystemImpl::environment (ustring filename, TextureOptions &options,
                                 VaryingRef<Imath::V3f> dRdy,
                                 float *result)
 {
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    if (! texture_handle)
+        return false;
     bool ok = true;
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             TextureOpt opt (options, i);
-            ok &= environment (filename, opt, R[i], dRdx[i], dRdy[i], result);
+            ok &= environment (texture_handle, thread_info,
+                               opt, R[i], dRdx[i], dRdy[i],
+                               result+i*options.nchannels);
         }
     }
     return ok;
