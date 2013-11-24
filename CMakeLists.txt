@@ -159,6 +159,11 @@ include (oiio_macros)
 include (platform)
 include (externalpackages)
 
+include (CXX11)
+check_for_cxx11_compiler(IS_CXX11)
+if (IS_CXX11)
+	enable_cxx11()
+endif ()
 
 include_directories(
     "${CMAKE_SOURCE_DIR}/src/include/"
