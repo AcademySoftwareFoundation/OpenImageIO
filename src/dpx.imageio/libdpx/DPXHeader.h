@@ -42,7 +42,7 @@
 #define _DPX_DPXHEADER_H 1
 
 #include <cstring>
-
+#include "strutil.h"
 #include "DPXStream.h"
 
 
@@ -1532,13 +1532,13 @@ namespace dpx
 	
 	inline void GenericHeader::Version(char *v) const
 	{
-		::strncpy(v, this->version, sizeof(this->version));
+		OIIO::Strutil::safe_strcpy(v, this->version, sizeof(this->version));
 		v[8] = '\0';
 	}
 	
 	inline void GenericHeader::SetVersion(const char * v)
 	{
-		::strncpy(this->version, v, sizeof(this->version));
+		OIIO::Strutil::safe_strcpy(this->version, v, sizeof(this->version));
 	}
 	
 	inline U32 GenericHeader::FileSize() const

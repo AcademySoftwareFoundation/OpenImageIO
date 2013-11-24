@@ -39,6 +39,7 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "strutil.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -714,19 +715,19 @@ DPXOutput::set_keycode_values (int *array)
     int &perfsPerCount = array[6];
 
     if (perfsPerFrame == 15 && perfsPerCount == 120) {
-        strcpy(m_dpx.header.format, "8kimax");
+        Strutil::safe_strcpy(m_dpx.header.format, "8kimax", sizeof(m_dpx.header.format));
     }
     else if (perfsPerFrame == 8 && perfsPerCount == 64) {
-        strcpy(m_dpx.header.format, "VistaVision");
+        Strutil::safe_strcpy(m_dpx.header.format, "VistaVision", sizeof(m_dpx.header.format));
     }
     else if (perfsPerFrame == 4 && perfsPerCount == 64) {
-        strcpy(m_dpx.header.format, "Full Aperture");
+        Strutil::safe_strcpy(m_dpx.header.format, "Full Aperture", sizeof(m_dpx.header.format));
     }
     else if (perfsPerFrame == 3 && perfsPerCount == 64) {
-        strcpy(m_dpx.header.format, "3perf");
+        Strutil::safe_strcpy(m_dpx.header.format, "3perf", sizeof(m_dpx.header.format));
     }
     else {
-        strcpy(m_dpx.header.format, "Unknown");
+        Strutil::safe_strcpy(m_dpx.header.format, "Unknown", sizeof(m_dpx.header.format));
     }
 }
 

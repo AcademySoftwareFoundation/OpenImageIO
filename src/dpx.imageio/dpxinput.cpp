@@ -366,7 +366,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
         char date[24];
-        strcpy(date, m_dpx.header.creationTimeDate);
+        Strutil::safe_strcpy(date, m_dpx.header.creationTimeDate, sizeof(date));
         date[10] = ' ';
         date[19] = 0;
         m_spec.attribute ("DateTime", date);
@@ -492,7 +492,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
         char date[24];
-        strcpy(date, m_dpx.header.sourceTimeDate);
+        Strutil::safe_strcpy(date, m_dpx.header.sourceTimeDate, sizeof(date));
         date[10] = ' ';
         date[19] = 0;
         m_spec.attribute ("dpx:SourceDateTime", date);

@@ -36,6 +36,7 @@
 #include "imageio.h"
 #include "filesystem.h"
 #include "fmath.h"
+#include "strutil.h"
 #include "rgbe.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -117,7 +118,7 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec,
     // Most readers seem to think that rgbe files are valid only if they
     // identify themselves as from "RADIANCE".
     h.valid |= RGBE_VALID_PROGRAMTYPE;
-    strcpy (h.programtype, "RADIANCE");
+    Strutil::safe_strcpy (h.programtype, "RADIANCE", sizeof(h.programtype));
 
     ImageIOParameter *p;
     p = m_spec.find_attribute ("Orientation", TypeDesc::INT);
