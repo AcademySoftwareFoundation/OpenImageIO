@@ -156,6 +156,7 @@ Fixes, minor enhancements, and performance improvements:
 * Slight performance increase when writing images to disk (1.3.6)
 * Many fixes to make OIIO compile with libc++ (clang's new C++ library,
   and the default on OSX Mavericks). (1.2.3/1.3.6, 1.3.7)
+* Fixed several potential buffer overflow errors from unsafe strcpy. (1.3.8)
 
 Build/test system improvements:
 * Fix broken tests under Windows. (1.3.2)
@@ -194,6 +195,7 @@ Build/test system improvements:
   it more robust for builds with paths containing spaces. (1.3.7)
 * Moved the main CMakeLists.txt file to the top level directory, per usual
   CMake conventions. (1.3.7)
+
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
 * Merge improved "Tinyformat" that fixes a bug in some old glibc versions
@@ -205,6 +207,7 @@ Developer goodies:
 * Updatd "Tinyformat" to the latest release (1.3.6)
 * Sysutil::physical_memory() tries to figure out the total physical memory
   on the machine. (1.3.6)
+* Strutil::safe_strcpy (1.3.8)
 
 
 
