@@ -344,7 +344,7 @@ std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 
 /// Safe C string copy.  Basically strncpy but ensuring that there's a
 /// terminating 0 character at the end of the resulting string.
-char * OIIO_API safe_strcpy (char *dst, const char *src, size_t size);
+OIIO_API char * safe_strcpy (char *dst, const char *src, size_t size);
 
 inline char * safe_strcpy (char *dst, const std::string &src, size_t size) {
     return safe_strcpy (dst, src.length() ? src.c_str() : NULL, size);
