@@ -267,11 +267,6 @@ template<typename T>
 inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
                         const char* fmtEnd, const T& value)
 {
-#ifndef TINYFORMAT_ALLOW_WCHAR_STRINGS
-    // Since we don't support printing of wchar_t using "%ls", make it fail at
-    // compile time in preference to printing as a void* at runtime.
-    typedef typename detail::is_wchar<T>::tinyformat_wchar_is_not_supported DummyType;
-#endif
     // The mess here is to support the %c and %p conversions: if these
     // conversions are active we try to convert the type to a char or const
     // void* respectively and format that instead of the value itself.  For the
