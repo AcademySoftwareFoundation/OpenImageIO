@@ -42,10 +42,18 @@ if (CMAKE_COMPILER_IS_GNUCC)
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
     message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
 endif ()
+message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set (CMAKE_COMPILER_IS_CLANG 1)
     message (STATUS "Using clang as the compiler")
+endif ()
+# Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
+# appears to be unreliable and may say "GNU" despite using clang, so
+# directly match against the compiler name.
+if ("${CMAKE_CXX_COMPILER}" MATCHES ".*clang.*")
+    set (CMAKE_COMPILER_IS_CLANG 1)
+    message (STATUS "The compiler seems to be clang")
 endif ()
 
 ## turn on more detailed warnings and consider warnings as errors
@@ -68,6 +76,7 @@ if (CMAKE_COMPILER_IS_CLANG)
     # to change just for the sake of having no warnings.
     add_definitions ("-Wno-unused-function")
     add_definitions ("-Wno-overloaded-virtual")
+    add_definitions ("-Wno-unneeded-internal-declaration")
     # disable warning about unused command line arguments
     add_definitions ("-Qunused-arguments")
 endif ()
