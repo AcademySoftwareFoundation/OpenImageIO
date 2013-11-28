@@ -60,7 +60,7 @@ namespace xxhash {
 #endif
 
 // GCC does not support _rotl outside of Windows
-#if !defined(_WIN32)
+#if !defined(_rotl) and !defined(_WIN32)
 #define _rotl(x,r) ((x << r) | (x >> (32 - r)))
 #endif
 
