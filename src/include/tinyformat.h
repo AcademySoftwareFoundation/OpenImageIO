@@ -271,6 +271,7 @@ inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
     // Since we don't support printing of wchar_t using "%ls", make it fail at
     // compile time in preference to printing as a void* at runtime.
     typedef typename detail::is_wchar<T>::tinyformat_wchar_is_not_supported DummyType;
+    (void) DummyType(); // avoid unused type warning with gcc-4.8
 #endif
     // The mess here is to support the %c and %p conversions: if these
     // conversions are active we try to convert the type to a char or const
