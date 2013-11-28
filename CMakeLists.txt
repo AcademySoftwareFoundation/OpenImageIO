@@ -338,7 +338,7 @@ endif()
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
-                dpx gif ico png psd rla sgi
+                dpx ico png psd rla sgi
                 python-typedesc python-imagespec python-roi
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
@@ -369,10 +369,19 @@ oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
     IMAGEDIR openexr-images
     URL http://www.openexr.com/downloads.html)
 
+oiio_add_tests (gif
+    FOUNDVAR GIF_FOUND
+    IMAGEDIR oiio-images
+    URL "Recent checkout of oiio-images")
+
 oiio_add_tests (jpeg2000
     FOUNDVAR OPENJPEG_FOUND
     IMAGEDIR j2kp4files_v1_5
     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
+
+oiio_add_tests (pnm
+    IMAGEDIR oiio-images/pnm
+    URL "Recent checkout of oiio-images")
 
 oiio_add_tests (targa-tgautils
     IMAGEDIR TGAUTILS

@@ -1,0 +1,15 @@
+Reading ../../../../../oiio-images/pnm/test-1.pfm
+../../../../../oiio-images/pnm/test-1.pfm :   64 x   64, 3 channel, float pnm
+    SHA-1: D2F9B71115C1F07D8C8AFE38ABCBC427B7ACEEA3
+    channel list: R, G, B
+    pnm:bigendian: 0
+Reading ../../../../../oiio-images/pnm/test-2.pfm
+../../../../../oiio-images/pnm/test-2.pfm :  240 x  240, 3 channel, float pnm
+    SHA-1: 08E7F34368081D220FFFFD9CBB1EE75B1E90C560
+    channel list: R, G, B
+    pnm:bigendian: 0
+Reading ../../../../../oiio-images/pnm/test-3.pfm
+../../../../../oiio-images/pnm/test-3.pfm :  240 x  240, 3 channel, float pnm
+    SHA-1: 74310451E1248850977FC2946168F45D0011ABC4
+    channel list: R, G, B
+    pnm:bigendian: 1
