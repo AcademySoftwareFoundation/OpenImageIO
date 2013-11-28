@@ -60,6 +60,8 @@
 # include <thread>
 #endif
 
+// #define USE_SEPARATE_CPP11_IMPLEMENTATION
+
 #include <boost/version.hpp>
 #if defined(__GNUC__) && (BOOST_VERSION == 104500)
 // gcc reports errors inside some of the boost headers with boost 1.45
@@ -506,7 +508,7 @@ typedef null_lock<spin_mutex> spin_lock;
 typedef tbb::spin_mutex spin_mutex;
 typedef tbb::spin_mutex::scoped_lock spin_lock;
 
-#elif defined(USE_CPP11)
+#elif defined(USE_CPP11) && defined(USE_SEPARATE_CPP11_IMPLEMENTATION)
 
 class spin_mutex {
 public:
@@ -608,7 +610,7 @@ public:
         while (! OIIO_UNLIKELY(try_lock())) {
             do {
                 backoff();
-            } while (m_locked);
+            } while (relaxed_is_locked());
 
             // The full try_lock() involves a compare_and_swap, which
             // writes memory, and that will lock the bus.  But a normal
@@ -621,7 +623,9 @@ public:
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(USE_CPP11)
+        m_locked.store(false, std::memory_order_release);
+#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
         // Fastest way to do it is with a store with "release" semantics
         __asm__ __volatile__("": : :"memory");
         m_locked = 0;
@@ -642,7 +646,13 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if USE_TBB_ATOMIC
+#if defined(USE_CPP11)
+        bool expected = false;
+        return m_locked.compare_exchange_weak(
+                        expected, true,
+                        std::memory_order_release,
+                        std::memory_order_relaxed);
+#elif USE_TBB_ATOMIC
         // TBB's compare_and_swap returns the original value
         return (*(atomic_int *)&m_locked).compare_and_swap (0, 1) == 0;
 #elif defined(__GNUC__)
@@ -669,7 +679,20 @@ public:
     };
 
 private:
+    // Perform a relaxed read of the lock to avoid synchronization cost.
+    inline bool relaxed_is_locked() const {
+#if defined(USE_CPP11)
+        return m_locked.load(std::memory_order_relaxed);
+#else
+        return m_locked;
+#endif
+    }
+
+#if defined(USE_CPP11)
+    std::atomic<bool> m_locked;
+#else
     volatile int m_locked;  ///< Atomic counter is zero if nobody holds the lock
+#endif
 };
 
 
