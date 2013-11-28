@@ -54,8 +54,7 @@
 # endif
 #endif
 
-#if __cplusplus >= 201103L
-# define CPP11
+#ifdef USE_CPP11
 # include <atomic>
 # include <mutex>
 # include <thread>
@@ -207,7 +206,7 @@ typedef null_mutex recursive_mutex;
 typedef null_lock<mutex> lock_guard;
 typedef null_lock<recursive_mutex> recursive_lock_guard;
 
-#elif defined(CPP11)
+#elif defined(USE_CPP11)
 
 typedef std::mutex mutex;
 typedef std::recursive_mutex recursive_mutex;
@@ -397,7 +396,7 @@ private:
 
 #if USE_TBB_ATOMIC
 using tbb::atomic;
-#elif defined(CPP11)
+#elif defined(USE_CPP11)
 using std::atomic;
 #else
 // If we're not using TBB's atomic, we need to define our own atomic<>.
@@ -507,7 +506,7 @@ typedef null_lock<spin_mutex> spin_lock;
 typedef tbb::spin_mutex spin_mutex;
 typedef tbb::spin_mutex::scoped_lock spin_lock;
 
-#elif defined(CPP11)
+#elif defined(USE_CPP11)
 
 class spin_mutex {
 public:
@@ -718,7 +717,7 @@ public:
         // Spin until the last reader is done, at which point we will be
         // the sole owners and nobody else (reader or writer) can acquire
         // the resource until we release it.
-#ifdef CPP11
+#ifdef USE_CPP11
         while (m_readers.load(std::memory_order_relaxed) > 0)
             ;
 #else

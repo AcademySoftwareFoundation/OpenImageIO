@@ -88,6 +88,7 @@ endif ()
 
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
+set (USE_CPP11 TRUE CACHE BOOL "Use C++11 standard if supported")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
 set (OIIO_BUILD_TOOLS ON CACHE BOOL "Build the command-line tools")
 set (OIIO_BUILD_TESTS ON CACHE BOOL "Build the unit tests")
@@ -140,6 +141,21 @@ if (EXTRA_CPP_DEFINITIONS)
     add_definitions ("${EXTRA_CPP_DEFINITIONS}")
 endif()
 
+if(USE_CPP11)
+	message(STATUS "Checking for C++11 compiler")
+	if((MSVC AND MSVC10) OR
+	   (CMAKE_COMPILER_IS_GNUCXX AND NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 4.6) OR
+	   (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 3.1))
+	    add_definitions ("-DUSE_CPP11=1")
+		if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	    	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+		endif()
+	    message(STATUS "Checking for C++11 compiler - available")
+	else()
+	    message(STATUS "Checking for C++11 compiler - unavailable")
+	endif()
+endif()
+
 set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
     "${PROJECT_SOURCE_DIR}/src/cmake")
@@ -158,12 +174,6 @@ include (util_macros)
 include (oiio_macros)
 include (platform)
 include (externalpackages)
-
-include (CXX11)
-check_for_cxx11_compiler(IS_CXX11)
-if (IS_CXX11)
-	enable_cxx11()
-endif ()
 
 include_directories(
     "${CMAKE_SOURCE_DIR}/src/include/"
