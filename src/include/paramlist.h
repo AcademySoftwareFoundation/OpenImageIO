@@ -129,12 +129,12 @@ private:
     ustring m_name;           ///< data name
     TypeDesc m_type;          ///< data type, which may itself be an array
     int m_nvalues;            ///< number of values of the given type
+    unsigned char m_interp;   ///< Interpolation type
+    bool m_copy, m_nonlocal;
     union {
         ptrdiff_t localval;
         const void *ptr;
     } m_data;             ///< Our data, either a pointer or small local value
-    unsigned char m_interp;   ///< Interpolation type
-    bool m_copy, m_nonlocal;
 
     void init_noclear (ustring _name, TypeDesc _type,
                        int _nvalues, const void *_value, bool _copy=true);
