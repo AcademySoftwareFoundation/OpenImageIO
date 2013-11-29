@@ -185,7 +185,7 @@ public:
 
     /// Add a ParamValue to the end of the list.
     ///
-    void push_back (ParamValue &p) { m_vals.push_back (p); }
+    void push_back (const ParamValue &p) { m_vals.push_back (p); }
     
     /// Removes from the ParamValueList container a single element.
     /// 
