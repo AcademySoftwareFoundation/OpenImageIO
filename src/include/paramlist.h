@@ -113,6 +113,8 @@ public:
     int nvalues () const { return m_nvalues; }
     const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
     int datasize () const { return m_nvalues * static_cast<int>(m_type.size()); }
+    Interp interp () const { return (Interp)m_interp; }
+    void interp (Interp i) { m_interp = (unsigned char )i; }
 
     friend void swap (ParamValue &a, ParamValue &b) {
         std::swap (a.m_name,     b.m_name);
