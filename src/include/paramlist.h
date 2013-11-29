@@ -113,6 +113,8 @@ public:
     int nvalues () const { return m_nvalues; }
     const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
     int datasize () const { return m_nvalues * static_cast<int>(m_type.size()); }
+    Interp interp () const { return (Interp)m_interp; }
+    void interp (Interp i) { m_interp = (unsigned char )i; }
 
     friend void swap (ParamValue &a, ParamValue &b) {
         std::swap (a.m_name,     b.m_name);
@@ -127,12 +129,12 @@ private:
     ustring m_name;           ///< data name
     TypeDesc m_type;          ///< data type, which may itself be an array
     int m_nvalues;            ///< number of values of the given type
+    unsigned char m_interp;   ///< Interpolation type
+    bool m_copy, m_nonlocal;
     union {
         ptrdiff_t localval;
         const void *ptr;
     } m_data;             ///< Our data, either a pointer or small local value
-    unsigned char m_interp;   ///< Interpolation type
-    bool m_copy, m_nonlocal;
 
     void init_noclear (ustring _name, TypeDesc _type,
                        int _nvalues, const void *_value, bool _copy=true);
@@ -183,7 +185,7 @@ public:
 
     /// Add a ParamValue to the end of the list.
     ///
-    void push_back (ParamValue &p) { m_vals.push_back (p); }
+    void push_back (const ParamValue &p) { m_vals.push_back (p); }
     
     /// Removes from the ParamValueList container a single element.
     /// 
