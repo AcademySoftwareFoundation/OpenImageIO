@@ -1,7 +1,7 @@
 Changes:
 
 
-Release 1.3 (14 Nov 2013 -- compared to 1.2.x)
+Release 1.3 (2 Dec 2013 -- compared to 1.2.x)
 ----------------------------------------------
 Major new features and improvements:
 * Huge overhaul of the Python bindings: TypeDesc, ImageSpec (1.3.2),
@@ -127,6 +127,7 @@ Fixes, minor enhancements, and performance improvements:
     uses the metadata from the original file.
   * get_image_info/get_texture_info queries for "datawindow" and
     "displaywindow". (1.3.6)
+  * The multi-point version of environment() was broken. (1.3.9)
 * maketx: --hicomp uses the new range compression/expansion formula.  (1.3.3)
 * DPX:
   * support multi-image (often used for stereo frames).
@@ -208,6 +209,7 @@ Developer goodies:
 * Sysutil::physical_memory() tries to figure out the total physical memory
   on the machine. (1.3.6)
 * Strutil::safe_strcpy (1.3.8)
+* ParamValue now allows get/set of the hidden 'interp' field. (1.3.9)
 
 
 
