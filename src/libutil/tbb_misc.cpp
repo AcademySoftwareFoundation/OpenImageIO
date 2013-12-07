@@ -45,8 +45,6 @@
 
 using namespace std;
 
-#include "tbb/tbb_machine.h"
-
 namespace tbb {
 
 namespace internal {

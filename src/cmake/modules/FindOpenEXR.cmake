@@ -101,25 +101,18 @@ if (OPENEXR_CACHED_STATE AND
   endforeach ()
 endif ()
 
-if (OPENEXR_CUSTOM)
-  if (NOT OPENEXR_CUSTOM_LIBRARY)
-    message (FATAL_ERROR "Custom OpenEXR library requested but OPENEXR_CUSTOM_LIBRARY is not set.")
-  endif()
-  set (OpenEXR_Library ${OPENEXR_CUSTOM_LIBRARY})
-else ()
-  set (OpenEXR_Library IlmImf)
-endif ()
-
 # Generic search paths
 set (OpenEXR_generic_include_paths
   ${OPENEXR_CUSTOM_INCLUDE_DIR}
   /usr/include
+  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/include
   /sw/include
   /opt/local/include)
 set (OpenEXR_generic_library_paths
   ${OPENEXR_CUSTOM_LIB_DIR}
   /usr/lib
+  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/lib
   /sw/lib
   /opt/local/lib)
@@ -158,6 +151,35 @@ if (OPENEXR_INCLUDE_DIR)
   get_filename_component (tmp_extra_dir "${OPENEXR_INCLUDE_DIR}/../" ABSOLUTE)
   list (APPEND OpenEXR_library_paths ${tmp_extra_dir})
   unset (tmp_extra_dir)
+
+  # Get the version from config file, if not already set.
+  if (NOT OPENEXR_VERSION)
+    FILE(STRINGS "${OPENEXR_INCLUDE_DIR}/OpenEXR/OpenEXRConfig.h" OPENEXR_BUILD_SPECIFICATION
+         REGEX "^[ \t]*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
+
+    if(OPENEXR_BUILD_SPECIFICATION)
+      message(STATUS "${OPENEXR_BUILD_SPECIFICATION}")
+      string(REGEX REPLACE ".*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
+             "\\1" XYZ ${OPENEXR_BUILD_SPECIFICATION})
+      set("OPENEXR_VERSION" ${XYZ} CACHE STRING "Version of OpenEXR lib")
+    else()
+      # Old versions (before 2.0?) do not have any version string, just assuming 2.0 should be fine though. 
+      message(WARNING "Could not determine ILMBase library version, assuming 2.0.")
+      set("OPENEXR_VERSION" "2.0" CACHE STRING "Version of OpenEXR lib")
+    endif()
+  endif()
+endif ()
+
+if (OPENEXR_CUSTOM)
+  if (NOT OPENEXR_CUSTOM_LIBRARY)
+    message (FATAL_ERROR "Custom OpenEXR library requested but OPENEXR_CUSTOM_LIBRARY is not set.")
+  endif()
+  set (OpenEXR_Library ${OPENEXR_CUSTOM_LIBRARY})
+elseif (${OPENEXR_VERSION} VERSION_LESS "2.1")
+  set (OpenEXR_Library IlmImf)
+else ()
+  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _openexr_libs_ver ${OPENEXR_VERSION})
+  set (OpenEXR_Library IlmImf-${_openexr_libs_ver})
 endif ()
 
 # Locate the OpenEXR library
