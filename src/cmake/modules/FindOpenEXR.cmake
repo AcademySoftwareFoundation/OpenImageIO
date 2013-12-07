@@ -109,7 +109,7 @@ if (OPENEXR_CUSTOM)
 elseif (${OPENEXR_VERSION} VERSION_LESS "2.1")
   set (OpenEXR_Library IlmImf)
 else ()
-  string(REGEX REPLACE "[.]" "_" _openexr_libs_ver ${OPENEXR_VERSION})
+  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _openexr_libs_ver ${OPENEXR_VERSION})
   set (OpenEXR_Library IlmImf-${_openexr_libs_ver})
 endif ()
 
