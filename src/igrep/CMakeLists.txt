@@ -1,6 +1,6 @@
 set (igrep_srcs igrep.cpp)
 add_executable (igrep ${igrep_srcs})
 set_target_properties (igrep PROPERTIES FOLDER "Tools")
-link_ilmbase (igrep)
 target_link_libraries (igrep OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+link_ilmbase (igrep)
 oiio_install_targets (igrep)

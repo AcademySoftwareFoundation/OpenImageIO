@@ -118,12 +118,14 @@ endif ()
 set (IlmBase_generic_include_paths
   ${ILMBASE_CUSTOM_INCLUDE_DIR}
   /usr/include
+  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/include
   /sw/include
   /opt/local/include)
 set (IlmBase_generic_library_paths
   ${ILMBASE_CUSTOM_LIB_DIR}
   /usr/lib
+  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/lib
   /sw/lib
   /opt/local/lib)
