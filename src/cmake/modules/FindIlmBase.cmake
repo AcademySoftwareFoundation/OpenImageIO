@@ -110,8 +110,11 @@ if (ILMBASE_CUSTOM)
   endif()
   set (IlmBase_Libraries ${ILMBASE_CUSTOM_LIBRARIES})
   separate_arguments(IlmBase_Libraries)
-else ()
+elseif (${ILMBASE_VERSION} VERSION_LESS "2.1")
   set (IlmBase_Libraries Half Iex Imath IlmThread)
+else ()
+  string(REGEX REPLACE "[.]" "_" _ilmbase_libs_ver ${ILMBASE_VERSION})
+  set (IlmBase_Libraries Half Iex-${_ilmbase_libs_ver} Imath-${_ilmbase_libs_ver} IlmThread-${_ilmbase_libs_ver})
 endif ()
 
 # Generic search paths

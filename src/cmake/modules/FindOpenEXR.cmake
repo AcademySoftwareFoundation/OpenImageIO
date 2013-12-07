@@ -106,8 +106,11 @@ if (OPENEXR_CUSTOM)
     message (FATAL_ERROR "Custom OpenEXR library requested but OPENEXR_CUSTOM_LIBRARY is not set.")
   endif()
   set (OpenEXR_Library ${OPENEXR_CUSTOM_LIBRARY})
-else ()
+elseif (${OPENEXR_VERSION} VERSION_LESS "2.1")
   set (OpenEXR_Library IlmImf)
+else ()
+  string(REGEX REPLACE "[.]" "_" _openexr_libs_ver ${OPENEXR_VERSION})
+  set (OpenEXR_Library IlmImf-${_openexr_libs_ver})
 endif ()
 
 # Generic search paths
