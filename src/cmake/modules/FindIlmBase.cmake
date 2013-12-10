@@ -104,6 +104,10 @@ if (ILMBASE_CACHED_STATE AND
   endforeach ()
 endif ()
 
+
+if (NOT ILMBASE_VERSION)
+  SET(ILMBASE_VERSION "2.0")
+endif()
 if (ILMBASE_CUSTOM)
   if (NOT ILMBASE_CUSTOM_LIBRARIES)
     message (FATAL_ERROR "Custom IlmBase libraries requested but ILMBASE_CUSTOM_LIBRARIES is not set.")

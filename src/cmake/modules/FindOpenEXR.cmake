@@ -101,6 +101,9 @@ if (OPENEXR_CACHED_STATE AND
   endforeach ()
 endif ()
 
+if (NOT OPENEXR_VERSION)
+  SET(OPENEXR_VERSION "2.0")
+endif()
 if (OPENEXR_CUSTOM)
   if (NOT OPENEXR_CUSTOM_LIBRARY)
     message (FATAL_ERROR "Custom OpenEXR library requested but OPENEXR_CUSTOM_LIBRARY is not set.")
