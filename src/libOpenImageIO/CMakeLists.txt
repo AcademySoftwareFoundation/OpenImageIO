@@ -104,9 +104,9 @@ if (EMBEDPLUGINS)
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
-		../iff.imageio/iffinput.cpp
-		  ../iff.imageio/iffoutput.cpp
-		  ../iff.imageio/iff_pvt.cpp
+        ../iff.imageio/iffinput.cpp
+          ../iff.imageio/iffoutput.cpp
+          ../iff.imageio/iff_pvt.cpp
         ../jpeg.imageio/jpeginput.cpp ../jpeg.imageio/jpegoutput.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
@@ -178,15 +178,15 @@ if (EMBEDPLUGINS)
     else()
         message (STATUS "Jpeg-2000 plugin will not be built")
     endif()
-	
-	if (RAW_FOUND AND USE_RAW)
+    
+    if (RAW_FOUND AND USE_RAW)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-	        ../raw.imageio/rawinput.cpp)
+            ../raw.imageio/rawinput.cpp ../raw.imageio/rawoutput.cpp)
         include_directories (${LibRaw_INCLUDE_DIR})
         add_definitions ("-DUSE_RAW=1")
-	else()
-		message (STATUS "Raw plugin will not be build")
-	endif()
+    else()
+        message (STATUS "Raw plugin will not be build")
+    endif()
 
     if (WEBP_FOUND)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -283,16 +283,16 @@ if (EMBEDPLUGINS)
         target_link_libraries (OpenImageIO ${GIF_LIBRARY})
     endif ()
 
-	if (USE_RAW AND RAW_FOUND)
-		find_package(OpenMP)
-		if (OPENMP_FOUND)
-			set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-			set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-			target_link_libraries (OpenImageIO ${LibRaw_r_LIBRARIES})
-		else ()
-			target_link_libraries (OpenImageIO ${LibRaw_LIBRARIES})
-		endif()
-	endif ()
+    if (USE_RAW AND RAW_FOUND)
+        find_package(OpenMP)
+        if (OPENMP_FOUND)
+            set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+            target_link_libraries (OpenImageIO ${LibRaw_r_LIBRARIES})
+        else ()
+            target_link_libraries (OpenImageIO ${LibRaw_LIBRARIES})
+        endif()
+    endif ()
 endif ()
 
 if (USE_EXTERNAL_PUGIXML)
