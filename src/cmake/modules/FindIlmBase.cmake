@@ -105,22 +105,6 @@ if (ILMBASE_CACHED_STATE AND
 endif ()
 
 
-if (NOT ILMBASE_VERSION)
-  SET(ILMBASE_VERSION "2.0")
-endif()
-if (ILMBASE_CUSTOM)
-  if (NOT ILMBASE_CUSTOM_LIBRARIES)
-    message (FATAL_ERROR "Custom IlmBase libraries requested but ILMBASE_CUSTOM_LIBRARIES is not set.")
-  endif()
-  set (IlmBase_Libraries ${ILMBASE_CUSTOM_LIBRARIES})
-  separate_arguments(IlmBase_Libraries)
-elseif (${ILMBASE_VERSION} VERSION_LESS "2.1")
-  set (IlmBase_Libraries Half Iex Imath IlmThread)
-else ()
-  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _ilmbase_libs_ver ${ILMBASE_VERSION})
-  set (IlmBase_Libraries Half Iex-${_ilmbase_libs_ver} Imath-${_ilmbase_libs_ver} IlmThread-${_ilmbase_libs_ver})
-endif ()
-
 # Generic search paths
 set (IlmBase_generic_include_paths
   ${ILMBASE_CUSTOM_INCLUDE_DIR}
@@ -166,7 +150,39 @@ if (ILMBASE_INCLUDE_DIR)
   get_filename_component (tmp_extra_dir "${ILMBASE_INCLUDE_DIR}/../" ABSOLUTE)
   list (APPEND IlmBase_library_paths ${tmp_extra_dir})
   unset (tmp_extra_dir)
+
+  # Get the version from config file, if not already set.
+  if (NOT ILMBASE_VERSION)
+    FILE(STRINGS "${ILMBASE_INCLUDE_DIR}/OpenEXR/IlmBaseConfig.h" ILMBASE_BUILD_SPECIFICATION
+         REGEX "^[ \t]*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
+
+    if(ILMBASE_BUILD_SPECIFICATION)
+      message(STATUS "${ILMBASE_BUILD_SPECIFICATION}")
+      string(REGEX REPLACE ".*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
+             "\\1" XYZ ${ILMBASE_BUILD_SPECIFICATION})
+      set("ILMBASE_VERSION" ${XYZ} CACHE STRING "Version of ILMBase lib")
+    else()
+      # Old versions (before 2.0?) do not have any version string, just assuming 2.0 should be fine though. 
+      message(WARNING "Could not determine ILMBase library version, assuming 2.0.")
+      set("ILMBASE_VERSION" "2.0" CACHE STRING "Version of ILMBase lib")
+    endif()
+  endif()
 endif ()
+
+
+if (ILMBASE_CUSTOM)
+  if (NOT ILMBASE_CUSTOM_LIBRARIES)
+    message (FATAL_ERROR "Custom IlmBase libraries requested but ILMBASE_CUSTOM_LIBRARIES is not set.")
+  endif()
+  set (IlmBase_Libraries ${ILMBASE_CUSTOM_LIBRARIES})
+  separate_arguments(IlmBase_Libraries)
+elseif (${ILMBASE_VERSION} VERSION_LESS "2.1")
+  set (IlmBase_Libraries Half Iex Imath IlmThread)
+else ()
+  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _ilmbase_libs_ver ${ILMBASE_VERSION})
+  set (IlmBase_Libraries Half Iex-${_ilmbase_libs_ver} Imath-${_ilmbase_libs_ver} IlmThread-${_ilmbase_libs_ver})
+endif ()
+
 
 # Locate the IlmBase libraries
 set (IlmBase_libvars "")
