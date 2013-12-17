@@ -145,12 +145,7 @@ list (APPEND IlmBase_library_paths ${IlmBase_generic_library_paths})
 PREFIX_FIND_INCLUDE_DIR (IlmBase
   OpenEXR/IlmBaseConfig.h IlmBase_include_paths)
 
-# If the headers were found, add its parent to the list of lib directories
 if (ILMBASE_INCLUDE_DIR)
-  get_filename_component (tmp_extra_dir "${ILMBASE_INCLUDE_DIR}/../" ABSOLUTE)
-  list (APPEND IlmBase_library_paths ${tmp_extra_dir})
-  unset (tmp_extra_dir)
-
   # Get the version from config file, if not already set.
   if (NOT ILMBASE_VERSION)
     FILE(STRINGS "${ILMBASE_INCLUDE_DIR}/OpenEXR/IlmBaseConfig.h" ILMBASE_BUILD_SPECIFICATION
