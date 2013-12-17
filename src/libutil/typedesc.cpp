@@ -33,8 +33,9 @@
 #include <cstdlib>
 #include <string>
 
+#include <OpenEXR/half.h>
+
 #include "dassert.h"
-#include "half.h"
 #include "ustring.h"
 #include "strutil.h"
 

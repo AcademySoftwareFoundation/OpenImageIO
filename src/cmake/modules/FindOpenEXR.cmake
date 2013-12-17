@@ -146,12 +146,7 @@ list (APPEND OpenEXR_library_paths ${OpenEXR_generic_library_paths})
 PREFIX_FIND_INCLUDE_DIR (OpenEXR
   OpenEXR/ImfArray.h OpenEXR_include_paths)
 
-# If the headers were found, add its parent to the list of lib directories
 if (OPENEXR_INCLUDE_DIR)
-  get_filename_component (tmp_extra_dir "${OPENEXR_INCLUDE_DIR}/../" ABSOLUTE)
-  list (APPEND OpenEXR_library_paths ${tmp_extra_dir})
-  unset (tmp_extra_dir)
-
   # Get the version from config file, if not already set.
   if (NOT OPENEXR_VERSION)
     FILE(STRINGS "${OPENEXR_INCLUDE_DIR}/OpenEXR/OpenEXRConfig.h" OPENEXR_BUILD_SPECIFICATION
