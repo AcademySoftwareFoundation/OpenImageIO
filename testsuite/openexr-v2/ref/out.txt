@@ -17,6 +17,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "left"
+    oiio:subimagename: "rgba.left"
  subimage  1: 1918 x 1078, 1 channel, half openexr
     SHA-1: 5FAE17E1E8BDB2E7C3A6B3EBCA8E0CA15A07B80A
     channel list: Z
@@ -32,6 +33,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "left"
+    oiio:subimagename: "depth.left"
  subimage  2: 1918 x 1078, 4 channel, half openexr
     SHA-1: 3CC2362892007C6AACABE356DF93F87408C988B3
     channel list: R, G, B, A
@@ -47,6 +49,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "right"
+    oiio:subimagename: "rgba.right"
  subimage  3: 1918 x 1078, 1 channel, half openexr
     SHA-1: FBB31FC1CD9EC4759703F033C8D0E14E5806AE92
     channel list: Z
@@ -62,6 +65,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "right"
+    oiio:subimagename: "depth.right"
 ../../../../../openexr-images/v2/Stereo/composited.exr : 1918 x 1078, 4 channel, half openexr (4 subimages)
     Stats Min: 0.000000 0.000000 0.000000 0.000000 (float)
     Stats Max: 0.600586 0.593262 0.344971 1.000000 (float)
@@ -93,6 +97,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     openexr:version: 1
     view: "left"
+    oiio:subimagename: "rgba.left"
  subimage  1: 1452 x  761, 5 channel, float openexr
     SHA-1: 4318FB751F2C30955AC745FFFCF47E8BB932C8D1
     channel list: R (half), G (half), B (half), A (half), Z (float)
@@ -109,6 +114,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     openexr:version: 1
     view: "right"
+    oiio:subimagename: "rgba.right"
 ../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000169 0.000083 0.000092 0.015625 127.872681 (float)
     Stats Max: 0.622070 0.265625 0.267822 1.000000 738.560669 (float)
@@ -141,6 +147,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     openexr:version: 1
     view: "left"
+    oiio:subimagename: "rgba.left"
  subimage  1: 1920 x 1080, 5 channel, float openexr
     SHA-1: 11F6FB62B0F1080F78DBA6464FCC92C30D3162AF
     channel list: R (half), G (half), B (half), A (half), Z (float)
@@ -154,6 +161,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     openexr:version: 1
     view: "right"
+    oiio:subimagename: "rgba.right"
 ../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000099 0.000341 0.000152 0.015625 72.493698 (float)
     Stats Max: 0.403564 0.593262 0.345215 1.000000 954.392700 (float)

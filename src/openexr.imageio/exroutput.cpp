@@ -204,7 +204,7 @@ private:
 
     // Set up the header based on the given spec.  Also may doctor the 
     // spec a bit.
-    bool spec_to_header (ImageSpec &spec, Imf::Header &header);
+    bool spec_to_header (ImageSpec &spec, int subimage, Imf::Header &header);
 
     // Add a parameter to the output
     static bool put_parameter (const std::string &name, TypeDesc type,
@@ -327,7 +327,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         m_headers.resize (1);
         m_spec = userspec;  // Stash the spec
 
-        if (! spec_to_header (m_spec, m_headers[m_subimage]))
+        if (! spec_to_header (m_spec, m_subimage, m_headers[m_subimage]))
             return false;
 
         try {
@@ -464,7 +464,7 @@ OpenEXROutput::open (const std::string &name, int subimages,
         filetype = specs[0].tile_width ? "tiledimage" : "scanlineimage";
     bool deep = false;
     for (int s = 0;  s < subimages;  ++s) {
-        if (! spec_to_header (m_subimagespecs[s], m_headers[s]))
+        if (! spec_to_header (m_subimagespecs[s], s, m_headers[s]))
             return false;
         deep |= m_subimagespecs[s].deep;
         if (m_subimagespecs[s].deep != m_subimagespecs[0].deep) {
@@ -540,7 +540,7 @@ OpenEXROutput::open (const std::string &name, int subimages,
 
 
 bool
-OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
+OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &header)
 {
     if (spec.width < 1 || spec.height < 1) {
         error ("Image resolution must be at least 1x1, you asked for %d x %d",
@@ -675,6 +675,13 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
                        spec.extra_attribs[p].type(),
                        spec.extra_attribs[p].data(), header);
 
+    // Multi-part EXR files required to have a name. Make one up if not
+    // supplied.
+    if (m_nsubimages > 1 && ! header.hasName()) {
+        std::string n = Strutil::format ("subimage%02d", subimage);
+        header.insert ("name", Imf::StringAttribute (n));
+    }
+
     return true;
 }
 
@@ -746,6 +753,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         xname = "expTime";
     else if (Strutil::iequals(xname, "FNumber"))
         xname = "aperture";
+    else if (Strutil::iequals(xname, "name"))
+        xname = "oiio::subimagename";
     else if (Strutil::istarts_with (xname, format_prefix))
         xname = std::string (xname.begin()+format_prefix.size(), xname.end());
 
