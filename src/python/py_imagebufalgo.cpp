@@ -223,6 +223,31 @@ IBA_mul_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
+IBA_pow_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return false;
+    ASSERT (values.size() > 0);
+    return ImageBufAlgo::pow (dst, A, &values[0], roi, nthreads);
+}
+
+bool
+IBA_pow_float (ImageBuf &dst, const ImageBuf &A, float B,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    return ImageBufAlgo::pow (dst, A, B, roi, nthreads);
+}
+
+
+
+
+bool
 IBA_clamp (ImageBuf &dst, const ImageBuf &src,
            tuple min_, tuple max_,
            bool clampalpha01 = false,
@@ -595,6 +620,14 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("mul")
+
+        .def("pow", &IBA_pow_float,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("pow", &IBA_pow_color,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("pow")
 
         .def("channel_sum", &IBA_channel_sum,
              (arg("dst"), arg("src"),

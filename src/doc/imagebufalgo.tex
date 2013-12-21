@@ -567,6 +567,29 @@ All of the images must have the same number of channels.
 \apiend
 
 
+\apiitem{bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, float b, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, const float *b, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!pow} \indexapi{pow}
+\NEW  % 1.4
+
+For all pixels within the designated region, raise the pixel value to the
+power {\cf b} (channel by channel), putting the result in
+{\cf dst}.  The value {\cf b} is either a single 
+float (applied to all channels) or a per-channel float array.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Gamma-correct by 2.2 channels 0-2 of the image
+    ROI roi = get_roi (A.spec());
+    roi.chbegin = 0;  roi.chend = 2;
+    ImageBufAlgo::mul (A, A, 1.0f/2.2f, roi);
+\end{code}
+\apiend
+
+
 \apiitem{bool {\ce channel_sum} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc\spc const float *weights=NULL, \\
         \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}

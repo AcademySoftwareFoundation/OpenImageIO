@@ -268,6 +268,14 @@ but leave the A channel at its original value:
     oiiotool original.exr --cmul 0.9,0.9,0.9,1.0 -o out.exr
 \end{code}
 
+\subsection*{Remove gamma-correction from an image}
+
+Convert a gamma-corrected image (with gamma = 2.2) to linear values.
+
+\begin{code}
+    oiiotool corrected.exr --cpow 2.2,2.2,2.2,1.0 -o linear.exr
+\end{code}
+
 \subsection*{Resize an image}
 
 Resize by a known scale factor:
@@ -1009,6 +1017,16 @@ If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
 comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
+\apiend
+
+\apiitem{--cpow {\rm \emph{value}} \\
+--cpow {\rm \emph{value0,value1,value2...}}}
+\NEW % 1.4
+Raise all the pixel values in the top image to a constant power value.
+If a single constant value is given, all color channels will have their values
+raised to this power.  Alternatively, a series of
+comma-separated constant values (with no spaces!) may be used to specifiy a
+different exponent for each channel in the image, respectively.
 \apiend
 
 \apiitem{--chsum}

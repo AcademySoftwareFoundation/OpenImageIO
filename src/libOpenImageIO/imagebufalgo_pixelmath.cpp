@@ -435,6 +435,59 @@ ImageBufAlgo::mul (ImageBuf &dst, float val, ROI roi, int nthreads)
 
 
 
+template<class Rtype, class Atype>
+static bool
+pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(pow_impl<Rtype,Atype>, boost::ref(R), boost::cref(A), b,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            r[c] = pow (a[c], b[c]);
+    return true;
+}
+
+
+bool
+ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, const float *b,
+                   ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &A))
+        return false;
+    OIIO_DISPATCH_TYPES2 ("pow", pow_impl, dst.spec().format,
+                          A.spec().format, dst, A, b, roi, nthreads);
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, float b,
+                   ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &A))
+        return false;
+    int nc = A.nchannels();
+    float *vals = ALLOCA (float, nc);
+    for (int c = 0;  c < nc;  ++c)
+        vals[c] = b;
+    OIIO_DISPATCH_TYPES2 ("pow", pow_impl, dst.spec().format,
+                          A.spec().format, dst, A, vals, roi, nthreads);
+}
+
+
+
+
+
 template<class D, class S>
 static bool
 channel_sum_ (ImageBuf &dst, const ImageBuf &src,
