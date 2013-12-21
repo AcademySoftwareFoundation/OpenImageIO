@@ -147,6 +147,14 @@ try:
     #                        constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     # write (b, "mul.exr")
 
+    # pow
+    b = ImageBuf()
+    ImageBufAlgo.pow (b, gray128, 2)
+    write (b, "cpow1.exr")
+    b = ImageBuf()
+    ImageBufAlgo.pow (b, gray128, (2,2,1))
+    write (b, "cpow2.exr")
+
     # channel_sum
     b = ImageBuf()
     ImageBufAlgo.channel_sum (b, ImageBuf("../oiiotool/tahoe-small.tif"),

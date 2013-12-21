@@ -1860,6 +1860,52 @@ action_cadd (int argc, const char *argv[])
 
 
 static int
+action_cpow (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_cpow, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::vector<std::string> scalestrings;
+    Strutil::split (std::string(argv[1]), scalestrings, ",");
+    if (scalestrings.size() < 1)
+        return 0;   // Implicit multiplication by 1 if we can't figure it out
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    std::vector<float> scale;
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int nchans = R->spec(s,0)->nchannels;
+        scale.clear ();
+        scale.resize (nchans, (float) atof(scalestrings[0].c_str()));
+        if (scalestrings.size() > 1) {
+            for (int c = 0;  c < nchans;  ++c) {
+                if (c < (int)scalestrings.size())
+                    scale[c] = (float) atof(scalestrings[c].c_str());
+                else
+                    scale[c] = 1.0f;
+            }
+        }
+        for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
+            bool ok = ImageBufAlgo::pow ((*R)(s,m), (*R)(s,m), &scale[0]);
+            if (! ok)
+                ot.error ("cpow", (*R)(s,m).geterror());
+        }
+    }
+
+    ot.function_times["cpow"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_chsum (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_chsum, argc, argv))
@@ -3243,8 +3289,9 @@ getargs (int argc, char *argv[])
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--mul %@", action_mul, NULL, "Multiply two images",
-                "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cpow %s %@", action_cpow, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",

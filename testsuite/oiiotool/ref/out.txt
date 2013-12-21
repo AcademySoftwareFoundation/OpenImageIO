@@ -131,6 +131,10 @@ Comparing "cadd1.exr" and "ref/cadd1.exr"
 PASS
 Comparing "cadd2.exr" and "ref/cadd2.exr"
 PASS
+Comparing "cpow1.exr" and "ref/cpow1.exr"
+PASS
+Comparing "cpow2.exr" and "ref/cpow2.exr"
+PASS
 Comparing "add.exr" and "ref/add.exr"
 PASS
 Comparing "sub.exr" and "ref/sub.exr"

@@ -54,6 +54,10 @@ Comparing "cmul1.exr" and "../oiiotool/ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "../oiiotool/ref/cmul2.exr"
 PASS
+Comparing "cpow1.exr" and "../oiiotool/ref/cpow1.exr"
+PASS
+Comparing "cpow2.exr" and "../oiiotool/ref/cpow2.exr"
+PASS
 Comparing "chsum.tif" and "../oiiotool/ref/chsum.tif"
 PASS
 Comparing "grid-clamped.tif" and "../oiiotool/ref/grid-clamped.tif"

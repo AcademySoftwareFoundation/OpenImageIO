@@ -78,6 +78,13 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + " cmul-input.exr --cadd 0,0.25,-0.25 -o cadd2.exr >> out.txt ;\n")
 
+# Test --cpow val (raise all channels by the same power)
+command += (oiio_app ("oiiotool")
+            + " cmul-input.exr --cpow 2 -o cpow1.exr >> out.txt ;\n")
+# Test --cpow val,val,val... (per-channel powers)
+command += (oiio_app ("oiiotool")
+            + " cmul-input.exr --cpow 2,2,1 -o cpow2.exr >> out.txt ;\n")
+
 # Test --add
 command += (oiio_app ("oiiotool")
             + " --pattern constant:color=.1,.2,.3 64x64+0+0 3 "
@@ -244,6 +251,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "chappend-rgbaz.exr", "chname.exr", "flat.exr",
             "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
+            "cpow1.exr", "cpow2.exr",
             "add.exr", "sub.exr", "chsum.tif",
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif",

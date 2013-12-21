@@ -1785,7 +1785,7 @@ be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
 \index{ImageBufAlgo!mul} \indexapi{mul}
 
 Compute {\cf dst} = {\cf A * B} (channel-by-channel multiplication).  {\cf A}
-is an \ImageBuf, and {\cf B}  may be an \ImageBuf, a {\cf float} (added to
+is an \ImageBuf, and {\cf B}  may be an \ImageBuf, a {\cf float} (scaling
 all channels) or a tuple giving a {\cf float} for each color channel.
 
 \smallskip
@@ -1797,6 +1797,24 @@ all channels) or a tuple giving a {\cf float} for each color channel.
 
     # Reduce intensity of buf's channels 0-2 by 50%, in place
     ImageBufAlgo.mul (buf, buf, (0.5, 0.5, 0.5, 1))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce pow} (dst, A, B, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!pow} \indexapi{pow}
+
+\NEW % 1.4
+Compute {\cf dst} = {\cf pow (A, B} (channel-by-channel exponentiation).
+{\cf A} is an \ImageBuf, and {\cf B} may be a {\cf float} (a single power
+for all channels) or a tuple giving a {\cf float} for each color channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Linearize a 2.2 gamma-corrected image (channels 0-2 only)
+    buf = ImageBuf ()
+    ImageBufAlgo.pow (buf, ImageBuf("a.exr"), (2.2, 2.2, 2.2, 1.0))
 \end{code}
 \apiend
 
