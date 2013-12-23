@@ -2745,12 +2745,20 @@ ImageCacheImpl::append_error (const std::string& message) const
         errptr = new std::string;
         m_errormessage.reset (errptr);
     }
+
     ASSERT (errptr != NULL);
-    ASSERT (errptr->size() < 1024*1024*16 &&
-            "Accumulated error messages > 16MB. Try checking return codes!");
+
+    size_t maxsize = 1024*1024*16;
+
+    if (errptr->size() > maxsize)
+        return;
+
     if (errptr->size())
         *errptr += '\n';
     *errptr += message;
+
+    if (errptr->size() > maxsize)
+        fprintf(stderr, "Accumulated error messages > 16MB. Try checking return codes!");
 }
 
 
