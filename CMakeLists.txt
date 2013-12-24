@@ -129,6 +129,7 @@ set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
 
 set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
 set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
+set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO_Util")
 
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
@@ -190,7 +191,7 @@ if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
     # the "standard" unix directory heirarchy
     # TODO: Figure out how to get the correct python directory
     set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
-    set (DEFAULT_DOC_INSTALL_DIR "share/doc/openimageio")
+    set (DEFAULT_DOC_INSTALL_DIR "share/doc/OpenImageIO")
     set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")
 else ()
     # Here is the "self-contained install tree" case: the expectation here is
@@ -268,9 +269,13 @@ include (CTest)
 
 
 # Tell CMake to process the sub-directories
-add_subdirectory (src/libOpenImageIO)
+add_subdirectory (src/libutil)
 
-if (OIIO_BUILD_TOOLS)
+if (NOT BUILD_OIIOUTIL_ONLY)
+    add_subdirectory (src/libOpenImageIO)
+endif ()
+
+if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
   add_subdirectory (src/iconvert)
   add_subdirectory (src/idiff)
   add_subdirectory (src/igrep)
@@ -310,7 +315,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (src/zfile.imageio)
 endif ()
 
-if (USE_PYTHON AND oiio_boost_PYTHON_FOUND)
+if (USE_PYTHON AND oiio_boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 endif ()
 
