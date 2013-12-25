@@ -153,7 +153,7 @@ IvImage::longinfo () const
 {
     using Strutil::format;  // shorthand
     if (m_longinfo.empty()) {
-        const ImageSpec &m_spec (spec());
+        const ImageSpec &m_spec (nativespec());
         m_longinfo += "<table>";
 //        m_longinfo += html_table_row (format("<b>%s</b>", m_name.c_str()).c_str(),
 //                                std::string());
