@@ -286,7 +286,7 @@ Filesystem::is_regular (const std::string &path)
 
 
 FILE*
-Filesystem::fopen (const std::string &path, const std::string &mode)
+Filesystem::fopen (string_ref path, string_ref mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
@@ -303,8 +303,7 @@ Filesystem::fopen (const std::string &path, const std::string &mode)
 
 
 void
-Filesystem::open (std::ifstream &stream,
-                  const std::string &path,
+Filesystem::open (std::ifstream &stream, string_ref path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -320,8 +319,7 @@ Filesystem::open (std::ifstream &stream,
 
 
 void
-Filesystem::open (std::ofstream &stream,
-                  const std::string &path,
+Filesystem::open (std::ofstream &stream, string_ref path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -332,6 +330,8 @@ Filesystem::open (std::ofstream &stream,
     stream.open (path.c_str(), mode);
 #endif
 }
+
+
 
 std::time_t
 Filesystem::last_write_time (const std::string& path)
@@ -393,27 +393,27 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
 
 
 bool
-Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
+Filesystem::enumerate_sequence (string_ref desc, std::vector<int> &numbers)
 {
     numbers.clear ();
 
     // Split the sequence description into comma-separated subranges.
-    std::vector<std::string> ranges;
+    std::vector<string_ref> ranges;
     Strutil::split (desc, ranges, ",");
 
     // For each subrange...
-    BOOST_FOREACH (const std::string &s, ranges) {
+    BOOST_FOREACH (string_ref s, ranges) {
         // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.
         std::vector<std::string> range;
         Strutil::split (s, range, "-", 2);
-        int first = strtol (range[0].c_str(), NULL, 10);
+        int first = Strutil::from_string<int> (range[0]);
         int last = first;
         int step = 1;
         bool complement = false;
         if (range.size() > 1) {
-            last = strtol (range[1].c_str(), NULL, 10);
+            last = Strutil::from_string<int> (range[1]);
             if (const char *x = strchr (range[1].c_str(), 'x'))
                 step = (int) strtol (x+1, NULL, 10);
             else if (const char *x = strchr (range[1].c_str(), 'y')) {
@@ -436,6 +436,8 @@ Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
     }
     return true;
 }
+
+
 
 bool
 Filesystem::parse_pattern (const char *pattern_,
