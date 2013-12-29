@@ -152,6 +152,74 @@ void test_escape_sequences ()
 
 
 
+void test_wordwrap ()
+{
+    std::string words = "Now is the time for all good men to come to the aid of their party.";
+    OIIO_CHECK_EQUAL (Strutil::wordwrap(words, 24),
+                      "Now is the time for all\n"
+                      "good men to come to the\n"
+                      "aid of their party.");
+}
+
+
+
+void test_comparisons ()
+{
+    OIIO_CHECK_EQUAL (Strutil::iequals ("abc", "abc"), true);
+    OIIO_CHECK_EQUAL (Strutil::iequals ("Abc", "aBc"), true);
+    OIIO_CHECK_EQUAL (Strutil::iequals ("abc", "adc"), false);
+
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("abcd", "ab"), true);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("aBcd", "Ab"), true);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("abcd", "ba"), false);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("abcd", "abcde"), false);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("", "a"), false);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::istarts_with ("abc", ""), true);
+
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("abcd", "cd"), true);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("aBCd", "cd"), true);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("aBcd", "CD"), true);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("abcd", "ba"), false);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("abcd", "xabcd"), false);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("", "a"), false);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::iends_with ("abc", ""), true);
+
+    OIIO_CHECK_EQUAL (Strutil::contains ("abcde", "ab"), true);
+    OIIO_CHECK_EQUAL (Strutil::contains ("abcde", "bcd"), true);
+    OIIO_CHECK_EQUAL (Strutil::contains ("abcde", "de"), true);
+    OIIO_CHECK_EQUAL (Strutil::contains ("abcde", "cdx"), false);
+    OIIO_CHECK_EQUAL (Strutil::contains ("abcde", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::contains ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::contains ("", "x"), false);
+
+    OIIO_CHECK_EQUAL (Strutil::icontains ("abcde", "ab"), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("Abcde", "aB"), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("abcde", "bcd"), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("Abcde", "bCd"), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("abcDe", "dE"), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("abcde", "cdx"), false);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("abcde", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::icontains ("", "x"), false);
+}
+
+
+
+void test_case ()
+{
+    std::string s;
+    s = "abcDEF,*1";
+    Strutil::to_lower (s);
+    OIIO_CHECK_EQUAL (s, "abcdef,*1");
+    s = "abcDEF,*1";
+    Strutil::to_upper (s);
+    OIIO_CHECK_EQUAL (s, "ABCDEF,*1");
+}
+
+
+
 void test_strip ()
 {
     OIIO_CHECK_EQUAL (Strutil::strip ("abcdefbac", "abc"), "def");
@@ -159,6 +227,115 @@ void test_strip ()
     OIIO_CHECK_EQUAL (Strutil::strip ("  \tHello, world\n"), "Hello, world");
     OIIO_CHECK_EQUAL (Strutil::strip (" \t"), "");
     OIIO_CHECK_EQUAL (Strutil::strip (""), "");
+}
+
+
+
+void test_split ()
+{
+    std::string s ("Now\nis the  time!");
+    std::vector<std::string> splits;
+
+    // test default -- split at whitespace
+    Strutil::split (s, splits);
+    OIIO_CHECK_EQUAL (splits.size(), 4);
+    OIIO_CHECK_EQUAL (splits[0], "Now");
+    OIIO_CHECK_EQUAL (splits[1], "is");
+    OIIO_CHECK_EQUAL (splits[2], "the");
+    OIIO_CHECK_EQUAL (splits[3], "time!");
+
+    // test custom split string
+    Strutil::split (s, splits, " t");
+    OIIO_CHECK_EQUAL (splits.size(), 3);
+    OIIO_CHECK_EQUAL (splits[0], "Now\nis");
+    OIIO_CHECK_EQUAL (splits[1], "he ");
+    OIIO_CHECK_EQUAL (splits[2], "ime!");
+
+    // test maxsplit
+    Strutil::split (s, splits, "", 2);
+    OIIO_CHECK_EQUAL (splits.size(), 2);
+    OIIO_CHECK_EQUAL (splits[0], "Now");
+    OIIO_CHECK_EQUAL (splits[1], "is the  time!");
+
+    // test maxsplit with non-default sep
+    Strutil::split (s, splits, " ", 2);
+    OIIO_CHECK_EQUAL (splits.size(), 2);
+    OIIO_CHECK_EQUAL (splits[0], "Now\nis");
+    OIIO_CHECK_EQUAL (splits[1], "the  time!");
+}
+
+
+
+void test_join ()
+{
+    std::vector<std::string> seq;
+    seq.push_back ("Now");
+    seq.push_back ("is");
+    seq.push_back ("the");
+    seq.push_back ("time");
+    OIIO_CHECK_EQUAL (Strutil::join (seq, ". "),
+                      "Now. is. the. time");
+}
+
+
+
+void test_conversion ()
+{
+    OIIO_CHECK_EQUAL (Strutil::from_string<int>("hi"), 0);
+    OIIO_CHECK_EQUAL (Strutil::from_string<int>("123"), 123);
+    OIIO_CHECK_EQUAL (Strutil::from_string<int>("-123"), -123);
+    OIIO_CHECK_EQUAL (Strutil::from_string<int>(" 123 "), 123);
+    OIIO_CHECK_EQUAL (Strutil::from_string<int>("123.45"), 123);
+
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("hi"), 0.0f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("123"), 123.0f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("-123"), -123.0f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("123.45"), 123.45f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>(" 123.45 "), 123.45f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("123.45+12"), 123.45f);
+    OIIO_CHECK_EQUAL (Strutil::from_string<float>("1.2345e+2"), 123.45f);
+}
+
+
+
+void test_extract ()
+{
+    std::vector<int> vals;
+
+    vals.clear(); vals.resize (3, -1);
+    Strutil::extract_from_list_string (vals, "1");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], 1);
+    OIIO_CHECK_EQUAL (vals[1], 1);
+    OIIO_CHECK_EQUAL (vals[2], 1);
+
+    vals.clear(); vals.resize (3, -1);
+    Strutil::extract_from_list_string (vals, "1,3,5");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], 1);
+    OIIO_CHECK_EQUAL (vals[1], 3);
+    OIIO_CHECK_EQUAL (vals[2], 5);
+
+    vals.clear(); vals.resize (3, -1);
+    Strutil::extract_from_list_string (vals, "1,,5");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], 1);
+    OIIO_CHECK_EQUAL (vals[1], -1);
+    OIIO_CHECK_EQUAL (vals[2], 5);
+
+    vals.clear(); vals.resize (3, -1);
+    Strutil::extract_from_list_string (vals, "abc");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], 0);
+    OIIO_CHECK_EQUAL (vals[1], 0);
+    OIIO_CHECK_EQUAL (vals[2], 0);
+
+    vals.clear(); vals.resize (3, -1);
+    Strutil::extract_from_list_string (vals, "");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], -1);
+    OIIO_CHECK_EQUAL (vals[1], -1);
+    OIIO_CHECK_EQUAL (vals[2], -1);
 }
 
 
@@ -208,7 +385,14 @@ int main (int argc, char *argv[])
     test_timeintervalformat ();
     test_get_rest_arguments ();
     test_escape_sequences ();
+    test_wordwrap ();
+    test_comparisons ();
+    test_case ();
     test_strip ();
+    test_split ();
+    test_join ();
+    test_conversion ();
+    test_extract ();
     test_safe_strcpy ();
 
     return unit_test_failures;
