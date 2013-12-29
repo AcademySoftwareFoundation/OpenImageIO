@@ -58,10 +58,31 @@
 #include "dassert.h"
 
 #include "strutil.h"
+#include "ustring.h"
+#include "string_ref.h"
 
 
 OIIO_NAMESPACE_ENTER
 {
+
+
+const char *
+string_ref::c_str() const
+{
+    // Usual case: either empty, or null-terminated
+    if (m_len == 0)   // empty string
+        return "";
+    else if (m_chars[m_len-1] == 0)  // 0-terminated
+        return m_chars;
+    // Rare case: may not be 0-terminated. Bite the bullet and construct a
+    // 0-terminated string.  We use ustring as a way to avoid any issues of
+    // who cleans up the allocation, though it means that it will stay in
+    // the ustring table forever. Punt on this for now, it's an edge case
+    // that we need to handle, but is not likely to ever be an issue.
+    return ustring(m_chars, 0, m_len).c_str();
+}
+
+
 
 std::string
 Strutil::format_raw (const char *fmt, ...)

@@ -3,7 +3,8 @@ set (public_headers argparse.h color.h dassert.h errorhandler.h export.h
                     imagebuf.h imagebufalgo.h imagebufalgo_util.h
                     imagecache.h imageio.h
                     optparser.h osdep.h paramlist.h plugin.h
-                    refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
+                    refcnt.h string_ref.h strutil.h sysutil.h
+                    texture.h thread.h timer.h
                     tinyformat.h typedesc.h ustring.h varyingref.h
     )
 
