@@ -1,4 +1,5 @@
-set (public_headers argparse.h color.h dassert.h errorhandler.h export.h 
+set (public_headers argparse.h array_ref.h
+                    color.h dassert.h errorhandler.h export.h 
                     filesystem.h filter.h fmath.h hash.h
                     imagebuf.h imagebufalgo.h imagebufalgo_util.h
                     imagecache.h imageio.h
