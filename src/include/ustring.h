@@ -135,6 +135,7 @@
 #include <cstring>
 #include "export.h"
 #include "strutil.h"
+#include "string_ref.h"
 #include "dassert.h"
 #include "version.h"
 
@@ -166,6 +167,13 @@ public:
         m_chars = str ? make_unique(str) : NULL;
     }
 
+    /// Construct a ustring from a string_ref, which can be auto-converted
+    /// from either a null-terminated C string (char *) or a C++
+    /// std::string.
+    explicit ustring (string_ref str) {
+        m_chars = str.data() ? make_unique(str) : NULL;
+    }
+
     /// Construct a ustring from at most n characters of str, starting at
     /// position pos.
     ustring (const char *str, size_type pos, size_type n)
@@ -174,7 +182,7 @@ public:
     /// Construct a ustring from the first n characters of str.
     ///
     ustring (const char *str, size_type n)
-        : m_chars (make_unique(std::string(str,n).c_str())) { }
+        : m_chars (make_unique(string_ref(str,n))) { }
 
     /// Construct a ustring from n copies of character c.
     ///
@@ -183,7 +191,7 @@ public:
 
     /// Construct a ustring from a C++ std::string.
     ///
-    explicit ustring (const std::string &str) { *this = ustring(str.c_str()); }
+//    explicit ustring (const std::string &str) { *this = ustring(str.c_str()); }
 
     /// Construct a ustring from an indexed substring of a std::string.
     ///
@@ -202,6 +210,9 @@ public:
     /// ustring destructor.
     ///
     ~ustring () { }
+
+    /// Conversion to string_ref
+    operator string_ref() const { return string_ref(c_str(), length()); }
 
     /// Assign a ustring to *this.
     ///
@@ -511,7 +522,7 @@ public:
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
     bool operator== (const ustring &str) const {
-      return c_str() == str.c_str();
+        return c_str() == str.c_str();
     }
 
     /// Test two ustrings for inequality -- are they comprised of different
@@ -519,7 +530,7 @@ public:
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
     bool operator!= (const ustring &str) const {
-      return c_str() != str.c_str();
+        return c_str() != str.c_str();
     }
 
     /// Test a ustring (*this) for lexicographic equality with std::string
@@ -560,8 +571,8 @@ public:
     /// Generic stream output of a ustring.
     ///
     friend std::ostream & operator<< (std::ostream &out, const ustring &str) {
-        if (str.c_str())
-            out << str.c_str();
+        if (str.c_str() && out.good())
+            out.write (str.c_str(), str.size());
         return out;
     }
 
@@ -573,13 +584,13 @@ public:
     ///
     static size_t memory ();
 
-    /// Given a null-terminated string, return a pointer to the unique
+    /// Given a string_ref, return a pointer to the unique
     /// version kept in the internal table (creating a new table entry
     /// if we haven't seen this sequence of characters before).  
     /// N.B.: this is equivalent to ustring(str).c_str().  It's also the
     /// routine that is used directly by ustring's internals to generate
     /// the canonical unique copy of the characters.
-    static const char * make_unique (const char *str);
+    static const char * make_unique (string_ref str);
 
     /// Is this character pointer a unique ustring representation of
     /// those characters?  Useful for diagnostics and debugging.
@@ -615,7 +626,7 @@ public:
         size_t length;       // Length of the string; must be right before cap
         size_t dummy_capacity;  // Dummy field! must be right before refcount
         int    dummy_refcount;  // Dummy field! must be right before chars
-        TableRep (const char *s, size_t len);
+        TableRep (string_ref strref);
         ~TableRep ();
         const char *c_str () const { return (const char *)(this + 1); }
     };

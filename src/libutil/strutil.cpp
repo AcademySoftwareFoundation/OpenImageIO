@@ -224,7 +224,7 @@ Strutil::get_rest_arguments (const std::string &str, std::string &base,
 
 
 std::string
-Strutil::escape_chars (const std::string &unescaped)
+Strutil::escape_chars (string_ref unescaped)
 {
     std::string s = unescaped;
     for (size_t i = 0;  i < s.length();  ++i) {
@@ -251,7 +251,7 @@ Strutil::escape_chars (const std::string &unescaped)
 
 
 std::string
-Strutil::unescape_chars (const std::string &escaped)
+Strutil::unescape_chars (string_ref escaped)
 {
     std::string s = escaped;
     for (size_t i = 0, len = s.length();  i < len;  ++i) {
@@ -291,21 +291,21 @@ Strutil::unescape_chars (const std::string &escaped)
 
 
 std::string
-Strutil::wordwrap (std::string src, int columns, int prefix)
+Strutil::wordwrap (string_ref src, int columns, int prefix)
 {
-    std::ostringstream out;
     if (columns < prefix+20)
         return src;   // give up, no way to make it wrap
+    std::ostringstream out;
     columns -= prefix;  // now columns is the real width we have to work with
     while ((int)src.length() > columns) {
         // break the string in two
         size_t breakpoint = src.find_last_of (' ', columns);
-        if (breakpoint == std::string::npos)
+        if (breakpoint == string_ref::npos)
             breakpoint = columns;
         out << src.substr(0, breakpoint) << "\n" << std::string (prefix, ' ');
         src = src.substr (breakpoint);
         while (src[0] == ' ')
-            src.erase (0, 1);
+            src.remove_prefix (1);
     }
     out << src;
     return out.str();
@@ -319,70 +319,35 @@ static std::locale loc = std::locale::classic();
 
 
 bool
-Strutil::iequals (const std::string &a, const std::string &b)
+Strutil::iequals (string_ref a, string_ref b)
 {
     return boost::algorithm::iequals (a, b, loc);
 }
 
 
 bool
-Strutil::iequals (const char *a, const char *b)
-{
-    return boost::algorithm::iequals (a, b, loc);
-}
-
-
-bool
-Strutil::istarts_with (const std::string &a, const std::string &b)
+Strutil::istarts_with (string_ref a, string_ref b)
 {
     return boost::algorithm::istarts_with (a, b, loc);
 }
 
 
 bool
-Strutil::istarts_with (const char *a, const char *b)
-{
-    return boost::algorithm::istarts_with (a, b, loc);
-}
-
-
-bool
-Strutil::iends_with (const std::string &a, const std::string &b)
+Strutil::iends_with (string_ref a, string_ref b)
 {
     return boost::algorithm::iends_with (a, b, loc);
 }
 
 
 bool
-Strutil::iends_with (const char *a, const char *b)
-{
-    return boost::algorithm::iends_with (a, b, loc);
-}
-
-
-bool
-Strutil::contains (const std::string &a, const std::string &b)
+Strutil::contains (string_ref a, string_ref b)
 {
     return boost::algorithm::contains (a, b);
 }
 
 
 bool
-Strutil::contains (const char *a, const char *b)
-{
-    return boost::algorithm::contains (a, b);
-}
-
-
-bool
-Strutil::icontains (const std::string &a, const std::string &b)
-{
-    return boost::algorithm::icontains (a, b, loc);
-}
-
-
-bool
-Strutil::icontains (const char *a, const char *b)
+Strutil::icontains (string_ref a, string_ref b)
 {
     return boost::algorithm::icontains (a, b, loc);
 }
@@ -403,26 +368,27 @@ Strutil::to_upper (std::string &a)
 
 
 
-std::string
-Strutil::strip (const std::string &str, const std::string &chars)
+string_ref
+Strutil::strip (string_ref str, string_ref chars)
 {
-    const char *stripchars = (chars.empty() ? " \t\n\r\f\v" : chars.c_str());
-    size_t b = str.find_first_not_of (stripchars);
+    if (chars.empty())
+        chars = string_ref(" \t\n\r\f\v", 6);
+    size_t b = str.find_first_not_of (chars);
     if (b == std::string::npos)
-        return std::string("");
-    size_t e = str.find_last_not_of (stripchars);
+        return string_ref ();
+    size_t e = str.find_last_not_of (chars);
     DASSERT (e != std::string::npos);
-    return std::string (str, b, e-b+1);
+    return str.substr (b, e-b+1);
 }
 
 
 
 static void
-split_whitespace (const std::string &str, std::vector<std::string> &result,
+split_whitespace (string_ref str, std::vector<string_ref> &result,
                   int maxsplit)
 {
     // Implementation inspired by Pystring
-    std::string::size_type i, j, len = str.size();
+    string_ref::size_type i, j, len = str.size();
     for (i = j = 0; i < len; ) {
         while (i < len && ::isspace(str[i]))
             i++;
@@ -445,8 +411,22 @@ split_whitespace (const std::string &str, std::vector<std::string> &result,
 
 
 void
-Strutil::split (const std::string &str, std::vector<std::string> &result,
-                const std::string &sep, int maxsplit)
+Strutil::split (string_ref str, std::vector<std::string> &result,
+                string_ref sep, int maxsplit)
+{
+    std::vector<string_ref> sr_result;
+    split (str, sr_result, sep, maxsplit);
+    result.clear ();
+    result.reserve (sr_result.size());
+    for (size_t i = 0, e = sr_result.size(); i != e; ++i)
+        result.push_back (sr_result[i]);
+}
+
+
+
+void
+Strutil::split (string_ref str, std::vector<string_ref> &result,
+                string_ref sep, int maxsplit)
 {
     // Implementation inspired by Pystring
     result.clear();
@@ -473,23 +453,36 @@ Strutil::split (const std::string &str, std::vector<std::string> &result,
 
 
 std::string
-Strutil::join (const std::vector<std::string> &seq, const std::string & str)
+Strutil::join (const std::vector<string_ref> &seq, string_ref str)
 {
     // Implementation inspired by Pystring
     size_t seqlen = seq.size();
     if (seqlen == 0)
-        return "";
+        return std::string();
     std::string result (seq[0]);
-    for (size_t i = 1; i < seqlen; ++i)
-        result += str + seq[i];
+    for (size_t i = 1; i < seqlen; ++i) {
+        result += str;
+        result += seq[i];
+    }
     return result;
+}
+
+
+
+std::string
+Strutil::join (const std::vector<std::string> &seq, string_ref str)
+{
+    std::vector<string_ref> seq_sr (seq.size());
+    for (size_t i = 0, e = seq.size(); i != e; ++i)
+        seq_sr[i] = seq[i];
+    return join (seq_sr, str);
 }
 
 
 
 #ifdef _WIN32
 std::wstring
-Strutil::utf8_to_utf16 (const std::string& str)
+Strutil::utf8_to_utf16 (string_ref str)
 {
     std::wstring native;
     

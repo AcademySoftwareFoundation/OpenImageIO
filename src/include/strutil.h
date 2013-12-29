@@ -49,8 +49,8 @@
 
 #include "export.h"
 #include "version.h"
-
 #include "tinyformat.h"
+#include "string_ref.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -130,11 +130,11 @@ bool OIIO_API get_rest_arguments (const std::string &str, std::string &base,
 /// Take a string that may have embedded newlines, tabs, etc., and turn
 /// those characters into escape sequences like \n, \t, \v, \b, \r, \f,
 /// \a, \\, \".
-std::string OIIO_API escape_chars (const std::string &unescaped);
+std::string OIIO_API escape_chars (string_ref unescaped);
 
 /// Take a string that has embedded escape sequences (\\, \", \n, etc.)
 /// and collapse them into the 'real' characters.
-std::string OIIO_API unescape_chars (const std::string &escaped);
+std::string OIIO_API unescape_chars (string_ref escaped);
 
 /// Word-wrap string 'src' to no more than columns width, splitting at
 /// space characters.  It assumes that 'prefix' characters are already
@@ -142,7 +142,7 @@ std::string OIIO_API unescape_chars (const std::string &escaped);
 /// number of spaces in front of subsequent lines.  By illustration, 
 /// wordwrap("0 1 2 3 4 5 6 7 8", 4, 10) should return:
 /// "0 1 2\n    3 4 5\n    6 7 8"
-std::string OIIO_API wordwrap (std::string src, int columns=80, int prefix=0);
+std::string OIIO_API wordwrap (string_ref src, int columns=80, int prefix=0);
 
 /// Hash a string without pre-known length.  We use the Jenkins
 /// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
@@ -165,35 +165,49 @@ strhash (const char *s)
 }
 
 
+/// Hash a string without pre-known length.  We use the Jenkins
+/// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
+/// which seems to be a good speed/quality/requirements compromise.
+inline size_t
+strhash (string_ref s)
+{
+    if (! s.length()) return 0;
+    unsigned int h = 0;
+    for (size_t i = 0;  i < s.length();  ++i) {
+        h += (unsigned char)(s[i]);
+        h += h << 10;
+        h ^= h >> 6;
+    }
+    h += h << 3;
+    h ^= h >> 11;
+    h += h << 15;
+    return h;
+}
+
+
 
 /// Case-insensitive comparison of strings.  For speed, this always uses
 /// a static locale that doesn't require a mutex.
-bool OIIO_API iequals (const std::string &a, const std::string &b);
-bool OIIO_API iequals (const char *a, const char *b);
+bool OIIO_API iequals (string_ref a, string_ref b);
 
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API istarts_with (const std::string &a, const std::string &b);
-bool OIIO_API istarts_with (const char *a, const char *b);
+bool OIIO_API istarts_with (string_ref a, string_ref b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API iends_with (const std::string &a, const std::string &b);
-bool OIIO_API iends_with (const char *a, const char *b);
+bool OIIO_API iends_with (string_ref a, string_ref b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API iends_with (const std::string &a, const std::string &b);
-bool OIIO_API iends_with (const char *a, const char *b);
+bool OIIO_API iends_with (string_ref a, string_ref b);
 
 /// Does 'a' contain the string 'b' within it?
-bool OIIO_API contains (const std::string &a, const std::string &b);
-bool OIIO_API contains (const char *a, const char *b);
+bool OIIO_API contains (string_ref a, string_ref b);
 
 /// Does 'a' contain the string 'b' within it, using a case-insensitive
 /// comparison?
-bool OIIO_API icontains (const std::string &a, const std::string &b);
-bool OIIO_API icontains (const char *a, const char *b);
+bool OIIO_API icontains (string_ref a, string_ref b);
 
 /// Convert to upper case, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
@@ -203,36 +217,39 @@ void OIIO_API to_lower (std::string &a);
 /// a static locale that doesn't require a mutex lock.
 void OIIO_API to_upper (std::string &a);
 
-/// Return a copy of str with all consecutive characters in chars
-/// removed from the beginning and ending.  If chars is empty, it will
-/// be interpreted as " \t\n\r\f\v" (whitespace).
-std::string OIIO_API strip (const std::string &str,
-                             const std::string &chars=std::string());
+/// Return a reference to the section of str that has all consecutive
+/// characters in chars removed from the beginning and ending.  If chars is
+/// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
+string_ref OIIO_API strip (string_ref str, string_ref chars=string_ref());
 
 /// Fills the "result" list with the words in the string, using sep as
 /// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
 /// are done. If sep is "", any whitespace string is a separator.
-void OIIO_API split (const std::string &str, std::vector<std::string> &result,
-                      const std::string &sep = "", int maxsplit = -1);
+void OIIO_API split (string_ref str, std::vector<string_ref> &result,
+                     string_ref sep = string_ref(), int maxsplit = -1);
+void OIIO_API split (string_ref str, std::vector<std::string> &result,
+                     string_ref sep = string_ref(), int maxsplit = -1);
 
 /// Join all the strings in 'seq' into one big string, separated by the
 /// 'sep' string.
+std::string OIIO_API join (const std::vector<string_ref> &seq,
+                           string_ref sep = string_ref());
 std::string OIIO_API join (const std::vector<std::string> &seq,
-                            const std::string &sep="");
+                           string_ref sep = string_ref());
 
 
 
 // Helper template to convert from generic type to string
 template<typename T>
-inline T from_string (const std::string &s) {
+inline T from_string (string_ref s) {
     return T(s); // Generic: assume there is an explicit converter
 }
 // Special case for int
-template<> inline int from_string<int> (const std::string &s) {
+template<> inline int from_string<int> (string_ref s) {
     return strtol (s.c_str(), NULL, 10);
 }
 // Special case for float
-template<> inline float from_string<float> (const std::string &s) {
+template<> inline float from_string<float> (string_ref s) {
     return (float)strtod (s.c_str(), NULL);
 }
 
@@ -253,11 +270,11 @@ template<> inline float from_string<float> (const std::string &s) {
 /// an explicit constructor from a std::string.
 template<class T>
 void extract_from_list_string (std::vector<T> &vals,
-                               const std::string &list,
-                               const std::string &sep = ",")
+                               string_ref list,
+                               string_ref sep = string_ref(",",1))
 {
     size_t nvals = vals.size();
-    std::vector<std::string> valuestrings;
+    std::vector<string_ref> valuestrings;
     Strutil::split (list, valuestrings, sep);
     for (size_t i = 0, e = valuestrings.size(); i < e; ++i) {
         if (valuestrings[i].size())
@@ -287,6 +304,9 @@ public:
     size_t operator() (const std::string &s) const {
         return (size_t)Strutil::strhash(s.c_str());
     }
+    size_t operator() (string_ref s) const {
+        return (size_t)Strutil::strhash(s);
+    }
 };
 
 
@@ -298,7 +318,11 @@ public:
     bool operator() (const char *a, const char *b) const {
         return strcmp (a, b) == 0;
     }
+    bool operator() (string_ref a, string_ref b) const {
+        return a == b;
+    }
 };
+
 
 #ifdef _WIN32
 /// Conversion functions between UTF-8 and UTF-16 for windows.
@@ -334,7 +358,7 @@ public:
 
 // Conversion to wide char
 //
-std::wstring OIIO_API utf8_to_utf16(const std::string& utf8str);
+std::wstring OIIO_API utf8_to_utf16 (string_ref utf8str);
 
 // Conversion from wide char
 //
