@@ -409,7 +409,7 @@ split_whitespace (const std::string &str, std::vector<std::string> &result,
         while (i < len && ! ::isspace(str[i]))
             i++;
         if (j < i) {
-            if (maxsplit-- <= 0)
+            if (--maxsplit <= 0)
                 break;
             result.push_back (str.substr(j, i - j));
             while (i < len && ::isspace(str[i]))
@@ -438,7 +438,7 @@ Strutil::split (const std::string &str, std::vector<std::string> &result,
     size_t i = 0, j = 0, len = str.size(), n = sep.size();
     while (i+n <= len) {
         if (str[i] == sep[0] && str.substr(i, n) == sep) {
-            if (maxsplit-- <= 0)
+            if (--maxsplit <= 0)
                 break;
             result.push_back (str.substr(j, i - j));
             i = j = i + n;
