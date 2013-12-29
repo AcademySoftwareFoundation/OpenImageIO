@@ -407,7 +407,7 @@ Filesystem::enumerate_sequence (const char *desc, std::vector<int> &numbers)
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.
         std::vector<std::string> range;
-        Strutil::split (s, range, "-", 1);
+        Strutil::split (s, range, "-", 2);
         int first = strtol (range[0].c_str(), NULL, 10);
         int last = first;
         int step = 1;
