@@ -87,6 +87,7 @@ public:
     // Internal state
     ImageRecRef curimg;                      // current image
     std::vector<ImageRecRef> image_stack;    // stack of previous images
+    std::map<std::string, ImageRecRef> image_labels; // labeled images
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
     ColorConfig colorconfig;                 // OCIO color config

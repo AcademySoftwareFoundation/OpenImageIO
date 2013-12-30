@@ -225,6 +225,14 @@ command += (oiio_app ("oiiotool")
             + "fft.exr --ifft --ch 0,0,0 -o ifft.exr >> out.txt ;\n")
 
 
+# test labels
+command += (oiio_app("oiiotool") + 
+            " --pattern constant:color=0.5,0.0,0.0 128x128 3 --label R " +
+            " --pattern constant:color=0.0,0.5,0.0 128x128 3 --label G " +
+            " --pattern constant:color=0.5,0.0,0.0 128x128 3 --label B " +
+            " --pop --pop --pop " +
+            " R G --add -d half -o labeladd.exr >> out.txt ;\n")
+
 
 # test sequences
 command += (oiio_app("oiiotool")
@@ -261,6 +269,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "unsharp.tif",
             "fft.exr", "ifft.exr",
+            "labeladd.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

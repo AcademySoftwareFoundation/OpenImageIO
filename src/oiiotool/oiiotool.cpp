@@ -266,8 +266,17 @@ set_threads (int argc, const char *argv[])
 static int
 input_file (int argc, const char *argv[])
 {
-    Timer timer (ot.enable_function_timing);
     for (int i = 0;  i < argc;  i++) {
+        std::map<std::string,ImageRecRef>::const_iterator found;
+        found = ot.image_labels.find(argv[0]);
+        if (found != ot.image_labels.end()) {
+            if (ot.verbose)
+                std::cout << "Referencing labeled image " << argv[0] << "\n";
+            ot.push (found->second);
+            ot.process_pending ();
+            break;
+        }
+        Timer timer (ot.enable_function_timing);
         int exists = 1;
         if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
                             ustring("exists"), TypeDesc::TypeInt, &exists)
@@ -293,9 +302,18 @@ input_file (int argc, const char *argv[])
             if (! ok)
                 std::cerr << "oiiotool ERROR: " << error << "\n";
         }
+        ot.function_times["input"] += timer();
         ot.process_pending ();
     }
-    ot.function_times["input"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_label (int argc, const char *argv[])
+{
+    ot.image_labels[argv[1]] = ot.curimg;
     return 0;
 }
 
@@ -3331,24 +3349,27 @@ getargs (int argc, char *argv[])
                     "Un-rangecompress pixel values > 1 (options: luma=0|1)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
-                "<SEPARATOR>", "Image stack manipulation:",
+                "<SEPARATOR>", "Manipulating channels or subimages:",
                 "--ch %@ %s", action_channels, NULL,
                     "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",
                 "--chappend %@", action_chappend, NULL,
                     "Append the channels of the last two images",
-                "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
                 "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--siappend %@", action_subimage_append, NULL,
                     "Append the last two images into one multi-subimage image",
-                "--pop %@", action_pop, NULL,
-                    "Throw away the current image",
+                "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
+                "<SEPARATOR>", "Image stack manipulation:",
                 "--dup %@", action_dup, NULL,
                     "Duplicate the current image (push a copy onto the stack)",
                 "--swap %@", action_swap, NULL,
                     "Swap the top two images on the stack.",
+                "--pop %@", action_pop, NULL,
+                    "Throw away the current image",
+                "--label %@ %s", action_label, NULL,
+                    "Label the top image",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",
