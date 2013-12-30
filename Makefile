@@ -175,6 +175,10 @@ ifneq (${PYLIB_INCLUDE_SONAME},)
 MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
 endif
 
+ifneq (${BUILD_OIIOUTIL_ONLY},)
+MY_CMAKE_FLAGS += -DBUILD_OIIOUTIL_ONLY:BOOL=${BUILD_OIIOUTIL_ONLY}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -330,5 +334,6 @@ help:
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo "  make OIIO_BUILD_TOOLS=0 ... Skip building the command-line tools"
 	@echo "  make OIIO_BUILD_TESTS=0 ... Skip building the unit tests"
+	@echo "  make BUILD_OIIOUTIL_ONLY=1 ... Build *only* libOpenImageIO_Util"
 	@echo ""
 
