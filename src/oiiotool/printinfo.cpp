@@ -39,6 +39,7 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 #include <OpenEXR/half.h>
+#include <OpenEXR/ImathVec.h>
 
 #include "argparse.h"
 #include "strutil.h"
@@ -331,22 +332,68 @@ print_stats (const std::string &filename,
         size_t npixels = dd->nsamples.size();
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
-        for (size_t p = 0;  p < npixels;  ++p) {
-            size_t c = size_t(dd->nsamples[p]);
-            totalsamples += c;
-            if (c > maxsamples)
-                maxsamples = c;
-            if (c < minsamples)
-                minsamples = c;
-            if (c == 0)
-                ++emptypixels;
+        size_t maxsamples_npixels = 0;
+        float mindepth = std::numeric_limits<float>::max();
+        float maxdepth = -std::numeric_limits<float>::max();
+        Imath::V3i maxsamples_pixel, minsamples_pixel;
+        Imath::V3i mindepth_pixel(-1,-1,-1), maxdepth_pixel(-1,-1,-1);
+        size_t sampoffset = 0;
+        int depthchannel = -1;
+        for (int c = 0; c < input.nchannels(); ++c)
+            if (Strutil::iequals (originalspec.channelnames[c], "Z"))
+                depthchannel = c;
+        int xend = originalspec.x + originalspec.width;
+        int yend = originalspec.y + originalspec.height;
+        int zend = originalspec.z + originalspec.depth;
+        size_t p = 0;
+        for (int z = originalspec.z; z < zend; ++z) {
+            for (int y = originalspec.y; y < yend; ++y) {
+                for (int x = originalspec.x; x < xend; ++x, ++p) {
+                    size_t c = input.deep_samples (x, y, z);
+                    totalsamples += c;
+                    if (c == maxsamples)
+                        ++maxsamples_npixels;
+                    if (c > maxsamples) {
+                        maxsamples = c;
+                        maxsamples_pixel.setValue (x, y, z);
+                        maxsamples_npixels = 1;
+                    }
+                    if (c < minsamples)
+                        minsamples = c;
+                    if (c == 0)
+                        ++emptypixels;
+                    if (depthchannel >= 0) {
+                        for (int s = 0;  s < c;  ++s) {
+                            float d = input.deep_value (x, y, z, depthchannel, s);
+                            if (d < mindepth) {
+                                mindepth = d;
+                                mindepth_pixel.setValue (x, y, z);
+                            }
+                            if (d > maxdepth) {
+                                maxdepth = d;
+                                maxdepth_pixel.setValue (x, y, z);
+                            }
+                        }
+                    }
+                    sampoffset += c;
+                }
+            }
         }
         printf ("%sMin deep samples in any pixel : %llu\n", indent, (unsigned long long)minsamples);
         printf ("%sMax deep samples in any pixel : %llu\n", indent, (unsigned long long)maxsamples);
+        printf ("%s%llu pixel%s had the max of %llu samples, including (x=%d, y=%d)\n",
+                indent, (unsigned long long)maxsamples_npixels,
+                maxsamples_npixels > 1 ? "s" : "",
+                (unsigned long long)maxsamples,
+                maxsamples_pixel.x, maxsamples_pixel.y);
         printf ("%sAverage deep samples per pixel: %.2f\n", indent, double(totalsamples)/double(npixels));
         printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
         printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
         printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
+        printf ("%sMinimum depth was %g at (%d, %d)\n", indent, mindepth,
+                mindepth_pixel.x, mindepth_pixel.y);
+        printf ("%sMaximum depth was %g at (%d, %d)\n", indent, maxdepth,
+                maxdepth_pixel.x, maxdepth_pixel.y);
     } else {
         std::vector<float> constantValues(input.spec().nchannels);
         if (isConstantColor(input, &constantValues[0])) {
