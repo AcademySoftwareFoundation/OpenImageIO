@@ -80,7 +80,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-RawInput::open(const std::string &name, ImageSpec &newspec) {
+RawInput::open (const std::string &name, ImageSpec &newspec)
+{
     // If user doesn't want to provide any config, just use an empty spec.
     ImageSpec config;
     return open(name, newspec, config);
@@ -89,7 +90,8 @@ RawInput::open(const std::string &name, ImageSpec &newspec) {
 
 
 bool
-RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
+RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
+{
     int ret;
 
     // open the image
@@ -112,7 +114,6 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
     // Output 16 bit images
     m_processor.imgdata.params.output_bps = 16;
 
-
     // Set the gamma curve to Linear
     m_spec.attribute("oiio:ColorSpace","Linear");
     m_processor.imgdata.params.gamm[0] = 1.0;
@@ -121,57 +122,47 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
     // Check to see if the user has explicitly set the output colorspace primaries
     ImageIOParameter *csp = config.find_attribute ("raw:ColorSpace", TypeDesc::STRING, false);
     if (csp) {
-        static std::string colorspaces[] = { "raw",
+        static const char *colorspaces[] = { "raw",
                                              "sRGB",
                                              "Adobe",
                                              "Wide",
                                              "ProPhoto",
-                                             "XYZ"
+                                             "XYZ", NULL
                                              };
 
         std::string cs = *(const char**) csp->data();
         size_t c;
-        for (c=0; c < sizeof(colorspaces) / sizeof(std::string); c++) {
-            if (cs == colorspaces[c]) {
+        for (c=0; c < sizeof(colorspaces) / sizeof(colorspaces[0]); c++)
+            if (cs == colorspaces[c])
                 break;
-            }
-        }
-        if (cs == colorspaces[c]) {
+        if (cs == colorspaces[c])
             m_processor.imgdata.params.output_color = c;
-        }
         else {
             error("raw:ColorSpace set to unknown value");
             return false;
         }
         // Set the attribute in the output spec
         m_spec.attribute("raw:ColorSpace", cs);
-    }
-    else {
+    } else {
         // By default we use sRGB primaries for simplicity
         m_processor.imgdata.params.output_color = 1;
         m_spec.attribute("raw:ColorSpace", "sRGB");
     }
-
 
     // Exposure adjustment
     ImageIOParameter *ex = config.find_attribute ("raw:Exposure", TypeDesc::FLOAT, false);
     
     if (ex) {
         float exposure = *(float*)ex->data();
-        
-        if (exposure < 0.25f || exposure > 8.0f)
-        {
+        if (exposure < 0.25f || exposure > 8.0f) {
             error("raw:Exposure invalid value. range 0.25f - 8.0f");
             return false;
         }
-        
         m_processor.imgdata.params.exp_correc = 1; // enable exposure correction
         m_processor.imgdata.params.exp_shift = exposure; // set exposure correction
-
         // Set the attribute in the output spec
-        m_spec.attribute("raw:Exposure", exposure);
+        m_spec.attribute ("raw:Exposure", exposure);
     }
-
 
     // Interpolation quality
     // note: LibRaw must be compiled with demosaic pack GPL2 to use
@@ -179,7 +170,7 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
     // algorithm 10. If either of these packs are not includeded, it will silently use option 3 - AHD
     ImageIOParameter *dm = config.find_attribute ("raw:Demosaic", TypeDesc::STRING, false);
     if (dm) {
-        static std::string demosaic_algs[] = { "linear",
+        static const char *demosaic_algs[] = { "linear",
                                                "VNG",
                                                "PPG",
                                                "AHD",
@@ -189,26 +180,23 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
                                                "VCD",
                                                "Mixed",
                                                "LMMSE",
-                                               "AMaZE"
+                                               "AMaZE",
                                                // Future demosaicing algorithms should go here
+                                               NULL
                                                };
 
         std::string demosaic = *(const char**) dm->data();
         size_t d;
-        for (d=0; d < sizeof(demosaic_algs) / sizeof(std::string); d++) {
-            if (demosaic == demosaic_algs[d]) {
+        for (d=0; d < sizeof(demosaic_algs) / sizeof(demosaic_algs[0]); d++)
+            if (demosaic == demosaic_algs[d])
                 break;
-            }
-        }
-        if (demosaic == demosaic_algs[d]) {
+        if (demosaic == demosaic_algs[d])
             m_processor.imgdata.params.user_qual = d;
-        }
         else if (demosaic == "none") {
             // See if we can access the Bayer patterned data for this raw file
             libraw_decoder_info_t decoder_info;
             m_processor.get_decoder_info(&decoder_info);
-            if (!(decoder_info.decoder_flags & LIBRAW_DECODER_FLATFIELD))
-            {
+            if (!(decoder_info.decoder_flags & LIBRAW_DECODER_FLATFIELD)) {
                 error("Unable to extract unbayered data from file \"%s\"", name.c_str());
                 return false;
             }
@@ -221,7 +209,8 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
             m_spec.width = m_processor.imgdata.sizes.raw_width;
             m_spec.height = m_processor.imgdata.sizes.raw_height;
             m_spec.nchannels = 1;
-            m_spec.channelnames.clear(); m_spec.channelnames.push_back("R");
+            m_spec.channelnames.clear();
+            m_spec.channelnames.push_back("R");
 
             // Also, any previously set demosaicing options are void, so remove them
             m_spec.erase_attribute("oiio:Colorspace", TypeDesc::STRING);
@@ -235,12 +224,10 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
         }
         // Set the attribute in the output spec
         m_spec.attribute("raw:Demosaic", demosaic);
-    }
-    else {
+    } else {
         m_processor.imgdata.params.user_qual = 3;
         m_spec.attribute("raw:Demosaic", "AHD");
     }
-
 
     // Metadata
     m_spec.attribute("Exif:Flash", (int) m_processor.imgdata.color.flash_used);
@@ -256,7 +243,8 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
         m_spec.attribute("Artist", m_processor.imgdata.other.artist);
     }
     struct tm * m_tm = gmtime(&m_processor.imgdata.other.timestamp);
-    char datetime[20]; strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", m_tm);
+    char datetime[20];
+    strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", m_tm);
     m_spec.attribute("DateTime", datetime);
 
     // Copy the spec to return to the user
@@ -265,10 +253,11 @@ RawInput::open(const std::string &name, ImageSpec &newspec, ImageSpec &config) {
 }
 
 
+
 bool
 RawInput::close()
 {
-    if(m_image) {
+    if (m_image) {
         LibRaw::dcraw_clear_mem(m_image);
         m_image = NULL;
     }
@@ -276,30 +265,29 @@ RawInput::close()
 }
 
 
+
 bool
 RawInput::process()
 {
     if (!m_image) {
         int ret = m_processor.dcraw_process();
-        
         if (ret != LIBRAW_SUCCESS) {
             error("Processing image failed, %s", libraw_strerror(ret));
             return false;
         }
 
         m_image = m_processor.dcraw_make_mem_image(&ret);
-
         if (!m_image) {
             error("LibRaw failed to create in memory image");
             return false;
         }
 
-        if(m_image->type != LIBRAW_IMAGE_BITMAP) {
+        if (m_image->type != LIBRAW_IMAGE_BITMAP) {
             error("LibRaw did not return expected image type");
             return false;
         }
 
-        if(m_image->colors != 3) {
+        if (m_image->colors != 3) {
             error("LibRaw did not return 3 channel image");
             return false;
         }
@@ -309,10 +297,11 @@ RawInput::process()
 }
 
 
+
 bool
 RawInput::read_native_scanline (int y, int z, void *data)
 {
-    if ( y < 0 || y >= m_spec.height) // out of range scanline
+    if (y < 0 || y >= m_spec.height) // out of range scanline
         return false;
 
     if (! m_process) {

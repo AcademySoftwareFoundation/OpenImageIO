@@ -280,7 +280,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (pnm);
     DECLAREPLUG (psd);
     DECLAREPLUG (ptex);
-#ifdef USE_RAW
+#ifdef USE_LIBRAW
     DECLAREPLUG (raw);
 #endif
     DECLAREPLUG (rla);

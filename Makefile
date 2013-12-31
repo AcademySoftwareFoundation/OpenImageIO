@@ -128,6 +128,14 @@ ifneq (${USE_OPENSSL},)
 MY_CMAKE_FLAGS += -DUSE_OPENSSL:BOOL=${USE_OPENSSL}
 endif
 
+ifneq (${USE_LIBRAW},)
+MY_CMAKE_FLAGS += -DUSE_LIBRAW:BOOL=${USE_LIBRAW}
+endif
+
+ifneq (${LIBRAW_PATH},)
+MY_CMAKE_FLAGS += -DLIBRAW_PATH:STRING=${LIBRAW_PATH}
+endif
+
 ifneq (${USE_EXTERNAL_PUGIXML},)
 MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
 endif
@@ -321,12 +329,14 @@ help:
 	@echo "  make USE_GIF=0 ...          Don't build the GIF plugin"
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
 	@echo "  make USE_OPENSSL=0 ...      Don't use OpenSSL even if found"
+	@echo "  make USE_LIBRAW=0 ...       Don't use LibRaw, even if found"
 	@echo "  make USE_EXTERNAL_PUGIXML=1 Use the system PugiXML, not the one in OIIO"
 	@echo "  make FIELD3D_HOME=path ...  Custom Field3D installation"
 	@echo "  make GIF_DIR=path ...       Custom GIFLIB installation"
 	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
 	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make OCIO_HOME=path ...     Custom OpenColorIO installation"
+	@echo "  make LIBRAW_PATH=path ...   Custom LibRaw installation"
 	@echo "  make BOOST_HOME=path ...    Custom Boost installation"
 	@echo "  make NOTHREADS=1 ...        Build with threading support turned off"
 	@echo "  make OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"
