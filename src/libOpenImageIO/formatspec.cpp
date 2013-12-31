@@ -699,9 +699,13 @@ explain_apertureapex (const ImageIOParameter &p, const void *extradata)
 static std::string
 explain_ExifFlash (const ImageIOParameter &p, const void *extradata)
 {
-    if (p.type() == TypeDesc::UINT) {
-        unsigned int val = *(unsigned int *)p.data();
-        return Strutil::format ("%s%s%s%s%s%s%s%s",
+    int val = 0;
+    if (p.type() == TypeDesc::INT)
+        val = *(int *)p.data();
+    else if (p.type() == TypeDesc::UINT)
+        val = *(unsigned int *)p.data();
+    else return std::string();
+    return Strutil::format ("%s%s%s%s%s%s%s%s",
                                 (val&1) ? "flash fired" : "no flash",
                                 (val&6) == 4 ? ", no strobe return" : "",
                                 (val&6) == 6 ? ", strobe return" : "",
@@ -710,8 +714,6 @@ explain_ExifFlash (const ImageIOParameter &p, const void *extradata)
                                 (val&24) == 24 ? ", auto flash" : "",
                                 (val&32) ? ", no flash available" : "",
                                 (val&64) ? ", red-eye reduction" : "");
-    }
-    return std::string();
 }
 
 static LabelTable ExifExposureProgram_table[] = {
