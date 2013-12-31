@@ -230,22 +230,44 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
     }
 
     // Metadata
-    m_spec.attribute("Exif:Flash", (int) m_processor.imgdata.color.flash_used);
-    m_spec.attribute("Exif:ISOSpeedRatings", (int) m_processor.imgdata.other.iso_speed);
-    m_spec.attribute("Exif:ShutterSpeedValue", m_processor.imgdata.other.shutter);
-    m_spec.attribute("Exif:ApertureValue", m_processor.imgdata.other.aperture);
-    m_spec.attribute("Exif:FocalLength", m_processor.imgdata.other.focal_len);
-    //TODO work out GPS
-    if (std::string(m_processor.imgdata.other.desc) != "") {
-        m_spec.attribute("ImageDescription", m_processor.imgdata.other.desc);
-    }
-    if (std::string(m_processor.imgdata.other.artist) != "") {
-        m_spec.attribute("Artist", m_processor.imgdata.other.artist);
-    }
-    struct tm * m_tm = gmtime(&m_processor.imgdata.other.timestamp);
+
+    const libraw_image_sizes_t &sizes (m_processor.imgdata.sizes);
+    m_spec.attribute ("PixelAspectRatio", (float)sizes.pixel_aspect);
+    // FIXME: sizes. top_margin, left_margin, raw_pitch, flip, mask?
+
+    const libraw_iparams_t &idata (m_processor.imgdata.idata);
+    if (idata.make[0])
+        m_spec.attribute ("Make", idata.make);
+    if (idata.model[0])
+        m_spec.attribute ("Model", idata.model);
+    // FIXME: idata. dng_version, is_foveon, colors, filters, cdesc
+
+    const libraw_colordata_t &color (m_processor.imgdata.color);
+    m_spec.attribute("Exif:Flash", (int) color.flash_used);
+    if (color.model2[0])
+        m_spec.attribute ("Software", color.model2);
+
+    // FIXME -- all sorts of things in this struct
+
+    const libraw_imgother_t &other (m_processor.imgdata.other);
+    m_spec.attribute ("Exif:ISOSpeedRatings", (int) other.iso_speed);
+    m_spec.attribute ("ExposureTime", other.shutter);
+    m_spec.attribute ("Exif:ShutterSpeedValue", -log2f(other.shutter));
+    m_spec.attribute ("FNumber", other.aperture);
+    m_spec.attribute ("Exif:ApertureValue", 2.0f * log2f(other.aperture));
+    m_spec.attribute ("Exif:FocalLength", other.focal_len);
+    struct tm * m_tm = localtime(&m_processor.imgdata.other.timestamp);
     char datetime[20];
-    strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", m_tm);
-    m_spec.attribute("DateTime", datetime);
+    strftime (datetime, 20, "%Y-%m-%d %H:%M:%S", m_tm);
+    m_spec.attribute ("DateTime", datetime);
+    // FIXME: other.shot_order
+    // FIXME: other.gpsdata
+    if (other.desc[0])
+        m_spec.attribute ("ImageDescription", other.desc);
+    if (other.artist[0])
+        m_spec.attribute ("Artist", other.artist);
+
+    // FIXME -- thumbnail possibly in m_processor.imgdata.thumbnail
 
     // Copy the spec to return to the user
     newspec = m_spec;
