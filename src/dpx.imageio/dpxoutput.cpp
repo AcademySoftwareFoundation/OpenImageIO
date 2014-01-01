@@ -114,9 +114,9 @@ private:
     ///
     dpx::Characteristic get_characteristic_from_string (const std::string &str);
 
-    /// Helper function - retrieve libdpx descriptor for string
-    ///
-    dpx::Descriptor get_descriptor_from_string (const std::string &str);
+    /// Helper function - retrieve libdpx descriptor given nchannels and
+    /// the channel names.
+    dpx::Descriptor get_image_descriptor ();
 
     /// Helper function - set keycode values from int array
     ///
@@ -424,8 +424,7 @@ DPXOutput::prep_subimage (int s, bool allocate)
     m_spec = m_subimage_specs[s];  // stash the spec
 
     // determine descriptor
-    m_desc = get_descriptor_from_string
-        (m_spec.get_string_attribute ("dpx:ImageDescriptor", ""));
+    m_desc = get_image_descriptor();
 
     // transfer function
     std::string colorspace = m_spec.get_string_attribute ("oiio:ColorSpace", "");
@@ -609,62 +608,36 @@ DPXOutput::get_characteristic_from_string (const std::string &str)
 
 
 dpx::Descriptor
-DPXOutput::get_descriptor_from_string (const std::string &str)
+DPXOutput::get_image_descriptor ()
 {
-    if (str.empty ()) {
-        // try to guess based on the image spec
-        // FIXME: make this more robust (that is, if someone complains)
-        switch (m_spec.nchannels) {
-            case 1:
-                return dpx::kLuma;
-            case 3:
-                return dpx::kRGB;
-            case 4:
-                return dpx::kRGBA;
-            default:
-                if (m_spec.nchannels <= 8)
-                    return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
-                        + m_spec.nchannels - 2);
-                return dpx::kUndefinedDescriptor;
+    switch (m_spec.nchannels) {
+    case 1:
+        {
+        std::string name = m_spec.channelnames.size() ? m_spec.channelnames[0] : "";
+        if (m_spec.z_channel == 0 || name == "Z")
+            return dpx::kDepth;
+        else if (m_spec.alpha_channel == 0 || name == "A")
+            return dpx::kAlpha;
+        else if (name == "R")
+            return dpx::kRed;
+        else if (name == "B")
+            return dpx::kBlue;
+        else if (name == "G")
+            return dpx::kGreen;
+        else
+            return dpx::kLuma;
         }
-    } else if (Strutil::iequals (str, "User defined")) {
-        if (m_spec.nchannels >= 2 && m_spec.nchannels <= 8)
-            return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
-                + m_spec.nchannels - 2);
-        return dpx::kUserDefinedDescriptor;
-    } else if (Strutil::iequals (str, "Red"))
-        return dpx::kRed;
-    else if (Strutil::iequals (str, "Green"))
-        return dpx::kGreen;
-    else if (Strutil::iequals (str, "Blue"))
-        return dpx::kBlue;
-    else if (Strutil::iequals (str, "Alpha"))
-        return dpx::kAlpha;
-    else if (Strutil::iequals (str, "Luma"))
-        return dpx::kLuma;
-    else if (Strutil::iequals (str, "Color difference"))
-        return dpx::kColorDifference;
-    else if (Strutil::iequals (str, "Depth"))
-        return dpx::kDepth;
-    else if (Strutil::iequals (str, "Composite video"))
-        return dpx::kCompositeVideo;
-    else if (Strutil::iequals (str, "RGB"))
+    case 3:
         return dpx::kRGB;
-    else if (Strutil::iequals (str, "RGBA"))
+    case 4:
         return dpx::kRGBA;
-    else if (Strutil::iequals (str, "ABGR"))
-        return dpx::kABGR;
-    else if (Strutil::iequals (str, "CbYCrY"))
-        return dpx::kCbYCrY;
-    else if (Strutil::iequals (str, "CbYACrYA"))
-        return dpx::kCbYACrYA;
-    else if (Strutil::iequals (str, "CbYCr"))
-        return dpx::kCbYCr;
-    else if (Strutil::iequals (str, "CbYCrA"))
-        return dpx::kCbYCrA;
-    //else if (Strutil::iequals (str, "Undefined"))
+    default:
+        if (m_spec.nchannels <= 8)
+            return (dpx::Descriptor)((int)dpx::kUserDefined2Comp + m_spec.nchannels - 2);
         return dpx::kUndefinedDescriptor;
+    }
 }
+
 
 
 void
