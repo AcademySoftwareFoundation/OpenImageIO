@@ -232,6 +232,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // some metadata
+    std::string software = m_spec.get_string_attribute ("Software", "");
     std::string project = m_spec.get_string_attribute ("DocumentName", "");
     std::string copyright = m_spec.get_string_attribute ("Copyright", "");
     std::string datestr = m_spec.get_string_attribute ("DateTime", "");
@@ -251,12 +252,12 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     std::string endian = m_spec.get_string_attribute ("oiio:Endian", littleendian() ? "little" : "big");
     m_wantSwap = (littleendian() != Strutil::iequals (endian, "little"));
 
-    m_dpx.SetFileInfo (name.c_str (),                       // filename
-        datestr.c_str (),                                   // cr. date
-        OIIO_INTRO_STRING,                                  // creator
-        project.empty () ? NULL : project.c_str (),         // project
-        copyright.empty () ? NULL : copyright.c_str (),     // copyright
-        m_spec.get_int_attribute ("dpx:EncryptKey", ~0),    // encryption key
+    m_dpx.SetFileInfo (name.c_str (),                               // filename
+        datestr.c_str (),                                           // cr. date
+        software.empty () ? OIIO_INTRO_STRING : software.c_str (),  // creator
+        project.empty () ? NULL : project.c_str (),                 // project
+        copyright.empty () ? NULL : copyright.c_str (),             // copyright
+        m_spec.get_int_attribute ("dpx:EncryptKey", ~0),            // encryption key
         m_wantSwap);
 
     // image info
@@ -346,8 +347,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
 
     static int DpxOrientations[] = { 0,
         dpx::kLeftToRightTopToBottom, dpx::kRightToLeftTopToBottom,
-        dpx::kLeftToRightBottomToTop, dpx::kRightToLeftBottomToTop, 
-        dpx::kTopToBottomLeftToRight, dpx::kTopToBottomRightToLeft, 
+        dpx::kLeftToRightBottomToTop, dpx::kRightToLeftBottomToTop,
+        dpx::kTopToBottomLeftToRight, dpx::kTopToBottomRightToLeft,
         dpx::kBottomToTopLeftToRight, dpx::kBottomToTopRightToLeft };
     int orient = m_spec.get_int_attribute ("Orientation", 0);
     orient = DpxOrientations[clamp (orient, 0, 8)];
@@ -391,7 +392,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         srcdate.replace (19, -1, "Z");
         m_dpx.header.SetSourceTimeDate (srcdate.c_str ());
     }
-    
+
     // commit!
     if (!m_dpx.WriteHeader ()) {
         error ("Failed to write DPX header");
@@ -437,7 +438,7 @@ DPXOutput::prep_subimage (int s, bool allocate)
         std::string dpxtransfer = m_spec.get_string_attribute ("dpx:Transfer", "");
         m_transfer = get_characteristic_from_string (dpxtransfer);
     }
-    
+
     // colorimetric
     m_cmetr = get_characteristic_from_string
         (m_spec.get_string_attribute ("dpx:Colorimetric", "User defined"));
@@ -487,7 +488,7 @@ DPXOutput::prep_subimage (int s, bool allocate)
 
     // check if the client is giving us raw data to write
     m_wantRaw = m_spec.get_int_attribute ("dpx:RawData", 0) != 0;
-    
+
     // see if we'll need to convert or not
     if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
         // shortcut for RGB(A) that gets the job done
@@ -538,7 +539,7 @@ DPXOutput::close ()
         ok &= write_buffer ();
         m_dpx.Finish ();
     }
-        
+
     init();  // Reset to initial state
     return ok;
 }
