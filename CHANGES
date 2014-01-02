@@ -1,5 +1,24 @@
 Changes:
 
+Release 1.3.10 (2 Jan 2013 -- compared to 1.3.9)
+------------------------------------------------
+* OpenEXR fix: multi-part EXR (2.0) didn't write the required "name"
+  attribute for each part.
+* iconvert: properly handle multi-image files for formats that can't
+  append subimages.
+* iv info window should print native file info, not translated
+  ImageBuf/ImageCache info.
+* Improved strutil_test now much more comprehensively unit tests
+  Strutil.
+* Strutil::split() fixes bug when maxsplit is not the default value.
+* Fix ImageCache::get_pixels() for the chbegin != 0 case, when cache
+  and output buffer types were not identical.
+* DPX bug fix -- inappropriate use of "dpx_ImageDescriptor" could make
+  invalid DPX files (especially when reading metadata from one DPX
+  file, changing the number of channels, then writing out again as a
+  DPX file).
+
+
 
 Release 1.3 (2 Dec 2013 -- compared to 1.2.x)
 ----------------------------------------------
