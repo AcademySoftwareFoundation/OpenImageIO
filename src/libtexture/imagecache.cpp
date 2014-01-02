@@ -2326,7 +2326,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     // layout.  This may or may not be the same as the strides passed by
     // the caller.
     TypeDesc cachetype = file->datatype(subimage);
-    stride_t cache_stride = cachetype.size() * spec.nchannels;
+    const size_t cachesize = cachetype.size();
+    const stride_t cache_stride = cachesize * spec.nchannels;
     size_t formatsize = format.size();
     stride_t formatpixelsize = nchans * formatsize;
     bool xcontig = (formatpixelsize == xstride && nchans == spec.nchannels);
@@ -2400,9 +2401,9 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 if (! data) {
                     ImageCacheTileRef &tile (thread_info->tile);
                     ASSERT (tile);
-                    data = (const char *)tile->data (x, y, z)
-                                        + chbegin*formatsize;
+                    data = (const char *)tile->data (x, y, z);
                     ASSERT (data);
+                    data += chbegin*cachesize;
                 }
                 if (xcontig) {
                     // Special case for a contiguous span within one tile
