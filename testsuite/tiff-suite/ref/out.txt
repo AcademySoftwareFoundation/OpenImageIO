@@ -108,7 +108,7 @@ Reading ../../../../../libtiffpic/pc260001.tif
     Exif:MaxApertureValue: 3 (f/2.82843)
     Exif:MeteringMode: 5 (pattern)
     Exif:LightSource: 0 (unknown)
-    Exif:Flash: 89
+    Exif:Flash: 89 (flash fired, auto flash, red-eye reduction)
     Exif:FocalLength: 17.8 (17.8 mm)
     Exif:ColorSpace: 1
     Exif:CustomRendered: 0 (no)
