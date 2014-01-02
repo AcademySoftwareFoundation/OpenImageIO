@@ -190,6 +190,7 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
 
     OIIO_DISPATCH_TYPES ("flatten", flatten_, dst.spec().format,
                          dst, src, roi, nthreads);
+    return false;
 }
 
 
