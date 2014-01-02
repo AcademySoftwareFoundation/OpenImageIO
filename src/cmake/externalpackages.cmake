@@ -332,6 +332,44 @@ endif()
 # end OpenJpeg setup_path
 ###########################################################################
 
+
+###########################################################################
+# LibRaw
+if (USE_LIBRAW)
+    message (STATUS "Looking for LibRaw with ${LIBRAW_PATH}")
+    if (LIBRAW_PATH)
+        # Customized path requested, don't use find_package
+        FIND_PATH(LibRaw_INCLUDE_DIR libraw.h
+                  PATHS "${LIBRAW_PATH}/include"
+                  PATH_SUFFIXES libraw
+                  NO_DEFAULT_PATH
+                 )
+        FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
+                     PATHS "${LIBRAW_PATH}/lib"
+                     NO_DEFAULT_PATH
+                    )
+    else ()
+    	find_package (LibRaw)
+    endif ()
+	if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
+		set (LIBRAW_FOUND TRUE)
+		include_directories (${LibRaw_INCLUDE_DIR})
+        if (VERBOSE)
+            message (STATUS "Found LibRaw, include ${LibRaw_INCLUDE_DIR}")
+        endif ()
+	else ()
+		set (LIBRAW_FOUND FALSE)
+        message (STATUS "LibRaw not found!")
+	endif()
+else ()
+    message (STATUS "Not using LibRaw")
+endif()
+
+# end LibRaw setup
+###########################################################################
+
+
+###########################################################################
 # WebP setup
 
 if (VERBOSE)
