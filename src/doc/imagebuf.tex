@@ -220,7 +220,6 @@ progress callback will never be called, since no actual file I/O
 will occur at this time (\ImageCache will load tiles or scanlines
 on demand, as individual pixel values are needed).
 
-\NEW % 1.3
 Note that {\cf read()} is not strictly necessary. If you are happy with
 the filename, subimage and MIP level specified by the \ImageBuf constructor
 (or the last call to {\cf reset()}), and you want the storage to be backed
@@ -242,7 +241,6 @@ helpful if you have an \ImageBuf and you need to know information about
 the image, but don't want to do a full read yet, and maybe won't need
 to do the full read, depending on what's found in the spec.
 
-\NEW % 1.3
 Note that {\cf init_spec()} is not strictly necessary. If you are happy with
 the filename, subimage and MIP level specified by the \ImageBuf constructor
 (or the last call to {\cf reset()}), then the spec will be automatically
@@ -269,7 +267,6 @@ resolution or data type.  Optionally, it names the \ImageBuf.
   \bigspc               const std::string \&fileformat = std::string(), \\
   \bigspc               ProgressCallback progress_callback=NULL, \\
   \bigspc               void *progress_callback_data=NULL) const}
-\NEW % 1.3
 Write the image to the named file in the named format
 (an empty format means to infer the type from the filename
 extension).  Return {\cf true} if all went ok, {\cf false} if there were
@@ -292,7 +289,6 @@ multi-image file).
 
 \apiitem{void set_write_format (TypeDesc format=TypeDesc::UNKNOWN) \\
 set set_write_tiles (int width=0, int height=0, int depth=0)}
-\NEW % 1.3
 These methods allow the caller to override the data format and tile
 sizing when using the {\cf write()} function (the variety that does
 not take an open {\cf ImageOutput*}).
@@ -307,7 +303,6 @@ yet initialized.
 \apiend
 
 \apiitem{IBStorage {\ce storage} () const}
-\NEW  % 1.3
 Returns an enumerated type describing the type of storage currently employed
 by the \ImageBuf: {\cf UNINITIALIZED} (no storage), {\cf LOCALBUFFER} (the
 \ImageBuf has allocated and owns the pixel memory), {\cf APPBUFFER} (the

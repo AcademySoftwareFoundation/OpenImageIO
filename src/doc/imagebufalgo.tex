@@ -281,7 +281,6 @@ region.
 \apiitem{bool {\ce flatten} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
-\NEW   % 1.3
 Copy pixels from \emph{deep} image {\cf src} into non-deep {\cf dst},
 compositing the depth samples within each pixel to yield a single ``flat''
 value per pixel. If {\cf src} is not deep, it just copies the pixels without
@@ -584,7 +583,7 @@ float (applied to all channels) or a per-channel float array.
 \begin{code}
     // Gamma-correct by 2.2 channels 0-2 of the image
     ROI roi = get_roi (A.spec());
-    roi.chbegin = 0;  roi.chend = 2;
+    roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::mul (A, A, 1.0f/2.2f, roi);
 \end{code}
 \apiend

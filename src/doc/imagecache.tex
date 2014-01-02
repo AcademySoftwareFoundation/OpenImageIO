@@ -627,7 +627,6 @@ modification times have been changed since they were first opened.
 
 \subsection{Seeding the cache}
 \label{sec:imagecache:api:seeding}
-\NEW  % 1.3
 \apiitem{bool {\ce add_file} (ustring filename, ImageInput::Creator creator)}
 This creates a file entry in the cache that, instead of reading
 from disk, uses a custom \ImageInput to generate the image (note
@@ -650,7 +649,6 @@ that's just a stub that does as little as possible).
 \bigspc        int x, int y, int z, TypeDesc format, const void *buffer,\\
 \bigspc        stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
 \bigspc        stride_t zstride=AutoStride}
-\NEW  % 1.3
 Preemptively add a tile corresponding to the named image, at the
 given subimage and MIP level.  The tile added is the one whose
 corner is (x,y,z), and buffer points to the pixels (in the given
