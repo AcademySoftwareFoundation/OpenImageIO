@@ -583,8 +583,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         else if (type == "stringvector" &&
             (svattr = header->findTypedAttribute<Imf::StringVectorAttribute> (name))) {
             std::vector<std::string> strvec = svattr->value();
-            TypeDesc sv (TypeDesc::STRING, strvec.size());
-            spec.attribute(oname, sv, &strvec[0]);
+            std::vector<ustring> ustrvec (strvec.size());
+            for (size_t i = 0, e = strvec.size();  i < e;  ++i)
+                ustrvec[i] = strvec[i];
+            TypeDesc sv (TypeDesc::STRING, ustrvec.size());
+            spec.attribute(oname, sv, &ustrvec[0]);
         }
         else if (type == "box2i" &&
                  (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute> (name))) {
