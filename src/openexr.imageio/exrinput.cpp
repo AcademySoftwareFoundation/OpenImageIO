@@ -634,9 +634,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         }
     }
 
+#ifdef USE_OPENEXR_VERSION2
     // EXR "name" also gets passed along as "oiio:subimagename".
     if (header->hasName())
         spec.attribute ("oiio:subimagename", header->name());
+#endif
 
     initialized = true;
 }
