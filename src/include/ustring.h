@@ -195,8 +195,11 @@ public:
 
     /// Construct a ustring from an indexed substring of a std::string.
     ///
-    ustring (const std::string &str, size_type pos, size_type n=npos)
-        : m_chars (make_unique(std::string(str, pos, n).c_str())) { }
+    ustring (const std::string &str, size_type pos, size_type n=npos) {
+        string_ref sref(str);
+        sref = sref.substr (pos, n);
+        m_chars = make_unique(sref);
+    }
 
     /// Copy construct a ustring from another ustring.
     ///
@@ -204,8 +207,11 @@ public:
 
     /// Construct a ustring from an indexed substring of a ustring.
     ///
-    ustring (const ustring &str, size_type pos, size_type n=npos)
-        : m_chars (make_unique(std::string(str.c_str(),pos,n).c_str())) { }
+    ustring (const ustring &str, size_type pos, size_type n=npos) {
+        string_ref sref(str);
+        sref = sref.substr (pos, n);
+        m_chars = make_unique(sref);
+    }
 
     /// ustring destructor.
     ///
