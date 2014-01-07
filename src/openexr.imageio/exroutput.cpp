@@ -675,12 +675,14 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
                        spec.extra_attribs[p].type(),
                        spec.extra_attribs[p].data(), header);
 
+#ifdef USE_OPENEXR_VERSION2
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
     if (m_nsubimages > 1 && ! header.hasName()) {
         std::string n = Strutil::format ("subimage%02d", subimage);
         header.insert ("name", Imf::StringAttribute (n));
     }
+#endif
 
     return true;
 }
