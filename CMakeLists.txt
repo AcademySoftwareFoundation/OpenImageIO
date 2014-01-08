@@ -83,7 +83,7 @@ endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
     # suppress a warning that Boost::Python hits in g++ 4.8
-    add_definitions ("-Werror=unused-local-typedefs")
+    add_definitions ("-Wno-error=unused-local-typedefs")
 endif ()
 
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
