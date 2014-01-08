@@ -1,5 +1,15 @@
 Changes:
 
+Release 1.3.11 (8 Jan 2013 -- compared to 1.3.10)
+-------------------------------------------------
+* DPX output: honor the "Software" metadata attribute passed in.
+* OpenEXR: fix crashing bug when reading stringvector attributes in the
+  file.
+* Fix build breaks when building against OpenEXR 1.x.
+* Fix warnings with Boost Python + gcc 4.8.
+
+
+
 Release 1.3.10 (2 Jan 2013 -- compared to 1.3.9)
 ------------------------------------------------
 * OpenEXR fix: multi-part EXR (2.0) didn't write the required "name"
