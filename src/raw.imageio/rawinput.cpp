@@ -55,6 +55,8 @@ private:
     bool m_process;
     LibRaw m_processor;
     libraw_processed_image_t *m_image;
+
+    void read_tiff_metadata (const std::string &filename);
 };
 
 
@@ -269,9 +271,39 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
 
     // FIXME -- thumbnail possibly in m_processor.imgdata.thumbnail
 
+    read_tiff_metadata (name);
+
     // Copy the spec to return to the user
     newspec = m_spec;
     return true;
+}
+
+
+
+void
+RawInput::read_tiff_metadata (const std::string &filename)
+{
+    // Many of these raw formats look just like TIFF files, and we can use
+    // that to extract a bunch of extra Exif metadata and thumbnail.
+    ImageInput *in = ImageInput::create ("tiff");
+    if (! in) {
+        (void) OIIO::geterror();  // eat the error
+        return;
+    }
+    ImageSpec newspec;
+    bool ok = in->open (filename, newspec);
+    if (ok) {
+        // Transfer "Exif:" metadata to the raw spec.
+        for (ParamValueList::const_iterator p = newspec.extra_attribs.begin();
+             p != newspec.extra_attribs.end();  ++p) {
+            if (Strutil::istarts_with (p->name().c_str(), "Exif:")) {
+                m_spec.attribute (p->name().c_str(), p->type(), p->data());
+            }
+        }
+    }
+
+    in->close ();
+    delete in;
 }
 
 
