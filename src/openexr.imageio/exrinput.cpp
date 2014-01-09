@@ -236,7 +236,7 @@ openexr_input_imageio_create ()
 // OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
 
 OIIO_EXPORT const char * openexr_input_extensions[] = {
-    "exr", NULL
+    "exr", "sxr", "mxr", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END

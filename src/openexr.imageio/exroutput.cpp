@@ -230,7 +230,7 @@ openexr_output_imageio_create ()
 OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char * openexr_output_extensions[] = {
-    "exr", NULL
+    "exr", "sxr", "mxr", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END
