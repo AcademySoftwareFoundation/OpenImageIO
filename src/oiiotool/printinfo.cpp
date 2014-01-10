@@ -335,7 +335,7 @@ print_stats (const std::string &filename,
         size_t maxsamples_npixels = 0;
         float mindepth = std::numeric_limits<float>::max();
         float maxdepth = -std::numeric_limits<float>::max();
-        Imath::V3i maxsamples_pixel, minsamples_pixel;
+        Imath::V3i maxsamples_pixel(-1,-1,-1), minsamples_pixel(-1,-1,-1);
         Imath::V3i mindepth_pixel(-1,-1,-1), maxdepth_pixel(-1,-1,-1);
         size_t sampoffset = 0;
         int depthchannel = -1;
@@ -363,7 +363,7 @@ print_stats (const std::string &filename,
                     if (c == 0)
                         ++emptypixels;
                     if (depthchannel >= 0) {
-                        for (int s = 0;  s < c;  ++s) {
+                        for (unsigned int s = 0;  s < c;  ++s) {
                             float d = input.deep_value (x, y, z, depthchannel, s);
                             if (d < mindepth) {
                                 mindepth = d;
