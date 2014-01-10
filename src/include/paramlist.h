@@ -82,11 +82,7 @@ public:
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (_name, _type, _nvalues, _value, _copy);
     }
-    ParamValue (const std::string &_name, TypeDesc _type,
-                int _nvalues, const void *_value, bool _copy=true) {
-        init_noclear (ustring(_name.c_str()), _type, _nvalues, _value, _copy);
-    }
-    ParamValue (const char *_name, TypeDesc _type,
+    ParamValue (string_ref _name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
     }
@@ -99,7 +95,7 @@ public:
         clear_value ();
         init_noclear (_name, _type, _nvalues, _value, _copy);
     }
-    void init (std::string _name, TypeDesc _type,
+    void init (string_ref _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _value, _copy);
     }
@@ -108,7 +104,11 @@ public:
         return *this;
     }
 
+    // FIXME -- some time in the future (after more cleanup), we should make
+    // name() return a string_ref, and use uname() for the rare time when
+    // the caller truly requires the ustring.
     const ustring &name () const { return m_name; }
+    const ustring &uname () const { return m_name; }
     TypeDesc type () const { return m_type; }
     int nvalues () const { return m_nvalues; }
     const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
