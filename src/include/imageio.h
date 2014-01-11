@@ -265,72 +265,66 @@ public:
 
     /// Add an optional attribute to the extra attribute list
     ///
-    void attribute (const std::string &name, TypeDesc type, const void *value);
+    void attribute (string_ref name, TypeDesc type, const void *value);
 
     /// Add an optional attribute to the extra attribute list.
     ///
-    void attribute (const std::string &name, TypeDesc type, const std::string &value);
+    void attribute (string_ref name, TypeDesc type, const std::string &value);
 
     /// Add an unsigned int attribute
     ///
-    void attribute (const std::string &name, unsigned int value) {
+    void attribute (string_ref name, unsigned int value) {
         attribute (name, TypeDesc::UINT, &value);
     }
 
     /// Add an int attribute
     ///
-    void attribute (const std::string &name, int value) {
+    void attribute (string_ref name, int value) {
         attribute (name, TypeDesc::INT, &value);
     }
 
     /// Add a float attribute
     ///
-    void attribute (const std::string &name, float value) {
+    void attribute (string_ref name, float value) {
         attribute (name, TypeDesc::FLOAT, &value);
     }
 
     /// Add a string attribute
     ///
-    void attribute (const std::string &name, const char *value) {
-        attribute (name, TypeDesc::STRING, &value);
-    }
-
-    /// Add a string attribute
-    ///
-    void attribute (const std::string &name, const std::string &value) {
-        attribute (name, value.c_str());
+    void attribute (string_ref name, string_ref value) {
+        const char *s = value.c_str();
+        attribute (name, TypeDesc::STRING, &s);
     }
 
     /// Remove the specified attribute from the list of extra
     /// attributes. If not found, do nothing.
-    void erase_attribute (const std::string &name,
+    void erase_attribute (string_ref name,
                           TypeDesc searchtype=TypeDesc::UNKNOWN,
                           bool casesensitive=false);
 
     /// Search for a attribute of the given name in the list of extra
     /// attributes.
-    ImageIOParameter * find_attribute (const std::string &name,
+    ImageIOParameter * find_attribute (string_ref name,
                                        TypeDesc searchtype=TypeDesc::UNKNOWN,
                                        bool casesensitive=false);
-    const ImageIOParameter *find_attribute (const std::string &name,
+    const ImageIOParameter *find_attribute (string_ref name,
                                             TypeDesc searchtype=TypeDesc::UNKNOWN,
                                             bool casesensitive=false) const;
 
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte.
-    int get_int_attribute (const std::string &name, int defaultval=0) const;
+    int get_int_attribute (string_ref name, int defaultval=0) const;
 
     /// Simple way to get a float attribute, with default provided.
     /// Automatically will return a float even if the data is really
     /// double or half.
-    float get_float_attribute (const std::string &name,
-                               float defaultval=0) const;
+    float get_float_attribute (string_ref name, float defaultval=0) const;
 
     /// Simple way to get a string attribute, with default provided.
     ///
-    std::string get_string_attribute (const std::string &name,
-                          const std::string &defaultval = std::string()) const;
+    string_ref get_string_attribute (string_ref name,
+                           string_ref defaultval = string_ref()) const;
 
     /// For a given parameter (in this ImageSpec's extra_attribs),
     /// format the value nicely as a string.  If 'human' is true, use
@@ -1147,19 +1141,15 @@ OIIO_API std::string geterror ();
 ///             are presumed to be used for that format.  Semicolons
 ///             separate the lists for formats.  For example,
 ///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
-OIIO_API bool attribute (const std::string &name, TypeDesc type,
-                          const void *val);
+OIIO_API bool attribute (string_ref name, TypeDesc type, const void *val);
 // Shortcuts for common types
-inline bool attribute (const std::string &name, int val) {
+inline bool attribute (string_ref name, int val) {
     return attribute (name, TypeDesc::TypeInt, &val);
 }
-inline bool attribute (const std::string &name, float val) {
+inline bool attribute (string_ref name, float val) {
     return attribute (name, TypeDesc::TypeFloat, &val);
 }
-inline bool attribute (const std::string &name, const char *val) {
-    return attribute (name, TypeDesc::TypeString, &val);
-}
-inline bool attribute (const std::string &name, const std::string &val) {
+inline bool attribute (string_ref name, string_ref val) {
     const char *s = val.c_str();
     return attribute (name, TypeDesc::TypeString, &s);
 }
@@ -1169,23 +1159,23 @@ inline bool attribute (const std::string &name, const std::string &val) {
 /// otherwise return false and do not modify the contents of *val.  It
 /// is up to the caller to ensure that val points to the right kind and
 /// size of storage for the given type.
-OIIO_API bool getattribute (const std::string &name, TypeDesc type,
+OIIO_API bool getattribute (string_ref name, TypeDesc type,
                              void *val);
 // Shortcuts for common types
-inline bool getattribute (const std::string &name, int &val) {
+inline bool getattribute (string_ref name, int &val) {
     return getattribute (name, TypeDesc::TypeInt, &val);
 }
-inline bool getattribute (const std::string &name, float &val) {
+inline bool getattribute (string_ref name, float &val) {
     return getattribute (name, TypeDesc::TypeFloat, &val);
 }
-inline bool getattribute (const std::string &name, char **val) {
+inline bool getattribute (string_ref name, char **val) {
     return getattribute (name, TypeDesc::TypeString, val);
 }
-inline bool getattribute (const std::string &name, std::string &val) {
-    const char *s = NULL;
+inline bool getattribute (string_ref name, std::string &val) {
+    ustring s;
     bool ok = getattribute (name, TypeDesc::TypeString, &s);
     if (ok)
-        val = s ? s : "";
+        val = s.string();
     return ok;
 }
 

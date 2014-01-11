@@ -289,7 +289,7 @@ ImageSpec::image_bytes (bool native) const
 
 
 void
-ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
+ImageSpec::attribute (string_ref name, TypeDesc type, const void *value)
 {
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
@@ -325,7 +325,7 @@ parse_elements (const std::string &name, TypeDesc type, const std::string &type_
 
 
 void
-ImageSpec::attribute (const std::string &name, TypeDesc type, const std::string &value)
+ImageSpec::attribute (string_ref name, TypeDesc type, const std::string &value)
 {
     ImageIOParameter param;
     size_t num_elements = std::count (value.begin (), value.end (), ',') + 1;
@@ -420,7 +420,7 @@ get_attribute_const_iterator (const ImageIOParameterList & attribs,
 }
 
 void
-ImageSpec::erase_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::erase_attribute (string_ref name, TypeDesc searchtype,
                             bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -431,7 +431,7 @@ ImageSpec::erase_attribute (const std::string &name, TypeDesc searchtype,
 }
 
 ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
                            bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -446,7 +446,7 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 const ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
                            bool casesensitive) const
 {
     ImageIOParameterList::const_iterator iter = \
@@ -461,7 +461,7 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 int
-ImageSpec::get_int_attribute (const std::string &name, int val) const
+ImageSpec::get_int_attribute (string_ref name, int val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -488,7 +488,7 @@ ImageSpec::get_int_attribute (const std::string &name, int val) const
 
 
 float
-ImageSpec::get_float_attribute (const std::string &name, float val) const
+ImageSpec::get_float_attribute (string_ref name, float val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -504,13 +504,12 @@ ImageSpec::get_float_attribute (const std::string &name, float val) const
 
 
 
-std::string
-ImageSpec::get_string_attribute (const std::string &name,
-                                 const std::string &val) const
+string_ref
+ImageSpec::get_string_attribute (string_ref name, string_ref val) const
 {
     const ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
     if (p)
-        return std::string (*(const char **)p->data());
+        return *(ustring *)p->data();
     else return val;
 }
 
