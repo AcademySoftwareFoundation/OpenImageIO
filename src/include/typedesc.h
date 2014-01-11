@@ -312,28 +312,6 @@ template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
 template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 
 
-
-// Deprecated!  Some back-compatibility with Gelato
-typedef TypeDesc ParamType;
-typedef TypeDesc ParamBaseType;
-#define PT_FLOAT TypeDesc::FLOAT
-#define PT_UINT8 TypeDesc::UCHAR
-#define PT_INT8 TypeDesc::CHAR
-#define PT_UINT16 TypeDesc::USHORT
-#define PT_INT16 TypeDesc::SHORT
-#define PT_UINT TypeDesc::UINT
-#define PT_INT TypeDesc::INT
-#define PT_FLOAT TypeDesc::FLOAT
-#define PT_DOUBLE TypeDesc::DOUBLE
-#define PT_HALF TypeDesc::HALF
-#define PT_MATRIX TypeDesc(TypeDesc::FLOAT,TypeDesc::MATRIX44)
-#define PT_STRING TypeDesc::STRING
-#define PT_UNKNOWN TypeDesc::UNKNOWN
-#define PT_COLOR TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::COLOR)
-#define PT_POINT TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::POINT)
-#define PT_VECTOR TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::VECTOR)
-#define PT_NORMAL TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::NORMAL)
-
 }
 OIIO_NAMESPACE_EXIT
 
