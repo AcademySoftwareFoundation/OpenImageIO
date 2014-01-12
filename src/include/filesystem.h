@@ -52,6 +52,7 @@
 
 #include "export.h"
 #include "version.h"
+#include "string_ref.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -144,20 +145,17 @@ OIIO_API bool is_regular (const std::string &path);
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-OIIO_API FILE *fopen (const std::string &path,
-                       const std::string &mode);
+OIIO_API FILE *fopen (string_ref path, string_ref mode);
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ifstream &stream,
-                     const std::string &path,
-                     std::ios_base::openmode mode = std::ios_base::in);
+OIIO_API void open (std::ifstream &stream, string_ref path,
+                    std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ofstream &stream,
-                     const std::string &path,
-                     std::ios_base::openmode mode = std::ios_base::out);
+OIIO_API void open (std::ofstream &stream, string_ref path,
+                    std::ios_base::openmode mode = std::ios_base::out);
 
 /// Get last modified time of file
 ///
@@ -184,7 +182,7 @@ OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 ///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
 /// Retrn true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_sequence (const char *desc,
+OIIO_API bool enumerate_sequence (string_ref desc,
                                   std::vector<int> &numbers);
 
 /// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), return a

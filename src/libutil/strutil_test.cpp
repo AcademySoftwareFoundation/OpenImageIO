@@ -234,7 +234,7 @@ void test_strip ()
 void test_split ()
 {
     std::string s ("Now\nis the  time!");
-    std::vector<std::string> splits;
+    std::vector<string_ref> splits;
 
     // test default -- split at whitespace
     Strutil::split (s, splits);
@@ -378,6 +378,46 @@ void test_safe_strcpy ()
 
 
 
+// test some of the trickier methods in string_ref.
+void test_string_ref ()
+{
+    std::string s("0123401234");
+    string_ref sr (s);
+
+    OIIO_CHECK_EQUAL (sr.find("123"), s.find("123"));
+    OIIO_CHECK_EQUAL (sr.find("123"), 1);
+    OIIO_CHECK_EQUAL (sr.find("143"), string_ref::npos);
+    OIIO_CHECK_EQUAL (sr.find("123", 4), s.find("123", 4));
+    OIIO_CHECK_EQUAL (sr.find("123", 4), 6);
+    OIIO_CHECK_EQUAL (sr.find("143", 4), string_ref::npos);
+
+    OIIO_CHECK_EQUAL (sr.find('1'), s.find('1'));
+    OIIO_CHECK_EQUAL (sr.find('1'), 1);
+    OIIO_CHECK_EQUAL (sr.find('5'), string_ref::npos);
+    OIIO_CHECK_EQUAL (sr.find('1', 4), s.find('1', 4));
+    OIIO_CHECK_EQUAL (sr.find('1', 4), 6);
+    OIIO_CHECK_EQUAL (sr.find('5', 4), string_ref::npos);
+
+    OIIO_CHECK_EQUAL (sr.rfind("123"), s.rfind("123"));
+    OIIO_CHECK_EQUAL (sr.rfind("123"), 6);
+    OIIO_CHECK_EQUAL (sr.rfind("1234"), 6);
+    OIIO_CHECK_EQUAL (sr.rfind("143"), string_ref::npos);
+    OIIO_CHECK_EQUAL (sr.rfind("123", 5), s.rfind("123", 5));
+    OIIO_CHECK_EQUAL (sr.rfind("123", 5), 1);
+    OIIO_CHECK_EQUAL (sr.rfind("123", 4), 1);
+    OIIO_CHECK_EQUAL (sr.rfind("143", 5), string_ref::npos);
+    OIIO_CHECK_EQUAL (sr.rfind("012", 4), 0);
+
+    OIIO_CHECK_EQUAL (sr.rfind('1'), s.rfind('1'));
+    OIIO_CHECK_EQUAL (sr.rfind('1'), 6);
+    OIIO_CHECK_EQUAL (sr.rfind('5'), string_ref::npos);
+    OIIO_CHECK_EQUAL (sr.rfind('1', 4), s.rfind('1', 4));
+    OIIO_CHECK_EQUAL (sr.rfind('1', 4), 1);
+    OIIO_CHECK_EQUAL (sr.rfind('5', 4), string_ref::npos);
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_format ();
@@ -394,6 +434,7 @@ int main (int argc, char *argv[])
     test_conversion ();
     test_extract ();
     test_safe_strcpy ();
+    test_string_ref ();
 
     return unit_test_failures;
 }

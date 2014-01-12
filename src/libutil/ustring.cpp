@@ -68,7 +68,7 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
 
-typedef boost::unordered_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
+typedef boost::unordered_map <string_ref, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 
 std::string ustring::empty_std_string ("");
 
@@ -141,11 +141,12 @@ enum {libcpp_string__min_cap = (sizeof(libcpp_string__long) - 1)/sizeof(std::str
 
 
 
-ustring::TableRep::TableRep (const char *s, size_t len)
-    : hashed(Strutil::strhash(s))
+ustring::TableRep::TableRep (string_ref strref)
+    : hashed(Strutil::strhash(strref))
 {
-    strcpy ((char *)c_str(), s);
-    length = len;
+    length = strref.length();
+    memcpy ((char *)c_str(), strref.data(), length);
+    ((char *)c_str())[length] = 0;
 
     // We don't want the internal 'std::string str' to redundantly store the
     // chars, along with our own allocation.  So we use our knowledge of the
@@ -165,10 +166,10 @@ ustring::TableRep::TableRep (const char *s, size_t len)
     //
     // See /usr/include/c++/VERSION/bits/basic_string.h for the details of
     // gcc's std::string implementation.
-    dummy_capacity = len;
+    dummy_capacity = length;
     dummy_refcount = 1;   // so it never frees
     *(const char **)&str = c_str();
-    DASSERT (str.c_str() == c_str() && str.size() == len);
+    DASSERT (str.c_str() == c_str() && str.size() == length);
     return;
 
 #elif defined(_LIBCPP_VERSION)
@@ -183,11 +184,11 @@ ustring::TableRep::TableRep (const char *s, size_t len)
     // as normal.  But if it's going to make a long string (we can tell from
     // the length), we construct it ourselves, forcing the pointer to point
     // to the charcters in the TableRep we allocated.
-    if (len >= libcpp_string__min_cap /* it'll be a "long string" */) {
-        ((libcpp_string__long *)&str)->__cap_ = libcpp_string__long_mask | (len+1);
-        ((libcpp_string__long *)&str)->__size_ = len;
+    if (length >= libcpp_string__min_cap /* it'll be a "long string" */) {
+        ((libcpp_string__long *)&str)->__cap_ = libcpp_string__long_mask | (length+1);
+        ((libcpp_string__long *)&str)->__size_ = length;
         ((libcpp_string__long *)&str)->__data_ = (char *)c_str();
-        DASSERT (str.c_str() == c_str() && str.size() == len);
+        DASSERT (str.c_str() == c_str() && str.size() == length);
         return;
     }
 #endif
@@ -196,7 +197,7 @@ ustring::TableRep::TableRep (const char *s, size_t len)
     // in double allocation for the chars.  If you care about that, do
     // something special for your platform, much like we did for gcc and
     // libc++ above. (Windows users, I'm talking to you.)
-    str = s;
+    str = strref;
 }
 
 
@@ -215,13 +216,13 @@ ustring::TableRep::~TableRep ()
 
 
 const char *
-ustring::make_unique (const char *str)
+ustring::make_unique (string_ref strref)
 {
     UstringTable &table (ustring_table());
 
     // Eliminate NULLs
-    if (! str)
-        str = "";
+    if (! strref.data())
+        strref = string_ref("", 0);
 
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
@@ -233,7 +234,7 @@ ustring::make_unique (const char *str)
         const char *result = NULL;  // only non-NULL if it was found
         {
             ustring_read_lock_t read_lock (ustring_mutex());
-            UstringTable::const_iterator found = table.find (str);
+            UstringTable::const_iterator found = table.find (strref);
             if (found != table.end())
                 result = found->second->c_str();
         }
@@ -246,10 +247,10 @@ ustring::make_unique (const char *str)
     // This string is not yet in the ustring table.  Create a new entry.
     // Note that we are speculatively releasing the lock and building the
     // string locally.  Then we'll lock again to put it in the table.
-    size_t len = strlen(str);
+    size_t len = strref.length();
     size_t size = sizeof(ustring::TableRep) + len + 1;
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
-    new (rep) ustring::TableRep (str, len);
+    new (rep) ustring::TableRep (strref);
 
     const char *result = rep->c_str(); // start assuming new one
     {
@@ -259,10 +260,10 @@ ustring::make_unique (const char *str)
         // constructing its rep, check the table one more time.  If it's
         // still empty, add it.
         ustring_write_lock_t write_lock (ustring_mutex());
-        UstringTable::const_iterator found = table.find (str);
+        UstringTable::const_iterator found = table.find (strref);
         if (found == table.end()) {
             // add the one we just created to the table
-            table[result] = rep;
+            table[string_ref(result,len)] = rep;
             ++ustring_stats_unique;
             ustring_stats_memory += size;
             if (rep->c_str() != rep->str.c_str())
