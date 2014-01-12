@@ -260,9 +260,9 @@ if (OPENSSL_FOUND)
 endif ()
 
 # Include Freetype if using it
-if (FREETYPE_FOUND)
-    include_directories (${FREETYPE_INCLUDE_DIRS})
-    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
+if (FREETYPE2_FOUND)
+    include_directories (${FREETYPE2_INCLUDE_DIRS})
+    target_link_libraries (OpenImageIO ${FREETYPE2_LIBRARIES})
 endif ()
 
 
