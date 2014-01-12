@@ -101,25 +101,23 @@ public:
     ///                               texture and image references.
     ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
     ///
-    virtual bool attribute (const std::string &name, TypeDesc type,
+    virtual bool attribute (string_ref name, TypeDesc type,
                             const void *val) = 0;
     // Shortcuts for common types
-    virtual bool attribute (const std::string &name, int val) = 0;
-    virtual bool attribute (const std::string &name, float val) = 0;
-    virtual bool attribute (const std::string &name, double val) = 0;
-    virtual bool attribute (const std::string &name, const char *val) = 0;
-    virtual bool attribute (const std::string &name,
-                            const std::string &val) = 0;
+    virtual bool attribute (string_ref name, int val) = 0;
+    virtual bool attribute (string_ref name, float val) = 0;
+    virtual bool attribute (string_ref name, double val) = 0;
+    virtual bool attribute (string_ref name, string_ref val) = 0;
 
     /// Get the named attribute, store it in value.
-    virtual bool getattribute (const std::string &name, TypeDesc type,
+    virtual bool getattribute (string_ref name, TypeDesc type,
                                void *val) = 0;
     // Shortcuts for common types
-    virtual bool getattribute (const std::string &name, int &val) = 0;
-    virtual bool getattribute (const std::string &name, float &val) = 0;
-    virtual bool getattribute (const std::string &name, double &val) = 0;
-    virtual bool getattribute (const std::string &name, char **val) = 0;
-    virtual bool getattribute (const std::string &name, std::string &val) = 0;
+    virtual bool getattribute (string_ref name, int &val) = 0;
+    virtual bool getattribute (string_ref name, float &val) = 0;
+    virtual bool getattribute (string_ref name, double &val) = 0;
+    virtual bool getattribute (string_ref name, char **val) = 0;
+    virtual bool getattribute (string_ref name, std::string &val) = 0;
 
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.
