@@ -51,19 +51,11 @@ OIIO_NAMESPACE_ENTER
 // Global private data
 namespace pvt {
 recursive_mutex imageio_mutex;
-atomic_int oiio_threads;
+atomic_int oiio_threads (boost::thread::hardware_concurrency());
 ustring plugin_searchpath;
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
-
-// Trick to initialize the atomic_int -- TBB doesn't allow direct ctr
-struct atomic_int_initializer {
-    atomic_int_initializer(atomic_int &a, int value) { a = value; }
-};
-atomic_int_initializer oiio_threads_init(oiio_threads,
-                                         int(boost::thread::hardware_concurrency()));
-
-};
+}
 
 
 
