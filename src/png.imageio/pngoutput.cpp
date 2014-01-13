@@ -150,7 +150,30 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     png_init_io (m_png, m_file);
-    png_set_compression_level (m_png, 6 /* medium speed vs size tradeoff */);
+    png_set_compression_level (m_png, std::max (std::min (m_spec.get_int_attribute ("png:compressionLevel", 6/* medium speed vs size tradeoff */), Z_BEST_COMPRESSION), Z_NO_COMPRESSION));
+    std::string compression = m_spec.get_string_attribute ("compression");
+    if (compression.empty ()) {
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
+    }
+    else if (Strutil::iequals (compression, "default")) {
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
+    }
+    else if (Strutil::iequals (compression, "filtered")) {
+        png_set_compression_strategy(m_png, Z_FILTERED);
+    }
+    else if (Strutil::iequals (compression, "huffman")) {
+        png_set_compression_strategy(m_png, Z_HUFFMAN_ONLY);
+    }
+    else if (Strutil::iequals (compression, "rle")) {
+        png_set_compression_strategy(m_png, Z_RLE);
+    }
+    else if (Strutil::iequals (compression, "fixed")) {
+        png_set_compression_strategy(m_png, Z_FIXED);
+    }
+    else {
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
+    }
+
 
     PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext,
                          m_convert_alpha, m_gamma);
@@ -179,7 +202,7 @@ PNGOutput::close ()
 
 
 template <class T>
-static void 
+static void
 deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
 {
     unsigned int max = std::numeric_limits<T>::max();
