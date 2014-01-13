@@ -32,7 +32,7 @@
 #define OPENIMAGEIO_PNG_PVT_H
 
 #include <png.h>
-
+#include <zlib.h>
 #include <OpenEXR/ImathColor.h>
 
 #include "dassert.h"
