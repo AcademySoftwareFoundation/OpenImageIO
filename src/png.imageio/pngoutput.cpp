@@ -153,7 +153,10 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     png_set_compression_level (m_png, std::max (std::min (m_spec.get_int_attribute ("png:compressionLevel", 6/* medium speed vs size tradeoff */), Z_BEST_COMPRESSION), Z_NO_COMPRESSION));
     std::string compression = m_spec.get_string_attribute ("compression");
     if (compression.empty ()) {
-        png_set_compression_strategy(m_png, Z_RLE);
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
+    }
+    else if (Strutil::iequals (compression, "default")) {
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
     else if (Strutil::iequals (compression, "filtered")) {
         png_set_compression_strategy(m_png, Z_FILTERED);
@@ -168,7 +171,7 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
         png_set_compression_strategy(m_png, Z_FIXED);
     }
     else {
-        png_set_compression_strategy(m_png, Z_RLE); /* Z_RLE is designed to be almost as fast as Z_HUFFMAN_ONLY, but give better compression for PNG image data. */
+        png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
 
 
