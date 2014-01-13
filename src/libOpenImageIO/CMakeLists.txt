@@ -64,20 +64,6 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ${libOpenImageIO_hdrs}
                          )
 
-#if (NOT USE_EXTERNAL_PUGIXML)
-#    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
-#endif ()
-
-# Include our own TBB if using it
-if (USE_TBB AND USE_EXTERNAL_TBB)
-    message (STATUS "System TBB library will be used.")
-    find_package (TBB REQUIRED)
-    include_directories (${TBB_INCLUDE_DIRS})
-    set (libOpenImageIO_srcs ${libOpenImageIO_srcs})
-elseif (USE_TBB AND NOT USE_EXTERNAL_TBB)
-    message (STATUS "Built-in TBB library will be used.")
-    set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
-endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
@@ -233,12 +219,6 @@ endif ()
 target_link_libraries (OpenImageIO
                            ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
                            ${Boost_LIBRARIES})
-
-# Link against system TBB library if specified
-if (USE_TBB AND USE_EXTERNAL_TBB)
-    message (STATUS "Linking TBB: ${TBB_LIBRARIES}")
-    target_link_libraries (OpenImageIO ${TBB_LIBRARIES})
-endif ()
 
 # Include OpenColorIO if using it
 if (USE_OCIO AND OCIO_FOUND)

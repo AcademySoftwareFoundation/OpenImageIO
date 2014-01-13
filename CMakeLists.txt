@@ -111,7 +111,6 @@ set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
 set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
-set (USE_TBB OFF CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
@@ -128,8 +127,6 @@ set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
 set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
-set (USE_EXTERNAL_TBB OFF CACHE BOOL
-     "Use system TBB library instead of bundled.")
 
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
@@ -148,13 +145,6 @@ else ()
             add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
         endif ()
     endif ()
-endif ()
-
-if (USE_TBB)
-    add_definitions ("-DUSE_TBB=1")
-else ()
-    add_definitions ("-DUSE_TBB=0")
-    message (STATUS "TBB will not be used")
 endif ()
 
 if (EXTRA_CPP_DEFINITIONS)

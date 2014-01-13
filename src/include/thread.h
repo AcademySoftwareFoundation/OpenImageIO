@@ -70,24 +70,7 @@
 #pragma GCC diagnostic error "-Wunused-variable"
 #endif
 
-#ifndef USE_TBB
-#  define USE_TBB 0
-#endif
-
-// Include files we need for atomic counters.
-// Some day, we hope this is all replaced by use of std::atomic<>.
-#if USE_TBB
-#  include <tbb/atomic.h>
-#  include <tbb/spin_mutex.h>
-#  define USE_TBB_ATOMIC 1
-#  define USE_TBB_SPINLOCK 1
-#else
-#  define USE_TBB_ATOMIC 0
-#  define USE_TBB_SPINLOCK 0
-#endif
-
-
-#if defined(_MSC_VER) && !USE_TBB
+#if defined(_MSC_VER)
 #  include <windows.h>
 #  include <winbase.h>
 #  pragma intrinsic (_InterlockedExchangeAdd)
@@ -235,9 +218,6 @@ atomic_exchange_and_add (volatile int *at, int x)
     int r = *at;  *at += x;  return r;
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add ((int *)at, x);
-#elif USE_TBB
-    atomic<int> *a = (atomic<int> *)at;
-    return a->fetch_and_add (x);
 #elif defined(_MSC_VER)
     // Windows
     return _InterlockedExchangeAdd ((volatile LONG *)at, x);
@@ -255,9 +235,6 @@ atomic_exchange_and_add (volatile long long *at, long long x)
     long long r = *at;  *at += x;  return r;
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add (at, x);
-#elif USE_TBB
-    atomic<long long> *a = (atomic<long long> *)at;
-    return a->fetch_and_add (x);
 #elif defined(_MSC_VER)
     // Windows
 #  if defined(_WIN64)
@@ -289,9 +266,6 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
     }
 #elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif USE_TBB
-    atomic<int> *a = (atomic<int> *)at;
-    return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(_MSC_VER)
     return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
 #else
@@ -312,9 +286,6 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
     }
 #elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif USE_TBB
-    atomic<long long> *a = (atomic<long long> *)at;
-    return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(_MSC_VER)
     return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #else
@@ -352,9 +323,6 @@ pause (int delay)
     for (int i = 0; i < delay; ++i)
         __asm__ __volatile__("NOP;");
 
-#elif USE_TBB
-    __TBB_Pause(delay);
-
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
 #if defined (_WIN64)
@@ -390,12 +358,6 @@ private:
     int m_count;
 };
 
-
-
-#if USE_TBB_ATOMIC
-using tbb::atomic;
-#else
-// If we're not using TBB's atomic, we need to define our own atomic<>.
 
 
 /// Atomic integer.  Increment, decrement, add, and subtract in a
@@ -478,8 +440,6 @@ private:
 };
 
 
-#endif /* ! USE_TBB_ATOMIC */
-
 
 #ifdef NOTHREADS
 
@@ -500,16 +460,9 @@ typedef atomic<long long> atomic_ll;
 typedef null_mutex spin_mutex;
 typedef null_lock<spin_mutex> spin_lock;
 
-#elif USE_TBB_SPINLOCK
-
-// Use TBB's spin locks
-typedef tbb::spin_mutex spin_mutex;
-typedef tbb::spin_mutex::scoped_lock spin_lock;
-
-
 #else
 
-// Define our own spin locks.  Do we trust them?
+// Define our own spin locks.
 
 
 /// A spin_mutex is semantically equivalent to a regular mutex, except
@@ -604,10 +557,7 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if USE_TBB_ATOMIC
-        // TBB's compare_and_swap returns the original value
-        return (*(atomic_int *)&m_locked).compare_and_swap (0, 1) == 0;
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
         // GCC gives us an intrinsic that is even better -- an atomic
         // exchange with "acquire" barrier semantics.
         return __sync_lock_test_and_set (&m_locked, 1) == 0;
@@ -624,7 +574,7 @@ public:
         lock_guard (spin_mutex &fm) : m_fm(fm) { m_fm.lock(); }
         ~lock_guard () { m_fm.unlock(); }
     private:
-        lock_guard(); // Do not implement (even though TBB does)
+        lock_guard(); // Do not implement
         lock_guard(const lock_guard& other); // Do not implement
         lock_guard& operator = (const lock_guard& other); // Do not implement
         spin_mutex & m_fm;
