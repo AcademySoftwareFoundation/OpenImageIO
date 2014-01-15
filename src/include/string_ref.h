@@ -44,8 +44,44 @@
 OIIO_NAMESPACE_ENTER {
 
 
-/// Provides a string_ref class that is a non-owning reference to a string
-/// or substring.
+/// string_ref : a non-owning, non-copying, non-allocating reference to a
+/// sequence of characters.  It encapsulates both a character pointer and a
+/// length.
+///
+/// A function that takes a string input (but does not need to alter the
+/// string in place) may use a string_ref parameter and accept input that
+/// is any of char* (C string), string literal (constant char array), a
+/// std::string (C++ string), or OIIO ustring.  For all of these cases, no
+/// extra allocations are performed, and no extra copies of the string
+/// contents are performed (as they would be, for example, if the function
+/// took a const std::string& argument but was passed a char* or string
+/// literal).
+///
+/// Furthermore, a function that returns a copy or a substring of one of its
+/// inputs (for example, a substr()-like function) may return a string_ref
+/// rather than a std::string, and thus generate its return value without
+/// any allocation or copying. Upon assignment to a std::string or ustring,
+/// it will properly auto-convert.
+///
+/// There are two important caveats to using this class:
+/// 1. The string_ref merely refers to characters owned by another string,
+///    so the string_ref may not be used outside the lifetime of the string
+///    it refers to. Thus, string_ref is great for parameter passing, but
+///    it's not a good idea to use a string_ref to store strings in a data
+///    structure (unless you are really sure you know what you're doing).
+/// 2. Because the run of characters that the string_ref refers to may not
+///    be 0-terminated, it is important to distinguish between the data()
+///    method, which returns the pointer to the characters, and the c_str()
+///    method, which is guaranteed to return a valid C string that is
+///    0-terminated. Thus, if you want to pass the contents of a string_ref
+///    to a function that expects a 0-terminated string (say, fopen), you
+///    must call fopen(my_string_ref.c_str()).  Note that the usual case
+///    is that the string_ref does refer to a 0-terminated string, and in
+///    that case c_str() returns the same thing as data() without any extra
+///    expense; but in the rare case that it is not 0-terminated, c_str()
+///    will incur extra expense to internally allocate a valid C string.
+///
+
 
 class string_ref {
 public:

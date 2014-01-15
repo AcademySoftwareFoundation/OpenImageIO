@@ -1,6 +1,6 @@
-\chapter{Image I/O API}
+\chapter{Image I/O API Helper Classes}
 \label{chap:imageioapi}
-\index{Image I/O API|(}
+\index{Image I/O API Helper Classes|(}
 
 
 
@@ -155,6 +155,128 @@ than images) can describe many types not used by
 \emph{metadata} for certain image file formats (see
 Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details).
+
+
+\section{String References: {\cf string_ref}}
+\label{sec:stringref}
+\indexapi{string_ref}
+
+A \stringref a non-owning, non-copying, non-allocating reference to a
+sequence of characters.  It encapsulates both a character pointer and a
+length.
+
+A function that takes a string input (but does not need to alter the string
+in place) may use a \stringref parameter and accept input that is any of
+{\cf char*} (C string), string literal (constant char array), a {\cf
+std::string} (C++ string), or OIIO \ustring.  For all of these cases, no
+extra allocations are performed, and no extra copies of the string  contents
+are performed (as they would be, for example, if the function took a const
+{\cf std::string\&} argument but was passed a {\cf char*} or string
+literal).
+
+Furthermore, a function that returns a copy or a substring of one of its
+inputs (for example, a {\cf substr()}-like function) may return a \stringref
+rather than a {\cf std::string}, and thus generate its return value without
+any allocation or copying. Upon assignment to a {\cf std::string} or \ustring,
+it will properly auto-convert.
+
+There are two important caveats to using this class:
+\begin{enumerate}
+\item The \stringref merely refers to characters owned by another string,
+   so the \stringref may not be used outside the lifetime of the string
+   it refers to. Thus, \stringref is great for parameter passing, but
+   it's not a good idea to use a \stringref to store strings in a data
+   structure (unless you are really sure you know what you're doing).
+\item Because the run of characters that the \stringref refers to may not
+   be 0-terminated, it is important to distinguish between the {\cf data()}
+   method, which returns the pointer to the characters, and the {\cf c_str()}
+   method, which is guaranteed to return a valid C string that is
+   0-terminated. Thus, if you want to pass the contents of a \stringref
+   to a function that expects a 0-terminated string (say, fopen), you
+   must call {\cf fopen(my_string_ref.c_str()}).  Note that the usual case
+   is that the \stringref does refer to a 0-terminated string, and in
+   that case c_str() returns the same thing as data() without any extra
+   expense; but in the rare case that it is not 0-terminated, c_str()
+   will incur extra expense to internally allocate a valid C string.
+\end{enumerate}
+
+\apiitem{string_ref (const char *chars) \\
+string_ref (const char *chars, size_t length) \\
+string_ref (const std::string \&str) \\
+string_ref (ustring ustr)}
+Constructs a \stringref.  The \stringref doesn't have its own copy of the
+characters, so don't use the \stringref after the original string has been
+destroyed or altered.
+
+Note that the version that takes a {\cf const char*} but not a length will
+automatically take the {\cf strlen(chars)} to determine the length.  (All
+the other constructors can deduce the length without walking through all
+of the characters.)
+\apiend
+
+\apiitem{const char* string_ref::{\ce data} () \\
+size_t string_ref::{\ce size} ()}
+The raw pointer to the characters (not necessarily 0-terminated!)
+and the length of the \stringref.
+\apiend
+
+\apiitem{const char* string_ref::{\ce c_str} ()}
+Return a 0-terminated {\cf char*} version of the \stringref (a proper C
+string).
+\apiend
+
+\apiitem{std::string (string_ref sr) \\
+ustring (string_ref sr)}
+Automatic constructions of C++ {\cf std::string} or OIIO \ustring from
+a \stringref.
+\apiend
+
+\smallskip
+\noindent Additionally, a large portion of the usual API for {\cf std::string}
+is mimicked by \stringref.  Please consult the public {\cf string_ref.h}
+header file for full details, if you wish to use \stringref in your own
+code.
+
+
+\section{Efficient unique strings: {\cf ustring}}
+\label{sec:ustring}
+\indexapi{ustring}
+
+A \ustring is an alternative to {\cf char*} or {\cf std::string} for storing
+strings, in which the character sequence is stored uniquely.  If there are
+many copies of the same \ustring, they all point to the same canonical
+characters, which themselves are stored only once. This allows \ustring's to
+be assigned to one another with only the copy of a pointer assignment (not
+allocation or copying of characters), and for {\cf ==} and {\cf !=}
+comparisons of two \ustring values for only the cost of comparing the
+pointers (not examining the characters).
+
+\OpenImageIO uses \ustring in a few select places, where string
+assignment/copy and equality/inequality are the dominant string operation
+and we want them to be the same low cost as a simple pointer assignment or
+comparison.  (This primarily comes into play for the \ImageCache and
+\TextureSystem, where we refer to images by their filenames and want
+very fast lookups.)
+
+Please consult the public header {\cf ustring.h} for details, especially if
+you want to use \ustring extensively in your own code. But here are the most
+important details to know if you are calling the \OpenImageIO functions that
+take \ustring parameters:
+
+\apiitem{ustring (const char *chars) \\
+ustring (const char *chars, size_t length) \\
+ustring (const std::string \&str) \\
+ustring (string\_ref sref)}
+Constructs a \ustring from a C string ({\cf char*}), C++ {\cf std::string},
+or a \stringref.
+\apiend
+
+\apiitem{const char* ustring::{\ce c_str} () \\
+const std::string\& ustring::{\ce string()} \\
+string\_ref ustring::{\ce operator string\_ref}()}
+Convert a \ustring to a 0-terminated C string, a C++ {\cf std::string}, or
+a {\cf string_ref}.  All of these are extremely inexpensive.
+\apiend
 
 
 \section{Image Specification: {\cf ImageSpec}}
@@ -661,6 +783,6 @@ extensions for a particular format.
 \apiend
 
 
-\index{Image I/O API|)}
+\index{Image I/O API Helper Classes|)}
 
 \chapwidthend
