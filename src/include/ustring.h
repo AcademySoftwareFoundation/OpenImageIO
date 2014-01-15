@@ -189,10 +189,6 @@ public:
     ustring (size_type n, char c)
         : m_chars (make_unique(std::string(n,c).c_str())) { }
 
-    /// Construct a ustring from a C++ std::string.
-    ///
-//    explicit ustring (const std::string &str) { *this = ustring(str.c_str()); }
-
     /// Construct a ustring from an indexed substring of a std::string.
     ///
     ustring (const std::string &str, size_type pos, size_type n=npos) {
@@ -262,6 +258,12 @@ public:
     const ustring & assign (size_type n, char c)
         { *this = ustring(n,c); return *this; }
 
+    /// Assign a string_ref to *this.
+    const ustring & assign (string_ref str) {
+        m_chars = str.length() ? make_unique(str) : NULL;
+        return *this;
+    }
+
     /// Assign a ustring to another ustring.
     ///
     const ustring & operator= (const ustring &str) { return assign(str); }
@@ -273,6 +275,10 @@ public:
     /// Assign a C++ std::string to a ustring.
     ///
     const ustring & operator= (const std::string &str) { return assign(str); }
+
+    /// Assign a string_ref to a ustring.
+    ///
+    const ustring & operator= (string_ref str) { return assign(str); }
 
     /// Assign a single char to a ustring.
     ///
