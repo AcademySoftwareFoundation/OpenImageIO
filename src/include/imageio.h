@@ -269,7 +269,7 @@ public:
 
     /// Add an optional attribute to the extra attribute list.
     ///
-    void attribute (string_ref name, TypeDesc type, const std::string &value);
+    void attribute (string_ref name, TypeDesc type, string_ref value);
 
     /// Add an unsigned int attribute
     ///
