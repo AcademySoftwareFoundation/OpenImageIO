@@ -176,7 +176,7 @@ public:
 
     string_ref substr (size_type pos, size_type n=npos) const {
         if (pos > size())
-            throw (std::out_of_range ("OIIO::string_ref::substr"));
+            return string_ref();  // start past end -> return empty
         if (n == npos || pos + n > size())
             n = size() - pos;
         return string_ref (data() + pos, n);
