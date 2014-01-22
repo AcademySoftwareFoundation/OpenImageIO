@@ -54,7 +54,6 @@
 #include <OpenEXR/ImfVecAttribute.h>
 #include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfTimeCodeAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
@@ -62,6 +61,7 @@
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
+#include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfInputPart.h>
@@ -537,11 +537,13 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::V3iAttribute *v3iattr;
         const Imf::V2fAttribute *v2fattr;
         const Imf::V2iAttribute *v2iattr;
-        const Imf::StringVectorAttribute *svattr;
         const Imf::Box2iAttribute *b2iattr;
         const Imf::Box2fAttribute *b2fattr;
         const Imf::TimeCodeAttribute *tattr;
         const Imf::KeyCodeAttribute *kcattr;
+#ifdef USE_OPENEXR_VERSION2
+        const Imf::StringVectorAttribute *svattr;
+#endif
         const char *name = hit.name();
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
@@ -580,6 +582,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             TypeDesc v2 (TypeDesc::INT,TypeDesc::VEC2);
             spec.attribute (oname, v2, &(v2iattr->value()));
         }
+#ifdef USE_OPENEXR_VERSION2
         else if (type == "stringvector" &&
             (svattr = header->findTypedAttribute<Imf::StringVectorAttribute> (name))) {
             std::vector<std::string> strvec = svattr->value();
@@ -589,6 +592,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             TypeDesc sv (TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
         }
+#endif
         else if (type == "box2i" &&
                  (b2iattr = header->findTypedAttribute<Imf::Box2iAttribute> (name))) {
             TypeDesc bx (TypeDesc::INT, TypeDesc::VEC2, 2);
