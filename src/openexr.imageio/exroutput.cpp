@@ -51,7 +51,6 @@
 #include <OpenEXR/ImfMatrixAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
-#include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfTimeCodeAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfBoxAttribute.h>
@@ -69,6 +68,7 @@
 #define OPENEXR_VERSION_IS_1_6_OR_LATER
 #endif
 #ifdef USE_OPENEXR_VERSION2
+#include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfMultiPartOutputFile.h>
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfOutputPart.h>
@@ -892,6 +892,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V2dAttribute (*(Imath::V2d*)data));
                     return true;
@@ -901,6 +902,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     v.push_back(((std::string*)data)[1]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
+#endif
             }
         }
         if (type.aggregate == TypeDesc::VEC3) {
@@ -913,6 +915,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V3dAttribute (*(Imath::V3d*)data));
                     return true;
@@ -923,6 +926,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     v.push_back(((std::string*)data)[2]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
+#endif
             }
         }
         if (type.aggregate == TypeDesc::MATRIX44) {
@@ -930,9 +934,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::M44dAttribute (*(Imath::M44d*)data));
                     return true;
+#endif
             }
         }
     }
@@ -981,6 +987,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V2dAttribute (*(Imath::V2d*)data));
                     return true;
@@ -990,6 +997,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     v.push_back(((std::string*)data)[1]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
+#endif
             }
         }
         // Vec3
@@ -1003,6 +1011,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V3dAttribute (*(Imath::V3d*)data));
                     return true;
@@ -1013,6 +1022,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     v.push_back(((std::string*)data)[2]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
+#endif
             }
         }
         // Matrix
@@ -1021,11 +1031,14 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
                     return true;
+#ifdef USE_OPENEXR_VERSION2
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::M44dAttribute (*(Imath::M44d*)data));
                     return true;
+#endif
             }
         }
+#ifdef USE_OPENEXR_VERSION2
         // String Vector
         else if (type.basetype == TypeDesc::STRING) {
             Imf::StringVector v;
@@ -1035,6 +1048,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
             header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
             return true;
         }
+#endif
     }
 
 
