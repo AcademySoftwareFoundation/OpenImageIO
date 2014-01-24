@@ -896,12 +896,20 @@ set_origin (int argc, const char *argv[])
     if (spec.width != w || spec.height != h || spec.depth != d)
         std::cerr << argv[0] << " can't be used to change the size, only the origin\n";
     if (spec.x != x || spec.y != y) {
+        ImageBuf &ib = (*A)(0,0);
+        if (ib.storage() == ImageBuf::IMAGECACHE) {
+            // If the image is cached, we will totally screw up the IB/IC
+            // operations if we try to change the origin in place, so in
+            // that case force a full read to convert to a local buffer,
+            // which is safe to diddle the origin.
+            ib.read (0, 0, true /*force*/, spec.format);
+        }
         spec.x = x;
         spec.y = y;
         spec.z = z;
         // That updated the private spec of the ImageRec. In this case
         // we really need to update the underlying IB as well.
-        ImageSpec &ibspec = (*A)(0,0).specmod();
+        ImageSpec &ibspec = ib.specmod();
         ibspec.x = x;
         ibspec.y = y;
         ibspec.z = z;
