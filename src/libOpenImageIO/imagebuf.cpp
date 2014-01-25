@@ -1949,8 +1949,10 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
         tilexend = tilexbegin + tw;
         tile = m_imagecache->get_tile (m_name, m_current_subimage,
                                        m_current_miplevel, x, y, z);
-        if (! tile)
-            return NULL;
+        if (! tile) {
+            // Even though tile is NULL, ensure valid black pixel data
+            return &m_blackpixel[0];
+        }
     }
 
     size_t offset = ((z - tilezbegin) * (size_t) th + (y - tileybegin)) * (size_t) tw
