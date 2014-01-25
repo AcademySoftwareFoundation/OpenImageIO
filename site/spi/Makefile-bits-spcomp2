@@ -19,7 +19,7 @@ $(info Including spi/Makefile-bits-spcomp2)
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=32
+OPENIMAGEIO_SPCOMP2_VERSION=34
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -70,6 +70,16 @@ ifeq ($(SP_OS), spinux1)
 	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
     endif
     MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
+    ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
+			BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+			MY_CMAKE_FLAGS += \
+				-DBOOST_CUSTOM=1 \
+				-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+				-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+				-DBoost_python_FOUND=1 -Doiio_boost_PYTHON_FOUND=1 \
+				-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/libpython2.6.so"
+		endif
+
 else ifeq ($(SP_OS), lion)
     COMPILER=clang
     PYVER=2.7
@@ -126,7 +136,15 @@ endif  # endif $(SP_OS)
 
 
 SPARCH=$(SP_OS)-$(COMPILER)
+ifdef SPCOMP2_USE_BOOSTVERS
+	ifneq ($(BOOSTVERS),1.42)
+		SPARCH=$(SP_OS)-$(COMPILER)-boost$(subst .,,$(BOOSTVERS))
+	endif
+endif
+
+
 SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
+
 
 all: dist
 
@@ -181,26 +199,26 @@ spcomp2_install_fixup_lion: spcomp2 spcomp2_debug
 	install_name_tool \
 	-add_rpath ${OIIO_PATH}/lib/debug \
 	${dist_dir}.debug/python/libPyOpenImageIO.so
-	
+
 spcomp2_install_fixup_spinux1: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
 
 	patchelf \
 	--set-rpath $(SPCOMP2_RPATH_OPT) \
 	${dist_dir}/lib/libOpenImageIO.so
-	
+
 	patchelf \
 	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/lib/libOpenImageIO.so
-	
+
 	patchelf \
 	--set-rpath $(PYSPCOMP2_RPATH_OPT) \
 	${dist_dir}/python/libPyOpenImageIO.so
-	
+
 	patchelf \
 	--set-rpath $(PYSPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/python/libPyOpenImageIO.so
-	
+
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
 spcomp2_install: spcomp2_install_fixup_$(SP_OS)
@@ -215,12 +233,12 @@ spcomp2_install: spcomp2_install_fixup_$(SP_OS)
 	--srcdir=${dist_dir}/lib \
 	--builddir_o=${dist_dir}/lib \
 	--builddir_d=${dist_dir}.debug/lib
-	
+
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=PyOpenImageIO \
 	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-    --root=$(INSTALL_SPCOMP2_LOCATION) \
-    --arch=$(SPPYARCH) \
+	--root=$(INSTALL_SPCOMP2_LOCATION) \
+	--arch=$(SPPYARCH) \
 	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread"\
 	--namespace=${NAMESPACE} \
 	--srcdir=${dist_dir}/python \
