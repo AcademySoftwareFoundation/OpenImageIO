@@ -944,7 +944,7 @@ public:
                 m_proxydata = NULL;
             } else {
                 // Cached image
-                if (e && m_x < m_tilexend)
+                if (e && m_x < m_tilexend && m_tile)
                     // Haven't crossed a tile boundary, don't retile!
                     m_proxydata += m_pixel_bytes;
                 else {
