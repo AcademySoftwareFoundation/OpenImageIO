@@ -151,6 +151,7 @@ class SgiOutput : public ImageOutput {
     FILE *m_fd;
     std::string m_filename;
     std::vector<unsigned char> m_scratch;
+    unsigned int m_dither;
 
     void init () {
         m_fd = NULL;

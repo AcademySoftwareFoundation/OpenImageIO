@@ -193,6 +193,7 @@ private:
     std::string m_filename;
     iff_pvt::IffFileHeader m_iff_header;
     std::vector<uint8_t> m_buf;
+    unsigned int m_dither;
     
     void init (void) {
         m_fd = NULL;

@@ -113,6 +113,9 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16) 
         m_spec.set_format (TypeDesc::UINT8);
 
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+
     // check if the client wants the image to be run length encoded
     // currently only RGB RLE compression is supported, we default to RLE
     // as Maya does not handle non-compressed IFF's very well.
@@ -166,7 +169,8 @@ IffOutput::write_tile (int x, int y, int z,
     
     // native tile
     std::vector<uint8_t> scratch;    
-    data = to_native_tile (format, data, xstride, ystride, zstride, scratch);   
+    data = to_native_tile (format, data, xstride, ystride, zstride, scratch,
+                           m_dither, x, y, z);   
                         
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
     y -= m_spec.y;   // image relative  

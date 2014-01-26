@@ -75,6 +75,7 @@ public:
     bool output_adjust_time;
     bool output_autocrop;
     bool output_autotrim;
+    bool output_dither;
 
     // Options for --diff
     float diff_warnthresh;

@@ -56,6 +56,7 @@ class WebpOutput : public ImageOutput
     std::string m_filename;
     FILE *m_file;
     int m_scanline_size;
+    unsigned int m_dither;
     std::vector<uint8_t> m_uncompressed_image;
 
     void init()
@@ -130,6 +131,7 @@ WebpOutput::open (const std::string &name, const ImageSpec &spec,
     
     // forcing UINT8 format
     m_spec.set_format (TypeDesc::UINT8);
+    m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 
     m_scanline_size = m_spec.width * m_spec.nchannels;
     const int image_buffer = m_spec.height * m_scanline_size;
@@ -149,7 +151,8 @@ WebpOutput::write_scanline (int y, int z, TypeDesc format,
         return false;
     }
     std::vector<uint8_t> scratch;
-    data = to_native_scanline (format, data, xstride, scratch);
+    data = to_native_scanline (format, data, xstride, scratch,
+                               m_dither, y, z);
     memcpy(&m_uncompressed_image[y*m_scanline_size], data, m_scanline_size);
 
     if (y == m_spec.height - 1)

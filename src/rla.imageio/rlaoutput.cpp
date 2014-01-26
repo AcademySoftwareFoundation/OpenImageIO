@@ -72,6 +72,7 @@ private:
     RLAHeader m_rla;                  ///< Wavefront RLA header
     std::vector<uint32_t> m_sot;      ///< Scanline offset table
     std::vector<unsigned char> m_rle; ///< Run record buffer for RLE
+    unsigned int m_dither;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -202,6 +203,9 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         error ("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
+
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
     // prepare and write the RLA header
     memset (&m_rla, 0, sizeof (m_rla));
@@ -512,7 +516,8 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
 {
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     if (data == origdata) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());

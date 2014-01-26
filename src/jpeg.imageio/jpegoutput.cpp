@@ -68,6 +68,7 @@ class JpgOutput : public ImageOutput {
  private:
     FILE *m_fd;
     std::string m_filename;
+    unsigned int m_dither;
     int m_next_scanline;             // Which scanline is the next to write?
     std::vector<unsigned char> m_scratch;
     struct jpeg_compress_struct m_cinfo;
@@ -233,6 +234,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
+    m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 
     return true;
 }
@@ -270,7 +272,8 @@ JpgOutput::write_scanline (int y, int z, TypeDesc format,
     int save_nchannels = m_spec.nchannels;
     m_spec.nchannels = m_cinfo.input_components;
 
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     m_spec.nchannels = save_nchannels;
 
     jpeg_write_scanlines (&m_cinfo, (JSAMPLE**)&data, 1);

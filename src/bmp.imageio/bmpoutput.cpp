@@ -80,6 +80,7 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
 
     // Only support 8 bit channels for now.
     m_spec.set_format (TypeDesc::UINT8);
+    m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 
     return true;
 }
@@ -103,7 +104,8 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
     fseek (m_fd, scanline_off, SEEK_CUR);
 
     std::vector<unsigned char> scratch;
-    data = to_native_scanline (format, data, xstride, scratch);
+    data = to_native_scanline (format, data, xstride, scratch,
+                               m_dither, y, z);
     std::vector<unsigned char> buf (m_scanline_size);
     memcpy (&buf[0], data, m_scanline_size);
 

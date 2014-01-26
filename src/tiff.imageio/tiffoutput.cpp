@@ -81,6 +81,7 @@ private:
     int m_planarconfig;
     Timer m_checkpointTimer;
     int m_checkpointItems;
+    unsigned int m_dither;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -318,7 +319,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
     m_checkpointTimer.start(); // Initialize the to the fileopen time
     m_checkpointItems = 0; // Number of tiles or scanlines we've written
-    
+
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+
     return true;
 }
 
@@ -497,7 +501,8 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
 {
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
 
     y -= m_spec.y;
     if (m_planarconfig == PLANARCONFIG_SEPARATE) {
@@ -557,7 +562,8 @@ TIFFOutput::write_tile (int x, int y, int z,
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
     y -= m_spec.y;   // image relative
     const void *origdata = data;   // Stash original pointer
-    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
+    data = to_native_tile (format, data, xstride, ystride, zstride,
+                           m_scratch, m_dither, x, y, z);
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         imagesize_t tile_pixels = m_spec.tile_pixels();

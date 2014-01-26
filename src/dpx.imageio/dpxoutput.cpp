@@ -87,6 +87,7 @@ private:
     int m_subimages_to_write;
     std::vector<ImageSpec> m_subimage_specs;
     bool m_write_pending;   // subimage buffer needs to be written
+    unsigned int m_dither;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -414,6 +415,9 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         }*/
     }
 
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+
     return prep_subimage (m_subimage, true);
 }
 
@@ -553,7 +557,8 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
 
     m_spec.auto_stride (xstride, format, m_spec.nchannels);
     const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     if (data == origdata) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());

@@ -70,6 +70,8 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec,
     // by any SGI reader: UINT8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format (TypeDesc::UINT8);
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
     return create_and_write_header();
 }
@@ -81,7 +83,8 @@ SgiOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
                            stride_t xstride)
 {
     y = m_spec.height - y - 1;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
 
     // In SGI format all channels are saved to file separately: firsty all
     // channel 1 scanlines are saved, then all channel2 scanlines are saved

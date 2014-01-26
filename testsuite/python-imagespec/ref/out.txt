@@ -11,7 +11,6 @@ ctr: null
   alpha channel =  -1
   z channel =  -1
   deep =  False
-  quantization: black=0, white=255, min=0, max=255
 
 ctr: UINT16
   resolution (width,height,depth) =  0 0 1
@@ -26,7 +25,6 @@ ctr: UINT16
   alpha channel =  -1
   z channel =  -1
   deep =  False
-  quantization: black=0, white=65535, min=0, max=65535
 
 ctr: 640x480,3 UINT8
   resolution (width,height,depth) =  640 480 1
@@ -41,7 +39,6 @@ ctr: 640x480,3 UINT8
   alpha channel =  -1
   z channel =  -1
   deep =  False
-  quantization: black=0, white=255, min=0, max=255
 
 lots of fields
   resolution (width,height,depth) =  640 480 1
@@ -56,7 +53,6 @@ lots of fields
   alpha channel =  3
   z channel =  -1
   deep =  False
-  quantization: black=0, white=0, min=0, max=0
 
 channel bytes = 4
   channel_bytes(1) = 4 native 1

@@ -636,6 +636,13 @@ This only has an effect if the particular compression method supports
 a quality metric (as JPEG does).
 \apiend
 
+\apiitem{--dither}
+\NEW %1.4
+Turns on \emph{dither} when outputting to 8-bit image files (does not affect
+other data types). This adds just a bit of noise that reduces visible
+banding artifacts.
+\apiend
+
 \apiitem{--planarconfig {\rm \emph{config}}}
 Sets the planar configuration of subsequent outputs (if supported by
 their formats).  Valid choices are: {\cf config} for contiguous (or
