@@ -76,7 +76,10 @@ ifeq ($(SP_OS), spinux1)
 				-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
 				-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
 				-DBoost_python_FOUND=1 -Doiio_boost_PYTHON_FOUND=1 \
-				-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/libpython2.6.so"
+                -DPYTHONLIBS_FOUND=1 \
+                -DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
+                -DBoost_Python_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
+                -DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
 		endif
 
 else ifeq ($(SP_OS), lion)
@@ -111,7 +114,7 @@ else ifeq ($(SP_OS), lion)
       -DOVERRIDE_SHARED_LIBRARY_SUFFIX=.so \
       -DPYTHON_EXECUTABLE=${MACPORTS_PREFIX}/bin/python${PYVER} \
       -DPYTHON_INCLUDE_DIR=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Headers \
-      -DPYTHON_LIBRARY=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
+      -DPYTHON_LIBRARIES=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
       -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
       -DZLIB_ROOT=${MACPORTS_PREFIX}
 
