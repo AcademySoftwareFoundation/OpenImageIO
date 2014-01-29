@@ -43,8 +43,7 @@ PYSPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${OIIO_PATH}/lib/debug
 ## Spinux (current)
 ifeq ($(SP_OS), spinux1)
     COMPILER=gcc44m64
-    PYVER=2.6
-    PYVERNOSPACE=26
+    PYVER ?= 2.6
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
     # the standard libGL.  This attempts to detect which libGL to use.
@@ -82,8 +81,7 @@ ifeq ($(SP_OS), spinux1)
 
 else ifeq ($(SP_OS), lion)
     COMPILER=clang
-    PYVER=2.7
-    PYVERNOSPACE=27
+    PYVER ?= 2.7
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
 
     # CMAKE_CXX_COMPILER:
@@ -143,6 +141,7 @@ ifdef SPCOMP2_USE_BOOSTVERS
 endif
 
 
+PYVERNOSPACE=${shell echo ${PYVER} | sed "s/\\.//"}
 SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
 
 
