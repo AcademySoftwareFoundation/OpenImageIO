@@ -2,7 +2,7 @@ set (public_headers argparse.h array_view.h
                     color.h dassert.h errorhandler.h export.h
                     filesystem.h filter.h fmath.h hash.h
                     imagebuf.h imagebufalgo.h imagebufalgo_util.h
-                    imagecache.h imageio.h
+                    imagecache.h imageio.h image_view.h
                     optparser.h osdep.h paramlist.h plugin.h
                     refcnt.h strided_ptr.h
                     string_ref.h strutil.h sysutil.h
