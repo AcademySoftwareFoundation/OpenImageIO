@@ -72,7 +72,7 @@ string_ref::c_str() const
     // Usual case: either empty, or null-terminated
     if (m_len == 0)   // empty string
         return "";
-    else if (m_chars[m_len-1] == 0)  // 0-terminated
+    else if (m_chars[m_len] == 0)  // 0-terminated
         return m_chars;
     // Rare case: may not be 0-terminated. Bite the bullet and construct a
     // 0-terminated string.  We use ustring as a way to avoid any issues of
