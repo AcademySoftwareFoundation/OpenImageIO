@@ -22,8 +22,8 @@ def print_imagespec (spec, msg="") :
     print "  alpha channel = ", spec.alpha_channel
     print "  z channel = ", spec.z_channel
     print "  deep = ", spec.deep
-    print ("  quantization: black=%d, white=%d, min=%d, max=%d" 
-           % (spec.quant_black, spec.quant_white, spec.quant_min, spec.quant_max))
+    # print ("  quantization: black=%d, white=%d, min=%d, max=%d" 
+    #        % (spec.quant_black, spec.quant_white, spec.quant_min, spec.quant_max))
     for i in range(len(spec.extra_attribs)) :
         print "  ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
     print

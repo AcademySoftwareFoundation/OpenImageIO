@@ -198,6 +198,10 @@ struct OIIO_API TypeDesc {
     /// and aggregateness.
     size_t basesize () const;
 
+    /// True if it's a floating-point type (versus a fundamentally
+    /// integral type or something else like a string).
+    bool is_floating_point () const;
+
     /// Set *this to the type described in the string.  Return the
     /// length of the part of the string that describes the type.  If
     /// no valid type could be assembled, return 0 and do not modify

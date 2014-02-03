@@ -69,6 +69,7 @@ private:
     int m_xor_slb;                    ///< XOR mask scanline length in bytes
     int m_and_slb;                    ///< AND mask scanline length in bytes
     int m_bpp;                        ///< Bits per pixel
+    unsigned int m_dither;
 
     png_structp m_png;                ///< PNG read structure pointer
     png_infop m_info;                 ///< PNG image info structure pointer
@@ -212,6 +213,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         if (m_spec.format != TypeDesc::UINT8)
             m_spec.set_format (TypeDesc::UINT8);
     }
+
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
     //std::cerr << "[ico] writing at " << m_bpp << "bpp\n";
 
@@ -436,7 +440,8 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
 {
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     if (data == origdata) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data + m_spec.scanline_bytes());

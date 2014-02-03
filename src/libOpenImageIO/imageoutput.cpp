@@ -237,10 +237,13 @@ ImageOutput::append_error (const std::string& message) const
 const void *
 ImageOutput::to_native_scanline (TypeDesc format,
                                  const void *data, stride_t xstride,
-                                 std::vector<unsigned char> &scratch)
+                                 std::vector<unsigned char> &scratch,
+                                 unsigned int dither,
+                                 int yorigin, int zorigin)
 {
     return to_native_rectangle (0, m_spec.width, 0, 1, 0, 1, format, data,
-                                xstride, 0, 0, scratch);
+                                xstride, 0, 0, scratch, dither,
+                                m_spec.x, yorigin, zorigin);
 }
 
 
@@ -248,11 +251,14 @@ ImageOutput::to_native_scanline (TypeDesc format,
 const void *
 ImageOutput::to_native_tile (TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride,
-                             std::vector<unsigned char> &scratch)
+                             std::vector<unsigned char> &scratch,
+                             unsigned int dither,
+                             int xorigin, int yorigin, int zorigin)
 {
     return to_native_rectangle (0, m_spec.tile_width, 0, m_spec.tile_height,
                                 0, std::max(1,m_spec.tile_depth), format, data,
-                                xstride, ystride, zstride, scratch);
+                                xstride, ystride, zstride, scratch,
+                                dither, xorigin, yorigin, zorigin);
 }
 
 
@@ -262,7 +268,9 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                                   int zbegin, int zend,
                                   TypeDesc format, const void *data,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
-                                  std::vector<unsigned char> &scratch)
+                                  std::vector<unsigned char> &scratch,
+                                  unsigned int dither,
+                                  int xorigin, int yorigin, int zorigin)
 {
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format, if specified when the file was opened.
@@ -368,16 +376,32 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
         // Already in float format -- leave it as-is.
         buf = (float *)data;
     } else {
-        // Convert to from 'format' to float.
+        // Convert from 'format' to float.
         buf = convert_to_float (data, (float *)&scratch[contiguoussize],
                                 rectangle_values, format);
     }
-    
+
+    if (dither && format.is_floating_point() &&
+            m_spec.format.basetype == TypeDesc::UINT8) {
+        float *ditherarea = (float *)&scratch[contiguoussize];
+        stride_t pixelsize = m_spec.nchannels * sizeof(float);
+        if (buf != ditherarea) {
+            // Need to make a copy for dither so we don't destroy user's data.
+            OIIO::copy_image (m_spec.nchannels, width, height, depth,
+                              buf, pixelsize, pixelsize, pixelsize*width,
+                              pixelsize*width*height, ditherarea,
+                              pixelsize, pixelsize*width, pixelsize*width*height);
+            buf = ditherarea;
+        }
+        OIIO::add_dither (m_spec.nchannels, width, height, depth, ditherarea,
+                          pixelsize, pixelsize*width, pixelsize*width*height,
+                          1.0f/255.0f, m_spec.alpha_channel, m_spec.z_channel,
+                          dither, 0, xorigin, yorigin, zorigin);
+    }
+
     // Convert from float to native format.
     return parallel_convert_from_float (buf, &scratch[contiguoussize+floatsize], 
-                       rectangle_values, m_spec.quant_black, m_spec.quant_white,
-                       m_spec.quant_min, m_spec.quant_max,
-                       m_spec.format);
+                                        rectangle_values, m_spec.format);
 }
 
 

@@ -107,6 +107,7 @@ Oiiotool::clear_options ()
     output_adjust_time = false;
     output_autocrop = true;
     output_autotrim = false;
+    output_dither = false;
     diff_warnthresh = 1.0e-6f;
     diff_warnpercent = 0;
     diff_hardwarn = std::numeric_limits<float>::max();
@@ -346,7 +347,8 @@ string_to_dataformat (const std::string &s, TypeDesc &dataformat, int &bits)
 
 
 static void
-adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
+adjust_output_options (string_ref filename,
+                       ImageSpec &spec, const Oiiotool &ot,
                        bool format_supports_tiles)
 {
     if (ot.output_dataformat != TypeDesc::UNKNOWN) {
@@ -411,6 +413,13 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot,
     std::string software = Strutil::format ("OpenImageIO %s : %s",
                                    OIIO_VERSION_STRING, ot.full_command_line);
     spec.attribute ("Software", software);
+
+    if (ot.output_dither) {
+        int h = (int) Strutil::strhash(filename);
+        if (!h)
+            h = 1;
+        spec.attribute ("oiio:dither", h);
+    }
 }
 
 
@@ -510,7 +519,7 @@ output_file (int argc, const char *argv[])
     std::vector<ImageSpec> subimagespecs (ir->subimages());
     for (int s = 0;  s < ir->subimages();  ++s) {
         ImageSpec spec = *ir->spec(s,0);
-        adjust_output_options (spec, ot, supports_tiles);
+        adjust_output_options (filename, spec, ot, supports_tiles);
         // For deep files, must copy the native deep channelformats
         if (spec.deep)
             spec.channelformats = (*ir)(s,0).nativespec().channelformats;
@@ -535,7 +544,7 @@ output_file (int argc, const char *argv[])
     for (int s = 0, send = ir->subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
             ImageSpec spec = *ir->spec(s,m);
-            adjust_output_options (spec, ot, supports_tiles);
+            adjust_output_options (filename, spec, ot, supports_tiles);
             if (s > 0 || m > 0) {  // already opened first subimage/level
                 if (! out->open (filename, spec, mode)) {
                     std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
@@ -3270,6 +3279,7 @@ getargs (int argc, char *argv[])
                     "Output tiled images (tilewidth, tileheight)",
                 "--compression %s", &ot.output_compression, "Set the compression method",
                 "--quality %d", &ot.output_quality, "Set the compression quality, 1-100",
+                "--dither", &ot.output_dither, "Add dither to 8-bit output",
                 "--planarconfig %s", &ot.output_planarconfig,
                     "Force planarconfig (contig, separate, default)",
                 "--adjust-time", &ot.output_adjust_time,

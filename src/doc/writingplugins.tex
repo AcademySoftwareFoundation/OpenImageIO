@@ -325,12 +325,13 @@ an \ImageInput implementation, which only needs to read scanlines or
 tiles in their native format and then have the super-class handle the
 translation.  But don't worry, all the heavy lifting can be accomplished
 with the following helper functions provided as protected member
-functions of \ImageOutput:
+functions of \ImageOutput that convert a scanline, tile, or rectangular
+array of values from one format to the native format(s) of the file.
 
-\apiitem{const void * {\ce to_native_scanline} (TypeDesc format,
-                                    const void *data, \\ \bigspc stride_t xstride,
-                                    std::vector<unsigned char>
-                                    \&scratch);}
+\apiitem{const void * {\ce to_native_scanline} (TypeDesc format, const void *data, \\
+                \bigspc stride_t xstride, std::vector<unsigned char> \&scratch, \\
+                                    \bigspc unsigned int dither=0,
+                                    int yorigin=0, int zorigin=0)}
 
 Convert a full scanline of pixels (pointed to by \emph{data}) with the
 given \emph{format} and strides into contiguous pixels in the native
@@ -344,10 +345,11 @@ caller doesn't need to worry about thread safety or freeing any
 allocated memory (other than eventually destroying the scratch vector).
 \apiend
 
-\apiitem{const void * {\ce to_native_tile} (TypeDesc format, const
-  void *data,\\ \bigspc
-                                stride_t xstride, stride_t ystride, stride_t zstride,\\ \bigspc
-                                std::vector<unsigned char> \&scratch);}
+\apiitem{const void * {\ce to_native_tile} (TypeDesc format, const void *data,\\
+                            \bigspc stride_t xstride, stride_t ystride, stride_t zstride,\\
+                            \bigspc std::vector<unsigned char> \&scratch,
+                            unsigned int dither=0, \\ \bigspc int xorigin=0,
+                             int yorigin=0, int zorigin=0)}
 
 Convert a full tile of pixels (pointed to by \emph{data}) with the given
 \emph{format} and strides into contiguous pixels in the native format
@@ -368,7 +370,9 @@ allocated memory (other than eventually destroying the scratch vector).
                                      *data, \\ \bigspc
                                      stride_t xstride, stride_t ystride,
                                      stride_t zstride, \\ \bigspc
-                                     std::vector<unsigned char> \&scratch);}
+                                     std::vector<unsigned char> \&scratch,
+                            unsigned int dither=0, \\ \bigspc int xorigin=0,
+                             int yorigin=0, int zorigin=0)}
 
 Convert a rectangle of pixels (pointed to by \emph{data}) with the given
 \emph{format}, dimensions, and strides into contiguous pixels in the
@@ -383,6 +387,14 @@ freeing any allocated memory (other than eventually destroying the
 scratch vector).
 
 \apiend
+
+For {\cf float} to 8 bit integer conversions only, if {\cf dither} parameter
+is nonzero, random dither will be added to reduce quantization banding
+artifacts; in this case, the specific nonzero {\cf dither} value is used as
+a seed for the hash function that produces the per-pixel dither amounts, and
+the optional {\cf origin} parameters help it to align the pixels to the
+right position in the dither pattern.
+
 
 \bigskip
 \bigskip

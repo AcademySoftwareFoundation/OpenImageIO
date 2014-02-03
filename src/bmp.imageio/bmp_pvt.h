@@ -182,6 +182,8 @@ class BmpOutput : public ImageOutput {
     bmp_pvt::BmpFileHeader m_bmp_header;
     bmp_pvt::DibInformationHeader m_dib_header;
     fpos_t m_image_start;
+    unsigned int m_dither;
+
     void init (void) {
         m_scanline_size = 0;
         m_fd = NULL;

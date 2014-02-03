@@ -84,6 +84,35 @@ TypeDesc::basesize () const
     return basetype_size[basetype];
 }
 
+
+
+bool
+TypeDesc::is_floating_point () const
+{
+    static bool isfloat[] = {
+        0, // UNKNOWN
+        0, // VOID
+        0, // UCHAR
+        0, // CHAR
+        0, // USHORT
+        0, // SHORT
+        0, // UINT
+        0, // INT
+        0, // ULONGLONG
+        0, // LONGLONG
+        1, // HALF
+        1, // FLOAT
+        1, // DOUBLE
+        0, // STRING
+        0  // PTR
+    };
+    DASSERT (sizeof(isfloat)/sizeof(isfloat[0]) == TypeDesc::LASTBASE);
+    DASSERT (basetype < TypeDesc::LASTBASE);
+    return isfloat[basetype];
+}
+
+
+
 namespace {
 
 static const char * basetype_name[] = {

@@ -127,12 +127,6 @@ public:
     int z_channel;            ///< Index of depth channel, or -1 if not known
     bool deep;                ///< Contains deep data
 
-    // quantize is used for ImageOutput
-    int quant_black;          ///< quantization of black (0.0) level
-    int quant_white;          ///< quantization of white (1.0) level
-    int quant_min;            ///< quantization minimum clamp value
-    int quant_max;            ///< quantization maximum clamp value
-
     /// The above contains all the information that is likely needed for
     /// every image file, and common to all formats.  Rather than bloat
     /// this structure, customize it for new formats, or break back
@@ -159,11 +153,6 @@ public:
     /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
     /// and alpha_channel, based on the number of channels.
     void default_channel_names ();
-
-    /// Given quantization parameters, deduce a TypeDesc that can
-    /// be used without unacceptable loss of significant bits.
-    static TypeDesc format_from_quantize (int quant_black, int quant_white,
-                                          int quant_min, int quant_max);
 
     /// Return the number of bytes for each channel datum, assuming they
     /// are all stored using the data format given by this->format.
@@ -1083,25 +1072,36 @@ protected:
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
-    /// (described by the 'spec' member variable), in contiguous order.
-    /// This requires a scratch space to be passed in so that there are
-    /// no memory leaks.  Returns a pointer to the native data, which may
-    /// be the original data if it was already in native format and
-    /// contiguous, or it may point to the scratch space if it needed to
-    /// make a copy or do conversions.
+    /// (described by the 'spec' member variable), in contiguous order. This
+    /// requires a scratch space to be passed in so that there are no memory
+    /// leaks.  Returns a pointer to the native data, which may be the
+    /// original data if it was already in native format and contiguous, or
+    /// it may point to the scratch space if it needed to make a copy or do
+    /// conversions. For float->uint8 conversions only, if dither is
+    /// nonzero, random dither will be added to reduce quantization banding
+    /// artifacts; in this case, the specific nonzero dither value is used
+    /// as a seed for the hash function that produces the per-pixel dither
+    /// amounts, and the optional [xyz]origin parameters help it to align
+    /// the pixels to the right position in the dither pattern.
     const void *to_native_scanline (TypeDesc format,
                                     const void *data, stride_t xstride,
-                                    std::vector<unsigned char> &scratch);
+                                    std::vector<unsigned char> &scratch,
+                                    unsigned int dither=0,
+                                    int yorigin=0, int zorigin=0);
     const void *to_native_tile (TypeDesc format, const void *data,
                                 stride_t xstride, stride_t ystride,
                                 stride_t zstride,
-                                std::vector<unsigned char> &scratch);
+                                std::vector<unsigned char> &scratch,
+                                unsigned int dither=0,
+                                int xorigin=0, int yorigin=0, int zorigin=0);
     const void *to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                                      int zbegin, int zend,
                                      TypeDesc format, const void *data,
                                      stride_t xstride, stride_t ystride,
                                      stride_t zstride,
-                                     std::vector<unsigned char> &scratch);
+                                     std::vector<unsigned char> &scratch,
+                                     unsigned int dither=0,
+                                     int xorigin=0, int yorigin=0, int zorigin=0);
 
 protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
@@ -1199,11 +1199,6 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
                                       const char **output_extensions);
 
 
-/// Helper routine: quantize a value to an integer given the
-/// quantization parameters.
-OIIO_API int quantize (float value, int quant_black, int quant_white,
-                        int quant_min, int quant_max);
-
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's)
 /// Return true if ok, false if it didn't know how to do the
@@ -1229,13 +1224,13 @@ OIIO_API bool convert_types (TypeDesc src_type, const void *src,
 /// data.  Return true if ok, false if it didn't know how to do the
 /// conversion.
 OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
-                              const void *src, TypeDesc src_type,
-                              stride_t src_xstride, stride_t src_ystride,
-                              stride_t src_zstride,
-                              void *dst, TypeDesc dst_type,
-                              stride_t dst_xstride, stride_t dst_ystride,
-                              stride_t dst_zstride,
-                              int alpha_channel = -1, int z_channel = -1);
+                             const void *src, TypeDesc src_type,
+                             stride_t src_xstride, stride_t src_ystride,
+                             stride_t src_zstride,
+                             void *dst, TypeDesc dst_type,
+                             stride_t dst_xstride, stride_t dst_ystride,
+                             stride_t dst_zstride,
+                             int alpha_channel = -1, int z_channel = -1);
 
 /// A version of convert_image that will break up big jobs into multiple
 /// threads.
@@ -1249,6 +1244,18 @@ OIIO_API bool parallel_convert_image (
                stride_t dst_zstride,
                int alpha_channel=-1, int z_channel=-1, int nthreads=0);
 
+/// Add random [-theramplitude,ditheramplitude] dither to the color channels
+/// of the image.  Dither will not be added to the alpha or z channel.  The
+/// image origin and dither seed values allow a reproducible (or variable)
+/// dither pattern.
+OIIO_API void add_dither (int nchannels, int width, int height, int depth,
+                          float *data,
+                          stride_t xstride, stride_t ystride, stride_t zstride,
+                          float ditheramplitude,
+                          int alpha_channel = -1, int z_channel = -1,
+                          unsigned int ditherseed = 1,
+                          int chorigin=0, int xorigin=0,
+                          int yorigin=0, int zorigin=0);
 
 /// Helper routine for data conversion: Copy an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -1259,11 +1266,11 @@ OIIO_API bool parallel_convert_image (
 /// auto-computed assuming contiguous data.  Return true if ok, false if
 /// it didn't know how to do the conversion.
 OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
-                           const void *src, stride_t pixelsize,
-                           stride_t src_xstride, stride_t src_ystride,
-                           stride_t src_zstride,
-                           void *dst, stride_t dst_xstride,
-                           stride_t dst_ystride, stride_t dst_zstride);
+                          const void *src, stride_t pixelsize,
+                          stride_t src_xstride, stride_t src_ystride,
+                          stride_t src_zstride,
+                          void *dst, stride_t dst_xstride,
+                          stride_t dst_ystride, stride_t dst_zstride);
 
 /// Decode a raw Exif data block and save all the metadata in an
 /// ImageSpec.  Return true if all is ok, false if the exif block was

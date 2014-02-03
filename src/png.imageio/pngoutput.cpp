@@ -63,6 +63,7 @@ private:
     FILE *m_file;                     ///< Open image handle
     png_structp m_png;                ///< PNG read structure pointer
     png_infop m_info;                 ///< PNG image info structure pointer
+    unsigned int m_dither;
     int m_color_type;                 ///< PNG color model type
     bool m_convert_alpha;             ///< Do we deassociate alpha?
     float m_gamma;                    ///< Gamma to use for alpha conversion
@@ -174,9 +175,11 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
 
-
     PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext,
                          m_convert_alpha, m_gamma);
+
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
     return true;
 }
@@ -239,7 +242,8 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
     y -= m_spec.y;
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     if (data == origdata) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());

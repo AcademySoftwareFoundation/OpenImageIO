@@ -54,6 +54,7 @@ class Jpeg2000Output : public ImageOutput {
     FILE *m_file;
     opj_cparameters_t m_compression_parameters;
     opj_image_t *m_image;
+    unsigned int m_dither;
 
     void init (void)
     {
@@ -111,6 +112,9 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format (TypeDesc::UINT8);
 
+    m_dither = (m_spec.format == TypeDesc::UINT8) ?
+                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+
     m_file = Filesystem::fopen (m_filename, "wb");
     if (m_file == NULL) {
         error ("Unable to open file \"%s\"", m_filename.c_str());
@@ -134,7 +138,8 @@ Jpeg2000Output::write_scanline (int y, int z, TypeDesc format,
     }
 
     std::vector<uint8_t> scratch;
-    data = to_native_scanline (format, data, xstride, scratch);
+    data = to_native_scanline (format, data, xstride, scratch,
+                               m_dither, y, z);
     if (m_spec.format == TypeDesc::UINT8)
         write_scanline<uint8_t>(y, z, data);
     else

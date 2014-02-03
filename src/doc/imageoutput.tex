@@ -257,8 +257,7 @@ that requests a spec that stores data as 16-bit unsigned integers:
 
 \noindent Or, for an \ImageSpec that has already been
 constructed, you may reset its format using the {\kw set_format()}
-method (which also resets the various quantization fields of the
-spec to the defaults for the data format you have specified).  
+method.
 
 \begin{code}
         ImageSpec spec (...);
@@ -301,11 +300,6 @@ automatically:
 \noindent Note that \writescanline, \writetile, and {\cf
   write_rectangle} have a parameter that works in a corresponding
 manner.
-
-Please refer to Section~\ref{sec:imageoutput:quantization} for more
-information on how values are translated among the supported data
-formats by default, and how to change the formulas by specifying
-quantization in the \ImageSpec.
 
 
 \subsection{Data Strides}
@@ -703,16 +697,14 @@ integers.
 
 The conversion from floating-point formats to integer formats (or from
 higher to lower integer, which is done by first converting to float) is
-controlled by five fields within the \ImageSpec: {\cf
-  quant_black}, {\cf quant_white}, {\cf quant_min}, and {\cf quant_max}
-Float 0.0 maps to the integer value given by {\cf quant_black}, and
-float 1.0 maps to the integer value given by {\cf quant_white}. Finally,
-this result is truncated its integer value for final output.  Here is
+always done by rescaling the value so that $0.0$ maps to integer $0$ and $1.0$ to
+the maximum value representable by the integer type, then rounded to
+an integer value for final output.  Here is
 the code that implements this transformation ({\cf T} is the final
 output integer type):
 
 \begin{code}
-        float value = quant_black * (1 - input) + quant_white * input;
+        float value = quant_max * input;
         T output = (T) clamp ((int)(value + 0.5), quant_min, quant_max);
 \end{code}
 
@@ -728,20 +720,16 @@ quantization.
 \noindent Default quantization for each integer type is as follows:\\
 
 \smallskip
-\begin{tabular}{|l|r|r|r|r|r|}
+\begin{tabular}{|l|r|r|}
 \hline
-{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} & \\
+{\bf Data Format} & {\bf min} & {\bf max} \\
 \hline
-{\cf UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
-{\cf INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
-{\cf UINT16} & 0 &      65535 &     0 & 65535 & 0.5 \\
-{\cf INT16}  & 0 &      32767 & -32768 & 32767 & 0.5 \\
-{\cf UINT}   & 0 & 4294967295 & 0 & 4294967295 & 0.5 \\
-{\cf INT}    & 0 & 2147483647 & -2147483648 & 2147483647 & 0.5 \\
-\hline
-{\cf FLOAT} & & & & & \\
-{\cf HALF} & 0 & 1 & N/A & N/A & 0 \\
-{\cf DOUBLE} & & & & & \\
+{\cf UINT8}  &           0 &        255 \\
+{\cf INT8}   &        -128 &        127 \\
+{\cf UINT16} &           0 &      65535 \\
+{\cf INT16}  &      -32768 &      32767 \\
+{\cf UINT}   &           0 & 4294967295 \\
+{\cf INT}    & -2147483648 & 2147483647 \\
 \hline
 \end{tabular} \\
 \smallskip
@@ -751,19 +739,17 @@ of each integer type to represent the floating-point (0..1) range.
 Floating-point types do not attempt to remap values,
 and do not clamp (except to their full floating-point range).
 
-The default will almost always be what you want.  But just as an
-example, here's how you would specify a quantization for a 16-bit file
-in which 1.0 maps to 16383 (14 bits of positive range) rather than
-filling the full 16 bit:
+\NEW %1.4
 
-\begin{code}
-        ImageSpec spec (width, length, channels, TypeDesc::UINT16);
-        spec.quant_black  = 0;
-        spec.quant_white  = 16383;
-        spec.quant_min    = 0;
-        spec.quant_max    = 16383;
-\end{code}
-
+The \qkw{oiio:dither} attribute in the \ImageSpec is used to signal  the
+desire for dithering when writing {\cf float} data to a {\cf uint8} file.
+Dithering can reduce visible banding when converting continuous float data
+to low bit depth integer images. The attribute is an integer, and if 0 (the
+default), it means not to dither. If nonzero, it requests that the results
+are dithered prior to quantization, and the specific nonzero value acts as a
+``seed'' to the hash function that determines the per-pixel dither values
+(two images using the same seed will have the same dither pattern, different
+seeds will yield different dither patterns).
 
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}

@@ -43,6 +43,7 @@
 #include "fmath.h"
 
 #include "imageio.h"
+#include "imageio_pvt.h"
 #include <pugixml.hpp>
 
 
@@ -52,18 +53,13 @@ OIIO_NAMESPACE_ENTER
 // Generate the default quantization parameters, templated on the data
 // type.
 template <class T>
-static void
-set_default_quantize (int &quant_black, int &quant_white,
-                      int &quant_min, int &quant_max)
+inline void
+get_default_quantize_ (int &quant_min, int &quant_max)
 {
     if (std::numeric_limits <T>::is_integer) {
-        quant_black  = 0;
-        quant_white  = (int) std::numeric_limits <T>::max();
         quant_min    = (int) std::numeric_limits <T>::min();
         quant_max    = (int) std::numeric_limits <T>::max();
     } else {
-        quant_black  = 0;
-        quant_white  = 0;
         quant_min    = 0;
         quant_max    = 0;
     }
@@ -71,58 +67,45 @@ set_default_quantize (int &quant_black, int &quant_white,
 
 
 
-// Given the format, set the default quantization parameters.
+// Given the format, set the default quantization range.
 // Rely on the template version to make life easy.
-static void
-set_default_quantize (TypeDesc format,
-                      int &quant_black, int &quant_white,
-                      int &quant_min, int &quant_max)
+void
+pvt::get_default_quantize (TypeDesc format, int &quant_min, int &quant_max)
 {
     switch (format.basetype) {
-    case TypeDesc::INT8:
-        set_default_quantize <char> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
     case TypeDesc::UNKNOWN:
     case TypeDesc::UINT8:
-        set_default_quantize <unsigned char> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
-    case TypeDesc::INT16:
-        set_default_quantize <short> (quant_black, quant_white,
-                                     quant_min, quant_max);
+        get_default_quantize_ <unsigned char> (quant_min, quant_max);
         break;
     case TypeDesc::UINT16:
-        set_default_quantize <unsigned short> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
-    case TypeDesc::INT:
-        set_default_quantize <int> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
-    case TypeDesc::UINT:
-        set_default_quantize <unsigned int> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
-    case TypeDesc::INT64:
-        set_default_quantize <long long> (quant_black, quant_white,
-                                     quant_min, quant_max);
-        break;
-    case TypeDesc::UINT64:
-        set_default_quantize <unsigned long long> (quant_black, quant_white,
-                                     quant_min, quant_max);
+        get_default_quantize_ <unsigned short> (quant_min, quant_max);
         break;
     case TypeDesc::HALF:
-        set_default_quantize <half> (quant_black, quant_white,
-                                     quant_min, quant_max);
+        get_default_quantize_ <half> (quant_min, quant_max);
         break;
     case TypeDesc::FLOAT:
-        set_default_quantize <float> (quant_black, quant_white,
-                                     quant_min, quant_max);
+        get_default_quantize_ <float> (quant_min, quant_max);
+        break;
+    case TypeDesc::INT8:
+        get_default_quantize_ <char> (quant_min, quant_max);
+        break;
+    case TypeDesc::INT16:
+        get_default_quantize_ <short> (quant_min, quant_max);
+        break;
+    case TypeDesc::INT:
+        get_default_quantize_ <int> (quant_min, quant_max);
+        break;
+    case TypeDesc::UINT:
+        get_default_quantize_ <unsigned int> (quant_min, quant_max);
+        break;
+    case TypeDesc::INT64:
+        get_default_quantize_ <long long> (quant_min, quant_max);
+        break;
+    case TypeDesc::UINT64:
+        get_default_quantize_ <unsigned long long> (quant_min, quant_max);
         break;
     case TypeDesc::DOUBLE:
-        set_default_quantize <double> (quant_black, quant_white,
-                                     quant_min, quant_max);
+        get_default_quantize_ <double> (quant_min, quant_max);
         break;
     default: ASSERT(0);
     }
@@ -161,44 +144,6 @@ void
 ImageSpec::set_format (TypeDesc fmt)
 {
     format = fmt;
-    set_default_quantize (fmt, quant_black, quant_white,
-                          quant_min, quant_max);
-}
-
-
-
-TypeDesc
-ImageSpec::format_from_quantize (int quant_black, int quant_white,
-                                 int quant_min, int quant_max)
-{
-    if (quant_black == 0 && quant_white == 0 && 
-        quant_min == 0 && quant_max == 0) {
-        // Per RenderMan and Gelato heuristics, if all quantization
-        // values are zero, assume they want a float output.
-        return TypeDesc::FLOAT;
-    } else if (quant_min >= std::numeric_limits <unsigned char>::min() && 
-               quant_max <= std::numeric_limits <unsigned char>::max()) {
-        return TypeDesc::UINT8;
-    } else if (quant_min >= std::numeric_limits <char>::min() && 
-               quant_max <= std::numeric_limits <char>::max()) {
-        return TypeDesc::INT8;
-    } else if (quant_min >= std::numeric_limits <unsigned short>::min() && 
-               quant_max <= std::numeric_limits <unsigned short>::max()) {
-        return TypeDesc::UINT16;
-    } else if (quant_min >= std::numeric_limits <short>::min() && 
-               quant_max <= std::numeric_limits <short>::max()) {
-        return TypeDesc::INT16;
-    } else if (quant_min >= std::numeric_limits <int>::min() && 
-               quant_max <= std::numeric_limits <int>::max()) {
-        return TypeDesc::INT;
-    } else if (quant_min >= 0 && 
-               (unsigned int) quant_min >= std::numeric_limits <unsigned int>::min() && 
-               quant_max >= 0 &&
-               (unsigned int) quant_max <= std::numeric_limits <unsigned int>::max()) {
-        return TypeDesc::UINT;
-    } else {
-        return TypeDesc::UNKNOWN;
-    }
 }
 
 

@@ -68,6 +68,7 @@ private:
     float m_gamma;                    ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     int m_idlen;                      ///< Length of the TGA ID block
+    unsigned int m_dither;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -169,7 +170,6 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
-    m_spec.set_format (TypeDesc::UINT8);  // TARGA only supports 8 bits
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
@@ -198,6 +198,7 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 
     // Force 8 bit integers
     m_spec.set_format (TypeDesc::UINT8);
+    m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 
     // check if the client wants the image to be run length encoded
     // currently only RGB RLE is supported
@@ -543,7 +544,8 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
 {
     y -= m_spec.y;
     m_spec.auto_stride (xstride, format, spec().nchannels);
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch,
+                               m_dither, y, z);
     if (m_scratch.empty() || data != &m_scratch[0]) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
