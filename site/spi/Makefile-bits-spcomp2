@@ -19,7 +19,7 @@ $(info Including spi/Makefile-bits-spcomp2)
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=34
+OPENIMAGEIO_SPCOMP2_VERSION=35
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
