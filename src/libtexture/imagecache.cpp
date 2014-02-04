@@ -1625,7 +1625,7 @@ ImageCacheImpl::reset_stats ()
 
 
 bool
-ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
+ImageCacheImpl::attribute (string_ref name, TypeDesc type,
                            const void *val)
 {
     bool do_invalidate = false;
@@ -1764,7 +1764,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 
 
 bool
-ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
+ImageCacheImpl::getattribute (string_ref name, TypeDesc type,
                               void *val)
 {
 #define ATTR_DECODE(_name,_ctype,_src)                                  \

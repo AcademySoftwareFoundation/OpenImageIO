@@ -289,7 +289,7 @@ ImageSpec::image_bytes (bool native) const
 
 
 void
-ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
+ImageSpec::attribute (string_ref name, TypeDesc type, const void *value)
 {
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
@@ -304,56 +304,54 @@ ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
 
 template <class T>
 static void
-parse_elements (const std::string &name, TypeDesc type, const std::string &type_code,
-     const std::string &elements, int num_elements, ImageIOParameter &param)
+parse_elements (string_ref name, TypeDesc type, const char *type_code,
+                string_ref value, ImageIOParameter &param)
 {
-    void *data = new T[num_elements];
-    char *data_ptr = (char *) data;
-    size_t element_size = type.elementtype().elementsize ();
-
-    boost::char_separator<char> sep (", ");
-    boost::tokenizer<boost::char_separator<char> > tokens (elements, sep);
-    BOOST_FOREACH (std::string element, tokens) {
-        sscanf (element.c_str (), type_code.c_str (), (T *)data_ptr);
-        data_ptr += element_size;
+    int num_items = type.numelements() * type.aggregate;
+    T *data = (T*) param.data();
+    // Erase any leading whitespace
+    value.remove_prefix (value.find_first_not_of (" \t"));
+    for (int i = 0;  i < num_items;  ++i) {
+        // Make a temporary copy so we for sure have a 0-terminated string.
+        std::string temp = value;
+        // Grab the first value from it
+        sscanf (temp.c_str(), type_code, &data[i]);
+        // Skip the value (eat until we find a delimiter -- space, comma, tab)
+        value.remove_prefix (value.find_first_of (" ,\t"));
+        // Skip the delimiter
+        value.remove_prefix (value.find_first_not_of (" ,\t"));
+        if (value.empty())
+            break;   // done if nothing left to parse
     }
-
-    param.init (name, type, num_elements/type.numelements (), data, true);
-    delete [] (T *) data;
 }
 
 
 
 void
-ImageSpec::attribute (const std::string &name, TypeDesc type, const std::string &value)
+ImageSpec::attribute (string_ref name, TypeDesc type, string_ref value)
 {
-    ImageIOParameter param;
-    size_t num_elements = std::count (value.begin (), value.end (), ',') + 1;
-    TypeDesc elem_type = type.elementtype();
+    ImageIOParameter param (name, type, 1, NULL);
+    TypeDesc::BASETYPE basetype = (TypeDesc::BASETYPE)type.basetype;
 
-    if (elem_type == TypeDesc::INT || elem_type == TypeDesc::INT16) {
-        parse_elements<int> (name, type, "%d", value, num_elements, param);
-    } else if (elem_type == TypeDesc::UINT || elem_type == TypeDesc::UINT16) {
-        parse_elements<unsigned int> (name, type, "%d", value, num_elements, param);
-    } else if (elem_type == TypeDesc::FLOAT) {
-        parse_elements<float> (name, type, "%g", value, num_elements, param);
-    } else if (elem_type == TypeDesc::DOUBLE) {
-        parse_elements<double> (name, type, "%g", value, num_elements, param);
-    } else if (elem_type == TypeDesc::INT64) {
-        parse_elements<long long> (name, type, "%lld", value, num_elements, param);
-    } else if (elem_type == TypeDesc::UINT64) {
-        parse_elements<unsigned long long> (name, type, "%llu", value, num_elements, param);
-    } else if (elem_type == TypeDesc::TypeMatrix) {
-        ImageIOParameter tmp_param;
-        num_elements = std::count (value.begin (), value.end (), ' ') + 1;
-        TypeDesc tmp_type = TypeDesc (TypeDesc::FLOAT, 16);
-        parse_elements <float> (name, tmp_type, "%g", value, num_elements, tmp_param);
-        param.init (name, TypeDesc::TypeMatrix, num_elements/16, tmp_param.data());
-    } else if (elem_type == TypeDesc::STRING) {
-        // Remove quotation marks.
-        std::string tmp_value = value.substr (1, value.length () - 2);
-        const char *value_data = tmp_value.data ();
-        param.init (name, TypeDesc::TypeString, 1, &value_data);
+    if (basetype == TypeDesc::INT) {
+        parse_elements<int> (name, type, "%d", value, param);
+    } else if (basetype == TypeDesc::UINT) {
+        parse_elements<unsigned int> (name, type, "%u", value, param);
+    } else if (basetype == TypeDesc::FLOAT) {
+        parse_elements<float> (name, type, "%f", value, param);
+    } else if (basetype == TypeDesc::DOUBLE) {
+        parse_elements<double> (name, type, "%lf", value, param);
+    } else if (basetype == TypeDesc::INT64) {
+        parse_elements<long long> (name, type, "%lld", value, param);
+    } else if (basetype == TypeDesc::UINT64) {
+        parse_elements<unsigned long long> (name, type, "%llu", value, param);
+    } else if (basetype == TypeDesc::INT16) {
+        parse_elements<short> (name, type, "%hd", value, param);
+    } else if (basetype == TypeDesc::UINT16) {
+        parse_elements<unsigned short> (name, type, "%hu", value, param);
+    } else if (type == TypeDesc::STRING) {
+        ustring s (value);
+        param.init (name, TypeDesc::TypeString, 1, &s);
     }
 
     // Don't allow duplicates
@@ -420,7 +418,7 @@ get_attribute_const_iterator (const ImageIOParameterList & attribs,
 }
 
 void
-ImageSpec::erase_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::erase_attribute (string_ref name, TypeDesc searchtype,
                             bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -431,7 +429,7 @@ ImageSpec::erase_attribute (const std::string &name, TypeDesc searchtype,
 }
 
 ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
                            bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -446,7 +444,7 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 const ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
                            bool casesensitive) const
 {
     ImageIOParameterList::const_iterator iter = \
@@ -461,7 +459,7 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 int
-ImageSpec::get_int_attribute (const std::string &name, int val) const
+ImageSpec::get_int_attribute (string_ref name, int val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -488,7 +486,7 @@ ImageSpec::get_int_attribute (const std::string &name, int val) const
 
 
 float
-ImageSpec::get_float_attribute (const std::string &name, float val) const
+ImageSpec::get_float_attribute (string_ref name, float val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -504,13 +502,12 @@ ImageSpec::get_float_attribute (const std::string &name, float val) const
 
 
 
-std::string
-ImageSpec::get_string_attribute (const std::string &name,
-                                 const std::string &val) const
+string_ref
+ImageSpec::get_string_attribute (string_ref name, string_ref val) const
 {
     const ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
     if (p)
-        return std::string (*(const char **)p->data());
+        return *(ustring *)p->data();
     else return val;
 }
 

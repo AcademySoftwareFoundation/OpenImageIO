@@ -156,42 +156,34 @@ void test_imagespec_attribute_from_string ()
     TypeDesc type = TypeDesc::TypeInt;
     std::string ret, data, invalid_data;
 
-    data = "1, 2, 3, 4, 5, 6";
+    data = "142";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
 
     type = TypeDesc::TypeFloat;
+    data = "1.23";
+    attribute_test (data, type, ret);
+    OIIO_CHECK_EQUAL (ret, data);
+
+    type = TypeDesc(TypeDesc::FLOAT, 5);
     data = "1.23, 34.23, 35.11, 99.99, 1999.99";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
 
     type = TypeDesc::UINT64;
-    data = "18446744073709551615, 18446744073709551615";
+    data = "18446744073709551615";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
-    invalid_data = "18446744073709551615";
-    OIIO_CHECK_NE (ret, invalid_data);
-    invalid_data = "18446744073709551614, 18446744073709551615";
-    OIIO_CHECK_NE (ret, invalid_data);
-
-    type = TypeDesc::INT64;
-    data = "-1, 9223372036854775807";
-    attribute_test (data, type, ret);
-    OIIO_CHECK_EQUAL (ret, data);
-    invalid_data = "-1";
-    OIIO_CHECK_NE (ret, invalid_data);
 
     type = TypeDesc::TypeMatrix;
-    data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36";
+    data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
-    invalid_data = data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36";
-    OIIO_CHECK_NE (ret, invalid_data);
 
     type = TypeDesc::TypeString;
-    data = "\"imageParameter:param\"";
+    data = "foo";
     attribute_test (data, type, ret);
-    OIIO_CHECK_EQUAL (ret, data);
+    OIIO_CHECK_EQUAL (ret, "\"foo\"");
 }
 
 
