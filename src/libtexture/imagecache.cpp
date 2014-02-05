@@ -584,6 +584,14 @@ ImageCacheFile::init_from_spec ()
         if (found != std::string::npos)
             m_fingerprint = ustring (desc, found+strlen(prefix), 40);
     }
+    if (m_fingerprint) {
+        // If it looks like something other than OIIO wrote the file, forget
+        // the fingerprint, it probably is not accurate.
+        string_ref software = spec.get_string_attribute ("Software");
+        if (! Strutil::istarts_with (software, "OpenImageIO") &&
+            ! Strutil::istarts_with (software, "maketx"))
+            m_fingerprint.clear ();
+    }
 
     m_mod_time = Filesystem::last_write_time (m_filename.string());
 
