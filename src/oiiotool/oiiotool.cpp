@@ -420,6 +420,10 @@ adjust_output_options (string_ref filename,
             h = 1;
         spec.attribute ("oiio:dither", h);
     }
+
+    // Make sure we kill any pixel value hash that may have been in the
+    // input.
+    spec.erase_attribute ("oiio:SHA-1");
 }
 
 

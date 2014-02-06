@@ -202,6 +202,10 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         }
     }
 
+    // Since we're altering pixels, be sure that any existing SHA hash of
+    // dst's pixel values is erased.
+    dst->specmod().erase_attribute ("oiio:SHA-1");
+
     return true;
 }
 
