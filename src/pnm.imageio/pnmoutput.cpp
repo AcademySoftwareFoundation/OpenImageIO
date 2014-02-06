@@ -49,6 +49,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -56,6 +59,7 @@ private:
     unsigned int m_max_val, m_pnm_type;
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
+    std::vector<unsigned char> m_tilebuffer;
 };
 
 
@@ -195,6 +199,11 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     if (m_pnm_type != 1 && m_pnm_type != 4)  // only non-monochrome 
         m_file << m_max_val << std::endl;
 
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
+
     return m_file.good();
 }
 
@@ -203,6 +212,15 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNMOutput::close ()
 {
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_file.is_open())
         m_file.close();
     return true;  
@@ -253,6 +271,19 @@ PNMOutput::write_scanline (int y, int z, TypeDesc format,
 
     return m_file.good();
 }
+
+
+
+bool
+PNMOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

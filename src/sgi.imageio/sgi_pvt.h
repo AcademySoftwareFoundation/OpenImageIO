@@ -147,11 +147,15 @@ class SgiOutput : public ImageOutput {
     virtual bool close (void);
     virtual bool write_scanline (int y, int z, TypeDesc format, const void *data,
                                  stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
  private:
     FILE *m_fd;
     std::string m_filename;
     std::vector<unsigned char> m_scratch;
     unsigned int m_dither;
+    std::vector<unsigned char> m_tilebuffer;
 
     void init () {
         m_fd = NULL;

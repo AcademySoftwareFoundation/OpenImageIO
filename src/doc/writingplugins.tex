@@ -287,6 +287,14 @@ real-world example of writing a JPEG/JFIF plug-in.
       ``deep'' data images.
   \end{enumerate}
 
+  It is not strictly required, but certainly appreciated, if a file format
+  does not support tiles, to nonetheless accept an \ImageSpec that specifies
+  tile sizes by allocating a full-image buffer in {\cf open()}, providing an
+  implementation of {\cf write_tile()} that copies the tile of data to the
+  right spots in the buffer, and having {\cf close()} then call 
+  {\cf write_scanlines} to process the buffer now that the image has been
+  fully sent.
+
   Here is how the class definition looks for our JPEG example.  Note
   that the JPEG/JFIF file format does not support multiple subimages
   or tiled images.

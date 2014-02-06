@@ -59,6 +59,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -69,6 +72,7 @@ private:
     std::vector<unsigned char> m_scratch;
     int m_idlen;                      ///< Length of the TGA ID block
     unsigned int m_dither;
+    std::vector<unsigned char> m_tilebuffer;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -276,7 +280,6 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-
     // dump comment to file, don't bother about null termination
     if (tga.idlen) {
         if (!fwrite(id.c_str(), tga.idlen)) {
@@ -284,6 +287,11 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
             return false;
         }
     }
+
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
 
     return true;
 }
@@ -442,6 +450,14 @@ bool
 TGAOutput::close ()
 {
     bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_file) {
         ok &= write_tga20_data_fields ();
         // close the stream
@@ -697,6 +713,19 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+
+
+bool
+TGAOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

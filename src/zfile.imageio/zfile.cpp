@@ -99,12 +99,16 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;       ///< Stash the filename
     FILE *m_file;                 ///< Open image handle for not compresed
     gzFile m_gz;                  ///< Handle for compressed files
     std::vector<unsigned char> m_scratch;
+    std::vector<unsigned char> m_tilebuffer;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -274,7 +278,7 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     if (m_spec.nchannels != 1) {
-        error ("Zfile only supports 1-4 channels, not %d", m_spec.nchannels);
+        error ("Zfile only supports 1 channel, not %d", m_spec.nchannels);
         return false;
     }
 
@@ -300,7 +304,6 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 
     if (m_spec.get_string_attribute ("compression", "none") != std::string("none")) {
         FILE *fd = Filesystem::fopen (name, "wb");
-
         if (fd) {
             m_gz = gzdopen (fileno (fd), "wb");
             if (!m_gz)
@@ -324,6 +327,11 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
     	}
     }
 
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.this form
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
+
     return true;
 }
 
@@ -332,6 +340,15 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 ZfileOutput::close ()
 {
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_gz) {
         gzclose (m_gz);
         m_gz = 0;
@@ -342,7 +359,7 @@ ZfileOutput::close ()
     }
 
     init ();      // re-initialize
-    return true;  // How can we fail?
+    return ok;
 }
 
 
@@ -371,9 +388,21 @@ ZfileOutput::write_scanline (int y, int z, TypeDesc format,
         }
     }
 
-
     return true;
 }
+
+
+
+bool
+ZfileOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

@@ -76,6 +76,7 @@ public:
     bool output_autocrop;
     bool output_autotrim;
     bool output_dither;
+    bool output_force_tiles; // for debugging
 
     // Options for --diff
     float diff_warnthresh;

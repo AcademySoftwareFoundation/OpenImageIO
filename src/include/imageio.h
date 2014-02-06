@@ -1096,6 +1096,11 @@ protected:
                                      std::vector<unsigned char> &scratch,
                                      unsigned int dither=0,
                                      int xorigin=0, int yorigin=0, int zorigin=0);
+    /// Helper function to copy a tile of data into an image-sized buffer.
+    bool copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
+                                    const void *data, stride_t xstride,
+                                    stride_t ystride, stride_t zstride,
+                                    void *image_buffer);
 
 protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
