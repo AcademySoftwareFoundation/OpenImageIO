@@ -112,7 +112,9 @@ enum IBAprep_flags {
     IBAprep_DEFAULT = 0,
     IBAprep_REQUIRE_ALPHA = 1,
     IBAprep_REQUIRE_Z = 2,
-    IBAprep_REQUIRE_SAME_NCHANNELS = 4
+    IBAprep_REQUIRE_SAME_NCHANNELS = 4,
+    IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
+    IBAprep_COPY_ALL_METADATA = 512     // Even unsafe things
 };
 
 
