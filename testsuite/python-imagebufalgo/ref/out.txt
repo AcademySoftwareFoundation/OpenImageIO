@@ -28,7 +28,9 @@ Comparing "chappend-rgbaz.exr" and "../oiiotool/ref/chappend-rgbaz.exr"
 PASS
 Comparing "flat.exr" and "../oiiotool/ref/flat.exr"
 PASS
-Comparing "crop.tif" and "ref/crop.tif"
+Comparing "crop.tif" and "../oiiotool/ref/crop.tif"
+PASS
+Comparing "cut.tif" and "../oiiotool/ref/cut.tif"
 PASS
 Comparing "pasted.tif" and "../oiiotool/ref/pasted.tif"
 PASS

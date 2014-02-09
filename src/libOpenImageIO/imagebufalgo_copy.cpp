@@ -145,6 +145,26 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 
 
 
+bool 
+ImageBufAlgo::cut (ImageBuf &dst, const ImageBuf &src,
+                   ROI roi, int nthreads)
+{
+    bool ok = crop (dst, src, roi, nthreads);
+    ASSERT(ok);
+    if (! ok)
+        return false;
+    // Crop did the heavy lifting of copying the roi of pixels from src to
+    // dst, but now we need to make it look like we cut that rectangle out
+    // and repositioned it at the origin.
+    dst.specmod().x = 0;
+    dst.specmod().y = 0;
+    dst.specmod().z = 0;
+    dst.set_roi_full (dst.roi());
+    return true;
+}
+
+
+
 template<class D, class S>
 static bool
 flip_ (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)

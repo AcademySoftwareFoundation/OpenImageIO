@@ -111,6 +111,16 @@ command += (oiio_app ("oiiotool") + " "
             + " --histogram:cumulative=1 256x256 0 "
             + "-o histogram_cumulative.tif >> out.txt ;\n")
 
+# test --crop
+command += (oiio_app("oiiotool")
+            + parent + "/oiio-images/grid.tif "
+            + "--crop 100x400+50+200 -o crop.tif ;\n")
+
+# test --cut
+command += (oiio_app("oiiotool")
+            + parent + "/oiio-images/grid.tif "
+            + "--cut 100x400+50+200 -o cut.tif ;\n")
+
 # test paste
 command += (oiio_app("oiiotool")
             + parent + "/oiio-images/grid.tif "
@@ -252,7 +262,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
-            "pasted.tif", "mosaic.tif",
+            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
             "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",

@@ -25,7 +25,7 @@ command += "python test_imagebufalgo.py > out.txt ;"
 for f in [ "black.tif", "filled.tif", "checker.tif",
            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
            "chappend-rgbaz.exr", "flat.exr",
-           "crop.tif", "pasted.tif",
+           "crop.tif", "cut.tif", "pasted.tif",
            "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
            "cshift.tif", "cadd1.exr", "cadd2.exr", "add.exr", "sub.exr",
            "cmul1.exr", "cmul2.exr", "cpow1.exr", "cpow2.exr",
