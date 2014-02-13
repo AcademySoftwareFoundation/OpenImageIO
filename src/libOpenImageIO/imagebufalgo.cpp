@@ -33,6 +33,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/regex.hpp>
 
 #include <OpenEXR/half.h>
 
@@ -175,6 +176,20 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             set_roi_full (spec, full_roi);
         else
             set_roi_full (spec, roi);
+
+        if (prepflags & IBAprep_NO_COPY_METADATA)
+            spec.extra_attribs.clear();
+        else if (! (prepflags & IBAprep_COPY_ALL_METADATA)) {
+            // Since we're altering pixels, be sure that any existing SHA
+            // hash of dst's pixel values is erased.
+            spec.erase_attribute ("oiio:SHA-1");
+            static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
+            std::string desc = spec.get_string_attribute ("ImageDescription");
+            if (desc.size())
+                spec.attribute ("ImageDescription",
+                                boost::regex_replace (desc, regex_sha, ""));
+        }
+
         dst->alloc (spec);
     }
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
@@ -201,10 +216,6 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             return false;
         }
     }
-
-    // Since we're altering pixels, be sure that any existing SHA hash of
-    // dst's pixel values is erased.
-    dst->specmod().erase_attribute ("oiio:SHA-1");
 
     return true;
 }

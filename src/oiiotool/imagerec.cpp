@@ -42,6 +42,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 using boost::algorithm::iequals;
 
@@ -232,6 +233,7 @@ ImageRec::read ()
     if (elaborated())
         return true;
     static ustring u_subimages("subimages"), u_miplevels("miplevels");
+    static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
     int subimages = 0;
     ustring uname (name());
     if (! m_imagecache->get_image_info (uname, 0, 0, u_subimages,
@@ -262,6 +264,13 @@ ImageRec::read ()
             bool ok = ib->read (s, m, forceread,
                                 TypeDesc::FLOAT /* force float */);
             allok &= ok;
+            // Remove any existing SHA-1 hash from the spec.
+            ib->specmod().erase_attribute ("oiio:SHA-1");
+            std::string desc = ib->spec().get_string_attribute ("ImageDescription");
+            if (desc.size())
+                ib->specmod().attribute ("ImageDescription",
+                                         boost::regex_replace (desc, regex_sha, ""));
+
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = ib->spec();
             // For ImageRec purposes, we need to restore a few of the
