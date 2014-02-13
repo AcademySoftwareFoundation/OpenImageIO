@@ -48,6 +48,9 @@ class WebpOutput : public ImageOutput
     virtual bool supports (const std::string &property) const { return false; }
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
     virtual bool close();
 
  private:
@@ -176,17 +179,39 @@ WebpOutput::write_scanline (int y, int z, TypeDesc format,
 }
 
 
+
+bool
+WebpOutput::write_tile (int x, int y, int z, TypeDesc format,
+                        const void *data, stride_t xstride,
+                        stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_uncompressed_image[0]);
+}
+
+
+
 bool
 WebpOutput::close()
 {
-    if (m_file)
-    {
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_uncompressed_image.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_uncompressed_image[0]);
+        std::vector<uint8_t>().swap (m_uncompressed_image);
+    }
+
+    if (m_file) {
         WebPPictureFree(&m_webp_picture);
         fclose(m_file);
         m_file = NULL;
     }
     return true;
 }
+
 
 } // namespace webp_pvt
 

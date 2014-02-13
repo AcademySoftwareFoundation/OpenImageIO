@@ -108,6 +108,7 @@ Oiiotool::clear_options ()
     output_autocrop = true;
     output_autotrim = false;
     output_dither = false;
+    output_force_tiles = false;
     diff_warnthresh = 1.0e-6f;
     diff_warnpercent = 0;
     diff_hardwarn = std::numeric_limits<float>::max();
@@ -477,7 +478,7 @@ output_file (int argc, const char *argv[])
         return 0;
     }
     bool supports_displaywindow = out->supports ("displaywindow");
-    bool supports_tiles = out->supports ("tiles");
+    bool supports_tiles = out->supports ("tiles") || ot.output_force_tiles;
     ot.read ();
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir (ot.curimg);
@@ -3281,6 +3282,7 @@ getargs (int argc, char *argv[])
                 "--scanline", &ot.output_scanline, "Output scanline images",
                 "--tile %@ %d %d", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
                     "Output tiled images (tilewidth, tileheight)",
+                "--force-tiles", &ot.output_force_tiles, "", // undocumented
                 "--compression %s", &ot.output_compression, "Set the compression method",
                 "--quality %d", &ot.output_quality, "Set the compression quality, 1-100",
                 "--dither", &ot.output_dither, "Add dither to 8-bit output",

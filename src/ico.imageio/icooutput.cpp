@@ -58,6 +58,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -70,6 +73,7 @@ private:
     int m_and_slb;                    ///< AND mask scanline length in bytes
     int m_bpp;                        ///< Bits per pixel
     unsigned int m_dither;
+    std::vector<unsigned char> m_tilebuffer;
 
     png_structp m_png;                ///< PNG read structure pointer
     png_infop m_info;                 ///< PNG image info structure pointer
@@ -351,7 +355,6 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-
     fseek (m_file, m_offset, SEEK_SET);
     if (m_want_png) {
         // unused still, should do conversion to unassociated
@@ -398,6 +401,11 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         fseek (m_file, m_offset + sizeof (bmi), SEEK_SET);
     }
 
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
+
     return true;
 }
 
@@ -417,7 +425,15 @@ ICOOutput::supports (const std::string &feature) const
 bool
 ICOOutput::close ()
 {
-    //std::cerr << "[ico] closing\n";
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_png && m_info) {
         PNG_pvt::finish_image (m_png);
         PNG_pvt::destroy_write_struct (m_png, m_info);
@@ -428,8 +444,7 @@ ICOOutput::close ()
     }
 
     init ();      // re-initialize
-    return true;  // How can we fail?
-                  // Epicly. -- IneQuation
+    return ok;
 }
 
 
@@ -529,6 +544,19 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+
+
+bool
+ICOOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

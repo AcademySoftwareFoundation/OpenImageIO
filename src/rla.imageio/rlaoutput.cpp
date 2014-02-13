@@ -64,6 +64,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -72,6 +75,7 @@ private:
     RLAHeader m_rla;                  ///< Wavefront RLA header
     std::vector<uint32_t> m_sot;      ///< Scanline offset table
     std::vector<unsigned char> m_rle; ///< Run record buffer for RLE
+    std::vector<unsigned char> m_tilebuffer;
     unsigned int m_dither;
 
     // Initialize private members to pre-opened state
@@ -367,7 +371,12 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // zeroes upon seek
     m_sot.resize (m_spec.height, (int32_t)0);
     write (&m_sot[0], m_sot.size());
-    
+
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
+
     return true;
 }
 
@@ -398,6 +407,15 @@ RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
 bool
 RLAOutput::close ()
 {
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_file) {
         // Now that all scanlines ahve been output, return to write the
         // correct scanline offset table to file.
@@ -410,8 +428,7 @@ RLAOutput::close ()
     }
     
     init ();      // re-initialize
-    return true;  // How can we fail?
-                  // Epicly. -- IneQuation
+    return ok;
 }
 
 
@@ -544,6 +561,19 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+
+
+bool
+RLAOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

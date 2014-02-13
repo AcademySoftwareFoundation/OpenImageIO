@@ -57,6 +57,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -69,6 +72,7 @@ private:
     float m_gamma;                    ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
+    std::vector<unsigned char> m_tilebuffer;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -181,6 +185,11 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     m_dither = (m_spec.format == TypeDesc::UINT8) ?
                     m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
+    // If user asked for tiles -- which this format doesn't support, emulate
+    // it by buffering the whole image.
+    if (m_spec.tile_width && m_spec.tile_height)
+        m_tilebuffer.resize (m_spec.image_bytes());
+
     return true;
 }
 
@@ -189,6 +198,15 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNGOutput::close ()
 {
+    bool ok = true;
+    if (m_spec.tile_width) {
+        // We've been emulating tiles; now dump as scanlines.
+        ASSERT (m_tilebuffer.size());
+        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                               m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap (m_tilebuffer);
+    }
+
     if (m_png)
         PNG_pvt::finish_image (m_png);
     PNG_pvt::destroy_write_struct (m_png, m_info);
@@ -199,7 +217,7 @@ PNGOutput::close ()
     }
 
     init ();      // re-initialize
-    return true;  // How can we fail?
+    return ok;
 }
 
 
@@ -273,6 +291,19 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+
+
+bool
+PNGOutput::write_tile (int x, int y, int z, TypeDesc format,
+                       const void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride)
+{
+    // Emulate tiles by buffering the whole image
+    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
+                                      ystride, zstride, &m_tilebuffer[0]);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

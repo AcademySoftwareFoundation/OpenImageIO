@@ -143,6 +143,9 @@ class FitsOutput : public ImageOutput {
     virtual bool close (void);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
 
  private:
     FILE *m_fd;
@@ -152,6 +155,8 @@ class FitsOutput : public ImageOutput {
     bool m_simple; // does the header with SIMPLE key was written?
     std::vector<unsigned char> m_scratch;
     std::string m_sep;
+    std::vector<unsigned char> m_tilebuffer;
+
     void init (void) {
         m_fd = NULL;
         m_filename.clear ();

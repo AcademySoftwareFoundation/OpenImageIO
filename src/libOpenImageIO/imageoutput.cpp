@@ -521,5 +521,62 @@ ImageOutput::copy_image (ImageInput *in)
     return ok;
 }
 
+
+
+bool
+ImageOutput::copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
+                                        const void *data, stride_t xstride,
+                                        stride_t ystride, stride_t zstride,
+                                        void *image_buffer)
+{
+    if (! m_spec.tile_width || ! m_spec.tile_height) {
+        error ("Called write_tile for non-tiled image.");
+        return false;
+    }
+
+    const ImageSpec &spec (this->spec());
+    spec.auto_stride (xstride, ystride, zstride, format, spec.nchannels,
+                        spec.tile_width, spec.tile_height);
+    stride_t buf_xstride = spec.pixel_bytes();
+    stride_t buf_ystride = spec.scanline_bytes();
+    stride_t buf_zstride = spec.scanline_bytes() * spec.height;
+    stride_t offset = (x-spec.x)*buf_xstride 
+                    + (y-spec.y)*buf_ystride
+                    + (z-spec.z)*buf_zstride;
+    int xend = std::min (x+spec.tile_width,  spec.x+spec.width);
+    int yend = std::min (y+spec.tile_height, spec.y+spec.height);
+    int zend = std::min (z+spec.tile_depth,  spec.z+spec.depth);
+    int width = xend-x, height = yend-y, depth = zend-z;
+
+    // Add dither if requested -- requires making a temporary staging area
+    boost::scoped_array<float> ditherarea;
+    unsigned int dither = spec.get_int_attribute ("oiio:dither", 0);
+    if (dither && format.is_floating_point() &&
+            spec.format.basetype == TypeDesc::UINT8) {
+        stride_t pixelsize = spec.nchannels * sizeof(float);
+        ditherarea.reset (new float [pixelsize * spec.tile_pixels()]);
+        OIIO::convert_image (spec.nchannels, width, height, depth,
+                             data, format, xstride, ystride, zstride,
+                             ditherarea.get(), TypeDesc::FLOAT,
+                             pixelsize, pixelsize*spec.tile_width,
+                             pixelsize*spec.tile_width*spec.tile_height);
+        data = ditherarea.get();
+        format = TypeDesc::FLOAT;
+        xstride = pixelsize;
+        ystride = xstride * spec.tile_width;
+        zstride = ystride * spec.tile_height;
+        OIIO::add_dither (spec.nchannels, width, height, depth, (float *)data,
+                          pixelsize, pixelsize*width, pixelsize*width*height,
+                          1.0f/255.0f, spec.alpha_channel, spec.z_channel,
+                          dither, 0, x, y, z);
+    }
+
+    return OIIO::convert_image (spec.nchannels, width, height, depth,
+                                data, format, xstride, ystride, zstride,
+                                (char *)image_buffer + offset, spec.format,
+                                buf_xstride, buf_ystride, buf_zstride);
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

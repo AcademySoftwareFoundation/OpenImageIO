@@ -105,20 +105,6 @@ bool
 DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                  OpenMode mode)
 {
-    if (mode != Create) {
-        error ("%s does not support subimages or MIP levels", format_name());
-        return false;
-    }
-
-    close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
-
-    m_file = Filesystem::fopen (name, "wb");
-    if (! m_file) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
-
     error ("DDS writing is not supported yet, please poke Leszek in the "
         "mailing list");
     return false;
@@ -129,15 +115,7 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 DDSOutput::close ()
 {
-    if (m_file) {
-        // close the stream
-        fclose (m_file);
-        m_file = NULL;
-    }
-
-    init ();      // re-initialize
-    return true;  // How can we fail?
-                  // Epicly. -- IneQuation
+    return false;
 }
 
 
@@ -146,7 +124,7 @@ bool
 DDSOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
 {
-    return true;
+    return false;
 }
 
 OIIO_PLUGIN_NAMESPACE_END
