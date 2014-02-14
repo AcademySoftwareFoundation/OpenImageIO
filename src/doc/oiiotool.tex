@@ -1161,12 +1161,37 @@ The size is in the form
     {\cf --crop 100x120+35+40}  &      resolution w=100, h=120, offset x=35, y=40 \\
     {\cf --crop 35,40,134,159}  &      resolution w=100, h=120, offset x=35, y=40
 \end{tabular}
+
+Note that {\cf crop} does not \emph{reposition} pixels, it only trims or
+pads to reset the image's pixel data window to the specified region.
 \apiend
 
 \apiitem{--croptofull}
-Replace the current image with a new image that is ropped or padded
+Replace the current image with a new image that is cropped or padded
 as necessary to make the pixel data window exactly cover
 the full/display window.
+\apiend
+
+\apiitem{--cut {\rm \emph{size}}}
+\NEW % 1.4
+Replace the current image with a new copy with the given \emph{size},
+cropping old pixels no longer needed, padding black pixels where they
+previously did not exist in the old image, repositioning the cut region
+at the image origin (0,0) and resetting the full/display window to be
+identical to the new pixel data window.  (In other words, {\cf --cut}
+is equavalent to {\cf --crop} followed by {\cf --origin +0+0 --fullpixels}.)
+
+The size is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset}
+\\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --cut 100x120+35+40}  &      resolution w=100, h=120, offset x=35, y=40 \\
+    {\cf --cut 35,40,134,159}  &      resolution w=100, h=120, offset x=35, y=40
+\end{tabular}
 \apiend
 
 \apiitem{--resample {\rm \emph{size}}}

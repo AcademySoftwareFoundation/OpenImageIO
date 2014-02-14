@@ -556,6 +556,11 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("crop")
 
+        .def("cut", &ImageBufAlgo::cut,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("cut")
+
         .def("paste", &ImageBufAlgo::paste,
              (arg("dst"), arg("xbegin"), arg("ybegin"), arg("zbegin"),
               arg("chbegin"), arg("src"),

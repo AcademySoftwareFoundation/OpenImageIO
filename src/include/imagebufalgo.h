@@ -242,6 +242,23 @@ bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Assign to dst the designated region of src, but shifted to be at the
+/// (0,0) origin, and with the full/display resolution set to be identical
+/// to the data region.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API cut (ImageBuf &dst, const ImageBuf &src,
+                   ROI roi=ROI::All(), int nthreads = 0);
+
+
 /// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
 /// src described by srcroi.  If srcroi is ROI::All(), the entirety of src
 /// will be used.  It will copy into channels [chbegin...], as many

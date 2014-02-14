@@ -78,6 +78,11 @@ try:
     ImageBufAlgo.crop (b, grid, oiio.ROI(50,150,200,600))
     write (b, "crop.tif")
 
+    # cut
+    b = ImageBuf()
+    ImageBufAlgo.cut (b, grid, oiio.ROI(50,150,200,600))
+    write (b, "cut.tif")
+
     # paste
     b = ImageBuf()
     b.copy (checker)

@@ -2363,6 +2363,39 @@ action_croptofull (int argc, const char *argv[])
 
 
 
+int
+action_cut (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_cut, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+
+    adjust_geometry (newspec.width, newspec.height,
+                     newspec.x, newspec.y, argv[1]);
+
+    ImageRecRef R (new ImageRec (A->name(), newspec, ot.imagecache));
+    const ImageBuf &Aib ((*A)(0,0));
+    ImageBuf &Rib ((*R)(0,0));
+    ImageBufAlgo::cut (Rib, Aib, get_roi(newspec));
+
+    ImageSpec &spec (*R->spec(0,0));
+    set_roi (spec, Rib.roi());
+    set_roi_full (spec, Rib.roi());
+    A->metadata_modified (true);
+
+    ot.push (R);
+
+    ot.function_times["cut"] += timer();
+    return 0;
+}
+
+
+
 static int
 action_resample (int argc, const char *argv[])
 {
@@ -3336,6 +3369,9 @@ getargs (int argc, char *argv[])
                 "--cpow %s %@", action_cpow, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
+                "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
+                "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
+                "--cut %@ %s", action_cut, NULL, "Cut out the ROI and reposition to the origin",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--mosaic %@ %s", action_mosaic, NULL,
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",
@@ -3347,8 +3383,6 @@ getargs (int argc, char *argv[])
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
-                "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
-                "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",

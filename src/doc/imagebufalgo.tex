@@ -301,6 +301,11 @@ alteration.
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.
 
+Note that the {\cf crop} operation does not actually move the pixels on the
+image plane or adjust the full/display window; it merely restricts which
+pixels are copied from {\cf src} to {\cf dst}.  (Note the difference
+compared to {\cf cut()}).
+
 \smallskip
 \noindent Examples:
 \begin{code}
@@ -308,6 +313,26 @@ Reset {\cf dst} to be the specified region of {\cf src}.
     ImageBuf A (...);  // Assume initialized
     ImageBuf B;
     ImageBufAlgo::crop (B, A, ROI(0,200,0,100));
+\end{code}
+\apiend
+
+
+\apiitem{bool cut (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!cut} \indexapi{cut}
+\NEW  % 1.4
+Reset {\cf dst} to be the specified region of {\cf src}, but repositioned at
+the image plane origin and with the full/display window set to exactly cover
+the new pixel window.  (Note the difference compared to {\cf crop()}).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Set B to be the 100x100 region of A with origin (50,200).
+    ImageBuf A (...);  // Assume initialized
+    ImageBuf B;
+    ImageBufAlgo::cut (B, A, ROI(50,250,200,300));
+    // Note: B has origin at 0,0, NOT at (50,200).
 \end{code}
 \apiend
 
