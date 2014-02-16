@@ -1052,7 +1052,7 @@ The function will internally either call {\kw read_scanlines} or
 {\kw read_tiles}, depending on whether the file is scanline- or
 tile-oriented.
 
-Because this may be an expensive operation, a progres callback may be passed.
+Because this may be an expensive operation, a progress callback may be passed.
 Periodically, it will be called as follows:\\
 \begin{code}
     progress_callback (progress_callback_data, float done)
