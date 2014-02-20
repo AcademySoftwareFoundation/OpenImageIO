@@ -68,7 +68,9 @@ endif ()
 mark_as_advanced (OPENEXR_VERSION)
 
 include_directories ("${OPENEXR_INCLUDE_DIR}")
+# OpenEXR 1.x had weird #include dirctives, this is also necessary:
 include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
+
 macro (LINK_OPENEXR target)
     target_link_libraries (${target} ${OPENEXR_LIBRARIES})
 endmacro ()
