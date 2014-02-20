@@ -100,6 +100,7 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     // tiles
     m_spec.tile_width = tile_width();
     m_spec.tile_height = tile_height();
+    m_spec.tile_depth = 1;
     
     m_fd = Filesystem::fopen (m_filename, "wb");
     if (!m_fd) {
@@ -139,6 +140,8 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
         return false;
     }
 
+    m_buf.resize (m_spec.image_bytes());
+
     return true;
 }
 
@@ -149,6 +152,14 @@ IffOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
                            stride_t xstride)
 {
     // scanline not used for Maya IFF, uses tiles instead.
+    // Emulate by copying the scanline to the buffer we're accumulating.
+    std::vector<unsigned char> scratch;
+    data = to_native_scanline (format, data, xstride, scratch,
+                               m_dither, y, z);
+    size_t scanlinesize = spec().scanline_bytes(true);
+    size_t offset = scanlinesize * (y-spec().y) +
+                    scanlinesize * spec().height * (z-spec().z);
+    memcpy (&m_buf[offset], data, scanlinesize);
     return false;
 }
 
@@ -159,16 +170,11 @@ IffOutput::write_tile (int x, int y, int z,
                        TypeDesc format, const void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    if (m_buf.empty ())
-        // resize buffer
-        m_buf.resize (m_spec.image_bytes());
-  
     // auto stride
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         spec().tile_width, spec().tile_height);
     
     // native tile
-    std::vector<uint8_t> scratch;    
     data = to_native_tile (format, data, xstride, ystride, zstride, scratch,
                            m_dither, x, y, z);   
                         

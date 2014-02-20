@@ -167,9 +167,7 @@ private:
     bool readimg (void);
     
     // helper to uncompress a rle channel
-    size_t uncompress_rle_channel(
-        const uint8_t * in, uint8_t * out, int size
-    );
+    size_t uncompress_rle_channel(const uint8_t *in, uint8_t * out, int size);
 };
 
 
@@ -194,26 +192,21 @@ private:
     iff_pvt::IffFileHeader m_iff_header;
     std::vector<uint8_t> m_buf;
     unsigned int m_dither;
-    
+    std::vector<uint8_t> scratch;    
+
     void init (void) {
         m_fd = NULL;
         m_filename.clear ();
     }
     
     // helper to compress verbatim
-    void compress_verbatim (
-        const uint8_t *& in, uint8_t *& out, int size
-    );
+    void compress_verbatim (const uint8_t *& in, uint8_t *& out, int size);
       
     // helper to compress duplicate
-    void compress_duplicate (
-        const uint8_t *&in, uint8_t *& out, int size
-    );
+    void compress_duplicate (const uint8_t *&in, uint8_t *& out, int size);
       
     // helper to compress a rle channel
-    size_t compress_rle_channel (
-        const uint8_t *in, uint8_t *out, int size
-    );
+    size_t compress_rle_channel (const uint8_t *in, uint8_t *out, int size);
 };
 
 OIIO_PLUGIN_NAMESPACE_END
