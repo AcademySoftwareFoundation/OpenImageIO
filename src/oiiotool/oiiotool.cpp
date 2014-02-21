@@ -690,7 +690,6 @@ bool
 OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
                            bool allow_scaling)
 {
-    size_t geomlen = strlen(geom);
     float scale = 1.0f;
     int ww = w, hh = h;
     int xx = x, yy = y;
@@ -701,18 +700,25 @@ OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
         w = std::max (0, xmax-xx+1);
         h = std::max (0, ymax-yy+1);
     } else if (sscanf (geom, "%dx%d%d%d", &ww, &hh, &xx, &yy) == 4) {
+        if (ww == 0 && h != 0)
+            ww = int (hh * float(w)/float(h) + 0.5f);
+        if (hh == 0 && w != 0)
+            hh = int (ww * float(h)/float(w) + 0.5f);
         w = ww;
         h = hh;
         x = xx;
         y = yy;
     } else if (sscanf (geom, "%dx%d", &ww, &hh) == 2) {
+        if (ww == 0 && h != 0)
+            ww = int (hh * float(w)/float(h) + 0.5f);
+        if (hh == 0 && w != 0)
+            hh = int (ww * float(h)/float(w) + 0.5f);
         w = ww;
         h = hh;
     } else if (sscanf (geom, "%d%d", &xx, &yy) == 2) {
         x = xx;
         y = yy;
-    } else if (allow_scaling &&
-               sscanf (geom, "%f", &scale) == 1 && geom[geomlen-1] == '%') {
+    } else if (allow_scaling && sscanf (geom, "%f%%", &scale) == 1) {
         scale *= 0.01f;
         w = (int)(w * scale + 0.5f);
         h = (int)(h * scale + 0.5f);
