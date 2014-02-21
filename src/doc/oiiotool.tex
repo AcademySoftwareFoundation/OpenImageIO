@@ -278,6 +278,12 @@ Convert a gamma-corrected image (with gamma = 2.2) to linear values.
 
 \subsection*{Resize an image}
 
+\noindent Resize to a specific resolution:
+
+\begin{code}
+    oiiotool original.tif --resize 1024x768 -o specific.tif
+\end{code}
+
 Resize by a known scale factor:
 
 \begin{code}
@@ -285,14 +291,18 @@ Resize by a known scale factor:
     oiiotool original.tif --resize 25% -o small.tif
 \end{code}
 
-\noindent Resize to a specific resolution:
+Resize to a known resolution in one dimension, with the other dimension
+automatically computed to preserve aspect ratio (just specify 0 as the
+resolution in the dimension to be automatically computed):
 
 \begin{code}
-    oiiotool original.tif --resize 1024x768 -o specific.tif
+    oiiotool original.tif --resize 200x0 -o out.tif
+    oiiotool original.tif --resize 0x1024 -o out.tif
 \end{code}
 
 \noindent Resize to fit into a given resolution, keeping the original
-aspect ratio and padding with black where necessary:
+aspect ratio and padding with black where necessary to fit into the
+specified resolution:
 
 \begin{code}
     oiiotool original.tif --fit 640x480 -o fit.tif
@@ -1201,12 +1211,16 @@ copying the ``closest'' pixel.  The \emph{size} is in the form
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 
-\noindent Examples: 
+\noindent if {\cf width} or {\cf height} is 0, that dimension will be
+automatically computed so as to preserve the original aspect ratio.
+
+\noindent Examples (suppose that the original image is 640x480):
 
 \begin{tabular}{p{2in} p{4in}}
-    {\cf --resample 1024x768}  &     new resolution w=100, h=120 \\
-    {\cf --resample 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
-    {\cf --resample 300{\verb|%|}}  & increase resolution by 3x
+    {\cf --resample 1024x768}  &     new resolution w=1024, h=768 \\
+    {\cf --resample 50{\verb|%|}}  & reduce resolution to 320x240 \\
+    {\cf --resample 300{\verb|%|}}  & increase resolution to 1920x1440 \\
+    {\cf --resample 400x0}  &     new resolution will be 400x300
 \end{tabular}
 
 \apiend
@@ -1217,6 +1231,9 @@ given pixel data resolution.  The \emph{size} is in the form
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 
+\noindent if {\cf width} or {\cf height} is 0, that dimension will be
+automatically computed so as to preserve the original aspect ratio.
+
 Optional appended arguments include:
 
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
@@ -1225,12 +1242,13 @@ Optional appended arguments include:
 decreasing resolution. \\
 \end{tabular}
 
-\noindent Examples: 
+\noindent Examples (suppose that the original image is 640x480):
 
 \begin{tabular}{p{2in} p{4in}}
-    {\cf --resize 1024x768}  &     new resolution w=100, h=120 \\
-    {\cf --resize 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
-    {\cf --resize 300{\verb|%|}}  & increase resolution by 3x
+    {\cf --resize 1024x768}  &     new resolution w=1024, h=768 \\
+    {\cf --resize 50{\verb|%|}}  & reduce resolution to 320x240 \\
+    {\cf --resize 300{\verb|%|}}  & increase resolution to 1920x1440 \\
+    {\cf --resize 400x0}  &     new resolution will be 400x300
 \end{tabular}
 
 \apiend
