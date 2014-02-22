@@ -367,10 +367,16 @@ public:
         if (x < 0.0001f)
             return 1.0f;
         const float m_pi = float (M_PI);
-        const float m_piinv = 1.0f / m_pi;
         const float ainv = 1.0f/a;
+#if 1
+        // Use approximate fast_sinphi -- about 0.1% absolute error, but
+        // several times faster.
+        return a/(x*x*(m_pi*m_pi)) * fast_sinpi(x)*fast_sinpi(x*ainv);
+#else
+        // Full precision, for reference:
         float pix = m_pi * x;
-        return (a*m_piinv*m_piinv)/(x*x) * sinf(pix)*sinf(pix*ainv);
+        return a/(x*x*(m_pi*m_pi)) * sinf(pix)*sinf(pix*ainv);
+#endif
     }
 };
 
