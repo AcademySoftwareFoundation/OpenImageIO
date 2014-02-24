@@ -852,6 +852,52 @@ inline float fast_expf(float x)
 
 
 
+/// Fast approximate sin(x*M_PI) with ~0.001 maximum absolute error.
+/// http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
+static inline float fast_sinpi (float x)
+{
+    // Fast trick to strip the integral part off, so our domain is [-1,1]
+    float z = (x + 25165824.0f);
+    x = x - (z - 25165824.0f);
+
+    float y = x - x * fabsf(x);
+    const float Q = 3.10396624f;
+    const float P = 3.584135056f;
+    return y * (Q + P * fabsf(y));
+    // N.B. This approximates sin(pi*x) as a polynomial, and guarantees that
+    // sin(i*PI) == 0 and sin(+/- PI/2) == +/- 1 if Q/4+P/16 == 1.  In other
+    // words, P = 16 * (1-Q/4).
+    //
+    // The original citation (using Q=3.1, P=3.6) had max error 0.001091.
+    // Chris Kulla supplied the above, slightly modified constants that
+    // reduce the maximum absolute error to 0.000918954611.
+}
+
+
+/// Fast approximate sin(x) with ~0.1% absolute error.
+static inline float fast_sin(float x)
+{
+    return fast_sinpi (x * float(M_1_PI));
+}
+
+
+
+/// Fast approximate cos(x*M_PI) with ~0.1% absolute error.
+static inline float fast_cospi (float x)
+{
+    return fast_sinpi (x+0.5f);
+}
+
+
+
+/// Fast approximate sin(x) with ~0.1% absolute error.
+static inline float fast_cos(float x)
+{
+    return fast_cospi (x * float(M_1_PI));
+}
+
+
+
 #ifdef _WIN32
 // Windows doesn't define these functions from math.h
 #define hypotf _hypotf

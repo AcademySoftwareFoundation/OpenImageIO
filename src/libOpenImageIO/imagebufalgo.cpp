@@ -366,14 +366,18 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
     int radi = (int) ceilf (filterrad/xratio);
     int radj = (int) ceilf (filterrad/yratio);
-
+    int xtaps = 2*radi + 1;
+    int ytaps = 2*radj + 1;
     bool separable = filter->separable();
     float *column = NULL;
+    float *xfiltval = NULL, *yfiltval = NULL;
     if (separable) {
         // Allocate one column for the first horizontal filter pass
-        column = ALLOCA (float, (2 * radj + 1) * nchannels);
+        column = ALLOCA (float, ytaps * nchannels);
+        // Allocate temp space to cache the filter weights
+        xfiltval = ALLOCA (float, xtaps);
+        yfiltval = ALLOCA (float, ytaps);
     }
-
 #if 0
     std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
               << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
@@ -402,6 +406,21 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
         float src_yf = srcfy + t * srcfh;
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
+
+        // If using separable filters, our vertical set of filter tap
+        // weights will be the same for the whole scanline we're on.  Just
+        // compute and normalize them once.
+        float totalweight_y = 0.0f;
+        if (separable) {
+            for (int j = 0;  j < ytaps;  ++j) {
+                float w = filter->yfilt (yratio * (j-radj-(src_yf_frac-0.5f)));
+                yfiltval[j] = w;
+                totalweight_y += w;
+            }
+            for (int i = 0;  i <= ytaps;  ++i)
+                yfiltval[i] /= totalweight_y;
+        }
+
         for (int x = roi.xbegin;  x < roi.xend;  ++x) {
             float s = (x-dstfx+0.5f)*dstpixelwidth;
             float src_xf = srcfx + s * srcfw;
@@ -409,41 +428,50 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
             float src_xf_frac = floorfrac (src_xf, &src_x);
             for (int c = 0;  c < nchannels;  ++c)
                 pel[c] = 0.0f;
-            float totalweight = 0.0f;
             if (separable) {
-                // First, filter horizontally
-                memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
-                float *p = column;
-                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    totalweight = 0.0f;
-                    int yy = src_y+j;
-                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
-                                                             yy, yy+1, 0, 1, ImageBuf::WrapClamp);
-                    for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
-                        float w = filter->xfilt (xratio * (i-(src_xf_frac-0.5f)));
-                        totalweight += w;
-                        if (w != 0.0f) {
-                            for (int c = 0;  c < nchannels;  ++c)
-                                p[c] += w * srcpel[c];
-                        }
-                    }
-                    if (totalweight != 0.0f) {
-                        for (int c = 0;  c < nchannels;  ++c)
-                            p[c] /= totalweight;
-                    }
-                }
-                // Now filter vertically
-                totalweight = 0.0f;
-                p = column;
-                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    float w = filter->yfilt (yratio * (j-(src_yf_frac-0.5f)));
-                    totalweight += w;
-                    for (int c = 0;  c < nchannels;  ++c)
-                        pel[c] += w * p[c];
+                // Cache and normalize the horizontal filter tap weights
+                // just once for this (x,y) position, reuse for all vertical
+                // taps.
+                float totalweight_x = 0.0f;
+                for (int i = 0;  i < xtaps;  ++i) {
+                    float w = filter->xfilt (xratio * (i-radi-(src_xf_frac-0.5f)));
+                    xfiltval[i] = w;
+                    totalweight_x += w;
                 }
 
+                if (totalweight_x != 0.0f) {
+                    for (int i = 0;  i < xtaps;  ++i)  // normalize x filter
+                        xfiltval[i] /= totalweight_x;  // weights
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                             src_y-radj, src_y+radj+1,
+                                                             0, 1, ImageBuf::WrapClamp);
+                    for (int j = -radj;  j <= radj;  ++j) {
+                        float wy = yfiltval[j+radj];
+                        if (wy == 0.0f) {
+                            // 0 weight for this y tap -- move to next line
+                            srcpel.pos (srcpel.x(), srcpel.y()+1, srcpel.z());
+                            continue;
+                        }
+                        for (int i = 0;  i < xtaps; ++i, ++srcpel) {
+                            float w = wy * xfiltval[i];
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * srcpel[c];
+                        }
+                    }
+                }
+                // Copy the pixel value (already normalized) to the output.
+                DASSERT (out.x() == x && out.y() == y);
+                if (totalweight_y == 0.0f) {
+                    // zero it out
+                    for (int c = 0;  c < nchannels;  ++c)
+                        out[c] = 0.0f;
+                } else {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        out[c] = pel[c];
+                }
             } else {
                 // Non-separable
+                float totalweight = 0.0f;
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
                                                        0, 1, ImageBuf::WrapClamp);
@@ -460,19 +488,19 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
                     }
                 }
                 DASSERT (srcpel.done());
+                // Rescale pel to normalize the filter and write it to the
+                // output image.
+                DASSERT (out.x() == x && out.y() == y);
+                if (totalweight == 0.0f) {
+                    // zero it out
+                    for (int c = 0;  c < nchannels;  ++c)
+                        out[c] = 0.0f;
+                } else {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        out[c] = pel[c] / totalweight;
+                }
             }
 
-            // Rescale pel to normalize the filter, then write it to the
-            // image.
-            DASSERT (out.x() == x && out.y() == y);
-            if (totalweight == 0.0f) {
-                // zero it out
-                for (int c = 0;  c < nchannels;  ++c)
-                    out[c] = 0.0f;
-            } else {
-                for (int c = 0;  c < nchannels;  ++c)
-                    out[c] = pel[c] / totalweight;
-            }
             ++out;
         }
     }
