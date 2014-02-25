@@ -38,6 +38,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "argparse.h"
 #include "strutil.h"
@@ -86,12 +87,12 @@ print_sha1 (ImageInput *input)
             printf ("    SHA-1: unable to compute, image is too big\n");
             return;
         }
-        std::vector<unsigned char> buf((size_t)size);
+        boost::scoped_array<char> buf (new char [size]);
         if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
             printf ("    SHA-1: unable to compute, could not read image\n");
             return;
         }
-        sha.appendvec (buf);
+        sha.append (&buf[0], size);
     }
 
     printf ("    SHA-1: %s\n", sha.digest().c_str());
