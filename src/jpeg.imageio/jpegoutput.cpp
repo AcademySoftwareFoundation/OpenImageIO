@@ -303,8 +303,11 @@ JpgOutput::write_tile (int x, int y, int z, TypeDesc format,
 bool
 JpgOutput::close ()
 {
-    if (! m_fd)          // Already closed
+    if (! m_fd) {         // Already closed
         return true;
+        init();
+    }
+
     bool ok = true;
 
     if (m_spec.tile_width) {

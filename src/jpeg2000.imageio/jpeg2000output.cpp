@@ -177,6 +177,11 @@ Jpeg2000Output::write_tile (int x, int y, int z, TypeDesc format,
 bool
 Jpeg2000Output::close ()
 {
+    if (! m_file) {         // Already closed
+        return true;
+        init();
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
@@ -186,10 +191,8 @@ Jpeg2000Output::close ()
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
+    fclose(m_file);
+    m_file = NULL;
     if (m_image) {
         opj_image_destroy(m_image);
         m_image = NULL;

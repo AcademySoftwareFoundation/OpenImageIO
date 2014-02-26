@@ -195,6 +195,9 @@ WebpOutput::write_tile (int x, int y, int z, TypeDesc format,
 bool
 WebpOutput::close()
 {
+    if (! m_file)
+        return true;   // already closed
+
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
@@ -204,11 +207,9 @@ WebpOutput::close()
         std::vector<uint8_t>().swap (m_uncompressed_image);
     }
 
-    if (m_file) {
-        WebPPictureFree(&m_webp_picture);
-        fclose(m_file);
-        m_file = NULL;
-    }
+    WebPPictureFree(&m_webp_picture);
+    fclose(m_file);
+    m_file = NULL;
     return true;
 }
 

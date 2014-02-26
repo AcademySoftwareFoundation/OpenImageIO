@@ -176,6 +176,11 @@ HdrOutput::write_tile (int x, int y, int z, TypeDesc format,
 bool
 HdrOutput::close ()
 {
+    if (! m_fd) {   // already closed
+        init ();
+        return true;
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
@@ -185,10 +190,8 @@ HdrOutput::close ()
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_fd != NULL) {
-        fclose (m_fd);
-        m_fd = NULL;
-    }
+    fclose (m_fd);
+    m_fd = NULL;
     init();
 
     return ok;
