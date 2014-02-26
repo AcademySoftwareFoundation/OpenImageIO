@@ -425,9 +425,14 @@ ICOOutput::supports (const std::string &feature) const
 bool
 ICOOutput::close ()
 {
+    if (! m_file) {   // already closed
+        init ();
+        return true;
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
-        // We've been emulating tiles; now dump as scanlines.
+        // Handle tile emulation -- output the buffered pixels
         ASSERT (m_tilebuffer.size());
         ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
                                m_spec.format, &m_tilebuffer[0]);
@@ -438,11 +443,8 @@ ICOOutput::close ()
         PNG_pvt::finish_image (m_png);
         PNG_pvt::destroy_write_struct (m_png, m_info);
     }
-    if (m_file) {
-        fclose (m_file);
-        m_file = NULL;
-    }
-
+    fclose (m_file);
+    m_file = NULL;
     init ();      // re-initialize
     return ok;
 }

@@ -546,20 +546,22 @@ DPXOutput::write_buffer ()
 bool
 DPXOutput::close ()
 {
+    if (! m_stream) {   // already closed
+        init ();
+        return true;
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
-        // We've been emulating tiles; now dump as scanlines.
+        // Handle tile emulation -- output the buffered pixels
         ASSERT (m_tilebuffer.size());
         ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
                                m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_stream) {
-        ok &= write_buffer ();
-        m_dpx.Finish ();
-    }
-
+    ok &= write_buffer ();
+    m_dpx.Finish ();
     init();  // Reset to initial state
     return ok;
 }

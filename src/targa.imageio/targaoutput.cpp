@@ -449,21 +449,23 @@ TGAOutput::write_tga20_data_fields ()
 bool
 TGAOutput::close ()
 {
+    if (! m_file) {   // already closed
+        init ();
+        return true;
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
-        // We've been emulating tiles; now dump as scanlines.
+        // Handle tile emulation -- output the buffered pixels
         ASSERT (m_tilebuffer.size());
         ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
                                m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_file) {
-        ok &= write_tga20_data_fields ();
-        // close the stream
-        fclose (m_file);
-        m_file = NULL;
-    }
+    ok &= write_tga20_data_fields ();
+    fclose (m_file);  // close the stream
+    m_file = NULL;
 
     init ();      // re-initialize
     return ok;

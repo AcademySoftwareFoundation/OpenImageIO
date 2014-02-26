@@ -407,25 +407,26 @@ RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
 bool
 RLAOutput::close ()
 {
+    if (! m_file) {   // already closed
+        init ();
+        return true;
+    }
+
     bool ok = true;
     if (m_spec.tile_width) {
-        // We've been emulating tiles; now dump as scanlines.
+        // Handle tile emulation -- output the buffered pixels
         ASSERT (m_tilebuffer.size());
         ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
                                m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_file) {
-        // Now that all scanlines ahve been output, return to write the
-        // correct scanline offset table to file.
-        fseek (m_file, sizeof(RLAHeader), SEEK_SET);
-        write (&m_sot[0], m_sot.size());
-
-        // close the stream
-        fclose (m_file);
-        m_file = NULL;
-    }
+    // Now that all scanlines ahve been output, return to write the
+    // correct scanline offset table to file and close the stream.
+    fseek (m_file, sizeof(RLAHeader), SEEK_SET);
+    write (&m_sot[0], m_sot.size());
+    fclose (m_file);
+    m_file = NULL;
     
     init ();      // re-initialize
     return ok;
