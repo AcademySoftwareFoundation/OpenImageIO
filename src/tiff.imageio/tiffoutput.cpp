@@ -170,6 +170,14 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
                m_spec.width, m_spec.height);
         return false;
     }
+    if (m_spec.tile_width) {
+       if (m_spec.tile_width  % 16 != 0 ||
+           m_spec.tile_height % 16 != 0 ||
+           m_spec.tile_height == 0) {
+          error("Tile size must be a multiple of 16, you asked for %d x %d", m_spec.tile_width, m_spec.tile_height);
+          return false;
+       }
+    }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
 
