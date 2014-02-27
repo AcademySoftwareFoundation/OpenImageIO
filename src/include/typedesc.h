@@ -53,7 +53,7 @@
 #include <iostream>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 
 
 OIIO_NAMESPACE_ENTER

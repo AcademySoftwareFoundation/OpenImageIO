@@ -39,7 +39,7 @@
 
 #include "ustring.h"
 #include "imageio.h"
-#include "version.h"
+#include "oiioversion.h"
 
 
 OIIO_NAMESPACE_ENTER

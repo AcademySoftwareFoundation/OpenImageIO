@@ -46,7 +46,7 @@
 #include <vector>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 #include "tinyformat.h"
 
 

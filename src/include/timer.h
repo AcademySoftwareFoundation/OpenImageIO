@@ -36,7 +36,7 @@
 #ifndef OPENIMAGEIO_TIMER_H
 #define OPENIMAGEIO_TIMER_H
 
-#include "version.h"
+#include "oiioversion.h"
 
 #ifdef _WIN32
 # include "osdep.h"

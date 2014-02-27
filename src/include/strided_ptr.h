@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "version.h"
+#include "oiioversion.h"
 
 
 OIIO_NAMESPACE_ENTER {

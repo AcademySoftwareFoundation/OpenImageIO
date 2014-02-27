@@ -35,7 +35,7 @@
 #include <cstdarg>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 #include "strutil.h"
 
 

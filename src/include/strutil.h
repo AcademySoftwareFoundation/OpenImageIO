@@ -48,7 +48,7 @@
 #include <map>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 #include "tinyformat.h"
 #include "string_ref.h"
 

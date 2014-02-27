@@ -137,7 +137,7 @@
 #include "strutil.h"
 #include "string_ref.h"
 #include "dassert.h"
-#include "version.h"
+#include "oiioversion.h"
 
 #ifndef NULL
 #define NULL 0

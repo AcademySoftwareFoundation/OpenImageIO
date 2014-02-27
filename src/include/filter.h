@@ -33,7 +33,7 @@
 #ifndef OPENIMAGEIO_FILTER_H
 #define OPENIMAGEIO_FILTER_H
 
-#include "version.h"
+#include "oiioversion.h"
 #include "export.h"
 
 OIIO_NAMESPACE_ENTER

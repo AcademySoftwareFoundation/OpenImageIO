@@ -68,7 +68,7 @@
 #include <sys/param.h>
 #endif
 
-#include "version.h"
+#include "oiioversion.h"
 
 OIIO_NAMESPACE_ENTER
 {

@@ -30,7 +30,7 @@
 
 #include <cstdio>
 
-#include "version.h"
+#include "oiioversion.h"
 
 extern "C" {
 #include <jpeglib.h>

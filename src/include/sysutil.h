@@ -48,7 +48,7 @@
 #endif
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 
 /// allocates memory, equivalent of C99 type var_name[size]
 #define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))

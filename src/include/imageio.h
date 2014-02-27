@@ -57,7 +57,7 @@
 #include "export.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
-#include "version.h"
+#include "oiioversion.h"
 
 OIIO_NAMESPACE_ENTER
 {

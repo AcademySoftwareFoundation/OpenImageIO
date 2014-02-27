@@ -51,7 +51,7 @@
 #include <vector>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 #include "string_ref.h"
 
 

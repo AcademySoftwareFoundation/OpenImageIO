@@ -39,7 +39,7 @@
 #ifndef OPENIMAGEIO_THREAD_H
 #define OPENIMAGEIO_THREAD_H
 
-#include "version.h"
+#include "oiioversion.h"
 #include "sysutil.h"
 
 
