@@ -75,7 +75,7 @@
 #define ___SHA1_HDR___
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 
 #if !defined(SHA1_UTILITY_FUNCTIONS) && !defined(SHA1_NO_UTILITY_FUNCTIONS)
 #define SHA1_UTILITY_FUNCTIONS

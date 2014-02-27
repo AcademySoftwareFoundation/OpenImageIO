@@ -37,7 +37,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-#include "version.h"
+#include "oiioversion.h"
 #include "export.h"
 
 

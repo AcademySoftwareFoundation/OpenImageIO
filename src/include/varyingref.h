@@ -35,7 +35,7 @@
 #ifndef OPENIMAGEIO_VARYINGREF_H
 #define OPENIMAGEIO_VARYINGREF_H
 
-#include "version.h"
+#include "oiioversion.h"
 
 OIIO_NAMESPACE_ENTER
 {

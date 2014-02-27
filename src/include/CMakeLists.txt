@@ -8,19 +8,20 @@ set (public_headers argparse.h array_view.h
                     string_ref.h strutil.h sysutil.h
                     texture.h thread.h timer.h
                     tinyformat.h typedesc.h ustring.h varyingref.h
+                    version.h
     )
 
 if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND public_headers pugixml.hpp pugiconfig.hpp pugixml.cpp)
 endif()
 
-message(STATUS "Create version.h from version.h.in")
+message(STATUS "Create oiioversion.h from oiioversion.h.in")
 # Mangle the SOVERSION so that it's a valid C++ identifier for the versioning
-# namespace defined in version.h
+# namespace defined in oiioversion.h
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
 set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
-configure_file(version.h.in "${CMAKE_BINARY_DIR}/include/version.h" @ONLY)
-list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/version.h")
+configure_file(oiioversion.h.in "${CMAKE_BINARY_DIR}/include/oiioversion.h" @ONLY)
+list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/oiioversion.h")
 
 install (FILES ${public_headers} DESTINATION ${INCLUDE_INSTALL_DIR}
          COMPONENT developer)

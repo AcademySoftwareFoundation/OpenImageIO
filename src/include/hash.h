@@ -47,7 +47,7 @@
 #include <boost/unordered_set.hpp>
 
 #include "export.h"
-#include "version.h"
+#include "oiioversion.h"
 #include "fmath.h"   /* for endian */
 
 

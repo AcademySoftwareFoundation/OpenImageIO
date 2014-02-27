@@ -35,7 +35,7 @@
 #include <vector>
 #include <stdexcept>
 
-#include "version.h"
+#include "oiioversion.h"
 #include "strided_ptr.h"
 
 

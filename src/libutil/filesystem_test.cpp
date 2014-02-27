@@ -77,12 +77,12 @@ void test_filename_searchpath_find ()
     OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
-    s = Filesystem::searchpath_find ("version.h", dirs, false, false);
+    s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, false);
     OIIO_CHECK_EQUAL (s, "");
 
     // recursive search success (file is in a subdirectory)
-    s = Filesystem::searchpath_find ("version.h", dirs, false, true);
-    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "include" SEPARATOR "version.h");
+    s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, true);
+    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "include" SEPARATOR "oiioversion.h");
 }
 
 

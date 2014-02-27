@@ -40,7 +40,7 @@
 #define OPENIMAGEIO_REFCNT_H
 
 #include "thread.h"
-#include "version.h"
+#include "oiioversion.h"
 
 // Use Boost for shared pointers
 #include <boost/shared_ptr.hpp>
