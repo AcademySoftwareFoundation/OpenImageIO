@@ -1,5 +1,5 @@
 Reading ../texture-field3d/dense_float.f3d
-../texture-field3d/dense_float.f3d :   64 x   64 x   64, 1 channel, float volume field3d
+../texture-field3d/dense_float.f3d :   64 x   64 x   64, 1 channel, volume float field3d
     SHA-1: 776F6CFF0B2C6834785A6EABA740C0DC7F1C78A2
     channel list: density
     tile size: 64 x 64 x 64
@@ -16,7 +16,7 @@ Reading ../texture-field3d/dense_float.f3d
 Comparing "../texture-field3d/dense_float.f3d" and "dense_float.f3d"
 PASS
 Reading ../texture-field3d/sparse_float.f3d
-../texture-field3d/sparse_float.f3d :   64 x   64 x   64, 1 channel, float volume field3d
+../texture-field3d/sparse_float.f3d :   64 x   64 x   64, 1 channel, volume float field3d
     SHA-1: 776F6CFF0B2C6834785A6EABA740C0DC7F1C78A2
     channel list: density
     tile size: 16 x 16 x 16
@@ -33,7 +33,7 @@ Reading ../texture-field3d/sparse_float.f3d
 Comparing "../texture-field3d/sparse_float.f3d" and "sparse_float.f3d"
 PASS
 Reading ../texture-field3d/dense_half.f3d
-../texture-field3d/dense_half.f3d :   64 x   64 x   64, 1 channel, half volume field3d
+../texture-field3d/dense_half.f3d :   64 x   64 x   64, 1 channel, volume half field3d
     SHA-1: E5F0EC2FDFB1C6D093F3FDDA6E72EE77B86514D5
     channel list: density
     tile size: 64 x 64 x 64
@@ -50,7 +50,7 @@ Reading ../texture-field3d/dense_half.f3d
 Comparing "../texture-field3d/dense_half.f3d" and "dense_half.f3d"
 PASS
 Reading ../texture-field3d/sparse_half.f3d
-../texture-field3d/sparse_half.f3d :   64 x   64 x   64, 1 channel, half volume field3d
+../texture-field3d/sparse_half.f3d :   64 x   64 x   64, 1 channel, volume half field3d
     SHA-1: E5F0EC2FDFB1C6D093F3FDDA6E72EE77B86514D5
     channel list: density
     tile size: 16 x 16 x 16

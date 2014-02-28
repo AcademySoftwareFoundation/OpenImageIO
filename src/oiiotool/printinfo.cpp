@@ -564,10 +564,17 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
         printf ("%4d x %4d", spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
         printf (", %d channel, %s%s", spec.nchannels,
-                extended_format_name(spec.format, bits),
-                spec.depth > 1 ? " volume" : "");
+                spec.deep ? "deep " : "",
+                spec.depth > 1 ? "volume " : "");
+        if (spec.channelformats.size()) {
+            for (size_t c = 0;  c < spec.channelformats.size();  ++c)
+                printf ("%s%s", c ? "/" : "",
+                        spec.channelformats[c].c_str());
+        } else {
+            int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+            printf ("%s", extended_format_name(spec.format, bits));
+        }
         printf (" %s", input->format_name());
         printf ("\n");
     }
@@ -696,7 +703,9 @@ OiioTool::print_info (const std::string &filename,
                 spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        printf (", %d channel, ", spec.nchannels);
+        printf (", %d channel, %s%s", spec.nchannels,
+                spec.deep ? "deep " : "",
+                spec.depth > 1 ? "volume " : "");
         if (spec.channelformats.size()) {
             for (size_t c = 0;  c < spec.channelformats.size();  ++c)
                 printf ("%s%s", c ? "/" : "",
@@ -705,8 +714,6 @@ OiioTool::print_info (const std::string &filename,
             int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
             printf ("%s", extended_format_name(spec.format, bits));
         }
-        if (spec.depth > 1)
-            printf (" volume");
         printf (" %s", input->format_name());
         if (opt.sum) {
             imagesize_t imagebytes = spec.image_bytes (true);
