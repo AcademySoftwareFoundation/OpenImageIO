@@ -79,9 +79,9 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
 Comparing "../../../../../openexr-images/v2/Stereo/composited.exr" and "composited.exr"
 PASS
 Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
-../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, half/half/half/half/float openexr
+../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, deep half/half/half/half/float openexr
     2 subimages: 1431x761 1452x761 
- subimage  0: 1431 x  761, 5 channel, float openexr
+ subimage  0: 1431 x  761, 5 channel, deep half/half/half/half/float openexr
     SHA-1: CB3E54294B268B6C2764410710267D0AF809A3C4
     channel list: R (half), G (half), B (half), A (half), Z (float)
     pixel data origin: x=247, y=319
@@ -98,7 +98,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     openexr:version: 1
     view: "left"
     oiio:subimagename: "rgba.left"
- subimage  1: 1452 x  761, 5 channel, float openexr
+ subimage  1: 1452 x  761, 5 channel, deep half/half/half/half/float openexr
     SHA-1: 4318FB751F2C30955AC745FFFCF47E8BB932C8D1
     channel list: R (half), G (half), B (half), A (half), Z (float)
     pixel data origin: x=389, y=319
@@ -115,7 +115,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     openexr:version: 1
     view: "right"
     oiio:subimagename: "rgba.right"
-../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, half/half/half/half/float openexr (2 subimages)
+../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, deep half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000169 0.000083 0.000092 0.015625 127.872681 (float)
     Stats Max: 0.622070 0.265625 0.267822 1.000000 738.560669 (float)
     Stats Avg: 0.106414 0.010251 0.011385 0.896199 242.031235 (float)
@@ -135,9 +135,9 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
 Comparing "../../../../../openexr-images/v2/Stereo/Balls.exr" and "Balls.exr"
 PASS
 Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
-../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, half/half/half/half/float openexr
+../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, deep half/half/half/half/float openexr
     2 subimages: 1920x1080 1920x1080 
- subimage  0: 1920 x 1080, 5 channel, float openexr
+ subimage  0: 1920 x 1080, 5 channel, deep half/half/half/half/float openexr
     SHA-1: ED7BBA99CE96DF98AC784F50B54EF976DB17AF26
     channel list: R (half), G (half), B (half), A (half), Z (float)
     oiio:ColorSpace: "Linear"
@@ -151,7 +151,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     openexr:version: 1
     view: "left"
     oiio:subimagename: "rgba.left"
- subimage  1: 1920 x 1080, 5 channel, float openexr
+ subimage  1: 1920 x 1080, 5 channel, deep half/half/half/half/float openexr
     SHA-1: 11F6FB62B0F1080F78DBA6464FCC92C30D3162AF
     channel list: R (half), G (half), B (half), A (half), Z (float)
     oiio:ColorSpace: "Linear"
@@ -165,7 +165,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     openexr:version: 1
     view: "right"
     oiio:subimagename: "rgba.right"
-../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, half/half/half/half/float openexr (2 subimages)
+../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, deep half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000099 0.000341 0.000152 0.015625 72.493698 (float)
     Stats Max: 0.403564 0.593262 0.345215 1.000000 954.392700 (float)
     Stats Avg: 0.071147 0.155779 0.047921 0.949514 208.998001 (float)
