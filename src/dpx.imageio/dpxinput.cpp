@@ -191,8 +191,12 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_spec = ImageSpec (m_dpx.header.Width(), m_dpx.header.Height(),
         m_dpx.header.ImageElementComponentCount(subimage), typedesc);
 
-    m_spec.x = m_dpx.header.xOffset;
-    m_spec.y = m_dpx.header.yOffset;
+    // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed
+    // avoid casts that would result in negative values
+    if (m_dpx.header.xOffset <= (unsigned int)std::numeric_limits<int>::max())
+        m_spec.x = m_dpx.header.xOffset;
+    if (m_dpx.header.yOffset <= (unsigned int)std::numeric_limits<int>::max())
+        m_spec.y = m_dpx.header.yOffset;
     if ((int)m_dpx.header.xOriginalSize > 0)
         m_spec.full_width = m_dpx.header.xOriginalSize;
     if ((int)m_dpx.header.yOriginalSize > 0)
