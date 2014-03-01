@@ -443,6 +443,14 @@ many pixels differed, the maximum amount, etc.).  This command does not
 alter the image stack.
 \apiend
 
+\NEW % 1.4
+\apiitem{--pdiff}
+This command computes the difference of the current image and the next
+image on the stack using a perceptual metric, and prints whether or not they
+match according to that metric.  This command does not
+alter the image stack.
+\apiend
+
 \apiitem{--colorcount \emph{r1,g1,b1,...:r2,g2,b2,...:...}}
 Given a list of colors separated by colons or semicolons, where each
 color is a list of comma-separated values (for each channel), examine
