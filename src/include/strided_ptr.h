@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 #include "oiioversion.h"
 
 

@@ -369,11 +369,8 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     int xtaps = 2*radi + 1;
     int ytaps = 2*radj + 1;
     bool separable = filter->separable();
-    float *column = NULL;
     float *xfiltval = NULL, *yfiltval = NULL;
     if (separable) {
-        // Allocate one column for the first horizontal filter pass
-        column = ALLOCA (float, ytaps * nchannels);
         // Allocate temp space to cache the filter weights
         xfiltval = ALLOCA (float, xtaps);
         yfiltval = ALLOCA (float, ytaps);
