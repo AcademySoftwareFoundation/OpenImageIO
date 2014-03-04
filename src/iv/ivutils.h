@@ -1,7 +1,7 @@
 #ifndef OPENIMAGEIO_IV_UTILS_H
 #define OPENIMAGEIO_IV_UTILS_H
 
-#include "fmath.h"
+#include "OpenImageIO/fmath.h"
 
 OIIO_NAMESPACE_ENTER
 {

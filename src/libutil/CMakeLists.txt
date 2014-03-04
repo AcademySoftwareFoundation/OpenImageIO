@@ -1,6 +1,6 @@
 set (libOpenImageIO_Util_srcs argparse.cpp errorhandler.cpp filesystem.cpp
                   filter.cpp hashes.cpp paramlist.cpp
-                  plugin.cpp pystring.cpp SHA1.cpp
+                  plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp timer.cpp
                   typedesc.cpp ustring.cpp)
 

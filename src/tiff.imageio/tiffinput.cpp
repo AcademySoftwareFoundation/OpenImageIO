@@ -35,13 +35,13 @@
 
 #include <tiffio.h>
 
-#include "dassert.h"
-#include "typedesc.h"
-#include "imageio.h"
-#include "thread.h"
-#include "strutil.h"
-#include "filesystem.h"
-#include "fmath.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

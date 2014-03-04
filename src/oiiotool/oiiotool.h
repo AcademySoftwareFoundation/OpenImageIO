@@ -31,9 +31,9 @@
 
 #ifndef OIIOTOOL_H
 
-#include "imagebuf.h"
-#include "refcnt.h"
-#include "timer.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/refcnt.h"
+#include "OpenImageIO/timer.h"
 
 
 OIIO_NAMESPACE_ENTER {

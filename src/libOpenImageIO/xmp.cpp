@@ -34,11 +34,11 @@
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
 
-#include "thread.h"
-#include "strutil.h"
-#include "fmath.h"
-#include "imageio.h"
-#include <pugixml.hpp>
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/pugixml.hpp"
 
 #define DEBUG_XMP_READ  0
 #define DEBUG_XMP_WRITE 0

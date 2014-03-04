@@ -1,33 +1,10 @@
-set (libOpenImageIO_hdrs ../include/argparse.h
-                         ../include/color.h
-                         ../include/dassert.h
-                         ../include/errorhandler.h
-                         ../include/filesystem.h
-                         ../include/filter.h
-                         ../include/fmath.h
-                         ../include/hash.h
-                         ../include/imagebuf.h
-                         ../include/imagecache.h
-                         ../include/imageio.h
-                         ../include/osdep.h
-                         ../include/paramlist.h
-                         ../include/plugin.h
-                         ../include/SHA1.h
-                         ../include/strutil.h
-                         ../include/sysutil.h
-                         ../include/texture.h
-                         ../include/thread.h
-                         ../include/timer.h
-                         ../include/typedesc.h
-                         ../include/ustring.h
-                         ../include/varyingref.h    
-                         )
+file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND libOpenImageIO_hdrs
-          ../include/pugiconfig.hpp
-          ../include/pugixml.hpp
-          ../include/pugixml.cpp
+          ../include/OpenImageIO/pugiconfig.hpp
+          ../include/OpenImageIO/pugixml.hpp
+          ../include/OpenImageIO/pugixml.cpp
     )
 endif()
 
@@ -49,7 +26,6 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/hashes.cpp 
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
-                          ../libutil/pystring.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 

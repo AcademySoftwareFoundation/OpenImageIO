@@ -215,7 +215,7 @@ FitsOutput::create_fits_header (void)
         // adding to the file
         std::vector<std::string> values;
         if (keyname == "Comment" || keyname == "History" || keyname == "Hierarch") {
-            pystring::split (value, values, m_sep);
+            Strutil::split (value, values, m_sep);
             for (size_t i = 0; i < values.size(); ++i)
                 header += create_card (keyname, values[i]);
             continue;

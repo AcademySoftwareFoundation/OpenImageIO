@@ -41,11 +41,11 @@
 #include <iostream>
 #include <map>
 
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "dassert.h"
-#include "thread.h"
-#include "sysutil.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/sysutil.h"
 
 
 

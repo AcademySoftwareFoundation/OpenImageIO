@@ -37,14 +37,13 @@
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
-#include "dassert.h"
-#include "typedesc.h"
-#include "strutil.h"
-#include "fmath.h"
-
-#include "imageio.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imageio.h"
 #include "imageio_pvt.h"
-#include <pugixml.hpp>
+#include "OpenImageIO/pugixml.hpp"
 
 
 OIIO_NAMESPACE_ENTER

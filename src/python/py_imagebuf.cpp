@@ -29,7 +29,7 @@
 */
 
 #include "py_oiio.h"
-#include "sysutil.h"
+#include "OpenImageIO/sysutil.h"
 
 
 namespace PyOpenImageIO

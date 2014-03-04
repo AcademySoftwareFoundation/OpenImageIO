@@ -36,7 +36,7 @@
 #ifndef OPENIMAGEIO_TEXTURE_PVT_H
 #define OPENIMAGEIO_TEXTURE_PVT_H
 
-#include "oiioversion.h"
+#include "OpenImageIO/texture.h"
 
 
 OIIO_NAMESPACE_ENTER

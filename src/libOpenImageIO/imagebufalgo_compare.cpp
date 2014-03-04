@@ -36,7 +36,7 @@
    If it is included after, there is an error
    "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
 */
-#include "SHA1.h"
+#include "OpenImageIO/SHA1.h"
 
 #include <boost/bind.hpp>
 
@@ -46,11 +46,11 @@
 #include <iostream>
 #include <limits>
 
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
-#include "dassert.h"
-#include "thread.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/thread.h"
 
 #ifdef USE_OPENSSL
 #ifdef __APPLE__

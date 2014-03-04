@@ -40,13 +40,13 @@
 #include <boost/regex.hpp>
 #include <boost/scoped_array.hpp>
 
-#include "argparse.h"
-#include "strutil.h"
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "hash.h"
-#include "filesystem.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/hash.h"
+#include "OpenImageIO/filesystem.h"
 
 OIIO_NAMESPACE_USING;
 

@@ -29,9 +29,9 @@
 */
 #include <cstdio>
 #include <webp/decode.h>
-#include "imageio.h"
-#include "filesystem.h"
-#include "fmath.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

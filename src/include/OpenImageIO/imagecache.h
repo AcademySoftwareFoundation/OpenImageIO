@@ -37,9 +37,8 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_H
 #define OPENIMAGEIO_IMAGECACHE_H
 
-#include "ustring.h"
-#include "imageio.h"
-#include "oiioversion.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/imageio.h"
 
 
 OIIO_NAMESPACE_ENTER

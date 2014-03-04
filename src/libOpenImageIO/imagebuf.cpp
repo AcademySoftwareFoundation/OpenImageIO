@@ -40,15 +40,15 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
-#include "imagecache.h"
-#include "dassert.h"
-#include "strutil.h"
-#include "fmath.h"
-#include "thread.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/imagecache.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/thread.h"
 
 OIIO_NAMESPACE_ENTER
 {

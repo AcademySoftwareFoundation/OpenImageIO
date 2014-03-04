@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-#include "imageio.h"
+#include "OpenImageIO/imageio.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

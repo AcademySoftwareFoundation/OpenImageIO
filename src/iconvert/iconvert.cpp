@@ -41,11 +41,11 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
-#include "argparse.h"
-#include "imageio.h"
-#include "sysutil.h"
-#include "filesystem.h"
-#include "imagecache.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/imagecache.h"
 
 
 OIIO_NAMESPACE_USING;

@@ -33,13 +33,13 @@
 #include <cmath>
 #include <ctime>
 
-#include "dassert.h"
-#include "typedesc.h"
-#include "imageio.h"
-#include "filesystem.h"
-#include "fmath.h"
-#include "strutil.h"
-#include "sysutil.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
 
 #include "rla_pvt.h"
 

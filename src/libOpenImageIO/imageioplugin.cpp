@@ -37,12 +37,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
-#include "dassert.h"
-#include "plugin.h"
-#include "strutil.h"
-#include "filesystem.h"
-
-#include "imageio.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/plugin.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/imageio.h"
 #include "imageio_pvt.h"
 
 

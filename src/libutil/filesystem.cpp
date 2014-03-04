@@ -44,10 +44,9 @@
 #include <shellapi.h>
 #endif
 
-#include "dassert.h"
-#include "ustring.h"
-
-#include "filesystem.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/filesystem.h"
 
 
 OIIO_NAMESPACE_ENTER

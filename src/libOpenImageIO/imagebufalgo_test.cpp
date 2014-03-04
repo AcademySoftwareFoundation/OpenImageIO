@@ -31,11 +31,11 @@
 // Based on the sample at:
 // http://code.google.com/p/googletest/wiki/GoogleTestPrimer#Writing_the_main()_Function
 
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "sysutil.h"
-#include "unittest.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/unittest.h"
 
 #include <iostream>
 #include <iomanip>

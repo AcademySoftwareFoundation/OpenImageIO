@@ -31,10 +31,9 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "dassert.h"
-#include "ustring.h"
-
-#include "paramlist.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/paramlist.h"
 
 
 OIIO_NAMESPACE_ENTER

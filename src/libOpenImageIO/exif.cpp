@@ -39,7 +39,7 @@
 
 #include <boost/foreach.hpp>
 
-#include "fmath.h"
+#include "OpenImageIO/fmath.h"
 
 extern "C" {
 #include "tiff.h"
@@ -71,7 +71,7 @@ struct TIFFDirEntry {
 };
 #endif
 
-#include "imageio.h"
+#include "OpenImageIO/imageio.h"
 
 
 #define DEBUG_EXIF_READ  0

@@ -32,10 +32,10 @@
 #include <vector>
 #include <string>
 
-#include "strutil.h"
-#include "color.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/color.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>

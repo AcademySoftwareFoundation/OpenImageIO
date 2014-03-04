@@ -31,15 +31,14 @@
 #include <string>
 #include <boost/scoped_ptr.hpp>
 
-#include "dassert.h"
-#include "typedesc.h"
-#include "varyingref.h"
-#include "ustring.h"
-#include "thread.h"
-#include "fmath.h"
-#include "imageio.h"
-
-#include "texture.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/varyingref.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/texture.h"
 
 
 OIIO_NAMESPACE_ENTER

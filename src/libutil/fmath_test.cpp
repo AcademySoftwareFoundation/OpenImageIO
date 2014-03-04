@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#include "fmath.h"
-#include "unittest.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/unittest.h"
 
 OIIO_NAMESPACE_USING;
 

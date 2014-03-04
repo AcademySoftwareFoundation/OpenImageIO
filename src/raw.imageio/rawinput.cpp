@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "imageio.h"
+#include "OpenImageIO/imageio.h"
 #include <iostream>
 #include <time.h>       /* time_t, struct tm, gmtime */
 #include <libraw/libraw.h>

@@ -31,16 +31,16 @@
 
 #include <iostream>
 
-#include "thread.h"
-#include "strutil.h"
-#include "timer.h"
-#include "argparse.h"
-#include "ustring.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/ustring.h"
 
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "unittest.h"
+#include "OpenImageIO/unittest.h"
 
 
 OIIO_NAMESPACE_USING;

@@ -55,11 +55,10 @@
 #include <shellapi.h>
 #endif
 
-#include "dassert.h"
-
-#include "strutil.h"
-#include "ustring.h"
-#include "string_ref.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/string_ref.h"
 
 
 OIIO_NAMESPACE_ENTER

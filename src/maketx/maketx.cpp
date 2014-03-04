@@ -41,18 +41,18 @@
 #include <boost/regex.hpp>
 #include <OpenEXR/ImathMatrix.h>
 
-#include "argparse.h"
-#include "dassert.h"
-#include "filesystem.h"
-#include "fmath.h"
-#include "strutil.h"
-#include "sysutil.h"
-#include "timer.h"
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "thread.h"
-#include "filter.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/filter.h"
 
 OIIO_NAMESPACE_USING
 

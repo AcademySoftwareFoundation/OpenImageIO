@@ -42,14 +42,14 @@
 #include <limits>
 #include <stdexcept>
 
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
-#include "dassert.h"
-#include "sysutil.h"
-#include "filter.h"
-#include "thread.h"
-#include "filesystem.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/filter.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/filesystem.h"
 #include "kissfft.hh"
 
 #ifdef USE_FREETYPE

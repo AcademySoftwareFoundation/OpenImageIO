@@ -32,14 +32,13 @@
 #include <string>
 
 #ifdef _WIN32
-# include "osdep.h"
+# include "OpenImageIO/osdep.h"
 #else
 # include <dlfcn.h>
 #endif
 
-#include "thread.h"
-
-#include "plugin.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/plugin.h"
 
 
 OIIO_NAMESPACE_ENTER

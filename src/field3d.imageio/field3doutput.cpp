@@ -33,9 +33,9 @@
 #include <cmath>
 #include <iostream>
 
-#include "dassert.h"
-#include "imageio.h"
-#include "thread.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/thread.h"
 
 #include "field3d_pvt.h"
 using namespace OIIO_NAMESPACE::f3dpvt;

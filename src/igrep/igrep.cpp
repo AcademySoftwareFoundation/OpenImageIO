@@ -42,10 +42,10 @@
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 
-#include "argparse.h"
-#include "strutil.h"
-#include "filesystem.h"
-#include "imageio.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/imageio.h"
 
 OIIO_NAMESPACE_USING;
 

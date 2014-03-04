@@ -37,12 +37,12 @@
 
 #include <tiffio.h>
 
-#include "dassert.h"
-#include "imageio.h"
-#include "filesystem.h"
-#include "strutil.h"
-#include "sysutil.h"
-#include "timer.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/timer.h"
 
 #include <boost/scoped_array.hpp>
 

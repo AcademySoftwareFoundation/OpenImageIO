@@ -40,11 +40,11 @@
 #include <string>
 #include <sstream>
 
-#include "strutil.h"
-#include "sysutil.h"
-#include "argparse.h"
-#include "dassert.h"
-#include "filesystem.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/filesystem.h"
 
 OIIO_NAMESPACE_ENTER
 {

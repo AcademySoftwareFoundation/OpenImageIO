@@ -29,8 +29,8 @@
 */
 #include <cstdio>
 #include <webp/encode.h>
-#include "filesystem.h"
-#include "imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/imageio.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

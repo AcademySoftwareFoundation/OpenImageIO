@@ -59,7 +59,7 @@
 #endif
 
 #ifdef _WIN32
-# include "osdep.h"
+# include "OpenImageIO/osdep.h"
 # include <Psapi.h>
 #else
 # include <sys/resource.h>
@@ -70,9 +70,8 @@
 # include <sys/ioctl.h>
 #endif
 
-#include "dassert.h"
-
-#include "sysutil.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/sysutil.h"
 
 OIIO_NAMESPACE_ENTER
 {
