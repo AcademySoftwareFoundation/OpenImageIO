@@ -29,9 +29,9 @@
 */
 
 
-#include "imageio.h"
-#include "fmath.h"
-#include "unittest.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/unittest.h"
 
 OIIO_NAMESPACE_USING;
 

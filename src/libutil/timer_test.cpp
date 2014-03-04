@@ -29,12 +29,12 @@
 */
 
 
-#include "imageio.h"
-#include "sysutil.h"
-#include "argparse.h"
-#include "strutil.h"
-#include "timer.h"
-#include "unittest.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/unittest.h"
 
 #include <iostream>
 

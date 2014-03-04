@@ -54,9 +54,9 @@ using boost::algorithm::iequals;
 #include <boost/algorithm/string/compare.hpp>
 
 #include "ivutils.h"
-#include "strutil.h"
-#include "fmath.h"
-#include "timer.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/timer.h"
 
 
 static const char *

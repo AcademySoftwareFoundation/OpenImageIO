@@ -40,12 +40,12 @@
 #include <iostream>
 #include <limits>
 
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
-#include "dassert.h"
-#include "sysutil.h"
-#include "thread.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/thread.h"
 
 
 

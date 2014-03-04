@@ -37,7 +37,7 @@
 #ifndef OPENIMAGEIO_SOCKET_PVT_H
 #define OPENIMAGEIO_SOCKET_PVT_H
 
-#include "imageio.h"
+#include "OpenImageIO/imageio.h"
 
 #include <map>
 

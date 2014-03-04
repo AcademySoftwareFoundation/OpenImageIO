@@ -45,15 +45,15 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
-#include "argparse.h"
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "sysutil.h"
-#include "filesystem.h"
-#include "filter.h"
-#include "color.h"
-#include "timer.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/filter.h"
+#include "OpenImageIO/color.h"
+#include "OpenImageIO/timer.h"
 
 #include "oiiotool.h"
 

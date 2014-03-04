@@ -32,12 +32,12 @@
 #include <iostream>
 #include <string>
 
-#include "thread.h"
+#include "OpenImageIO/thread.h"
 
 #include <boost/thread/thread.hpp>
 
-#include "optparser.h"
-#include "unittest.h"
+#include "OpenImageIO/optparser.h"
+#include "OpenImageIO/unittest.h"
 
 
 OIIO_NAMESPACE_USING;

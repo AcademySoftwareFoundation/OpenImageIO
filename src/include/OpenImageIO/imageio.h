@@ -55,9 +55,9 @@
 #include <cmath>
 
 #include "export.h"
+#include "oiioversion.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
-#include "oiioversion.h"
 
 OIIO_NAMESPACE_ENTER
 {

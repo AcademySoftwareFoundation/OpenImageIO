@@ -30,7 +30,7 @@
 
 #include <cstdio>
 
-#include "oiioversion.h"
+#include "OpenImageIO/imageio.h"
 
 extern "C" {
 #include <jpeglib.h>

@@ -37,13 +37,13 @@
 #include <iomanip>
 #include <iterator>
 
-#include "dassert.h"
-#include "argparse.h"
-#include "imageio.h"
-#include "imagecache.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "filesystem.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagecache.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/filesystem.h"
 
 #ifdef __APPLE__
  using std::isinf;

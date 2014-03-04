@@ -30,9 +30,9 @@
 #include <cstdio>
 #include <vector>
 #include <openjpeg.h>
-#include "filesystem.h"
-#include "fmath.h"
-#include "imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imageio.h"
 
 
 

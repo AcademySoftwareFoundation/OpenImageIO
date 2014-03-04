@@ -409,6 +409,7 @@ if (USE_EXTERNAL_PUGIXML)
     # insert include path to pugixml first, to ensure that the external
     # pugixml is found, and not the one in OIIO's include directory.
     include_directories (BEFORE ${PUGIXML_INCLUDE_DIR})
+    add_definitions ("-DUSE_EXTERNAL_PUGIXML=1")
 endif()
 
 

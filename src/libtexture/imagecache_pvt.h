@@ -39,12 +39,12 @@
 #include <boost/unordered_map.hpp>
 #include <boost/scoped_array.hpp>
 
-#include "export.h"
-#include "texture.h"
-#include "refcnt.h"
-#include "hash.h"
-#include "imagebuf.h"
-#include "unordered_map_concurrent.h"
+#include "OpenImageIO/export.h"
+#include "OpenImageIO/texture.h"
+#include "OpenImageIO/refcnt.h"
+#include "OpenImageIO/hash.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/unordered_map_concurrent.h"
 
 
 OIIO_NAMESPACE_ENTER

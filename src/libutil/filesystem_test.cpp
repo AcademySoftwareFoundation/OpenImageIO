@@ -31,9 +31,9 @@
 #include <sstream>
 #include <fstream>
 
-#include "imageio.h"
-#include "filesystem.h"
-#include "unittest.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/unittest.h"
 
 OIIO_NAMESPACE_USING;
 
@@ -82,7 +82,7 @@ void test_filename_searchpath_find ()
 
     // recursive search success (file is in a subdirectory)
     s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, true);
-    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "include" SEPARATOR "oiioversion.h");
+    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "include" SEPARATOR "OpenImageIO" SEPARATOR "oiioversion.h");
 }
 
 

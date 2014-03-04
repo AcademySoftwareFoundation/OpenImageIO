@@ -35,13 +35,13 @@
 #include <zlib.h>
 #include <OpenEXR/ImathColor.h>
 
-#include "dassert.h"
-#include "typedesc.h"
-#include "imageio.h"
-#include "strutil.h"
-#include "filesystem.h"
-#include "fmath.h"
-#include "sysutil.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/sysutil.h"
 
 
 

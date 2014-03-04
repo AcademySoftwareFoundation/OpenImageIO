@@ -49,9 +49,9 @@
 #include <cstring>
 #include <string>
 
-#include "fmath.h"
-#include "filter.h"
-#include "dassert.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/filter.h"
+#include "OpenImageIO/dassert.h"
 
 
 OIIO_NAMESPACE_ENTER

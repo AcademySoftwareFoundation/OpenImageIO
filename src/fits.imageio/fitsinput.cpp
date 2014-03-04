@@ -30,6 +30,7 @@
 
 
 #include <cstdlib>
+#include <ctype.h>
 
 #include "fits_pvt.h"
 
@@ -318,7 +319,10 @@ FitsInput::read_fits_header (void)
             continue;
         }
 
-        add_to_spec (pystring::capitalize(keyname), value);
+        Strutil::to_lower (keyname);  // make lower case
+        if (keyname.size() >= 1)
+            keyname[0] = toupper (keyname[0]);
+        add_to_spec (keyname, value);
     }
     // if we didn't found END keyword in current header, we read next one
     return read_fits_header ();

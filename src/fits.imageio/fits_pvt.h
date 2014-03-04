@@ -35,10 +35,9 @@
 #include <sstream>
 #include <map>
 
-#include "imageio.h"
-#include "filesystem.h"
-#include "fmath.h"
-#include "pystring.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/fmath.h"
 
 // This represent the size of ONE header unit in FITS file.
 #define HEADER_SIZE 2880

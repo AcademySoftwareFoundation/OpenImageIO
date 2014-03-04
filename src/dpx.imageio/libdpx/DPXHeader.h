@@ -42,7 +42,7 @@
 #define _DPX_DPXHEADER_H 1
 
 #include <cstring>
-#include "strutil.h"
+#include "OpenImageIO/strutil.h"
 #include "DPXStream.h"
 
 

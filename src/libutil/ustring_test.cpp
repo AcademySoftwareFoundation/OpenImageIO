@@ -32,11 +32,11 @@
 #include <iostream>
 #include <cstdio>
 
-#include "thread.h"
-#include "ustring.h"
-#include "strutil.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/strutil.h"
 
-#include "unittest.h"
+#include "OpenImageIO/unittest.h"
 
 
 OIIO_NAMESPACE_USING;

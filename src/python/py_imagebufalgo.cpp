@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo.h"
 #include "py_oiio.h"
 
 

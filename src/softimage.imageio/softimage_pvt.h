@@ -35,10 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OPENIMAGEIO_SOFTIMAGE_H
 
 #include <cstdio>
-#include <fmath.h>
-#include <imageio.h>
-
-#include "filesystem.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

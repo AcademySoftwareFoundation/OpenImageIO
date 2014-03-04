@@ -29,7 +29,7 @@
 */
 
 #include "py_oiio.h"
-#include "ustring.h"
+#include "OpenImageIO/ustring.h"
 
 namespace PyOpenImageIO
 {

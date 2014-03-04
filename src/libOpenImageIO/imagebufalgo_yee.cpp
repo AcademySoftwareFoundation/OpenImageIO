@@ -39,11 +39,11 @@
 #include <OpenEXR/ImathColor.h>
 using Imath::Color3f;
 
-#include "fmath.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "imagebufalgo_util.h"
-#include "dassert.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/dassert.h"
 
 
 template<class T>

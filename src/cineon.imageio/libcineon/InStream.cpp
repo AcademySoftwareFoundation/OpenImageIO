@@ -35,7 +35,7 @@
 
 #include <cstdio>
 
-#include "filesystem.h"
+#include "OpenImageIO/filesystem.h"
 
 #include "CineonStream.h"
 

@@ -41,14 +41,14 @@
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathVec.h>
 
-#include "argparse.h"
-#include "strutil.h"
-#include "imageio.h"
-#include "imagebuf.h"
-#include "imagebufalgo.h"
-#include "hash.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/hash.h"
+#include "OpenImageIO/fmath.h"
 #include "oiiotool.h"
-#include "fmath.h"
 
 OIIO_NAMESPACE_USING;
 using namespace OiioTool;

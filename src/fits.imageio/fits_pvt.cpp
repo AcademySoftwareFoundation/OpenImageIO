@@ -29,6 +29,7 @@
 */
 
 #include "fits_pvt.h"
+#include "OpenImageIO/strutil.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -49,7 +50,7 @@ std::string num2str (float val)
 
 std::string create_card (std::string keyname, std::string value)
 {
-    keyname = pystring::upper (keyname);
+    Strutil::to_upper (keyname);
 
     if (keyname.substr (0, 7) == "COMMENT" || keyname.substr (0, 7) == "HISTORY")
         keyname = keyname.substr (0, 7) + " ";
@@ -83,7 +84,7 @@ unpack_card (const std::string &card, std::string &keyname, std::string &value)
 
     // extracting keyname - first 8 bytes of the keyword (always)
     // we strip spaces that are placed after keyword name
-    keyname = pystring::strip (card.substr(0,8));
+    keyname = Strutil::strip (card.substr(0,8));
 
     // the value starts at 10 byte of the card if "=" is present at 8 byte
     // or at 8 byte otherwise
@@ -92,24 +93,22 @@ unpack_card (const std::string &card, std::string &keyname, std::string &value)
         start = 8;
     // copy of the card with keyword name stripped (only value and comment)
     std::string card_cpy = card.substr (start, card.size ());
-    card_cpy = pystring::strip (card_cpy, "");
+    card_cpy = Strutil::strip (card_cpy);
 
     // retrieving value and get rid of the comment
-    int begin = 0, end = 0;
-    std::string sep ("/");
+    size_t begin = 0, end = std::string::npos;
     if (card_cpy[0] == '\'') {
         begin = 1;
-        end = -1;
-        sep = "'";
+        end = card_cpy.find ("'", 1);
+    } else {
+        end = card_cpy.find ("/", 1);
     }
-    end += pystring::find (card_cpy, sep, 1, card_cpy.size ());
+
     // after creating substring we strip NULL chars from the end
     // without this some strings are broken: see HISTORY keywords
     // in ftt4b/file003.fits test image for example
-    value = card_cpy.substr (begin, end).c_str();
-    if (value.size ())
-        value = pystring::strip(value, "");
- }
+    value = Strutil::strip (card_cpy.substr (begin, end-begin).c_str());
+}
 
 } // namespace fits_pvt
 

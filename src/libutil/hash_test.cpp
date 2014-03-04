@@ -36,11 +36,11 @@
 
 #include <boost/bind.hpp>
 
-#include "hash.h"
-#include "timer.h"
-#include "argparse.h"
-#include "strutil.h"
-#include "unittest.h"
+#include "OpenImageIO/hash.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/unittest.h"
 
 
 

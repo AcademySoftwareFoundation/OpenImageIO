@@ -33,12 +33,11 @@
 #include <vector>
 #include <map>
 
-#include "export.h"
-#include "thread.h"
-#include "strutil.h"
-#include "dassert.h"
-
-#include "ustring.h"
+#include "OpenImageIO/export.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/ustring.h"
 
 #include <boost/unordered_map.hpp>
 

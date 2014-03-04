@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#include "strutil.h"
-#include "unittest.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/unittest.h"
 
 OIIO_NAMESPACE_USING;
 

@@ -77,13 +77,13 @@
 #include <OpenEXR/ImfDeepTiledOutputPart.h>
 #endif
 
-#include "dassert.h"
-#include "imageio.h"
-#include "filesystem.h"
-#include "thread.h"
-#include "strutil.h"
-#include "sysutil.h"
-#include "fmath.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/fmath.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

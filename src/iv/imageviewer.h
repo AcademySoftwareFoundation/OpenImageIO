@@ -42,7 +42,7 @@
 #endif
 
 // included to remove std::min/std::max errors
-#include "osdep.h"
+#include "OpenImageIO/osdep.h"
 
 #include <vector>
 
@@ -58,8 +58,8 @@
 #include <QtGui/QPrinter>
 #endif
 
-#include "imageio.h"
-#include "imagebuf.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
 
 OIIO_NAMESPACE_USING;
 

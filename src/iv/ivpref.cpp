@@ -38,8 +38,8 @@
 #include <QtGui/QVBoxLayout>
 
 #include "imageviewer.h"
-#include "dassert.h"
-#include "strutil.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/strutil.h"
 
 
 

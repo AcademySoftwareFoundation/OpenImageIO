@@ -77,12 +77,12 @@
 
 #include <OpenEXR/ImfCRgbaFile.h>
 
-#include "dassert.h"
-#include "imageio.h"
-#include "thread.h"
-#include "strutil.h"
-#include "fmath.h"
-#include "filesystem.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/filesystem.h"
 
 #include <boost/scoped_array.hpp>
 

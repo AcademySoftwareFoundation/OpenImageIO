@@ -48,14 +48,13 @@
 
 #include <boost/foreach.hpp>
 
-#include "imageio.h"
 #include "imageviewer.h"
-#include "timer.h"
-#include "argparse.h"
-#include "sysutil.h"
-#include "strutil.h"
-#include "imagecache.h"
-#include "filesystem.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/imagecache.h"
+#include "OpenImageIO/filesystem.h"
 
 OIIO_NAMESPACE_USING;
 

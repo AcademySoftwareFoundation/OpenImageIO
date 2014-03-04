@@ -31,7 +31,6 @@
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
 #undef SIZEOF_LONG
 #include <boost/python.hpp>
-#include "imageio.h"
 #include "py_oiio.h"
 
 namespace PyOpenImageIO

@@ -59,13 +59,13 @@
 
 #include <OpenEXR/ImathFun.h>
 
-#include "dassert.h"
-#include "strutil.h"
-#include "timer.h"
-#include "fmath.h"
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/strutil.h"
+#include "OpenImageIO/timer.h"
+#include "OpenImageIO/fmath.h"
+#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/filesystem.h"
 #include "ivutils.h"
-#include "sysutil.h"
-#include "filesystem.h"
 
 
 namespace

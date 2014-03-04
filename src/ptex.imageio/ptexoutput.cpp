@@ -30,9 +30,9 @@
 
 #include "ptex/PtexWriter.h"
 
-#include "typedesc.h"
-#include "imageio.h"
-#include "fmath.h"
+#include "OpenImageIO/typedesc.h"
+#include "OpenImageIO/imageio.h"
+#include "OpenImageIO/fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
