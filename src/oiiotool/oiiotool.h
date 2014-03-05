@@ -377,7 +377,8 @@ enum DiffErrors {
     DiffErrLast
 };
 
-int do_action_diff (ImageRec &ir0, ImageRec &ir1, Oiiotool &options);
+int do_action_diff (ImageRec &ir0, ImageRec &ir1, Oiiotool &options,
+                    int perceptual = 0);
 
 
 

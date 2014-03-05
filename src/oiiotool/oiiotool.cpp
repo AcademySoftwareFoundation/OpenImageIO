@@ -1684,6 +1684,26 @@ action_diff (int argc, const char *argv[])
 
 
 static int
+action_pdiff (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_pdiff, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    int ret = do_action_diff (*ot.image_stack.back(), *ot.curimg, ot, 1);
+    if (ret != DiffErrOK && ret != DiffErrWarn)
+        ot.return_value = EXIT_FAILURE;
+
+    if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
+        ot.error ("Error doing %s", argv[0]);
+
+    ot.function_times["pdiff"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_add (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_add, argc, argv))
@@ -3366,6 +3386,7 @@ getargs (int argc, char *argv[])
                 "--capture %@", action_capture, NULL,
                         "Capture an image (options: camera=%d)",
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
+                "--pdiff %@", action_pdiff, NULL, "Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",

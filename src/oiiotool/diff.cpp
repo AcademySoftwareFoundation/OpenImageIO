@@ -101,9 +101,10 @@ print_subimage (ImageRec &img0, int subimage, int miplevel)
 
 int
 OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
-                          Oiiotool &ot)
+                          Oiiotool &ot, int perceptual)
 {
-    std::cout << "Computing diff of \"" << ir0.name() << "\" vs \""
+    std::cout << "Computing " << (perceptual ? "perceptual " : "")
+              << "diff of \"" << ir0.name() << "\" vs \""
               << ir1.name() << "\"\n";
     ir0.read ();
     ir1.read ();
@@ -114,10 +115,6 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             break;
         if (subimage >= ir1.subimages())
             break;
-
-        if (ir0.miplevels(subimage) != ir1.miplevels(subimage)) {
-            std::cout << "Files do not match in their number of MIPmap levels\n";
-        }
 
         for (int m = 0;  m < ir0.miplevels(subimage);  ++m) {
             if (m > 0 && !ot.allsubimages)
@@ -138,13 +135,17 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             // Compare the two images.
             //
             ImageBufAlgo::CompareResults cr;
-            ImageBufAlgo::compare (img0, img1, ot.diff_failthresh, ot.diff_warnthresh, cr);
-
             int yee_failures = 0;
-#if 0
-            if (perceptual)
-                yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
-#endif
+            switch (perceptual) {
+            case 1 :
+            case 0 :
+                yee_failures = ImageBufAlgo::compare_Yee (img0, img1, cr);
+                break;
+            default:
+                ImageBufAlgo::compare (img0, img1, ot.diff_failthresh, ot.diff_warnthresh, cr);
+                break;
+            }
+
             if (cr.nfail > (ot.diff_failpercent/100.0 * npels) || cr.maxerror > ot.diff_hardfail ||
                 yee_failures > (ot.diff_failpercent/100.0 * npels)) {
                 ret = DiffErrFail;
@@ -185,50 +186,13 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
                 std::cout << "  " << cr.nfail << " pixels (" 
                           << std::setprecision(3) << (100.0*cr.nfail / npels) 
                           << std::setprecision(precis) << "%) over " << ot.diff_failthresh << "\n";
-#if 0
-                if (perceptual)
+                if (perceptual == 1)
                     std::cout << "  " << yee_failures << " pixels ("
                               << std::setprecision(3) << (100.0*yee_failures / npels) 
                               << std::setprecision(precis)
                               << "%) failed the perceptual test\n";
-#endif
             }
 
-#if 0
-            // If the user requested that a difference image be output,
-            // do that.  N.B. we only do this for the first subimage
-            // right now, because ImageBuf doesn't really know how to
-            // write subimages.
-            if (diffimage.size() && (cr.maxerror != 0 || !outdiffonly)) {
-                ImageBuf diff (diffimage, img0.spec());
-                ImageBuf::ConstIterator<float,float> pix0 (img0);
-                ImageBuf::ConstIterator<float,float> pix1 (img1);
-                ImageBuf::Iterator<float,float> pixdiff (diff);
-                // Subtract the second image from the first.  At which
-                // time we no longer need the second image, so free it.
-                if (diffabs) {
-                    for (  ;  pix0.valid();  ++pix0) {
-                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                        pixdiff.pos (pix0.x(), pix0.y());
-                        for (int c = 0;  c < img0.nchannels();  ++c)
-                            pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
-                    }
-                } else {
-                    for (  ;  pix0.valid();  ++pix0) {
-                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                        pixdiff.pos (pix0.x(), pix0.y());
-                        for (int c = 0;  c < img0.spec().nchannels;  ++c)
-                            pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
-                    }
-                }
-
-                diff.save (diffimage);
-
-                // Clear diff image name so we only save the first
-                // non-matching subimage.
-                diffimage = "";
-            }
-#endif
         }
     }
 
@@ -249,6 +213,7 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
         std::cout << "WARNING\n";
     else {
         std::cout << "FAILURE\n";
+        ot.return_value = ret;
     }
     return ret;
 }
