@@ -12,6 +12,7 @@ Major new features and improvements:
     --label : give a name to the top-of-stack image, can be referred
               to later in the command line (1.4.1)
     --cut : combine --crop, --origin +0+0, and --fullpixels. (1.4.3)
+    --pdiff : perceptual diff (1.4.4)
 
 Public API changes:
 * ImageBufAlgo::pow() raises pixel values to a power. (1.4.1)
@@ -41,6 +42,7 @@ Fixes, minor enhancements, and performance improvements:
     dimension to preserve the aspect ratio of the source image. (1.4.3)
   * Fixed possible crash when using --origin with tiled, cached
     images. (1.3.12/1.4.2)
+  * --pdiff does a perceptual diff (like 'idiff -p'). (1.4.4)
 * oiiotool --resize and --fit, and also maketx when using "good" filters
   for downsizing, have been significantly sped up. When downsizing
   with large filters, we have seen up to 3x improvement. (1.4.3)
@@ -55,6 +57,7 @@ Fixes, minor enhancements, and performance improvements:
   - Fix crashing bug when reading stringvector attributes in the
     file. (1.3.11/1.4.2)
   - Add .sxr and .mxr as possible filename extensions (1.3.12/1.4.2)
+* TIFF: Give a more explicit error message for unsupported tile sizes (1.4.4)
 * iconvert: properly handle multi-image files for formats that can't
   append subimages. (1.3.10/1.4.1)
 * iv info window should print native file info, not translated
@@ -68,8 +71,10 @@ Fixes, minor enhancements, and performance improvements:
     DPX files (especially when reading metadata from one DPX file,
     changing the number of channels, then writing out again as a DPX
     file). (1.3.10/1.4.1)
-  - For putput, honor the "Software" metadata attribute passed in.
+  - For output, honor the "Software" metadata attribute passed in.
     (1.3.11/1.4.2)
+  - Ignore negative image origin values, which are not allowed by the
+    DPX spec which states they are unsigned. (1.4.4)
 * PNG: add "png:compressionlevel" and "compression" strategy attributes.
   (1.3.12/1.4.2)
 * Make ImageBuf iterators return valid black pixel data for missing
@@ -84,6 +89,12 @@ Fixes, minor enhancements, and performance improvements:
 * The implementation of the Lanczos filter (and any operations using it)
   have been sped up by using an approximate fast_sinpi instead of the
   more expensive sin() (1.4.3).
+* Speed up iinfo --hash / oiiotool --hash by about 20%. (1.4.4)
+* All format writer plugins: ensure that calling close() twice is safe
+  (1.4.4).
+* oiiotool --info and iinfo output have been altered slightly to make them
+  match and be consistent. Also, oiiotool didn't say that deep files were
+  deep (1.4.4).
 
 Build/test system improvements:
 * libOpenImageIO_Util is now built that only has the utility functions
@@ -103,6 +114,11 @@ Build/test system improvements:
 * Unit test strutil_test now comprehensively tests Strutil. (1.4.1)
 * Fix broken build when EMBEDPLUGINS=0. (1.4.3/1.3.13)
 * Fix broken build against OpenEXR 1.x. (1.4.3/1.3.13)
+* version.h has been renamed oiioversion.h.  For back compatibility, there
+  is still a version.h, but it merely includes oiioversion.h. (1.4.4)
+* Moved all the public header files from src/include to
+  src/include/OpenImageIO, so that the src/include area more closely
+  matches the layout of an OIIO install area. (1.4.4)
 
 Developer goodies / internals:
 * Slight thread.h portability tweaks. (1.4.1)
