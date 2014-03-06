@@ -138,7 +138,6 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             int yee_failures = 0;
             switch (perceptual) {
             case 1 :
-            case 0 :
                 yee_failures = ImageBufAlgo::compare_Yee (img0, img1, cr);
                 break;
             default:
