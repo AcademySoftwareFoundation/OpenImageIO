@@ -451,6 +451,23 @@ DPXOutput::prep_subimage (int s, bool allocate)
     else
         m_packing = dpx::kFilledMethodA;
 
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8 :
+    case TypeDesc::UINT16 :
+    case TypeDesc::FLOAT :
+    case TypeDesc::DOUBLE :
+        // supported, fine
+        break;
+    case TypeDesc::HALF :
+        // Turn half into float
+        m_spec.format.basetype = TypeDesc::FLOAT;
+        break;
+    default:
+        // Turn everything else into UINT16
+        m_spec.format.basetype = TypeDesc::UINT16;
+        break;
+    }
+
     // calculate target bit depth
     m_bitdepth = m_spec.format.size () * 8;
     if (m_spec.format == TypeDesc::UINT16) {
