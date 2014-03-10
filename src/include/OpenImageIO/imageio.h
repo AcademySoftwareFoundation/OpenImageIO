@@ -393,6 +393,11 @@ public:
     void clear ();
     /// Deallocate all space in the vectors
     void free ();
+    /// Retrieve the pointer to the first sample of the given pixel and
+    /// channel. Return NULL if there are no samples for that pixel.
+    void *channel_ptr (int pixel, int channel) const;
+    /// Retrieve sample value within a pixel, cast to a float.
+    float deep_value (int pixel, int channel, int sample) const;
 };
 
 

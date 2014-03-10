@@ -797,6 +797,56 @@ DeepData::free ()
 
 
 
+void *
+DeepData::channel_ptr (int pixel, int channel) const
+{
+    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+        return NULL;
+    return pointers[pixel*nchannels + channel];
+}
+
+
+
+float
+DeepData::deep_value (int pixel, int channel, int sample) const
+{
+    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+        return 0.0f;
+    int nsamps = nsamples[pixel];
+    if (nsamps == 0 || sample < 0 || sample >= nsamps)
+        return 0.0f;
+    const void *ptr = pointers[pixel*nchannels + channel];
+    if (! ptr)
+        return 0.0f;
+    switch (channeltypes[channel].basetype) {
+    case TypeDesc::FLOAT :
+        return ((const float *)ptr)[sample];
+    case TypeDesc::HALF  :
+        return ((const half *)ptr)[sample];
+    case TypeDesc::UINT8 :
+        return ConstDataArrayProxy<unsigned char,float>((const unsigned char *)ptr)[sample];
+    case TypeDesc::INT8  :
+        return ConstDataArrayProxy<char,float>((const char *)ptr)[sample];
+    case TypeDesc::UINT16:
+        return ConstDataArrayProxy<unsigned short,float>((const unsigned short *)ptr)[sample];
+    case TypeDesc::INT16 :
+        return ConstDataArrayProxy<short,float>((const short *)ptr)[sample];
+    case TypeDesc::UINT  :
+        return ConstDataArrayProxy<unsigned int,float>((const unsigned int *)ptr)[sample];
+    case TypeDesc::INT   :
+        return ConstDataArrayProxy<int,float>((const int *)ptr)[sample];
+    case TypeDesc::UINT64:
+        return ConstDataArrayProxy<unsigned long long,float>((const unsigned long long *)ptr)[sample];
+    case TypeDesc::INT64 :
+        return ConstDataArrayProxy<long long,float>((const long long *)ptr)[sample];
+    default:
+        ASSERT (0);
+        return 0.0f;
+    }
+}
+
+
+
 bool
 wrap_black (int &coord, int origin, int width)
 {
