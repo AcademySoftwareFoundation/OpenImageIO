@@ -95,13 +95,6 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
         return true;
     }
 
-    // We need to convert our "cumulative" alpha values to the
-    // "local" values that OpenEXR conventions dictate.
-    // For cumulative values cum[i] and alpha[i], we can derive
-    // local val[i] as follows:
-    //       cum[i] = cum[i-1] + (1 - alpha[i-1]) * val[i]
-    //       val[i] = (cum[i] - cum[i-1]) / (1 - alpha[i-1])
-
     const ImageSpec &srcspec (src.spec());
     int nc = srcspec.nchannels;
 
@@ -115,8 +108,12 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
         dst.error ("No alpha channel could be identified");
         return false;
     }
-
+    ASSERT (alpha_channel >= 0 ||
+            (RA_channel >= 0 && GA_channel >= 0 && BA_channel >= 0));
     float *val = ALLOCA (float, nc);
+    float &RAval (RA_channel >= 0 ? val[RA_channel] : val[alpha_channel]);
+    float &GAval (GA_channel >= 0 ? val[GA_channel] : val[alpha_channel]);
+    float &BAval (BA_channel >= 0 ? val[BA_channel] : val[alpha_channel]);
 
     for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
         int x = r.x(), y = r.y(), z = r.z();
@@ -127,29 +124,25 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
             val[Z_channel] = 1.0e30;
         if (Zback_channel >= 0 && samps == 0)
             val[Zback_channel] = 1.0e30;
-
         for (int s = 0;  s < samps;  ++s) {
-            float RA, GA, BA, alpha;   // The running totals
-            if (RA_channel >= 0) {
-                RA = val[RA_channel];
-                GA = val[GA_channel];
-                BA = val[BA_channel];
-                alpha = (RA + GA + BA) / 3.0f;
-            } else {
-                alpha = val[alpha_channel];
-                RA = GA = BA = alpha;
-            }
-            if (alpha >= 1)
+            float RA = RAval, GA = GAval, BA = BAval;  // make copies
+            float alpha = (RA + GA + BA) / 3.0f;
+            if (alpha >= 1.0f)
                 break;
             for (int c = 0;  c < nc;  ++c) {
-                float a = alpha;
+                float v = src.deep_value (x, y, z, c, s);
+                if (c == Z_channel || c == Zback_channel)
+                    val[c] *= alpha;  // because Z are not premultiplied
+                float a;
                 if (c == R_channel)
                     a = RA;
                 else if (c == G_channel)
                     a = GA;
                 else if (c == B_channel)
                     a = BA;
-                val[c] += (1.0f - a) * src.deep_value (x, y, z, c, s);
+                else
+                    a = alpha;
+                val[c] += (1.0f - a) * v;
             }
         }
 

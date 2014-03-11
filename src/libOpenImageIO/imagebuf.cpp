@@ -1528,43 +1528,9 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     if (! deep())
         return 0.0f;
     const ImageSpec &m_spec (spec());
-    if (x < m_spec.x || y < m_spec.y || z < m_spec.z)
-        return 0.0f;
     x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth ||
-        c < 0 || c >= m_spec.nchannels)
-        return 0.0f;
     int p = (z * m_spec.height + y) * m_spec.width + x;
-    int nsamps = impl()->m_deepdata.nsamples[p];
-    if (s >= nsamps)
-        return 0.0f;
-    const void *ptr = impl()->m_deepdata.pointers[p*m_spec.nchannels+c];
-    TypeDesc t = impl()->m_deepdata.channeltypes[c];
-    switch (t.basetype) {
-    case TypeDesc::FLOAT :
-        return ((const float *)ptr)[s];
-    case TypeDesc::HALF  :
-        return ((const half *)ptr)[s];
-    case TypeDesc::UINT8 :
-        return ConstDataArrayProxy<unsigned char,float>((const unsigned char *)ptr)[s];
-    case TypeDesc::INT8  :
-        return ConstDataArrayProxy<char,float>((const char *)ptr)[s];
-    case TypeDesc::UINT16:
-        return ConstDataArrayProxy<unsigned short,float>((const unsigned short *)ptr)[s];
-    case TypeDesc::INT16 :
-        return ConstDataArrayProxy<short,float>((const short *)ptr)[s];
-    case TypeDesc::UINT  :
-        return ConstDataArrayProxy<unsigned int,float>((const unsigned int *)ptr)[s];
-    case TypeDesc::INT   :
-        return ConstDataArrayProxy<int,float>((const int *)ptr)[s];
-    case TypeDesc::UINT64:
-        return ConstDataArrayProxy<unsigned long long,float>((const unsigned long long *)ptr)[s];
-    case TypeDesc::INT64 :
-        return ConstDataArrayProxy<long long,float>((const long long *)ptr)[s];
-    default:
-        ASSERT (0);
-        return 0.0f;
-    }
+    return impl()->m_deepdata.deep_value (p, c, s);
 }
 
 

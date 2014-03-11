@@ -106,7 +106,6 @@ dump_data (ImageInput *input)
             return;
         }
         int nc = spec.nchannels;
-        TypeDesc *types = &dd.channeltypes[0];
         for (int z = 0, pixel = 0;  z < spec.depth;  ++z) {
             for (int y = 0;  y < spec.height;  ++y) {
                 for (int x = 0;  x < spec.width;  ++x, ++pixel) {
@@ -123,19 +122,9 @@ dump_data (ImageInput *input)
                     for (int s = 0;  s < nsamples;  ++s) {
                         if (s)
                             std::cout << " / ";
-                        for (int c = 0;  c < nc;  ++c) {
-                            std::cout << " " << spec.channelnames[c] << "=";
-                            const char *ptr = (const char *)dd.pointers[pixel*nc+c];
-                            TypeDesc t = types[c];
-                            ptr += s * t.size();
-                            if (t.basetype == TypeDesc::FLOAT) {
-                                std::cout << *(const float *)ptr;
-                            } else if (t.basetype == TypeDesc::HALF) {
-                                std::cout << *(const half *)ptr;
-                            } else if (t.basetype == TypeDesc::UINT) {
-                                std::cout << *(const unsigned int *)ptr;
-                            }
-                        }
+                        for (int c = 0;  c < nc;  ++c)
+                            std::cout << " " << spec.channelnames[c] << "="
+                                      << dd.deep_value (pixel, c, s);
                     }
                     std::cout << "\n";
                 }
