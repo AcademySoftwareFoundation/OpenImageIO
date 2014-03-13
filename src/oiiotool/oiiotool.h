@@ -56,6 +56,7 @@ public:
     bool printinfo;
     bool printstats;
     bool dumpdata;
+    bool dumpdata_showempty;
     bool hash;
     bool updatemode;
     int threads;
@@ -321,6 +322,7 @@ struct print_info_options {
     bool compute_sha1;
     bool compute_stats;
     bool dumpdata;
+    bool dumpdata_showempty;
     std::string metamatch;
     std::string nometamatch;
     size_t namefieldlength;
@@ -328,7 +330,7 @@ struct print_info_options {
     print_info_options ()
         : verbose(false), filenameprefix(false), sum(false), subimages(false),
           compute_sha1(false), compute_stats(false), dumpdata(false),
-          namefieldlength(20)
+          dumpdata_showempty(true), namefieldlength(20)
     {}
 };
 

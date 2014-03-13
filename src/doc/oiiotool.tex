@@ -436,6 +436,17 @@ read.
 Print the SHA-1 hash of the pixels of each input image.
 \apiend
 
+\apiitem{--dumpdata}
+Print to the console detailed information about the values in every pixel.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf empty=}{\verb&0|1&} & If 0, will cause deep images to skip printing
+                            of information about pixels with no samples.
+\end{tabular}
+\apiend
+
 \apiitem{--diff}
 This command computes the difference of the current image and the next
 image on the stack, and prints a report of those differences (how
