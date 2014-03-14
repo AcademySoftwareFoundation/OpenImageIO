@@ -45,7 +45,7 @@ public:
     TimerSetupOnce () {
 #ifdef _WIN32
         // From MSDN web site
-        value_t freq;
+        LARGE_INTEGER freq;
         QueryPerformanceFrequency (&freq);
         Timer::seconds_per_tick = 1.0 / (double)freq.QuadPart;
 #elif defined(__APPLE__)
