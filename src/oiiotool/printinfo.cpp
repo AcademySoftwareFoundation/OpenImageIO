@@ -95,7 +95,7 @@ print_sha1 (ImageInput *input)
 
 
 static void
-dump_data (ImageInput *input)
+dump_data (ImageInput *input, const print_info_options &opt)
 {
     const ImageSpec &spec (input->spec());
     if (spec.deep) {
@@ -110,6 +110,8 @@ dump_data (ImageInput *input)
             for (int y = 0;  y < spec.height;  ++y) {
                 for (int x = 0;  x < spec.width;  ++x, ++pixel) {
                     int nsamples = dd.nsamples[pixel];
+                    if (nsamples == 0 && ! opt.dumpdata_showempty)
+                        continue;
                     std::cout << "    Pixel (";
                     if (spec.depth > 1 || spec.z != 0)
                         std::cout << Strutil::format("%d, %d, %d",
@@ -596,7 +598,7 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
     if (opt.dumpdata) {
         ImageSpec tmp;
         input->seek_subimage (current_subimage, 0, tmp);
-        dump_data (input);
+        dump_data (input, opt);
     }
 
     if (opt.compute_stats && (opt.metamatch.empty() ||

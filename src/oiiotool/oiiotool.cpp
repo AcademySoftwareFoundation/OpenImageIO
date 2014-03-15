@@ -89,6 +89,7 @@ Oiiotool::clear_options ()
     printinfo = false;
     printstats = false;
     dumpdata = false;
+    dumpdata_showempty = true;
     hash = false;
     updatemode = false;
     threads = 0;
@@ -266,6 +267,20 @@ set_threads (int argc, const char *argv[])
 
 
 static int
+set_dumpdata (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.dumpdata = true;
+    std::map<std::string,std::string> options;
+    options["empty"] = "1";
+    extract_options (options, argv[0]);
+    ot.dumpdata_showempty = Strutil::from_string<int> (options["empty"]);
+    return 0;
+}
+
+
+
+static int
 input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
@@ -295,6 +310,7 @@ input_file (int argc, const char *argv[])
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
+            pio.dumpdata_showempty = ot.dumpdata_showempty;
             pio.compute_sha1 = ot.hash;
             pio.metamatch = ot.printinfo_metamatch;
             pio.nometamatch = ot.printinfo_nometamatch;
@@ -3319,7 +3335,7 @@ getargs (int argc, char *argv[])
                 "--no-metamatch %s", &ot.printinfo_nometamatch,
                     "Regex: which metadata is excluded with -info -v",
                 "--stats", &ot.printstats, "Print pixel statistics on all inputs",
-                "--dumpdata", &ot.dumpdata, "Print all pixel data values",
+                "--dumpdata %@", set_dumpdata, NULL, "Print all pixel data values (options: empty=0)",
                 "--hash", &ot.hash, "Print SHA-1 hash of each input image",
                 "--colorcount %@ %s", action_colorcount, NULL,
                     "Count of how many pixels have the given color (argument: color;color;...) (optional args: eps=color)",
