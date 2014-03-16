@@ -659,7 +659,8 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
     std::vector<int> userchannels;      // Map file chans to user chans
     Imf::ChannelList::ConstIterator ci;
     int c;
-    int red = -1, green = -1, blue = -1, alpha = -1, zee = -1;
+    int red = -1, green = -1, blue = -1, alpha = -1, zee = -1, zback = -1;
+    int ra = -1, ga = -1, ba = -1;
     for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
         const char* name = ci.name();
         channelnames.push_back (name);
@@ -667,19 +668,27 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
                         Strutil::iends_with(name,".R") || Strutil::iends_with(name,".Red") ||
                         Strutil::iequals(name, "real")))
             red = c;
-        if (green < 0 && (Strutil::iequals(name, "G") || Strutil::iequals(name, "Green") ||
+        else if (green < 0 && (Strutil::iequals(name, "G") || Strutil::iequals(name, "Green") ||
                           Strutil::iends_with(name,".G") || Strutil::iends_with(name,".Green") ||
                           Strutil::iequals(name, "imag")))
             green = c;
-        if (blue < 0 && (Strutil::iequals(name, "B") || Strutil::iequals(name, "Blue") ||
+        else if (blue < 0 && (Strutil::iequals(name, "B") || Strutil::iequals(name, "Blue") ||
                          Strutil::iends_with(name,".B") || Strutil::iends_with(name,".Blue")))
             blue = c;
-        if (alpha < 0 && (Strutil::iequals(name, "A") || Strutil::iequals(name, "Alpha") ||
+        else if (alpha < 0 && (Strutil::iequals(name, "A") || Strutil::iequals(name, "Alpha") ||
                           Strutil::iends_with(name,".A") || Strutil::iends_with(name,".Alpha")))
             alpha = c;
-        if (zee < 0 && (Strutil::iequals(name, "Z") || Strutil::iequals(name, "Depth") ||
+        else if (ra < 0 && (Strutil::iequals(name, "RA") || Strutil::iends_with(name,".RA")))
+            ra = c;
+        else if (ga < 0 && (Strutil::iequals(name, "GA") || Strutil::iends_with(name,".GA")))
+            ra = c;
+        else if (ba < 0 && (Strutil::iequals(name, "BA") || Strutil::iends_with(name,".BA")))
+            ba = c;
+        else if (zee < 0 && (Strutil::iequals(name, "Z") || Strutil::iequals(name, "Depth") ||
                         Strutil::iends_with(name,".Z") || Strutil::iends_with(name,".Depth")))
             zee = c;
+        else if (zback < 0 && (Strutil::iequals(name, "ZBack") || Strutil::iends_with(name,".ZBack")))
+            zback = c;
     }
     spec.nchannels = (int)channelnames.size();
     userchannels.resize (spec.nchannels);
@@ -701,13 +710,32 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
         spec.alpha_channel = nc;
         userchannels[alpha] = nc++;
     }
+    if (ra >= 0) {
+        spec.channelnames.push_back (channelnames[ra]);
+        userchannels[ra] = nc++;
+    }
+    if (ga >= 0) {
+        spec.channelnames.push_back (channelnames[ga]);
+        userchannels[ga] = nc++;
+    }
+    if (ba >= 0) {
+        spec.channelnames.push_back (channelnames[ba]);
+        userchannels[ba] = nc++;
+    }
     if (zee >= 0) {
         spec.channelnames.push_back (channelnames[zee]);
         spec.z_channel = nc;
         userchannels[zee] = nc++;
     }
+    if (zback >= 0) {
+        spec.channelnames.push_back (channelnames[zback]);
+        spec.z_channel = nc;
+        userchannels[zback] = nc++;
+    }
     for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
-        if (red == c || green == c || blue == c || alpha == c || zee == c)
+        if (red == c || green == c || blue == c ||
+            alpha == c || ra == c || ga == c || ba == c ||
+            zee == c || zback == c)
             continue;   // Already accounted for this channel
         userchannels[c] = nc;
         spec.channelnames.push_back (ci.name());
