@@ -83,7 +83,7 @@ OIIO_NAMESPACE_ENTER {
 ///
 
 
-class string_ref {
+class OIIO_API string_ref {
 public:
     typedef char charT;
     typedef charT value_type;

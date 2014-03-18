@@ -37,6 +37,7 @@
 #define OPENIMAGEIO_TIMER_H
 
 #include "oiioversion.h"
+#include "export.h"
 
 #ifdef _WIN32
 # include "osdep.h"
@@ -77,7 +78,7 @@ OIIO_NAMESPACE_ENTER
 /// (b) calling it millions of times could make your program appreciably
 /// more expensive due to the timers themselves.
 ///
-class Timer {
+class OIIO_API Timer {
 public:
     typedef unsigned long long value_t;
 
