@@ -457,6 +457,12 @@ Filesystem::parse_pattern (const char *pattern_,
     boost::match_results<std::string::const_iterator> range_match;
     if (! boost::regex_search (pattern, range_match, sequence_re)) {
         // Not a range
+        static boost::regex all_views_re ("%[Vv]");
+        if (boost::regex_search (pattern, all_views_re)) {
+            normalized_pattern = pattern;
+            return true;
+        }
+
         return false;
     }
 
@@ -513,6 +519,105 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
 
 
 bool
+Filesystem::enumerate_file_sequence (const std::string &pattern,
+                                     const std::vector<int> &numbers,
+                                     const std::vector<string_ref> &views,
+                                     std::vector<std::string> &filenames)
+{
+    DASSERT (views.size() == 0 || views.size() == numbers.size());
+
+    static boost::regex view_re ("%V"), short_view_re ("%v");
+
+    for (size_t i = 0, e = numbers.size(); i < e; ++i) {
+        std::string f = pattern;
+        if (views.size() > 0 && ! views[i].empty()) {
+            f = boost::regex_replace (f, view_re, views[i]);
+            f = boost::regex_replace (f, short_view_re, views[i].substr(0, 1));
+        }
+        f = Strutil::format (f.c_str(), numbers[i]);
+        filenames.push_back (f);
+    }
+
+    return true;
+}
+
+
+
+bool
+Filesystem::scan_for_matching_filenames(const std::string &pattern,
+                                        const std::vector<string_ref> &views,
+                                        std::vector<int> &frame_numbers,
+                                        std::vector<string_ref> &frame_views,
+                                        std::vector<std::string> &filenames)
+{
+    static boost::regex format_re ("%0([0-9]+)d");
+    static boost::regex all_views_re ("%[Vv]"), view_re ("%V"), short_view_re ("%v");
+
+    if (boost::regex_search (pattern, all_views_re)) {
+        if (boost::regex_search (pattern, format_re)) {
+            // case 1: pattern has format and view
+            std::vector< std::pair< std::pair< int, string_ref>, std::string> > matches;
+            for (int i = 0, e = views.size(); i < e; ++i) {
+                if (views[i].empty())
+                    continue;
+
+                const string_ref short_view = views[i].substr (0, 1);
+                std::vector<int> view_numbers;
+                std::vector<std::string> view_filenames;
+
+                std::string view_pattern = pattern;
+                view_pattern = boost::regex_replace (view_pattern, view_re, views[i]);
+                view_pattern = boost::regex_replace (view_pattern, short_view_re, short_view);
+
+                if (! scan_for_matching_filenames (view_pattern, view_numbers, view_filenames))
+                    continue;
+
+                for (int j = 0, f = view_numbers.size(); j < f; ++j) {
+                    matches.push_back (std::make_pair (std::make_pair (view_numbers[j], views[i]), view_filenames[j]));
+                }
+            }
+
+            std::sort (matches.begin(), matches.end());
+
+            for (int i = 0, e = matches.size(); i < e; ++i) {
+                frame_numbers.push_back (matches[i].first.first);
+                frame_views.push_back (matches[i].first.second);
+                filenames.push_back (matches[i].second);
+            }
+
+        } else {
+            // case 2: pattern has view, but no format
+            std::vector< std::pair<string_ref, std::string> > matches;
+            for (int i = 0, e = views.size(); i < e; ++i) {
+                const string_ref &view = views[i];
+                const string_ref short_view = view.substr (0, 1);
+
+                std::string view_pattern = pattern;
+                view_pattern = boost::regex_replace (view_pattern, view_re, view);
+                view_pattern = boost::regex_replace (view_pattern, short_view_re, short_view);
+
+                if (boost::filesystem::exists (view_pattern))
+                    matches.push_back (std::make_pair (view, view_pattern));
+            }
+
+            std::sort (matches.begin(), matches.end());
+            for (int i = 0, e = matches.size(); i < e; ++i) {
+                frame_views.push_back (matches[i].first);
+                filenames.push_back (matches[i].second);
+            }
+
+        }
+        return true;
+
+    } else {
+        // case 3: pattern has format, but no view
+        return scan_for_matching_filenames(pattern, frame_numbers, filenames);
+    }
+
+    return true;
+}
+
+bool
 Filesystem::scan_for_matching_filenames(const std::string &pattern_,
                                         std::vector<int> &numbers,
                                         std::vector<std::string> &filenames)
@@ -534,7 +639,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
         return false;
 
     // build a regex that matches the pattern
-    boost::regex format_re ("%0([0-9]+)d");
+    static boost::regex format_re ("%0([0-9]+)d");
     boost::match_results<std::string::const_iterator> format_match;
     if (! boost::regex_search (pattern, format_match, format_re))
         return false;
@@ -571,7 +676,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     // filesystem order is undefined, so return sorted sequences
     std::sort (matches.begin(), matches.end());
 
-    for (size_t i = 0; i < matches.size(); ++i) {
+    for (size_t i = 0, e = matches.size(); i < e; ++i) {
         numbers.push_back (matches[i].first);
         filenames.push_back (matches[i].second);
     }

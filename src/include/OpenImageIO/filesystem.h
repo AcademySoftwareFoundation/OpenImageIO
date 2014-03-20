@@ -209,6 +209,31 @@ OIIO_API bool enumerate_file_sequence (const std::string &pattern,
                                        const std::vector<int> &numbers,
                                        std::vector<std::string> &filenames);
 
+/// Given a normalized pattern (such as "foo_%V.%04d.tif") and a list of frame
+/// numbers, generate a list of filenames. "views" is list of per-frame
+/// views, or empty. In each frame filename, "%V" is replaced with the view,
+/// and "%v" is replaced with the first character of the view.
+///
+/// Return true upon success, false if the description was too malformed
+/// to generate a sequence.
+OIIO_API bool enumerate_file_sequence (const std::string &pattern,
+                                       const std::vector<int> &numbers,
+                                       const std::vector<string_ref> &views,
+                                       std::vector<std::string> &filenames);
+
+/// Given a normalized pattern (such as "/path/to/foo.%04d.tif") scan the
+/// containing directory (/path/to) for matching frame numbers, views and files.
+/// "%V" in the pattern matches views, while "%v" matches the first character
+/// of each entry in views.
+///
+/// Return true upon success, false if the directory doesn't exist or the
+/// pattern can't be parsed.
+OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
+                                           const std::vector<string_ref> &views,
+                                           std::vector<int> &frame_numbers,
+                                           std::vector<string_ref> &frame_views,
+                                           std::vector<std::string> &filenames);
+
 /// Given a normalized pattern (such as "/path/to/foo.%04d.tif") scan the
 /// containing directory (/path/to) for matching frame numbers and files.
 ///

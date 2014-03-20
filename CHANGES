@@ -55,6 +55,10 @@ Fixes, minor enhancements, and performance improvements:
     deep pixels to not produce any output. (#821) (1.4.5)
   * --polar, --unpolar convert from complex (real,imag) to polar
     (amplitude, phase) and vice versa. (#831) (1.4.5)
+  * View wildcards: similar to frame range wildcards, "%V" is replaced by
+    new names, "%v" by the first letter of each view. The view list is
+    {"left","right"} by default, but may be set with the --views argument.
+    (1.4.5)
 * oiiotool --resize and --fit, and also maketx when using "good" filters
   for downsizing, have been significantly sped up. When downsizing
   with large filters, we have seen up to 3x improvement. (#808) (1.4.3)

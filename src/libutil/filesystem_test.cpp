@@ -35,6 +35,12 @@
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/unittest.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/stat.h>
+#endif
+
 OIIO_NAMESPACE_USING;
 
 
@@ -129,6 +135,37 @@ test_file_seq (const char *pattern, const char *override,
 
 
 static void
+test_file_seq_with_view (const char *pattern, const char *override, const char *view,
+                         const std::string &expected)
+{
+    std::vector<int> numbers;
+    std::vector<string_ref> views;
+    std::vector<std::string> names;
+    std::string normalized_pattern;
+    std::string frame_range;
+
+    Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
+    if (override && strlen(override) > 0)
+        frame_range = override;
+    Filesystem::enumerate_sequence(frame_range.c_str(), numbers);
+
+    if (view) {
+        for (size_t i = 0, e = numbers.size(); i < e; ++i)
+            views.push_back(view);
+    }
+
+    Filesystem::enumerate_file_sequence (normalized_pattern, numbers, views, names);
+    std::string joined = Strutil::join(names, " ");
+    std::cout << "  " << pattern;
+    if (override)
+        std::cout << " + " << override;
+    std::cout << " -> " << joined << "\n";
+    OIIO_CHECK_EQUAL (joined, expected);
+}
+
+
+
+static void
 test_scan_file_seq (const char *pattern, const std::string &expected)
 {
     std::vector<int> numbers;
@@ -139,6 +176,29 @@ test_scan_file_seq (const char *pattern, const std::string &expected)
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
     Filesystem::scan_for_matching_filenames (normalized_pattern, numbers, names);
     std::string joined = Strutil::join(names, " ");
+    std::cout << "  " << pattern;
+    std::cout << " -> " << joined << "\n";
+    OIIO_CHECK_EQUAL (joined, expected);
+}
+
+
+
+static void
+test_scan_file_seq_with_views (const char *pattern, const char **views_, const std::string &expected)
+{
+    std::vector<int> frame_numbers;
+    std::vector<string_ref> frame_views;
+    std::vector<std::string> frame_names;
+    std::string normalized_pattern;
+    std::string frame_range;
+    std::vector<string_ref> views;
+
+    for (size_t i = 0; views_[i]; ++i)
+        views.push_back(views_[i]);
+
+    Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
+    Filesystem::scan_for_matching_filenames (normalized_pattern, views, frame_numbers, frame_views, frame_names);
+    std::string joined = Strutil::join(frame_names, " ");
     std::cout << "  " << pattern;
     std::cout << " -> " << joined << "\n";
     OIIO_CHECK_EQUAL (joined, expected);
@@ -173,7 +233,51 @@ void test_frame_sequences ()
     test_file_seq ("foo.%04d.exr", "1-5", "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
     test_file_seq ("foo.%4d.exr", "1-5", "foo.   1.exr foo.   2.exr foo.   3.exr foo.   4.exr foo.   5.exr");
     test_file_seq ("foo.%d.exr", "1-5", "foo.1.exr foo.2.exr foo.3.exr foo.4.exr foo.5.exr");
+
+    const char *views1[] = { "left", "right", "foo", "", NULL };
+    for (size_t i = 0; i < 5; ++i) {
+        const char *view = views1[i];
+        test_file_seq_with_view ("foo.1-5#.exr", NULL, view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+        test_file_seq_with_view ("foo.5-1#.exr", NULL, view, "foo.0005.exr foo.0004.exr foo.0003.exr foo.0002.exr foo.0001.exr");
+        test_file_seq_with_view ("foo.1-3,6,10-12#.exr", NULL, view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0006.exr foo.0010.exr foo.0011.exr foo.0012.exr");
+        test_file_seq_with_view ("foo.1-5x2#.exr", NULL, view, "foo.0001.exr foo.0003.exr foo.0005.exr");
+        test_file_seq_with_view ("foo.1-5y2#.exr", NULL, view, "foo.0002.exr foo.0004.exr");
+
+        test_file_seq_with_view ("foo.#.exr", "1-5", view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+        test_file_seq_with_view ("foo.#.exr", "1-5x2", view, "foo.0001.exr foo.0003.exr foo.0005.exr");
+
+        test_file_seq_with_view ("foo.1-3@@.exr", NULL, view, "foo.01.exr foo.02.exr foo.03.exr");
+        test_file_seq_with_view ("foo.1-3@#.exr", NULL, view, "foo.00001.exr foo.00002.exr foo.00003.exr");
+
+        test_file_seq_with_view ("foo.1-5%04d.exr", NULL, view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+        test_file_seq_with_view ("foo.%04d.exr", "1-5", view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
+        test_file_seq_with_view ("foo.%4d.exr", "1-5", view, "foo.   1.exr foo.   2.exr foo.   3.exr foo.   4.exr foo.   5.exr");
+        test_file_seq_with_view ("foo.%d.exr", "1-5", view, "foo.1.exr foo.2.exr foo.3.exr foo.4.exr foo.5.exr");
+    }
+
+//    test_file_seq_with_view ("%V.%04d", NULL, NULL, "");
+//    test_file_seq_with_view ("%v", NULL, NULL, "");
+//    test_file_seq_with_view ("%V", NULL, "", "");
+//    test_file_seq_with_view ("%v", NULL, "", "");
+//    test_file_seq_with_view ("%V", NULL, "left", "left");
+//    test_file_seq_with_view ("%V", NULL, "right", "right");
+//    test_file_seq_with_view ("%v", NULL, "left", "l");
+//    test_file_seq_with_view ("%v", NULL, "right", "r");
+    test_file_seq_with_view ("foo_%V.1-2#.exr", NULL, "left", "foo_left.0001.exr foo_left.0002.exr");
+    test_file_seq_with_view ("%V/foo_%V.1-2#.exr", NULL, "left", "left/foo_left.0001.exr left/foo_left.0002.exr");
+    test_file_seq_with_view ("%v/foo_%V.1-2#.exr", NULL, "left", "l/foo_left.0001.exr l/foo_left.0002.exr");
+    test_file_seq_with_view ("%V/foo_%v.1-2#.exr", NULL, "left", "left/foo_l.0001.exr left/foo_l.0002.exr");
+    test_file_seq_with_view ("%v/foo_%v.1-2#.exr", NULL, "left", "l/foo_l.0001.exr l/foo_l.0002.exr");
+
     std::cout << "\n";
+}
+
+
+
+void create_test_file(const string_ref& fn)
+{
+    std::ofstream f(fn.c_str());
+    f.close();
 }
 
 
@@ -187,14 +291,65 @@ void test_scan_sequences ()
     for (size_t i = 1; i <= 5; i++) {
         std::string fn = Strutil::format ("foo.%04d.exr", i);
         filenames.push_back (fn);
-        std::ofstream f(fn.c_str());
-        f.close();
+        create_test_file(fn);
     }
 
 #ifdef _WIN32
     test_scan_file_seq ("foo.#.exr", ".\\foo.0001.exr .\\foo.0002.exr .\\foo.0003.exr .\\foo.0004.exr .\\foo.0005.exr");
 #else
     test_scan_file_seq ("foo.#.exr", "./foo.0001.exr ./foo.0002.exr ./foo.0003.exr ./foo.0004.exr ./foo.0005.exr");
+#endif
+
+    filenames.clear();
+
+#ifdef _WIN32
+    CreateDirectory("left", NULL);
+    CreateDirectory("left/l", NULL);
+#else
+    mkdir("left", 0777);
+    mkdir("left/l", 0777);
+#endif
+
+    for (size_t i = 1; i <= 5; i++) {
+        std::string fn = Strutil::format ("left/l/foo_left_l.%04d.exr", i);
+        filenames.push_back (fn);
+        create_test_file(fn);
+    }
+
+    const char *views[] = { "left", NULL };
+
+#ifdef _WIN32
+    test_scan_file_seq_with_views ("%V/%v/foo_%V_%v.#.exr", views, "left\\l\\foo_left_l.0001.exr left\\l\\foo_left_l.0002.exr left\\l\\foo_left_l.0003.exr left\\l\\foo_left_l.0004.exr left\\l\\foo_left_l.0005.exr");
+#else
+    test_scan_file_seq_with_views ("%V/%v/foo_%V_%v.#.exr", views, "left/l/foo_left_l.0001.exr left/l/foo_left_l.0002.exr left/l/foo_left_l.0003.exr left/l/foo_left_l.0004.exr left/l/foo_left_l.0005.exr");
+#endif
+
+    filenames.clear();
+
+#ifdef _WIN32
+    CreateDirectory("right", NULL);
+    CreateDirectory("right/r", NULL);
+#else
+    mkdir("right", 0777);
+    mkdir("right/r", 0777);
+#endif
+
+    std::string fn;
+
+    fn = "left/l/foo_left_l";
+    filenames.push_back(fn);
+    create_test_file(fn);
+
+    fn = "right/r/foo_right_r";
+    filenames.push_back(fn);
+    create_test_file(fn);
+
+    const char *views2[] = { "left", "right", NULL };
+
+#ifdef _WIN32
+    test_scan_file_seq_with_views ("%V/%v/foo_%V_%v", views2, "left\\l\\foo_left_l right\\r\\foo_right_r");
+#else
+    test_scan_file_seq_with_views ("%V/%v/foo_%V_%v", views2, "left/l/foo_left_l right/r/foo_right_r");
 #endif
 }
 

@@ -3395,6 +3395,7 @@ getargs (int argc, char *argv[])
                 "--threads %@ %d", set_threads, &ot.threads, "Number of threads (default 0 == #cores)",
                 "--frames %s", NULL, "Frame range for '#' or printf-style wildcards",
                 "--framepadding %d", NULL, "Frame number padding digits (ignored when using printf-style wildcards)",
+                "--views %s", NULL, "Views for %V/%v wildcards (comma-separated, defaults to left,right)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
@@ -3623,15 +3624,21 @@ handle_sequence (int argc, const char **argv)
 {
     Timer totaltime;
 
-    // First, scan the original command line arguments for '#', '@' or '%0Nd'
-    // characters.  Any found indicate that there are numeric range or
-    // wildcards to deal with.  Also look for --frames and --framepadding
-    // options.
+    // First, scan the original command line arguments for '#', '@', '%0Nd',
+    // '%v' or '%V' characters.  Any found indicate that there are numeric
+    // range or wildcards to deal with.  Also look for --frames,
+    // --framepadding and --views options.
 #define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
-#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
+#define VIEW_SPEC "%[Vv]"
+#define SEQUENCE_SPEC "((" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d)))" "|" "(" VIEW_SPEC ")"
     static boost::regex sequence_re (SEQUENCE_SPEC);
     std::string framespec = "";
+
+    static const char *default_views = "left,right";
+    std::vector<string_ref> views;
+    Strutil::split (default_views, views, ",");
+
     int framepadding = 0;
     std::vector<int> sequence_args;  // Args with sequence numbers
     std::vector<bool> sequence_is_output;
@@ -3657,6 +3664,9 @@ handle_sequence (int argc, const char **argv)
             if (f >= 1 && f < 10)
                 framepadding = f;
         }
+        else if (! strcmp (argv[a], "--views") && a < argc-1) {
+            Strutil::split (argv[++a], views, ",");
+        }
     }
 
     // No ranges or wildcards?
@@ -3671,8 +3681,9 @@ handle_sequence (int argc, const char **argv)
     // sequences without explicit frame ranges inherit the frame numbers of
     // the first input sequence. It's an error if the sequences are not all
     // of the same length.
-    std::vector< std::vector<std::string> > filenames (argc+1); 
+    std::vector< std::vector<std::string> > filenames (argc+1);
     std::vector< std::vector<int> > frame_numbers (argc+1);
+    std::vector< std::vector<string_ref> > frame_views (argc+1);
     std::string normalized_pattern, sequence_framespec;
     size_t nfilenames = 0;
     bool result;
@@ -3697,15 +3708,19 @@ handle_sequence (int argc, const char **argv)
                                             frame_numbers[a]);
             Filesystem::enumerate_file_sequence (normalized_pattern,
                                                  frame_numbers[a],
+                                                 views,
                                                  filenames[a]);
         } else if (sequence_is_output[i]) {
             // use frame numbers from first sequence
             Filesystem::enumerate_file_sequence (normalized_pattern,
                                                  frame_numbers[sequence_args[0]],
+                                                 frame_views[sequence_args[0]],
                                                  filenames[a]);
         } else if (! sequence_is_output[i]) {
             result = Filesystem::scan_for_matching_filenames (normalized_pattern,
+                                                              views,
                                                               frame_numbers[a],
+                                                              frame_views[a],
                                                               filenames[a]);
             if (! result) {
                 ot.error (Strutil::format("No filenames found matching pattern: %s",
