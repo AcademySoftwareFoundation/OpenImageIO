@@ -106,6 +106,34 @@ Alternately, you can use the {\cf printf} notation, such as
     oiiotool --frames 3,4,10-20x2 blah.%03d.tif
 \end{code}
 
+\subsubsection*{Stereo wildcards}
+
+\oiiotool can also handle image sequences with separate left and right
+images per frame using {\cf views}. The {\cf \%V} wildcard will match
+the full name of all views and {\cf \%v} will match the first character
+of each view. View names default to ``left'' and ``right'', but may
+be overridden using the {\cf --views} option.
+For example,
+\begin{code}
+    oiiotool --frames 1-5 blah_%V.#.tif
+\end{code}
+\noindent would match {\cf blah_left.0001.tif}, {\cf blah_right.0001.tif},
+{\cf blah_left.0002.tif}, {\cf blah_right.0002.tif}, {\cf blah_left.0003.tif},
+{\cf blah_right.0003.tif}, {\cf blah_left.0004.tif}, 
+{\cf blah_right.0004.tif}, {\cf blah_left.0005.tif}, 
+{\cf blah_right.0005.tif}, and
+\begin{code}
+    oiiotool --frames 1-5 blah_%v.#.tif
+\end{code}
+\noindent would match {\cf blah_l.0001.tif}, {\cf blah_r.0001.tif},
+{\cf blah_l.0002.tif}, {\cf blah_r.0002.tif}, {\cf blah_l.0003.tif},
+{\cf blah_r.0003.tif}, {\cf blah_l.0004.tif}, {\cf blah_r.0004.tif}, 
+{\cf blah_l.0005.tif}, {\cf blah_r.0005.tif}, but
+\begin{code}
+    oiiotool --views left --frames 1-5 blah_%v.#.tif
+\end{code}
+\noindent would only match {\cf blah_l.0001.tif}, {\cf blah_l.0002.tif},
+{\cf blah_l.0003.tif}, {\cf blah_l.0004.tif}, {\cf blah_l.0005.tif}.
 
 \section{\oiiotool Tutorial / Recipes}
 
