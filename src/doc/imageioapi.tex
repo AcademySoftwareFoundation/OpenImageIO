@@ -411,13 +411,6 @@ data consisting of multiple samples per pixel.  If {\cf false}, it's an
 ordinary image with one data value (per channel) per pixel.
 \apiend
 
-\apiitem{int quant_black, quant_white, quant_min, quant_max;}
-Describes the \emph{quantization}, or mapping between real
-(floating-point) values and the stored integer values.
-Please refer to Section~\ref{sec:imageoutput:quantization} for
-a more complete explanation of each of these parameters.
-\apiend
-
 \apiitem{ParamValueList extra_attribs}
 A list of arbitrarily-named and arbitrarily-typed additional attributes
 of the image, for any metadata not described by the hard-coded fields
@@ -457,14 +450,6 @@ Sets the {\cf channelnames} to reasonable defaults for the number of
 channels.  Specifically, channel names are set to ``R'', ``G'', ``B,''
 and ``A'' (up to and including 4 channels, beyond that they are named
 ``channel\emph{n}''.
-\apiend
-
-\apiitem{static TypeDesc \\
-{\ce format_from_quantize} (int quant_black, int quant_white,\\
-\bigspc \bigspc                          int quant_min, int quant_max)}
-Utility function that, given quantization parameters, returns a data
-type that may be used without unacceptable loss of significant bits.
-% FIXME - elaborate?
 \apiend
 
 \apiitem{size_t {\ce channel_bytes} () const}

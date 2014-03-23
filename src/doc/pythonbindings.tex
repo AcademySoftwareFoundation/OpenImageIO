@@ -352,16 +352,6 @@ Hold {\cf True} if the image is a \emph{deep} (multiple samples per pixel)
 image, of {\cf False} if it is an ordinary image.
 \apiend
 
-\apiitem{ImageSpec.{\ce quant_black} \\
-ImageSpec.{\ce quant_white} \\
-ImageSpec.{\ce quant_min} \\
-ImageSpec.{\ce quant_max}}
-The quantization parameters used when the \ImageSpec is used to specify
-how to open a file for output (refer to
-Section~\ref{sec:imageoutput:quantization} for
-a more complete explanation of each of these parameters.)
-\apiend
-
 \apiitem{ImageSpec.{\ce set_format} (basetype) \\
 ImageSpec.{\ce set_format} (typedesc)}
 Given a {\cf BASETYPE} or a \TypeDesc, sets the {\cf format} field and
@@ -378,11 +368,6 @@ data format.
 \apiitem{ImageSpec.{\ce default_channel_names} ()}
 Sets {\cf channel_names} to the default names given the value of
 the {\cf nchannels} field.
-\apiend
-
-\apiitem{ImageSpec.{\ce format_from_quantize} (black, white, min, max)}
-Given the quantization parameters, returns a \TypeDesc giving the best
-data format that matches the quantization.
 \apiend
 
 \apiitem{ImageSpec.{\ce channel_bytes} () \\

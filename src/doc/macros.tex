@@ -2,6 +2,8 @@
 % Larry's favorite LaTeX macros for making technical books.  These have
 % been refined for years, starting with SIGGRAPH course notes in the
 % '90's, further refined for _Advanced RenderMan_.
+%
+% Please use or modify this at will.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %
@@ -53,8 +55,8 @@
 %\hyphenation{Attribute}
 
 % Handy for parameter lists
-\def\pl{\emph{parameterlist}\xspace}
-\def\epl{\emph{...parameterlist...}\xspace}
+\def\pl{{\rm\emph{...params...}\xspace}}
+\def\dotdotdot{{\rm\emph{...}\xspace}}
 \hyphenation{parameterlist}
 
 
@@ -114,6 +116,7 @@
 \newcommand{\DEPRECATEDdown}[1]{\marginpar{\vspace{#1}\fbox{\sffamily \Large Deprecated}}}
 \def\CHANGED{\marginpar[\medskip\hfill~\fbox{\sffamily \huge CHANGED!}~]{\medskip~\fbox{\sffamily \huge CHANGED!}~}}
 \def\ENHANCED{\marginpar[\medskip\hfill~\fbox{\sffamily \huge ENHANCED}~]{\medskip~\fbox{\sffamily \huge ENHANCED}~}}
+\def\QUESTION{\marginpar[\medskip\hfill~\fbox{\sffamily \Huge ?}~~~~]{\medskip~\fbox{\sffamily \Huge ?}~~~~}}
 
 
 \newcommand{\indexapi}[1]{\index{#1@\tt#1\rm}}
