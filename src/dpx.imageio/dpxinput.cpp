@@ -375,7 +375,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.attribute ("compression", "rle");
     char buf[32 + 1];
     m_dpx.header.Description (subimage, buf);
-    if (buf[0] && buf[0] != -1)
+    if (buf[0] && buf[0] != char(-1))
         m_spec.attribute ("ImageDescription", buf);
     m_spec.attribute ("PixelAspectRatio", m_dpx.header.AspectRatio(0)
          / (float)m_dpx.header.AspectRatio(1));
@@ -403,7 +403,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                                         DPX_SET_ATTRIB(x, )
     // see comment above Copyright, Software and DocumentName
 #define DPX_SET_ATTRIB_STR(X, x)    if (m_dpx.header.x[0]                     \
-                                        && m_dpx.header.x[0] != -1)           \
+                                        && m_dpx.header.x[0] != char(-1))     \
                                         m_spec.attribute ("dpx:" #X,          \
                                             m_dpx.header.x)
 
