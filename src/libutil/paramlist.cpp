@@ -45,10 +45,19 @@ void
 ParamValue::init_noclear (ustring _name, TypeDesc _type,
                           int _nvalues, const void *_value, bool _copy)
 {
+    init_noclear (_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
+}
+
+
+
+void
+ParamValue::init_noclear (ustring _name, TypeDesc _type, int _nvalues,
+                          Interp _interp, const void *_value, bool _copy)
+{
     m_name = _name;
     m_type = _type;
     m_nvalues = _nvalues;
-    m_interp = INTERP_CONSTANT;
+    m_interp = _interp;
     size_t n = (size_t) (m_nvalues * m_type.numelements());
     size_t size = (size_t) (m_nvalues * m_type.size());
     bool small = (size <= sizeof(m_data));
