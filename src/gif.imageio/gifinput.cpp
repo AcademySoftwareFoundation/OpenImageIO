@@ -45,6 +45,14 @@
 #define GIFLIB_MAJOR 4
 #endif
 
+#ifndef DISPOSAL_UNSPECIFIED
+#define DISPOSAL_UNSPECIFIED 0
+#endif
+
+#ifndef DISPOSE_BACKGROUND
+#define DISPOSE_BACKGROUND 2
+#endif
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class GIFInput : public ImageInput {
@@ -67,23 +75,29 @@ public:
  private:
     std::string m_filename;          ///< Stash the filename
     GifFileType *m_gif_file;         ///< GIFLIB handle
-    GifColorType *m_global_colormap; ///< Global colormap. Used if there's
-                                     ///  no local colormap provided.
-    GifColorType *m_local_colormap;  ///< Colormap for current subimage
-    int m_background_color;          ///< Background (transparent) color index
+    int m_transparent_color;         ///< Transparent color index
     int m_subimage;                  ///< Current subimage index
-    int m_next_scanline;             ///< Next scanline to read
-    std::vector<unsigned char> m_cached_data; ///< Cached scanlines in native
-                                              ///  format
-    
+    int m_disposal_method;           ///< Disposal method of current subimage.
+                                     ///  Indicates what to do with canvas
+                                     ///  before drawing the _next_ subimage.
+    int m_previous_disposal_method;  ///< Disposal method of previous subimage.
+                                     ///  Indicates what to do with canvas
+                                     ///  before drawing _current_ subimage.
+    std::vector<unsigned char> m_canvas; ///< Image canvas in output format, on
+                                         ///  which subimages are sequentially
+                                         ///  drawn.
+
     /// Reset everything to initial state
     ///
     void init (void);
 
     /// Read current subimage metadata.
     ///
-    bool read_subimage_metadata (ImageSpec &newspec,
-                                 GifColorType **local_colormap);
+    bool read_subimage_metadata (ImageSpec &newspec);
+
+    /// Read current subimage data (ie. draw it on canvas).
+    ///
+    bool read_subimage_data (void);
 
     /// Helper: read gif extension.
     ///
@@ -91,11 +105,7 @@ public:
 
     /// Decode and return a real scanline index in the interlaced image.
     ///
-    int decode_line_number (int line_number);
-
-    /// Translate scanline data from a native format.
-    ///
-    void translate_scanline (unsigned char *gif_scanline, void *data);
+    int decode_line_number (int line_number, int height);
 
     /// Print error message.
     ///
@@ -128,8 +138,7 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
     m_subimage = -1;
-    m_next_scanline = -1;
-    m_cached_data.clear ();
+    m_canvas.clear ();
     
     return seek_subimage (0, 0, newspec);
 }
@@ -137,127 +146,30 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
 
 
 inline int
-GIFInput::decode_line_number (int line_number) {
-    if ((line_number + 1) % 2 == 0) // 4th tile 1/2 sized
-        return (m_spec.height + line_number) / 2;
-    if ((line_number + 2) % 4 == 0) // 3rd tile 1/4 sized
-        return (m_spec.height + line_number - 2) / 4;
-    if ((line_number + 4) % 8 == 0) // 2nd tile 1/8 sized
-        return (m_spec.height + line_number) / 8;
-
-    // line_number % 8 == 0  (1st tile 1/8 sized)
-    return line_number / 8;
-}
-
-
-
-void
-GIFInput::translate_scanline (unsigned char *gif_scanline, void *data)
+GIFInput::decode_line_number (int line_number, int height)
 {
-    unsigned char *outscanline = (unsigned char *)data;
-    GifColorType *colormap = m_local_colormap != NULL ?
-        m_local_colormap : m_global_colormap;
-    if (m_spec.nchannels == 3) {
-        for (int i = 0; i < m_spec.width; i++) {
-            outscanline[3 * i] =
-                (unsigned char)colormap[gif_scanline[i]].Red;
-            outscanline[3 * i + 1] =
-                (unsigned char)colormap[gif_scanline[i]].Green;
-            outscanline[3 * i + 2] =
-                (unsigned char)colormap[gif_scanline[i]].Blue;
-        }
-    } else {
-        for (int i = 0; i < m_spec.width; i++) {
-            outscanline[4 * i] =
-                (unsigned char)colormap[gif_scanline[i]].Red;
-            outscanline[4 * i + 1] =
-                (unsigned char)colormap[gif_scanline[i]].Green;
-            outscanline[4 * i + 2] =
-                (unsigned char)colormap[gif_scanline[i]].Blue;
-            outscanline[4 * i + 3] =
-                (m_background_color == gif_scanline[i] ? 0x00 : 0xff);
-        }
-    }
+    if (1 < height && (height + 1) / 2 <= line_number) // 4th tile 1/2 sized
+        return 2 * (line_number - (height + 1) / 2) + 1;
+    if (2 < height && (height + 3) / 4 <= line_number) // 3rd tile 1/4 sized
+        return 4 * (line_number - (height + 3) / 4) + 2;
+    if (4 < height && (height + 7) / 8 <= line_number) // 2nd tile 1/8 sized
+        return 8 * (line_number - (height + 7) / 8) + 4;
+
+    // 1st tile 1/8 sized
+    return line_number * 8;
 }
 
 
 
 bool
-GIFInput::read_native_scanline (int _y, int z, void *data)
+GIFInput::read_native_scanline (int y, int z, void *data)
 {
-    if (_y < 0 || _y > m_spec.height)
+    if (y < 0 || y > m_spec.height || ! m_canvas.size())
         return false;
 
-    bool interlacing = m_spec.get_int_attribute ("gif:Interlacing") != 0;
-    
-    // decode scanline index if image is interlaced
-    int gif_y = interlacing ? decode_line_number (_y) : _y;
+    memcpy (data, &m_canvas[y * m_spec.width * m_spec.nchannels],
+            m_spec.width * m_spec.nchannels);
 
-    if (interlacing) { // gif is interlaced so cache the scanlines
-        int scanlines_cached = m_cached_data.size() / m_spec.width;
-        if (gif_y >= scanlines_cached) {
-            // scanline is not cached yet, read the scanline and preceding ones
-            m_cached_data.resize (m_spec.width * (gif_y + 1));
-            int delta_size = m_spec.width * (gif_y - scanlines_cached + 1);
-            if (DGifGetLine (m_gif_file,
-                             &m_cached_data[scanlines_cached * m_spec.width],
-                             delta_size) == GIF_ERROR) {
-                report_last_error ();
-                return false;
-            }
-        }
-        
-        translate_scanline (&m_cached_data[gif_y * m_spec.width], data);
-        
-    } else { // no interlacing, thus no scanlines caching
-        if (m_next_scanline > gif_y) {
-            // requested scanline is located before the one to read next
-            // random access is not supported, so reopen the file, find
-            // current subimage and skip preceding image data
-            ImageSpec dummyspec;
-            if (! close () ||
-                ! open (m_filename, dummyspec) ||
-                ! seek_subimage (m_subimage, 0, dummyspec)) {
-                return false;
-            }
-        
-            int remaining_size = m_spec.width * gif_y;
-            boost::scoped_array<unsigned char> buffer
-                (new unsigned char[remaining_size]);
-            if (DGifGetLine (m_gif_file, buffer.get(), remaining_size)
-                == GIF_ERROR) {
-                report_last_error ();
-                return false;
-            }
-        
-        } else if (m_next_scanline < gif_y) {
-            // requested scanline is located after the one to read next
-            // skip the lines in between
-            int delta_size = m_spec.width * (gif_y - m_next_scanline);
-            boost::scoped_array<unsigned char> buffer
-                (new unsigned char[delta_size]);
-            if (DGifGetLine (m_gif_file,
-                             buffer.get(),
-                             delta_size) == GIF_ERROR) {
-                report_last_error ();
-                return false;
-            }
-        }
-
-        // read the requested scanline
-        boost::scoped_array<unsigned char> fscanline
-                (new unsigned char[m_spec.width]);
-        if (DGifGetLine (m_gif_file,
-                         fscanline.get(),
-                         m_spec.width) == GIF_ERROR) {
-            report_last_error ();
-            return false;
-        }
-        translate_scanline (fscanline.get(), data);
-    }
-
-    m_next_scanline = gif_y + 1;
-    
     return true;
 }
 
@@ -268,16 +180,16 @@ GIFInput::read_gif_extension (int ext_code, GifByteType *ext,
                               ImageSpec &newspec)
 {
     if (ext_code == GRAPHICS_EXT_FUNC_CODE) {
-        // read background color index and delay time between frames
+        // read background color index, disposal method and delay time between frames
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#graphics_control_extension_block
         
         if (ext[1] & 0x01) {
-            newspec.nchannels = 4;
-            m_background_color = (int) ext[4];
+            m_transparent_color = (int) ext[4];
         }
 
-        int delay = (ext[3] << 8) | ext[2];
+        m_disposal_method = (ext[1] & 0x1c) >> 2;
 
+        int delay = (ext[3] << 8) | ext[2];
         if (delay) {
             newspec.attribute ("gif:DelayMs", delay * 10);
         }
@@ -287,17 +199,30 @@ GIFInput::read_gif_extension (int ext_code, GifByteType *ext,
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#comment_extension_block
         std::string comment = std::string ((const char *)&ext[1], int (ext[0]));
         newspec.attribute("ImageDescription", comment);
-    } 
+
+    } else if (ext_code == APPLICATION_EXT_FUNC_CODE) {
+        // read loop count
+        // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
+        if (ext[0] == 3) {
+            newspec.attribute ("gif:LoopCount", (ext[3] << 8) | ext[2]);
+        }
+    }
 }
 
 
 
 bool
-GIFInput::read_subimage_metadata (ImageSpec &newspec,
-                                  GifColorType **local_colormap)
+GIFInput::read_subimage_metadata (ImageSpec &newspec)
 {
     newspec = ImageSpec (TypeDesc::UINT8);
-    newspec.nchannels = 3;
+    newspec.nchannels = 4;
+    newspec.default_channel_names ();
+    newspec.alpha_channel = 4;
+
+    m_previous_disposal_method = m_disposal_method;
+    m_disposal_method = DISPOSAL_UNSPECIFIED;
+
+    m_transparent_color = -1;
     
     GifRecordType m_gif_rec_type;
     do {
@@ -313,16 +238,6 @@ GIFInput::read_subimage_metadata (ImageSpec &newspec,
                 return false;
             }
 
-            newspec.width = m_gif_file->Image.Width;
-            newspec.height = m_gif_file->Image.Height;
-
-            // read local colormap
-            if (m_gif_file->Image.ColorMap != NULL) {
-                *local_colormap = m_gif_file->Image.ColorMap->Colors;
-            } else {
-                *local_colormap = NULL;
-            }
-            
             break;
 
         case EXTENSION_RECORD_TYPE:
@@ -359,11 +274,62 @@ GIFInput::read_subimage_metadata (ImageSpec &newspec,
         }
     } while (m_gif_rec_type != IMAGE_DESC_RECORD_TYPE);
 
-    newspec.attribute ("gif:Interlacing", m_gif_file->Image.Interlace);
+    newspec.attribute ("gif:Interlacing", m_gif_file->Image.Interlace ? 1 : 0);
 
-    newspec.default_channel_names ();    
-    if (newspec.nchannels == 4) {
-        newspec.alpha_channel = 4;
+    return true;
+}
+
+
+
+bool
+GIFInput::read_subimage_data()
+{
+    GifColorType *colormap = NULL;
+    if (m_gif_file->Image.ColorMap) { // local colormap
+        colormap = m_gif_file->Image.ColorMap->Colors;
+    } else if (m_gif_file->SColorMap) { // global colormap
+        colormap = m_gif_file->SColorMap->Colors;
+    } else {
+        error ("Neither local nor global colormap present.");
+        return false;
+    }
+
+    if (m_subimage == 0 || m_previous_disposal_method == DISPOSE_BACKGROUND) {
+        // make whole canvas transparent
+        std::fill (m_canvas.begin(), m_canvas.end(), 0x00);
+    }
+
+    // decode scanline index if image is interlaced
+    bool interlacing = m_spec.get_int_attribute ("gif:Interlacing") != 0;
+
+    // get subimage dimensions and draw it on canvas
+    int window_height = m_gif_file->Image.Height;
+    int window_width  = m_gif_file->Image.Width;
+    int window_top    = m_gif_file->Image.Top;
+    int window_left   = m_gif_file->Image.Left;
+    for (int wy = 0; wy < window_height; wy++) {
+        boost::scoped_array<unsigned char> fscanline
+                (new unsigned char[window_width]);
+        if (DGifGetLine (m_gif_file, fscanline.get(), window_width)
+                == GIF_ERROR) {
+            report_last_error ();
+            return false;
+        }
+        int y = window_top + (interlacing ?
+                                  decode_line_number(wy, window_height) : wy);
+        if (0 <= y && y < m_spec.height) {
+            for (int wx = 0; wx < window_width; wx++) {
+                int x = window_left + wx;
+                int idx = m_spec.nchannels * (y * m_spec.width + x);
+                if (0 <= x && x < m_spec.width &&
+                        fscanline[wx] != m_transparent_color) {
+                    m_canvas[idx]     = colormap[fscanline[wx]].Red;
+                    m_canvas[idx + 1] = colormap[fscanline[wx]].Green;
+                    m_canvas[idx + 2] = colormap[fscanline[wx]].Blue;
+                    m_canvas[idx + 3] = 0xff;
+                }
+            }
+        }
     }
 
     return true;
@@ -374,8 +340,6 @@ GIFInput::read_subimage_metadata (ImageSpec &newspec,
 bool
 GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    GifColorType *local_colormap = NULL;
-
     if (subimage < 0 || miplevel != 0)
         return false;
     
@@ -410,59 +374,35 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 #endif
         
         m_subimage = -1;
-        
-        // read global color table
-        if (m_gif_file->SColorMap) {
-            m_global_colormap = m_gif_file->SColorMap->Colors;
-        } else {
-            m_global_colormap = NULL;
-        }
+        m_canvas.resize (m_gif_file->SWidth * m_gif_file->SHeight * 4);
     }
 
+    // skip subimages preceding the requested one
     if (m_subimage < subimage) {
-        // requested subimage is located after the current one
-        // skip the preceding part of current image..
-        if (m_subimage != -1 && m_next_scanline < m_spec.height) {
-            int remaining_size =
-                m_spec.width * (m_spec.height - m_next_scanline);
-            boost::scoped_array<unsigned char> buffer
-                (new unsigned char[remaining_size]);
-            if (DGifGetLine (m_gif_file,
-                             buffer.get(),
-                             remaining_size) == GIF_ERROR) {
-                report_last_error ();
-                return false;
-            }
-        }
-
-        // ..and skip the rest of preceding subimages
         for (m_subimage += 1; m_subimage < subimage; m_subimage ++) {
-            if (! read_subimage_metadata (newspec, &local_colormap)) {
-                return false;
-            }
-            int image_size = newspec.width * newspec.height;
-            boost::scoped_array<unsigned char> buffer
-                (new unsigned char[image_size]);
-            if (DGifGetLine (m_gif_file,
-                             buffer.get(),
-                             image_size) == GIF_ERROR) {
-                report_last_error ();
+            if (! read_subimage_metadata (newspec) ||
+                ! read_subimage_data ()) {
                 return false;
             }
         }
     }
 
     // read metadata of current subimage
-    if (! read_subimage_metadata (newspec, &local_colormap)) {
+    if (! read_subimage_metadata (newspec)) {
         return false;
     }
 
+    newspec.width = m_gif_file->SWidth;
+    newspec.height = m_gif_file->SHeight;
+
     m_spec = newspec;
     m_subimage = subimage;
-    m_next_scanline = 0;
-    m_cached_data.clear ();
-    m_local_colormap = local_colormap;
-    
+
+    // draw subimage on canvas
+    if (! read_subimage_data ()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -503,7 +443,7 @@ GIFInput::close (void)
         }
         m_gif_file = NULL;
     }
-    m_cached_data.clear ();
+    m_canvas.clear();
     
     return true;
 }

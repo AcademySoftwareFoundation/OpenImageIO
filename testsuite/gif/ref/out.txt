@@ -1,19 +1,19 @@
 Reading ../../../../../oiio-images/gif_animation.gif
-../../../../../oiio-images/gif_animation.gif :   10 x   10, 3 channel, uint8 gif
-    3 subimages: 10x10 20x20 30x30 
- subimage  0:   10 x   10, 3 channel, uint8 gif
-    SHA-1: 74DA8D1F72256D1E6BA2C379A902B74A549A4FC3
-    channel list: R, G, B
+../../../../../oiio-images/gif_animation.gif :   30 x   30, 4 channel, uint8 gif
+    3 subimages: 30x30 30x30 30x30 
+ subimage  0:   30 x   30, 4 channel, uint8 gif
+    SHA-1: DDECBD8686D4C2BCB43C2AA05F75C5BDB1CAF54B
+    channel list: R, G, B, A
     gif:DelayMs: 1230
     gif:Interlacing: 0
- subimage  1:   20 x   20, 3 channel, uint8 gif
-    SHA-1: 697CB4AF27DF31D38FBDFFCE0799A68197DB811C
-    channel list: R, G, B
+ subimage  1:   30 x   30, 4 channel, uint8 gif
+    SHA-1: D69F1E35C727EEC9E3DF750374E41D42192DFFBE
+    channel list: R, G, B, A
     gif:DelayMs: 1230
     gif:Interlacing: 0
- subimage  2:   30 x   30, 3 channel, uint8 gif
-    SHA-1: 3CF612475D2B8C81968A243A0E0B74FF28E2F0BC
-    channel list: R, G, B
+ subimage  2:   30 x   30, 4 channel, uint8 gif
+    SHA-1: 3897B49CE5378D3C65590497269B1BB3F9D7630F
+    channel list: R, G, B, A
     gif:DelayMs: 1230
     gif:Interlacing: 0
 Reading ../../../../../oiio-images/gif_oiio_logo_with_alpha.gif
@@ -23,22 +23,52 @@ Reading ../../../../../oiio-images/gif_oiio_logo_with_alpha.gif
     ImageDescription: "oiio logo with alpha"
     gif:Interlacing: 0
 Reading ../../../../../oiio-images/gif_tahoe.gif
-../../../../../oiio-images/gif_tahoe.gif : 2048 x 1536, 3 channel, uint8 gif
-    SHA-1: FB29B5E79C01217F6FF7306194D4CDF23BBBA0EF
-    channel list: R, G, B
+../../../../../oiio-images/gif_tahoe.gif : 2048 x 1536, 4 channel, uint8 gif
+    SHA-1: 4E76899178CDAA94690E52CD18E07B810E40A273
+    channel list: R, G, B, A
     gif:Interlacing: 0
 Reading ../../../../../oiio-images/gif_tahoe_interlaced.gif
-../../../../../oiio-images/gif_tahoe_interlaced.gif : 2048 x 1536, 3 channel, uint8 gif
-    SHA-1: FB29B5E79C01217F6FF7306194D4CDF23BBBA0EF
-    channel list: R, G, B
+../../../../../oiio-images/gif_tahoe_interlaced.gif : 2048 x 1536, 4 channel, uint8 gif
+    SHA-1: 4E76899178CDAA94690E52CD18E07B810E40A273
+    channel list: R, G, B, A
     gif:Interlacing: 1
 Reading ../../../../../oiio-images/gif_bluedot.gif
-../../../../../oiio-images/gif_bluedot.gif :    1 x    1, 3 channel, uint8 gif
-    SHA-1: D699C11B42E27B746F565C0EABF18AE1A78853AD
-    channel list: R, G, B
+../../../../../oiio-images/gif_bluedot.gif :    1 x    1, 4 channel, uint8 gif
+    SHA-1: EE0202803A0133BDA7BC40AC63091DCC58A4225B
+    channel list: R, G, B, A
     gif:Interlacing: 0
 Reading ../../../../../oiio-images/gif_diagonal_interlaced.gif
-../../../../../oiio-images/gif_diagonal_interlaced.gif :  200 x  200, 3 channel, uint8 gif
-    SHA-1: 31B97C008117F6925A4D15ECE852B84B481DE8A3
-    channel list: R, G, B
+../../../../../oiio-images/gif_diagonal_interlaced.gif :  200 x  200, 4 channel, uint8 gif
+    SHA-1: CE1C613BB8B7EE80673B640CA3E392345C8C9FF4
+    channel list: R, G, B, A
     gif:Interlacing: 1
+Reading ../../../../../oiio-images/gif_triangle_interlaced.gif
+../../../../../oiio-images/gif_triangle_interlaced.gif :  200 x  200, 4 channel, uint8 gif
+    SHA-1: 44F8A0F4F39AB3ED532268B9EB45E09548925345
+    channel list: R, G, B, A
+    gif:Interlacing: 1
+Reading ../../../../../oiio-images/gif_test_disposal_method.gif
+../../../../../oiio-images/gif_test_disposal_method.gif :   50 x   50, 4 channel, uint8 gif
+    4 subimages: 50x50 50x50 50x50 50x50 
+ subimage  0:   50 x   50, 4 channel, uint8 gif
+    SHA-1: 30839F361083DA6893F6A29B4F4628DCFBF9F1B5
+    channel list: R, G, B, A
+    gif:Interlacing: 0
+ subimage  1:   50 x   50, 4 channel, uint8 gif
+    SHA-1: 214A1EE026296A399D8A530C44275FC5BDFBA3BA
+    channel list: R, G, B, A
+    gif:Interlacing: 0
+ subimage  2:   50 x   50, 4 channel, uint8 gif
+    SHA-1: 298C45330E7FAF68A6922C521EA766CA1594B1A4
+    channel list: R, G, B, A
+    gif:Interlacing: 0
+ subimage  3:   50 x   50, 4 channel, uint8 gif
+    SHA-1: 6D46A3F714B4BD68D289B9A945FF2716F1EB3A64
+    channel list: R, G, B, A
+    gif:Interlacing: 0
+Reading ../../../../../oiio-images/gif_test_loop_count.gif
+../../../../../oiio-images/gif_test_loop_count.gif :   20 x   20, 4 channel, uint8 gif
+    SHA-1: C4AA837A5833B05CFCA50BD090D42AEB033069E1
+    channel list: R, G, B, A
+    gif:LoopCount: 12345
+    gif:Interlacing: 0
