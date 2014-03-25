@@ -59,7 +59,7 @@ OIIO_NAMESPACE_ENTER
 ///
 /// Nomenclature: if you have an array of 4 colors for each of 15 points...
 ///  - There are 15 VALUES
-///  - Each value has an array of 4 ELEMENTS, ecah of which is a color
+///  - Each value has an array of 4 ELEMENTS, each of which is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
 ///
 class OIIO_API ParamValue {
@@ -82,25 +82,41 @@ public:
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (_name, _type, _nvalues, _value, _copy);
     }
+    ParamValue (const ustring &_name, TypeDesc _type, int _nvalues,
+                Interp _interp, const void *_value, bool _copy=true) {
+        init_noclear (_name, _type, _nvalues, _interp, _value, _copy);
+    }
     ParamValue (string_ref _name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
     }
+    ParamValue (string_ref _name, TypeDesc _type, int _nvalues,
+                Interp _interp, const void *_value, bool _copy=true) {
+        init_noclear (ustring(_name), _type, _nvalues, _interp, _value, _copy);
+    }
     ParamValue (const ParamValue &p, bool _copy=true) {
-        init_noclear (p.name(), p.type(), p.nvalues(), p.data(), _copy);
+        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), _copy);
     }
     ~ParamValue () { clear_value(); }
+    void init (ustring _name, TypeDesc _type, int _nvalues,
+               Interp _interp, const void *_value, bool _copy=true) {
+        clear_value ();
+        init_noclear (_name, _type, _nvalues, _interp, _value, _copy);
+    }
     void init (ustring _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
-        clear_value ();
-        init_noclear (_name, _type, _nvalues, _value, _copy);
+        init (_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
     void init (string_ref _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _value, _copy);
     }
+    void init (string_ref _name, TypeDesc _type, int _nvalues,
+               Interp _interp, const void *_value, bool _copy=true) {
+        init (ustring(_name), _type, _nvalues, _interp, _value, _copy);
+    }
     const ParamValue& operator= (const ParamValue &p) {
-        init (p.name(), p.type(), p.nvalues(), p.data(), p.m_copy);
+        init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), p.m_copy);
         return *this;
     }
 
@@ -120,6 +136,7 @@ public:
         std::swap (a.m_name,     b.m_name);
         std::swap (a.m_type,     b.m_type);
         std::swap (a.m_nvalues,  b.m_nvalues);
+        std::swap (a.m_interp,   b.m_interp);
         std::swap (a.m_data.ptr, b.m_data.ptr);
         std::swap (a.m_copy,     b.m_copy);
         std::swap (a.m_nonlocal, b.m_nonlocal);
@@ -138,6 +155,9 @@ private:
 
     void init_noclear (ustring _name, TypeDesc _type,
                        int _nvalues, const void *_value, bool _copy=true);
+    void init_noclear (ustring _name, TypeDesc _type,int _nvalues,
+                       Interp _interp, const void *_value,
+                       bool _copy=true);
     void clear_value();
 };
 
