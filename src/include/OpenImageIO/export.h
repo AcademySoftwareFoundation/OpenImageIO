@@ -86,7 +86,7 @@
   #endif
 #endif
 
-#if defined(OpenImageIO_EXPORTS)
+#if defined(OpenImageIO_EXPORTS) || defined(OpenImageIO_Util_EXPORTS)
 #  define OIIO_API OIIO_EXPORT
 #else
 #  define OIIO_API OIIO_IMPORT
