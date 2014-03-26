@@ -217,8 +217,8 @@ bool
 TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             PerThreadInfo *thread_info, 
                             TextureOpt &options,
-                            const Imath::V3f &_P, const Imath::V3f &_dPdx,
-                            const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
@@ -250,7 +250,7 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
         &TextureSystemImpl::accum3d_sample_bilinear,
     };
     accum3d_prototype accumer = accum_functions[(int)options.interpmode];
-    bool ok = (this->*accumer) (_P, 0, texturefile, thread_info, options,
+    bool ok = (this->*accumer) (P, 0, texturefile, thread_info, options,
                                 1.0f, result, dresultds, dresultdt, dresultdr);
 
     // Update stats

@@ -361,14 +361,14 @@ private:
     typedef bool (TextureSystemImpl::*texture3d_lookup_prototype)
             (TextureFile &texfile, PerThreadInfo *thread_info,
              TextureOpt &options,
-             const Imath::V3f &_P, const Imath::V3f &_dPdx,
-             const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
+             const Imath::V3f &P, const Imath::V3f &dPdx,
+             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
              float *result);
     bool texture3d_lookup_nomip (TextureFile &texfile,
                                  PerThreadInfo *thread_info, 
                                  TextureOpt &options,
-                                 const Imath::V3f &_P, const Imath::V3f &_dPdx,
-                                 const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
+                                 const Imath::V3f &P, const Imath::V3f &dPdx,
+                                 const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                                  float *result);
     typedef bool (TextureSystemImpl::*accum3d_prototype)
                         (const Imath::V3f &P, int level,
