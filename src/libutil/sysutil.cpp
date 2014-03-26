@@ -244,7 +244,7 @@ Sysutil::this_program_path ()
     size_t cb = sizeof(filename);
     int r=1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
-#elif defined(__GNU__)
+#elif defined(__GNU__) || defined(__OpenBSD__)
     int r = 0;
 #else
     // No idea what platform this is
