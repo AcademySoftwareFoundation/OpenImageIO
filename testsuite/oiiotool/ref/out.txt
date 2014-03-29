@@ -171,5 +171,9 @@ Comparing "fft.exr" and "ref/fft.exr"
 PASS
 Comparing "ifft.exr" and "ref/ifft.exr"
 PASS
+Comparing "polar.exr" and "ref/polar.exr"
+PASS
+Comparing "unpolar.exr" and "ref/unpolar.exr"
+PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"
 PASS

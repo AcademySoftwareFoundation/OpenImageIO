@@ -1295,6 +1295,41 @@ bool OIIO_API ifft (ImageBuf &dst, const ImageBuf &src,
                     ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Convert a 2-channel image with "polar" values (amplitude, phase)
+/// into a 2-channel image with complex values (real, imaginary).
+///
+/// The transformation between the two representations are:
+///     real = amplitude * cos(phase);
+///     imag = amplitude * sin(phase);
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API polar_to_complex (ImageBuf &dst, const ImageBuf &src,
+                                ROI roi = ROI::All(), int nthreads = 0);
+
+/// Convert a 2-channel image with complex values (real, imaginary) into a
+/// 2-channel image with "polar" values (amplitude, phase).
+///
+/// The transformation between the two representations are:
+///     amplitude = hypot (real, imag);
+///     phase = atan2 (imag, real);
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API complex_to_polar (ImageBuf &dst, const ImageBuf &src,
+                                ROI roi = ROI::All(), int nthreads = 0);
+
+
 enum OIIO_API NonFiniteFixMode
 {
     NONFINITE_NONE = 0,     ///< Do nothing

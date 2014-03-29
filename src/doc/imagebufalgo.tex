@@ -1099,7 +1099,7 @@ the number of pixels whose value was $>$ {\cf max}.
     float binsize = (max-min)/nbins;
     for (int i = 0;  i < nbins;  ++i)
         hist[i] << " pixels that are >= " << (min+i*binsize) << " and "
-                << (i == nbins-1 ? "<= " : "< ")
+                << (i == nbins-1 ? " <= " : " < ")
                 << (min+(i+1)*binsize) << "\n";
     std::cout << submin << " pixels < " << min << "\n";
     std::cout << supermax << " pixels > " << max << "\n";
@@ -1210,9 +1210,49 @@ by $1/\sqrt{\mathrm{npixels}}$.
     ImageBufAlgo::fft (Freq, Src);
 
     // At this point, Freq is a 2-channel float image (real, imag)
-    // Convert it back from frequency domain to a spatial iamge
+    // Convert it back from frequency domain to a spatial image
     ImageBuf Spatial;
     ImageBufAlgo::ifft (Spatial, Freq);
+\end{code}
+\apiend
+
+\apiitem{bool {\ce complex_to_polar} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
+        bool {\ce polar_to_complex} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!complex_to_polar} \indexapi{complex_to_polar}
+\index{ImageBufAlgo!polar_to_complex} \indexapi{polar_to_complex}
+\NEW  % 1.4
+
+The {\cf polar_to_complex()} function transforms a 2-channel image whose
+channels are interpreted as complex values (real and imaginary components)
+into the equivalent values expressed in polar form of amplitude and phase
+(with phase between $0$ and $2\pi$).
+
+The {\cf complex_to_polar()} function performs the reverse transformation,
+converting from  polar values (amplitude and phase) to complex (real and
+imaginary).
+
+In either case,  the section of {\cf src} denoted by {\cf roi} is
+transformed, storing the result in {\cf dst}. If {\cf roi} is not defined,
+it will be all of {\cf src}'s pixels.  Only the first two channels of {\cf
+src} will be transformed.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Suppose we have a set of frequency space values expressed as
+    // amplitudes and phase...
+    ImageBuf Polar ("polar.exr");
+
+    // Convert to complex representation
+    ImageBuf Complex;
+    ImageBufAlgo::complex_to_polar (Complex, Polar);
+
+    // Now, it's safe to take an IFFT of the complex image.
+    // Convert it back from frequency domain to a spatial image.
+    ImageBuf Spatial;
+    ImageBufAlgo::ifft (Spatial, Complex);
 \end{code}
 \apiend
 

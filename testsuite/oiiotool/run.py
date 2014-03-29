@@ -234,6 +234,10 @@ command += (oiio_app ("oiiotool")
 command += (oiio_app ("oiiotool")
             + "fft.exr --ifft --ch 0,0,0 -o ifft.exr >> out.txt ;\n")
 
+# test --polar, --unpolar
+# note that fft.exr that we built above is in complex form
+command += oiiotool ("fft.exr --polar -d half -o polar.exr")
+command += oiiotool ("polar.exr --unpolar -d half -o unpolar.exr")
 
 # test labels
 command += (oiio_app("oiiotool") + 
@@ -279,6 +283,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "unsharp.tif",
             "fft.exr", "ifft.exr",
+            "polar.exr", "unpolar.exr",
             "labeladd.exr",
             "out.txt" ]
 

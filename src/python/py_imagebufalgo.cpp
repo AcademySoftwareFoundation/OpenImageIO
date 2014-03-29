@@ -773,6 +773,16 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ifft")
 
+        .def("polar_to_complex", &ImageBufAlgo::polar_to_complex,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("polar_to_complex")
+
+        .def("complex_to_polar", &ImageBufAlgo::complex_to_polar,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("complex_to_polar")
+
         .def("fixNonFinite", &IBA_fixNonFinite,
              (arg("dst"), arg("src"), 
               arg("mode")=ImageBufAlgo::NONFINITE_BOX3,

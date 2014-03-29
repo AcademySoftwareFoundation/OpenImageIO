@@ -265,6 +265,16 @@ try:
     inv.clear()
     fft.clear()
 
+    fft = ImageBuf("fft.exr")
+    polar = ImageBuf()
+    ImageBufAlgo.complex_to_polar (polar, fft)
+    b = ImageBuf()
+    ImageBufAlgo.polar_to_complex (b, polar)
+    write (polar, "polar.exr", oiio.HALF)
+    write (b, "complex.exr", oiio.HALF)
+    fft.clear()
+    polar.clear()
+
     # fixNonFinite
     bad = ImageBuf ("../oiiotool-fixnan/bad.exr")
     b = ImageBuf()

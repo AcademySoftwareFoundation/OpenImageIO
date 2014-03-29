@@ -2783,6 +2783,54 @@ action_ifft (int argc, const char *argv[])
 
 
 
+static int
+action_polar (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_polar, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::complex_to_polar ((*R)(s,m), (*A)(s,m));
+            if (! ok)
+                ot.error ("polar", (*R)(s,m).geterror());
+        }
+    ot.function_times["polar"] += timer();             
+    return 0;
+}
+
+
+
+static int
+action_unpolar (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_unpolar, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.push (R);
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            bool ok = ImageBufAlgo::polar_to_complex ((*R)(s,m), (*A)(s,m));
+            if (! ok)
+                ot.error ("unpolar", (*R)(s,m).geterror());
+        }
+    ot.function_times["unpolar"] += timer();             
+    return 0;
+}
+
+
+
 int
 action_fixnan (int argc, const char *argv[])
 {
@@ -3439,6 +3487,10 @@ getargs (int argc, char *argv[])
                     "Take the FFT of the image",
                 "--ifft %@", action_ifft, NULL,
                     "Take the inverse FFT of the image",
+                "--polar %@", action_polar, NULL,
+                    "Convert complex (real,imag) to polar (amplitude,phase)",
+                "--unpolar %@", action_unpolar, NULL,
+                    "Convert polar (amplitude,phase) to complex (real,imag)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
