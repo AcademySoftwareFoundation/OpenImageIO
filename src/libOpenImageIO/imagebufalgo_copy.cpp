@@ -298,9 +298,9 @@ circular_shift_ (ImageBuf &dst, const ImageBuf &src,
     ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
     ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
     for (  ;  ! s.done();  ++s) {
-        int dx = dstroi.xbegin + ((s.x() - dstroi.xbegin + xshift) % width);
-        int dy = dstroi.ybegin + ((s.y() - dstroi.ybegin + yshift) % height);
-        int dz = dstroi.zbegin + ((s.z() - dstroi.zbegin + zshift) % depth);
+        int dx = s.x() + xshift;  OIIO::wrap_periodic (dx, dstroi.xbegin, width);
+        int dy = s.y() + yshift;  OIIO::wrap_periodic (dy, dstroi.ybegin, height);
+        int dz = s.z() + zshift;  OIIO::wrap_periodic (dz, dstroi.zbegin, depth);
         d.pos (dx, dy, dz);
         if (! d.exists())
             continue;
