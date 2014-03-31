@@ -377,8 +377,9 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_dpx.header.Description (subimage, buf);
     if (buf[0] && buf[0] != char(-1))
         m_spec.attribute ("ImageDescription", buf);
-    m_spec.attribute ("PixelAspectRatio", m_dpx.header.AspectRatio(0)
-         / (float)m_dpx.header.AspectRatio(1));
+    m_spec.attribute ("PixelAspectRatio",
+        m_dpx.header.AspectRatio(1) ? (m_dpx.header.AspectRatio(0) /
+                (float)m_dpx.header.AspectRatio(1)) : 1.0f);
 
     // DPX-specific metadata
     m_spec.attribute ("dpx:ImageDescriptor",
