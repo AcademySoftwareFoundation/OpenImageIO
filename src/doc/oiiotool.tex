@@ -1382,6 +1382,25 @@ the real component only of the spatial domain result).
 \apiend
 
 
+\apiitem{--polar \\
+--unpolar}
+\NEW % 1.4
+The {\cf --polar} transforms a 2-channel image whose channels are
+interpreted as complex values (real and imaginary components) into the
+equivalent values expressed in polar form of amplitude and phase (with phase
+between $0$ and $2\pi$).
+
+The {\cf unpolar} performs the reverse transformation, converting from 
+polar values (amplitude and phase) to complex (real and imaginary).
+
+\noindent Examples:
+\begin{code}
+    oiiotool complex.exr --polar -o polar.exr
+    oiiotool polar.exr --unpolar -o complex.exr
+\end{code}
+\apiend
+
+
 \apiitem{--fixnan {\rm \emph{streategy}}}
 Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as

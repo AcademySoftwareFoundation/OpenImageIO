@@ -2247,6 +2247,31 @@ Compute the forward or inverse discrete Fourier Transform.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce complex_to_polar} (dst, src, roi=ROI.All, nthreads=0) \\
+        bool ImageBufAlgo.{\ce polar_to_complex} (dst, src, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!polar_to_complex} \indexapi{polar_to_complex}
+\index{ImageBufAlgo!complex_to_polar} \indexapi{complex_to_polar}
+\NEW  % 1.4
+
+Transform a 2-channel image from complex (real, imaginary) representation
+to polar (amplitude, phase), or vice versa.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Polar = ImageBuf ("polar.exr")
+
+    Complex = ImageBuf ()
+    ImageBufAlgo.polar_to_complex (Complex, Polar)
+
+    # At this point, Complex is a 2-channel complex image (real, imag)
+    # Convert it back from frequency domain to a spatial iamge
+    Spatial = ImageBuf ()
+    ImageBufAlgo.ifft (Spatial, Complex)
+\end{code}
+\apiend
+
+
 
 \subsection{Image Enhancement / Restoration}
 \label{sec:iba:py:enhance}

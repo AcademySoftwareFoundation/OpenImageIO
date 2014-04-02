@@ -82,6 +82,10 @@ Comparing "fft.exr" and "../oiiotool/ref/fft.exr"
 PASS
 Comparing "ifft.exr" and "../oiiotool/ref/ifft.exr"
 PASS
+Comparing "polar.exr" and "../oiiotool/ref/polar.exr"
+PASS
+Comparing "complex.exr" and "ref/complex.exr"
+PASS
 Comparing "tahoe-filled.tif" and "../oiiotool/ref/tahoe-filled.tif"
 PASS
 Comparing "box3.exr" and "../oiiotool-fixnan/ref/box3.exr"

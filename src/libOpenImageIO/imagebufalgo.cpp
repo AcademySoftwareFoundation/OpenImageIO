@@ -1093,6 +1093,107 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<class Rtype, class Atype>
+static bool
+polar_to_complex_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(polar_to_complex_impl<Rtype,Atype>, boost::ref(R), boost::cref(A),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
+        float amp = a[0];
+        float phase = a[1];
+        float sine, cosine;
+        sincos (phase, &sine, &cosine);
+        r[0] = amp * cosine;
+        r[1] = amp * sine;
+    }
+    return true;
+}
+
+
+
+template<class Rtype, class Atype>
+static bool
+complex_to_polar_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(complex_to_polar_impl<Rtype,Atype>, boost::ref(R), boost::cref(A),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
+        float real = a[0];
+        float imag = a[1];
+        float phase = std::atan2 (imag, real);
+        if (phase < 0.0f)
+            phase += float (M_TWO_PI);
+        r[0] = hypotf (real, imag);
+        r[1] = phase;
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::polar_to_complex (ImageBuf &dst, const ImageBuf &src,
+                             ROI roi, int nthreads)
+{
+    if (src.nchannels() != 2) {
+        dst.error ("polar_to_complex can only be done on 2-channel");
+        return false;
+    }
+
+    if (! IBAprep (roi, &dst, &src))
+        return false;
+    if (dst.nchannels() != 2) {
+        dst.error ("polar_to_complex can only be done on 2-channel");
+        return false;
+    }
+    OIIO_DISPATCH_COMMON_TYPES2 ("polar_to_complex", polar_to_complex_impl, dst.spec().format,
+                                 src.spec().format, dst, src, roi, nthreads);
+    return true;
+}
+
+
+
+
+bool
+ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
+                             ROI roi, int nthreads)
+{
+    if (src.nchannels() != 2) {
+        dst.error ("complex_to_polar can only be done on 2-channel");
+        return false;
+    }
+
+    if (! IBAprep (roi, &dst, &src))
+        return false;
+    if (dst.nchannels() != 2) {
+        dst.error ("complex_to_polar can only be done on 2-channel");
+        return false;
+    }
+    OIIO_DISPATCH_COMMON_TYPES2 ("complex_to_polar", complex_to_polar_impl, dst.spec().format,
+                                 src.spec().format, dst, src, roi, nthreads);
+    return true;
+}
+
+
+
+
 #ifdef USE_FREETYPE
 namespace { // anon
 static mutex ft_mutex;
