@@ -138,16 +138,15 @@ public:
     /// the imageio library itself.
     ImageIOParameterList extra_attribs;  ///< Additional attributes
 
-    /// Constructor: given just the data format, set the default quantize
-    /// and set all other channels to something reasonable.
+    /// Constructor: given just the data format, set all other fields to
+    /// something reasonable.
     ImageSpec (TypeDesc format = TypeDesc::UNKNOWN);
 
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeDesc::UINT8);
 
-    /// Set the data format, and as a side effect set quantize
-    /// to good defaults for that format
+    /// Set the data format.
     void set_format (TypeDesc fmt);
 
     /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),

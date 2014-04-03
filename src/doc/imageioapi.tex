@@ -287,11 +287,11 @@ An \ImageSpec is a structure that describes the complete
 format specification of a single image.  It contains:
 
 \begin{itemize}
-\item The image resolution (number of pixels).
-\item The origin, if its upper left corner is not located beginning at
-  pixel (0,0).
+\item The image resolution (number of pixels) and origin. This specifies
+  what is often called the ``pixel data window.''
 \item The full size and offset of an abstract ``full'' or ``display''
-  image, useful for describing cropping or overscan.
+  window. Differing full and data windows can indicate that the pixels
+  are a crop region or a larger image, or contain overscan pixels.
 \item Whether the image is organized into \emph{tiles}, and if so, the
   tile size.
 \item The \emph{native data format} of the pixel values (e.g., float, 8-bit
@@ -299,10 +299,6 @@ format specification of a single image.  It contains:
 \item The number of color channels in the image (e.g., 3 for RGB
   images), names of the channels, and whether any particular channels
   represent \emph{alpha} and \emph{depth}.
-\item Quantization parameters describing how floating point values
-  should be converted to integers (in cases where users pass real values
-  but integer values are stored in the file).  This is used only when
-  writing images, not when reading them.
 \item A user-extensible (and format-extensible) list of any other
   arbitrarily-named and -typed data that may help describe the image or
   its disk representation.
@@ -434,15 +430,11 @@ ordinary 2D image (not a volume), the image is not offset or a crop of a
 bigger image, the image is scanline-oriented (not tiled), channel names
 are ``R'', ``G'', ``B,'' and ``A'' (up to and including 4 channels,
 beyond that they are named ``channel \emph{n}''), the fourth channel (if
-it exists) is assumed to be alpha, values are assumed to be linear, and
-quantization (if \emph{fmt} describes an integer type) is done in
-such a way that the maximum positive integer range maps to (0.0, 1.0).
+it exists) is assumed to be alpha, and values are assumed to be linear.
 \apiend
 
 \apiitem{void {\ce set_format} (TypeDesc fmt)}
-Sets the format as described, and also sets all quantization parameters
-to the default for that data type (as explained in 
-Section~\ref{sec:imageoutput:quantization}).
+Sets the format as described.
 \apiend
 
 \apiitem{void {\ce default_channel_names} ()}

@@ -12,10 +12,16 @@ Major new features and improvements:
     --label : give a name to the top-of-stack image, can be referred
               to later in the command line (1.4.1)
     --cut : combine --crop, --origin +0+0, and --fullpixels. (1.4.3)
-    --pdiff : perceptual diff (1.4.4)
+    --pdiff : perceptual diff (#815) (1.4.4)
+    --polar, --unpolar : complex <-> polar conversion. (#831) (1.4.5)
 
 Public API changes:
-* ImageBufAlgo::pow() raises pixel values to a power. (1.4.1)
+* New ImageBufAlgo functions:
+  - pow() raises pixel values to a power. (1.4.1)
+  - cut() cuts a region of pixels and moves it to the origin (combines
+    crop, reset origin, and set full res = data resolution). (1.4.3)
+  - complex_to_polar() and polar_to_complex() convert from (real,imag)
+    to (amplitude,phase) and back. (#831) (1.4.5)
 * New string_ref class (in string_ref.h) describes a non-owning
   reference to a string.  The string_ref is now used in many places
   throughout OIIO's APIs that used to pass parameters or return values
@@ -24,13 +30,14 @@ Public API changes:
 * New array_view<>, array_view_strided<>, strided_ptr<>, and image_view<>
   templates are great utility for passing bounded and strided arrays. (1.4.3)
 * Removed deprecated PT_* definitions from typedesc.h.
+* Removed the quantization-related fields from ImageSpec. (1.4.3)
 * Dither: If ImageOutput::open() is passed an ImageSpec containing the
   attribute "oiio:dither" and it is nonzero, then any write_*() calls
   that convert a floating point buffer to UINT8 output in the file will
   have a hashed dither added to the pixel values prior to quantization
   in order to prevent the appearance of visible banding. The specific
   nonzero value passed for the attribute will serve as a hash seed so
-  that the pattern is repeatable (or not).
+  that the pattern is repeatable (or not). (1.4.3)
 
 Fixes, minor enhancements, and performance improvements:
 * Improved oiiotool features:
@@ -39,15 +46,18 @@ Fixes, minor enhancements, and performance improvements:
     as which pixel had the maximum number of depth samples. (1.4.1)
   * --resize and --resample allow WIDTHx0 or 0xHEIGHT, where the '0'
     value will be interpreted as automatically computing the missing 
-    dimension to preserve the aspect ratio of the source image. (1.4.3)
+    dimension to preserve the aspect ratio of the source image.
+    (#797, #807) (1.4.3)
   * Fixed possible crash when using --origin with tiled, cached
     images. (1.3.12/1.4.2)
-  * --pdiff does a perceptual diff (like 'idiff -p'). (1.4.4)
+  * --pdiff does a perceptual diff (like 'idiff -p'). (#815) (1.4.4)
   * --dumpdata takes a noptional modifier empty=0 that will cause empty
-    deep pixels to not produce any output. (1.4.5)
+    deep pixels to not produce any output. (#821) (1.4.5)
+  * --polar, --unpolar convert from complex (real,imag) to polar
+    (amplitude, phase) and vice versa. (#831) (1.4.5)
 * oiiotool --resize and --fit, and also maketx when using "good" filters
   for downsizing, have been significantly sped up. When downsizing
-  with large filters, we have seen up to 3x improvement. (1.4.3)
+  with large filters, we have seen up to 3x improvement. (#808) (1.4.3)
 * ImageCache/TextureSystem:
   - The multi-point version of environment() was broken. (1.3.9/1.4.1)
   - Don't honor the SHA-1 fingerprint found in a file if the "Software"
@@ -60,8 +70,12 @@ Fixes, minor enhancements, and performance improvements:
     file. (1.3.11/1.4.2)
   - Add .sxr and .mxr as possible filename extensions (1.3.12/1.4.2)
   - Smarter channel ordering of input of files with ZBack, RA, GA, or BA
-    channels (1.4.5).
+    channels (#822) (1.4.5).
 * TIFF: Give a more explicit error message for unsupported tile sizes (1.4.4)
+* GIF: Fixes to subimage gneeration; GIF frames are treated as sequential
+  windows to be drawn on canvas rather than as independent images; respect
+  "disposal" method; initial canvas is now transparent and all GIFs are
+  presented as 4-channel images. (#828) (1.4.5)
 * iconvert: properly handle multi-image files for formats that can't
   append subimages. (1.3.10/1.4.1)
 * iv info window should print native file info, not translated
@@ -78,8 +92,9 @@ Fixes, minor enhancements, and performance improvements:
   - For output, honor the "Software" metadata attribute passed in.
     (1.3.11/1.4.2)
   - Ignore negative image origin values, which are not allowed by the
-    DPX spec which states they are unsigned. (1.4.4)
-  - Fix improper handling of unsupported pixel data types. (1.4.5)
+    DPX spec which states they are unsigned. (#813) (1.4.4)
+  - Fix improper handling of unsupported pixel data types. (#818) (1.4.5)
+  - Accept pixel ratio (x/0) to mean 1.0, not NaN. (#834) (1.4.5/1.3.13)
 * PNG: add "png:compressionlevel" and "compression" strategy attributes.
   (1.3.12/1.4.2)
 * Make ImageBuf iterators return valid black pixel data for missing
@@ -94,13 +109,17 @@ Fixes, minor enhancements, and performance improvements:
 * The implementation of the Lanczos filter (and any operations using it)
   have been sped up by using an approximate fast_sinpi instead of the
   more expensive sin() (1.4.3).
-* Speed up iinfo --hash / oiiotool --hash by about 20%. (1.4.4)
-* All format writer plugins: ensure that calling close() twice is safe
-  (1.4.4).
+* Speed up iinfo --hash / oiiotool --hash by about 20%. (#809) (1.4.4)
+* All format writer plugins: ensure that calling close() twice is safe.
+  (#810) (1.4.4)
 * oiiotool --info and iinfo output have been altered slightly to make them
   match and be consistent. Also, oiiotool didn't say that deep files were
   deep (1.4.4).
-* Fixed bad bugs in IBA::flatten() and oiiotool --flatten. (1.4.5)
+* Fixed bad bugs in IBA::flatten() and oiiotool --flatten. (#819) (1.4.5)
+* Fix Parameter neglect of proerly copying the m_interp field for assignment
+  and copy construction. (#829) (1.4.5/1.3.13)
+* Fix ImageBufAlgo::circular_shift (and oiiotool --cshift) that did not
+  wrap correctly for negative shifts. (#832) (1.4.5/1.3.13)
 
 Build/test system improvements:
 * libOpenImageIO_Util is now built that only has the utility functions
@@ -121,10 +140,12 @@ Build/test system improvements:
 * Fix broken build when EMBEDPLUGINS=0. (1.4.3/1.3.13)
 * Fix broken build against OpenEXR 1.x. (1.4.3/1.3.13)
 * version.h has been renamed oiioversion.h.  For back compatibility, there
-  is still a version.h, but it merely includes oiioversion.h. (1.4.4)
+  is still a version.h, but it merely includes oiioversion.h. (#811) (1.4.4)
 * Moved all the public header files from src/include to
   src/include/OpenImageIO, so that the src/include area more closely
-  matches the layout of an OIIO install area. (1.4.4)
+  matches the layout of an OIIO install area. (#817) (1.4.4)
+* Fix compilation problems for PowerPC (#825). (1.4.5/1.3.13)
+* Fixes for OpenBSD compilation. (#826/#830) (1.4.5/1.3.13)
 
 Developer goodies / internals:
 * Slight thread.h portability tweaks. (1.4.1)
@@ -139,6 +160,23 @@ Developer goodies / internals:
 * fmath.h : fast_sin, fast_cos, fast_sinpi, fast_cospi are much faster
   polynomial approximations (with max absolute error of ~0.001). (1.4.3)
 
+
+
+Release 1.3.13 (2 Apr 2014 -- compared to 1.3.12)
+-------------------------------------------------
+* Bug fix to string_ref::c_str().
+* Make ImageBuf iterators return valid black pixel data for missing tiles.
+* Fix broken build when EMBEDPLUGINS=0.
+* Fix broken build when building against OpenEXR 1.x.
+* Fix bad bugs in IBA::flatten() and oiiotool --flatten. (#819)
+* Fix DPX handling of unsupported pixel types. (#818)
+* Fix compilation problems for PowerPC.
+* Fix Parameter neglect of proerly copying the m_interp field for assignment
+  and copy construction. (#829)
+* Fixes for OpenBSD compilation. (#826/#830)
+* DPX: accept pixel ratio (x/0) to mean 1.0, not NaN. (#834)
+* Fix ImageBufAlgo::circular_shift (and oiiotool --cshift) that did not
+  wrap correctly for negative shifts. (#832)
 
 
 Release 1.3.12 (25 Jan 2014 -- compared to 1.3.11)
