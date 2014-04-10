@@ -185,6 +185,9 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     m_dither = (m_spec.format == TypeDesc::UINT8) ?
                     m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
+    m_convert_alpha = m_spec.alpha_channel != -1 &&
+                      !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
     if (m_spec.tile_width && m_spec.tile_height)
