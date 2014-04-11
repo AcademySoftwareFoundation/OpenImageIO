@@ -148,6 +148,7 @@ public:
     size_type length() const { return m_len; }
     size_type max_size() const { return m_len; }
     bool empty() const { return m_len == 0; }
+    bool null() const { return m_chars == 0; }
 
     // element access
     const charT& operator[] (size_type pos) const { return m_chars[pos]; }
