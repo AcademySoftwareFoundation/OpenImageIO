@@ -75,6 +75,8 @@ Fixes, minor enhancements, and performance improvements:
   - Add .sxr and .mxr as possible filename extensions (1.3.12/1.4.2)
   - Smarter channel ordering of input of files with ZBack, RA, GA, or BA
     channels (#822) (1.4.5).
+  - Adhere to the misunderstood limitation that OpenEXR library doesn't
+    allow random writes to scanline files. (1.4.6)
 * TIFF: Give a more explicit error message for unsupported tile sizes (1.4.4)
 * GIF: Fixes to subimage gneeration; GIF frames are treated as sequential
   windows to be drawn on canvas rather than as independent images; respect
