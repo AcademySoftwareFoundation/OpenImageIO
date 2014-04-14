@@ -207,8 +207,8 @@ private:
     bool spec_to_header (ImageSpec &spec, int subimage, Imf::Header &header);
 
     // Add a parameter to the output
-    static bool put_parameter (const std::string &name, TypeDesc type,
-                               const void *data, Imf::Header &header);
+    bool put_parameter (const std::string &name, TypeDesc type,
+                        const void *data, Imf::Header &header);
 
     // Decode the IlmImf MIP parameters from the spec.
     static void figure_mip (const ImageSpec &spec, int &nmiplevels,
@@ -299,7 +299,8 @@ OpenEXROutput::supports (const std::string &feature) const
 #endif
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
-    if (feature == "random_access") {
+    // and it's a tiled file.
+    if (feature == "random_access" && m_spec.tile_width != 0) {
         const ImageIOParameter *param = m_spec.find_attribute("openexr:lineOrder");
         const char *lineorder = param ? *(char **)param->data() : NULL;
         return (lineorder && Strutil::iequals (lineorder, "randomY"));
@@ -638,7 +639,7 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
     if (spec.deep)
         spec.attribute ("compression", "zips");
 
-    // Default to increasingY line order, same as EXR.
+    // Default to increasingY line order
     if (! spec.find_attribute("openexr:lineOrder"))
         spec.attribute ("openexr:lineOrder", "increasingY");
 
@@ -797,7 +798,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         const char *str = *(char **)data;
         header.lineOrder() = Imf::INCREASING_Y;   // Default
         if (str) {
-            if (Strutil::iequals (str, "randomY"))
+            if (Strutil::iequals (str, "randomY")
+                  && m_spec.tile_width /* randomY is only for tiled files */)
                 header.lineOrder() = Imf::RANDOM_Y;
             else if (Strutil::iequals (str, "decreasingY"))
                 header.lineOrder() = Imf::DECREASING_Y;
