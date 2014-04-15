@@ -125,6 +125,12 @@ set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
 set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
 set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
 
+if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    # On Linux, the lack of -fPIC when building static libraries seems
+    # incompatible with the dynamic library needed for the Python bindings.
+    set (USE_PYTHON OFF)
+endif()
+
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
     add_definitions ("-DNOTHREADS=1")
