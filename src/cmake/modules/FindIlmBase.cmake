@@ -171,11 +171,12 @@ if (ILMBASE_CUSTOM)
   endif()
   set (IlmBase_Libraries ${ILMBASE_CUSTOM_LIBRARIES})
   separate_arguments(IlmBase_Libraries)
-elseif (${ILMBASE_VERSION} VERSION_LESS "2.1")
-  set (IlmBase_Libraries Half Iex Imath IlmThread)
 else ()
-  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _ilmbase_libs_ver ${ILMBASE_VERSION})
-  set (IlmBase_Libraries Half Iex-${_ilmbase_libs_ver} Imath-${_ilmbase_libs_ver} IlmThread-${_ilmbase_libs_ver})
+#elseif (${ILMBASE_VERSION} VERSION_LESS "2.1")
+  set (IlmBase_Libraries Half Iex Imath IlmThread)
+#else ()
+#  string(REGEX REPLACE "([0-9]+)[.]([0-9]+).*" "\\1_\\2" _ilmbase_libs_ver ${ILMBASE_VERSION})
+#  set (IlmBase_Libraries Half Iex-${_ilmbase_libs_ver} Imath-${_ilmbase_libs_ver} IlmThread-${_ilmbase_libs_ver})
 endif ()
 
 
@@ -186,7 +187,6 @@ foreach (ilmbase_lib ${IlmBase_Libraries})
   PREFIX_FIND_LIB (IlmBase ${ilmbase_lib}
     IlmBase_library_paths IlmBase_libvars IlmBase_cachevars)
 endforeach ()
-
 # Create the list of variables that might need to be cleared
 set (ILMBASE_CACHED_VARS
   ILMBASE_INCLUDE_DIR ${IlmBase_cachevars}
