@@ -77,6 +77,7 @@ Fixes, minor enhancements, and performance improvements:
     channels (#822) (1.4.5).
   - Adhere to the misunderstood limitation that OpenEXR library doesn't
     allow random writes to scanline files. (1.4.6)
+  - More robust with certain malformed metadata. (#841) (1.4.6)
 * TIFF: Give a more explicit error message for unsupported tile sizes (1.4.4)
 * GIF: Fixes to subimage gneeration; GIF frames are treated as sequential
   windows to be drawn on canvas rather than as independent images; respect
