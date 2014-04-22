@@ -280,6 +280,7 @@ private:
         m_map["displayWindow"] = "";
         m_map["envmap"] = "";
         m_map["tiledesc"] = "";
+        m_map["tiles"] = "";
         m_map["openexr:lineOrder"] = "";
         m_map["type"] = "";
         // Ones to skip because we consider them irrelevant
