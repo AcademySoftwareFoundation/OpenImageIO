@@ -846,6 +846,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // the library, don't mess it up by inadvertently copying it wrong from
     // the user or from a file we read.
     if (Strutil::iequals(xname, "type") ||
+        Strutil::iequals(xname, "tiles") ||
         Strutil::iequals(xname, "version") ||
         Strutil::iequals(xname, "chunkCount") ||
         Strutil::iequals(xname, "maxSamplesPerPixel")) {
@@ -853,6 +854,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     }
 
     // General handling of attributes
+    try {
 
     // Scalar
     if (type.arraylen == 0) {
@@ -1052,7 +1054,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         }
 #endif
     }
-
+    } catch (const std::exception &e) {
+#ifndef NDEBUG
+        std::cout << "Caught OpenEXR exception: " << e.what() << "\n";
+#endif
+    }
 
 #ifndef NDEBUG
     std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
