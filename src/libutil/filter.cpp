@@ -543,13 +543,13 @@ FilterDesc filter1d_list[] = {
     // name             dim width fixedwidth scalable separable
     { "box",             1,   1,    false,    true,     true },
     { "triangle",        1,   2,    false,    true,     true },
-    { "gaussian",        1,   2,    false,    true,     true },
+    { "gaussian",        1,   3,    false,    true,     true },
     { "sharp-gaussian",  1,   2,    false,    true,     true },
     { "catrom",          1,   4,    true,     false,    true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
     { "lanczos3",        1,   6,    true,     false,    true },
-    { "mitchell",        1,   3,    false,    true,     true },
+    { "mitchell",        1,   4,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true }
 };
 }
@@ -613,14 +613,14 @@ static FilterDesc filter2d_list[] = {
     // name             dim width fixedwidth scalable separable
     { "box",             2,   1,    false,    true,     true  },
     { "triangle",        2,   2,    false,    true,     true  },
-    { "gaussian",        2,   2,    false,    true,     true  },
+    { "gaussian",        2,   3,    false,    true,     true  },
     { "sharp-gaussian",  2,   2,    false,    true,     true  },
     { "catrom",          2,   4,    true,     false,    true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
     { "lanczos3",        2,   6,    true,     false,    true  },
     { "radial-lanczos3", 2,   6,    true,     false,    false },
-    { "mitchell",        2,   3,    false,    true,     true  },
+    { "mitchell",        2,   4,    false,    true,     true  },
     { "bspline",         2,   4,    false,    true,     true  },
     { "disk",            2,   1,    false,    true,     false }
 };
