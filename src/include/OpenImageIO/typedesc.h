@@ -239,12 +239,12 @@ struct OIIO_API TypeDesc {
 
     /// TypeDesc's are equivalent if they are equal, or if their only
     /// inequality is differing vector semantics.
-    friend bool equivalent (TypeDesc a, TypeDesc b) {
+    friend bool equivalent (const TypeDesc &a, const TypeDesc &b) {
         return a.basetype == b.basetype && a.aggregate == b.aggregate &&
                a.arraylen == b.arraylen;
     }
     /// Member version of equivalent
-    bool equivalent (TypeDesc b) const {
+    bool equivalent (const TypeDesc &b) const {
         return this->basetype == b.basetype && this->aggregate == b.aggregate &&
                this->arraylen == b.arraylen;
     }
@@ -252,6 +252,10 @@ struct OIIO_API TypeDesc {
     /// Demote the type to a non-array
     ///
     void unarray (void) { arraylen = 0; }
+
+    /// Test for lexicographic 'less', comes in handy for lots of STL
+    /// containers and algorithms.
+    bool operator< (const TypeDesc &x) const;
 
     static const TypeDesc TypeFloat;
     static const TypeDesc TypeColor;
