@@ -380,6 +380,21 @@ std::string tostring (TypeDesc type, const void *data,
 
 
 
+bool
+TypeDesc::operator< (const TypeDesc &x) const
+{
+    if (basetype != x.basetype)
+        return basetype < x.basetype;
+    if (aggregate != x.aggregate)
+        return aggregate < x.aggregate;
+    if (arraylen != x.arraylen)
+        return arraylen < x.arraylen;
+    if (vecsemantics != x.vecsemantics)
+        return vecsemantics < x.vecsemantics;
+    return false;  // they are equal
+}
+
+
 
 const TypeDesc TypeDesc::TypeFloat (TypeDesc::FLOAT);
 const TypeDesc TypeDesc::TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
