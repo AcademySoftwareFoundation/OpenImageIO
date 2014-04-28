@@ -157,16 +157,16 @@ Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details).
 
 
-\section{String References: {\cf string_ref}}
-\label{sec:stringref}
-\indexapi{string_ref}
+\section{Non-owning string views: {\cf string_view}}
+\label{sec:stringview}
+\indexapi{string_view}
 
-A \stringref a non-owning, non-copying, non-allocating reference to a
+A \stringview a non-owning, non-copying, non-allocating reference to a
 sequence of characters.  It encapsulates both a character pointer and a
 length.
 
 A function that takes a string input (but does not need to alter the string
-in place) may use a \stringref parameter and accept input that is any of
+in place) may use a \stringview parameter and accept input that is any of
 {\cf char*} (C string), string literal (constant char array), a {\cf
 std::string} (C++ string), or OIIO \ustring.  For all of these cases, no
 extra allocations are performed, and no extra copies of the string  contents
@@ -175,37 +175,37 @@ are performed (as they would be, for example, if the function took a const
 literal).
 
 Furthermore, a function that returns a copy or a substring of one of its
-inputs (for example, a {\cf substr()}-like function) may return a \stringref
+inputs (for example, a {\cf substr()}-like function) may return a \stringview
 rather than a {\cf std::string}, and thus generate its return value without
 any allocation or copying. Upon assignment to a {\cf std::string} or \ustring,
 it will properly auto-convert.
 
 There are two important caveats to using this class:
 \begin{enumerate}
-\item The \stringref merely refers to characters owned by another string,
-   so the \stringref may not be used outside the lifetime of the string
-   it refers to. Thus, \stringref is great for parameter passing, but
-   it's not a good idea to use a \stringref to store strings in a data
+\item The \stringview merely refers to characters owned by another string,
+   so the \stringview may not be used outside the lifetime of the string
+   it refers to. Thus, \stringview is great for parameter passing, but
+   it's not a good idea to use a \stringview to store strings in a data
    structure (unless you are really sure you know what you're doing).
-\item Because the run of characters that the \stringref refers to may not
+\item Because the run of characters that the \stringview refers to may not
    be 0-terminated, it is important to distinguish between the {\cf data()}
    method, which returns the pointer to the characters, and the {\cf c_str()}
    method, which is guaranteed to return a valid C string that is
-   0-terminated. Thus, if you want to pass the contents of a \stringref
+   0-terminated. Thus, if you want to pass the contents of a \stringview
    to a function that expects a 0-terminated string (say, fopen), you
-   must call {\cf fopen(my_string_ref.c_str()}).  Note that the usual case
-   is that the \stringref does refer to a 0-terminated string, and in
+   must call {\cf fopen(my_string_view.c_str()}).  Note that the usual case
+   is that the \stringview does refer to a 0-terminated string, and in
    that case c_str() returns the same thing as data() without any extra
    expense; but in the rare case that it is not 0-terminated, c_str()
    will incur extra expense to internally allocate a valid C string.
 \end{enumerate}
 
-\apiitem{string_ref (const char *chars) \\
-string_ref (const char *chars, size_t length) \\
-string_ref (const std::string \&str) \\
-string_ref (ustring ustr)}
-Constructs a \stringref.  The \stringref doesn't have its own copy of the
-characters, so don't use the \stringref after the original string has been
+\apiitem{string_view (const char *chars) \\
+string_view (const char *chars, size_t length) \\
+string_view (const std::string \&str) \\
+string_view (ustring ustr)}
+Constructs a \stringview.  The \stringview doesn't have its own copy of the
+characters, so don't use the \stringview after the original string has been
 destroyed or altered.
 
 Note that the version that takes a {\cf const char*} but not a length will
@@ -214,27 +214,27 @@ the other constructors can deduce the length without walking through all
 of the characters.)
 \apiend
 
-\apiitem{const char* string_ref::{\ce data} () \\
-size_t string_ref::{\ce size} ()}
+\apiitem{const char* string_view::{\ce data} () \\
+size_t string_view::{\ce size} ()}
 The raw pointer to the characters (not necessarily 0-terminated!)
-and the length of the \stringref.
+and the length of the \stringview.
 \apiend
 
-\apiitem{const char* string_ref::{\ce c_str} ()}
-Return a 0-terminated {\cf char*} version of the \stringref (a proper C
+\apiitem{const char* string_view::{\ce c_str} ()}
+Return a 0-terminated {\cf char*} version of the \stringview (a proper C
 string).
 \apiend
 
-\apiitem{std::string (string_ref sr) \\
-ustring (string_ref sr)}
+\apiitem{std::string (string_view sr) \\
+ustring (string_view sr)}
 Automatic constructions of C++ {\cf std::string} or OIIO \ustring from
-a \stringref.
+a \stringview.
 \apiend
 
 \smallskip
 \noindent Additionally, a large portion of the usual API for {\cf std::string}
-is mimicked by \stringref.  Please consult the public {\cf string_ref.h}
-header file for full details, if you wish to use \stringref in your own
+is mimicked by \stringview.  Please consult the public {\cf string_view.h}
+header file for full details, if you wish to use \stringview in your own
 code.
 
 
@@ -266,16 +266,16 @@ take \ustring parameters:
 \apiitem{ustring (const char *chars) \\
 ustring (const char *chars, size_t length) \\
 ustring (const std::string \&str) \\
-ustring (string\_ref sref)}
+ustring (string\_view sref)}
 Constructs a \ustring from a C string ({\cf char*}), C++ {\cf std::string},
-or a \stringref.
+or a \stringview.
 \apiend
 
 \apiitem{const char* ustring::{\ce c_str} () \\
 const std::string\& ustring::{\ce string()} \\
-string\_ref ustring::{\ce operator string\_ref}()}
+string\_view ustring::{\ce operator string\_view}()}
 Convert a \ustring to a 0-terminated C string, a C++ {\cf std::string}, or
-a {\cf string_ref}.  All of these are extremely inexpensive.
+a {\cf string_view}.  All of these are extremely inexpensive.
 \apiend
 
 
@@ -522,25 +522,25 @@ storage!
 
 % FIXME - document auto_stride() ?
 
-\apiitem{void {\ce attribute} (string_ref name, TypeDesc type, \\
+\apiitem{void {\ce attribute} (string_view name, TypeDesc type, \\
 \bigspc const void *value)}
 Add a metadata attribute to {\cf extra_attribs}, with the given name and
 data type.  The {\cf value} pointer specifies
 the address of the data to be copied.
 \apiend
 
-\apiitem{void {\ce attribute} (string_ref name, unsigned int value)\\
-    void {\ce attribute} (string_ref name, int value)\\
-    void {\ce attribute} (string_ref name, float value)\\
-    void {\ce attribute} (string_ref name, string_ref value)}
+\apiitem{void {\ce attribute} (string_view name, unsigned int value)\\
+    void {\ce attribute} (string_view name, int value)\\
+    void {\ce attribute} (string_view name, float value)\\
+    void {\ce attribute} (string_view name, string_view value)}
 Shortcuts for passing attributes comprised of a single integer,
 floating-point value, or string.
 \apiend
 
-\apiitem{ImageIOParameter * {\ce find_attribute} (string_ref name,\\
+\apiitem{ImageIOParameter * {\ce find_attribute} (string_view name,\\
 \bigspc\bigspc\spc                           TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\spc                           bool casesensitive=false)\\
-const ImageIOParameter * {\ce find_attribute} (string_ref name,\\
+const ImageIOParameter * {\ce find_attribute} (string_view name,\\
 \bigspc\bigspc\spc                           TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\spc                           bool casesensitive=false) const
 \\
@@ -555,7 +555,7 @@ name comparison will be exact if {\cf casesensitive} is true, otherwise
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
-\apiitem{int {\ce get_int_attribute} (string_ref name, int
+\apiitem{int {\ce get_int_attribute} (string_view name, int
   defaultval=0) const}
 Gets an integer metadata attribute (silently converting to {\cf int}
 even if if the data is really int8, uint8, int16, uint16, or uint32),
@@ -564,7 +564,7 @@ exists.  This is a convenience function for when you know you are just
 looking for a simple integer value.
 \apiend
 
-\apiitem{float {\ce get_float_attribute} (string_ref name,\\
+\apiitem{float {\ce get_float_attribute} (string_view name,\\
 \bigspc\bigspc float defaultval=0) const}
 Gets a float metadata attribute (silently converting to {\cf float} even
 if the data is really half or double), simply substituting the supplied
@@ -572,8 +572,8 @@ default value if no such metadata exists.  This is a convenience
 function for when you know you are just looking for a simple float value.
 \apiend
 
-\apiitem{string_ref {\ce get_string_attribute} (string_ref name, \\
-\bigspc\bigspc  string_ref defaultval = string_ref()) const}
+\apiitem{string_view {\ce get_string_attribute} (string_view name, \\
+\bigspc\bigspc  string_view defaultval = string_view()) const}
 Gets a string metadata attribute, simply substituting the supplied
 default value if no such metadata exists.  This is a convenience
 function for when you know you are just looking for a simple string value.
@@ -638,7 +638,7 @@ other's global error messages.
 \apiend
 
 
-\apiitem{bool {\ce attribute} (string_ref name, TypeDesc type,
+\apiitem{bool {\ce attribute} (string_view name, TypeDesc type,
   const void *val)}
 \index{globalattribute}
 \indexapi{attribute}
@@ -699,17 +699,17 @@ by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 
 \apiend
 
-\apiitem{bool {\ce attribute} (string_ref name, int val) \\
-bool {\ce attribute} (string_ref name, float val) \\
-bool {\ce attribute} (string_ref name, const char *val) \\
-bool {\ce attribute} (string_ref name, const std::string \& val)}
+\apiitem{bool {\ce attribute} (string_view name, int val) \\
+bool {\ce attribute} (string_view name, float val) \\
+bool {\ce attribute} (string_view name, const char *val) \\
+bool {\ce attribute} (string_view name, const std::string \& val)}
 Specialized versions of {\cf attribute()} in which the data type is
 implied by the type of the argument.
 \apiend
 
 
 
-\apiitem{bool {\ce getattribute} (string_ref name, TypeDesc type,
+\apiitem{bool {\ce getattribute} (string_view name, TypeDesc type,
   void *val)}
 \indexapi{getattribute}
 
@@ -730,10 +730,10 @@ The complete list of attributes can be found above, in the description
 of the {\cf attribute()} function.
 \apiend
 
-\apiitem{bool {\ce getattribute} (string_ref name, int \&val) \\
-bool {\ce getattribute} (string_ref name, float \&val) \\
-bool {\ce getattribute} (string_ref name, char **val) \\
-bool {\ce getattribute} (string_ref name, std::string \& val)}
+\apiitem{bool {\ce getattribute} (string_view name, int \&val) \\
+bool {\ce getattribute} (string_view name, float \&val) \\
+bool {\ce getattribute} (string_view name, char **val) \\
+bool {\ce getattribute} (string_view name, std::string \& val)}
 Specialized versions of {\cf getattribute()} in which the data type is
 implied by the type of the argument.
 

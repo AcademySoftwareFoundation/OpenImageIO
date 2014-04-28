@@ -269,7 +269,7 @@ TextureSystemImpl::reset_stats ()
 
 
 bool
-TextureSystemImpl::attribute (string_ref name, TypeDesc type,
+TextureSystemImpl::attribute (string_view name, TypeDesc type,
                               const void *val)
 {
     if (name == "options" && type == TypeDesc::STRING) {
@@ -304,7 +304,7 @@ TextureSystemImpl::attribute (string_ref name, TypeDesc type,
 
 
 bool
-TextureSystemImpl::getattribute (string_ref name, TypeDesc type,
+TextureSystemImpl::getattribute (string_view name, TypeDesc type,
                                  void *val)
 {
     if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||

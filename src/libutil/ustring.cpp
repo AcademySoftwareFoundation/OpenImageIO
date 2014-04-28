@@ -67,7 +67,7 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
 
-typedef boost::unordered_map <string_ref, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
+typedef boost::unordered_map <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 
 std::string ustring::empty_std_string ("");
 
@@ -140,7 +140,7 @@ enum {libcpp_string__min_cap = (sizeof(libcpp_string__long) - 1)/sizeof(std::str
 
 
 
-ustring::TableRep::TableRep (string_ref strref)
+ustring::TableRep::TableRep (string_view strref)
     : hashed(Strutil::strhash(strref))
 {
     length = strref.length();
@@ -215,13 +215,13 @@ ustring::TableRep::~TableRep ()
 
 
 const char *
-ustring::make_unique (string_ref strref)
+ustring::make_unique (string_view strref)
 {
     UstringTable &table (ustring_table());
 
     // Eliminate NULLs
     if (! strref.data())
-        strref = string_ref("", 0);
+        strref = string_view("", 0);
 
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
@@ -262,7 +262,7 @@ ustring::make_unique (string_ref strref)
         UstringTable::const_iterator found = table.find (strref);
         if (found == table.end()) {
             // add the one we just created to the table
-            table[string_ref(result,len)] = rep;
+            table[string_view(result,len)] = rep;
             ++ustring_stats_unique;
             ustring_stats_memory += size;
             if (rep->c_str() != rep->str.c_str())

@@ -288,7 +288,7 @@ ImageSpec::image_bytes (bool native) const
 
 
 void
-ImageSpec::attribute (string_ref name, TypeDesc type, const void *value)
+ImageSpec::attribute (string_view name, TypeDesc type, const void *value)
 {
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
@@ -303,8 +303,8 @@ ImageSpec::attribute (string_ref name, TypeDesc type, const void *value)
 
 template <class T>
 static void
-parse_elements (string_ref name, TypeDesc type, const char *type_code,
-                string_ref value, ImageIOParameter &param)
+parse_elements (string_view name, TypeDesc type, const char *type_code,
+                string_view value, ImageIOParameter &param)
 {
     int num_items = type.numelements() * type.aggregate;
     T *data = (T*) param.data();
@@ -327,7 +327,7 @@ parse_elements (string_ref name, TypeDesc type, const char *type_code,
 
 
 void
-ImageSpec::attribute (string_ref name, TypeDesc type, string_ref value)
+ImageSpec::attribute (string_view name, TypeDesc type, string_view value)
 {
     ImageIOParameter param (name, type, 1, NULL);
     TypeDesc::BASETYPE basetype = (TypeDesc::BASETYPE)type.basetype;
@@ -417,7 +417,7 @@ get_attribute_const_iterator (const ImageIOParameterList & attribs,
 }
 
 void
-ImageSpec::erase_attribute (string_ref name, TypeDesc searchtype,
+ImageSpec::erase_attribute (string_view name, TypeDesc searchtype,
                             bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -428,7 +428,7 @@ ImageSpec::erase_attribute (string_ref name, TypeDesc searchtype,
 }
 
 ImageIOParameter *
-ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
@@ -443,7 +443,7 @@ ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
 
 
 const ImageIOParameter *
-ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
+ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive) const
 {
     ImageIOParameterList::const_iterator iter = \
@@ -458,7 +458,7 @@ ImageSpec::find_attribute (string_ref name, TypeDesc searchtype,
 
 
 int
-ImageSpec::get_int_attribute (string_ref name, int val) const
+ImageSpec::get_int_attribute (string_view name, int val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -485,7 +485,7 @@ ImageSpec::get_int_attribute (string_ref name, int val) const
 
 
 float
-ImageSpec::get_float_attribute (string_ref name, float val) const
+ImageSpec::get_float_attribute (string_view name, float val) const
 {
     const ImageIOParameter *p = find_attribute (name);
     if (p) {
@@ -501,8 +501,8 @@ ImageSpec::get_float_attribute (string_ref name, float val) const
 
 
 
-string_ref
-ImageSpec::get_string_attribute (string_ref name, string_ref val) const
+string_view
+ImageSpec::get_string_attribute (string_view name, string_view val) const
 {
     const ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
     if (p)

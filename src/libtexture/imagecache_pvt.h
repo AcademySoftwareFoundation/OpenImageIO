@@ -616,40 +616,40 @@ public:
     ImageCacheImpl ();
     virtual ~ImageCacheImpl ();
 
-    virtual bool attribute (string_ref name, TypeDesc type, const void *val);
-    virtual bool attribute (string_ref name, int val) {
+    virtual bool attribute (string_view name, TypeDesc type, const void *val);
+    virtual bool attribute (string_view name, int val) {
         return attribute (name, TypeDesc::INT, &val);
     }
-    virtual bool attribute (string_ref name, float val) {
+    virtual bool attribute (string_view name, float val) {
         return attribute (name, TypeDesc::FLOAT, &val);
     }
-    virtual bool attribute (string_ref name, double val) {
+    virtual bool attribute (string_view name, double val) {
         float f = (float) val;
         return attribute (name, TypeDesc::FLOAT, &f);
     }
-    virtual bool attribute (string_ref name, string_ref val) {
+    virtual bool attribute (string_view name, string_view val) {
         const char *s = val.c_str();
         return attribute (name, TypeDesc::STRING, &s);
     }
 
-    virtual bool getattribute (string_ref name, TypeDesc type, void *val);
-    virtual bool getattribute (string_ref name, int &val) {
+    virtual bool getattribute (string_view name, TypeDesc type, void *val);
+    virtual bool getattribute (string_view name, int &val) {
         return getattribute (name, TypeDesc::INT, &val);
     }
-    virtual bool getattribute (string_ref name, float &val) {
+    virtual bool getattribute (string_view name, float &val) {
         return getattribute (name, TypeDesc::FLOAT, &val);
     }
-    virtual bool getattribute (string_ref name, double &val) {
+    virtual bool getattribute (string_view name, double &val) {
         float f;
         bool ok = getattribute (name, TypeDesc::FLOAT, &f);
         if (ok)
             val = f;
         return ok;
     }
-    virtual bool getattribute (string_ref name, char **val) {
+    virtual bool getattribute (string_view name, char **val) {
         return getattribute (name, TypeDesc::STRING, val);
     }
-    virtual bool getattribute (string_ref name, std::string &val) {
+    virtual bool getattribute (string_view name, std::string &val) {
         ustring s;
         bool ok = getattribute (name, TypeDesc::STRING, &s);
         if (ok)

@@ -52,7 +52,7 @@
 
 #include "export.h"
 #include "oiioversion.h"
-#include "string_ref.h"
+#include "string_view.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -145,16 +145,16 @@ OIIO_API bool is_regular (const std::string &path);
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-OIIO_API FILE *fopen (string_ref path, string_ref mode);
+OIIO_API FILE *fopen (string_view path, string_view mode);
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ifstream &stream, string_ref path,
+OIIO_API void open (std::ifstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ofstream &stream, string_ref path,
+OIIO_API void open (std::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
 /// Get last modified time of file
@@ -182,7 +182,7 @@ OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 ///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
 /// Retrn true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_sequence (string_ref desc,
+OIIO_API bool enumerate_sequence (string_view desc,
                                   std::vector<int> &numbers);
 
 /// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), return a
@@ -218,7 +218,7 @@ OIIO_API bool enumerate_file_sequence (const std::string &pattern,
 /// to generate a sequence.
 OIIO_API bool enumerate_file_sequence (const std::string &pattern,
                                        const std::vector<int> &numbers,
-                                       const std::vector<string_ref> &views,
+                                       const std::vector<string_view> &views,
                                        std::vector<std::string> &filenames);
 
 /// Given a normalized pattern (such as "/path/to/foo.%04d.tif") scan the
@@ -229,9 +229,9 @@ OIIO_API bool enumerate_file_sequence (const std::string &pattern,
 /// Return true upon success, false if the directory doesn't exist or the
 /// pattern can't be parsed.
 OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
-                                           const std::vector<string_ref> &views,
+                                           const std::vector<string_view> &views,
                                            std::vector<int> &frame_numbers,
-                                           std::vector<string_ref> &frame_views,
+                                           std::vector<string_view> &frame_views,
                                            std::vector<std::string> &filenames);
 
 /// Given a normalized pattern (such as "/path/to/foo.%04d.tif") scan the

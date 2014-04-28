@@ -128,7 +128,7 @@ static const int maxthreads = 64;   // reasonable maximum for sanity check
 
 
 bool
-attribute (string_ref name, TypeDesc type, const void *val)
+attribute (string_view name, TypeDesc type, const void *val)
 {
     if (name == "threads" && type == TypeDesc::TypeInt) {
         int ot = Imath::clamp (*(const int *)val, 0, maxthreads);
@@ -148,7 +148,7 @@ attribute (string_ref name, TypeDesc type, const void *val)
 
 
 bool
-getattribute (string_ref name, TypeDesc type, void *val)
+getattribute (string_view name, TypeDesc type, void *val)
 {
     if (name == "threads" && type == TypeDesc::TypeInt) {
         *(int *)val = oiio_threads;

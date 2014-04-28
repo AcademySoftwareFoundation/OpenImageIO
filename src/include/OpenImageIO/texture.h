@@ -348,21 +348,21 @@ public:
     ///     int gray_to_rgb : make 1-channel images fill RGB lookups
     ///     string latlong_up : default "up" direction for latlong ("y")
     ///
-    virtual bool attribute (string_ref name, TypeDesc type, const void *val) = 0;
+    virtual bool attribute (string_view name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types
-    virtual bool attribute (string_ref name, int val) = 0;
-    virtual bool attribute (string_ref name, float val) = 0;
-    virtual bool attribute (string_ref name, double val) = 0;
-    virtual bool attribute (string_ref name, string_ref val) = 0;
+    virtual bool attribute (string_view name, int val) = 0;
+    virtual bool attribute (string_view name, float val) = 0;
+    virtual bool attribute (string_view name, double val) = 0;
+    virtual bool attribute (string_view name, string_view val) = 0;
 
     /// Get the named attribute, store it in value.
-    virtual bool getattribute (string_ref name, TypeDesc type, void *val) = 0;
+    virtual bool getattribute (string_view name, TypeDesc type, void *val) = 0;
     // Shortcuts for common types
-    virtual bool getattribute (string_ref name, int &val) = 0;
-    virtual bool getattribute (string_ref name, float &val) = 0;
-    virtual bool getattribute (string_ref name, double &val) = 0;
-    virtual bool getattribute (string_ref name, char **val) = 0;
-    virtual bool getattribute (string_ref name, std::string &val) = 0;
+    virtual bool getattribute (string_view name, int &val) = 0;
+    virtual bool getattribute (string_view name, float &val) = 0;
+    virtual bool getattribute (string_view name, double &val) = 0;
+    virtual bool getattribute (string_view name, char **val) = 0;
+    virtual bool getattribute (string_view name, std::string &val) = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to certain per-thread information that the TextureSystem maintains.
