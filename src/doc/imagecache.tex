@@ -136,7 +136,7 @@ The following member functions of \ImageCache allow you to set
 (and in some cases retrieve) options that control the overall
 behavior of the image cache:
 
-\apiitem{bool {\ce attribute} (string_ref name, TypeDesc type,
+\apiitem{bool {\ce attribute} (string_view name, TypeDesc type,
   const void *val)}
 \indexapi{attribute}
 
@@ -175,10 +175,10 @@ The complete list of attributes can be found at the end of this section.
 
 \apiend
 
-\apiitem{bool {\ce attribute} (string_ref name, int val) \\
-bool {\ce attribute} (string_ref name, float val) \\
-bool {\ce attribute} (string_ref name, double val) \\
-bool {\ce attribute} (string_ref name, string_ref val)}
+\apiitem{bool {\ce attribute} (string_view name, int val) \\
+bool {\ce attribute} (string_view name, float val) \\
+bool {\ce attribute} (string_view name, double val) \\
+bool {\ce attribute} (string_view name, string_view val)}
 Specialized versions of {\cf attribute()} in which the data type is
 implied by the type of the argument.
 
@@ -193,7 +193,7 @@ general (pointer) form of {\cf attribute()}:
 \apiend
 
 
-\apiitem{bool {\ce getattribute} (string_ref name, TypeDesc type,
+\apiitem{bool {\ce getattribute} (string_view name, TypeDesc type,
   void *val)}
 \indexapi{getattribute}
 
@@ -233,11 +233,11 @@ The complete list of attributes can be found at the end of this section.
 
 \apiend
 
-\apiitem{bool {\ce getattribute} (string_ref name, int \&val) \\
-bool {\ce getattribute} (string_ref name, float \&val) \\
-bool {\ce getattribute} (string_ref name, double \&val) \\
-bool {\ce getattribute} (string_ref name, char **val) \\
-bool {\ce getattribute} (string_ref name, std::string \& val)}
+\apiitem{bool {\ce getattribute} (string_view name, int \&val) \\
+bool {\ce getattribute} (string_view name, float \&val) \\
+bool {\ce getattribute} (string_view name, double \&val) \\
+bool {\ce getattribute} (string_view name, char **val) \\
+bool {\ce getattribute} (string_view name, std::string \& val)}
 Specialized versions of {\cf getattribute()} in which the data type is
 implied by the type of the argument.
 

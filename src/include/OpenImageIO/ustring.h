@@ -135,7 +135,7 @@
 #include <cstring>
 #include "export.h"
 #include "strutil.h"
-#include "string_ref.h"
+#include "string_view.h"
 #include "dassert.h"
 #include "oiioversion.h"
 
@@ -167,10 +167,10 @@ public:
         m_chars = str ? make_unique(str) : NULL;
     }
 
-    /// Construct a ustring from a string_ref, which can be auto-converted
+    /// Construct a ustring from a string_view, which can be auto-converted
     /// from either a null-terminated C string (char *) or a C++
     /// std::string.
-    explicit ustring (string_ref str) {
+    explicit ustring (string_view str) {
         m_chars = str.data() ? make_unique(str) : NULL;
     }
 
@@ -182,7 +182,7 @@ public:
     /// Construct a ustring from the first n characters of str.
     ///
     ustring (const char *str, size_type n)
-        : m_chars (make_unique(string_ref(str,n))) { }
+        : m_chars (make_unique(string_view(str,n))) { }
 
     /// Construct a ustring from n copies of character c.
     ///
@@ -192,7 +192,7 @@ public:
     /// Construct a ustring from an indexed substring of a std::string.
     ///
     ustring (const std::string &str, size_type pos, size_type n=npos) {
-        string_ref sref(str);
+        string_view sref(str);
         sref = sref.substr (pos, n);
         m_chars = make_unique(sref);
     }
@@ -204,7 +204,7 @@ public:
     /// Construct a ustring from an indexed substring of a ustring.
     ///
     ustring (const ustring &str, size_type pos, size_type n=npos) {
-        string_ref sref(str);
+        string_view sref(str);
         sref = sref.substr (pos, n);
         m_chars = make_unique(sref);
     }
@@ -213,8 +213,8 @@ public:
     ///
     ~ustring () { }
 
-    /// Conversion to string_ref
-    operator string_ref() const { return string_ref(c_str(), length()); }
+    /// Conversion to string_view
+    operator string_view() const { return string_view(c_str(), length()); }
 
     /// Assign a ustring to *this.
     ///
@@ -258,8 +258,8 @@ public:
     const ustring & assign (size_type n, char c)
         { *this = ustring(n,c); return *this; }
 
-    /// Assign a string_ref to *this.
-    const ustring & assign (string_ref str) {
+    /// Assign a string_view to *this.
+    const ustring & assign (string_view str) {
         m_chars = str.length() ? make_unique(str) : NULL;
         return *this;
     }
@@ -276,9 +276,9 @@ public:
     ///
     const ustring & operator= (const std::string &str) { return assign(str); }
 
-    /// Assign a string_ref to a ustring.
+    /// Assign a string_view to a ustring.
     ///
-    const ustring & operator= (string_ref str) { return assign(str); }
+    const ustring & operator= (string_view str) { return assign(str); }
 
     /// Assign a single char to a ustring.
     ///
@@ -596,13 +596,13 @@ public:
     ///
     static size_t memory ();
 
-    /// Given a string_ref, return a pointer to the unique
+    /// Given a string_view, return a pointer to the unique
     /// version kept in the internal table (creating a new table entry
     /// if we haven't seen this sequence of characters before).  
     /// N.B.: this is equivalent to ustring(str).c_str().  It's also the
     /// routine that is used directly by ustring's internals to generate
     /// the canonical unique copy of the characters.
-    static const char * make_unique (string_ref str);
+    static const char * make_unique (string_view str);
 
     /// Is this character pointer a unique ustring representation of
     /// those characters?  Useful for diagnostics and debugging.
@@ -638,7 +638,7 @@ public:
         size_t length;       // Length of the string; must be right before cap
         size_t dummy_capacity;  // Dummy field! must be right before refcount
         int    dummy_refcount;  // Dummy field! must be right before chars
-        TableRep (string_ref strref);
+        TableRep (string_view strref);
         ~TableRep ();
         const char *c_str () const { return (const char *)(this + 1); }
     };

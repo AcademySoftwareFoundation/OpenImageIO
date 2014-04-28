@@ -139,7 +139,7 @@ test_file_seq_with_view (const char *pattern, const char *override, const char *
                          const std::string &expected)
 {
     std::vector<int> numbers;
-    std::vector<string_ref> views;
+    std::vector<string_view> views;
     std::vector<std::string> names;
     std::string normalized_pattern;
     std::string frame_range;
@@ -187,11 +187,11 @@ static void
 test_scan_file_seq_with_views (const char *pattern, const char **views_, const std::string &expected)
 {
     std::vector<int> frame_numbers;
-    std::vector<string_ref> frame_views;
+    std::vector<string_view> frame_views;
     std::vector<std::string> frame_names;
     std::string normalized_pattern;
     std::string frame_range;
-    std::vector<string_ref> views;
+    std::vector<string_view> views;
 
     for (size_t i = 0; views_[i]; ++i)
         views.push_back(views_[i]);
@@ -274,7 +274,7 @@ void test_frame_sequences ()
 
 
 
-void create_test_file(const string_ref& fn)
+void create_test_file(const string_view& fn)
 {
     std::ofstream f(fn.c_str());
     f.close();

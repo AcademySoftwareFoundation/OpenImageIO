@@ -364,7 +364,7 @@ string_to_dataformat (const std::string &s, TypeDesc &dataformat, int &bits)
 
 
 static void
-adjust_output_options (string_ref filename,
+adjust_output_options (string_view filename,
                        ImageSpec &spec, const Oiiotool &ot,
                        bool format_supports_tiles)
 {
@@ -3636,7 +3636,7 @@ handle_sequence (int argc, const char **argv)
     std::string framespec = "";
 
     static const char *default_views = "left,right";
-    std::vector<string_ref> views;
+    std::vector<string_view> views;
     Strutil::split (default_views, views, ",");
 
     int framepadding = 0;
@@ -3683,7 +3683,7 @@ handle_sequence (int argc, const char **argv)
     // of the same length.
     std::vector< std::vector<std::string> > filenames (argc+1);
     std::vector< std::vector<int> > frame_numbers (argc+1);
-    std::vector< std::vector<string_ref> > frame_views (argc+1);
+    std::vector< std::vector<string_view> > frame_views (argc+1);
     std::string normalized_pattern, sequence_framespec;
     size_t nfilenames = 0;
     bool result;

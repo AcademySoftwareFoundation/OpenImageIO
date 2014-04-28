@@ -587,7 +587,7 @@ ImageCacheFile::init_from_spec ()
     if (m_fingerprint) {
         // If it looks like something other than OIIO wrote the file, forget
         // the fingerprint, it probably is not accurate.
-        string_ref software = spec.get_string_attribute ("Software");
+        string_view software = spec.get_string_attribute ("Software");
         if (! Strutil::istarts_with (software, "OpenImageIO") &&
             ! Strutil::istarts_with (software, "maketx"))
             m_fingerprint.clear ();
@@ -1633,7 +1633,7 @@ ImageCacheImpl::reset_stats ()
 
 
 bool
-ImageCacheImpl::attribute (string_ref name, TypeDesc type,
+ImageCacheImpl::attribute (string_view name, TypeDesc type,
                            const void *val)
 {
     bool do_invalidate = false;
@@ -1772,7 +1772,7 @@ ImageCacheImpl::attribute (string_ref name, TypeDesc type,
 
 
 bool
-ImageCacheImpl::getattribute (string_ref name, TypeDesc type,
+ImageCacheImpl::getattribute (string_view name, TypeDesc type,
                               void *val)
 {
 #define ATTR_DECODE(_name,_ctype,_src)                                  \

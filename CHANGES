@@ -22,11 +22,12 @@ Public API changes:
     crop, reset origin, and set full res = data resolution). (1.4.3)
   - complex_to_polar() and polar_to_complex() convert from (real,imag)
     to (amplitude,phase) and back. (#831) (1.4.5)
-* New string_ref class (in string_ref.h) describes a non-owning
-  reference to a string.  The string_ref is now used in many places
+* New string_view class (in string_view.h) describes a non-owning
+  reference to a string.  The string_view is now used in many places
   throughout OIIO's APIs that used to pass parameters or return values
-  as char* or std::string&.  Read string_ref.h for an explanation of why
-  this is good. (1.4.2, 1.4.3)
+  as char* or std::string&.  Read string_view.h for an explanation of why
+  this is good. (1.4.2, 1.4.3) (N.B. this was called string_ref until 1.4.6,
+  when it was renamed string_view to conform to C++17 draft nomenclature.)
 * New array_view<>, array_view_strided<>, strided_ptr<>, and image_view<>
   templates are great utility for passing bounded and strided arrays. (1.4.3)
 * Removed deprecated PT_* definitions from typedesc.h.

@@ -285,7 +285,7 @@ Filesystem::is_regular (const std::string &path)
 
 
 FILE*
-Filesystem::fopen (string_ref path, string_ref mode)
+Filesystem::fopen (string_view path, string_view mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
@@ -302,7 +302,7 @@ Filesystem::fopen (string_ref path, string_ref mode)
 
 
 void
-Filesystem::open (std::ifstream &stream, string_ref path,
+Filesystem::open (std::ifstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -318,7 +318,7 @@ Filesystem::open (std::ifstream &stream, string_ref path,
 
 
 void
-Filesystem::open (std::ofstream &stream, string_ref path,
+Filesystem::open (std::ofstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -392,16 +392,16 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
 
 
 bool
-Filesystem::enumerate_sequence (string_ref desc, std::vector<int> &numbers)
+Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
 {
     numbers.clear ();
 
     // Split the sequence description into comma-separated subranges.
-    std::vector<string_ref> ranges;
+    std::vector<string_view> ranges;
     Strutil::split (desc, ranges, ",");
 
     // For each subrange...
-    BOOST_FOREACH (string_ref s, ranges) {
+    BOOST_FOREACH (string_view s, ranges) {
         // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.
@@ -521,7 +521,7 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
 bool
 Filesystem::enumerate_file_sequence (const std::string &pattern,
                                      const std::vector<int> &numbers,
-                                     const std::vector<string_ref> &views,
+                                     const std::vector<string_view> &views,
                                      std::vector<std::string> &filenames)
 {
     DASSERT (views.size() == 0 || views.size() == numbers.size());
@@ -545,9 +545,9 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
 
 bool
 Filesystem::scan_for_matching_filenames(const std::string &pattern,
-                                        const std::vector<string_ref> &views,
+                                        const std::vector<string_view> &views,
                                         std::vector<int> &frame_numbers,
-                                        std::vector<string_ref> &frame_views,
+                                        std::vector<string_view> &frame_views,
                                         std::vector<std::string> &filenames)
 {
     static boost::regex format_re ("%0([0-9]+)d");
@@ -556,12 +556,12 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
     if (boost::regex_search (pattern, all_views_re)) {
         if (boost::regex_search (pattern, format_re)) {
             // case 1: pattern has format and view
-            std::vector< std::pair< std::pair< int, string_ref>, std::string> > matches;
+            std::vector< std::pair< std::pair< int, string_view>, std::string> > matches;
             for (int i = 0, e = views.size(); i < e; ++i) {
                 if (views[i].empty())
                     continue;
 
-                const string_ref short_view = views[i].substr (0, 1);
+                const string_view short_view = views[i].substr (0, 1);
                 std::vector<int> view_numbers;
                 std::vector<std::string> view_filenames;
 
@@ -587,10 +587,10 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
 
         } else {
             // case 2: pattern has view, but no format
-            std::vector< std::pair<string_ref, std::string> > matches;
+            std::vector< std::pair<string_view, std::string> > matches;
             for (int i = 0, e = views.size(); i < e; ++i) {
-                const string_ref &view = views[i];
-                const string_ref short_view = view.substr (0, 1);
+                const string_view &view = views[i];
+                const string_view short_view = view.substr (0, 1);
 
                 std::string view_pattern = pattern;
                 view_pattern = boost::regex_replace (view_pattern, view_re, view);

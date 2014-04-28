@@ -100,23 +100,23 @@ public:
     ///                               texture and image references.
     ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
     ///
-    virtual bool attribute (string_ref name, TypeDesc type,
+    virtual bool attribute (string_view name, TypeDesc type,
                             const void *val) = 0;
     // Shortcuts for common types
-    virtual bool attribute (string_ref name, int val) = 0;
-    virtual bool attribute (string_ref name, float val) = 0;
-    virtual bool attribute (string_ref name, double val) = 0;
-    virtual bool attribute (string_ref name, string_ref val) = 0;
+    virtual bool attribute (string_view name, int val) = 0;
+    virtual bool attribute (string_view name, float val) = 0;
+    virtual bool attribute (string_view name, double val) = 0;
+    virtual bool attribute (string_view name, string_view val) = 0;
 
     /// Get the named attribute, store it in value.
-    virtual bool getattribute (string_ref name, TypeDesc type,
+    virtual bool getattribute (string_view name, TypeDesc type,
                                void *val) = 0;
     // Shortcuts for common types
-    virtual bool getattribute (string_ref name, int &val) = 0;
-    virtual bool getattribute (string_ref name, float &val) = 0;
-    virtual bool getattribute (string_ref name, double &val) = 0;
-    virtual bool getattribute (string_ref name, char **val) = 0;
-    virtual bool getattribute (string_ref name, std::string &val) = 0;
+    virtual bool getattribute (string_view name, int &val) = 0;
+    virtual bool getattribute (string_view name, float &val) = 0;
+    virtual bool getattribute (string_view name, double &val) = 0;
+    virtual bool getattribute (string_view name, char **val) = 0;
+    virtual bool getattribute (string_view name, std::string &val) = 0;
 
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.

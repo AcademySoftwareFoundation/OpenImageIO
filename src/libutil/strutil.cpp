@@ -58,7 +58,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/ustring.h"
-#include "OpenImageIO/string_ref.h"
+#include "OpenImageIO/string_view.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -66,7 +66,7 @@ OIIO_NAMESPACE_ENTER
 
 
 const char *
-string_ref::c_str() const
+string_view::c_str() const
 {
     // Usual case: either empty, or null-terminated
     if (m_len == 0)   // empty string
@@ -223,7 +223,7 @@ Strutil::get_rest_arguments (const std::string &str, std::string &base,
 
 
 std::string
-Strutil::escape_chars (string_ref unescaped)
+Strutil::escape_chars (string_view unescaped)
 {
     std::string s = unescaped;
     for (size_t i = 0;  i < s.length();  ++i) {
@@ -250,7 +250,7 @@ Strutil::escape_chars (string_ref unescaped)
 
 
 std::string
-Strutil::unescape_chars (string_ref escaped)
+Strutil::unescape_chars (string_view escaped)
 {
     std::string s = escaped;
     for (size_t i = 0, len = s.length();  i < len;  ++i) {
@@ -290,7 +290,7 @@ Strutil::unescape_chars (string_ref escaped)
 
 
 std::string
-Strutil::wordwrap (string_ref src, int columns, int prefix)
+Strutil::wordwrap (string_view src, int columns, int prefix)
 {
     if (columns < prefix+20)
         return src;   // give up, no way to make it wrap
@@ -299,7 +299,7 @@ Strutil::wordwrap (string_ref src, int columns, int prefix)
     while ((int)src.length() > columns) {
         // break the string in two
         size_t breakpoint = src.find_last_of (' ', columns);
-        if (breakpoint == string_ref::npos)
+        if (breakpoint == string_view::npos)
             breakpoint = columns;
         out << src.substr(0, breakpoint) << "\n" << std::string (prefix, ' ');
         src = src.substr (breakpoint);
@@ -318,35 +318,35 @@ static std::locale loc = std::locale::classic();
 
 
 bool
-Strutil::iequals (string_ref a, string_ref b)
+Strutil::iequals (string_view a, string_view b)
 {
     return boost::algorithm::iequals (a, b, loc);
 }
 
 
 bool
-Strutil::istarts_with (string_ref a, string_ref b)
+Strutil::istarts_with (string_view a, string_view b)
 {
     return boost::algorithm::istarts_with (a, b, loc);
 }
 
 
 bool
-Strutil::iends_with (string_ref a, string_ref b)
+Strutil::iends_with (string_view a, string_view b)
 {
     return boost::algorithm::iends_with (a, b, loc);
 }
 
 
 bool
-Strutil::contains (string_ref a, string_ref b)
+Strutil::contains (string_view a, string_view b)
 {
     return boost::algorithm::contains (a, b);
 }
 
 
 bool
-Strutil::icontains (string_ref a, string_ref b)
+Strutil::icontains (string_view a, string_view b)
 {
     return boost::algorithm::icontains (a, b, loc);
 }
@@ -367,14 +367,14 @@ Strutil::to_upper (std::string &a)
 
 
 
-string_ref
-Strutil::strip (string_ref str, string_ref chars)
+string_view
+Strutil::strip (string_view str, string_view chars)
 {
     if (chars.empty())
-        chars = string_ref(" \t\n\r\f\v", 6);
+        chars = string_view(" \t\n\r\f\v", 6);
     size_t b = str.find_first_not_of (chars);
     if (b == std::string::npos)
-        return string_ref ();
+        return string_view ();
     size_t e = str.find_last_not_of (chars);
     DASSERT (e != std::string::npos);
     return str.substr (b, e-b+1);
@@ -383,11 +383,11 @@ Strutil::strip (string_ref str, string_ref chars)
 
 
 static void
-split_whitespace (string_ref str, std::vector<string_ref> &result,
+split_whitespace (string_view str, std::vector<string_view> &result,
                   int maxsplit)
 {
     // Implementation inspired by Pystring
-    string_ref::size_type i, j, len = str.size();
+    string_view::size_type i, j, len = str.size();
     for (i = j = 0; i < len; ) {
         while (i < len && ::isspace(str[i]))
             i++;
@@ -410,10 +410,10 @@ split_whitespace (string_ref str, std::vector<string_ref> &result,
 
 
 void
-Strutil::split (string_ref str, std::vector<std::string> &result,
-                string_ref sep, int maxsplit)
+Strutil::split (string_view str, std::vector<std::string> &result,
+                string_view sep, int maxsplit)
 {
-    std::vector<string_ref> sr_result;
+    std::vector<string_view> sr_result;
     split (str, sr_result, sep, maxsplit);
     result.clear ();
     result.reserve (sr_result.size());
@@ -424,8 +424,8 @@ Strutil::split (string_ref str, std::vector<std::string> &result,
 
 
 void
-Strutil::split (string_ref str, std::vector<string_ref> &result,
-                string_ref sep, int maxsplit)
+Strutil::split (string_view str, std::vector<string_view> &result,
+                string_view sep, int maxsplit)
 {
     // Implementation inspired by Pystring
     result.clear();
@@ -452,7 +452,7 @@ Strutil::split (string_ref str, std::vector<string_ref> &result,
 
 
 std::string
-Strutil::join (const std::vector<string_ref> &seq, string_ref str)
+Strutil::join (const std::vector<string_view> &seq, string_view str)
 {
     // Implementation inspired by Pystring
     size_t seqlen = seq.size();
@@ -469,9 +469,9 @@ Strutil::join (const std::vector<string_ref> &seq, string_ref str)
 
 
 std::string
-Strutil::join (const std::vector<std::string> &seq, string_ref str)
+Strutil::join (const std::vector<std::string> &seq, string_view str)
 {
-    std::vector<string_ref> seq_sr (seq.size());
+    std::vector<string_view> seq_sr (seq.size());
     for (size_t i = 0, e = seq.size(); i != e; ++i)
         seq_sr[i] = seq[i];
     return join (seq_sr, str);
@@ -481,7 +481,7 @@ Strutil::join (const std::vector<std::string> &seq, string_ref str)
 
 #ifdef _WIN32
 std::wstring
-Strutil::utf8_to_utf16 (string_ref str)
+Strutil::utf8_to_utf16 (string_view str)
 {
     std::wstring native;
     

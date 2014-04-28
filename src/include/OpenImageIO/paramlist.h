@@ -86,11 +86,11 @@ public:
                 Interp _interp, const void *_value, bool _copy=true) {
         init_noclear (_name, _type, _nvalues, _interp, _value, _copy);
     }
-    ParamValue (string_ref _name, TypeDesc _type,
+    ParamValue (string_view _name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
     }
-    ParamValue (string_ref _name, TypeDesc _type, int _nvalues,
+    ParamValue (string_view _name, TypeDesc _type, int _nvalues,
                 Interp _interp, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
@@ -107,11 +107,11 @@ public:
                int _nvalues, const void *_value, bool _copy=true) {
         init (_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
-    void init (string_ref _name, TypeDesc _type,
+    void init (string_view _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _value, _copy);
     }
-    void init (string_ref _name, TypeDesc _type, int _nvalues,
+    void init (string_view _name, TypeDesc _type, int _nvalues,
                Interp _interp, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
@@ -121,7 +121,7 @@ public:
     }
 
     // FIXME -- some time in the future (after more cleanup), we should make
-    // name() return a string_ref, and use uname() for the rare time when
+    // name() return a string_view, and use uname() for the rare time when
     // the caller truly requires the ustring.
     const ustring &name () const { return m_name; }
     const ustring &uname () const { return m_name; }
