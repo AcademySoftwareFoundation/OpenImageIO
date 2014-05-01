@@ -222,12 +222,23 @@ pow2rounddown (int x)
 
 
 
-/// Round up to the next even multiple of m.
+/// Round up to the next whole multiple of m.
 ///
 inline int
 round_to_multiple (int x, int m)
 {
     return ((x + m - 1) / m) * m;
+}
+
+
+
+/// Round up to the next whole multiple of m, for the special case where
+/// m is definitely a power of 2 (somewhat simpler than the more general
+/// round_to_multiple).
+inline int
+round_to_multiple_of_pow2 (int x, int m)
+{
+    return (x + m - 1) & (~(m-1));
 }
 
 
