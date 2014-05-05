@@ -165,7 +165,7 @@ strhash (const char *s)
 }
 
 
-/// Hash a string without pre-known length.  We use the Jenkins
+/// Hash a string_view.  We use the Jenkins
 /// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
 /// which seems to be a good speed/quality/requirements compromise.
 inline size_t
