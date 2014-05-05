@@ -659,6 +659,30 @@ public:
 
 
 
+/// Functor class to use for comparisons when sorting ustrings, if you
+/// want the strings sorted lexicographically.
+class ustringLess
+{
+public:
+    size_t operator() (ustring a, ustring b) const {return a<b; }
+};
+
+
+/// Functor class to use for comparisons when sorting ustrings, if you
+/// don't care if the sort order is lexicographic. This sorts based on
+/// the pointers themselves, which is safe because once allocated, a
+/// ustring's characters will never be moved. But beware, the resulting
+/// sorting order may vary from run to run!
+class ustringHashIsLess
+{
+public:
+    size_t operator() (ustring a, ustring b) const {
+        return size_t(a.data()) < size_t(b.data());
+    }
+};
+
+
+
 /// Case-insensitive comparison of ustrings.  For speed, this always
 /// uses a static locale that doesn't require a mutex lock.
 inline bool iequals (ustring a, ustring b) {
