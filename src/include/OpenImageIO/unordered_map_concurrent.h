@@ -295,6 +295,25 @@ public:
         return i;
     }
 
+    /// Search for key. If found, return true and store the value. If not
+    /// found, return false and do not alter value. If do_lock is true,
+    /// read-lock the bin while we're searching, and release it before
+    /// returning; however, if do_lock is false, assume that the caller
+    /// already has the bin locked, so do no locking or unlocking.
+    bool retrieve (const KEY &key, VALUE &value, bool do_lock = true) {
+        size_t b = whichbin(key);
+        Bin &bin (m_bins[b]);
+        if (do_lock)
+            bin.lock ();
+        typename BinMap_t::iterator it = bin.map.find (key);
+        bool found = (it != bin.map.end());
+        if (found)
+            value = it->second;
+        if (do_lock)
+            bin.unlock();
+        return found;
+    }
+
     /// Insert <key,value> into the hash map if it's not already there.
     /// Return true if added, false if it was already present.  
     /// If do_lock is true, lock the bin containing key while doing this
@@ -354,7 +373,7 @@ public:
 
 private:
     struct Bin {
-        // OIIO_CACHE_ALIGN // align to cache line -- doesn't seem to help
+        OIIO_CACHE_ALIGN             // align bin to cache line
         mutable spin_mutex mutex;    // mutex for this bin
         BinMap_t map;                // hash map for this bin
 #ifndef NDEBUG
