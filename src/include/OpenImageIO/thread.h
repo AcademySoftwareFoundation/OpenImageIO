@@ -653,6 +653,18 @@ public:
         m_locked.unlock ();
     }
 
+    /// Acquire an exclusive ("writer") lock.
+    void lock () { write_lock(); }
+
+    /// Release an exclusive ("writer") lock.
+    void unlock () { write_unlock(); }
+
+    /// Acquire a shared ("reader") lock.
+    void lock_shared () { read_lock(); }
+
+    /// Release a shared ("reader") lock.
+    void unlock_shared () { read_unlock(); }
+
     /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
     /// read lock upon construction, releases the lock when it exits scope.
     class read_lock_guard {
