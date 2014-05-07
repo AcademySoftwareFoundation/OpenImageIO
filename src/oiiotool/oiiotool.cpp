@@ -3463,7 +3463,7 @@ getargs (int argc, char *argv[])
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
-                "--cut %@ %s", action_cut, NULL, "Cut out the ROI and reposition to the origin",
+                "--cut %@ %s", action_cut, NULL, "Cut out the ROI and reposition to the origin (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--mosaic %@ %s", action_mosaic, NULL,
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",
