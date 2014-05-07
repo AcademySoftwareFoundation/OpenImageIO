@@ -77,11 +77,12 @@ OIIO_NAMESPACE_ENTER
 ///
 
 template<class KEY, class VALUE, class HASH=boost::hash<KEY>,
-         class PRED=std::equal_to<KEY>, size_t BINS=16>
+         class PRED=std::equal_to<KEY>, size_t BINS=16,
+         class BINMAP=boost::unordered_map<KEY,VALUE,HASH,PRED> >
 class unordered_map_concurrent {
 public:
-    typedef boost::unordered_map<KEY,VALUE,HASH,PRED> BinMap_t;
-    typedef typename boost::unordered_map<KEY,VALUE,HASH,PRED>::iterator BinMap_iterator_t;
+    typedef BINMAP BinMap_t;
+    typedef typename BINMAP::iterator BinMap_iterator_t;
 
 public:
     unordered_map_concurrent () { m_size = 0; }
@@ -95,7 +96,7 @@ public:
     /// in the umc, and holds a lock to the bin the entry is in.
     class iterator {
     public:
-        friend class unordered_map_concurrent<KEY,VALUE,HASH,PRED,BINS>;
+        friend class unordered_map_concurrent<KEY,VALUE,HASH,PRED,BINS,BINMAP>;
     public:
         /// Construct an unordered_map_concurrent iterator that points
         /// to nothing.
