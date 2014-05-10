@@ -1,0 +1,2 @@
+Comparing "text.tif" and "ref/text.tif"
+PASS

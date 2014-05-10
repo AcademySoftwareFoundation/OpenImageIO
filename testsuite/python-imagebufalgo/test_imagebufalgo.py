@@ -295,7 +295,7 @@ try:
 
     # FIXME - no test for zover (not in oiio-composite either)
 
-    # FIXME - no test for render_text (not in oiiotool, either)
+    # FIXME - no test for render_text
 
     # histogram, histogram_draw,
 
