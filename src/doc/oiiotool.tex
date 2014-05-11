@@ -1080,6 +1080,14 @@ single constant value is given, it will be added to all color channels.
 Alternatively, a series of comma-separated constant values (with no
 spaces!) may be used to specifiy a different value to add to each
 channel in the image, respectively.
+
+\noindent Example:
+\begin{code}
+    oiiotool tahoe.jpg --cadd 0.5 -o cadd.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/cadd.jpg} \\
 \apiend
 
 \apiitem{--cmul {\rm \emph{value}} \\
@@ -1089,6 +1097,14 @@ If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
 comma-separated constant values (with no spaces!) may be used to specifiy a
 different multiplier for each channel in the image, respectively.
+
+\noindent Example:
+\begin{code}
+    oiiotool tahoe.jpg --cmul 0.2 -o cmul.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/cmul.jpg} \\
 \apiend
 
 \apiitem{--cpow {\rm \emph{value}} \\
@@ -1116,6 +1132,9 @@ weight of each channel in the sum.
 \begin{code}
     oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/luma.jpg} \\
 \apiend
 
 \apiitem{--paste {\rm \emph{location}}}
@@ -1176,21 +1195,53 @@ include:
 \apiitem{--flip}
 Replace the current image with a new image that is flipped vertically,
 with the top scanline becoming the bottom, and vice versa.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --flip -o flip.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flip.jpg} \\
 \apiend
 
 \apiitem{--flop}
 Replace the current image with a new image that is flopped horizontally,
 with the leftmost column becoming the rightmost, and vice versa.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --flop -o flop.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
 \apiitem{--flipflop}
 Replace the current image with a new image that is both flipped and
 flopped, which is the same as a 180 degree rotation.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --flipflop -o flipflop.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flipflop.jpg} \\
 \apiend
 
 \apiitem{--transpose}
 Replace the current image with a new image that is trasposed about
 the $xy$ axis (x and coordinates and size are flipped).
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --transpose -o transpose.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/transpose.jpg} \\
 \apiend
 
 \apiitem{--cshift {\rm \emph{offset}}}
@@ -1199,6 +1250,14 @@ as {\cf +10+100} to move by 10 pixels horizontally and 100 pixels
 vertically, or {\cf +50-30} to move by 50 pixels horizontally and
 $-30$ pixels vertically.  \emph{Circular} shifting means that the
 pixels wrap to the other side as they shift.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --cshift +70+30 -o cshift.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/cshift.jpg} \\
 \apiend
 
 \apiitem{--crop {\rm \emph{size}}}
@@ -1535,10 +1594,16 @@ using a default font (which may be system dependent).
 
 \noindent Examples: 
 
-\begin{code}
-    oiiotool in.exr --text:x=10:y=400:size=40 "Hello world" -o out.exr
-\end{code}
+\begin{smallcode}
+    oiiotool in.exr --text:x=10:y=400:size=40 "Hello world" \
+        --text:x=100:y=200:font="Arial Bold":color=1,0,0:size=60 "Go Big Red!" \
+        --tocolorspace sRGB -o text.jpg
+\end{smallcode}
+\spc \includegraphics[width=2.5in]{figures/text.jpg}  \\
 
+\noindent Note that because of slightly differing fonts and versions of
+Freetype available, we do not expect drawn text to be pixel-for-pixel 
+identical on different platforms supported by \product.
 \apiend
 
 

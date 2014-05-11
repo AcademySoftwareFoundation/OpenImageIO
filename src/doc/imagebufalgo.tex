@@ -92,7 +92,7 @@ crowd out the other application threads.
 \section{Pattern generation}
 \label{sec:iba:patterns}
 
-\apiitem{bool zero (ImageBuf \&dst, ROI roi=ROI::All(), int nthreads=0)}
+\apiitem{bool {\ce zero} (ImageBuf \&dst, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!zero} \indexapi{zero}
 Set the destination image pixels to 0 within the specified region.
 This operation is performed in-place.  The {\cf dst} buffer needs to
@@ -119,7 +119,7 @@ big to make it or what data type it should have.
 \end{code}
 \apiend
 
-\apiitem{bool fill (ImageBuf \&dst, const float *values, \\
+\apiitem{bool {\ce fill} (ImageBuf \&dst, const float *values, \\
   \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fill} \indexapi{fill}
 Set the pixels in the destination image within the specified region
@@ -132,17 +132,18 @@ number of channels in the image, whichever is smaller.
 \begin{code}
     // Create a new 640x480 RGB image, fill it with pink
     ImageBuf A ("myimage", ImageSpec(640, 480, 3, TypeDesc::FLOAT);
-    float pink[3] = { 1, 0.5, 0.5 };
+    float pink[3] = { 1, 0.7, 0.7 };
     ImageBufAlgo::fill (A, pink);
 
     // Draw a red rectangle
     float red[3] = { 1, 0, 0 };
-    ImageBufAlgo::fill (A, red, ROI(50,100, 75, 85));
+    ImageBufAlgo::fill (A, red, ROI(50,100, 75, 175));
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/fill.jpg}  \\
 \apiend
 
 
-\apiitem{bool checker (ImageBuf \&dst, float width, float height, float depth, \\
+\apiitem{bool {\ce checker} (ImageBuf \&dst, float width, float height, float depth, \\
 \bigspc const float *color1, const float *color2, \\
 \bigspc int xoffset=0, int yoffset=0, int zoffset=0, \\
 \bigspc ROI roi=ROI::All(), int nthreads=0)}
@@ -164,10 +165,11 @@ image.
     float light[3] = { 0.4, 0.4, 0.4 };
     ImageBufAlgo::checker (A, 64, 64, 1, dark, light, 0, 0, 0);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/checker.jpg}  \\
 \apiend
 
 
-\apiitem{bool render_text (ImageBuf \&dst, int x, int y, \\
+\apiitem{bool {\ce render_text} (ImageBuf \&dst, int x, int y, \\
   \bigspc  const std::string \&text, int fontsize=16, \\
   \bigspc  const std::string \&fontname="", \\
   \bigspc  const float *textcolor = NULL)}
@@ -193,6 +195,11 @@ least equal to the number of channels in {\cf dst}).
     ImageBufAlgo::render_text (A, 100, 200, "Go Big Red!",
                                60, "Arial Bold", red);
 \end{code}
+\spc \includegraphics[width=2.5in]{figures/text.jpg}  \\
+
+\noindent Note that because of slightly differing fonts and versions of
+Freetype available, we do not expect drawn text to be pixel-for-pixel 
+identical on different platforms supported by \product.
 \apiend
 
 
@@ -202,7 +209,7 @@ least equal to the number of channels in {\cf dst}).
 \section{Image transformations and data movement}
 \label{sec:iba:transforms}
 
-\apiitem{bool channels (ImageBuf \&dst, const ImageBuf \&src, int nchannels, \\
+\apiitem{bool {\ce channels} (ImageBuf \&dst, const ImageBuf \&src, int nchannels, \\
         \bigspc  const int *channelorder,  const float *channelvalues=NULL, \\
         \bigspc                 const std::string *newchannelnames=NULL, \\
         \bigspc                 bool shuffle_channel_names=false)}
@@ -257,7 +264,7 @@ semantic change at all, if you catch the drift.
 \end{code}
 \apiend
 
-\apiitem{bool channel_append (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+\apiitem{bool {\ce channel_append} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!channel_append} \indexapi{channel_append}
 Append the channels of {\cf A} and {\cf B} together into {\cf dst} over
@@ -296,7 +303,7 @@ alteration.
 \apiend
 
 
-\apiitem{bool crop (ImageBuf \&dst, const ImageBuf \&src, \\
+\apiitem{bool {\ce crop} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.
@@ -317,7 +324,7 @@ compared to {\cf cut()}).
 \apiend
 
 
-\apiitem{bool cut (ImageBuf \&dst, const ImageBuf \&src, \\
+\apiitem{bool {\ce cut} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!cut} \indexapi{cut}
 \NEW  % 1.4
@@ -337,7 +344,7 @@ the new pixel window.  (Note the difference compared to {\cf crop()}).
 \apiend
 
 
-\apiitem{bool paste (ImageBuf \&dst, int xbegin, int ybegin, int zbegin,
+\apiitem{bool {\ce paste} (ImageBuf \&dst, int xbegin, int ybegin, int zbegin,
   int chbegin, \\
   \bigspc const ImageBuf \&src, ROI srcroi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!paste} \indexapi{paste}
@@ -366,10 +373,13 @@ of {\cf dst}, but with the scanlines exchanged vertically.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");
+    ImageBuf A ("grid.jpg");
     ImageBuf B;
     ImageBufAlgo::flip (B, A);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flip.jpg} \\
 \apiend
 
 
@@ -381,10 +391,13 @@ of {\cf dst}, but with the columns exchanged horizontally.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");
+    ImageBuf A ("grid.jpg");
     ImageBuf B;
     ImageBufAlgo::flop (B, A);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
 
@@ -398,10 +411,13 @@ columns exchanged horizontally (this is equivalent to a 180 degree rotation).
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");
+    ImageBuf A ("grid.jpg");
     ImageBuf B;
     ImageBufAlgo::flipflop (B, A);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/flipflop.jpg} \\
 \apiend
 
 
@@ -416,10 +432,13 @@ set {\cf dst[y,x] = src[x,y]}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");
+    ImageBuf A ("grid.jpg");
     ImageBuf B;
     ImageBufAlgo::transpose (B, A);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/transpose.jpg} \\
 \apiend
 
 
@@ -435,10 +454,13 @@ shift of $[0,1,2,3,4,5]$ by $+2$ is $[4,5,0,1,2,3]$.
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("tahoe.exr");
+    ImageBuf A ("grid.jpg");
     ImageBuf B;
-    ImageBufAlgo::circular_shift (B, A, 200, 100);
+    ImageBufAlgo::circular_shift (B, A, 70, 30);
 \end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/cshift.jpg} \\
 \apiend
 
 
@@ -536,7 +558,7 @@ All of the images must have the same number of channels.
 
 
 
-\apiitem{bool sub (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+\apiitem{bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0) \\
