@@ -362,81 +362,27 @@ ImageSpec::attribute (string_view name, TypeDesc type, string_view value)
     }
 }
 
-namespace
-{
 
-ImageIOParameterList::iterator
-get_attribute_iterator (ImageIOParameterList & attribs,
-                        const std::string &name, TypeDesc searchtype,
-                        bool casesensitive)
-{
-    if (casesensitive) {
-        for(ImageIOParameterList::iterator iter = attribs.begin();
-            iter != attribs.end(); ++iter) {
-            if (iter->name() == name &&
-                (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
-                return iter;
-        }
-    } else {
-        for(ImageIOParameterList::iterator iter = attribs.begin();
-            iter != attribs.end(); ++iter) {
-            if (Strutil::iequals (iter->name().string(), name) &&
-                (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
-                return iter;
-        }
-    }
-    
-    return attribs.end();
-}
-
-ImageIOParameterList::const_iterator
-get_attribute_const_iterator (const ImageIOParameterList & attribs,
-                              const std::string &name, TypeDesc searchtype,
-                              bool casesensitive)
-{
-    if (casesensitive) {
-        for(ImageIOParameterList::const_iterator iter = attribs.begin();
-            iter != attribs.end(); ++iter) {
-            if (iter->name() == name &&
-                (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
-                return iter;
-        }
-    } else {
-        for(ImageIOParameterList::const_iterator iter = attribs.begin();
-            iter != attribs.end(); ++iter) {
-            if (Strutil::iequals (iter->name().string(), name) &&
-                (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
-                return iter;
-        }
-    }
-    
-    return attribs.end();
-}
-
-
-}
 
 void
 ImageSpec::erase_attribute (string_view name, TypeDesc searchtype,
                             bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
-        get_attribute_iterator (extra_attribs, name, searchtype, casesensitive);
-    if(iter != extra_attribs.end()) {
+        extra_attribs.find (name, searchtype, casesensitive);
+    if (iter != extra_attribs.end())
         extra_attribs.erase (iter);
-    }
 }
+
 
 ImageIOParameter *
 ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive)
 {
     ImageIOParameterList::iterator iter =
-        get_attribute_iterator (extra_attribs, name, searchtype, casesensitive);
-    if(iter != extra_attribs.end ()) {
+        extra_attribs.find (name, searchtype, casesensitive);
+    if (iter != extra_attribs.end())
         return &(*iter);
-    }
-    
     return NULL;
 }
 
@@ -446,12 +392,10 @@ const ImageIOParameter *
 ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive) const
 {
-    ImageIOParameterList::const_iterator iter = \
-        get_attribute_const_iterator (extra_attribs, name, searchtype, casesensitive);
-    if(iter != extra_attribs.end()) {
+    ImageIOParameterList::const_iterator iter =
+        extra_attribs.find (name, searchtype, casesensitive);
+    if (iter != extra_attribs.end())
         return &(*iter);
-    }
-    
     return NULL;
 }
 
