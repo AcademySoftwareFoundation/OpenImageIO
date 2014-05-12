@@ -869,6 +869,25 @@ public:
                         m_rng_zbegin, m_rng_zend, 0, m_ib->nchannels());
         }
 
+        /// Reset the iteration range for this iterator and reposition to
+        /// the beginning of the range, but keep referring to the same
+        /// image.
+        void rerange (int xbegin, int xend, int ybegin, int yend,
+                      int zbegin, int zend, WrapMode wrap=WrapDefault)
+        {
+            m_x = 1<<31;
+            m_y = 1<<31;
+            m_z = 1<<31;
+            m_wrap = (wrap == WrapDefault ? WrapBlack : wrap);
+            m_rng_xbegin = xbegin;
+            m_rng_xend   = xend;
+            m_rng_ybegin = ybegin;
+            m_rng_yend   = yend;
+            m_rng_zbegin = zbegin;
+            m_rng_zend   = zend;
+            pos (xbegin, ybegin, zbegin);
+        }
+
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
@@ -903,9 +922,9 @@ public:
             m_nchannels = spec.nchannels;
 //            m_tilewidth = spec.tile_width;
             m_pixel_bytes = spec.pixel_bytes();
-            m_x = 0xffffffff;
-            m_y = 0xffffffff;
-            m_z = 0xffffffff;
+            m_x = 1<<31;
+            m_y = 1<<31;
+            m_z = 1<<31;
             m_wrap = (wrap == WrapDefault ? WrapBlack : wrap);
         }
 
