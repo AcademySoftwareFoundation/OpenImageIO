@@ -182,6 +182,8 @@ public:
     iterator end () { return m_vals.end(); }
     const_iterator begin () const { return m_vals.begin(); }
     const_iterator end () const { return m_vals.end(); }
+    const_iterator cbegin () const { return m_vals.begin(); }
+    const_iterator cend () const { return m_vals.end(); }
 
     reference front () { return m_vals.front(); }
     reference back () { return m_vals.back(); }
@@ -207,6 +209,18 @@ public:
     ///
     void push_back (const ParamValue &p) { m_vals.push_back (p); }
     
+    /// Find the first entry with matching name, and if type != UNKNOWN,
+    /// then also with matching type. The name search is case sensitive if
+    /// casesensitive == true.
+    iterator find (string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                   bool casesensitive = true);
+    iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+                   bool casesensitive = true);
+    const_iterator find (string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                         bool casesensitive = true) const;
+    const_iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+                         bool casesensitive = true) const;
+
     /// Removes from the ParamValueList container a single element.
     /// 
     iterator erase (iterator position) { return m_vals.erase (position); }

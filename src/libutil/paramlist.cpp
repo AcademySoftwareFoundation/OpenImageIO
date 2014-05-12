@@ -104,5 +104,82 @@ ParamValue::clear_value ()
     m_nonlocal = false;
 }
 
+
+
+ParamValueList::const_iterator
+ParamValueList::find (ustring name, TypeDesc type, bool casesensitive) const
+{
+    if (casesensitive) {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (i->name() == name &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    } else {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (Strutil::iequals (i->name(), name) &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    }
+    return cend();
+}
+
+
+
+ParamValueList::const_iterator
+ParamValueList::find (string_view name, TypeDesc type, bool casesensitive) const
+{
+    if (casesensitive) {
+        return find (ustring(name), type, casesensitive);
+    } else {
+        for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
+            if (Strutil::iequals (i->name(), name) &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    }
+    return cend();
+}
+
+
+
+ParamValueList::iterator
+ParamValueList::find (ustring name, TypeDesc type, bool casesensitive)
+{
+    if (casesensitive) {
+        for (iterator i = begin(), e = end(); i != e; ++i) {
+            if (i->name() == name &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    } else {
+        for (iterator i = begin(), e = end(); i != e; ++i) {
+            if (Strutil::iequals (i->name(), name) &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    }
+    return end();
+}
+
+
+
+ParamValueList::iterator
+ParamValueList::find (string_view name, TypeDesc type, bool casesensitive)
+{
+    if (casesensitive) {
+        return find (ustring(name), type, casesensitive);
+    } else {
+        for (iterator i = begin(), e = end(); i != e; ++i) {
+            if (Strutil::iequals (i->name(), name) &&
+                  (type == TypeDesc::UNKNOWN || type == i->type()))
+                return i;
+        }
+    }
+    return end();
+}
+
+
 }
 OIIO_NAMESPACE_EXIT
