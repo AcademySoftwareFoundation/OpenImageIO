@@ -1,6 +1,6 @@
 Changes:
 
-Release 1.4 (in progress) -- compared to 1.3.x
+Release 1.4 (19 May 2014) -- compared to 1.3.x
 ----------------------------------------------
 Major new features and improvements:
 * The PNM reader now supports "PFM" files, which are the floating point
@@ -14,6 +14,9 @@ Major new features and improvements:
     --cut : combine --crop, --origin +0+0, and --fullpixels. (1.4.3)
     --pdiff : perceptual diff (#815) (1.4.4)
     --polar, --unpolar : complex <-> polar conversion. (#831) (1.4.5)
+* oiiotool --resize and --fit, and also maketx when using "good" filters
+  for downsizing, have been significantly sped up. When downsizing
+  with large filters, we have seen up to 3x improvement. (#808) (1.4.3)
 
 Public API changes:
 * New ImageBufAlgo functions:
@@ -60,17 +63,14 @@ Fixes, minor enhancements, and performance improvements:
     new names, "%v" by the first letter of each view. The view list is
     {"left","right"} by default, but may be set with the --views argument.
     (1.4.5)
-* oiiotool --resize and --fit, and also maketx when using "good" filters
-  for downsizing, have been significantly sped up. When downsizing
-  with large filters, we have seen up to 3x improvement. (#808) (1.4.3)
 * ImageCache/TextureSystem:
   - The multi-point version of environment() was broken. (1.3.9/1.4.1)
   - Don't honor the SHA-1 fingerprint found in a file if the "Software"
     metadata doesn't indicate that the file was written by maketx or
     oiiotool. (1.4.3)
 * OpenEXR:
-  - Multi-part EXR (2.0) didn't write the required "name"
-    attribute for each part. (1.3.10/1.4.1)
+  - Multi-part EXR (2.0) didn't write the required "name" attribute for
+    each part. (1.3.10/1.4.1)
   - Fix crashing bug when reading stringvector attributes in the
     file. (1.3.11/1.4.2)
   - Add .sxr and .mxr as possible filename extensions (1.3.12/1.4.2)
@@ -80,7 +80,7 @@ Fixes, minor enhancements, and performance improvements:
     allow random writes to scanline files. (1.4.6)
   - More robust with certain malformed metadata. (#841) (1.4.6)
 * TIFF: Give a more explicit error message for unsupported tile sizes (1.4.4)
-* GIF: Fixes to subimage gneeration; GIF frames are treated as sequential
+* GIF: Fixes to subimage generation; GIF frames are treated as sequential
   windows to be drawn on canvas rather than as independent images; respect
   "disposal" method; initial canvas is now transparent and all GIFs are
   presented as 4-channel images. (#828) (1.4.5)
@@ -128,7 +128,7 @@ Fixes, minor enhancements, and performance improvements:
   match and be consistent. Also, oiiotool didn't say that deep files were
   deep (1.4.4).
 * Fixed bad bugs in IBA::flatten() and oiiotool --flatten. (#819) (1.4.5)
-* Fix Parameter neglect of proerly copying the m_interp field for assignment
+* Fix Parameter neglect of properly copying the m_interp field for assignment
   and copy construction. (#829) (1.4.5/1.3.13)
 * Fix ImageBufAlgo::circular_shift (and oiiotool --cshift) that did not
   wrap correctly for negative shifts. (#832) (1.4.5/1.3.13)
@@ -163,19 +163,47 @@ Build/test system improvements:
   matches the layout of an OIIO install area. (#817) (1.4.4)
 * Fix compilation problems for PowerPC (#825). (1.4.5/1.3.13)
 * Fixes for OpenBSD compilation. (#826/#830) (1.4.5/1.3.13)
+* Fixes for Linux compilation when building with BUILDSTATIC=1. (1.4.6)
+* Fixes for compilation against IlmBase/OpenEXR 2.1. (1.4.6)
+* Improve finding of Freetype on some systems (1.4.6).
 
 Developer goodies / internals:
-* Slight thread.h portability tweaks. (1.4.1)
-* Slightly faster timer queries in timer.h for OSX and Windows. (1.4.1)
-* Strutil::safe_strcpy -- like strncpy, but copies the terminating
-  0 char. (1.4.1)
-* ParamValue now allows get/set of the internal 'interp' field. (1.3.9/1.4.1)
-* ParamValueList::push_back is not properly const-ified. (1.4.1)
-* Strutil::split() fixes bug when maxsplit is not the default value.
-  (1.3.10/1.4.1)
 * TBB has been removed completely. (1.4.2)
-* fmath.h : fast_sin, fast_cos, fast_sinpi, fast_cospi are much faster
-  polynomial approximations (with max absolute error of ~0.001). (1.4.3)
+* Slightly faster timer queries in timer.h for OSX and Windows. (1.4.1)
+* Strutil :
+  - safe_strcpy() -- like strncpy, but copies the terminating 0 char. (1.4.1)
+  - split() fixes bug when maxsplit is not the default value. (1.3.10/1.4.1)
+* ParamValue/ParamValueList :
+  - ParamValue now allows get/set of the internal 'interp' field. (1.3.9/1.4.1)
+  - ParamValueList::push_back is not properly const-ified. (1.4.1)
+  - New PVL::find() lets you search on the PVL. (1.4.6)
+* fmath.h :
+  - New fast_sin, fast_cos, fast_sinpi, fast_cospi are much faster
+    polynomial approximations (with max absolute error of ~0.001). (1.4.3)
+  - round_to_multiple_of_pow2 - a faster version of the existing
+    round_to_multiple(), but only works when the multiple is known to be
+    a power of 2. (1.4.6)
+* TypeDesc now has operator<, which makes it easier to use STL data structures
+  and algorithms that expect an ordering, using TypeDesc as a key. (1.4.6)
+* thread.h
+  - Slight thread.h portability tweaks. (1.4.1)
+  - spin_rw_lock now has more standard lock()/unlock() as synonym for
+    for exclusive/write lock, and lock_shared()/unlock_shared() as
+    synonym for "read" locks. (1.4.6)
+* ustring :
+  - new ustringLess and ustringHashIsLess functors make it easier to use
+    ustring as keys in STL data structures and algorithms that require
+    an ordering function. (1.4.6)
+  - improve thread performance significantly by using an
+    unordered_map_concurrent internally for the ustring table. (1.4.6)
+* unordered_map_concurrent.h :
+  - Allow umc template to specify a different underlying map for the
+    bins. (1.4.6)
+  - Add retrieve() method that's slightly faster than find() when you just
+    need a value, not an iterator. (1.4.6)
+  - Align bins to cache lines for improved thread performance. (1.4.6)
+* ImageBuf iterators have a new rerange() method that resets the iteration
+  range, without changing images or constructing a new iterator. (1.4.6)
 
 
 
