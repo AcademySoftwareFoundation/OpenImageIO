@@ -34,6 +34,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <stdint.h>
 
 #include "oiioversion.h"
 #include "strided_ptr.h"
@@ -54,7 +55,7 @@ public:
     typedef T& reference;
     typedef const T& const_reference;
     typedef ptrdiff_t stride_t;
-    static const stride_t AutoStride = ~stride_t(0);
+    static const stride_t AutoStride = PTRDIFF_MIN;
 
     /// Default ctr -- points to nothing
     image_view () { init(); }
