@@ -143,6 +143,10 @@ ifneq (${BOOST_HOME},)
 MY_CMAKE_FLAGS += -DBOOST_ROOT:STRING=${BOOST_HOME}
 endif
 
+ifneq (${STOP_ON_WARNING},)
+MY_CMAKE_FLAGS += -DSTOP_ON_WARNING:BOOL=${STOP_ON_WARNING}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -296,6 +300,7 @@ help:
 	@echo ""
 	@echo "Helpful modifiers:"
 	@echo "  make VERBOSE=1 ...          Show all compilation commands"
+	@echo "  make STOP_ON_WARNING=0      Do not stop building if compiler warns"
 	@echo "  make SOVERSION=nn ...       Include the specifed major version number "
 	@echo "                                in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
