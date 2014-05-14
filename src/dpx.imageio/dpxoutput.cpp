@@ -398,25 +398,24 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_dpx.header.SetSourceTimeDate (srcdate.c_str ());
     }
 
+    // set the user data size
+    ImageIOParameter *user = m_spec.find_attribute ("dpx:UserData");
+    if (user && user->datasize () > 0 && user->datasize () <= 1024 * 1024) {
+        m_dpx.SetUserData (user->datasize ());
+    }
+
     // commit!
     if (!m_dpx.WriteHeader ()) {
         error ("Failed to write DPX header");
         return false;
     }
 
-    // user data
-    ImageIOParameter *user = m_spec.find_attribute ("dpx:UserData");
-    if (user && user->datasize () > 0) {
-        if (user->datasize () > 1024 * 1024) {
-            error ("User data block size exceeds 1 MB");
-            return false;
-        }
-        // FIXME: write the missing libdpx code
-        /*m_dpx.SetUserData (user->datasize ());
+    // write the user data
+    if (user && user->datasize () > 0 && user->datasize() <= 1024 * 1024) {
         if (!m_dpx.WriteUserData ((void *)user->data ())) {
             error ("Failed to write user data");
             return false;
-        }*/
+        }
     }
 
     m_dither = (m_spec.format == TypeDesc::UINT8) ?
