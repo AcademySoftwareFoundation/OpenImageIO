@@ -387,11 +387,20 @@ namespace dpx
 		 */
 		bool WriteUserData(void *data);
 
+        /*!
+         * \brief Write out some padded data to the specified boundary
+         *
+         * \param alignment -- Where the block boundary should be
+         * \return success true/false
+         */
+        bool WritePadData(const int alignment);
+
 		/*!
 		 * \brief Write the entire element to the dpx file
 		 *
 		 * \param element element number (0-7)
 		 * \param data buffer
+         * \param alignment -- defines the imageAlignement to make sure the image is on typically an 8K alignement.
 		 * \return success true/false
 		 */			
 		bool WriteElement(const int element, void *data);

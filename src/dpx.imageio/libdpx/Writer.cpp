@@ -175,6 +175,20 @@ void dpx::Writer::SetElement(const int num, const Descriptor desc, const U8 bitD
 	this->header.CalculateNumberOfElements();
 }
 
+bool
+dpx::Writer::WritePadData(const int alignment)
+{
+    int imageoffset = ((this->fileLoc + alignment - 1)/alignment)*alignment;
+    int padsize = imageoffset - this->fileLoc;
+    if (padsize > 0){
+        dpx::U8 pad[padsize];
+        memset(pad, 0XFF, padsize);
+        this->fileLoc += this->fd->Write(pad, padsize);
+        if (this->fileLoc != imageoffset)
+            return false;
+    }
+    return true;
+}
 
 // the data is processed so write it straight through
 // argument count is total size in bytes of the passed data
@@ -187,6 +201,10 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 	// make sure the entry is valid
 	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
 		return false;
+
+    // The DPX spec recommends that the image data starts on a 8K boundry.
+    if (! this->WritePadData(0x2000))
+        return false;
 
 	// update file ptr
 	this->header.SetDataOffset(element, this->fileLoc);
@@ -211,8 +229,6 @@ bool dpx::Writer::WriteElement(const int element, void *data)
 	return this->WriteElement(element, data, this->header.ComponentDataSize(element));
 }
 
-
-
 bool dpx::Writer::WriteElement(const int element, void *data, const DataSize size)
 {
 	bool status = true;	
@@ -224,6 +240,10 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	// make sure the entry is valid
 	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
 		return false;
+
+    // The DPX spec recommends that the image data starts on a 8K boundry.
+    if (! this->WritePadData(0x2000))
+        return false;
 
 	// mark location in headers
 	if (element == 0)
