@@ -22,9 +22,10 @@ Building OpenImageIO on Linux or OS X
 -------------------------------------
 
 The following dependencies must be installed to build the core of
-OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be installed
-using the standard package managers on your system.  Optionally, 
-to build the image viewing tools, you will need Qt, OpenGL, and GLEW.
+OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be
+installed using the standard package managers on your system.
+Optionally, to build the image viewing tools, you will need Qt, OpenGL,
+and GLEW.
 
 On OS X, these dependencies can be installed using MacPorts or 
 Homebrew.  After installation of either of these package installers,
@@ -68,18 +69,35 @@ Make targets you should know about:
 Additionally, a few helpful modifiers alter some build-time options:
 
   make VERBOSE=1 ...          Show all compilation commands
+  make STOP_ON_WARNING=0      Do not stop building if compiler warns
   make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO
   make USE_OPENGL=0 ...       Skip anything that needs OpenGL
   make USE_QT=0 ...           Skip anything that needs Qt
   make MYCC=xx MYCXX=yy ...   Use custom compilers
   make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline
-  make USE_TBB=0 ...          Don't use TBB
-  make USE_PYTHON=1 ...       Build the Python binding
+  make USE_PYTHON=0 ...       Don't build the Python binding
   make BUILDSTATIC=1 ...      Build static library instead of shared
   make LINKSTATIC=1 ...       Link with static external libraries when possible
   make SOVERSION=nn ...       Include the specifed major version number in the
                                 shared object metadata
   make NAMESPACE=name         Wrap everything in another namespace
+
+The command 'make help' will list all possible options.
+
+You can also ignore the top level Makefile wrapper, and instead use
+CMake directly:
+
+  mkdir build
+  cd build
+  cmake ..
+
+If the compile stops because of warnings, try again with 
+  make nuke
+  make STOP_ON_WARNING=0
+or, if you are using CMake directly,
+  cd build
+  cmake -DSTOP_ON_WARNING=0 ..
+
 
 
 
