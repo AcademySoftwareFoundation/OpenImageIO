@@ -327,7 +327,6 @@ compared to {\cf cut()}).
 \apiitem{bool {\ce cut} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!cut} \indexapi{cut}
-\NEW  % 1.4
 Reset {\cf dst} to be the specified region of {\cf src}, but repositioned at
 the image plane origin and with the full/display window set to exactly cover
 the new pixel window.  (Note the difference compared to {\cf crop()}).
@@ -618,7 +617,6 @@ All of the images must have the same number of channels.
 bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, const float *b, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!pow} \indexapi{pow}
-\NEW  % 1.4
 
 For all pixels within the designated region, raise the pixel value to the
 power {\cf b} (channel by channel), putting the result in
@@ -1244,7 +1242,6 @@ by $1/\sqrt{\mathrm{npixels}}$.
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!complex_to_polar} \indexapi{complex_to_polar}
 \index{ImageBufAlgo!polar_to_complex} \indexapi{polar_to_complex}
-\NEW  % 1.4
 
 The {\cf polar_to_complex()} function transforms a 2-channel image whose
 channels are interpreted as complex values (real and imaginary components)

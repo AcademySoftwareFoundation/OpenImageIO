@@ -571,7 +571,6 @@ many pixels differed, the maximum amount, etc.).  This command does not
 alter the image stack.
 \apiend
 
-\NEW % 1.4
 \apiitem{--pdiff}
 This command computes the difference of the current image and the next
 image on the stack using a perceptual metric, and prints whether or not they
@@ -783,7 +782,6 @@ a quality metric (as JPEG does).
 \apiend
 
 \apiitem{--dither}
-\NEW %1.4
 Turns on \emph{dither} when outputting to 8-bit image files (does not affect
 other data types). This adds just a bit of noise that reduces visible
 banding artifacts.
@@ -1029,7 +1027,6 @@ Swap the current image and the next one on the stack.
 \apiend
 
 \apiitem{--label {\rm \emph{name}}}
-\NEW % 1.4
 Gives a name to (and saves) the current image at the top of the stack.
 Thereafter, the label name may be used to refer to that saved image,
 in the usual manner that an ordinary input image would be specified by
@@ -1198,7 +1195,6 @@ different multiplier for each channel in the image, respectively.
 
 \apiitem{--cpow {\rm \emph{value}} \\
 --cpow {\rm \emph{value0,value1,value2...}}}
-\NEW % 1.4
 Raise all the pixel values in the top image to a constant power value.
 If a single constant value is given, all color channels will have their values
 raised to this power.  Alternatively, a series of
@@ -1378,7 +1374,6 @@ the full/display window.
 \apiend
 
 \apiitem{--cut {\rm \emph{size}}}
-\NEW % 1.4
 Replace the current image with a new copy with the given \emph{size},
 cropping old pixels no longer needed, padding black pixels where they
 previously did not exist in the old image, repositioning the cut region
@@ -1560,7 +1555,6 @@ the real component only of the spatial domain result).
 
 \apiitem{--polar \\
 --unpolar}
-\NEW % 1.4
 The {\cf --polar} transforms a 2-channel image whose channels are
 interpreted as complex values (real and imaginary components) into the
 equivalent values expressed in polar form of amplitude and phase (with phase

@@ -1623,7 +1623,6 @@ Reset {\cf dst} to be the specified region of {\cf src}.
 
 \apiitem{bool ImageBufAlgo.{\ce cut} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!cut} \indexapi{cut}
-\NEW % 1.4
 Reset {\cf dst} to be the specified region of {\cf src}, but moved so
 that the resulting new image has its pixel data at the image plane origin.
 
@@ -1806,7 +1805,6 @@ all channels) or a tuple giving a {\cf float} for each color channel.
 \apiitem{bool ImageBufAlgo.{\ce pow} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!pow} \indexapi{pow}
 
-\NEW % 1.4
 Compute {\cf dst} = {\cf pow (A, B} (channel-by-channel exponentiation).
 {\cf A} is an \ImageBuf, and {\cf B} may be a {\cf float} (a single power
 for all channels) or a tuple giving a {\cf float} for each color channel.
@@ -2270,7 +2268,6 @@ Compute the forward or inverse discrete Fourier Transform.
         bool ImageBufAlgo.{\ce polar_to_complex} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!polar_to_complex} \indexapi{polar_to_complex}
 \index{ImageBufAlgo!complex_to_polar} \indexapi{complex_to_polar}
-\NEW  % 1.4
 
 Transform a 2-channel image from complex (real, imaginary) representation
 to polar (amplitude, phase), or vice versa.
