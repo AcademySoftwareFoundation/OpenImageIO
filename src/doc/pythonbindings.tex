@@ -1636,6 +1636,23 @@ Reset {\cf dst} to be the specified region of {\cf src}.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce cut} (dst, src, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!cut} \indexapi{cut}
+\NEW % 1.4
+Reset {\cf dst} to be the specified region of {\cf src}, but moved so
+that the resulting new image has its pixel data at the image plane origin.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Set B to be the lower left 200x100 region of A, moved to the origin
+    A = ImageBuf ("a.tif")
+    B = ImageBuf()
+    ImageBufAlgo.cut (B, A, ROI(0,200,380,480))
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce paste} (dst, xbegin, ybegin, zbegin,
   chbegin, \\
   \bigspc\bigspc src, ROI srcroi=ROI.All, nthreads=0)}
