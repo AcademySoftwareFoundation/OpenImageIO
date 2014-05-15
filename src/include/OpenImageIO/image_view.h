@@ -32,6 +32,10 @@
 
 #pragma once
 
+#ifndef __STDC_LIMIT_MACROS
+# define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
+#endif
+
 #include <vector>
 #include <stdexcept>
 #include <stdint.h>
@@ -54,8 +58,8 @@ public:
     typedef T value_type;
     typedef T& reference;
     typedef const T& const_reference;
-    typedef ptrdiff_t stride_t;
-    static const stride_t AutoStride = PTRDIFF_MIN;
+    typedef int64_t stride_t;
+    static const stride_t AutoStride = INT64_MIN;
 
     /// Default ctr -- points to nothing
     image_view () { init(); }
