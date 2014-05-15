@@ -203,7 +203,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 		return false;
 
     // The DPX spec recommends that the image data starts on a 8K boundry.
-    if (this->WritePadData(0x2000))
+    if (!this->WritePadData(0x2000))
         return false;
 
 	// update file ptr
@@ -242,7 +242,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 		return false;
 
     // The DPX spec recommends that the image data starts on a 8K boundry.
-    if (this->WritePadData(0x2000))
+    if (!this->WritePadData(0x2000))
         return false;
 
 	// mark location in headers
