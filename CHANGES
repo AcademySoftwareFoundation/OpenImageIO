@@ -63,6 +63,9 @@ Fixes, minor enhancements, and performance improvements:
     new names, "%v" by the first letter of each view. The view list is
     {"left","right"} by default, but may be set with the --views argument.
     (1.4.5)
+  * --over and --zover set the resulting display/full window to the union
+    of those of the inputs; previously it set the display window to that
+    of the foreground image, which is often a poor default. (1.4.7)
 * ImageCache/TextureSystem:
   - The multi-point version of environment() was broken. (1.3.9/1.4.1)
   - Don't honor the SHA-1 fingerprint found in a file if the "Software"
@@ -168,7 +171,9 @@ Build/test system improvements:
 * Fixes for Linux compilation when building with BUILDSTATIC=1. (1.4.6)
 * Fixes for compilation against IlmBase/OpenEXR 2.1. (1.4.6)
 * Improve finding of Freetype on some systems (1.4.6).
-
+* Add to top level Makefile the option STOP_ON_WARNING=0 to let it cleanly
+  compile code that generates compiler warnings, without stopping the build.
+  (1.4.7)
 Developer goodies / internals:
 * TBB has been removed completely. (1.4.2)
 * Slightly faster timer queries in timer.h for OSX and Windows. (1.4.1)
