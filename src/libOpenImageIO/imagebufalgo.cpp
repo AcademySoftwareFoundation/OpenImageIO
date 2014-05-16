@@ -1275,6 +1275,11 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
             font = f;
     }
 
+    if (font.empty() || ! Filesystem::is_regular (font)) {
+        R.error ("Could not find font \"%s\"", font);
+        return false;
+    }
+
     FT_Face face;      // handle to face object
     error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
     if (error) {
