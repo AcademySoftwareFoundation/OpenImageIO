@@ -2798,6 +2798,7 @@ action_over (int argc, const char *argv[])
     // Create output image specification.
     ImageSpec specR = specA;
     set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
+    set_roi_full (specR, roi_union (get_roi_full(specA), get_roi_full(specB)));
 
     ot.push (new ImageRec ("over", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
@@ -2840,6 +2841,7 @@ action_zover (int argc, const char *argv[])
     // Create output image specification.
     ImageSpec specR = specA;
     set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
+    set_roi_full (specR, roi_union (get_roi_full(specA), get_roi_full(specB)));
 
     ot.push (new ImageRec ("zover", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
