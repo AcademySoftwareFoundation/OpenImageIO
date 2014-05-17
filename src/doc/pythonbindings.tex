@@ -1561,14 +1561,15 @@ names. (See the C++ version for more full explanation.)
 
     # Copy just the alpha channel, making a 1-channel image
     Alpha = ImageBuf()
-    ImageBufAlgo.channels (Alpha, RGBA, ("alpha",))
+    ImageBufAlgo.channels (Alpha, RGBA, ("A",))
 
     # Swap the R and B channels
     BGRA = ImageBuf()
     ImageBufAlgo.channels (BRGA, RGBA, (2, 1, 0, 3))
 
     # Add an alpha channel with value 1.0 everywhere to an RGB image
-    ImageBufAlgo.channels (RGBA, RGB, ("R", "G", "B", 1.0))
+    ImageBufAlgo.channels (RGBA, RGB, ("R", "G", "B", 1.0),
+                            ("R", "G", "B", "A"))
 \end{code}
 \apiend
 
@@ -1814,8 +1815,9 @@ for all channels) or a tuple giving a {\cf float} for each color channel.
 \noindent Examples:
 \begin{code}
     # Linearize a 2.2 gamma-corrected image (channels 0-2 only)
+    img = ImageBuf ("a.exr")
     buf = ImageBuf ()
-    ImageBufAlgo.pow (buf, ImageBuf("a.exr"), (2.2, 2.2, 2.2, 1.0))
+    ImageBufAlgo.pow (buf, img, (2.2, 2.2, 2.2, 1.0))
 \end{code}
 \apiend
 
@@ -2522,6 +2524,206 @@ recognized attribute.
     oiio.attribute ("threads", 0)
 \end{code}
 \apiend
+
+
+\section{Python Recipes}
+\label{sec:pythonrecipes}
+
+This section illustrates the Python syntax for doing many common image
+operations from Python scripts, but that aren't already given as examples
+in the earlier function descriptions.  All example code fragments assume the
+following boilerplate:
+
+\begin{code}
+    #!/usr/bin/env python 
+    
+    import OpenImageIO as oiio
+    from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
+\end{code}
+
+
+\subsubsection*{Subroutine to create a constant-colored image}
+\begin{code}
+    # Create an ImageBuf holding a n image of constant color, given the
+    # resolution, data format (defaulting to UINT8), fill value, and image
+    # origin.
+    def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
+                         xoffset=0, yoffset=0) :
+        spec = ImageSpec (xres,yres,chans,format)
+        spec.x = xoffset
+        spec.y = yoffset
+        b = ImageBuf (spec)
+        oiio.ImageBufAlgo.fill (b, value)
+        return b
+\end{code}
+
+\noindent The image is returned as an \ImageBuf, then up to the caller 
+what to do with it next.
+
+\subsubsection*{Subroutine to save an image to disk, printing errors}
+\begin{code}
+    # Save an ImageBuf to a given file name, with optional forced image format
+    # and error handling.
+    def write_image (image, filename, format=oiio.UNKNOWN) :
+        if not image.has_error :
+            image.set_write_format (format)
+            image.write (filename)
+        if image.has_error :
+            print "Error writing", filename, ":", image.geterror()
+\end{code}
+
+
+\subsubsection*{Converting between file formats}
+
+\begin{code}
+    img = ImageBuf ("input.png")
+    write_image (img, "output.tif")
+\end{code}
+
+
+\subsubsection*{Comparing two images and writing a difference image}
+
+\begin{code}
+    A = ImageBuf ("A.tif")
+    B = ImageBuf ("B.tif")
+    compresults = oiio.CompareResults()
+    ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6, compresults)
+    if compresults.nfail > 0 :
+        print "Images did not match, writing difference image diff.tif"
+        diff = ImageBuf()
+        ImageBufAlgo.sub (diff, A, B)
+        ImageBufAlgo.abs (diff, diff)
+        image_write (diff, "diff.tif")
+\end{code}
+
+
+\subsubsection*{Changing the data format or bit depth}
+
+\begin{code}
+    img = ImageBuf ("input.exr")
+    # presume that it's a "half" OpenEXR file
+    # write it back out as a "float" file:
+    write_image (img, "output.exr", oiio.FLOAT)
+\end{code}
+
+
+\subsubsection*{Changing the compression}
+
+The following command converts writes a TIFF file, specifically using
+LZW compression:
+
+\begin{code}
+    img = ImageBuf ("in.tif")
+    img.specmod().attribute ("compression", "lzw")
+    write_image (img, "compressed.tif")
+\end{code}
+
+The following command writes its results as a JPEG file at a 
+compression quality of 50 (pretty severe compression):
+
+\begin{code}
+    img = ImageBuf ("big.jpg")
+    img.specmod().attribute ("quality", 50)
+    write_image (img, "small.jpg")
+\end{code}
+
+
+\subsubsection*{Converting between scanline and tiled images}
+
+\begin{code}
+    img = ImageBuf ("scan.tif")
+    img.set_write_tiles (16, 16)
+    write_image (img, "tile.tif")
+
+    img = ImageBuf ("tile.tif")
+    img.set_write_tiles (0, 0)
+    write_image (img, "scan.tif")
+\end{code}
+
+
+\subsubsection*{Adding captions or metadata}
+
+\begin{code}
+    img = ImageBuf ("foo.jpg")
+    # Add a caption:
+    img.specmod().attribute ("ImageDescription", "Hawaii vacation")
+    # Add keywords:
+    img.specmod().attribute ("keywords", "volcano,lava")
+    write_image (img, "foo.jpg")
+\end{code}
+
+
+\subsubsection*{Changing image boundaries}
+
+\noindent Change the origin of the pixel data window:
+\begin{code}
+    img = ImageBuf ("in.exr")
+    img.specmod().x = 256
+    img.specmod().y = 80
+    write_image (img, "offset.exr")
+\end{code}
+
+\noindent Change the display window:
+\begin{code}
+    img = ImageBuf ("in.exr")
+    img.set_full (16, 1040, 16, 784)
+    write_image (img, "out.exr")
+\end{code}
+
+\noindent Change the display window to match the data window:
+\begin{code}
+    img = ImageBuf ("in.exr")
+    img.set_full (img.roi())
+    write_image (img, "out.exr")
+\end{code}
+
+\noindent Cut (trim and extract) a 128x128 region whose upper left corner
+is at location (900,300), moving the result to the origin (0,0) of the image
+plane and setting the display window to the new pixel data window:
+\begin{code}
+    img = ImageBuf ("in.exr")
+    b = ImageBuf ()
+    ImageBufAlgo.cut (b, img, oiio.ROI(900,1028,300,428))
+    write_image (b, "out.exr")
+\end{code}
+
+
+\subsubsection*{Extract just the named channels from a complicted many-channel
+image, and add an alpha channel that is 1 everywhere}
+\begin{code}
+    img = ImageBuf ("allmyaovs.exr")
+    b = ImageBuf ()
+    ImageBufAlgo.channels (b, img, ("spec.R", "spec.G", "spec.B", 1.0))
+    write_image (b, "spec.tif")
+\end{code}
+
+
+\subsubsection*{Fade 30\% of the way between two images}
+
+\begin{code}
+    a = ImageBuf ()
+    ImageBufAlgo.mul (a, ImageBuf("A.exr"), 0.7)
+    b = ImageBuf ()
+    ImageBufAlgo.mul (b, ImageBuf("B.exr"), 0.3)
+    fade = ImageBuf ()
+    ImageBufAlgo.add (fade, a, b)
+    write_image (fade, "fade.exr")
+\end{code}
+
+
+\subsubsection*{Composite of small foreground over background, with offset}
+
+\begin{code}
+    fg = ImageBuf ("fg.exr")
+    fg.specmod().x = 512
+    fg.specmod().y = 89
+    bg = ImageBuf ("bg.exr")
+    comp = ImageBuf ()
+    ImageBufAlgo.over (comp, fg, bg)
+    write_image (fade, "composite.exr")
+\end{code}
+
+
 
 
 \index{Python|)}

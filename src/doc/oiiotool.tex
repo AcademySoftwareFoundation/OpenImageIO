@@ -135,6 +135,7 @@ For example,
 \noindent would only match {\cf blah_l.0001.tif}, {\cf blah_l.0002.tif},
 {\cf blah_l.0003.tif}, {\cf blah_l.0004.tif}, {\cf blah_l.0005.tif}.
 
+
 \section{\oiiotool Tutorial / Recipes}
 
 This section will give quick examples of common uses of \oiiotool to get
@@ -280,10 +281,53 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 
 \subsection*{Adding captions or metadata}
 
+\noindent Add a caption to the metadata:
 \begin{code}
     oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
+\end{code}
+
+\noindent Add keywords to the metadata:
+\begin{code}
     oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
-    oiiotool in.exr --attrib "FStop" 22.0 -o out.exr
+\end{code}
+
+\noindent Add other arbitrary metadata:
+\begin{code}
+    oiiotool in.exr --attrib "FStop" 22.0 \
+            --attrib "IPTC:City" "Berkeley" -o out.exr
+\end{code}
+
+
+\subsection*{Changing image boundaries}
+
+\noindent Change the origin of the pixel data window:
+\begin{code}
+    oiiotool in.exr --origin +256+80 -o offset.exr
+\end{code}
+
+\noindent Change the display window:
+\begin{code}
+    oiiotool in.exr --fullsize 1024x768+16+16 -o out.exr
+\end{code}
+
+\noindent Change the display window to match the data window:
+\begin{code}
+    oiiotool in.exr --fullpixels -o out.exr
+\end{code}
+
+\noindent Crop (trim) an image to a 128x128 region whose upper left corner
+is at location (900,300), leaving the remaining pixels in their original
+positions on the image plane (i.e., the resulting image will have origin at
+900,300), and retaining its original display window:
+\begin{code}
+    oiiotool in.exr --crop 128x128+900+300 -o out.exr
+\end{code}
+
+\noindent Cut (trim and extract) a 128x128 region whose upper left corner
+is at location (900,300), moving the result to the origin (0,0) of the image
+plane and setting the display window to the new pixel data window:
+\begin{code}
+    oiiotool in.exr --cut 128x128+900+300 -o out.exr
 \end{code}
 
 
@@ -360,12 +404,20 @@ defined by your facility's OpenColorIO configuration):
 \end{code}
 
 
-\subsection*{Channel reordering and padding}
+\subsection*{Grayscale and RGB}
 
-\noindent Turn a single channel image into gray RGB:
+\noindent Turn a single channel image into a 3-channel gray RGB:
 \begin{code}
     oiiotool gray.tif --ch 0,0,0 -o rgb.tif
 \end{code}
+
+\noindent Convert a color image to luminance grayscale:
+
+\begin{code}
+    oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
+\end{code}
+
+\subsection*{Channel reordering and padding}
 
 \noindent Copy just the color from an RGBA file, truncating the A,
 yielding RGB only:
@@ -386,17 +438,54 @@ yielding RGB only:
 \noindent Extract just the named channels from a complicted many-channel
 image, and add an alpha channel that is 1 everywhere:
 \begin{code}
-    oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,=1 -o spec.exr
+    oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,A=1 -o spec.exr
 \end{code}
 
-\noindent Add a channel to an RGBA image, setting it to 3.0 everywhere,
-and naming it ``Z'' so it will be recognized as a $z$ channel:
+\noindent Add an alpha channel to an RGB image, setting it to 1.0 everywhere,
+and naming it ``A'' so it will be recognized as an alpha channel:
+\begin{code}
+    oiiotool rgb.tif --ch R,G,B,A=1.0 -o rgba.tif
+\end{code}
+
+\noindent Add an alpha channel to an RGB image, setting it to be the same
+as the R channel and naming it ``A'' so it will be recognized as an alpha channel:
+\begin{code}
+    oiiotool rgb.tif --ch R,G,B,R --chnames ",,,A" -o rgba.tif
+\end{code}
+
+\noindent Add a $z$ channel to an RGBA image, setting it to 3.0 everywhere,
+and naming it ``Z'' so it will be recognized as a depth channel:
 \begin{code}
     oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
 \end{code}
 
 
-\subsection*{Composite a sequence of images}
+\subsection*{Fade between two images}
+
+\noindent Fade 30\% of the way from A to B:
+
+\begin{code}
+    oiiotool A.exr --cmul 0.7 B.exr --cmul 0.3 --add -o fade.exr
+\end{code}
+
+
+\subsection*{Simple compositing}
+
+\noindent Simple ``over'' composite of aligned foreground and background:
+
+\begin{code}
+    oiiotool fg.exr bg.exr --over -o composite.exr
+\end{code}
+
+\noindent Composite of small foreground over background, with offset:
+
+\begin{code}
+    oiiotool fg.exr --origin +512+89 bg.exr --over -o composite.exr
+\end{code}
+
+
+
+\subsection*{Frame sequences: composite a sequence of images}
 
 \noindent Composite foreground images over background images for a
 series of files with frame numbers in their names:

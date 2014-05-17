@@ -5,7 +5,7 @@ from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
 
 
 
-def constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
+def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
                 xoffset=0, yoffset=0) :
     spec = ImageSpec (xres,yres,chans,format)
     spec.x = xoffset
@@ -20,7 +20,7 @@ def write (image, filename, format=oiio.UNKNOWN) :
         image.set_write_format (format)
         image.write (filename)
     if image.has_error :
-        print "Error writing", filename, ":", b.geterror()
+        print "Error writing", filename, ":", image.geterror()
 
 
 
@@ -33,7 +33,7 @@ try:
     grid = ImageBuf (gridname)
     checker = ImageBuf(ImageSpec(256, 256, 3, oiio.UINT8))
     ImageBufAlgo.checker (checker, 8, 8, 8, (0,0,0), (1,1,1))
-    gray128 = constimage (128, 128, 3, oiio.HALF, (0.5,0.5,0.5))
+    gray128 = make_constimage (128, 128, 3, oiio.HALF, (0.5,0.5,0.5))
 
     # black
     b = ImageBuf (ImageSpec(320,240,3,oiio.UINT8))
@@ -129,14 +129,14 @@ try:
     ImageBufAlgo.add (b, gray128, (0, 0.25, -0.25))
     write (b, "cadd2.exr")
     b = ImageBuf()
-    ImageBufAlgo.add (b, constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-                      constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
+    ImageBufAlgo.add (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
+                      make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     write (b, "add.exr")
 
     # sub
     b = ImageBuf()
-    ImageBufAlgo.sub (b, constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-                      constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
+    ImageBufAlgo.sub (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
+                      make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     write (b, "sub.exr")
 
     # mul
@@ -148,8 +148,8 @@ try:
     write (b, "cmul2.exr")
     # FIXME -- image multiplication; it's not in testsuite/oiiotool either
     # b = ImageBuf()
-    # ImageBufAlgo.mul (b, constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-    #                        constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
+    # ImageBufAlgo.mul (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
+    #                        make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     # write (b, "mul.exr")
 
     # pow
@@ -167,7 +167,7 @@ try:
     write (b, "chsum.tif", oiio.UINT8)
 
     # premult/unpremult
-    b = constimage(100,100,4,oiio.FLOAT,(.1,.1,.1,1))
+    b = make_constimage(100,100,4,oiio.FLOAT,(.1,.1,.1,1))
     ImageBufAlgo.fill (b, (.2,.2,.2,.5), oiio.ROI(50,80,50,80))
     ImageBufAlgo.unpremult (b, b)
     write (b, "unpremult.tif")
@@ -214,7 +214,7 @@ try:
     # color_count, color_range_check
 
     # nonzero_region
-    b = constimage (256,256,3,oiio.UINT8,(0,0,0))
+    b = make_constimage (256,256,3,oiio.UINT8,(0,0,0))
     ImageBufAlgo.fill (b, (0,0,0))
     ImageBufAlgo.fill (b, (0,1,0), oiio.ROI(100,180,100,180))
     print "Nonzero region is: ", ImageBufAlgo.nonzero_region(b)
