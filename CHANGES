@@ -1,10 +1,16 @@
 Changes:
 
-Release 1.3.14 (in progress -- compared to 1.3.13)
--------------------------------------------------
+Release 1.3.14 (19 May 2014 -- compared to 1.3.13)
+--------------------------------------------------
 * OpenEXR output: More robust with certain malformed metadata. (#841) (1.4.6)
 * Rename the string_ref class to string_view. (This is unused in OIIO, it
   is for compatibility with OSL.)
+* Build fixes on Linux when using BUILDSTATIC=1.
+* Add round_to_multiple_of_pow2 to fmath.h
+* Add STOP_ON_WARNING option to the top level Makeile wrapper.
+* Add documentation on the Python binding for IBA::cut.
+* oiiotool --over and --zover now set the output image's display window to
+  the union of the inputs' display window, rather than to the foreground.
 
 
 Release 1.3.13 (2 Apr 2014 -- compared to 1.3.12)
