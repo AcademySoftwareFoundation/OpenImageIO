@@ -67,14 +67,24 @@ ifeq ($(SP_OS), spinux1)
     endif
 
     ifeq (${COMPILER}, gcc463)
-    MY_CMAKE_FLAGS += \
+      MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
     endif
     ifeq (${COMPILER}, gcc470)
-    MY_CMAKE_FLAGS += \
+      MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
+    endif
+    ifeq (${COMPILER}, gcc472)
+      MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
+    endif
+    ifeq (${COMPILER}, gcc490)
+      MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
     endif
 
     ifneq (,$(wildcard /usr/include/OpenEXR2))
