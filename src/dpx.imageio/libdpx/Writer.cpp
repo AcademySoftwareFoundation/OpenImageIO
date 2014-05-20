@@ -140,7 +140,7 @@ void dpx::Writer::SetUserData(const long size)
 
 bool dpx::Writer::WriteUserData(void *data)
 {
-    long size = this->header.UserSize();
+    size_t size = this->header.UserSize();
 	if (fd->Write(data, size) != size)
 		return false;
     this->fileLoc += size;
