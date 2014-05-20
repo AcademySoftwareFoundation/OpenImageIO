@@ -69,6 +69,8 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     # CMake doesn't automatically know what do do with
     # include_directories(SYSTEM...) when using clang or gcc.
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+    # Ensure this macro is set for stdint.h
+    add_definitions ("-D__STDC_LIMIT_MACROS")
 endif ()
 
 if (CMAKE_COMPILER_IS_CLANG)
