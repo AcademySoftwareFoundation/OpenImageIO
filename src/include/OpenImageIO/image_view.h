@@ -93,8 +93,8 @@ public:
     /// bytes).
     image_view (T *data, int nchannels,
               int width, int height, int depth=1,
-              ptrdiff_t chanstride=AutoStride, ptrdiff_t xstride=AutoStride,
-              ptrdiff_t ystride=AutoStride, ptrdiff_t zstride=AutoStride) {
+              stride_t chanstride=AutoStride, stride_t xstride=AutoStride,
+              stride_t ystride=AutoStride, stride_t zstride=AutoStride) {
         init (data, nchannels, width, height, depth,
               chanstride, xstride, ystride, zstride);
     }
@@ -120,10 +120,10 @@ public:
     int height() const { return m_height; }
     int depth() const { return m_depth; }
 
-    ptrdiff_t chanstride() const { return m_chanstride; }
-    ptrdiff_t xstride() const { return m_xstride; }
-    ptrdiff_t ystride() const { return m_ystride; }
-    ptrdiff_t zstride() const { return m_zstride; }
+    stride_t chanstride() const { return m_chanstride; }
+    stride_t xstride() const { return m_xstride; }
+    stride_t ystride() const { return m_ystride; }
+    stride_t zstride() const { return m_zstride; }
 
     const T* data() const { return m_data; }
 
@@ -132,12 +132,12 @@ public:
 private:
     const T * m_data;
     int m_nchannels, m_width, m_height, m_depth;
-    ptrdiff_t m_chanstride, m_xstride, m_ystride, m_zstride;
+    stride_t m_chanstride, m_xstride, m_ystride, m_zstride;
 
     void init (T *data, int nchannels,
                int width, int height, int depth=1,
-               ptrdiff_t chanstride=AutoStride, ptrdiff_t xstride=AutoStride,
-               ptrdiff_t ystride=AutoStride, ptrdiff_t zstride=AutoStride) {
+               stride_t chanstride=AutoStride, stride_t xstride=AutoStride,
+               stride_t ystride=AutoStride, stride_t zstride=AutoStride) {
         m_data = data;
         m_nchannels = nchannels;
         m_width = width;  m_height = height;  m_depth = depth;
