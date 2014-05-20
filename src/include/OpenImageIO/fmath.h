@@ -61,7 +61,10 @@
 #  define _UINT64_T
 # endif
 #else
-# include <stdint.h>
+#  ifndef __STDC_LIMIT_MACROS
+#    define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
+#  endif
+#  include <stdint.h>
 #endif
 
 #if defined(__FreeBSD__)
