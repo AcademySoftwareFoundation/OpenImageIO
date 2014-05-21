@@ -97,10 +97,10 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
         # Turn default symbol visibility to hidden
         set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
         add_definitions (${VISIBILITY_COMMAND})
-        if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-            # Linux: also hide all the symbols of dependent libraries to
-            # prevent clashes if an app using OIIO is linked against
-            # other verions of our dependencies.
+        if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
+            # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
+            # libraries to prevent clashes if an app using OIIO is linked
+            # against other verions of our dependencies.
             set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
         endif ()
     endif ()
