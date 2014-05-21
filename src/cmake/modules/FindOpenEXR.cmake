@@ -114,6 +114,7 @@ set (OpenEXR_generic_library_paths
   /usr/lib
   /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/lib
+  /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
   /sw/lib
   /opt/local/lib)
 
