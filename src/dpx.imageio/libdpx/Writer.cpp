@@ -183,10 +183,9 @@ dpx::Writer::WritePadData(const int alignment)
 {
     int imageoffset = ((this->fileLoc + alignment - 1)/alignment)*alignment;
     int padsize = imageoffset - this->fileLoc;
-    if (padsize > 0){
-        dpx::U8 pad[padsize];
-        memset(pad, 0XFF, padsize);
-        this->fileLoc += this->fd->Write(pad, padsize);
+    if (padsize > 0) {
+        std::vector<dpx::U8> pad (padsize, 0xff);
+        this->fileLoc += this->fd->Write (&pad[0], padsize);
         if (this->fileLoc != imageoffset)
             return false;
     }
