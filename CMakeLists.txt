@@ -69,6 +69,8 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     # CMake doesn't automatically know what do do with
     # include_directories(SYSTEM...) when using clang or gcc.
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+    # Ensure this macro is set for stdint.h
+    add_definitions ("-D__STDC_LIMIT_MACROS")
 endif ()
 
 if (CMAKE_COMPILER_IS_CLANG)
@@ -80,11 +82,14 @@ if (CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-Wunused-private-field")
     # disable warning about unused command line arguments
     add_definitions ("-Qunused-arguments")
+    # Don't warn if we ask it not to warn about warnings it doesn't know
+    add_definitions ("-Wunknown-warning-option")
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
+if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG) AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
     # suppress a warning that Boost::Python hits in g++ 4.8
     add_definitions ("-Wno-error=unused-local-typedefs")
+    add_definitions ("-Wunused-local-typedefs")
 endif ()
 
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
