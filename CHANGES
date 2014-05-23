@@ -1,5 +1,12 @@
 Changes:
 
+
+Release 1.4.8 (23 May 2014 -- compared to 1.4.7)
+------------------------------------------------
+* Fix several compiler warnings and build breakages for a variety of
+  platforms and compiler versions. No new feature or true bug fixes.
+
+
 Release 1.4 (19 May 2014) -- compared to 1.3.x
 ----------------------------------------------
 Major new features and improvements:
