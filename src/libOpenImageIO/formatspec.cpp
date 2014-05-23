@@ -439,6 +439,22 @@ ImageSpec::get_float_attribute (string_view name, float val) const
             val = *(const half *)p->data();
         else if (p->type() == TypeDesc::DOUBLE)
             val = (float) *(const double *)p->data();
+        else if (p->type() == TypeDesc::INT)
+            val = (float) *(const int *)p->data();
+        else if (p->type() == TypeDesc::UINT)
+            val = (float) *(const unsigned int *)p->data();
+        else if (p->type() == TypeDesc::INT16)
+            val = (float) *(const short *)p->data();
+        else if (p->type() == TypeDesc::UINT16)
+            val = (float) *(const unsigned short *)p->data();
+        else if (p->type() == TypeDesc::INT8)
+            val = (float) *(const char *)p->data();
+        else if (p->type() == TypeDesc::UINT8)
+            val = (float) *(const unsigned char *)p->data();
+        else if (p->type() == TypeDesc::INT64)
+            val = (float) *(const long long *)p->data();
+        else if (p->type() == TypeDesc::UINT64)
+            val = (float) *(const unsigned long long *)p->data();
     }
     return val;
 }
