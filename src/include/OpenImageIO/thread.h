@@ -95,6 +95,9 @@ InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
 
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
 #define USE_GCC_ATOMICS
+#  if !defined(__clang__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 408)
+#    define OIIO_USE_GCC_NEW_ATOMICS
+#  endif
 #endif
 
 
@@ -216,6 +219,8 @@ atomic_exchange_and_add (volatile int *at, int x)
 {
 #ifdef NOTHREADS
     int r = *at;  *at += x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_add ((int *)at, x, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add ((int *)at, x);
 #elif defined(_MSC_VER)
@@ -233,6 +238,8 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 {
 #ifdef NOTHREADS
     long long r = *at;  *at += x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_add ((int *)at, x, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add (at, x);
 #elif defined(_MSC_VER)
@@ -264,6 +271,9 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
     } else {
         return false;
     }
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_compare_exchange_n (at, &compareval, newval, false,
+                                        __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif defined(_MSC_VER)
@@ -284,6 +294,9 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
     } else {
         return false;
     }
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_compare_exchange_n (at, &compareval, newval, false,
+                                        __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif defined(_MSC_VER)
@@ -538,8 +551,10 @@ public:
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__GNUC__)
         // Fastest way to do it is with a store with "release" semantics
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
+        __atomic_clear (&m_locked, __ATOMIC_RELEASE);
+#elif defined(USE_GCC_ATOMICS)
         __sync_lock_release (&m_locked);
         //   Equivalent, x86 specific code:
         //   __asm__ __volatile__("": : :"memory");
@@ -557,7 +572,9 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if defined(__GNUC__)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
+        return __atomic_test_and_set (&m_locked, __ATOMIC_ACQUIRE) == 0;
+#elif defined(USE_GCC_ATOMICS)
         // GCC gives us an intrinsic that is even better -- an atomic
         // exchange with "acquire" barrier semantics.
         return __sync_lock_test_and_set (&m_locked, 1) == 0;
@@ -581,7 +598,13 @@ public:
     };
 
 private:
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
+    // Using the gcc >= 4.8 new atomics, we can easily do a single byte flag
+    volatile char m_locked; ///< Atomic counter is zero if nobody holds the lock
+#else
+    // Otherwise, fall back on it being an int
     volatile int m_locked;  ///< Atomic counter is zero if nobody holds the lock
+#endif
 };
 
 
