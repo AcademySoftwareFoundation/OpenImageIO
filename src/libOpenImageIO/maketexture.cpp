@@ -264,7 +264,7 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
                         srcspec.z+srcspec.depth < srcspec.full_z+srcspec.full_depth);
 
     const ImageSpec &dstspec (dst.spec());
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    float *pel = ALLOCA (float, dstspec.nchannels);
     float xoffset = (float) dstspec.full_x;
     float yoffset = (float) dstspec.full_y;
     float xscale = 1.0f / (float)dstspec.full_width;
@@ -385,7 +385,7 @@ check_nan_block (const ImageBuf &src, ROI roi, int &found_nonfinite)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
     const ImageSpec &spec (src.spec());
-    float *pel = (float *) alloca (spec.pixel_bytes());
+    float *pel = ALLOCA (float, spec.nchannels);
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
             src.getpixel (x, y, pel);
