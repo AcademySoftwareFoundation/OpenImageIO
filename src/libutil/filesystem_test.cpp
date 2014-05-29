@@ -76,11 +76,12 @@ void test_filename_searchpath_find ()
     // build/ARCH.
     std::vector<std::string> dirs;
     dirs.push_back (".." SEPARATOR "..");
+    dirs.push_back (".." SEPARATOR ".." SEPARATOR "cpack");
     std::string s;
 
     // non-recursive search success
     s = Filesystem::searchpath_find ("License.txt", dirs, false, false);
-    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "License.txt");
+    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "cpack" SEPARATOR "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
     s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, false);
