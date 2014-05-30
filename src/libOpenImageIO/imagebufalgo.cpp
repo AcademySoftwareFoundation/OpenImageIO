@@ -414,7 +414,7 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
                 yfiltval[j] = w;
                 totalweight_y += w;
             }
-            for (int i = 0;  i <= ytaps;  ++i)
+            for (int i = 0;  i < ytaps;  ++i)
                 yfiltval[i] /= totalweight_y;
         }
 
