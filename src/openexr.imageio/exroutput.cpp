@@ -618,7 +618,7 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
 
         // Note: This is not the same as data having come from a linear colorspace.
         // It is meant for data that is percieved by humans in a linear fashion
-        // e.g Cb & Cr componenta in YCbCr images
+        // e.g Cb & Cr components in YCbCr images
         //     a* & b* components in L*a*b* images
         //     H & S components in HLS images
         bool pLinear = false;
