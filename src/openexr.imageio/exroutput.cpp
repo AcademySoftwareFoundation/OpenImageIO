@@ -615,8 +615,13 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
         // is closer to linear or closer to logarithmic.  Compression
         // methods may optimize image quality by adjusting pixel data
         // quantization acording to this hint.
-        
-        bool pLinear = Strutil::iequals (spec.get_string_attribute ("oiio:ColorSpace", "Linear"), "Linear");
+
+        // Note: This is not the same as data having come from a linear colorspace.
+        // It is meant for data that is percieved by humans in a linear fashion
+        // e.g Cb & Cr components in YCbCr images
+        //     a* & b* components in L*a*b* images
+        //     H & S components in HLS images
+        bool pLinear = false;
 #endif
         m_pixeltype.push_back (ptype);
         if (spec.channelformats.size())
