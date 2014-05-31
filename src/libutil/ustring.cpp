@@ -383,8 +383,9 @@ ustring::getstats (bool verbose)
     size_t most_common_hash = 0;
     for (UstringTable::iterator s = table.begin(), e = table.end();
          s != e;  ++s) {
-        // Pretend the (const char *) in the string table is a ustring (it is!)
-        const ustring &us = *((ustring *)(&s->first));
+        // Pretend the string_view pointer in the table is a ustring (it is!)
+        const char *chars = s->first.data();
+        ustring us = *((ustring *)&chars);
         bool init = (hashes.find(us.hash()) == hashes.end());
         int &c (hashes[us.hash()]);  // Find/create the count for this hash
         if (init)
@@ -406,7 +407,8 @@ ustring::getstats (bool verbose)
             << most_common_hash << " was shared by:\n";
         for (UstringTable::iterator s = table.begin(), e = table.end();
              s != e;  ++s) {
-            const ustring &us = *((ustring *)(&s->first));
+            const char *chars = s->first.data();
+            ustring us = *((ustring *)&chars);
             if (us.hash() == most_common_hash)
                 out << "      \"" << us << "\"\n";
         }
