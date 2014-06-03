@@ -37,12 +37,21 @@
 
 #include <tiffio.h>
 
+// Some EXIF tags that don't seem to be in tiff.h
+#ifndef EXIFTAG_SECURITYCLASSIFICATION
+#define EXIFTAG_SECURITYCLASSIFICATION 37394
+#endif
+#ifndef EXIFTAG_IMAGEHISTORY
+#define EXIFTAG_IMAGEHISTORY 37395
+#endif
+
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/timer.h"
+#include "OpenImageIO/fmath.h"
 
 #include <boost/scoped_array.hpp>
 
@@ -94,6 +103,7 @@ private:
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
+    bool write_exif_data ();
 };
 
 
@@ -114,8 +124,15 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
+extern std::string & oiio_tiff_last_error ();
+extern void oiio_tiff_set_error_handler ();
+
+
+
+
 TIFFOutput::TIFFOutput ()
 {
+    oiio_tiff_set_error_handler ();
     init ();
 }
 
@@ -466,13 +483,91 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_YRESOLUTION, *(float *)data);
         return true;
     }
-
-    // FIXME -- we don't currently support writing of EXIF fields.  TIFF
-    // in theory allows it, using a custom IFD directory, but at
-    // present, it appears that libtiff only supports reading custom
-    // IFD's, not writing them.
-
     return false;
+}
+
+
+
+bool
+TIFFOutput::write_exif_data ()
+{
+#if TIFFLIB_VERSION >= 20120922
+    // Older versions of libtiff do not support writing Exif directories
+
+    // First, see if we have any Exif data at all
+    bool any_exif = false;
+    for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
+        const ImageIOParameter &p (m_spec.extra_attribs[i]);
+        int tag, tifftype, count;
+        if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
+                tifftype != TIFF_NOTYPE) {
+            if (tag == EXIFTAG_SECURITYCLASSIFICATION ||
+                tag == EXIFTAG_IMAGEHISTORY ||
+                tag == EXIFTAG_ISOSPEEDRATINGS)
+                continue;   // libtiff doesn't understand these
+            any_exif = true;
+            break;
+        }
+    }
+    if (! any_exif)
+        return true;
+
+    // First, finish writing the current directory
+    if (! TIFFWriteDirectory (m_tif)) {
+        error ("failed TIFFWriteDirectory()");
+        return false;
+    }
+
+    // Create an Exif directory
+    if (TIFFCreateEXIFDirectory (m_tif) != 0) {
+        error ("failed TIFFCreateEXIFDirectory()");
+        return false;
+    }
+
+    for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
+        const ImageIOParameter &p (m_spec.extra_attribs[i]);
+        int tag, tifftype, count;
+        if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
+                tifftype != TIFF_NOTYPE) {
+            if (tag == EXIFTAG_SECURITYCLASSIFICATION ||
+                tag == EXIFTAG_IMAGEHISTORY ||
+                tag == EXIFTAG_ISOSPEEDRATINGS)
+                continue;   // libtiff doesn't understand these
+            bool ok = false;
+            if (tifftype == TIFF_ASCII) {
+                ok = TIFFSetField (m_tif, tag, *(char**)p.data());
+            } else if ((tifftype == TIFF_SHORT || tifftype == TIFF_LONG) &&
+                       p.type() == TypeDesc::SHORT) {
+                ok = TIFFSetField (m_tif, tag, (int)*(short *)p.data());
+            } else if ((tifftype == TIFF_SHORT || tifftype == TIFF_LONG) &&
+                       p.type() == TypeDesc::INT) {
+                ok = TIFFSetField (m_tif, tag, *(int *)p.data());
+            } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL) &&
+                       p.type() == TypeDesc::FLOAT) {
+                ok = TIFFSetField (m_tif, tag, *(float *)p.data());
+            } else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL) &&
+                       p.type() == TypeDesc::DOUBLE) {
+                ok = TIFFSetField (m_tif, tag, *(double *)p.data());
+            }
+            if (! ok) {
+                // std::cout << "Unhandled EXIF " << p.name() << " " << p.type() << "\n";
+            }
+        }
+    }
+
+    // Now write the directory of Exif data
+    uint64 dir_offset = 0;
+    if (! TIFFWriteCustomDirectory (m_tif, &dir_offset)) {
+        error ("failed TIFFWriteCustomDirectory() of the Exif data");
+        return false;
+    }
+    // Go back to the first directory, and add the EXIFIFD pointer. 
+    // std::cout << "diffdir = " << tiffdir << "\n";
+    TIFFSetDirectory (m_tif, 0);
+    TIFFSetField (m_tif, TIFFTAG_EXIFIFD, dir_offset);
+#endif
+
+    return true;  // all is ok
 }
 
 
@@ -480,8 +575,10 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
 bool
 TIFFOutput::close ()
 {
-    if (m_tif)
+    if (m_tif) {
+        write_exif_data ();
         TIFFClose (m_tif);    // N.B. TIFFClose doesn't return a status code
+    }
     init ();      // re-initialize
     return true;  // How can we fail?
 }
