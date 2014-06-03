@@ -667,7 +667,7 @@ DDSInput::read_native_tile (int x, int y, int z, void *data)
         lastx = x;
         lasty = y;
         lastz = z;
-        unsigned int w, h, d;
+        unsigned int w = 0, h = 0, d = 0;
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
         internal_seek_subimage (((x / m_spec.tile_width) << 1)
                                 + y / m_spec.tile_height,
