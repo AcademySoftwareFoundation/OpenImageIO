@@ -1928,7 +1928,8 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                 "%d vs %d", (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
 
     TypeDesc format;
-    return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
+    const void* pixeldata = m_imagecache->tile_pixels (tile, format);
+    return pixeldata ? (const char *)pixeldata + offset : NULL;
 }
 
 
