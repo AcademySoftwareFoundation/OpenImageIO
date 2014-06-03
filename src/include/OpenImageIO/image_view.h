@@ -77,7 +77,7 @@ public:
     static const stride_t AutoStride = INT64_MIN;
 #else
     // Some systems don't have INT64_MIN defined. Sheesh.
-    static const stride_t AutoStride = (-9223372036854775807LL-1)
+    static const stride_t AutoStride = (-9223372036854775807LL-1);
 #endif
 
     /// Default ctr -- points to nothing
