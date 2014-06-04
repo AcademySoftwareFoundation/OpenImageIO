@@ -415,7 +415,7 @@ public:
 
 class FilterMitchell1D : public Filter1D {
 public:
-    FilterMitchell1D (float width) : Filter1D(width) { }
+    FilterMitchell1D (float width) : Filter1D(width), m_rad_inv(2.0f/width) { }
     ~FilterMitchell1D (void) { }
     float operator() (float x) const {
         return mitchell1d (x * m_rad_inv);
@@ -448,7 +448,7 @@ private:
 
 class FilterMitchell2D : public Filter2D {
 public:
-    FilterMitchell2D (float width, float height) 
+    FilterMitchell2D (float width, float height)
         : Filter2D(width,height),
           m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
     ~FilterMitchell2D (void) { }
@@ -537,6 +537,114 @@ public:
 };
 
 
+class FilterCubic1D : public Filter1D {
+public:
+    FilterCubic1D (float width)
+        : Filter1D(width), m_a(0.0f), m_rad_inv(2.0f / width)
+    { }
+    ~FilterCubic1D (void) { }
+    float operator() (float x) const {
+        return cubic(x * m_rad_inv, m_a);
+    }
+
+    static float cubic (float x, float a) {
+        x = fabsf (x);
+        if (x > 1.0f)
+            return 0.0f;
+        // Because range is -2 to 2, we rescale
+        x *= 2.0f;
+
+        if (x >= 1.0f)
+            return a * (x * (x * (x - 5.0f) + 8.0f) - 4.0f);
+            // return a * x*x*x - 5.0f * a * x*x + 8.0f * a * x - 4.0f * a;
+        else
+            return x*x*((a + 2.0f) * x - (a + 3.0f)) + 1.0f;
+            // return (a + 2.0f) * x*x*x - (a + 3.0f) * x*x + 1.0f;
+    }
+
+    virtual const std::string name (void) const { return "cubic"; }
+protected:
+    float m_a;
+	float m_rad_inv;
+};
+
+
+
+class FilterCubic2D : public Filter2D {
+public:
+	FilterCubic2D (float width, float height)
+		: Filter2D(width,height), m_a(0.0f)
+		, m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
+    ~FilterCubic2D (void) { }
+    float operator() (float x, float y) const {
+        return FilterCubic1D::cubic(x * m_wrad_inv, m_a)
+             * FilterCubic1D::cubic(y * m_hrad_inv, m_a);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterCubic1D::cubic (x * m_wrad_inv, m_a);
+    }
+    float yfilt (float y) const {
+        return FilterCubic1D::cubic (y * m_hrad_inv, m_a);
+    }
+    virtual const std::string name (void) const { return "cubic"; }
+protected:
+    float m_a;
+    float m_wrad_inv, m_hrad_inv;
+};
+
+
+
+class FilterKeys1D : public FilterCubic1D {
+public:
+    FilterKeys1D (float width) : FilterCubic1D(width) { m_a = -0.5f; }
+    ~FilterKeys1D (void) { }
+    virtual const std::string name (void) const { return "keys"; }
+};
+
+
+class FilterKeys2D : public FilterCubic2D {
+public:
+    FilterKeys2D (float width, float height) : FilterCubic2D(width,height) { m_a = -0.5f; }
+    ~FilterKeys2D (void) { }
+    virtual const std::string name (void) const { return "keys"; }
+};
+
+
+
+class FilterSimon1D : public FilterCubic1D {
+public:
+    FilterSimon1D (float width) : FilterCubic1D(width) { m_a = -0.75f; }
+    ~FilterSimon1D (void) { }
+    virtual const std::string name (void) const { return "simon"; }
+};
+
+
+class FilterSimon2D : public FilterCubic2D {
+public:
+    FilterSimon2D (float width, float height) : FilterCubic2D(width,height) { m_a = -0.75f; }
+    ~FilterSimon2D (void) { }
+    virtual const std::string name (void) const { return "simon"; }
+};
+
+
+
+class FilterRifman1D : public FilterCubic1D {
+public:
+    FilterRifman1D (float width) : FilterCubic1D(width) { m_a = -1.0f; }
+    ~FilterRifman1D (void) { }
+    virtual const std::string name (void) const { return "rifman"; }
+};
+
+
+class FilterRifman2D : public FilterCubic2D {
+public:
+    FilterRifman2D (float width, float height) : FilterCubic2D(width,height) { m_a = -1.0f; }
+    ~FilterRifman2D (void) { }
+    virtual const std::string name (void) const { return "rifman"; }
+};
+
+
 
 namespace {
 FilterDesc filter1d_list[] = {
@@ -550,7 +658,11 @@ FilterDesc filter1d_list[] = {
     { "sinc",            1,   4,    false,    true,     true },
     { "lanczos3",        1,   6,    true,     false,    true },
     { "mitchell",        1,   4,    false,    true,     true },
-    { "bspline",         1,   4,    false,    true,     true }
+    { "bspline",         1,   4,    false,    true,     true },
+    { "cubic",           1,   4,    false,    true,     true },
+    { "keys",            1,   4,    false,    true,     true },
+    { "simon",           1,   4,    false,    true,     true },
+    { "rifman",          1,   4,    false,    true,     true }
 };
 }
 
@@ -596,6 +708,14 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterMitchell1D (width);
     if (filtername == "b-spline" || filtername == "bspline")
         return new FilterBSpline1D (width);
+    if (filtername == "cubic")
+        return new FilterCubic1D (width);
+    if (filtername == "keys")
+        return new FilterKeys1D (width);
+    if (filtername == "simon")
+        return new FilterSimon1D (width);
+    if (filtername == "rifman")
+        return new FilterRifman1D (width);
     return NULL;
 }
 
@@ -622,7 +742,11 @@ static FilterDesc filter2d_list[] = {
     { "radial-lanczos3", 2,   6,    true,     false,    false },
     { "mitchell",        2,   4,    false,    true,     true  },
     { "bspline",         2,   4,    false,    true,     true  },
-    { "disk",            2,   1,    false,    true,     false }
+    { "disk",            2,   1,    false,    true,     false },
+    { "cubic",           2,   4,    false,    true,     true  },
+    { "keys",            2,   4,    false,    true,     true  },
+    { "simon",           2,   4,    false,    true,     true  },
+    { "rifman",          2,   4,    false,    true,     true  }
 };
 
 int
@@ -672,6 +796,14 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterBSpline2D (width, height);
     if (filtername == "disk")
         return new FilterDisk2D (width, height);
+    if (filtername == "cubic")
+        return new FilterCubic2D (width, height);
+    if (filtername == "keys")
+        return new FilterKeys2D (width, height);
+    if (filtername == "simon")
+        return new FilterSimon2D (width, height);
+    if (filtername == "rifman")
+        return new FilterRifman2D (width, height);
     return NULL;
 }
 
