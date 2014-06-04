@@ -135,10 +135,12 @@ resizing to generate successive MIP levels.  Choices include
 {\cf lanczos3} (our best recommendation for highest-quality filtering, a
 3-lobe Lanczos filter), {\cf box}, {\cf triangle}, {\cf catrom},
 {\cf blackman-harris}, {\cf gaussian}, {\cf mitchell}, {\cf bspline},
-{\cf radial-lanczos3}, {\cf disk}, {\cf sinc}.
+\qkw{cubic}, \qkw{keys}, \qkw{simon},
+\qkw{rifman}, {\cf radial-lanczos3}, {\cf disk}, {\cf sinc}.
 
 If you select a filter with negative lobes (including
-{\cf lanczos3}, {\cf sinc}, {\cf lanczos3}, or {\cf catrom}), and your
+{\cf lanczos3}, {\cf sinc}, {\cf lanczos3}, {\cf keys}, {\cf simon},
+{\cf rifman}, or {\cf catrom}), and your
 source image is an HDR image with very high contrast regions that
 include pixels with values $>1$, you may also wish to use the
 {\cf --rangecompress} option to avoid ringing artifacts.

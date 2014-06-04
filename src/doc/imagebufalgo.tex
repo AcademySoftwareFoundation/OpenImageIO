@@ -480,7 +480,7 @@ The caller may explicitly pass a reconstruction filter, or specify one by
 name and size, or if the name is the empty string {\cf resize()} will choose
 a reasonable high-quality default if \NULL is passed.  The filter is used to
 weight the {\cf src} pixels falling underneath it for each {\cf dst} pixel;
-the filter's size is expressed in pixel units of the dst image.
+the filter's size is expressed in pixel units of the {\cf dst} image.
 
 \smallskip
 \noindent Examples:
@@ -1166,7 +1166,8 @@ caution!
 
 Kernel names can be: \qkw{gaussian}, \qkw{sharp-gaussian}, \qkw{box},
 \qkw{triangle}, \qkw{mitchell}, \qkw{blackman-harris}, \qkw{b-spline},
-\qkw{catmull-rom}, \qkw{lanczos3}, \qkw{disk}, \qkw{binomial}. Note that
+\qkw{catmull-rom}, \qkw{lanczos3}, \qkw{cubic}, \qkw{keys}, \qkw{simon},
+\qkw{rifman}, \qkw{disk}, \qkw{binomial}. Note that
 \qkw{catmull-rom} and \qkw{lanczos3} are fixed-size kernels that don't
 scale with the width, and are therefore probably less useful in most
 cases.
