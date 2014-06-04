@@ -1,4 +1,9 @@
 .PHONY: figures
+
+# Figure out which architecture we're on
+include ../make/detectplatform.mk
+OIIOTOOL := "../../../build/${platform}/src/oiiotool/oiiotool"
+
 PDFLATEX := pdflatex -halt-on-error -interaction=errorstopmode 
 
 # by default, just make the document
@@ -22,7 +27,7 @@ openimageio_index: figures
 figures:
 	(cmake -E make_directory figures ; \
 	 cd figures ; \
-	 bash ../makefigures.bash ; \
+	 OIIOTOOL="${OIIOTOOL}" bash ../makefigures.bash ; \
 	)
 
 figures.turd: makefigures.bash
