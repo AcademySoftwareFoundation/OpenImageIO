@@ -476,7 +476,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
     query_channels (header);   // also sets format
 
 #ifdef USE_OPENEXR_VERSION2
-    spec.deep = Imf::isDeepData (header->type());
+    spec.deep = Strutil::istarts_with (header->type(), "deep");
 #endif
 
     // Unless otherwise specified, exr files are assumed to be linear.
