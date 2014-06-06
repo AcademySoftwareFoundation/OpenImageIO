@@ -87,7 +87,12 @@ Main web page:      http://www.openimageio.org
 
 GitHub page:        http://github.com/OpenImageIO/oiio
 
-Mail lists:         http://lists.openimageio.org
+Mail list subscriptions and archives:
+
+* Developer mail list: http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
+
+* Just release announcements: http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org
+
 
 
 Contact
