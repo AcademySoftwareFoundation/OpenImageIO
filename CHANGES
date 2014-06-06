@@ -2,6 +2,94 @@ Changes:
 
 Release 1.5 (development in progress) -- compared to 1.4.x
 ----------------------------------------------
+Major new features and improvements:
+
+Public API changes:
+* New filters available to direct users of filter.{h,cpp} and for
+  ImageBufAlgo, oiiotoo, and maketx: "cubic", "keys", "simon", "rifman".
+  (1.5.0/1.4.9) (#874)
+
+Fixes, minor enhancements, and performance improvements:
+* ImageSpec::get_float_attribute() is now better about retrieving values
+  that were stored as integers, even though you are querying them as
+  floats. (#862) (1.5.0/1.4.9)
+* OpenEXR:
+    * Improve the quality of lossy b44 compression by more correctly
+      using the pLinear value of channels (we were incorrectly using the
+      flag to indicate linear channels, but it's really for channels
+      that are perceptually linear). (#867) (1.5.0/1.4.9)
+    * Fix potential build breaks due to incorrect use of
+      Imf::isDeepData() which apparently was not intended to be an
+      externally-visible function. (1.5.0/1.4.9) (#875)
+* JPEG: Fix broken recognition of .jfi extension. (#876)
+* Fixed some alloca calls that did not get the right amount of memory.
+  (#866) (1.5.0/1.4.9)
+* Fix an off-by-one loop in IBA::resize that would not get the wrong
+  image result, but might trigger debuggers to flag it as touching the
+  wrong memory. (#868) (1.5.0/1.4.9)
+
+Build/test system improvements:
+* Fix several compiler warnings and build breakages for a variety of
+  platforms and compiler versions. (#858, #861) (1.5.0/1.4.8)
+* Move around some cpack-related components. (#863) (1.5.0/1.4.9)
+* Allow in-source build (not recommended, but necessary for Macports).
+  (#863) (1.5.0/1.4.9)
+* Fixes to docs-building makefiles. (#873) (1.5.0/1.4.9)
+* More robust build when OpenEXR and IlmBase have installed their
+  respective header files in different directories rather than the
+  expected behavior of being installed together. (#861) (1.5.0/1.4.9)
+* Fix build break in DEBUG compiles for ustring internals. (#869) (1.5.0/1.4.9)
+* Fix warnings about potentially uninitialized variables. (#871) (1.5.0/1.4.9)
+* Make thread.h use more modern gcc intrinsics when gcc >= 4.8, this
+  allows correct thread.h operations for PPC and MIPS platforms that
+  were't working before. (#865) (1.5.0/1.4.9)
+* Fix Windows build when OIIO_STATIC_BUILD is used. (#872) (1.5.0/1.4.9)
+* Fixes to get a clean compile on Windows + MSVC 9. (#859) (1.5.0/1.4.8)
+* Fixes to get a clean compile on Windows + MSVC 9. (#872) (1.5.0/1.4.9)
+
+Developer goodies / internals:
+
+
+
+
+
+Release 1.4.9 (6 Jun 2014 -- compared to 1.4.8)
+-----------------------------------------------
+* Allow in-source build (not recommended, but necessary for MacPorts). (#863)
+* CPack improvements. (#863)
+* Fixes to docs-building makefiles. (#873)
+* Make ImageSpec::get_float_attribute correctly convert many integer types.
+  (#862)
+* Fixed some alloca calls that did not get the right amount of memory. (#866)
+* OpenEXR: Improve the quality of lossy b44 compression by more correctly
+  using the pLinear value of channels (we were incorrectly using the flag
+  to indicate linear channels, but it's really for channels that are
+  perceptually linear). (#867)
+* More robust build when OpenEXR and IlmBase have installed their
+  respective header files in different directories rather than the
+  expected behavior of being installed together. (#861)
+* Fix an off-by-one loop in IBA::resize that would not get the wrong
+  image result, but might trigger debuggers to flag it as touching the
+  wrong memory. (#868)
+* Fix build break in DEBUG compiles for ustring internals. (#869)
+* Fix warnings about potentially uninitialized variables. (#871)
+* Make thread.h use more modern gcc intrinsics when gcc >= 4.8, this
+  allows correct thread.h operations for PPC and MIPS platforms that
+  were't working before. (#865)
+* Fix Windows build when OIIO_STATIC_BUILD is used. (#872)
+* Fixes to get a clean compile on Windows + MSVC 9. (#872)
+* New filters available to direct users of filter.{h,cpp} and for
+  ImageBufAlgo, oiiotoo, and maketx: "cubic", "keys", "simon", "rifman". (#874)
+* OpenEXR: Fix potential build breaks due to incorrect use of
+  Imf::isDeepData() which apparently was not intended to be an
+  externally-visible function. (#875)
+* JPEG: Fix broken recognition of .jfi extension. (#876)
+
+Release 1.4.8 (23 May 2014 -- compared to 1.4.7)
+------------------------------------------------
+* Fix several compiler warnings and build breakages for a variety of
+  platforms and compiler versions. No new feature or true bug fixes.
+  #857, #858, #859
 
 
 Release 1.4 (19 May 2014) -- compared to 1.3.x
