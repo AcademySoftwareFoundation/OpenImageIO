@@ -1,4 +1,15 @@
 .PHONY: figures
+
+include ../make/detectplatform.mk
+ifeq (${OIIOTOOL},)
+  ifneq (${shell ls ./../../build/${platform}/src/oiiotool/oiiotool},)
+    OIIOTOOL := "../../../build/${platform}/src/oiiotool/oiiotool"
+  else
+    OIIOTOOL := "../../../build/src/oiiotool/oiiotool"
+  endif
+endif
+
+
 PDFLATEX := pdflatex -halt-on-error -interaction=errorstopmode 
 
 # by default, just make the document
@@ -22,7 +33,7 @@ openimageio_index: figures
 figures:
 	(cmake -E make_directory figures ; \
 	 cd figures ; \
-	 bash ../makefigures.bash ; \
+	 OIIOTOOL="${OIIOTOOL}" bash ../makefigures.bash ; \
 	)
 
 figures.turd: makefigures.bash
