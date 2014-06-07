@@ -6,8 +6,10 @@ fi
 
 echo "Using OIIOTOOL=${OIIOTOOL}"
 
-${OIIOTOOL} ../../../../oiio-images/tahoe-gps.jpg --colorconvert sRGB linear --resize 320x240 --colorconvert linear sRGB -o tahoe-small.jpg
-${OIIOTOOL} ../../../../oiio-images/grid.tif --resize 256x256 --colorconvert linear sRGB -o grid-small.jpg
+# Uncomment to make these files. But we check them in so that the figures
+# can be generated without oiio-images.
+#${OIIOTOOL} ../../../../oiio-images/tahoe-gps.jpg --colorconvert sRGB linear --resize 320x240 --colorconvert linear sRGB -o tahoe-small.jpg
+#${OIIOTOOL} ../../../../oiio-images/grid.tif --resize 256x256 --colorconvert linear sRGB -o grid-small.jpg
 
 ${OIIOTOOL} tahoe-small.jpg --tocolorspace linear --cadd 0.2 --tocolorspace sRGB -o cadd.jpg
 ${OIIOTOOL} tahoe-small.jpg --tocolorspace linear --cmul 0.5 --tocolorspace sRGB -o cmul.jpg
