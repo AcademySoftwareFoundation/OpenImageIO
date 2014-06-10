@@ -63,8 +63,12 @@ endmacro ()
 # variable names to the specified list
 macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
   string (TOUPPER ${prefix}_${libname} tmp_prefix)
+  # Handle new library names for OpenEXR 2.1 build via cmake
+  string(REPLACE "." "_" _ILMBASE_VERSION ${ILMBASE_VERSION})
+  string(SUBSTRING ${_ILMBASE_VERSION} 0 3 _ILMBASE_VERSION )
+  
   find_library(${tmp_prefix}_LIBRARY_RELEASE
-    NAMES ${libname}
+    NAMES ${libname} ${libname}-${_ILMBASE_VERSION}
     HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
     ${ILMBASE_FIND_OPTIONS}
