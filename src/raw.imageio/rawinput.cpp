@@ -107,6 +107,9 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
         return false;
     }
 
+    // Forcing the Libraw to adjust sizes based on the capture device orientation
+    m_processor.adjust_sizes_info_only();
+ 
     // Set file information
     m_spec = ImageSpec(m_processor.imgdata.sizes.iwidth,
                        m_processor.imgdata.sizes.iheight,
