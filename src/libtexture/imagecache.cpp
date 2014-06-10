@@ -506,7 +506,7 @@ ImageCacheFile::init_from_spec ()
     if ((p = spec.find_attribute ("textureformat", TypeDesc::STRING))) {
         const char *textureformat = *(const char **)p->data();
         for (int i = 0;  i < TexFormatLast;  ++i)
-            if (! strcmp (textureformat, texture_format_name((TexFormat)i))) {
+            if (Strutil::iequals (textureformat, texture_format_name((TexFormat)i))) {
                 m_texformat = (TexFormat) i;
                 break;
             }

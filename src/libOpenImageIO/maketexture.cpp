@@ -1114,7 +1114,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         dstspec.attribute ("textureformat", "LatLong Environment");
         configspec.attribute ("wrapmodes", "periodic,clamp");
         if (prman_metadata)
-            dstspec.attribute ("PixarTextureFormat", "Latlong Environment");
+            dstspec.attribute ("PixarTextureFormat", "LatLong Environment");
     } else {
         dstspec.attribute ("textureformat", "Plain Texture");
         if (prman_metadata)
