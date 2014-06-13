@@ -90,8 +90,8 @@ struct TIFF_tag_info {
 
 class TIFFInput : public ImageInput {
 public:
-    TIFFInput () { init(); }
-    virtual ~TIFFInput () { close(); }
+    TIFFInput ();
+    virtual ~TIFFInput ();
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -285,15 +285,62 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 // Someplace to store an error message from the TIFF error handler
-static std::string lasterr;
-static mutex lasterr_mutex;
+// To avoid thread oddities, we have the storage area buffering error
+// messages for seterror()/geterror() be thread-specific.
+static thread_specific_ptr<std::string> thread_error_msg;
+static atomic_int handler_set;
+static spin_mutex handler_mutex;
+
+
+
+std::string &
+oiio_tiff_last_error ()
+{
+    std::string *e = thread_error_msg.get();
+    if (! e) {
+        e = new std::string;
+        thread_error_msg.reset (e);
+    }
+    return *e;
+}
+
 
 
 static void
 my_error_handler (const char *str, const char *format, va_list ap)
 {
-    lock_guard lock (lasterr_mutex);
-    lasterr = Strutil::vformat (format, ap);
+    oiio_tiff_last_error() = Strutil::vformat (format, ap);
+}
+
+
+
+void
+oiio_tiff_set_error_handler ()
+{
+    if (! handler_set) {
+        spin_lock lock (handler_mutex);
+        if (! handler_set) {
+            TIFFSetErrorHandler (my_error_handler);
+            TIFFSetWarningHandler (my_error_handler);
+            handler_set = 1;
+        }
+    }
+}
+
+
+
+TIFFInput::TIFFInput ()
+{
+    oiio_tiff_set_error_handler ();
+    init ();
+}
+
+
+
+TIFFInput::~TIFFInput ()
+{
+    // Close, if not already done.
+    close ();
 }
 
 
@@ -322,6 +369,7 @@ TIFFInput::valid_file (const std::string &filename) const
 bool
 TIFFInput::open (const std::string &name, ImageSpec &newspec)
 {
+    oiio_tiff_set_error_handler ();
     m_filename = name;
     m_subimage = -1;
     return seek_subimage (0, 0, newspec);
@@ -369,13 +417,6 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     bool read_meta = !(m_emulate_mipmap && m_tif && m_subimage >= 0);
 
     if (! m_tif) {
-        // Use our own error handler to keep libtiff from spewing to stderr
-        lock_guard lock (lasterr_mutex);
-        TIFFSetErrorHandler (my_error_handler);
-        TIFFSetWarningHandler (my_error_handler);
-    }
-
-    if (! m_tif) {
 #ifdef _WIN32
         std::wstring wfilename = Strutil::utf8_to_utf16 (m_filename);
         m_tif = TIFFOpenW (wfilename.c_str(), "rm");
@@ -383,8 +424,8 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
 #endif
         if (m_tif == NULL) {
-            error ("Could not open file: %s",
-                   lasterr.length() ? lasterr.c_str() : m_filename.c_str());
+            std::string e = oiio_tiff_last_error();
+            error ("Could not open file: %s", e.length() ? e : m_filename);
             return false;
         }
         m_subimage = 0;
@@ -401,7 +442,8 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         }
         return true;
     } else {
-        error ("%s", lasterr.length() ? lasterr.c_str() : m_filename.c_str());
+        std::string e = oiio_tiff_last_error();
+        error ("%s", e.length() ? e : m_filename);
         m_subimage = -1;
         return false;
     }
@@ -1011,7 +1053,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
             // Keep reading until we're read the scanline we really need
             m_scratch.resize (m_spec.scanline_bytes());
             if (TIFFReadScanline (m_tif, &m_scratch[0], m_next_scanline) < 0) {
-                error ("%s", lasterr.c_str());
+                error ("%s", oiio_tiff_last_error());
                 return false;
             }
             ++m_next_scanline;
@@ -1026,7 +1068,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
-            error ("%s", lasterr.c_str());
+            error ("%s", oiio_tiff_last_error());
             return false;
         }
         palette_to_rgb (m_spec.width, &m_scratch[0], (unsigned char *)data);
@@ -1042,7 +1084,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
         // only do one TIFFReadScanline.
         for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
             if (TIFFReadScanline (m_tif, &readbuf[plane_bytes*c], y, c) < 0) {
-                error ("%s", lasterr.c_str());
+                error ("%s", oiio_tiff_last_error());
                 return false;
             }
         if (m_bitspersample < 8) {
@@ -1095,7 +1137,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile (m_tif, &m_scratch[0], x, y, z, 0) < 0) {
-            error ("%s", lasterr.c_str());
+            error ("%s", oiio_tiff_last_error());
             return false;
         }
         palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
@@ -1111,7 +1153,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
         // only do one TIFFReadTile.
         for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
             if (TIFFReadTile (m_tif, &readbuf[plane_bytes*c], x, y, z, c) < 0) {
-                error ("%s", lasterr.c_str());
+                error ("%s", oiio_tiff_last_error());
                 return false;
             }
         if (m_bitspersample < 8) {
