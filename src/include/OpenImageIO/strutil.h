@@ -190,13 +190,15 @@ strhash (string_view s)
 /// a static locale that doesn't require a mutex.
 bool OIIO_API iequals (string_view a, string_view b);
 
+/// Does 'a' start with the string 'b', with a case-sensitive comparison?
+bool OIIO_API starts_with (string_view a, string_view b);
+
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
 bool OIIO_API istarts_with (string_view a, string_view b);
 
-/// Does 'a' end with the string 'b', with a case-insensitive comparison?
-/// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API iends_with (string_view a, string_view b);
+/// Does 'a' end with the string 'b', with a case-sensitive comparison?
+bool OIIO_API ends_with (string_view a, string_view b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
