@@ -325,9 +325,23 @@ Strutil::iequals (string_view a, string_view b)
 
 
 bool
+Strutil::starts_with (string_view a, string_view b)
+{
+    return boost::algorithm::starts_with (a, b);
+}
+
+
+bool
 Strutil::istarts_with (string_view a, string_view b)
 {
     return boost::algorithm::istarts_with (a, b, loc);
+}
+
+
+bool
+Strutil::ends_with (string_view a, string_view b)
+{
+    return boost::algorithm::ends_with (a, b);
 }
 
 
