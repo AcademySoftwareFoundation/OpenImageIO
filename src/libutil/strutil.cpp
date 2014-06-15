@@ -539,5 +539,187 @@ Strutil::safe_strcpy (char *dst, const char *src, size_t size)
 }
 
 
+
+void
+Strutil::skip_whitespace (string_view &str)
+{
+    while (str.size() && isspace(str[0]))
+        str.remove_prefix (1);
+}
+
+
+
+bool
+Strutil::parse_char (string_view &str, char c,
+                     bool skip_whitespace, bool eat)
+{
+    string_view p = str;
+    if (skip_whitespace)
+        Strutil::skip_whitespace (p);
+    if (p.size() && p[0] == c) {
+        if (eat) {
+            p.remove_prefix (1);
+            str = p;
+        }
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+Strutil::parse_until_char (string_view &str, char c, bool eat)
+{
+    string_view p = str;
+    while (p.size() && p[0] != c)
+        p.remove_prefix (1);
+    if (eat)
+        str = p;
+    return p.size() && p[0] == c;
+}
+
+
+
+bool
+Strutil::parse_prefix (string_view &str, string_view prefix, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    if (Strutil::starts_with (p, prefix)) {
+        p.remove_prefix (prefix.size());
+        if (eat)
+            str = p;
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+Strutil::parse_int (string_view &str, int &val, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    if (! p.size())
+        return false;
+    const char *end = p.begin();
+    val = strtol (p.begin(), (char**)&end, 10);
+    if (end == p.begin())
+        return false;  // no integer found
+    if (eat) {
+        p.remove_prefix (end-p.begin());
+        str = p;
+    }
+    return true;
+}
+
+
+
+bool
+Strutil::parse_float (string_view &str, float &val, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    if (! p.size())
+        return false;
+    const char *end = p.begin();
+    val = (float) strtod (p.begin(), (char**)&end);
+    if (end == p.begin())
+        return false;  // no integer found
+    if (eat) {
+        p.remove_prefix (end-p.begin());
+        str = p;
+    }
+    return true;
+}
+
+
+
+bool
+Strutil::parse_string (string_view &str, string_view &val, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    bool quoted = parse_char (p, '\"');
+    const char *begin = p.begin(), *end = p.begin();
+    bool escaped = false;
+    while (end != p.end()) {
+        if (isspace(*end) && !quoted)
+            break;   // not quoted and we hit whitespace: we're done
+        if (quoted && *end == '\"' && ! escaped)
+            break;   // closing quite -- we're done (beware embedded quote)
+        if (p[0] == '\\')
+            escaped = true;
+        ++end;
+        escaped = false;
+    }
+    val = string_view (begin, size_t(end-begin));
+    p.remove_prefix (size_t(end-begin));
+    if (quoted && p.size() && p[0] == '\"')
+        p.remove_prefix (1);  // eat closing quote
+    if (eat)
+        str = p;
+    return quoted || val.size();
+}
+
+
+
+string_view
+Strutil::parse_word (string_view &str, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    const char *begin = p.begin(), *end = p.begin();
+    while (end != p.end() && isalpha(*end))
+        ++end;
+    size_t wordlen = end - begin;
+    if (eat && wordlen) {
+        p.remove_prefix (wordlen);
+        str = p;
+    }
+    return string_view (begin, wordlen);
+}
+
+
+
+string_view
+Strutil::parse_identifier (string_view &str, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    const char *begin = p.begin(), *end = p.begin();
+    if (end != p.end() && (isalpha(*end) || *end == '_'))
+        ++end;
+    else
+       return string_view();  // not even the start of an identifier
+    while (end != p.end() && (isalpha(*end) || isdigit(*end) || *end == '_'))
+        ++end;
+    if (eat) {
+        p.remove_prefix (size_t(end-begin));
+        str = p;
+    }
+    return string_view (begin, size_t(end-begin));
+}
+
+
+
+string_view
+Strutil::parse_until (string_view &str, string_view sep, bool eat)
+{
+    string_view p = str;
+    const char *begin = p.begin(), *end = p.begin();
+    while (end != p.end() && sep.find(*end) == string_view::npos)
+        ++end;
+    size_t wordlen = end - begin;
+    if (eat && wordlen) {
+        p.remove_prefix (wordlen);
+        str = p;
+    }
+    return string_view (begin, wordlen);
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

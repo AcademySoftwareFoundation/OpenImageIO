@@ -32,6 +32,7 @@
 #include "OpenImageIO/unittest.h"
 
 OIIO_NAMESPACE_USING;
+using namespace Strutil;
 
 
 
@@ -418,7 +419,75 @@ void test_string_view ()
 
 
 
-int main (int argc, char *argv[])
+void test_parse ()
+{
+    std::cout << "Testing parse functions\n";
+    string_view s;
+    s = "";        skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
+    s = "   ";     skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
+    s = "foo";     skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo");
+    s = "  foo  "; skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo  ");
+
+    s = "abc"; OIIO_CHECK_ASSERT (! parse_char (s, 'd') && s == "abc");
+
+    s = "abc"; OIIO_CHECK_ASSERT (parse_char (s, 'a', true, false) && s == "abc");
+    s = "abc"; OIIO_CHECK_ASSERT (parse_char (s, 'a') && s == "bc");
+
+    s = "abc"; OIIO_CHECK_ASSERT (parse_until_char (s, 'c', false) && s == "abc");
+    s = "abc"; OIIO_CHECK_ASSERT (parse_until_char (s, 'c') && s == "c");
+    s = "abc"; OIIO_CHECK_ASSERT (! parse_until_char (s, 'd') && s == "");
+
+    s = "abcdef";
+    OIIO_CHECK_ASSERT (! parse_prefix (s, "def", false) && s == "abcdef");
+    OIIO_CHECK_ASSERT (parse_prefix (s, "abc", false) && s == "abcdef");
+    OIIO_CHECK_ASSERT (parse_prefix (s, "abc") && s == "def");
+
+    int i = 0;
+    s = "abc"; OIIO_CHECK_ASSERT (! parse_int (s, i) && s == "abc");
+    s = " 143 abc"; OIIO_CHECK_ASSERT (parse_int (s, i) && i == 143 && s == " abc");
+    s = " 143 abc"; OIIO_CHECK_ASSERT (parse_int (s, i, false) && i == 143 && s == " 143 abc");
+
+    float f = 0;
+    s = "abc"; OIIO_CHECK_ASSERT (! parse_float (s, f) && s == "abc");
+    s = " 42.1 abc"; OIIO_CHECK_ASSERT (parse_float (s, f) && f == 42.1f && s == " abc");
+    s = " 42.1 abc"; OIIO_CHECK_ASSERT (parse_float (s, f, false) && f == 42.1f && s == " 42.1 abc");
+
+    string_view ss;
+    s = "foo bar";
+    OIIO_CHECK_ASSERT (parse_string (s, ss) && ss == "foo" && s == " bar");
+    s = "\"foo bar\" baz";
+    OIIO_CHECK_ASSERT (parse_string (s, ss) && ss == "foo bar" && s == " baz");
+    s = "\"foo bar\" baz";
+    OIIO_CHECK_ASSERT (parse_string (s, ss, false) && ss == "foo bar" && s == "\"foo bar\" baz");
+
+    s = " foo bar"; ss = parse_word (s);
+    OIIO_CHECK_ASSERT (ss == "foo" && s == " bar");
+    s = " 14 foo bar"; ss = parse_word (s);
+    OIIO_CHECK_ASSERT (ss.size() == 0 && s == " 14 foo bar");
+    s = "foo14 bar"; ss = parse_word (s);
+    OIIO_CHECK_ASSERT (ss == "foo" && s == "14 bar");
+    s = " foo bar"; ss = parse_word (s, false);
+    OIIO_CHECK_ASSERT (ss == "foo" && s == " foo bar");
+
+    s = " foo bar"; ss = parse_identifier (s);
+    OIIO_CHECK_ASSERT (ss == "foo" && s == " bar");
+    s = " 14 foo bar"; ss = parse_identifier (s);
+    OIIO_CHECK_ASSERT (ss.size() == 0 && s == " 14 foo bar");
+    s = " foo_14 bar"; ss = parse_identifier (s);
+    OIIO_CHECK_ASSERT (ss == "foo_14" && s == " bar");
+    s = " foo_14 bar"; ss = parse_identifier (s, false);
+    OIIO_CHECK_ASSERT (ss == "foo_14" && s == " foo_14 bar");
+
+    s = "foo;bar blow"; ss = parse_until (s, ";");
+    OIIO_CHECK_ASSERT (ss == "foo" && s == ";bar blow");
+    s = "foo;bar blow"; ss = parse_until (s, "\t ");
+    OIIO_CHECK_ASSERT (ss == "foo;bar" && s == " blow");
+}
+
+
+
+int
+main (int argc, char *argv[])
 {
     test_format ();
     test_memformat ();
@@ -435,6 +504,7 @@ int main (int argc, char *argv[])
     test_extract ();
     test_safe_strcpy ();
     test_string_view ();
+    test_parse ();
 
     return unit_test_failures;
 }
