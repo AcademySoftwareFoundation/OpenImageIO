@@ -143,6 +143,48 @@ OIIO_API bool is_directory (const std::string &path);
 ///
 OIIO_API bool is_regular (const std::string &path);
 
+/// Create the directory. Return true for success, false for failure and
+/// place an error message in err.
+OIIO_API bool create_directory (string_view path, std::string &err);
+inline bool create_directory (string_view path) {
+    std::string err;
+    return create_directory (path, err);
+}
+
+/// Copy a file, directory, or link. It is an error if 'to' already exists.
+/// Return true upon success, false upon failure and place an error message
+/// in err.
+OIIO_API bool copy (string_view from, string_view to, std::string &err);
+inline bool copy (string_view from, string_view to) {
+    std::string err;
+    return copy (from, to, err);
+}
+
+/// Remove the file or directory. Return true for success, false for
+/// failure and place an error message in err.
+OIIO_API bool remove (string_view path, std::string &err);
+inline bool remove (string_view path) {
+    std::string err;
+    return remove (path, err);
+}
+
+/// Remove the file or directory, including any children (recursively).
+/// Return true for success, false for failure and place an error message in
+/// err.
+OIIO_API bool remove_all (string_view path, std::string &err);
+inline bool remove_all (string_view path) {
+    std::string err;
+    return remove_all (path, err);
+}
+
+/// Return a directory path where temporary files can be made.
+///
+OIIO_API std::string temp_directory_path ();
+
+/// Return a unique filename suitable for making a temporary file or
+/// directory.
+OIIO_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
+
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
 OIIO_API FILE *fopen (string_view path, string_view mode);
