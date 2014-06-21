@@ -271,5 +271,5 @@ with open("run.py") as f:
     exec (code)
 
 # Run the test and check the outputs
-ret = runtest (command, outputs)
+ret = runtest (command, outputs, failureok=failureok)
 sys.exit (ret)

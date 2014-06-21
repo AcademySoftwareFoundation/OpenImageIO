@@ -145,21 +145,21 @@ format_resolution (int w, int h, int d, int x, int y, int z)
 // FIXME: do all ops respect -a (or lack thereof?)
 
 
-void
+bool
 Oiiotool::read (ImageRecRef img)
 {
     // If the image is already elaborated, take an early out, both to
     // save time, but also because we only want to do the format and
     // tile adjustments below as images are read in fresh from disk.
     if (img->elaborated())
-        return;
+        return true;
 
     // Cause the ImageRec to get read.  Try to compute how long it took.
     // Subtract out ImageCache time, to avoid double-accounting it later.
     float pre_ic_time, post_ic_time;
     imagecache->getattribute ("stat:fileio_time", pre_ic_time);
     total_readtime.start ();
-    img->read ();
+    bool ok = img->read ();
     total_readtime.stop ();
     imagecache->getattribute ("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
@@ -179,6 +179,11 @@ Oiiotool::read (ImageRecRef img)
         if (! output_bitspersample)
             output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
     }
+
+    if (! ok) {
+        error ("read "+img->name(), img->geterror());
+    }
+    return ok;
 }
 
 
@@ -224,7 +229,7 @@ Oiiotool::process_pending ()
 void
 Oiiotool::error (const std::string &command, const std::string &explanation)
 {
-    std::cerr << "ERROR: " << command;
+    std::cerr << "oiiotool ERROR: " << command;
     if (explanation.length())
         std::cerr << " (" << explanation << ")";
     std::cerr << "\n";
@@ -299,7 +304,7 @@ input_file (int argc, const char *argv[])
         if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
                             ustring("exists"), TypeDesc::TypeInt, &exists)
             || !exists) {
-            std::cerr << "oiiotool ERROR: Could not open file \"" << argv[0] << "\"\n";
+            ot.error ("read", Strutil::format ("Could not open file \"%s\"", argv[0]));
             exit (1);
         }
         if (ot.verbose)
@@ -319,7 +324,7 @@ input_file (int argc, const char *argv[])
             std::string error;
             bool ok = OiioTool::print_info (argv[i], pio, totalsize, error);
             if (! ok)
-                std::cerr << "oiiotool ERROR: " << error << "\n";
+                ot.error ("read", error);
         }
         ot.function_times["input"] += timer();
         ot.process_pending ();
@@ -478,7 +483,6 @@ static int
 output_file (int argc, const char *argv[])
 {
     ASSERT (argc == 2 && !strcmp(argv[0],"-o"));
-
     Timer timer (ot.enable_function_timing);
     ot.total_writetime.start();
     std::string filename = argv[1];
@@ -556,12 +560,12 @@ output_file (int argc, const char *argv[])
     ImageOutput::OpenMode mode = ImageOutput::Create;
     if (ir->subimages() > 1 && out->supports("multiimage")) {
         if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
-            std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+            ot.error ("output", out->geterror());
             return 0;
         }
     } else {
         if (! out->open (filename, subimagespecs[0], mode)) {
-            std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+            ot.error ("output", out->geterror());
             return 0;
         }
     }
@@ -573,12 +577,12 @@ output_file (int argc, const char *argv[])
             adjust_output_options (filename, spec, ot, supports_tiles);
             if (s > 0 || m > 0) {  // already opened first subimage/level
                 if (! out->open (filename, spec, mode)) {
-                    std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+                    ot.error ("output", out->geterror());
                     return 0;
                 }
             }
             if (! (*ir)(s,m).write (out)) {
-                std::cerr << "oiiotool ERROR: " << (*ir)(s,m).geterror() << "\n";
+                ot.error ("output", (*ir)(s,m).geterror());
                 return 0;
             }
             if (mend > 1) {

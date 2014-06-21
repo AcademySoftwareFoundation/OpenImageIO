@@ -203,8 +203,8 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
 
     // Compute final results
     finalize (stats);
-    
-    return true;
+
+    return ! src.has_error();
 };
 
 

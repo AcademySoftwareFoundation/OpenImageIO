@@ -894,7 +894,7 @@ ImageBuf::write (ImageOutput *out,
     stride_t as = AutoStride;
     bool ok = true;
     const ImageBufImpl *impl = this->impl();
-    impl->validate_pixels ();
+    ok &= impl->validate_pixels ();
     const ImageSpec &m_spec (impl->m_spec);
     if (impl->m_localpixels) {
         // In-core pixel buffer for the whole image
@@ -906,10 +906,10 @@ ImageBuf::write (ImageOutput *out,
     } else {
         // Backed by ImageCache
         boost::scoped_array<char> tmp (new char [m_spec.image_bytes()]);
-        get_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
-                    m_spec.format, &tmp[0]);
-        ok = out->write_image (m_spec.format, &tmp[0], as, as, as,
-                               progress_callback, progress_callback_data);
+        ok = get_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
+                         m_spec.format, &tmp[0]);
+        ok &= out->write_image (m_spec.format, &tmp[0], as, as, as,
+                                progress_callback, progress_callback_data);
         // FIXME -- not good for huge images.  Instead, we should read
         // little bits at a time (scanline or tile blocks).
     }
@@ -1917,6 +1917,8 @@ ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                                        m_current_miplevel, x, y, z);
         if (! tile) {
             // Even though tile is NULL, ensure valid black pixel data
+            std::string e = m_imagecache->geterror();
+            error ("%s", e.size() ? e : "unspecified ImageCache error");
             return &m_blackpixel[0];
         }
     }
