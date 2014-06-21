@@ -1,6 +1,19 @@
 Changes:
 
 
+Release 1.4.10 (20 Jun 2014 -- compared to 1.4.9)
+-------------------------------------------------
+* Fix for portrait-orientation RAW image reads. (#878)
+* maketx: Fix case typo for LatLong env map creation when in 'prman'
+  mode (#877).
+* New Strutil string comparison functions: starts_with, ends_with.
+* Make 3.0 compatibility fixes on OSX.
+* New Strutil simple parsing functions: skip_whitespace, parse_char,
+  parse_until_char, parse_prefix, parse_int, parse_float, parse_string,
+  parse_word, parse_identifier, parse_until.
+* New Filesystem functions: create_directory, copy, remove, remove_all,
+  temp_directory_path, unique_path.
+
 Release 1.4.9 (6 Jun 2014 -- compared to 1.4.8)
 -----------------------------------------------
 * Allow in-source build (not recommended, but necessary for MacPorts). (#863)
