@@ -238,7 +238,7 @@ ImageRec::read ()
     ustring uname (name());
     if (! m_imagecache->get_image_info (uname, 0, 0, u_subimages,
                                         TypeDesc::TypeInt, &subimages)) {
-        std::cerr << "ERROR: file \"" << name() << "\" not found.\n";
+        error ("file not found: \"%s\"", name());
         return false;  // Image not found
     }
     m_subimages.resize (subimages);
@@ -263,6 +263,8 @@ ImageRec::read ()
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
             bool ok = ib->read (s, m, forceread,
                                 TypeDesc::FLOAT /* force float */);
+            if (!ok)
+                error ("%s", ib->geterror());
             allok &= ok;
             // Remove any existing SHA-1 hash from the spec.
             ib->specmod().erase_attribute ("oiio:SHA-1");
@@ -287,3 +289,44 @@ ImageRec::read ()
     m_elaborated = true;
     return allok;
 }
+
+
+namespace {
+static spin_mutex err_mutex;
+}
+
+
+
+bool
+ImageRec::has_error () const
+{
+    spin_lock lock (err_mutex);
+    return ! m_err.empty();
+}
+
+
+
+std::string
+ImageRec::geterror (bool clear_error) const
+{
+    spin_lock lock (err_mutex);
+    std::string e = m_err;
+    if (clear_error)
+        m_err.clear();
+    return e;
+}
+
+
+
+void
+ImageRec::append_error (string_view message) const
+{
+    spin_lock lock (err_mutex);
+    ASSERT (m_err.size() < 1024*1024*16 &&
+            "Accumulated error messages > 16MB. Try checking return codes!");
+    if (m_err.size() && m_err[m_err.size()-1] != '\n')
+        m_err += '\n';
+    m_err += message;
+}
+
+

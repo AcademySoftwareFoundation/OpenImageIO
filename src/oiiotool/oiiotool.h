@@ -106,9 +106,13 @@ public:
     void clear_options ();
 
     // Force img to be read at this point.
-    void read (ImageRecRef img);
+    bool read (ImageRecRef img);
     // Read the current image
-    void read () { if (curimg) read (curimg); }
+    bool read () {
+        if (curimg)
+            return read (curimg);
+        return true;
+    }
 
     // If required_images are not yet on the stack, then postpone this
     // call by putting it on the 'pending' list and return true.
@@ -301,6 +305,21 @@ public:
         metadata_modified();
     }
 
+    /// Error reporting for ImageRec: call this with printf-like arguments.
+    /// Note however that this is fully typesafe!
+    /// void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Return true if the IR has had an error and has an error message
+    /// to retrieve via geterror().
+    bool has_error (void) const;
+
+    /// Return the text of all error messages issued since geterror() was
+    /// called (or an empty string if no errors are pending).  This also
+    /// clears the error message for next time if clear_error is true.
+    std::string geterror (bool clear_error = true) const;
+
 private:
     std::string m_name;
     bool m_elaborated;
@@ -309,6 +328,11 @@ private:
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
     ImageCache *m_imagecache;
+    mutable std::string m_err;
+
+    // Add to the error message
+    void append_error (string_view message) const;
+
 };
 
 

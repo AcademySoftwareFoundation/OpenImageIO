@@ -357,7 +357,7 @@ endif()
 # List all the individual testsuite tests here:
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan
-                oiiotool-text
+                oiiotool-readerror oiiotool-text
                 perchannel dither
                 dpx ico iff png psd rla sgi
                 python-typedesc python-imagespec python-roi
