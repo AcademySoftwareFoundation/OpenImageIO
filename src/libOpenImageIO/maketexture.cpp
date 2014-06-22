@@ -1126,6 +1126,28 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // to make it bigger in the other direction to make the total tile
     // size more constant?
 
+    // Fix nans/infs (if requested)
+    std::string fixnan = configspec.get_string_attribute("maketx:fixnan");
+    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
+    if (fixnan.empty() || fixnan == "none") { }
+    else if (fixnan == "black") { fixmode = ImageBufAlgo::NONFINITE_BLACK; }
+    else if (fixnan == "box3") { fixmode = ImageBufAlgo::NONFINITE_BOX3; }
+    else {
+        outstream << "maketx ERROR: Unknown --fixnan mode " << " fixnan\n";
+        return false;
+    }
+    int pixelsFixed = 0;
+    if (fixmode != ImageBufAlgo::NONFINITE_NONE &&
+        (srcspec.format.basetype == TypeDesc::FLOAT ||
+         srcspec.format.basetype == TypeDesc::HALF ||
+         srcspec.format.basetype == TypeDesc::DOUBLE) &&
+        ! ImageBufAlgo::fixNonFinite (*src, fixmode, &pixelsFixed)) {
+        outstream << "maketx ERROR: Error fixing nans/infs.\n";
+        return false;
+    }
+    if (verbose && pixelsFixed)
+        outstream << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
+
     // If --checknan was used and it's a floating point image, check for
     // nonfinite (NaN or Inf) values and abort if they are found.
     if (configspec.get_int_attribute("maketx:checknan") &&
@@ -1142,29 +1164,6 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             return false;
         }
     }
-    
-    // Fix nans/infs (if requested)
-    std::string fixnan = configspec.get_string_attribute("maketx:fixnan");
-    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
-    if (fixnan.empty() || fixnan == "none") { }
-    else if (fixnan == "black") { fixmode = ImageBufAlgo::NONFINITE_BLACK; }
-    else if (fixnan == "box3") { fixmode = ImageBufAlgo::NONFINITE_BOX3; }
-    else {
-        outstream << "maketx ERROR: Unknown --fixnan mode " << " fixnan\n";
-        return false;
-    }
-    int pixelsFixed = 0;
-    if (! ImageBufAlgo::fixNonFinite (*src, fixmode, &pixelsFixed)) {
-        outstream << "maketx ERROR: Error fixing nans/infs.\n";
-        return false;
-    }
-    if (verbose && pixelsFixed)
-        outstream << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
-    // FIXME -- we'd like to not call fixNonFinite if fixnan mode is
-    // "none", or if we did the checknan and found no NaNs.  But deep
-    // inside fixNonFinite, it forces a full read into local mem of any
-    // cached images, and that affects performance. Come back to this
-    // and solve later.
 
     double misc_time_2 = alltime.lap();
     STATUS ("misc2", misc_time_2);

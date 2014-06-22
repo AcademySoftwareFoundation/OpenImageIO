@@ -56,7 +56,7 @@ ifeq ($(SP_OS), spinux1)
 
     ## custom compiler: clang
     ifeq (${LLVM_DIRECTORY},)
-        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.4
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.4.1
     endif
 
     ## default compiler is clang

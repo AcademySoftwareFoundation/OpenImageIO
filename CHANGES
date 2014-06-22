@@ -22,11 +22,14 @@ Fixes, minor enhancements, and performance improvements:
       Imf::isDeepData() which apparently was not intended to be an
       externally-visible function. (1.5.0/1.4.9) (#875)
 * JPEG: Fix broken recognition of .jfi extension. (#876)
+* RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * Fixed some alloca calls that did not get the right amount of memory.
   (#866) (1.5.0/1.4.9)
 * Fix an off-by-one loop in IBA::resize that would not get the wrong
   image result, but might trigger debuggers to flag it as touching the
   wrong memory. (#868) (1.5.0/1.4.9)
+* maketx: Fix case typo for LatLong env map creation when in 'prman'
+  mode (#877). (1.5.1/1.4.10)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -46,12 +49,33 @@ Build/test system improvements:
 * Fix Windows build when OIIO_STATIC_BUILD is used. (#872) (1.5.0/1.4.9)
 * Fixes to get a clean compile on Windows + MSVC 9. (#859) (1.5.0/1.4.8)
 * Fixes to get a clean compile on Windows + MSVC 9. (#872) (1.5.0/1.4.9)
+* Make 3.0 compatibility fixes on OSX. (1.5.1/1.4.10)
 
 Developer goodies / internals:
+* New Strutil string comparison functions: starts_with, ends_with.
+  (1.5.1/1.4.10)
+* New Strutil simple parsing functions: skip_whitespace, parse_char,
+  parse_until_char, parse_prefix, parse_int, parse_float, parse_string,
+  parse_word, parse_identifier, parse_until. (1.5.1/1.4.10)
+* New Filesystem functions: create_directory, copy, remove, remove_all,
+  temp_directory_path, unique_path. (1.5.1/1.4.10)
 
 
 
 
+
+Release 1.4.10 (20 Jun 2014 -- compared to 1.4.9)
+-------------------------------------------------
+* Fix for portrait-orientation RAW image reads. (#878)
+* maketx: Fix case typo for LatLong env map creation when in 'prman'
+  mode (#877).
+* New Strutil string comparison functions: starts_with, ends_with.
+* Make 3.0 compatibility fixes on OSX.
+* New Strutil simple parsing functions: skip_whitespace, parse_char,
+  parse_until_char, parse_prefix, parse_int, parse_float, parse_string,
+  parse_word, parse_identifier, parse_until.
+* New Filesystem functions: create_directory, copy, remove, remove_all,
+  temp_directory_path, unique_path.
 
 Release 1.4.9 (6 Jun 2014 -- compared to 1.4.8)
 -----------------------------------------------

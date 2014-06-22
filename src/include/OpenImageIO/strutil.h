@@ -190,13 +190,15 @@ strhash (string_view s)
 /// a static locale that doesn't require a mutex.
 bool OIIO_API iequals (string_view a, string_view b);
 
+/// Does 'a' start with the string 'b', with a case-sensitive comparison?
+bool OIIO_API starts_with (string_view a, string_view b);
+
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
 bool OIIO_API istarts_with (string_view a, string_view b);
 
-/// Does 'a' end with the string 'b', with a case-insensitive comparison?
-/// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API iends_with (string_view a, string_view b);
+/// Does 'a' end with the string 'b', with a case-sensitive comparison?
+bool OIIO_API ends_with (string_view a, string_view b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
@@ -373,6 +375,74 @@ OIIO_API char * safe_strcpy (char *dst, const char *src, size_t size);
 inline char * safe_strcpy (char *dst, const std::string &src, size_t size) {
     return safe_strcpy (dst, src.length() ? src.c_str() : NULL, size);
 }
+
+
+
+/// Modify str to trim any whitespace (space, tab, linefeed, cr) from the
+/// front.
+void OIIO_API skip_whitespace (string_view &str);
+
+/// If str's first character is c (or first non-whitespace char is c, if
+/// skip_whitespace is true), return true and additionally modify str to
+/// skip over that first character if eat is also true. Otherwise, if str
+/// does not begin with character c, return false and don't modify str.
+bool OIIO_API parse_char (string_view &str, char c,
+                          bool skip_whitespace = true, bool eat=true);
+
+/// Modify str to trim all characters up to (but not including) the first
+/// occurrence of c, and return true if c was found or false if the whole
+/// string was trimmed without ever finding c. But if eat is false, then
+/// don't modify str, just return true if any c is found, false if no c
+/// is found.
+bool OIIO_API parse_until_char (string_view &str, char c, bool eat=true);
+
+/// If str's first non-whitespace characters are the prefix, return true and
+/// additionally modify str to skip over that prefix if eat is also true.
+/// Otherwise, if str doesn't start with optional whitespace and the prefix,
+/// return false and don't modify str.
+bool OIIO_API parse_prefix (string_view &str, string_view prefix, bool eat=true);
+
+/// If str's first non-whitespace characters form a valid integer, return
+/// true, place the integer's value in val, and additionally modify str to
+/// skip over the parsed integer if eat is also true. Otherwise, if no
+/// integer is found at the beginning of str, return false and don't modify
+/// val or str.
+bool OIIO_API parse_int (string_view &str, int &val, bool eat=true);
+
+/// If str's first non-whitespace characters form a valid float, return
+/// true, place the float's value in val, and additionally modify str to
+/// skip over the parsed float if eat is also true. Otherwise, if no float
+/// is found at the beginning of str, return false and don't modify val or
+/// str.
+bool OIIO_API parse_float (string_view &str, float &val, bool eat=true);
+
+/// If str's first non-whitespace characters form a valid string (either a
+/// single word weparated by whitespace or anything inside a double-quoted
+/// string (""), return true, place the string's value (not including
+/// surrounding double quotes) in val, and additionally modify str to skip
+/// over the parsed string if eat is also true. Otherwise, if no string is
+/// found at the beginning of str, return false and don't modify val or str.
+bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true);
+
+/// Return the first "word" (set of contiguous alphabetical characters) in
+/// str, and additionally modify str to skip over the parsed word if eat is
+/// also true. Otherwise, if no word is found at the beginning of str,
+/// return an empty string_view and don't modify str.
+string_view OIIO_API parse_word (string_view &str, bool eat=true);
+
+/// If str's first non-whitespace characters form a valid C-like identifier,
+/// return the identifier, and additionally modify str to skip over the
+/// parsed identifier if eat is also true. Otherwise, if no identifier is
+/// found at the beginning of str, return an empty string_view and don't
+/// modify str.
+string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
+
+/// Return the characters until any character in sep is found, storing it in
+/// str, and additionally modify str to skip over the parsed section if eat
+/// is also true. Otherwise, if no word is found at the beginning of str,
+/// return an empty string_view and don't modify str.
+string_view OIIO_API parse_until (string_view &str,
+                                  string_view sep=" \t\r\n", bool eat=true);
 
 
 }  // namespace Strutil

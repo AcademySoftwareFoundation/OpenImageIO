@@ -284,6 +284,91 @@ Filesystem::is_regular (const std::string &path)
 
 
 
+bool
+Filesystem::create_directory (string_view path, std::string &err)
+{
+    boost::system::error_code ec;
+    bool ok = boost::filesystem::create_directory (path.str(), ec);
+    if (ok)
+        err.clear();
+    else
+        err = ec.message();
+    return ok;
+}
+
+
+bool
+Filesystem::copy (string_view from, string_view to, std::string &err)
+{
+    boost::system::error_code ec;
+    boost::filesystem::copy (from.str(), to.str(), ec);
+    if (ec) {
+        err.clear();
+        return true;
+    } else {
+        err = ec.message();
+        return false;
+    }
+}
+
+
+
+bool
+Filesystem::remove (string_view path, std::string &err)
+{
+    boost::system::error_code ec;
+    bool ok = boost::filesystem::remove (path.str(), ec);
+    if (ok)
+        err.clear();
+    else
+        err = ec.message();
+    return ok;
+}
+
+
+
+bool
+Filesystem::remove_all (string_view path, std::string &err)
+{
+    boost::system::error_code ec;
+    bool ok = boost::filesystem::remove_all (path.str(), ec);
+    if (ok)
+        err.clear();
+    else
+        err = ec.message();
+    return ok;
+}
+
+
+
+std::string
+Filesystem::temp_directory_path()
+{
+    boost::system::error_code ec;
+    boost::filesystem::path p = boost::filesystem::temp_directory_path (ec);
+#if BOOST_FILESYSTEM_VERSION == 3
+    return ec ? std::string() : p.string();
+#else
+    return ec ? std::string() : p;
+#endif
+}
+
+
+
+std::string
+Filesystem::unique_path (string_view model)
+{
+    boost::system::error_code ec;
+    boost::filesystem::path p = boost::filesystem::unique_path (model.str(), ec);
+#if BOOST_FILESYSTEM_VERSION == 3
+    return ec ? std::string() : p.string();
+#else
+    return ec ? std::string() : p;
+#endif
+}
+
+
+
 FILE*
 Filesystem::fopen (string_view path, string_view mode)
 {

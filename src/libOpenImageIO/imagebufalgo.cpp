@@ -1199,15 +1199,9 @@ namespace { // anon
 static mutex ft_mutex;
 static FT_Library ft_library = NULL;
 static bool ft_broken = false;
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-const char *default_font_name = "cour";
-#elif defined (__APPLE__)
-const char *default_font_name = "Courier New";
-#elif defined (_WIN32)
-const char *default_font_name = "cour";
-#else
-const char *default_font_name = "cour";
-#endif
+static const char * default_font_name[] = {
+        "cour", "Courier New", "FreeMono", NULL
+     };
 } // anon namespace
 #endif
 
@@ -1262,20 +1256,36 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 
     // Try to find the font.  Experiment with several extensions
     std::string font = font_;
-    if (font.empty())
-        font = default_font_name;
-    if (! Filesystem::is_regular (font)) {
-        // Font specified is not a full path
+    if (font.empty()) {
+        // nothing specified -- look for something to use as a default.
+        for (int j = 0;  default_font_name[j] && font.empty(); ++j) {
+            static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
+            for (int i = 0;  font.empty() && extensions[i];  ++i)
+                font = Filesystem::searchpath_find (std::string(default_font_name[j])+extensions[i],
+                                                 search_dirs, true, true);
+        }
+        if (font.empty()) {
+            R.error ("Could not set default font face");
+            return false;
+        }
+    } else if (Filesystem::is_regular (font)) {
+        // directly specified a filename -- use it
+    } else {
+        // A font name was specified but it's not a full path, look for it
         std::string f;
         static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
         for (int i = 0;  f.empty() && extensions[i];  ++i)
             f = Filesystem::searchpath_find (font+extensions[i],
                                              search_dirs, true, true);
-        if (! f.empty())
-            font = f;
+        if (f.empty()) {
+            R.error ("Could not set font face to \"%s\"", font);
+            return false;
+        }
+        font = f;
     }
 
-    if (font.empty() || ! Filesystem::is_regular (font)) {
+    ASSERT (! font.empty());
+    if (! Filesystem::is_regular (font)) {
         R.error ("Could not find font \"%s\"", font);
         return false;
     }

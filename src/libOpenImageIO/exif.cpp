@@ -164,7 +164,7 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT, 1 },
     { EXIFTAG_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG, 1 },
     { EXIFTAG_PIXELYDIMENSION,	"Exif:PixelYDimension",	TIFF_LONG, 1 },
-    { EXIFTAG_RELATEDSOUNDFILE,	"Exif:RelatedSoundFile", TIFF_NOTYPE, 1 },	// skip
+    { EXIFTAG_RELATEDSOUNDFILE,	"Exif:RelatedSoundFile", TIFF_ASCII, 0 },
     { EXIFTAG_FLASHENERGY,	"Exif:FlashEnergy",	TIFF_RATIONAL, 1 },
     { EXIFTAG_SPATIALFREQUENCYRESPONSE,	"Exif:SpatialFrequencyResponse",	TIFF_NOTYPE, 1 },
     { EXIFTAG_FOCALPLANEXRESOLUTION,	"Exif:FocalPlaneXResolution",	TIFF_RATIONAL, 1 },
@@ -189,12 +189,20 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE, 1 },
     { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT, 1 },
     { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",   TIFF_ASCII, 0 },
+    { 34855,                    "Exif:PhotographicSensitivity",  TIFF_SHORT, 1 },
+    { 34864,                    "Exif:SensitivityType",  TIFF_SHORT, 1 },
+    { 34865,                    "Exif:StandardOutputSensitivity", TIFF_LONG, 1 },
+    { 34866,                    "Exif:RecommendedExposureIndex", TIFF_LONG, 1 },
+    { 34867,                    "Exif:ISOSpeed", TIFF_LONG, 1 },
+    { 34868,                    "Exif:ISOSpeedLatitudeyyy", TIFF_LONG, 1 },
+    { 34869,                    "Exif:ISOSpeedLatitudezzz", TIFF_LONG, 1 },
     { 42032,                    "Exif:CameraOwnerName",  TIFF_ASCII, 0 },
     { 42033,                    "Exif:BodySerialNumber", TIFF_ASCII, 0 },
-    { 42034,                    "Exif:LensSpecification",TIFF_RATIONAL, 1 },
+    { 42034,                    "Exif:LensSpecification",TIFF_RATIONAL, 4 },
     { 42035,                    "Exif:LensMake",         TIFF_ASCII, 0 },
     { 42036,                    "Exif:LensModel",        TIFF_ASCII, 0 },
     { 42037,                    "Exif:LensSerialNumber", TIFF_ASCII, 0 },
+    { 42240,                    "Exif:Gamma", TIFF_RATIONAL, 0 },
     { -1, NULL }  // signal end of table
 };
 
@@ -281,6 +289,11 @@ public:
     const EXIF_tag_info * find (int tag) const {
         tagmap_t::const_iterator i = m_tagmap.find (tag);
         return i == m_tagmap.end() ? NULL : i->second;
+    }
+
+    const EXIF_tag_info * find (const std::string &name) const {
+        namemap_t::const_iterator i = m_namemap.find (name);
+        return i == m_namemap.end() ? NULL : i->second;
     }
 
     const char * name (int tag) const {
@@ -991,6 +1004,21 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     }
 #endif
 #endif
+}
+
+
+
+bool
+exif_tag_lookup (string_view name, int &tag, int &tifftype, int &count)
+{
+    const EXIF_tag_info *e = exif_tagmap.find (name);
+    if (! e)
+        return false;  // not found
+
+    tag = e->tifftag;
+    tifftype = e->tifftype;
+    count = e->tiffcount;
+    return true;
 }
 
 

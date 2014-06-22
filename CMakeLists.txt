@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 5)
-set (OIIO_VERSION_PATCH 0)
+set (OIIO_VERSION_PATCH 1)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
@@ -40,14 +40,14 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif ()
 message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set (CMAKE_COMPILER_IS_CLANG 1)
     message (STATUS "Using clang as the compiler")
 endif ()
 # Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
 # appears to be unreliable and may say "GNU" despite using clang, so
 # directly match against the compiler name.
-if ("${CMAKE_CXX_COMPILER}" MATCHES ".*clang.*")
+if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
     set (CMAKE_COMPILER_IS_CLANG 1)
     message (STATUS "The compiler seems to be clang")
 endif ()
