@@ -78,6 +78,7 @@ public:
     bool output_autotrim;
     bool output_dither;
     bool output_force_tiles; // for debugging
+    bool metadata_nosoftwareattrib;
 
     // Options for --diff
     float diff_warnthresh;

@@ -110,6 +110,7 @@ Oiiotool::clear_options ()
     output_autotrim = false;
     output_dither = false;
     output_force_tiles = false;
+    metadata_nosoftwareattrib = false;
     diff_warnthresh = 1.0e-6f;
     diff_warnpercent = 0;
     diff_hardwarn = std::numeric_limits<float>::max();
@@ -418,18 +419,22 @@ adjust_output_options (string_view filename,
         ot.output_planarconfig == "separate")
         spec.attribute ("planarconfig", ot.output_planarconfig);
 
-    // Append command to image history
-    std::string history = spec.get_string_attribute ("Exif:ImageHistory");
-    if (! Strutil::iends_with (history, ot.full_command_line)) { // don't add twice
-        if (history.length() && ! Strutil::iends_with (history, "\n"))
-            history += std::string("\n");
-        history += ot.full_command_line;
-        spec.attribute ("Exif:ImageHistory", history);
-    }
+    // Append command to image history.  Sometimes we may not want to recite the
+    // entire command line (eg. when we have loaded it up with metadata attributes
+    // that will make it into the header anyway).
+    if (! ot.metadata_nosoftwareattrib) {
+        std::string history = spec.get_string_attribute ("Exif:ImageHistory");
+        if (! Strutil::iends_with (history, ot.full_command_line)) { // don't add twice
+            if (history.length() && ! Strutil::iends_with (history, "\n"))
+                history += std::string("\n");
+            history += ot.full_command_line;
+            spec.attribute ("Exif:ImageHistory", history);
+        }
 
-    std::string software = Strutil::format ("OpenImageIO %s : %s",
-                                   OIIO_VERSION_STRING, ot.full_command_line);
-    spec.attribute ("Software", software);
+        std::string software = Strutil::format ("OpenImageIO %s : %s",
+                                       OIIO_VERSION_STRING, ot.full_command_line);
+        spec.attribute ("Software", software);
+    }
 
     if (ot.output_dither) {
         int h = (int) Strutil::strhash(filename);
@@ -3426,6 +3431,7 @@ getargs (int argc, char *argv[])
                 "--caption %@ %s", set_caption, NULL, "Sets caption (ImageDescription metadata)",
                 "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
                 "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",
+                "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
                 "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
                 "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
                 "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
