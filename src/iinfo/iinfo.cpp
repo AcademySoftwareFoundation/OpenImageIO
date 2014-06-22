@@ -195,6 +195,8 @@ print_stats (const std::string &filename,
     
     if (! computePixelStats (stats, input)) {
         printf ("%sStats: (unable to compute)\n", indent);
+        if (input.has_error())
+            std::cerr << "Error: " << input.geterror() << "\n";
         return;
     }
     

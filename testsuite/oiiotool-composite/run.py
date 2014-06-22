@@ -5,8 +5,7 @@
 
 
 # test over
-command += (oiio_app("oiiotool") 
-            + " a.exr --over b.exr -o a_over_b.exr >> out.txt ;\n")
+command += oiiotool ("a.exr --over b.exr -o a_over_b.exr")
 
 # FIXME: no test for zover
 
