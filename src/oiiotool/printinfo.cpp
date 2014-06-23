@@ -175,8 +175,6 @@ read_input (const std::string &filename, ImageBuf &img,
         img.read (subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 
-    std::cerr << "oiiotool ERROR: Could not read " << filename << ":\n\t"
-              << img.geterror() << "\n";
     return false;
 }
 
@@ -246,7 +244,8 @@ print_stats_footer (unsigned int maxval)
 
 
 static void
-print_stats (const std::string &filename,
+print_stats (Oiiotool &ot,
+             const std::string &filename,
              const ImageSpec &originalspec,
              int subimage=0, int miplevel=0, bool indentmip=false)
 {
@@ -254,13 +253,13 @@ print_stats (const std::string &filename,
     ImageBuf input;
     
     if (! read_input (filename, input, subimage, miplevel)) {
-        std::cerr << "Stats: read error: " << input.geterror() << "\n";
+        ot.error ("stats", input.geterror());
         return;
     }
     
     PixelStats stats;
     if (! computePixelStats (stats, input)) {
-        printf ("%sStats: (unable to compute)\n", indent);
+        ot.error ("stats", "unable to compute");
         return;
     }
     
@@ -538,7 +537,8 @@ extended_format_name (TypeDesc type, int bits)
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
-print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
+print_info_subimage (Oiiotool &ot,
+                     int current_subimage, int max_subimages, ImageSpec &spec,
                      ImageInput *input, const std::string &filename,
                      const print_info_options &opt,
                      boost::regex &field_re, boost::regex &field_exclude_re)
@@ -612,7 +612,7 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
             }
-            print_stats (filename, spec, current_subimage, m, nmip>1);
+            print_stats (ot, filename, spec, current_subimage, m, nmip>1);
         }
     }
 
@@ -623,7 +623,8 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
 
 
 bool
-OiioTool::print_info (const std::string &filename, 
+OiioTool::print_info (Oiiotool &ot,
+                      const std::string &filename, 
                       const print_info_options &opt,
                       long long &totalsize,
                       std::string &error)
@@ -739,7 +740,7 @@ OiioTool::print_info (const std::string &filename,
     if ( ! opt.subimages)
         num_of_subimages = 1;
     for (int i = 0; i < num_of_subimages; ++i) {
-        print_info_subimage (i, num_of_subimages, spec, input,
+        print_info_subimage (ot, i, num_of_subimages, spec, input,
                              filename, opt, field_re, field_exclude_re);
     }
 
