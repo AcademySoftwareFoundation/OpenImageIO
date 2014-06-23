@@ -226,13 +226,24 @@ Oiiotool::process_pending ()
 
 
 void
-Oiiotool::error (const std::string &command, const std::string &explanation)
+Oiiotool::error (string_view command, string_view explanation)
 {
     std::cerr << "oiiotool ERROR: " << command;
     if (explanation.length())
         std::cerr << " (" << explanation << ")";
     std::cerr << "\n";
     exit (-1);
+}
+
+
+
+void
+Oiiotool::warning (string_view command, string_view explanation)
+{
+    std::cerr << "oiiotool WARNING: " << command;
+    if (explanation.length())
+        std::cerr << " (" << explanation << ")";
+    std::cerr << "\n";
 }
 
 
@@ -341,7 +352,7 @@ input_file (int argc, const char *argv[])
             pio.nometamatch = ot.printinfo_nometamatch;
             long long totalsize = 0;
             std::string error;
-            bool ok = OiioTool::print_info (argv[i], pio, totalsize, error);
+            bool ok = OiioTool::print_info (ot, argv[i], pio, totalsize, error);
             if (! ok)
                 ot.error ("read", error);
         }
@@ -502,19 +513,18 @@ output_file (int argc, const char *argv[])
     ot.total_writetime.start();
     std::string filename = argv[1];
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: -o " << filename << " did not have any current image to output.\n";
+        ot.warning ("output", filename + " did not have any current image to output.");
         return 0;
     }
     if (ot.noclobber && Filesystem::exists(filename)) {
-        std::cerr << "oiiotool ERROR: Output file \"" << filename 
-                  << "\" already exists, not overwriting.\n";
+        ot.warning ("output", filename + " already exists, not overwriting.");
         return 0;
     }
     if (ot.verbose)
         std::cout << "Writing " << argv[1] << "\n";
     ImageOutput *out = ImageOutput::create (filename.c_str());
     if (! out) {
-        std::cerr << "oiiotool ERROR: " << geterror() << "\n";
+        ot.error ("output", OIIO::geterror());
         return 0;
     }
     bool supports_displaywindow = out->supports ("displaywindow");
@@ -606,18 +616,16 @@ output_file (int argc, const char *argv[])
                 } else if (out->supports("multiimage")) {
                     mode = ImageOutput::AppendSubimage;
                 } else {
-                    std::cout << "oiiotool WARNING: " << out->format_name() 
-                              << " does not support MIP-maps for " 
-                              << filename << "\n";
+                    ot.warning ("output", Strutil::format ("%s does not support MIP-maps for %s",
+                                                           out->format_name(), filename));
                     break;
                 }
             }
         }
         mode = ImageOutput::AppendSubimage;  // for next subimage
         if (send > 1 && ! out->supports("multiimage")) {
-            std::cout << "oiiotool WARNING: " << out->format_name() 
-                      << " does not support multiple subimages for " 
-                      << filename << "\n";
+            ot.warning ("output", Strutil::format ("%s does not support multiple subimages for %s",
+                                                   out->format_name(), filename));
             break;
         }
     }
@@ -685,7 +693,7 @@ set_string_attribute (int argc, const char *argv[])
 {
     ASSERT (argc == 3);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
     set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2]);
@@ -699,7 +707,7 @@ set_any_attribute (int argc, const char *argv[])
 {
     ASSERT (argc == 3);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
     set_attribute (ot.curimg, argv[1], TypeDesc(TypeDesc::UNKNOWN), argv[2]);
@@ -727,7 +735,8 @@ do_set_any_attribute (ImageSpec &spec, const std::pair<std::string,T> &x)
 
 
 bool
-OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
+Oiiotool::adjust_geometry (string_view command,
+                           int &w, int &h, int &x, int &y, const char *geom,
                            bool allow_scaling)
 {
     float scale = 1.0f;
@@ -766,8 +775,7 @@ OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
         w = (int)(w * scale + 0.5f);
         h = (int)(h * scale + 0.5f);
     } else {
-        std::cerr << "oiiotool ERROR: Unrecognized geometry \"" 
-                  << geom << "\"\n";
+        error (command, Strutil::format ("Unrecognized geometry \"%s\"", geom));
         return false;
     }
 //    printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
@@ -863,7 +871,7 @@ set_keyword (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
 
@@ -894,7 +902,7 @@ set_orientation (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
     return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1]);
@@ -929,7 +937,7 @@ rotate_orientation (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
     apply_spec_mod (*ot.curimg, do_rotate_orientation, std::string(argv[0]),
@@ -952,9 +960,9 @@ set_origin (int argc, const char *argv[])
     int x = spec.x, y = spec.y, z = spec.z;
     int w = spec.width, h = spec.height, d = spec.depth;
 
-    adjust_geometry (w, h, x, y, argv[1]);
+    ot.adjust_geometry (argv[0], w, h, x, y, argv[1]);
     if (spec.width != w || spec.height != h || spec.depth != d)
-        std::cerr << argv[0] << " can't be used to change the size, only the origin\n";
+        ot.warning (argv[0], "can't be used to change the size, only the origin");
     if (spec.x != x || spec.y != y) {
         ImageBuf &ib = (*A)(0,0);
         if (ib.storage() == ImageBuf::IMAGECACHE) {
@@ -994,7 +1002,7 @@ set_fullsize (int argc, const char *argv[])
     int x = spec.full_x, y = spec.full_y;
     int w = spec.full_width, h = spec.full_height;
 
-    adjust_geometry (w, h, x, y, argv[1]);
+    ot.adjust_geometry (argv[0], w, h, x, y, argv[1]);
     if (spec.full_x != x || spec.full_y != y ||
           spec.full_width != w || spec.full_height != h) {
         spec.full_x = x;
@@ -1107,7 +1115,7 @@ action_tocolorspace (int argc, const char *argv[])
     // Don't time -- let it get accounted by colorconvert
     ASSERT (argc == 2);
     if (! ot.curimg.get()) {
-        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
     const char *args[3] = { argv[0], "current", argv[1] };
@@ -2230,11 +2238,11 @@ action_create (int argc, const char *argv[])
     Timer timer (ot.enable_function_timing);
     int nchans = atoi (argv[2]);
     if (nchans < 1 || nchans > 1024) {
-        std::cout << "Invalid number of channels: " << nchans << "\n";
+        ot.warning (argv[0], Strutil::format ("Invalid number of channels: %d", nchans));
         nchans = 3;
     }
     ImageSpec spec (64, 64, nchans, TypeDesc::FLOAT);
-    adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[1]);
+    ot.adjust_geometry (argv[0], spec.width, spec.height, spec.x, spec.y, argv[1]);
     spec.full_x = spec.x;
     spec.full_y = spec.y;
     spec.full_z = spec.z;
@@ -2261,11 +2269,11 @@ action_pattern (int argc, const char *argv[])
     Timer timer (ot.enable_function_timing);
     int nchans = atoi (argv[3]);
     if (nchans < 1 || nchans > 1024) {
-        std::cout << "Invalid number of channels: " << nchans << "\n";
+        ot.warning (argv[0], Strutil::format ("Invalid number of channels: %d", nchans));
         nchans = 3;
     }
     ImageSpec spec (64, 64, nchans, TypeDesc::FLOAT);
-    adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[2]);
+    ot.adjust_geometry (argv[0], spec.width, spec.height, spec.x, spec.y, argv[2]);
     spec.full_x = spec.x;
     spec.full_y = spec.y;
     spec.full_z = spec.z;
@@ -2323,7 +2331,7 @@ action_kernel (int argc, const char *argv[])
     Timer timer (ot.enable_function_timing);
     int nchans = 1;
     if (nchans < 1 || nchans > 1024) {
-        std::cout << "Invalid number of channels: " << nchans << "\n";
+        ot.warning (argv[0], Strutil::format ("Invalid number of channels: %d", nchans));
         nchans = 3;
     }
 
@@ -2386,8 +2394,8 @@ action_crop (int argc, const char *argv[])
     ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
-    adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1]);
+    ot.adjust_geometry (argv[0], newspec.width, newspec.height,
+                        newspec.x, newspec.y, argv[1]);
     if (newspec.width != Aspec.width || newspec.height != Aspec.height) {
         // resolution changed -- we need to do a full crop
         ot.pop();
@@ -2448,8 +2456,8 @@ action_cut (int argc, const char *argv[])
     ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
-    adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1]);
+    ot.adjust_geometry (argv[0], newspec.width, newspec.height,
+                        newspec.x, newspec.y, argv[1]);
 
     ImageRecRef R (new ImageRec (A->name(), newspec, ot.imagecache));
     const ImageBuf &Aib ((*A)(0,0));
@@ -2481,8 +2489,8 @@ action_resample (int argc, const char *argv[])
     const ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
-    adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1], true);
+    ot.adjust_geometry (argv[0], newspec.width, newspec.height,
+                        newspec.x, newspec.y, argv[1], true);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
         ot.push (A);  // Restore the original image
         return 0;  // nothing to do
@@ -2531,8 +2539,8 @@ action_resize (int argc, const char *argv[])
     const ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
-    adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1], true);
+    ot.adjust_geometry (argv[0], newspec.width, newspec.height,
+                        newspec.x, newspec.y, argv[1], true);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
         ot.push (A);  // Restore the original image
         return 0;  // nothing to do
@@ -2584,8 +2592,8 @@ action_fit (int argc, const char *argv[])
     int fit_full_height = Aspec->full_height;
     int fit_full_x = Aspec->full_x;
     int fit_full_y = Aspec->full_y;
-    adjust_geometry (fit_full_width, fit_full_height, fit_full_x, fit_full_y,
-                     argv[1], false);
+    ot.adjust_geometry (argv[0], fit_full_width, fit_full_height,
+                        fit_full_x, fit_full_y, argv[1], false);
 
     std::map<std::string,std::string> options;
     extract_options (options, argv[0]);
@@ -2875,7 +2883,7 @@ action_fixnan (int argc, const char *argv[])
     else if (!strcmp(argv[1], "box3"))
         mode = NONFINITE_BOX3;
     else {
-        std::cerr << "--fixnan argument \"" << argv[1] << "\" not recognized. Valid choices: black, box3\n";
+        ot.warning (argv[0], Strutil::format ("\"%s\" not recognized. Valid choices: black, box3.", argv[1]));
     }
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -3131,7 +3139,7 @@ action_fill (int argc, const char *argv[])
 
     int w = Rib.spec().width, h = Rib.spec().height;
     int x = Rib.spec().x, y = Rib.spec().y;
-    if (! adjust_geometry (w, h, x, y, argv[1], true)) {
+    if (! ot.adjust_geometry (argv[0], w, h, x, y, argv[1], true)) {
         return 0;
     }
 
@@ -3362,7 +3370,7 @@ action_histogram (int argc, const char *argv[])
     // Extract bins and height from size.
     int bins = 0, height = 0;
     if (sscanf (size, "%dx%d", &bins, &height) != 2) {
-        std::cerr << "Invalid size" << "\n";
+        ot.error (argv[0], Strutil::format ("Invalid size: %s", size));
         return -1;
     }
 
@@ -3801,10 +3809,8 @@ handle_sequence (int argc, const char **argv)
         getargs (argc, (char **)&seq_argv[0]);
 
         ot.process_pending ();
-        if (ot.pending_callback()) {
-            std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
-                      << "' command never executed.\n";
-        }
+        if (ot.pending_callback())
+            ot.warning (Strutil::format ("pending '%s' command never executed", ot.pending_callback_name()));
         // Clear the stack at the end of each iteration
         ot.curimg.reset ();
         ot.image_stack.clear();
@@ -3845,10 +3851,8 @@ main (int argc, char *argv[])
         // Not a sequence
         getargs (argc, argv);
         ot.process_pending ();
-        if (ot.pending_callback()) {
-            std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
-                      << "' command never executed.\n";
-        }
+        if (ot.pending_callback())
+            ot.warning (Strutil::format ("pending '%s' command never executed", ot.pending_callback_name()));
     }
 
     if (ot.runstats) {

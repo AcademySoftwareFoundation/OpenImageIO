@@ -151,7 +151,18 @@ public:
 
     ImageRecRef top () { return curimg; }
 
-    void error (const std::string &command, const std::string &explanation="");
+    // Modify the resolution and/or offset according to what's in geom.
+    // Valid geometries are WxH (resolution), +X+Y (offsets), WxH+X+Y
+    // (resolution and offset).  If 'allow_scaling' is true, geometries of
+    // S% (e.g. "50%") or just S (e.g., "1.2") will be accepted to scale the
+    // existing width and height (rounding to the nearest whole number of
+    // pixels.
+    bool adjust_geometry (string_view command,
+                          int &w, int &h, int &x, int &y, const char *geom,
+                          bool allow_scaling=false);
+
+    void error (string_view command, string_view explanation="");
+    void warning (string_view command, string_view explanation="");
 
 private:
     CallbackFunction m_pending_callback;
@@ -364,19 +375,10 @@ struct print_info_options {
 // of the uncompressed pixels in the file is returned in totalsize.  The
 // return value will be true if everything is ok, or false if there is
 // an error (in which case the error message will be stored in 'error').
-bool print_info (const std::string &filename, 
+bool print_info (Oiiotool &ot, const std::string &filename, 
                  const print_info_options &opt,
                  long long &totalsize, std::string &error);
 
-
-// Modify the resolution and/or offset according to what's in geom.
-// Valid geometries are WxH (resolution), +X+Y (offsets), WxH+X+Y
-// (resolution and offset).  If 'allow_scaling' is true, geometries of
-// S% (e.g. "50%") or just S (e.g., "1.2") will be accepted to scale the
-// existing width and height (rounding to the nearest whole number of
-// pixels.
-bool adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
-                      bool allow_scaling=false);
 
 // Set an attribute of the given image.  The type should be one of
 // TypeDesc::INT (decode the value as an int), FLOAT, STRING, or UNKNOWN
