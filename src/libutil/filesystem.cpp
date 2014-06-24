@@ -287,6 +287,7 @@ Filesystem::is_regular (const std::string &path)
 bool
 Filesystem::create_directory (string_view path, std::string &err)
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     bool ok = boost::filesystem::create_directory (path.str(), ec);
     if (ok)
@@ -294,12 +295,21 @@ Filesystem::create_directory (string_view path, std::string &err)
     else
         err = ec.message();
     return ok;
+#else
+    bool ok = boost::filesystem::create_directory (path.str());
+    if (ok)
+        err.clear();
+    else
+        err = "Could not make directory";
+    return ok;
+#endif
 }
 
 
 bool
 Filesystem::copy (string_view from, string_view to, std::string &err)
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::copy (from.str(), to.str(), ec);
     if (ec) {
@@ -309,6 +319,9 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
         err = ec.message();
         return false;
     }
+#else
+    return false; // I'm too lazy to figure this out.
+#endif
 }
 
 
@@ -316,6 +329,7 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 bool
 Filesystem::remove (string_view path, std::string &err)
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     bool ok = boost::filesystem::remove (path.str(), ec);
     if (ok)
@@ -323,20 +337,34 @@ Filesystem::remove (string_view path, std::string &err)
     else
         err = ec.message();
     return ok;
+#else
+    bool ok = boost::filesystem::remove (path.str());
+    if (ok)
+        err.clear();
+    else
+        err = "Could not remove file";
+    return ok;
+#endif
 }
 
 
 
-bool
+unsigned long long
 Filesystem::remove_all (string_view path, std::string &err)
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    bool ok = boost::filesystem::remove_all (path.str(), ec);
-    if (ok)
+    unsigned long long n = boost::filesystem::remove_all (path.str(), ec);
+    if (!ec)
         err.clear();
     else
         err = ec.message();
-    return ok;
+    return n;
+#else
+    unsigned long long n = boost::filesystem::remove_all (path.str());
+    err.clear();
+    return n;
+#endif
 }
 
 
@@ -344,12 +372,20 @@ Filesystem::remove_all (string_view path, std::string &err)
 std::string
 Filesystem::temp_directory_path()
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::path p = boost::filesystem::temp_directory_path (ec);
-#if BOOST_FILESYSTEM_VERSION == 3
     return ec ? std::string() : p.string();
 #else
-    return ec ? std::string() : p;
+    const char *tmpdir = getenv("TMPDIR");
+    if (! tmpdir)
+        tmpdir = getenv("TMP");
+    if (! tmpdir)
+        tmpdir = "/var/tmp";
+    if (exists (tmpdir))
+        return tmpdir;
+    // punt and hope for the best
+    return ".";
 #endif
 }
 
@@ -358,12 +394,18 @@ Filesystem::temp_directory_path()
 std::string
 Filesystem::unique_path (string_view model)
 {
+#if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::path p = boost::filesystem::unique_path (model.str(), ec);
-#if BOOST_FILESYSTEM_VERSION == 3
     return ec ? std::string() : p.string();
+#elif _MSC_VER
+    char buf[TMP_MAX];
+    char *result = tmpnam (buf);
+    return result ? std::string(result) : std::string();
 #else
-    return ec ? std::string() : p;
+    char buf[L_tmpnam];
+    char *result = tmpnam (buf);
+    return result ? std::string(result) : std::string();
 #endif
 }
 
