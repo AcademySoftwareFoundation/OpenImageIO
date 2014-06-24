@@ -169,10 +169,10 @@ inline bool remove (string_view path) {
 }
 
 /// Remove the file or directory, including any children (recursively).
-/// Return true for success, false for failure and place an error message in
-/// err.
-OIIO_API bool remove_all (string_view path, std::string &err);
-inline bool remove_all (string_view path) {
+/// Return the number of files removed.  Place an error message (if
+/// applicable in err.
+OIIO_API unsigned long long remove_all (string_view path, std::string &err);
+inline unsigned long long remove_all (string_view path) {
     std::string err;
     return remove_all (path, err);
 }
