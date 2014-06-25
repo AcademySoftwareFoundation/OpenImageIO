@@ -51,6 +51,8 @@ an example:
 \smallskip
 
 \subsubsection*{Frame sequences}
+\index{frame sequences}\index{wildcard}
+\index{numeric frame sequence wildcards}
 
 It is also possible to have \oiiotool operate on numbered sequences of
 images.  In effect, this will execute the \oiiotool command several
@@ -105,6 +107,23 @@ Alternately, you can use the {\cf printf} notation, such as
 \begin{code}
     oiiotool --frames 3,4,10-20x2 blah.%03d.tif
 \end{code}
+
+\NEW % 1.5
+Two special command line arguments can be used to disable numeric wildcard
+expansion: {\cf --wildcardoff} disables numeric wildcard expansion for
+subsequent command line arguments, until {\cf --wildcardon} re-enables
+it for subsequent command line arguments. Turning wildcard expansion off
+for selected arguments can be helpful if you have arguments that must 
+contain the wildcard characters themselves. For example:
+
+\begin{code}
+    oiiotool input.@@@.tif --wildcardoff --sattrib Caption "lg@openimageio.org" \
+        --wildcardon -o output.@@@.tif
+\end{code}
+
+\noindent In this example, the `{\cf @}' characters in the filenames should
+be expanded into numeric file sequence wildcards, but the `{\cf @}' in the
+caption (denoting an email address) should not.
 
 \subsubsection*{Stereo wildcards}
 
@@ -673,6 +692,19 @@ For example,
 {\cf blah.010.tif}, {\cf blah.012.tif}, 
 {\cf blah.014.tif}, {\cf blah.016.tif}, {\cf blah.018.tif}, 
 {\cf blah.020.tif}.
+\apiend
+
+\apiitem{--views \emph{name1,name2,...}}
+Supplies a comma-separated list of view names (substituted for {\cf \%V}
+and {\cf \%v}). If not supplied, the view list will be {\cf left,right}.
+\apiend
+
+\apiitem{--wildcardoff \\
+--wildcardon}
+\NEW % 1.5
+Turns off (or on) numeric wildcard expansion for subsequent command
+line arguments. This can be useful in selectively disabling numeric wildcard
+expansion for a subset of the command line.
 \apiend
 
 \begin{comment}
