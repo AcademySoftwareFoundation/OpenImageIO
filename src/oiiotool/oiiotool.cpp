@@ -3405,6 +3405,8 @@ getargs (int argc, char *argv[])
                 "--frames %s", NULL, "Frame range for '#' or printf-style wildcards",
                 "--framepadding %d", NULL, "Frame number padding digits (ignored when using printf-style wildcards)",
                 "--views %s", NULL, "Views for %V/%v wildcards (comma-separated, defaults to left,right)",
+                "--wildcardoff", NULL, "Disable numeric wildcard expansion for subsequent command line arguments",
+                "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
@@ -3652,6 +3654,7 @@ handle_sequence (int argc, const char **argv)
     std::vector<int> sequence_args;  // Args with sequence numbers
     std::vector<bool> sequence_is_output;
     bool is_sequence = false;
+    bool wildcard_on = true;
     for (int a = 1;  a < argc;  ++a) {
         bool is_output = false;
         if (! strcmp (argv[a], "-o") && a < argc-1) {
@@ -3660,21 +3663,29 @@ handle_sequence (int argc, const char **argv)
         }
         std::string strarg (argv[a]);
         boost::match_results<std::string::const_iterator> range_match;
-        if (boost::regex_search (strarg, range_match, sequence_re)) {
-            is_sequence = true;
-            sequence_args.push_back (a);
-            sequence_is_output.push_back (is_output);
-        }
-        if (! strcmp (argv[a], "--frames") && a < argc-1) {
+        if ((strarg == "--frames" || strarg == "-frames") && a < argc-1) {
             framespec = argv[++a];
         }
-        else if (! strcmp (argv[a], "--framepadding") && a < argc-1) {
+        else if ((strarg == "--framepadding" || strarg == "-framepadding")
+                 && a < argc-1) {
             int f = atoi (argv[++a]);
             if (f >= 1 && f < 10)
                 framepadding = f;
         }
-        else if (! strcmp (argv[a], "--views") && a < argc-1) {
+        else if ((strarg == "--views" || strarg == "-views") && a < argc-1) {
             Strutil::split (argv[++a], views, ",");
+        }
+        else if (strarg == "--wildcardoff" || strarg == "-wildcardoff") {
+            wildcard_on = false;
+        }
+        else if (strarg == "--wildcardon" || strarg == "-wildcardon") {
+            wildcard_on = true;
+        }
+        else if (wildcard_on &&
+                 boost::regex_search (strarg, range_match, sequence_re)) {
+            is_sequence = true;
+            sequence_args.push_back (a);
+            sequence_is_output.push_back (is_output);
         }
     }
 
