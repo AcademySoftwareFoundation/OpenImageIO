@@ -38,6 +38,14 @@
 // Documentation: 
 // http://www.libraw.org/docs
 
+#ifndef log2f
+#include <math.h>    
+float log2f(float n)
+{
+    return (float) log(n)/log(2.0f);
+}
+#endif
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class RawInput : public ImageInput {
