@@ -220,7 +220,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 #ifdef NOTHREADS
     int r = *at;  *at += x;  return r;
 #elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_fetch_add ((int *)at, x, __ATOMIC_SEQ_CST);
+    return __atomic_fetch_add (at, x, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add ((int *)at, x);
 #elif defined(_MSC_VER)
@@ -239,7 +239,7 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 #ifdef NOTHREADS
     long long r = *at;  *at += x;  return r;
 #elif defined(OIIO_USE_GCC_NEW_ATOMICS)
-    return __atomic_fetch_add ((int *)at, x, __ATOMIC_SEQ_CST);
+    return __atomic_fetch_add (at, x, __ATOMIC_SEQ_CST);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add (at, x);
 #elif defined(_MSC_VER)
