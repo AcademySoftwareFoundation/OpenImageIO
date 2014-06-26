@@ -29,22 +29,16 @@
 */
 
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/fmath.h"
 #include <iostream>
 #include <time.h>       /* time_t, struct tm, gmtime */
 #include <libraw/libraw.h>
+
 
 // This plugin utilises LibRaw:
 // http://www.libraw.org/
 // Documentation: 
 // http://www.libraw.org/docs
-
-#ifndef log2f
-#include <math.h>    
-float log2f(float n)
-{
-    return (float) log(n)/log(2.0f);
-}
-#endif
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
