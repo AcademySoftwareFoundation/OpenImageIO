@@ -29,9 +29,11 @@
 */
 
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/fmath.h"
 #include <iostream>
 #include <time.h>       /* time_t, struct tm, gmtime */
 #include <libraw/libraw.h>
+
 
 // This plugin utilises LibRaw:
 // http://www.libraw.org/
