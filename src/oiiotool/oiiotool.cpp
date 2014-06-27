@@ -1360,6 +1360,13 @@ decode_channel_set (const ImageSpec &spec, std::string chanlist,
                 ch = i;
                 break;
             }
+        if (ch < 0) { // Didn't find a match? Try case-insensitive.
+            for (int i = 0;  i < spec.nchannels;  ++i)
+                if (Strutil::iequals (spec.channelnames[i], onechan)) {
+                    ch = i;
+                    break;
+                }
+        }
         if (ch < 0 && onechan.length() &&
                 (isdigit(onechan[0]) || onechan[0] == '-'))
             ch = atoi (onechan.c_str());  // numeric channel index
