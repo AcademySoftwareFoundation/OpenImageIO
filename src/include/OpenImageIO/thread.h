@@ -308,6 +308,64 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
 
 
 
+/// Atomic version of:  r = *at, *at = x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange (volatile int *at, int x)
+{
+#ifdef NOTHREADS
+    int r = *at;  *at = x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_exchange_n (at, x, __ATOMIC_SEQ_CST);
+#elif defined(USE_GCC_ATOMICS)
+    // No __sync version of atomic exchange! Do it the hard way:
+    while (1) {
+        int old = *at;
+        if (atomic_compare_and_exchange (at, old, x))
+            return old;
+    }
+    return 0; // can never happen
+#elif defined(_MSC_VER)
+    // Windows
+    return _InterlockedExchange ((volatile LONG *)at, x);
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+inline long long
+atomic_exchange (volatile long long *at, long long x)
+{
+#ifdef NOTHREADS
+    long long r = *at;  *at = x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_exchange_n (at, x, __ATOMIC_SEQ_CST);
+#elif defined(USE_GCC_ATOMICS)
+    // No __sync version of atomic exchange! Do it the hard way:
+    while (1) {
+        long long old = *at;
+        if (atomic_compare_and_exchange (at, old, x))
+            return old;
+    }
+    return 0; // can never happen
+#elif defined(_MSC_VER)
+    // Windows
+#  if defined(_WIN64)
+    return _InterlockedExchange64 ((volatile LONGLONG *)at, x);
+#  else
+    return InterlockedExchange64 ((volatile LONGLONG *)at, x);
+#  endif
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+
+
 /// Yield the processor for the rest of the timeslice.
 ///
 inline void
