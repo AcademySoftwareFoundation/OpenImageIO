@@ -706,6 +706,29 @@ Strutil::parse_identifier (string_view &str, bool eat)
 
 
 string_view
+Strutil::parse_identifier (string_view &str, string_view allowed, bool eat)
+{
+    string_view p = str;
+    skip_whitespace (p);
+    const char *begin = p.begin(), *end = p.begin();
+    if (end != p.end() && (isalpha(*end) || *end == '_' ||
+                           allowed.find(*end) != string_view::npos))
+        ++end;
+    else
+       return string_view();  // not even the start of an identifier
+    while (end != p.end() && (isalpha(*end) || isdigit(*end) || *end == '_' ||
+                              allowed.find(*end) != string_view::npos))
+        ++end;
+    if (eat) {
+        p.remove_prefix (size_t(end-begin));
+        str = p;
+    }
+    return string_view (begin, size_t(end-begin));
+}
+
+
+
+string_view
 Strutil::parse_until (string_view &str, string_view sep, bool eat)
 {
     string_view p = str;

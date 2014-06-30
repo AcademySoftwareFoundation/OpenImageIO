@@ -437,6 +437,18 @@ string_view OIIO_API parse_word (string_view &str, bool eat=true);
 /// modify str.
 string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
 
+/// If str's first non-whitespace characters form a valid C-like identifier,
+/// return the identifier, and additionally modify str to skip over the
+/// parsed identifier if eat is also true. Otherwise, if no identifier is
+/// found at the beginning of str, return an empty string_view and don't
+/// modify str. The 'allowed' parameter may specify a additional characters
+/// accepted that would not ordinarily be allowed in C identifiers, for
+/// example, parse_identifier (blah, "$:") would allow "identifiers"
+/// containing dollar signs and colons as well as the usual alphanumeric and
+/// underscore characters.
+string_view OIIO_API parse_identifier (string_view &str,
+                                       string_view allowed, bool eat);
+
 /// Return the characters until any character in sep is found, storing it in
 /// str, and additionally modify str to skip over the parsed section if eat
 /// is also true. Otherwise, if no word is found at the beginning of str,
