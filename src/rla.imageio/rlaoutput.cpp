@@ -88,8 +88,10 @@ private:
     inline void set_chromaticity (const ImageIOParameter *p, char *dst,
                                   size_t field_size, const char *default_val);
     
-    /// Helper - handles the repetitive work of encoding and writing a channel
-    bool encode_channel (const unsigned char *data, stride_t xstride,
+    // Helper - handles the repetitive work of encoding and writing a
+    // channel. The data is guaranteed to be in the scratch area and need
+    // not be preserved.
+    bool encode_channel (unsigned char *data, stride_t xstride,
                          TypeDesc chantype, int bits);
     
     /// Helper - write, with error detection
@@ -269,8 +271,9 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     } else {
         m_rla.ColorChannelType = m_rla.MatteChannelType = m_rla.AuxChannelType =
             m_spec.format == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
-        m_rla.NumOfChannelBits = m_rla.NumOfMatteBits = m_rla.NumOfAuxBits =
-            m_spec.format.size () * 8;
+        int bits = m_spec.get_int_attribute ("oiio:BitsPerSample", 0);
+        m_rla.NumOfChannelBits = bits ? bits : m_spec.channelformats[0].size () * 8;
+        m_rla.NumOfMatteBits = m_rla.NumOfAuxBits = m_rla.NumOfChannelBits;
         if (remaining >= 3) {
             // if we have at least 3 channels, treat them as colour
             m_rla.NumOfColorChannels = 3;
@@ -435,7 +438,7 @@ RLAOutput::close ()
 
 
 bool
-RLAOutput::encode_channel (const unsigned char *data, stride_t xstride,
+RLAOutput::encode_channel (unsigned char *data, stride_t xstride,
                            TypeDesc chantype, int bits)
 {
     if (chantype == TypeDesc::FLOAT) {
@@ -445,6 +448,14 @@ RLAOutput::encode_channel (const unsigned char *data, stride_t xstride,
         for (int x = 0;  x < m_spec.width;  ++x)
             write ((const float *)&data[x*xstride]);
         return true;
+    }
+
+    if (chantype == TypeDesc::UINT16 && bits != 16) {
+        // Need to do bit scaling. Safe to overwrite data in place.
+        for (int x = 0;  x < m_spec.width;  ++x) {
+            unsigned short *s = (unsigned short *)(data + x*xstride);
+            *s = bit_range_convert (*s, 16, bits);
+        }
     }
 
     m_rle.resize (2);   // reserve t bytes for the encoded size
