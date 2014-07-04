@@ -221,6 +221,39 @@ you intend to create an OpenEXR texture or environment map that can be
 used with PRMan as well as OIIO.
 \apiend
 
+\apiitem{--attrib {\rm \emph{name value}}}
+\NEW % 1.5
+Adds or replaces metadata with the given \emph{name} to have the
+specified \emph{value}.
+
+It will try to infer the type of the metadata from the value: if the
+value contains only numerals (with optional leading minus sign), it will
+be saved as {\cf int} metadata; if it also contains a decimal point, it
+will be saved as {\cf float} metadata; otherwise, it will be saved as
+a {\cf string} metadata.
+
+For example, you could explicitly set the IPTC location metadata fields
+with:
+\begin{code}
+        oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
+\end{code}
+\apiend
+
+\apiitem{--sattrib {\rm \emph{name value}}}
+\NEW % 1.5
+Adds or replaces metadata with the given \emph{name} to have the
+specified \emph{value}, forcing it to be interpreted as a {\cf string}.
+This is helpful if you want to set a {\cf string} metadata to a value
+that the {\cf --attrib} command would normally interpret as a number.
+\apiend
+
+\apiitem{--sansattrib}
+\NEW % 1.5
+When set, this edits the command line inserted in the \qkw{Software} and
+\qkw{ImageHistory} metadata to omit any verbose {\cf --attrib} and
+{\cf --sattrib} commands.
+\apiend
+
 \apiitem{--constant-color-detect}
 Detects images in which all pixels are identical, and outputs the
 texture at a reduced resolution equal to the tile size, rather than

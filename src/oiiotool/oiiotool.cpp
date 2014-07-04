@@ -3514,7 +3514,7 @@ getargs (int argc, char *argv[])
                 "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
                 "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",
                 "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
-                "--sansattrib", &sansattrib, "Write command line but remove --sattrib and --attrib options",
+                "--sansattrib", &sansattrib, "Write command line into Software & ImageHistory but remove --sattrib and --attrib options",
                 "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
                 "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
                 "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
