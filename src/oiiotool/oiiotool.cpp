@@ -3387,12 +3387,51 @@ action_histogram (int argc, const char *argv[])
 
 
 
+// Concatenate the command line into one string, optionally filtering out
+// verbose attribute commands.
+static std::string
+command_line_string (int argc, char * argv[], bool sansattrib)
+{
+    std::string s;
+    for (int i = 0;  i < argc;  ++i) {
+        if (sansattrib) {
+            // skip any filtered attributes
+            if (!strcmp(argv[i], "--attrib") || !strcmp(argv[i], "-attrib") ||
+                !strcmp(argv[i], "--sattrib") || !strcmp(argv[i], "-sattrib")) {
+                i += 2;  // also skip the following arguments
+                continue;
+            }
+            if (!strcmp(argv[i], "--sansattrib") || !strcmp(argv[i], "-sansattrib")) {
+                continue;
+            }
+        }
+        if (strchr (argv[i], ' ')) {  // double quote args with spaces
+            s += '\"';
+            s += argv[i];
+            s += '\"';
+        } else {
+            s += argv[i];
+        }
+        if (i < argc-1)
+            s += ' ';
+    }
+    return s;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
+
+    bool sansattrib = false;
+    for (int i = 0; i < argc; ++i)
+        if (!strcmp(argv[i],"--sansattrib") || !strcmp(argv[i],"-sansattrib"))
+            sansattrib = true;
+    ot.full_command_line = command_line_string (argc, argv, sansattrib);
+
     ArgParse ap (argc, (const char **)argv);
-    ot.full_command_line = ap.command_line();
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  oiiotool [filename,option,action]...\n",
@@ -3451,6 +3490,7 @@ getargs (int argc, char *argv[])
                 "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
                 "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",
                 "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
+                "--sansattrib", &sansattrib, "Write command line but remove --sattrib and --attrib options",
                 "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
                 "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
                 "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
@@ -3638,7 +3678,6 @@ getargs (int argc, char *argv[])
 
         exit (EXIT_SUCCESS);
     }
-
 }
 
 

@@ -837,7 +837,7 @@ they only apply to the highest-resolution MIPmap level of the first
 subimage of the current top image.
 
 \apiitem{--attrib {\rm \emph{name value}}}
-Adds or replaces metadata with the given \emph{name} to have the 
+Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}.
 
 It will try to infer the type of the metadata from the value: if the
@@ -854,7 +854,7 @@ with:
 \apiend
 
 \apiitem{--sattrib {\rm \emph{name value}}}
-Adds or replaces metadata with the given \emph{name} to have the 
+Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}, forcing it to be interpreted as a {\cf string}.
 This is helpful if you want to set a {\cf string} metadata to a value
 that the {\cf --attrib} command would normally interpret as a number.
@@ -890,6 +890,13 @@ Clears all existing keywords in the current image.
 \NEW % 1.5
 When set, this prevents the normal adjustment of \qkw{Software} and
 \qkw{ImageHistory} metadata to reflect what \oiiotool is doing.
+\apiend
+
+\apiitem{--sansattrib}
+\NEW % 1.5
+When set, this edits the command line inserted in the \qkw{Software} and
+\qkw{ImageHistory} metadata to omit any verbose {\cf --attrib} and
+{\cf --sattrib} commands.
 \apiend
 
 \apiitem{--orientation {\rm \emph{orient}}}
