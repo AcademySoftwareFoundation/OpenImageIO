@@ -723,7 +723,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
                 view_pattern = boost::regex_replace (view_pattern, view_re, view);
                 view_pattern = boost::regex_replace (view_pattern, short_view_re, short_view);
 
-                if (boost::filesystem::exists (view_pattern))
+                if (exists (view_pattern))
                     matches.push_back (std::make_pair (view, view_pattern));
             }
 
@@ -762,7 +762,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 #endif
     }
 
-    if (! boost::filesystem::exists(directory))
+    if (! exists(directory))
         return false;
 
     // build a regex that matches the pattern
@@ -776,9 +776,13 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     std::string suffix (format_match.suffix().first, format_match.suffix().second);
 
     std::string pattern_re_str = prefix + "([0-9]{" + thepadding + "})" + suffix;
-    boost::regex pattern_re (pattern_re_str);
-
     std::vector< std::pair< int, std::string > > matches;
+
+    // There are some corner cases regex that could be constructed here that
+    // are badly structured and might throw an exception.
+    try {
+
+    boost::regex pattern_re (pattern_re_str);
 
     boost::filesystem::directory_iterator end_it;
 #ifdef _WIN32
@@ -792,12 +796,15 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
             boost::match_results<std::string::const_iterator> frame_match;
             if (boost::regex_match (f, frame_match, pattern_re)) {
                 std::string thenumber (frame_match[1].first, frame_match[1].second);
-
                 int frame = (int)strtol (thenumber.c_str(), NULL, 10);
-
                 matches.push_back (std::make_pair (frame, f));
             }
         }
+    }
+
+    } catch (std::exception &e) {
+        // Botched regex. Just fail.
+        return false;
     }
 
     // filesystem order is undefined, so return sorted sequences
