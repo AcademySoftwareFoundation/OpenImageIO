@@ -177,3 +177,5 @@ Comparing "unpolar.exr" and "ref/unpolar.exr"
 PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"
 PASS
+Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
+PASS
