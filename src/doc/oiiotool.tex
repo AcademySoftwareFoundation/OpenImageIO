@@ -741,6 +741,16 @@ be read and will become the new \emph{current image}, with the previous
 current image pushed onto the image stack.
 \apiend
 
+\apiitem{--no-autopremult \\
+--autopremult}
+\NEW  % 1.5
+By default, \product's format readers convert any ``unassociated alpha''
+(color values that are not ``premultiplied'' by alpha) to the usual
+associated/premultiplied convention.  If the {\cf --no-autopremult}
+flag is found, subsequent inputs will not do this premultiplication. It
+can be turned on again via {\cf --autopremult}.
+\apiend
+
 \apiitem{-o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.

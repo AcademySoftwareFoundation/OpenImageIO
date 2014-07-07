@@ -298,6 +298,26 @@ set_dumpdata (int argc, const char *argv[])
 
 
 static int
+set_autopremult (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.imagecache->attribute ("unassociatedalpha", 0);
+    return 0;
+}
+
+
+
+static int
+unset_autopremult (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.imagecache->attribute ("unassociatedalpha", 1);
+    return 0;
+}
+
+
+
+static int
 input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
@@ -3463,6 +3483,8 @@ getargs (int argc, char *argv[])
                 "--views %s", NULL, "Views for %V/%v wildcards (comma-separated, defaults to left,right)",
                 "--wildcardoff", NULL, "Disable numeric wildcard expansion for subsequent command line arguments",
                 "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
+                "--no-autopremult %@", unset_autopremult, NULL, "Turn off automatic premultiplication of images with unassociated alpha",
+                "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",

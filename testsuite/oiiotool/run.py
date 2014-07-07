@@ -184,6 +184,8 @@ command += oiiotool (
 command += oiiotool ("fit.tif -o copyA.1-10#.jpg");
 command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
 
+# test --no-autopremult on a TGA file thet needs it.
+command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -215,6 +217,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "fft.exr", "ifft.exr",
             "polar.exr", "unpolar.exr",
             "labeladd.exr",
+            "rgbfromtga.png",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
