@@ -650,6 +650,57 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
 
 
 
+namespace {
+
+// Used to hold channel information for sorting into canonical order
+struct ChanNameHolder {
+    string_view fullname;
+    int channel_number;
+    string_view layer;
+    string_view suffix;
+    int special_index;
+
+    ChanNameHolder (string_view fullname, int n)
+        : fullname(fullname), channel_number(n)
+    {
+        size_t dot = fullname.find_last_of ('.');
+        if (dot == string_view::npos) {
+            suffix = fullname;
+        } else {
+            layer = string_view (fullname.data(), dot+1);
+            suffix = string_view (fullname.data()+dot+1, fullname.size()-dot-1);
+        }
+        static const char * special[] = {
+            "R", "Red", "G", "Green", "B", "Blue", "real", "imag",
+            "A", "Alpha", "RA", "RG", "RB", "Z", "Depth", "Zback", NULL
+        };
+        special_index = 1000;
+        for (int i = 0; special[i]; ++i)
+            if (Strutil::iequals (suffix, special[i])) {
+                special_index = i;
+                break;
+            }
+    }
+
+    static bool compare_cnh (const ChanNameHolder &a, const ChanNameHolder &b)
+    {
+        if (a.layer < b.layer)
+            return true;
+        if (a.layer > b.layer)
+            return false;
+        // Within the same layer
+        if (a.special_index < b.special_index)
+            return true;
+        if (a.special_index > b.special_index)
+            return false;
+        return a.suffix < b.suffix;
+    }
+};
+
+} // anon namespace
+
+
+
 void
 OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
 {
@@ -657,98 +708,33 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
     spec.nchannels = 0;
     const Imf::ChannelList &channels (header->channels());
     std::vector<std::string> channelnames;  // Order of channels in file
-    std::vector<int> userchannels;      // Map file chans to user chans
-    Imf::ChannelList::ConstIterator ci;
-    int c;
-    int red = -1, green = -1, blue = -1, alpha = -1, zee = -1, zback = -1;
-    int ra = -1, ga = -1, ba = -1;
-    for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
-        const char* name = ci.name();
-        channelnames.push_back (name);
-        if (red < 0 && (Strutil::iequals(name, "R") || Strutil::iequals(name, "Red") ||
-                        Strutil::iends_with(name,".R") || Strutil::iends_with(name,".Red") ||
-                        Strutil::iequals(name, "real")))
-            red = c;
-        else if (green < 0 && (Strutil::iequals(name, "G") || Strutil::iequals(name, "Green") ||
-                          Strutil::iends_with(name,".G") || Strutil::iends_with(name,".Green") ||
-                          Strutil::iequals(name, "imag")))
-            green = c;
-        else if (blue < 0 && (Strutil::iequals(name, "B") || Strutil::iequals(name, "Blue") ||
-                         Strutil::iends_with(name,".B") || Strutil::iends_with(name,".Blue")))
-            blue = c;
-        else if (alpha < 0 && (Strutil::iequals(name, "A") || Strutil::iequals(name, "Alpha") ||
-                          Strutil::iends_with(name,".A") || Strutil::iends_with(name,".Alpha")))
-            alpha = c;
-        else if (ra < 0 && (Strutil::iequals(name, "RA") || Strutil::iends_with(name,".RA")))
-            ra = c;
-        else if (ga < 0 && (Strutil::iequals(name, "GA") || Strutil::iends_with(name,".GA")))
-            ra = c;
-        else if (ba < 0 && (Strutil::iequals(name, "BA") || Strutil::iends_with(name,".BA")))
-            ba = c;
-        else if (zee < 0 && (Strutil::iequals(name, "Z") || Strutil::iequals(name, "Depth") ||
-                        Strutil::iends_with(name,".Z") || Strutil::iends_with(name,".Depth")))
-            zee = c;
-        else if (zback < 0 && (Strutil::iequals(name, "ZBack") || Strutil::iends_with(name,".ZBack")))
-            zback = c;
+    std::vector<ChanNameHolder> cnh;
+    int c = 0;
+    for (Imf::ChannelList::ConstIterator ci = channels.begin();
+         ci != channels.end();  ++c, ++ci) {
+        cnh.push_back (ChanNameHolder (ci.name(), c));
+        ++spec.nchannels;
     }
-    spec.nchannels = (int)channelnames.size();
-    userchannels.resize (spec.nchannels);
-    int nc = 0;
-    if (red >= 0) {
-        spec.channelnames.push_back (channelnames[red]);
-        userchannels[red] = nc++;
-    }
-    if (green >= 0) {
-        spec.channelnames.push_back (channelnames[green]);
-        userchannels[green] = nc++;
-    }
-    if (blue >= 0) {
-        spec.channelnames.push_back (channelnames[blue]);
-        userchannels[blue] = nc++;
-    }
-    if (alpha >= 0) {
-        spec.channelnames.push_back (channelnames[alpha]);
-        spec.alpha_channel = nc;
-        userchannels[alpha] = nc++;
-    }
-    if (ra >= 0) {
-        spec.channelnames.push_back (channelnames[ra]);
-        userchannels[ra] = nc++;
-    }
-    if (ga >= 0) {
-        spec.channelnames.push_back (channelnames[ga]);
-        userchannels[ga] = nc++;
-    }
-    if (ba >= 0) {
-        spec.channelnames.push_back (channelnames[ba]);
-        userchannels[ba] = nc++;
-    }
-    if (zee >= 0) {
-        spec.channelnames.push_back (channelnames[zee]);
-        spec.z_channel = nc;
-        userchannels[zee] = nc++;
-    }
-    if (zback >= 0) {
-        spec.channelnames.push_back (channelnames[zback]);
-        spec.z_channel = nc;
-        userchannels[zback] = nc++;
-    }
-    for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
-        if (red == c || green == c || blue == c ||
-            alpha == c || ra == c || ga == c || ba == c ||
-            zee == c || zback == c)
-            continue;   // Already accounted for this channel
-        userchannels[c] = nc;
-        spec.channelnames.push_back (ci.name());
-        ++nc;
+    std::sort (cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);
+    c = 0;
+    for (Imf::ChannelList::ConstIterator ci = channels.begin();
+         ci != channels.end();  ++c, ++ci) {
+        spec.channelnames.push_back (cnh[c].fullname);
+        if (spec.alpha_channel < 0 && (Strutil::iequals (cnh[c].suffix, "A") ||
+                                       Strutil::iequals (cnh[c].suffix, "Alpha")))
+            spec.alpha_channel = c;
+        if (spec.z_channel < 0 && (Strutil::iequals (cnh[c].suffix, "Z") ||
+                                   Strutil::iequals (cnh[c].suffix, "Depth")))
+            spec.z_channel = c;
     }
     ASSERT ((int)spec.channelnames.size() == spec.nchannels);
-    // FIXME: should we also figure out the layers?
 
     // Figure out data types -- choose the highest range
     spec.format = TypeDesc::UNKNOWN;
     std::vector<TypeDesc> chanformat;
-    for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
+    c = 0;
+    for (Imf::ChannelList::ConstIterator ci = channels.begin();
+         ci != channels.end();  ++c, ++ci) {
         Imf::PixelType ptype = ci.channel().type;
         TypeDesc fmt = TypeDesc::HALF;
         switch (ptype) {
