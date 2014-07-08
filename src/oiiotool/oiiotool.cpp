@@ -3822,7 +3822,7 @@ handle_sequence (int argc, const char **argv)
                                                               frame_views[a],
                                                               filenames[a]);
             if (! result) {
-                ot.error (Strutil::format("No filenames found matching pattern: %s",
+                ot.error (Strutil::format("No filenames found matching pattern: \"%s\" (did you intend to use --wildcardoff?)",
                                           argv[a]), "");
                 return true;
             }
