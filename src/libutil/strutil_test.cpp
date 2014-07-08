@@ -490,6 +490,36 @@ void test_parse ()
 
 
 
+
+void
+test_float_formatting ()
+{
+    // For every possible float value, test that printf("%.9g"), which
+    // we are sure preserves full precision as text, exactly matches
+    // Strutil::format("%.9g") and also matches stream output with
+    // precision(9).  VERY EXPENSIVE!  Takes tens of minutes to run.
+    // Don't do this unless you really need to test it.
+    for (uint64_t i = 0;  i <= uint64_t(0xffffffff);  ++i) {
+        unsigned int i32 = (unsigned int)i;
+        float *f = (float *)&i32;
+        std::ostringstream sstream;
+        sstream.precision (9);
+        sstream << *f;
+        char buffer[64];
+        sprintf (buffer, "%.9g", *f);
+        std::string tiny = Strutil::format ("%.9g", *f);
+        if (sstream.str() != tiny || tiny != buffer)
+            printf ("%x  stream '%s'  printf '%s'  Strutil::format '%s'\n",
+                    i32, sstream.str().c_str(), buffer, tiny.c_str());
+        if ((i32 & 0xfffffff) == 0xfffffff) {
+            printf ("%x\n", i32);
+            fflush (stdout);
+        }
+    }
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -509,6 +539,7 @@ main (int argc, char *argv[])
     test_safe_strcpy ();
     test_string_view ();
     test_parse ();
+    // test_float_formatting ();
 
     return unit_test_failures;
 }
