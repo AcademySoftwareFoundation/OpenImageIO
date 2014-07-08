@@ -28,6 +28,8 @@
   (This is the Modified BSD License)
 */
 
+#include <cstdio>
+
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/unittest.h"
 
@@ -499,7 +501,7 @@ test_float_formatting ()
     // Strutil::format("%.9g") and also matches stream output with
     // precision(9).  VERY EXPENSIVE!  Takes tens of minutes to run.
     // Don't do this unless you really need to test it.
-    for (uint64_t i = 0;  i <= uint64_t(0xffffffff);  ++i) {
+    for (unsigned long long i = 0;  i <= (unsigned long long)0xffffffff;  ++i) {
         unsigned int i32 = (unsigned int)i;
         float *f = (float *)&i32;
         std::ostringstream sstream;
