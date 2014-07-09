@@ -1,6 +1,33 @@
 Changes:
 
 
+Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
+-------------------------------------------------
+* OpenEXR output fix for crashes/exceptions when passing string array
+  attributes. #907
+* Improved ordering of channel names for OpenEXR files with many "layers".
+  #904
+* oiiotool --ch now will search for channel names case-insensitively,
+  if the channel names are not first found with case-sensitive compares. #897
+* oiiotool --wildcardoff/--wildcardon can selectively disable and re-enable
+  the frame sequence numeric wildcards (useful if you have a filename or
+  other argument that must actually contain '#' or '@' characters). #892
+* oiiotool --no-autopremult/--autopremult can disable and re-enable
+  the automatic premultiplication of color by opacity, in files where
+  they are stored not-premultiplied and you wish to preserve the original
+  un-premultiplied values. #906
+* Fix segfaults on 32 bit systems with gcc 4.2. #889
+* Fixes to Filesystem internals to work with older Boost releases < 1.45. #891
+* Fixes to find libraw properly with Visual Studio 2010. #895
+* Fix bad casts in thread.h that broke some platforms. #896
+* Strutil: add another variety of parse_identifier with an expanded
+  character set.
+* thread.h: add atomic_exchange() function. #898
+* Several fixes for Windows build, including properly finding OpenEXR
+  libraries when OpenEXR 2.1 is used.
+* Better exception safety in Filesystem::scan_for_matching_filenames(). #902
+
+
 Release 1.4.10 (20 Jun 2014 -- compared to 1.4.9)
 -------------------------------------------------
 * Fix for portrait-orientation RAW image reads. (#878)
