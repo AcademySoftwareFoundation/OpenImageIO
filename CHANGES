@@ -10,26 +10,57 @@ Public API changes:
   (1.5.0/1.4.9) (#874)
 
 Fixes, minor enhancements, and performance improvements:
+* oiiotool:
+   * oiiotool --nosoftwareattrib suppresses the altering of Software and
+     ImageHistory fields upon output. (1.5.1)
+   * oiiotool --ch now will search for channel names case-insensitively,
+     if the channel names are not first found with case-sensitive
+     compares. #897 (1.5.1/1.4.11)
+   * oiiotool --wildcardoff/--wildcardon can selectively disable and
+     re-enable the frame sequence numeric wildcards (useful if you have
+     a filename or other argument that must actually contain '#' or '@'
+     characters). #892 (1.5.1/1.4.11)
+   * oiiotool --no-autopremult/--autopremult can disable and re-enable
+     the automatic premultiplication of color by opacity, in files where
+     they are stored not-premultiplied and you wish to preserve the
+     original un-premultiplied values. #906 (1.5.1/1.4.11)
+   * oiiotool --sansattrib omits "-attrib" and "-sattrib" and their
+     arguments from the command line that is put in the Software and
+     ImageHistory metadata (makes it less pointlessly verbose). (1.5.1)
+   * Now get helpful error messages if input images are corrupt or
+     incomplete. (1.5.1)
+* maketx:
+   * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
+     (1.5.1/1.4.10)
+   * maketx --attrib, --sattrib, and --sansattrib now work like
+     oiiotool; in other words, you can use command line arguments to add
+     or alter metadata in the process of creating a texture. #901 (1.5.1)
+* OpenEXR:
+   * Improve the quality of lossy b44 compression by more correctly
+     using the pLinear value of channels (we were incorrectly using the
+     flag to indicate linear channels, but it's really for channels
+     that are perceptually linear). (#867) (1.5.0/1.4.9)
+   * Fix potential build breaks due to incorrect use of
+     Imf::isDeepData() which apparently was not intended to be an
+     externally-visible function. (1.5.0/1.4.9) (#875)
+   * Fix crashes/exceptions when passing string array attributes
+     for OpenEXR output. #907 (1.5.1/1.4.11)
+   * Improved ordering of channel names for OpenEXR files with many
+     "layers".  #904 (1.5.1/1.4.11)
+* JPEG: Fix broken recognition of .jfi extension. (#876)
+* RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
+* RLA: Fix bug that caused RLA output to not respect requests for 10 bit
+  output (would force it to 16 in that case). #899 (1.5.1)
 * ImageSpec::get_float_attribute() is now better about retrieving values
   that were stored as integers, even though you are querying them as
   floats. (#862) (1.5.0/1.4.9)
-* OpenEXR:
-    * Improve the quality of lossy b44 compression by more correctly
-      using the pLinear value of channels (we were incorrectly using the
-      flag to indicate linear channels, but it's really for channels
-      that are perceptually linear). (#867) (1.5.0/1.4.9)
-    * Fix potential build breaks due to incorrect use of
-      Imf::isDeepData() which apparently was not intended to be an
-      externally-visible function. (1.5.0/1.4.9) (#875)
-* JPEG: Fix broken recognition of .jfi extension. (#876)
-* RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * Fixed some alloca calls that did not get the right amount of memory.
   (#866) (1.5.0/1.4.9)
 * Fix an off-by-one loop in IBA::resize that would not get the wrong
   image result, but might trigger debuggers to flag it as touching the
   wrong memory. (#868) (1.5.0/1.4.9)
-* maketx: Fix case typo for LatLong env map creation when in 'prman'
-  mode (#877). (1.5.1/1.4.10)
+* Better exception safety in Filesystem::scan_for_matching_filenames().
+  #902 (1.5.1/1.4.11)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -50,19 +81,55 @@ Build/test system improvements:
 * Fixes to get a clean compile on Windows + MSVC 9. (#859) (1.5.0/1.4.8)
 * Fixes to get a clean compile on Windows + MSVC 9. (#872) (1.5.0/1.4.9)
 * Make 3.0 compatibility fixes on OSX. (1.5.1/1.4.10)
+* Fix segfaults on 32 bit systems with gcc 4.2. #889 (1.5.1/1.4.11)
+* Fixes to Filesystem internals to work with older Boost releases older
+  than 1.45. #891 (1.5.1/1.4.11)
+* Fixes to find libraw properly with Visual Studio 2010. #895 (1.5.1/1.4.11)
+* Fix bad casts in thread.h that broke some platforms. #896 (1.5.1/1.4.11)
+* Several fixes for Windows build, including properly finding OpenEXR
+  libraries when OpenEXR 2.1 is used. (1.5.1/1.4.11)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
   (1.5.1/1.4.10)
 * New Strutil simple parsing functions: skip_whitespace, parse_char,
   parse_until_char, parse_prefix, parse_int, parse_float, parse_string,
-  parse_word, parse_identifier, parse_until. (1.5.1/1.4.10)
+  parse_word, parse_identifier, parse_until. (1.5.1/1.4.10, 1.5.2/1.4.11)
 * New Filesystem functions: create_directory, copy, remove, remove_all,
   temp_directory_path, unique_path. (1.5.1/1.4.10)
+* thread.h: add atomic_exchange() function. #898 (1.5.1/1.4.11)
+* Improved error propagation through ImageCache, ImageBuf, and oiiotool.
+  (1.5.1)
 
 
 
 
+
+Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
+-------------------------------------------------
+* OpenEXR output fix for crashes/exceptions when passing string array
+  attributes. #907
+* Improved ordering of channel names for OpenEXR files with many "layers".
+  #904
+* oiiotool --ch now will search for channel names case-insensitively,
+  if the channel names are not first found with case-sensitive compares. #897
+* oiiotool --wildcardoff/--wildcardon can selectively disable and re-enable
+  the frame sequence numeric wildcards (useful if you have a filename or
+  other argument that must actually contain '#' or '@' characters). #892
+* oiiotool --no-autopremult/--autopremult can disable and re-enable
+  the automatic premultiplication of color by opacity, in files where
+  they are stored not-premultiplied and you wish to preserve the original
+  un-premultiplied values. #906
+* Fix segfaults on 32 bit systems with gcc 4.2. #889
+* Fixes to Filesystem internals to work with older Boost releases < 1.45. #891
+* Fixes to find libraw properly with Visual Studio 2010. #895
+* Fix bad casts in thread.h that broke some platforms. #896
+* Strutil: add another variety of parse_identifier with an expanded
+  character set.
+* thread.h: add atomic_exchange() function. #898
+* Several fixes for Windows build, including properly finding OpenEXR
+  libraries when OpenEXR 2.1 is used.
+* Better exception safety in Filesystem::scan_for_matching_filenames(). #902
 
 Release 1.4.10 (20 Jun 2014 -- compared to 1.4.9)
 -------------------------------------------------
