@@ -917,10 +917,6 @@ static inline float fast_cos(float x)
 #define hypotf _hypotf
 #define copysign(x,y) _copysign(x,y)
 #define copysignf(x,y) copysign(x,y)
-#ifdef _MSC_VER
-#define isnan(x) _isnan(x)
-#define isfinite(x) _finite(x)
-#endif
 
 #define M_E        2.71828182845904523536
 #define M_LOG2E    1.44269504088896340736
@@ -936,40 +932,71 @@ static inline float fast_cos(float x)
 //#define M_SQRT2    1.41421356237309504880
 //#define M_SQRT1_2  0.707106781186547524401
 
+
+inline float
+truncf(float val)
+{
+    return (float)(int)val;
+}
+using OIIO::truncf;
+
+
+#if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
+
+template<class T>
+inline int isnan (T x) {
+    return _isnan(x);
+}
+using OIIO::isnan;
+
+template<class T>
+inline int isfinite (T x) {
+    return _finite(x);
+}
+using OIIO::isfinite;
+
+template<class T>
+inline int isinf (T x) {
+    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(T(1.0), x));
+}
+using OIIO::isinf;
+
 inline double
 round (float val) {
     return floor (val + 0.5);
 }
+using OIIO::round;
 
 inline float
 roundf (float val) {
     return static_cast<float>(round (val));
 }
+using OIIO::roundf;
+#endif /* MSVS < 2013 */
 
-#ifdef _MSC_VER
-template<class T>
-inline int isinf (T x) {
-    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(T(1.0), x));
-}
-#endif
 
 inline float
 log2f (float val) {
     return logf (val)/static_cast<float>(M_LN2);
 }
+using OIIO::log2f;
 
-
-inline float
-logbf(float val) {
-   // please see http://www.kernel.org/doc/man-pages/online/pages/man3/logb.3.html
-   return logf(val)/logf(FLT_RADIX);
-}
 
 inline float
 exp2f(float val) {
    // 2^val = e^(val*ln(2))
    return exp( val*log(2.0f) );
 }
+using OIIO::exp2f;
+
+
+#if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
+inline float
+logbf(float val) {
+   // please see http://www.kernel.org/doc/man-pages/online/pages/man3/logb.3.html
+   return logf(val)/logf(FLT_RADIX);
+}
+using OIIO::logbf;
 
 // from http://www.johndcook.com/cpp_expm1.html
 inline double
@@ -981,12 +1008,14 @@ expm1(double val)
     else
         return exp(val) - 1.0;
 }
+using OIIO::expm1;
 
 inline float
 expm1f(float val)
 {
     return (float)expm1(val);
 }
+using OIIO::expm1f;
 
 // from http://www.johndcook.com/cpp_erf.html
 inline double
@@ -1012,39 +1041,30 @@ erf(double x)
 
     return sign*y;
 }
+using OIIO::erf;
 
 inline float
 erff(float val)
 {
     return (float)erf(val);
 }
+using OIIO::erff;
 
 inline double
 erfc(double val)
 {
     return 1.0 - erf(val);
 }
+using OIIO::erfc;
 
 inline float
 erfcf(float val)
 {
     return (float)erfc(val);
 }
-
-inline float
-truncf(float val)
-{
-    return (float)(int)val;
-}
-
-using OIIO::roundf;
-using OIIO::truncf;
-using OIIO::expm1f;
-using OIIO::erff;
 using OIIO::erfcf;
-using OIIO::log2f;
-using OIIO::logbf;
-using OIIO::exp2f;
+#endif /* MSVS < 2013 */
+
 
 #endif  /* _WIN32 */
 
