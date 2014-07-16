@@ -51,7 +51,8 @@
 OIIO_NAMESPACE_USING;
 
 using namespace ImageBufAlgo;
-
+using OpenImageIO::v1_5::roundf;
+using OpenImageIO::v1_5::isinf;
 
 static bool verbose = false;
 static bool sum = false;
@@ -129,7 +130,7 @@ print_stats_num (float val, int maxval, bool round)
     } else {
         float fval = val * static_cast<float>(maxval);
         if (round) {
-            int v = static_cast<int>(roundf (fval));
+			int v = static_cast<int>(OpenImageIO::v1_5::roundf(fval));
             printf ("%d", v);
         } else {
             printf ("%0.2f", fval);

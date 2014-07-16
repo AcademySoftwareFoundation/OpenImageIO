@@ -128,105 +128,113 @@ JpgInput::valid_file (const std::string &filename) const
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         ok = false;
     }
-    return ok;
+return ok;
 }
 
 
 
 bool
-JpgInput::open (const std::string &name, ImageSpec &newspec,
-                const ImageSpec &config)
+JpgInput::open(const std::string &name, ImageSpec &newspec,
+const ImageSpec &config)
 {
-    const ImageIOParameter *p = config.find_attribute ("_jpeg:raw",
-                                                       TypeDesc::TypeInt);
-    m_raw = p && *(int *)p->data();
-    return open (name, newspec);
+	const ImageIOParameter *p = config.find_attribute("_jpeg:raw",
+		TypeDesc::TypeInt);
+	m_raw = p && *(int *)p->data();
+	return open(name, newspec);
 }
 
 
 
 bool
-JpgInput::open (const std::string &name, ImageSpec &newspec)
+JpgInput::open(const std::string &name, ImageSpec &newspec)
 {
-    // Check that file exists and can be opened
-    m_filename = name;
-    m_fd = Filesystem::fopen (name, "rb");
-    if (m_fd == NULL) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
+	// Check that file exists and can be opened
+	m_filename = name;
+	m_fd = Filesystem::fopen(name, "rb");
+	if (m_fd == NULL) {
+		error("Could not open file \"%s\"", name.c_str());
+		return false;
+	}
 
-    // Check magic number to assure this is a JPEG file
-    uint8_t magic[2] = {0, 0};
-    if (fread (magic, sizeof(magic), 1, m_fd) != 1) {
-        error ("Empty file \"%s\"", name.c_str());
-        close_file ();
-        return false;
-    }
+	// Check magic number to assure this is a JPEG file
+	uint8_t magic[2] = { 0, 0 };
+	if (fread(magic, sizeof(magic), 1, m_fd) != 1) {
+		error("Empty file \"%s\"", name.c_str());
+		close_file();
+		return false;
+	}
 
-    rewind (m_fd);
-    if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
-        close_file ();
-        error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
-               name.c_str(), magic);
-        return false;
-    }
+	rewind(m_fd);
+	if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
+		close_file();
+		error("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
+			name.c_str(), magic);
+		return false;
+	}
 
-    // Set up the normal JPEG error routines, then override error_exit and
-    // output_message so we intercept all the errors.
-    m_cinfo.err = jpeg_std_error ((jpeg_error_mgr *)&m_jerr);
-    m_jerr.pub.error_exit = my_error_exit;
-    m_jerr.pub.output_message = my_output_message;
-    if (setjmp (m_jerr.setjmp_buffer)) {
-        // Jump to here if there's a libjpeg internal error
-        // Prevent memory leaks, see example.c in jpeg distribution
-        jpeg_destroy_decompress (&m_cinfo);
-        close_file ();
-        return false;
-    }
+	// Set up the normal JPEG error routines, then override error_exit and
+	// output_message so we intercept all the errors.
+	m_cinfo.err = jpeg_std_error((jpeg_error_mgr *)&m_jerr);
+	m_jerr.pub.error_exit = my_error_exit;
+	m_jerr.pub.output_message = my_output_message;
+	if (setjmp(m_jerr.setjmp_buffer)) {
+		// Jump to here if there's a libjpeg internal error
+		// Prevent memory leaks, see example.c in jpeg distribution
+		jpeg_destroy_decompress(&m_cinfo);
+		close_file();
+		return false;
+	}
 
-    jpeg_create_decompress (&m_cinfo);          // initialize decompressor
-    jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
+	jpeg_create_decompress(&m_cinfo);          // initialize decompressor
+	jpeg_stdio_src(&m_cinfo, m_fd);            // specify the data source
 
-    // Request saving of EXIF and other special tags for later spelunking
-    for (int mark = 0;  mark < 16;  ++mark)
-        jpeg_save_markers (&m_cinfo, JPEG_APP0+mark, 0xffff);
-    jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
+	// Request saving of EXIF and other special tags for later spelunking
+	for (int mark = 0; mark < 16; ++mark)
+		jpeg_save_markers(&m_cinfo, JPEG_APP0 + mark, 0xffff);
+	jpeg_save_markers(&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
-    // read the file parameters
-    if (jpeg_read_header (&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-        error ("Bad JPEG header for \"%s\"", filename().c_str());
-        return false;
-    }
-    if (m_raw)
-        m_coeffs = jpeg_read_coefficients (&m_cinfo);
-    else
-        jpeg_start_decompress (&m_cinfo);       // start working
-    if (m_fatalerr)
-        return false;
-    m_next_scanline = 0;                        // next scanline we'll read
+	// read the file parameters
+	if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
+		error("Bad JPEG header for \"%s\"", filename().c_str());
+		return false;
+	}
+	if (m_raw)
+		m_coeffs = jpeg_read_coefficients(&m_cinfo);
+	else
+		jpeg_start_decompress(&m_cinfo);       // start working
+	if (m_fatalerr)
+		return false;
+	m_next_scanline = 0;                        // next scanline we'll read
 
-    m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
-                        m_cinfo.output_components, TypeDesc::UINT8);
+	m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
+		m_cinfo.output_components, TypeDesc::UINT8);
 
-    // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    m_spec.attribute ("oiio:ColorSpace", "sRGB");
+	// Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
+	m_spec.attribute("oiio:ColorSpace", "sRGB");
 
-    for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
-        if (m->marker == (JPEG_APP0+1) &&
-                ! strcmp ((const char *)m->data, "Exif")) {
-            // The block starts with "Exif\0\0", so skip 6 bytes to get
-            // to the start of the actual Exif data TIFF directory
-            decode_exif ((unsigned char *)m->data+6, m->data_length-6, m_spec);
-        }
-        else if (m->marker == (JPEG_APP0+1) &&
-                 ! strcmp ((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
+	for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
+		if (m->marker == (JPEG_APP0 + 1) &&
+			!strcmp((const char *)m->data, "Exif")) {
+			// The block starts with "Exif\0\0", so skip 6 bytes to get
+			// to the start of the actual Exif data TIFF directory
+			decode_exif((unsigned char *)m->data + 6, m->data_length - 6, m_spec);
+		}
+		else if (m->marker == (JPEG_APP0 + 1) &&
+			!strcmp((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
 #ifndef NDEBUG
-            std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
+			std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
 #endif
-            std::string xml ((const char *)m->data, m->data_length);
-            decode_xmp (xml, m_spec);
-        }
+			std::string xml((const char *)m->data, m->data_length);
+			decode_xmp(xml, m_spec);
+		}
+		else if (m->marker == (JPEG_APP0 + 2) && 
+			!strcmp((const char *)m->data, "ICC_PROFILE")){
+#ifndef NDEBUG
+			std::cerr << "Found APP2 ICC_PROFILE! length " << m->data_length << "\n";
+#endif
+			read_icc_profile((unsigned char*)m->data,m->data_length,m_spec);
+			m_spec.attribute("oiio:ColorSpace", "Embedded colorprofile");
+		}
         else if (m->marker == (JPEG_APP0+13) &&
                 ! strcmp ((const char *)m->data, "Photoshop 3.0"))
             jpeg_decode_iptc ((unsigned char *)m->data);
@@ -242,6 +250,54 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 }
 
 
+
+bool 
+JpgInput::read_icc_profile(unsigned char* data, int data_size, ImageSpec& spec)
+{
+	int num_markers = 0;
+	int seq_no;
+	unsigned char* icc_buf = NULL;
+	int total_length = 0;
+
+	const int MAX_SEQ_NO = 255;
+	unsigned char marker_present[MAX_SEQ_NO + 1];	 // one extra is used to store the flag if marker is found, set to one if marker is found
+	unsigned data_length[MAX_SEQ_NO + 1];			 // store the size of each marker
+	unsigned data_offset[MAX_SEQ_NO + 1];			 // store the offset of each marker
+
+	memset(marker_present, 0, (MAX_SEQ_NO + 1));
+	num_markers = data[13];
+	seq_no = data[12];
+	if (seq_no <= 0 && seq_no>num_markers){
+		return false;
+	}
+
+	data_length[seq_no] = data_size - ICC_HEADER_SIZE;
+	for (seq_no = 1; seq_no <= num_markers; seq_no++){
+		marker_present[seq_no] = 1;
+		data_offset[seq_no] = total_length;
+		total_length += data_length[seq_no];
+	}
+
+	if (total_length <= 0) return false; // found only empty markers
+
+	icc_buf = (unsigned char*)malloc(total_length*sizeof(unsigned char));
+	if (icc_buf == NULL)
+		return false;	// out of memory
+
+	seq_no = data[12];
+	unsigned char* dst_ptr = icc_buf + data_offset[seq_no];
+	unsigned char* src_ptr = data + ICC_HEADER_SIZE;
+	int length = data_length[seq_no];
+	while (length--){
+		*dst_ptr++ = *src_ptr++;
+	}
+
+
+	spec.erase_attribute(ICC_PROFILE_ATTR);
+	spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, total_length), icc_buf);
+	free(icc_buf);
+	return true;
+}
 
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)

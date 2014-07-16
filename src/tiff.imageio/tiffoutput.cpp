@@ -167,7 +167,7 @@ TIFFOutput::supports (const std::string &feature) const
     return false;
 }
 
-
+#define ICC_PROFILE_ATTR "icc-profile"
 
 bool
 TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -320,6 +320,31 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
         m_spec.attribute ("DateTime", date);
     }
+
+	// Write ICC profile, if we have anything
+	unsigned char* icc_profile = NULL;
+	unsigned int length = 0;
+	bool foundICCProfile = false;
+	const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
+	if (icc_profile_parameter != NULL){
+		icc_profile = (unsigned char*)icc_profile_parameter->data();
+		length = icc_profile_parameter->type().size();
+		if (icc_profile == NULL || length == 0){
+			foundICCProfile = false;
+		}
+		else{
+			foundICCProfile = true;
+		}
+	}
+	else{
+		icc_profile = NULL;
+		length = 0;
+		foundICCProfile = false;
+	}
+
+	if (foundICCProfile){
+		TIFFSetField(m_tif,TIFFTAG_ICCPROFILE,icc_profile, length);
+	}
 
     if (Strutil::iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute ("Exif:ColorSpace", 1);

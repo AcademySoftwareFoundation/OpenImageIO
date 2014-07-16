@@ -8,7 +8,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     )
 endif()
 
-set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
+set (libOpenImageIO_srcs  exif.cpp formatspec.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
@@ -278,8 +278,11 @@ oiio_install_targets (OpenImageIO)
 if (NOT LINKSTATIC)
     add_definitions (-DBOOST_TEST_DYN_LINK)
     add_definitions (-DPTEX_EXPORTS)
+else()
+    add_definitions (-DBOOST_TEST_DYN_LINK)
+    add_definitions (-DPTEX_EXPORTS)	
 endif ()
-
+    
 
 if (OIIO_BUILD_TESTS)
 
