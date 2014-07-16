@@ -46,6 +46,13 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+
+#define MAX_DATA_BYTES_IN_MARKER 65519L
+#define ICC_HEADER_SIZE 14
+#define ICC_PROFILE_ATTR "ICCProfile"
+
+
+
 class JpgInput : public ImageInput {
  public:
     JpgInput () { init(); }
@@ -59,7 +66,6 @@ class JpgInput : public ImageInput {
     virtual bool close ();
     const std::string &filename () const { return m_filename; }
     void * coeffs () const { return m_coeffs; }
-
     struct my_error_mgr {
         struct jpeg_error_mgr pub;    /* "public" fields */
         jmp_buf setjmp_buffer;        /* for return to caller */
@@ -94,6 +100,8 @@ class JpgInput : public ImageInput {
     // the form of an IIM (Information Interchange Model), which is actually
     // considered obsolete and is replaced by an XML scheme called XMP.
     void jpeg_decode_iptc (const unsigned char *buf);
+
+    bool read_icc_profile (j_decompress_ptr cinfo, ImageSpec& spec);
 
     void close_file () {
         if (m_fd)

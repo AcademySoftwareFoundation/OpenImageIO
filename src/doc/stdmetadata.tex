@@ -114,6 +114,12 @@ For example, the TIFF ImageIO plugin supports \qkw{none}, \qkw{in},
 and \qkw{cm}.
 \apiend
 
+\apiitem{"ICCProfile" : uint8[]}
+\NEW % 1.5
+The ICC color profile takes the form of an array of bytes (unsigned 8 bit
+chars). The length of the array is the length of the profile blob.
+\apiend
+
 \section{Disk file format info/hints}
 
 \apiitem{"oiio:BitsPerSample" : int}

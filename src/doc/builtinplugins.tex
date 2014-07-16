@@ -434,8 +434,8 @@ anywhere near the acceptance of the original JPEG/JFIF format.
 \qkw{ImageDescription} & string & the JPEG Comment field \\
 \qkw{Orientation} & int & the image orientation \\[2ex]
 \qkw{XResolution}, \qkw{YResolution},
-\qkw{ResolutionUnit} & & The resolution and units from the Exif header
-\\
+\qkw{ResolutionUnit} & & The resolution and units from the Exif header \\[2ex]
+\qkw{ICCProfile} & uint8[] & The ICC color profile \\
 & & \\
 Exif, IPTC, XMP, GPS & & Extensive Exif, IPTC, XMP, and GPS data are supported by the
   reader/writer, and you should assume that nearly everything described
@@ -584,7 +584,8 @@ PNG files use the file extension {\cf .png}.
 \qkw{DateTime} & string & the timestamp in the PNG header \\
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
 \qkw{XResolution} \qkw{YResolution}
-  \qkw{ResolutionUnit} & & resolution and units from the PNG header. 
+  \qkw{ResolutionUnit} & & resolution and units from the PNG header. \\
+\qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \end{tabular}
 
 \subsubsection*{Limitations}
@@ -945,6 +946,7 @@ metadata if present.
 \qkws{ResolutionUnit} & string & ResolutionUnit (\qkw{in} or
   \qkw{cm}). \\
 \qkw{Orientation} & int & Orientation \\
+\qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \qkw{textureformat} & string & {\cf PIXAR_TEXTUREFORMAT} \\
 \qkw{wrapmodes} & string & {\cf PIXAR_WRAPMODES} \\
 \qkw{fovcot} & float & {\cf PIXAR_FOVCOT} \\

@@ -233,6 +233,35 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
+
+    // Write ICC profile, if we have anything
+    const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
+    if (icc_profile_parameter != NULL) {
+        unsigned char *icc_profile = (unsigned char*)icc_profile_parameter->data();
+        unsigned int icc_profile_length = icc_profile_parameter->type().size();
+        if (icc_profile && icc_profile_length){
+            /* Calculate the number of markers we'll need, rounding up of course */
+            int num_markers = icc_profile_length / MAX_DATA_BYTES_IN_MARKER;
+            if (num_markers * MAX_DATA_BYTES_IN_MARKER != icc_profile_length)
+                num_markers++;
+            int curr_marker = 1;  /* per spec, count strarts at 1*/
+            std::vector<unsigned char> profile (MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE);
+            while (icc_profile_length > 0) {
+                // length of profile to put in this marker
+                unsigned int length = std::min (icc_profile_length, (unsigned int)MAX_DATA_BYTES_IN_MARKER);
+                icc_profile_length -= length;
+                // Write the JPEG marker header (APP2 code and marker length)
+                strcpy ((char *)&profile[0], "ICC_PROFILE");
+                profile[11] = 0;
+                profile[12] = curr_marker;
+                profile[13] = (unsigned char) num_markers;
+                memcpy(&profile[0] + ICC_HEADER_SIZE, icc_profile+length*(curr_marker-1), length);
+                jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, &profile[0], ICC_HEADER_SIZE+length);
+                curr_marker++;
+            }
+        }
+    }
+
     m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 
     // If user asked for tiles -- which JPEG doesn't support, emulate it by

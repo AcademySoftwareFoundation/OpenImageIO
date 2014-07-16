@@ -47,7 +47,13 @@ Fixes, minor enhancements, and performance improvements:
      for OpenEXR output. #907 (1.5.1/1.4.11)
    * Improved ordering of channel names for OpenEXR files with many
      "layers".  #904 (1.5.1/1.4.11)
-* JPEG: Fix broken recognition of .jfi extension. (#876)
+* JPEG:
+   * Fix broken recognition of .jfi extension. (#876)
+   * Read and write ICC profiles as attribute "ICCProfile". (#911)
+* PNG:
+   * Read and write ICC profiles as attribute "ICCProfile". (#911)
+* TIFF:
+   * Read and write ICC profiles as attribute "ICCProfile". (#911)
 * RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * RLA: Fix bug that caused RLA output to not respect requests for 10 bit
   output (would force it to 16 in that case). #899 (1.5.1)
