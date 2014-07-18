@@ -134,6 +134,7 @@ JpgInput::valid_file (const std::string &filename) const
 
 
 bool
+
 JpgInput::open (const std::string &name, ImageSpec &newspec,
                 const ImageSpec &config)
 {
@@ -157,18 +158,22 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     // Check magic number to assure this is a JPEG file
+
     uint8_t magic[2] = {0, 0};
     if (fread (magic, sizeof(magic), 1, m_fd) != 1) {
         error ("Empty file \"%s\"", name.c_str());
         close_file ();
+
         return false;
     }
 
     rewind (m_fd);
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
+
         close_file ();
         error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
                name.c_str(), magic);
+
         return false;
     }
 
