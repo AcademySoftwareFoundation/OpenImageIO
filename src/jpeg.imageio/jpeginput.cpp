@@ -134,19 +134,19 @@ JpgInput::valid_file (const std::string &filename) const
 
 
 bool
-JpgInput::open(const std::string &name, ImageSpec &newspec,
-const ImageSpec &config)
+JpgInput::open (const std::string &name, ImageSpec &newspec,
+        	 	const ImageSpec &config)
 {
-    const ImageIOParameter *p = config.find_attribute("_jpeg:raw",
-        TypeDesc::TypeInt);
+    const ImageIOParameter *p = config.find_attribute ("_jpeg:raw",
+						        						TypeDesc::TypeInt);
     m_raw = p && *(int *)p->data();
-    return open(name, newspec);
+    return open (name, newspec);
 }
 
 
 
 bool
-JpgInput::open(const std::string &name, ImageSpec &newspec)
+JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
 	// Check that file exists and can be opened
 	m_filename = name;
