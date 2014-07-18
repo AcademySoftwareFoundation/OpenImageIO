@@ -134,11 +134,12 @@ JpgInput::valid_file (const std::string &filename) const
 
 
 bool
-JpgInput::open(const std::string &name, ImageSpec &newspec,
-const ImageSpec &config)
+
+JpgInput::open (const std::string &name, ImageSpec &newspec,
+                const ImageSpec &config)
 {
     const ImageIOParameter *p = config.find_attribute ("_jpeg:raw",
-						        						TypeDesc::TypeInt);
+                                                       TypeDesc::TypeInt);
     m_raw = p && *(int *)p->data();
     return open (name, newspec);
 }
@@ -157,78 +158,78 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     // Check magic number to assure this is a JPEG file
-    uint8_t magic[2] = { 0, 0 };
+    uint8_t magic[2] = {0, 0};
     if (fread (magic, sizeof(magic), 1, m_fd) != 1) {
         error ("Empty file \"%s\"", name.c_str());
-        close_file();
+        close_file ();
         return false;
     }
 
-    rewind(m_fd);
+    rewind (m_fd);
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
-        close_file();
+        close_file ();
         error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
-            name.c_str(), magic);
+               name.c_str(), magic);
         return false;
     }
 
     // Set up the normal JPEG error routines, then override error_exit and
     // output_message so we intercept all the errors.
-    m_cinfo.err = jpeg_std_error((jpeg_error_mgr *)&m_jerr);
+    m_cinfo.err = jpeg_std_error ((jpeg_error_mgr *)&m_jerr);
     m_jerr.pub.error_exit = my_error_exit;
     m_jerr.pub.output_message = my_output_message;
-    if (setjmp(m_jerr.setjmp_buffer)) {
+    if (setjmp (m_jerr.setjmp_buffer)) {
         // Jump to here if there's a libjpeg internal error
         // Prevent memory leaks, see example.c in jpeg distribution
-        jpeg_destroy_decompress(&m_cinfo);
-        close_file();
+        jpeg_destroy_decompress (&m_cinfo);
+        close_file ();
         return false;
     }
 
-    jpeg_create_decompress(&m_cinfo); // initialize decompressor
-    jpeg_stdio_src(&m_cinfo, m_fd); // specify the data source
+    jpeg_create_decompress (&m_cinfo);          // initialize decompressor
+    jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
-    for (int mark = 0; mark < 16; ++mark)
-        jpeg_save_markers(&m_cinfo, JPEG_APP0 + mark, 0xffff);
-    jpeg_save_markers(&m_cinfo, JPEG_COM, 0xffff); // comment marker
+    for (int mark = 0;  mark < 16;  ++mark)
+        jpeg_save_markers (&m_cinfo, JPEG_APP0+mark, 0xffff);
+    jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
     // read the file parameters
-    if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-        error("Bad JPEG header for \"%s\"", filename().c_str());
+    if (jpeg_read_header (&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
+        error ("Bad JPEG header for \"%s\"", filename().c_str());
         return false;
     }
     if (m_raw)
-        m_coeffs = jpeg_read_coefficients(&m_cinfo);
+        m_coeffs = jpeg_read_coefficients (&m_cinfo);
     else
-        jpeg_start_decompress(&m_cinfo); // start working
+        jpeg_start_decompress (&m_cinfo);       // start working
     if (m_fatalerr)
         return false;
-    m_next_scanline = 0; // next scanline we'll read
+    m_next_scanline = 0;                        // next scanline we'll read
 
-    m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
-        m_cinfo.output_components, TypeDesc::UINT8);
+    m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
+                        m_cinfo.output_components, TypeDesc::UINT8);
 
-	// Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-	m_spec.attribute("oiio:ColorSpace", "sRGB");
-    
-    for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
-		if (m->marker == (JPEG_APP0 + 1) &&
-			!strcmp((const char *)m->data, "Exif")) {
-			// The block starts with "Exif\0\0", so skip 6 bytes to get
-			// to the start of the actual Exif data TIFF directory
-			decode_exif((unsigned char *)m->data + 6, m->data_length - 6, m_spec);
-		}
-		else if (m->marker == (JPEG_APP0 + 1) &&
-			!strcmp((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
+    // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
+    m_spec.attribute ("oiio:ColorSpace", "sRGB");
+
+    for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
+        if (m->marker == (JPEG_APP0+1) &&
+                ! strcmp ((const char *)m->data, "Exif")) {
+            // The block starts with "Exif\0\0", so skip 6 bytes to get
+            // to the start of the actual Exif data TIFF directory
+            decode_exif ((unsigned char *)m->data+6, m->data_length-6, m_spec);
+        }
+        else if (m->marker == (JPEG_APP0+1) &&
+                 ! strcmp ((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
 #ifndef NDEBUG
-			std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
+            std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
 #endif
-			std::string xml((const char *)m->data, m->data_length);
-			decode_xmp(xml, m_spec);
-		}
-		else if (m->marker == (JPEG_APP0 + 2) && 
-			!strcmp((const char *)m->data, "ICC_PROFILE")){
+            std::string xml ((const char *)m->data, m->data_length);
+            decode_xmp (xml, m_spec);
+        }
+		else if (m->marker == (JPEG_APP0+2) && 
+				! strcmp((const char *)m->data, "ICC_PROFILE")){
 #ifndef NDEBUG
 			std::cerr << "Found APP2 ICC_PROFILE! length " << m->data_length << "\n";
 #endif

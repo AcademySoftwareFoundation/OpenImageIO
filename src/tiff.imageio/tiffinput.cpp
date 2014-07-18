@@ -808,12 +808,11 @@ TIFFInput::readspec (bool read_meta)
     // NewSubfileType SubfileType(deprecated)
     // Colorimetry fields
 
-	/// read color profile
-	unsigned int icc_datasize = 0;
-	unsigned char *icc_buf = NULL;
-	TIFFGetField(m_tif, TIFFTAG_ICCPROFILE, &icc_datasize, &icc_buf);
-	m_spec.erase_attribute(ICC_PROFILE_ATTR);
-	m_spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
+    /// read color profile
+    unsigned int icc_datasize = 0;
+    unsigned char *icc_buf = NULL;
+    TIFFGetField(m_tif, TIFFTAG_ICCPROFILE, &icc_datasize, &icc_buf);
+    m_spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
 	
 
 
