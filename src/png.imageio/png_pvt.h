@@ -167,7 +167,6 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         png_uint_32 profile_length = 0;
         int compression_type;
         png_get_iCCP(sp, ip, &profile_name, &compression_type, &profile_data, &profile_length);
-        spec.erase_attribute(ICC_PROFILE_ATTR);
         spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, profile_length), profile_data);
 	}
     png_timep mod_time;
