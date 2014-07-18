@@ -102,6 +102,7 @@ else ()
     find_package (Boost 1.42 REQUIRED 
                   COMPONENTS ${Boost_COMPONENTS}
                  )
+
     # Try to figure out if this boost distro has Boost::python.  If we
     # include python in the component list above, cmake will abort if
     # it's not found.  So we resort to checking for the boost_python
@@ -143,6 +144,11 @@ else ()
     else ()
         set (oiio_boost_PYTHON_FOUND OFF)
     endif ()
+endif ()
+
+# On Linux, Boost 1.55 and higher seems to need to link against -lrt
+if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND ${Boost_VERSION} GREATER 105499)
+    list (APPEND Boost_LIBRARIES "rt")
 endif ()
 
 if (VERBOSE)
