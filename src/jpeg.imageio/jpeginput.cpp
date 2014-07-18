@@ -134,8 +134,8 @@ JpgInput::valid_file (const std::string &filename) const
 
 
 bool
-JpgInput::open (const std::string &name, ImageSpec &newspec,
-        	 	const ImageSpec &config)
+JpgInput::open(const std::string &name, ImageSpec &newspec,
+const ImageSpec &config)
 {
     const ImageIOParameter *p = config.find_attribute ("_jpeg:raw",
 						        						TypeDesc::TypeInt);
@@ -150,16 +150,16 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
     // Check that file exists and can be opened
     m_filename = name;
-    m_fd = Filesystem::fopen(name, "rb");
+    m_fd = Filesystem::fopen (name, "rb");
     if (m_fd == NULL) {
-        error("Could not open file \"%s\"", name.c_str());
+        error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
 
     // Check magic number to assure this is a JPEG file
     uint8_t magic[2] = { 0, 0 };
-    if (fread(magic, sizeof(magic), 1, m_fd) != 1) {
-        error("Empty file \"%s\"", name.c_str());
+    if (fread (magic, sizeof(magic), 1, m_fd) != 1) {
+        error ("Empty file \"%s\"", name.c_str());
         close_file();
         return false;
     }
@@ -167,7 +167,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     rewind(m_fd);
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         close_file();
-        error("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
+        error ("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
             name.c_str(), magic);
         return false;
     }
