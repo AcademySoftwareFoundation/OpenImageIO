@@ -247,7 +247,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_total_imagesize(0),
       m_inputcreator(creator)
 {
-    m_filename = imagecache.resolve_filename (m_filename.string());
+    m_filename_original = m_filename;
+    m_filename = imagecache.resolve_filename (m_filename_original.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
     // reflected by the fact that m_validspec is false.
     m_Mlocal.makeIdentity();
@@ -937,6 +938,8 @@ ImageCacheFile::invalidate ()
     m_broken = false;
     m_fingerprint.clear ();
     duplicate (NULL);
+
+    m_filename = m_imagecache.resolve_filename (m_filename_original.string());
 
     // Eat any errors that occurred in the open/close
     while (! imagecache().geterror().empty())

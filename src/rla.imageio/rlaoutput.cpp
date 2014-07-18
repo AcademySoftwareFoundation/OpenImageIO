@@ -272,7 +272,14 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         m_rla.ColorChannelType = m_rla.MatteChannelType = m_rla.AuxChannelType =
             m_spec.format == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
         int bits = m_spec.get_int_attribute ("oiio:BitsPerSample", 0);
-        m_rla.NumOfChannelBits = bits ? bits : m_spec.channelformats[0].size () * 8;
+        if (bits) {
+            m_rla.NumOfChannelBits = bits;
+        } else {
+            if (m_spec.channelformats.size())
+                m_rla.NumOfChannelBits = m_spec.channelformats[0].size() * 8;
+            else
+                m_rla.NumOfChannelBits = m_spec.format.size() * 8;
+        }
         m_rla.NumOfMatteBits = m_rla.NumOfAuxBits = m_rla.NumOfChannelBits;
         if (remaining >= 3) {
             // if we have at least 3 channels, treat them as colour
