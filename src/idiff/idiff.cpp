@@ -44,7 +44,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/filesystem.h"
-using OpenImageIO::v1_5::isinf;
+
 #ifdef __APPLE__
  using std::isinf;
  using std::isnan;
@@ -166,7 +166,7 @@ safe_double_print (double val)
 {
     if (isnan (val))
         std::cout << "nan";
-	else if (OpenImageIO::v1_5::isinf(val))
+    else if (isinf (val))
         std::cout << "inf";
     else
         std::cout << val;
