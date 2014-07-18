@@ -278,9 +278,6 @@ oiio_install_targets (OpenImageIO)
 if (NOT LINKSTATIC)
     add_definitions (-DBOOST_TEST_DYN_LINK)
     add_definitions (-DPTEX_EXPORTS)
-else()
-    add_definitions (-DBOOST_TEST_DYN_LINK)
-    add_definitions (-DPTEX_EXPORTS)	
 endif ()
     
 
