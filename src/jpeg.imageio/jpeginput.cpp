@@ -128,7 +128,7 @@ JpgInput::valid_file (const std::string &filename) const
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         ok = false;
     }
-return ok;
+    return ok;
 }
 
 
@@ -211,8 +211,8 @@ JpgInput::open(const std::string &name, ImageSpec &newspec)
 
 	// Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
 	m_spec.attribute("oiio:ColorSpace", "sRGB");
-
-	for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
+    
+    for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
 		if (m->marker == (JPEG_APP0 + 1) &&
 			!strcmp((const char *)m->data, "Exif")) {
 			// The block starts with "Exif\0\0", so skip 6 bytes to get
@@ -232,7 +232,7 @@ JpgInput::open(const std::string &name, ImageSpec &newspec)
 #ifndef NDEBUG
 			std::cerr << "Found APP2 ICC_PROFILE! length " << m->data_length << "\n";
 #endif
-			read_icc_profile((unsigned char*)m->data,m->data_length,m_spec);
+            read_icc_profile((unsigned char*)m->data,m->data_length,m_spec);
 			m_spec.attribute("oiio:ColorSpace", "Embedded colorprofile");
 		}
         else if (m->marker == (JPEG_APP0+13) &&
