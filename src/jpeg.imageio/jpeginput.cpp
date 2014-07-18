@@ -148,66 +148,66 @@ JpgInput::open (const std::string &name, ImageSpec &newspec,
 bool
 JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
-	// Check that file exists and can be opened
-	m_filename = name;
-	m_fd = Filesystem::fopen(name, "rb");
-	if (m_fd == NULL) {
-		error("Could not open file \"%s\"", name.c_str());
-		return false;
-	}
+    // Check that file exists and can be opened
+    m_filename = name;
+    m_fd = Filesystem::fopen(name, "rb");
+    if (m_fd == NULL) {
+        error("Could not open file \"%s\"", name.c_str());
+        return false;
+    }
 
-	// Check magic number to assure this is a JPEG file
-	uint8_t magic[2] = { 0, 0 };
-	if (fread(magic, sizeof(magic), 1, m_fd) != 1) {
-		error("Empty file \"%s\"", name.c_str());
-		close_file();
-		return false;
-	}
+    // Check magic number to assure this is a JPEG file
+    uint8_t magic[2] = { 0, 0 };
+    if (fread(magic, sizeof(magic), 1, m_fd) != 1) {
+        error("Empty file \"%s\"", name.c_str());
+        close_file();
+        return false;
+    }
 
-	rewind(m_fd);
-	if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
-		close_file();
-		error("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
-			name.c_str(), magic);
-		return false;
-	}
+    rewind(m_fd);
+    if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
+        close_file();
+        error("\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x)",
+            name.c_str(), magic);
+        return false;
+    }
 
-	// Set up the normal JPEG error routines, then override error_exit and
-	// output_message so we intercept all the errors.
-	m_cinfo.err = jpeg_std_error((jpeg_error_mgr *)&m_jerr);
-	m_jerr.pub.error_exit = my_error_exit;
-	m_jerr.pub.output_message = my_output_message;
-	if (setjmp(m_jerr.setjmp_buffer)) {
-		// Jump to here if there's a libjpeg internal error
-		// Prevent memory leaks, see example.c in jpeg distribution
-		jpeg_destroy_decompress(&m_cinfo);
-		close_file();
-		return false;
-	}
+    // Set up the normal JPEG error routines, then override error_exit and
+    // output_message so we intercept all the errors.
+    m_cinfo.err = jpeg_std_error((jpeg_error_mgr *)&m_jerr);
+    m_jerr.pub.error_exit = my_error_exit;
+    m_jerr.pub.output_message = my_output_message;
+    if (setjmp(m_jerr.setjmp_buffer)) {
+        // Jump to here if there's a libjpeg internal error
+        // Prevent memory leaks, see example.c in jpeg distribution
+        jpeg_destroy_decompress(&m_cinfo);
+        close_file();
+        return false;
+    }
 
-	jpeg_create_decompress(&m_cinfo);          // initialize decompressor
-	jpeg_stdio_src(&m_cinfo, m_fd);            // specify the data source
+    jpeg_create_decompress(&m_cinfo); // initialize decompressor
+    jpeg_stdio_src(&m_cinfo, m_fd); // specify the data source
 
-	// Request saving of EXIF and other special tags for later spelunking
-	for (int mark = 0; mark < 16; ++mark)
-		jpeg_save_markers(&m_cinfo, JPEG_APP0 + mark, 0xffff);
-	jpeg_save_markers(&m_cinfo, JPEG_COM, 0xffff);     // comment marker
+    // Request saving of EXIF and other special tags for later spelunking
+    for (int mark = 0; mark < 16; ++mark)
+        jpeg_save_markers(&m_cinfo, JPEG_APP0 + mark, 0xffff);
+    jpeg_save_markers(&m_cinfo, JPEG_COM, 0xffff); // comment marker
 
-	// read the file parameters
-	if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-		error("Bad JPEG header for \"%s\"", filename().c_str());
-		return false;
-	}
-	if (m_raw)
-		m_coeffs = jpeg_read_coefficients(&m_cinfo);
-	else
-		jpeg_start_decompress(&m_cinfo);       // start working
-	if (m_fatalerr)
-		return false;
-	m_next_scanline = 0;                        // next scanline we'll read
+    // read the file parameters
+    if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
+        error("Bad JPEG header for \"%s\"", filename().c_str());
+        return false;
+    }
+    if (m_raw)
+        m_coeffs = jpeg_read_coefficients(&m_cinfo);
+    else
+        jpeg_start_decompress(&m_cinfo); // start working
+    if (m_fatalerr)
+        return false;
+    m_next_scanline = 0; // next scanline we'll read
 
-	m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
-		m_cinfo.output_components, TypeDesc::UINT8);
+    m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
+        m_cinfo.output_components, TypeDesc::UINT8);
 
 	// Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
 	m_spec.attribute("oiio:ColorSpace", "sRGB");
