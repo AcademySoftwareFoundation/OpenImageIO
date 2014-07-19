@@ -1,6 +1,15 @@
 Changes:
 
 
+Release 1.4.12 (? Jul 2014 -- compared to 1.4.11)
+-------------------------------------------------
+* ImageCache fix for when files are not found, then subsequently the
+  searchpath is changed. #913
+* Fixes to fmath.h to work with MSVC 2013 (some long-omitted math ops that
+  we'd always needed to define for Windows only are finally supported
+  in MSVC 2013). #912
+* Fix for Linux + Boost >= 1.55 combination: need to link with -lrt. #914
+
 Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
 -------------------------------------------------
 * OpenEXR output fix for crashes/exceptions when passing string array
@@ -26,7 +35,6 @@ Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
 * Several fixes for Windows build, including properly finding OpenEXR
   libraries when OpenEXR 2.1 is used.
 * Better exception safety in Filesystem::scan_for_matching_filenames(). #902
-
 
 Release 1.4.10 (20 Jun 2014 -- compared to 1.4.9)
 -------------------------------------------------
