@@ -72,8 +72,8 @@ namespace dpx
 		for (int i = count - 1; i >= 0; i--)
 		{
 			// unpacking the buffer backwords
-			register U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-			register U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+			U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
+			U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
 			BaseTypeConvertU10ToU16(d1, d1);
 			BaseTypeConverter(d1, obuf[i]);
 		}

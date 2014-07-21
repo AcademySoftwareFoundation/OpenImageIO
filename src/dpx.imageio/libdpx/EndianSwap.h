@@ -43,9 +43,9 @@ namespace dpx
 template <typename T>
 T SwapBytes(T& value)
 {
-	register unsigned char *pe, *ps = reinterpret_cast<unsigned char*>(&value);
-	register unsigned char c;
-	register size_t s = (sizeof(T));
+	unsigned char *pe, *ps = reinterpret_cast<unsigned char*>(&value);
+	unsigned char c;
+	size_t s = (sizeof(T));
 
 	pe = ps + s - 1;
 	for (size_t i = s/2; i > 0; i--)
@@ -64,8 +64,8 @@ T SwapBytes(T& value)
 template <>
 inline unsigned short SwapBytes( unsigned short& value )
 {
-	register unsigned char *p = reinterpret_cast<unsigned char*>(&value);
-	register unsigned char c = p[0];
+	unsigned char *p = reinterpret_cast<unsigned char*>(&value);
+	unsigned char c = p[0];
 	p[0] = p[1];
 	p[1] = c;
 	return value;

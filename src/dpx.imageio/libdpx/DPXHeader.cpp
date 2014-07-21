@@ -686,7 +686,7 @@ void dpx::IndustryHeader::SetFileEdgeCode(const char *edge)
 
 void dpx::IndustryHeader::TimeCode(char *str) const
 {
-	register U32 tc = this->timeCode;
+	U32 tc = this->timeCode;
 	::sprintf(str, "%c%c:%c%c:%c%c:%c%c", 
 		Hex((tc & 0xf0000000) >> 28),  Hex((tc & 0xf000000) >> 24),
 		Hex((tc & 0xf00000) >> 20),  Hex((tc & 0xf0000) >> 16),
@@ -697,7 +697,7 @@ void dpx::IndustryHeader::TimeCode(char *str) const
 
 void dpx::IndustryHeader::UserBits(char *str) const
 {
-	register U32 ub = this->userBits;
+	U32 ub = this->userBits;
 	::sprintf(str, "%c%c:%c%c:%c%c:%c%c", 
 		Hex((ub & 0xf0000000) >> 28),  Hex((ub & 0xf000000) >> 24),
 		Hex((ub & 0xf00000) >> 20),  Hex((ub & 0xf0000) >> 16),

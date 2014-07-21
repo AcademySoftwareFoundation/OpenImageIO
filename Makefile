@@ -196,10 +196,22 @@ MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 endif
 
 ifneq (${MYCC},)
-MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER:STRING=${MYCC}
+MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER:STRING="${MYCC}"
 endif
 ifneq (${MYCXX},)
-MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING=${MYCXX}
+MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING="${MYCXX}"
+endif
+
+ifneq (${USE_CPP11},)
+MY_CMAKE_FLAGS += -DUSE_CPP11:BOOL=${USE_CPP11}
+endif
+
+ifneq (${USE_LIBCPLUSPLUS},)
+MY_CMAKE_FLAGS += -DUSE_LIBCPLUSPLUS:BOOL=${USE_LIBCPLUSPLUS}
+endif
+
+ifneq (${EXTRA_CPP_ARGS},)
+MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="${EXTRA_CPP_ARGS}"
 endif
 
 ifneq (${TEST},)
@@ -319,6 +331,9 @@ help:
 	@echo "  make HIDE_SYMBOLS=1         Hide symbols not in the public API"
 	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
+	@echo "  make USE_CPP11=1 ...        Compile in C++11 mode"
+	@echo "  make USE_LIBCPLUSPLUS=1     Use clang libc++"
+	@echo "  make EXTRA_CPP_ARGS=...     Additional args to the C++ command"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"

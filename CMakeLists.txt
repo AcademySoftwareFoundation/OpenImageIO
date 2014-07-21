@@ -136,6 +136,9 @@ set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
 set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
 set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
 set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO_Util")
+set (USE_CPP11 OFF CACHE BOOL "Compile in C++11 mode")
+set (USE_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
+set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 
 if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # On Linux, the lack of -fPIC when building static libraries seems
@@ -155,9 +158,23 @@ else ()
     endif ()
 endif ()
 
-if (EXTRA_CPP_DEFINITIONS)
-    add_definitions ("${EXTRA_CPP_DEFINITIONS}")
+if (EXTRA_CPP_ARGS)
+    message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
+    add_definitions ("${EXTRA_CPP_ARGS}")
 endif()
+
+if (USE_CPP11)
+    message (STATUS "Building for C++11")
+    add_definitions ("-std=c++11")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # C++11 doesn't like 'register' keyword, which is in Qt headers
+        add_definitions ("-Wno-deprecated-register")
+    endif ()
+endif ()
+
+if (USE_LIBCPLUSPLUS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_definitions ("-stdlib=libc++")
+endif ()
 
 set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
