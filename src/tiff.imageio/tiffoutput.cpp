@@ -323,7 +323,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
 
 	// Write ICC profile, if we have anything
 	unsigned char* icc_profile = NULL;
-	unsigned int length = 0;
+    uint32 length = 0;
 	bool foundICCProfile = false;
 	const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
 	if (icc_profile_parameter != NULL){
@@ -343,7 +343,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
 	}
 
 	if (foundICCProfile){
-		TIFFSetField(m_tif,TIFFTAG_ICCPROFILE,icc_profile, length);
+        TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
 	}
 
     if (Strutil::iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
