@@ -235,40 +235,43 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 	// Write ICC profile, if we have anything
 	unsigned char* icc_profile = NULL;
-	unsigned int length = 0;
-	bool foundICCProfile = false;
+    unsigned int icc_profile_length = 0;
 	const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
 	if (icc_profile_parameter != NULL){
 		icc_profile = (unsigned char*)icc_profile_parameter->data();
-		length = icc_profile_parameter->type().size();
-		if (icc_profile == NULL || length == 0){
-			foundICCProfile = false;
+		icc_profile_length = icc_profile_parameter->type().size();
+        if (icc_profile != NULL && icc_profile_length != 0){
+            unsigned int num_markers; /*total number of markers */
+            int curr_marker = 1;  /* per spec, count strarts at 1*/
+            unsigned int length;
+            /* Calculate the number of markers we'll need, rounding up of course */
+            num_markers = icc_profile_length / MAX_DATA_BYTES_IN_MARKER;
+            if (num_markers * MAX_DATA_BYTES_IN_MARKER != icc_profile_length)
+                num_markers++;
+            unsigned char* profile = (unsigned char*)malloc((MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE)*sizeof(unsigned char));
+            while (icc_profile_length > 0) {
+                /* length of profile to put in this marker */
+                length = icc_profile_length;
+                if (length > MAX_DATA_BYTES_IN_MARKER)
+                    length = MAX_DATA_BYTES_IN_MARKER;
+                icc_profile_length -= length;
+
+                /* Write the JPEG marker header (APP2 code and marker length) */
+                unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
+                
+                if (profile == NULL) return false;
+                memcpy(profile, icc_signature, 12);
+                /* Add the sequencing info */
+                profile[12] = curr_marker;
+                profile[13] = num_markers;
+                memcpy(profile + ICC_HEADER_SIZE, icc_profile+length*(curr_marker-1), length);
+                jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile, ICC_HEADER_SIZE+length);
+                curr_marker++;
+            }
+            free(profile);
 		}
-		else{
-			foundICCProfile = true;
-		}
-	}
-	else{
-		icc_profile = NULL;
-		length = 0;
-		foundICCProfile = false;
 	}
 	
-	if (foundICCProfile){
-		unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
-		unsigned char* profile = (unsigned char*)malloc((length + ICC_HEADER_SIZE)*sizeof(unsigned char));
-		if (profile == NULL) return false;
-		memcpy(profile, icc_signature, 12);
-		for (long i = 0; i<(int)length; i += MAX_DATA_BYTES_IN_MARKER){
-			long total_length = length + ICC_HEADER_SIZE;
-			unsigned marker_size = std::min(total_length, MAX_DATA_BYTES_IN_MARKER);
-			profile[12] = (unsigned char)((i / MAX_DATA_BYTES_IN_MARKER) + 1);
-			profile[13] = (unsigned char)(length / MAX_DATA_BYTES_IN_MARKER + 1);
-			memcpy(profile + ICC_HEADER_SIZE, icc_profile, length);
-			jpeg_write_marker(&m_cinfo, JPEG_APP0 + 2, profile, total_length);
-		}
-		free(profile);
-	}
 
     m_dither = m_spec.get_int_attribute ("oiio:dither", 0);
 

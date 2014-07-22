@@ -144,7 +144,80 @@ JpgInput::open (const std::string &name, ImageSpec &newspec,
     return open (name, newspec);
 }
 
+bool
+JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
+{
+    int num_markers = 0;
+    int seq_no;
+    unsigned char* icc_buf = NULL;
+    unsigned int total_length = 0;
 
+    const int MAX_SEQ_NO = 255;
+    unsigned char marker_present[MAX_SEQ_NO + 1];	 // one extra is used to store the flag if marker is found, set to one if marker is found
+    unsigned data_length[MAX_SEQ_NO + 1];			 // store the size of each marker
+    unsigned data_offset[MAX_SEQ_NO + 1];			 // store the offset of each marker
+
+    memset(marker_present, 0, (MAX_SEQ_NO + 1));
+    
+    for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
+        if (m->marker == (JPEG_APP0 + 2) &&
+            +!strcmp((const char *)m->data, "ICC_PROFILE")){  // marker head is "ICC_PROFILE"
+            if (num_markers == 0)
+                num_markers = GETJOCTET(m->data[13]);
+            else if (num_markers != GETJOCTET(m->data[13]))
+                return false;
+            seq_no = GETJOCTET(m->data[12]);
+            if (seq_no <= 0 || seq_no > num_markers){
+                return false;
+            }
+            if (marker_present[seq_no])   // duplicate marker
+                return false;
+            marker_present[seq_no] = 1;   // flag found marker
+            data_length[seq_no] = m->data_length - ICC_HEADER_SIZE;
+          
+        }
+    }
+    
+    if (num_markers == 0)
+        return false;
+
+    /* checking for missing markers */
+    for (seq_no = 1; seq_no <= num_markers; seq_no++){
+        if(marker_present[seq_no] == 0)
+            return false;   /* missing sequence number */
+         data_offset[seq_no] = total_length;
+         total_length += data_length[seq_no];
+    }
+
+    if (total_length <= 0) 
+        return false; // found only empty markers
+
+    icc_buf = (JOCTET*)malloc(total_length*sizeof(JOCTET));
+    if (icc_buf == NULL)
+        return false;	// out of memory
+
+    /* and fill it in*/
+    for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
+        if (m->marker == (JPEG_APP0 + 2) &&
+            +!strcmp((const char *)m->data, "ICC_PROFILE")){  // marker head is "ICC_PROFILE"
+            JOCTET FAR *src_ptr;
+            JOCTET *dst_ptr;
+            unsigned int length;
+            seq_no = GETJOCTET(m->data[12]);
+            dst_ptr = icc_buf + data_offset[seq_no];
+            src_ptr = m->data + ICC_HEADER_SIZE;
+            length = data_length[seq_no];
+            while (length--) {
+                *dst_ptr++ = *src_ptr++;
+            }
+        }
+    }
+    if (total_length>0 && (icc_buf != NULL))
+        spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, total_length), icc_buf);
+    free(icc_buf);
+
+    return true;
+}
 
 bool
 JpgInput::open (const std::string &name, ImageSpec &newspec)
@@ -228,14 +301,6 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
             std::string xml ((const char *)m->data, m->data_length);
             decode_xmp (xml, m_spec);
         }
-		else if (m->marker == (JPEG_APP0+2) && 
-				! strcmp((const char *)m->data, "ICC_PROFILE")){
-#ifndef NDEBUG
-			std::cerr << "Found APP2 ICC_PROFILE! length " << m->data_length << "\n";
-#endif
-            read_icc_profile((unsigned char*)m->data,m->data_length,m_spec);
-			m_spec.attribute("oiio:ColorSpace", "Embedded colorprofile");
-		}
         else if (m->marker == (JPEG_APP0+13) &&
                 ! strcmp ((const char *)m->data, "Photoshop 3.0"))
             jpeg_decode_iptc ((unsigned char *)m->data);
@@ -246,57 +311,15 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
         }
     }
 
+    read_icc_profile(&m_cinfo, m_spec); /// try to read icc profile
+
     newspec = m_spec;
     return true;
 }
 
 
 
-bool
-JpgInput::read_icc_profile(unsigned char* data, int data_size, ImageSpec& spec)
-{
-    int num_markers = 0;
-    int seq_no;
-    unsigned char* icc_buf = NULL;
-    int total_length = 0;
 
-    const int MAX_SEQ_NO = 255;
-    unsigned char marker_present[MAX_SEQ_NO + 1];	 // one extra is used to store the flag if marker is found, set to one if marker is found
-    unsigned data_length[MAX_SEQ_NO + 1];			 // store the size of each marker
-    unsigned data_offset[MAX_SEQ_NO + 1];			 // store the offset of each marker
-
-    memset(marker_present, 0, (MAX_SEQ_NO + 1));
-    num_markers = data[13];
-    seq_no = data[12];
-    if (seq_no <= 0 && seq_no > num_markers){
-        return false;
-    }
-
-    data_length[seq_no] = data_size - ICC_HEADER_SIZE;
-    for (seq_no = 1; seq_no <= num_markers; seq_no++){
-        marker_present[seq_no] = 1;
-        data_offset[seq_no] = total_length;
-        total_length += data_length[seq_no];
-    }
-
-    if (total_length <= 0) return false; // found only empty markers
-
-    icc_buf = (unsigned char*)malloc(total_length*sizeof(unsigned char));
-    if (icc_buf == NULL)
-        return false;	// out of memory
-
-    seq_no = data[12];
-    unsigned char* dst_ptr = icc_buf + data_offset[seq_no];
-    unsigned char* src_ptr = data + ICC_HEADER_SIZE;
-    int length = data_length[seq_no];
-    while (length--){
-        *dst_ptr++ = *src_ptr++;
-    }
-
-    spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, total_length), icc_buf);
-    free(icc_buf);
-    return true;
-}
 
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)

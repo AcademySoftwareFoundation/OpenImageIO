@@ -466,27 +466,16 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
 	// Write ICC profile, if we have anything
 	unsigned char* icc_profile = NULL;
 	unsigned int length = 0;
-	bool foundICCProfile = false;
 	const ImageIOParameter* icc_profile_parameter = spec.find_attribute(ICC_PROFILE_ATTR);
 	if (icc_profile_parameter != NULL){
 		icc_profile = (unsigned char*)icc_profile_parameter->data();
 		length = icc_profile_parameter->type().size();
-		if (icc_profile == NULL || length == 0){
-			foundICCProfile = false;
+		if (icc_profile != NULL && length != 0){
+            png_set_iCCP(sp, ip, "Embedded Profile", 0, (png_const_bytep)icc_profile, length);
 		}
-		else{
-			foundICCProfile = true;
-		}
-	}
-	else{
-		icc_profile = NULL;
-		length = 0;
-		foundICCProfile = false;
 	}
 
-	if (foundICCProfile){
-		png_set_iCCP(sp, ip, "Embedded Profile", 0, (png_const_bytep)icc_profile, length);
-	}
+
     if (false && ! spec.find_attribute("DateTime")) {
         time_t now;
         time (&now);
