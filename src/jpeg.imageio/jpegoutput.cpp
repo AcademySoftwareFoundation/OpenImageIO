@@ -249,6 +249,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
             if (num_markers * MAX_DATA_BYTES_IN_MARKER != icc_profile_length)
                 num_markers++;
             unsigned char* profile = (unsigned char*)malloc((MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE)*sizeof(unsigned char));
+            if (profile == NULL) return false;
             while (icc_profile_length > 0) {
                 /* length of profile to put in this marker */
                 length = icc_profile_length;
@@ -258,8 +259,8 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
 
                 /* Write the JPEG marker header (APP2 code and marker length) */
                 unsigned char icc_signature[12] = { 0x49, 0x43, 0x43, 0x5F, 0x50, 0x52, 0x4F, 0x46, 0x49, 0x4C, 0x45, 0x00 }; //"ICC_PROFILE"
+            
                 
-                if (profile == NULL) return false;
                 memcpy(profile, icc_signature, 12);
                 /* Add the sequencing info */
                 profile[12] = curr_marker;
