@@ -893,7 +893,7 @@ set_orientation (int argc, const char *argv[])
         std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
         return 0;
     }
-    return set_attribute (ot.curimg, argv[0], TypeDesc::INT, argv[1]);
+    return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1]);
 }
 
 
