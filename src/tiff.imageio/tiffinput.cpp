@@ -812,7 +812,8 @@ TIFFInput::readspec (bool read_meta)
     unsigned int icc_datasize = 0;
     unsigned char *icc_buf = NULL;
     TIFFGetField(m_tif, TIFFTAG_ICCPROFILE, &icc_datasize, &icc_buf);
-    m_spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
+    if ((icc_datasize>0)&&(icc_buf!=NULL))
+        m_spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
 	
 
 
