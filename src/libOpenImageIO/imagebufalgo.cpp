@@ -249,9 +249,10 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
     ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
     if (! IBAprep (roi, &dst))
         return false;
-    OIIO_DISPATCH_TYPES ("fill", fill_, dst.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
                          dst, pixel, roi, nthreads);
-    return true;
+    return ok;
 }
 
 
@@ -310,10 +311,11 @@ ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
 {
     if (! IBAprep (roi, &dst))
         return false;
-    OIIO_DISPATCH_TYPES ("checker", checker_, dst.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "checker", checker_, dst.spec().format,
                          dst, Dim3(width, height, depth), color1, color2,
                          Dim3(xoffset, yoffset, zoffset), roi, nthreads);
-    return true;
+    return ok;
 }
 
 
@@ -539,11 +541,11 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
         filterptr.reset (filter);
     }
 
-    OIIO_DISPATCH_TYPES2 ("resize", resize_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "resize", resize_,
                           dst.spec().format, src.spec().format,
                           dst, src, filter, roi, nthreads);
-
-    return false;
+    return ok;
 }
 
 
@@ -597,11 +599,11 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
 
-    OIIO_DISPATCH_TYPES2 ("resize", resize_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "resize", resize_,
                           dstspec.format, srcspec.format,
                           dst, src, filter.get(), roi, nthreads);
-
-    return false;
+    return ok;
 }
 
 
@@ -690,10 +692,11 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
         dst.error ("ImageBufAlgo::resample does not support volume images");
         return false;
     }
-    OIIO_DISPATCH_TYPES2 ("resample", resample_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "resample", resample_,
                           dst.spec().format, src.spec().format,
                           dst, src, interpolate, roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -760,10 +763,11 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
                    dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
-    OIIO_DISPATCH_TYPES2 ("convolve", convolve_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "convolve", convolve_,
                           dst.spec().format, src.spec().format,
                           dst, src, kernel, normalize, roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -1163,9 +1167,11 @@ ImageBufAlgo::polar_to_complex (ImageBuf &dst, const ImageBuf &src,
         dst.error ("polar_to_complex can only be done on 2-channel");
         return false;
     }
-    OIIO_DISPATCH_COMMON_TYPES2 ("polar_to_complex", polar_to_complex_impl, dst.spec().format,
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "polar_to_complex",
+                                 polar_to_complex_impl, dst.spec().format,
                                  src.spec().format, dst, src, roi, nthreads);
-    return true;
+    return ok;
 }
 
 
@@ -1186,9 +1192,11 @@ ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
         dst.error ("complex_to_polar can only be done on 2-channel");
         return false;
     }
-    OIIO_DISPATCH_COMMON_TYPES2 ("complex_to_polar", complex_to_polar_impl, dst.spec().format,
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "complex_to_polar",
+                                 complex_to_polar_impl, dst.spec().format,
                                  src.spec().format, dst, src, roi, nthreads);
-    return true;
+    return ok;
 }
 
 

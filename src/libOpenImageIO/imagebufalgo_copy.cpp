@@ -97,9 +97,10 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
     IBAprep (dstroi, &dst);
 
     // do the actual copying
-    OIIO_DISPATCH_TYPES2 ("paste", paste_, dst.spec().format, src.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "paste", paste_, dst.spec().format, src.spec().format,
                           dst, dstroi_save, src, srcroi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -138,9 +139,10 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     dst.clear ();
     roi.chend = std::min (roi.chend, src.nchannels());
     IBAprep (roi, &dst, &src);
-    OIIO_DISPATCH_TYPES2 ("crop", crop_, dst.spec().format, src.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "crop", crop_, dst.spec().format, src.spec().format,
                           dst, src, roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -184,10 +186,11 @@ bool
 ImageBufAlgo::flip(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     IBAprep (roi, &dst, &src);
-    OIIO_DISPATCH_TYPES2 ("flip", flip_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "flip", flip_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -211,10 +214,11 @@ bool
 ImageBufAlgo::flop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     IBAprep (roi, &dst, &src);
-    OIIO_DISPATCH_TYPES2 ("flop", flop_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "flop", flop_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -241,10 +245,11 @@ ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
                         ROI roi, int nthreads)
 {
     IBAprep (roi, &dst, &src);
-    OIIO_DISPATCH_TYPES2 ("flipflop", flipflop_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "flipflop", flipflop_,
                           dst.spec().format, src.spec().format, dst, src,
                           roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -289,9 +294,10 @@ ImageBufAlgo::transpose (ImageBuf &dst, const ImageBuf &src,
     ROI dst_roi (roi.ybegin, roi.yend, roi.xbegin, roi.xend,
                  roi.zbegin, roi.zend, roi.chbegin, roi.chend);
     IBAprep (dst_roi, &dst);
-    OIIO_DISPATCH_TYPES2 ("transpose", transpose_, dst.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "transpose", transpose_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -338,10 +344,11 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
                               ROI roi, int nthreads)
 {
     IBAprep (roi, &dst, &src);
-    OIIO_DISPATCH_TYPES2 ("circular_shift", circular_shift_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "circular_shift", circular_shift_,
                           dst.spec().format, src.spec().format, dst, src,
                           xshift, yshift, zshift, roi, roi, nthreads);
-    return false;
+    return ok;
 }
 
 
@@ -522,9 +529,10 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
         return false;
     }
 
-    OIIO_DISPATCH_TYPES ("channel_append", channel_append_impl,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "channel_append", channel_append_impl,
                          A.spec().format, dst, A, B, roi, nthreads);
-    return true;
+    return ok;
 }
 
 

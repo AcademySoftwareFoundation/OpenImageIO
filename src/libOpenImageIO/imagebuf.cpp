@@ -1229,9 +1229,10 @@ ImageBuf::copy_pixels (const ImageBuf &src)
     if (roi != myroi)
         ImageBufAlgo::zero (*this);
 
-    OIIO_DISPATCH_TYPES2 ("copy_pixels", copy_pixels_2,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "copy_pixels", copy_pixels_2,
                           spec().format, src.spec().format, *this, src, roi);
-    return true;
+    return ok;
 }
 
 
@@ -1267,8 +1268,10 @@ ImageBuf::getchannel (int x, int y, int z, int c, WrapMode wrap) const
 {
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
-    OIIO_DISPATCH_TYPES ("getchannel", getchannel_, spec().format,
+    float ret;
+    OIIO_DISPATCH_TYPES (ret, "getchannel", getchannel_, spec().format,
                          *this, x, y, z, c, wrap);
+    return ret;
 }
 
 
@@ -1290,8 +1293,10 @@ inline bool
 getpixel_wrapper (int x, int y, int z, float *pixel, int nchans,
                   ImageBuf::WrapMode wrap, const ImageBuf &ib)
 {
-    OIIO_DISPATCH_TYPES ("getpixel", getpixel_, ib.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "getpixel", getpixel_, ib.spec().format,
                          ib, x, y, z, pixel, nchans, wrap);
+    return ok;
 }
 
 
@@ -1335,8 +1340,10 @@ inline bool
 interppixel_wrapper (float x, float y, float *pixel,
                      ImageBuf::WrapMode wrap, const ImageBuf &img)
 {
-    OIIO_DISPATCH_TYPES ("interppixel", interppixel_, img.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "interppixel", interppixel_, img.spec().format,
                          img, x, y, pixel, wrap);
+    return ok;
 }
 
 
@@ -1417,7 +1424,7 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 
 template<typename D, typename S>
-static inline bool 
+static bool
 get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend, 
                      int chbegin, int chend, void *r_,
@@ -1448,10 +1455,12 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    OIIO_DISPATCH_TYPES2_HELP ("get_pixel_channels", get_pixel_channels_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2_HELP (ok, "get_pixel_channels", get_pixel_channels_,
                                D, spec().format, *this,
                                xbegin, xend, ybegin, yend, zbegin, zend,
                                chbegin, chend, r, xstride, ystride, zstride);
+    return ok;
 }
 
 
@@ -1463,10 +1472,12 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    OIIO_DISPATCH_TYPES2 ("get_pixel_channels", get_pixel_channels_,
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "get_pixel_channels", get_pixel_channels_,
                           format, spec().format, *this,
                           xbegin, xend, ybegin, yend, zbegin, zend,
                           chbegin, chend, result, xstride, ystride, zstride);
+    return ok;
 }
 
 

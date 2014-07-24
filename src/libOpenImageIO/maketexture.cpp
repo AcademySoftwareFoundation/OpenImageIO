@@ -190,8 +190,10 @@ static bool
 copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
 {
     ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    OIIO_DISPATCH_TYPES ("copy_block", copy_block_, src.spec().format,
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "copy_block", copy_block_, src.spec().format,
                          dst, src, roi);
+    return ok;
 }
 
 
@@ -358,6 +360,7 @@ resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode,
     const ImageSpec &dstspec (dst.spec());
     DASSERT (dstspec.nchannels == srcspec.nchannels);
     DASSERT (dst.localpixels());
+    bool ok;
     if (src.localpixels() &&                      // Not a cached image
         !envlatlmode &&                           // not latlong wrap mode
         roi.xbegin == 0 &&                        // Region x at origin
@@ -368,13 +371,14 @@ resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode,
         srcspec.x == 0 && srcspec.y == 0) {
         // If all these conditions are met, we have a special case that
         // can be more highly optimized.
-        OIIO_DISPATCH_TYPES("resize_block_2pass", resize_block_2pass,
-                            srcspec.format, dst, src, roi, allow_shift);
+        OIIO_DISPATCH_TYPES (ok, "resize_block_2pass", resize_block_2pass,
+                             srcspec.format, dst, src, roi, allow_shift);
+    } else {
+        ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+        OIIO_DISPATCH_TYPES (ok, "resize_block", resize_block_, srcspec.format,
+                             dst, src, roi, envlatlmode);
     }
-
-    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    OIIO_DISPATCH_TYPES ("resize_block", resize_block_, srcspec.format,
-                         dst, src, roi, envlatlmode);
+    return ok;
 }
 
 

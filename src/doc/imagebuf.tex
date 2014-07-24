@@ -874,8 +874,10 @@ static bool make_black_impl (ImageBuf &buf, ROI region)
 
 bool make_black (ImageBuf &buf, ROI region)
 {
-    OIIO_DISPATCH_COMMON_TYPES ("make_black", make_black_impl,
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES (ok, "make_black", make_black_impl,
                                  buf.spec().format, buf, region);
+    return ok;
 }
 \end{code}
 
