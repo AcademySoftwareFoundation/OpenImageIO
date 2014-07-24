@@ -118,6 +118,7 @@ enum IBAprep_flags {
     IBAprep_REQUIRE_Z = 2,
     IBAprep_REQUIRE_SAME_NCHANNELS = 4,
     IBAprep_NO_COPY_ROI_FULL = 8,       // Don't copy the src's roi_full
+    IBAprep_NO_SUPPORT_VOLUME = 16,     // Don't know how to do volumes
     IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
     IBAprep_COPY_ALL_METADATA = 512     // Even unsafe things
 };

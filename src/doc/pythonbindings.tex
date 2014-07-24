@@ -1754,6 +1754,50 @@ Copy while circularly shifting by the given amount.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce rotate} (dst, src, angle, \\
+        \bigspc\bigspc filtername="", filtersize=0.0, recompute_roi=False, \\
+        \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce rotate} (dst, src, angle, \\
+        \bigspc\bigspc center_x, center_y, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc  recompute_roi=False, roi=ROI.All, nthreads=0) }
+\index{ImageBufAlgo!rotate} \indexapi{rotate}
+\NEW % 1.5
+Set {\cf dst}, over the ROI, to be a rotated version of the
+corresponding portion of {\cf src}.  The angle is in radians, with positive
+values indicating clockwise rotation. If the filter and size are not
+specified, an appropriate default will be chosen.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Src = ImageBuf ("tahoe.exr")
+    Dst = ImageBuf ()
+    ImageBufAlgo.rotate (Dst, Src, math.radians(45.0))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce warp} (dst, src, M, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc wrap=oiio.WrapDefault, recompute_roi=False, \\
+        \bigspc\bigspc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!warp} \indexapi{warp}
+\NEW % 1.5
+Set {\cf dst}, over the ROI, to be a warped (transformed) copy of {\cf src},
+with the warp specified by {\cf M} consisting of 9 floating-point numbers
+representing a $3 \times 3$ transformation matrix.  If the filter and size
+are not specified, an appropriate default will be chosen.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    M = (0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 20, -8.284271, 1)
+    Src = ImageBuf ("tahoe.exr")
+    Dst = ImageBuf ()
+    ImageBufAlgo.warp (Dst, Src, M)
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce resize} (dst, src, filtername="", filtersize=0.0, \\
         \bigspc\bigspc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!resize} \indexapi{resize}

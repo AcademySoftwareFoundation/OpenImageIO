@@ -21,6 +21,7 @@ ${OIIOTOOL} grid-small.jpg --rotate90 -o rotate90.jpg
 ${OIIOTOOL} grid-small.jpg --rotate180 -o rotate180.jpg
 ${OIIOTOOL} grid-small.jpg --rotate270 -o rotate270.jpg
 ${OIIOTOOL} grid-small.jpg --transpose -o transpose.jpg
+${OIIOTOOL} grid-small.jpg --rotate 45 -o rotate45.jpg
 ${OIIOTOOL} grid-small.jpg --cshift +70+30 -o cshift.jpg
 ${OIIOTOOL} --pattern constant:color=1,0.7,0.7 320x240 3 --fill:color=1,0,0 50x100+50+75 --tocolorspace sRGB -o fill.jpg
 ${OIIOTOOL} --pattern checker:color1=0.1,0.1,0.1:color2=0.4,0.4,0.4:width=32:height=32 320x240 3 --tocolorspace sRGB -o checker.jpg

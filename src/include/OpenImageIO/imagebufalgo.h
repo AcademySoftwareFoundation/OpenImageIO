@@ -44,6 +44,8 @@
 #include "color.h"
 #include "thread.h"
 
+#include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
+
 #include <limits>
 
 #ifndef __OPENCV_CORE_TYPES_H__
@@ -1174,6 +1176,97 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
                                            ROI roi = ROI::All(),
                                            int blocksize = 0, int nthreads=0);
 
+
+/// Warp the src image using the supplied 3x3 transformation matrix.
+///
+/// Only the pixels (and channels) of dst that are specified by roi will be
+/// copied from the warped src; the default roi is to alter all the pixels
+/// in dst. If dst is uninitialized, it will be sized to be an ImageBuf
+/// large enough to hold the warped image if recompute_roi is true, or
+/// will have the same ROI as src if recompute_roi is false. It is an error
+/// to pass both an uninitialied dst and an undefined roi.
+///
+/// The filter is used to weight the src pixels falling underneath it for
+/// each dst pixel.  The caller may specify a reconstruction filter by name
+/// and width (expressed in pixels unts of the dst image), or rotate() will
+/// choose a reasonable default high-quality default filter (lanczos3) if
+/// the empty string is passed, and a reasonable filter width if filterwidth
+/// is 0. (Note that some filter choices only make sense with particular
+/// width, in which case this filterwidth parameter may be ignored.)
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src,
+                    const Imath::M33f &M,
+                    string_view filtername = string_view(),
+                    float filterwidth = 0.0f,
+                    bool recompute_roi = false,
+                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                    ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API warp (ImageBuf &dst, const ImageBuf &src,
+                    const Imath::M33f &M,
+                    const Filter2D *filter,
+                    bool recompute_roi = false,
+                    ImageBuf::WrapMode wrap = ImageBuf::WrapDefault,
+                    ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Rotate the src image by the angle (in radians, with positive angles
+/// clockwise). When center_x and center_y are supplied, they denote the
+/// center of rotation; in their absence, the rotation will be about the
+/// center of the image's display window.
+///
+/// Only the pixels (and channels) of dst that are specified by roi will be
+/// copied from the rotated src; the default roi is to alter all the pixels
+/// in dst. If dst is uninitialized, it will be resized to be an ImageBuf
+/// large enough to hold the rotated image if recompute_roi is true, or will
+/// have the same ROI as src if recompute_roi is false. It is an error to
+/// pass both an uninitialied dst and an undefined roi.
+///
+/// The filter is used to weight the src pixels falling underneath it for
+/// each dst pixel.  The caller may specify a reconstruction filter by name
+/// and width (expressed in pixels unts of the dst image), or rotate() will
+/// choose a reasonable default high-quality default filter (lanczos3) if
+/// the empty string is passed, and a reasonable filter width if filterwidth
+/// is 0. (Note that some filter choices only make sense with particular
+/// width, in which case this filterwidth parameter may be ignored.)
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src, float angle,
+                      string_view filtername = string_view(),
+                      float filterwidth = 0.0f,
+                      bool recompute_roi = false,
+                      ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src, float angle,
+                      Filter2D *filter,
+                      bool recompute_roi = false,
+                      ROI roi = ROI::All(), int nthreads = 0);
+bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      string_view filtername = string_view(),
+                      float filterwidth = 0.0f,
+                      bool recompute_roi = false,
+                      ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      Filter2D *filter,
+                      bool recompute_roi = false,
+                      ROI roi = ROI::All(), int nthreads = 0);
 
 
 /// Set dst, over the region of interest, to be a resized version of the

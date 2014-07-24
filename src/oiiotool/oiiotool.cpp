@@ -2288,6 +2288,101 @@ action_transpose (int argc, const char *argv[])
 
 
 static int
+action_rotate (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rotate, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    std::string filtername = options["filter"];
+    bool recompute_roi = Strutil::from_string<int>(options["recompute_roi"]);
+    bool center_supplied = false;
+    std::string center = options["center"];
+    float center_x = 0.0f, center_y = 0.0f;
+    if (center.size()) {
+        string_view s (center);
+        if (Strutil::parse_float (s, center_x) &&
+            Strutil::parse_char (s, ',') &&
+            Strutil::parse_float (s, center_y)) {
+            center_supplied = true;
+        }
+    }
+
+    float angle = Strutil::from_string<float> (argv[1]);
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    ImageRecRef R (new ImageRec ("rotate",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        float cx, cy;
+        if (center_supplied) {
+            cx = center_x;
+            cy = center_y;
+        } else {
+            ROI src_roi_full = (*A)(s).roi_full();
+            cx = 0.5f * (src_roi_full.xbegin + src_roi_full.xend);
+            cy = 0.5f * (src_roi_full.ybegin + src_roi_full.yend);
+        }
+        bool ok = ImageBufAlgo::rotate ((*R)(s), (*A)(s),
+                                        angle*float(M_PI/180.0), cx, cy,
+                                        filtername, 0.0f, recompute_roi);
+        if (! ok)
+            ot.error ("rotate", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["rotate"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_warp (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_warp, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+    std::string filtername = options["filter"];
+    bool recompute_roi = Strutil::from_string<int>(options["recompute_roi"]);
+
+    std::vector<float> M (9);
+    if (Strutil::extract_from_list_string (M, argv[1]) != 9) {
+        ot.error ("warp", "expected 9 comma-separatd floats to form a 3x3 matrix");
+        return 0;
+    }
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("warp",
+                                 ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::warp ((*R)(s), (*A)(s),
+                                      *(Imath::M33f *)&M[0],
+                                      filtername, 0.0f,
+                                      recompute_roi, ImageBuf::WrapDefault);
+        if (! ok)
+            ot.error ("warp", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["warp"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_cshift (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_cshift, argc, argv))
@@ -3697,6 +3792,8 @@ getargs (int argc, char *argv[])
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (optional args: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (optional args: filter=%s, pad=%d)",
+                "--rotate %@ %g", action_rotate, NULL, "Rotate pixels (argument is degrees clockwise) around the center of the display window (optional args: filter=%s:center=%f,%f:recompute_roi=%d",
+                "--warp %@ %s", action_warp, NULL, "Warp pixels (argument is a 3x3 matrix, separated by commas) (optional args: filter=%s:,recompute_roi=%d",
                 "--convolve %@", action_convolve, NULL,
                     "Convolve with a kernel",
                 "--blur %@ %s", action_blur, NULL,

@@ -36,6 +36,8 @@
 #include <boost/regex.hpp>
 
 #include <OpenEXR/half.h>
+#include <OpenEXR/ImathMatrix.h>
+#include <OpenEXR/ImathBox.h>
 
 #include <cmath>
 #include <iostream>
@@ -220,7 +222,14 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             return false;
         }
     }
-
+    if (prepflags & IBAprep_NO_SUPPORT_VOLUME) {
+        if (dst->spec().depth > 1 ||
+                (A && A->spec().depth > 1) ||
+                (B && B->spec().depth > 1)) {
+            dst->error ("volumes not supported");
+            return false;
+        }
+    }
     return true;
 }
 
@@ -517,17 +526,10 @@ bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
+            IBAprep_NO_COPY_ROI_FULL))
         return false;
-    if (dst.nchannels() != src.nchannels()) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-    if (dst.spec().depth > 1 || src.spec().depth > 1) {
-        dst.error ("ImageBufAlgo::resize does not support volume images");
-        return false;
-    }
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
@@ -559,19 +561,12 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       const std::string &filtername_, float fwidth,
                       ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
+            IBAprep_NO_COPY_ROI_FULL))
         return false;
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
-    if (dstspec.nchannels != srcspec.nchannels) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-    if (dstspec.depth > 1 || srcspec.depth > 1) {
-        dst.error ("ImageBufAlgo::resize does not support volume images");
-        return false;
-    }
 
     // Resize ratios
     float wratio = float(dstspec.full_width) / float(srcspec.full_width);
@@ -685,22 +680,353 @@ bool
 ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate, ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
+            IBAprep_NO_COPY_ROI_FULL))
         return false;
-    if (dst.nchannels() != src.nchannels()) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-    if (dst.spec().depth > 1 || src.spec().depth > 1) {
-        dst.error ("ImageBufAlgo::resample does not support volume images");
-        return false;
-    }
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "resample", resample_,
                           dst.spec().format, src.spec().format,
                           dst, src, interpolate, roi, nthreads);
     return ok;
+}
+
+
+
+#if 0
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+affine_resample_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &Minv,
+                  ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(affine_resample_<DSTTYPE,SRCTYPE>,
+                        boost::ref(dst), boost::cref(src), Minv,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst, roi);
+    ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src);
+    for (  ;  ! d.done();  ++d) {
+        Imath::V2f P (d.x()+0.5f, d.y()+0.5f);
+        Minv.multVecMatrix (P, P);
+        s.pos (int(floorf(P.x)), int(floorf(P.y)), d.z());
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+#endif
+
+
+
+namespace {
+
+// Poor man's Dual2<float> makes it easy to compute with differentials. For
+// a rich man's implementation and full documentation, see
+// OpenShadingLanguage (dual2.h).
+class Dual2 {
+public:
+    float val() const { return m_val; }
+    float dx() const { return m_dx; }
+    float dy() const { return m_dy; }
+    Dual2 (float val) : m_val(val), m_dx(0.0f), m_dy(0.0f) {}
+    Dual2 (float val, float dx, float dy) : m_val(val), m_dx(dx), m_dy(dy) {}
+    Dual2& operator= (float f) { m_val = f; m_dx = 0.0f; m_dy = 0.0f; return *this; }
+    friend Dual2 operator+ (const Dual2 &a, const Dual2 &b) {
+        return Dual2 (a.m_val+b.m_val, a.m_dx+b.m_dx, a.m_dy+b.m_dy);
+    }
+    friend Dual2 operator+ (const Dual2 &a, float b) {
+        return Dual2 (a.m_val+b, a.m_dx, a.m_dy);
+    }
+    friend Dual2 operator* (const Dual2 &a, float b) {
+        return Dual2 (a.m_val*b, a.m_dx*b, a.m_dy*b);
+    }
+    friend Dual2 operator* (const Dual2 &a, const Dual2 &b) {
+        // Use the chain rule
+        return Dual2 (a.m_val*b.m_val,
+                      a.m_val*b.m_dx + a.m_dx*b.m_val,
+                      a.m_val*b.m_dy + a.m_dy*b.m_val);
+    }
+    friend Dual2 operator/ (const Dual2 &a, const Dual2 &b) {
+        float bvalinv = 1.0f / b.m_val;
+        float aval_bval = a.m_val * bvalinv;
+        return Dual2 (aval_bval,
+                      bvalinv * (a.m_dx - aval_bval * b.m_dx),
+                      bvalinv * (a.m_dy - aval_bval * b.m_dy));
+    }
+private:
+    float m_val, m_dx, m_dy;
+};
+
+} // end anon namespace
+
+
+/// Transform a 2D point (x,y) with derivatives by a 3x3 affine matrix to
+/// obtain a transformed point with derivatives.
+inline void
+robust_multVecMatrix (const Imath::M33f &M,
+                      const Dual2 &x, const Dual2 &y,
+                      Dual2 &outx, Dual2 &outy)
+{
+    Dual2 a = x * M[0][0] + y * M[1][0] + M[2][0];
+    Dual2 b = x * M[0][1] + y * M[1][1] + M[2][1];
+    Dual2 w = x * M[0][2] + y * M[1][2] + M[2][2];
+
+    if (w.val() != 0.0f) {
+       outx = a / w;
+       outy = b / w;
+    } else {
+       outx = 0.0f;
+       outy = 0.0f;
+    }
+}
+
+
+
+// Given s,t image space coordinates and their derivatives, compute a 
+// filtered sample using the derivatives to guide the size of the filter
+// footprint.
+template<typename SRCTYPE>
+inline void
+filtered_sample (const ImageBuf &src, float s, float t,
+                 float dsdx, float dtdx, float dsdy, float dtdy,
+                 const Filter2D *filter, ImageBuf::WrapMode wrap,
+                 float *result)
+{
+    DASSERT (filter);
+    // Just use isotropic filtering
+    float ds = std::max (1.0f, std::max (fabsf(dsdx), fabsf(dsdy)));
+    float dt = std::max (1.0f, std::max (fabsf(dtdx), fabsf(dtdy)));
+    float ds_inv = 1.0f / ds;
+    float dt_inv = 1.0f / dt;
+    float filterrad_s = 0.5f * ds * filter->width();
+    float filterrad_t = 0.5f * dt * filter->width();
+    ImageBuf::ConstIterator<SRCTYPE> samp (src, 
+                      (int)floorf(s-filterrad_s), (int)ceilf(s+filterrad_s),
+                      (int)floorf(t-filterrad_t), (int)ceilf(t+filterrad_t),
+                      0, 1, wrap);
+    int nc = src.nchannels();
+    float *sum = ALLOCA (float, nc);
+    memset (sum, 0, nc*sizeof(float));
+    float total_w = 0.0f;
+    for ( ; ! samp.done(); ++samp) {
+        float w = (*filter) (ds_inv*(samp.x()+0.5f-s), dt_inv*(samp.y()+0.5f-t));
+        for (int c = 0; c < nc; ++c)
+            sum[c] += w * samp[c];
+        total_w += w;
+    }
+    if (total_w != 0.0f)
+        for (int c = 0; c < nc; ++c)
+            result[c] = sum[c] / total_w;
+    else
+        for (int c = 0; c < nc; ++c)
+            result[c] = 0.0f;
+}
+
+
+
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+warp_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &M,
+       const Filter2D *filter, ImageBuf::WrapMode wrap,
+       ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(warp_<DSTTYPE,SRCTYPE>,
+                        boost::ref(dst), boost::cref(src), M,
+                        filter, wrap, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    int nc = dst.nchannels();
+    float *pel = ALLOCA (float, nc);
+    memset (pel, 0, nc*sizeof(float));
+    Imath::M33f Minv = M.inverse();
+    ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+    for (  ;  ! out.done();  ++out) {
+        Dual2 x (out.x()+0.5f, 1.0f, 0.0f);
+        Dual2 y (out.y()+0.5f, 0.0f, 1.0f);
+        robust_multVecMatrix (Minv, x, y, x, y);
+        filtered_sample<SRCTYPE> (src, x.val(), y.val(),
+                                  x.dx(), y.dx(), x.dy(), y.dy(),
+                                  filter, wrap, pel);
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            out[c] = pel[c];
+ 
+    }
+    return true;
+}
+
+
+
+// Transform an ROI by an affine matrix.
+static ROI
+transform (const Imath::M33f &M, ROI roi)
+{
+    Imath::V2f ul (roi.xbegin+0.5f, roi.ybegin+0.5f);
+    Imath::V2f ur (roi.xend-0.5f, roi.ybegin+0.5f);
+    Imath::V2f ll (roi.xbegin+0.5f, roi.yend-0.5f);
+    Imath::V2f lr (roi.xend-0.5f, roi.yend-0.5f);
+    M.multVecMatrix (ul, ul);
+    M.multVecMatrix (ur, ur);
+    M.multVecMatrix (ll, ll);
+    M.multVecMatrix (lr, lr);
+    Imath::Box2f box (ul);
+    box.extendBy (ll);
+    box.extendBy (ur);
+    box.extendBy (lr);
+    int xmin = int (floorf(box.min.x));
+    int ymin = int (floorf(box.min.y));
+    int xmax = int (floorf(box.max.x)) + 1;
+    int ymax = int (floorf(box.max.y)) + 1;
+    return ROI (xmin, xmax, ymin, ymax, roi.zbegin, roi.zend, roi.chbegin, roi.chend);
+}
+
+
+
+bool
+ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
+                    const Imath::M33f &M,
+                    const Filter2D *filter,
+                    bool recompute_roi, ImageBuf::WrapMode wrap,
+                    ROI roi, int nthreads)
+{
+    ROI src_roi_full = src.roi_full();
+    ROI dst_roi, dst_roi_full;
+    if (dst.initialized()) {
+        dst_roi = roi.defined() ? roi : dst.roi();
+        dst_roi_full = dst.roi_full();
+    } else {
+        dst_roi = roi.defined() ? roi : (recompute_roi ? transform (M, src.roi()) : src.roi());
+        dst_roi_full = src_roi_full;
+    }
+    dst_roi.chend = std::min (dst_roi.chend, src.nchannels());
+    dst_roi_full.chend = std::min (dst_roi_full.chend, src.nchannels());
+
+    if (! IBAprep (dst_roi, &dst, &src, IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    boost::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    if (filter == NULL) {
+        // If no filter was provided, punt and just linearly interpolate.
+        filterptr.reset (Filter2D::create ("lanczos3", 6.0f, 6.0f));
+        filter = filterptr.get();
+    }
+
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "warp", warp_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, M, filter, wrap, dst_roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
+                    const Imath::M33f &M,
+                    string_view filtername_, float filterwidth,
+                    bool recompute_roi, ImageBuf::WrapMode wrap,
+                    ROI roi, int nthreads)
+{
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc (i, &fd);
+        if (fd.name == filtername) {
+            float w = filterwidth > 0.0f ? filterwidth : fd.width;
+            float h = filterwidth > 0.0f ? filterwidth : fd.width;
+            filter.reset (Filter2D::create (filtername, w, h));
+            break;
+        }
+    }
+    if (! filter) {
+        dst.error ("Filter \"%s\" not recognized", filtername);
+        return false;
+    }
+
+    return warp (dst, src, M, filter.get(), recompute_roi, wrap, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      Filter2D *filter, bool recompute_roi,
+                      ROI roi, int nthreads)
+{
+    // Calculate the rotation matrix
+    Imath::M33f M;
+    M.translate(Imath::V2f(-center_x, -center_y));
+    M.rotate(angle);
+    M *= Imath::M33f().translate(Imath::V2f(center_x, center_y));
+    return ImageBufAlgo::warp (dst, src, M, filter,
+                               recompute_roi, ImageBuf::WrapBlack,
+                               roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      string_view filtername, float filterwidth,
+                      bool recompute_roi, ROI roi, int nthreads)
+{
+    // Calculate the rotation matrix
+    Imath::M33f M;
+    M.translate(Imath::V2f(-center_x, -center_y));
+    M.rotate(angle);
+    M *= Imath::M33f().translate(Imath::V2f(center_x, center_y));
+    return ImageBufAlgo::warp (dst, src, M, filtername, filterwidth,
+                               recompute_roi, ImageBuf::WrapBlack,
+                               roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src, float angle,
+                      Filter2D *filter,
+                      bool recompute_roi, ROI roi, int nthreads)
+{
+    ROI src_roi_full = src.roi_full();
+    float center_x = 0.5f * (src_roi_full.xbegin + src_roi_full.xend);
+    float center_y = 0.5f * (src_roi_full.ybegin + src_roi_full.yend);
+    return ImageBufAlgo::rotate (dst, src, angle, center_x, center_y,
+                                 filter, recompute_roi, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src, float angle,
+                      string_view filtername, float filterwidth,
+                      bool recompute_roi,
+                      ROI roi, int nthreads)
+{
+    ROI src_roi_full = src.roi_full();
+    float center_x = 0.5f * (src_roi_full.xbegin + src_roi_full.xend);
+    float center_y = 0.5f * (src_roi_full.ybegin + src_roi_full.yend);
+    return ImageBufAlgo::rotate (dst, src, angle, center_x, center_y,
+                                 filtername, filterwidth, recompute_roi,
+                                 roi, nthreads);
 }
 
 
@@ -885,17 +1211,9 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             float contrast, float threshold,
                             ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
-    if (dst.nchannels() != src.nchannels()) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
-    if (dst.spec().depth > 1 || src.spec().depth > 1) {
-        dst.error ("ImageBufAlgo::unsharp_mask does not support volume images");
-        return false;
-    }
 
     // Blur the source image, store in Blurry
     ImageBuf K;

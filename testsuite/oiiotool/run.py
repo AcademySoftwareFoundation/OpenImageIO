@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python 
 
 # test --create
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
@@ -38,6 +38,14 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 # test fit
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
+
+# test rotate
+command += oiiotool ("resize.tif --rotate 45 -o rotated.tif")
+command += oiiotool ("resize.tif --rotate:center=50,50 45 -o rotated-offcenter.tif")
+command += oiiotool ("resize.tif --rotate 45 --rotate 90 --rotate 90 --rotate 90 --rotate 45 -o rotated360.tif")
+
+# test warp
+command += oiiotool ("resize.tif --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,128,-53.01933,1 -o warped.tif")
 
 # test --cmul
 # First, make a small gray swatch
@@ -216,6 +224,8 @@ outputs = [ "filled.tif", "autotrim.tif",
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
+            "warped.tif",
+            "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
             "flip.tif", "flip-crop.tif",

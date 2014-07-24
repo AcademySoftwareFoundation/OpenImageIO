@@ -968,6 +968,10 @@ respectively, compared to its current setting.  This only changes the
 metadata field that specifies how the image should be displayed, it does
 NOT alter the pixels themselves, and so has no effect for image formats
 that don't support some kind of orientation metadata.
+
+See the {\cf --rotate90}, {\cf --rotate180}, {\cf --rotate270}, and
+{\cf --reorient} commands for true rotation of the pixels (not just the
+metadata).
 \apiend
 
 \apiitem{--origin {\rm \emph{offset}}}
@@ -1579,6 +1583,58 @@ decreasing resolution. \\
     oiiotool in.exr --fit 1024x1024 -o out.exr
 \end{code}
 \apiend
+
+\apiitem{--rotate {\rm \emph{angle}}}
+\NEW % 1.5
+Replace the current image with a new image that is rotated by the given
+angle (in degrees). Positive angles mean to rotate counter-clockwise,
+negative angles mean clockwise. By default, the center of rotation is at the
+exact center of the display window (a.k.a.\ ``full'' image), but can be
+explicitly set with the optional {\cf center=\emph{x,y}} option.
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1.25in} p{3.5in}}
+ & {\cf center=}\emph{x,y} & Alternate center of rotation. \\
+ & {\cf filter=}\emph{name} & Filter name. The default is \qkw{lanczos3}. \\
+ & {\small \cf recompute_roi=}\emph{val} & If nonzero, recompute the pixel data
+     window to exactly hold the transformed image (default=0). \\
+\end{tabular}
+
+\noindent Examples:
+
+\begin{tinycode}
+  oiiotool mandrill.tif --rotate 45 -o rotated.tif
+
+  oiiotool mandrill.tif --rotate:center=80,91.5:filter=lanczos3 45 -o rotated.tif
+\end{tinycode}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate45.jpg} \\
+\apiend
+
+
+\apiitem{--warp {\rm \emph{M33}}}
+\NEW % 1.5
+Replace the current image with a new image that is warped by the given
+$3 \times 3$ matrix (presented as a comma-separated list of values, without
+any spaces).
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1.25in} p{3.5in}}
+ & {\cf filter=}\emph{name} & Filter name. The default is \qkw{lanczos3}. \\
+ & {\small\cf recompute_roi=}\emph{val} & If nonzero, recompute the pixel data
+     window to exactly hold the transformed image (default=0). \\
+\end{tabular}
+
+\noindent Examples:
+
+\begin{tinycode}
+  oiiotool mandrill.tif --warp "0.707,0.707,0,-0.707,0.707,0,128,-53.02,1" -o warped.tif
+\end{tinycode}
+\apiend
+
 
 \apiitem{--convolve}
 Use the top image as a kernel to convolve the next image farther down

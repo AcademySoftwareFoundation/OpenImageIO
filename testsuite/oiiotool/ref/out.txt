@@ -93,6 +93,14 @@ Comparing "fit.tif" and "ref/fit.tif"
 PASS
 Comparing "fit2.tif" and "ref/fit2.tif"
 PASS
+Comparing "warped.tif" and "ref/warped.tif"
+PASS
+Comparing "rotated.tif" and "ref/rotated.tif"
+PASS
+Comparing "rotated-offcenter.tif" and "ref/rotated-offcenter.tif"
+PASS
+Comparing "rotated360.tif" and "ref/rotated360.tif"
+PASS
 Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
 Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"

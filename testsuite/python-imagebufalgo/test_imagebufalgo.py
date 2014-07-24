@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
 
+import math
 import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
 
@@ -253,6 +254,20 @@ try:
     b = ImageBuf()
     ImageBufAlgo.resample (b, grid, roi=oiio.ROI(0,128,0,128))
     write (b, "resample.tif")
+
+    # warp
+    b = ImageBuf()
+    Mwarp = (0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 128, -53.01933, 1)
+    ImageBufAlgo.warp (b, ImageBuf("resize.tif"), Mwarp)
+    write (b, "warped.tif")
+
+    # rotate
+    b = ImageBuf()
+    ImageBufAlgo.rotate (b, ImageBuf("resize.tif"), math.radians(45.0))
+    write (b, "rotated.tif")
+    b = ImageBuf()
+    ImageBufAlgo.rotate (b, ImageBuf("resize.tif"), math.radians(45.0), 50.0, 50.0)
+    write (b, "rotated-offcenter.tif")
 
     # make_kernel
     bsplinekernel = ImageBuf()

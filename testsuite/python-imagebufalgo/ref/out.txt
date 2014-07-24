@@ -40,6 +40,12 @@ Comparing "rotate180.tif" and "../oiiotool/ref/rotate180.tif"
 PASS
 Comparing "rotate270.tif" and "../oiiotool/ref/rotate270.tif"
 PASS
+Comparing "rotated.tif" and "../oiiotool/ref/rotated.tif"
+PASS
+Comparing "rotated-offcenter.tif" and "../oiiotool/ref/rotated-offcenter.tif"
+PASS
+Comparing "warped.tif" and "../oiiotool/ref/warped.tif"
+PASS
 Comparing "flip.tif" and "../oiiotool/ref/flip.tif"
 PASS
 Comparing "flop.tif" and "../oiiotool/ref/flop.tif"

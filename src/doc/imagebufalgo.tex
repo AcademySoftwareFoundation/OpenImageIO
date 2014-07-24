@@ -529,6 +529,105 @@ shift of $[0,1,2,3,4,5]$ by $+2$ is $[4,5,0,1,2,3]$.
 \apiend
 
 
+\apiitem{bool {\ce rotate} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc float angle, \\
+        \bigspc string_view filtername="", float filtersize=0, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce rotate} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc float angle, \\
+        \bigspc Filter2D *filter, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce rotate} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc float angle, float center_x, float center_y, \\
+        \bigspc string_view filtername="", float filtersize=0, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce rotate} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc float angle, float center_x, float center_y, \\
+        \bigspc Filter2D *filter, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!rotate} \indexapi{rotate}
+\NEW % 1.5
+
+Rotate the {\cf src} image by the {\cf angle} (in radians, with positive
+angles clockwise). When {\cf center_x} and {\cf center_y} are supplied, they
+denote the center of rotation; in their absence, the rotation will be about
+the center of the image's display window.
+
+Only the pixels (and channels) of {\cf dst} that are specified by {\cf roi}
+will be copied from the rotated {\cf src}; the default {\cf roi} is to alter
+all the pixels in {\cf dst}. If {\cf dst} is uninitialized, it will be
+resized to be an ImageBuf large enough to hold the rotated image  if
+{\cf recompute_roi} is {\cf true}, or will have the same ROI as {\cf src}
+if {\cf recompute_roi} is false. It is an
+error to pass both an uninitialied {\cf dst} and an undefined {\cf roi}.
+
+The caller may explicitly pass a reconstruction filter, or specify one by
+name and size, or if the name is the empty string {\cf rotate()} will choose
+a reasonable high-quality default if \NULL is passed.  The filter is used to
+weight the {\cf src} pixels falling underneath it for each {\cf dst} pixel;
+the filter's size is expressed in pixel units of the {\cf dst} image.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Src ("tahoe.exr");
+    ImageBuf Dst;
+    ImageBufAlgo::rotate (Dst, Src, 45.0);
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate45.jpg} \\
+\apiend
+
+
+\apiitem{bool {\ce warp} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc const Imath::M33f \&M, \\
+        \bigspc string_view filtername="", float filtersize=0, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ImageBuf::WrapMode wrap = ImageBuf::WrapDefault, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce warp} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc const Imath::M33f \&M, \\
+        \bigspc Filter2D *filter, \\
+        \bigspc bool recompute_roi = false, \\
+        \bigspc ImageBuf::WrapMode wrap = ImageBuf::WrapDefault, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!warp} \indexapi{warp}
+\NEW % 1.5
+
+Warp the {\cf src} image using the supplied 3x3 transformation matrix {\cf M}.
+
+Only the pixels (and channels) of {\cf dst} that are specified by {\cf roi}
+will be copied from the warped {\cf src}; the default {\cf roi} is to alter
+all the pixels in {\cf dst}. If {\cf dst} is uninitialized, it will be
+resized to be an \ImageBuf large enough to hold the warped image if
+{\cf recompute_roi} is {\cf true}, or will have the same ROI as {\cf src}
+if {\cf recompute_roi} is false. It is an
+error to pass both an uninitialied {\cf dst} and an undefined {\cf roi}.
+
+The caller may explicitly pass a reconstruction filter, or specify one by
+name and size, or if the name is the empty string {\cf resize()} will choose
+a reasonable high-quality default if \NULL is passed.  The filter is used to
+weight the {\cf src} pixels falling underneath it for each {\cf dst} pixel;
+the filter's size is expressed in pixel units of the {\cf dst} image.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Imath::M33f M ( 0.7071068, 0.7071068, 0,
+                   -0.7071068, 0.7071068, 0,
+                   20,        -8.284271,  1);
+    ImageBuf Src ("tahoe.exr");
+    ImageBuf Dst;
+    ImageBufAlgo::warp (dst, src, M, "lanczos3");
+\end{code}
+\apiend
+
+
 \apiitem{bool {\ce resize} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  const std::string filtername="", float filtersize=0, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
