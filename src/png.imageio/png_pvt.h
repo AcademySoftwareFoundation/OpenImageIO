@@ -59,7 +59,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00065
 */
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
-
+#define ICC_PROFILE_ATTR "icc-profile"
 namespace PNG_pvt {
 
 /// Initializes a PNG read struct.
@@ -160,6 +160,16 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
             spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
         }
     }
+
+    if (png_get_valid(sp, ip, PNG_INFO_iCCP)){
+        png_charp profile_name = NULL;
+        png_bytep profile_data = NULL;
+        png_uint_32 profile_length = 0;
+        int compression_type;
+        png_get_iCCP(sp, ip, &profile_name, &compression_type, &profile_data, &profile_length);
+        if ((profile_length>0)&&(profile_data!=NULL))
+            spec.attribute(ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, profile_length), profile_data);
+	}
     png_timep mod_time;
     if (png_get_tIME (sp, ip, &mod_time)) {
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
@@ -454,7 +464,19 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     else if (Strutil::iequals (colorspace, "sRGB")) {
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
     }
-    
+	// Write ICC profile, if we have anything
+	unsigned char* icc_profile = NULL;
+	unsigned int length = 0;
+	const ImageIOParameter* icc_profile_parameter = spec.find_attribute(ICC_PROFILE_ATTR);
+	if (icc_profile_parameter != NULL){
+		icc_profile = (unsigned char*)icc_profile_parameter->data();
+		length = icc_profile_parameter->type().size();
+		if (icc_profile != NULL && length != 0){
+            png_set_iCCP(sp, ip, "Embedded Profile", 0, (png_const_bytep)icc_profile, length);
+		}
+	}
+
+
     if (false && ! spec.find_attribute("DateTime")) {
         time_t now;
         time (&now);
