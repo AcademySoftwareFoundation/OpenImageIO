@@ -311,7 +311,7 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 {
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    boost::filesystem::copy (from.str(), to.str(), ec);
+    boost::filesystem::copy_file (from.str(), to.str(), ec);
     if (ec) {
         err.clear();
         return true;
