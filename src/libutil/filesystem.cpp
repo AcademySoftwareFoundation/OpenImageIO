@@ -34,6 +34,7 @@
 #include <string>
 #include <algorithm>
 
+#include <boost/version.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
@@ -311,7 +312,11 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 {
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
+# if BOOST_VERSION < 105000
+    boost::filesystem3::copy (from.str(), to.str(), ec);
+# else
     boost::filesystem::copy (from.str(), to.str(), ec);
+# endif
     if (ec) {
         err.clear();
         return true;
