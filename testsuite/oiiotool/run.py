@@ -95,15 +95,19 @@ command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
 
 # test flip
 command += oiiotool ("image.tif --flip -o flip.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
 
 # test flop
 command += oiiotool ("image.tif --flop -o flop.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --flop -o flop-crop.tif")
 
 # test flip-flop
 command += oiiotool ("image.tif --flipflop -o flipflop.tif")
+command += oiiotool ("image.tif --crop 160x120+30+30 --flipflop -o flipflop-crop.tif")
 
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
+command += oiiotool ("image.tif --crop 160x120+30+30 --transpose -o transpose-crop.tif")
 
 # test cshift
 command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
@@ -199,7 +203,10 @@ outputs = [ "filled.tif", "autotrim.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
-            "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
+            "flip.tif", "flip-crop.tif",
+            "flop.tif", "flop-crop.tif",
+            "flipflop.tif", "flipflop-crop.tif",
+            "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr", "flat.exr",
