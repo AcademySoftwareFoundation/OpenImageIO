@@ -950,10 +950,11 @@ themselves, and so has no effect for image formats that don't
 support some kind of orientation metadata.
 \apiend
 
-\apiitem{--rotcw \\
---rotccw \\
---rot180}
-Adjusts the image's \qkw{Orientation} metadata by rotating it $90^\circ$
+\apiitem{--orientcw \\
+--orientccw \\
+--orient180}
+Adjusts the image's \qkw{Orientation} metadata by rotating
+the suggested viewing orientation $90^\circ$
 clockwise, $90^\circ$ degrees counter-clockwise, or $180^\circ$,
 respectively, compared to its current setting.  This only changes the
 metadata field that specifies how the image should be displayed, it does

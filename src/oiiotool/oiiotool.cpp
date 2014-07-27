@@ -916,11 +916,14 @@ set_orientation (int argc, const char *argv[])
 
 
 static bool
-do_rotate_orientation (ImageSpec &spec, const std::string &cmd)
+do_rotate_orientation (ImageSpec &spec, string_view cmd)
 {
-    bool rotcw = cmd == "--rotcw" || cmd == "-rotcw";
-    bool rotccw = cmd == "--rotccw" || cmd == "-rotccw";
-    bool rot180 = cmd == "--rot180" || cmd == "-rot180";
+    bool rotcw = (cmd == "--orientcw" || cmd == "-orientcw" ||
+                  cmd == "--rotcw" || cmd == "-rotcw");
+    bool rotccw = (cmd == "--orientccw" || cmd == "-orientccw" ||
+                   cmd == "--rotccw" || cmd == "-rotccw");
+    bool rot180 = (cmd == "--orient180" || cmd == "-orient180" ||
+                   cmd == "--rot180" || cmd == "-rot180");
     int orientation = spec.get_int_attribute ("Orientation", 1);
     if (orientation >= 1 && orientation <= 8) {
         static int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
@@ -945,7 +948,7 @@ rotate_orientation (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    apply_spec_mod (*ot.curimg, do_rotate_orientation, std::string(argv[0]),
+    apply_spec_mod (*ot.curimg, do_rotate_orientation, argv[0],
                     ot.allsubimages);
     return 0;
 }
@@ -3514,9 +3517,12 @@ getargs (int argc, char *argv[])
                 "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
                 "--sansattrib", &sansattrib, "Write command line into Software & ImageHistory but remove --sattrib and --attrib options",
                 "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
-                "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
-                "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
-                "--rot180 %@", rotate_orientation, NULL, "Rotate orientation 180 deg",
+                "--orientcw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg clockwise",
+                "--orientccw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg counter-clockwise",
+                "--orient180 %@", rotate_orientation, NULL, "Rotate orientation metadata 180 deg",
+                "--rotcw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
+                "--rotccw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
+                "--rot180 %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
                 "--origin %@ %s", set_origin, NULL,
                     "Set the pixel data window origin (e.g. +20+10)",
                 "--fullsize %@ %s", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",

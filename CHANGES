@@ -36,6 +36,11 @@ Fixes, minor enhancements, and performance improvements:
      incomplete. (1.5.1)
    * oiiotool --flip, --flop, --flipflop, and --transpose now have more
      sensible behavior for cropped images. (1.5.2)
+   * oiiotool --orientcw, --orientccw, and --orient180 are the new names
+     for --rotcw, --rotccw, --rot180. The old names were confusing, and now
+     it is more clear that these merely adust the Orientation metadata that
+     suggests viewing orientation, rather than actually rotating the image
+     data. (1.5.2)
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)
