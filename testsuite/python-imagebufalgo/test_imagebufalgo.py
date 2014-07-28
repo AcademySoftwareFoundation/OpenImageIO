@@ -89,6 +89,21 @@ try:
     ImageBufAlgo.paste (b, 150, 75, 0, 0, grid)
     write (b, "pasted.tif")
 
+    # rotate90
+    b = ImageBuf()
+    ImageBufAlgo.rotate90 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate90.tif")
+
+    # rotate180
+    b = ImageBuf()
+    ImageBufAlgo.rotate180 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate180.tif")
+
+    # rotate270
+    b = ImageBuf()
+    ImageBufAlgo.rotate270 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate270.tif")
+
     # flip
     b = ImageBuf()
     ImageBufAlgo.flip (b, ImageBuf("../oiiotool/image.tif"))

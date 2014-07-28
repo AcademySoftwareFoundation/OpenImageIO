@@ -257,7 +257,61 @@ ImageBufAlgo::flop(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
 template<class D, class S>
 static bool
-flipflop_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
+rotate90_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
+{
+    ROI dst_roi_full = dst.roi_full();
+    ImageBuf::ConstIterator<S, D> s (src);
+    ImageBuf::Iterator<D, D> d (dst, dst_roi);
+    for ( ; ! d.done(); ++d) {
+        s.pos (d.y(),
+               dst_roi_full.xend - d.x() - 1,
+               d.z());
+        for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::rotate90 (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi, int nthreads)
+{
+    ROI src_roi = roi.defined() ? roi : src.roi();
+    ROI src_roi_full = src.roi_full();
+
+    // Rotated full ROI swaps width and height, and keeps its origin
+    // where the original origin was.
+    ROI dst_roi_full (src_roi_full.xbegin, src_roi_full.xbegin+src_roi_full.height(),
+                      src_roi_full.ybegin, src_roi_full.ybegin+src_roi_full.width(),
+                      src_roi_full.zbegin, src_roi_full.zend,
+                      src_roi_full.chbegin, src_roi_full.chend);
+
+    ROI dst_roi (src_roi_full.yend-src_roi.yend,
+                 src_roi_full.yend-src_roi.ybegin,
+                 src_roi.xbegin, src_roi.xend,
+                 src_roi.zbegin, src_roi.zend,
+                 src_roi.chbegin, src_roi.chend);
+    ASSERT (dst_roi.width() == src_roi.height() &&
+            dst_roi.height() == src_roi.width());
+
+    bool dst_initialized = dst.initialized();
+    IBAprep (dst_roi, &dst, &src);
+    if (! dst_initialized)
+        dst.set_roi_full (dst_roi_full);
+
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "rotate90", rotate90_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, dst_roi, nthreads);
+    return ok;
+}
+
+
+
+template<class D, class S>
+static bool
+rotate180_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
 {
     ROI src_roi_full = src.roi_full();
     ROI dst_roi_full = dst.roi_full();
@@ -277,8 +331,8 @@ flipflop_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
 
 
 bool
-ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
-                        ROI roi, int nthreads)
+ImageBufAlgo::rotate180 (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi, int nthreads)
 {
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
@@ -297,7 +351,70 @@ ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
     // the midline of the display window.
     IBAprep (dst_roi, &dst, &src);
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "flipflop", flipflop_,
+    OIIO_DISPATCH_TYPES2 (ok, "rotate180", rotate180_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, dst_roi, nthreads);
+    return ok;
+}
+
+
+bool
+ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi, int nthreads)
+{
+    return rotate180 (dst, src, roi, nthreads);
+}
+
+
+
+template<class D, class S>
+static bool
+rotate270_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
+{
+    ROI dst_roi_full = dst.roi_full();
+    ImageBuf::ConstIterator<S, D> s (src);
+    ImageBuf::Iterator<D, D> d (dst, dst_roi);
+    for ( ; ! d.done(); ++d) {
+        s.pos (dst_roi_full.yend - d.y() - 1,
+               d.x(),
+               d.z());
+        for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
+            d[c] = s[c];
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::rotate270 (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi, int nthreads)
+{
+    ROI src_roi = roi.defined() ? roi : src.roi();
+    ROI src_roi_full = src.roi_full();
+
+    // Rotated full ROI swaps width and height, and keeps its origin
+    // where the original origin was.
+    ROI dst_roi_full (src_roi_full.xbegin, src_roi_full.xbegin+src_roi_full.height(),
+                      src_roi_full.ybegin, src_roi_full.ybegin+src_roi_full.width(),
+                      src_roi_full.zbegin, src_roi_full.zend,
+                      src_roi_full.chbegin, src_roi_full.chend);
+
+    ROI dst_roi (src_roi.ybegin, src_roi.yend,
+                 src_roi_full.xend-src_roi.xend,
+                 src_roi_full.xend-src_roi.xbegin,
+                 src_roi.zbegin, src_roi.zend,
+                 src_roi.chbegin, src_roi.chend);
+
+    ASSERT (dst_roi.width() == src_roi.height() &&
+            dst_roi.height() == src_roi.width());
+
+    bool dst_initialized = dst.initialized();
+    IBAprep (dst_roi, &dst, &src);
+    if (! dst_initialized)
+        dst.set_roi_full (dst_roi_full);
+
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "rotate270", rotate270_,
                           dst.spec().format, src.spec().format,
                           dst, src, dst_roi, nthreads);
     return ok;

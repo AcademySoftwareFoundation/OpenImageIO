@@ -17,6 +17,9 @@ ${OIIOTOOL} tahoe-small.jpg --tocolorspace linear --chsum:weight=.2126,.7152,.07
 ${OIIOTOOL} grid-small.jpg --flip -o flip.jpg
 ${OIIOTOOL} grid-small.jpg --flop -o flop.jpg
 ${OIIOTOOL} grid-small.jpg --flipflop -o flipflop.jpg
+${OIIOTOOL} grid-small.jpg --rotate90 -o rotate90.jpg
+${OIIOTOOL} grid-small.jpg --rotate180 -o rotate180.jpg
+${OIIOTOOL} grid-small.jpg --rotate270 -o rotate270.jpg
 ${OIIOTOOL} grid-small.jpg --transpose -o transpose.jpg
 ${OIIOTOOL} grid-small.jpg --cshift +70+30 -o cshift.jpg
 ${OIIOTOOL} --pattern constant:color=1,0.7,0.7 320x240 3 --fill:color=1,0,0 50x100+50+75 --tocolorspace sRGB -o fill.jpg

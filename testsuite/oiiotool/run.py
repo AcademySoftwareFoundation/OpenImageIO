@@ -101,9 +101,17 @@ command += oiiotool ("image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
 command += oiiotool ("image.tif --flop -o flop.tif")
 command += oiiotool ("image.tif --crop 180x140+30+30 --flop -o flop-crop.tif")
 
-# test flip-flop
-command += oiiotool ("image.tif --flipflop -o flipflop.tif")
-command += oiiotool ("image.tif --crop 160x120+30+30 --flipflop -o flipflop-crop.tif")
+# test rotate90
+command += oiiotool ("image.tif --rotate90 -o rotate90.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --rotate90 -o rotate90-crop.tif")
+
+# test rotate270
+command += oiiotool ("image.tif --rotate270 -o rotate270.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-crop.tif")
+
+# test rotate180
+command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
+command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
 
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
@@ -206,6 +214,8 @@ outputs = [ "filled.tif", "autotrim.tif",
             "flip.tif", "flip-crop.tif",
             "flop.tif", "flop-crop.tif",
             "flipflop.tif", "flipflop-crop.tif",
+            "rotate90.tif", "rotate90-crop.tif",
+            "rotate270.tif", "rotate270-crop.tif",
             "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",

@@ -279,6 +279,81 @@ bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int nthreads = 0);
 
 
+/// Copy src to dst, but with the image pixels rotated 90 degrees
+/// clockwise. In other words,
+///     AB  -->  CA
+///     CD       DB
+///
+/// Only the pixels (and channels) in src that are specified by roi will be
+/// copied to their corresponding positions in dst; the default roi is to
+/// copy the whole data region of src. If dst is uninitialized, it will be
+/// resized to be a float ImageBuf large enough to hold the region specified
+/// by roi. It is an error to pass both an uninitialied dst and an undefined
+/// roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may be
+/// used, but it's not a guarantee.  If nthreads == 0, it will use the
+/// global OIIO attribute "nthreads".  If nthreads == 1, it guarantees that
+/// it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API rotate90 (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy src to dst, but with the image pixels rotated 180 degrees.
+/// In other words,
+///     AB  -->  DC
+///     CD       BA
+///
+/// Only the pixels (and channels) in src that are specified by roi will be
+/// copied to their corresponding positions in dst; the default roi is to
+/// copy the whole data region of src. If dst is uninitialized, it will be
+/// resized to be a float ImageBuf large enough to hold the region specified
+/// by roi. It is an error to pass both an uninitialied dst and an undefined
+/// roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may be
+/// used, but it's not a guarantee.  If nthreads == 0, it will use the
+/// global OIIO attribute "nthreads".  If nthreads == 1, it guarantees that
+/// it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API rotate180 (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi=ROI::All(), int nthreads=0);
+/// DEPRECATED(1.5) synonym for rotate180.
+bool OIIO_API flipflop (ImageBuf &dst, const ImageBuf &src,
+                        ROI roi=ROI::All(), int nthreads=0);
+
+/// Copy src to dst, but with the image pixels rotated 90 degrees
+/// clockwise. In other words,
+///     AB  -->  BD
+///     CD       AC
+///
+/// Only the pixels (and channels) in src that are specified by roi will be
+/// copied to their corresponding positions in dst; the default roi is to
+/// copy the whole data region of src. If dst is uninitialized, it will be
+/// resized to be a float ImageBuf large enough to hold the region specified
+/// by roi. It is an error to pass both an uninitialied dst and an undefined
+/// roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may be
+/// used, but it's not a guarantee.  If nthreads == 0, it will use the
+/// global OIIO attribute "nthreads".  If nthreads == 1, it guarantees that
+/// it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API rotate270 (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi=ROI::All(), int nthreads=0);
+
 /// Copy src to dst, but with the scanlines exchanged vertically within
 /// the display/full window. In other words,
 ///     AB  -->   CD
@@ -326,31 +401,6 @@ bool OIIO_API flip (ImageBuf &dst, const ImageBuf &src,
 /// message set in dst).
 bool OIIO_API flop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi=ROI::All(), int nthreads=0);
-
-/// Copy src to dst, but with both the rows exchanged vertically and the
-/// columns exchanged horizontally (this is equivalent to a 180 degree
-/// rotation of the display window). In other words,
-///     AB  -->  DC
-///     CD       BA
-///
-/// Only the pixels (and channels) in src that are specified by roi will be
-/// copied to their corresponding positions in dst; the default roi is to
-/// copy the whole data region of src. If dst is uninitialized, it will be
-/// resized to be a float ImageBuf large enough to hold the region specified
-/// by roi. It is an error to pass both an uninitialied dst and an undefined
-/// roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may be
-/// used, but it's not a guarantee.  If nthreads == 0, it will use the
-/// global OIIO attribute "nthreads".  If nthreads == 1, it guarantees that
-/// it will not launch any new threads.
-///
-/// Works on all pixel data types.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
-bool OIIO_API flipflop (ImageBuf &dst, const ImageBuf &src,
-                        ROI roi=ROI::All(), int nthreads=0);
 
 /// Copy a subregion of src to the corresponding transposed (x<->y)
 /// pixels of dst.  In other words, for all (x,y) within the ROI, set

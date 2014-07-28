@@ -1334,6 +1334,48 @@ include:
 
 \apiend
 
+\apiitem{--rotate90}
+\NEW % 1.5
+Replace the current image with a new image that is rotated 90 degrees
+clockwise.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate90 -o rotate90.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate90.jpg} \\
+\apiend
+
+\apiitem{--rotate180}
+\NEW % 1.5
+Replace the current image with a new image that is rotated by
+180 degrees.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate180 -o rotate180.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate180.jpg} \\
+\apiend
+
+\apiitem{--rotate270}
+\NEW % 1.5
+Replace the current image with a new image that is rotated 270 degrees
+clockwise (or 90 degrees counter-clockwise).
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate270 -o rotate270.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate270.jpg} \\
+\apiend
+
 \apiitem{--flip}
 Replace the current image with a new image that is flipped vertically,
 with the top scanline becoming the bottom, and vice versa.
@@ -1358,19 +1400,6 @@ with the leftmost column becoming the rightmost, and vice versa.
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
 ~ {\Huge $\rightarrow$} ~
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
-\apiend
-
-\apiitem{--flipflop}
-Replace the current image with a new image that is both flipped and
-flopped, which is the same as a 180 degree rotation.
-
-\noindent Example:
-\begin{code}
-    oiiotool grid.jpg --flipflop -o flipflop.jpg
-\end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
-\includegraphics[width=1.25in]{figures/flipflop.jpg} \\
 \apiend
 
 \apiitem{--transpose}

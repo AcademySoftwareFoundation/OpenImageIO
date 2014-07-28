@@ -2118,25 +2118,75 @@ action_flop (int argc, const char *argv[])
 
 
 static int
-action_flipflop (int argc, const char *argv[])
+action_rotate180 (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_flipflop, argc, argv))
+    if (ot.postpone_callback (1, action_rotate180, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
     ImageRecRef A = ot.pop();
     ot.read (A);
-    ImageRecRef R (new ImageRec ("flipflop", ot.allsubimages ? A->subimages() : 1));
+    ImageRecRef R (new ImageRec ("rotate180", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
-        bool ok = ImageBufAlgo::flipflop ((*R)(s), (*A)(s));
+        bool ok = ImageBufAlgo::rotate180 ((*R)(s), (*A)(s));
         if (! ok)
-            ot.error ("flipflop", (*R)(s).geterror());
+            ot.error ("rotate180", (*R)(s).geterror());
         R->update_spec_from_imagebuf (s);
     }
 
-    ot.function_times["flipflop"] += timer();
+    ot.function_times["rotate180"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rotate90 (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rotate90, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("rotate90", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::rotate90 ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("rotate90", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["rotate90"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rotate270 (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rotate270, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("rotate270", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::rotate270 ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("rotate270", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["rotate270"] += timer();
     return 0;
 }
 
@@ -3567,7 +3617,10 @@ getargs (int argc, char *argv[])
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
-                "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
+                "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
+                "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",
+                "--flipflop %@", action_rotate180, NULL, "", // Deprecated synonym for --rotate180
+                "--rotate270 %@", action_rotate270, NULL, "Rotate the image 270 degrees clockwise (or 90 degrees counter-clockwise)",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
