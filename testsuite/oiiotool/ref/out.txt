@@ -125,6 +125,12 @@ Comparing "rotate270.tif" and "ref/rotate270.tif"
 PASS
 Comparing "rotate270-crop.tif" and "ref/rotate270-crop.tif"
 PASS
+Comparing "reorient1.tif" and "ref/reorient1.tif"
+PASS
+Comparing "reorient2.tif" and "ref/reorient2.tif"
+PASS
+Comparing "reorient3.tif" and "ref/reorient3.tif"
+PASS
 Comparing "transpose.tif" and "ref/transpose.tif"
 PASS
 Comparing "transpose-crop.tif" and "ref/transpose-crop.tif"

@@ -597,6 +597,10 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flipflop")
 
+        .def("reorient", &ImageBufAlgo::reorient,
+             (arg("dst"), arg("src"), arg("nthreads")=0))
+        .staticmethod("reorient")
+
         .def("transpose", &ImageBufAlgo::transpose,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))

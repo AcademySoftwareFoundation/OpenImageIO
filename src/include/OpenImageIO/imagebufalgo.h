@@ -402,6 +402,23 @@ bool OIIO_API flip (ImageBuf &dst, const ImageBuf &src,
 bool OIIO_API flop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi=ROI::All(), int nthreads=0);
 
+/// Copy src to dst, but with whatever seties of rotations, flips, or flops
+/// are necessary to transform the pixels into the configuration suggested
+/// by the Orientation metadata of the image (and the Orientation metadata
+/// is then set to 1, ordinary orientation).
+///
+/// The nthreads parameter specifies how many threads (potentially) may be
+/// used, but it's not a guarantee.  If nthreads == 0, it will use the
+/// global OIIO attribute "nthreads".  If nthreads == 1, it guarantees that
+/// it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API reorient (ImageBuf &dst, const ImageBuf &src,
+                        int nthreads=0);
+
 /// Copy a subregion of src to the corresponding transposed (x<->y)
 /// pixels of dst.  In other words, for all (x,y) within the ROI, set
 /// dst[y,x] = src[x,y].

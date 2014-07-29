@@ -46,6 +46,8 @@ Comparing "flop.tif" and "../oiiotool/ref/flop.tif"
 PASS
 Comparing "flipflop.tif" and "../oiiotool/ref/flipflop.tif"
 PASS
+Comparing "reorient1.tif" and "../oiiotool/ref/reorient1.tif"
+PASS
 Comparing "transpose.tif" and "../oiiotool/ref/transpose.tif"
 PASS
 Comparing "cshift.tif" and "../oiiotool/ref/cshift.tif"

@@ -119,6 +119,16 @@ try:
     ImageBufAlgo.flipflop (b, ImageBuf("../oiiotool/image.tif"))
     write (b, "flipflop.tif")
 
+    # reorient
+    b = ImageBuf()
+    image_small = ImageBuf()
+    ImageBufAlgo.resample (image_small, ImageBuf("../oiiotool/image.tif"),  roi=oiio.ROI(0,160,0,120))
+    ImageBufAlgo.rotate90 (image_small, image_small)
+    image_small.specmod().attribute ("Orientation", 8)
+    ImageBufAlgo.reorient (b, image_small)
+    write (b, "reorient1.tif")
+    image_small = ImageBuf()
+
     # transpose
     b = ImageBuf()
     ImageBufAlgo.transpose (b, ImageBuf("../oiiotool/image.tif"))

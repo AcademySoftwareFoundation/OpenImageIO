@@ -188,6 +188,12 @@ flip_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
 bool
 ImageBufAlgo::flip(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
+    if (&dst == &src) {    // Handle in-place operation
+        ImageBuf tmp;
+        tmp.swap (const_cast<ImageBuf&>(src));
+        return flip (dst, tmp, roi, nthreads);
+    }
+
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
     int offset = src_roi.ybegin - src_roi_full.ybegin;
@@ -232,6 +238,12 @@ flop_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
 bool
 ImageBufAlgo::flop(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
+    if (&dst == &src) {    // Handle in-place operation
+        ImageBuf tmp;
+        tmp.swap (const_cast<ImageBuf&>(src));
+        return flop (dst, tmp, roi, nthreads);
+    }
+
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
     int offset = src_roi.xbegin - src_roi_full.xbegin;
@@ -277,6 +289,12 @@ bool
 ImageBufAlgo::rotate90 (ImageBuf &dst, const ImageBuf &src,
                         ROI roi, int nthreads)
 {
+    if (&dst == &src) {    // Handle in-place operation
+        ImageBuf tmp;
+        tmp.swap (const_cast<ImageBuf&>(src));
+        return rotate90 (dst, tmp, roi, nthreads);
+    }
+
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
 
@@ -334,6 +352,12 @@ bool
 ImageBufAlgo::rotate180 (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
 {
+    if (&dst == &src) {    // Handle in-place operation
+        ImageBuf tmp;
+        tmp.swap (const_cast<ImageBuf&>(src));
+        return rotate180 (dst, tmp, roi, nthreads);
+    }
+
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
     int xoffset = src_roi.xbegin - src_roi_full.xbegin;
@@ -389,6 +413,12 @@ bool
 ImageBufAlgo::rotate270 (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
 {
+    if (&dst == &src) {    // Handle in-place operation
+        ImageBuf tmp;
+        tmp.swap (const_cast<ImageBuf&>(src));
+        return rotate270 (dst, tmp, roi, nthreads);
+    }
+
     ROI src_roi = roi.defined() ? roi : src.roi();
     ROI src_roi_full = src.roi_full();
 
@@ -417,6 +447,51 @@ ImageBufAlgo::rotate270 (ImageBuf &dst, const ImageBuf &src,
     OIIO_DISPATCH_TYPES2 (ok, "rotate270", rotate270_,
                           dst.spec().format, src.spec().format,
                           dst, src, dst_roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
+{
+    ImageBuf tmp;
+    bool ok;
+    switch (src.orientation()) {
+    case 1:
+        ok = dst.copy (src);
+        break;
+    case 2:
+        ok = ImageBufAlgo::flop (dst, src);
+        break;
+    case 3:
+        ok = ImageBufAlgo::rotate180 (dst, src);
+        break;
+    case 4:
+        ok = ImageBufAlgo::flip (dst, src);
+        break;
+    case 5:
+        ok = ImageBufAlgo::rotate270 (tmp, src);
+        if (ok)
+            ok = ImageBufAlgo::flop (dst, tmp);
+        else
+            dst.error ("%s", tmp.geterror());
+        break;
+    case 6:
+        ok = ImageBufAlgo::rotate90 (dst, src);
+        break;
+    case 7:
+        ok = ImageBufAlgo::flip (tmp, src);
+        if (ok)
+            ok = ImageBufAlgo::rotate90 (dst, tmp);
+        else
+            dst.error ("%s", tmp.geterror());
+        break;
+    case 8:
+        ok = ImageBufAlgo::rotate270 (dst, src);
+        break;
+    }
+    dst.set_orientation (1);
     return ok;
 }
 

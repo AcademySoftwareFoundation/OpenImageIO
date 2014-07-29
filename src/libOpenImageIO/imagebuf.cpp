@@ -982,6 +982,8 @@ ImageBuf::write (const std::string &_filename, const std::string &_fileformat,
 void
 ImageBufImpl::copy_metadata (const ImageBufImpl &src)
 {
+    if (this == &src)
+        return;
     const ImageSpec &srcspec (src.spec());
     ImageSpec &m_spec (this->specmod());
     m_spec.full_x = srcspec.full_x;
@@ -1224,6 +1226,9 @@ bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
 bool
 ImageBuf::copy_pixels (const ImageBuf &src)
 {
+    if (this == &src)
+        return true;
+
     // compute overlap
     ROI myroi = get_roi(spec());
     ROI roi = roi_intersection (myroi, get_roi(src.spec()));

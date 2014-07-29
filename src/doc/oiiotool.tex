@@ -1402,6 +1402,21 @@ with the leftmost column becoming the rightmost, and vice versa.
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
+\apiitem{--reorient}
+\NEW % 1.5
+Replace the current image with a new image that is rotated and/or flipped
+as necessary to move the pixels to match the Orientation metadata
+that describes the desired display orientation.
+
+\noindent Example:
+\begin{code}
+    oiiotool tahoe.jpg --reorient -o oriented.jpg
+\end{code}
+%\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+%~ {\Huge $\rightarrow$} ~
+%\includegraphics[width=1.25in]{figures/flop.jpg} \\
+\apiend
+
 \apiitem{--transpose}
 Replace the current image with a new image that is trasposed about
 the $xy$ axis (x and coordinates and size are flipped).

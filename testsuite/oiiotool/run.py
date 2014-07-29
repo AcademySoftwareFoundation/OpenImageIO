@@ -113,6 +113,13 @@ command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-cr
 command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
 command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
 
+# Tricky: make image, rotate, set Orientation, and then re-orient.
+# Make it half size so it can't accidentally match to another test image
+# for the rotation tests.
+command += oiiotool ("image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
+command += oiiotool ("image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
+command += oiiotool ("image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
+
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
 command += oiiotool ("image.tif --crop 160x120+30+30 --transpose -o transpose-crop.tif")
@@ -216,6 +223,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "flipflop.tif", "flipflop-crop.tif",
             "rotate90.tif", "rotate90-crop.tif",
             "rotate270.tif", "rotate270-crop.tif",
+            "reorient1.tif", "reorient2.tif", "reorient3.tif",
             "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",

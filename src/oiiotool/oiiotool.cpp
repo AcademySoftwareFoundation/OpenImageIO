@@ -2193,6 +2193,47 @@ action_rotate270 (int argc, const char *argv[])
 
 
 static int
+action_reorient (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_reorient, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    // Make sure time in the rotate functions is charged to reorient
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+
+    // See if any subimages need to be reoriented
+    bool needs_reorient = false;
+    for (int s = 0, subimages = A->subimages();  s < subimages;  ++s) {
+        int orientation = (*A)(s).orientation();
+        needs_reorient |= (orientation != 1);
+    }
+
+    if (needs_reorient) {
+        ImageRecRef R (new ImageRec ("reorient", ot.allsubimages ? A->subimages() : 1));
+        ot.push (R);
+        for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+            ImageBufAlgo::reorient ((*R)(s), (*A)(s));
+            R->update_spec_from_imagebuf (s);
+        }
+    } else {
+        // No subimages need modification, just leave the whole thing in
+        // place.
+        ot.push (A);
+    }
+
+    ot.function_times["reorient"] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
+    return 0;
+}
+
+
+
+static int
 action_transpose (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_transpose, argc, argv))
@@ -3615,12 +3656,13 @@ getargs (int argc, char *argv[])
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
-                "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
-                "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
                 "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",
                 "--flipflop %@", action_rotate180, NULL, "", // Deprecated synonym for --rotate180
-                "--rotate270 %@", action_rotate270, NULL, "Rotate the image 270 degrees clockwise (or 90 degrees counter-clockwise)",
+                "--rotate270 %@", action_rotate270, NULL, "Rotate the image 270 degrees clockwise (or 90 degrees CCW)",
+                "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
+                "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
+                "--reorient %@", action_reorient, NULL, "Rotate and/or flop the image to transform the pixels to match the Orientation metadata",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",

@@ -461,6 +461,31 @@ of {\cf dst}, but with the columns exchanged horizontally.
 \apiend
 
 
+\apiitem{bool {\ce reorient} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!reorient} \indexapi{reorient}
+\NEW % 1.5
+Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
+or flops are necessary to transform the pixels into the configuration
+suggested by the \qkw{Orientation} metadata of the image (and the
+\qkw{Orientation} metadata is then set to 1, ordinary orientation).
+
+It is allowed for {\cf src} and {\cf dst} to refer to the same image, in
+which case the operation will be done ``in place'' (though not in a way
+that is safe for another thread to be accessing the image simultaneously).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("tahoe.jpg");
+    ImageBufAlgo::reorient (A, A);
+\end{code}
+%\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+%~ {\Huge $\rightarrow$} ~
+%\includegraphics[width=1.25in]{figures/flop.jpg} \\
+\apiend
+
+
 \apiitem{bool {\ce transpose} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!transpose} \indexapi{transpose}
