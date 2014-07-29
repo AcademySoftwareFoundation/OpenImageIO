@@ -544,6 +544,7 @@ public:
     }
 
     int orientation () const;
+    void set_orientation (int orient);
 
     int oriented_width () const;
     int oriented_height () const;
