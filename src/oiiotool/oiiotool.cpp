@@ -2071,19 +2071,19 @@ action_flip (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("flip", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flip", (*R)(s,m).geterror());
-        }
-    ot.function_times["flip"] += timer();             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::flip ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("flip", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["flip"] += timer();
     return 0;
 }
 
@@ -2096,18 +2096,17 @@ action_flop (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("flop", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flop", (*R)(s,m).geterror());
-        }
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::flop ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("flop", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
 
     ot.function_times["flop"] += timer();
     return 0;
@@ -2122,18 +2121,17 @@ action_flipflop (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("flipflop", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flipflop", (*R)(s,m).geterror());
-        }
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::flipflop ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("flipflop", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
 
     ot.function_times["flipflop"] += timer();
     return 0;

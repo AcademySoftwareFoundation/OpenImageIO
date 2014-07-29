@@ -142,9 +142,13 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                 full_roi = roi_union (full_roi, get_roi_full (B->spec()));
             }
         } else {
-            if (A)
+            if (A) {
                 roi.chend = std::min (roi.chend, A->nchannels());
-            full_roi = roi;
+                if (! (prepflags & IBAprep_NO_COPY_ROI_FULL))
+                    full_roi = A->roi_full();
+            } else {
+                full_roi = roi;
+            }
         }
         // Now we allocate space for dst.  Give it A's spec, but adjust
         // the dimensions to match the ROI.
@@ -513,7 +517,7 @@ bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
         return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 
@@ -555,7 +559,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       const std::string &filtername_, float fwidth,
                       ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
         return false;
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
@@ -681,7 +685,7 @@ bool
 ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate, ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_NO_COPY_ROI_FULL))
         return false;
     if (dst.nchannels() != src.nchannels()) {
         dst.error ("channel number mismatch: %d vs. %d", 

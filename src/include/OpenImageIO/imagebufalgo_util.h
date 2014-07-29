@@ -107,12 +107,17 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A=NULL, const ImageBuf *B=NULL,
                        ImageSpec *force_spec=NULL, int prepflags=0);
+inline bool IBAprep (ROI &roi, ImageBuf *dst,
+                     const ImageBuf *A, int prepflags) {
+    return IBAprep (roi, dst, A, NULL, NULL, prepflags);
+}
 
 enum IBAprep_flags {
     IBAprep_DEFAULT = 0,
     IBAprep_REQUIRE_ALPHA = 1,
     IBAprep_REQUIRE_Z = 2,
     IBAprep_REQUIRE_SAME_NCHANNELS = 4,
+    IBAprep_NO_COPY_ROI_FULL = 8,       // Don't copy the src's roi_full
     IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
     IBAprep_COPY_ALL_METADATA = 512     // Even unsafe things
 };
