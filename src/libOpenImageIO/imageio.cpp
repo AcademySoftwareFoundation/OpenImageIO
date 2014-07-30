@@ -53,6 +53,7 @@ namespace pvt {
 recursive_mutex imageio_mutex;
 atomic_int oiio_threads (boost::thread::hardware_concurrency());
 ustring plugin_searchpath;
+atomic_int oiio_chunk (256);
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
 }
@@ -142,6 +143,10 @@ attribute (string_view name, TypeDesc type, const void *val)
         plugin_searchpath = ustring (*(const char **)val);
         return true;
     }
+    if (name == "chunk" && type == TypeDesc::TypeInt) {
+        oiio_chunk = *(const int *)val;
+        return true;
+    }
     return false;
 }
 
@@ -157,6 +162,10 @@ getattribute (string_view name, TypeDesc type, void *val)
     spin_lock lock (attrib_mutex);
     if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
         *(ustring *)val = plugin_searchpath;
+        return true;
+    }
+    if (name == "chunk" && type == TypeDesc::TypeInt) {
+        *(int *)val = oiio_chunk;
         return true;
     }
     if (name == "format_list" && type == TypeDesc::TypeString) {
