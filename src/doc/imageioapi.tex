@@ -697,6 +697,16 @@ example,
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 
+\apiitem{int read_chunk}
+\vspace{10pt}
+\index{read_chunk}
+\NEW % 1.5
+When performing a {\cf read_image()}, this is the number of scanlines it
+will attempt to read at a time (some formats are more efficient when reading
+and decoding multiple scanlines).  The default is 256.  The special value
+of 0 indicates that it should try to read the whole image if possible.
+\apiend
+
 \apiend
 
 \apiitem{bool {\ce attribute} (string_view name, int val) \\

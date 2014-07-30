@@ -620,11 +620,14 @@ ImageInput::read_image (TypeDesc format, void *data,
             }
         }
     } else {
-        // Scanline image -- rely on read_scanlines, in chunks of 64
-        const int chunk = 256;
+        // Scanline image -- rely on read_scanlines, in chunks of oiio_read_chunk
+        int read_chunk = oiio_read_chunk;
+        if (!read_chunk) {
+            read_chunk = m_spec.height;
+        }
         for (int z = 0;  z < m_spec.depth;  ++z)
-            for (int y = 0;  y < m_spec.height && ok;  y += chunk) {
-                int yend = std::min (y+m_spec.y+chunk, m_spec.y+m_spec.height);
+            for (int y = 0;  y < m_spec.height && ok;  y += read_chunk) {
+                int yend = std::min (y+m_spec.y+read_chunk, m_spec.y+m_spec.height);
                 ok &= read_scanlines (y+m_spec.y, yend, z+m_spec.z, format,
                                       (char *)data + z*zstride + y*ystride,
                                       xstride, ystride);

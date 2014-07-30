@@ -10,6 +10,8 @@ Public API changes:
 * New filters available to direct users of filter.{h,cpp} and for
   ImageBufAlgo, oiiotoo, and maketx: "cubic", "keys", "simon", "rifman".
   (1.5.0/1.4.9) (#874)
+* Global attribute "read_chunk" can set the default number of scanlines
+  read at a time internally by read_image() calls. #925
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
