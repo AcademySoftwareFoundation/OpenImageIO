@@ -92,6 +92,7 @@ Oiiotool::clear_options ()
     dumpdata_showempty = true;
     hash = false;
     updatemode = false;
+    autoorient = false;
     threads = 0;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
@@ -358,6 +359,12 @@ input_file (int argc, const char *argv[])
                 ot.error ("read", error);
         }
         ot.function_times["input"] += timer();
+        if (ot.autoorient) {
+            int action_reorient (int argc, const char *argv[]);
+            const char *argv[] = { "--reorient" };
+            action_reorient (1, argv);
+        }
+
         ot.process_pending ();
     }
     return 0;
@@ -2192,7 +2199,7 @@ action_rotate270 (int argc, const char *argv[])
 
 
 
-static int
+int
 action_reorient (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_reorient, argc, argv))
@@ -3577,6 +3584,8 @@ getargs (int argc, char *argv[])
                 "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
                 "--no-autopremult %@", unset_autopremult, NULL, "Turn off automatic premultiplication of images with unassociated alpha",
                 "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
+                "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",
+                "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",

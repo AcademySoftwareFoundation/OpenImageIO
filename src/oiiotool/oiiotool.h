@@ -59,6 +59,7 @@ public:
     bool dumpdata_showempty;
     bool hash;
     bool updatemode;
+    bool autoorient;
     int threads;
     std::string full_command_line;
     std::string printinfo_metamatch;

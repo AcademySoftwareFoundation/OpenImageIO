@@ -751,6 +751,14 @@ flag is found, subsequent inputs will not do this premultiplication. It
 can be turned on again via {\cf --autopremult}.
 \apiend
 
+\apiitem{--autoorient}
+\NEW  % 1.5
+Automatically do the equivalent of {\cf --reorient} on every image as it is
+read in, if it has a nonstandard orientation. This is generally a good idea
+to use if you are using oiiotool to combine images that may have different
+orientations.
+\apiend
+
 \apiitem{-o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.
