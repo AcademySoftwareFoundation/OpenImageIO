@@ -10,6 +10,9 @@ Release 1.4.12 (31 Jul 2014 -- compared to 1.4.11)
   in MSVC 2013). #912
 * Fix for Linux + Boost >= 1.55 combination: need to link with -lrt. #914
 * Fix Ptex + static linkage.
+* JPEG input: Fix seek_subimage -- did not properly return the
+  spec. (1.5.2/1.4.12)
+* Fixes for Boost Filesystem 1.46-1.49.
 
 Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
 -------------------------------------------------
