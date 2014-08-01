@@ -407,22 +407,27 @@ public:
     ///
     float getchannel (int x, int y, int z, int c, WrapMode wrap=WrapBlack) const;
 
-    /// Retrieve the pixel value by x and y coordintes (on [0,res-1]),
+    /// Retrieve the pixel value by x and y pixel indices,
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).
     void getpixel (int x, int y, float *pixel, int maxchannels=1000) const {
         getpixel (x, y, 0, pixel, maxchannels);
     }
 
-    /// Retrieve the pixel value by x, y, z coordintes (on [0,res-1]),
+    /// Retrieve the pixel value by x, y, z pixel indices,
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).
     void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000,
                    WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
-    /// the upper left corner, (xres,yres) the lower right corner of
-    /// the pixel data.
+    /// Sample the image plane at coordinates (x,y), using linear
+    /// interpolation between pixels, placing the result in pixel[0..n-1]
+    /// where n is the smaller of maxchannels or the actual number of
+    /// channels stored in the buffer.  It is up to the application to
+    /// ensure that pixel points to enough memory to hold the required
+    /// number of channels. Note that pixel data values themselves are at
+    /// the pixel centers, so pixel (i,j) is at image plane coordinate
+    /// (i+0.5, j+0.5).
     void interppixel (float x, float y, float *pixel,
                       WrapMode wrap=WrapBlack) const;
 
@@ -539,6 +544,7 @@ public:
     }
 
     int orientation () const;
+    void set_orientation (int orient);
 
     int oriented_width () const;
     int oriented_height () const;

@@ -567,6 +567,21 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("paste")
 
+        .def("rotate90", &ImageBufAlgo::rotate90,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("rotate90")
+
+        .def("rotate180", &ImageBufAlgo::rotate180,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("rotate180")
+
+        .def("rotate270", &ImageBufAlgo::rotate270,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("rotate270")
+
         .def("flip", &ImageBufAlgo::flip,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
@@ -577,10 +592,14 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flop")
 
-        .def("flipflop", &ImageBufAlgo::flipflop,
+        .def("flipflop", &ImageBufAlgo::rotate180,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flipflop")
+
+        .def("reorient", &ImageBufAlgo::reorient,
+             (arg("dst"), arg("src"), arg("nthreads")=0))
+        .staticmethod("reorient")
 
         .def("transpose", &ImageBufAlgo::transpose,
              (arg("dst"), arg("src"),

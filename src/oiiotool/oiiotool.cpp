@@ -92,6 +92,7 @@ Oiiotool::clear_options ()
     dumpdata_showempty = true;
     hash = false;
     updatemode = false;
+    autoorient = false;
     threads = 0;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
@@ -358,6 +359,12 @@ input_file (int argc, const char *argv[])
                 ot.error ("read", error);
         }
         ot.function_times["input"] += timer();
+        if (ot.autoorient) {
+            int action_reorient (int argc, const char *argv[]);
+            const char *argv[] = { "--reorient" };
+            action_reorient (1, argv);
+        }
+
         ot.process_pending ();
     }
     return 0;
@@ -916,11 +923,14 @@ set_orientation (int argc, const char *argv[])
 
 
 static bool
-do_rotate_orientation (ImageSpec &spec, const std::string &cmd)
+do_rotate_orientation (ImageSpec &spec, string_view cmd)
 {
-    bool rotcw = cmd == "--rotcw" || cmd == "-rotcw";
-    bool rotccw = cmd == "--rotccw" || cmd == "-rotccw";
-    bool rot180 = cmd == "--rot180" || cmd == "-rot180";
+    bool rotcw = (cmd == "--orientcw" || cmd == "-orientcw" ||
+                  cmd == "--rotcw" || cmd == "-rotcw");
+    bool rotccw = (cmd == "--orientccw" || cmd == "-orientccw" ||
+                   cmd == "--rotccw" || cmd == "-rotccw");
+    bool rot180 = (cmd == "--orient180" || cmd == "-orient180" ||
+                   cmd == "--rot180" || cmd == "-rot180");
     int orientation = spec.get_int_attribute ("Orientation", 1);
     if (orientation >= 1 && orientation <= 8) {
         static int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
@@ -945,7 +955,7 @@ rotate_orientation (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    apply_spec_mod (*ot.curimg, do_rotate_orientation, std::string(argv[0]),
+    apply_spec_mod (*ot.curimg, do_rotate_orientation, argv[0],
                     ot.allsubimages);
     return 0;
 }
@@ -2071,19 +2081,19 @@ action_flip (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("flip", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flip ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flip", (*R)(s,m).geterror());
-        }
-    ot.function_times["flip"] += timer();             
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::flip ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("flip", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["flip"] += timer();
     return 0;
 }
 
@@ -2096,18 +2106,17 @@ action_flop (int argc, const char *argv[])
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("flop", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flop ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flop", (*R)(s,m).geterror());
-        }
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::flop ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("flop", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
 
     ot.function_times["flop"] += timer();
     return 0;
@@ -2116,26 +2125,116 @@ action_flop (int argc, const char *argv[])
 
 
 static int
-action_flipflop (int argc, const char *argv[])
+action_rotate180 (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_flipflop, argc, argv))
+    if (ot.postpone_callback (1, action_rotate180, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
-    ot.read ();
     ImageRecRef A = ot.pop();
-    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                 ot.allsubimages ? -1 : 0, true, false));
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("rotate180", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
-    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
-        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
-            bool ok = ImageBufAlgo::flipflop ((*R)(s,m), (*A)(s,m));
-            if (! ok)
-                ot.error ("flipflop", (*R)(s,m).geterror());
-        }
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::rotate180 ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("rotate180", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
 
-    ot.function_times["flipflop"] += timer();
+    ot.function_times["rotate180"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rotate90 (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rotate90, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("rotate90", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::rotate90 ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("rotate90", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["rotate90"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_rotate270 (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_rotate270, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+    ImageRecRef R (new ImageRec ("rotate270", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::rotate270 ((*R)(s), (*A)(s));
+        if (! ok)
+            ot.error ("rotate270", (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times["rotate270"] += timer();
+    return 0;
+}
+
+
+
+int
+action_reorient (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_reorient, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    // Make sure time in the rotate functions is charged to reorient
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+
+    // See if any subimages need to be reoriented
+    bool needs_reorient = false;
+    for (int s = 0, subimages = A->subimages();  s < subimages;  ++s) {
+        int orientation = (*A)(s).orientation();
+        needs_reorient |= (orientation != 1);
+    }
+
+    if (needs_reorient) {
+        ImageRecRef R (new ImageRec ("reorient", ot.allsubimages ? A->subimages() : 1));
+        ot.push (R);
+        for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+            ImageBufAlgo::reorient ((*R)(s), (*A)(s));
+            R->update_spec_from_imagebuf (s);
+        }
+    } else {
+        // No subimages need modification, just leave the whole thing in
+        // place.
+        ot.push (A);
+    }
+
+    ot.function_times["reorient"] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
     return 0;
 }
 
@@ -3485,6 +3584,8 @@ getargs (int argc, char *argv[])
                 "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
                 "--no-autopremult %@", unset_autopremult, NULL, "Turn off automatic premultiplication of images with unassociated alpha",
                 "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
+                "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",
+                "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
@@ -3516,9 +3617,12 @@ getargs (int argc, char *argv[])
                 "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
                 "--sansattrib", &sansattrib, "Write command line into Software & ImageHistory but remove --sattrib and --attrib options",
                 "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
-                "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
-                "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
-                "--rot180 %@", rotate_orientation, NULL, "Rotate orientation 180 deg",
+                "--orientcw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg clockwise",
+                "--orientccw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg counter-clockwise",
+                "--orient180 %@", rotate_orientation, NULL, "Rotate orientation metadata 180 deg",
+                "--rotcw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
+                "--rotccw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
+                "--rot180 %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
                 "--origin %@ %s", set_origin, NULL,
                     "Set the pixel data window origin (e.g. +20+10)",
                 "--fullsize %@ %s", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
@@ -3561,9 +3665,13 @@ getargs (int argc, char *argv[])
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
+                "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
+                "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",
+                "--flipflop %@", action_rotate180, NULL, "", // Deprecated synonym for --rotate180
+                "--rotate270 %@", action_rotate270, NULL, "Rotate the image 270 degrees clockwise (or 90 degrees CCW)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
-                "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
+                "--reorient %@", action_reorient, NULL, "Rotate and/or flop the image to transform the pixels to match the Orientation metadata",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",

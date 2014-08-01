@@ -89,6 +89,21 @@ try:
     ImageBufAlgo.paste (b, 150, 75, 0, 0, grid)
     write (b, "pasted.tif")
 
+    # rotate90
+    b = ImageBuf()
+    ImageBufAlgo.rotate90 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate90.tif")
+
+    # rotate180
+    b = ImageBuf()
+    ImageBufAlgo.rotate180 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate180.tif")
+
+    # rotate270
+    b = ImageBuf()
+    ImageBufAlgo.rotate270 (b, ImageBuf("../oiiotool/image.tif"))
+    write (b, "rotate270.tif")
+
     # flip
     b = ImageBuf()
     ImageBufAlgo.flip (b, ImageBuf("../oiiotool/image.tif"))
@@ -103,6 +118,16 @@ try:
     b = ImageBuf()
     ImageBufAlgo.flipflop (b, ImageBuf("../oiiotool/image.tif"))
     write (b, "flipflop.tif")
+
+    # reorient
+    b = ImageBuf()
+    image_small = ImageBuf()
+    ImageBufAlgo.resample (image_small, ImageBuf("../oiiotool/image.tif"),  roi=oiio.ROI(0,160,0,120))
+    ImageBufAlgo.rotate90 (image_small, image_small)
+    image_small.specmod().attribute ("Orientation", 8)
+    ImageBufAlgo.reorient (b, image_small)
+    write (b, "reorient1.tif")
+    image_small = ImageBuf()
 
     # transpose
     b = ImageBuf()

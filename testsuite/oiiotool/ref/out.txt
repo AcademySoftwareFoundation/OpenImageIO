@@ -107,11 +107,33 @@ Comparing "mosaic.tif" and "ref/mosaic.tif"
 PASS
 Comparing "flip.tif" and "ref/flip.tif"
 PASS
+Comparing "flip-crop.tif" and "ref/flip-crop.tif"
+PASS
 Comparing "flop.tif" and "ref/flop.tif"
+PASS
+Comparing "flop-crop.tif" and "ref/flop-crop.tif"
 PASS
 Comparing "flipflop.tif" and "ref/flipflop.tif"
 PASS
+Comparing "flipflop-crop.tif" and "ref/flipflop-crop.tif"
+PASS
+Comparing "rotate90.tif" and "ref/rotate90.tif"
+PASS
+Comparing "rotate90-crop.tif" and "ref/rotate90-crop.tif"
+PASS
+Comparing "rotate270.tif" and "ref/rotate270.tif"
+PASS
+Comparing "rotate270-crop.tif" and "ref/rotate270-crop.tif"
+PASS
+Comparing "reorient1.tif" and "ref/reorient1.tif"
+PASS
+Comparing "reorient2.tif" and "ref/reorient2.tif"
+PASS
+Comparing "reorient3.tif" and "ref/reorient3.tif"
+PASS
 Comparing "transpose.tif" and "ref/transpose.tif"
+PASS
+Comparing "transpose-crop.tif" and "ref/transpose-crop.tif"
 PASS
 Comparing "cshift.tif" and "ref/cshift.tif"
 PASS

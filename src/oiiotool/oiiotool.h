@@ -59,6 +59,7 @@ public:
     bool dumpdata_showempty;
     bool hash;
     bool updatemode;
+    bool autoorient;
     int threads;
     std::string full_command_line;
     std::string printinfo_metamatch;
@@ -423,7 +424,9 @@ bool apply_spec_mod (ImageRec &img, Action act, const Type &t,
     img.metadata_modified (true);
     for (int s = 0, send = img.subimages();  s < send;  ++s) {
         for (int m = 0, mend = img.miplevels(s);  m < mend;  ++m) {
-            ok &= act (*img.spec(s,m), t);
+            ok &= act (img(s,m).specmod(), t);
+            if (ok)
+                img.update_spec_from_imagebuf (s, m);
             if (! allsubimages)
                 break;
         }

@@ -1655,6 +1655,26 @@ offset {\cf (xbegin, ybegin, zbegin)}.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce rotate90} (dst, src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce rotate180} (dst, src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce rotate270} (dst, src, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!roate90} \indexapi{roate90}
+\index{ImageBufAlgo!rotate180} \indexapi{rotate180}
+\index{ImageBufAlgo!rotate270} \indexapi{rotate270}
+\NEW % 1.5
+Copy while rotating the image by a multiple of 90 degrees.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    A = ImageBuf ("tahoe.exr")
+    B = ImageBuf()
+    ImageBufAlgo.rotate90 (B, A)
+\end{code}
+\apiend
+
+
+
 \apiitem{bool ImageBufAlgo.{\ce flip} (dst, src, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce flop} (dst, src, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce flipflop} (dst, src, roi=ROI.All, nthreads=0)}
@@ -1674,8 +1694,24 @@ or both vertically and horizontally (flipflip).
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce reorient} (dst, src, nthreads=0)}
+\index{ImageBufAlgo!reorient} \indexapi{reorient}
+\NEW % 1.5
+Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
+or flops are necessary to transform the pixels into the configuration
+suggested by the \qkw{Orientation} metadata of the image (and the
+\qkw{Orientation} metadata is then set to 1, ordinary orientation).
 
-\apiitem{bool ImageBufAlgo.{\ce transpose} (dst, src, oi=ROI.All, nthreads=0)}
+\smallskip
+\noindent Examples:
+\begin{code}
+    A = ImageBuf ("tahoe.jpg")
+    ImageBufAlgo.reorient (A, A)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce transpose} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!transpose} \indexapi{transpose}
 Copy while transposing ($x \leftrightarrow y$) pixels.
 

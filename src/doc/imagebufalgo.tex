@@ -363,6 +363,67 @@ the entirety of src will be used.  It will copy into channels
 \apiend
 
 
+\apiitem{bool {\ce rotate90} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!rotate90} \indexapi{rotate90}
+\NEW  % 1.5
+Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
+of {\cf dst}, but rotated 90 degrees clockwise.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("grid.jpg");
+    ImageBuf B;
+    ImageBufAlgo::rotate90 (B, A);
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate90.jpg} \\
+\apiend
+
+
+\apiitem{bool {\ce rotate180} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!rotate180} \indexapi{rotate180}
+\NEW % 1.5
+Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
+of {\cf dst}, but rotated 180 degrees.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("grid.jpg");
+    ImageBuf B;
+    ImageBufAlgo::rotate180 (B, A);
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate180.jpg} \\
+\apiend
+
+
+\apiitem{bool {\ce rotate270} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!rotate270} \indexapi{rotate270}
+\NEW % 1.5
+Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
+of {\cf dst}, but rotated 270 degrees clockwise (or 90 degrees
+counter-clockwise).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("grid.jpg");
+    ImageBuf B;
+    ImageBufAlgo::rotate270 (B, A);
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate270.jpg} \\
+\apiend
+
+
 \apiitem{bool {\ce flip} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flip} \indexapi{flip}
@@ -376,7 +437,7 @@ of {\cf dst}, but with the scanlines exchanged vertically.
     ImageBuf B;
     ImageBufAlgo::flip (B, A);
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
 ~ {\Huge $\rightarrow$} ~
 \includegraphics[width=1.25in]{figures/flip.jpg} \\
 \apiend
@@ -394,29 +455,34 @@ of {\cf dst}, but with the columns exchanged horizontally.
     ImageBuf B;
     ImageBufAlgo::flop (B, A);
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
 ~ {\Huge $\rightarrow$} ~
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
 
-\apiitem{bool {\ce flipflop} (ImageBuf \&dst, const ImageBuf \&src, \\
+\apiitem{bool {\ce reorient} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
-\index{ImageBufAlgo!flipflop} \indexapi{flipflop}
-Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
-of {\cf dst}, but with both the rows exchanged vertically and the
-columns exchanged horizontally (this is equivalent to a 180 degree rotation).
+\index{ImageBufAlgo!reorient} \indexapi{reorient}
+\NEW % 1.5
+Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
+or flops are necessary to transform the pixels into the configuration
+suggested by the \qkw{Orientation} metadata of the image (and the
+\qkw{Orientation} metadata is then set to 1, ordinary orientation).
+
+It is allowed for {\cf src} and {\cf dst} to refer to the same image, in
+which case the operation will be done ``in place'' (though not in a way
+that is safe for another thread to be accessing the image simultaneously).
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("grid.jpg");
-    ImageBuf B;
-    ImageBufAlgo::flipflop (B, A);
+    ImageBuf A ("tahoe.jpg");
+    ImageBufAlgo::reorient (A, A);
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
-\includegraphics[width=1.25in]{figures/flipflop.jpg} \\
+%\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+%~ {\Huge $\rightarrow$} ~
+%\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
 
@@ -435,7 +501,7 @@ set {\cf dst[y,x] = src[x,y]}.
     ImageBuf B;
     ImageBufAlgo::transpose (B, A);
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
 ~ {\Huge $\rightarrow$} ~
 \includegraphics[width=1.25in]{figures/transpose.jpg} \\
 \apiend

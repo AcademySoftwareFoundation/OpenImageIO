@@ -751,6 +751,14 @@ flag is found, subsequent inputs will not do this premultiplication. It
 can be turned on again via {\cf --autopremult}.
 \apiend
 
+\apiitem{--autoorient}
+\NEW  % 1.5
+Automatically do the equivalent of {\cf --reorient} on every image as it is
+read in, if it has a nonstandard orientation. This is generally a good idea
+to use if you are using oiiotool to combine images that may have different
+orientations.
+\apiend
+
 \apiitem{-o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.
@@ -950,10 +958,11 @@ themselves, and so has no effect for image formats that don't
 support some kind of orientation metadata.
 \apiend
 
-\apiitem{--rotcw \\
---rotccw \\
---rot180}
-Adjusts the image's \qkw{Orientation} metadata by rotating it $90^\circ$
+\apiitem{--orientcw \\
+--orientccw \\
+--orient180}
+Adjusts the image's \qkw{Orientation} metadata by rotating
+the suggested viewing orientation $90^\circ$
 clockwise, $90^\circ$ degrees counter-clockwise, or $180^\circ$,
 respectively, compared to its current setting.  This only changes the
 metadata field that specifies how the image should be displayed, it does
@@ -1333,6 +1342,48 @@ include:
 
 \apiend
 
+\apiitem{--rotate90}
+\NEW % 1.5
+Replace the current image with a new image that is rotated 90 degrees
+clockwise.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate90 -o rotate90.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate90.jpg} \\
+\apiend
+
+\apiitem{--rotate180}
+\NEW % 1.5
+Replace the current image with a new image that is rotated by
+180 degrees.
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate180 -o rotate180.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate180.jpg} \\
+\apiend
+
+\apiitem{--rotate270}
+\NEW % 1.5
+Replace the current image with a new image that is rotated 270 degrees
+clockwise (or 90 degrees counter-clockwise).
+
+\noindent Example:
+\begin{code}
+    oiiotool grid.jpg --rotate270 -o rotate270.jpg
+\end{code}
+\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+~ {\Huge $\rightarrow$} ~
+\includegraphics[width=1.25in]{figures/rotate270.jpg} \\
+\apiend
+
 \apiitem{--flip}
 Replace the current image with a new image that is flipped vertically,
 with the top scanline becoming the bottom, and vice versa.
@@ -1359,17 +1410,19 @@ with the leftmost column becoming the rightmost, and vice versa.
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
-\apiitem{--flipflop}
-Replace the current image with a new image that is both flipped and
-flopped, which is the same as a 180 degree rotation.
+\apiitem{--reorient}
+\NEW % 1.5
+Replace the current image with a new image that is rotated and/or flipped
+as necessary to move the pixels to match the Orientation metadata
+that describes the desired display orientation.
 
 \noindent Example:
 \begin{code}
-    oiiotool grid.jpg --flipflop -o flipflop.jpg
+    oiiotool tahoe.jpg --reorient -o oriented.jpg
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
-\includegraphics[width=1.25in]{figures/flipflop.jpg} \\
+%\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
+%~ {\Huge $\rightarrow$} ~
+%\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
 \apiitem{--transpose}

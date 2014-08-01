@@ -10,6 +10,16 @@ Public API changes:
   (1.5.0/1.4.9) (#874)
 
 Fixes, minor enhancements, and performance improvements:
+* ImageBufAlgo:
+   * flip(), flop(), flipflop() have been rewritten to work more
+     sensibly for cropped images. In particular, the transformation now
+     happens with respect to the display (full) window, rather than
+     simply flipping or flopping within the data window. (1.5.2)
+   * rotate90(), rotate180(), rotate270() rotate the image in 90 degree
+     axially-aligned increments. (1.5.2)
+   * reorient() will perform whatever series of rotations or flips are
+     necessary to move the pixels to match the Orientation metadata that
+     describes the desired display orientation. (1.5.2)
 * oiiotool:
    * oiiotool --nosoftwareattrib suppresses the altering of Software and
      ImageHistory fields upon output. (1.5.1)
@@ -29,6 +39,23 @@ Fixes, minor enhancements, and performance improvements:
      ImageHistory metadata (makes it less pointlessly verbose). (1.5.1)
    * Now get helpful error messages if input images are corrupt or
      incomplete. (1.5.1)
+   * oiiotool --flip, --flop, --flipflop, and --transpose now have more
+     sensible behavior for cropped images. (1.5.2)
+   * oiiotool --orientcw, --orientccw, and --orient180 are the new names
+     for --rotcw, --rotccw, --rot180. The old names were confusing, and now
+     it is more clear that these merely adust the Orientation metadata that
+     suggests viewing orientation, rather than actually rotating the image
+     data. (1.5.2)
+   * oiiotool --rotate90, --rotate180, --rotate270 rotate the image in
+     90 degree axially-aligned increments. (1.5.2)
+   * oiiotool --reorient will perform whatever series of rotations or
+     flips are necessary to move the pixels to match the Orientation
+     metadata that describes the desired display orientation. (1.5.2)
+   * oiiotool --autoorient will automatically do the equivalent of
+     --reorient on every image as it is read in, if it has a nonstandard
+     orientation. (This is generally a good idea to use if you are using
+     oiiotool to combine images that may have different orientations.)
+     (1.5.2)
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)

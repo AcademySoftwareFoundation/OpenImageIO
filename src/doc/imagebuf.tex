@@ -390,6 +390,11 @@ after taking the display orientation into consideration.  The
 the display orientation into consideration.
 \apiend
 
+\apiitem{void {\ce set_orientation} (int orient)}
+\NEW % 1.5
+Sets the \qkw{Orientation} metadata value.
+\apiend
+
 \apiitem{TypeDesc pixeltype () const}
 The data type of the pixels stored in the buffer (equivalent to
 {\cf spec().format}).
@@ -500,16 +505,31 @@ coordinates are outside the pixel data window, and may be one of:
 {\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, or {\cf WrapMirror}.
 \apiend
 
+\apiitem{void interppixel (float x, float y, float *pixel, \\
+  \bigspc                            WrapMode wrap=WrapBlack) const}
+Sample the image plane at coordinates $(x,y)$,
+using linear interpolation between pixels, placing the result in
+{\cf pixel[0..n-1]}, where $n$ is the smaller of {\cf maxchannels}
+or the actual number of channels stored in the buffer.  It is up to
+the application to ensure that {\cf pixel} points to enough memory
+to hold the required number of channels. Note that pixel data values
+themselves are at the pixel centers, so pixel $(i,j)$ is at image plane
+coordinate $(i+0.5, j+0.5)$.
+
+The {\cf wrap} describes how the image function should be computed
+outside the boundaries of the pixel data window, and may be one of:
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, or {\cf WrapMirror}.
+\apiend
 
 \apiitem{void interppixel_NDC_full (float s, float t, float *pixel, \\
   \bigspc                            WrapMode wrap=WrapBlack) const}
-Given 2D floating point image-space coordinates ({\cf s, t}), linearly
-interpolate the surrounding pixels to yield interpolated value
+Given 2D floating point normalized image-space coordinates ({\cf s, t}),
+linearly interpolate the surrounding pixels to yield interpolated value
 {\cf pixel[0..n-1]}, where $n$ is the smaller of {\cf maxchannels}
 or the actual number of channels stored in the buffer.  It is up to
 the application to ensure that {\cf pixel} points to enough memory
 to hold the required number of channels.  The coordinates {\cf (s,t)}
-are in \emph{image space}, where (0,0) is the upper left corner
+are in \emph{normalized image space}, where (0,0) is the upper left corner
 of the full (a.k.a. ``display'') window and (1,1) is the lower right
 cornell of the full/display window.
 

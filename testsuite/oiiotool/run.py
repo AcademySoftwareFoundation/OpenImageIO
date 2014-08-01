@@ -95,15 +95,34 @@ command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
 
 # test flip
 command += oiiotool ("image.tif --flip -o flip.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
 
 # test flop
 command += oiiotool ("image.tif --flop -o flop.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --flop -o flop-crop.tif")
 
-# test flip-flop
-command += oiiotool ("image.tif --flipflop -o flipflop.tif")
+# test rotate90
+command += oiiotool ("image.tif --rotate90 -o rotate90.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --rotate90 -o rotate90-crop.tif")
+
+# test rotate270
+command += oiiotool ("image.tif --rotate270 -o rotate270.tif")
+command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-crop.tif")
+
+# test rotate180
+command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
+command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
+
+# Tricky: make image, rotate, set Orientation, and then re-orient.
+# Make it half size so it can't accidentally match to another test image
+# for the rotation tests.
+command += oiiotool ("image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
+command += oiiotool ("image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
+command += oiiotool ("image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
 
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
+command += oiiotool ("image.tif --crop 160x120+30+30 --transpose -o transpose-crop.tif")
 
 # test cshift
 command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
@@ -199,7 +218,13 @@ outputs = [ "filled.tif", "autotrim.tif",
             "fit.tif", "fit2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
             "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
-            "flip.tif", "flop.tif", "flipflop.tif", "transpose.tif",
+            "flip.tif", "flip-crop.tif",
+            "flop.tif", "flop-crop.tif",
+            "flipflop.tif", "flipflop-crop.tif",
+            "rotate90.tif", "rotate90-crop.tif",
+            "rotate270.tif", "rotate270-crop.tif",
+            "reorient1.tif", "reorient2.tif", "reorient3.tif",
+            "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr", "flat.exr",

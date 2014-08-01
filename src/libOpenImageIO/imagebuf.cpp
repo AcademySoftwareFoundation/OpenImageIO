@@ -256,7 +256,6 @@ private:
     mutable bool m_spec_valid;   ///< Is the spec valid
     mutable bool m_pixels_valid; ///< Image is valid
     bool m_badfile;              ///< File not found
-    int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     size_t m_pixel_bytes;
     size_t m_scanline_bytes;
@@ -287,7 +286,7 @@ ImageBufImpl::ImageBufImpl (const std::string &filename,
       m_current_subimage(subimage), m_current_miplevel(miplevel),
       m_localpixels(NULL),
       m_spec_valid(false), m_pixels_valid(false),
-      m_badfile(false), m_orientation(1), m_pixelaspect(1), 
+      m_badfile(false), m_pixelaspect(1),
       m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
       m_imagecache(imagecache), m_allocated_size(0),
       m_write_format(TypeDesc::UNKNOWN), m_write_tile_width(0),
@@ -332,7 +331,6 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_pixels(src.m_localpixels ? new char [src.m_spec.image_bytes()] : NULL),
       m_localpixels(m_pixels.get()),
       m_badfile(src.m_badfile),
-      m_orientation(src.m_orientation),
       m_pixelaspect(src.m_pixelaspect),
       m_pixel_bytes(src.m_pixel_bytes),
       m_scanline_bytes(src.m_scanline_bytes),
@@ -513,7 +511,6 @@ ImageBufImpl::clear ()
     m_spec_valid = false;
     m_pixels_valid = false;
     m_badfile = false;
-    m_orientation = 1;
     m_pixelaspect = 1;
     m_pixel_bytes = 0;
     m_scanline_bytes = 0;
@@ -727,7 +724,6 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
 
     if (m_nsubimages) {
         m_badfile = false;
-        m_orientation = m_spec.get_int_attribute ("orientation", 1);
         m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
         m_current_subimage = subimage;
         m_current_miplevel = miplevel;
@@ -833,7 +829,6 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_spec.format = convert;
     else
         m_spec.format = m_nativespec.format;
-    m_orientation = m_spec.get_int_attribute ("orientation", 1);
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     realloc ();
     if (m_imagecache->get_pixels (m_name, subimage, miplevel,
@@ -987,6 +982,8 @@ ImageBuf::write (const std::string &_filename, const std::string &_fileformat,
 void
 ImageBufImpl::copy_metadata (const ImageBufImpl &src)
 {
+    if (this == &src)
+        return;
     const ImageSpec &srcspec (src.spec());
     ImageSpec &m_spec (this->specmod());
     m_spec.full_x = srcspec.full_x;
@@ -1101,7 +1098,15 @@ int
 ImageBuf::orientation () const
 {
     impl()->validate_spec();
-    return impl()->m_orientation;
+    return impl()->spec().get_int_attribute ("Orientation", 1);
+}
+
+
+
+void
+ImageBuf::set_orientation (int orient)
+{
+    impl()->specmod().attribute ("Orientation", orient);
 }
 
 
@@ -1221,6 +1226,9 @@ bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
 bool
 ImageBuf::copy_pixels (const ImageBuf &src)
 {
+    if (this == &src)
+        return true;
+
     // compute overlap
     ROI myroi = get_roi(spec());
     ROI roi = roi_intersection (myroi, get_roi(src.spec()));
@@ -1646,7 +1654,7 @@ ImageBuf::oriented_width () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.width : spec.height;
+    return orientation() <= 4 ? spec.width : spec.height;
 }
 
 
@@ -1656,7 +1664,7 @@ ImageBuf::oriented_height () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.height : spec.width;
+    return orientation() <= 4 ? spec.height : spec.width;
 }
 
 
@@ -1666,7 +1674,7 @@ ImageBuf::oriented_x () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.x : spec.y;
+    return orientation() <= 4 ? spec.x : spec.y;
 }
 
 
@@ -1676,7 +1684,7 @@ ImageBuf::oriented_y () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.y : spec.x;
+    return orientation() <= 4 ? spec.y : spec.x;
 }
 
 
@@ -1686,7 +1694,7 @@ ImageBuf::oriented_full_width () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.full_width : spec.full_height;
+    return orientation() <= 4 ? spec.full_width : spec.full_height;
 }
 
 
@@ -1696,7 +1704,7 @@ ImageBuf::oriented_full_height () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.full_height : spec.full_width;
+    return orientation() <= 4 ? spec.full_height : spec.full_width;
 }
 
 
@@ -1706,7 +1714,7 @@ ImageBuf::oriented_full_x () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.full_x : spec.full_y;
+    return orientation() <= 4 ? spec.full_x : spec.full_y;
 }
 
 
@@ -1716,7 +1724,7 @@ ImageBuf::oriented_full_y () const
 {
     const ImageBufImpl *impl (this->impl());
     const ImageSpec &spec (impl->spec());
-    return impl->m_orientation <= 4 ? spec.full_y : spec.full_x;
+    return orientation() <= 4 ? spec.full_y : spec.full_x;
 }
 
 

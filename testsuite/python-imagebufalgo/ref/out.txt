@@ -34,11 +34,19 @@ Comparing "cut.tif" and "../oiiotool/ref/cut.tif"
 PASS
 Comparing "pasted.tif" and "../oiiotool/ref/pasted.tif"
 PASS
+Comparing "rotate90.tif" and "../oiiotool/ref/rotate90.tif"
+PASS
+Comparing "rotate180.tif" and "../oiiotool/ref/rotate180.tif"
+PASS
+Comparing "rotate270.tif" and "../oiiotool/ref/rotate270.tif"
+PASS
 Comparing "flip.tif" and "../oiiotool/ref/flip.tif"
 PASS
 Comparing "flop.tif" and "../oiiotool/ref/flop.tif"
 PASS
 Comparing "flipflop.tif" and "../oiiotool/ref/flipflop.tif"
+PASS
+Comparing "reorient1.tif" and "../oiiotool/ref/reorient1.tif"
 PASS
 Comparing "transpose.tif" and "../oiiotool/ref/transpose.tif"
 PASS
