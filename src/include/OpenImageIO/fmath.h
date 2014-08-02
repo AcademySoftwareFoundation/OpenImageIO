@@ -938,7 +938,6 @@ truncf(float val)
 {
     return (float)(int)val;
 }
-using OIIO::truncf;
 
 
 #if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
@@ -947,31 +946,31 @@ template<class T>
 inline int isnan (T x) {
     return _isnan(x);
 }
-using OIIO::isnan;
+
 
 template<class T>
 inline int isfinite (T x) {
     return _finite(x);
 }
-using OIIO::isfinite;
+
 
 template<class T>
 inline int isinf (T x) {
     return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(T(1.0), x));
 }
-using OIIO::isinf;
+
 
 inline double
 round (float val) {
     return floor (val + 0.5);
 }
-using OIIO::round;
+
 
 inline float
 roundf (float val) {
     return static_cast<float>(round (val));
 }
-using OIIO::roundf;
+
 #endif /* MSVS < 2013 */
 
 
@@ -979,7 +978,6 @@ inline float
 log2f (float val) {
     return logf (val)/static_cast<float>(M_LN2);
 }
-using OIIO::log2f;
 
 
 inline float
@@ -987,7 +985,6 @@ exp2f(float val) {
    // 2^val = e^(val*ln(2))
    return exp( val*log(2.0f) );
 }
-using OIIO::exp2f;
 
 
 #if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
@@ -996,7 +993,7 @@ logbf(float val) {
    // please see http://www.kernel.org/doc/man-pages/online/pages/man3/logb.3.html
    return logf(val)/logf(FLT_RADIX);
 }
-using OIIO::logbf;
+
 
 // from http://www.johndcook.com/cpp_expm1.html
 inline double
@@ -1008,14 +1005,14 @@ expm1(double val)
     else
         return exp(val) - 1.0;
 }
-using OIIO::expm1;
+
 
 inline float
 expm1f(float val)
 {
     return (float)expm1(val);
 }
-using OIIO::expm1f;
+
 
 // from http://www.johndcook.com/cpp_erf.html
 inline double
@@ -1041,36 +1038,36 @@ erf(double x)
 
     return sign*y;
 }
-using OIIO::erf;
+
 
 inline float
 erff(float val)
 {
     return (float)erf(val);
 }
-using OIIO::erff;
+
 
 inline double
 erfc(double val)
 {
     return 1.0 - erf(val);
 }
-using OIIO::erfc;
+
 
 inline float
 erfcf(float val)
 {
     return (float)erfc(val);
 }
-using OIIO::erfcf;
-#endif /* MSVS < 2013 */
 
+#endif /* MSVS < 2013 */
 
 #endif  /* _WIN32 */
 
 
-// Some systems have isnan, isinf and isfinite in the std namespace.
 #ifndef _MSC_VER
+ // Some systems have isnan, isinf and isfinite in the std namespace.
+ // FIXME: remove these later
  using std::isnan;
  using std::isinf;
  using std::isfinite;
@@ -1086,7 +1083,6 @@ log2f (float val) {
     return logf (val)/static_cast<float>(M_LN2);
 }
 
-using OIIO::log2f;
 #endif
 
 
@@ -1276,5 +1272,40 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
 
 }
 OIIO_NAMESPACE_EXIT
+
+
+// For certain platforms, direct them to use OIIO's implementations.
+
+#ifdef _WIN32
+ using OIIO::truncf;
+ using OIIO::log2f;
+ using OIIO::exp2f;
+# if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
+  using OIIO::isnan;
+  using OIIO::isfinite;
+  using OIIO::isinf;
+  using OIIO::round;
+  using OIIO::roundf;
+  using OIIO::logbf;
+  using OIIO::expm1;
+  using OIIO::expm1f;
+  using OIIO::erf;
+  using OIIO::erff;
+  using OIIO::erfc;
+  using OIIO::erfcf;
+# endif /* MSVS < 2013 */
+#endif  /* _WIN32 */
+
+#ifndef _MSC_VER
+ // Some systems have isnan, isinf and isfinite in the std namespace.
+ using std::isnan;
+ using std::isinf;
+ using std::isfinite;
+#endif
+
+#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
+ using OIIO::log2f;
+#endif
+
 
 #endif // OPENIMAGEIO_FMATH_H
