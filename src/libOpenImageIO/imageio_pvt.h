@@ -50,6 +50,7 @@ namespace pvt {
 ///
 extern recursive_mutex imageio_mutex;
 extern atomic_int oiio_threads;
+extern atomic_int oiio_read_chunk;
 extern ustring plugin_searchpath;
 extern std::string format_list;
 extern std::string extension_list;

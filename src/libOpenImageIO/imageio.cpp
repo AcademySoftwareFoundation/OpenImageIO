@@ -52,8 +52,8 @@ OIIO_NAMESPACE_ENTER
 namespace pvt {
 recursive_mutex imageio_mutex;
 atomic_int oiio_threads (boost::thread::hardware_concurrency());
+atomic_int oiio_read_chunk (256);
 ustring plugin_searchpath;
-atomic_int oiio_chunk (256);
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
 }
@@ -139,12 +139,12 @@ attribute (string_view name, TypeDesc type, const void *val)
         return true;
     }
     spin_lock lock (attrib_mutex);
-    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
-        plugin_searchpath = ustring (*(const char **)val);
+    if (name == "read_chunk" && type == TypeDesc::TypeInt) {
+        oiio_read_chunk = *(const int *)val;
         return true;
     }
-    if (name == "chunk" && type == TypeDesc::TypeInt) {
-        oiio_chunk = *(const int *)val;
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        plugin_searchpath = ustring (*(const char **)val);
         return true;
     }
     return false;
@@ -160,12 +160,12 @@ getattribute (string_view name, TypeDesc type, void *val)
         return true;
     }
     spin_lock lock (attrib_mutex);
-    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
-        *(ustring *)val = plugin_searchpath;
+    if (name == "read_chunk" && type == TypeDesc::TypeInt) {
+        *(int *)val = oiio_read_chunk;
         return true;
     }
-    if (name == "chunk" && type == TypeDesc::TypeInt) {
-        *(int *)val = oiio_chunk;
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        *(ustring *)val = plugin_searchpath;
         return true;
     }
     if (name == "format_list" && type == TypeDesc::TypeString) {
