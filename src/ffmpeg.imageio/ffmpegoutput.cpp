@@ -71,9 +71,6 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 FFmpegOutput::supports (const std::string &feature) const
 {
-    if (feature == "tiles")
-        return true;
-
     // Everything else, we either don't support or don't know about
     return false;
 }
@@ -93,7 +90,6 @@ bool
 FFmpegOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
                            stride_t xstride)
 {
-    // scanline not used for Maya IFF, uses tiles instead.
     return false;
 }
 
