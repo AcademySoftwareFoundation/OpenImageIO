@@ -35,6 +35,8 @@
 
 #include "oiioversion.h"
 #include "export.h"
+#include "string_view.h"
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -67,7 +69,7 @@ public:
     virtual float operator() (float x) const = 0;
 
     /// Return the name of the filter, e.g., "box", "gaussian"
-    virtual const std::string name (void) const = 0;
+    virtual string_view name (void) const = 0;
 
     /// This static function allocates and returns an instance of the
     /// specific filter implementation for the name you provide.
@@ -75,7 +77,7 @@ public:
     ///        Filter1D *myfilt = Filter1::create ("box", 1);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
-    static Filter1D *create (const std::string &filtername, float width);
+    static Filter1D *create (string_view filtername, float width);
 
     /// Destroy a filter that was created with create().
     static void destroy (Filter1D *filt);
@@ -120,7 +122,7 @@ public:
     virtual float yfilt (float y) const { return (*this)(0.0f,y); }
 
     /// Return the name of the filter, e.g., "box", "gaussian"
-    virtual const std::string name (void) const = 0;
+    virtual string_view name (void) const = 0;
 
     /// This static function allocates and returns an instance of the
     /// specific filter implementation for the name you provide.
@@ -128,7 +130,7 @@ public:
     ///        Filter2D *myfilt = Filter2::create ("box", 1, 1);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
-    static Filter2D *create (const std::string &filtername,
+    static Filter2D *create (string_view filtername,
                              float width, float height);
 
     /// Destroy a filter that was created with create().

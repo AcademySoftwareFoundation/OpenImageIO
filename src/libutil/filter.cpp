@@ -48,6 +48,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <iostream>
 
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/filter.h"
@@ -71,7 +72,7 @@ public:
     float operator() (float x) const {
         return (fabsf(x) <= m_w*0.5f) ? 1.0f : 0.0f;
     }
-    const std::string name (void) const { return "box"; }
+    string_view name (void) const { return "box"; }
 };
 
 
@@ -86,7 +87,7 @@ public:
     bool separable (void) const { return true; }
     float xfilt (float x) const { return fabsf(x) <= m_w*0.5f ? 1.0f : 0.0f; }
     float yfilt (float y) const { return fabsf(y) <= m_h*0.5f ? 1.0f : 0.0f; }
-    const std::string name (void) const { return "box"; }
+    string_view name (void) const { return "box"; }
 };
 
 
@@ -98,7 +99,7 @@ public:
     float operator() (float x) const {
         return tri1d (x * m_rad_inv);
     }
-    const std::string name (void) const { return "triangle"; }
+    string_view name (void) const { return "triangle"; }
 
     static float tri1d (float x) {
         x = fabsf(x);
@@ -127,7 +128,7 @@ public:
     float yfilt (float y) const {
         return FilterTriangle1D::tri1d (y * m_hrad_inv);
     }
-    const std::string name (void) const { return "triangle"; }
+    string_view name (void) const { return "triangle"; }
 private:
     float m_wrad_inv, m_hrad_inv;
 };
@@ -145,7 +146,7 @@ public:
         x = fabsf(x);
         return (x < 1.0f) ? fast_expf (-2.0f * (x*x)) : 0.0f;
     }
-    const std::string name (void) const { return "gaussian"; }
+    string_view name (void) const { return "gaussian"; }
 private:
     float m_rad_inv;
 };
@@ -169,7 +170,7 @@ public:
     float yfilt (float y) const {
         return FilterGaussian1D::gauss1d (y * m_hrad_inv);
     }
-    const std::string name (void) const { return "gaussian"; }
+    string_view name (void) const { return "gaussian"; }
 private:
     float m_wrad_inv, m_hrad_inv;
 };
@@ -187,7 +188,7 @@ public:
         x = fabsf(x);
         return (x < 1.0f) ? fast_expf (-4.0f * (x*x)) : 0.0f;
     }
-    const std::string name (void) const { return "gaussian"; }
+    string_view name (void) const { return "gaussian"; }
 private:
     float m_rad_inv;
 };
@@ -211,7 +212,7 @@ public:
     float yfilt (float y) const {
         return FilterSharpGaussian1D::gauss1d (y * m_hrad_inv);
     }
-    const std::string name (void) const { return "gaussian"; }
+    string_view name (void) const { return "gaussian"; }
 private:
     float m_wrad_inv, m_hrad_inv;
 };
@@ -223,7 +224,7 @@ public:
     FilterCatmullRom1D (float width) : Filter1D(4.0f) { }
     ~FilterCatmullRom1D (void) { }
     float operator() (float x) const { return catrom1d(x); }
-    const std::string name (void) const { return "catmull-rom"; }
+    string_view name (void) const { return "catmull-rom"; }
 
     static float catrom1d (float x) {
         x = fabsf(x);
@@ -248,7 +249,7 @@ public:
     bool separable (void) const { return true; }
     float xfilt (float x) const { return FilterCatmullRom1D::catrom1d(x); }
     float yfilt (float y) const { return FilterCatmullRom1D::catrom1d(y); }
-    const std::string name (void) const { return "catmull-rom"; }
+    string_view name (void) const { return "catmull-rom"; }
 private :
     static float catrom1d (float x) {
         x = fabsf(x);
@@ -270,7 +271,7 @@ public:
     float operator() (float x) const {
         return bh1d (x * m_rad_inv);
     }
-    const std::string name (void) const { return "blackman-harris"; }
+    string_view name (void) const { return "blackman-harris"; }
     static float bh1d (float x) {
 	if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
             return 0.0f;
@@ -304,7 +305,7 @@ public:
     bool separable (void) const { return true; }
     float xfilt (float x) const { return FilterBlackmanHarris1D::bh1d(x*m_wrad_inv); }
     float yfilt (float y) const { return FilterBlackmanHarris1D::bh1d(y*m_hrad_inv); }
-    const std::string name (void) const { return "blackman-harris"; }
+    string_view name (void) const { return "blackman-harris"; }
 private:
     float m_wrad_inv, m_hrad_inv;
 };
@@ -316,7 +317,7 @@ public:
     FilterSinc1D (float width) : Filter1D(width), m_rad(width/2.0f) { }
     ~FilterSinc1D (void) { }
     float operator() (float x) const { return sinc1d (x, m_rad); }
-    const std::string name (void) const { return "sinc"; }
+    string_view name (void) const { return "sinc"; }
 
     static float sinc1d (float x, float rad) {
         x = fabsf(x);
@@ -343,7 +344,7 @@ public:
     bool separable (void) const { return true; }
     float xfilt (float x) const { return FilterSinc1D::sinc1d(x,m_wrad); }
     float yfilt (float y) const { return FilterSinc1D::sinc1d(y,m_hrad); }
-    const std::string name (void) const { return "sinc"; }
+    string_view name (void) const { return "sinc"; }
 private:
     float m_wrad, m_hrad;
 };
@@ -357,7 +358,7 @@ public:
     float operator() (float x) const {
         return lanczos3 (x);
     }
-    const std::string name (void) const { return "lanczos3"; }
+    string_view name (void) const { return "lanczos3"; }
 
     static float lanczos3 (float x) {
         const float a = 3.0f;  // Lanczos 3 lobe
@@ -394,7 +395,7 @@ public:
     bool separable (void) const { return true; }
     float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x); }
     float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y); }
-    const std::string name (void) const { return "lanczos3"; }
+    string_view name (void) const { return "lanczos3"; }
 };
 
 
@@ -408,7 +409,7 @@ public:
         return FilterLanczos3_1D::lanczos3(sqrtf(x*x + y*y));
     }
     bool separable (void) const { return false; }
-    const std::string name (void) const { return "radial-lanczos3"; }
+    string_view name (void) const { return "radial-lanczos3"; }
 };
 
 
@@ -420,7 +421,7 @@ public:
     float operator() (float x) const {
         return mitchell1d (x * m_rad_inv);
     }
-    const std::string name (void) const { return "mitchell"; }
+    string_view name (void) const { return "mitchell"; }
 
     static float mitchell1d (float x) {
         x = fabsf (x);
@@ -463,7 +464,7 @@ public:
     float yfilt (float y) const {
         return FilterMitchell1D::mitchell1d (y * m_hrad_inv);
     }
-    const std::string name (void) const { return "mitchell"; }
+    string_view name (void) const { return "mitchell"; }
 private:
     float m_wrad_inv, m_hrad_inv;
 };
@@ -480,7 +481,7 @@ public:
     float operator() (float x) const {
         return bspline1d (x*m_wscale);
     }
-    const std::string name (void) const { return "b-spline"; }
+    string_view name (void) const { return "b-spline"; }
 
     static float bspline1d (float x) {
         x = fabsf (x);
@@ -517,7 +518,7 @@ public:
     float yfilt (float y) const {
         return FilterBSpline1D::bspline1d(y*m_hscale);
     }
-    const std::string name (void) const { return "b-spline"; }
+    string_view name (void) const { return "b-spline"; }
 private:
     float m_wscale, m_hscale;
 };
@@ -533,7 +534,7 @@ public:
         y /= (m_h*0.5f);
         return ((x*x+y*y) < 1.0f) ? 1.0f : 0.0f;
     }
-    const std::string name (void) const { return "disk"; }
+    string_view name (void) const { return "disk"; }
 };
 
 
@@ -562,7 +563,7 @@ public:
             // return (a + 2.0f) * x*x*x - (a + 3.0f) * x*x + 1.0f;
     }
 
-    virtual const std::string name (void) const { return "cubic"; }
+    virtual string_view name (void) const { return "cubic"; }
 protected:
     float m_a;
 	float m_rad_inv;
@@ -587,7 +588,7 @@ public:
     float yfilt (float y) const {
         return FilterCubic1D::cubic (y * m_hrad_inv, m_a);
     }
-    virtual const std::string name (void) const { return "cubic"; }
+    virtual string_view name (void) const { return "cubic"; }
 protected:
     float m_a;
     float m_wrad_inv, m_hrad_inv;
@@ -599,7 +600,7 @@ class FilterKeys1D : public FilterCubic1D {
 public:
     FilterKeys1D (float width) : FilterCubic1D(width) { m_a = -0.5f; }
     ~FilterKeys1D (void) { }
-    virtual const std::string name (void) const { return "keys"; }
+    virtual string_view name (void) const { return "keys"; }
 };
 
 
@@ -607,7 +608,7 @@ class FilterKeys2D : public FilterCubic2D {
 public:
     FilterKeys2D (float width, float height) : FilterCubic2D(width,height) { m_a = -0.5f; }
     ~FilterKeys2D (void) { }
-    virtual const std::string name (void) const { return "keys"; }
+    virtual string_view name (void) const { return "keys"; }
 };
 
 
@@ -616,7 +617,7 @@ class FilterSimon1D : public FilterCubic1D {
 public:
     FilterSimon1D (float width) : FilterCubic1D(width) { m_a = -0.75f; }
     ~FilterSimon1D (void) { }
-    virtual const std::string name (void) const { return "simon"; }
+    virtual string_view name (void) const { return "simon"; }
 };
 
 
@@ -624,7 +625,7 @@ class FilterSimon2D : public FilterCubic2D {
 public:
     FilterSimon2D (float width, float height) : FilterCubic2D(width,height) { m_a = -0.75f; }
     ~FilterSimon2D (void) { }
-    virtual const std::string name (void) const { return "simon"; }
+    virtual string_view name (void) const { return "simon"; }
 };
 
 
@@ -633,7 +634,7 @@ class FilterRifman1D : public FilterCubic1D {
 public:
     FilterRifman1D (float width) : FilterCubic1D(width) { m_a = -1.0f; }
     ~FilterRifman1D (void) { }
-    virtual const std::string name (void) const { return "rifman"; }
+    virtual string_view name (void) const { return "rifman"; }
 };
 
 
@@ -641,7 +642,7 @@ class FilterRifman2D : public FilterCubic2D {
 public:
     FilterRifman2D (float width, float height) : FilterCubic2D(width,height) { m_a = -1.0f; }
     ~FilterRifman2D (void) { }
-    virtual const std::string name (void) const { return "rifman"; }
+    virtual string_view name (void) const { return "rifman"; }
 };
 
 
@@ -686,7 +687,7 @@ Filter1D::get_filterdesc (int filternum, FilterDesc *filterdesc)
 // the correct implementation.  If the name is not recognized, return
 // NULL.
 Filter1D *
-Filter1D::create (const std::string &filtername, float width)
+Filter1D::create (string_view filtername, float width)
 {
     if (filtername == "box")
         return new FilterBox1D (width);
@@ -770,7 +771,7 @@ Filter2D::get_filterdesc (int filternum, FilterDesc *filterdesc)
 // NULL.
 
 Filter2D *
-Filter2D::create (const std::string &filtername, float width, float height)
+Filter2D::create (string_view filtername, float width, float height)
 {
     if (filtername == "box")
         return new FilterBox2D (width, height);
