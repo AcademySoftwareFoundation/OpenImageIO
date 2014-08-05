@@ -96,6 +96,10 @@ ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
 
+ifneq (${USE_FFMPEG},)
+MY_CMAKE_FLAGS += -DUSE_FFMPEG:BOOL=${USE_FFMPEG}
+endif
+
 ifneq (${USE_FIELD3D},)
 MY_CMAKE_FLAGS += -DUSE_FIELD3D:BOOL=${USE_FIELD3D}
 endif
@@ -339,6 +343,7 @@ help:
 	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"
 	@echo "  make USE_PYTHON=0 ...       Don't build the Python binding"
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
+	@echo "  make USE_FFMPEG=0 ...       Don't build the FFmpeg plugin"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
 	@echo "  make USE_GIF=0 ...          Don't build the GIF plugin"

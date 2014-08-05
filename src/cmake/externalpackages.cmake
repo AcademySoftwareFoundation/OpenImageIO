@@ -270,6 +270,26 @@ endif (USE_OPENGL)
 
 
 ###########################################################################
+# FFmpeg
+
+if (USE_FFMPEG)
+    find_package (FFmpeg)
+    if (FFMPEG_INCLUDE_DIR AND FFMPEG_LIBRARIES)
+        set (FFMPEG_FOUND TRUE)
+        if (VERBOSE)
+            message (STATUS "FFMPEG includes = ${FFMPEG_INCLUDE_DIR}")
+            message (STATUS "FFMPEG library = ${FFMPEG_LIBRARIES}")
+        endif ()
+    else ()
+        message (STATUS "FFMPEG not found")
+    endif ()
+endif()
+
+# end FFmpeg setup
+###########################################################################
+
+
+###########################################################################
 # Field3d
 
 if (USE_FIELD3D)

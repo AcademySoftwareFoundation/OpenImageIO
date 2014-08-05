@@ -113,6 +113,17 @@ if (EMBEDPLUGINS)
 
     add_definitions ("-DEMBED_PLUGINS=1")
 
+    if (FFMPEG_FOUND AND USE_FFMPEG)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../ffmpeg.imageio/ffmpeginput.cpp
+             ../ffmpeg.imageio/ffmpegoutput.cpp
+            )
+        include_directories (${FFMPEG_INCLUDE_DIR})
+        add_definitions("-DUSE_FFMPEG")
+    else ()
+        message (STATUS "FFmpeg plugin will not be built")
+    endif ()
+
     if (FIELD3D_FOUND AND USE_FIELD3D)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
              ../field3d.imageio/field3dinput.cpp
@@ -196,6 +207,13 @@ target_link_libraries (OpenImageIO
                            ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
                            ${Boost_LIBRARIES})
 
+# Include FFmpeg if using it
+if (USE_FFMPEG AND FFMPEG_FOUND)
+    message (STATUS "Linking FFmpeg ${FFMPEG_LIBRARIES}")
+    target_link_libraries (OpenImageIO ${FFMPEG_LIBRARIES})
+endif ()
+
+        
 # Include OpenColorIO if using it
 if (USE_OCIO AND OCIO_FOUND)
     message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
