@@ -82,8 +82,8 @@ private:
         m_format_context = 0;
         m_codec_context = 0;
         m_codec = 0;
-        if(m_frame) av_free (m_frame);
-        if(m_rgb_frame) av_free (m_rgb_frame);
+        av_free (m_frame);
+        av_free (m_rgb_frame);
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream = -1;
@@ -196,7 +196,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         seek (1 << 29);
         av_init_packet (&pkt);
         while (stream && av_read_frame (m_format_context, &pkt) >= 0) {
-            uint64_t current_pts = (uint64_t)(av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
+            uint64_t current_pts = static_cast<uint64_t>(av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
             if (current_pts > max_pts) {
                 max_pts = current_pts;
             }
@@ -204,18 +204,11 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         m_frames = max_pts;
     }
     m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3, TypeDesc::UINT8);
-    if (has_metadata("artist")) {
-        m_spec.attribute ("Artist", metadata("artist"));
+    AVDictionaryEntry *tag = NULL;
+    while ((tag = av_dict_get (m_format_context->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+        m_spec.attribute (tag->key, tag->value);
     }
-    if (has_metadata("copyright")) {
-        m_spec.attribute ("Copyright", metadata("copyright"));
-    }
-    if (has_metadata("comment")) {
-        m_spec.attribute ("Comment", metadata("comment"));
-    }
-    if (has_metadata("album")) {
-        m_spec.attribute ("Album", metadata("album"));
-    }
+    m_spec.attribute ("fps", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
     m_spec.attribute ("oiio::Movie", true);
     m_nsubimages = m_frames;
     spec = m_spec;
@@ -236,8 +229,6 @@ FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     newspec = m_spec;
     m_subimage = subimage;
-    av_free (m_frame);
-    av_free (m_rgb_frame);
     m_rgb_buffer.clear();
     return true;
 }
@@ -247,7 +238,7 @@ FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 FFmpegInput::read_native_scanline (int y, int z, void *data)
 {
-    if (!m_frame) {
+    if (!m_rgb_buffer.size()) {
         read_frame (m_subimage);
     }
     memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_spec.width*3);
@@ -276,7 +267,11 @@ FFmpegInput::read_frame(int pos)
         seek (m_subimage);
     }
     AVPacket pkt;
-    while (av_read_frame (m_format_context, &pkt) >=0) {
+    av_init_packet (&pkt);
+    m_frame = av_frame_alloc();
+    m_rgb_frame = av_frame_alloc();
+    int finished = 0;
+    while (av_read_frame (m_format_context, &pkt) >=0 && !finished) {
         if (pkt.stream_index == m_video_stream) {
             double pts = 0;
             if (static_cast<uint64_t> (pkt.dts) != AV_NOPTS_VALUE) {
@@ -290,26 +285,23 @@ FFmpegInput::read_frame(int pos)
             if (static_cast<uint64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
                 current_pos -= int(m_format_context->start_time * fps() / AV_TIME_BASE);
             }
-            int frame_finished = 0;
-            m_frame = av_frame_alloc();
-            m_rgb_frame = av_frame_alloc();
             if (current_pos >= m_subimage) {
-                avcodec_decode_video2 (m_codec_context, m_frame, &frame_finished, &pkt);
+                avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
             }
-            if (frame_finished)
+            if (finished)
             {
                 AVPixelFormat pixFormat;
                 switch (m_codec_context->pix_fmt) { // work-around for deprecation warning for YUV formats
                 case AV_PIX_FMT_YUVJ420P:
                     pixFormat = AV_PIX_FMT_YUV420P;
                     break;
-                case AV_PIX_FMT_YUVJ422P  :
+                case AV_PIX_FMT_YUVJ422P:
                     pixFormat = AV_PIX_FMT_YUV422P;
                     break;
-                case AV_PIX_FMT_YUVJ444P   :
+                case AV_PIX_FMT_YUVJ444P:
                     pixFormat = AV_PIX_FMT_YUV444P;
                     break;
-                case AV_PIX_FMT_YUVJ440P :
+                case AV_PIX_FMT_YUVJ440P:
                     pixFormat = AV_PIX_FMT_YUV440P;
                 default:
                     pixFormat = m_codec_context->pix_fmt;
@@ -352,9 +344,8 @@ FFmpegInput::read_frame(int pos)
                     m_rgb_frame->data,
                     m_rgb_frame->linesize
                 );
-                m_last_decoded_pos = m_last_search_pos;
+                m_last_decoded_pos = m_last_search_pos; 
             }
-            break;
         }
     }
     av_free_packet (&pkt);
