@@ -540,6 +540,7 @@ output_file (int argc, const char *argv[])
         return 0;
     }
     bool supports_displaywindow = out->supports ("displaywindow");
+    bool supports_negativeorigin = out->supports ("negativeorigin");
     bool supports_tiles = out->supports ("tiles") || ot.output_force_tiles;
     ot.read ();
     ImageRecRef saveimg = ot.curimg;
@@ -577,6 +578,25 @@ output_file (int argc, const char *argv[])
         const char *argv[] = { "croptofull" };
         int action_croptofull (int argc, const char *argv[]); // forward decl
         action_croptofull (1, argv);
+        ir = ot.curimg;
+    }
+
+    // Automatically crop out the negative areas if outputting to a format
+    // that doesn't support negative origins.
+    if (! supports_negativeorigin && ot.output_autocrop &&
+        (ir->spec()->x < 0 || ir->spec()->y < 0 || ir->spec()->z < 0)) {
+        ROI roi = get_roi (*ir->spec(0,0));
+        roi.xbegin = std::max (0, roi.xbegin);
+        roi.ybegin = std::max (0, roi.ybegin);
+        roi.zbegin = std::max (0, roi.zbegin);
+        std::string crop = (ir->spec(0,0)->depth == 1)
+            ? format_resolution (roi.width(), roi.height(),
+                                 roi.xbegin, roi.ybegin)
+            : format_resolution (roi.width(), roi.height(), roi.depth(),
+                                 roi.xbegin, roi.ybegin, roi.zbegin);
+        const char *argv[] = { "crop", crop.c_str() };
+        int action_crop (int argc, const char *argv[]); // forward decl
+        action_crop (2, argv);
         ir = ot.curimg;
     }
 
