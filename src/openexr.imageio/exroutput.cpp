@@ -986,7 +986,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
             }
         }
         // Vec 2
-        else if (type.arraylen == 2 && type.aggregate == TypeDesc::SCALAR) {
+        if (type.arraylen == 2 && type.aggregate == TypeDesc::SCALAR) {
             switch (type.basetype) {
                 case TypeDesc::UINT:
                 case TypeDesc::INT:
@@ -1000,17 +1000,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V2dAttribute (*(Imath::V2d*)data));
                     return true;
-                case TypeDesc::STRING:
-                    Imf::StringVector v;
-                    v.push_back(((const char **)data)[0]);
-                    v.push_back(((const char **)data)[1]);
-                    header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
-                    return true;
 #endif
             }
         }
         // Vec3
-        else if (type.arraylen == 3 && type.aggregate == TypeDesc::SCALAR) {
+        if (type.arraylen == 3 && type.aggregate == TypeDesc::SCALAR) {
             switch (type.basetype) {
                 case TypeDesc::UINT:
                 case TypeDesc::INT:
@@ -1024,18 +1018,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::DOUBLE:
                     header.insert (xname.c_str(), Imf::V3dAttribute (*(Imath::V3d*)data));
                     return true;
-                case TypeDesc::STRING:
-                    Imf::StringVector v;
-                    v.push_back(((const char **)data)[0]);
-                    v.push_back(((const char **)data)[1]);
-                    v.push_back(((const char **)data)[2]);
-                    header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
-                    return true;
 #endif
             }
         }
         // Matrix
-        else if (type.arraylen == 16 && type.aggregate == TypeDesc::SCALAR) {
+        if (type.arraylen == 16 && type.aggregate == TypeDesc::SCALAR) {
             switch (type.basetype) {
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
@@ -1049,7 +1036,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         }
 #ifdef USE_OPENEXR_VERSION2
         // String Vector
-        else if (type.basetype == TypeDesc::STRING) {
+        if (type.basetype == TypeDesc::STRING) {
             Imf::StringVector v;
             for (int i=0; i<type.arraylen; i++) {
                 v.push_back(((const char **)data)[i]);
