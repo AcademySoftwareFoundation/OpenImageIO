@@ -1082,8 +1082,8 @@ action_colorconvert (int argc, const char *argv[])
     ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                            ot.allsubimages ? -1 : 0, true, false));
 
-    for (int s = 0, send = A->subimages();  s < send;  ++s) {
-        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+    for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = ot.curimg->miplevels(s);  m < mend;  ++m) {
             bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m),
                                  fromspace.c_str(), tospace.c_str(), false);
             if (! ok)
@@ -1146,8 +1146,8 @@ action_ociolook (int argc, const char *argv[])
     if (tospace == "current" || tospace == "")
         tospace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
 
-    for (int s = 0, send = A->subimages();  s < send;  ++s) {
-        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+    for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = ot.curimg->miplevels(s);  m < mend;  ++m) {
             bool ok = ImageBufAlgo::ociolook (
                 (*ot.curimg)(s,m), (*A)(s,m),
                 lookname.c_str(), fromspace.c_str(), tospace.c_str(),
@@ -1200,8 +1200,8 @@ action_ociodisplay (int argc, const char *argv[])
     if (fromspace == "current" || fromspace == "")
         fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
 
-    for (int s = 0, send = A->subimages();  s < send;  ++s) {
-        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+    for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = ot.curimg->miplevels(s);  m < mend;  ++m) {
             bool ok = ImageBufAlgo::ociodisplay (
                     (*ot.curimg)(s,m), (*A)(s,m),
                     displayname.c_str(), viewname.c_str(),
