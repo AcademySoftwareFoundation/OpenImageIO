@@ -304,41 +304,47 @@ void test_conversion ()
 void test_extract ()
 {
     std::vector<int> vals;
+    int n;
 
     vals.clear(); vals.resize (3, -1);
-    Strutil::extract_from_list_string (vals, "1");
+    n = Strutil::extract_from_list_string (vals, "1");
     OIIO_CHECK_EQUAL (vals.size(), 3);
     OIIO_CHECK_EQUAL (vals[0], 1);
     OIIO_CHECK_EQUAL (vals[1], 1);
     OIIO_CHECK_EQUAL (vals[2], 1);
+    OIIO_CHECK_EQUAL (n, 1);
 
     vals.clear(); vals.resize (3, -1);
-    Strutil::extract_from_list_string (vals, "1,3,5");
+    n = Strutil::extract_from_list_string (vals, "1,3,5");
     OIIO_CHECK_EQUAL (vals.size(), 3);
     OIIO_CHECK_EQUAL (vals[0], 1);
     OIIO_CHECK_EQUAL (vals[1], 3);
     OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (n, 3);
 
     vals.clear(); vals.resize (3, -1);
-    Strutil::extract_from_list_string (vals, "1,,5");
+    n = Strutil::extract_from_list_string (vals, "1,,5");
     OIIO_CHECK_EQUAL (vals.size(), 3);
     OIIO_CHECK_EQUAL (vals[0], 1);
     OIIO_CHECK_EQUAL (vals[1], -1);
     OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (n, 3);
 
     vals.clear(); vals.resize (3, -1);
-    Strutil::extract_from_list_string (vals, "abc");
+    n = Strutil::extract_from_list_string (vals, "abc");
     OIIO_CHECK_EQUAL (vals.size(), 3);
     OIIO_CHECK_EQUAL (vals[0], 0);
     OIIO_CHECK_EQUAL (vals[1], 0);
     OIIO_CHECK_EQUAL (vals[2], 0);
+    OIIO_CHECK_EQUAL (n, 1);
 
     vals.clear(); vals.resize (3, -1);
-    Strutil::extract_from_list_string (vals, "");
+    n = Strutil::extract_from_list_string (vals, "");
     OIIO_CHECK_EQUAL (vals.size(), 3);
     OIIO_CHECK_EQUAL (vals[0], -1);
     OIIO_CHECK_EQUAL (vals[1], -1);
     OIIO_CHECK_EQUAL (vals[2], -1);
+    OIIO_CHECK_EQUAL (n, 0);
 }
 
 

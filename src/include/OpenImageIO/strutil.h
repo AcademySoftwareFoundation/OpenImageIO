@@ -262,7 +262,8 @@ template<> inline float from_string<float> (string_view s) {
 /// placing them into vals[] which is presumed to already contain
 /// defaults.  If only a single value was in the list, replace all
 /// elements of vals[] with the value. Otherwise, replace them in the
-/// same order.  A missing value will simply not be replaced.
+/// same order.  A missing value will simply not be replaced. Return the
+/// number of values found in the list (including blank or malformed ones).
 ///
 /// For example, if T=float, suppose initially, vals[] = {0, 1, 2}, then
 ///   "3.14"       results in vals[] = {3.14, 3.14, 3.14}
@@ -271,7 +272,7 @@ template<> inline float from_string<float> (string_view s) {
 /// This can work for type T = int, float, or any type for that has
 /// an explicit constructor from a std::string.
 template<class T>
-void extract_from_list_string (std::vector<T> &vals,
+int extract_from_list_string (std::vector<T> &vals,
                                string_view list,
                                string_view sep = string_view(",",1))
 {
@@ -286,6 +287,7 @@ void extract_from_list_string (std::vector<T> &vals,
         vals.resize (1);
         vals.resize (nvals, vals[0]);
     }
+    return list.size() ? (int) valuestrings.size() : 0;
 }
 
 
