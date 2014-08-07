@@ -6,6 +6,9 @@ imagedir = parent + "oiio-images"
 refdir2 = "../oiiotool/ref/"
 refdir3 = "../oiiotool-composite/ref/"
 refdir4 = "../oiiotool-fixnan/ref/"
+failthresh = 0.004
+failpercent = 0.2
+
 
 def checkref (name) :
     if os.path.isfile(refdir2+name) :
