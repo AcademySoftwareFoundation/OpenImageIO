@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 1.4.13 (?? 2014 -- compared to 1.4.12)
+--------------------------------------------------
+
+
+
 Release 1.4.12 (31 Jul 2014 -- compared to 1.4.11)
 --------------------------------------------------
 * ImageCache fix for when files are not found, then subsequently the
