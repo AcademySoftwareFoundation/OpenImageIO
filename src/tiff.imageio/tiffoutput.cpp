@@ -212,8 +212,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    TIFFSetField (m_tif, TIFFTAG_XPOSITION, (float)m_spec.x);
-    TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)m_spec.y);
+    // N.B. Clamp position at 0... TIFF is internally incapable of having
+    // negative origin.
+    TIFFSetField (m_tif, TIFFTAG_XPOSITION, (float)std::max (0, m_spec.x));
+    TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)std::max (0, m_spec.y));
+
     TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, m_spec.width);
     TIFFSetField (m_tif, TIFFTAG_IMAGELENGTH, m_spec.height);
     if ((m_spec.full_width != 0 || m_spec.full_height != 0) &&
