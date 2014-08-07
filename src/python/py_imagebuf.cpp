@@ -28,6 +28,8 @@
   (This is the Modified BSD License)
 */
 
+#include <boost/scoped_array.hpp>
+
 #include "py_oiio.h"
 #include "OpenImageIO/sysutil.h"
 
@@ -233,6 +235,41 @@ ImageBuf_setpixel1 (ImageBuf &buf, int i, tuple p)
 
 
 
+object
+ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
+{
+    // Allocate our own temp buffer and try to read the image into it.
+    // If the read fails, return None.
+    if (! roi.defined())
+        roi = buf.roi();
+    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+
+    size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
+    boost::scoped_array<char> data (new char [size]);
+    if (! buf.get_pixel_channels (roi.xbegin, roi.xend, roi.ybegin, roi.yend,
+                                  roi.zbegin, roi.zend, roi.chbegin, roi.chend,
+                                  format, &data[0])) {
+        return object(handle<>(Py_None));
+    }
+
+    return C_array_to_Python_array (data.get(), format, size);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_overloads,
+                                ImageBuf_get_pixels, 2, 3)
+
+object
+ImageBuf_get_pixels_bt (const ImageBuf &buf, TypeDesc::BASETYPE format,
+                        ROI roi=ROI::All())
+{
+    return ImageBuf_get_pixels (buf, TypeDesc(format), roi);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_bt_overloads,
+                                ImageBuf_get_pixels_bt, 2, 3)
+
+
+
 void declare_imagebuf()
 {
     enum_<ImageBuf::WrapMode>("WrapMode")
@@ -330,7 +367,8 @@ void declare_imagebuf()
         .def("setpixel", &ImageBuf_setpixel)
         .def("setpixel", &ImageBuf_setpixel2)
         .def("setpixel", &ImageBuf_setpixel1)
-        // FIXME - get_pixels, get_pixel_channels
+        .def("get_pixels", &ImageBuf_get_pixels, ImageBuf_get_pixels_overloads())
+        .def("get_pixels", &ImageBuf_get_pixels_bt, ImageBuf_get_pixels_bt_overloads())
 
         // FIXME -- do we want to provide pixel iterators?
     ;

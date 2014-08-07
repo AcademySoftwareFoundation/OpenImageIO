@@ -80,7 +80,7 @@ try:
     print ""
 
     # Create a small buffer, do various pixel reads and writes
-    print "Making 2x2 RGBK image:"
+    print "Making 2x2 RGB image:"
     b = oiio.ImageBuf (oiio.ImageSpec(2,2,3,oiio.UINT8))
     print_imagespec (b.spec())
     b.setpixel (0, 0, 0, (1.0, 0.0, 0.0))
@@ -92,6 +92,7 @@ try:
     print "Pixel 0,1 is", b.getpixel(0,1)
     print "Interpolating 1,0.5 ->", b.interppixel(1,0.5)
     print "Interpolating NDC 0.25,0.5 ->", b.interppixel_NDC(0.25,0.5)
+    print "The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat)
     print ""
     print "Saving file..."
     b.write ("out.tif")

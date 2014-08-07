@@ -102,6 +102,8 @@ Fixes, minor enhancements, and performance improvements:
   wrong memory. (#868) (1.5.0/1.4.9)
 * Better exception safety in Filesystem::scan_for_matching_filenames().
   #902 (1.5.1/1.4.11)
+* Python: ImageBuf.get_pixels() is now implemented, was previously omitted.
+  (1.5.2)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of

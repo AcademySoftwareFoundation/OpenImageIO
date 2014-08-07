@@ -1405,6 +1405,19 @@ Sets pixel $(x,y,z)$ to be the {\cf pixel_value}, expressed as a tuple of
 \end{code}
 \apiend
 
+\apiitem{array ImageBuf.{\ce get_pixels} (format=OpenImageIO.UNKNOWN, roi=ROI.All)}
+\NEW % 1.5
+Retrieves the rectangle of pixels (and channels) specified by {\cf roi} from
+the image and returns them as an array of values with type specified by
+{\cf format}.
+
+\noindent Example:
+\begin{code}
+    buf = ImageBuf ("tahoe.jpg")
+    pixels = buf.get_pixels (oiio.FLOAT)  # no ROI means the whole image
+\end{code}
+\apiend
+
 \apiitem{bool ImageBuf.{\ce has_error} \\
 str ImageBuf.{\ce geterror} ()}
 The {\cf ImageBuf.has_error} field will be {\cf True} if an error has

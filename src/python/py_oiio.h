@@ -64,6 +64,8 @@ void declare_paramvalue();
 void declare_global();
 
 bool PyProgressCallback(void*, float);
+object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
+
 
 
 // Suck up one or more presumed T values into a vector<T>

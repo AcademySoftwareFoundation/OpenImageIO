@@ -85,7 +85,7 @@ Resetting to a different MIP level:
   IPTC:OriginatingProgram = "maketx g.tif -o grid.tx"
   tiff:PageNumber = "0"
 
-Making 2x2 RGBK image:
+Making 2x2 RGB image:
   resolution 2x2+0+0
   untiled
   3 channels: ('R', 'G', 'B')
@@ -98,6 +98,7 @@ Pixel 1,0 is (0.0, 1.0, 0.0)
 Pixel 0,1 is (0.0, 0.0, 1.0)
 Interpolating 1,0.5 -> (0.5, 0.5, 0.0)
 Interpolating NDC 0.25,0.5 -> (0.5, 0.0, 0.5)
+The whole image is:  array('f', [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 
 Saving file...
 Done.
