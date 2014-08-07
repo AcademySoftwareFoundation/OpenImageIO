@@ -76,6 +76,7 @@ private:
     int m_last_search_pos;
     int m_last_decoded_pos;
     bool m_offset_time;
+    bool m_read_frame;
     // init to initialize state
     void init (void) {
         m_filename.clear ();
@@ -91,7 +92,7 @@ private:
         m_last_search_pos = 0;
         m_last_decoded_pos = 0;
         m_offset_time = true;
-        
+        m_read_frame = false;
     }
 };
 
@@ -229,7 +230,7 @@ FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     newspec = m_spec;
     m_subimage = subimage;
-    m_rgb_buffer.clear();
+    m_read_frame = false;
     return true;
 }
 
@@ -238,7 +239,7 @@ FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 FFmpegInput::read_native_scanline (int y, int z, void *data)
 {
-    if (!m_rgb_buffer.size()) {
+    if (!m_read_frame) {
         read_frame (m_subimage);
     }
     memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_spec.width*3);
@@ -268,8 +269,6 @@ FFmpegInput::read_frame(int pos)
     }
     AVPacket pkt;
     av_init_packet (&pkt);
-    m_frame = av_frame_alloc();
-    m_rgb_frame = av_frame_alloc();
     int finished = 0;
     while (av_read_frame (m_format_context, &pkt) >=0 && !finished) {
         if (pkt.stream_index == m_video_stream) {
@@ -286,26 +285,27 @@ FFmpegInput::read_frame(int pos)
                 current_pos -= int(m_format_context->start_time * fps() / AV_TIME_BASE);
             }
             if (current_pos >= m_subimage) {
+                m_frame = av_frame_alloc(); // alloc frame, available for decode
                 avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
             }
             if (finished)
             {
                 AVPixelFormat pixFormat;
-                switch (m_codec_context->pix_fmt) { // work-around for deprecation warning for YUV formats
-                case AV_PIX_FMT_YUVJ420P:
-                    pixFormat = AV_PIX_FMT_YUV420P;
-                    break;
-                case AV_PIX_FMT_YUVJ422P:
-                    pixFormat = AV_PIX_FMT_YUV422P;
-                    break;
-                case AV_PIX_FMT_YUVJ444P:
-                    pixFormat = AV_PIX_FMT_YUV444P;
-                    break;
-                case AV_PIX_FMT_YUVJ440P:
-                    pixFormat = AV_PIX_FMT_YUV440P;
-                default:
-                    pixFormat = m_codec_context->pix_fmt;
-                    break;
+                switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
+                    case AV_PIX_FMT_YUVJ420P:
+                        pixFormat = AV_PIX_FMT_YUV420P;
+                        break;
+                    case AV_PIX_FMT_YUVJ422P:
+                        pixFormat = AV_PIX_FMT_YUV422P;
+                        break;
+                    case AV_PIX_FMT_YUVJ444P:
+                        pixFormat = AV_PIX_FMT_YUV444P;
+                        break;
+                    case AV_PIX_FMT_YUVJ440P:
+                        pixFormat = AV_PIX_FMT_YUV440P;
+                    default:
+                        pixFormat = m_codec_context->pix_fmt;
+                        break;
                 }
                 struct SwsContext *sws_rgb_context = sws_getContext
                 (
@@ -326,6 +326,7 @@ FFmpegInput::read_frame(int pos)
                     m_codec_context->height),
                     0
                 );
+                m_rgb_frame = av_frame_alloc(); // alloc rgb frame, available for fill
                 avpicture_fill
                 (
                     reinterpret_cast<AVPicture*>(m_rgb_frame),
@@ -349,6 +350,7 @@ FFmpegInput::read_frame(int pos)
         }
     }
     av_free_packet (&pkt);
+    m_read_frame = true;
 }
 
 
