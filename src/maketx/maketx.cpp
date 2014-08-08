@@ -210,6 +210,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     bool ignore_unassoc = false;  // ignore unassociated alpha tags
     bool unpremult = false;
     bool sansattrib = false;
+    float sharpen = 0.0f;
     std::string incolorspace;
     std::string outcolorspace;
     std::string channelnames;
@@ -246,6 +247,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--filter %s", &filtername, filter_help_string().c_str(),
                   "--hicomp", &do_highlight_compensation,
                           "Compress HDR range before resize, expand after.",
+                  "--sharpen %f", &sharpen, "Sharpen MIP levels (default = 0.0 = no)",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
                   "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
@@ -373,6 +375,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:fixnan", fixnan);
     configspec.attribute ("maketx:set_full_to_pixels", set_full_to_pixels);
     configspec.attribute ("maketx:highlightcomp", (int)do_highlight_compensation);
+    configspec.attribute ("maketx:sharpen", sharpen);
     if (filtername.size())
         configspec.attribute ("maketx:filtername", filtername);
     configspec.attribute ("maketx:nchannels", nchannels);

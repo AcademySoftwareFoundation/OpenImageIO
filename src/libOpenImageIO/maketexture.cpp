@@ -550,7 +550,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
               const ImageSpec &outspec_template,
               std::string outputfilename, ImageOutput *out,
               TypeDesc outputdatatype, bool mipmap,
-              const std::string &filtername, const ImageSpec &configspec,
+              string_view filtername, const ImageSpec &configspec,
               std::ostream &outstream,
               double &stat_writetime, double &stat_miptime,
               size_t &peak_mem)
@@ -588,6 +588,18 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
         fix_latl_edges (*img);
 
     bool do_highlight_compensation = configspec.get_int_attribute ("maketx:highlightcomp", 0);
+    float sharpen = configspec.get_float_attribute ("maketx:sharpen", 0.0f);
+    string_view sharpenfilt = "gaussian";
+    bool sharpen_first = true;
+    if (Strutil::istarts_with (filtername, "post-")) {
+        sharpen_first = false;
+        filtername.remove_prefix (5);
+    }
+    if (Strutil::istarts_with (filtername, "unsharp-")) {
+        filtername.remove_prefix (8);
+        sharpenfilt = filtername;
+        filtername = "lanczos3";
+    }
 
     Timer writetimer;
     if (! out->open (outputfilename.c_str(), outspec)) {
@@ -678,10 +690,10 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 
-                if (filtername == "box" && !orig_was_overscan)
+                if (filtername == "box" && !orig_was_overscan && sharpen > 0.0f) {
                     ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
-                else {
+                } else {
                     Filter2D *filter = setup_filter (small->spec(), img->spec(), filtername);
                     if (! filter) {
                         outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
@@ -689,11 +701,34 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                     }
                     if (verbose) {
                         outstream << "  Downsampling filter \"" << filter->name() 
-                                  << "\" width = " << filter->width() << "\n";
+                                  << "\" width = " << filter->width();
+                        if (sharpen > 0.0f) {
+                            outstream << ", sharpening " << sharpen << " with "
+                                      << sharpenfilt << " unsharp mask "
+                                      << (sharpen_first ? "before" : "after")
+                                      << " the resize";
+                        }
+                        outstream << "\n";
                     }
                     if (do_highlight_compensation)
                         ImageBufAlgo::rangecompress (*img);
+                    if (sharpen > 0.0f && sharpen_first) {
+                        boost::shared_ptr<ImageBuf> sharp (new ImageBuf);
+                        bool uok = ImageBufAlgo::unsharp_mask (*sharp, *img,
+                                                    sharpenfilt, 3.0, sharpen, 0.0f);
+                        if (! uok)
+                            outstream << "maketx ERROR: " << sharp->geterror() << "\n";
+                        std::swap (img, sharp);
+                    }
                     ImageBufAlgo::resize (*small, *img, filter);
+                    if (sharpen > 0.0f && ! sharpen_first) {
+                        boost::shared_ptr<ImageBuf> sharp (new ImageBuf);
+                        bool uok = ImageBufAlgo::unsharp_mask (*sharp, *small,
+                                                    sharpenfilt, 3.0, sharpen, 0.0f);
+                        if (! uok)
+                            outstream << "maketx ERROR: " << sharp->geterror() << "\n";
+                        std::swap (small, sharp);
+                    }
                     if (do_highlight_compensation) {
                         ImageBufAlgo::rangeexpand (*small);
                         ImageBufAlgo::clamp (*small, 0.0f, std::numeric_limits<float>::max(), true);
@@ -1338,6 +1373,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // hash.
     std::ostringstream addlHashData;
     addlHashData << filtername << " ";
+    float sharpen = configspec.get_float_attribute ("maketx:sharpen", 0.0f);
+    if (sharpen != 0.0f) {
+        addlHashData << "sharpen_A=" << sharpen << " ";
+        // NB if we change the sharpening algorithm, change the letter!
+    }
 
     const int sha1_blocksize = 256;
     std::string hash_digest = configspec.get_int_attribute("maketx:hash", 1) ?

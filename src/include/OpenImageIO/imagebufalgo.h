@@ -1802,6 +1802,10 @@ enum OIIO_API MakeTextureMode {
 ///                              values to zero. This reduces ringing when
 ///                              using filters with negative lobes on HDR
 ///                              images.
+///    maketx:sharpen (float) If nonzero, sharpens details when creating
+///                              MIPmap levels. The amount is the contrast
+///                              matric. The default is 0, meaning no
+///                              sharpening.
 ///    maketx:nchannels (int) If nonzero, will specify how many channels
 ///                              the output texture should have, padding with
 ///                              0 values or dropping channels, if it doesn't

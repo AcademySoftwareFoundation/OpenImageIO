@@ -160,6 +160,23 @@ non-negative.  This can result in some loss of energy, but often this is
 a preferable alternative to ringing artifacts in your upper MIP levels.
 \apiend
 
+\apiitem{--sharpen {\rm \emph{contrast}}}
+\NEW  % 1.5
+EXPERIMENTAL: USE AT YOUR OWN RISK!
+
+This option will run an additional sharpening filter
+when creating the successive MIP-map levels. It uses an unsharp mask
+(much like in Section~{sec:IBA_unsharp_mask}) to emphasize high-frequency
+details to make features ``pop'' visually even at high MIP-map levels.
+The \emph{contrast} controls the degree to which it does this. Probably
+a good value to enhance detail but not go overboard is 0.5 or even 0.25.
+A value of 1.0 may make strage artifacts at high MIP-map levels. Also, if
+you simultaneously use {\cf --filter unsharp-median}, a slightly different
+variant of unsharp masking will be used that employs a median filter to
+separate out the low-frequencies, this may tend to help emphasize small
+features while not over-emphasizing large edges. 
+\apiend
+
 \apiitem{--nomipmap}
 Causes the output to \emph{not} be MIP-mapped, i.e., only will have
 the highest-resolution level.
