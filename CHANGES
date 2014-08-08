@@ -13,16 +13,18 @@ Major new features and improvements:
      every image as it is read in, if it has a nonstandard orientation.
      (This is generally a good idea to use if you are using oiiotool to
      combine images that may have different orientations.) (1.5.2)
-   * --rotate rotates an image by arbitrary angle and center point. (1.5.3)
-   * --warp transforms an image using a 3x3 matrix. (1.5.3)
+   * --rotate rotates an image by arbitrary angle and center point.
+     #932 (1.5.3)
+   * --warp transforms an image using a 3x3 matrix. #932 (1.5.3)
 * New ImageBufAlgo functions:
    * rotate90(), rotate180(), rotate270() rotate the image in 90 degree
      axially-aligned increments. (1.5.2)
    * reorient() will perform whatever series of rotations or flips are
      necessary to move the pixels to match the Orientation metadata that
      describes the desired display orientation. (1.5.2)
-   * rotate() performs rotation with arbitrary angle and center point. (1.5.3)
-   * warp() transforms an image by a 3x3 matrix. (1.5.3)
+   * rotate() performs rotation with arbitrary angle and center point.
+     #932 (1.5.3)
+   * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
 
 Public API changes:
 * New filters available to direct users of filter.{h,cpp} and for
@@ -30,6 +32,9 @@ Public API changes:
   (1.5.0/1.4.9) (#874)
 * Global attribute "read_chunk" can set the default number of scanlines
   read at a time internally by read_image() calls. #925
+* The Python ImageBuf class did not expose an equivalent to the C++
+  ImageBuf::get_pixels. This is exposed now. #931 (1.5.3)
+* The Filter API now uses string_view. (1.5.3)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -63,6 +68,11 @@ Fixes, minor enhancements, and performance improvements:
      it is more clear that these merely adust the Orientation metadata that
      suggests viewing orientation, rather than actually rotating the image
      data. (1.5.2)
+   * oiiotool color conversion ops crashed when inputs were files with
+     MIPmap levels (such as textures). #930 (1.5.3/1.4.13)
+   * More graceful handling when outputting an image with negative pixel
+     window origin to a file format that doesn't support this feature.
+     (1.5.3)
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)
@@ -81,6 +91,8 @@ Fixes, minor enhancements, and performance improvements:
      for OpenEXR output. #907 (1.5.1/1.4.11)
    * Improved ordering of channel names for OpenEXR files with many
      "layers".  #904 (1.5.1/1.4.11)
+   * Fixed issue where a stringvec of 16 items was mishandled as a
+     matrix. #929 (1.5.3/1.4.13)
 * JPEG:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
@@ -90,6 +102,8 @@ Fixes, minor enhancements, and performance improvements:
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
 * TIFF:
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
+   * Graceful handling of output of images with negative data window
+     origin. (1.5.3)
 * RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * RLA: Fix bug that caused RLA output to not respect requests for 10 bit
   output (would force it to 16 in that case). #899 (1.5.1)
@@ -136,7 +150,7 @@ Build/test system improvements:
   libraries when OpenEXR 2.1 is used. (1.5.1/1.4.11)
 * Fixes to fmath.h to work with MSVC 2013 (some long-omitted math ops that
   we'd always needed to define for Windows only are finally supported
-  in MSVC 2013). #912 (1.4.12/1.5.2)
+  in MSVC 2013). #912 (1.4.12/1.5.2) #927 (1.4.13/1.5.3)
 * Fix for Linux + Boost >= 1.55 combination: need to link with -lrt.
   #914 (1.4.12/1.5.2)
 * Fix Ptex + static linkage. (1.4.12/1.5.2)
