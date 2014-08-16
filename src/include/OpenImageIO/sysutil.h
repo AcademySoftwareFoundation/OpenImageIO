@@ -37,8 +37,7 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef OPENIMAGEIO_SYSUTIL_H
-#define OPENIMAGEIO_SYSUTIL_H
+#pragma once
 
 #include <string>
 #include <time.h>
@@ -49,55 +48,10 @@
 
 #include "export.h"
 #include "oiioversion.h"
-
-/// allocates memory, equivalent of C99 type var_name[size]
-#define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
+#include "platform.h"
 
 
-// Define a macro that can be used for memory alignment.
-// I think that in a future world of C++1x compatibility, all these can
-// be replaced with [[ align(size) ]].
-#if defined (_MSC_VER)
-#  define OIIO_ALIGN(size) __declspec(align(size))
-#elif defined (__GNUC__)
-#  define OIIO_ALIGN(size) __attribute__((aligned(size)))
-#elif defined (__INTEL_COMPILER)
-#  define OIIO_ALIGN(size) __declspec(align((size)))
-#else
-#  error "Don't know how to define OIIO_ALIGN"
-#endif
-
-// Cache line size is 64 on all modern x86 CPUs. If this changes or we
-// anticipate ports to other architectures, we'll need to change this.
-#define OIIO_CACHE_LINE_SIZE 64
-
-// Align the next declaration to be on its own cache line
-#define OIIO_CACHE_ALIGN OIIO_ALIGN(OIIO_CACHE_LINE_SIZE)
-
-
-
-// gcc defines a special intrinsic to use in conditionals that can speed
-// up extremely performance-critical spots if the conditional usually
-// (or rarely) is true.  You use it by replacing
-//     if (x) ...
-// with
-//     if (OIIO_LIKELY(x)) ...     // if you think x will usually be true
-// or
-//     if (OIIO_UNLIKELY(x)) ...   // if you think x will rarely be true
-// Caveat: Programmers are notoriously bad at guessing this, so it
-// should be used only with thorough benchmarking.
-#ifdef __GNUC__
-#define OIIO_LIKELY(x)   (__builtin_expect((x), 1))
-#define OIIO_UNLIKELY(x) (__builtin_expect((x), 0))
-#else
-#define OIIO_LIKELY(x)   (x)
-#define OIIO_UNLIKELY(x) (x)
-#endif
-
-
-
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_ENTER {
 
 /// @namespace  Sysutil
 ///
@@ -140,10 +94,6 @@ OIIO_API int terminal_columns ();
 /// Return true if successful, false if it was unable to do so.
 OIIO_API bool put_in_background (int argc, char* argv[]);
 
-
 }  // namespace Sysutils
 
-}
-OIIO_NAMESPACE_EXIT
-
-#endif // OPENIMAGEIO_SYSUTIL_H
+} OIIO_NAMESPACE_EXIT
