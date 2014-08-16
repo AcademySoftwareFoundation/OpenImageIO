@@ -50,7 +50,6 @@
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/dassert.h"
-#include "OpenImageIO/thread.h"
 
 #ifdef USE_OPENSSL
 #ifdef __APPLE__

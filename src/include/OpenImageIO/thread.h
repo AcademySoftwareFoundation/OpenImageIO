@@ -40,7 +40,7 @@
 #define OPENIMAGEIO_THREAD_H
 
 #include "oiioversion.h"
-#include "sysutil.h"
+#include "platform.h"
 
 
 // defining NOMINMAX to prevent problems with std::min/std::max

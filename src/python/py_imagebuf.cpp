@@ -31,7 +31,7 @@
 #include <boost/scoped_array.hpp>
 
 #include "py_oiio.h"
-#include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/platform.h"
 
 
 namespace PyOpenImageIO

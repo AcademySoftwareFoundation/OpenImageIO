@@ -40,7 +40,6 @@
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/dassert.h"
-#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/thread.h"
 
 

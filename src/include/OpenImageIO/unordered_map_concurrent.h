@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OPENIMAGEIO_UNORDERED_MAP_CONCURRENT_H
 
 #include <boost/unordered_map.hpp>
-#include "sysutil.h"   // from OIIO
 #include "thread.h"    // from OIIO
 #include "hash.h"      // from OIIO
 #include "dassert.h"   // from OIIO

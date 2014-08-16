@@ -32,7 +32,6 @@
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/ustring.h"
 #include "OpenImageIO/strutil.h"

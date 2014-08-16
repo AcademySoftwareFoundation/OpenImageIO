@@ -46,7 +46,6 @@
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
