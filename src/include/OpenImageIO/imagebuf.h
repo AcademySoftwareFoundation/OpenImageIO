@@ -177,8 +177,8 @@ public:
     /// made, whichever comes first. If a non-NULL imagecache is supplied,
     /// it will specifiy a custom ImageCache to use; if otherwise, the
     /// global/shared ImageCache will be used.
-    ImageBuf (const std::string &name, int subimage=0, int miplevel=0,
-              ImageCache *imagecache = NULL);
+    explicit ImageBuf (const std::string &name, int subimage=0,
+                       int miplevel=0, ImageCache *imagecache = NULL);
 
     /// Construct an ImageBuf to read the named image -- but don't actually
     /// read it yet!  The image will actually be read when other methods
@@ -191,7 +191,7 @@ public:
     /// Construct an Imagebuf given a proposed spec describing the image
     /// size and type, and allocate storage for the pixels of the image
     /// (whose values will be uninitialized).
-    ImageBuf (const ImageSpec &spec);
+    explicit ImageBuf (const ImageSpec &spec);
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
