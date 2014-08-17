@@ -238,7 +238,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 static std::string format_string ("openexr");
-static std::string format_prefix ("openexr_");
 
 
 namespace pvt {
@@ -763,8 +762,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         xname = "aperture";
     else if (Strutil::iequals(xname, "name"))
         xname = "oiio::subimagename";
-    else if (Strutil::istarts_with (xname, format_prefix))
-        xname = std::string (xname.begin()+format_prefix.size(), xname.end());
+    else if (Strutil::iequals(xname, "openexr:dwaCompressionLevel"))
+        xname = "dwaCompressionLevel";
 
 //    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
 
@@ -794,6 +793,13 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 header.compression() = Imf::B44_COMPRESSION;
             else if (Strutil::iequals (str, "b44a"))
                 header.compression() = Imf::B44A_COMPRESSION;
+#endif
+#if defined(OPENEXR_VERSION_MAJOR) && \
+    (OPENEXR_VERSION_MAJOR*10000+OPENEXR_VERSION_MINOR*100+OPENEXR_VERSION_PATCH) >= 20200
+            else if (Strutil::iequals (str, "dwaa"))
+                header.compression() = Imf::DWAA_COMPRESSION;
+            else if (Strutil::iequals (str, "dwab"))
+                header.compression() = Imf::DWAB_COMPRESSION;
 #endif
         }
         return true;
