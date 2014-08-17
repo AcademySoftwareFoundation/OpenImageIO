@@ -273,6 +273,7 @@ private:
         m_map["version"] = "openexr:version";
         m_map["chunkCount"] = "openexr:chunkCount";
         m_map["maxSamplesPerPixel"] = "openexr:maxSamplesPerPixel";
+        m_map["dwaCompressionLevel"] = "openexr:dwaCompressionLevel";
         // Ones to skip because we handle specially
         m_map["channels"] = "";
         m_map["compression"] = "";
@@ -520,6 +521,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             // the newer version.
         case Imf::B44_COMPRESSION   : comp = "b44"; break;
         case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
+#endif
+#if defined(OPENEXR_VERSION_MAJOR) && \
+    (OPENEXR_VERSION_MAJOR*10000+OPENEXR_VERSION_MINOR*100+OPENEXR_VERSION_PATCH) >= 20200
+        case Imf::DWAA_COMPRESSION  : comp = "dwaa"; break;
+        case Imf::DWAB_COMPRESSION  : comp = "dwab"; break;
 #endif
         default:
             break;

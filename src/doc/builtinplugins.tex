@@ -435,6 +435,7 @@ anywhere near the acceptance of the original JPEG/JFIF format.
 \qkw{Orientation} & int & the image orientation \\[2ex]
 \qkw{XResolution}, \qkw{YResolution},
 \qkw{ResolutionUnit} & & The resolution and units from the Exif header \\[2ex]
+\qkw{CompressionQuality} & int & Quality of compression (1-100) \\[2ex]
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\
 & & \\
 Exif, IPTC, XMP, GPS & & Extensive Exif, IPTC, XMP, and GPS data are supported by the
@@ -523,9 +524,11 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \qkw{ExposureTime} & float & expTime \\
 \qkw{FNumber} & float & aperture \\
 \qkw{compression} & string & one of: \qkw{none}, \qkw{rle},
-  \qkw{zip}, \qkw{piz}, \qkw{pxr24}, \qkw{b44}, or \qkw{b44a}.  If the
+  \qkw{zip}, \qkw{piz}, \qkw{pxr24}, \qkw{b44}, \qkw{b44a},
+  \qkw{dwaa}, or \qkw{dwab}.  If the
   writer receives a request for a compression type it does not
-  recognize, it will use \qkw{zip} by default. \\
+  recognize or is not supported by the version of OpenEXR on the system,
+  it will use \qkw{zip} by default. \\
 \qkw{textureformat} & string & set to \qkw{Plain Texture} for
   MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
     Environment} for OpenEXR environment maps.  Non-environment
@@ -546,6 +549,8 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
  \\
 \qkws{openexr:roundingmode} & int & the MIPmap rounding mode of the
   file. \\[2ex]
+\qkws{openexr:dwaCompressionLevel} & float & compression level for
+   dwaa or dwab compression (default: 45.0). \\
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
 \end{tabular}
