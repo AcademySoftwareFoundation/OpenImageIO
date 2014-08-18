@@ -828,7 +828,7 @@ bool OIIO_API rangeexpand (ImageBuf &dst, bool useluma = false,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            const char *from, const char *to,
+                            string_view from, string_view to,
                             bool unpremult=false,
                             ROI roi=ROI::All(), int nthreads=0);
 
@@ -850,9 +850,9 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
-                        const char *looks, const char *from, const char *to,
+                        string_view looks, string_view from, string_view to,
                         bool unpremult=false, bool inverse=false,
-                        const char *key=NULL, const char *value=NULL,
+                        string_view key="", string_view value="",
                         ROI roi=ROI::All(), int nthreads=0);
 
 /// Copy pixels within the ROI from src to dst, applying an OpenColorIO
@@ -875,10 +875,10 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
-                        const char *display, const char *view,
-                        const char *from=NULL, const char *looks=NULL,
+                        string_view display, string_view view,
+                        string_view from="", string_view looks="",
                         bool unpremult=false,
-                        const char *key=NULL, const char *value=NULL,
+                        string_view key="", string_view value="",
                         ROI roi=ROI::All(), int nthreads=0);
 
 /// Copy pixels within the ROI from src to dst, applying a color transform.
@@ -1172,7 +1172,7 @@ OIIO_API ROI nonzero_region (const ImageBuf &src,
 /// count).  The 'extrainfo' provides additional text that will be
 /// incorporated into the hash.
 std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
-                                           const std::string &extrainfo = "",
+                                           string_view extrainfo = "",
                                            ROI roi = ROI::All(),
                                            int blocksize = 0, int nthreads=0);
 
@@ -1290,7 +1290,7 @@ bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
-                      const std::string &filtername = "",
+                      string_view filtername = "",
                       float filterwidth = 0.0f,
                       ROI roi = ROI::All(), int nthreads = 0);
 
@@ -1382,7 +1382,7 @@ bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src,
 /// don't scale with the width, and are therefore probably less useful
 /// in most cases.
 /// 
-bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
+bool OIIO_API make_kernel (ImageBuf &dst, string_view name,
                            float width, float height, float depth = 1.0f,
                            bool normalize = true);
 
@@ -1415,7 +1415,7 @@ bool OIIO_API make_kernel (ImageBuf &dst, const char *name,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
-                            const char *kernel="gaussian", float width = 3.0f,
+                            string_view kernel="gaussian", float width = 3.0f,
                             float contrast = 1.0f, float threshold = 0.0f,
                             ROI roi = ROI::All(), int nthreads = 0);
 
@@ -1675,8 +1675,8 @@ bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 /// supplied (and is expected to point to a float array of length at
 /// least equal to R.spec().nchannels).
 bool OIIO_API render_text (ImageBuf &dst, int x, int y,
-                           const std::string &text,
-                           int fontsize=16, const std::string &fontname="",
+                           string_view text,
+                           int fontsize=16, string_view fontname="",
                            const float *textcolor = NULL);
 
 
@@ -1852,15 +1852,15 @@ enum OIIO_API MakeTextureMode {
 ///
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const ImageBuf &input,
-                            const std::string &outputfilename,
+                            string_view outputfilename,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
 
 /// Version of make_texture that starts with a filename and reads the input
 /// from that file, rather than being given an ImageBuf directly.
 bool OIIO_API make_texture (MakeTextureMode mode,
-                            const std::string &filename,
-                            const std::string &outputfilename,
+                            string_view filename,
+                            string_view outputfilename,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
 
@@ -1868,7 +1868,7 @@ bool OIIO_API make_texture (MakeTextureMode mode,
 /// future expansion, such as assembling several faces into a cube map).
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const std::vector<std::string> &filenames,
-                            const std::string &outputfilename,
+                            string_view outputfilename,
                             const ImageSpec &config,
                             std::ostream *outstream = NULL);
 

@@ -340,6 +340,18 @@ bool IBA_unpremult (ImageBuf &dst, const ImageBuf &src,
 
 
 
+std::string
+IBA_computePixelHashSHA1 (const ImageBuf &src,
+                          const std::string &extrainfo = std::string(),
+                          ROI roi = ROI::All(),
+                          int blocksize = 0, int nthreads=0)
+{
+    return ImageBufAlgo::computePixelHashSHA1 (src, extrainfo, roi,
+                                               blocksize, nthreads);
+}
+
+
+
 bool
 IBA_warp (ImageBuf &dst, const ImageBuf &src, tuple values_M,
           const std::string &filtername = "", float filterwidth = 0.0f,
@@ -391,6 +403,27 @@ IBA_resize (ImageBuf &dst, const ImageBuf &src,
 {
     return ImageBufAlgo::resize (dst, src, filtername, filterwidth,
                                  roi, nthreads);
+}
+
+
+
+bool
+IBA_make_kernel (ImageBuf &dst, const std::string &name,
+                 float width, float height, float depth, bool normalize)
+{
+    return ImageBufAlgo::make_kernel (dst, name, width, height, depth,
+                                      normalize);
+}
+
+
+
+bool
+IBA_unsharp_mask (ImageBuf &dst, const ImageBuf &src,
+                  const std::string &kernel, float width,
+                  float contrast, float threshold, ROI roi, int nthreads)
+{
+    return ImageBufAlgo::unsharp_mask (dst, src, kernel, width,
+                                       contrast, threshold, roi, nthreads);
 }
 
 
@@ -793,7 +826,7 @@ void declare_imagebufalgo()
              (arg("src"), arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("nonzero_region")
 
-        .def("computePixelHashSHA1", &ImageBufAlgo::computePixelHashSHA1,
+        .def("computePixelHashSHA1", &IBA_computePixelHashSHA1,
              (arg("src"), arg("extrainfo")="", arg("roi")=ROI::All(),
               arg("blocksize")=0, arg("nthreads")=0))
         .staticmethod("computePixelHashSHA1")
@@ -829,7 +862,7 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("resample")
 
-        .def("make_kernel", &ImageBufAlgo::make_kernel,
+        .def("make_kernel", &IBA_make_kernel,
              (arg("dst"), arg("name"), arg("width"), arg("height"),
               arg("depth")=1.0f, arg("normalize")=true))
         .staticmethod("make_kernel")
@@ -839,7 +872,7 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("convolve")
 
-        .def("unsharp_mask", &ImageBufAlgo::unsharp_mask,
+        .def("unsharp_mask", &IBA_unsharp_mask,
              (arg("dst"), arg("src"), arg("kernel")="gaussian",
               arg("width")=3.0f, arg("contrast")=1.0f,
               arg("threshold")=0.0f,

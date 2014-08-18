@@ -71,7 +71,7 @@ public:
     /// If OpenColorIO is not enabled, this will result in an error.
     /// 
     /// Multiple calls to this are potentially expensive.
-    ColorConfig(const char * filename);
+    ColorConfig(string_view filename);
     
     ~ColorConfig();
     
@@ -88,17 +88,17 @@ public:
     int getNumColorSpaces() const;
     
     /// Query the name of the specified ColorSpace.
-    const char * getColorSpaceNameByIndex(int index) const;
+    const char * getColorSpaceNameByIndex (int index) const;
 
     /// Get the name of the color space representing the named role,
     /// or NULL if none could be identified.
-    const char * getColorSpaceNameByRole (const char *role) const;
+    const char * getColorSpaceNameByRole (string_view role) const;
     
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;
     
     /// Query the name of the specified Look.
-    const char * getLookNameByIndex(int index) const;
+    const char * getLookNameByIndex (int index) const;
 
     /// Given the specified input and output ColorSpace, construct the
     /// processor.  It is possible that this will return NULL, if the
@@ -113,8 +113,8 @@ public:
     /// call once to create a ColorProcessor to use on an entire image
     /// (or multiple images), NOT for every scanline or pixel
     /// separately!
-    ColorProcessor* createColorProcessor(const char * inputColorSpace,
-                                         const char * outputColorSpace) const;
+    ColorProcessor* createColorProcessor (string_view inputColorSpace,
+                                          string_view outputColorSpace) const;
     
     /// Given the named look(s), input and output color spaces,
     /// construct a color processor that applies an OCIO look
@@ -133,30 +133,30 @@ public:
     /// call once to create a ColorProcessor to use on an entire image
     /// (or multiple images), NOT for every scanline or pixel
     /// separately!
-    ColorProcessor* createLookTransform (const char * looks,
-                                         const char * inputColorSpace,
-                                         const char * outputColorSpace,
+    ColorProcessor* createLookTransform (string_view looks,
+                                         string_view inputColorSpace,
+                                         string_view outputColorSpace,
                                          bool inverse=false,
-                                         const char *context_key=NULL,
-                                         const char *context_value=NULL) const;
+                                         string_view context_key="",
+                                         string_view context_value="") const;
 
     /// Get the number of displays defined in this configuration
     int getNumDisplays() const;
 
     /// Query the name of the specified display.
-    const char * getDisplayNameByIndex(int index) const;
+    const char * getDisplayNameByIndex (int index) const;
 
     /// Get the number of views for a given display defined in this configuration
-    int getNumViews(const char * display) const;
+    int getNumViews (string_view display) const;
 
     /// Query the name of the specified view for the specified display
-    const char * getViewNameByIndex(const char * display, int index) const;
+    const char * getViewNameByIndex (string_view display, int index) const;
 
     /// Query the name of the default display
     const char * getDefaultDisplayName() const;
 
     /// Query the name of the default view for the specified display
-    const char * getDefaultViewName(const char * display) const;
+    const char * getDefaultViewName (string_view display) const;
 
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
@@ -179,12 +179,12 @@ public:
     /// call once to create a ColorProcessor to use on an entire image
     /// (or multiple images), NOT for every scanline or pixel
     /// separately!
-    ColorProcessor* createDisplayTransform (const char * display,
-                                            const char * view,
-                                            const char * inputColorSpace,
-                                            const char * looks=NULL,
-                                            const char * context_key=NULL,
-                                            const char * context_value=NULL) const;
+    ColorProcessor* createDisplayTransform (string_view display,
+                                            string_view view,
+                                            string_view inputColorSpace,
+                                            string_view looks="",
+                                            string_view context_key="",
+                                            string_view context_value="") const;
 
     /// Delete the specified ColorProcessor
     static void deleteColorProcessor(ColorProcessor * processor);

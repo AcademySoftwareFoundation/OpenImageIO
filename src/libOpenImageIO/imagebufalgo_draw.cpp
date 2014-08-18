@@ -67,8 +67,8 @@ static const char * default_font_name[] = {
 
 
 bool
-ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
-                           int fontsize, const std::string &font_,
+ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
+                           int fontsize, string_view font_,
                            const float *textcolor)
 {
     if (R.spec().depth > 1) {

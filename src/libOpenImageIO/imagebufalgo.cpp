@@ -401,7 +401,7 @@ inline float binomial (int n, int k)
 
 
 bool
-ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
+ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
                            float width, float height, float depth,
                            bool normalize)
 {
@@ -430,7 +430,7 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, const char *name,
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = (*filter)((float)p.x(), (float)p.y());
         delete filter;
-    } else if (!strcmp (name, "binomial")) {
+    } else if (name == "binomial") {
         // Binomial filter
         float *wfilter = ALLOCA (float, width);
         for (int i = 0;  i < width;  ++i)
@@ -496,7 +496,7 @@ threshold_to_zero (ImageBuf &dst, float threshold,
 
 bool
 ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
-                            const char *kernel, float width,
+                            string_view kernel, float width,
                             float contrast, float threshold,
                             ROI roi, int nthreads)
 {
@@ -509,7 +509,7 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
     BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
     ImageBuf Blurry (BlurrySpec);
 
-    if (! strcmp(kernel, "median")) {
+    if (kernel == "median") {
         median_filter (Blurry, src, ceilf(width), 0, roi, nthreads);
     } else {
         ImageBuf K;

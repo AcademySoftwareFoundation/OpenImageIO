@@ -407,7 +407,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
-                      const std::string &filtername_, float fwidth,
+                      string_view filtername_, float fwidth,
                       ROI roi, int nthreads)
 {
     if (! IBAprep (roi, &dst, &src,
