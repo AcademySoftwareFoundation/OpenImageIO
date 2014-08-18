@@ -143,14 +143,14 @@ constructed \ImageBuf using the default constructor.
 \subsection*{Constructing and initializing a writeable \ImageBuf}
 
 \apiitem{ImageBuf (const ImageSpec \&spec) \\
-ImageBuf (const std::string \&name, const ImageSpec \&spec)}
+ImageBuf (string_view name, const ImageSpec \&spec)}
 Constructs a writeable \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.), initially set to all black pixels.
 Optionally, you may name the \ImageBuf.
 \apiend
 
 \apiitem{void reset (const ImageSpec \&spec) \\
-void reset (const std::string \&name, const ImageSpec \&spec)}
+void reset (string_view name, const ImageSpec \&spec)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
 as a writeable all-black \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.).  Optionally, you may name the
@@ -162,7 +162,7 @@ resolution, data type, metadata, etc.).  Optionally, you may name the
 Constructing a readable \ImageBuf that will hold an image to be read
 from disk.
 
-\apiitem{ImageBuf (const std::string \&name, int subimage=0, int miplevel=0, \\
+\apiitem{ImageBuf (string_view name, int subimage=0, int miplevel=0, \\
 \bigspc\bigspc ImageCache *imagecache=NULL)}
 Construct an \ImageBuf that will be used to read the named file (at the
 given subimage and MIP-level, defaulting to the first in the file).  But
@@ -174,7 +174,7 @@ If {\cf imagecache} is non-NULL, the custom
 indicates that the global/shared \ImageCache should be used.
 \apiend
 
-\apiitem{void reset (const std::string \&name, int subimage=0, int miplevel=0, \\
+\apiitem{void reset (string_view name, int subimage=0, int miplevel=0, \\
 \bigspc\bigspc ImageCache *imagecache = NULL)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
 to read the named file (but doesn't actually read yet).
@@ -232,7 +232,7 @@ to use {\cf force=true} or a specific {\cf convert} value to force data
 format conversion.
 \apiend
 
-\apiitem{bool init_spec (const std::string \&filename,
+\apiitem{bool init_spec (string_view filename,
                     int subimage, int miplevel)}
 This call will read the \ImageSpec for the given file, subimage, and
 MIP level into the \ImageBuf, but will not read the pixels or allocate
@@ -254,7 +254,7 @@ a specific {\cf convert} value to force data format conversion.
 \subsection*{Constructing an \ImageBuf that ``wraps'' an application buffer}
 
 \apiitem{ImageBuf (const ImageSpec \&spec, void *buffer) \\
-ImageBuf (const std::string \&name, const ImageSpec \&spec, void *buffer)}
+ImageBuf (string_view name, const ImageSpec \&spec, void *buffer)}
 Constructs an ImageBuf that "wraps" a memory buffer owned by the calling
 application.  It can write pixels to this buffer, but can't change its
 resolution or data type.  Optionally, it names the \ImageBuf.
@@ -263,8 +263,8 @@ resolution or data type.  Optionally, it names the \ImageBuf.
 
 \subsection*{Writing an \ImageBuf to a file}
 
-\apiitem{bool write (const std::string \&filename, \\
-  \bigspc               const std::string \&fileformat = std::string(), \\
+\apiitem{bool write (string_view filename, \\
+  \bigspc               string_view fileformat = "", \\
   \bigspc               ProgressCallback progress_callback=NULL, \\
   \bigspc               void *progress_callback_data=NULL) const}
 Write the image to the named file in the named format
@@ -328,12 +328,12 @@ contain a single data format for all channels).
 \apiend
 
 
-\apiitem{const std::string \& name (void) const}
+\apiitem{string_view {\ce name} () const}
 Returns the name of the buffer (name of the file, for an
 \ImageBuf read from disk).
 \apiend
 
-\apiitem{const std::string \& file_format_name (void) const}
+\apiitem{string_view {\ce file_format_name} () const}
 Returns the name of the file format, for an \ImageBuf read from disk
 (for example, \qkw{openexr}).
 \apiend

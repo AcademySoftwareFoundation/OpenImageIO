@@ -133,19 +133,19 @@ roi_intersection (const ROI &A, const ROI &B)
 // detail.
 class ImageBufImpl {
 public:
-    ImageBufImpl (const std::string &filename, int subimage, int miplevel,
+    ImageBufImpl (string_view filename, int subimage, int miplevel,
                   ImageCache *imagecache=NULL, const ImageSpec *spec=NULL,
                   void *buffer=NULL);
     ImageBufImpl (const ImageBufImpl &src);
     ~ImageBufImpl ();
 
     void clear ();
-    void reset (const std::string &name, int subimage, int miplevel,
+    void reset (string_view name, int subimage, int miplevel,
                 ImageCache *imagecache);
-    void reset (const std::string &name, const ImageSpec &spec);
+    void reset (string_view name, const ImageSpec &spec);
     void alloc (const ImageSpec &spec);
     void realloc ();
-    bool init_spec (const std::string &filename, int subimage, int miplevel);
+    bool init_spec (string_view filename, int subimage, int miplevel);
     bool read (int subimage=0, int miplevel=0, bool force=false,
                TypeDesc convert=TypeDesc::UNKNOWN,
                ProgressCallback progress_callback=NULL,
@@ -277,7 +277,7 @@ private:
 
 
 
-ImageBufImpl::ImageBufImpl (const std::string &filename,
+ImageBufImpl::ImageBufImpl (string_view filename,
                             int subimage, int miplevel,
                             ImageCache *imagecache,
                             const ImageSpec *spec, void *buffer)
@@ -383,7 +383,7 @@ ImageBuf::ImageBuf ()
 
 
 
-ImageBuf::ImageBuf (const std::string &filename, int subimage, int miplevel,
+ImageBuf::ImageBuf (string_view filename, int subimage, int miplevel,
                     ImageCache *imagecache)
     : m_impl (new ImageBufImpl (filename, subimage, miplevel, imagecache))
 {
@@ -391,7 +391,7 @@ ImageBuf::ImageBuf (const std::string &filename, int subimage, int miplevel,
 
 
 
-ImageBuf::ImageBuf (const std::string &filename, ImageCache *imagecache)
+ImageBuf::ImageBuf (string_view filename, ImageCache *imagecache)
     : m_impl (new ImageBufImpl (filename, 0, 0, imagecache))
 {
 }
@@ -406,7 +406,7 @@ ImageBuf::ImageBuf (const ImageSpec &spec)
 
 
 
-ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
+ImageBuf::ImageBuf (string_view filename, const ImageSpec &spec)
     : m_impl (new ImageBufImpl (filename, 0, 0, NULL, &spec))
 {
     alloc (spec);
@@ -414,7 +414,7 @@ ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
 
 
 
-ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec,
+ImageBuf::ImageBuf (string_view filename, const ImageSpec &spec,
                     void *buffer)
     : m_impl (new ImageBufImpl (filename, 0, 0, NULL, &spec, buffer))
 {
@@ -535,7 +535,7 @@ ImageBuf::clear ()
 
 
 void
-ImageBufImpl::reset (const std::string &filename, int subimage,
+ImageBufImpl::reset (string_view filename, int subimage,
                      int miplevel, ImageCache *imagecache)
 {
     clear ();
@@ -556,7 +556,7 @@ ImageBufImpl::reset (const std::string &filename, int subimage,
 
 
 void
-ImageBuf::reset (const std::string &filename, int subimage, int miplevel,
+ImageBuf::reset (string_view filename, int subimage, int miplevel,
                  ImageCache *imagecache)
 {
     impl()->reset (filename, subimage, miplevel, imagecache);
@@ -565,7 +565,7 @@ ImageBuf::reset (const std::string &filename, int subimage, int miplevel,
 
 
 void
-ImageBuf::reset (const std::string &filename, ImageCache *imagecache)
+ImageBuf::reset (string_view filename, ImageCache *imagecache)
 {
     impl()->reset (filename, 0, 0, imagecache);
 }
@@ -573,7 +573,7 @@ ImageBuf::reset (const std::string &filename, ImageCache *imagecache)
 
 
 void
-ImageBufImpl::reset (const std::string &filename, const ImageSpec &spec)
+ImageBufImpl::reset (string_view filename, const ImageSpec &spec)
 {
     clear ();
     m_name = ustring (filename);
@@ -585,7 +585,7 @@ ImageBufImpl::reset (const std::string &filename, const ImageSpec &spec)
 
 
 void
-ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
+ImageBuf::reset (string_view filename, const ImageSpec &spec)
 {
     impl()->reset (filename, spec);
 }
@@ -674,7 +674,7 @@ ImageBuf::copy_from (const ImageBuf &src)
 
 
 bool
-ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel)
+ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
 {
     if (!m_badfile && m_spec_valid
             && m_current_subimage >= 0 && m_current_miplevel >= 0
@@ -743,7 +743,7 @@ ImageBufImpl::init_spec (const std::string &filename, int subimage, int miplevel
 
 
 bool
-ImageBuf::init_spec (const std::string &filename, int subimage, int miplevel)
+ImageBuf::init_spec (string_view filename, int subimage, int miplevel)
 {
     return impl()->init_spec (filename, subimage, miplevel);
 }
@@ -916,7 +916,7 @@ ImageBuf::write (ImageOutput *out,
 
 
 bool
-ImageBuf::save (const std::string &filename, const std::string &fileformat,
+ImageBuf::save (string_view filename, string_view fileformat,
                 ProgressCallback progress_callback,
                 void *progress_callback_data) const
 {
@@ -927,12 +927,12 @@ ImageBuf::save (const std::string &filename, const std::string &fileformat,
 
 
 bool
-ImageBuf::write (const std::string &_filename, const std::string &_fileformat,
+ImageBuf::write (string_view _filename, string_view _fileformat,
                  ProgressCallback progress_callback,
                  void *progress_callback_data) const
 {
-    std::string filename = _filename.size() ? _filename : name();
-    std::string fileformat = _fileformat.size() ? _fileformat : filename;
+    string_view filename = _filename.size() ? _filename : name();
+    string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {
         error ("ImageBuf::write() called with no filename");
         return false;
@@ -1041,18 +1041,18 @@ ImageBuf::nativespec () const
 
 
 
-const std::string &
+string_view
 ImageBuf::name (void) const
 {
-    return impl()->m_name.string();
+    return impl()->m_name;
 }
 
 
-const std::string &
+string_view
 ImageBuf::file_format_name (void) const
 {
     impl()->validate_spec ();
-    return impl()->m_fileformat.string();
+    return impl()->m_fileformat;
 }
 
 

@@ -933,7 +933,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             newspec.full_width  = newspec.width;
             newspec.full_height = newspec.height;
             newspec.full_depth  = newspec.depth;
-            std::string name = src->name() + ".constant_color";
+            std::string name = std::string(src->name()) + ".constant_color";
             src->reset(name, newspec);
             ImageBufAlgo::fill (*src, &constantColor[0]);
             if (verbose) {

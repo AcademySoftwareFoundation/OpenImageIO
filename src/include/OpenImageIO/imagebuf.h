@@ -177,7 +177,7 @@ public:
     /// made, whichever comes first. If a non-NULL imagecache is supplied,
     /// it will specifiy a custom ImageCache to use; if otherwise, the
     /// global/shared ImageCache will be used.
-    explicit ImageBuf (const std::string &name, int subimage=0,
+    explicit ImageBuf (string_view name, int subimage=0,
                        int miplevel=0, ImageCache *imagecache = NULL);
 
     /// Construct an ImageBuf to read the named image -- but don't actually
@@ -186,7 +186,7 @@ public:
     /// init_spec() or read() is made, whichever comes first. If a non-NULL
     /// imagecache is supplied, it will specifiy a custom ImageCache to use;
     /// if otherwise, the global/shared ImageCache will be used.
-    ImageBuf (const std::string &name, ImageCache *imagecache);
+    ImageBuf (string_view name, ImageCache *imagecache);
 
     /// Construct an Imagebuf given a proposed spec describing the image
     /// size and type, and allocate storage for the pixels of the image
@@ -196,7 +196,7 @@ public:
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
     /// the pixels of the image (whose values will be undefined).
-    ImageBuf (const std::string &name, const ImageSpec &spec);
+    ImageBuf (string_view name, const ImageSpec &spec);
 
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
@@ -206,7 +206,7 @@ public:
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
     /// can't change its resolution or data type.
-    ImageBuf (const std::string &name, const ImageSpec &spec, void *buffer);
+    ImageBuf (string_view name, const ImageSpec &spec, void *buffer);
 
     /// Construct a copy of an ImageBuf.
     ///
@@ -229,12 +229,12 @@ public:
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
-    void reset (const std::string &name, int subimage, int miplevel,
+    void reset (string_view name, int subimage, int miplevel,
                 ImageCache *imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
-    void reset (const std::string &name, ImageCache *imagecache=NULL);
+    void reset (string_view name, ImageCache *imagecache=NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given dimensions.
@@ -242,7 +242,7 @@ public:
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
-    void reset (const std::string &name, const ImageSpec &spec);
+    void reset (string_view name, const ImageSpec &spec);
 
     /// Copy spec to *this, and then allocate enough space the right
     /// size for an image described by the format spec.  If the ImageBuf
@@ -273,14 +273,14 @@ public:
     /// header to fill out the spec correctly.  Return true if this
     /// succeeded, false if the file could not be read.  But don't
     /// allocate or read the pixels.
-    bool init_spec (const std::string &filename,
+    bool init_spec (string_view filename,
                     int subimage, int miplevel);
 
     /// Write the image to the named file and file format ("" means to infer
     /// the type from the filename extension). Return true if all went ok,
     /// false if there were errors writing.
-    bool write (const std::string &filename,
-                const std::string &fileformat = std::string(),
+    bool write (string_view filename,
+                string_view fileformat = string_view(),
                 ProgressCallback progress_callback=NULL,
                 void *progress_callback_data=NULL) const;
 
@@ -294,8 +294,8 @@ public:
 
     /// DEPRECATED (1.3) synonym for write().  Kept for now for backward
     /// compatibility.
-    bool save (const std::string &filename = std::string(),
-               const std::string &fileformat = std::string(),
+    bool save (string_view filename = string_view(),
+               string_view fileformat = string_view(),
                ProgressCallback progress_callback=NULL,
                void *progress_callback_data=NULL) const;
 
@@ -371,12 +371,12 @@ public:
 
     /// Return the name of this image.
     ///
-    const std::string & name (void) const;
+    string_view name (void) const;
 
     /// Return the name of the image file format of the disk file we
     /// read into this image.  Returns an empty string if this image
     /// was not the result of a read().
-    const std::string & file_format_name (void) const;
+    string_view file_format_name (void) const;
 
     /// Return the index of the subimage are we currently viewing
     ///
