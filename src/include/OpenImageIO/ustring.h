@@ -522,6 +522,21 @@ public:
         return strcmp (c_str() ? c_str() : "", str.c_str());
     }
 
+    /// Return 0 if *this is lexicographically equal to str, -1 if
+    /// *this is lexicographically earlier than str, 1 if *this is
+    /// lexicographically after str.
+    int compare (string_view str) const {
+        return strncmp (c_str() ? c_str() : "",
+                        str.data() ? str.data() : "", str.length());
+    }
+
+    /// Return 0 if *this is lexicographically equal to str, -1 if
+    /// *this is lexicographically earlier than str, 1 if *this is
+    /// lexicographically after str.
+    int compare (const char *str) const {
+        return strcmp (c_str() ? c_str() : "", str ? str : "");
+    }
+
     /// Return 0 if a is lexicographically equal to b, -1 if a is
     /// lexicographically earlier than b, 1 if a is lexicographically
     /// after b.
@@ -549,9 +564,28 @@ public:
     /// x.
     bool operator== (const std::string &x) const { return compare(x) == 0; }
 
+    /// Test a ustring (*this) for lexicographic equality with string_view
+    /// x.
+    bool operator== (string_view x) const { return compare(x) == 0; }
+
+    /// Test a ustring (*this) for lexicographic equality with char* x.
+    bool operator== (const char *x) const { return compare(x) == 0; }
+
     /// Test for lexicographic equality between std::string a and ustring
     /// b.
     friend bool operator== (const std::string &a, const ustring &b) {
+        return b.compare(a) == 0;
+    }
+
+    /// Test for lexicographic equality between string_view a and ustring
+    /// b.
+    friend bool operator== (string_view a, const ustring &b) {
+        return b.compare(a) == 0;
+    }
+
+    /// Test for lexicographic equality between char* a and ustring
+    /// b.
+    friend bool operator== (const char *a, const ustring &b) {
         return b.compare(a) == 0;
     }
 
@@ -559,9 +593,29 @@ public:
     /// std::string x.
     bool operator!= (const std::string &x) const { return compare(x) != 0; }
 
+    /// Test a ustring (*this) for lexicographic inequality with
+    /// string_view x.
+    bool operator!= (string_view x) const { return compare(x) != 0; }
+
+    /// Test a ustring (*this) for lexicographic inequality with
+    /// char* x.
+    bool operator!= (const char *x) const { return compare(x) != 0; }
+
     /// Test for lexicographic inequality between std::string a and
     /// ustring b.
     friend bool operator!= (const std::string &a, const ustring &b) {
+        return b.compare(a) != 0;
+    }
+
+    /// Test for lexicographic inequality between string_view a and
+    /// ustring b.
+    friend bool operator!= (string_view a, const ustring &b) {
+        return b.compare(a) != 0;
+    }
+
+    /// Test for lexicographic inequality between char* a and
+    /// ustring b.
+    friend bool operator!= (const char *a, const ustring &b) {
         return b.compare(a) != 0;
     }
 
