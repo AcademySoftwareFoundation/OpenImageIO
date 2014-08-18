@@ -518,11 +518,11 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     if (out_filename != tempname) {
         if (ok) {
-            boost::filesystem::remove (out_filename);
+            Filesystem::remove (out_filename);
             boost::filesystem::rename (tempname, out_filename);
         }
         else
-            boost::filesystem::remove (tempname);
+            Filesystem::remove (tempname);
     }
 
     // If user requested, try to adjust the file's modification time to

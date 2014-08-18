@@ -39,7 +39,6 @@
 #include <vector>
 
 #include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
 
 #include <QtCore/QSettings>
 #include <QtCore/QTimer>
@@ -1431,7 +1430,7 @@ compImageDate (IvImage *first, IvImage *second)
             if (metadatatime.empty()){
                 if (! Filesystem::exists (first->name ()))
                     return false;
-                firstFile = boost::filesystem::last_write_time (first->name ());
+                firstFile = Filesystem::last_write_time (first->name ());
             }
         }
         else
@@ -1445,7 +1444,7 @@ compImageDate (IvImage *first, IvImage *second)
             if (metadatatime.empty()){
                 if (! Filesystem::exists (second->name ()))
                     return true;
-                secondFile = boost::filesystem::last_write_time (second->name());
+                secondFile = Filesystem::last_write_time (second->name());
             }
         }
         else
@@ -1481,10 +1480,10 @@ compFileDate (IvImage *first, IvImage *second)
     double diff;
     if (! Filesystem::exists (first->name ()))
         return false;
-    firstFile = boost::filesystem::last_write_time (first->name ());
+    firstFile = Filesystem::last_write_time (first->name());
     if (! Filesystem::exists (second->name ()))
         return true;
-    secondFile = boost::filesystem::last_write_time (second->name ());
+    secondFile = Filesystem::last_write_time (second->name());
     diff = difftime(firstFile, secondFile);
     if (diff == 0)
         return compName(first, second);
