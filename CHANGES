@@ -16,6 +16,7 @@ Major new features and improvements:
    * --rotate rotates an image by arbitrary angle and center point.
      #932 (1.5.3)
    * --warp transforms an image using a 3x3 matrix. #932 (1.5.3)
+   * --median performs a median filter. (1.5.4)
 * New ImageBufAlgo functions:
    * rotate90(), rotate180(), rotate270() rotate the image in 90 degree
      axially-aligned increments. (1.5.2)
@@ -25,6 +26,7 @@ Major new features and improvements:
    * rotate() performs rotation with arbitrary angle and center point.
      #932 (1.5.3)
    * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
+   * median_filter performs a median filter. (1.5.4)
 
 Public API changes:
 * New filters available to direct users of filter.{h,cpp} and for
@@ -73,6 +75,10 @@ Fixes, minor enhancements, and performance improvements:
    * More graceful handling when outputting an image with negative pixel
      window origin to a file format that doesn't support this feature.
      (1.5.3)
+   * oiiotool --unsharp_mask:kernel=median will perform a median filter
+     for the blurring step (rather than a gaussian or other convolution
+     filter), which tends to sharpen small details but not over-sharpen
+     long edges as the traditional unsharp mask often does. (1.5.4)
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)

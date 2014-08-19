@@ -846,6 +846,12 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("unsharp_mask")
 
+        .def("median_filter", &ImageBufAlgo::median_filter,
+             (arg("dst"), arg("src"),
+              arg("width")=3, arg("height")=-1,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("median_filter")
+
         .def("fft", &ImageBufAlgo::fft,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))

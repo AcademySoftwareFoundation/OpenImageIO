@@ -2952,6 +2952,37 @@ action_blur (int argc, const char *argv[])
 
 
 static int
+action_median (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_median, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    int w = 3, h = 3;
+    if (sscanf (argv[1], "%dx%d", &w, &h) != 2)
+        ot.error ("median", Strutil::format ("Unknown size %s", argv[1]));
+
+    ImageRecRef A = ot.pop();
+    A->read();
+
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
+                                 true /*writable*/, false /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        bool ok = ImageBufAlgo::median_filter (Rib, (*A)(s), w, h);
+        if (! ok)
+            ot.error ("median", Rib.geterror());
+    }
+
+    ot.function_times["median"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_unsharp (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_unsharp, argc, argv))
@@ -2965,9 +2996,9 @@ action_unsharp (int argc, const char *argv[])
     options["threshold"] = "0";
     extract_options (options, argv[0]);
     std::string kernel = options["kernel"];
-    float width = (float) strtod (options["width"].c_str(), NULL);
-    float contrast = (float) strtod (options["contrast"].c_str(), NULL);
-    float threshold = (float) strtod (options["threshold"].c_str(), NULL);
+    float width = Strutil::from_string<float> (options["width"]);
+    float contrast = Strutil::from_string<float> (options["contrast"]);
+    float threshold = Strutil::from_string<float> (options["threshold"]);
 
     ImageRecRef A = ot.pop();
     A->read();
@@ -3798,6 +3829,8 @@ getargs (int argc, char *argv[])
                     "Convolve with a kernel",
                 "--blur %@ %s", action_blur, NULL,
                     "Blur the image (arg: WxH; options: kernel=name)",
+                "--median %@ %s", action_median, NULL,
+                    "Median filter the image (arg: WxH)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
                 "--fft %@", action_fft, NULL,

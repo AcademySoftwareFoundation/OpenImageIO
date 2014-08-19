@@ -505,17 +505,22 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
         return false;
 
     // Blur the source image, store in Blurry
-    ImageBuf K;
-    if (! make_kernel (K, kernel, width, width)) {
-        dst.error ("%s", K.geterror());
-        return false;
-    }
     ImageSpec BlurrySpec = src.spec();
     BlurrySpec.set_format (TypeDesc::FLOAT);  // force float
     ImageBuf Blurry (BlurrySpec);
-    if (! convolve (Blurry, src, K, true, roi, nthreads)) {
-        dst.error ("%s", Blurry.geterror());
-        return false;
+
+    if (! strcmp(kernel, "median")) {
+        median_filter (Blurry, src, ceilf(width), 0, roi, nthreads);
+    } else {
+        ImageBuf K;
+        if (! make_kernel (K, kernel, width, width)) {
+            dst.error ("%s", K.geterror());
+            return false;
+        }
+        if (! convolve (Blurry, src, K, true, roi, nthreads)) {
+            dst.error ("%s", Blurry.geterror());
+            return false;
+        }
     }
 
     // Compute the difference between the source image and the blurry
@@ -538,6 +543,81 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
     // Add the scaled difference to the original, to get the final answer
     ok = add (dst, src, Diff, roi, nthreads);
 
+    return ok;
+}
+
+
+
+template<class Rtype, class Atype>
+static bool
+median_filter_impl (ImageBuf &R, const ImageBuf &A, int width, int height,
+                    ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(median_filter_impl<Rtype,Atype>,
+                        boost::ref(R), boost::cref(A),
+                        width, height, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    if (width < 1)
+        width = 1;
+    if (height < 1)
+        height = width;
+    int w_2 = std::max (1, width/2);
+    int h_2 = std::max (1, height/2);
+    int windowsize = width*height;
+    int nchannels = R.nchannels();
+    float **chans = OIIO_ALLOCA (float*, nchannels);
+    for (int c = 0;  c < nchannels;  ++c)
+        chans[c] = OIIO_ALLOCA (float, windowsize);
+
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        a.rerange (r.x()-w_2, r.x()-w_2+width,
+                   r.y()-h_2, r.y()-h_2+height,
+                   r.z(), r.z()+1, ImageBuf::WrapClamp);
+        int n = 0;
+        for ( ;  ! a.done(); ++a) {
+            if (a.exists()) {
+                for (int c = 0;  c < nchannels;  ++c)
+                    chans[c][n] = a[c];
+                ++n;
+            }
+        }
+        if (n) {
+            int mid = n/2;
+            for (int c = 0;  c < nchannels;  ++c) {
+                std::sort (chans[c]+0, chans[c]+n);
+                r[c] = chans[c][mid];
+            }
+        } else {
+            for (int c = 0;  c < nchannels;  ++c)
+                r[c] = 0.0f;
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::median_filter (ImageBuf &dst, const ImageBuf &src,
+                             int width, int height,
+                             ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "median_filter",
+                                 median_filter_impl, dst.spec().format,
+                                 src.spec().format, dst, src,
+                                 width, height, roi, nthreads);
     return ok;
 }
 

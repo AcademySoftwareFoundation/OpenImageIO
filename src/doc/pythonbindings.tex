@@ -2429,6 +2429,24 @@ of src was < 1, dst will have a pixel color that is a plausible
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce median_filter} (dst, src, width=3, height=-1, \\
+  \bigspc\spc  roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!median_filter} \indexapi{median_filter}
+
+\NEW % 1.5
+Replace the given ROI of {\cf dst} with a sharpened version of the
+corresponding region of {\cf src} using the ``unsharp mask'' technique.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Noisy = ImageBuf ("tahoe.exr")
+    Clean = ImageBuf ()
+    ImageBufAlgo.median_filter (Clean, Noisy, 3, 3)
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce unsharp_mask} (dst, src, kernel="gaussian", \\
   \bigspc\spc width=3.0, contrast=1.0, threshold=0.0, \\
   \bigspc\spc  roi=ROI.All, nthreads=0)}

@@ -1420,6 +1420,33 @@ bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Replace the given ROI of dst with a median-filtered version of the
+/// corresponding region of src. The size of the window over which the
+/// median is computed is given by width and height (if height is <= 0,
+/// it will be set to width, making a square filter).
+///
+/// Median filters are good for removing high-frequency detail smaller than
+/// the window size (including noise), without blurring edges that are
+/// larger than the window size.
+///
+/// If roi is not defined, it defaults to the full size of dst (or src,
+/// if dst was undefined).  If dst is uninitialized, it will be
+/// allocated to be the size specified by roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API median_filter (ImageBuf &dst, const ImageBuf &src,
+                             int width = 3, int height = -1,
+                             ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Take the discrete Fourier transform (DFT) of the section of src
 /// denoted by roi, store it in dst.  If roi is not defined, it will be
 /// all of src's pixels.  Only one channel of src may be FFT'd at a

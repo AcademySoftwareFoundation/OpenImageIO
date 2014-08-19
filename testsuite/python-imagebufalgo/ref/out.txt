@@ -90,7 +90,11 @@ Comparing "bsplinekernel.exr" and "../oiiotool/ref/bsplinekernel.exr"
 PASS
 Comparing "bspline-blur.tif" and "../oiiotool/ref/bspline-blur.tif"
 PASS
+Comparing "tahoe-median.tif" and "../oiiotool/ref/tahoe-median.tif"
+PASS
 Comparing "unsharp.tif" and "../oiiotool/ref/unsharp.tif"
+PASS
+Comparing "unsharp-median.tif" and "../oiiotool/ref/unsharp-median.tif"
 PASS
 Comparing "fft.exr" and "../oiiotool/ref/fft.exr"
 PASS

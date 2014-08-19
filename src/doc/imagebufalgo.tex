@@ -1506,6 +1506,32 @@ of src was < 1, dst will have a pixel color that is a plausible
 \apiend
 
 
+\apiitem{bool {\ce median_filter} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc int width = 3, int height = -1,
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!median_filter} \indexapi{median_filter}
+
+\NEW % 1.5
+Replace the given ROI of {\cf dst} with a median-filtered version of the
+corresponding region of {\cf src}.  The median filter replaces each pixel
+with the median value underneath the $\mathit{width} \times \mathit{height}$
+window surrounding it. If the height is $< 1$, it will be set to width,
+making a square window. The median filter tends to smooth out noise and
+small high frequency details that are smaller than the window size, while
+preserving the sharpness of long edges.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Noisy ("tahoe.exr");
+    ImageBuf Clean;
+    ImageBufAlgo::median_filter (Clean, Noisy, 3, 3);
+\end{code}
+
+%FIXME - example would be good here
+\apiend
+
+
 \apiitem{bool {\ce unsharp_mask} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc const char *kernel = "gaussian", float width = 3.0f, \\
   \bigspc\spc float contrast = 1.0f, float threshold = 0.0f, \\
@@ -1523,8 +1549,14 @@ Roughly speaking,
      dst = src + contrast * thresh(src - blur(src))
 \end{code}
 
-The specific blur can be selected by kernel name and width.  The
-{\cf contrast} is a multiplier on the overall sharpening effect.  The
+The specific blur can be selected by kernel name and width (for example,
+\qkw{gaussian} is typical). As a special case, \qkw{median} is also accepted
+as the kernel name, in which case a median filter is performed rather than
+a blurring convolution (Gaussian and other blurs sometimes over-sharpen edges,
+whereas using the median filter will sharpen compact high-frequency details
+while not over-sharpening long edges).
+
+The {\cf contrast} is a multiplier on the overall sharpening effect.  The
 thresholding step causes all differences less than {\cf threshold} to be
 squashed to zero, which can be useful for suppressing sharpening of
 low-contrast details (like noise) but allow sharpening of

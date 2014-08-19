@@ -190,8 +190,14 @@ command += oiiotool ("tahoe-small.tif --kernel bspline 15x15 --convolve "
 # test blur
 command += oiiotool ("tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.tif")
 
+# test median filter
+command += oiiotool ("tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
+
 # test unsharp mask
 command += oiiotool ("tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
+
+# test unsharp mask with median filter
+command += oiiotool ("tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
 
 # test fft, ifft
 command += oiiotool ("tahoe-small.tif --ch 2 --fft -o fft.exr")
@@ -252,7 +258,8 @@ outputs = [ "filled.tif", "autotrim.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
-            "gauss5x5-blur.tif", "unsharp.tif",
+            "gauss5x5-blur.tif", "tahoe-median.tif",
+            "unsharp.tif", "unsharp-median.tif",
             "fft.exr", "ifft.exr",
             "polar.exr", "unpolar.exr",
             "labeladd.exr",

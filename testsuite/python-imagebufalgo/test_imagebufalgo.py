@@ -274,17 +274,29 @@ try:
     ImageBufAlgo.make_kernel (bsplinekernel, "bspline", 15, 15)
     write (bsplinekernel, "bsplinekernel.exr")
 
-    # convolve
+    # convolve -- test with bspline blur
     b = ImageBuf()
     ImageBufAlgo.convolve (b, ImageBuf("../oiiotool/tahoe-small.tif"),
                            bsplinekernel)
     write (b, "bspline-blur.tif", oiio.UINT8)
+
+    # median filter
+    b = ImageBuf()
+    ImageBufAlgo.median_filter (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+                                5, 5)
+    write (b, "tahoe-median.tif", oiio.UINT8)
 
     # unsharp_mask
     b = ImageBuf()
     ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/tahoe-small.tif"),
                                "gaussian", 3.0, 1.0, 0.0)
     write (b, "unsharp.tif", oiio.UINT8)
+
+    # unsharp_mark with median filter
+    b = ImageBuf()
+    ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+                               "median", 3.0, 1.0, 0.0)
+    write (b, "unsharp-median.tif", oiio.UINT8)
 
     # computePixelHashSHA1
     print ("SHA-1 of bsplinekernel.exr is: " + 

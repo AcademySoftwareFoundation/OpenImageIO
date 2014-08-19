@@ -1671,6 +1671,21 @@ Optional appended arguments include:
 \apiend
 
 
+\apiitem{--median {\rm \emph{size}}}
+
+\NEW % 1.5
+Perform a median filter on the top image with a window of the given size
+expressed as \emph{width}{\cf x}\emph{height}.  (The sizes are integers.)
+This helps to eliminate noise and other unwanted high-frequency detail, but
+without blurring long edges the way a {\cf --blur} command would.
+\noindent Examples:
+\begin{code}
+    oiiotool noisy.jpg --median 5x5 -o smoothed.jpg
+\end{code}
+% FIXME - should have a visual example
+\apiend
+
+
 \apiitem{--unsharp}
 Unblur the top image using an ``unsharp mask.'' 
 
@@ -1678,7 +1693,9 @@ Optional appended arguments include:
 
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
  & {\cf kernel=}\emph{name} & Name of the blur kernel (default: {\cf
-    gaussian}). \\
+    gaussian}). If the kernel name is {\cf median}, the unsarp mask
+    algorithm will use a median filter rather than a blurring filter
+    in order to compute the low-frequency image. \\
  & {\cf width=}\emph{w} & Width of the blur kernel (default: 3). \\
  & {\cf contrast=}\emph{c} & Contrast scale (default: 1.0) \\
  & {\cf threshold=}\emph{t} & Threshold for applying the difference
@@ -1690,7 +1707,13 @@ Optional appended arguments include:
     oiiotool image.jpg --unsharp -o sharper.jpg
 
     oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
+
+    oiiotool image.jpg --unsharp:kernel=median -o sharper.jpg
+    # Note: median filter helps emphasize compact high-frequency details
+    # without over-sharpening long edges as the default unsharp filter
+    # sometimes does.
 \end{code}
+% FIXME - should have a visual example
 \apiend
 
 
