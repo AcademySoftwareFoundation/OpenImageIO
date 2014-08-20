@@ -145,6 +145,22 @@ public:
                           float dsdx, float dtdx, float dsdy, float dtdy,
                           float *result);
 
+    /// Version that takes nchannels and derivatives explicitly
+    virtual bool texture (ustring filename, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL);
+
+    /// Version that takes nchannels and derivatives explicitly, if the app
+    /// already has a texture handle and per-thread info.
+    virtual bool texture (TextureHandle *texture_handle,
+                          Perthread *thread_info, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL);
+
     /// Filtered 2D texture lookup for a single point, no runflags.
     ///
     virtual bool texture (ustring filename, TextureOptions &options,
@@ -262,6 +278,8 @@ public:
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
+    typedef bool (*wrap_impl) (int &coord, int origin, int width);
+
 private:
     typedef ImageCacheTileRef TileRef;
     typedef ImageCachePerThreadInfo PerThreadInfo;
@@ -291,44 +309,59 @@ private:
 
     // Define a prototype of a member function pointer for texture
     // lookups.
+    // If simd is nonzero, it's guaranteed that all float* inputs and
+    // outputs are padded to length 'simd' and aligned to a simd*4-byte
+    // boundary (for example, 4 for SSE). This means that the functions can
+    // behave AS IF the number of channels being retrieved is simd, and any
+    // extra values returned will be discarded by the caller.
     typedef bool (TextureSystemImpl::*texture_lookup_prototype)
             (TextureFile &texfile, PerThreadInfo *thread_info,
              TextureOpt &options,
+             int nchannels_result, int actualchannels,
              float _s, float _t,
              float _dsdx, float _dtdx,
              float _dsdy, float _dtdy,
-             float *result);
+             float *result, float *dresultds, float *resultdt);
 
     /// Look up texture from just ONE point
     ///
     bool texture_lookup (TextureFile &texfile, PerThreadInfo *thread_info, 
                          TextureOpt &options,
+                         int nchannels_result, int actualchannels,
                          float _s, float _t,
                          float _dsdx, float _dtdx,
                          float _dsdy, float _dtdy,
-                         float *result);
+                         float *result, float *dresultds, float *resultdt);
     
     bool texture_lookup_nomip (TextureFile &texfile, 
                          PerThreadInfo *thread_info, 
                          TextureOpt &options,
+                         int nchannels_result, int actualchannels,
                          float _s, float _t,
                          float _dsdx, float _dtdx,
                          float _dsdy, float _dtdy,
-                         float *result);
+                         float *result, float *dresultds, float *resultdt);
     
     bool texture_lookup_trilinear_mipmap (TextureFile &texfile,
                          PerThreadInfo *thread_info, 
                          TextureOpt &options,
+                         int nchannels_result, int actualchannels,
                          float _s, float _t,
                          float _dsdx, float _dtdx,
                          float _dsdy, float _dtdy,
-                         float *result);
+                         float *result, float *dresultds, float *resultdt);
     
+    // If simd is nonzero, it's guaranteed that all float* inputs and
+    // outputs are padded to length 'simd' and aligned to a simd*4-byte
+    // boundary (for example, 4 for SSE). This means that the functions can
+    // behave AS IF the number of channels being retrieved is simd, and any
+    // extra values returned will be discarded by the caller.
     typedef bool (TextureSystemImpl::*accum_prototype)
                               (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOpt &options,
+                               int nchannels_result, int actualchannels,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
@@ -336,6 +369,7 @@ private:
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOpt &options,
+                               int nchannels_result, int actualchannels,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
@@ -343,6 +377,7 @@ private:
                                 TextureFile &texturefile,
                                 PerThreadInfo *thread_info,
                                 TextureOpt &options,
+                               int nchannels_result, int actualchannels,
                                 float weight, float *accum,
                                 float *daccumds, float *daccumdt);
 
@@ -350,6 +385,7 @@ private:
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOpt &options,
+                               int nchannels_result, int actualchannels,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
@@ -401,10 +437,14 @@ private:
 
     /// Called when the requested texture is missing, fills in the
     /// results.
-    bool missing_texture (TextureOpt &options, float *result);
+    bool missing_texture (TextureOpt &options, int nchannels, float *result,
+                          float *dresultds, float *dresultdt,
+                          float *dresultdr=NULL);
 
     /// Handle gray-to-RGB promotion.
-    void fill_gray_channels (const ImageSpec &spec, TextureOpt &options, float *result);
+    void fill_gray_channels (const ImageSpec &spec, int nchannels,
+                             float *result, float *dresultds, float *dresultdt,
+                             float *dresultdr=NULL);
 
     static bool wrap_periodic_sharedborder (int &coord, int origin, int width);
     static const wrap_impl wrap_functions[];

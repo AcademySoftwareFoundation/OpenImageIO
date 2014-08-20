@@ -95,6 +95,23 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
                               const Imath::V3f &dPdz,
                               float *result)
 {
+    // Handle >4 channel lookups by recursion.
+    while (options.nchannels > 4) {
+        int oldn = options.nchannels;
+        options.nchannels = 4;
+        bool ok = texture3d (texture_handle_, thread_info_, options,
+                             P, dPdx, dPdy, dPdz,
+                             result /*, dresultds, dresultdt, dresultdr*/);
+        if (! ok)
+            return false;
+        result += 4;
+        if (options.dresultds) options.dresultds += 4;
+        if (options.dresultdt) options.dresultdt += 4;
+        if (options.dresultdr) options.dresultdr += 4;
+        options.firstchannel += 4;
+        options.nchannels = oldn - 4;
+    }
+
 #if 0
     // FIXME: currently, no support of actual MIPmapping.  No rush,
     // since the only volume format we currently support, Field3D,
@@ -118,8 +135,14 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     ++stats.texture3d_batches;
     ++stats.texture3d_queries;
 
+    if (options.nchannels > 4) {
+        error ("Only 1-4 channel lookups allowed, not %d", options.nchannels);
+        return false;
+    }
+
     if (! texturefile  ||  texturefile->broken())
-        return missing_texture (options, result);
+        return missing_texture (options, options.nchannels, result,
+                                options.dresultds, options.dresultdt, options.dresultdr);
 
     if (options.subimagename) {
         // If subimage was specified by name, figure out its index.
@@ -137,23 +160,17 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
-        options.swrap = texturefile->swrap();
-    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic_pow2;
-    else
-        options.swrap_func = wrap_functions[(int)options.swrap];
+        options.swrap = (TextureOpt::Wrap)texturefile->swrap();
+    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.width))
+        options.swrap = TextureOpt::WrapPeriodicPow2;
     if (options.twrap == TextureOpt::WrapDefault)
-        options.twrap = texturefile->twrap();
-    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic_pow2;
-    else
-        options.twrap_func = wrap_functions[(int)options.twrap];
+        options.twrap = (TextureOpt::Wrap)texturefile->twrap();
+    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.height))
+        options.twrap = TextureOpt::WrapPeriodicPow2;
     if (options.rwrap == TextureOpt::WrapDefault)
-        options.rwrap = texturefile->rwrap();
-    if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
-        options.rwrap_func = wrap_periodic_pow2;
-    else
-        options.rwrap_func = wrap_functions[(int)options.rwrap];
+        options.rwrap = (TextureOpt::Wrap)texturefile->rwrap();
+    if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.depth))
+        options.rwrap = TextureOpt::WrapPeriodicPow2;
 
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
                                        0, options.nchannels);
@@ -183,8 +200,11 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
 
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
-    if (actualchannels < options.nchannels)
-        fill_gray_channels (spec, options, result);
+
+    if (actualchannels < options.nchannels && options.firstchannel == 0 && m_gray_to_rgb)
+        fill_gray_channels (spec, options.nchannels, result,
+                            options.dresultds, options.dresultdt,
+                            options.dresultdr);
     return ok;
 }
 
@@ -286,13 +306,13 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     (void) floorfrac (t, &ttex);
     (void) floorfrac (r, &rtex);
 
-    // Wrap
-    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL &&
-             options.rwrap_func != NULL);
+    wrap_impl swrap_func = wrap_functions[(int)options.swrap];
+    wrap_impl twrap_func = wrap_functions[(int)options.twrap];
+    wrap_impl rwrap_func = wrap_functions[(int)options.rwrap];
     bool svalid, tvalid, rvalid;  // Valid texels?  false means black border
-    svalid = options.swrap_func (stex, spec.x, spec.width);
-    tvalid = options.twrap_func (ttex, spec.y, spec.height);
-    rvalid = options.rwrap_func (rtex, spec.z, spec.depth);
+    svalid = swrap_func (stex, spec.x, spec.width);
+    tvalid = twrap_func (ttex, spec.y, spec.height);
+    rvalid = rwrap_func (rtex, spec.z, spec.depth);
     if (! levelinfo.full_pixel_range) {
         svalid &= (stex >= spec.x && stex < (spec.x+spec.width)); // data window
         tvalid &= (ttex >= spec.y && ttex < (spec.y+spec.height));
@@ -368,8 +388,10 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     // and to the right).
 
     // Wrap
-    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL &&
-             options.rwrap_func != NULL);
+    wrap_impl swrap_func = wrap_functions[(int)options.swrap];
+    wrap_impl twrap_func = wrap_functions[(int)options.twrap];
+    wrap_impl rwrap_func = wrap_functions[(int)options.rwrap];
+
     int stex[2], ttex[2], rtex[2];       // Texel coords
     stex[0] = sint;  stex[1] = sint+1;
     ttex[0] = tint;  ttex[1] = tint+1;
@@ -384,12 +406,12 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool *tvalid = valid_storage.bvalid + 2;
     bool *rvalid = valid_storage.bvalid + 4;
 
-    svalid[0] = options.swrap_func (stex[0], spec.x, spec.width);
-    svalid[1] = options.swrap_func (stex[1], spec.x, spec.width);
-    tvalid[0] = options.twrap_func (ttex[0], spec.y, spec.height);
-    tvalid[1] = options.twrap_func (ttex[1], spec.y, spec.height);
-    rvalid[0] = options.rwrap_func (rtex[0], spec.z, spec.depth);
-    rvalid[1] = options.rwrap_func (rtex[1], spec.z, spec.depth);
+    svalid[0] = swrap_func (stex[0], spec.x, spec.width);
+    svalid[1] = swrap_func (stex[1], spec.x, spec.width);
+    tvalid[0] = twrap_func (ttex[0], spec.y, spec.height);
+    tvalid[1] = twrap_func (ttex[1], spec.y, spec.height);
+    rvalid[0] = rwrap_func (rtex[0], spec.z, spec.depth);
+    rvalid[1] = rwrap_func (rtex[1], spec.z, spec.depth);
     // Account for crop windows
     if (! levelinfo.full_pixel_range) {
         svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x+spec.width);

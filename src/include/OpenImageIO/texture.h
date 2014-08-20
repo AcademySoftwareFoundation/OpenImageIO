@@ -98,6 +98,8 @@ public:
         WrapClamp,          ///< Clamp to [0..1]
         WrapPeriodic,       ///< Periodic mod 1
         WrapMirror,         ///< Mirror the image
+        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
         WrapLast            ///< Mark the end -- don't use this!
     };
 
@@ -134,7 +136,6 @@ public:
         time(0.0f), bias(0.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), dresultdr(NULL),
         actualchannels(0),
-        swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL),
         envlayout(0)
     { }
 
@@ -184,8 +185,6 @@ private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int origin, int width);
-    wrap_impl swrap_func, twrap_func, rwrap_func;
     int envlayout;    // Layout for environment wrap
     friend class pvt::TextureSystemImpl;
 };
@@ -208,6 +207,8 @@ public:
         WrapClamp,          ///< Clamp to [0..1]
         WrapPeriodic,       ///< Periodic mod 1
         WrapMirror,         ///< Mirror the image
+        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
         WrapLast            ///< Mark the end -- don't use this!
     };
 
@@ -291,8 +292,6 @@ private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int origin, int width);
-    wrap_impl swrap_func, twrap_func, rwrap_func;
     friend class pvt::TextureSystemImpl;
     friend class TextureOpt;
 };
@@ -406,6 +405,22 @@ public:
                           Perthread *thread_info, TextureOpt &options,
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy, float *result) = 0;
+
+    /// Version that takes nchannels and derivatives explicitly
+    virtual bool texture (ustring filename, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
+
+    /// Version that takes nchannels and derivatives explicitly, if the app
+    /// already has a texture handle and per-thread info.
+    virtual bool texture (TextureHandle *texture_handle,
+                          Perthread *thread_info, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Deprecated version that uses old TextureOptions for a single-point
     /// lookup.

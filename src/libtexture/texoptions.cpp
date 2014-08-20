@@ -57,7 +57,8 @@ static int   default_samples = 1;
 static const ustring wrap_type_name[] = {
     // MUST match the order of TextureOptions::Wrap
     ustring("default"), ustring("black"), ustring("clamp"),
-    ustring("periodic"), ustring("mirror"),
+    ustring("periodic"), ustring("mirror"), ustring("periodic_pow2"),
+    ustring("periodic_sharedborder"),
     ustring()
 };
 
@@ -83,8 +84,7 @@ TextureOptions::TextureOptions ()
       dresultds(NULL), dresultdt(NULL),
       rwrap(TextureOptions::WrapDefault),
       rblur(default_blur), rwidth(default_width),
-      dresultdr(NULL),
-      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
+      dresultdr(NULL)
 {
 }
 
@@ -108,8 +108,7 @@ TextureOptions::TextureOptions (const TextureOpt &opt)
       dresultds((float *)opt.dresultds), dresultdt((float *)opt.dresultdt),
       rwrap((Wrap)opt.rwrap), rblur((float *)&opt.rblur),
       rwidth((float *)&opt.rwidth),
-      dresultdr((float *)opt.dresultdr),
-      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
+      dresultdr((float *)opt.dresultdr)
 {
 }
 
@@ -134,7 +133,6 @@ TextureOpt::TextureOpt (const TextureOptions &opt, int index)
       rwrap((Wrap)opt.rwrap),
       rblur(opt.rblur[index]), rwidth(opt.rwidth[index]),
       dresultdr(opt.dresultdr),
-      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL),
       envlayout(0)
 {
 }

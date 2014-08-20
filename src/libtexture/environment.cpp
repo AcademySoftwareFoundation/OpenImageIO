@@ -308,20 +308,44 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
                                 const Imath::V3f &_dRdx, const Imath::V3f &_dRdy,
                                 float *result)
 {
+    // Handle >4 channel lookups by recursion.
+    while (options.nchannels > 4) {
+        int oldn = options.nchannels;
+        options.nchannels = 4;
+        bool ok = environment (texture_handle_, thread_info_, options,
+                               _R, _dRdx, _dRdy,
+                               result /*, dresultds, dresultdt*/);
+        if (! ok)
+            return false;
+        result += 4;
+        if (options.dresultds) options.dresultds += 4;
+        if (options.dresultdt) options.dresultdt += 4;
+        options.firstchannel += 4;
+        options.nchannels = oldn - 4;
+    }
+
     PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
     TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.environment_batches;
     ++stats.environment_queries;
 
+    if (options.nchannels > 4) {
+        error ("Only 1-4 channel lookups allowed, not %d", options.nchannels);
+        return false;
+    }
+
     if (! texturefile  ||  texturefile->broken())
-        return missing_texture (options, result);
+        return missing_texture (options, options.nchannels, result,
+                                options.dresultds, options.dresultdt);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
-    options.swrap_func = texturefile->m_sample_border ?
-        wrap_periodic_sharedborder : wrap_periodic;
-    options.twrap_func = wrap_clamp;
+    // Environment maps dictate particular wrap modes
+    options.swrap = texturefile->m_sample_border ?
+        TextureOpt::WrapPeriodicSharedBorder : TextureOpt::WrapPeriodic;
+    options.twrap = TextureOpt::WrapClamp;
+
     options.envlayout = LayoutLatLong;
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
                                        0, options.nchannels);
@@ -496,6 +520,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
             ok &= (this->*accumer) (s, t, miplevel[level], *texturefile,
                                     thread_info, options,
+                                    options.nchannels, actualchannels,
                                     levelweight[level]*invsamples, result,
                                     dresultds, dresultdt);
         }
@@ -503,8 +528,9 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     stats.aniso_probes += nsamples;
     ++stats.aniso_queries;
 
-    if (actualchannels < options.nchannels)
-        fill_gray_channels (spec, options, result);
+    if (actualchannels < options.nchannels && options.firstchannel == 0 && m_gray_to_rgb)
+        fill_gray_channels (spec, options.nchannels,
+                            result, options.dresultds, options.dresultdt);
 
     return ok;
 }

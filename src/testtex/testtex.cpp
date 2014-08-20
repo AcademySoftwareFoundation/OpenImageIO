@@ -497,11 +497,11 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
         if (use_handle)
             ok = texsys->texture (texture_handle, perthread_info, opt,
                                   s, t, dsdx, dtdx, dsdy, dtdy,
-                                  result);
+                                  nchannels, result, dresultds, dresultdt);
         else
             ok = texsys->texture (filename, opt,
                                   s, t, dsdx, dtdx, dsdy, dtdy,
-                                  result);
+                                  nchannels, result, dresultds, dresultdt);
         if (! ok) {
             std::string e = texsys->geterror ();
             if (! e.empty())
@@ -854,12 +854,14 @@ do_tex_thread_workout (int iterations, int mythread)
             // and per-thread data already queried only once rather than
             // per-call.
             ok = texsys->texture (texture_handle, perthread_info, opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
             break;
         case 2:
             // Workload 2: Static texture access, with filenames.
             ok = texsys->texture (filenames[0], opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
             break;
         case 3:
         case 4:
@@ -906,7 +908,8 @@ do_tex_thread_workout (int iterations, int mythread)
             s = (((2*pixel) % spec0.width) + 0.5f) / spec0.width;
             t = (((2*((2*pixel) / spec0.width)) % spec0.height) + 0.5f) / spec0.height;
             ok = texsys->texture (filenames[whichfile], opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
         }
         if (! ok) {
             std::cerr << "Unexpected error: " << texsys->geterror() << "\n";
