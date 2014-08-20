@@ -49,6 +49,7 @@
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/thread.h"
+#include "OpenImageIO/simd.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -298,7 +299,8 @@ ImageBufImpl::ImageBufImpl (string_view filename,
         m_pixel_bytes = spec->pixel_bytes();
         m_scanline_bytes = spec->scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-        m_blackpixel.resize (m_pixel_bytes, 0);
+        m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
+        // NB make it big enough for SSE
         if (buffer) {
             m_localpixels = (char *)buffer;
             m_storage = ImageBuf::APPBUFFER;
@@ -612,7 +614,8 @@ ImageBufImpl::realloc ()
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-    m_blackpixel.resize (m_pixel_bytes, 0);
+    m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
+    // NB make it big enough for SSE
     if (m_allocated_size)
         m_pixels_valid = true;
 #if 0
@@ -705,7 +708,8 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-    m_blackpixel.resize (m_pixel_bytes, 0);
+    m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
+    // NB make it big enough for SSE
 
     // Subtlety: m_nativespec will have the true formats of the file, but
     // we rig m_spec to reflect what it will look like in the cache.
@@ -806,7 +810,8 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixel_bytes = m_spec.pixel_bytes();
         m_scanline_bytes = m_spec.scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
-        m_blackpixel.resize (m_pixel_bytes, 0);
+        m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
+        // NB make it big enough for SSE
         m_pixels_valid = true;
         m_storage = ImageBuf::IMAGECACHE;
 #ifndef NDEBUG

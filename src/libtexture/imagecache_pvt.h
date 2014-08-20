@@ -507,11 +507,7 @@ public:
 
     /// Return the space that will be needed for this tile's pixels.
     ///
-    size_t memsize_needed () const {
-        const ImageSpec &spec (file().spec(m_id.subimage(),m_id.miplevel()));
-        TypeDesc datatype = file().datatype(id().subimage());
-        return spec.tile_pixels() * spec.nchannels * datatype.size();
-    }
+    size_t memsize_needed () const;
 
     /// Mark the tile as recently used.
     ///
