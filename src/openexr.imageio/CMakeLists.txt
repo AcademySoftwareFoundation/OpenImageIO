@@ -3,6 +3,6 @@
 
 add_oiio_plugin (exrinput.cpp exroutput.cpp)
 
-link_ilmbase (openexr.imageio)
 link_openexr (openexr.imageio)
+link_ilmbase (openexr.imageio)
 

@@ -228,7 +228,7 @@ endif ()
 if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
 endif ()
-link_ilmbase (OpenImageIO)
+
 add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")
 
 if (EMBEDPLUGINS)
@@ -248,6 +248,8 @@ if (EMBEDPLUGINS)
         target_link_libraries (OpenImageIO ${LibRaw_r_LIBRARIES})
     endif ()
 endif ()
+
+link_ilmbase (OpenImageIO)
 
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
