@@ -67,6 +67,7 @@ set (OpenJpeg_include_paths
 
 set (OpenJpeg_library_paths
   /usr/lib
+  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
   /usr/local/lib
   /sw/lib
   /opt/local/lib)
