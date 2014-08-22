@@ -38,8 +38,46 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace {
 
-static void openjpeg_dummy_callback(const char*, void*) {}
+void openjpeg_dummy_callback(const char*, void*) {}
+
+// TODO(sergey): This actually a stright duplication from the png reader,
+// consider de-duplicating the code somehow?
+template <class T>
+void
+associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
+{
+    T max = std::numeric_limits<T>::max();
+    if (gamma == 1) {
+        for (int x = 0;  x < size;  ++x, data += channels)
+            for (int c = 0;  c < channels;  c++)
+                if (c != alpha_channel){
+                    unsigned int f = data[c];
+                    data[c] = (f * data[alpha_channel]) / max;
+                }
+    }
+    else { //With gamma correction
+        float inv_max = 1.0 / max;
+        for (int x = 0;  x < size;  ++x, data += channels) {
+            float alpha_associate = pow(data[alpha_channel]*inv_max, gamma);
+            // We need to transform to linear space, associate the alpha, and
+            // then transform back.  That is, if D = data[c], we want
+            //
+            // D' = max * ( (D/max)^(1/gamma) * (alpha/max) ) ^ gamma
+            //
+            // This happens to simplify to something which looks like
+            // multiplying by a nonlinear alpha:
+            //
+            // D' = D * (alpha/max)^gamma
+            for (int c = 0;  c < channels;  c++)
+                if (c != alpha_channel)
+                    data[c] = static_cast<T>(data[c] * alpha_associate);
+        }
+    }
+}
+
+}  // namespace
 
 
 class Jpeg2000Input : public ImageInput {
@@ -52,6 +90,8 @@ class Jpeg2000Input : public ImageInput {
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
     virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config);
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);
 
@@ -60,6 +100,7 @@ class Jpeg2000Input : public ImageInput {
     int m_maxPrecision;
     opj_image_t *m_image;
     FILE *m_file;
+    bool m_keep_unassociated_alpha;   ///< Do not convert unassociated alpha
 
     void init (void);
 
@@ -142,6 +183,7 @@ Jpeg2000Input::init (void)
 {
     m_file = NULL;
     m_image = NULL;
+    m_keep_unassociated_alpha = false;
 }
 
 
@@ -218,12 +260,38 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
 
 
 bool
+Jpeg2000Input::open (const std::string &name, ImageSpec &newspec,
+                     const ImageSpec &config)
+{
+    // Check 'config' for any special requests
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+        m_keep_unassociated_alpha = true;
+    return open (name, newspec);
+}
+
+
+bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
     if (m_spec.format == TypeDesc::UINT8)
         read_scanline<uint8_t>(y, z, data);
     else
         read_scanline<uint16_t>(y, z, data);
+
+    // JPEG2000 specifically dictates unassociated (un-"premultiplied") alpha.
+    // Convert to associated unless we were requested not to do so.
+    if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
+        float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0f);
+        if (m_spec.format == TypeDesc::UINT16)
+            associateAlpha ((unsigned short *)data, m_spec.width,
+                            m_spec.nchannels, m_spec.alpha_channel,
+                            gamma);
+        else
+            associateAlpha ((unsigned char *)data, m_spec.width,
+                            m_spec.nchannels, m_spec.alpha_channel,
+                            gamma);
+    }
+
     return true;
 }
 
