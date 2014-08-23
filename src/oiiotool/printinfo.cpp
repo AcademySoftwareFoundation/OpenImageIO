@@ -722,6 +722,7 @@ OiioTool::print_info (Oiiotool &ot,
         printf ("\n");
     }
 
+    int movie = spec.get_int_attribute ("oiio:Movie");
     if (opt.verbose && num_of_subimages != 1) {
         // info about num of subimages and their resolutions
         printf ("    %d subimages: ", num_of_subimages);
@@ -731,6 +732,8 @@ OiioTool::print_info (Oiiotool &ot,
                 printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
             else
                 printf ("%dx%d ", spec.width, spec.height);
+            if (movie)
+                break;
         }
         printf ("\n");
     }

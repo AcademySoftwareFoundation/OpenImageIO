@@ -564,6 +564,7 @@ print_info (const std::string &filename, size_t namefieldlength,
         printf ("\n");
     }
 
+    int movie = spec.get_int_attribute ("oiio:Movie");
     if (verbose && num_of_subimages != 1) {
         // info about num of subimages and their resolutions
         printf ("    %d subimages: ", num_of_subimages);
@@ -573,6 +574,8 @@ print_info (const std::string &filename, size_t namefieldlength,
                 printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
             else
                 printf ("%dx%d ", spec.width, spec.height);
+            if (movie)
+                break;
         }
         printf ("\n");
     }
