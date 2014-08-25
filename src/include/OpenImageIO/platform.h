@@ -100,3 +100,9 @@
 #  define OIIO_FORCEINLINE inline
 #endif
 
+
+#if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#  define OIIO_RESTRICT __restrict
+#else
+#  define OIIO_RESTRICT 
+#endif
