@@ -168,26 +168,27 @@ endif()
 if (USE_CPP11)
     message (STATUS "Building for C++11")
     add_definitions ("-std=c++11")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (CMAKE_COMPILER_IS_CLANG)
         # C++11 doesn't like 'register' keyword, which is in Qt headers
         add_definitions ("-Wno-deprecated-register")
     endif ()
 endif ()
 
-if (USE_LIBCPLUSPLUS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
+    message (STATUS "Using libc++")
     add_definitions ("-stdlib=libc++")
 endif ()
 
-set(CMAKE_MODULE_PATH
-    "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-    "${PROJECT_SOURCE_DIR}/src/cmake")
+set (CMAKE_MODULE_PATH
+     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+     "${PROJECT_SOURCE_DIR}/src/cmake")
 
 # Set the default namespace
-if(NOT OIIO_NAMESPACE)
-  set(OIIO_NAMESPACE OpenImageIO CACHE STRING
-      "Specify the master OpenImageIO C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc."
-      FORCE)
-endif(NOT OIIO_NAMESPACE)
+if (NOT OIIO_NAMESPACE)
+    set (OIIO_NAMESPACE OpenImageIO CACHE STRING
+         "Specify the master OpenImageIO C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc."
+         FORCE)
+endif ()
 
 message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
 
