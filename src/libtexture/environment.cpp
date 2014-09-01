@@ -246,19 +246,48 @@ TextureSystemImpl::environment (ustring filename, TextureOptions &options,
                                 VaryingRef<Imath::V3f> R,
                                 VaryingRef<Imath::V3f> dRdx,
                                 VaryingRef<Imath::V3f> dRdy,
-                                float *result)
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
 {
     Perthread *thread_info = get_perthread_info();
     TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return environment (texture_handle, thread_info, options,
+                        runflags, beginactive, endactive,
+                        R, dRdx, dRdy, nchannels, result, dresultds, dresultdt);
+}
+
+
+
+bool
+TextureSystemImpl::environment (TextureHandle *texture_handle,
+                                Perthread *thread_info, TextureOptions &options,
+                                Runflag *runflags,
+                                int beginactive, int endactive,
+                                VaryingRef<Imath::V3f> R,
+                                VaryingRef<Imath::V3f> dRdx,
+                                VaryingRef<Imath::V3f> dRdy,
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
+{
     if (! texture_handle)
         return false;
     bool ok = true;
+    result += beginactive*nchannels;
+    if (dresultds) {
+        dresultds += beginactive*nchannels;
+        dresultdt += beginactive*nchannels;
+    }
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             TextureOpt opt (options, i);
             ok &= environment (texture_handle, thread_info,
                                opt, R[i], dRdx[i], dRdy[i],
-                               result+i*options.nchannels);
+                               nchannels, result, dresultds, dresultdt);
+        }
+        result += nchannels;
+        if (dresultds) {
+            dresultds += nchannels;
+            dresultdt += nchannels;
         }
     }
     return ok;
@@ -291,12 +320,14 @@ bool
 TextureSystemImpl::environment (ustring filename, TextureOpt &options,
                                 const Imath::V3f &R,
                                 const Imath::V3f &dRdx, const Imath::V3f &dRdy,
-                                float *result)
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
 {
     PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
     TextureFile *texturefile = find_texturefile (filename, thread_info);
     return environment ((TextureHandle *)texturefile, (Perthread *)thread_info,
-                        options, R, dRdx, dRdy, result);
+                        options, R, dRdx, dRdy,
+                        nchannels, result, dresultds, dresultdt);
 }
 
 
@@ -306,22 +337,21 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
                                 Perthread *thread_info_,
                                 TextureOpt &options, const Imath::V3f &_R,
                                 const Imath::V3f &_dRdx, const Imath::V3f &_dRdy,
-                                float *result)
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
 {
     // Handle >4 channel lookups by recursion.
-    while (options.nchannels > 4) {
-        int oldn = options.nchannels;
-        options.nchannels = 4;
+    while (nchannels > 4) {
         bool ok = environment (texture_handle_, thread_info_, options,
                                _R, _dRdx, _dRdy,
-                               result /*, dresultds, dresultdt*/);
+                               4, result, dresultds, dresultdt);
         if (! ok)
             return false;
         result += 4;
-        if (options.dresultds) options.dresultds += 4;
-        if (options.dresultdt) options.dresultdt += 4;
+        if (dresultds) dresultds += 4;
+        if (dresultdt) dresultdt += 4;
         options.firstchannel += 4;
-        options.nchannels = oldn - 4;
+        nchannels -= 4;
     }
 
     PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
@@ -330,14 +360,9 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     ++stats.environment_batches;
     ++stats.environment_queries;
 
-    if (options.nchannels > 4) {
-        error ("Only 1-4 channel lookups allowed, not %d", options.nchannels);
-        return false;
-    }
-
     if (! texturefile  ||  texturefile->broken())
-        return missing_texture (options, options.nchannels, result,
-                                options.dresultds, options.dresultdt);
+        return missing_texture (options, nchannels, result,
+                                dresultds, dresultdt);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -348,20 +373,17 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
     options.envlayout = LayoutLatLong;
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
-                                       0, options.nchannels);
-    options.actualchannels = actualchannels;
+                                       0, nchannels);
 
     // Initialize results to 0.  We'll add from here on as we sample.
-    for (int c = 0;  c < options.nchannels;  ++c)
+    for (int c = 0;  c < nchannels;  ++c)
         result[c] = 0;
-    float* dresultds = options.dresultds;
-    float* dresultdt = options.dresultdt;
-    if (dresultds)
-        for (int c = 0;  c < options.nchannels;  ++c)
+    if (dresultds) {
+        for (int c = 0;  c < nchannels;  ++c)
             dresultds[c] = 0;
-    if (dresultdt)
-        for (int c = 0;  c < options.nchannels;  ++c)
+        for (int c = 0;  c < nchannels;  ++c)
             dresultdt[c] = 0;
+    }
     // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
@@ -520,7 +542,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
             ok &= (this->*accumer) (s, t, miplevel[level], *texturefile,
                                     thread_info, options,
-                                    options.nchannels, actualchannels,
+                                    nchannels, actualchannels,
                                     levelweight[level]*invsamples, result,
                                     dresultds, dresultdt);
         }
@@ -528,9 +550,8 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     stats.aniso_probes += nsamples;
     ++stats.aniso_queries;
 
-    if (actualchannels < options.nchannels && options.firstchannel == 0 && m_gray_to_rgb)
-        fill_gray_channels (spec, options.nchannels,
-                            result, options.dresultds, options.dresultdt);
+    if (actualchannels < nchannels && options.firstchannel == 0 && m_gray_to_rgb)
+        fill_gray_channels (spec, nchannels, result, dresultds, dresultdt);
 
     return ok;
 }

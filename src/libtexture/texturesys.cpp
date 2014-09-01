@@ -493,6 +493,7 @@ bool
 TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
                                int miplevel, int xbegin, int xend,
                                int ybegin, int yend, int zbegin, int zend,
+                               int chbegin, int chend,
                                TypeDesc format, void *result)
 {
     PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
@@ -523,7 +524,8 @@ TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
     // grab a whole tile at a time and memcpy it rapidly.  But no point
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
-    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
+    int nchannels = chend - chbegin;
+    int actualchannels = Imath::clamp (spec.nchannels - chbegin, 0, nchannels);
     int nc = spec.nchannels;
     size_t formatpixelsize = nc * format.size();
     size_t scanlinesize = (xend-xbegin) * formatpixelsize;
@@ -558,10 +560,10 @@ TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
                 TileRef &tile (thread_info->tile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
-                    data += options.firstchannel * texfile->datatype(subimage).size();
+                    data += chbegin * texfile->datatype(subimage).size();
                     convert_types (texfile->datatype(subimage), data,
                                    format, result, actualchannels);
-                    for (int c = actualchannels;  c < options.nchannels;  ++c)
+                    for (int c = actualchannels;  c < nchannels;  ++c)
                         convert_types (TypeDesc::FLOAT, &options.fill,
                                        format, result, 1);
                 } else {
@@ -687,55 +689,54 @@ TextureSystemImpl::fill_gray_channels (const ImageSpec &spec,
 
 
 bool
-TextureSystemImpl::texture (ustring filename, TextureOpt &options,
-                            float s, float t,
-                            float dsdx, float dtdx, float dsdy, float dtdy,
-                            float *result)
-{
-    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
-    TextureFile *texturefile = find_texturefile (filename, thread_info);
-    return texture ((TextureHandle *)texturefile, (Perthread *)thread_info,
-                    options, options.nchannels,
-                    s, t, dsdx, dtdx, dsdy, dtdy,
-                    result, options.dresultds, options.dresultdt);
-}
-
-
-
-bool
-TextureSystemImpl::texture (TextureHandle *texture_handle_,
-                            Perthread *thread_info_,
-                            TextureOpt &options,
-                            float s, float t,
-                            float dsdx, float dtdx, float dsdy, float dtdy,
-                            float *result)
-{
-    return texture (texture_handle_, thread_info_, options,
-                    s, t, dsdx, dtdx, dsdy, dtdy, options.nchannels,
-                    result, options.dresultds, options.dresultdt);
-}
-
-
-
-bool
 TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             Runflag *runflags, int beginactive, int endactive,
                             VaryingRef<float> s, VaryingRef<float> t,
                             VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                             VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                            float *result)
+                            int nchannels, float *result,
+                            float *dresultds, float *dresultdt)
 {
     Perthread *thread_info = get_perthread_info();
     TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return texture (texture_handle, thread_info, options,
+                    runflags, beginactive, endactive,
+                    s, t, dsdx, dtdx, dsdy, dtdy,
+                    nchannels, result, dresultds, dresultdt);
+}
+
+
+
+bool
+TextureSystemImpl::texture (TextureHandle *texture_handle,
+                            Perthread *thread_info, TextureOptions &options,
+                            Runflag *runflags, int beginactive, int endactive,
+                            VaryingRef<float> s, VaryingRef<float> t,
+                            VaryingRef<float> dsdx, VaryingRef<float> dtdx,
+                            VaryingRef<float> dsdy, VaryingRef<float> dtdy,
+                            int nchannels, float *result,
+                            float *dresultds, float *dresultdt)
+{
     if (! texture_handle)
         return false;
     bool ok = true;
+    result += beginactive*nchannels;
+    if (dresultds) {
+        dresultds += beginactive*nchannels;
+        dresultdt += beginactive*nchannels;
+    }
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             TextureOpt opt (options, i);
             ok &= texture (texture_handle, thread_info,
                            opt, s[i], t[i], dsdx[i], dtdx[i],
-                           dsdy[i], dtdy[i], result+i*options.nchannels);
+                           dsdy[i], dtdy[i], nchannels,
+                           result, dresultds, dresultdt);
+        }
+        result += nchannels;
+        if (dresultds) {
+            dresultds += nchannels;
+            dresultdt += nchannels;
         }
     }
     return ok;
@@ -796,11 +797,6 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
     ++stats.texture_queries;
-
-    if (nchannels > 4) {
-        error ("Only 1-4 channel lookups allowed, not %d", nchannels);
-        return false;
-    }
 
     if (! texturefile  ||  texturefile->broken())
         return missing_texture (options, nchannels, result, dresultds, dresultdt);
