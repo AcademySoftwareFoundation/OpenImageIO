@@ -65,6 +65,7 @@ static bool verbose = false;
 static int nthreads = 0;
 static int threadtimes = 0;
 static int output_xres = 512, output_yres = 512;
+static int nchannels_override = 0;
 static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
 static float sblur = 0, tblur = -1;
@@ -99,6 +100,7 @@ static bool testhash = false;
 static bool wedge = false;
 static int ntrials = 1;
 static int testicwrite = 0;
+static bool test_derivs = false;
 static Imath::M33f xform;
 void *dummyptr;
 
@@ -134,9 +136,12 @@ getargs (int argc, const char *argv[])
                         "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                   "--res %d %d", &output_xres, &output_yres,
                       "Resolution of output test image",
+                  "--nchannels %d", &nchannels_override,
+                      "Force number of channels to look up",
                   "--iters %d", &iters,
                       "Iterations for time trials",
                   "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
+                  "-t %d", &nthreads, "",  // synonym
                   "--blur %f", &sblur, "Add blur to texture lookup",
                   "--stblur %f %f", &sblur, &tblur, "Add blur (s, t) to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
@@ -166,6 +171,7 @@ getargs (int argc, const char *argv[])
                   "--nountiled", &nountiled, "Reject untiled images",
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
+                  "--derivs", &test_derivs, "Test returning derivatives of texture lookups",
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
                   "--testhash", &testhash, "Test the tile hashing function",
                   "--threadtimes %d", &threadtimes, "Do thread timings (arg = workload profile)",
@@ -465,16 +471,23 @@ map_warp_3D (int x, int y, Imath::V3f &P,
 
 void
 plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
-                  ROI roi)
+                  ImageBuf *image_ds, ImageBuf *image_dt, ROI roi)
 {
     TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
     TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
-    int nchannels = image.nchannels();
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
     initialize_opt (opt, nchannels);
 
-    float *result = ALLOCA (float, nchannels);
+    float *result = ALLOCA (float, std::max (3, nchannels));
+    float *dresultds = NULL, *dresultdt = NULL;
+    if (test_derivs) {
+        dresultds = ALLOCA (float, nchannels);
+        dresultdt = ALLOCA (float, nchannels);
+        opt.dresultds = dresultds;
+        opt.dresultdt = dresultdt;
+    }
     for (ImageBuf::Iterator<float> p (image, roi);  ! p.done();  ++p) {
         float s, t, dsdx, dtdx, dsdy, dtdy;
         mapping (p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
@@ -483,10 +496,12 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
         bool ok;
         if (use_handle)
             ok = texsys->texture (texture_handle, perthread_info, opt,
-                                  s, t, dsdx, dtdx, dsdy, dtdy, result);
+                                  s, t, dsdx, dtdx, dsdy, dtdy,
+                                  result);
         else
             ok = texsys->texture (filename, opt,
-                                  s, t, dsdx, dtdx, dsdy, dtdy, result);
+                                  s, t, dsdx, dtdx, dsdy, dtdy,
+                                  result);
         if (! ok) {
             std::string e = texsys->geterror ();
             if (! e.empty())
@@ -497,6 +512,10 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
         for (int i = 0;  i < nchannels;  ++i)
             result[i] *= scalefactor;
         image.setpixel (p.x(), p.y(), result);
+        if (test_derivs) {
+            image_ds->setpixel (p.x(), p.y(), dresultds);
+            image_dt->setpixel (p.x(), p.y(), dresultdt);
+        }
     }
 }
 
@@ -512,6 +531,13 @@ test_plain_texture (Mapping2D mapping)
     adjust_spec (outspec, dataformatname);
     ImageBuf image (outspec);
     ImageBufAlgo::zero (image);
+    ImageBuf image_ds, image_dt;
+    if (test_derivs) {
+        image_ds.reset (outspec);
+        ImageBufAlgo::zero (image_ds);
+        image_dt.reset (outspec);
+        ImageBufAlgo::zero (image_dt);
+    }
 
     ustring filename = filenames[0];
 
@@ -523,7 +549,9 @@ test_plain_texture (Mapping2D mapping)
             std::cerr << "iter " << iter << " file " << filename << "\n";
         }
 
-        ImageBufAlgo::parallel_image (boost::bind(plain_tex_region, boost::ref(image), filename, mapping, _1),
+        ImageBufAlgo::parallel_image (boost::bind(plain_tex_region, boost::ref(image), filename, mapping,
+                                                  test_derivs ? &image_ds : NULL,
+                                                  test_derivs ? &image_dt : NULL, _1),
                                       get_roi(image.spec()), nthreads);
 
         if (resetstats) {
@@ -535,6 +563,14 @@ test_plain_texture (Mapping2D mapping)
     if (! image.write (output_filename)) 
         std::cerr << "Error writing " << output_filename 
                   << " : " << image.geterror() << "\n";
+    if (test_derivs) {
+        if (! image_ds.write (output_filename+"-ds.exr")) 
+            std::cerr << "Error writing " << (output_filename+"-ds.exr")
+                      << " : " << image_ds.geterror() << "\n";
+        if (! image_dt.write (output_filename+"-dt.exr")) 
+            std::cerr << "Error writing " << (output_filename+"-dt.exr")
+                      << " : " << image_dt.geterror() << "\n";
+    }
 }
 
 
@@ -545,7 +581,7 @@ tex3d_region (ImageBuf &image, ustring filename, Mapping3D mapping,
 {
     TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
     TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
-    int nchannels = image.nchannels();
+    int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
     initialize_opt (opt, nchannels);
@@ -580,7 +616,7 @@ test_texture3d (ustring filename, Mapping3D mapping)
 {
     std::cerr << "Testing 3d texture " << filename << ", output = " 
               << output_filename << "\n";
-    const int nchannels = 4;
+    int nchannels = nchannels_override ? nchannels_override : 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     adjust_spec (outspec, dataformatname);
     ImageBuf image (outspec);
@@ -634,13 +670,14 @@ test_getimagespec_gettexels (ustring filename)
 
     int w = spec.width / std::max(1,2<<miplevel);
     int h = spec.height / std::max(1,2<<miplevel);
-    ImageSpec postagespec (w, h, spec.nchannels, TypeDesc::FLOAT);
+    int nchannels = nchannels_override ? nchannels_override : spec.nchannels;
+    ImageSpec postagespec (w, h, nchannels, TypeDesc::FLOAT);
     ImageBuf buf (postagespec);
     TextureOptions opt;
-    opt.nchannels = spec.nchannels;
+    opt.nchannels = nchannels;
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
-    std::vector<float> tmp (w*h*spec.nchannels);
+    std::vector<float> tmp (w*h*nchannels);
     bool ok = texsys->get_texels (filename, opt, miplevel,
                                   spec.x+w/2, spec.x+w/2+w,
                                   spec.y+h/2, spec.y+h/2+h,
@@ -774,6 +811,7 @@ static const char *workload_names[] = {
     /*5*/ "Coherent access, many files, each thread in similar spots",
     /*6*/ "Coherent access, many files, each thread in different spots",
     /*7*/ "Coherent access, many files, partially overlapping texture sets",
+    /*8*/ "Coherent access, many files, partially overlapping texture sets, no extra busy work",
     NULL
 };
 
@@ -784,10 +822,17 @@ do_tex_thread_workout (int iterations, int mythread)
 {
     int nfiles = (int) filenames.size();
     float s = 0.1f, t = 0.1f;
-    const int nchannels = 3;
-    float result[nchannels];
+    int nchannels = nchannels_override ? nchannels_override : 3;
+    float *result = ALLOCA (float, nchannels);
     TextureOpt opt;
     initialize_opt (opt, nchannels);
+    float *dresultds = NULL, *dresultdt = NULL;
+    if (test_derivs) {
+        dresultds = ALLOCA (float, nchannels);
+        dresultdt = ALLOCA (float, nchannels);
+        opt.dresultds = dresultds;
+        opt.dresultdt = dresultdt;
+    }
     TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
     TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filenames[0]);
     int pixel, whichfile = 0;
@@ -840,6 +885,7 @@ do_tex_thread_workout (int iterations, int mythread)
                 pixel += 57557*mythread;
             break;
         case 7:
+        case 8:
             // Workload 7: Coherent texture coordinates, but access
             // a series of textures at each coordinate, which partially
             // overlap with other threads.
@@ -868,9 +914,11 @@ do_tex_thread_workout (int iterations, int mythread)
         }
         // Do some pointless work, to simulate that in a real app, there
         // would be operations interspersed with texture accesses.
-        for (int j = 0;  j < 30;  ++j)
-            for (int c = 0;  c < nchannels;  ++c)
-                result[c] = cosf (result[c]);
+        if (threadtimes != 8 /* skip on this test */) {
+            for (int j = 0;  j < 30;  ++j)
+                for (int c = 0;  c < nchannels;  ++c)
+                    result[c] = cosf (result[c]);
+        }
     }
     // Force the compiler to not optimize away the "other work"
     for (int c = 0;  c < nchannels;  ++c)
@@ -959,7 +1007,7 @@ test_icwrite (int testicwrite)
 
     // Set up the fake file ane add it
     int tw = 64, th = 64;  // tile width and height
-    int nc = 3;  // channels
+    int nc = nchannels_override ? nchannels_override : 3;  // channels
     ImageSpec spec (512, 512, nc, TypeDesc::FLOAT);
     spec.depth = 1;
     spec.tile_width = tw;
@@ -1069,7 +1117,10 @@ main (int argc, const char *argv[])
     xform.invert();
 
     if (threadtimes) {
-        const int iterations = 2000000;
+        // If the --iters flag was used, do that number of iterations total
+        // (divided among the threads). If not supplied (iters will be 1),
+        // then use a large constant *per thread*.
+        const int iterations = iters>1 ? iters : 2000000;
         std::cout << "Workload: " << workload_names[threadtimes] << "\n";
         std::cout << "texture cache size = " << cachesize << " MB\n";
         std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
@@ -1079,11 +1130,11 @@ main (int argc, const char *argv[])
 
         if (nthreads == 0)
             nthreads = boost::thread::hardware_concurrency();
-        static int threadcounts[] = { 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
+        static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 24, 32, 64, 128, 1024, 1<<30 };
         float single_thread_time = 0.0f;
         for (int i = 0; threadcounts[i] <= nthreads; ++i) {
             int nt = wedge ? threadcounts[i] : nthreads;
-            int its = iterations; // / nt;
+            int its = iters>1 ? (std::max (1, iters/nt)) : iterations; // / nt;
             double range;
             double t = time_trial (boost::bind(launch_tex_threads,nt,its),
                                    ntrials, &range);

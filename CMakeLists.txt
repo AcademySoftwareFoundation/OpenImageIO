@@ -385,7 +385,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 python-imagebuf python-imagebufalgo
                 maketx
                 texture-blurtube texture-crop texture-cropover
-                texture-fill texture-filtersize
+                texture-derivs texture-fill texture-filtersize
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
