@@ -47,7 +47,7 @@ class FFmpegInput : public ImageInput {
 public:
     FFmpegInput ();
     virtual ~FFmpegInput();
-    virtual const char *format_name (void) const { return "mov"; }
+    virtual const char *format_name (void) const { return "Movie"; }
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool close (void);
     virtual int current_subimage (void) const { return m_subimage; }
@@ -68,6 +68,7 @@ private:
     AVCodec *m_codec;
     AVFrame *m_frame;
     AVFrame *m_rgb_frame;
+    SwsContext *m_sws_rgb_context;
     AVRational m_frame_rate;
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
@@ -83,8 +84,9 @@ private:
         m_format_context = 0;
         m_codec_context = 0;
         m_codec = 0;
-        av_free (m_frame);
-        av_free (m_rgb_frame);
+        m_frame = 0;
+        m_rgb_frame = 0;
+        m_sws_rgb_context = 0;
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream = -1;
@@ -114,11 +116,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 FFmpegInput::FFmpegInput ()
-: m_format_context (0)
-, m_codec_context (0)
-, m_codec (0)
-, m_frame (0)
-, m_rgb_frame (0)
 {
     init();
 }
@@ -155,7 +152,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
             if (m_video_stream < 0) {
                 m_video_stream=i;
             }
-            m_video_indexes.push_back(i); // needed for later use
+            m_video_indexes.push_back (i); // needed for later use
             break;
         }
     }
@@ -197,20 +194,57 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         seek (1 << 29);
         av_init_packet (&pkt);
         while (stream && av_read_frame (m_format_context, &pkt) >= 0) {
-            uint64_t current_pts = static_cast<uint64_t>(av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
+            uint64_t current_pts = static_cast<uint64_t> (av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
             if (current_pts > max_pts) {
                 max_pts = current_pts;
             }
         }
         m_frames = max_pts;
     }
+    m_frame = av_frame_alloc();
+    m_rgb_frame = av_frame_alloc();
+    m_rgb_buffer.resize(
+        avpicture_get_size (PIX_FMT_RGB24,
+        m_codec_context->width,
+        m_codec_context->height),
+        0
+    );
+    AVPixelFormat pixFormat;
+    switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
+        case AV_PIX_FMT_YUVJ420P:
+            pixFormat = AV_PIX_FMT_YUV420P;
+            break;
+        case AV_PIX_FMT_YUVJ422P:
+            pixFormat = AV_PIX_FMT_YUV422P;
+            break;
+        case AV_PIX_FMT_YUVJ444P:
+            pixFormat = AV_PIX_FMT_YUV444P;
+            break;
+        case AV_PIX_FMT_YUVJ440P:
+            pixFormat = AV_PIX_FMT_YUV440P;
+        default:
+            pixFormat = m_codec_context->pix_fmt;
+            break;
+    }
+    m_sws_rgb_context = sws_getContext(
+        m_codec_context->width,
+        m_codec_context->height,
+        pixFormat,
+        m_codec_context->width,
+        m_codec_context->height,
+        PIX_FMT_RGB24,
+        SWS_AREA,
+        NULL,
+        NULL,
+        NULL
+    );
     m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3, TypeDesc::UINT8);
     AVDictionaryEntry *tag = NULL;
     while ((tag = av_dict_get (m_format_context->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute (tag->key, tag->value);
     }
     m_spec.attribute ("fps", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
-    m_spec.attribute ("oiio::Movie", true);
+    m_spec.attribute ("oiio:Movie", true);
     m_nsubimages = m_frames;
     spec = m_spec;
     return true;
@@ -254,6 +288,9 @@ FFmpegInput::close (void)
     avcodec_close (m_codec_context);
     avformat_close_input (&m_format_context);
     av_free (m_format_context); // will free m_codec and m_codec_context
+    av_frame_free (&m_frame); // free after close input
+    av_frame_free (&m_rgb_frame);
+    sws_freeContext (m_sws_rgb_context);
     init ();
     return true;
 }
@@ -268,9 +305,8 @@ FFmpegInput::read_frame(int pos)
         seek (m_subimage);
     }
     AVPacket pkt;
-    av_init_packet (&pkt);
     int finished = 0;
-    while (av_read_frame (m_format_context, &pkt) >=0 && !finished) {
+    while (av_read_frame (m_format_context, &pkt) >=0) {
         if (pkt.stream_index == m_video_stream) {
             double pts = 0;
             if (static_cast<uint64_t> (pkt.dts) != AV_NOPTS_VALUE) {
@@ -282,51 +318,13 @@ FFmpegInput::read_frame(int pos)
             }
             m_last_search_pos = current_pos;
             if (static_cast<uint64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
-                current_pos -= int(m_format_context->start_time * fps() / AV_TIME_BASE);
+                current_pos -= static_cast<int> (m_format_context->start_time * fps() / AV_TIME_BASE);
             }
             if (current_pos >= m_subimage) {
-                m_frame = av_frame_alloc(); // alloc frame, available for decode
                 avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
             }
-            if (finished)
+            if(finished)
             {
-                AVPixelFormat pixFormat;
-                switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
-                    case AV_PIX_FMT_YUVJ420P:
-                        pixFormat = AV_PIX_FMT_YUV420P;
-                        break;
-                    case AV_PIX_FMT_YUVJ422P:
-                        pixFormat = AV_PIX_FMT_YUV422P;
-                        break;
-                    case AV_PIX_FMT_YUVJ444P:
-                        pixFormat = AV_PIX_FMT_YUV444P;
-                        break;
-                    case AV_PIX_FMT_YUVJ440P:
-                        pixFormat = AV_PIX_FMT_YUV440P;
-                    default:
-                        pixFormat = m_codec_context->pix_fmt;
-                        break;
-                }
-                struct SwsContext *sws_rgb_context = sws_getContext
-                (
-                    m_codec_context->width,
-                    m_codec_context->height,
-                    pixFormat,
-                    m_codec_context->width,
-                    m_codec_context->height,
-                    PIX_FMT_RGB24,
-                    SWS_AREA,
-                    NULL,
-                    NULL,
-                    NULL
-                );
-                m_rgb_buffer.resize( // resize to alloc memory for m_rgb_frame
-                    avpicture_get_size (PIX_FMT_RGB24, 
-                    m_codec_context->width,
-                    m_codec_context->height),
-                    0
-                );
-                m_rgb_frame = av_frame_alloc(); // alloc rgb frame, available for fill
                 avpicture_fill
                 (
                     reinterpret_cast<AVPicture*>(m_rgb_frame),
@@ -335,9 +333,9 @@ FFmpegInput::read_frame(int pos)
                     m_codec_context->width,
                     m_codec_context->height
                 );
-                sws_scale // scale to RGB
+                sws_scale
                 (
-                    sws_rgb_context,
+                    m_sws_rgb_context,
                     static_cast<uint8_t const * const *> (m_frame->data),
                     m_frame->linesize,
                     0,
@@ -346,10 +344,12 @@ FFmpegInput::read_frame(int pos)
                     m_rgb_frame->linesize
                 );
                 m_last_decoded_pos = m_last_search_pos; 
+                av_free_packet (&pkt);
+                break;
             }
         }
+        av_free_packet (&pkt);
     }
-    av_free_packet (&pkt);
     m_read_frame = true;
 }
 
