@@ -27,8 +27,21 @@ Major new features and improvements:
      #932 (1.5.3)
    * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
    * median_filter performs a median filter. (1.5.4)
+* Significant internal speedups by utilizing SIMD instructions (SSE) in
+  the TextureSystem (1.5.5 / #948). To use this to its fullest extent,
+  build OIIO with the make/cmake option USE_SIMD=arch, where arch is
+  sse2, sse3, sse4.1, sse4.2, depending on what machines you'll be
+  deploying to. (Note that x86_64 automatically implies at least sse2.)
+  (1.5.5)
 
 Public API changes:
+* TextureSystem API calls have been modified: the nchannels, dresultds,
+  dresultdt fields have been removed from TextureOpt and are now passed
+  explicitly as arguments to texture(), environment(), and texture3d().
+  Some long-deprecated methods of TextureSystem have been removed, and
+  also some new API calls have been added that provide multi-point
+  texturing given a TextureHandle/PerThread rather than a ustring
+  filename.  (1.5.5) (#948)
 * New filters available to direct users of filter.{h,cpp} and for
   ImageBufAlgo, oiiotoo, and maketx: "cubic", "keys", "simon", "rifman".
   (1.5.0/1.4.9) (#874)
@@ -187,6 +200,8 @@ Developer goodies / internals:
   (1.5.4)
 * ustring: add comparisons between ustrings versus char* and string_view.
   (1.5.4)
+* New simd.h exposes float4, int4, and mask4 classes that utilize SSE
+  instructions for big speedups. (1.5.5 / #948)
 
 
 
