@@ -79,6 +79,7 @@ bool
 ImageBuf_read (ImageBuf &buf, int subimage=0, int miplevel=0,
                bool force=false, TypeDesc convert=TypeDesc::UNKNOWN)
 {
+    ScopedGILRelease gil;
     return buf.read (subimage, miplevel, force, convert);
 }
 
@@ -88,6 +89,7 @@ ImageBuf_read2 (ImageBuf &buf, int subimage=0, int miplevel=0,
                 bool force=false,
                 TypeDesc::BASETYPE convert=TypeDesc::UNKNOWN)
 {
+    ScopedGILRelease gil;
     return buf.read (subimage, miplevel, force, convert);
 }
 
@@ -102,6 +104,7 @@ bool
 ImageBuf_write (const ImageBuf &buf, const std::string &filename,
                 const std::string &fileformat="")
 {
+    ScopedGILRelease gil;
     return buf.write (filename, fileformat);
 }
 

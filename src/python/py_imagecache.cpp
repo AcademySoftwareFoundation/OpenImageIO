@@ -117,17 +117,20 @@ bool ImageCacheWrap::getattribute_string(const std::string &name, std::string &v
 }
 
 std::string ImageCacheWrap::resolve_filename (const std::string &val) {
+    ScopedGILRelease gil;
     return m_cache->resolve_filename(val);
 }
 
 bool ImageCacheWrap::get_image_info (ustring filename, ustring dataname,
                         TypeDesc datatype, void *data)
 {
+    ScopedGILRelease gil;
     return m_cache->get_image_info(filename, dataname, datatype, data);
 }   
 
 bool ImageCacheWrap::get_imagespec(ustring filename, ImageSpec &spec, int subimage=0)
 {
+    ScopedGILRelease gil;
     return m_cache->get_imagespec(filename, spec, subimage);
 }    
 
@@ -135,6 +138,7 @@ bool ImageCacheWrap::get_pixels (ustring filename, int subimage, int miplevel,
                 int xbegin, int xend, int ybegin, int yend, int zbegin, 
                 int zend, TypeDesc format, void *result)
 { 
+    ScopedGILRelease gil;
     return m_cache->get_pixels(filename, subimage, miplevel, xbegin, xend,
                                ybegin, yend, zbegin, zend, format, result);
 }
@@ -160,16 +164,19 @@ std::string ImageCacheWrap::geterror () const
 
 std::string ImageCacheWrap::getstats (int level=1) const
 {
+    ScopedGILRelease gil;
     return m_cache->getstats(level);
 }
 
 void ImageCacheWrap::invalidate (ustring filename)
 {
+    ScopedGILRelease gil;
     return m_cache->invalidate(filename);
 }
 
 void ImageCacheWrap::invalidate_all (bool force=false)
 {
+    ScopedGILRelease gil;
     return m_cache->invalidate_all(force);
 }           
 

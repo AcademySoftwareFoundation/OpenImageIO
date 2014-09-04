@@ -42,6 +42,15 @@ class IBA_dummy { };   // dummy class to establish a scope
 
 
 bool
+IBA_zero (ImageBuf &dst, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::zero (dst, roi, nthreads);
+}
+
+
+
+bool
 IBA_fill (ImageBuf &dst, tuple values_tuple,
           ROI roi=ROI::All(), int nthreads=0)
 {
@@ -53,6 +62,7 @@ IBA_fill (ImageBuf &dst, tuple values_tuple,
         values.resize (roi.nchannels(), 0.0f);
     else return false;
     ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
     return ImageBufAlgo::fill (dst, &values[0], roi, nthreads);
 }
 
@@ -76,6 +86,7 @@ IBA_checker (ImageBuf &dst, int width, int height, int depth,
     else if (roi.defined())
         color2.resize (roi.nchannels(), 0.0f);
     else return false;
+    ScopedGILRelease gil;
     return ImageBufAlgo::checker (dst, width, height, depth,
                                   &color1[0], &color2[0],
                                   xoffset, yoffset, zoffset, roi, nthreads);
@@ -121,10 +132,143 @@ IBA_channels (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Inconsistent number of channel arguments");
         return false;
     }
+    ScopedGILRelease gil;
     return ImageBufAlgo::channels (dst, src, (int)nchannels, &channelorder[0],
                          channelvalues.size() ? &channelvalues[0] : NULL,
                          newchannelnames.size() ? &newchannelnames[0] : NULL,
                          shuffle_channel_names);
+}
+
+
+
+bool
+IBA_channel_append (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                    ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::channel_append (dst, A, B, roi, nthreads);
+}
+
+
+
+bool
+IBA_flatten (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::flatten (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_crop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::crop (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_cut (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::cut (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_paste (ImageBuf &dst, int xbegin, int ybegin, int zbegin, int chbegin,
+           const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::paste (dst, xbegin, ybegin, zbegin, chbegin,
+                                src, roi, nthreads);
+}
+
+
+
+bool
+IBA_rotate90 (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::rotate90 (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_rotate180 (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::rotate180 (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_rotate270 (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::rotate270 (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_flip (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::flip (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_flop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::flop (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_flipflop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::flipflop (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::reorient (dst, src, nthreads);
+}
+
+
+
+bool
+IBA_transpose (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::transpose (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_circular_shift (ImageBuf &dst, const ImageBuf &src,
+                    int xshift, int yshift, int zshift,
+                    ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::circular_shift (dst, src, xshift, yshift, zshift,
+                                         roi, nthreads);
 }
 
 
@@ -141,6 +285,7 @@ IBA_add_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
         values.resize (A.nchannels(), 0.0f);
     else return false;
     ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
     return ImageBufAlgo::add (dst, A, &values[0], roi, nthreads);
 }
 
@@ -148,6 +293,7 @@ bool
 IBA_add_float (ImageBuf &dst, const ImageBuf &A, float val,
                ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::add (dst, A, val, roi, nthreads);
 }
 
@@ -155,6 +301,7 @@ bool
 IBA_add_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                 ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::add (dst, A, B, roi, nthreads);
 }
 
@@ -172,6 +319,7 @@ IBA_sub_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
         values.resize (A.nchannels(), 0.0f);
     else return false;
     ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
     return ImageBufAlgo::sub (dst, A, &values[0], roi, nthreads);
 }
 
@@ -179,6 +327,7 @@ bool
 IBA_sub_float (ImageBuf &dst, const ImageBuf &A, float val,
                ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::sub (dst, A, val, roi, nthreads);
 }
 
@@ -186,6 +335,7 @@ bool
 IBA_sub_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                 ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::sub (dst, A, B, roi, nthreads);
 }
 
@@ -203,6 +353,7 @@ IBA_mul_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
         values.resize (A.nchannels(), 0.0f);
     else return false;
     ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
     return ImageBufAlgo::mul (dst, A, &values[0], roi, nthreads);
 }
 
@@ -210,6 +361,7 @@ bool
 IBA_mul_float (ImageBuf &dst, const ImageBuf &A, float B,
                ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::mul (dst, A, B, roi, nthreads);
 }
 
@@ -217,6 +369,7 @@ bool
 IBA_mul_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                 ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::mul (dst, A, B, roi, nthreads);
 }
 
@@ -234,6 +387,7 @@ IBA_pow_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
         values.resize (A.nchannels(), 0.0f);
     else return false;
     ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
     return ImageBufAlgo::pow (dst, A, &values[0], roi, nthreads);
 }
 
@@ -241,6 +395,7 @@ bool
 IBA_pow_float (ImageBuf &dst, const ImageBuf &A, float B,
                ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::pow (dst, A, B, roi, nthreads);
 }
 
@@ -260,6 +415,7 @@ IBA_clamp (ImageBuf &dst, const ImageBuf &src,
     py_to_stdvector (max, max_);
     min.resize (src.nchannels(), -std::numeric_limits<float>::max());
     max.resize (src.nchannels(), std::numeric_limits<float>::max());
+    ScopedGILRelease gil;
     return ImageBufAlgo::clamp (dst, src, &min[0], &max[0],
                                 clampalpha01, roi, nthreads);
 }
@@ -272,6 +428,7 @@ IBA_clamp_float (ImageBuf &dst, const ImageBuf &src,
                  bool clampalpha01 = false,
                  ROI roi = ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     if (! src.initialized())
         return false;
     std::vector<float> min, max;
@@ -297,6 +454,7 @@ IBA_channel_sum_weight (ImageBuf &dst, const ImageBuf &src, tuple weight_tuple,
         weight.resize (src.nchannels(), 1.0f);  // no weights -> uniform
     else
         weight.resize (src.nchannels(), 0.0f);  // missing weights -> 0
+    ScopedGILRelease gil;
     return ImageBufAlgo::channel_sum (dst, src, &weight[0], roi, nthreads);
 }
 
@@ -304,6 +462,7 @@ bool
 IBA_channel_sum (ImageBuf &dst, const ImageBuf &src,
                  ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::channel_sum (dst, src, NULL, roi, nthreads);
 }
 
@@ -312,6 +471,7 @@ bool IBA_rangeexpand (ImageBuf &dst, const ImageBuf &src,
                       bool useluma = false,
                       ROI roi = ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::rangeexpand (dst, src, useluma, roi, nthreads);
 }
 
@@ -320,6 +480,7 @@ bool IBA_rangecompress (ImageBuf &dst, const ImageBuf &src,
                         bool useluma = false,
                         ROI roi = ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::rangecompress (dst, src, useluma, roi, nthreads);
 }
 
@@ -328,6 +489,7 @@ bool IBA_rangecompress (ImageBuf &dst, const ImageBuf &src,
 bool IBA_premult (ImageBuf &dst, const ImageBuf &src,
                   ROI roi = ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::premult (dst, src, roi, nthreads);
 }
 
@@ -335,7 +497,31 @@ bool IBA_premult (ImageBuf &dst, const ImageBuf &src,
 bool IBA_unpremult (ImageBuf &dst, const ImageBuf &src,
                     ROI roi = ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::unpremult (dst, src, roi, nthreads);
+}
+
+
+
+bool IBA_compare (const ImageBuf &A, const ImageBuf &B,
+                  float failthresh, float warnthresh,
+                  ImageBufAlgo::CompareResults &result,
+                  ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::compare (A, B, failthresh, warnthresh,
+                                  result, roi, nthreads);
+}
+
+
+
+bool IBA_compare_Yee (const ImageBuf &A, const ImageBuf &B,
+                      ImageBufAlgo::CompareResults &result,
+                      float luminance, float fov, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::compare_Yee (A, B, result, luminance, fov,
+                                      roi, nthreads);
 }
 
 
@@ -346,6 +532,7 @@ IBA_computePixelHashSHA1 (const ImageBuf &src,
                           ROI roi = ROI::All(),
                           int blocksize = 0, int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::computePixelHashSHA1 (src, extrainfo, roi,
                                                blocksize, nthreads);
 }
@@ -363,6 +550,7 @@ IBA_warp (ImageBuf &dst, const ImageBuf &src, tuple values_M,
     py_to_stdvector (M, values_M);
     if (M.size() != 9)
         return false;
+    ScopedGILRelease gil;
     return ImageBufAlgo::warp (dst, src, *(Imath::M33f *)&M[0],
                                filtername, filterwidth, recompute_roi, wrap,
                                roi, nthreads);
@@ -376,6 +564,7 @@ IBA_rotate (ImageBuf &dst, const ImageBuf &src, float angle,
             bool recompute_roi = false,
             ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::rotate (dst, src, angle, filtername, filterwidth,
                                  recompute_roi, roi, nthreads);
 }
@@ -389,6 +578,7 @@ IBA_rotate2 (ImageBuf &dst, const ImageBuf &src, float angle,
              bool recompute_roi = false,
              ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::rotate (dst, src, angle, center_x, center_y,
                                  filtername, filterwidth, recompute_roi,
                                  roi, nthreads);
@@ -401,8 +591,19 @@ IBA_resize (ImageBuf &dst, const ImageBuf &src,
             const std::string &filtername = "", float filterwidth = 0.0f,
             ROI roi=ROI::All(), int nthreads=0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::resize (dst, src, filtername, filterwidth,
                                  roi, nthreads);
+}
+
+
+
+bool
+IBA_resample (ImageBuf &dst, const ImageBuf &src, bool interpolate,
+              ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::resample (dst, src, interpolate, roi, nthreads);
 }
 
 
@@ -411,8 +612,19 @@ bool
 IBA_make_kernel (ImageBuf &dst, const std::string &name,
                  float width, float height, float depth, bool normalize)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::make_kernel (dst, name, width, height, depth,
                                       normalize);
+}
+
+
+
+bool
+IBA_convolve (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
+              bool normalize, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::convolve (dst, src, kernel, normalize, roi, nthreads);
 }
 
 
@@ -422,8 +634,74 @@ IBA_unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                   const std::string &kernel, float width,
                   float contrast, float threshold, ROI roi, int nthreads)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::unsharp_mask (dst, src, kernel, width,
                                        contrast, threshold, roi, nthreads);
+}
+
+
+
+bool
+IBA_median_filter (ImageBuf &dst, const ImageBuf &src,
+                   int width, int height, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::median_filter (dst, src, width, height, roi, nthreads);
+}
+
+
+
+bool
+IBA_fft (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::fft (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_ifft (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::ifft (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_polar_to_complex (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::polar_to_complex (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_complex_to_polar (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::complex_to_polar (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_fillholes_pushpull (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::fillholes_pushpull (dst, src, roi, nthreads);
+}
+
+
+
+bool
+IBA_over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+           ROI roi = ROI::All(), int nthreads = 0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::over (dst, A, B, roi, nthreads);
 }
 
 
@@ -433,6 +711,7 @@ IBA_zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
            bool z_zeroisinf = false,
            ROI roi = ROI::All(), int nthreads = 0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::zover (dst, A, B, z_zeroisinf, roi, nthreads);
 }
 
@@ -444,6 +723,7 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
                   bool unpremult = false,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::colorconvert (dst, src, from.c_str(), to.c_str(),
                                        unpremult, roi, nthreads);
 }
@@ -457,6 +737,7 @@ IBA_ociolook (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
               const std::string &context_key, const std::string &context_value,
               ROI roi = ROI::All(), int nthreads = 0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::ociolook (dst, src, looks.c_str(),
                                    from.c_str(), to.c_str(),
                                    inverse, unpremult,
@@ -479,7 +760,7 @@ IBA_ociodisplay (ImageBuf &dst, const ImageBuf &src,
         from_str = extract<std::string>(from);
     if (looks != object())
         looks_str = extract<std::string>(looks);
-
+    ScopedGILRelease gil;
     return ImageBufAlgo::ociodisplay (dst, src, display.c_str(), view.c_str(),
                                       from == object() ? NULL : from_str.c_str(),
                                       looks == object() ? NULL : looks_str.c_str(),
@@ -495,8 +776,11 @@ IBA_isConstantColor (const ImageBuf &src,
                      ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> constcolor (src.nchannels());
-    bool r = ImageBufAlgo::isConstantColor (src, &constcolor[0],
-                                            roi, nthreads);
+    bool r;
+    {
+        ScopedGILRelease gil;
+        r = ImageBufAlgo::isConstantColor (src, &constcolor[0], roi, nthreads);
+    }
     if (r) {
         return C_to_tuple (&constcolor[0], (int)constcolor.size(),
                            PyFloat_FromDouble);
@@ -507,11 +791,37 @@ IBA_isConstantColor (const ImageBuf &src,
 
 
 
+bool IBA_isConstantChannel (const ImageBuf &src, int channel, float val,
+                            ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::isConstantChannel (src, channel, val, roi, nthreads);
+}
+
+
+
+bool IBA_isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::isMonochrome (src, roi, nthreads);
+}
+
+
+
+ROI IBA_nonzero_region(const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::nonzero_region(src, roi, nthreads);
+}
+
+
+
 bool
 IBA_fixNonFinite (ImageBuf &dst, const ImageBuf &src,
                   ImageBufAlgo::NonFiniteFixMode mode=ImageBufAlgo::NONFINITE_BOX3,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::fixNonFinite (dst, src, mode, NULL, roi, nthreads);
 }
 
@@ -526,6 +836,7 @@ IBA_render_text (ImageBuf &dst, int x, int y,
     std::vector<float> textcolor;
     py_to_stdvector (textcolor, textcolor_);
     textcolor.resize (dst.nchannels(), 1.0f);
+    ScopedGILRelease gil;
     return ImageBufAlgo::render_text (dst, x, y, text, fontsize, fontname,
                                       &textcolor[0]);
 }
@@ -536,6 +847,7 @@ bool
 IBA_capture_image (ImageBuf &dst, int cameranum,
                    TypeDesc::BASETYPE convert = TypeDesc::UNKNOWN)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::capture_image (dst, cameranum, convert);
 }
 
@@ -547,6 +859,7 @@ IBA_make_texture_ib (ImageBufAlgo::MakeTextureMode mode,
                      const std::string &outputfilename,
                      const ImageSpec &config)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::make_texture (mode, buf, outputfilename, config);
 }
 
@@ -557,6 +870,7 @@ IBA_make_texture_filename (ImageBufAlgo::MakeTextureMode mode,
                            const std::string &outputfilename,
                            const ImageSpec &config)
 {
+    ScopedGILRelease gil;
     return ImageBufAlgo::make_texture (mode, filename, outputfilename,
                                        config);
 }
@@ -596,7 +910,7 @@ void declare_imagebufalgo()
 
     // Use a boost::python::scope to put this all inside "ImageBufAlgo"
     boost::python::scope IBA = class_<IBA_dummy>("ImageBufAlgo")
-        .def("zero", &ImageBufAlgo::zero, 
+        .def("zero", &IBA_zero, 
              (arg("dst"), arg("roi")=ROI::All(), arg("nthreads")=0) )
         .staticmethod("zero")
 
@@ -618,72 +932,72 @@ void declare_imagebufalgo()
               arg("shuffle_channel_names")=false))
         .staticmethod("channels")
 
-        .def("channel_append", &ImageBufAlgo::channel_append,
+        .def("channel_append", IBA_channel_append,
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("channel_append")
 
-        .def("flatten", &ImageBufAlgo::flatten,
+        .def("flatten", IBA_flatten,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flatten")
 
-        .def("crop", &ImageBufAlgo::crop,
+        .def("crop", IBA_crop,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("crop")
 
-        .def("cut", &ImageBufAlgo::cut,
+        .def("cut", IBA_cut,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("cut")
 
-        .def("paste", &ImageBufAlgo::paste,
+        .def("paste", IBA_paste,
              (arg("dst"), arg("xbegin"), arg("ybegin"), arg("zbegin"),
               arg("chbegin"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("paste")
 
-        .def("rotate90", &ImageBufAlgo::rotate90,
+        .def("rotate90", IBA_rotate90,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("rotate90")
 
-        .def("rotate180", &ImageBufAlgo::rotate180,
+        .def("rotate180", IBA_rotate180,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("rotate180")
 
-        .def("rotate270", &ImageBufAlgo::rotate270,
+        .def("rotate270", IBA_rotate270,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("rotate270")
 
-        .def("flip", &ImageBufAlgo::flip,
+        .def("flip", IBA_flip,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flip")
 
-        .def("flop", &ImageBufAlgo::flop,
+        .def("flop", IBA_flop,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flop")
 
-        .def("flipflop", &ImageBufAlgo::rotate180,
+        .def("flipflop", IBA_rotate180,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flipflop")
 
-        .def("reorient", &ImageBufAlgo::reorient,
+        .def("reorient", IBA_reorient,
              (arg("dst"), arg("src"), arg("nthreads")=0))
         .staticmethod("reorient")
 
-        .def("transpose", &ImageBufAlgo::transpose,
+        .def("transpose", IBA_transpose,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("transpose")
 
-        .def("circular_shift", &ImageBufAlgo::circular_shift,
+        .def("circular_shift", &IBA_circular_shift,
              (arg("dst"), arg("src"),
               arg("xshift"), arg("yshift"), arg("zshift")=0,
               arg("roi")=ROI::All(), arg("nthreads")=0))
@@ -796,12 +1110,12 @@ void declare_imagebufalgo()
 
         // computePixelStats, 
 
-        .def("compare", &ImageBufAlgo::compare,
+        .def("compare", &IBA_compare,
              (arg("A"), arg("B"), arg("failthresh"), arg("warnthresh"),
               arg("result"), arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("compare")
 
-        .def("compare_Yee", &ImageBufAlgo::compare_Yee,
+        .def("compare_Yee", &IBA_compare_Yee,
              (arg("A"), arg("B"), arg("result"),
               arg("luminance")=100, arg("fov")=45,
               arg("roi")=ROI::All(), arg("nthreads")=0))
@@ -811,18 +1125,18 @@ void declare_imagebufalgo()
              (arg("src"), arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("isConstantColor")
 
-        .def("isConstantChannel", &ImageBufAlgo::isConstantChannel,
+        .def("isConstantChannel", &IBA_isConstantChannel,
              (arg("src"), arg("channel"), arg("val"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("isConstantChannel")
 
-        .def("isMonochrome", &ImageBufAlgo::isMonochrome,
+        .def("isMonochrome", &IBA_isMonochrome,
              (arg("src"), arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("isMonochrome")
 
         // color_count, color_range_check
 
-        .def("nonzero_region", &ImageBufAlgo::nonzero_region,
+        .def("nonzero_region", &IBA_nonzero_region,
              (arg("src"), arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("nonzero_region")
 
@@ -857,7 +1171,7 @@ void declare_imagebufalgo()
               arg("nthreads")=0))
         .staticmethod("resize")
 
-        .def("resample", &ImageBufAlgo::resample,
+        .def("resample", &IBA_resample,
              (arg("dst"), arg("src"), arg("interpolate")=true,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("resample")
@@ -867,7 +1181,7 @@ void declare_imagebufalgo()
               arg("depth")=1.0f, arg("normalize")=true))
         .staticmethod("make_kernel")
 
-        .def("convolve", &ImageBufAlgo::convolve,
+        .def("convolve", &IBA_convolve,
              (arg("dst"), arg("src"), arg("kernel"), arg("normalze")=true,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("convolve")
@@ -879,28 +1193,28 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("unsharp_mask")
 
-        .def("median_filter", &ImageBufAlgo::median_filter,
+        .def("median_filter", &IBA_median_filter,
              (arg("dst"), arg("src"),
               arg("width")=3, arg("height")=-1,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("median_filter")
 
-        .def("fft", &ImageBufAlgo::fft,
+        .def("fft", &IBA_fft,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("fft")
 
-        .def("ifft", &ImageBufAlgo::ifft,
+        .def("ifft", &IBA_ifft,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ifft")
 
-        .def("polar_to_complex", &ImageBufAlgo::polar_to_complex,
+        .def("polar_to_complex", &IBA_polar_to_complex,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("polar_to_complex")
 
-        .def("complex_to_polar", &ImageBufAlgo::complex_to_polar,
+        .def("complex_to_polar", &IBA_complex_to_polar,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("complex_to_polar")
@@ -911,7 +1225,7 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("fixNonFinite")
 
-        .def("fillholes_pushpull", &ImageBufAlgo::fillholes_pushpull,
+        .def("fillholes_pushpull", &IBA_fillholes_pushpull,
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("fillholes_pushpull")
@@ -921,7 +1235,7 @@ void declare_imagebufalgo()
               arg("convert")=TypeDesc::UNKNOWN))
         .staticmethod("capture_image")
 
-        .def("over", &ImageBufAlgo::over,
+        .def("over", &IBA_over,
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("over")

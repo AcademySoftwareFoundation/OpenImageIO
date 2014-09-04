@@ -109,6 +109,12 @@ Fixes, minor enhancements, and performance improvements:
    * Experimental feature: maketx --sharpen <AMT> adds slight sharpening
      and emphasis of higher frequencies when creating MIP-maps. #958 (1.5.5)
    * Fix crash when using --checknan (1.5.5)
+* Python:
+    * All of the expensive functions in the Python bindings now release the
+      Python GIL (global interpreter lock) as much as possible. This allows
+      other Python threads to make progress even when OIIO is doing a
+      lengthy operation such as file I/O or an expensive image processing
+      operation. (1.5.5)
 * OpenEXR:
    * Improve the quality of lossy b44 compression by more correctly
      using the pLinear value of channels (we were incorrectly using the

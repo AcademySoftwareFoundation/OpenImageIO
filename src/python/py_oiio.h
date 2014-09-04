@@ -127,6 +127,18 @@ object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
 
 
 
+// Helper class to release the GIL, allowing other Python threads to
+// proceed, then re-acquire it again when the scope ends.
+class ScopedGILRelease {
+public:
+    ScopedGILRelease () : m_thread_state(PyEval_SaveThread()) { }
+    ~ScopedGILRelease () { PyEval_RestoreThread (m_thread_state); }
+private:
+    PyThreadState *m_thread_state;
+};
+
+
+
 class ImageInputWrap {
 private:
     /// Friend declaration for ImageOutputWrap::copy_image

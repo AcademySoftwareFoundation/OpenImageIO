@@ -38,7 +38,10 @@ using namespace boost::python;
 object ImageInputWrap::open_static_regular (const std::string &filename)
 {
     ImageInputWrap* iiw = new ImageInputWrap;
-    iiw->m_input = ImageInput::open(filename);
+    {
+        ScopedGILRelease gil;
+        iiw->m_input = ImageInput::open(filename);
+    }
     if (iiw->m_input == NULL) {
         delete iiw;
         return object(handle<>(Py_None));
@@ -51,7 +54,10 @@ object ImageInputWrap::open_static_with_config (const std::string &filename,
                                                 const ImageSpec &config)
 {
     ImageInputWrap* iiw = new ImageInputWrap;
-    iiw->m_input = ImageInput::open(filename, &config);
+    {
+        ScopedGILRelease gil;
+        iiw->m_input = ImageInput::open(filename, &config);
+    }
     if (iiw->m_input == NULL) {
         delete iiw;
         return object(handle<>(Py_None));
@@ -64,7 +70,10 @@ object ImageInputWrap::create(const std::string &filename,
                               const std::string &plugin_searchpath) 
 {
     ImageInputWrap* iiw = new ImageInputWrap;
-    iiw->m_input = ImageInput::create(filename, plugin_searchpath);
+    {
+        ScopedGILRelease gil;
+        iiw->m_input = ImageInput::create(filename, plugin_searchpath);
+    }
     if (iiw->m_input == NULL) {
         delete iiw;
         return object(handle<>(Py_None));
@@ -85,11 +94,13 @@ const char* ImageInputWrap::format_name() const {
 
 bool ImageInputWrap::valid_file (const std::string &filename) const
 {
+    ScopedGILRelease gil;
     return m_input->valid_file (filename);
 }
 
 bool ImageInputWrap::open_regular (const std::string &name)
 {
+    ScopedGILRelease gil;
     ImageSpec newspec;
     return m_input->open(name, newspec);
 }
@@ -97,6 +108,7 @@ bool ImageInputWrap::open_regular (const std::string &name)
 bool ImageInputWrap::open_with_config (const std::string &name, 
                                        const ImageSpec &config)
 {
+    ScopedGILRelease gil;
     ImageSpec newspec;
     return m_input->open(name, newspec, config);
 }
@@ -128,6 +140,7 @@ int ImageInputWrap::current_miplevel() const
 
 bool ImageInputWrap::seek_subimage(int subimage, int miplevel)
 {
+    ScopedGILRelease gil;
     ImageSpec dummyspec;
     return m_input->seek_subimage (subimage, miplevel, dummyspec);
 }
@@ -185,7 +198,12 @@ ImageInputWrap::read_image (TypeDesc format)
     const ImageSpec &spec = m_input->spec();
     size_t size = (size_t) spec.image_pixels() * spec.nchannels * format.size();
     char *data = new char[size];
-    if (!m_input->read_image(format, data)) {
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_image(format, data);
+    }
+    if (! ok) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }
@@ -221,7 +239,12 @@ ImageInputWrap::read_scanline (int y, int z, TypeDesc format)
     const ImageSpec &spec = m_input->spec();
     size_t size = (size_t) spec.width * spec.nchannels * format.size();
     char *data = new char[size];
-    if (!m_input->read_scanline (y, z, format, data)) {
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_scanline (y, z, format, data);
+    }
+    if (!ok) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }
@@ -262,7 +285,12 @@ ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
     int nchans = chend - chbegin;
     size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
     char *data = new char[size];
-    if (!m_input->read_scanlines (ybegin, yend, z, chbegin, chend, format, data)) {
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_scanlines (ybegin, yend, z, chbegin, chend, format, data);
+    }
+    if (! ok) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }
@@ -301,7 +329,12 @@ ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
     const ImageSpec &spec = m_input->spec();
     size_t size = (size_t) spec.tile_pixels() * spec.nchannels * format.size();
     char *data = new char[size];
-    if (!m_input->read_tile (x, y, z, format, data)) {
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_tile (x, y, z, format, data);
+    }
+    if (! ok) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }
@@ -344,8 +377,13 @@ ImageInputWrap::read_tiles (int xbegin, int xend, int ybegin, int yend,
     size_t size = (size_t) ((xend-xbegin) * (yend-ybegin) * 
                             (zend-zbegin) * nchans * format.size());
     char *data = new char[size];
-    if (!m_input->read_tiles (xbegin, xend, ybegin, yend,
-                              zbegin, zend, chbegin, chend, format, data)) {
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_tiles (xbegin, xend, ybegin, yend,
+                                  zbegin, zend, chbegin, chend, format, data);
+    }
+    if (! ok) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }

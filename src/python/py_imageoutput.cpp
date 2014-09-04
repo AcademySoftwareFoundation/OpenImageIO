@@ -116,6 +116,7 @@ ImageOutputWrap::write_scanline (int y, int z, TypeDesc format, object &buffer,
                                  stride_t xstride)
 {
     const void *array = make_read_buffer (buffer, m_output->spec().scanline_bytes());
+    ScopedGILRelease gil;
     return m_output->write_scanline(y, z, format, array, xstride);
 }
 
@@ -134,6 +135,7 @@ ImageOutputWrap::write_scanlines (int ybegin, int yend, int z,
                                   stride_t xstride)
 {
     const void *array = make_read_buffer (buffer, m_output->spec().scanline_bytes());
+    ScopedGILRelease gil;
     return m_output->write_scanlines(ybegin, yend, z, format, array, xstride);
 }
 
@@ -155,6 +157,7 @@ ImageOutputWrap::write_tile (int x, int y, int z, TypeDesc format,
 {
     imagesize_t size = m_output->spec().tile_bytes();
     const void *array = make_read_buffer(buffer, size);
+    ScopedGILRelease gil;
     return m_output->write_tile(x, y, z, format, array, xstride, ystride, zstride);    
 }
 
@@ -176,6 +179,7 @@ ImageOutputWrap::write_tiles (int xbegin, int xend, int ybegin, int yend,
 {
     imagesize_t size = m_output->spec().tile_bytes();
     const void *array = make_read_buffer(buffer, size);
+    ScopedGILRelease gil;
     return m_output->write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
                                   format, array, xstride, ystride, zstride);    
 }
@@ -199,6 +203,7 @@ ImageOutputWrap::write_image (TypeDesc format, object &buffer,
 {
     imagesize_t size = m_output->spec().image_bytes();
     const void *array = make_read_buffer (buffer, size);
+    ScopedGILRelease gil;
     if (array)
         return m_output->write_image (format, array, xstride, ystride, zstride);
     return false;
