@@ -47,7 +47,7 @@ class FFmpegInput : public ImageInput {
 public:
     FFmpegInput ();
     virtual ~FFmpegInput();
-    virtual const char *format_name (void) const { return "Movie"; }
+    virtual const char *format_name (void) const { return "FFmpeg movie"; }
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool close (void);
     virtual int current_subimage (void) const { return m_subimage; }
@@ -107,9 +107,15 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT ImageInput *ffmpeg_input_imageio_create () {
         return new FFmpegInput;
     }
+    // FFmpeg hints:
+    // AVI (Audio Video Interleaved)
+    // QuickTime / MOV
+    // raw MPEG-4 video
+    // MPEG-1 Systems / MPEG program stream
     OIIO_EXPORT const char *ffmpeg_input_extensions[] = {
-        "mov", NULL
+        "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", NULL
     };
+    
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -155,7 +161,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
             m_video_indexes.push_back (i); // needed for later use
             break;
         }
-    }
+    }  
     if (m_video_stream == -1) {
         error ("\"%s\" could not find a valid videostream", file_name);
         return false;
