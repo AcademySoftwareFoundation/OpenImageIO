@@ -124,6 +124,10 @@
 #endif
 
 
+// OIIO_FORCELINE is a function attribute that attempts to make the function
+// always inline. On many compilers regular 'inline' is only advisory. Put
+// this attribute before the function return type, just like you would use
+// 'inline'.
 #if defined(__GNUC__) || defined(__clang__)
 #  define OIIO_FORCEINLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
@@ -132,7 +136,57 @@
 #  define OIIO_FORCEINLINE inline
 #endif
 
+// OIIO_PURE_FUNC is a function attribute that assures the compiler that the
+// function does not write to any non-local memory other than its return
+// value and has no side effects. This can ebable additional compiler
+// optimizations by knowing that calling the function cannot possibly alter
+// any other memory. This declaration goes after the function declaration:
+//   int blah (int arg) OIIO_PURE_FUNC;
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#  define OIIO_PURE_FUNC __attribute__((pure))
+#elif defined(_MSC_VER)
+#  define OIIO_PURE_FUNC  /* seems not supported by MSVS */
+#else
+#  define OIIO_PURE_FUNC
+#endif
 
+// OIIO_CONST_FUNC is a function attribute that assures the compiler that
+// the function does not examine (read) any values except for its arguments,
+// does not write any non-local memory other than its return value, and has
+// no side effects. This is even more strict than 'pure', and allows even
+// more optimizations (such as eliminating multiple calls to the function
+// that have the exact same argument values).
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#  define OIIO_CONST_FUNC __attribute__((const))
+#elif defined(_MSC_VER)
+#  define OIIO_CONST_FUNC  /* seems not supported by MSVS */
+#else
+#  define OIIO_CONST_FUNC
+#endif
+
+// OIIO_NOTHROW is a function attribute that assures the compiler that
+// neither the function nor any other function it calls will throw an
+// exception. This declaration goes after the
+// function declaration:  int blah (int arg) OIIO_NOTHROW;
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#  define OIIO_NOTHROW __attribute__((nothrow))
+#elif defined(_MSC_VER)
+#  define OIIO_NOTHROW __declspec(nothrow)
+#else
+#  define OIIO_NOTHROW
+#endif
+
+// OIIO_UNUSED_OK is a function or variable attribute that assures tells the
+// compiler that it's fine for the item to appear to be unused.
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#  define OIIO_UNUSED_OK __attribute__((unused))
+#else
+#  define OIIO_UNUSED_OK
+#endif
+
+// OIIO_RESTRICT is a parameter attribute that indicates a promise that the
+// parameter definitely will not alias any other parameters in such a way
+// that creates a data dependency. Use with caution!
 #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #  define OIIO_RESTRICT __restrict
 #else
