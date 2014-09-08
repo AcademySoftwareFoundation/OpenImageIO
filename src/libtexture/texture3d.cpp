@@ -101,18 +101,24 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
                               float *dresultdr)
 {
     // Handle >4 channel lookups by recursion.
-    while (nchannels > 4) {
-        bool ok = texture3d (texture_handle_, thread_info_, options,
-                             P, dPdx, dPdy, dPdz,
-                             4, result, dresultds, dresultdt, dresultdr);
-        if (! ok)
-            return false;
-        result += 4;
-        if (dresultds) dresultds += 4;
-        if (dresultdt) dresultdt += 4;
-        if (dresultdr) dresultdr += 4;
-        options.firstchannel += 4;
-        nchannels -= 4;
+    if (nchannels > 4) {
+        int save_firstchannel = options.firstchannel;
+        while (nchannels) {
+            int n = std::min (nchannels, 4);
+            bool ok = texture3d (texture_handle_, thread_info_, options,
+                                 P, dPdx, dPdy, dPdz,
+                                 n, result, dresultds, dresultdt, dresultdr);
+            if (! ok)
+                return false;
+            result += n;
+            if (dresultds) dresultds += n;
+            if (dresultdt) dresultdt += n;
+            if (dresultdr) dresultdr += n;
+            options.firstchannel += n;
+            nchannels -= n;
+        }
+        options.firstchannel = save_firstchannel; // restore what we changed
+        return true;
     }
 
 #if 0
