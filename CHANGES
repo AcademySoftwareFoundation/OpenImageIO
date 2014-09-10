@@ -37,6 +37,7 @@ Public API changes:
 * The Python ImageBuf class did not expose an equivalent to the C++
   ImageBuf::get_pixels. This is exposed now. #931 (1.5.3)
 * The Filter API now uses string_view. (1.5.3)
+* ImageBuf and ImageBufAlgo now use string_view extensively. (1.5.4)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -99,6 +100,8 @@ Fixes, minor enhancements, and performance improvements:
      "layers".  #904 (1.5.1/1.4.11)
    * Fixed issue where a stringvec of 16 items was mishandled as a
      matrix. #929 (1.5.3/1.4.13)
+   * OpenEXR 2.2 support, including the new DWAA/DWAB compression modes.
+     (1.5.4)
 * JPEG:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
@@ -165,6 +168,9 @@ Build/test system improvements:
   building with USE_LIBCPLUSPLUS=1 tries to link with libc++ if you are
   using clang. (1.5.2)
 * Fixes for Boost Filesystem 1.46-1.49. (1.5.2/1.4.12)
+* testtex new options: --nchannels (forces num channels to look up, rather
+  than always doing what's in the file), --derivs (force the kind of texture
+  calls that return derivs of the texture lookups. (1.5.4)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -177,6 +183,10 @@ Developer goodies / internals:
 * thread.h: add atomic_exchange() function. #898 (1.5.1/1.4.11)
 * Improved error propagation through ImageCache, ImageBuf, and oiiotool.
   (1.5.1)
+* Moved certain platform-dependent macros from sysutil.h to platform.h
+  (1.5.4)
+* ustring: add comparisons between ustrings versus char* and string_view.
+  (1.5.4)
 
 
 
