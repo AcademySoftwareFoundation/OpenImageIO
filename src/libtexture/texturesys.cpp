@@ -57,6 +57,8 @@
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 
+#define TEX_FAST_MATH 1
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -990,7 +992,11 @@ adjust_blur (float &majorlength, float &minorlength, float theta,
         // here could have any detectable performance improvement.
         DASSERT (majorlength > 0.0f && minorlength > 0.0f);
         float sintheta, costheta;
+#ifdef TEX_FAST_MATH
+        fast_sincos (theta, &sintheta, &costheta);
+#else
         sincos (theta, &sintheta, &costheta);
+#endif
         sintheta = fabsf(sintheta);
         costheta = fabsf(costheta);
         majorlength += sblur * costheta + tblur * sintheta;
@@ -1166,7 +1172,11 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     majorlength = std::min (safe_sqrtf(Cprime), 1000.0f);
     minorlength = std::min (safe_sqrtf(Aprime), 1000.0f);
 #endif
+#ifdef TEX_FAST_MATH
+    theta = fast_atan2 (B, A-C) * 0.5f + float(M_PI_2);
+#else
     theta = atan2 (B, A-C) * 0.5 + M_PI_2;
+#endif
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
         // is given by: A*u^2 + B*u*v + C*v^2 < 1
@@ -1225,7 +1235,11 @@ compute_ellipse_sampling (float aspect, float theta,
             float scale = majorlength / L;  // 1/(L/major)
             for (int i = 0, e = (nsamples+1)/2;  i < e;  ++i) {
                 float x = (2.0f*(i+0.5f)*invsamples - 1.0f) * scale;
+#ifdef TEX_FAST_MATH
+                float w = fast_exp(-2.0f*x*x);
+#else
                 float w = expf(-2.0f*x*x);
+#endif
                 weights[nsamples-i-1] = weights[i] = w;
             }
         }
