@@ -38,8 +38,40 @@
 
 #pragma once
 
+// Make sure all platforms have the explicit sized integer types
+#if defined(_MSC_VER) && _MSC_VER < 1600
+   typedef __int8  int8_t;
+   typedef __int16 int16_t;
+   typedef __int32 int32_t;
+   typedef __int64 int64_t;
+   typedef unsigned __int8  uint8_t;
+   typedef unsigned __int16 uint16_t;
+# ifndef _UINT64_T
+   typedef unsigned __int32 uint32_t;
+   typedef unsigned __int64 uint64_t;
+#  define _UINT32_T
+#  define _UINT64_T
+# endif
+#else
+#  ifndef __STDC_LIMIT_MACROS
+#    define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
+#  endif
+#  include <stdint.h>
+#endif
+
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
+
 #ifdef __MINGW32__
 #include <malloc.h> // for alloca
+#endif
+
+
+
+// Detect if we're C++11
+#if (__cplusplus >= 201103L)
+#define OIIO_CPLUSPLUS11 1
 #endif
 
 
@@ -106,3 +138,40 @@
 #else
 #  define OIIO_RESTRICT 
 #endif
+
+
+
+// Try to deduce endianness
+#if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
+#  ifndef __LITTLE_ENDIAN__
+#    define __LITTLE_ENDIAN__ 1
+#    undef __BIG_ENDIAN__
+#  endif
+#endif
+
+
+namespace {   // anon
+
+/// Return true if the architecture we are running on is little endian
+OIIO_FORCEINLINE bool littleendian (void)
+{
+#if defined(__BIG_ENDIAN__)
+    return false;
+#elif defined(__LITTLE_ENDIAN__)
+    return true;
+#else
+    // Otherwise, do something quick to compute it
+    int i = 1;
+    return *((char *) &i);
+#endif
+}
+
+
+/// Return true if the architecture we are running on is big endian
+OIIO_FORCEINLINE bool bigendian (void)
+{
+    return ! littleendian();
+}
+
+} // end anon namespace
+
