@@ -34,6 +34,8 @@ ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
+    # All our Mac laptops seem to be at least SSE 4.2
+    USE_SIMD = sse4.2
 endif
 
 
@@ -86,6 +88,9 @@ ifeq ($(SP_OS), spinux1)
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
     endif
+
+    # Our minimal architecture for workstations and farm supports SSE 4.1
+    USE_SIMD = sse4.1
 
     ifneq (,$(wildcard /usr/include/OpenEXR2))
         MY_CMAKE_FLAGS += \

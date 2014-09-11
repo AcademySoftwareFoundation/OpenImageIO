@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 5)
-set (OIIO_VERSION_PATCH 4)
+set (OIIO_VERSION_PATCH 5)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
@@ -50,6 +50,10 @@ endif ()
 if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
     set (CMAKE_COMPILER_IS_CLANG 1)
     message (STATUS "The compiler seems to be clang")
+endif ()
+if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    set (CMAKE_COMPILER_IS_INTEL 1)
+    message (STATUS "Using Intel as the compiler")
 endif ()
 
 ## turn on more detailed warnings and consider warnings as errors
@@ -141,6 +145,7 @@ set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO
 set (USE_CPP11 OFF CACHE BOOL "Compile in C++11 mode")
 set (USE_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
+set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, sse4.1, sse4.2)")
 
 if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # On Linux, the lack of -fPIC when building static libraries seems
@@ -177,6 +182,19 @@ endif ()
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
     message (STATUS "Using libc++")
     add_definitions ("-stdlib=libc++")
+endif ()
+
+if (NOT USE_SIMD STREQUAL "")
+    message (STATUS "Compiling with SIMD level ${USE_SIMD}")
+    if (USE_SIMD STREQUAL "0")
+        add_definitions ("-DOIIO_NO_SSE=1")
+    else ()
+        if (MSVC OR CMAKE_COMPILER_IS_INTEL)
+            add_definitions ("/arch:{USE_SIMD}")
+        else ()
+            add_definitions ("-m${USE_SIMD}")
+        endif ()
+    endif ()
 endif ()
 
 set (CMAKE_MODULE_PATH

@@ -208,7 +208,7 @@ initialize_opt (TextureOpt &opt, int nchannels)
     opt.swidth = width;
     opt.twidth = width;
     opt.rwidth = width;
-    opt.nchannels = nchannels;
+//    opt.nchannels = nchannels;
     opt.fill = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float *)&missing;
@@ -481,13 +481,8 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
     initialize_opt (opt, nchannels);
 
     float *result = ALLOCA (float, std::max (3, nchannels));
-    float *dresultds = NULL, *dresultdt = NULL;
-    if (test_derivs) {
-        dresultds = ALLOCA (float, nchannels);
-        dresultdt = ALLOCA (float, nchannels);
-        opt.dresultds = dresultds;
-        opt.dresultdt = dresultdt;
-    }
+    float *dresultds = test_derivs ? ALLOCA (float, nchannels) : NULL;
+    float *dresultdt = test_derivs ? ALLOCA (float, nchannels) : NULL;
     for (ImageBuf::Iterator<float> p (image, roi);  ! p.done();  ++p) {
         float s, t, dsdx, dtdx, dsdy, dtdy;
         mapping (p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
@@ -497,11 +492,11 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
         if (use_handle)
             ok = texsys->texture (texture_handle, perthread_info, opt,
                                   s, t, dsdx, dtdx, dsdy, dtdy,
-                                  result);
+                                  nchannels, result, dresultds, dresultdt);
         else
             ok = texsys->texture (filename, opt,
                                   s, t, dsdx, dtdx, dsdy, dtdy,
-                                  result);
+                                  nchannels, result, dresultds, dresultdt);
         if (! ok) {
             std::string e = texsys->geterror ();
             if (! e.empty())
@@ -589,13 +584,17 @@ tex3d_region (ImageBuf &image, ustring filename, Mapping3D mapping,
 //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
     float *result = ALLOCA (float, nchannels);
+    float *dresultds = test_derivs ? ALLOCA (float, nchannels) : NULL;
+    float *dresultdt = test_derivs ? ALLOCA (float, nchannels) : NULL;
+    float *dresultdr = test_derivs ? ALLOCA (float, nchannels) : NULL;
     for (ImageBuf::Iterator<float> p (image, roi);  ! p.done();  ++p) {
         Imath::V3f P, dPdx, dPdy, dPdz;
         mapping (p.x(), p.y(), P, dPdx, dPdy, dPdz);
 
         // Call the texture system to do the filtering.
         bool ok = texsys->texture3d (texture_handle, perthread_info, opt, 
-                                     P, dPdx, dPdy, dPdz, result);
+                                     P, dPdx, dPdy, dPdz, nchannels,
+                                     result, dresultds, dresultdt, dresultdr);
         if (! ok) {
             std::string e = texsys->geterror ();
             if (! e.empty())
@@ -673,15 +672,14 @@ test_getimagespec_gettexels (ustring filename)
     int nchannels = nchannels_override ? nchannels_override : spec.nchannels;
     ImageSpec postagespec (w, h, nchannels, TypeDesc::FLOAT);
     ImageBuf buf (postagespec);
-    TextureOptions opt;
-    opt.nchannels = nchannels;
-    if (missing[0] >= 0)
-        opt.missingcolor.init ((float *)&missing, 0);
+    TextureOpt opt;
+    initialize_opt (opt, nchannels);
     std::vector<float> tmp (w*h*nchannels);
     bool ok = texsys->get_texels (filename, opt, miplevel,
                                   spec.x+w/2, spec.x+w/2+w,
                                   spec.y+h/2, spec.y+h/2+h,
-                                  0, 1, postagespec.format, &tmp[0]);
+                                  0, 1, 0, nchannels,
+                                  postagespec.format, &tmp[0]);
     if (! ok)
         std::cerr << texsys->geterror() << "\n";
     for (int y = 0;  y < h;  ++y)
@@ -826,13 +824,8 @@ do_tex_thread_workout (int iterations, int mythread)
     float *result = ALLOCA (float, nchannels);
     TextureOpt opt;
     initialize_opt (opt, nchannels);
-    float *dresultds = NULL, *dresultdt = NULL;
-    if (test_derivs) {
-        dresultds = ALLOCA (float, nchannels);
-        dresultdt = ALLOCA (float, nchannels);
-        opt.dresultds = dresultds;
-        opt.dresultdt = dresultdt;
-    }
+    float *dresultds = test_derivs ? ALLOCA (float, nchannels) : NULL;
+    float *dresultdt = test_derivs ? ALLOCA (float, nchannels) : NULL;
     TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
     TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filenames[0]);
     int pixel, whichfile = 0;
@@ -854,12 +847,14 @@ do_tex_thread_workout (int iterations, int mythread)
             // and per-thread data already queried only once rather than
             // per-call.
             ok = texsys->texture (texture_handle, perthread_info, opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
             break;
         case 2:
             // Workload 2: Static texture access, with filenames.
             ok = texsys->texture (filenames[0], opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
             break;
         case 3:
         case 4:
@@ -906,7 +901,8 @@ do_tex_thread_workout (int iterations, int mythread)
             s = (((2*pixel) % spec0.width) + 0.5f) / spec0.width;
             t = (((2*((2*pixel) / spec0.width)) % spec0.height) + 0.5f) / spec0.height;
             ok = texsys->texture (filenames[whichfile], opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, result);
+                                  dsdx, dtdx, dsdy, dtdy, nchannels,
+                                  result, dresultds, dresultdt);
         }
         if (! ok) {
             std::cerr << "Unexpected error: " << texsys->geterror() << "\n";

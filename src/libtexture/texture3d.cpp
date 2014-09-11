@@ -75,12 +75,15 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
                               const Imath::V3f &dPdx,
                               const Imath::V3f &dPdy,
                               const Imath::V3f &dPdz,
-                              float *result)
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
 {
     PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
     TextureFile *texturefile = find_texturefile (filename, thread_info);
     return texture3d ((TextureHandle *)texturefile, (Perthread *)thread_info,
-                      options, P, dPdx, dPdy, dPdz, result);
+                      options, P, dPdx, dPdy, dPdz,
+                      nchannels, result, dresultds, dresultdt);
 }
 
 
@@ -93,8 +96,31 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
                               const Imath::V3f &dPdx,
                               const Imath::V3f &dPdy,
                               const Imath::V3f &dPdz,
-                              float *result)
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
 {
+    // Handle >4 channel lookups by recursion.
+    if (nchannels > 4) {
+        int save_firstchannel = options.firstchannel;
+        while (nchannels) {
+            int n = std::min (nchannels, 4);
+            bool ok = texture3d (texture_handle_, thread_info_, options,
+                                 P, dPdx, dPdy, dPdz,
+                                 n, result, dresultds, dresultdt, dresultdr);
+            if (! ok)
+                return false;
+            result += n;
+            if (dresultds) dresultds += n;
+            if (dresultdt) dresultdt += n;
+            if (dresultdr) dresultdr += n;
+            options.firstchannel += n;
+            nchannels -= n;
+        }
+        options.firstchannel = save_firstchannel; // restore what we changed
+        return true;
+    }
+
 #if 0
     // FIXME: currently, no support of actual MIPmapping.  No rush,
     // since the only volume format we currently support, Field3D,
@@ -119,7 +145,8 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     ++stats.texture3d_queries;
 
     if (! texturefile  ||  texturefile->broken())
-        return missing_texture (options, result);
+        return missing_texture (options, nchannels, result,
+                                dresultds, dresultdt, dresultdr);
 
     if (options.subimagename) {
         // If subimage was specified by name, figure out its index.
@@ -137,27 +164,20 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
-        options.swrap = texturefile->swrap();
-    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic_pow2;
-    else
-        options.swrap_func = wrap_functions[(int)options.swrap];
+        options.swrap = (TextureOpt::Wrap)texturefile->swrap();
+    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.width))
+        options.swrap = TextureOpt::WrapPeriodicPow2;
     if (options.twrap == TextureOpt::WrapDefault)
-        options.twrap = texturefile->twrap();
-    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic_pow2;
-    else
-        options.twrap_func = wrap_functions[(int)options.twrap];
+        options.twrap = (TextureOpt::Wrap)texturefile->twrap();
+    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.height))
+        options.twrap = TextureOpt::WrapPeriodicPow2;
     if (options.rwrap == TextureOpt::WrapDefault)
-        options.rwrap = texturefile->rwrap();
-    if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
-        options.rwrap_func = wrap_periodic_pow2;
-    else
-        options.rwrap_func = wrap_functions[(int)options.rwrap];
+        options.rwrap = (TextureOpt::Wrap)texturefile->rwrap();
+    if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.depth))
+        options.rwrap = TextureOpt::WrapPeriodicPow2;
 
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
-                                       0, options.nchannels);
-    options.actualchannels = actualchannels;
+                                       0, nchannels);
 
     // Do the volume lookup in local space.  There's not actually a way
     // to ask for point transforms via the ImageInput interface, so use
@@ -182,9 +202,13 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     // need to transform them into local space as well.
 
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
-                               Plocal, dPdx, dPdy, dPdz, result);
-    if (actualchannels < options.nchannels)
-        fill_gray_channels (spec, options, result);
+                               nchannels, actualchannels,
+                               Plocal, dPdx, dPdy, dPdz,
+                               result, dresultds, dresultdt, dresultdr);
+
+    if (actualchannels < nchannels && options.firstchannel == 0 && m_gray_to_rgb)
+        fill_gray_channels (spec, nchannels, result,
+                            dresultds, dresultdt, dresultdr);
     return ok;
 }
 
@@ -197,14 +221,50 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
                               VaryingRef<Imath::V3f> dPdx,
                               VaryingRef<Imath::V3f> dPdy,
                               VaryingRef<Imath::V3f> dPdz,
-                              float *result)
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
+{
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return texture3d (texture_handle, thread_info, options,
+                      runflags, beginactive, endactive,
+                      P, dPdx, dPdy, dPdz,
+                      nchannels, result, dresultds, dresultdt, dresultdr);
+}
+
+
+
+bool
+TextureSystemImpl::texture3d (TextureHandle *texture_handle,
+                              Perthread *thread_info, TextureOptions &options,
+                              Runflag *runflags, int beginactive, int endactive,
+                              VaryingRef<Imath::V3f> P,
+                              VaryingRef<Imath::V3f> dPdx,
+                              VaryingRef<Imath::V3f> dPdy,
+                              VaryingRef<Imath::V3f> dPdz,
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
 {
     bool ok = true;
+    result += beginactive*nchannels;
+    if (dresultds) {
+        dresultds += beginactive*nchannels;
+        dresultdt += beginactive*nchannels;
+    }
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             TextureOpt opt (options, i);
-            ok &= texture3d (filename, opt, P[i], dPdx[i], dPdy[i], dPdz[i],
-                             result + i*options.nchannels);
+            ok &= texture3d (texture_handle, thread_info, opt,
+                             P[i], dPdx[i], dPdy[i], dPdz[i],
+                             4, result, dresultds, dresultdt, dresultdr);
+        }
+        result += nchannels;
+        if (dresultds) {
+            dresultds += nchannels;
+            dresultdt += nchannels;
+            dresultdr += nchannels;
         }
     }
     return ok;
@@ -216,23 +276,23 @@ bool
 TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             PerThreadInfo *thread_info, 
                             TextureOpt &options,
+                            int nchannels_result, int actualchannels,
                             const Imath::V3f &P, const Imath::V3f &dPdx,
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
-                            float *result)
+                            float *result,
+                            float *dresultds, float *dresultdt,
+                            float *dresultdr)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
-    for (int c = 0;  c < options.nchannels;  ++c)
+    for (int c = 0;  c < nchannels_result;  ++c)
         result[c] = 0;
-    float* dresultds = options.dresultds;
-    float* dresultdt = options.dresultdt;
-    float* dresultdr = options.dresultdr;
     if (dresultds) {
         DASSERT (dresultdt && dresultdr);
-        for (int c = 0;  c < options.nchannels;  ++c)
+        for (int c = 0;  c < nchannels_result;  ++c)
             dresultds[c] = 0;
-        for (int c = 0;  c < options.nchannels;  ++c)
+        for (int c = 0;  c < nchannels_result;  ++c)
             dresultdt[c] = 0;
-        for (int c = 0;  c < options.nchannels;  ++c)
+        for (int c = 0;  c < nchannels_result;  ++c)
             dresultdr[c] = 0;
     }
     // If the user only provided us with one pointer, clear all to simplify
@@ -250,6 +310,7 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
     };
     accum3d_prototype accumer = accum_functions[(int)options.interpmode];
     bool ok = (this->*accumer) (P, 0, texturefile, thread_info, options,
+                                nchannels_result, actualchannels,
                                 1.0f, result, dresultds, dresultdt, dresultdr);
 
     // Update stats
@@ -272,6 +333,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
                                  TextureOpt &options,
+                                 int nchannels_result, int actualchannels,
                                  float weight, float *accum, float *daccumds,
                                  float *daccumdt, float *daccumdr)
 {
@@ -286,13 +348,13 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     (void) floorfrac (t, &ttex);
     (void) floorfrac (r, &rtex);
 
-    // Wrap
-    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL &&
-             options.rwrap_func != NULL);
+    wrap_impl swrap_func = wrap_functions[(int)options.swrap];
+    wrap_impl twrap_func = wrap_functions[(int)options.twrap];
+    wrap_impl rwrap_func = wrap_functions[(int)options.rwrap];
     bool svalid, tvalid, rvalid;  // Valid texels?  false means black border
-    svalid = options.swrap_func (stex, spec.x, spec.width);
-    tvalid = options.twrap_func (ttex, spec.y, spec.height);
-    rvalid = options.rwrap_func (rtex, spec.z, spec.depth);
+    svalid = swrap_func (stex, spec.x, spec.width);
+    tvalid = twrap_func (ttex, spec.y, spec.height);
+    rvalid = rwrap_func (rtex, spec.z, spec.depth);
     if (! levelinfo.full_pixel_range) {
         svalid &= (stex >= spec.x && stex < (spec.x+spec.width)); // data window
         tvalid &= (ttex >= spec.y && ttex < (spec.y+spec.height));
@@ -321,20 +383,20 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     if (channelsize == 1) {
         // special case for 8-bit tiles
         const unsigned char *texel = tile->bytedata() + offset;
-        for (int c = 0;  c < options.actualchannels;  ++c)
+        for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * uchar2float(texel[c]);
     } else {
         // General case for float tiles
         const float *texel = tile->data() + offset;
-        for (int c = 0;  c < options.actualchannels;  ++c)
+        for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * texel[c];
     }
 
     // Add appropriate amount of "fill" color to extra channels in
     // non-"black"-wrapped regions.
-    if (options.nchannels > options.actualchannels && options.fill) {
+    if (nchannels_result > actualchannels && options.fill) {
         float f = weight * options.fill;
-        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+        for (int c = actualchannels;  c < nchannels_result;  ++c)
             accum[c] += f;
     }
     return true;
@@ -347,6 +409,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
                                  TextureOpt &options,
+                                 int nchannels_result, int actualchannels,
                                  float weight, float *accum, float *daccumds,
                                  float *daccumdt, float *daccumdr)
 {
@@ -368,8 +431,10 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     // and to the right).
 
     // Wrap
-    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL &&
-             options.rwrap_func != NULL);
+    wrap_impl swrap_func = wrap_functions[(int)options.swrap];
+    wrap_impl twrap_func = wrap_functions[(int)options.twrap];
+    wrap_impl rwrap_func = wrap_functions[(int)options.rwrap];
+
     int stex[2], ttex[2], rtex[2];       // Texel coords
     stex[0] = sint;  stex[1] = sint+1;
     ttex[0] = tint;  ttex[1] = tint+1;
@@ -384,12 +449,12 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool *tvalid = valid_storage.bvalid + 2;
     bool *rvalid = valid_storage.bvalid + 4;
 
-    svalid[0] = options.swrap_func (stex[0], spec.x, spec.width);
-    svalid[1] = options.swrap_func (stex[1], spec.x, spec.width);
-    tvalid[0] = options.twrap_func (ttex[0], spec.y, spec.height);
-    tvalid[1] = options.twrap_func (ttex[1], spec.y, spec.height);
-    rvalid[0] = options.rwrap_func (rtex[0], spec.z, spec.depth);
-    rvalid[1] = options.rwrap_func (rtex[1], spec.z, spec.depth);
+    svalid[0] = swrap_func (stex[0], spec.x, spec.width);
+    svalid[1] = swrap_func (stex[1], spec.x, spec.width);
+    tvalid[0] = twrap_func (ttex[0], spec.y, spec.height);
+    tvalid[1] = twrap_func (ttex[1], spec.y, spec.height);
+    rvalid[0] = rwrap_func (rtex[0], spec.z, spec.depth);
+    rvalid[1] = rwrap_func (rtex[1], spec.z, spec.depth);
     // Account for crop windows
     if (! levelinfo.full_pixel_range) {
         svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x+spec.width);
@@ -482,7 +547,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     if (channelsize == 1) {
         // special case for 8-bit tiles
         int c;
-        for (c = 0;  c < options.actualchannels;  ++c)
+        for (c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * trilerp (uchar2float(texel[0][0][0][c]), uchar2float(texel[0][0][1][c]),
                                           uchar2float(texel[0][1][0][c]), uchar2float(texel[0][1][1][c]),
                                           uchar2float(texel[1][0][0][c]), uchar2float(texel[1][0][1][c]),
@@ -492,7 +557,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
             float scalex = weight * spec.full_width;
             float scaley = weight * spec.full_height;
             float scalez = weight * spec.full_depth;
-            for (c = 0;  c < options.actualchannels;  ++c) {
+            for (c = 0;  c < actualchannels;  ++c) {
                 daccumds[c] += scalex * bilerp(
                     uchar2float(texel[0][0][1][c]) - uchar2float(texel[0][0][0][c]),
                     uchar2float(texel[0][1][1][c]) - uchar2float(texel[0][1][0][c]),
@@ -523,12 +588,12 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                      (const float *)texel[0][1][0], (const float *)texel[0][1][1],
                      (const float *)texel[1][0][0], (const float *)texel[1][0][1],
                      (const float *)texel[1][1][0], (const float *)texel[1][1][1],
-                     sfrac, tfrac, rfrac, weight, options.actualchannels, accum);
+                     sfrac, tfrac, rfrac, weight, actualchannels, accum);
         if (daccumds) {
             float scalex = weight * spec.full_width;
             float scaley = weight * spec.full_height;
             float scalez = weight * spec.full_depth;
-            for (int c = 0;  c < options.actualchannels;  ++c) {
+            for (int c = 0;  c < actualchannels;  ++c) {
                 daccumds[c] += scalex * bilerp(
                     ((const float *) texel[0][0][1])[c] - ((const float *) texel[0][0][0])[c],
                     ((const float *) texel[0][1][1])[c] - ((const float *) texel[0][1][0])[c],
@@ -556,14 +621,14 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 
     // Add appropriate amount of "fill" color to extra channels in
     // non-"black"-wrapped regions.
-    if (options.nchannels > options.actualchannels && options.fill) {
+    if (nchannels_result > actualchannels && options.fill) {
         float f = trilerp (1.0f*(rvalid[0]*tvalid[0]*svalid[0]), 1.0f*(rvalid[0]*tvalid[0]*svalid[1]),
                            1.0f*(rvalid[0]*tvalid[1]*svalid[0]), 1.0f*(rvalid[0]*tvalid[1]*svalid[1]),
                            1.0f*(rvalid[1]*tvalid[0]*svalid[0]), 1.0f*(rvalid[1]*tvalid[0]*svalid[1]),
                            1.0f*(rvalid[1]*tvalid[1]*svalid[0]), 1.0f*(rvalid[1]*tvalid[1]*svalid[1]),
                            sfrac, tfrac, rfrac);
         f *= weight * options.fill;
-        for (int c = options.actualchannels;  c < options.nchannels;  ++c)
+        for (int c = actualchannels;  c < nchannels_result;  ++c)
             accum[c] += f;
     }
     return true;

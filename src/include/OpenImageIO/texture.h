@@ -98,6 +98,8 @@ public:
         WrapClamp,          ///< Clamp to [0..1]
         WrapPeriodic,       ///< Periodic mod 1
         WrapMirror,         ///< Mirror the image
+        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
         WrapLast            ///< Mark the end -- don't use this!
     };
 
@@ -124,17 +126,16 @@ public:
     /// Create a TextureOpt with all fields initialized to reasonable
     /// defaults.
     TextureOpt () 
-        : nchannels(1), firstchannel(0), subimage(0),
+        : firstchannel(0), subimage(0),
         swrap(WrapDefault), twrap(WrapDefault),
         mipmode(MipModeDefault), interpmode(InterpSmartBicubic),
         anisotropic(32), conservative_filter(true),
         sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
         fill(0.0f), missingcolor(NULL),
-        dresultds(NULL), dresultdt(NULL),
-        time(0.0f), bias(0.0f), samples(1),
-        rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), dresultdr(NULL),
-        actualchannels(0),
-        swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL),
+        // dresultds(NULL), dresultdt(NULL),
+        time(0.0f), // bias(0.0f), samples(1),
+        rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), // dresultdr(NULL),
+        // actualchannels(0),
         envlayout(0)
     { }
 
@@ -142,7 +143,6 @@ public:
     ///
     TextureOpt (const TextureOptions &opt, int index);
 
-    int nchannels;            ///< Number of channels to look up
     int firstchannel;         ///< First channel of the lookup
     int subimage;             ///< Subimage or face ID
     ustring subimagename;     ///< Subimage name
@@ -156,8 +156,6 @@ public:
     float swidth, twidth;     ///< Multiplier for derivatives
     float fill;               ///< Fill value for missing channels
     const float *missingcolor;///< Color for missing texture
-    float *dresultds;         ///< Deriv of the result along s (if not NULL)
-    float *dresultdt;         ///< Deriv of the result along t (if not NULL)
     float time;               ///< Time (for time-dependent texture lookups)
     float bias;               ///< Bias for shadows
     int   samples;            ///< Number of samples for shadows
@@ -166,7 +164,6 @@ public:
     Wrap rwrap;               ///< Wrap mode in the r direction
     float rblur;              ///< Blur amount in the r direction
     float rwidth;             ///< Multiplier for derivatives in r direction
-    float *dresultdr;         ///< Deriv of the result along r (if not NULL)
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -183,9 +180,6 @@ public:
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
-    int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int origin, int width);
-    wrap_impl swrap_func, twrap_func, rwrap_func;
     int envlayout;    // Layout for environment wrap
     friend class pvt::TextureSystemImpl;
 };
@@ -208,6 +202,8 @@ public:
         WrapClamp,          ///< Clamp to [0..1]
         WrapPeriodic,       ///< Periodic mod 1
         WrapMirror,         ///< Mirror the image
+        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
         WrapLast            ///< Mark the end -- don't use this!
     };
 
@@ -240,7 +236,6 @@ public:
 
     // Options that must be the same for all points we're texturing at once
     int firstchannel;         ///< First channel of the lookup
-    int nchannels;            ///< Number of channels to look up
     int subimage;             ///< Subimage or face ID
     ustring subimagename;     ///< Subimage name
     Wrap swrap;               ///< Wrap mode in the s direction
@@ -258,14 +253,11 @@ public:
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<float> missingcolor;   ///< Color for missing texture
     VaryingRef<int>   samples;        ///< Number of samples
-    float *dresultds;                 ///< Deriv of the result along s (if not NULL)
-    float *dresultdt;                 ///< Deriv of the result along t (if not NULL)
 
     // For 3D volume texture lookups only:
     Wrap rwrap;                ///< Wrap mode in the r direction
     VaryingRef<float> rblur;   ///< Blur amount in the r direction
     VaryingRef<float> rwidth;  ///< Multiplier for derivatives in r direction
-    float *dresultdr;          ///< Deriv of the result along r (if not NULL)
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -290,9 +282,6 @@ public:
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
-    int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int origin, int width);
-    wrap_impl swrap_func, twrap_func, rwrap_func;
     friend class pvt::TextureSystemImpl;
     friend class TextureOpt;
 };
@@ -394,24 +383,27 @@ public:
     /// pixels in screen space, adjacent samples in parameter space on a
     /// surface, etc.
     ///
+    /// The result is placed in result[0..nchannels-1].  If dresuls and
+    /// dresultdt are non-NULL, then they [0..nchannels-1] will get the
+    /// texture gradients, i.e., the rate of change per unit s and t,
+    /// respectively, of the texture.
+    ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool texture (ustring filename, TextureOpt &options,
                           float s, float t, float dsdx, float dtdx,
-                          float dsdy, float dtdy, float *result) = 0;
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
-    /// Slightly faster version of 2D texture() lookup if the app already
-    /// has a texture handle and per-thread info.
+    /// Version that takes nchannels and derivatives explicitly, if the app
+    /// already has a texture handle and per-thread info.
     virtual bool texture (TextureHandle *texture_handle,
                           Perthread *thread_info, TextureOpt &options,
                           float s, float t, float dsdx, float dtdx,
-                          float dsdy, float dtdy, float *result) = 0;
-
-    /// Deprecated version that uses old TextureOptions for a single-point
-    /// lookup.
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          float s, float t, float dsdx, float dtdx,
-                          float dsdy, float dtdy, float *result) = 0;
+                          float dsdy, float dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve filtered (possibly anisotropic) texture lookups for
     /// several points at once.
@@ -429,7 +421,16 @@ public:
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                          float *result) = 0;
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
+    virtual bool texture (TextureHandle *texture_handle,
+                          Perthread *thread_info, TextureOptions &options,
+                          Runflag *runflags, int beginactive, int endactive,
+                          VaryingRef<float> s, VaryingRef<float> t,
+                          VaryingRef<float> dsdx, VaryingRef<float> dtdx,
+                          VaryingRef<float> dsdy, VaryingRef<float> dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve a 3D texture lookup at a single point.
     ///
@@ -438,7 +439,9 @@ public:
     virtual bool texture3d (ustring filename, TextureOpt &options,
                             const Imath::V3f &P, const Imath::V3f &dPdx,
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
-                            float *result) = 0;
+                            int nchannels, float *result,
+                            float *dresultds=NULL, float *dresultdt=NULL,
+                            float *dresultdr=NULL) = 0;
 
     /// Slightly faster version of texture3d() lookup if the app already
     /// has a texture handle and per-thread info.
@@ -446,17 +449,9 @@ public:
                             Perthread *thread_info, TextureOpt &options,
                             const Imath::V3f &P, const Imath::V3f &dPdx,
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
-                            float *result) = 0;
-
-    /// Deprecated
-    ///
-    virtual bool texture3d (ustring filename, TextureOptions &options,
-                            const Imath::V3f &P, const Imath::V3f &dPdx,
-                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
-                            float *result) {
-        TextureOpt opt (options, 0);
-        return texture3d (filename, opt, P, dPdx, dPdy, dPdz, result);
-    }
+                            int nchannels, float *result,
+                            float *dresultds=NULL, float *dresultdt=NULL,
+                            float *dresultdr=NULL) = 0;
 
     /// Retrieve a 3D texture lookup at many points at once.
     ///
@@ -468,7 +463,19 @@ public:
                             VaryingRef<Imath::V3f> dPdx,
                             VaryingRef<Imath::V3f> dPdy,
                             VaryingRef<Imath::V3f> dPdz,
-                            float *result) = 0;
+                            int nchannels, float *result,
+                            float *dresultds=NULL, float *dresultdt=NULL,
+                            float *dresultdr=NULL) = 0;
+    virtual bool texture3d (TextureHandle *texture_handle,
+                            Perthread *thread_info, TextureOptions &options,
+                            Runflag *runflags, int beginactive, int endactive,
+                            VaryingRef<Imath::V3f> P,
+                            VaryingRef<Imath::V3f> dPdx,
+                            VaryingRef<Imath::V3f> dPdy,
+                            VaryingRef<Imath::V3f> dPdz,
+                            int nchannels, float *result,
+                            float *dresultds=NULL, float *dresultdt=NULL,
+                            float *dresultdr=NULL) = 0;
 
     /// Retrieve a shadow lookup for a single position P.
     ///
@@ -476,14 +483,16 @@ public:
     /// available ImageIO plugin, otherwise return false.
     virtual bool shadow (ustring filename, TextureOpt &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
-                         const Imath::V3f &dPdy, float *result) = 0;
+                         const Imath::V3f &dPdy, float *result,
+                         float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Slightly faster version of shadow() lookup if the app already
     /// has a texture handle and per-thread info.
     virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
                          TextureOpt &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
-                         const Imath::V3f &dPdy, float *result) = 0;
+                         const Imath::V3f &dPdy, float *result,
+                         float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve a shadow lookup for position P at many points at once.
     ///
@@ -494,7 +503,16 @@ public:
                          VaryingRef<Imath::V3f> P,
                          VaryingRef<Imath::V3f> dPdx,
                          VaryingRef<Imath::V3f> dPdy,
-                         float *result) = 0;
+                         float *result,
+                         float *dresultds=NULL, float *dresultdt=NULL) = 0;
+    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
+                         TextureOptions &options,
+                         Runflag *runflags, int beginactive, int endactive,
+                         VaryingRef<Imath::V3f> P,
+                         VaryingRef<Imath::V3f> dPdx,
+                         VaryingRef<Imath::V3f> dPdy,
+                         float *result,
+                         float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve an environment map lookup for direction R.
     ///
@@ -502,14 +520,16 @@ public:
     /// available ImageIO plugin, otherwise return false.
     virtual bool environment (ustring filename, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, float *result) = 0;
+                              const Imath::V3f &dRdy, int nchannels, float *result,
+                              float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Slightly faster version of environment() lookup if the app already
     /// has a texture handle and per-thread info.
     virtual bool environment (TextureHandle *texture_handle,
                               Perthread *thread_info, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, float *result) = 0;
+                              const Imath::V3f &dRdy, int nchannels, float *result,
+                              float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve an environment map lookup for direction R, for many
     /// points at once.
@@ -521,7 +541,16 @@ public:
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
-                              float *result) = 0;
+                              int nchannels, float *result,
+                              float *dresultds=NULL, float *dresultdt=NULL) = 0;
+    virtual bool environment (TextureHandle *texture_handle,
+                              Perthread *thread_info, TextureOptions &options,
+                              Runflag *runflags, int beginactive, int endactive,
+                              VaryingRef<Imath::V3f> R,
+                              VaryingRef<Imath::V3f> dRdx,
+                              VaryingRef<Imath::V3f> dRdy,
+                              int nchannels, float *result,
+                              float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.
@@ -574,18 +603,8 @@ public:
     virtual bool get_texels (ustring filename, TextureOpt &options,
                              int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
+                             int chbegin, int chend,
                              TypeDesc format, void *result) = 0;
-
-    /// Deprecated
-    ///
-    virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int miplevel, int xbegin, int xend,
-                             int ybegin, int yend, int zbegin, int zend,
-                             TypeDesc format, void *result) {
-        TextureOpt opt (options, 0);
-        return get_texels (filename, opt, miplevel, xbegin, xend,
-                           ybegin, yend, zbegin, zend, format, result);
-    }
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error

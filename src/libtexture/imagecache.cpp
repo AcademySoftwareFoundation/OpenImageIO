@@ -51,6 +51,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagecache.h"
 #include "OpenImageIO/texture.h"
+#include "OpenImageIO/simd.h"
 #include "imagecache_pvt.h"
 
 #include <boost/foreach.hpp>
@@ -1225,6 +1226,23 @@ ImageCacheTile::ImageCacheTile (const TileID &id, const void *pels,
 ImageCacheTile::~ImageCacheTile ()
 {
     m_id.file().imagecache().decr_tiles (memsize ());
+}
+
+
+
+size_t
+ImageCacheTile::memsize_needed () const
+{
+    const ImageSpec &spec (file().spec(m_id.subimage(),m_id.miplevel()));
+    TypeDesc datatype = file().datatype(id().subimage());
+    size_t pixelsize = spec.nchannels * datatype.size();
+    size_t s = spec.tile_pixels() * pixelsize;
+#if OIIO_SIMD
+    // N.B. Round up so we can use a SIMD fetch for the last pixel and
+    // channel without running off the end.
+    s += OIIO_SIMD_MAX_SIZE_BYTES;
+#endif
+    return s;
 }
 
 
