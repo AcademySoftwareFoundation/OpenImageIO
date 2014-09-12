@@ -304,7 +304,7 @@ public:
     /// Logical "not", component-by-component
     friend OIIO_FORCEINLINE mask4 operator! (mask4 a) {
 #if defined(OIIO_SIMD_SSE)
-        return _mm_xor_ps (a, True());
+        return _mm_xor_ps (a.m_vec, True());
 #else
         return mask4 (a.m_val[0] ^ (-1), a.m_val[1] ^ (-1),
                       a.m_val[2] ^ (-1), a.m_val[3] ^ (-1));
@@ -345,7 +345,7 @@ public:
     /// Equality comparison, component by component
     friend OIIO_FORCEINLINE const mask4 operator== (mask4 a, mask4 b) {
 #if defined(OIIO_SIMD_SSE)
-        return _mm_castsi128_ps (_mm_cmpeq_epi32 (a, b));
+        return _mm_castsi128_ps (_mm_cmpeq_epi32 (a.m_vec, b.m_vec));
 #else
         return mask4 (a[0] == b[0],
                       a[1] == b[1],
@@ -357,7 +357,7 @@ public:
     /// Inequality comparison, component by component
     friend OIIO_FORCEINLINE const mask4 operator!= (mask4 a, mask4 b) {
 #if defined(OIIO_SIMD_SSE)
-        return _mm_xor_ps (a, b);
+        return _mm_xor_ps (a.m_vec, b.m_vec);
 #else
         return mask4 (a[0] != b[0],
                       a[1] != b[1],
@@ -389,7 +389,7 @@ private:
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE const mask4 shuffle (mask4 a) {
 #if defined(OIIO_SIMD_SSE)
-    return shuffle_sse<i0,i1,i2,i3> (__m128(a));
+    return shuffle_sse<i0,i1,i2,i3> (a.simd());
 #else
     return mask4(a[i0], a[i1], a[i2], a[i3]);
 #endif
@@ -407,7 +407,7 @@ OIIO_FORCEINLINE const bool extract (mask4 v) {
 /// in a single bool.
 OIIO_FORCEINLINE bool reduce_and (mask4 v) {
 #if defined(OIIO_SIMD_SSE)
-    return _mm_movemask_ps(v) == 0xf;
+    return _mm_movemask_ps(v.simd()) == 0xf;
 #else
     return v[0] & v[1] & v[2] & v[3];
 #endif
@@ -831,7 +831,7 @@ OIIO_FORCEINLINE const int4 shuffle (int4 a) {
 template<int i>
 OIIO_FORCEINLINE const int extract (int4 v) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
-    return _mm_extract_epi32(v, i);  // SSE4.1 only
+    return _mm_extract_epi32(v.simd(), i);  // SSE4.1 only
 #else
     return v[i];
 #endif
@@ -843,9 +843,9 @@ OIIO_FORCEINLINE int reduce_add (int4 v) {
     // People seem to agree that SSE3 does add reduction best with 2 
     // horizontal adds.
     // suppose v = (a, b, c, d)
-    simd::int4 x = _mm_hadd_ps (v, v);
+    simd::int4 x = _mm_hadd_ps (v.simd(), v.simd());
     // now x = (a+b, c+d, a+b, c+d)
-    x = _mm_hadd_ps (x, x);
+    x = _mm_hadd_ps (x.simd(), x.simd());
     // now all x elements are a+b+c+d
     return extract<0>(x);
 #elif defined(OIIO_SIMD_SSE)
@@ -896,9 +896,10 @@ OIIO_FORCEINLINE int reduce_or (int4 v) {
 OIIO_FORCEINLINE int4 blend (int4 a, int4 b, mask4 mask)
 {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
-    return _mm_blendv_epi8 (a, b, mask);
+    return _mm_blendv_epi8 (a.simd(), b.simd(), mask);
 #elif defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
-    return _mm_or_si128 (_mm_and_si128(mask, b), _mm_andnot_si128(mask, a));
+    return _mm_or_si128 (_mm_and_si128(mask, b.simd()),
+                         _mm_andnot_si128(mask.simd(), a.simd()));
 #else
     return int4 (mask[0] ? b[0] : a[0],
                  mask[1] ? b[1] : a[1],
@@ -954,7 +955,7 @@ public:
     /// Construct from an int4 (promoting all components to float)
     OIIO_FORCEINLINE explicit float4 (int4 i) {
 #if defined(OIIO_SIMD_SSE)
-        m_vec = _mm_cvtepi32_ps (i);
+        m_vec = _mm_cvtepi32_ps (i.simd());
 #else
         m_val[0] = float(i[0]);
         m_val[1] = float(i[1]);
@@ -1315,10 +1316,11 @@ OIIO_FORCEINLINE float4 blend (float4 a, float4 b, mask4 mask)
 {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
     // SSE >= 4.1 only
-    return _mm_blendv_ps (a, b, mask);
+    return _mm_blendv_ps (a.simd(), b.simd(), mask.simd());
 #elif defined(OIIO_SIMD_SSE)
     // Trick for SSE < 4.1
-    return _mm_or_ps (_mm_and_ps(mask, b), _mm_andnot_ps(mask, a));
+    return _mm_or_ps (_mm_and_ps(mask.simd(), b.simd()),
+                      _mm_andnot_ps(mask.simd(), a.simd()));
 #else
     return float4 (mask[0] ? b[0] : a[0],
                    mask[1] ? b[1] : a[1],
