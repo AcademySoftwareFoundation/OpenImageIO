@@ -1221,25 +1221,63 @@ inline float fast_safe_pow (float x, float y) {
 
 inline float fast_erf (float x)
 {
-    // Abramowitz and Stegun, 7.1.25
-    const float p  =  0.47047f;
-    const float a1 =  0.3480242f;
-    const float a2 = -0.0958798f;
-    const float a3 =  0.7478556f;
-
-    float absx = fabsf(x);
-    float t = 1 / (1 + p * absx);
-    float acc = ((a3 * t + a2) * t + a1) * t;
-    acc *= fast_exp(-(absx * absx));
-    float res = 1 - acc;
-    return copysignf(res, x);
+    // Examined 1082130433 values of erff on [0,4]: 1.93715e-06 max error
+    // Abramowitz and Stegun, 7.1.28
+    const float a1 = 0.0705230784f;
+    const float a2 = 0.0422820123f;
+    const float a3 = 0.0092705272f;
+    const float a4 = 0.0001520143f;
+    const float a5 = 0.0002765672f;
+    const float a6 = 0.0000430638f;
+    const float a = fabsf(x);
+    const float b = 1.0f - (1.0f - a); // crush denormals
+    const float r = madd(madd(madd(madd(madd(madd(a6, b, a5), b, a4), b, a3), b, a2), b, a1), b, 1.0f);
+    const float s = r * r; // ^2
+    const float t = s * s; // ^4
+    const float u = t * t; // ^8
+    const float v = u * u; // ^16
+    return copysignf(1.0f - 1.0f / v, x);
 }
 
 inline float fast_erfc (float x)
 {
+    // Examined 2164260866 values of erfcf on [-4,4]: 1.90735e-06 max error
+    // ulp histogram:
+    //   0  = 80.30%
     return 1.0f - fast_erf(x);
 }
 
+inline float fast_ierf (float x)
+{
+    // from: Approximating the erfinv function by Mike Giles
+    // to avoid trouble at the limit, clamp input to 1-eps
+    float a = fabsf(x); if (a > 0.99999994f) a = 0.99999994f;
+    float w = -fast_log((1.0f - a) * (1.0f + a)), p;
+    if (w < 5.0f) {
+        w = w - 2.5f;
+        p =  2.81022636e-08f;
+        p = madd(p, w,  3.43273939e-07f);
+        p = madd(p, w, -3.5233877e-06f );
+        p = madd(p, w, -4.39150654e-06f);
+        p = madd(p, w,  0.00021858087f );
+        p = madd(p, w, -0.00125372503f );
+        p = madd(p, w, -0.00417768164f );
+        p = madd(p, w,  0.246640727f   );
+        p = madd(p, w,  1.50140941f    );
+    } else {
+        w = sqrtf(w) - 3.0f;
+        p = -0.000200214257f;
+        p = madd(p, w,  0.000100950558f);
+        p = madd(p, w,  0.00134934322f );
+        p = madd(p, w, -0.00367342844f );
+        p = madd(p, w,  0.00573950773f );
+        p = madd(p, w, -0.0076224613f  );
+        p = madd(p, w,  0.00943887047f );
+        p = madd(p, w,  1.00167406f    );
+        p = madd(p, w,  2.83297682f    );
+    }
+    return p * x;
+}
 
 // (end of fast* functions)
 ////////////////////////////////////////////////////////////////////////////
