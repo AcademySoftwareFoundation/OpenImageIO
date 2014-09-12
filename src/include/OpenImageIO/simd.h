@@ -98,7 +98,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define OIIO_SIMD 0
 #  define OIIO_SIMD_ALIGN
 #  define OIIO_SIMD4_ALIGN
-#  define OIIO_SIMD_MAX_SIZE_BYTES 1
+#  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #endif
 
 #include "platform.h"
@@ -167,8 +167,6 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
-#else
-    typedef int[4]   simd_t;
 #endif
 
     /// Default constructor (contents undefined)
@@ -195,12 +193,14 @@ public:
 #endif
     }
 
+#if OIIO_SIMD
     /// Construct from the underlying SIMD type
     OIIO_FORCEINLINE mask4 (const simd_t m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
     OIIO_FORCEINLINE simd_t simd () const { return m_vec; }
+#endif
 
     /// Set all components to false
     OIIO_FORCEINLINE void clear () {
@@ -374,7 +374,9 @@ public:
 private:
     // The actual data representation
     union {
+#if OIIO_SIMD
         simd_t m_vec;
+#endif
         int m_val[4];
     };
 };
@@ -446,8 +448,6 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128i simd_t;
-#else
-    typedef int[4]  simd_t;
 #endif
 
     /// Default constructor (contents undefined)
@@ -480,12 +480,14 @@ public:
 #endif
     }
 
+#if OIIO_SIMD
     /// Construct from the underlying SIMD type
     OIIO_FORCEINLINE int4 (simd_t m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
     OIIO_FORCEINLINE simd_t simd () const { return m_vec; }
+#endif
 
     /// Sset all components to 0
     OIIO_FORCEINLINE void clear () {
@@ -803,7 +805,9 @@ public:
 private:
     // The actual data representation
     union {
+#if OIIO_SIMD
         simd_t  m_vec;
+#endif
         value_t m_val[4];
     };
 
@@ -918,8 +922,6 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
-#else
-    typedef float[4] simd_t;
 #endif
 
     /// Default constructor (contents undefined)
@@ -967,12 +969,14 @@ public:
     /// Construct from a Imath::V3f
     OIIO_FORCEINLINE float4 (const Imath::V3f &v) { load (v[0], v[1], v[2], 0.0f); }
 
+#if OIIO_SIMD
     /// Construct from the underlying SIMD type
     OIIO_FORCEINLINE float4 (const simd_t m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
     OIIO_FORCEINLINE simd_t simd () const { return m_vec; }
+#endif
 
     /// Cast to a Imath::V3f
     OIIO_FORCEINLINE const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
@@ -1273,7 +1277,9 @@ public:
 private:
     // The actual data representation
     union {
+#if OIIO_SIMD
         simd_t  m_vec;
+#endif
         value_t m_val[4];
     };
 };

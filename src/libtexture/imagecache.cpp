@@ -1237,11 +1237,9 @@ ImageCacheTile::memsize_needed () const
     TypeDesc datatype = file().datatype(id().subimage());
     size_t pixelsize = spec.nchannels * datatype.size();
     size_t s = spec.tile_pixels() * pixelsize;
-#if OIIO_SIMD
     // N.B. Round up so we can use a SIMD fetch for the last pixel and
     // channel without running off the end.
     s += OIIO_SIMD_MAX_SIZE_BYTES;
-#endif
     return s;
 }
 
