@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 1.4.14 (?? 2014 -- compared to 1.4.13)
+--------------------------------------------------
+
+
+
 Release 1.4.13 (12 Sep 2014 -- compared to 1.4.12)
 --------------------------------------------------
 * Now builds against OpenEXR 2.2, including support for the new
