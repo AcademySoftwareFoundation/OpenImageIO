@@ -1,10 +1,21 @@
 Changes:
 
 
-Release 1.4.13 (?? 2014 -- compared to 1.4.12)
+Release 1.4.13 (12 Sep 2014 -- compared to 1.4.12)
 --------------------------------------------------
-
-
+* Now builds against OpenEXR 2.2, including support for the new
+  DWAA and DWAB compression modes.
+* OpenEXR: fixed issue where a stringvec of 16 items was mishandled as
+  a matrix.
+* Fix fmath.h to move the 'using' statements around properly.
+* Fix oiiotool color conversion bug that crashed when the input image was
+  a file with MIP levels.
+* TIFF output now gracefully handles negative origins without hitting an
+  assertion.
+* Developer details: platform macros moved from sysutil.h to platform.h.
+  (But sysutil.h now includes platform.h, so you shouldn't notice.)
+* Developer details: ustring now has comparisons between ustrings versus
+  char* and string_view.
 
 Release 1.4.12 (31 Jul 2014 -- compared to 1.4.11)
 --------------------------------------------------
