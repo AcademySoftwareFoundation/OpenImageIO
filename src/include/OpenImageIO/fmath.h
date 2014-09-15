@@ -870,7 +870,13 @@ inline T safe_pow (T x, T y) {
 /// Round to nearest integer, returning as an int.
 inline int fast_rint (float x) {
     // used by sin/cos/tan range reduction
+#if OIIO_SIMD_SSE >= 4
+    // single roundps instruction on SSE4.1+ (for gcc/clang at least)
+    return static_cast<int>(rintf(x));
+#else
+    // emulate rounding by adding/substracting 0.5
     return static_cast<int>(x + copysignf(0.5f, x));
+#endif
 }
 
 
@@ -904,7 +910,7 @@ inline float fast_sin (float x) {
 
 
 inline float fast_cos (float x) {
-    // same argument reduction as fast_sinf
+    // same argument reduction as fast_sin
     int q = fast_rint (x * float(M_1_PI));
     float qf = q;
     x = madd(qf, -0.78515625f*4, x);
@@ -927,7 +933,7 @@ inline float fast_cos (float x) {
 }
 
 inline void fast_sincos (float x, float* sine, float* cosine) {
-    // same argument reduction as fast_sinf
+    // same argument reduction as fast_sin
     int q = fast_rint (x * float(M_1_PI));
     float qf = q;
     x = madd(qf, -0.78515625f*4, x);
@@ -936,7 +942,7 @@ inline void fast_sincos (float x, float* sine, float* cosine) {
     x = madd(qf, -1.2816720341285448015e-12f*4, x);
     x = float(M_PI_2) - (float(M_PI_2) - x); // crush denormals
     float s = x * x;
-    // NOTE: same exact polynomials as fast_sinf and fast_cosf above
+    // NOTE: same exact polynomials as fast_sin and fast_cos above
     if ((q & 1) != 0) x = -x;
     float su = 2.6083159809786593541503e-06f;
     su = madd(su, s, -0.0001981069071916863322258f);
@@ -982,35 +988,45 @@ inline float fast_tan (float x) {
     return u;
 }
 
-/// Fast approximate sin(x*M_PI) with ~0.001 maximum absolute error.
-/// http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
-static inline float fast_sinpi (float x)
+/// Fast, approximate sin(x*M_PI) with maximum absolute error of 0.000918954611.
+/// Adapted from http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
+inline float fast_sinpi (float x)
 {
-    // Fast trick to strip the integral part off, so our domain is [-1,1]
-    float z = (x + 25165824.0f);
-    x = x - (z - 25165824.0f);
-
-    float y = x - x * fabsf(x);
+	// Fast trick to strip the integral part off, so our domain is [-1,1]
+	const float z = x - ((x + 25165824.0f) - 25165824.0f);
+    const float y = z - z * fabsf(z);
     const float Q = 3.10396624f;
-    const float P = 3.584135056f;
+    const float P = 3.584135056f; // P = 16-4*Q
     return y * (Q + P * fabsf(y));
-    // N.B. This approximates sin(pi*x) as a polynomial, and guarantees that
-    // sin(i*PI) == 0 and sin(+/- PI/2) == +/- 1 if Q/4+P/16 == 1.  In other
-    // words, P = 16 * (1-Q/4).
-    //
-    // The original citation (using Q=3.1, P=3.6) had max error 0.001091.
-    // Chris Kulla supplied the above, slightly modified constants that
-    // reduce the maximum absolute error to 0.000918954611.
+    /* The original article used used inferior constants for Q and P and
+     * so had max error 1.091e-3.
+     *
+     * The optimal value for Q was determined by exhaustive search, minimizing
+     * the absolute numerical error relative to float(std::sin(double(phi*M_PI)))
+     * over the interval [0,2] (which is where most of the invocations happen).
+     * 
+     * The basic idea of this approximation starts with the coarse approximation:
+     *      sin(pi*x) ~= f(x) =  4 * (x - x * abs(x))
+     *
+     * This approximation always _over_ estimates the target. On the otherhand, the
+     * curve:
+     *      sin(pi*x) ~= f(x) * abs(f(x)) / 4
+     *
+     * always lies _under_ the target. Thus we can simply numerically search for the
+     * optimal constant to LERP these curves into a more precise approximation.
+     * After folding the constants together and simplifying the resulting math, we
+     * end up with the compact implementation below.
+     *
+     * NOTE: this function actually computes sin(x * pi) which avoids one or two
+     * mults in many cases and guarantees exact values at integer periods.
+     */
 }
 
-
 /// Fast approximate cos(x*M_PI) with ~0.1% absolute error.
-static inline float fast_cospi (float x)
+inline float fast_cospi (float x)
 {
     return fast_sinpi (x+0.5f);
 }
-
-
 
 inline float fast_acos (float x) {
     const float f = fabsf(x);
@@ -1221,25 +1237,63 @@ inline float fast_safe_pow (float x, float y) {
 
 inline float fast_erf (float x)
 {
-    // Abramowitz and Stegun, 7.1.25
-    const float p  =  0.47047f;
-    const float a1 =  0.3480242f;
-    const float a2 = -0.0958798f;
-    const float a3 =  0.7478556f;
-
-    float absx = fabsf(x);
-    float t = 1 / (1 + p * absx);
-    float acc = ((a3 * t + a2) * t + a1) * t;
-    acc *= fast_exp(-(absx * absx));
-    float res = 1 - acc;
-    return copysignf(res, x);
+    // Examined 1082130433 values of erff on [0,4]: 1.93715e-06 max error
+    // Abramowitz and Stegun, 7.1.28
+    const float a1 = 0.0705230784f;
+    const float a2 = 0.0422820123f;
+    const float a3 = 0.0092705272f;
+    const float a4 = 0.0001520143f;
+    const float a5 = 0.0002765672f;
+    const float a6 = 0.0000430638f;
+    const float a = fabsf(x);
+    const float b = 1.0f - (1.0f - a); // crush denormals
+    const float r = madd(madd(madd(madd(madd(madd(a6, b, a5), b, a4), b, a3), b, a2), b, a1), b, 1.0f);
+    const float s = r * r; // ^2
+    const float t = s * s; // ^4
+    const float u = t * t; // ^8
+    const float v = u * u; // ^16
+    return copysignf(1.0f - 1.0f / v, x);
 }
 
 inline float fast_erfc (float x)
 {
+    // Examined 2164260866 values of erfcf on [-4,4]: 1.90735e-06 max error
+    // ulp histogram:
+    //   0  = 80.30%
     return 1.0f - fast_erf(x);
 }
 
+inline float fast_ierf (float x)
+{
+    // from: Approximating the erfinv function by Mike Giles
+    // to avoid trouble at the limit, clamp input to 1-eps
+    float a = fabsf(x); if (a > 0.99999994f) a = 0.99999994f;
+    float w = -fast_log((1.0f - a) * (1.0f + a)), p;
+    if (w < 5.0f) {
+        w = w - 2.5f;
+        p =  2.81022636e-08f;
+        p = madd(p, w,  3.43273939e-07f);
+        p = madd(p, w, -3.5233877e-06f );
+        p = madd(p, w, -4.39150654e-06f);
+        p = madd(p, w,  0.00021858087f );
+        p = madd(p, w, -0.00125372503f );
+        p = madd(p, w, -0.00417768164f );
+        p = madd(p, w,  0.246640727f   );
+        p = madd(p, w,  1.50140941f    );
+    } else {
+        w = sqrtf(w) - 3.0f;
+        p = -0.000200214257f;
+        p = madd(p, w,  0.000100950558f);
+        p = madd(p, w,  0.00134934322f );
+        p = madd(p, w, -0.00367342844f );
+        p = madd(p, w,  0.00573950773f );
+        p = madd(p, w, -0.0076224613f  );
+        p = madd(p, w,  0.00943887047f );
+        p = madd(p, w,  1.00167406f    );
+        p = madd(p, w,  2.83297682f    );
+    }
+    return p * x;
+}
 
 // (end of fast* functions)
 ////////////////////////////////////////////////////////////////////////////
