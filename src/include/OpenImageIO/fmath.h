@@ -243,8 +243,8 @@ inline T
 bilerp (T v0, T v1, T v2, T v3, Q s, Q t)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
-    Q s1 = (Q)1 - s;
-    return (T) (((Q)1-t)*(v0*s1 + v1*s) + t*(v2*s1 + v3*s));
+    Q s1 = Q(1) - s;
+    return T ((Q(1)-t)*(v0*s1 + v1*s) + t*(v2*s1 + v3*s));
 }
 
 
@@ -259,10 +259,10 @@ bilerp (const T *v0, const T *v1,
         const T *v2, const T *v3,
         Q s, Q t, int n, T *result)
 {
-    Q s1 = (Q)1 - s;
-    Q t1 = (Q)1 - t;
+    Q s1 = Q(1) - s;
+    Q t1 = Q(1) - t;
     for (int i = 0;  i < n;  ++i)
-        result[i] = (T) (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s));
+        result[i] = T (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s));
 }
 
 
@@ -278,11 +278,11 @@ bilerp_mad (const T *v0, const T *v1,
             const T *v2, const T *v3,
             Q s, Q t, Q scale, int n, T *result)
 {
-    Q s1 = (Q)1 - s;
-    Q t1 = (Q)1 - t;
+    Q s1 = Q(1) - s;
+    Q t1 = Q(1) - t;
     for (int i = 0;  i < n;  ++i)
-        result[i] += (T) (scale * (t1*(v0[i]*s1 + v1[i]*s) +
-                                   t*(v2[i]*s1 + v3[i]*s)));
+        result[i] += T (scale * (t1*(v0[i]*s1 + v1[i]*s) +
+                                  t*(v2[i]*s1 + v3[i]*s)));
 }
 
 
@@ -295,11 +295,11 @@ inline T
 trilerp (T v0, T v1, T v2, T v3, T v4, T v5, T v6, T v7, Q s, Q t, Q r)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
-    Q s1 = (Q)1 - s;
-    Q t1 = (Q)1 - t;
-    Q r1 = (Q)1 - r;
-    return (T) (r1*(t1*(v0*s1 + v1*s) + t*(v2*s1 + v3*s)) +
-                 r*(t1*(v4*s1 + v5*s) + t*(v6*s1 + v7*s)));
+    Q s1 = Q(1) - s;
+    Q t1 = Q(1) - t;
+    Q r1 = Q(1) - r;
+    return T (r1*(t1*(v0*s1 + v1*s) + t*(v2*s1 + v3*s)) +
+               r*(t1*(v4*s1 + v5*s) + t*(v6*s1 + v7*s)));
 }
 
 
@@ -314,12 +314,12 @@ trilerp (const T *v0, const T *v1, const T *v2, const T *v3,
          const T *v4, const T *v5, const T *v6, const T *v7,
          Q s, Q t, Q r, int n, T *result)
 {
-    Q s1 = (Q)1 - s;
-    Q t1 = (Q)1 - t;
-    Q r1 = (Q)1 - r;
+    Q s1 = Q(1) - s;
+    Q t1 = Q(1) - t;
+    Q r1 = Q(1) - r;
     for (int i = 0;  i < n;  ++i)
-        result[i] = (T) (r1*(t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s)) +
-                          r*(t1*(v4[i]*s1 + v5[i]*s) + t*(v6[i]*s1 + v7[i]*s)));
+        result[i] = T (r1*(t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s)) +
+                        r*(t1*(v4[i]*s1 + v5[i]*s) + t*(v6[i]*s1 + v7[i]*s)));
 }
 
 
@@ -335,7 +335,7 @@ trilerp_mad (const T *v0, const T *v1, const T *v2, const T *v3,
              const T *v4, const T *v5, const T *v6, const T *v7,
              Q s, Q t, Q r, Q scale, int n, T *result)
 {
-    Q r1 = (Q)1 - r;
+    Q r1 = Q(1) - r;
     bilerp_mad (v0, v1, v2, v3, s, t, scale*r1, n, result);
     bilerp_mad (v4, v5, v6, v7, s, t, scale*r, n, result);
 }
