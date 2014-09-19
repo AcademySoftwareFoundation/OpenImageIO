@@ -690,7 +690,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 
-                if (filtername == "box" && !orig_was_overscan && sharpen > 0.0f) {
+                if (filtername == "box" && !orig_was_overscan && sharpen <= 0.0f) {
                     ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
                 } else {
