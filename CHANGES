@@ -99,6 +99,8 @@ Fixes, minor enhancements, and performance improvements:
    * maketx --attrib, --sattrib, and --sansattrib now work like
      oiiotool; in other words, you can use command line arguments to add
      or alter metadata in the process of creating a texture. #901 (1.5.1)
+   * Experimental feature: maketx --sharpen <AMT> adds slight sharpening
+     and emphasis of higher frequencies when creating MIP-maps. #958 (1.5.5)
 * OpenEXR:
    * Improve the quality of lossy b44 compression by more correctly
      using the pLinear value of channels (we were incorrectly using the
@@ -143,6 +145,8 @@ Fixes, minor enhancements, and performance improvements:
   #902 (1.5.1/1.4.11)
 * Python: ImageBuf.get_pixels() is now implemented, was previously omitted.
   (1.5.2)
+* TextureSystem: anisotropic texture lookups are slightly sped up (~7%)
+  by using some approximate math (but not visibly different) #953. (1.5.5)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -201,8 +205,12 @@ Developer goodies / internals:
 * ustring: add comparisons between ustrings versus char* and string_view.
   (1.5.4)
 * New simd.h exposes float4, int4, and mask4 classes that utilize SSE
-  instructions for big speedups. (1.5.5 / #948)
-
+  instructions for big speedups. (1.5.5 / #948, #954, #955)
+* Big reorganization of fmath.h, moved stuff around, organized, added lots
+  of safe_blah() functions that clamp to valid ranges and fast_blah()
+  functions that are approximations that may differ slightly several
+  decimal places in but are much faster than the full precision libm/IEEE
+  versions. #953, #956 (1.5.5)
 
 
 
