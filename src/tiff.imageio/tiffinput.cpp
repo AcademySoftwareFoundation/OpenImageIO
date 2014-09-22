@@ -109,6 +109,18 @@ public:
     virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
+    virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
+                                stride_t xstride);
+    virtual bool read_scanlines (int ybegin, int yend, int z,
+                                 int chbegin, int chend,
+                                 TypeDesc format, void *data,
+                                 stride_t xstride, stride_t ystride);
+    virtual bool read_tile (int x, int y, int z, TypeDesc format, void *data,
+                            stride_t xstride, stride_t ystride, stride_t zstride);
+    virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             TypeDesc format, void *data,
+                             stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
     TIFF *m_tif;                     ///< libtiff handle
@@ -164,22 +176,6 @@ private:
                       void *out, int outbits);
 
     void invert_photometric (int n, void *data);
-
-    // Convert from unassociated/non-premultiplied alpha to
-    // associated/premultiplied
-    template <class T>
-    void unassociate (T *data, int size, int nchannels, int alpha_channel) {
-        double scale = std::numeric_limits<T>::is_integer ?
-            1.0/std::numeric_limits<T>::max() : 1.0;
-        for ( ;  size;  --size, data += nchannels)
-            for (int c = 0;  c < nchannels;  c++)
-                if (c != alpha_channel) {
-                    double f = data[c];
-                    data[c] = T (f * (data[alpha_channel] * scale));
-                }
-    }
-
-    void unassalpha_to_assocalpha (int n, void *data);
 
     // Calling TIFFGetField (tif, tag, &dest) is supposed to work fine for
     // simple types... as long as the tag types in the file are the correct
@@ -1001,35 +997,6 @@ TIFFInput::invert_photometric (int n, void *data)
 
 
 
-void
-TIFFInput::unassalpha_to_assocalpha (int n, void *data)
-{
-    switch (m_spec.format.basetype) {
-    case TypeDesc::UINT8:
-        unassociate ((unsigned char *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    case TypeDesc::INT8:
-        unassociate ((char *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    case TypeDesc::UINT16:
-        unassociate ((unsigned short *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    case TypeDesc::INT16:
-        unassociate ((short *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    case TypeDesc::FLOAT:
-        unassociate ((float *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    case TypeDesc::DOUBLE:
-        unassociate ((double *)data, n, m_spec.nchannels, m_spec.alpha_channel);
-        break;
-    default:
-        break;
-    }
-}
-
-
-
 bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
@@ -1122,12 +1089,6 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
         invert_photometric (nvals, data);
 
-    // If alpha is unassociated and we aren't requested to keep it that
-    // way, multiply the colors by alpha per the usual OIIO conventions
-    // to deliver associated color & alpha.
-    if (m_convert_alpha)
-        unassalpha_to_assocalpha (m_spec.width, data);
-
     return true;
 }
 
@@ -1191,14 +1152,107 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
         invert_photometric (tile_pixels, data);
 
-    // If alpha is unassociated and we aren't requested to keep it that
-    // way, multiply the colors by alpha per the usual OIIO conventions
-    // to deliver associated color & alpha.
-    if (m_convert_alpha)
-        unassalpha_to_assocalpha (tile_pixels, data);
-
     return true;
 }
+
+
+
+bool TIFFInput::read_scanline (int y, int z, TypeDesc format, void *data,
+                               stride_t xstride)
+{
+    bool ok = ImageInput::read_scanline (y, z, format, data, xstride);
+    if (ok && m_convert_alpha) {
+        // If alpha is unassociated and we aren't requested to keep it that
+        // way, multiply the colors by alpha per the usual OIIO conventions
+        // to deliver associated color & alpha.  Any auto-premultiplication
+        // by alpha should happen after we've already done data format
+        // conversions. That's why we do it here, rather than in
+        // read_native_blah.
+        OIIO::premult (m_spec.nchannels, m_spec.width, 1, 1,
+                       0 /*chbegin*/, m_spec.nchannels /*chend*/,
+                       format, data, xstride, AutoStride, AutoStride,
+                       m_spec.alpha_channel, m_spec.z_channel);
+    }
+    return ok;
+}
+
+
+
+bool TIFFInput::read_scanlines (int ybegin, int yend, int z,
+                                int chbegin, int chend,
+                                TypeDesc format, void *data,
+                                stride_t xstride, stride_t ystride)
+{
+    bool ok = ImageInput::read_scanlines (ybegin, yend, z, chbegin, chend,
+                                          format, data, xstride, ystride);
+    if (ok && m_convert_alpha) {
+        // If alpha is unassociated and we aren't requested to keep it that
+        // way, multiply the colors by alpha per the usual OIIO conventions
+        // to deliver associated color & alpha.  Any auto-premultiplication
+        // by alpha should happen after we've already done data format
+        // conversions. That's why we do it here, rather than in
+        // read_native_blah.
+        OIIO::premult (m_spec.nchannels, m_spec.width, yend-ybegin, 1,
+                       chbegin, chend, format, data,
+                       xstride, AutoStride, AutoStride,
+                       m_spec.alpha_channel, m_spec.z_channel);
+    }
+    return ok;
+}
+
+
+
+bool TIFFInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
+                           stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    bool ok = ImageInput::read_tile (x, y, z, format, data,
+                                     xstride, ystride, zstride);
+    if (ok && m_convert_alpha) {
+        // If alpha is unassociated and we aren't requested to keep it that
+        // way, multiply the colors by alpha per the usual OIIO conventions
+        // to deliver associated color & alpha.  Any auto-premultiplication
+        // by alpha should happen after we've already done data format
+        // conversions. That's why we do it here, rather than in
+        // read_native_blah.
+        OIIO::premult (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height,
+                       std::max (1, m_spec.tile_depth),
+                       0, m_spec.nchannels, format, data,
+                       xstride, AutoStride, AutoStride,
+                       m_spec.alpha_channel, m_spec.z_channel);
+    }
+    return ok;
+}
+
+
+
+bool TIFFInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend,
+                            int chbegin, int chend,
+                            TypeDesc format, void *data,
+                            stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    bool ok = ImageInput::read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                                      chbegin, chend, format, data,
+                                      xstride, ystride, zstride);
+    if (ok && m_convert_alpha) {
+        // If alpha is unassociated and we aren't requested to keep it that
+        // way, multiply the colors by alpha per the usual OIIO conventions
+        // to deliver associated color & alpha.  Any auto-premultiplication
+        // by alpha should happen after we've already done data format
+        // conversions. That's why we do it here, rather than in
+        // read_native_blah.
+        OIIO::premult (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height,
+                       std::max (1, m_spec.tile_depth),
+                       chbegin, chend, format, data,
+                       xstride, AutoStride, AutoStride,
+                       m_spec.alpha_channel, m_spec.z_channel);
+    }
+    return ok;
+}
+
+
+
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

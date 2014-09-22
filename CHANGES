@@ -128,6 +128,9 @@ Fixes, minor enhancements, and performance improvements:
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
    * Graceful handling of output of images with negative data window
      origin. (1.5.3)
+   * Improved precision when auto-premultiplying 8 bit unassociated alpha
+     images (if the user is reading them into a higher-precision buffer).
+     #960, #962 (1.6.2)
 * RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * RLA: Fix bug that caused RLA output to not respect requests for 10 bit
   output (would force it to 16 in that case). #899 (1.5.1)
@@ -211,6 +214,9 @@ Developer goodies / internals:
   functions that are approximations that may differ slightly several
   decimal places in but are much faster than the full precision libm/IEEE
   versions. #953, #956 (1.5.5)
+* New utility function: premult(), which can premultiply non-alpha, non-z
+  channels by alpha, for a whole buffer (with strides, any data type).
+  #962 (1.6.2)
 
 
 

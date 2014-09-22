@@ -1256,6 +1256,14 @@ OIIO_API void add_dither (int nchannels, int width, int height, int depth,
                           int chorigin=0, int xorigin=0,
                           int yorigin=0, int zorigin=0);
 
+/// Convert unassociated to associated alpha by premultiplying all color
+/// (non-alpha, non-z) channels by alpha.
+OIIO_API void premult (int nchannels, int width, int height, int depth,
+                       int chbegin, int chend,
+                       TypeDesc datatype, void *data, stride_t xstride,
+                       stride_t ystride, stride_t zstride,
+                       int alpha_channel = -1, int z_channel = -1);
+
 /// Helper routine for data conversion: Copy an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
 /// different data layouts, but must have the same data type.  Clever

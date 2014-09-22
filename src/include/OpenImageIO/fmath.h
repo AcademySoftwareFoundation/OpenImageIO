@@ -449,7 +449,8 @@ swap_endian (T *f, int len=1)
 /// (presumed to be integer).  This is just a helper for the convert_type
 /// templates, it probably has no other use.
 template<typename S, typename D, typename F>
-D scaled_conversion (const S &src, F scale, F min, F max)
+inline D
+scaled_conversion (const S &src, F scale, F min, F max)
 {
     if (std::numeric_limits<S>::is_signed) {
         F s = src * scale;
@@ -545,7 +546,8 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
 /// types.  Take a copy shortcut if both types are the same and no
 /// conversion is necessary.
 template<typename S, typename D>
-D convert_type (const S &src)
+inline D
+convert_type (const S &src)
 {
     if (is_same<S,D>::value) {
         // They must be the same type.  Just return it.
