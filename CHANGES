@@ -28,7 +28,7 @@ Major new features and improvements:
    * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
    * median_filter performs a median filter. (1.5.4)
 * Significant internal speedups by utilizing SIMD instructions (SSE) in
-  the TextureSystem (1.5.5 / #948). To use this to its fullest extent,
+  the TextureSystem (1.5.5 / #948, #990). To use this to its fullest extent,
   build OIIO with the make/cmake option USE_SIMD=arch, where arch is
   sse2, ssse3, sse4.1, sse4.2, depending on what machines you'll be
   deploying to. (Note that x86_64 automatically implies at least sse2.)
@@ -46,6 +46,9 @@ Major new features and improvements:
   has an unexpected file extension. We hope to have this issue solved, and
   thus movie support enabled by default, by the time we are ready for a
   stable 1.5 release. Stay tuned.
+* Nuke plugins -- a txReader plugins that will read OIIO texture files,
+  and a txWriter that will output proper (tiled & mip-mapped) texture files
+  from Nuke. Contributed by Nathan Rusch / Luma Pictures. #973 (1.5.5)
 
 Public API changes:
 * TextureSystem API calls have been modified: the nchannels, dresultds,

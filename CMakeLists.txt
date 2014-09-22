@@ -133,6 +133,9 @@ set (LIBRAW_PATH "" CACHE STRING "Custom LibRaw path")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (OIIO_THREAD_ALLOW_DCLP ON CACHE BOOL "OIIO threads may use DCLP for speed")
 set (PYTHON_VERSION 2.6)
+set (USE_NUKE ON CACHE BOOL "Build Nuke plugins, if Nuke is found")
+set (Nuke_ROOT "" CACHE STRING "Where to find Nuke installation")
+set (NUKE_VERSION 7.0)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
 set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
@@ -367,20 +370,21 @@ endif ()
 
 add_subdirectory (src/include)
 add_subdirectory (src/doc)
+add_subdirectory (src/nuke)
 
 
 #########################################################################
 # Testing
-# 
+#
 # Just call oiio_add_tests(testname...) for each test.  Additional
 # optional arguments include:
 #     FOUNDVAR   specifies the name of a CMAKE variable; if not defined,
 #                    the test will not be added for 'make test' (helpful
 #                    for excluding tests for libraries not found).
 #     IMAGEDIR   specifies a directory for test images, one level higher
-#                    than where the oiio top level source lives -- a 
+#                    than where the oiio top level source lives -- a
 #                    message will be printed if not found.
-#     URL        URL where the test images can be found, will be 
+#     URL        URL where the test images can be found, will be
 #                    incorporated into the error message if the test
 #                    image directory is not found.
 #     LABEL      If set to "broken", will designate the test as one

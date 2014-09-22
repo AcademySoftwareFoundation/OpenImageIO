@@ -124,6 +124,10 @@ ifneq (${USE_OCIO},)
 MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
 
+ifneq (${USE_NUKE},)
+MY_CMAKE_FLAGS += -DUSE_NUKE:BOOL=${USE_NUKE}
+endif
+
 ifneq (${USE_OPENSSL},)
 MY_CMAKE_FLAGS += -DUSE_OPENSSL:BOOL=${USE_OPENSSL}
 endif
@@ -153,6 +157,14 @@ endif
 
 ifneq (${BOOST_HOME},)
 MY_CMAKE_FLAGS += -DBOOST_ROOT:STRING=${BOOST_HOME}
+endif
+
+ifneq (${NUKE_HOME},)
+MY_CMAKE_FLAGS += -DNuke_ROOT:STRING=${NUKE_HOME}
+endif
+
+ifneq (${NUKE_VERSION},)
+MY_CMAKE_FLAGS += -DNUKE_VERSION:STRING=${NUKE_VERSION}
 endif
 
 ifneq (${STOP_ON_WARNING},)
@@ -361,6 +373,9 @@ help:
 	@echo "      USE_GIF=0                Don't build the GIF plugin"
 	@echo "      USE_OCIO=0               Don't use OpenColorIO even if found"
 	@echo "      OCIO_HOME=path           Custom OpenColorIO installation"
+	@echo "      USE_NUKE=0               Don't build Nuke plugins"
+	@echo "      NUKE_HOME=path           Custom Nuke installation"
+	@echo "      NUKE_VERSION=ver         Custom Nuke version"
 	@echo "      USE_OPENSSL=0            Don't use OpenSSL even if found"
 	@echo "      USE_LIBRAW=0             Don't use LibRaw, even if found"
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
