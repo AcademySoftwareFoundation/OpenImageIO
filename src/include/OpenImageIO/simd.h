@@ -661,7 +661,7 @@ public:
         return *this;
     }
 
-    OIIO_FORCEINLINE int4 operator- () {
+    OIIO_FORCEINLINE int4 operator- () const {
 #if defined(OIIO_SIMD_SSE)
         return _mm_sub_epi32 (_mm_setzero_si128(), m_vec);
 #else
@@ -1309,7 +1309,7 @@ public:
         return *this;
     }
 
-    OIIO_FORCEINLINE float4 operator- () {
+    OIIO_FORCEINLINE float4 operator- () const {
 #if defined(OIIO_SIMD_SSE)
         return _mm_sub_ps (_mm_setzero_ps(), m_vec);
 #else
