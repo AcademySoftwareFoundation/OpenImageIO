@@ -34,6 +34,70 @@
 OIIO_NAMESPACE_USING;
 
 
+
+void
+test_int_helpers ()
+{
+    std::cout << "\ntest_int_helpers\n";
+ 
+    // ispow2
+    for (int i = 1; i < (1<<30); i *= 2) {
+        OIIO_CHECK_ASSERT (ispow2(i));
+        if (i > 1)
+            OIIO_CHECK_ASSERT (! ispow2(i+1));
+    }
+    OIIO_CHECK_ASSERT (ispow2(int(0)));
+    OIIO_CHECK_ASSERT (! ispow2(-1));
+    OIIO_CHECK_ASSERT (! ispow2(-2));
+
+    // ispow2, try size_t, which is unsigned
+    for (size_t i = 1; i < (1<<30); i *= 2) {
+        OIIO_CHECK_ASSERT (ispow2(i));
+        if (i > 1)
+            OIIO_CHECK_ASSERT (! ispow2(i+1));
+    }
+    OIIO_CHECK_ASSERT (ispow2((unsigned int)0));
+
+    // pow2roundup
+    OIIO_CHECK_EQUAL (pow2roundup(4), 4);
+    OIIO_CHECK_EQUAL (pow2roundup(5), 8);
+    OIIO_CHECK_EQUAL (pow2roundup(6), 8);
+    OIIO_CHECK_EQUAL (pow2roundup(7), 8);
+    OIIO_CHECK_EQUAL (pow2roundup(8), 8);
+
+    // pow2rounddown
+    OIIO_CHECK_EQUAL (pow2rounddown(4), 4);
+    OIIO_CHECK_EQUAL (pow2rounddown(5), 4);
+    OIIO_CHECK_EQUAL (pow2rounddown(6), 4);
+    OIIO_CHECK_EQUAL (pow2rounddown(7), 4);
+    OIIO_CHECK_EQUAL (pow2rounddown(8), 8);
+
+    // round_to_multiple
+    OIIO_CHECK_EQUAL (round_to_multiple(1, 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(2, 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(3, 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(4, 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(5, 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(6, 5), 10);
+
+    // round_to_multiple_of_pow2
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(1), 4), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(2), 4), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(3), 4), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(4), 4), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(5), 4), 8);
+
+    // round_to_multiple_of_pow2
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(size_t(1), size_t(4)), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(size_t(2), size_t(4)), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(size_t(3), size_t(4)), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(size_t(4), size_t(4)), 4);
+    OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(size_t(5), size_t(4)), 8);
+}
+
+
+
+
 // Convert T to F to T, make sure value are preserved round trip
 template<typename T, typename F>
 void test_convert_type (double tolerance = 1e-6)
@@ -86,7 +150,9 @@ void test_bit_range_convert ()
 
 int main (int argc, char *argv[])
 {
-    std::cout << "round trip convert char/float/char\n";
+    test_int_helpers ();
+
+    std::cout << "\nround trip convert char/float/char\n";
     test_convert_type<char,float> ();
     std::cout << "round trip convert unsigned char/float/unsigned char\n";
     test_convert_type<unsigned char,float> ();

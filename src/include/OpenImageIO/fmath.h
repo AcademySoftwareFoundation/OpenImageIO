@@ -59,6 +59,7 @@
 
 #include "oiioversion.h"   /* Just for the OIIO_NAMESPACE stuff */
 #include "platform.h"
+#include "dassert.h"
 #include "missing_math.h"
 
 
@@ -75,26 +76,14 @@ OIIO_NAMESPACE_ENTER {
 
 /// Quick test for whether an integer is a power of 2.
 ///
+template<typename T>
 inline bool
-ispow2 (int x)
+ispow2 (T x)
 {
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
     return (x & (x-1)) == 0 && (x >= 0);
-}
-
-
-
-/// Quick test for whether an unsigned integer is a power of 2.
-///
-inline bool
-ispow2 (unsigned int x)
-{
-    // Numerous references for this bit trick are on the web.  The
-    // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
-    // all 1 bits for bits < b.
-    return (x & (x-1)) == 0;
 }
 
 
@@ -152,10 +141,13 @@ round_to_multiple (int x, int m)
 
 /// Round up to the next whole multiple of m, for the special case where
 /// m is definitely a power of 2 (somewhat simpler than the more general
-/// round_to_multiple).
-inline int
-round_to_multiple_of_pow2 (int x, int m)
+/// round_to_multiple). This is a template that should work for any
+// integer type.
+template<typename T>
+inline T
+round_to_multiple_of_pow2 (T x, T m)
 {
+    DASSERT (ispow2 (m));
     return (x + m - 1) & (~(m-1));
 }
 
