@@ -80,26 +80,21 @@ OIIO_NAMESPACE_ENTER
 ///
 class OIIO_API Timer {
 public:
-    typedef unsigned long long value_t;
+    typedef long long ticks_t;
 
     /// Constructor -- reset at zero, and start timing unless optional
     /// 'startnow' argument is false.
-    Timer (bool startnow=true) : m_ticking(false), m_elapsed(0)
+    Timer (bool startnow=true)
+        : m_ticking(false), m_starttime(0), m_elapsed_ticks(0)
     {
         if (startnow)
             start();
-        else {
-            // Initialize m_starttime to avoid warnings
-            m_starttime = 0;
-        }
     }
 
     /// Destructor.
-    ///
     ~Timer () { }
 
-    /// Start ticking, or restart if we have stopped.
-    ///
+    /// Start (or restart) ticking, if we are not currently.
     void start () {
         if (! m_ticking) {
             m_starttime = now();
@@ -112,17 +107,17 @@ public:
     /// be added to previous elapsed time.
     double stop () {
         if (m_ticking) {
-            value_t n = now();
-            m_elapsed += diff (m_starttime, n);
+            ticks_t n = now();
+            m_elapsed_ticks += tickdiff (m_starttime, n);
             m_ticking = false;
         }
-        return m_elapsed;
+        return seconds(m_elapsed_ticks);
     }
 
     /// Reset at zero and stop ticking.
     ///
     void reset (void) {
-        m_elapsed = 0;
+        m_elapsed_ticks = 0;
         m_ticking = false;
     }
 
@@ -130,39 +125,44 @@ public:
     /// start() or lap()), add that to the previous elapsed time, reset
     /// current start time to now, keep the timer going (if it was).
     double lap () {
-        value_t n = now();
-        double r = m_ticking ? diff (m_starttime, n) : 0.0;
-        m_elapsed += r;
+        ticks_t n = now();
+        ticks_t r = m_ticking ? tickdiff (m_starttime, n) : ticks_t(0);
+        m_elapsed_ticks += r;
         m_starttime = n;
         m_ticking = true;
-        return r;
+        return seconds(r);
     }
 
-    /// Operator () returns the elapsed time so far, including both the
-    /// currently-ticking clock as well as any previously elapsed time.
-    double operator() (void) const {
-        return m_elapsed + time_since_start();
+    /// Total number of elapsed ticks so far, including both the currently-
+    /// ticking clock as well as any previously elapsed time.
+    ticks_t ticks () const { return ticks_since_start() + m_elapsed_ticks; }
+
+    /// Operator () returns the elapsed time so far, in seconds, including
+    /// both the currently-ticking clock as well as any previously elapsed
+    /// time.
+    double operator() (void) const { return seconds (ticks()); }
+
+    /// Return just the ticks since we called start(), not any elapsed
+    /// time in previous start-stop segments.
+    ticks_t ticks_since_start (void) const {
+        return m_ticking ? tickdiff (m_starttime, now()) : ticks_t(0);
     }
 
     /// Return just the time since we called start(), not any elapsed
     /// time in previous start-stop segments.
-    double time_since_start (void) const {
-        if (m_ticking) {
-            value_t n = now();
-            return diff (m_starttime, n);
-        } else {
-            return 0;
-        }
-    }
+    double time_since_start (void) const { return seconds (ticks_since_start()); }
+
+    /// Convert number of ticks to seconds.
+    static double seconds (ticks_t ticks) { return ticks * seconds_per_tick; }
 
 private:
     bool m_ticking;       ///< Are we currently ticking?
-    value_t m_starttime;  ///< Time since last call to start()
-    double m_elapsed;     ///< Time elapsed BEFORE the current start().
+    ticks_t m_starttime;  ///< Time since last call to start()
+    ticks_t m_elapsed_ticks; ///< Time elapsed BEFORE the current start().
 
-    /// Platform-dependent grab of current time, expressed as value_t.
+    /// Platform-dependent grab of current time, expressed as ticks_t.
     ///
-    value_t now (void) const {
+    ticks_t now (void) const {
 #ifdef _WIN32
         LARGE_INTEGER n;
         QueryPerformanceCounter (&n);   // From MSDN web site
@@ -172,15 +172,19 @@ private:
 #else
         struct timeval t;
         gettimeofday (&t, NULL);
-        return (unsigned long long) t.tv_sec*1000000ull + t.tv_usec;
+        return (long long) t.tv_sec*1000000ll + t.tv_usec;
 #endif
     }
 
-    /// Platform-dependent difference between two times, expressed in
-    /// seconds.
-    static double diff (const value_t &then, const value_t &now) {
-        value_t d = (now>then) ? now-then : then-now;
-        return d * seconds_per_tick;
+    /// Difference between two times, expressed in (platform-dependent)
+    /// ticks.
+    ticks_t tickdiff (ticks_t then, ticks_t now) const {
+        return (now>then) ? now-then : then-now;
+    }
+
+    /// Difference between two times, expressed in seconds.
+    double diff (ticks_t then, ticks_t now) const {
+        return seconds (tickdiff (then, now));
     }
 
     static double seconds_per_tick;
