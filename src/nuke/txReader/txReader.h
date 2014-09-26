@@ -1,6 +1,7 @@
 #ifndef TXREADER_H
 #define TXREADER_H
 
+#include "DDImage/Thread.h"
 #include "DDImage/Enumeration_KnobI.h"
 #include "DDImage/Reader.h"
 #include "DDImage/Row.h"
@@ -45,9 +46,17 @@ namespace TxReaderNS {
 
 
     class txReader : public Reader {
-        int channelCount_;
-        TxReaderFormat* txFmt_;
         ImageInput* oiioInput_;
+
+        TxReaderFormat* txFmt_;
+
+        Lock syncLock_;
+        bool haveImage_;
+        std::vector<float> imageBuf_;
+
+        int lastMipLevel_;
+        int channelCount_;
+
         MetaData::Bundle meta_;
 
         static const Description d;
@@ -56,6 +65,7 @@ namespace TxReaderNS {
         txReader(Read* iop);
         virtual ~txReader();
 
+        void open();
         void engine(int y, int x, int r, ChannelMask channels, Row& row);
 
         const MetaData::Bundle& fetchMetaData(const char* key) { return meta_; }

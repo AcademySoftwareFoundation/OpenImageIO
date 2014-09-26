@@ -3,35 +3,51 @@
 
 /*
  * TODO:
+ * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
  * - Populate metadata in txReader constructor
  * - Implement planar Reader API for Nuke 8 (should map better to TIFF/OIIO)
  */
 
 
 namespace TxReaderNS {
-    txReader::txReader(Read* read) : Reader(read), channelCount_(0) {
+    txReader::txReader(Read* read) : Reader(read),
+            channelCount_(0),
+            lastMipLevel_(-1),
+            haveImage_(false)
+    {
         txFmt_ = dynamic_cast<TxReaderFormat*>(iop->handler());
         if (!txFmt_) {
             iop->error("Failed to cast Read handler to TxReaderFormat");
             return;
         }
 
-        ImageSpec spec;
-        // FIXME: This doesn't seem to fill in the spec...
-        oiioInput_ = ImageInput::open(filename(), &spec);
+        oiioInput_ = ImageInput::open(filename());
+        if (!oiioInput_) {
+            iop->internalError("Failed to create ImageInput for file %s");
+            return;
+        }
 
-        channelCount_ = spec.nchannels;
-        set_info(spec.width, spec.height, channelCount_);
+        const ImageSpec& baseSpec = oiioInput_->spec();
+
+        if (!baseSpec.width * baseSpec.height) {
+            iop->internalError("tx file has one or more zero dimensions "
+                               "(%d x %d)", baseSpec.width, baseSpec.height);
+            return;
+        }
+
+        channelCount_ = baseSpec.nchannels;
+        set_info(baseSpec.width, baseSpec.height, channelCount_);
 
         // Populate mip level pulldown
         std::vector<std::string> mipLabels;
         bool found = true;
         std::ostringstream buf;
+        ImageSpec mipSpec(baseSpec);
         for (int mipLevel = 0; found; mipLevel++) {
             // e.g. "0\t0 - 1920x1080"
-            buf << mipLevel << '\t' << mipLevel << " - " << spec.width << 'x' << spec.height;
+            buf << mipLevel << '\t' << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
             mipLabels.push_back(buf.str());
-            found = oiioInput_->seek_subimage(0, mipLevel, spec);
+            found = oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec);
             if (found) {
                 buf.str(std::string());
                 buf.clear();
@@ -48,31 +64,70 @@ namespace TxReaderNS {
         oiioInput_ = NULL;
     }
 
-    void txReader::engine(int y, int x, int r, ChannelMask channels, Row& row) {
-        ImageSpec spec;
-        int mipLevel = txFmt_->mipLevel();
-
+    void txReader::open() {
         // Seek to the correct mip level
-        if (!oiioInput_->seek_subimage(0, mipLevel, spec)){
-            iop->internalError("Failed to seek to mip level %d", mipLevel);
+        if (lastMipLevel_ != txFmt_->mipLevel()) {
+            printf("Seeking to mip level %d\n", txFmt_->mipLevel());
+            ImageSpec seekSpec;
+            if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), seekSpec)) {
+                iop->internalError("Failed to seek to mip level %d",
+                                   txFmt_->mipLevel());
+                return;
+            }
+
+            // Make sure the current mip level has the same number of channels we
+            // were expecting
+            if (seekSpec.nchannels != channelCount_) {
+                iop->internalError("txReader does not support mip levels with "
+                                   "different channel counts");
+                return;
+            }
+
+            lastMipLevel_ = txFmt_->mipLevel();
+            haveImage_ = false;
+        }
+    }
+
+    void txReader::engine(int y, int x, int r, ChannelMask channels, Row& row) {
+        if (aborted()) {
+            row.erase(channels);
             return;
         }
 
-        row.erase(channels);
+        const ImageSpec& spec = oiioInput_->spec();
 
-//        if (mipLevel) {
-//            // Reading a mip level smaller than the full format
-//            if (spec.tile_width && spec.tile_height) {
-//                // Tiled image
-//                // y - (y % spec.tile_height);  // First scanline of tile containing y
-//            }
-//            else {
-//
-//            }
-//        }
-//        else {
-//            // Reading the whole image
-//        }
+        if (!haveImage_) {
+            Guard g(syncLock_);
+            if (!haveImage_) {
+                imageBuf_.resize(spec.width * spec.height * channelCount_);
+                OIIO::attribute("threads", (int)Thread::numThreads / 2);
+                oiioInput_->read_image(&imageBuf_[0]);  // Channel-interleaved
+                haveImage_ = true;
+            }
+        }
+
+        if (aborted()) {
+            row.erase(channels);
+            return;
+        }
+
+        if (lastMipLevel_) {
+            const int bufY = (height() - y - 1) * spec.height / height();
+            const int bufX = x * spec.width / width();
+            const int bufR = r * spec.width / width();
+            // TODO
+            row.erase(channels);
+        }
+        else {
+            const int bufY = height() - y - 1;
+            const float* alpha = channelCount_ > 3 ? &imageBuf_[3] : NULL;
+            const int baseIndex = bufY * width() * channelCount_ + (x * channelCount_);
+            // TODO: Make sure this channel logic is sound
+            foreach(z, channels) {
+                from_float(z, row.writable(z) + x, &imageBuf_[baseIndex + z - 1],
+                           alpha, r - x, channelCount_);
+            }
+        }
     }
 
 }  // ~TxReaderNS
