@@ -1,7 +1,6 @@
 #ifndef TXREADER_H
 #define TXREADER_H
 
-#include "DDImage/Thread.h"
 #include "DDImage/Enumeration_KnobI.h"
 #include "DDImage/Reader.h"
 #include "DDImage/Row.h"
@@ -50,7 +49,6 @@ namespace TxReaderNS {
 
         TxReaderFormat* txFmt_;
 
-        Lock syncLock_;
         bool haveImage_;
         std::vector<float> imageBuf_;
 

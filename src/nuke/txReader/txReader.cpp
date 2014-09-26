@@ -5,7 +5,10 @@
  * TODO:
  * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
  * - Populate metadata in txReader constructor
- * - Implement planar Reader API for Nuke 8 (should map better to TIFF/OIIO)
+ * - Look into using the planar Reader API in Nuke 8, which may map better to
+ *      TIFF/OIIO.
+ * - Look into making use of DD::Image::Memory/MemoryHolder to make Nuke aware
+ *      of buffer allocations.
  */
 
 
@@ -20,6 +23,8 @@ namespace TxReaderNS {
             iop->error("Failed to cast Read handler to TxReaderFormat");
             return;
         }
+
+        OIIO::attribute("threads", (int)Thread::numThreads / 2);
 
         oiioInput_ = ImageInput::open(filename());
         if (!oiioInput_) {
@@ -38,13 +43,16 @@ namespace TxReaderNS {
         channelCount_ = baseSpec.nchannels;
         set_info(baseSpec.width, baseSpec.height, channelCount_);
 
-        // Populate mip level pulldown
+        // Populate mip level pulldown with labels in the form:
+        //      "MIPLEVEL\tMIPLEVEL - WxH" (e.g. "0\t0 - 1920x1080")
+        // The knob will split these values on tab characters, and only store
+        // the first part (i.e. the index) when the knob is serialized. This
+        // way, we don't have to maintain a separate knob for the mip index.
         std::vector<std::string> mipLabels;
         bool found = true;
         std::ostringstream buf;
         ImageSpec mipSpec(baseSpec);
         for (int mipLevel = 0; found; mipLevel++) {
-            // e.g. "0\t0 - 1920x1080"
             buf << mipLevel << '\t' << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
             mipLabels.push_back(buf.str());
             found = oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec);
@@ -65,6 +73,7 @@ namespace TxReaderNS {
     }
 
     void txReader::open() {
+//        printf("open : thread ID = %d\n", Thread::thisIndex());
         // Seek to the correct mip level
         if (lastMipLevel_ != txFmt_->mipLevel()) {
             printf("Seeking to mip level %d\n", txFmt_->mipLevel());
@@ -75,9 +84,9 @@ namespace TxReaderNS {
                 return;
             }
 
-            // Make sure the current mip level has the same number of channels we
-            // were expecting
-            if (seekSpec.nchannels != channelCount_) {
+            // If the mip level is anything other than 0, make sure it has the
+            // expected number of channels.
+            if (txFmt_->mipLevel() && seekSpec.nchannels != channelCount_) {
                 iop->internalError("txReader does not support mip levels with "
                                    "different channel counts");
                 return;
@@ -86,35 +95,38 @@ namespace TxReaderNS {
             lastMipLevel_ = txFmt_->mipLevel();
             haveImage_ = false;
         }
+
+        if (!haveImage_) {
+            const int needSize = oiioInput_->spec().width
+                                * oiioInput_->spec().height
+                                * channelCount_;
+            // Because of the frequency with which Readers are created and
+            // destroyed, I don't know if this test is really going to save any
+            // reallocations. We could just say screw it and give the buffer
+            // enough room for mip level 0 right off the bat.
+            if (needSize > imageBuf_.size())
+                imageBuf_.resize(needSize);
+            oiioInput_->read_image(&imageBuf_[0]);  // Channel-interleaved
+            haveImage_ = true;
+        }
     }
 
     void txReader::engine(int y, int x, int r, ChannelMask channels, Row& row) {
-        if (aborted()) {
-            row.erase(channels);
-            return;
-        }
-
-        const ImageSpec& spec = oiioInput_->spec();
-
-        if (!haveImage_) {
-            Guard g(syncLock_);
-            if (!haveImage_) {
-                imageBuf_.resize(spec.width * spec.height * channelCount_);
-                OIIO::attribute("threads", (int)Thread::numThreads / 2);
-                oiioInput_->read_image(&imageBuf_[0]);  // Channel-interleaved
-                haveImage_ = true;
-            }
-        }
+        if (!haveImage_)
+            iop->error("txReader engine called, but haveImage_ is false");
 
         if (aborted()) {
             row.erase(channels);
             return;
         }
+
+        const int mipW = oiioInput_->spec().width;
+        const int mipH = oiioInput_->spec().height;
 
         if (lastMipLevel_) {
-            const int bufY = (height() - y - 1) * spec.height / height();
-            const int bufX = x * spec.width / width();
-            const int bufR = r * spec.width / width();
+            const int bufY = (height() - y - 1) * mipH / height();
+            const int bufX = x * mipW / width();
+            const int bufR = r * mipH / width();
             // TODO
             row.erase(channels);
         }
