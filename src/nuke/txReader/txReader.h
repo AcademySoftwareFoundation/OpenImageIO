@@ -1,9 +1,11 @@
 #ifndef TXREADER_H
 #define TXREADER_H
 
+#include "DDImage/Enumeration_KnobI.h"
 #include "DDImage/Reader.h"
-#include "DDImage/Tile.h"
+#include "DDImage/Row.h"
 
+//#include "OpenImageIO/imagecache.h"
 #include "OpenImageIO/imageio.h"
 
 

@@ -1,7 +1,5 @@
 #include "txReader.h"
 
-#include "OpenImageIO/imagecache.h"
-
 
 /*
  * TODO:
@@ -18,8 +16,9 @@ namespace TxReaderNS {
             return;
         }
 
-        oiioInput_ = ImageInput::open(filename());
-        ImageSpec& spec = oiioInput_->spec();
+        ImageSpec spec;
+        // FIXME: This doesn't seem to fill in the spec...
+        oiioInput_ = ImageInput::open(filename(), &spec);
 
         channelCount_ = spec.nchannels;
         set_info(spec.width, spec.height, channelCount_);
@@ -27,11 +26,16 @@ namespace TxReaderNS {
         // Populate mip level pulldown
         std::vector<std::string> mipLabels;
         bool found = true;
-        std::stringstream buf;
-        for (int mipLevel = 0; found; mipLevel++, buf(std::string()), buf.clear()) {
+        std::ostringstream buf;
+        for (int mipLevel = 0; found; mipLevel++) {
+            // e.g. "0\t0 - 1920x1080"
             buf << mipLevel << '\t' << mipLevel << " - " << spec.width << 'x' << spec.height;
-            mipLabels.push_back(std::string(buf));
+            mipLabels.push_back(buf.str());
             found = oiioInput_->seek_subimage(0, mipLevel, spec);
+            if (found) {
+                buf.str(std::string());
+                buf.clear();
+            }
         }
 
         txFmt_->setMipLabels(mipLabels);
@@ -45,15 +49,13 @@ namespace TxReaderNS {
     }
 
     void txReader::engine(int y, int x, int r, ChannelMask channels, Row& row) {
+        ImageSpec spec;
         int mipLevel = txFmt_->mipLevel();
-        ImageSpec& spec = oiioInput_->spec();
 
         // Seek to the correct mip level
-        if (mipLevel != oiioInput_->current_miplevel()) {
-            if (!oiioInput_->seek_subimage(0, mipLevel, spec)){
-                iop->internalError("Failed to seek to mip level %d", mipLevel);
-                return;
-            }
+        if (!oiioInput_->seek_subimage(0, mipLevel, spec)){
+            iop->internalError("Failed to seek to mip level %d", mipLevel);
+            return;
         }
 
         row.erase(channels);
