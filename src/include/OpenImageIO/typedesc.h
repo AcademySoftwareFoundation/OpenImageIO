@@ -267,6 +267,7 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeMatrix;
     static const TypeDesc TypeTimeCode;
     static const TypeDesc TypeKeyCode;
+    static const TypeDesc TypeFloat4;
 };
 
 
