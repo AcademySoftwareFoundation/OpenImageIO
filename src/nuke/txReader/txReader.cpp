@@ -1,4 +1,11 @@
-#include "txReader.h"
+#include "DDImage/Enumeration_KnobI.h"
+#include "DDImage/Reader.h"
+#include "DDImage/Row.h"
+
+#include "OpenImageIO/imageio.h"
+
+
+using namespace DD::Image;
 
 
 /*
@@ -11,14 +18,65 @@
  * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
  * - Look into using the planar Reader API in Nuke 8, which may map better to
  *      TIFF/OIIO.
+ * - It would be nice to have a way to read in a region, rather than the whole
+ *      image.
  */
 
 
-namespace TxReaderNS {
-    txReader::txReader(Read* read) : Reader(read),
+namespace TxReaderNS
+{
+
+
+OIIO_NAMESPACE_USING
+
+
+static const char* const EMPTY[] = {NULL};
+
+
+class TxReaderFormat : public ReaderFormat {
+    int mipLevel_;
+    Knob* mipLevelKnob_;
+
+public:
+    TxReaderFormat() : mipLevel_(0), mipLevelKnob_(NULL) { }
+
+    void knobs(Knob_Callback cb) {
+        mipLevelKnob_ = Enumeration_knob(cb, &mipLevel_, EMPTY,
+                                         "tx_mip_level", "mip level");
+        SetFlags(cb, Knob::EXPAND_TO_WIDTH);
+        Tooltip(cb, "The mip level to read from the file. Currently, this will "
+                "be resampled to fill the same resolution as the base image.");
+    }
+
+    void append(Hash& hash) { hash.append(mipLevel_); }
+
+    inline int mipLevel() { return mipLevel_; }
+
+    void setMipLabels(std::vector<std::string> items) {
+        mipLevelKnob_->enumerationKnob()->menu(items);
+    }
+
+    const char* help() { return "Tiled, mipmapped texture format"; }
+};
+
+
+class txReader : public Reader {
+    ImageInput* oiioInput_;
+    TxReaderFormat* txFmt_;
+
+    int fullW_, fullH_, chanCount_, lastMipLevel_;
+    bool haveImage_;
+    std::vector<float> imageBuf_;
+
+    MetaData::Bundle meta_;
+
+    static const Description d;
+
+public:
+    txReader(Read* iop) : Reader(iop),
             fullW_(0),
             fullH_(0),
-            channelCount_(0),
+            chanCount_(0),
             lastMipLevel_(-1),
             haveImage_(false)
     {
@@ -47,13 +105,13 @@ namespace TxReaderNS {
         fullW_ = baseSpec.width;
         fullH_ = baseSpec.height;
 
-        channelCount_ = baseSpec.nchannels;
-        set_info(fullW_, fullH_, channelCount_);
+        chanCount_ = baseSpec.nchannels;
+        set_info(fullW_, fullH_, chanCount_);
 
         // Populate mip level pulldown with labels in the form:
         //      "MIPLEVEL\tMIPLEVEL - WxH" (e.g. "0\t0 - 1920x1080")
-        // The knob will split these values on tab characters, and only store
-        // the first part (i.e. the index) when the knob is serialized.
+        // The knob will split these on tab characters, and only store the
+        // first part (i.e. the index) when the knob is serialized.
         std::vector<std::string> mipLabels;
         std::ostringstream buf;
         ImageSpec mipSpec(baseSpec);
@@ -71,22 +129,22 @@ namespace TxReaderNS {
         txFmt_->setMipLabels(mipLabels);
     }
 
-    txReader::~txReader() {
+    virtual ~txReader() {
         // The NDK docs mention this: "The destructor must close any files
-        // (even though the Read may have opened them)." However, I think OIIO
-        // takes care of this.
+        // (even though the Read may have opened them)." However, I think
+        // OIIO takes care of this.
         if (oiioInput_)
             oiioInput_->close();
         delete oiioInput_;
         oiioInput_ = NULL;
     }
 
-    void txReader::open() {
+    void open() {
         // Seek to the correct mip level
         if (lastMipLevel_ != txFmt_->mipLevel()) {
             printf("Seeking to mip level %d\n", txFmt_->mipLevel());
-            ImageSpec seekSpec;
-            if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), seekSpec)) {
+            ImageSpec mipSpec;
+            if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), mipSpec)) {
                 iop->internalError("Failed to seek to mip level %d",
                                    txFmt_->mipLevel());
                 return;
@@ -94,7 +152,7 @@ namespace TxReaderNS {
 
             // If the mip level is anything other than 0, make sure it has the
             // expected number of channels.
-            if (txFmt_->mipLevel() && seekSpec.nchannels != channelCount_) {
+            if (txFmt_->mipLevel() && mipSpec.nchannels != chanCount_) {
                 iop->internalError("txReader does not support mip levels with "
                                    "different channel counts");
                 return;
@@ -107,7 +165,7 @@ namespace TxReaderNS {
         if (!haveImage_) {
             const int needSize = oiioInput_->spec().width
                                 * oiioInput_->spec().height
-                                * channelCount_;
+                                * chanCount_;
             if (needSize > imageBuf_.size())
                 imageBuf_.resize(needSize);
             oiioInput_->read_image(&imageBuf_[0]);
@@ -115,7 +173,7 @@ namespace TxReaderNS {
         }
     }
 
-    void txReader::engine(int y, int x, int r, ChannelMask channels, Row& row) {
+    void engine(int y, int x, int r, ChannelMask channels, Row& row) {
         if (!haveImage_)
             iop->error("txReader engine called, but haveImage_ is false");
 
@@ -126,7 +184,7 @@ namespace TxReaderNS {
 
         // I don't know if this is the right way to do this...
         ChannelSet readChannels(channels);
-        readChannels &= (channelCount_ > 3 ? Mask_RGBA : Mask_RGB);
+        readChannels &= (chanCount_ > 3 ? Mask_RGBA : Mask_RGB);
 
         if (lastMipLevel_) {  // Mip level other than 0
             const int mipW = oiioInput_->spec().width;
@@ -142,33 +200,37 @@ namespace TxReaderNS {
             const int bufY = (fullH_ - y - 1) * oiioInput_->spec().height / fullH_;
             const int bufX = x ? x / mipMult : 0;
             const int bufR = r / mipMult;
-            const int copyW = bufR - bufX;
+            const int bufW = bufR - bufX;
 
-            std::vector<float> chanBuf(copyW);
+            std::vector<float> chanBuf(bufW);
             float* chanStart = &chanBuf[0];
-            const int bufStart = bufY * mipW * channelCount_ + (bufX * channelCount_);
-            const float* alpha = channelCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
+            const int bufStart = bufY * mipW * chanCount_ + (bufX * chanCount_);
+            const float* alpha = chanCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
             foreach (z, readChannels) {
                 from_float(z, &chanBuf[0], &imageBuf_[bufStart + z - 1], alpha,
-                           copyW, channelCount_);
+                        bufW, chanCount_);
                 float* OUT = row.writable(z);
-                for (int xStride = 0, fillCount = 0; xStride < copyW; xStride++, fillCount = 0) {
-                    for (; fillCount < mipMult; fillCount++)
-                        *OUT++ = *(chanStart + xStride);
+                for (int stride = 0, c = 0; stride < bufW; stride++, c = 0) {
+                    for (; c < mipMult; c++)
+                        *OUT++ = *(chanStart + stride);
                 }
             }
         }
         else {  // Mip level 0
             // TODO: Orientation may change this
             const int bufY = fullH_ - y - 1;
-            const int pixStart = bufY * fullW_ * channelCount_ + (x * channelCount_);
-            const float* alpha = channelCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
+            const int pixStart = bufY * fullW_ * chanCount_ + (x * chanCount_);
+            const float* alpha = chanCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
             foreach (z, readChannels) {
                 from_float(z, row.writable(z) + x, &imageBuf_[pixStart + z - 1],
-                           alpha, r - x, channelCount_);
+                           alpha, r - x, chanCount_);
             }
         }
     }
+
+    const MetaData::Bundle& fetchMetaData(const char* key) { return meta_; }
+};
+
 
 }  // ~TxReaderNS
 
