@@ -3,17 +3,21 @@
 
 /*
  * TODO:
+ * - Populate metadata in constructor
+ * - Handle imperfect factors in mip dimensions
+ * - Make sure channel logic is sound
+ * - Add support for actually changing the Nuke format to match the mip level?
+ *      This might be a bad idea...
  * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
- * - Populate metadata in txReader constructor
  * - Look into using the planar Reader API in Nuke 8, which may map better to
  *      TIFF/OIIO.
- * - Look into making use of DD::Image::Memory/MemoryHolder to make Nuke aware
- *      of buffer allocations.
  */
 
 
 namespace TxReaderNS {
     txReader::txReader(Read* read) : Reader(read),
+            fullW_(0),
+            fullH_(0),
             channelCount_(0),
             lastMipLevel_(-1),
             haveImage_(false)
@@ -40,32 +44,37 @@ namespace TxReaderNS {
             return;
         }
 
+        fullW_ = baseSpec.width;
+        fullH_ = baseSpec.height;
+
         channelCount_ = baseSpec.nchannels;
-        set_info(baseSpec.width, baseSpec.height, channelCount_);
+        set_info(fullW_, fullH_, channelCount_);
 
         // Populate mip level pulldown with labels in the form:
         //      "MIPLEVEL\tMIPLEVEL - WxH" (e.g. "0\t0 - 1920x1080")
         // The knob will split these values on tab characters, and only store
-        // the first part (i.e. the index) when the knob is serialized. This
-        // way, we don't have to maintain a separate knob for the mip index.
+        // the first part (i.e. the index) when the knob is serialized.
         std::vector<std::string> mipLabels;
-        bool found = true;
         std::ostringstream buf;
         ImageSpec mipSpec(baseSpec);
-        for (int mipLevel = 0; found; mipLevel++) {
+        for (int mipLevel = 0; ; mipLevel++) {
             buf << mipLevel << '\t' << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
             mipLabels.push_back(buf.str());
-            found = oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec);
-            if (found) {
+            if (oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec)) {
                 buf.str(std::string());
                 buf.clear();
             }
+            else
+                break;
         }
 
         txFmt_->setMipLabels(mipLabels);
     }
 
     txReader::~txReader() {
+        // The NDK docs mention this: "The destructor must close any files
+        // (even though the Read may have opened them)." However, I think OIIO
+        // takes care of this.
         if (oiioInput_)
             oiioInput_->close();
         delete oiioInput_;
@@ -73,7 +82,6 @@ namespace TxReaderNS {
     }
 
     void txReader::open() {
-//        printf("open : thread ID = %d\n", Thread::thisIndex());
         // Seek to the correct mip level
         if (lastMipLevel_ != txFmt_->mipLevel()) {
             printf("Seeking to mip level %d\n", txFmt_->mipLevel());
@@ -100,13 +108,9 @@ namespace TxReaderNS {
             const int needSize = oiioInput_->spec().width
                                 * oiioInput_->spec().height
                                 * channelCount_;
-            // Because of the frequency with which Readers are created and
-            // destroyed, I don't know if this test is really going to save any
-            // reallocations. We could just say screw it and give the buffer
-            // enough room for mip level 0 right off the bat.
             if (needSize > imageBuf_.size())
                 imageBuf_.resize(needSize);
-            oiioInput_->read_image(&imageBuf_[0]);  // Channel-interleaved
+            oiioInput_->read_image(&imageBuf_[0]);
             haveImage_ = true;
         }
     }
@@ -120,23 +124,47 @@ namespace TxReaderNS {
             return;
         }
 
-        const int mipW = oiioInput_->spec().width;
-        const int mipH = oiioInput_->spec().height;
+        // I don't know if this is the right way to do this...
+        ChannelSet readChannels(channels);
+        readChannels &= (channelCount_ > 3 ? Mask_RGBA : Mask_RGB);
 
-        if (lastMipLevel_) {
-            const int bufY = (height() - y - 1) * mipH / height();
-            const int bufX = x * mipW / width();
-            const int bufR = r * mipH / width();
-            // TODO
-            row.erase(channels);
+        if (lastMipLevel_) {  // Mip level other than 0
+            const int mipW = oiioInput_->spec().width;
+            const int mipMult = fullW_ / mipW;
+            if (fullW_ % mipW) {
+                iop->error("Mip width %d is not an exact factor of full image "
+                           "width %d", mipW, fullW_);
+                row.erase(channels);
+                return;
+            }
+
+            // TODO: Orientation may change this
+            const int bufY = (fullH_ - y - 1) * oiioInput_->spec().height / fullH_;
+            const int bufX = x ? x / mipMult : 0;
+            const int bufR = r / mipMult;
+            const int copyW = bufR - bufX;
+
+            std::vector<float> chanBuf(copyW);
+            float* chanStart = &chanBuf[0];
+            const int bufStart = bufY * mipW * channelCount_ + (bufX * channelCount_);
+            const float* alpha = channelCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
+            foreach (z, readChannels) {
+                from_float(z, &chanBuf[0], &imageBuf_[bufStart + z - 1], alpha,
+                           copyW, channelCount_);
+                float* OUT = row.writable(z);
+                for (int xStride = 0, fillCount = 0; xStride < copyW; xStride++, fillCount = 0) {
+                    for (; fillCount < mipMult; fillCount++)
+                        *OUT++ = *(chanStart + xStride);
+                }
+            }
         }
-        else {
-            const int bufY = height() - y - 1;
-            const float* alpha = channelCount_ > 3 ? &imageBuf_[3] : NULL;
-            const int baseIndex = bufY * width() * channelCount_ + (x * channelCount_);
-            // TODO: Make sure this channel logic is sound
-            foreach(z, channels) {
-                from_float(z, row.writable(z) + x, &imageBuf_[baseIndex + z - 1],
+        else {  // Mip level 0
+            // TODO: Orientation may change this
+            const int bufY = fullH_ - y - 1;
+            const int pixStart = bufY * fullW_ * channelCount_ + (x * channelCount_);
+            const float* alpha = channelCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
+            foreach (z, readChannels) {
+                from_float(z, row.writable(z) + x, &imageBuf_[pixStart + z - 1],
                            alpha, r - x, channelCount_);
             }
         }

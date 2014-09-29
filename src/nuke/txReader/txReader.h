@@ -5,7 +5,6 @@
 #include "DDImage/Reader.h"
 #include "DDImage/Row.h"
 
-//#include "OpenImageIO/imagecache.h"
 #include "OpenImageIO/imageio.h"
 
 
@@ -30,6 +29,10 @@ namespace TxReaderNS {
         void knobs(Knob_Callback cb) {
             mipLevelKnob_ = Enumeration_knob(cb, &mipLevel_, EMPTY,
                                              "tx_mip_level", "mip level");
+            SetFlags(cb, Knob::EXPAND_TO_WIDTH);
+            Tooltip(cb, "The mip level to read from the file. Currently, this "
+                    "will be scaled up to fill the same resolution as mip "
+                    "level 0.");
         }
 
         void append(Hash& hash) { hash.append(mipLevel_); }
@@ -52,8 +55,7 @@ namespace TxReaderNS {
         bool haveImage_;
         std::vector<float> imageBuf_;
 
-        int lastMipLevel_;
-        int channelCount_;
+        int fullW_, fullH_, channelCount_, lastMipLevel_;
 
         MetaData::Bundle meta_;
 
