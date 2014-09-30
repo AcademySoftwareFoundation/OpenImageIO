@@ -11,15 +11,13 @@ using namespace DD::Image;
 /*
  * TODO:
  * - Populate metadata in constructor
- * - Handle imperfect factors in mip dimensions
- * - Make sure channel logic is sound
+ * - Look into using the planar Reader API in Nuke 8, which may map better to
+ *      TIFF/OIIO.
  * - Add support for actually changing the Nuke format to match the mip level?
  *      This might be a bad idea...
  * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
- * - Look into using the planar Reader API in Nuke 8, which may map better to
- *      TIFF/OIIO.
  * - It would be nice to have a way to read in a region, rather than the whole
- *      image.
+ *      image, but this hinges on getting access to the Read's request region.
  */
 
 
@@ -81,10 +79,6 @@ public:
             haveImage_(false)
     {
         txFmt_ = dynamic_cast<TxReaderFormat*>(iop->handler());
-        if (!txFmt_) {
-            iop->error("Failed to cast Read handler to TxReaderFormat");
-            return;
-        }
 
         OIIO::attribute("threads", (int)Thread::numThreads / 2);
 
@@ -106,6 +100,11 @@ public:
         fullH_ = baseSpec.height;
 
         chanCount_ = baseSpec.nchannels;
+        if (chanCount_ > 4) {
+            iop->warning("%s contains more than 4 channels, but input will be "
+                         "limited to the first 4.", filename());
+            chanCount_ = 4;
+        }
         set_info(fullW_, fullH_, chanCount_);
 
         // Populate mip level pulldown with labels in the form:
@@ -130,9 +129,6 @@ public:
     }
 
     virtual ~txReader() {
-        // The NDK docs mention this: "The destructor must close any files
-        // (even though the Read may have opened them)." However, I think
-        // OIIO takes care of this.
         if (oiioInput_)
             oiioInput_->close();
         delete oiioInput_;
@@ -140,9 +136,7 @@ public:
     }
 
     void open() {
-        // Seek to the correct mip level
         if (lastMipLevel_ != txFmt_->mipLevel()) {
-            printf("Seeking to mip level %d\n", txFmt_->mipLevel());
             ImageSpec mipSpec;
             if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), mipSpec)) {
                 iop->internalError("Failed to seek to mip level %d",
@@ -150,9 +144,7 @@ public:
                 return;
             }
 
-            // If the mip level is anything other than 0, make sure it has the
-            // expected number of channels.
-            if (txFmt_->mipLevel() && mipSpec.nchannels != chanCount_) {
+            if (txFmt_->mipLevel() && mipSpec.nchannels < chanCount_) {
                 iop->internalError("txReader does not support mip levels with "
                                    "different channel counts");
                 return;
@@ -165,7 +157,7 @@ public:
         if (!haveImage_) {
             const int needSize = oiioInput_->spec().width
                                 * oiioInput_->spec().height
-                                * chanCount_;
+                                * oiioInput_->spec().nchannels;
             if (needSize > imageBuf_.size())
                 imageBuf_.resize(needSize);
             oiioInput_->read_image(&imageBuf_[0]);
@@ -182,21 +174,14 @@ public:
             return;
         }
 
-        // I don't know if this is the right way to do this...
-        ChannelSet readChannels(channels);
-        readChannels &= (chanCount_ > 3 ? Mask_RGBA : Mask_RGB);
+        ChannelSet readChannels(chanCount_ > 3 ? Mask_RGBA : Mask_RGB);
+        // Eventually we should probably support more than 4 channels...
+        const int fileChans = oiioInput_->spec().nchannels;
 
         if (lastMipLevel_) {  // Mip level other than 0
             const int mipW = oiioInput_->spec().width;
             const int mipMult = fullW_ / mipW;
-            if (fullW_ % mipW) {
-                iop->error("Mip width %d is not an exact factor of full image "
-                           "width %d", mipW, fullW_);
-                row.erase(channels);
-                return;
-            }
 
-            // TODO: Orientation may change this
             const int bufY = (fullH_ - y - 1) * oiioInput_->spec().height / fullH_;
             const int bufX = x ? x / mipMult : 0;
             const int bufR = r / mipMult;
@@ -204,27 +189,26 @@ public:
 
             std::vector<float> chanBuf(bufW);
             float* chanStart = &chanBuf[0];
-            const int bufStart = bufY * mipW * chanCount_ + (bufX * chanCount_);
+            const int bufStart = bufY * mipW * fileChans + (bufX * fileChans);
             const float* alpha = chanCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
             foreach (z, readChannels) {
                 from_float(z, &chanBuf[0], &imageBuf_[bufStart + z - 1], alpha,
-                        bufW, chanCount_);
+                        bufW, fileChans);
+
                 float* OUT = row.writable(z);
-                for (int stride = 0, c = 0; stride < bufW; stride++, c = 0) {
+                for (int stride = 0, c = 0; stride < bufW; stride++, c = 0)
                     for (; c < mipMult; c++)
                         *OUT++ = *(chanStart + stride);
-                }
             }
         }
         else {  // Mip level 0
-            // TODO: Orientation may change this
             const int bufY = fullH_ - y - 1;
-            const int pixStart = bufY * fullW_ * chanCount_ + (x * chanCount_);
+            const int pixStart = bufY * fullW_ * fileChans + (x * fileChans);
             const float* alpha = chanCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
-            foreach (z, readChannels) {
+
+            foreach (z, readChannels)
                 from_float(z, row.writable(z) + x, &imageBuf_[pixStart + z - 1],
-                           alpha, r - x, chanCount_);
-            }
+                           alpha, r - x, fileChans);
         }
     }
 
