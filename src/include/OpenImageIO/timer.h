@@ -155,6 +155,9 @@ public:
     /// Convert number of ticks to seconds.
     static double seconds (ticks_t ticks) { return ticks * seconds_per_tick; }
 
+    /// Is the timer currently ticking?
+    bool ticking () const { return m_ticking; }
+
 private:
     bool m_ticking;       ///< Are we currently ticking?
     ticks_t m_starttime;  ///< Time since last call to start()

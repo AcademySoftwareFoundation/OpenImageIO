@@ -85,13 +85,17 @@ main (int argc, char **argv)
     // in cycles per second.
     {
         Timer timer;
-        int n = 1000000;
+        int n = 10000000;
+        int zeroes = 0;
         for (int i = 0;  i < n;  ++i) {
             Timer t;
-            t();  // force getting the time
+            long long ticks = t.ticks();  // force getting the time
+            if (!ticks)
+                ++zeroes;
         }
         std::cout << "Timer begin/end cost is " 
                   << double(n)/timer() << " /sec\n";
+        std::cout << "Out of " << n << " queries, " << zeroes << " had no time\n";
     }
 
     const int interval = 100000;  // 1/10 sec
