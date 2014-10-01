@@ -23,11 +23,13 @@
  *
  *
  * TODO:
+ * - Re-enable "checknan" functionality when make_texture bug is fixed
+ *      (uncomment knob code and default knob storage var to true).
  * - Look into using an ImageBuf iterator to fill the source buffer (either
  *      using buf[chan] = value or, less likely, *buf.rawptr() = value).
  * - Add support for output presets ("oiio", "prman", "custom")
  *      For prman, should also enable "maketx:prman_metadata"
- *      For "custom", should expose W/H tileSize override
+ *      For "custom", should expose W/H tileSize override, planar config
  * - Either add support for more than 4 output channels, or make sure to clamp
  *      num_channels() in execute(). If we support more, we'll need to set
  *      output channel names.
@@ -78,7 +80,7 @@ public:
             filter_(0),
             fixNan_(false),
             nanFixType_(0),
-            checkNan_(true),
+            checkNan_(false),  // FIXME: Default to true when possible
             verbose_(false),
             stats_(false)
     {
@@ -88,8 +90,6 @@ public:
                 Filter2D::get_filterdesc (i, &d);
                 gFilterNames.push_back(d.name);
             };
-            // Make sure to append NULL, since we point the filter knob at
-            // this vector in lieu of a const char*[].
             gFilterNames.push_back(NULL);
             gTxFiltersInitialized = true;
         }
@@ -106,36 +106,55 @@ public:
 
         Bool_knob(cb, &fixNan_, "fix_nan", "fix NaN/Inf pixels");
         Tooltip(cb, "Attempt to fix NaN/Inf pixel values in the image.");
+        SetFlags(cb, Knob::STARTLINE);
 
-        ClearFlags(cb, Knob::STARTLINE);
         static const char* const fixLabels[] = {"black\tblack",
                                                 "box3\tbox3 filter",
                                                 NULL};
-        Enumeration_knob(cb, &nanFixType_, &fixLabels[0], "nan_fix_type", "");
+        Knob* k = Enumeration_knob(cb, &nanFixType_, &fixLabels[0],
+                                   "nan_fix_type", "");
+        if (cb.makeKnobs())
+            k->disable();
+        else if (fixNan_)
+            k->enable();
+
         Tooltip(cb, "The method to use to fix NaN/Inf pixel values.");
+        ClearFlags(cb, Knob::STARTLINE);
 
-        Bool_knob(cb, &checkNan_, "check_nan", "error on NaN/Inf");
-        Tooltip(cb, "Check for NaN/Inf pixel values in the output image, and "
-                "error if any are found. If this is enabled, the check will be "
-                "run <b>after</b> the NaN fix process.");
+        // FIXME: Enable this after make_texture bug is fixed.
+//        Bool_knob(cb, &checkNan_, "check_nan", "error on NaN/Inf");
+//        Tooltip(cb, "Check for NaN/Inf pixel values in the output image, and "
+//                "error if any are found. If this is enabled, the check will be "
+//                "run <b>after</b> the NaN fix process.");
+//        SetFlags(cb, Knob::STARTLINE);
 
-        SetFlags(cb, Knob::STARTLINE);
         Bool_knob(cb, &verbose_, "verbose");
         Tooltip(cb, "Toggle verbose OIIO output.");
+        SetFlags(cb, Knob::STARTLINE);
 
-        ClearFlags(cb, Knob::STARTLINE);
         Bool_knob(cb, &stats_, "oiio_stats", "output stats");
         Tooltip(cb, "Toggle output of OIIO runtime statistics.");
+        ClearFlags(cb, Knob::STARTLINE);
+    }
+
+    int knob_changed(Knob* k) {
+        printf("txWriter::knob_changed\n");
+        if (k->is("fix_nan")) {
+            iop->knob("nan_fix_type")->enable(fixNan_);
+            return 1;
+        }
+
+        return Writer::knob_changed(k);
     }
 
     void execute() {
-        const int chanCount = num_channels();
+        int chanCount = num_channels();
+        if (chanCount > 4) {
+            iop->warning("Truncating output to 4 channels");
+            chanCount = 4;
+        }
         ChannelSet channels = channel_mask(chanCount);
         const bool doAlpha = channels.contains(Chan_Alpha);
-
-        // Build source image spec and fill buffer
-        ImageSpec srcSpec(width(), height(), chanCount, TypeDesc::FLOAT);
-        ImageBuf srcBuffer(filename(), srcSpec);
 
         iop->progressMessage("Preparing image");
         input0().request(0, 0, width(), height(), channels, 1);
@@ -143,11 +162,13 @@ public:
         if (aborted())
             return;
 
+        ImageSpec srcSpec(width(), height(), chanCount, TypeDesc::FLOAT);
+        ImageBuf srcBuffer(srcSpec);
         Row row(0, width());
-        // Buffer for a channel-interleaved row
+        // Buffer for a channel-interleaved row after output LUT processing
         std::vector<float> lutBuffer(width() * chanCount);
 
-        for (unsigned y = 0; y < (unsigned)height(); y++) {
+        for (int y = 0; y < height(); y++) {
             iop->progressFraction(double(y) / height() * 0.85);
             get(height() - y - 1, 0, width(), channels, row);
             if (aborted())
@@ -155,18 +176,15 @@ public:
 
             const float* alpha = doAlpha ? row[Chan_Alpha] : NULL;
 
-            for (int i = 0; i < num_channels(); i++)
+            for (int i = 0; i < chanCount; i++)
                 to_float(i, &lutBuffer[i], row[channel(i)], alpha, width(),
                          chanCount);
             for (int x = 0; x < width(); x++)
                 srcBuffer.setpixel(x, y, &lutBuffer[x * chanCount]);
         }
 
-        // Build output image spec
-        ImageSpec destSpec(oiioBitDepths[bitDepth_]);
+        ImageSpec destSpec(width(), height(), chanCount, oiioBitDepths[bitDepth_]);
 
-        destSpec.width = destSpec.full_width = width();
-        destSpec.height = destSpec.full_height = height();
         destSpec.attribute("maketx:filtername", gFilterNames[filter_]);
 
         if (fixNan_) {
