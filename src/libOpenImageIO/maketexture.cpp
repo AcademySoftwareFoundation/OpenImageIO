@@ -1194,7 +1194,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                      srcspec.format.basetype == TypeDesc::HALF ||
                      srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
-        ImageBufAlgo::parallel_image (boost::bind(check_nan_block, *src, _1, boost::ref(found_nonfinite)),
+        ImageBufAlgo::parallel_image (boost::bind(check_nan_block, boost::ref(*src), _1, boost::ref(found_nonfinite)),
                                       OIIO::get_roi(srcspec));
         if (found_nonfinite) {
             if (found_nonfinite > 3)
