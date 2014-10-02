@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
 #  include <xmmintrin.h>
 #  include <emmintrin.h>
-#  if defined(__SSE3__)
+#  if defined(__SSE3__) || defined(__SSSE3__)
 #    include <pmmintrin.h>
 #    include <tmmintrin.h>
 #  endif
@@ -55,8 +55,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  endif
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
 #    define OIIO_SIMD_SSE 4
-#  elif defined(__SSE3__)
+      /* N.B. We consider both SSE4.1 and SSE4.2 to be "4". There are a few
+       * instructions specific to 4.2, but they are all related to string
+       * comparisons and CRCs, which don't currently seem relevant to OIIO,
+       * so for simplicity, we sweep this difference under the rug.
+       */
+#  elif defined(__SSSE3__)
 #    define OIIO_SIMD_SSE 3
+     /* N.B. We only use OIIO_SIMD_SSE = 3 when fully at SSSE3. In theory,
+      * there are a few older architectures that are SSE3 but not SSSE3,
+      * and this simplification means that these particular old platforms
+      * will only get SSE2 goodness out of our code. So be it. Anybody who
+      * cares about performance is probably using a 64 bit machine that's
+      * SSE 4.x or AVX by now.
+      */
 #  else
 #    define OIIO_SIMD_SSE 2
 #  endif
