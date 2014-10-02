@@ -91,7 +91,11 @@ class txReader : public Reader {
                 break;
             default:
                 meta_.setData(MetaData::DEPTH, "Unknown");
+                break;
         }
+
+        meta_.setData("tx/tile_width", spec.tile_width);
+        meta_.setData("tx/tile_height", spec.tile_height);
 
         string_view val;
 
@@ -126,6 +130,10 @@ class txReader : public Reader {
         val = spec.get_string_attribute("tiff:planarconfig");
         if (!val.empty())
             meta_.setData("tiff/planar_config", val);
+
+        int v = spec.get_int_attribute("Orientation");
+        if (v > 0)
+            meta_.setData("tiff/orientation", v);
     }
 
 public:

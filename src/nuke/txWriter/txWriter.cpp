@@ -10,26 +10,15 @@
 
 
 /*
- * NOTES:
- *
- * maketx:oiio_options:
- * - configspec.attribute ("planarconfig", "contig")
- * - Sets tile size to 64x64
- *
- * maketx:prman_options:
- * - configspec.attribute ("planarconfig", "separate");
- * - configspec.attribute ("maketx:prman_metadata", 1);
- * - Controls bit depth and tile size
- *
- *
  * TODO:
  * - Re-enable "checknan" functionality when make_texture bug is fixed
  *      (uncomment knob code and default knob storage var to true).
  * - Look into using an ImageBuf iterator to fill the source buffer.
- * - Could add support for more than 4 output channels, though we'll need to
- *      set output channel names.
+ * - Support for more than 4 output channels is easy, but we can't currently
+ *      set the output channel names in such a way that OIIO will store them in
+ *      the output file.
  * - Could throw Nuke script name and/or tree hash into the metadata
- *      iop->getHashOfInputs()
+ *      ( iop->getHashOfInputs() )
  */
 
 
@@ -249,6 +238,7 @@ public:
                 destSpec.tile_height = tileH_;
                 destSpec.attribute("planarconfig",
                                    planarMode_ ? "separate" : "contig");
+                break;
         }
 
         if (fixNan_) {
