@@ -1054,7 +1054,7 @@ OIIO_FORCEINLINE int4 blend0 (int4 a, mask4 mask)
 /// Per-element absolute value.
 OIIO_FORCEINLINE int4 abs (int4 a)
 {
-#if defined(OIIO_SIMD_SSE)
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
     return _mm_abs_epi32(a.simd());
 #else
     return int4 (std::abs(a[0]), std::abs(a[1]), std::abs(a[2]), std::abs(a[3]));
