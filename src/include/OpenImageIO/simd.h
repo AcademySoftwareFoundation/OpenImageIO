@@ -371,7 +371,7 @@ public:
     /// Logical "or" component-by-component
     friend OIIO_FORCEINLINE mask4 operator| (mask4 a, mask4 b) {
 #if defined(OIIO_SIMD_SSE)
-        return _mm_or_si128 (a.m_vec, b.m_vec);
+        return _mm_or_ps (a.m_vec, b.m_vec);
 #else
         return mask4 (a.m_val[0] | b.m_val[0],
                       a.m_val[1] | b.m_val[1],
@@ -386,7 +386,7 @@ public:
     /// Equality comparison, component by component
     friend OIIO_FORCEINLINE const mask4 operator== (mask4 a, mask4 b) {
 #if defined(OIIO_SIMD_SSE)
-        return _mm_castsi128_ps (_mm_cmpeq_epi32 (a.m_vec, b.m_vec));
+        return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a.m_vec), _mm_castps_si128(b.m_vec)));
 #else
         return mask4 (a[0] == b[0],
                       a[1] == b[1],
@@ -1033,10 +1033,10 @@ OIIO_FORCEINLINE int reduce_or (int4 v) {
 OIIO_FORCEINLINE int4 blend (int4 a, int4 b, mask4 mask)
 {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
-    return _mm_blendv_epi8 (a.simd(), b.simd(), mask);
+    return _mm_blendv_epi8 (a.simd(), b.simd(), _mm_castps_si128(mask));
 #elif defined(OIIO_SIMD_SSE) /* SSE2 */
-    return _mm_or_si128 (_mm_and_si128(mask, b.simd()),
-                         _mm_andnot_si128(mask.simd(), a.simd()));
+    return _mm_or_si128 (_mm_and_si128(_mm_castps_si128(mask.simd()), b.simd()),
+                         _mm_andnot_si128(_mm_castps_si128(mask.simd()), a.simd()));
 #else
     return int4 (mask[0] ? b[0] : a[0],
                  mask[1] ? b[1] : a[1],
@@ -1052,7 +1052,7 @@ OIIO_FORCEINLINE int4 blend (int4 a, int4 b, mask4 mask)
 OIIO_FORCEINLINE int4 blend0 (int4 a, mask4 mask)
 {
 #if defined(OIIO_SIMD_SSE)
-    return _mm_and_si128(mask, a.simd());
+    return _mm_and_si128(_mm_castps_si128(mask), a.simd());
 #else
     return int4 (mask[0] & a[0],
                  mask[1] & a[1],

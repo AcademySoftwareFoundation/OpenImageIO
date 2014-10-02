@@ -145,7 +145,7 @@ set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO
 set (USE_CPP11 OFF CACHE BOOL "Compile in C++11 mode")
 set (USE_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, sse4.1, sse4.2)")
+set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2)")
 
 if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # On Linux, the lack of -fPIC when building static libraries seems
