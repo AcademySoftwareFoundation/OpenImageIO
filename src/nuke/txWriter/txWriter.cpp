@@ -25,15 +25,11 @@
  * TODO:
  * - Re-enable "checknan" functionality when make_texture bug is fixed
  *      (uncomment knob code and default knob storage var to true).
- * - Look into using an ImageBuf iterator to fill the source buffer (either
- *      using buf[chan] = value or, less likely, *buf.rawptr() = value).
- * - Add support for output presets ("oiio", "prman", "custom")
- *      For prman, should also enable "maketx:prman_metadata"
- *      For "custom", should expose W/H tileSize override, planar config
- * - Either add support for more than 4 output channels, or make sure to clamp
- *      num_channels() in execute(). If we support more, we'll need to set
- *      output channel names.
+ * - Look into using an ImageBuf iterator to fill the source buffer.
+ * - Could add support for more than 4 output channels, though we'll need to
+ *      set output channel names.
  * - Could throw Nuke script name and/or tree hash into the metadata
+ *      iop->getHashOfInputs()
  */
 
 
@@ -53,19 +49,36 @@ static const TypeDesc::BASETYPE oiioBitDepths[] = {TypeDesc::INT8,
                                                    TypeDesc::FLOAT,
                                                    TypeDesc::DOUBLE};
 
-// Labels for above bit depths (keep them synced!)
-static const char* const bitDepthNames[] = {"8-bit integer",
-                                            "16-bit integer",
-                                            "32-bit integer",
-                                            "32-bit float",
-                                            "64-bit double",
-                                            NULL};
+// Knob values for above bit depths (keep them synced!)
+static const char* const bitDepthValues[] = {"8-bit integer",
+                                             "16-bit integer",
+                                             "32-bit integer",
+                                             "32-bit float",
+                                             "64-bit double",
+                                             NULL};
+
+// Knob values for NaN fix modes
+static const char* const nanFixValues[] = {"black\tblack",
+                                           "box3\tbox3 filter",
+                                           NULL};
+
+// Knob values for "preset" modes
+static const char* const presetValues[] = {"oiio", "prman", "custom", NULL};
+
+// Knob values for planar configuration
+static const char* const planarValues[] = {"contig\tcontiguous",
+                                           "separate",
+                                           NULL};
+
 
 bool gTxFiltersInitialized = false;
 static std::vector<const char*> gFilterNames;
 
 
 class txWriter : public Writer {
+    int preset_;
+    int tileW_, tileH_;
+    int planarMode_;
     int bitDepth_;
     int filter_;
     bool fixNan_;
@@ -76,6 +89,9 @@ class txWriter : public Writer {
 
 public:
     txWriter(Write* iop) : Writer(iop),
+            preset_(0),
+            tileW_(64), tileH_(64),
+            planarMode_(0),
             bitDepth_(3),  // float
             filter_(0),
             fixNan_(false),
@@ -96,7 +112,39 @@ public:
     }
 
     void knobs(Knob_Callback cb) {
-        Enumeration_knob(cb, &bitDepth_, &bitDepthNames[0], "tx_datatype",
+        Enumeration_knob(cb, &preset_, &presetValues[0], "preset");
+        Tooltip(cb, "Choose a preset for various output parameters.\n"
+                "<b>oiio</b>: Tile and planar settings optimized for OIIO.\n"
+                "<b>prman</b>: Tile and planar ettings and metadata safe for "
+                "use with prman.");
+
+        Knob* k;
+
+        k = Int_knob(cb, &tileW_, "tile_width", "tile size");
+        if (cb.makeKnobs())
+            k->disable();
+        else if (preset_ == 2)
+            k->enable();
+        Tooltip(cb, "Tile width");
+
+        k = Int_knob(cb, &tileH_, "tile_height", "x");
+        if (cb.makeKnobs())
+            k->disable();
+        else if (preset_ == 2)
+            k->enable();
+        Tooltip(cb, "Tile height");
+        ClearFlags(cb, Knob::STARTLINE);
+
+        k = Enumeration_knob(cb, &planarMode_, &planarValues[0],
+                             "planar_config", "planar config");
+        if (cb.makeKnobs())
+            k->disable();
+        else if (preset_ == 2)
+            k->enable();
+        Tooltip(cb, "Planar mode of the image channels.");
+        SetFlags(cb, Knob::STARTLINE);
+
+        Enumeration_knob(cb, &bitDepth_, &bitDepthValues[0], "tx_datatype",
                          "datatype");
         Tooltip(cb, "The datatype of the output image.");
 
@@ -108,16 +156,12 @@ public:
         Tooltip(cb, "Attempt to fix NaN/Inf pixel values in the image.");
         SetFlags(cb, Knob::STARTLINE);
 
-        static const char* const fixLabels[] = {"black\tblack",
-                                                "box3\tbox3 filter",
-                                                NULL};
-        Knob* k = Enumeration_knob(cb, &nanFixType_, &fixLabels[0],
-                                   "nan_fix_type", "");
+        k = Enumeration_knob(cb, &nanFixType_, &nanFixValues[0],
+                             "nan_fix_type", "");
         if (cb.makeKnobs())
             k->disable();
         else if (fixNan_)
             k->enable();
-
         Tooltip(cb, "The method to use to fix NaN/Inf pixel values.");
         ClearFlags(cb, Knob::STARTLINE);
 
@@ -138,9 +182,15 @@ public:
     }
 
     int knob_changed(Knob* k) {
-        printf("txWriter::knob_changed\n");
         if (k->is("fix_nan")) {
             iop->knob("nan_fix_type")->enable(fixNan_);
+            return 1;
+        }
+        if (k->is("preset")) {
+            const bool e = preset_ == 2;
+            iop->knob("tile_width")->enable(e);
+            iop->knob("tile_height")->enable(e);
+            iop->knob("planar_config")->enable(e);
             return 1;
         }
 
@@ -187,6 +237,20 @@ public:
 
         destSpec.attribute("maketx:filtername", gFilterNames[filter_]);
 
+        switch (preset_) {
+            case 0:
+                destSpec.attribute("maketx:oiio_options", 1);
+                break;
+            case 1:
+                destSpec.attribute("maketx:prman_options", 1);
+                break;
+            default:
+                destSpec.tile_width = tileW_;
+                destSpec.tile_height = tileH_;
+                destSpec.attribute("planarconfig",
+                                   planarMode_ ? "separate" : "contig");
+        }
+
         if (fixNan_) {
             if (nanFixType_)
                 destSpec.attribute("maketx:fixnan", "box3");
@@ -199,7 +263,6 @@ public:
         destSpec.attribute("maketx:checknan", checkNan_);
         destSpec.attribute("maketx:verbose", verbose_);
         destSpec.attribute("maketx:stats", stats_);
-        destSpec.attribute("maketx:oiio_options", true);
 
         OIIO::attribute("threads", (int)Thread::numCPUs);
 
