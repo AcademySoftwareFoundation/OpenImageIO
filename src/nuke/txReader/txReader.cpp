@@ -10,7 +10,6 @@ using namespace DD::Image;
 
 /*
  * TODO:
- * - Populate metadata in constructor
  * - Look into using the planar Reader API in Nuke 8, which may map better to
  *      TIFF/OIIO.
  * - Add support for actually changing the Nuke format to match the mip level?
@@ -70,6 +69,65 @@ class txReader : public Reader {
 
     static const Description d;
 
+    void fillMetadata(const ImageSpec& spec) {
+        switch (spec.format.basetype) {
+            case TypeDesc::UINT8:
+            case TypeDesc::INT8:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_8);
+                break;
+            case TypeDesc::UINT16:
+            case TypeDesc::INT16:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_16);
+                break;
+            case TypeDesc::UINT32:
+            case TypeDesc::INT32:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_32);
+                break;
+            case TypeDesc::FLOAT:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_FLOAT);
+                break;
+            case TypeDesc::DOUBLE:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_DOUBLE);
+                break;
+            default:
+                meta_.setData(MetaData::DEPTH, "Unknown");
+        }
+
+        string_view val;
+
+        val = spec.get_string_attribute("ImageDescription");
+        if (!val.empty())
+            meta_.setData("tx/image_description", val);
+
+        val = spec.get_string_attribute("DateTime");
+        if (!val.empty())
+            meta_.setData(MetaData::CREATED_TIME, val);
+
+        val = spec.get_string_attribute("Software");
+        if (!val.empty())
+            meta_.setData(MetaData::CREATOR, val);
+
+        val = spec.get_string_attribute("textureformat");
+        if (!val.empty())
+            meta_.setData("tx/texture_format", val);
+
+        val = spec.get_string_attribute("wrapmodes");
+        if (!val.empty())
+            meta_.setData("tx/wrap_modes", val);
+
+        val = spec.get_string_attribute("fovcot");
+        if (!val.empty())
+            meta_.setData("tx/fovcot", val);
+
+        val = spec.get_string_attribute("compression");
+        if (!val.empty())
+            meta_.setData("tx/compression", val);
+
+        val = spec.get_string_attribute("tiff:planarconfig");
+        if (!val.empty())
+            meta_.setData("tiff/planar_config", val);
+    }
+
 public:
     txReader(Read* iop) : Reader(iop),
             fullW_(0),
@@ -89,6 +147,8 @@ public:
         }
 
         const ImageSpec& baseSpec = oiioInput_->spec();
+
+        fillMetadata(baseSpec);
 
         if (!baseSpec.width * baseSpec.height) {
             iop->internalError("tx file has one or more zero dimensions "
@@ -114,16 +174,20 @@ public:
         std::vector<std::string> mipLabels;
         std::ostringstream buf;
         ImageSpec mipSpec(baseSpec);
-        for (int mipLevel = 0; ; mipLevel++) {
+        int mipLevel = 0;
+        while (true) {
             buf << mipLevel << '\t' << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
             mipLabels.push_back(buf.str());
             if (oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec)) {
                 buf.str(std::string());
                 buf.clear();
+                mipLevel++;
             }
             else
                 break;
         }
+
+        meta_.setData("tx/mip_levels", mipLevel + 1);
 
         txFmt_->setMipLabels(mipLabels);
     }
