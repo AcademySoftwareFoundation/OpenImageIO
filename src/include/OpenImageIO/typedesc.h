@@ -249,6 +249,16 @@ struct OIIO_API TypeDesc {
                this->arraylen == b.arraylen;
     }
 
+    /// Is this a 3-vector aggregate (of the given type, float by default)?
+    bool is_vec3 (BASETYPE b=FLOAT) const {
+        return this->aggregate == VEC3 && this->basetype == b && !this->arraylen;
+    }
+
+    /// Is this a 3-vector aggregate (of the given type, float by default)?
+    bool is_vec4 (BASETYPE b=FLOAT) const {
+        return this->aggregate == VEC4 && this->basetype == b && !this->arraylen;
+    }
+
     /// Demote the type to a non-array
     ///
     void unarray (void) { arraylen = 0; }

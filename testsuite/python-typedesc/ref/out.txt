@@ -132,5 +132,7 @@ type 'TypeTimeCode'
     c_str "timecode"
 type 'TypeKeyCode'
     c_str "keycode"
+type 'TypeFloat4'
+    c_str "float4"
 
 Done.

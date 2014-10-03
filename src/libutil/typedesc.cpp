@@ -169,6 +169,8 @@ TypeDesc::c_str () const
         result = basetype_name[basetype];
     else if (aggregate == MATRIX44 && basetype == FLOAT)
         result = "matrix";
+    else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
+        result = "float4";
     else if (vecsemantics == NOXFORM) {
         const char *agg = "";
         switch (aggregate) {

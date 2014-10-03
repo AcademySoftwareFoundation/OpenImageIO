@@ -144,6 +144,8 @@ void declare_typedesc() {
         .def("fromstring",       &TypeDesc::fromstring)
         .def("equivalent",       &TypeDesc::equivalent)
         .def("unarray",          &TypeDesc::unarray)
+        .def("is_vec3",          &TypeDesc::is_vec3)
+        .def("is_vec4",          &TypeDesc::is_vec4)
 
         // overloaded operators
         .def(self == other<TypeDesc>())    // operator==
@@ -163,6 +165,7 @@ void declare_typedesc() {
         .def_readonly("TypeMatrix",   &TypeDesc::TypeMatrix)
         .def_readonly("TypeTimeCode", &TypeDesc::TypeTimeCode)
         .def_readonly("TypeKeyCode",  &TypeDesc::TypeKeyCode)
+        .def_readonly("TypeFloat4",   &TypeDesc::TypeFloat4)
     ;
 
 }
