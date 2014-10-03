@@ -1,0 +1,8 @@
+find_package (Nuke ${NUKE_VERSION})
+
+if (NUKE_FOUND)
+    add_subdirectory (txReader)
+    add_subdirectory (txWriter)
+else ()
+    message (WARNING "Could not Find Nuke. Skipping build of Nuke plugins.")
+endif ()
