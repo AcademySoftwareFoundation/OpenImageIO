@@ -456,7 +456,7 @@ bool
 ImageBufAlgo::reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
 {
     ImageBuf tmp;
-    bool ok;
+    bool ok = false;
     switch (src.orientation()) {
     case 1:
         ok = dst.copy (src);
