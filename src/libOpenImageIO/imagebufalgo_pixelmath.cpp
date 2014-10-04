@@ -1195,7 +1195,7 @@ ImageBufAlgo::over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "over", over_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, false, false, roi, nthreads);
-    return ! dst.has_error();
+    return ok && ! dst.has_error();
 }
 
 
@@ -1212,7 +1212,7 @@ ImageBufAlgo::zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "zover", over_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, true, z_zeroisinf, roi, nthreads);
-    return ! dst.has_error();
+    return ok && ! dst.has_error();
 }
 
 
