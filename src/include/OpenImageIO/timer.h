@@ -121,17 +121,22 @@ public:
         m_ticking = false;
     }
 
-    /// Return just the time of the current lap (since the last call to
+    /// Return just the ticks of the current lap (since the last call to
     /// start() or lap()), add that to the previous elapsed time, reset
     /// current start time to now, keep the timer going (if it was).
-    double lap () {
+    ticks_t lap_ticks () {
         ticks_t n = now();
         ticks_t r = m_ticking ? tickdiff (m_starttime, n) : ticks_t(0);
         m_elapsed_ticks += r;
         m_starttime = n;
         m_ticking = true;
-        return seconds(r);
+        return r;
     }
+
+    /// Return just the time of the current lap (since the last call to
+    /// start() or lap()), add that to the previous elapsed time, reset
+    /// current start time to now, keep the timer going (if it was).
+    double lap () { return seconds(lap_ticks()); }
 
     /// Total number of elapsed ticks so far, including both the currently-
     /// ticking clock as well as any previously elapsed time.
