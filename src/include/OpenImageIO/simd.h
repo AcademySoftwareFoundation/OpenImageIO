@@ -1113,6 +1113,8 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
+#else
+    typedef float    simd_t[4];
 #endif
 
     /// Default constructor (contents undefined)
