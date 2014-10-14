@@ -33,6 +33,13 @@ Major new features and improvements:
   sse2, sse3, sse4.1, sse4.2, depending on what machines you'll be
   deploying to. (Note that x86_64 automatically implies at least sse2.)
   (1.5.5)
+* Support for many movie files via a plugin using 'ffmpeg'. Should work
+  with avi, mov, qt, mp4, m4a, 3gp, 3g2, mj2, m4v, mpg, and more.  Movie
+  files simply look like multi-image files to OIIO. There isn't really
+  support for audio yet, and although this lets you retrieve and process
+  individual frames of a movie file, OIIO is still not meant to be a
+  video-processing library. Currently, these formats can be read, but
+  there is no write support (maybe coming soon). #928 (1.5.5)
 
 Public API changes:
 * TextureSystem API calls have been modified: the nchannels, dresultds,

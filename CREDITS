@@ -23,7 +23,7 @@ Major contributors (roughly in order of joining the project):
     Alan Jones           Softimage PIC
     Krzysztof Blicharski sockets
     Nuno Cardoso         PNM
-    Mikael Sundell       IFF
+    Mikael Sundell       IFF, FFmpeg
     Jeremy Selan         Color space issues, maketx improvements, OpenColorIO
                            integration
     Daniel Wyatt         PSD

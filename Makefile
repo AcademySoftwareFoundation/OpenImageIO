@@ -96,6 +96,10 @@ ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
 
+ifneq (${USE_FFMPEG},)
+MY_CMAKE_FLAGS += -DUSE_FFMPEG:BOOL=${USE_FFMPEG}
+endif
+
 ifneq (${USE_FIELD3D},)
 MY_CMAKE_FLAGS += -DUSE_FIELD3D:BOOL=${USE_FIELD3D}
 endif
@@ -352,6 +356,7 @@ help:
 	@echo "      USE_PYTHON=0             Don't build the Python binding"
 	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
 	@echo "      USE_FIELD3D=0            Don't build the Field3D plugin"
+	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"
 	@echo "      USE_OPENJPEG=0           Don't build the JPEG-2000 plugin"
 	@echo "      USE_GIF=0                Don't build the GIF plugin"
 	@echo "      USE_OCIO=0               Don't use OpenColorIO even if found"

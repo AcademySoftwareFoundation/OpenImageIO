@@ -211,6 +211,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (cineon);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
+    PLUGENTRY (ffmpeg);
     PLUGENTRY (field3d);
     PLUGENTRY (fits);
     PLUGENTRY (gif);
@@ -260,6 +261,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
+#ifdef USE_FFMPEG
+    DECLAREPLUG (ffmpeg);
+#endif
 #ifdef USE_FIELD3D
     DECLAREPLUG (field3d);
 #endif
