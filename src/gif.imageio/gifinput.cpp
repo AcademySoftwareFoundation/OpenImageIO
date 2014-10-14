@@ -437,7 +437,11 @@ inline bool
 GIFInput::close (void)
 {
     if (m_gif_file) {
+#if GIFLIB_MAJOR > 5 || (GIFLIB_MAJOR == 5 && GIFLIB_MINOR >= 1)
+        if (DGifCloseFile (m_gif_file, NULL) == GIF_ERROR) {
+#else
         if (DGifCloseFile (m_gif_file) == GIF_ERROR) {
+#endif
             error ("Error trying to close the file.");
             return false;
         }
