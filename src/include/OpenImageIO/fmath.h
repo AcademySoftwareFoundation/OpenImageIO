@@ -402,12 +402,12 @@ template<typename T> struct is_same<T,T> { static const bool value = true; };
 
 
 
-template <typename IN, typename OUT>
-inline OUT bit_cast (const IN in) {
+template <typename IN_TYPE, typename OUT_TYPE>
+inline OUT_TYPE bit_cast (const IN_TYPE in) {
     // NOTE: this is the only standards compliant way of doing this type of casting,
     // luckily the compilers we care about know how to optimize away this idiom.
-    OUT out;
-    memcpy (&out, &in, sizeof(IN));
+    OUT_TYPE out;
+    memcpy (&out, &in, sizeof(IN_TYPE));
     return out;
 }
 
