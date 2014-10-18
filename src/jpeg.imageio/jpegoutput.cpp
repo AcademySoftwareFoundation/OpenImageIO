@@ -85,6 +85,16 @@ class JpgOutput : public ImageOutput {
         m_copy_coeffs = NULL;
         m_copy_decompressor = NULL;
     }
+    
+    void set_subsampling (int yh, int yv, int cbh, int cbv, int crh, int crv) {
+        jpeg_set_colorspace (&m_cinfo, JCS_YCbCr);
+        m_cinfo.comp_info[0].h_samp_factor = yh;
+        m_cinfo.comp_info[0].v_samp_factor = yv;
+        m_cinfo.comp_info[1].h_samp_factor = cbh;
+        m_cinfo.comp_info[1].v_samp_factor = cbv;
+        m_cinfo.comp_info[2].h_samp_factor = crh;
+        m_cinfo.comp_info[2].v_samp_factor = crv;
+    }
 };
 
 
@@ -174,6 +184,20 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         int quality = newspec.get_int_attribute ("CompressionQuality", 98);
         jpeg_set_quality (&m_cinfo, quality, TRUE);   // baseline values
         DBG std::cout << "out open: set_quality\n";
+        
+        if (m_cinfo.input_components == 3) {
+            std::string subsampling = m_spec.get_string_attribute ("jpeg:subsampling");
+            if (Strutil::iequals(subsampling, "4:4:4"))
+                set_subsampling(1, 1, 1, 1, 1, 1);
+            else if (Strutil::iequals(subsampling, "4:2:2")) 
+                set_subsampling(2, 1, 1, 1, 1, 1);
+            else if (Strutil::iequals(subsampling, "4:2:0")) 
+                set_subsampling(2, 2, 1, 1, 1, 1);
+            else if (Strutil::iequals(subsampling, "4:1:1")) 
+                set_subsampling(4, 1, 1, 1, 1, 1);
+        }
+        DBG std::cout << "out open: set_colorspace\n";
+                
         jpeg_start_compress (&m_cinfo, TRUE);         // start working
         DBG std::cout << "out open: start_compress\n";
     }
