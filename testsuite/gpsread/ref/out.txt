@@ -3,6 +3,7 @@ Reading ../../../../../oiio-images/tahoe-gps.jpg
     SHA-1: C3B420EF8C20C4771F6F7BF89EA9D9D4002BA016
     channel list: R, G, B
     oiio:ColorSpace: "sRGB"
+    jpeg:subsampling: "4:2:0"
     Make: "HTC"
     Model: "T-Mobile G1"
     Orientation: 1 (normal)

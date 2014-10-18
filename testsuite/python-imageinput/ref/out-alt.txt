@@ -10,6 +10,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   z channel =  -1
   deep =  False
   oiio:ColorSpace = "sRGB"
+  jpeg:subsampling = "4:2:0"
   Make = "HTC"
   Model = "T-Mobile G1"
   Orientation = 1
