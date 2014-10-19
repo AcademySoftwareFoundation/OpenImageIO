@@ -1,10 +1,11 @@
 Changes:
 
 
-Release 1.4.14 (?? 2014 -- compared to 1.4.13)
+Release 1.4.14 (20 Oct 2014 -- compared to 1.4.13)
 --------------------------------------------------
-
-
+* GIF: Fix to make it able to compile against giflib >= 5.1. #975
+* JPEG support for reporting and controlling chroma-subsampling value,
+  via the "jpeg:subsampling" attribute. #978
 
 Release 1.4.13 (12 Sep 2014 -- compared to 1.4.12)
 --------------------------------------------------
