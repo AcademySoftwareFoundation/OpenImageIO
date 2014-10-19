@@ -86,14 +86,14 @@ class JpgOutput : public ImageOutput {
         m_copy_decompressor = NULL;
     }
     
-    void set_subsampling (int yh, int yv, int cbh, int cbv, int crh, int crv) {
+    void set_subsampling (const int components[]) {
         jpeg_set_colorspace (&m_cinfo, JCS_YCbCr);
-        m_cinfo.comp_info[0].h_samp_factor = yh;
-        m_cinfo.comp_info[0].v_samp_factor = yv;
-        m_cinfo.comp_info[1].h_samp_factor = cbh;
-        m_cinfo.comp_info[1].v_samp_factor = cbv;
-        m_cinfo.comp_info[2].h_samp_factor = crh;
-        m_cinfo.comp_info[2].v_samp_factor = crv;
+        m_cinfo.comp_info[0].h_samp_factor = components[0];
+        m_cinfo.comp_info[0].v_samp_factor = components[1];
+        m_cinfo.comp_info[1].h_samp_factor = components[2];
+        m_cinfo.comp_info[1].v_samp_factor = components[3];
+        m_cinfo.comp_info[2].h_samp_factor = components[4];
+        m_cinfo.comp_info[2].v_samp_factor = components[5];
     }
 };
 
@@ -186,15 +186,15 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         DBG std::cout << "out open: set_quality\n";
         
         if (m_cinfo.input_components == 3) {
-            std::string subsampling = m_spec.get_string_attribute ("jpeg:subsampling");
-            if (Strutil::iequals(subsampling, "4:4:4"))
-                set_subsampling(1, 1, 1, 1, 1, 1);
-            else if (Strutil::iequals(subsampling, "4:2:2")) 
-                set_subsampling(2, 1, 1, 1, 1, 1);
-            else if (Strutil::iequals(subsampling, "4:2:0")) 
-                set_subsampling(2, 2, 1, 1, 1, 1);
-            else if (Strutil::iequals(subsampling, "4:1:1")) 
-                set_subsampling(4, 1, 1, 1, 1, 1);
+            std::string subsampling = m_spec.get_string_attribute (JPEG_SUBSAMPLING_ATTR);
+            if (subsampling == JPEG_444_STR)
+                set_subsampling(JPEG_444_COMP);
+            else if (subsampling == JPEG_422_STR)
+                set_subsampling(JPEG_422_COMP);
+            else if (subsampling == JPEG_420_STR)
+                set_subsampling(JPEG_420_COMP);
+            else if (subsampling == JPEG_411_STR)
+                set_subsampling(JPEG_411_COMP);
         }
         DBG std::cout << "out open: set_colorspace\n";
                 

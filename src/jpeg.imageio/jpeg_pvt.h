@@ -51,6 +51,17 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 #define ICC_HEADER_SIZE 14
 #define ICC_PROFILE_ATTR "ICCProfile"
 
+// Chroma sub-sampling values for jpeg_compress_struct / jpeg_component_info
+#define JPEG_SUBSAMPLING_ATTR "jpeg:subsampling"
+#define JPEG_444_STR "4:4:4"
+#define JPEG_422_STR "4:2:2"
+#define JPEG_420_STR "4:2:0"
+#define JPEG_411_STR "4:1:1"
+
+static const int JPEG_444_COMP[6] = {1,1, 1,1, 1,1};
+static const int JPEG_422_COMP[6] = {2,1, 1,1, 1,1};
+static const int JPEG_420_COMP[6] = {2,2, 1,1, 1,1};
+static const int JPEG_411_COMP[6] = {4,1, 1,1, 1,1};
 
 
 class JpgInput : public ImageInput {
