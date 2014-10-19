@@ -436,7 +436,10 @@ anywhere near the acceptance of the original JPEG/JFIF format.
 \qkw{XResolution}, \qkw{YResolution},
 \qkw{ResolutionUnit} & & The resolution and units from the Exif header \\[2ex]
 \qkw{CompressionQuality} & int & Quality of compression (1-100) \\[2ex]
-\qkw{ICCProfile} & uint8[] & The ICC color profile \\
+\qkw{ICCProfile} & uint8[] & The ICC color profile \\[2ex]
+\qkw{jpeg:subsampling} & string & Describes the chroma subsampling,
+    e.g., \qkw{4:2:0} (the default), \qkw{4:4:4}, \qkw{4:2:2},
+    \qkw{4:2:1}. \\[2ex]
 & & \\
 Exif, IPTC, XMP, GPS & & Extensive Exif, IPTC, XMP, and GPS data are supported by the
   reader/writer, and you should assume that nearly everything described

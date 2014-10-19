@@ -108,6 +108,7 @@ Fixes, minor enhancements, and performance improvements:
      or alter metadata in the process of creating a texture. #901 (1.5.1)
    * Experimental feature: maketx --sharpen <AMT> adds slight sharpening
      and emphasis of higher frequencies when creating MIP-maps. #958 (1.5.5)
+   * Fix crash when using --checknan (1.5.5)
 * OpenEXR:
    * Improve the quality of lossy b44 compression by more correctly
      using the pLinear value of channels (we were incorrectly using the
@@ -128,7 +129,9 @@ Fixes, minor enhancements, and performance improvements:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
    * Fix seek_subimage for JPEG input -- did not properly return the
-    spec. (1.5.2/1.4.12)
+     spec. (1.5.2/1.4.12)
+   * Support for reporting and controlling chroma-subsampling value,
+     via the "jpeg:subsampling" attribute. #978 (1.5.5)
 * PNG:
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
 * TIFF:
@@ -198,6 +201,7 @@ Build/test system improvements:
 * testtex new options: --nchannels (forces num channels to look up, rather
   than always doing what's in the file), --derivs (force the kind of texture
   calls that return derivs of the texture lookups. (1.5.4)
+* Make it able to compile against giflib >= 5.1. #975 (1.4.14,1.5.5)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -223,9 +227,31 @@ Developer goodies / internals:
   versions. #953, #956 (1.5.5)
 * New utility function: premult(), which can premultiply non-alpha, non-z
   channels by alpha, for a whole buffer (with strides, any data type).
-  #962 (1.6.2)
+  #962 (1.5.5)
+* Timer API now has queries for ticks as well as seconds. (1.5.5)
 
 
+Release 1.4.14 (20 Oct 2014 -- compared to 1.4.13)
+--------------------------------------------------
+* GIF: Fix to make it able to compile against giflib >= 5.1. #975
+* JPEG support for reporting and controlling chroma-subsampling value,
+  via the "jpeg:subsampling" attribute. #978
+
+Release 1.4.13 (12 Sep 2014 -- compared to 1.4.12)
+--------------------------------------------------
+* Now builds against OpenEXR 2.2, including support for the new
+  DWAA and DWAB compression modes.
+* OpenEXR: fixed issue where a stringvec of 16 items was mishandled as
+  a matrix.
+* Fix fmath.h to move the 'using' statements around properly.
+* Fix oiiotool color conversion bug that crashed when the input image was
+  a file with MIP levels.
+* TIFF output now gracefully handles negative origins without hitting an
+  assertion.
+* Developer details: platform macros moved from sysutil.h to platform.h.
+  (But sysutil.h now includes platform.h, so you shouldn't notice.)
+* Developer details: ustring now has comparisons between ustrings versus
+  char* and string_view.
 
 Release 1.4.12 (31 Jul 2014 -- compared to 1.4.11)
 --------------------------------------------------
@@ -237,7 +263,6 @@ Release 1.4.12 (31 Jul 2014 -- compared to 1.4.11)
 * Fix for Linux + Boost >= 1.55 combination: need to link with -lrt.
   #914 (1.4.12/1.5.2)
 * Fix Ptex + static linkage. (1.4.12/1.5.2)
-
 
 Release 1.4.11 (9 Jul 2014 -- compared to 1.4.10)
 -------------------------------------------------
