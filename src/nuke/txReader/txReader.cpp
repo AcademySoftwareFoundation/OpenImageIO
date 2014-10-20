@@ -150,7 +150,8 @@ public:
 
         oiioInput_ = ImageInput::open(filename());
         if (!oiioInput_) {
-            iop->internalError("Failed to create ImageInput for file %s");
+            iop->internalError("OIIO: Failed to open file %s: %s", filename(),
+                               geterror().c_str());
             return;
         }
 
@@ -211,8 +212,8 @@ public:
         if (lastMipLevel_ != txFmt_->mipLevel()) {
             ImageSpec mipSpec;
             if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), mipSpec)) {
-                iop->internalError("Failed to seek to mip level %d",
-                                   txFmt_->mipLevel());
+                iop->internalError("Failed to seek to mip level %d: %s",
+                        txFmt_->mipLevel(), oiioInput_->geterror().c_str());
                 return;
             }
 
@@ -261,11 +262,11 @@ public:
 
             std::vector<float> chanBuf(bufW);
             float* chanStart = &chanBuf[0];
-            const int bufStart = bufY * mipW * fileChans + (bufX * fileChans);
+            const int bufStart = bufY * mipW * fileChans + bufX * fileChans;
             const float* alpha = chanCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
             foreach (z, readChannels) {
                 from_float(z, &chanBuf[0], &imageBuf_[bufStart + z - 1], alpha,
-                        bufW, fileChans);
+                           bufW, fileChans);
 
                 float* OUT = row.writable(z);
                 for (int stride = 0, c = 0; stride < bufW; stride++, c = 0)
@@ -275,7 +276,7 @@ public:
         }
         else {  // Mip level 0
             const int bufY = fullH_ - y - 1;
-            const int pixStart = bufY * fullW_ * fileChans + (x * fileChans);
+            const int pixStart = bufY * fullW_ * fileChans + x * fileChans;
             const float* alpha = chanCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
 
             foreach (z, readChannels)
