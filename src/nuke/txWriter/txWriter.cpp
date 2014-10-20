@@ -11,8 +11,6 @@
 
 /*
  * TODO:
- * - Re-enable "checknan" functionality when make_texture bug is fixed
- *      (uncomment knob code and default knob storage var to true).
  * - Look into using an ImageBuf iterator to fill the source buffer.
  * - Support for more than 4 output channels is easy, but we can't currently
  *      set the output channel names in such a way that OIIO will store them in
@@ -85,7 +83,7 @@ public:
             filter_(0),
             fixNan_(false),
             nanFixType_(0),
-            checkNan_(false),  // FIXME: Default to true when possible
+            checkNan_(true),
             verbose_(false),
             stats_(false)
     {
@@ -154,12 +152,11 @@ public:
         Tooltip(cb, "The method to use to fix NaN/Inf pixel values.");
         ClearFlags(cb, Knob::STARTLINE);
 
-        // FIXME: Enable this after make_texture bug is fixed.
-//        Bool_knob(cb, &checkNan_, "check_nan", "error on NaN/Inf");
-//        Tooltip(cb, "Check for NaN/Inf pixel values in the output image, and "
-//                "error if any are found. If this is enabled, the check will be "
-//                "run <b>after</b> the NaN fix process.");
-//        SetFlags(cb, Knob::STARTLINE);
+        Bool_knob(cb, &checkNan_, "check_nan", "error on NaN/Inf");
+        Tooltip(cb, "Check for NaN/Inf pixel values in the output image, and "
+                "error if any are found. If this is enabled, the check will be "
+                "run <b>after</b> the NaN fix process.");
+        SetFlags(cb, Knob::STARTLINE);
 
         Bool_knob(cb, &verbose_, "verbose");
         Tooltip(cb, "Toggle verbose OIIO output.");
