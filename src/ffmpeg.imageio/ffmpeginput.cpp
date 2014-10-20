@@ -54,8 +54,10 @@ public:
     virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     void read_frame(int pos);
+#if 0
     const char *metadata (const char * key);
     bool has_metadata (const char * key);
+#endif
     bool seek (int pos);
     double fps() const;
     int64_t time_stamp(int pos) const;
@@ -360,11 +362,14 @@ FFmpegInput::read_frame(int pos)
 }
 
 
+
+#if 0
 const char *
 FFmpegInput::metadata (const char * key)
 {
     AVDictionaryEntry * entry = av_dict_get (m_format_context->metadata, key, NULL, 0);
     return entry ? av_strdup(entry->value) : NULL;
+    // FIXME -- that looks suspiciously like a memory leak
 }
 
 
@@ -374,6 +379,7 @@ FFmpegInput::has_metadata (const char * key)
 {
     return av_dict_get (m_format_context->metadata, key, NULL, 0); // is there a better to check exists?
 }
+#endif
 
 
 
