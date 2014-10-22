@@ -760,8 +760,6 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         xname = "expTime";
     else if (Strutil::iequals(xname, "FNumber"))
         xname = "aperture";
-    else if (Strutil::iequals(xname, "name"))
-        xname = "oiio::subimagename";
     else if (Strutil::iequals(xname, "openexr:dwaCompressionLevel"))
         xname = "dwaCompressionLevel";
 
