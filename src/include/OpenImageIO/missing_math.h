@@ -246,9 +246,13 @@ erfcf (float val)
 #endif  /* _WIN32 */
 
 
-#ifndef _MSC_VER
- // Some systems have isnan, isinf and isfinite in the std namespace.
- // FIXME: remove these later
+#if defined(_MSC_VER) && __cplusplus <= 201103L
+// Prior to c++11, these were implementation defined, and on msvc, were not in the
+// std namespace
+ using ::isnan;
+ using ::isinf;
+ using ::isfinite;
+#else
  using std::isnan;
  using std::isinf;
  using std::isfinite;
@@ -268,39 +272,5 @@ log2f (float val) {
 
 
 } OIIO_NAMESPACE_EXIT
-
-
-// For certain platforms, direct them to use OIIO's implementations.
-
-#ifdef _WIN32
- using OIIO::truncf;
- using OIIO::log2f;
- using OIIO::exp2f;
-# if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
-  using OIIO::isnan;
-  using OIIO::isfinite;
-  using OIIO::isinf;
-  using OIIO::round;
-  using OIIO::roundf;
-  using OIIO::logbf;
-  using OIIO::expm1;
-  using OIIO::expm1f;
-  using OIIO::erf;
-  using OIIO::erff;
-  using OIIO::erfc;
-  using OIIO::erfcf;
-# endif /* MSVS < 2013 */
-#endif  /* _WIN32 */
-
-#ifndef _MSC_VER
- // Some systems have isnan, isinf and isfinite in the std namespace.
- using std::isnan;
- using std::isinf;
- using std::isfinite;
-#endif
-
-#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
- using OIIO::log2f;
-#endif
 
 

@@ -69,9 +69,9 @@ using namespace ImageBufAlgo;
 inline void
 safe_double_print (double val)
 {
-    if (isnan (val))
+    if (OIIO::isnan (val))
         std::cout << "nan";
-    else if (isinf (val))
+    else if (OIIO::isinf (val))
         std::cout << "inf";
     else
         std::cout << val;

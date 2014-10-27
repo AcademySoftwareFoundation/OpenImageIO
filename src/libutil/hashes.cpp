@@ -68,8 +68,9 @@ namespace xxhash {
 #define inline __forceinline // Visual is not C99, but supports some kind of inline
 #endif
 
-// GCC does not support _rotl outside of Windows
-#if !defined(_WIN32)
+// Check for support of _rotl 
+// Not required for GCC 4.9x with -std=c++11
+#ifndef _rotl
 #define _rotl(x,r) ((x << r) | (x >> (32 - r)))
 #endif
 
