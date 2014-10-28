@@ -1214,7 +1214,7 @@ public:
     /// Return a float4 with incremented components (e.g., 0.0,1.0,2.0,3.0).
     /// Optional argument can give a non-zero starting point.
     static OIIO_FORCEINLINE const float4 Iota (float value=0.0f) {
-        return float4(value,value+1.0f,value+2.0f,value+3.03);
+        return float4(value,value+1.0f,value+2.0f,value+3.0f);
     }
 
     /// Sset all components to 0.0
