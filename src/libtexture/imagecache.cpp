@@ -1249,8 +1249,11 @@ void
 ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
 {
     size_t size = memsize_needed ();
-    ASSERT (memsize() == 0 && size > 0);
+    ASSERT (memsize() == 0 && size > OIIO_SIMD_MAX_SIZE_BYTES);
     m_pixels.reset (new char [m_pixels_size = size]);
+    // Clear the end pad values so there aren't NaNs sucked up by simd loads
+    memset (m_pixels.get() + size - OIIO_SIMD_MAX_SIZE_BYTES,
+            0, OIIO_SIMD_MAX_SIZE_BYTES);
     ImageCacheFile &file (m_id.file());
     m_valid = file.read_tile (thread_info, m_id.subimage(), m_id.miplevel(),
                               m_id.x(), m_id.y(), m_id.z(),
