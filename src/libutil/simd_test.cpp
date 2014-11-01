@@ -147,6 +147,20 @@ void test_shuffle ()
 
 
 template<typename VEC>
+void test_swizzle ()
+{
+    typedef typename VEC::value_t ELEM;
+    std::cout << "test_swizzle " << VEC::type_name() << "\n";
+
+    VEC a (0, 1, 2, 3);
+    VEC b (10, 11, 12, 13);
+    OIIO_CHECK_SIMD_EQUAL (AxyBxy(a,b), VEC(0,1,10,11));
+    OIIO_CHECK_SIMD_EQUAL (AxBxAyBy(a,b), VEC(0,10,1,11));
+}
+
+
+
+template<typename VEC>
 void test_transpose ()
 {
     typedef typename VEC::value_t ELEM;
@@ -210,8 +224,9 @@ main (int argc, char *argv[])
     std::cout << "\n";
     test_component_access<float4> ();
     test_arithmetic<float4> ();
-    // FIXME - implement float comparisons
+    test_comparisons<float4> ();
     test_shuffle<float4> ();
+    test_swizzle<float4> ();
     test_transpose<float4> ();
 
     std::cout << "\n";

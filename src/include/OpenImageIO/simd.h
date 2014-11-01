@@ -1482,6 +1482,28 @@ public:
 #endif
     }
 
+    // Some oddball items that are handy
+
+    /// Combine the first two components of A with the first two components
+    /// of B.
+    friend OIIO_FORCEINLINE float4 AxyBxy (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_movelh_ps (a.m_vec, b.m_vec);
+#else
+        return float4 (a[0], a[1], b[0], b[1]);
+#endif
+    }
+
+    /// Combine the first two components of A with the first two components
+    /// of B, but interleaved.
+    friend OIIO_FORCEINLINE float4 AxBxAyBy (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_unpacklo_ps (a.m_vec, b.m_vec);
+#else
+        return float4 (a[0], b[0], a[1], b[1]);
+#endif
+    }
+
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, float4 val) {
         return cout << val[0] << ' ' << val[1] << ' ' << val[2] << ' ' << val[3];
