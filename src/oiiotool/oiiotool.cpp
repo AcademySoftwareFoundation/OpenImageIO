@@ -3642,6 +3642,9 @@ getargs (int argc, char *argv[])
             std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
         }
 
+        if (! ot.colorconfig.supportsOpenColorIO())
+            std::cout << "No OpenColorIO support was enabled at build time.\n";
+
         exit (EXIT_SUCCESS);
     }
 
