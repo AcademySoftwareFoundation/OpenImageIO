@@ -30,16 +30,22 @@ Major new features and improvements:
 * Significant internal speedups by utilizing SIMD instructions (SSE) in
   the TextureSystem (1.5.5 / #948). To use this to its fullest extent,
   build OIIO with the make/cmake option USE_SIMD=arch, where arch is
-  sse2, sse3, sse4.1, sse4.2, depending on what machines you'll be
+  sse2, ssse3, sse4.1, sse4.2, depending on what machines you'll be
   deploying to. (Note that x86_64 automatically implies at least sse2.)
   (1.5.5)
-* Support for many movie files via a plugin using 'ffmpeg'. Should work
+* Experimental support for many movie files via a plugin using 'ffmpeg'. Works
   with avi, mov, qt, mp4, m4a, 3gp, 3g2, mj2, m4v, mpg, and more.  Movie
   files simply look like multi-image files to OIIO. There isn't really
   support for audio yet, and although this lets you retrieve and process
   individual frames of a movie file, OIIO is still not meant to be a
   video-processing library. Currently, these formats can be read, but
   there is no write support (maybe coming soon). #928 (1.5.5)
+  N.B.: Currently this is disabled by default, enable at build time
+  with USE_FFMPEG=1, but note that this can cause problems because ffmpeg
+  will happily open non-movie files, leading to problems if an image file
+  has an unexpected file extension. We hope to have this issue solved, and
+  thus movie support enabled by default, by the time we are ready for a
+  stable 1.5 release. Stay tuned.
 
 Public API changes:
 * TextureSystem API calls have been modified: the nchannels, dresultds,
@@ -100,6 +106,8 @@ Fixes, minor enhancements, and performance improvements:
      for the blurring step (rather than a gaussian or other convolution
      filter), which tends to sharpen small details but not over-sharpen
      long edges as the traditional unsharp mask often does. (1.5.4)
+   * oiiotool's help message now says explicitly if it was compiled without
+     any support for OpenColorIO. (1.5.5/1.4.15)
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)
@@ -110,6 +118,8 @@ Fixes, minor enhancements, and performance improvements:
      and emphasis of higher frequencies when creating MIP-maps. #958 (1.5.5)
    * Fix crash when using --checknan (1.5.5)
 * Python:
+    * Bug fix: the Python binding of ImageInput.read_scanlines did not
+      properly honor any channel subset specified. (1.5.5/1.4.15)
     * All of the expensive functions in the Python bindings now release the
       Python GIL (global interpreter lock) as much as possible. This allows
       other Python threads to make progress even when OIIO is doing a
@@ -131,6 +141,8 @@ Fixes, minor enhancements, and performance improvements:
      matrix. #929 (1.5.3/1.4.13)
    * OpenEXR 2.2 support, including the new DWAA/DWAB compression modes.
      (1.5.4)
+   * Fix bug that prevented proper saving/reporting of subimage name
+     for multi-subimage OpenEXR files. (1.5.5).
 * JPEG:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
@@ -207,7 +219,8 @@ Build/test system improvements:
 * testtex new options: --nchannels (forces num channels to look up, rather
   than always doing what's in the file), --derivs (force the kind of texture
   calls that return derivs of the texture lookups. (1.5.4)
-* Make it able to compile against giflib >= 5.1. #975 (1.4.14,1.5.5)
+* Make it able to compile against giflib >= 5.1. #975 (1.4.14/1.5.5)
+* Add an option to link against static Ilmbase and OpenEXR libraries (1.5.5).
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -235,6 +248,9 @@ Developer goodies / internals:
   channels by alpha, for a whole buffer (with strides, any data type).
   #962 (1.5.5)
 * Timer API now has queries for ticks as well as seconds. (1.5.5)
+* platform.h now has macros to mark functions as pure, const, nothrow,
+  or unused. (1.5.5)
+
 
 
 Release 1.4.14 (20 Oct 2014 -- compared to 1.4.13)
