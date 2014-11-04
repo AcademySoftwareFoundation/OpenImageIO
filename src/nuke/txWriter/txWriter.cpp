@@ -74,6 +74,43 @@ class txWriter : public Writer {
     bool verbose_;
     bool stats_;
 
+
+    void setChannelNames(ImageSpec& spec, const ChannelSet& channels) {
+        if (channels == Mask_RGB || channels == Mask_RGBA)
+            return;
+
+        int index = 0;
+        std::ostringstream buf;
+        foreach (z, channels) {
+            if (index > 0)
+                buf << ",";
+            switch (z) {
+                case Chan_Red:
+                    buf << "R";
+                    break;
+                case Chan_Green:
+                    buf << "G";
+                    break;
+                case Chan_Blue:
+                    buf << "B";
+                    break;
+                case Chan_Alpha:
+                    buf << "A";
+                    spec.alpha_channel = index;
+                    break;
+                case Chan_Z:
+                    buf << "Z";
+                    spec.z_channel = index;
+                    break;
+                default:
+                    buf << getName(z);
+                    break;
+            }
+            index++;
+        }
+        spec.attribute("maketx:channelnames", buf.str());
+    }
+
 public:
     txWriter(Write* iop) : Writer(iop),
             preset_(0),
@@ -184,11 +221,7 @@ public:
     }
 
     void execute() {
-        int chanCount = num_channels();
-        if (chanCount > 4) {
-            iop->warning("Truncating output to 4 channels");
-            chanCount = 4;
-        }
+        const int chanCount = num_channels();
         ChannelSet channels = channel_mask(chanCount);
         const bool doAlpha = channels.contains(Chan_Alpha);
 
@@ -220,6 +253,8 @@ public:
         }
 
         ImageSpec destSpec(width(), height(), chanCount, oiioBitDepths[bitDepth_]);
+
+        setChannelNames(destSpec, channels);
 
         destSpec.attribute("maketx:filtername", gFilterNames[filter_]);
 
