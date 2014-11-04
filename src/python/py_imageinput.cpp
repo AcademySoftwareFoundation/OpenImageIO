@@ -262,7 +262,7 @@ ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
     int nchans = chend - chbegin;
     size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
     char *data = new char[size];
-    if (!m_input->read_scanlines (ybegin, yend, z, format, data)) {
+    if (!m_input->read_scanlines (ybegin, yend, z, chbegin, chend, format, data)) {
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }

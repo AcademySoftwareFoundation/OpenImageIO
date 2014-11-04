@@ -103,6 +103,11 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (2047, 1535) = array('f', [0.15294118225574493, 0.21568627655506134, 0.3490196168422699])
 @ (1024, 768) = array('f', [0.5333333611488342, 0.7176470756530762, 0.9215686321258545])
 
+Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
+@ (0, 0) = array('B', [40])
+@ (2047, 1535) = array('B', [39])
+@ (1024, 768) = array('B', [136])
+
 Testing read_scanline:
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 0) = array('B', [40, 35, 57])
