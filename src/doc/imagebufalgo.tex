@@ -1507,7 +1507,7 @@ of src was < 1, dst will have a pixel color that is a plausible
 
 
 \apiitem{bool {\ce median_filter} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc int width = 3, int height = -1,
+  \bigspc\spc int width = 3, int height = -1, \\
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!median_filter} \indexapi{median_filter}
 
@@ -1537,7 +1537,7 @@ preserving the sharpness of long edges.
   \bigspc\spc float contrast = 1.0f, float threshold = 0.0f, \\
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!unsharp_mask} \indexapi{unsharp_mask}
-\label{sec:IBA_unsharp_mask}
+\label{sec:iba:unsharpmask}
 
 Replace the given ROI of {\cf dst} with a sharpened version of the
 corresponding region of {\cf src} using the ``unsharp mask'' technique.
