@@ -88,6 +88,8 @@ static bool tube = false;
 static bool use_handle = false;
 static float cachesize = -1;
 static int maxfiles = -1;
+static int mipmode = TextureOpt::MipModeDefault;
+static int interpmode = TextureOpt::InterpSmartBicubic;
 static float missing[4] = {-1, 0, 0, 1};
 static float fill = -1;  // -1 signifies unset
 static float scalefactor = 1.0f;
@@ -149,6 +151,8 @@ getargs (int argc, const char *argv[])
                   "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
                   "--aniso %d", &anisotropic,
                       Strutil::format("Set max anisotropy (default: %d)", anisotropic).c_str(),
+                  "--mipmode %d", &mipmode, "Set mip mode (default: 0 = aniso)",
+                  "--interpmode %d", &interpmode, "Set interp mode (default: 3 = smart bicubic)",
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
                         "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
@@ -215,6 +219,8 @@ initialize_opt (TextureOpt &opt, int nchannels)
     TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap = opt.swrap;
     opt.anisotropic = anisotropic;
+    opt.mipmode = (TextureOpt::MipMode) mipmode;
+    opt.interpmode = (TextureOpt::InterpMode) interpmode;
 }
 
 

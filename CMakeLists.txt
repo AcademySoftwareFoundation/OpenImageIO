@@ -406,7 +406,11 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 maketx
                 texture-blurtube texture-crop texture-cropover
                 texture-derivs texture-fill texture-filtersize
+                texture-interp-bicubic
+                texture-interp-bilinear
+                texture-interp-closest
                 texture-gray texture-grid
+                texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat texture-wrapfill
