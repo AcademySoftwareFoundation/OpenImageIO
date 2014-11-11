@@ -296,8 +296,8 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
-    compression: "lzw"
+    tiff:Compression: 8
+    compression: "zip"
     tiff:RowsPerStrip: 32
 Reading small.tx
 small.tx             :   64 x   64, 3 channel, uint8 tiff

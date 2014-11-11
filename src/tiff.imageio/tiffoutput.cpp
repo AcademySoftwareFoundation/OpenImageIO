@@ -291,9 +291,9 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
-    // Default to LZW compression if no request came with the user spec
+    // Default to ZIP compression if no request came with the user spec
     if (! m_spec.find_attribute("compression"))
-        m_spec.attribute ("compression", "lzw");
+        m_spec.attribute ("compression", "zip");
 
     ImageIOParameter *param;
     const char *str = NULL;

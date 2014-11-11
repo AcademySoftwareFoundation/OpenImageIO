@@ -310,8 +310,8 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: 5
-    compression: "lzw"
+    tiff:Compression: 8
+    compression: "zip"
     tiff:RowsPerStrip: 32
     IPTC:Caption: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
 Reading small.tx
