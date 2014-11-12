@@ -124,9 +124,13 @@ dump_data (ImageInput *input, const print_info_options &opt)
                     for (int s = 0;  s < nsamples;  ++s) {
                         if (s)
                             std::cout << " / ";
-                        for (int c = 0;  c < nc;  ++c)
-                            std::cout << " " << spec.channelnames[c] << "="
-                                      << dd.deep_value (pixel, c, s);
+                        for (int c = 0;  c < nc;  ++c) {
+                            std::cout << " " << spec.channelnames[c] << "=";
+                            if (dd.channeltypes[c] == TypeDesc::UINT)
+                                std::cout << ((uint32_t *)dd.pointers[pixel*dd.nchannels+c])[s];
+                            else
+                                std::cout << dd.deep_value (pixel, c, s);
+                        }
                     }
                     std::cout << "\n";
                 }
