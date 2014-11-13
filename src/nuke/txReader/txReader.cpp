@@ -12,11 +12,10 @@ using namespace DD::Image;
  * TODO:
  * - Look into using the planar Reader API in Nuke 8, which may map better to
  *      TIFF/OIIO.
- * - Add support for actually changing the Nuke format to match the mip level?
- *      This might be a bad idea...
- * - Handle mip orientations ( ImageSpec.get_int_attribute("Orientation", default); )
  * - It would be nice to have a way to read in a region, rather than the whole
- *      image, but this hinges on getting access to the Read's request region.
+ *      image, but this would require access to the Read's request region,
+ *      which isn't currently possible. A feature request for this is logged
+ *      with The Foundry as Bug 46237.
  */
 
 
@@ -301,15 +300,16 @@ static ReaderFormat* buildformat(Read* iop) {
     return new TxReaderNS::TxReaderFormat();
 }
 
-// Test code copied from tiffReader example plugin
 static bool test(int fd, const unsigned char* block, int length) {
-    // Big-endian
+    // Big-endian TIFF
     if (block[0] == 'M' && block[1] == 'M' && block[2] == 0 && block[3] == 42)
         return true;
-    // Little-endian
+    // Little-endian TIFF
     if (block[0] == 'I' && block[1] == 'I' && block[2] == 42 && block[3] == 0)
         return true;
-    return false;
+    // EXR
+    return block[0] == 0x76 && block[1] == 0x2f &&
+           block[2] == 0x31 && block[3] == 0x01;
 }
 
 const Reader::Description TxReaderNS::txReader::d("tx\0TX\0", buildReader, test,
