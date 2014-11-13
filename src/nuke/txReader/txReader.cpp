@@ -60,15 +60,16 @@ class txReader : public Reader {
     ImageInput* oiioInput_;
     TxReaderFormat* txFmt_;
 
-    int fullW_, fullH_, chanCount_, lastMipLevel_;
-    bool haveImage_;
+    int chanCount_, lastMipLevel_;
+    bool haveImage_, flip_;
     std::vector<float> imageBuf_;
+    std::map<Channel, int> chanMap_;
 
     MetaData::Bundle meta_;
 
     static const Description d;
 
-    void fillMetadata(const ImageSpec& spec) {
+    void fillMetadata(const ImageSpec& spec, bool isEXR) {
         switch (spec.format.basetype) {
             case TypeDesc::UINT8:
             case TypeDesc::INT8:
@@ -126,22 +127,43 @@ class txReader : public Reader {
         if (!val.empty())
             meta_.setData("tx/compression", val);
 
-        val = spec.get_string_attribute("tiff:planarconfig");
-        if (!val.empty())
-            meta_.setData("tiff/planar_config", val);
+        if (isEXR) {
+            val = spec.get_string_attribute("openexr:lineOrder");
+            if (!val.empty())
+                meta_.setData("exr/line_order", val);
 
-        int v = spec.get_int_attribute("Orientation");
-        if (v > 0)
-            meta_.setData("tiff/orientation", v);
+            float cl = spec.get_float_attribute("openexr:dwaCompressionLevel", 0.0f);
+            if (val > 0)
+                meta_.setData("exr/dwa_compression_level", cl);
+        }
+        else {
+            val = spec.get_string_attribute("tiff:planarconfig");
+            if (!val.empty())
+                meta_.setData("tiff/planar_config", val);
+        }
+    }
+
+    void setChannels(const ImageSpec& spec) {
+        ChannelSet mask;
+        Channel chan;
+        int chanIndex = 0;
+
+        for (std::vector<std::string>::const_iterator it = spec.channelnames.begin();
+                it != spec.channelnames.end(); it++) {
+            chan = Reader::channel(it->c_str());
+            mask += chan;
+            chanMap_[chan] = chanIndex++;
+        }
+
+        info_.channels(mask);
     }
 
 public:
     txReader(Read* iop) : Reader(iop),
-            fullW_(0),
-            fullH_(0),
             chanCount_(0),
             lastMipLevel_(-1),
-            haveImage_(false)
+            haveImage_(false),
+            flip_(false)
     {
         txFmt_ = dynamic_cast<TxReaderFormat*>(iop->handler());
 
@@ -156,24 +178,34 @@ public:
 
         const ImageSpec& baseSpec = oiioInput_->spec();
 
-        fillMetadata(baseSpec);
-
-        if (!baseSpec.width * baseSpec.height) {
+        if (!(baseSpec.width * baseSpec.height)) {
             iop->internalError("tx file has one or more zero dimensions "
                                "(%d x %d)", baseSpec.width, baseSpec.height);
             return;
         }
 
-        fullW_ = baseSpec.width;
-        fullH_ = baseSpec.height;
-
         chanCount_ = baseSpec.nchannels;
-        if (chanCount_ > 4) {
-            iop->warning("%s contains more than 4 channels, but input will be "
-                         "limited to the first 4.", filename());
-            chanCount_ = 4;
+        const bool isEXR = strcmp(oiioInput_->format_name(), "openexr") == 0;
+
+        if (isEXR) {
+            float pixAspect = baseSpec.get_float_attribute("PixelAspectRatio", 0);
+            set_info(baseSpec.width, baseSpec.height, 1, pixAspect);
+            meta_.setData(MetaData::PIXEL_ASPECT, pixAspect > 0 ? pixAspect : 1.0f);
+            setChannels(baseSpec);  // Fills chanMap_
+            flip_ = true;
         }
-        set_info(fullW_, fullH_, chanCount_);
+        else {
+            set_info(baseSpec.width, baseSpec.height, chanCount_);
+            int orientation = baseSpec.get_int_attribute("Orientation", 1);
+            meta_.setData("tiff/orientation", orientation);
+            flip_ = !((orientation - 1) & 2);
+
+            int chanIndex = 0;
+            foreach(z, info_.channels())
+                chanMap_[z] = chanIndex++;
+        }
+
+        fillMetadata(baseSpec, isEXR);
 
         // Populate mip level pulldown with labels in the form:
         //      "MIPLEVEL\tMIPLEVEL - WxH" (e.g. "0\t0 - 1920x1080")
@@ -216,7 +248,7 @@ public:
                 return;
             }
 
-            if (txFmt_->mipLevel() && mipSpec.nchannels < chanCount_) {
+            if (txFmt_->mipLevel() && mipSpec.nchannels != chanCount_) {
                 iop->internalError("txReader does not support mip levels with "
                                    "different channel counts");
                 return;
@@ -239,33 +271,34 @@ public:
 
     void engine(int y, int x, int r, ChannelMask channels, Row& row) {
         if (!haveImage_)
-            iop->error("txReader engine called, but haveImage_ is false");
+            iop->internalError("engine called, but haveImage_ is false");
 
         if (aborted()) {
             row.erase(channels);
             return;
         }
 
-        ChannelSet readChannels(chanCount_ > 3 ? Mask_RGBA : Mask_RGB);
-        // Eventually we should probably support more than 4 channels...
-        const int fileChans = oiioInput_->spec().nchannels;
+        const bool doAlpha = channels.contains(Chan_Alpha);
+
+        if (flip_)
+            y = height() - y - 1;
 
         if (lastMipLevel_) {  // Mip level other than 0
             const int mipW = oiioInput_->spec().width;
-            const int mipMult = fullW_ / mipW;
+            const int mipMult = width() / mipW;
 
-            const int bufY = (fullH_ - y - 1) * oiioInput_->spec().height / fullH_;
+            y = y * oiioInput_->spec().height / height();
             const int bufX = x ? x / mipMult : 0;
             const int bufR = r / mipMult;
             const int bufW = bufR - bufX;
 
             std::vector<float> chanBuf(bufW);
             float* chanStart = &chanBuf[0];
-            const int bufStart = bufY * mipW * fileChans + bufX * fileChans;
-            const float* alpha = chanCount_ > 3 ? &imageBuf_[bufStart + 3] : NULL;
-            foreach (z, readChannels) {
-                from_float(z, &chanBuf[0], &imageBuf_[bufStart + z - 1], alpha,
-                           bufW, fileChans);
+            const int bufStart = y * mipW * chanCount_ + bufX * chanCount_;
+            const float* alpha = doAlpha ? &imageBuf_[bufStart + chanMap_[Chan_Alpha]] : NULL;
+            foreach (z, channels) {
+                from_float(z, &chanBuf[0], &imageBuf_[bufStart + chanMap_[z]],
+                           alpha, bufW, chanCount_);
 
                 float* OUT = row.writable(z);
                 for (int stride = 0, c = 0; stride < bufW; stride++, c = 0)
@@ -274,13 +307,13 @@ public:
             }
         }
         else {  // Mip level 0
-            const int bufY = fullH_ - y - 1;
-            const int pixStart = bufY * fullW_ * fileChans + x * fileChans;
-            const float* alpha = chanCount_ > 3 ? &imageBuf_[pixStart + 3] : NULL;
+            const int pixStart = y * width() * chanCount_ + x * chanCount_;
+            const float* alpha = doAlpha ? &imageBuf_[pixStart + chanMap_[Chan_Alpha]] : NULL;
 
-            foreach (z, readChannels)
-                from_float(z, row.writable(z) + x, &imageBuf_[pixStart + z - 1],
-                           alpha, r - x, fileChans);
+            foreach (z, channels) {
+                from_float(z, row.writable(z) + x, &imageBuf_[pixStart + chanMap_[z]],
+                           alpha, r - x, chanCount_);
+            }
         }
     }
 
