@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # This test verifies that the TextureSystem is sampling the correct
 # MIPmap levels given the input derivatives.
@@ -34,6 +34,10 @@
 # impression that texture was too blurry everywhere. With this test, we
 # can at least be sure that our basic MIPmap level selection is dead-on.
 
+
+# Allow a bit of LSB slop
+failthresh = 0.004
+failpercent = 0.1
 
 
 command = testtex_command (parent + "/oiio-images/miplevels.tx",

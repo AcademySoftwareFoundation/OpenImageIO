@@ -47,6 +47,7 @@
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/texture.h"
 #include "OpenImageIO/imagecache.h"
+#include "OpenImageIO/imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 
@@ -228,6 +229,7 @@ convention is dictated by OpenEXR.
 OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;
+    using namespace simd;
 
 namespace {  // anonymous
 
@@ -427,23 +429,23 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
         minorlength = xfilt;
     }
 
-    accum_prototype accumer;
+    sampler_prototype sampler;
     long long *probecount;
     switch (options.interpmode) {
     case TextureOpt::InterpClosest :
-        accumer = &TextureSystemImpl::accum_sample_closest;
+        sampler = &TextureSystemImpl::sample_closest;
         probecount = &stats.closest_interps;
         break;
     case TextureOpt::InterpBilinear :
-        accumer = &TextureSystemImpl::accum_sample_bilinear;
+        sampler = &TextureSystemImpl::sample_bilinear;
         probecount = &stats.bilinear_interps;
         break;
     case TextureOpt::InterpBicubic :
-        accumer = &TextureSystemImpl::accum_sample_bicubic;
+        sampler = &TextureSystemImpl::sample_bicubic;
         probecount = &stats.cubic_interps;
         break;
     default:
-        accumer = NULL;
+        sampler = NULL;
         probecount = NULL;
         break;
     }
@@ -536,21 +538,33 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
             if (options.interpmode == TextureOpt::InterpSmartBicubic) {
                 if (lev == 0 ||
                     (texturefile->spec(options.subimage,lev).full_height < naturalres/2)) {
-                    accumer = &TextureSystemImpl::accum_sample_bicubic;
+                    sampler = &TextureSystemImpl::sample_bicubic;
                     ++stats.cubic_interps;
                 } else {
-                    accumer = &TextureSystemImpl::accum_sample_bilinear;
+                    sampler = &TextureSystemImpl::sample_bilinear;
                     ++stats.bilinear_interps;
                 }
             } else {
                 *probecount += 1;
             }
 
-            ok &= (this->*accumer) (s, t, miplevel[level], *texturefile,
-                                    thread_info, options,
-                                    nchannels, actualchannels,
-                                    levelweight[level]*invsamples, result,
-                                    dresultds, dresultdt);
+            OIIO_SIMD4_ALIGN float sval[4] = { s, 0.0f, 0.0f, 0.0f };
+            OIIO_SIMD4_ALIGN float tval[4] = { t, 0.0f, 0.0f, 0.0f };
+            OIIO_SIMD4_ALIGN float weight[4] = { levelweight[level]*invsamples,
+                                                 0.0f, 0.0f, 0.0f };
+            float4 r, drds, drdt;
+            ok &= (this->*sampler) (1, sval, tval, miplevel[level],
+                                    *texturefile, thread_info, options,
+                                    nchannels, actualchannels, weight,
+                                    &r, dresultds ? &drds : NULL, dresultds ? &drdt : NULL);
+            for (int c = 0; c < nchannels; ++c)
+                result[c] += r[c];
+            if (dresultds) {
+                for (int c = 0; c < nchannels; ++c) {
+                    dresultds[c] += drds[c];
+                    dresultdt[c] += drdt[c];
+                }
+            }
         }
     }
     stats.aniso_probes += nsamples;

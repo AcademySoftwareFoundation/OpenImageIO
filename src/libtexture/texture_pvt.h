@@ -37,7 +37,7 @@
 #define OPENIMAGEIO_TEXTURE_PVT_H
 
 #include "OpenImageIO/texture.h"
-
+#include "OpenImageIO/simd.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -345,43 +345,36 @@ private:
                          float _dsdy, float _dtdy,
                          float *result, float *dresultds, float *resultdt);
     
-    // If simd is nonzero, it's guaranteed that all float* inputs and
-    // outputs are padded to length 'simd' and aligned to a simd*4-byte
-    // boundary (for example, 4 for SSE). This means that the functions can
-    // behave AS IF the number of channels being retrieved is simd, and any
-    // extra values returned will be discarded by the caller.
-    typedef bool (TextureSystemImpl::*accum_prototype)
-                              (float s, float t, int level,
-                               TextureFile &texturefile,
-                               PerThreadInfo *thread_info,
-                               TextureOpt &options,
-                               int nchannels_result, int actualchannels,
-                               float weight, float *accum,
-                               float *daccumds, float *daccumdt);
-
-    bool accum_sample_closest (float s, float t, int level,
-                               TextureFile &texturefile,
-                               PerThreadInfo *thread_info,
-                               TextureOpt &options,
-                               int nchannels_result, int actualchannels,
-                               float weight, float *accum,
-                               float *daccumds, float *daccumdt);
-
-    bool accum_sample_bilinear (float s, float t, int level,
-                                TextureFile &texturefile,
-                                PerThreadInfo *thread_info,
-                                TextureOpt &options,
-                               int nchannels_result, int actualchannels,
-                                float weight, float *accum,
-                                float *daccumds, float *daccumdt);
-
-    bool accum_sample_bicubic (float s, float t, int level,
-                               TextureFile &texturefile,
-                               PerThreadInfo *thread_info,
-                               TextureOpt &options,
-                               int nchannels_result, int actualchannels,
-                               float weight, float *accum,
-                               float *daccumds, float *daccumdt);
+    // For the samplers, it's guaranteed that all float* inputs and outputs
+    // are padded to length 'simd' and aligned to a simd*4-byte boundary
+    // (for example, 4 for SSE). This means that the functions can behave AS
+    // IF the number of channels being retrieved is simd, and any extra
+    // values returned will be discarded by the caller.
+    typedef bool (TextureSystemImpl::*sampler_prototype)
+                         (int nsamples, const float *s, const float *t,
+                          int level, TextureFile &texturefile,
+                          PerThreadInfo *thread_info, TextureOpt &options,
+                          int nchannels_result, int actualchannels,
+                          const float *weight, simd::float4 *accum,
+                          simd::float4 *daccumds, simd::float4 *daccumdt);
+    bool sample_closest  (int nsamples, const float *s, const float *t,
+                          int level, TextureFile &texturefile,
+                          PerThreadInfo *thread_info, TextureOpt &options,
+                          int nchannels_result, int actualchannels,
+                          const float *weight, simd::float4 *accum,
+                          simd::float4 *daccumds, simd::float4 *daccumdt);
+    bool sample_bilinear (int nsamples, const float *s, const float *t,
+                          int level, TextureFile &texturefile,
+                          PerThreadInfo *thread_info, TextureOpt &options,
+                          int nchannels_result, int actualchannels,
+                          const float *weight, simd::float4 *accum,
+                          simd::float4 *daccumds, simd::float4 *daccumdt);
+    bool sample_bicubic  (int nsamples, const float *s, const float *t,
+                          int level, TextureFile &texturefile,
+                          PerThreadInfo *thread_info, TextureOpt &options,
+                          int nchannels_result, int actualchannels,
+                          const float *weight, simd::float4 *accum,
+                          simd::float4 *daccumds, simd::float4 *daccumdt);
 
     // Define a prototype of a member function pointer for texture3d
     // lookups.

@@ -184,6 +184,7 @@ public:
     size_t pixelsize (int subimage) const { return m_subimages[subimage].pixelsize; }
     bool eightbit (int subimage) const { return m_subimages[subimage].eightbit; }
     bool mipused (void) const { return m_mipused; }
+    bool sample_border (void) const { return m_sample_border; }
     const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
 
     void invalidate ();
@@ -399,6 +400,8 @@ public:
     void x (int v) { m_x = v; }
     void y (int v) { m_y = v; }
     void z (int v) { m_z = v; }
+    void xy (int x, int y) { m_x = x; m_y = y; }
+    void xyz (int x, int y, int z) { m_x = x; m_y = y; m_z = z; }
 
     /// Is this an uninitialized tileID?
     bool empty () const { return m_file == NULL; }
