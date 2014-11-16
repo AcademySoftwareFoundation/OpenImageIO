@@ -43,6 +43,7 @@
 
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -340,6 +341,7 @@ print_stats (Oiiotool &ot,
         int yend = originalspec.y + originalspec.height;
         int zend = originalspec.z + originalspec.depth;
         size_t p = 0;
+        std::vector<size_t> nsamples_histogram;
         for (int z = originalspec.z; z < zend; ++z) {
             for (int y = originalspec.y; y < yend; ++y) {
                 for (int x = originalspec.x; x < xend; ++x, ++p) {
@@ -351,11 +353,13 @@ print_stats (Oiiotool &ot,
                         maxsamples = c;
                         maxsamples_pixel.setValue (x, y, z);
                         maxsamples_npixels = 1;
+                        nsamples_histogram.resize (maxsamples+1, 0);
                     }
                     if (c < minsamples)
                         minsamples = c;
                     if (c == 0)
                         ++emptypixels;
+                    nsamples_histogram[c] += 1;
                     if (depthchannel >= 0) {
                         for (unsigned int s = 0;  s < c;  ++s) {
                             float d = input.deep_value (x, y, z, depthchannel, s);
@@ -384,10 +388,21 @@ print_stats (Oiiotool &ot,
         printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
         printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
         printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
-        printf ("%sMinimum depth was %g at (%d, %d)\n", indent, mindepth,
-                mindepth_pixel.x, mindepth_pixel.y);
-        printf ("%sMaximum depth was %g at (%d, %d)\n", indent, maxdepth,
-                maxdepth_pixel.x, maxdepth_pixel.y);
+        std::string histmsg = Strutil::format ("%sSamples/pixel histogram: ", indent);
+        for (size_t i = 0, e = nsamples_histogram.size();  i < e;  ++i) {
+            if (i > 10 && nsamples_histogram[i] == 0)
+                continue;   // skip empty bins after 10
+            histmsg += Strutil::format ("%s%llu: %llu", i ? ", " : "", (long long)i,
+                    (long long)nsamples_histogram[i]);
+        }
+        int wraplen = isatty(fileno(stdout)) ? Sysutil::terminal_columns()-2 : 78;
+        printf ("%s\n", Strutil::wordwrap (histmsg, wraplen, strlen(indent)+4).c_str());
+        if (depthchannel >= 0) {
+            printf ("%sMinimum depth was %g at (%d, %d)\n", indent, mindepth,
+                    mindepth_pixel.x, mindepth_pixel.y);
+            printf ("%sMaximum depth was %g at (%d, %d)\n", indent, maxdepth,
+                    maxdepth_pixel.x, maxdepth_pixel.y);
+        }
     } else {
         std::vector<float> constantValues(input.spec().nchannels);
         if (isConstantColor(input, &constantValues[0])) {
