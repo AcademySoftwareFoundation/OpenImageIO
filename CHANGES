@@ -28,11 +28,11 @@ Major new features and improvements:
    * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
    * median_filter performs a median filter. (1.5.4)
 * Significant internal speedups by utilizing SIMD instructions (SSE) in
-  the TextureSystem (1.5.5 / #948, #990). To use this to its fullest extent,
-  build OIIO with the make/cmake option USE_SIMD=arch, where arch is
-  sse2, ssse3, sse4.1, sse4.2, depending on what machines you'll be
-  deploying to. (Note that x86_64 automatically implies at least sse2.)
-  (1.5.5)
+  the TextureSystem (1.5.5 / #948, 1.5.6 / #990). To use this to its
+  fullest extent, build OIIO with the make/cmake option USE_SIMD=arch,
+  where arch is sse2, ssse3, sse4.1, sse4.2, depending on what machines
+  you'll be deploying to. (Note that x86_64 automatically implies at
+  least sse2.)  (1.5.5)
 * Experimental support for many movie files via a plugin using 'ffmpeg'. Works
   with avi, mov, qt, mp4, m4a, 3gp, 3g2, mj2, m4v, mpg, and more.  Movie
   files simply look like multi-image files to OIIO. There isn't really
@@ -48,7 +48,7 @@ Major new features and improvements:
   stable 1.5 release. Stay tuned.
 * Nuke plugins -- a txReader plugins that will read OIIO texture files,
   and a txWriter that will output proper (tiled & mip-mapped) texture files
-  from Nuke. Contributed by Nathan Rusch / Luma Pictures. #973 (1.5.5)
+  from Nuke. Contributed by Nathan Rusch / Luma Pictures. #973 (1.5.6)
 
 Public API changes:
 * TextureSystem API calls have been modified: the nchannels, dresultds,
@@ -161,7 +161,8 @@ Fixes, minor enhancements, and performance improvements:
      origin. (1.5.3)
    * Improved precision when auto-premultiplying 8 bit unassociated alpha
      images (if the user is reading them into a higher-precision buffer).
-     #960, #962 (1.6.2)
+     #960, #962 (1.5.2)
+   * Change default compression (if otherwise unspecified) to "zip". (1.5.6)
 * RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
 * RLA: Fix bug that caused RLA output to not respect requests for 10 bit
   output (would force it to 16 in that case). #899 (1.5.1)
@@ -224,6 +225,7 @@ Build/test system improvements:
   calls that return derivs of the texture lookups. (1.5.4)
 * Make it able to compile against giflib >= 5.1. #975 (1.4.14/1.5.5)
 * Add an option to link against static Ilmbase and OpenEXR libraries (1.5.5).
+* Add testtex options -interpmode and -mipmode. #988 (1.5.6)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -423,6 +425,8 @@ Fixes, minor enhancements, and performance improvements:
     images. (1.3.12/1.4.2)
   * --pdiff does a perceptual diff (like 'idiff -p'). (#815) (1.4.4)
   * --dumpdata takes a noptional modifier empty=0 that will cause empty
+    deep pixels to not produce any output. (#821) (1.4.5)
+  * --dumpdata correctly prints values of uint32 channels. #989 (1.5.6)
     deep pixels to not produce any output. (#821) (1.4.5)
   * --polar, --unpolar convert from complex (real,imag) to polar
     (amplitude, phase) and vice versa. (#831) (1.4.5)
