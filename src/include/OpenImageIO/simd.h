@@ -32,9 +32,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///
 /// Nice references for all the Intel intrinsics (SSE*, AVX*, etc.):
 ///   https://software.intel.com/sites/landingpage/IntrinsicsGuide/
+///
 /// It helped me a lot to peruse the source of these packages:
-///   Syrah: https://github.com/boulos/syrah
-///   Embree: https://github.com/embree
+///   Syrah:     https://github.com/boulos/syrah
+///   Embree:    https://github.com/embree
+///   Vectorial: https://github.com/scoopr/vectorial
+///
+/// To find out which CPU features you have:
+///   Linux: cat /proc/cpuinfo
+///   OSX:   sysctl machdep.cpu.features
 
 
 #pragma once
