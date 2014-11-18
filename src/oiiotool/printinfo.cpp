@@ -353,12 +353,13 @@ print_stats (Oiiotool &ot,
                         maxsamples = c;
                         maxsamples_pixel.setValue (x, y, z);
                         maxsamples_npixels = 1;
-                        nsamples_histogram.resize (maxsamples+1, 0);
                     }
                     if (c < minsamples)
                         minsamples = c;
                     if (c == 0)
                         ++emptypixels;
+                    if (c >= nsamples_histogram.size())
+                        nsamples_histogram.resize (c+1, 0);
                     nsamples_histogram[c] += 1;
                     if (depthchannel >= 0) {
                         for (unsigned int s = 0;  s < c;  ++s) {
@@ -388,15 +389,26 @@ print_stats (Oiiotool &ot,
         printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
         printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
         printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
-        std::string histmsg = Strutil::format ("%sSamples/pixel histogram: ", indent);
+        printf ("%sSamples/pixel histogram:\n", indent);
+        size_t grandtotal = 0;
+        for (size_t i = 0, e = nsamples_histogram.size();  i < e;  ++i)
+            grandtotal += nsamples_histogram[i];
+        size_t binstart = 0, bintotal = 0;
         for (size_t i = 0, e = nsamples_histogram.size();  i < e;  ++i) {
-            if (i > 10 && nsamples_histogram[i] == 0)
-                continue;   // skip empty bins after 10
-            histmsg += Strutil::format ("%s%llu: %llu", i ? ", " : "", (long long)i,
-                    (long long)nsamples_histogram[i]);
+            bintotal += nsamples_histogram[i];
+            if (i < 8 || i == (e-1) || OIIO::ispow2(i+1)) {
+                // batch by powers of 2, unless it's a small number
+                if (i == binstart)
+                    printf ("%s  %3lld    ", indent, (long long)i);
+                else
+                    printf ("%s  %3lld-%3lld", indent,
+                            (long long)binstart, (long long)i);
+                printf (" : %8lld (%4.1f%%)\n", (long long)bintotal,
+                        (100.0*bintotal)/grandtotal);
+                binstart = i+1;
+                bintotal = 0;
+            }
         }
-        int wraplen = isatty(fileno(stdout)) ? Sysutil::terminal_columns()-2 : 78;
-        printf ("%s\n", Strutil::wordwrap (histmsg, wraplen, strlen(indent)+4).c_str());
         if (depthchannel >= 0) {
             printf ("%sMinimum depth was %g at (%d, %d)\n", indent, mindepth,
                     mindepth_pixel.x, mindepth_pixel.y);

@@ -130,6 +130,10 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     Total deep samples in all pixels: 571938
     Pixels with deep samples   : 411972
     Pixels with no deep samples: 677019
+    Samples/pixel histogram:
+        0     :   677019 (62.2%)
+        1     :   252006 (23.1%)
+        2     :   159966 (14.7%)
     Minimum depth was 127.873 at (999, 1030)
     Maximum depth was 738.561 at (930, 413)
 Comparing "../../../../../openexr-images/v2/Stereo/Balls.exr" and "Balls.exr"
@@ -180,6 +184,10 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     Total deep samples in all pixels: 1025337
     Pixels with deep samples   : 899641
     Pixels with no deep samples: 1173959
+    Samples/pixel histogram:
+        0     :  1173959 (56.6%)
+        1     :   773945 (37.3%)
+        2     :   125696 ( 6.1%)
     Minimum depth was 72.4937 at (0, 1079)
     Maximum depth was 954.393 at (716, 324)
 Comparing "../../../../../openexr-images/v2/Stereo/Leaves.exr" and "Leaves.exr"
