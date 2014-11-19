@@ -228,6 +228,8 @@ Build/test system improvements:
 * Make it able to compile against giflib >= 5.1. #975 (1.4.14/1.5.5)
 * Add an option to link against static Ilmbase and OpenEXR libraries (1.5.5).
 * Add testtex options -interpmode and -mipmode. #988 (1.5.6)
+* Build against Python 3 if the make/cmake build flag USE_PYTHON3=1 is used.
+  (1.5.6)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.

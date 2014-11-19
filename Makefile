@@ -92,6 +92,10 @@ ifneq (${USE_PYTHON},)
 MY_CMAKE_FLAGS += -DUSE_PYTHON:BOOL=${USE_PYTHON}
 endif
 
+ifneq (${USE_PYTHON3},)
+MY_CMAKE_FLAGS += -DUSE_PYTHON3:BOOL=${USE_PYTHON3}
+endif
+
 ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
@@ -366,6 +370,7 @@ help:
 	@echo "      USE_OPENGL=0             Skip anything that needs OpenGL"
 	@echo "      FORCE_OPENGL_1=1         Force iv to use OpenGL's fixed pipeline"
 	@echo "      USE_PYTHON=0             Don't build the Python binding"
+	@echo "      USE_PYTHON3=1            If 1, try to build against Python3, not 2.x"
 	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
 	@echo "      USE_FIELD3D=0            Don't build the Field3D plugin"
 	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"

@@ -73,7 +73,11 @@ ImageSpec_get_channelformats(const ImageSpec& spec)
     size_t size = spec.channelformats.size();
     PyObject* result = PyTuple_New(size);
     for (size_t i = 0; i < size; ++i)
+#if PY_MAJOR_VERSION >= 3
+        PyTuple_SetItem(result, i, PyLong_FromLong((long)spec.channelformats[i].basetype));
+#else
         PyTuple_SetItem(result, i, PyInt_FromLong((long)spec.channelformats[i].basetype));
+#endif
     return object(handle<>(result));
 }
 
@@ -265,13 +269,21 @@ ImageSpec_get_attribute_typed (const ImageSpec& spec,
         return object();   // None
     type = p->type();
     if (type.basetype == TypeDesc::INT) {
+#if PY_MAJOR_VERSION >= 3
+        return C_to_val_or_tuple ((const int *)p->data(), type, PyLong_FromLong);
+#else
         return C_to_val_or_tuple ((const int *)p->data(), type, PyInt_FromLong);
+#endif
     }
     if (type.basetype == TypeDesc::FLOAT) {
         return C_to_val_or_tuple ((const float *)p->data(), type, PyFloat_FromDouble);
     }
     if (type.basetype == TypeDesc::STRING) {
+#if PY_MAJOR_VERSION >= 3
+        return C_to_val_or_tuple ((const char **)p->data(), type, PyUnicode_FromString);
+#else
         return C_to_val_or_tuple ((const char **)p->data(), type, PyString_FromString);
+#endif
     }
     return object();
 }
