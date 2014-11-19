@@ -48,7 +48,8 @@ public:
     virtual ~RawInput() { close(); }
     virtual const char * format_name (void) const { return "raw"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool open (const std::string &name, ImageSpec &newspec, ImageSpec &config);
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config);
     virtual bool close();
     virtual bool read_native_scanline (int y, int z, void *data);
 
@@ -94,7 +95,8 @@ RawInput::open (const std::string &name, ImageSpec &newspec)
 
 
 bool
-RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
+RawInput::open (const std::string &name, ImageSpec &newspec,
+                const ImageSpec &config)
 {
     int ret;
 
@@ -127,8 +129,8 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
     m_processor.imgdata.params.gamm[1] = 1.0;
 
     // Check to see if the user has explicitly set the output colorspace primaries
-    ImageIOParameter *csp = config.find_attribute ("raw:ColorSpace", TypeDesc::STRING, false);
-    if (csp) {
+    std::string cs = config.get_string_attribute ("raw:ColorSpace", "sRGB");
+    if (cs.size()) {
         static const char *colorspaces[] = { "raw",
                                              "sRGB",
                                              "Adobe",
@@ -137,7 +139,6 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
                                              "XYZ", NULL
                                              };
 
-        std::string cs = *(const char**) csp->data();
         size_t c;
         for (c=0; c < sizeof(colorspaces) / sizeof(colorspaces[0]); c++)
             if (cs == colorspaces[c])
@@ -157,10 +158,8 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
     }
 
     // Exposure adjustment
-    ImageIOParameter *ex = config.find_attribute ("raw:Exposure", TypeDesc::FLOAT, false);
-    
-    if (ex) {
-        float exposure = *(float*)ex->data();
+    float exposure = config.get_float_attribute ("raw:Exposure", -1.0f);
+    if (exposure >= 0.0f) {
         if (exposure < 0.25f || exposure > 8.0f) {
             error("raw:Exposure invalid value. range 0.25f - 8.0f");
             return false;
@@ -175,8 +174,8 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
     // note: LibRaw must be compiled with demosaic pack GPL2 to use
     // demosaic algorithms 5-9. It must be compiled with demosaic pack GPL3 for 
     // algorithm 10. If either of these packs are not includeded, it will silently use option 3 - AHD
-    ImageIOParameter *dm = config.find_attribute ("raw:Demosaic", TypeDesc::STRING, false);
-    if (dm) {
+    std::string demosaic = config.get_string_attribute ("raw:Demosaic");
+    if (demosaic.size()) {
         static const char *demosaic_algs[] = { "linear",
                                                "VNG",
                                                "PPG",
@@ -191,8 +190,6 @@ RawInput::open (const std::string &name, ImageSpec &newspec, ImageSpec &config)
                                                // Future demosaicing algorithms should go here
                                                NULL
                                                };
-
-        std::string demosaic = *(const char**) dm->data();
         size_t d;
         for (d=0; d < sizeof(demosaic_algs) / sizeof(demosaic_algs[0]); d++)
             if (demosaic == demosaic_algs[d])
