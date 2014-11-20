@@ -85,6 +85,8 @@ static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
 static ustring s_exists ("exists");
 static ustring s_subimages ("subimages"), s_miplevels ("miplevels");
 static ustring s_datawindow ("datawindow"), s_displaywindow ("displaywindow");
+static ustring s_averagecolor ("averagecolor"), s_averagealpha ("averagealpha");
+static ustring s_constantcolor ("constantcolor"), s_constantalpha ("constantalpha");
 
 
 // Functor to compare filenames
@@ -299,6 +301,42 @@ ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
     channelsize = datatype.size();
     pixelsize = channelsize * spec.nchannels;
     eightbit = (datatype == TypeDesc::UINT8);
+
+    // See if there's a constant color tag
+    string_view software = spec.get_string_attribute ("Software");
+    bool from_maketx = Strutil::istarts_with (software, "OpenImageIO") ||
+                       Strutil::istarts_with (software, "maketx");
+
+    string_view constant_color = spec.get_string_attribute ("oiio:ConstantColor");
+    if (from_maketx && constant_color.size()) {
+        while (constant_color.size()) {
+            float val;
+            if (! Strutil::parse_float (constant_color, val))
+                break;
+            average_color.push_back (val);
+            if (! Strutil::parse_char (constant_color, ','))
+                break;
+        }
+        if (average_color.size() == size_t(spec.nchannels)) {
+            is_constant_image = true;
+            has_average_color = true;
+        }
+    }
+
+    // See if there's an average color tag
+    string_view avgcolor = spec.get_string_attribute ("oiio:AverageColor");
+    if (from_maketx && avgcolor.size()) {
+        while (avgcolor.size()) {
+            float val;
+            if (! Strutil::parse_float (avgcolor, val))
+                break;
+            average_color.push_back (val);
+            if (! Strutil::parse_char (avgcolor, ','))
+                break;
+        }
+        if (average_color.size() == size_t(spec.nchannels))
+            has_average_color = true;
+    }
 }
 
 
@@ -577,16 +615,6 @@ ImageCacheFile::init_from_spec ()
     std::string fing = spec.get_string_attribute ("oiio:SHA-1");
     if (fing.length()) {
         m_fingerprint = ustring(fing);
-    } else {
-        // If there was no "oiio:SHA-1" attribute, search for it as
-        // part of the ImageDescription.
-        std::string desc = spec.get_string_attribute ("ImageDescription");
-        const char *prefix = "SHA-1=";
-        size_t found = desc.rfind (prefix);
-        if (found != std::string::npos)
-            m_fingerprint = ustring (desc, found+strlen(prefix), 40);
-    }
-    if (m_fingerprint) {
         // If it looks like something other than OIIO wrote the file, forget
         // the fingerprint, it probably is not accurate.
         string_view software = spec.get_string_attribute ("Software");
@@ -945,6 +973,44 @@ ImageCacheFile::invalidate ()
     // Eat any errors that occurred in the open/close
     while (! imagecache().geterror().empty())
         ;
+}
+
+
+
+bool
+ImageCacheFile::get_average_color (float *avg, int subimage,
+                                   int chbegin, int chend)
+{
+    if (subimage < 0 || subimage > subimages())
+        return false;   // invalid subimage
+    SubimageInfo &si (m_subimages[subimage]);
+
+    if (! si.has_average_color) {
+        // try to figure it out by grabbing the single pixel at the 1x1
+        // MIP level.
+        int nlevels = (int) si.levels.size();
+        const ImageSpec &spec (si.spec(nlevels-1));  // The 1x1 level
+        if (spec.width != 1 || spec.height != 1 || spec.depth != 1)
+            return false;  // no hope, there's no 1x1 MIP level to sample
+        spin_lock lock (si.average_color_mutex);
+        if (! si.has_average_color) {
+            si.average_color.resize (spec.nchannels);
+            bool ok = m_imagecache.get_pixels (this, NULL, subimage, nlevels-1,
+                             spec.x, spec.x+1, spec.y, spec.y+1,
+                             spec.z, spec.z+1, 0, spec.nchannels,
+                             TypeDesc::TypeFloat, &si.average_color[0]);
+            si.has_average_color = ok;
+        }
+    }
+
+    if (si.has_average_color) {
+        const ImageSpec &spec (si.spec(0));
+        for (int i = 0, c = chbegin; c < chend; ++i, ++c)
+            avg[i] = (c < spec.nchannels) ? si.average_color[c] : 0.0f;
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -1508,6 +1574,7 @@ ImageCacheImpl::getstats (int level) const
     size_t total_opens = 0, total_tiles = 0;
     imagesize_t total_bytes = 0;
     size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
+    size_t total_constant = 0;
     double total_iotime = 0;
     std::vector<ImageCacheFileRef> files;
     {
@@ -1523,14 +1590,16 @@ ImageCacheImpl::getstats (int level) const
                 continue;
             }
             bool found_untiled = false, found_unmipped = false;
+            bool found_const = true;
             for (int s = 0;  s < file->subimages();  ++s) {
-                found_untiled |= file->subimageinfo(s).untiled;
-                found_unmipped |= file->subimageinfo(s).unmipped;
+                const ImageCacheFile::SubimageInfo &si (file->subimageinfo(s));
+                found_untiled |= si.untiled;
+                found_unmipped |= si.unmipped;
+                found_const |= si.is_constant_image;
             }
-            if (found_untiled)
-                ++total_untiled;
-            if (found_unmipped)
-                ++total_unmipped;
+            total_untiled += found_untiled;
+            total_unmipped += found_unmipped;
+            total_constant += found_const;
         }
     }
 
@@ -1573,6 +1642,9 @@ ImageCacheImpl::getstats (int level) const
             }
 #endif
         }
+        if (total_constant)
+            out << "  " << total_constant << (total_constant == 1 ? " was" : " were")
+                << " constant-valued in all pixels\n";
         if (files.size() >= 50) {
             const int topN = 3;
             std::sort (files.begin(), files.end(), bytesread_compare);
@@ -2199,6 +2271,31 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
             d[5] = spec.full_z + spec.full_depth - 1;
         }
     }
+    if (dataname == s_averagecolor && datatype.basetype == TypeDesc::FLOAT) {
+        int datalen = datatype.numelements() * datatype.aggregate;
+        return file->get_average_color ((float *)data, subimage, 0, datalen);
+    }
+    if (dataname == s_averagealpha && datatype == TypeDesc::FLOAT &&
+            spec.alpha_channel >= 0) {
+        return file->get_average_color ((float *)data, subimage,
+                                spec.alpha_channel, spec.alpha_channel+1);
+    }
+    if (dataname == s_constantcolor && datatype.basetype == TypeDesc::FLOAT) {
+        if (file->subimageinfo(subimage).is_constant_image) {
+            int datalen = datatype.numelements() * datatype.aggregate;
+            return file->get_average_color ((float *)data, subimage, 0, datalen);
+        }
+        return false;   // Fail if it's not a constant image
+    }
+    if (dataname == s_constantalpha && datatype == TypeDesc::FLOAT &&
+            spec.alpha_channel >= 0) {
+        if (file->subimageinfo(subimage).is_constant_image)
+            return file->get_average_color ((float *)data, subimage,
+                                    spec.alpha_channel, spec.alpha_channel+1);
+        else
+            return false;   // Fail if it's not a constant image
+    }
+
 
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
@@ -2339,6 +2436,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                             TypeDesc format, void *result,
                             stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! thread_info)
+        thread_info = get_perthread_info ();
     const ImageSpec &spec (file->spec(subimage, miplevel));
     bool ok = true;
 

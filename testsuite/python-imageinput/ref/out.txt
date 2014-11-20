@@ -44,7 +44,6 @@ Opened "../common/textures/grid.tx" as a tiff
   z channel =  -1
   deep =  False
   oiio:BitsPerSample = 8
-  ImageDescription = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   Orientation = 1
   XResolution = 72.0
   YResolution = 72.0
@@ -60,6 +59,8 @@ Opened "../common/textures/grid.tx" as a tiff
   planarconfig = "contig"
   tiff:Compression = 8
   compression = "zip"
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 Subimage 0 MIP level 1 :
   resolution 512x512+0+0
   tile size  64x64x1

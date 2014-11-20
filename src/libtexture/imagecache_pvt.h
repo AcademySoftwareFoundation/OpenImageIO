@@ -199,6 +199,10 @@ public:
     void duplicate (ImageCacheFile *dup) { m_duplicate = dup;}
     ImageCacheFile *duplicate () const { return m_duplicate; }
 
+    // Retrieve the average color, or try to compute it. Return true on
+    // success, false on failure.
+    bool get_average_color (float *avg, int subimage, int chbegin, int chend);
+
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
@@ -223,6 +227,10 @@ public:
         bool volume;                    ///< It's a volume image
         bool full_pixel_range;          ///< pixel data window matches image window
         bool eightbit;                  ///< Eight bit?  (or float)
+        bool is_constant_image;         ///< Is the image a constant color?
+        bool has_average_color;         ///< We have an average color
+        std::vector<float> average_color; ///< Average color
+        spin_mutex average_color_mutex; ///< protect average_color
 
         // The scale/offset accounts for crops or overscans, converting
         // 0-1 texture space relative to the "display/full window" into 
@@ -234,6 +242,7 @@ public:
                           channelsize(0), pixelsize(0),
                           untiled(false), unmipped(false), volume(false),
                           full_pixel_range(false), eightbit(false),
+                          is_constant_image(false), has_average_color(false),
                           sscale(1.0f), soffset(0.0f),
                           tscale(1.0f), toffset(0.0f) { }
         void init (const ImageSpec &spec, bool forcefloat);

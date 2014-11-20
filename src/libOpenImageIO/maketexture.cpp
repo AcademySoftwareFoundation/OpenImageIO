@@ -37,7 +37,6 @@
 #include <sstream>
 
 #include <boost/version.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -946,20 +945,31 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         src = latlong;
     }
 
+    // Some things require knowing a bunch about the pixel statistics.
+    bool constant_color_detect = configspec.get_int_attribute("maketx:constant_color_detect");
+    bool opaque_detect = configspec.get_int_attribute("maketx:opaque_detect");
+    bool compute_average_color = configspec.get_int_attribute("maketx:compute_average", 1);
+    ImageBufAlgo::PixelStats pixel_stats;
+    bool compute_stats = (constant_color_detect || opaque_detect || compute_average_color);
+    if (compute_stats)
+        ImageBufAlgo::computePixelStats (pixel_stats, *src);
+
     // If requested - and we're a constant color - make a tiny texture instead
     // Only safe if the full/display window is the same as the data window.
     // Also note that this could affect the appearance when using "black"
     // wrap mode at runtime.
     std::vector<float> constantColor(src->nchannels());
     bool isConstantColor = false;
-    if (configspec.get_int_attribute("maketx:constant_color_detect") &&
+    if (compute_stats &&
         src->spec().x == 0 && src->spec().y == 0 && src->spec().z == 0 &&
         src->spec().full_x == 0 && src->spec().full_y == 0 &&
         src->spec().full_z == 0 && src->spec().full_width == src->spec().width &&
         src->spec().full_height == src->spec().height &&
         src->spec().full_depth == src->spec().depth) {
-        isConstantColor = ImageBufAlgo::isConstantColor (*src, &constantColor[0]);
-        if (isConstantColor) {
+        isConstantColor = (pixel_stats.min == pixel_stats.max);
+        if (isConstantColor)
+            constantColor = pixel_stats.min;
+        if (isConstantColor && constant_color_detect) {
             // Reset the image, to a new image, at the tile size
             ImageSpec newspec = src->spec();
             newspec.width  = std::min (configspec.tile_width, src->spec().width);
@@ -981,10 +991,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     int nchannels = configspec.get_int_attribute ("maketx:nchannels", -1);
 
     // If requested -- and alpha is 1.0 everywhere -- drop it.
-    if (configspec.get_int_attribute("maketx:opaque_detect") &&
+    if (opaque_detect &&
           src->spec().alpha_channel == src->nchannels()-1 &&
           nchannels <= 0 &&
-          ImageBufAlgo::isConstantChannel(*src,src->spec().alpha_channel,1.0f)) {
+          pixel_stats.min[src->spec().alpha_channel] == 1.0f &&
+          pixel_stats.max[src->spec().alpha_channel] == 1.0f) {
         if (verbose)
             outstream << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         boost::shared_ptr<ImageBuf> newsrc (new ImageBuf(src->spec()));
@@ -1262,6 +1273,14 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             }
         }
 
+        if (compute_average_color) {
+            if (!ImageBufAlgo::colorconvert (&pixel_stats.avg[0],
+                static_cast<int>(pixel_stats.avg.size()), processor, unpremult)) {
+                outstream << "Error applying color conversion to average color.\n";
+                return false;
+            }
+        }
+
         ColorConfig::deleteColorProcessor(processor);
         processor = NULL;
 
@@ -1361,9 +1380,12 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         desc = boost::regex_replace (desc, boost::regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
         static const char *fp_number_pattern =
             "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
-        const std::string color_pattern =
+        const std::string constcolor_pattern =
             std::string ("ConstantColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
-        desc = boost::regex_replace (desc, boost::regex(color_pattern), "");
+        const std::string average_pattern =
+            std::string ("AverageColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
+        desc = boost::regex_replace (desc, boost::regex(constcolor_pattern), "");
+        desc = boost::regex_replace (desc, boost::regex(average_pattern), "");
         updatedDesc = true;
     }
     
@@ -1384,41 +1406,64 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         ImageBufAlgo::computePixelHashSHA1 (*toplevel, addlHashData.str(),
                                             ROI::All(), sha1_blocksize) : "";
     if (hash_digest.length()) {
-        if (desc.length())
-            desc += " ";
-        desc += "SHA-1=";
-        desc += hash_digest;
+        if (out->supports("arbitrary_metadata")) {
+            dstspec.attribute ("oiio:SHA-1", hash_digest);
+        } else {
+            if (desc.length())
+                desc += " ";
+            desc += "oiio:SHA-1=";
+            desc += hash_digest;
+            updatedDesc = true;
+        }
         if (verbose)
             outstream << "  SHA-1: " << hash_digest << std::endl;
-        updatedDesc = true;
-        dstspec.attribute ("oiio:SHA-1", hash_digest);
     }
     double stat_hashtime = alltime.lap();
     STATUS ("SHA-1 hash", stat_hashtime);
   
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
-        os << "[";
-        for (unsigned int i=0; i<constantColor.size(); ++i) {
+        for (int i = 0; i < dstspec.nchannels; ++i) {
             if (i!=0) os << ",";
-            os << constantColor[i];
+            os << (i<(int)constantColor.size() ? constantColor[i] : 0.0f);
         }
-        os << "]";
-        
-        if (desc.length())
-            desc += " ";
-        desc += "ConstantColor=";
-        desc += os.str();
+        if (out->supports("arbitrary_metadata")) {
+            dstspec.attribute ("oiio:ConstantColor", os.str());
+        } else {
+            if (desc.length())
+                desc += " ";
+            desc += "oiio:ConstantColor=";
+            desc += os.str();
+            updatedDesc = true;
+        }
         if (verbose)
             outstream << "  ConstantColor: " << os.str() << std::endl;
-        updatedDesc = true;
-        dstspec.attribute ("oiio:ConstantColor", os.str());
     }
     
+    if (compute_average_color) {
+        std::ostringstream os; // Emulate a JSON array
+        for (int i = 0; i < dstspec.nchannels; ++i) {
+            if (i!=0) os << ",";
+            os << (i<(int)pixel_stats.avg.size() ? pixel_stats.avg[i] : 0.0f);
+        }
+        if (out->supports("arbitrary_metadata")) {
+            dstspec.attribute ("oiio:AverageColor", os.str());
+        } else {
+            // if arbitrary metadata is not supported, cram it into the
+            // ImageDescription.
+            if (desc.length())
+                desc += " ";
+            desc += "oiio:AverageColor=";
+            desc += os.str();
+            updatedDesc = true;
+        }
+        if (verbose)
+            outstream << "  AverageColor: " << os.str() << std::endl;
+    }
+
     if (updatedDesc) {
         dstspec.attribute ("ImageDescription", desc);
     }
-
 
     if (configspec.get_float_attribute("fovcot") == 0.0f) {
         configspec.attribute("fovcot", float(srcspec.full_width) / 

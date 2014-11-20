@@ -247,6 +247,26 @@ row/column of pixels lie exactly at the $s$ or $t = 0$ or $1$
 boundaries, i.e., $s = i/(\mathit{xres}-1)$ and $t = j/(\mathit{yres}-1)$.
 \apiend
 
+\apiitem{"oiio:ConstantColor" : string}
+If present, is a hint that the texture has the same value in all pixels,
+and the metadata value is a string containing the channel values as
+a comma-separated list (no spaces, for example: \qkw{0.73,0.9,0.11,1.0}).
+\apiend
+
+\apiitem{"oiio:AverageColor" : string}
+If present, is a hint giving the \emph{average} value of all pixels in the
+texture, as a string containing a comma-separated list of the channel values
+(no spaces, for example: \qkw{0.73,0.9,0.11,1.0}).
+\apiend
+
+\apiitem{"oiio:SHA-1" : string}
+If present, is a 40-byte SHA-1 hash of the input image (possibly salted with
+various maketx options) that can serve to quickly compare two separate
+textures to know if they contain the same pixels. While it's not, technically,
+100\% guaranteed that no separate textures will match, it's so astronomically
+unlikely that we discount the possibility (you'd be rendering movies for
+centuries before finding a single match).
+\apiend
 
 \section{Exif metadata}
 \label{sec:metadata:exif}

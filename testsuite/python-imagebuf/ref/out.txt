@@ -40,7 +40,6 @@ Printing the whole spec to be sure:
   z channel =  -1
   deep =  False
   oiio:BitsPerSample = 8
-  ImageDescription = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   Orientation = 1
   XResolution = 72.0
   YResolution = 72.0
@@ -56,6 +55,8 @@ Printing the whole spec to be sure:
   planarconfig = "contig"
   tiff:Compression = 8
   compression = "zip"
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 
 Resetting to a different MIP level:
   resolution 256x256+0+0
@@ -66,7 +67,6 @@ Resetting to a different MIP level:
   z channel =  -1
   deep =  False
   oiio:BitsPerSample = 8
-  ImageDescription = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   Orientation = 1
   XResolution = 72.0
   YResolution = 72.0
@@ -82,6 +82,8 @@ Resetting to a different MIP level:
   planarconfig = "contig"
   tiff:Compression = 8
   compression = "zip"
+  oiio:AverageColor = "0.608983,0.608434,0.608728,1"
+  oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 
 Making 2x2 RGB image:
   resolution 2x2+0+0

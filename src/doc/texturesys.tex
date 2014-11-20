@@ -1176,6 +1176,27 @@ $4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
 $4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
   TypeDesc(FLOAT,MATRIX)}).
 
+\item[\rm \kw{averagecolor}] If available in the metadata (generally only
+for files that have been processed by {\cf maketx}), this will return the
+average color of the texture (into an array of floats).  \NEW
+
+\item[\rm \kw{averagealpha}] If available in the metadata (generally only
+for files that have been processed by {\cf maketx}), this will return the
+average alpha value of the texture (into a float).
+
+\item[\rm \kw{constantcolor}] If the metadata (generally only for files that
+have been processed by {\cf maketx}) indicates that the texture has the same
+values for all pixels in the texture, this will retrieve the constant color
+of the texture (into an array of floats). A non-constant image (or one that
+does not have the special metadata tag identifying it as a constant texture)
+will fail this query (return false). \NEW
+
+\item[\rm \kw{constantalpha}] If the metadata indicates that the texture has
+the same values for all pixels in the texture, this will retrieve the
+constant alpha value of the texture (into a float). A non-constant image (or
+one that does not have the special metadata tag identifying it as a constant
+texture) will fail this query (return false).
+
 \item[Anything else] -- For all other data names, the
 the metadata of the image file will be searched for an item that
 matches both the name and data type.

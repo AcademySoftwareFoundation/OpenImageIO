@@ -486,9 +486,11 @@ adjust_output_options (string_view filename,
         spec.attribute ("oiio:dither", h);
     }
 
-    // Make sure we kill any pixel value hash that may have been in the
-    // input.
+    // Make sure we kill any special hints that maketx adds and that will
+    // no longer be valid after whatever oiiotool operations we've done.
     spec.erase_attribute ("oiio:SHA-1");
+    spec.erase_attribute ("oiio:ConstantColor");
+    spec.erase_attribute ("oiio:AverageColor");
 }
 
 

@@ -5,7 +5,6 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=9CA964417213269190944948273FB1F00A4A8393"
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -19,7 +18,9 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=9CA964417213269190944948273FB1F00A4A8393"
+    IPTC:Caption: "oiio:SHA-1=9CA964417213269190944948273FB1F00A4A8393 oiio:AverageColor=0.608983,0.608434,0.608728,1"
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
+    oiio:SHA-1: "9CA964417213269190944948273FB1F00A4A8393"
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -27,7 +28,6 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -41,7 +41,9 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
+    IPTC:Caption: "oiio:SHA-1=C4BE40DC3B3534F30ACB906602F2FF80A246C01E oiio:AverageColor=0.608983,0.608434,0.608728,1"
+    oiio:AverageColor: "0.608983,0.608434,0.608728,1"
+    oiio:SHA-1: "C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
 Reading checker-uint16.tx
 checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -49,7 +51,6 @@ checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 16
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -59,7 +60,9 @@ checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-1chan.tx
 checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -67,7 +70,6 @@ checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     channel list: A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=1D0A2254373A69C054C08672041FC7DE3BAE5179"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -77,7 +79,9 @@ checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=1D0A2254373A69C054C08672041FC7DE3BAE5179"
+    IPTC:Caption: "oiio:SHA-1=1D0A2254373A69C054C08672041FC7DE3BAE5179 oiio:AverageColor=0.5"
+    oiio:AverageColor: "0.5"
+    oiio:SHA-1: "1D0A2254373A69C054C08672041FC7DE3BAE5179"
 Reading checker-16x32tile.tx
 checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -85,7 +89,6 @@ checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 16 x 32
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -95,7 +98,9 @@ checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-seplzw.tx
 checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -103,7 +108,6 @@ checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -113,7 +117,9 @@ checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "separate"
     tiff:Compression: 5
     compression: "lzw"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-clamp.tx
 checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -121,7 +127,6 @@ checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "clamp,clamp"
@@ -131,7 +136,9 @@ checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-permir.tx
 checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -139,7 +146,6 @@ checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "periodic,mirror"
@@ -149,14 +155,15 @@ checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-nomip.tx
 checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
     SHA-1: 1C1A7D35CCED212B768B31F002B442EA947D89A6
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -166,7 +173,9 @@ checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-camera.tx
 checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -174,7 +183,6 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     channel list: R, G, B, A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -186,7 +194,9 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     compression: "zip"
     worldtocamera: 1 0 0 0 0 2 0 0 0 0 1 0 0 0 0 1
     worldtoscreen: 3 0 0 0 0 3 0 0 0 0 3 0 1 2 3 1
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-opaque.tx
 checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -194,7 +204,6 @@ checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     channel list: R, G, B
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -204,7 +213,9 @@ checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
+    IPTC:Caption: "oiio:SHA-1=2BE3743A64D4309645F94CA7B37D0CD08AF0B38E oiio:AverageColor=0.5,0.5,0.5"
+    oiio:AverageColor: "0.5,0.5,0.5"
+    oiio:SHA-1: "2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
 Reading gray-mono.tx
 gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -212,7 +223,6 @@ gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     channel list: A
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=24049CDF337F17E162291C7B626E0588A9D71160"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -222,7 +232,10 @@ gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=24049CDF337F17E162291C7B626E0588A9D71160"
+    IPTC:Caption: "oiio:SHA-1=24049CDF337F17E162291C7B626E0588A9D71160 oiio:ConstantColor=0.25098 oiio:AverageColor=0.25098"
+    oiio:ConstantColor: "0.25098"
+    oiio:AverageColor: "0.25098"
+    oiio:SHA-1: "24049CDF337F17E162291C7B626E0588A9D71160"
 Reading pink-mono.tx
 pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -230,7 +243,6 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     channel list: R, G, B
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "SHA-1=D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -240,7 +252,10 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
+    IPTC:Caption: "oiio:SHA-1=D5F1500992EFBDA77B89E946A9F53F89D332B6F4 oiio:ConstantColor=0.25098,0.2,0.14902 oiio:AverageColor=0.25098,0.2,0.14902"
+    oiio:ConstantColor: "0.25098,0.2,0.14902"
+    oiio:AverageColor: "0.25098,0.2,0.14902"
+    oiio:SHA-1: "D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
 Reading checker-prman.tx
 checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -248,7 +263,6 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     channel list: R, G, B, A
     tile size: 64 x 32
     oiio:BitsPerSample: 16
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -258,7 +272,9 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     planarconfig: "separate"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading nan.exr
 nan.exr              :   64 x   64, 3 channel, half openexr
     SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
@@ -266,8 +282,9 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
     compression: "zip"
-    ImageDescription: "SHA-1=44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
     fovcot: 1
+    oiio:AverageColor: "0.5,0.5,0.5"
+    oiio:SHA-1: "44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
     openexr:levelmode: 0
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
@@ -294,8 +311,9 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     textureformat: "Plain Texture"
     compression: "zip"
     Orientation: 1 (normal)
-    ImageDescription: "SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765"
     fovcot: 1
+    oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
@@ -305,7 +323,7 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     SHA-1: BE1D5EA24E907A4C4B3FB3C28EAC872A20F5B414
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    ImageDescription: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
+    ImageDescription: "foo ConstantColor=[0.0,0,-0.0] bar"
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -314,6 +332,7 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     compression: "zip"
     tiff:RowsPerStrip: 32
     IPTC:Caption: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
+    oiio:SHA-1: "1234abcd ConstantColor=[0.0,0,-0.0] bar"
 Reading small.tx
 small.tx             :   64 x   64, 3 channel, uint8 tiff
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -321,7 +340,7 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     channel list: R, G, B
     tile size: 64 x 64
     oiio:BitsPerSample: 8
-    ImageDescription: "foo bar SHA-1=1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB ConstantColor=[1,0,0]"
+    ImageDescription: "foo bar "
     Orientation: 1 (normal)
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -331,7 +350,10 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "foo bar SHA-1=1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB ConstantColor=[1,0,0]"
+    IPTC:Caption: "foo bar oiio:SHA-1=1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB oiio:ConstantColor=1,0,0 oiio:AverageColor=1,0,0"
+    oiio:ConstantColor: "1,0,0"
+    oiio:AverageColor: "1,0,0"
+    oiio:SHA-1: "1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB"
 whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
     MIP 0 of 3 (4 x 2):
       Stats Min: 1.000000 1.000000 1.000000 (float)

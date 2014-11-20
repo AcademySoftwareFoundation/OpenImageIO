@@ -825,14 +825,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     const ImageCacheFile::SubimageInfo &subinfo (texturefile->subimageinfo(options.subimage));
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
-    if (! subinfo.full_pixel_range) {  // remap st for overscan or crop
-        s = s * subinfo.sscale + subinfo.soffset;
-        dsdx *= subinfo.sscale;
-        dsdy *= subinfo.sscale;
-        t = t * subinfo.tscale + subinfo.toffset;
-        dtdx *= subinfo.tscale;
-        dtdy *= subinfo.tscale;
-    }
+    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, nchannels);
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
@@ -844,7 +837,34 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.height))
         options.twrap = TextureOpt::WrapPeriodicPow2;
 
-    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, nchannels);
+    if (subinfo.is_constant_image && options.swrap != TextureOpt::WrapBlack &&
+          options.twrap != TextureOpt::WrapBlack) {
+        // Lookup of constant color texture, non-black wrap -- skip all the
+        // hard stuff.
+        for (int c = 0; c < actualchannels; ++c)
+            result[c] = subinfo.average_color[c+options.firstchannel];
+        for (int c = actualchannels; c < nchannels; ++c)
+            result[c] = options.fill;
+        if (dresultds) {
+            for (int c = actualchannels; c < nchannels; ++c) {
+                dresultds[c] = 0.0f;
+                dresultdt[c] = 0.0f;
+            }
+        }
+        if (actualchannels < nchannels && options.firstchannel == 0 && m_gray_to_rgb)
+            fill_gray_channels (spec, nchannels, result,
+                                dresultds, dresultdt);
+        return true;
+    }
+
+    if (! subinfo.full_pixel_range) {  // remap st for overscan or crop
+        s = s * subinfo.sscale + subinfo.soffset;
+        dsdx *= subinfo.sscale;
+        dsdy *= subinfo.sscale;
+        t = t * subinfo.tscale + subinfo.toffset;
+        dtdx *= subinfo.tscale;
+        dtdy *= subinfo.tscale;
+    }
 
     bool ok;
     // Everything from the lookup function on down will assume that there

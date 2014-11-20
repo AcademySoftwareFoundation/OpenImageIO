@@ -257,6 +257,25 @@ test_gettextureinfo (ustring filename)
     std::cout << "Result of get_texture_info datetime = " << ok << ' '
               << (datetime ? datetime : "") << "\n";
 
+    float avg[4];
+    ok = texsys->get_texture_info (filename, 0, ustring("averagecolor"),
+                                   TypeDesc(TypeDesc::FLOAT,4), avg);
+    std::cout << "Result of get_texture_info averagecolor = " << (ok?"yes":"no\n");
+    if (ok)
+        std::cout << " " << avg[0] << ' ' << avg[1] << ' '
+                  << avg[2] << ' ' << avg[3] << "\n";
+    ok = texsys->get_texture_info (filename, 0, ustring("averagealpha"),
+                                   TypeDesc::TypeFloat, avg);
+    std::cout << "Result of get_texture_info averagealpha = " << (ok?"yes":"no\n");
+    if (ok)
+        std::cout << " " << avg[0] << "\n";
+    ok = texsys->get_texture_info (filename, 0, ustring("constantcolor"),
+                                   TypeDesc(TypeDesc::FLOAT,4), avg);
+    std::cout << "Result of get_texture_info constantcolor = " << (ok?"yes":"no\n");
+    if (ok)
+        std::cout << " " << avg[0] << ' ' << avg[1] << ' '
+                  << avg[2] << ' ' << avg[3] << "\n";
+
     const char *texturetype = NULL;
     ok = texsys->get_texture_info (filename, 0, ustring("textureformat"),
                                    TypeDesc::STRING, &texturetype);

@@ -33,6 +33,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include <boost/regex.hpp>
+
 #include <tiffio.h>
 
 #include "OpenImageIO/dassert.h"
@@ -885,6 +887,54 @@ TIFFInput::readspec (bool read_meta)
         }
     }
 #endif
+
+    // Because TIFF doesn't support arbitrary metadata, we look for certain
+    // hints in the ImageDescription and turn them into metadata.
+    std::string desc = m_spec.get_string_attribute ("ImageDescription");
+    bool updatedDesc = false;
+    static const char *fp_number_pattern =
+            "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
+    size_t found;
+    found = desc.rfind ("oiio:ConstantColor=");
+    if (found != std::string::npos) {
+        size_t begin = desc.find_first_of ('=', found) + 1;
+        size_t end = desc.find_first_of (' ', begin);
+        string_view s = string_view (desc.data()+begin, end-begin);
+        m_spec.attribute ("oiio:ConstantColor", s);
+        const std::string constcolor_pattern =
+            std::string ("oiio:ConstantColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
+        desc = boost::regex_replace (desc, boost::regex(constcolor_pattern), "");
+        updatedDesc = true;
+    }
+    found = desc.rfind ("oiio:AverageColor=");
+    if (found != std::string::npos) {
+        size_t begin = desc.find_first_of ('=', found) + 1;
+        size_t end = desc.find_first_of (' ', begin);
+        string_view s = string_view (desc.data()+begin, end-begin);
+        m_spec.attribute ("oiio:AverageColor", s);
+        const std::string average_pattern =
+            std::string ("oiio:AverageColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
+        desc = boost::regex_replace (desc, boost::regex(average_pattern), "");
+        updatedDesc = true;
+    }
+    found = desc.rfind ("oiio:SHA-1=");
+    if (found == std::string::npos)  // back compatibility with < 1.5
+        found = desc.rfind ("SHA-1=");
+    if (found != std::string::npos) {
+        size_t begin = desc.find_first_of ('=', found) + 1;
+        size_t end = begin+40;
+        string_view s = string_view (desc.data()+begin, end-begin);
+        m_spec.attribute ("oiio:SHA-1", s);
+        desc = boost::regex_replace (desc, boost::regex("oiio:SHA-1=[[:xdigit:]]*[ ]*"), "");
+        desc = boost::regex_replace (desc, boost::regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
+        updatedDesc = true;
+    }
+    if (updatedDesc) {
+        if (desc.size())
+            m_spec.attribute ("ImageDescription", desc);
+        else
+            m_spec.erase_attribute ("ImageDescription");
+    }
 }
 
 

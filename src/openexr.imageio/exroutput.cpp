@@ -836,8 +836,15 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 
     // Special handling of any remaining "oiio:*" metadata.
     if (Strutil::istarts_with (xname, "oiio:")) {
-        // None currently supported
-        return false;
+        if (Strutil::iequals (xname, "oiio:ConstantColor") ||
+            Strutil::iequals (xname, "oiio:AverageColor") ||
+            Strutil::iequals (xname, "oiio:SHA-1")) {
+            // let these fall through and get stored as metadata
+        } else {
+            // Other than the listed exceptions, suppress any other custom
+            // oiio: directives.
+            return false;
+        }
     }
 
     // Before handling general named metadata, suppress non-openexr

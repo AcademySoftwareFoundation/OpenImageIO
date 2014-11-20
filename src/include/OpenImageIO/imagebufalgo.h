@@ -1774,6 +1774,9 @@ enum OIIO_API MakeTextureMode {
 ///    maketx:opaque_detect (int)
 ///                           If nonzero, drop the alpha channel if alpha
 ///                              is 1.0 in all pixels (default: 0).
+///    maketx:compute_average (int)
+///                           If nonzero, compute and store the average
+///                              color of the texture (default: 1).
 ///    maketx:unpremult (int) If nonzero, unpremultiply color by alpha before
 ///                              color conversion, then multiply by alpha
 ///                              after color conversion (default: 0).

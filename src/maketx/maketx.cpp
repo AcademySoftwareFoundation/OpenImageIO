@@ -204,6 +204,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     bool constant_color_detect = false;
     bool monochrome_detect = false;
     bool opaque_detect = false;
+    bool compute_average = true;
     int nchannels = -1;
     bool prman = false;
     bool oiio = false;
@@ -272,6 +273,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
                   "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
+                  "--no-compute-average %!", &compute_average, "Don't compute and store average color",
                   "--ignore-unassoc", &ignore_unassoc, "Ignore unassociated alpha tags in input (don't autoconvert)",
                   "--stats", &stats, "Print runtime statistics",
                   "--mipimage %L", &mipimages, "Specify an individual MIP level",
@@ -368,6 +370,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:constant_color_detect", constant_color_detect);
     configspec.attribute ("maketx:monochrome_detect", monochrome_detect);
     configspec.attribute ("maketx:opaque_detect", opaque_detect);
+    configspec.attribute ("maketx:compute_average", compute_average);
     configspec.attribute ("maketx:unpremult", unpremult);
     configspec.attribute ("maketx:incolorspace", incolorspace);
     configspec.attribute ("maketx:outcolorspace", outcolorspace);
