@@ -1573,7 +1573,7 @@ enum OIIO_API MakeTextureMode {
 ///                           If nonzero, change RGB images which have 
 ///                              R==G==B everywhere to single-channel 
 ///                              grayscale (default: 0).
-///    maketx:opaquedetect (int)
+///    maketx:opaque_detect (int)
 ///                           If nonzero, drop the alpha channel if alpha
 ///                              is 1.0 in all pixels (default: 0).
 ///    maketx:unpremult (int) If nonzero, unpremultiply color by alpha before
