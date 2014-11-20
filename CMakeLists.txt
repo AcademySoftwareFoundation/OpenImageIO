@@ -120,6 +120,7 @@ set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
+set (USE_PYTHON3 OFF CACHE BOOL "Build the Python3 bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_FFMPEG OFF CACHE BOOL "Use FFmpeg if found")
 set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
@@ -133,6 +134,7 @@ set (LIBRAW_PATH "" CACHE STRING "Custom LibRaw path")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (OIIO_THREAD_ALLOW_DCLP ON CACHE BOOL "OIIO threads may use DCLP for speed")
 set (PYTHON_VERSION 2.6)
+set (PYTHON3_VERSION 3.2)
 set (USE_NUKE ON CACHE BOOL "Build Nuke plugins, if Nuke is found")
 set (Nuke_ROOT "" CACHE STRING "Where to find Nuke installation")
 set (NUKE_VERSION 7.0)
@@ -155,6 +157,7 @@ if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # On Linux, the lack of -fPIC when building static libraries seems
     # incompatible with the dynamic library needed for the Python bindings.
     set (USE_PYTHON OFF)
+    set (USE_PYTHON3 OFF)
 endif()
 
 if (NOTHREADS)
@@ -238,6 +241,7 @@ if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
     # the "standard" unix directory heirarchy
     # TODO: Figure out how to get the correct python directory
     set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
+    set (DEFAULT_PYLIB3_INSTALL_DIR "lib/python3/site-packages")
     set (DEFAULT_DOC_INSTALL_DIR "share/doc/OpenImageIO")
     set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")
 else ()
@@ -245,6 +249,7 @@ else ()
     # that everything OIIO related will go into its own directory, not into
     # some standard system heirarchy.
     set (DEFAULT_PYLIB_INSTALL_DIR "python")
+    set (DEFAULT_PYLIB3_INSTALL_DIR "python3")
     set (DEFAULT_DOC_INSTALL_DIR "doc")
     set (DEFAULT_MAN_INSTALL_DIR "doc/man")
 endif ()
@@ -253,6 +258,7 @@ if (EXEC_INSTALL_PREFIX)
     set (DEFAULT_BIN_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_BIN_INSTALL_DIR}")
     set (DEFAULT_LIB_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_LIB_INSTALL_DIR}")
     set (DEFAULT_PYLIB_INSTALL_DIR "${EXEC_INSTALL_PREFIX}/${DEFAULT_PYLIB_INSTALL_DIR}")
+    set (DEFAULT_PYLIB3_INSTALL_DIR "${EXEC_INSTALL_PREFIX}/${DEFAULT_PYLIB3_INSTALL_DIR}")
 endif ()
 # Set up cmake cache variables corresponding to the defaults deduced above, so
 # that the user can override them as desired:
@@ -262,6 +268,8 @@ set (LIB_INSTALL_DIR ${DEFAULT_LIB_INSTALL_DIR} CACHE STRING
      "Install location for libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
 set (PYLIB_INSTALL_DIR ${DEFAULT_PYLIB_INSTALL_DIR} CACHE STRING
      "Install location for python libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
+set (PYLIB3_INSTALL_DIR ${DEFAULT_PYLIB3_INSTALL_DIR} CACHE STRING
+     "Install location for python3 libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
 set (INCLUDE_INSTALL_DIR ${DEFAULT_INCLUDE_INSTALL_DIR} CACHE STRING
      "Install location of header files (relative to CMAKE_INSTALL_PREFIX or absolute)")
 set (DOC_INSTALL_DIR ${DEFAULT_DOC_INSTALL_DIR} CACHE STRING
@@ -366,6 +374,11 @@ endif ()
 
 if (USE_PYTHON AND oiio_boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
+endif ()
+if (USE_PYTHON3 AND NOT BUILD_OIIOUTIL_ONLY)
+    #build the python3 module in a different binary directory since it will
+    #have the same name as the python2 module (e.g. OpenImageIO.so)
+    add_subdirectory (src/python src/python3)
 endif ()
 
 add_subdirectory (src/include)
