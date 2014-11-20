@@ -196,6 +196,8 @@ ImageInputWrap::read_image (TypeDesc format)
     // Allocate our own temp buffer and try to read the image into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
+    if (format.basetype == TypeDesc::UNKNOWN)
+        format = spec.format;
     size_t size = (size_t) spec.image_pixels() * spec.nchannels * format.size();
     char *data = new char[size];
     bool ok;
@@ -237,6 +239,8 @@ ImageInputWrap::read_scanline (int y, int z, TypeDesc format)
     // Allocate our own temp buffer and try to read the scanline into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
+    if (format.basetype == TypeDesc::UNKNOWN)
+        format = spec.format;
     size_t size = (size_t) spec.width * spec.nchannels * format.size();
     char *data = new char[size];
     bool ok;
@@ -281,6 +285,8 @@ ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
     // If the read fails, return None.
     ASSERT (m_input);
     const ImageSpec &spec = m_input->spec();
+    if (format.basetype == TypeDesc::UNKNOWN)
+        format = spec.format;
     chend = clamp (chend, chbegin+1, spec.nchannels);
     int nchans = chend - chbegin;
     size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
@@ -327,6 +333,8 @@ ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
     // Allocate our own temp buffer and try to read the scanline into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
+    if (format.basetype == TypeDesc::UNKNOWN)
+        format = spec.format;
     size_t size = (size_t) spec.tile_pixels() * spec.nchannels * format.size();
     char *data = new char[size];
     bool ok;
@@ -372,6 +380,8 @@ ImageInputWrap::read_tiles (int xbegin, int xend, int ybegin, int yend,
     // Allocate our own temp buffer and try to read the scanline into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
+    if (format.basetype == TypeDesc::UNKNOWN)
+        format = spec.format;
     chend = clamp (chend, chbegin+1, spec.nchannels);
     int nchans = chend - chbegin;
     size_t size = (size_t) ((xend-xbegin) * (yend-ybegin) * 
