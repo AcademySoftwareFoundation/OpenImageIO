@@ -85,7 +85,8 @@ endmacro ()
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
 if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
-  set (Boost_ADDITIONAL_VERSIONS "1.55" "1.54" "1.53" "1.52" "1.51" "1.50"
+  set (Boost_ADDITIONAL_VERSIONS "1.57" "1.56"
+                                 "1.55" "1.54" "1.53" "1.52" "1.51" "1.50"
                                  "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
                                  "1.43" "1.43.0" "1.42" "1.42.0")
 endif ()
