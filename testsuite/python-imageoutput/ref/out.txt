@@ -4,6 +4,7 @@ Copied scanline.tif to grid-scanlines.tif as scanlines
 Copied tiled.tif to grid-timage.tif as image
 Copied tiled.tif to grid-tile.tif as tile
 Copied tiled.tif to grid-tiles.tif as tiles
+Copied scanline.tif to grid-image.tif as image
 Done.
 Comparing "grid-image.tif" and "../../../../../oiio-images/grid.tif"
 PASS
