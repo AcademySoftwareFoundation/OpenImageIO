@@ -282,9 +282,9 @@ Release 1.4.15 (24 Nov 2014 -- compared to 1.4.14)
 * RAW file reading: the open-with-config variety had the wrong function
   signature, and therefore did not properly override the base class, causing
   configuration hints to be ignored.
-* Bug fix in ImageInput: could crash if calling ImageInput.read_*
+* Bug fix in Python ImageInput: could crash if calling ImageInput.read_*
   functions without specifying a data format. #998
-* Bug fix in ImageOutput: could crash if calling ImageInput.write_*
+* Bug fix in Python ImageOutput: could crash if calling ImageInput.write_*
   functions if the buffer format did not match the file data format. #999
 * RAW: Fix bug with "open with config" options. #996
 
