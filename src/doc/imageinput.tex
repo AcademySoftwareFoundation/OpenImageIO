@@ -447,7 +447,7 @@ This can be accomplished using the technique of the following example:
                         f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
             }
             else
-                printf ("<unknown data type>");
+                printf (" <unknown data type> ");
             printf ("\n");
         }
 \end{code}
@@ -843,8 +843,15 @@ instance supports that feature.  The following features are recognized
 by this query:
 \begin{description}
 \item[\spc] \spc
-\item[\rm ] No queries supported at this time.
-\end{description}
+\item[\rm \qkw{arbitrary_metadata}] Does the image file format allow
+  metadata with arbitrary names (and either arbitrary, or a reasonable set
+  of, data types)? (Versus the file format supporting only a fixed list of
+  specific metadata names/values?
+\item[\rm \qkw{exif}] Does the image file format support Exif camera data
+  (either specifically, or via arbitrary named metadata)?
+\item[\rm \qkw{iptc}] Does the image file format support IPTC data
+  (either specifically, or via arbitrary named metadata)?
+  \end{description}
 \apiend
 
 \apiitem{bool {\ce valid_file} (const std::string \&filename) const}

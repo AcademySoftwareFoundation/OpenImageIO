@@ -149,19 +149,6 @@ FitsOutput::write_tile (int x, int y, int z, TypeDesc format,
 
 
 bool
-FitsOutput::supports (const std::string &feature) const
-{
-    // for now we only supports IMAGE extensions
-    if (feature == "multiimage")
-        return true;
-    if (feature == "random_access")
-        return true;
-    return false;
-}
-
-
-
-bool
 FitsOutput::close (void)
 {
     if (! m_fd) {   // already closed

@@ -92,14 +92,12 @@ PtexOutput::~PtexOutput ()
 bool
 PtexOutput::supports (const std::string &feature) const
 {
-    // Support nothing nonstandard
-    if (feature == "tiles")
-        return true;
-    if (feature == "multiimage")
-        return true;
-    if (feature == "mipmap")
-        return false;   // N.B. because PtexWriters mipmaps automatically!
-    return false;
+    return (feature == "tiles"
+         || feature == "multiimage"
+         || feature == "mipmap"
+         || feature == "arbitrary_metadata"
+         || feature == "exif"   // Because of arbitrary_metadata
+         || feature == "iptc"); // Because of arbitrary_metadata
 }
 
 

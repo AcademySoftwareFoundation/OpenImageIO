@@ -443,6 +443,22 @@ public:
     ///
     virtual const char *format_name (void) const = 0;
 
+    /// Given the name of a 'feature', return whether this ImageInput
+    /// supports input of images with the given properties.
+    /// Feature names that ImageIO plugins are expected to recognize
+    /// include:
+    ///    "arbitrary_metadata" Does this format allow metadata with
+    ///                        arbitrary names and types?
+    ///    "exif"           Can this format store Exif camera data?
+    ///    "iptc"           Can this format store IPTC data?
+    ///
+    /// Note that main advantage of this approach, versus having
+    /// separate individual supports_foo() methods, is that this allows
+    /// future expansion of the set of possible queries without changing
+    /// the API, adding new entry points, or breaking linkage
+    /// compatibility.
+    virtual bool supports (const std::string & /*feature*/) const { return false; }
+
     /// Return true if the named file is file of the type for this
     /// ImageInput.  The implementation will try to determine this as
     /// efficiently as possible, in most cases much less expensively
@@ -472,19 +488,6 @@ public:
     /// are invalid before open() or after close(), and may change with
     /// a call to seek_subimage().
     const ImageSpec &spec (void) const { return m_spec; }
-
-    /// Given the name of a 'feature', return whether this ImageInput
-    /// supports input of images with the given properties.
-    /// Feature names that ImageIO plugins are expected to recognize
-    /// include:
-    ///    none at this time
-    ///
-    /// Note that main advantage of this approach, versus having
-    /// separate individual supports_foo() methods, is that this allows
-    /// future expansion of the set of possible queries without changing
-    /// the API, adding new entry points, or breaking linkage
-    /// compatibility.
-    virtual bool supports (const std::string & /*feature*/) const { return false; }
 
     /// Close an image that we are totally done with.
     ///
@@ -844,6 +847,10 @@ public:
     ///    "negativeorigin" Does the format support negative x,y,z
     ///                        and full_{x,y,z} origin values?
     ///    "deepdata"       Deep (multi-sample per pixel) data
+    ///    "arbitrary_metadata" Does this format allow metadata with
+    ///                        arbitrary names and types?
+    ///    "exif"           Can this format store Exif camera data?
+    ///    "iptc"           Can this format store IPTC data?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows

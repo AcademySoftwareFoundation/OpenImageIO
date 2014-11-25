@@ -43,7 +43,10 @@ class Jpeg2000Output : public ImageOutput {
     Jpeg2000Output () { init (); }
     virtual ~Jpeg2000Output () { close (); }
     virtual const char *format_name (void) const { return "jpeg2000"; }
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports (const std::string &feature) const {
+        return false;
+        // FIXME: we should support Exif/IPTC, but currently don't.
+    }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();

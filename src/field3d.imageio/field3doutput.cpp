@@ -153,17 +153,15 @@ Field3DOutput::~Field3DOutput ()
 bool
 Field3DOutput::supports (const std::string &feature) const
 {
-    if (feature == "tiles")
-        return true;
-    if (feature == "multiimage")
-        return true;
-    if (feature == "random_access")
-        return true;
+    return (feature == "tiles"
+         || feature == "multiimage"
+         || feature == "random_access"
+         || feature == "arbitrary_metadata"
+         || feature == "exif"   // Because of arbitrary_metadata
+         || feature == "iptc"); // Because of arbitrary_metadata
 
     // FIXME: we could support "empty"
-
-    // Everything else, we either don't support or don't know about
-    return false;
+    // FIXME: newer releases of Field3D support mipmap
 }
 
 

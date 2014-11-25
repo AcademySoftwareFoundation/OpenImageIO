@@ -292,6 +292,12 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "negativeorigin")
         return true;
+    if (feature == "arbitrary_metadata")
+        return true;
+    if (feature == "exif")   // Because of arbitrary_metadata
+        return true;
+    if (feature == "iptc")   // Because of arbitrary_metadata
+        return true;
 #ifdef USE_OPENEXR_VERSION2
     if (feature == "multiimage")
         return true;  // N.B. But OpenEXR does not support "appendsubimage"

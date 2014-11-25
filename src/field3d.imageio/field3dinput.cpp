@@ -61,6 +61,9 @@ public:
     Field3DInput () { init(); }
     virtual ~Field3DInput () { close(); }
     virtual const char * format_name (void) const { return "field3d"; }
+    virtual bool supports (const std::string &feature) const {
+        return (feature == "arbitrary_metadata");
+    }
     virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();

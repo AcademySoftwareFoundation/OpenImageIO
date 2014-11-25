@@ -140,6 +140,11 @@ public:
     OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }
     virtual const char * format_name (void) const { return "openexr"; }
+    virtual bool supports (const std::string &feature) const {
+        return (feature == "arbitrary_metadata"
+             || feature == "exif"   // Because of arbitrary_metadata
+             || feature == "iptc"); // Because of arbitrary_metadata
+    }
     virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();

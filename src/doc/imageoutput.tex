@@ -1358,6 +1358,14 @@ by this query:
 \item[\rm \qkw{deepdata}] Does the image format allow ``deep'' data
   consisting of multiple values per pixel (and potentially a differing
   number of values from pixel to pixel)?
+\item[\rm \qkw{arbitrary_metadata}] Does the image file format allow
+  metadata with arbitrary names (and either arbitrary, or a reasonable set
+  of, data types)? (Versus the file format supporting only a fixed list of
+  specific metadata names/values?
+\item[\rm \qkw{exif}] Does the image file format support Exif camera data
+  (either specifically, or via arbitrary named metadata)?
+\item[\rm \qkw{iptc}] Does the image file format support IPTC data
+  (either specifically, or via arbitrary named metadata)?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.

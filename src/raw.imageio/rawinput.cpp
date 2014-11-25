@@ -47,6 +47,10 @@ public:
     RawInput () : m_process(true), m_image(NULL) {}
     virtual ~RawInput() { close(); }
     virtual const char * format_name (void) const { return "raw"; }
+    virtual bool supports (const std::string &feature) const {
+        return (feature == "exif"
+             /* not yet? || feature == "iptc"*/);
+    }
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config);

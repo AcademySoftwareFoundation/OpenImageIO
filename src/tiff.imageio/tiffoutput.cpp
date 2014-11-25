@@ -160,6 +160,11 @@ TIFFOutput::supports (const std::string &feature) const
     if (feature == "origin")
         return true;
     // N.B. TIFF doesn't support "negativeorigin"
+    if (feature == "exif")
+        return true;
+    if (feature == "iptc")
+        return true;
+    // N.B. TIFF doesn't support arbitrary metadata.
 
     // FIXME: we could support "volumes" and "empty"
 

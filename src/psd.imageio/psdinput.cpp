@@ -50,6 +50,10 @@ public:
     PSDInput ();
     virtual ~PSDInput () { close(); }
     virtual const char * format_name (void) const { return "psd"; }
+    virtual bool supports (const std::string &feature) const {
+        return (feature == "exif"
+             || feature == "iptc");
+    }
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config);

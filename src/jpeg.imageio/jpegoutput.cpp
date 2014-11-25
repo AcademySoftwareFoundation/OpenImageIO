@@ -57,7 +57,10 @@ class JpgOutput : public ImageOutput {
     JpgOutput () { init(); }
     virtual ~JpgOutput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
-    virtual bool supports (const std::string &property) const { return false; }
+    virtual bool supports (const std::string &feature) {
+        return (feature == "exif"
+             || feature == "iptc");
+    }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool write_scanline (int y, int z, TypeDesc format,
