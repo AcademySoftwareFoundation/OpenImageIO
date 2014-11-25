@@ -1201,7 +1201,7 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's)
 /// Return true if ok, false if it didn't know how to do the
-/// conversion.  If dst_type is UNKNWON, it will be assumed to be the
+/// conversion.  If dst_type is UNKNOWN, it will be assumed to be the
 /// same as src_type.
 OIIO_API bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *dst, int n);
