@@ -113,6 +113,10 @@ Fixes, minor enhancements, and performance improvements:
      any support for OpenColorIO. (1.5.5/1.4.15)
    * oiiotool -stats, on deep files, now prints a histogram of the number
      of samples per pixel. #992 (1.5.6)
+   * oiiotool --dump of "deep" files improves output with int32 channels
+     (1.5.6).
+   * oiiotool --stats of "deep" files prints a histogram of samples/pixel
+     (1.5.6).
 * maketx:
    * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
      (1.5.1/1.4.10)
@@ -130,6 +134,11 @@ Fixes, minor enhancements, and performance improvements:
       other Python threads to make progress even when OIIO is doing a
       lengthy operation such as file I/O or an expensive image processing
       operation. (1.5.5)
+    * Bug fix in ImageInput: could crash if calling ImageInput.read_*
+      functions without specifying a data format. #998 (1.5.6)
+    * Bug fix in ImageOutput: could crash if calling ImageInput.write_*
+      functions if the buffer format did not match the file data format.
+      #999 (1.5.6)
 * OpenEXR:
    * Improve the quality of lossy b44 compression by more correctly
      using the pLinear value of channels (we were incorrectly using the
@@ -165,7 +174,9 @@ Fixes, minor enhancements, and performance improvements:
      images (if the user is reading them into a higher-precision buffer).
      #960, #962 (1.5.2)
    * Change default compression (if otherwise unspecified) to "zip". (1.5.6)
-* RAW: Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
+* RAW:
+   * Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
+   * Fix bug with "open with config" options. #996 (1.5.6)
 * RLA: Fix bug that caused RLA output to not respect requests for 10 bit
   output (would force it to 16 in that case). #899 (1.5.1)
 * ImageSpec::get_float_attribute() is now better about retrieving values
@@ -261,6 +272,21 @@ Developer goodies / internals:
   or unused. (1.5.5)
 
 
+
+Release 1.4.15 (24 Nov 2014 -- compared to 1.4.14)
+--------------------------------------------------
+* OpenEXR: fix botched writing of subimage name.
+* 'oiiotool --help' now says explicitly if it was built without OpenColorIO
+  enabled.
+* Python read_scanlines() did not honor the channel subset.
+* RAW file reading: the open-with-config variety had the wrong function
+  signature, and therefore did not properly override the base class, causing
+  configuration hints to be ignored.
+* Bug fix in ImageInput: could crash if calling ImageInput.read_*
+  functions without specifying a data format. #998
+* Bug fix in ImageOutput: could crash if calling ImageInput.write_*
+  functions if the buffer format did not match the file data format. #999
+* RAW: Fix bug with "open with config" options. #996
 
 Release 1.4.14 (20 Oct 2014 -- compared to 1.4.13)
 --------------------------------------------------
