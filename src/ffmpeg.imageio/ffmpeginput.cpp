@@ -155,7 +155,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
     m_video_stream = -1;
-    for (int i=0; i<m_format_context->nb_streams; i++) {
+    for (unsigned int i=0; i<m_format_context->nb_streams; i++) {
         if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (m_video_stream < 0) {
                 m_video_stream=i;
@@ -186,7 +186,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
         m_frame_rate = stream->r_frame_rate;
     }
-    if (static_cast<uint64_t> (m_format_context->duration) != AV_NOPTS_VALUE) {
+    if (static_cast<int64_t> (m_format_context->duration) != AV_NOPTS_VALUE) {
         m_frames = static_cast<uint64_t> ((fps() * static_cast<double>(m_format_context->duration) / 
                                                    static_cast<uint64_t>(AV_TIME_BASE)));
     } else {
@@ -317,7 +317,7 @@ FFmpegInput::read_frame(int pos)
     while (av_read_frame (m_format_context, &pkt) >=0) {
         if (pkt.stream_index == m_video_stream) {
             double pts = 0;
-            if (static_cast<uint64_t> (pkt.dts) != AV_NOPTS_VALUE) {
+            if (static_cast<int64_t> (pkt.dts) != AV_NOPTS_VALUE) {
                 pts = av_q2d (m_format_context->streams[m_video_stream]->time_base) * pkt.dts;
             }
             int current_pos = int(pts * fps() + 0.5f);
@@ -325,7 +325,7 @@ FFmpegInput::read_frame(int pos)
                 current_pos = m_last_search_pos + 1;
             }
             m_last_search_pos = current_pos;
-            if (static_cast<uint64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
+            if (static_cast<int64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
                 current_pos -= static_cast<int> (m_format_context->start_time * fps() / AV_TIME_BASE);
             }
             if (current_pos >= m_subimage) {
@@ -406,7 +406,7 @@ int64_t
 FFmpegInput::time_stamp(int pos) const
 {
     int64_t timestamp = static_cast<int64_t>((static_cast<double> (pos) / fps()) * AV_TIME_BASE);
-    if (static_cast<uint64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
+    if (static_cast<int64_t> (m_format_context->start_time) != AV_NOPTS_VALUE) {
         timestamp += m_format_context->start_time;
     }
     return timestamp;
