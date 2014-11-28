@@ -156,16 +156,13 @@ ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
     /*std::cerr << "[ico] seeking subimage " << index << " (current "
               << m_subimage << ") out of " << m_ico.count << "\n";*/
-    if (miplevel != 0)
+    if (miplevel != 0 || subimage < 0 || subimage >= m_ico.count)
         return false;
 
     if (subimage == m_subimage) {
         newspec = spec();
         return true;
     }
-
-    if (subimage < 0 || subimage >= m_ico.count)
-        return false;
 
     // clear the buffer of previous data
     m_buf.clear ();

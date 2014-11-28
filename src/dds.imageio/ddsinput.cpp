@@ -398,14 +398,15 @@ DDSInput::internal_seek_subimage (int cubeface, int miplevel, unsigned int& w,
 bool
 DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
+    if (subimage != 0)
+        return false;
+
     // early out
     if (subimage == current_subimage() && miplevel == current_miplevel()) {
         newspec = m_spec;
         return true;
     }
 
-    if (subimage != 0)
-        return false;
     // don't seek if the image doesn't contain mipmaps, isn't 3D or a cube map,
     // and don't seek out of bounds
     if (miplevel < 0 || (!(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX) && miplevel != 0)

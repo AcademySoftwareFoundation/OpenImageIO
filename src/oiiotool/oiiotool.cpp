@@ -1603,10 +1603,19 @@ action_select_subimage (int argc, const char *argv[])
     Timer timer (ot.enable_function_timing);
 
     ot.read ();
+
+    int subimage = atoi(argv[1]);
+    if (subimage < 0 || subimage >= ot.curimg->subimages()) {
+        ot.error ("-subimage",
+                 Strutil::format ("Invalid -subimage (%d): %s has %d subimage%s",
+                                  subimage, ot.curimg->name(), ot.curimg->subimages(),
+                                  ot.curimg->subimages() == 1 ? "" : "s"));
+        return 0;
+    }
+
     if (ot.curimg->subimages() == 1)
         return 0;    // --subimage on a single-image file is a no-op
     
-    int subimage = std::min (atoi(argv[1]), ot.curimg->subimages());
     ImageRecRef A = ot.pop();
     ot.push (new ImageRec (*A, subimage));
     ot.function_times["subimage"] += timer();
