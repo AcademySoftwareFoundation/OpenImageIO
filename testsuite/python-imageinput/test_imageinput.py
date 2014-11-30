@@ -191,7 +191,7 @@ try:
     # test basic opening and being able to read the spec
     poor_mans_iinfo ("badname.tif")
     poor_mans_iinfo ("../../../../../oiio-images/tahoe-gps.jpg")
-    poor_mans_iinfo ("../../../../../oiio-images/grid.tx")
+    poor_mans_iinfo ("../common/textures/grid.tx")
 
     # test readimage
     print "Testing read_image:"
@@ -209,7 +209,7 @@ try:
 
     # test readtile
     print "Testing read_tile:"
-    test_readtile ("../../../../../oiio-images/grid.tx")
+    test_readtile ("../common/textures/grid.tx")
 
     # test readscanlines
     print "Testing read_scanlines:"
@@ -218,7 +218,7 @@ try:
 
     # test readtiles
     print "Testing read_tiles:"
-    test_readimage ("../../../../../oiio-images/grid.tx",
+    test_readimage ("../common/textures/grid.tx",
                     method="tiles")
 
     print "Done."

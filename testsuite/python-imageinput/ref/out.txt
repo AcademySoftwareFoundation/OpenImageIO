@@ -35,7 +35,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   GPS:MapDatum = "WGS-84"
   GPS:DateStamp = "1915:08:08"
 
-Opened "../../../../../oiio-images/grid.tx" as a tiff
+Opened "../common/textures/grid.tx" as a tiff
   resolution 1024x1024+0+0
   tile size  64x64x1
   4 channels: ('R', 'G', 'B', 'A')
@@ -44,12 +44,13 @@ Opened "../../../../../oiio-images/grid.tx" as a tiff
   z channel =  -1
   deep =  False
   oiio:BitsPerSample = 8
+  ImageDescription = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   Orientation = 1
   XResolution = 72.0
   YResolution = 72.0
-  ResolutionUnit = 0
-  Software = "maketx g.tif -o grid.tx"
-  DateTime = "2009:09:12  0:53:24"
+  ResolutionUnit = "in"
+  Software = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
+  DateTime = "2014:11:29 23:20:23"
   DocumentName = "g.tif"
   textureformat = "Plain Texture"
   wrapmodes = "black,black"
@@ -59,8 +60,6 @@ Opened "../../../../../oiio-images/grid.tx" as a tiff
   planarconfig = "contig"
   tiff:Compression = 8
   compression = "zip"
-  IPTC:OriginatingProgram = "maketx g.tif -o grid.tx"
-  tiff:PageNumber = "0"
 Subimage 0 MIP level 1 :
   resolution 512x512+0+0
   tile size  64x64x1
@@ -114,8 +113,8 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 1535) = array('B', [84, 93, 136])
 
 Testing read_tile:
-Opened "../../../../../oiio-images/grid.tx" as a tiff
-@ (32, 32) = array('B', [0, 0, 0, 255])
+Opened "../common/textures/grid.tx" as a tiff
+@ (32, 32) = array('B', [1, 1, 1, 255])
 @ (160, 160) = array('B', [255, 127, 127, 255])
 
 Testing read_scanlines:
@@ -125,9 +124,9 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (1024, 768) = array('B', [136, 183, 235])
 
 Testing read_tiles:
-Opened "../../../../../oiio-images/grid.tx" as a tiff
-@ (0, 0) = array('B', [0, 0, 0, 249])
-@ (1023, 1023) = array('B', [0, 0, 0, 249])
+Opened "../common/textures/grid.tx" as a tiff
+@ (0, 0) = array('B', [0, 0, 0, 255])
+@ (1023, 1023) = array('B', [0, 0, 0, 255])
 @ (512, 512) = array('B', [0, 0, 0, 255])
 
 Done.

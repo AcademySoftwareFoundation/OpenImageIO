@@ -53,7 +53,7 @@ try:
 
     # Test reading from disk
     print "Testing read of grid.tx:"
-    b = oiio.ImageBuf ("../../../../../oiio-images/grid.tx")
+    b = oiio.ImageBuf ("../common/textures/grid.tx")
     print "subimage:", b.subimage, " / ", b.nsubimages
     print "miplevel:", b.miplevel, " / ", b.nmiplevels
     print "channels:", b.nchannels
@@ -75,7 +75,7 @@ try:
     print_imagespec (b.spec())
     print ""
     print "Resetting to a different MIP level:"
-    b.reset ("../../../../../oiio-images/grid.tx", 0, 2)
+    b.reset ("../common/textures/grid.tx", 0, 2)
     print_imagespec (b.spec())
     print ""
 

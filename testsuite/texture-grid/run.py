@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python 
 
-command = testtex_command (parent + "/oiio-images/grid.tx")
+command = testtex_command ("../common/textures//grid.tx")
 outputs = [ "out.exr" ]
