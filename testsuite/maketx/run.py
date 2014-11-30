@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python 
 
 # location of oiio-images directory
 oiio_images = parent + "/oiio-images/"

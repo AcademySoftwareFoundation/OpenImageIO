@@ -19,7 +19,7 @@ Testing read of grid.tx:
 subimage: 0  /  1
 miplevel: 0  /  11
 channels: 4
-name: ../../../../../oiio-images/grid.tx
+name: ../../../../testsuite/common/textures/grid.tx
 file_format_name: tiff
 deep: False
 orientation: 1
