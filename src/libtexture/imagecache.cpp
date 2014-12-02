@@ -1595,7 +1595,7 @@ ImageCacheImpl::getstats (int level) const
                 const ImageCacheFile::SubimageInfo &si (file->subimageinfo(s));
                 found_untiled |= si.untiled;
                 found_unmipped |= si.unmipped;
-                found_const |= si.is_constant_image;
+                found_const &= si.is_constant_image;
             }
             total_untiled += found_untiled;
             total_unmipped += found_unmipped;
