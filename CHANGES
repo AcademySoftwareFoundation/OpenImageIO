@@ -67,6 +67,10 @@ Public API changes:
   ImageBuf::get_pixels. This is exposed now. #931 (1.5.3)
 * The Filter API now uses string_view. (1.5.3)
 * ImageBuf and ImageBufAlgo now use string_view extensively. (1.5.4)
+* ImageInput::supports() and ImageOutput::supports() now accept new tags:
+  "arbitrary_metadata" reveals if the format allows arbitrarily-named
+  metadata; "exif" if the format can store camera Exif data; "iptc" if
+  the format can store IPTC metadata. #1001 (1.5.7)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -117,15 +121,32 @@ Fixes, minor enhancements, and performance improvements:
      (1.5.6).
    * oiiotool --stats of "deep" files prints a histogram of samples/pixel
      (1.5.6).
-* maketx:
-   * Fix case typo for LatLong env map creation when in 'prman' mode. #877.
-     (1.5.1/1.4.10)
+   * oiiotool -subimage has better error detection and reporting for
+     requests for nonexistant subimages. #1005 (1.5.7)
+* maketx & TextureSystem:
+   * texture lookups have roughly doubled in performance because of SSE
+     optimization. (1.5.5 / #948, 1.5.6 / #990).
+   * maketx: Fix case typo for LatLong env map creation when in 'prman'
+     mode. #877.  (1.5.1/1.4.10)
    * maketx --attrib, --sattrib, and --sansattrib now work like
      oiiotool; in other words, you can use command line arguments to add
      or alter metadata in the process of creating a texture. #901 (1.5.1)
-   * Experimental feature: maketx --sharpen <AMT> adds slight sharpening
-     and emphasis of higher frequencies when creating MIP-maps. #958 (1.5.5)
-   * Fix crash when using --checknan (1.5.5)
+   * maketx --sharpen <AMT> adds slight sharpening and emphasis of
+     higher frequencies when creating MIP-maps. #958 (1.5.5)
+   * Fix crash when using maketx --checknan (1.5.5)
+   * maketx now embeds metadata hints ("oiio:ConstantColor") for
+     constant textures (all pixels are identical). The texture system
+     notices this hint and will automatically replace texture lookups
+     (as long as wrap mode is not black) with this constant value, about
+     10x faster than a real texture lookup would have been. This sounds
+     silly, but in production sometimes you end up with uniform textures
+     and this helps. Also, you can retrieve the constant color via
+     get_texture_info of "constantcolor" and "constantalpha" (though the
+     retrieval will only succeed if the metadata is present, even if
+     the texture is actually constant). #1006 (1.5.7)
+   * maketx now embeds metadata hints ("oiio:AverageColor") containing
+     the average value of the texture. This can be retrieved with
+     get_texture_info of "averagecolor" and "averagealpha". #1006 (1.5.7)
 * Python:
     * Bug fix: the Python binding of ImageInput.read_scanlines did not
       properly honor any channel subset specified. (1.5.5/1.4.15)
@@ -241,6 +262,9 @@ Build/test system improvements:
 * Add testtex options -interpmode and -mipmode. #988 (1.5.6)
 * Build against Python 3 if the make/cmake build flag USE_PYTHON3=1 is used.
   (1.5.6)
+* grid.tx and checker.tx have been moved from ../oiio/images to
+  testsuite/common/texture (allow it to be versioned along with any changes
+  to maketx. (1.5.7)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
