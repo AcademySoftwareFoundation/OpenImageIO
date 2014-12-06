@@ -846,7 +846,8 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
         for (int c = actualchannels; c < nchannels; ++c)
             result[c] = options.fill;
         if (dresultds) {
-            for (int c = actualchannels; c < nchannels; ++c) {
+            // Derivs are always 0 from a constant texture lookup
+            for (int c = 0; c < nchannels; ++c) {
                 dresultds[c] = 0.0f;
                 dresultdt[c] = 0.0f;
             }
