@@ -526,6 +526,17 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
         unsigned short ndirs = *(const unsigned short *)ifd;
         if (swab)
             swap_endian (&ndirs);
+        if (dir.tdir_tag == TIFFTAG_GPSIFD && ndirs > 32) {
+            // We have encountered JPEG files that inexplicably have the
+            // directory count for the GPS data using the wrong byte order.
+            // In this case, since there are only 32 possible GPS related
+            // tags, we use that as a sanity check and skip the corrupted
+            // data block. This isn't a very general solution, but it's a
+            // rare case and clearly a broken file. We're just trying not to
+            // crash in this case.
+            return;
+        }
+
 #if DEBUG_EXIF_READ
         std::cerr << "exifid has type " << dir.tdir_type << ", offset " << dir.tdir_offset << "\n";
         std::cerr << "EXIF Number of directory entries = " << ndirs << "\n";
