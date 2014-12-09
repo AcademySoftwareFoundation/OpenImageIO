@@ -101,6 +101,7 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 HdrInput::open (const std::string &name, ImageSpec &newspec)
 {
+    init();
     m_filename = name;
     return seek_subimage (0, 0, newspec);
 }
