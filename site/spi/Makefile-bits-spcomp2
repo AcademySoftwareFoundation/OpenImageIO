@@ -19,7 +19,7 @@ $(info Including spi/Makefile-bits-spcomp2)
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=34
+OPENIMAGEIO_SPCOMP2_VERSION=36
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -40,8 +40,40 @@ SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
 PYSPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${OIIO_PATH}/lib
 PYSPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${OIIO_PATH}/lib/debug
 
+## Rhel7 (future)
+ifeq ($(SP_OS), rhel7)
+    COMPILER=gcc48m64
+    PYVER ?= 2.7
+    MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/usr/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/usr/bin/g++
+    MY_CMAKE_FLAGS += \
+	-DILMBASE_CUSTOM=1 \
+	-DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+	-DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	-DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
+	-DOPENEXR_CUSTOM=1 \
+	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	-DOPENEXR_CUSTOM_LIBRARY="IlmImf"
+    MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
+    ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
+	BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+	CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
+	MY_CMAKE_FLAGS += \
+		-DBOOST_CUSTOM=1 \
+		-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
+		-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
+		-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
+		-DBoost_python_FOUND=1 -Doiio_boost_PYTHON_FOUND=1 \
+		-DPYTHONLIBS_FOUND=1 \
+		-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+		-DBoost_Python_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+		-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+    endif
+
 ## Spinux (current)
-ifeq ($(SP_OS), spinux1)
+else ifeq ($(SP_OS), spinux1)
     COMPILER=gcc44m64
     PYVER ?= 2.6
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
@@ -49,6 +81,9 @@ ifeq ($(SP_OS), spinux1)
     # the standard libGL.  This attempts to detect which libGL to use.
     SPINUX_GL_LIB = /usr/lib64/xorg.nvidia.3d/libGL.so
     MY_CMAKE_FLAGS += $(if $(wildcard ${SPINUX_GL_LIB}), -DOPENGL_gl_LIBRARY=${SPINUX_GL_LIB})
+    MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/usr/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/usr/bin/g++
     ifneq (,$(wildcard /usr/include/OpenEXR2))
         MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
@@ -203,6 +238,25 @@ spcomp2_install_fixup_lion: spcomp2 spcomp2_debug
 	${dist_dir}.debug/python/libPyOpenImageIO.so
 
 spcomp2_install_fixup_spinux1: spcomp2 spcomp2_debug
+	echo $(INSTALL_SPCOMP2_LOCATION)
+
+	patchelf \
+	--set-rpath $(SPCOMP2_RPATH_OPT) \
+	${dist_dir}/lib/libOpenImageIO.so
+
+	patchelf \
+	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
+	${dist_dir}.debug/lib/libOpenImageIO.so
+
+	patchelf \
+	--set-rpath $(PYSPCOMP2_RPATH_OPT) \
+	${dist_dir}/python/libPyOpenImageIO.so
+
+	patchelf \
+	--set-rpath $(PYSPCOMP2_RPATH_DEBUG) \
+	${dist_dir}.debug/python/libPyOpenImageIO.so
+
+spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
 
 	patchelf \
