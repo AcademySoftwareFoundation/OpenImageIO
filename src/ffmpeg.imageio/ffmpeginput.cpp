@@ -140,6 +140,25 @@ FFmpegInput::~FFmpegInput()
 bool
 FFmpegInput::open (const std::string &name, ImageSpec &spec)
 {
+    // Temporary workaround: refuse to open a file whose name does not
+    // indicate that it's a movie file. This avoids the problem that ffmpeg
+    // is willing to open tiff and other files better handled by other
+    // plugins. The better long-term solution is to replace av_register_all
+    // with our own function that registers only the formats that we want
+    // this reader to handle. At some point, we will institute that superior
+    // approach, but in the mean time, this is a quick solution that 90%
+    // does the job.
+    bool valid_extension = false;
+    for (int i = 0; ffmpeg_input_extensions[i]; ++i)
+        if (Strutil::ends_with (name, ffmpeg_input_extensions[i])) {
+            valid_extension = true;
+            break;
+        }
+    if (! valid_extension) {
+        error ("\"%s\" could not open input", name);
+        return false;
+    }
+
     static boost::once_flag init_flag = BOOST_ONCE_INIT;
     boost::call_once (&av_register_all, init_flag);
     const char *file_name = name.c_str();
