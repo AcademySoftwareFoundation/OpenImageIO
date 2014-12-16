@@ -199,6 +199,10 @@ OIIO_API void open (std::ifstream &stream, string_view path,
 OIIO_API void open (std::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
+/// Read the entire contents of the named text file and place it in str,
+/// returning true on success, false on failure.
+OIIO_API bool read_text_file (string_view filename, std::string &str);
+
 /// Get last modified time of file
 ///
 OIIO_API std::time_t last_write_time (const std::string& path);

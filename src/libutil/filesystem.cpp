@@ -464,6 +464,28 @@ Filesystem::open (std::ofstream &stream, string_view path,
 
 
 
+/// Read the entire contents of the named file and place it in str,
+/// returning true on success, false on failure.
+bool
+Filesystem::read_text_file (string_view filename, std::string &str)
+{
+    // For info on why this is the fastest method:
+    // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
+    std::ifstream in;
+    Filesystem::open (in, filename);
+    // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
+    if (in) {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close ();
+        str = contents.str();
+        return true;
+    }
+    return false;
+}
+
+
+
 std::time_t
 Filesystem::last_write_time (const std::string& path)
 {
