@@ -184,11 +184,11 @@ getattribute (string_view name, TypeDesc type, void *val)
 }
 
 
-inline int
-quantize (float value, int quant_min, int quant_max)
+inline long long
+quantize (float value, long long quant_min, long long quant_max)
 {
     value = value * quant_max;
-    return Imath::clamp ((int)(value + 0.5f), quant_min, quant_max);
+    return Imath::clamp ((long long)(value + 0.5f), quant_min, quant_max);
 }
 
 namespace {
@@ -331,7 +331,7 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
 template<typename T>
 const void *
 _from_float (const float *src, T *dst, size_t nvals,
-             int quant_min, int quant_max)
+             long long quant_min, long long quant_max)
 {
     if (! src) {
         // If no source pixels, assume zeroes
@@ -361,7 +361,7 @@ _from_float (const float *src, T *dst, size_t nvals,
 
 const void *
 pvt::convert_from_float (const float *src, void *dst, size_t nvals,
-                         int quant_min, int quant_max, TypeDesc format)
+                         long long quant_min, long long quant_max, TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT :
@@ -406,8 +406,8 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 // DEPRECATED (1.4)
 const void *
 pvt::convert_from_float (const float *src, void *dst, size_t nvals,
-                         int quant_black, int quant_white,
-                         int quant_min, int quant_max,
+                         long long quant_black, long long quant_white,
+                         long long quant_min, long long quant_max,
                          TypeDesc format)
 {
     return convert_from_float (src, dst, nvals, quant_min, quant_max, format);
@@ -429,7 +429,7 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
     if (nthreads <= 0)
         nthreads = oiio_threads;
 
-    int quant_min, quant_max;
+    long long quant_min, quant_max;
     get_default_quantize (format, quant_min, quant_max);
 
     if (nthreads <= 1)
@@ -457,8 +457,8 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
 const void *
 pvt::parallel_convert_from_float (const float *src, void *dst,
                                   size_t nvals,
-                                  int quant_black, int quant_white,
-                                  int quant_min, int quant_max,
+                                  long long quant_black, long long quant_white,
+                                  long long quant_min, long long quant_max,
                                   TypeDesc format, int nthreads)
 {
     return parallel_convert_from_float (src, dst, nvals, format, nthreads);

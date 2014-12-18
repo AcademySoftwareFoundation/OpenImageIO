@@ -53,11 +53,11 @@ OIIO_NAMESPACE_ENTER
 // type.
 template <class T>
 inline void
-get_default_quantize_ (int &quant_min, int &quant_max)
+get_default_quantize_ (long long &quant_min, long long &quant_max)
 {
     if (std::numeric_limits <T>::is_integer) {
-        quant_min    = (int) std::numeric_limits <T>::min();
-        quant_max    = (int) std::numeric_limits <T>::max();
+        quant_min    = (long long) std::numeric_limits <T>::min();
+        quant_max    = (long long) std::numeric_limits <T>::max();
     } else {
         quant_min    = 0;
         quant_max    = 0;
@@ -69,7 +69,8 @@ get_default_quantize_ (int &quant_min, int &quant_max)
 // Given the format, set the default quantization range.
 // Rely on the template version to make life easy.
 void
-pvt::get_default_quantize (TypeDesc format, int &quant_min, int &quant_max)
+pvt::get_default_quantize (TypeDesc format,
+                           long long &quant_min, long long &quant_max)
 {
     switch (format.basetype) {
     case TypeDesc::UNKNOWN:

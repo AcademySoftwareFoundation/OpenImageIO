@@ -70,7 +70,8 @@ TINYFORMAT_WRAP_FORMAT (void, error, /**/,
     std::ostringstream msg;, msg, seterror(msg.str());)
 
 /// Given the format, set the default quantization range.
-void get_default_quantize (TypeDesc format, int &quant_min, int &quant_max);
+void get_default_quantize (TypeDesc format,
+                           long long &quant_min, long long &quant_max);
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
@@ -93,12 +94,12 @@ const float *convert_to_float (const void *src, float *dst, int nvals,
 /// converted data (which may still point to src if no conversion was
 /// necessary).
 const void *convert_from_float (const float *src, void *dst, size_t nvals,
-                                int quant_min, int quant_max,
+                                long long quant_min, long long quant_max,
                                 TypeDesc format);
 /// DEPRECATED (1.4)
 const void *convert_from_float (const float *src, void *dst, size_t nvals,
-                                int quant_black, int quant_white,
-                                int quant_min, int quant_max,
+                                long long quant_black, long long quant_white,
+                                long long quant_min, long long quant_max,
                                 TypeDesc format);
 
 /// A version of convert_from_float that will break up big jobs with
@@ -109,8 +110,8 @@ const void *parallel_convert_from_float (const float *src, void *dst,
 /// DEPRECATED (1.4)
 const void *parallel_convert_from_float (const float *src, void *dst,
                                          size_t nvals,
-                                         int quant_black, int quant_white,
-                                         int quant_min, int quant_max,
+                                         long long quant_black, long long quant_white,
+                                         long long quant_min, long long quant_max,
                                          TypeDesc format, int nthreads=0) ;
 
 }  // namespace pvt
