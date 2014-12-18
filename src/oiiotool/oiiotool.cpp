@@ -396,6 +396,10 @@ string_to_dataformat (const std::string &s, TypeDesc &dataformat, int &bits)
         dataformat = TypeDesc::UINT16;  bits = 0;
     } else if (s == "int16") {
         dataformat = TypeDesc::INT16;   bits = 0;
+    } else if (s == "uint32") {
+        dataformat = TypeDesc::UINT32;  bits = 0;
+    } else if (s == "int32") {
+        dataformat = TypeDesc::INT32;   bits = 0;
     } else if (s == "half") {
         dataformat = TypeDesc::HALF;    bits = 0;
     } else if (s == "float") {
@@ -3749,7 +3753,7 @@ getargs (int argc, char *argv[])
                 "-d %@ %s", set_dataformat, NULL,
                     "'-d TYPE' sets the output data format of all channels, "
                     "'-d CHAN=TYPE' overrides a single named channel (multiple -d args are allowed). "
-                    "Data types include: uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
+                    "Data types include: uint8, sint8, uint10, uint12, uint16, sint16, uint32, sint32, half, float, double",
                 "--scanline", &ot.output_scanline, "Output scanline images",
                 "--tile %@ %d %d", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
                     "Output tiled images (tilewidth, tileheight)",
