@@ -60,6 +60,7 @@ public:
     bool hash;
     bool updatemode;
     bool autoorient;
+    bool nativeread;                  // force native data type reads
     int threads;
     std::string full_command_line;
     std::string printinfo_metamatch;
@@ -284,7 +285,7 @@ public:
     // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
-    bool read ();
+    bool read (bool force_native_read=false);
 
     // ir(subimg,mip) references a specific MIP level of a subimage
     // ir(subimg) references the first MIP level of a subimage

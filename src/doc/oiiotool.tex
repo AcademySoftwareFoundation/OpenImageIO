@@ -759,6 +759,25 @@ to use if you are using oiiotool to combine images that may have different
 orientations.
 \apiend
 
+\apiitem{--native}
+\NEW  % 1.5
+
+Normally, all image reads into an \ImageBuf will be performed via an
+underlying \ImageCache. But since an \ImageCache does not support all
+possible data formats, some lesser-used formats may be auto-converted upon
+being read into the cache, and therefore lose precision or range compared to
+what the equivalent {\cf ImageInput::read_image} is capable of. (An example
+would be a rare file of {\cf uint32} or {\cf double} pixels, which would
+lose data when read into an \ImageCache whose ``biggest'' data type is
+{\cf float}.)
+
+The {\cf --native} option is used for the small set of cases where this is
+problematic in practice. It causes subsequent image loads to bypass the
+\ImageCache and instead do an immediate read of the file that preserves its
+native format (if it's not a format that can use the ImageCache without a
+loss of precision).
+\apiend
+
 \apiitem{-o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.

@@ -836,18 +836,54 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_spec.format = m_nativespec.format;
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     realloc ();
+
+    // If forcing a full read, make sure the spec reflects the nativespec's
+    // tile sizes, rather than that imposed by the ImageCache.
+    m_spec.tile_width = m_nativespec.tile_width;
+    m_spec.tile_height = m_nativespec.tile_height;
+    m_spec.tile_depth = m_nativespec.tile_depth;
+
+    if (convert != TypeDesc::UNKNOWN &&
+        convert != m_cachedpixeltype &&
+        convert.size() >= m_cachedpixeltype.size() &&
+        convert.size() >= m_nativespec.format.size()) {
+        // A specific conversion type was requested which is not the cached
+        // type and whose bit depth is as much or more than the cached type.
+        // Bypass the cache and read directly so that there is no possible
+        // loss of range or precision resulting from going through the
+        // cache.
+        ImageInput *in = ImageInput::open (m_name.string());
+        bool ok = true;
+        if (in) {
+            if (subimage || miplevel) {
+                ImageSpec newspec;
+                ok &= in->seek_subimage (subimage, miplevel, newspec);
+            }
+            if (ok)
+                ok &= in->read_image (convert, m_localpixels);
+            in->close ();
+            if (ok) {
+                m_pixels_valid = true;
+            } else {
+                m_pixels_valid = false;
+                error ("%s", in->geterror());
+            }
+            delete in;
+        } else {
+            m_pixels_valid = false;
+            error ("%s", OIIO::geterror());
+        }
+        return m_pixels_valid;
+    }
+
+    // All other cases, no loss of precision is expected, so even a forced
+    // read should go through the image cache.
     if (m_imagecache->get_pixels (m_name, subimage, miplevel,
                                   m_spec.x, m_spec.x+m_spec.width,
                                   m_spec.y, m_spec.y+m_spec.height,
                                   m_spec.z, m_spec.z+m_spec.depth,
                                   m_spec.format, m_localpixels)) {
         m_pixels_valid = true;
-        // If forcing a full read, make sure the spec reflects the
-        // nativespec's tile sizes, rather than that imposed by the
-        // ImageCache.
-        m_spec.tile_width = m_nativespec.tile_width;
-        m_spec.tile_height = m_nativespec.tile_height;
-        m_spec.tile_depth = m_nativespec.tile_depth;
     } else {
         m_pixels_valid = false;
         error ("%s", m_imagecache->geterror ());

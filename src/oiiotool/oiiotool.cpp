@@ -93,6 +93,7 @@ Oiiotool::clear_options ()
     hash = false;
     updatemode = false;
     autoorient = false;
+    nativeread = false;
     threads = 0;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
@@ -160,7 +161,7 @@ Oiiotool::read (ImageRecRef img)
     float pre_ic_time, post_ic_time;
     imagecache->getattribute ("stat:fileio_time", pre_ic_time);
     total_readtime.start ();
-    bool ok = img->read ();
+    bool ok = img->read (ot.nativeread);
     total_readtime.stop ();
     imagecache->getattribute ("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
@@ -3747,6 +3748,7 @@ getargs (int argc, char *argv[])
                 "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
                 "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",
                 "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
+                "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",

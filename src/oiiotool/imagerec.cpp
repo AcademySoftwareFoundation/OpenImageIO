@@ -227,7 +227,7 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
 
 
 bool
-ImageRec::read ()
+ImageRec::read (bool force_native_read)
 {
     if (elaborated())
         return true;
@@ -260,8 +260,12 @@ ImageRec::read ()
             bool forceread = (s == 0 && m == 0 &&
                               m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
-            bool ok = ib->read (s, m, forceread,
-                                TypeDesc::FLOAT /* force float */);
+            TypeDesc convert = TypeDesc::FLOAT;
+            if (force_native_read) {
+                forceread = true;
+                convert = ib->nativespec().format;
+            }
+            bool ok = ib->read (s, m, forceread, convert);
             if (!ok)
                 error ("%s", ib->geterror());
             allok &= ok;
