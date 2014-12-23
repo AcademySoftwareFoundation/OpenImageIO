@@ -137,7 +137,8 @@ class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache,
                     ImageCachePerThreadInfo *thread_info, ustring filename,
-                    ImageInput::Creator creator=NULL);
+                    ImageInput::Creator creator=NULL,
+                    const ImageSpec *config=NULL);
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
@@ -314,6 +315,7 @@ private:
     ImageCacheFile *m_duplicate;    ///< Is this a duplicate?
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
+    boost::scoped_ptr<ImageSpec> m_configspec; // Optional configuration hints
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -738,7 +740,8 @@ public:
     ImageCacheFile *find_file (ustring filename,
                                ImageCachePerThreadInfo *thread_info,
                                ImageInput::Creator creator=NULL,
-                               bool header_only=false);
+                               bool header_only=false,
+                               const ImageSpec *config=NULL);
 
     /// Is the tile specified by the TileID already in the cache?
     bool tile_in_cache (const TileID &id,
@@ -783,7 +786,8 @@ public:
                             int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
-    virtual bool add_file (ustring filename, ImageInput::Creator creator);
+    virtual bool add_file (ustring filename, ImageInput::Creator creator,
+                           const ImageSpec *config);
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                      int x, int y, int z, TypeDesc format, const void *buffer,
                      stride_t xstride, stride_t ystride, stride_t zstride);

@@ -220,18 +220,34 @@ public:
     /// the data type of the pixels in the disk file).
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const = 0;
 
-    /// This creates a file entry in the cache that, instead of reading
-    /// from disk, uses a custom ImageInput to generate the image (note
-    /// that it will have no effect if there's already an image by the
-    /// same name in the cache).  The 'creator' is a factory that
-    /// creates the custom ImageInput and will be called like this:
-    /// ImageInput *in = creator(); Once created, the ImageCache owns
-    /// the ImageInput and is responsible for destroying it when done.
-    /// Custom ImageInputs allow "procedural" images, among other
-    /// things.  Also, this is the method you use to set up a
-    /// "writeable" ImageCache images (perhaps with a type of ImageInput
-    /// that's just a stub that does as little as possible).
-    virtual bool add_file (ustring filename, ImageInput::Creator creator) = 0;
+    /// The add_file() call causes a file to be opened or added to the
+    /// cache. There is no reason to use this method unless you are
+    /// supplying a custom creator, or configuration, or both.
+    /// 
+    /// If creator is not NULL, it points to an ImageInput::Creator that
+    /// will be used rather than the default ImageInput::create(), thus
+    /// instead of reading from disk, creates and uses a custom ImageInput
+    /// to generate the image. The 'creator' is a factory that creates the
+    /// custom ImageInput and will be called like this:
+    ///      ImageInput *in = creator();
+    /// Once created, the ImageCache owns the ImageInput and is responsible
+    /// for destroying it when done. Custom ImageInputs allow "procedural"
+    /// images, among other things.  Also, this is the method you use to set
+    /// up a "writeable" ImageCache images (perhaps with a type of
+    /// ImageInput that's just a stub that does as little as possible).
+    /// 
+    /// If config is not NULL, it points to an ImageSpec with configuration
+    /// options/hints that will be passed to the underlying
+    /// ImageInput::open() call. Thus, this can be used to ensure that the
+    /// ImageCache opens a call with special configuration options.
+    /// 
+    /// This call (including any custom creator or configuration hints) will
+    /// have no effect if there's already an image by the same name in the
+    /// cache. Custom creators or configurations only "work" the FIRST time
+    /// a particular filename is referenced in the lifetime of the
+    /// ImageCache.
+    virtual bool add_file (ustring filename, ImageInput::Creator creator=NULL,
+                           const ImageSpec *config=NULL) = 0;
 
     /// Preemptively add a tile corresponding to the named image, at the
     /// given subimage and MIP level.  The tile added is the one whose

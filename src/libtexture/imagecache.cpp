@@ -238,7 +238,8 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
 ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ImageCachePerThreadInfo *thread_info,
                                 ustring filename,
-                                ImageInput::Creator creator)
+                                ImageInput::Creator creator,
+                                const ImageSpec *config)
     : m_filename(filename), m_used(true), m_broken(false),
       m_texformat(TexFormatTexture),
       m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
@@ -248,7 +249,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_mipused(false), m_validspec(false), 
       m_imagecache(imagecache), m_duplicate(NULL),
       m_total_imagesize(0),
-      m_inputcreator(creator)
+      m_inputcreator(creator),
+      m_configspec(config ? new ImageSpec(*config) : NULL)
 {
     m_filename_original = m_filename;
     m_filename = imagecache.resolve_filename (m_filename_original.string());
@@ -366,6 +368,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     }
 
     ImageSpec configspec;
+    if (m_configspec)
+        configspec = *m_configspec;
     if (imagecache().unassociatedalpha())
         configspec.attribute ("oiio:UnassociatedAlpha", 1);
 
@@ -1019,7 +1023,7 @@ ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
                            ImageCachePerThreadInfo *thread_info,
                            ImageInput::Creator creator,
-                           bool header_only)
+                           bool header_only, const ImageSpec *config)
 {
     // Debugging aid: attribute "substitute_image" forces all image
     // references to be to one named file.
@@ -1043,7 +1047,8 @@ ImageCacheImpl::find_file (ustring filename,
             tf = found->second.get();
         } else {
             // No such entry in the file cache.  Add it, but don't open yet.
-            tf = new ImageCacheFile (*this, thread_info, filename, creator);
+            tf = new ImageCacheFile (*this, thread_info, filename, creator,
+                                     config);
             m_files.insert (filename, tf, false);
             newfile = true;
         }
@@ -2610,14 +2615,12 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
 
 
 bool
-ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator)
+ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator,
+                          const ImageSpec *config)
 {
-    if (! creator) {
-        error ("ImageCache::add_file must be given an ImageInput::Creator");
-        return false;
-    }
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info, creator);
+    ImageCacheFile *file = find_file (filename, thread_info, creator,
+                                      false, config);
     if (!file || file->broken())
         return false;
     return true;

@@ -626,22 +626,38 @@ modification times have been changed since they were first opened.
 
 \subsection{Seeding the cache}
 \label{sec:imagecache:api:seeding}
-\apiitem{bool {\ce add_file} (ustring filename, ImageInput::Creator creator)}
-This creates a file entry in the cache that, instead of reading
-from disk, uses a custom \ImageInput to generate the image (note
-that it will have no effect if there's already an image by the
-same name in the cache).  The {\cf creator} is a factory that
-creates the custom \ImageInput and will be called like this:
+\apiitem{bool {\ce add_file} (ustring filename, \\
+    \bigspc ImageInput::Creator creator = NULL,\\
+    \bigspc const ImageSpec *config = NULL)}
+This method causes a file to be opened or added to the
+cache. There is no reason to use this method unless you are supplying
+a custom creator, or configuration, or both.
+
+If {\cf creator} is not NULL, it points to an {\cf ImageInput::Creator} that
+will be used rather than the default {\cf ImageInput::create()}, thus
+instead of reading from disk, creates and uses a custom ImageInput
+to generate the image. The {\cf creator} is a factory that creates the
+custom ImageInput and will be called like this:
 \begin{code}
     ImageInput *in = creator();
 \end{code}
+Once created, the \ImageCache owns the \ImageInput and is responsible
+for destroying it when done. Custom \ImageInput's allow ``procedural''
+images, among other things.  Also, this is the method you use to set
+up a ``writeable'' \ImageCache images (perhaps with a type of
+\ImageInput that's just a stub that does as little as possible).
 
-Once created, the \ImageCache owns
-the \ImageInput and is responsible for destroying it when done.
-Custom \ImageInput's allow ``procedural'' images, among other
-things.  Also, this is the method you use to set up a
-``writeable'' \ImageCache images (perhaps with a type of \ImageInput
-that's just a stub that does as little as possible).
+\NEW  % 1.5
+If {\cf config} is not NULL, it points to an \ImageSpec with configuration
+options/hints that will be passed to the underlying
+{\cf ImageInput::open()} call. Thus, this can be used to ensure that the
+\ImageCache opens a call with special configuration options.
+
+This call (including any custom creator or configuration hints) will
+have no effect if there's already an image by the same name in the
+cache. Custom creators or configurations only ``work'' the \emph{first} time
+a particular filename is referenced in the lifetime of the
+\ImageCache.
 \apiend
 
 \apiitem{bool {\ce add_tile} (ustring filename, int subimage, int miplevel,\\
