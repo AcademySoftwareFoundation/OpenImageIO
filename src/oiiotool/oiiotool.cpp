@@ -324,24 +324,24 @@ input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
         std::map<std::string,ImageRecRef>::const_iterator found;
-        found = ot.image_labels.find(argv[0]);
+        found = ot.image_labels.find(argv[i]);
         if (found != ot.image_labels.end()) {
             if (ot.verbose)
-                std::cout << "Referencing labeled image " << argv[0] << "\n";
+                std::cout << "Referencing labeled image " << argv[i] << "\n";
             ot.push (found->second);
             ot.process_pending ();
             break;
         }
         Timer timer (ot.enable_function_timing);
         int exists = 1;
-        if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
+        if (! ot.imagecache->get_image_info (ustring(argv[i]), 0, 0, 
                             ustring("exists"), TypeDesc::TypeInt, &exists)
             || !exists) {
-            ot.error ("read", Strutil::format ("Could not open file \"%s\"", argv[0]));
+            ot.error ("read", Strutil::format ("Could not open file \"%s\"", argv[i]));
             exit (1);
         }
         if (ot.verbose)
-            std::cout << "Reading " << argv[0] << "\n";
+            std::cout << "Reading " << argv[i] << "\n";
         ot.push (ImageRecRef (new ImageRec (argv[i], ot.imagecache)));
         if (ot.printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
