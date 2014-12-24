@@ -74,11 +74,6 @@ OIIO_API std::string filename (const std::string &filepath);
 OIIO_API std::string extension (const std::string &filepath,
                                  bool include_dot=true);
 
-/// DEPRECATED.
-inline std::string file_extension (const std::string &filepath) {
-    return extension (filepath, false);
-}
-
 /// Return all but the last part of the path, for example,
 /// parent_path("foo/bar") returns "foo", and parent_path("foo")
 /// returns "".

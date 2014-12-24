@@ -243,7 +243,8 @@ public:
     bool getattribute_char(const std::string&, char**);    
     bool getattribute_string(const std::string&, std::string&);
     std::string resolve_filename (const std::string&);
-    bool get_image_info (ustring, ustring, TypeDesc, void*);
+    bool get_image_info_old (ustring, ustring, TypeDesc, void*);
+    bool get_image_info (ustring, int, int, ustring, TypeDesc, void*);
     bool get_imagespec(ustring, ImageSpec&, int);
     bool get_pixels (ustring, int, int, int, int, int, int, 
                      int, int, TypeDesc, void*);
