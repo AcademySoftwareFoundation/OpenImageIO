@@ -401,9 +401,9 @@ ImageBuf::ImageBuf (string_view filename, ImageCache *imagecache)
 
 
 ImageBuf::ImageBuf (const ImageSpec &spec)
-    : m_impl (new ImageBufImpl (std::string(), 0, 0, NULL, &spec))
+    : m_impl (new ImageBufImpl ("", 0, 0, NULL, &spec))
 {
-    alloc (spec);
+    m_impl->alloc (spec);
 }
 
 
@@ -411,7 +411,7 @@ ImageBuf::ImageBuf (const ImageSpec &spec)
 ImageBuf::ImageBuf (string_view filename, const ImageSpec &spec)
     : m_impl (new ImageBufImpl (filename, 0, 0, NULL, &spec))
 {
-    alloc (spec);
+    m_impl->alloc (spec);
 }
 
 
@@ -425,7 +425,7 @@ ImageBuf::ImageBuf (string_view filename, const ImageSpec &spec,
 
 
 ImageBuf::ImageBuf (const ImageSpec &spec, void *buffer)
-    : m_impl (new ImageBufImpl (std::string(), 0, 0, NULL, &spec, buffer))
+    : m_impl (new ImageBufImpl ("", 0, 0, NULL, &spec, buffer))
 {
 }
 
@@ -597,7 +597,7 @@ ImageBuf::reset (string_view filename, const ImageSpec &spec)
 void
 ImageBuf::reset (const ImageSpec &spec)
 {
-    impl()->reset (std::string(), spec);
+    impl()->reset ("", spec);
 }
 
 
@@ -639,14 +639,6 @@ ImageBufImpl::alloc (const ImageSpec &spec)
     m_nativespec = spec;
     realloc ();
     m_spec_valid = true;
-}
-
-
-
-void
-ImageBuf::alloc (const ImageSpec &spec)
-{
-    impl()->alloc (spec);
 }
 
 
@@ -952,17 +944,6 @@ ImageBuf::write (ImageOutput *out,
     if (! ok)
         error ("%s", out->geterror ());
     return ok;
-}
-
-
-
-bool
-ImageBuf::save (string_view filename, string_view fileformat,
-                ProgressCallback progress_callback,
-                void *progress_callback_data) const
-{
-    return write (filename, fileformat,
-                  progress_callback, progress_callback_data);
 }
 
 
@@ -1781,25 +1762,6 @@ ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
     m_spec.full_width  = xend - xbegin;
     m_spec.full_height = yend - ybegin;
     m_spec.full_depth  = zend - zbegin;
-}
-
-
-
-void
-ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
-                    int zbegin, int zend, const float *bordercolor)
-{
-    ImageSpec &m_spec (impl()->specmod());
-    m_spec.full_x = xbegin;
-    m_spec.full_y = ybegin;
-    m_spec.full_z = zbegin;
-    m_spec.full_width  = xend - xbegin;
-    m_spec.full_height = yend - ybegin;
-    m_spec.full_depth  = zend - zbegin;
-    if (bordercolor)
-        m_spec.attribute ("oiio:bordercolor",
-                          TypeDesc(TypeDesc::FLOAT,m_spec.nchannels),
-                          bordercolor);
 }
 
 

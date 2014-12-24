@@ -685,7 +685,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 smallspec.y = 0;
                 smallspec.full_x = 0;
                 smallspec.full_y = 0;
-                small->alloc (smallspec);  // Realocate with new size
+                small->reset (smallspec);  // Realocate with new size
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 

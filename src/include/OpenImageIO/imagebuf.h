@@ -244,15 +244,6 @@ public:
     /// image of the given name and dimensions.
     void reset (string_view name, const ImageSpec &spec);
 
-    /// Copy spec to *this, and then allocate enough space the right
-    /// size for an image described by the format spec.  If the ImageBuf
-    /// already has allocated pixels, their values will not be preserved
-    /// if the new spec does not describe an image of the same size and
-    /// data type as it used to be.
-    /// DEPRECATED (1.3) -- I don't see any reason why this should be
-    /// favored over reset(spec).
-    void alloc (const ImageSpec &spec);
-
     /// Which type of storage is being used for the pixels?
     IBStorage storage () const;
 
@@ -291,13 +282,6 @@ public:
     /// Inform the ImageBuf what tile size (or no tiling, for 0) for
     /// any subsequent write().
     void set_write_tiles (int width=0, int height=0, int depth=0);
-
-    /// DEPRECATED (1.3) synonym for write().  Kept for now for backward
-    /// compatibility.
-    bool save (string_view filename = string_view(),
-               string_view fileformat = string_view(),
-               ProgressCallback progress_callback=NULL,
-               void *progress_callback_data=NULL) const;
 
     /// Write the image to the open ImageOutput 'out'.  Return true if
     /// all went ok, false if there were errors writing.  It does NOT
@@ -595,14 +579,6 @@ public:
     /// [ybegin,yend) x [zbegin,zend).
     void set_full (int xbegin, int xend, int ybegin, int yend,
                    int zbegin, int zend);
-
-    /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
-    /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
-    /// set the spec's "oiio:bordercolor" attribute.
-    /// DEPRECATED (1.3) -- we don't use the 'bordercolor' parameter, and
-    /// it seems strange, so let's phase it out.
-    void set_full (int xbegin, int xend, int ybegin, int yend,
-                   int zbegin, int zend, const float *bordercolor);
 
     /// Return pixel data window for this ImageBuf as a ROI.
     ROI roi () const;

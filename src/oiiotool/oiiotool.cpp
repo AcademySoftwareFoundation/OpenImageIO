@@ -1299,7 +1299,7 @@ action_unpremult (int argc, const char *argv[])
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
-            ImageBufAlgo::unpremult ((*R)(s,m));
+            ImageBufAlgo::unpremult ((*R)(s,m), (*R)(s,m));
 
     ot.function_times["unpremult"] += timer();
     return 0;
@@ -1323,7 +1323,7 @@ action_premult (int argc, const char *argv[])
 
     for (int s = 0, subimages = R->subimages();  s < subimages;  ++s)
         for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m)
-            ImageBufAlgo::premult ((*R)(s,m));
+            ImageBufAlgo::premult ((*R)(s,m), (*R)(s,m));
 
     ot.function_times["premult"] += timer();
     return 0;

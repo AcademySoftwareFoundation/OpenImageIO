@@ -672,7 +672,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     }
 
     // Update the image (realloc with the new spec)
-    dst.alloc (newspec);
+    dst.reset (newspec);
 
     // Copy the channels individually
     stride_t dstxstride = AutoStride, dstystride = AutoStride, dstzstride = AutoStride;
