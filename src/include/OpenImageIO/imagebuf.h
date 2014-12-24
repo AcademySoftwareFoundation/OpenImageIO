@@ -177,8 +177,12 @@ public:
     /// made, whichever comes first. If a non-NULL imagecache is supplied,
     /// it will specifiy a custom ImageCache to use; if otherwise, the
     /// global/shared ImageCache will be used.
-    explicit ImageBuf (string_view name, int subimage=0,
-                       int miplevel=0, ImageCache *imagecache = NULL);
+    /// If 'config' is not NULL, it points to an ImageSpec giving requests
+    /// or special instructions to be passed on to the eventual
+    /// ImageInput::open() call.
+    explicit ImageBuf (string_view name, int subimage=0, int miplevel=0,
+                       ImageCache *imagecache = NULL,
+                       const ImageSpec *config = NULL);
 
     /// Construct an ImageBuf to read the named image -- but don't actually
     /// read it yet!  The image will actually be read when other methods
@@ -229,8 +233,12 @@ public:
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
+    /// If 'config' is not NULL, it points to an ImageSpec giving requests
+    /// or special instructions to be passed on to the eventual
+    /// ImageInput::open() call.
     void reset (string_view name, int subimage, int miplevel,
-                ImageCache *imagecache = NULL);
+                ImageCache *imagecache = NULL,
+                const ImageSpec *config = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).

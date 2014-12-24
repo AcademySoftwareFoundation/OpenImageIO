@@ -136,13 +136,13 @@ class ImageBufImpl {
 public:
     ImageBufImpl (string_view filename, int subimage, int miplevel,
                   ImageCache *imagecache=NULL, const ImageSpec *spec=NULL,
-                  void *buffer=NULL);
+                  void *buffer=NULL, const ImageSpec *config = NULL);
     ImageBufImpl (const ImageBufImpl &src);
     ~ImageBufImpl ();
 
     void clear ();
     void reset (string_view name, int subimage, int miplevel,
-                ImageCache *imagecache);
+                ImageCache *imagecache, const ImageSpec *config);
     void reset (string_view name, const ImageSpec &spec);
     void alloc (const ImageSpec &spec);
     void realloc ();
@@ -270,6 +270,7 @@ private:
     int m_write_tile_width;
     int m_write_tile_height;
     int m_write_tile_depth;
+    boost::scoped_ptr<ImageSpec> m_configspec; // Configuration spec
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -281,7 +282,8 @@ private:
 ImageBufImpl::ImageBufImpl (string_view filename,
                             int subimage, int miplevel,
                             ImageCache *imagecache,
-                            const ImageSpec *spec, void *buffer)
+                            const ImageSpec *spec, void *buffer,
+                            const ImageSpec *config)
     : m_storage(ImageBuf::UNINITIALIZED),
       m_name(filename), m_nsubimages(0),
       m_current_subimage(subimage), m_current_miplevel(miplevel),
@@ -314,6 +316,7 @@ ImageBufImpl::ImageBufImpl (string_view filename,
         // If a filename was given, read the spec and set it up as an
         // ImageCache-backed image.  Reallocate later if an explicit read()
         // is called to force read into a local buffer.
+        m_configspec.reset (config ? new ImageSpec (*config) : NULL);
         read (subimage, miplevel);
     } else {
         ASSERT (buffer == NULL);
@@ -363,6 +366,8 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
         // Source was cache-based or deep
         // nothing else to do
     }
+    if (src.m_configspec)
+        m_configspec.reset (new ImageSpec(*src.m_configspec));
 }
 
 
@@ -386,8 +391,9 @@ ImageBuf::ImageBuf ()
 
 
 ImageBuf::ImageBuf (string_view filename, int subimage, int miplevel,
-                    ImageCache *imagecache)
-    : m_impl (new ImageBufImpl (filename, subimage, miplevel, imagecache))
+                    ImageCache *imagecache, const ImageSpec *config)
+    : m_impl (new ImageBufImpl (filename, subimage, miplevel, imagecache,
+              NULL /*spec*/, NULL /*buffer*/, config))
 {
 }
 
@@ -524,6 +530,7 @@ ImageBufImpl::clear ()
     m_write_tile_width = 0;
     m_write_tile_height = 0;
     m_write_tile_depth = 0;
+    m_configspec.reset (NULL);
 }
 
 
@@ -538,7 +545,8 @@ ImageBuf::clear ()
 
 void
 ImageBufImpl::reset (string_view filename, int subimage,
-                     int miplevel, ImageCache *imagecache)
+                     int miplevel, ImageCache *imagecache,
+                     const ImageSpec *config)
 {
     clear ();
     m_name = ustring (filename);
@@ -546,6 +554,8 @@ ImageBufImpl::reset (string_view filename, int subimage,
     m_current_miplevel = miplevel;
     if (imagecache)
         m_imagecache = imagecache;
+    if (config)
+        m_configspec.reset (new ImageSpec(*config));
 
     if (m_name.length() > 0) {
         // If a filename was given, read the spec and set it up as an
@@ -559,9 +569,9 @@ ImageBufImpl::reset (string_view filename, int subimage,
 
 void
 ImageBuf::reset (string_view filename, int subimage, int miplevel,
-                 ImageCache *imagecache)
+                 ImageCache *imagecache, const ImageSpec *config)
 {
-    impl()->reset (filename, subimage, miplevel, imagecache);
+    impl()->reset (filename, subimage, miplevel, imagecache, config);
 }
 
 
@@ -569,7 +579,7 @@ ImageBuf::reset (string_view filename, int subimage, int miplevel,
 void
 ImageBuf::reset (string_view filename, ImageCache *imagecache)
 {
-    impl()->reset (filename, 0, 0, imagecache);
+    impl()->reset (filename, 0, 0, imagecache, NULL);
 }
 
 
@@ -687,6 +697,8 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     m_nmiplevels = 0;
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
     static ustring s_fileformat("fileformat");
+    if (m_configspec)  // Pass configuration options to cache
+        m_imagecache->add_file (m_name, NULL, m_configspec.get());
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
                                   TypeDesc::TypeInt, &m_nsubimages);
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
@@ -768,7 +780,8 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
     m_current_miplevel = miplevel;
 
     if (m_spec.deep) {
-        boost::scoped_ptr<ImageInput> input (ImageInput::open (m_name.string()));
+        boost::scoped_ptr<ImageInput> input (
+                    ImageInput::open (m_name.string(), m_configspec.get()));
         if (! input) {
             error ("%s", OIIO::geterror());
             return false;
@@ -844,7 +857,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         // Bypass the cache and read directly so that there is no possible
         // loss of range or precision resulting from going through the
         // cache.
-        ImageInput *in = ImageInput::open (m_name.string());
+        ImageInput *in = ImageInput::open (m_name.string(), m_configspec.get());
         bool ok = true;
         if (in) {
             if (subimage || miplevel) {

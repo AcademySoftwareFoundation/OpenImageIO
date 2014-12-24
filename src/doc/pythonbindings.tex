@@ -1089,15 +1089,18 @@ Return the \ImageBuf to its pristine, uninitialized state.
 
     # The following two commands are equivalent:
     buf = ImageBuf()     # 1 - assign a new blank ImageBuf
-    buf.clear()               # 2 - clear the existing ImageBuf
+    buf.clear()          # 2 - clear the existing ImageBuf
 \end{code}
 \apiend
 
-\apiitem{ImageBuf.{\ce reset} (filename) \\
-ImageBuf.{\ce reset} (filename, subimage, miplevel) \\
-ImageBuf.{\ce reset} (imagespec)}
-Restore the \ImageBuf to its newly-constructed state, either to read from
-a filename (optionally specifying a subimage and MIP level) or a writeable
+\apiitem{ImageBuf.{\ce reset} (filename, subimage=0, miplevel=0, config=ImageSpec())}
+Restore the \ImageBuf to a newly-constructed state, to read from
+a filename (optionally specifying a subimage, MIP level, and/or 
+a ``configuration'' \ImageSpec).
+\apiend
+
+\apiitem{ImageBuf.{\ce reset} (imagespec)}
+Restore the \ImageBuf to the newly-constructed state of a blank, writeable
 \ImageBuf specified by an \ImageSpec.
 \apiend
 

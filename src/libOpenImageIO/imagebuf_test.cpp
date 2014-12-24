@@ -261,6 +261,20 @@ void histogram_computation_test ()
 
 
 
+void test_open_with_config ()
+{
+    // N.B. This function must run after ImageBuf_test_appbuffer, which
+    // writes "A.tif".
+    ImageCache *ic = ImageCache::create(false);
+    ImageSpec config;
+    config.attribute ("oiio:DebugOpenConfig!", 1);
+    ImageBuf A ("A.tif", 0, 0, ic, &config);
+    OIIO_CHECK_EQUAL (A.spec().get_int_attribute("oiio:DebugOpenConfig!",0), 42);
+    ic->destroy (ic);
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -277,6 +291,7 @@ main (int argc, char **argv)
 
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
+    test_open_with_config ();
 
     return unit_test_failures;
 }

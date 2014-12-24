@@ -68,6 +68,13 @@ ImageBuf_reset_name2 (ImageBuf &buf, const std::string &name,
 }
 
 void
+ImageBuf_reset_name_config (ImageBuf &buf, const std::string &name,
+                      int subimage, int miplevel, const ImageSpec &config)
+{
+    buf.reset (name, subimage, miplevel, NULL, &config);
+}
+
+void
 ImageBuf_reset_spec (ImageBuf &buf, const ImageSpec &spec)
 {
     buf.reset (spec);
@@ -291,6 +298,7 @@ void declare_imagebuf()
         .def("clear", &ImageBuf::clear)
         .def("reset", &ImageBuf_reset_name)
         .def("reset", &ImageBuf_reset_name2)
+        .def("reset", &ImageBuf_reset_name_config)
         .def("reset", &ImageBuf_reset_spec)
         .add_property ("initialized", &ImageBuf::initialized)
         .def("init_spec", &ImageBuf::init_spec)
@@ -301,7 +309,6 @@ void declare_imagebuf()
         .def("write", &ImageBuf_write,
              ImageBuf_write_overloads())
         // FIXME -- write(ImageOut&)
-//        .def("set_write_format", &ImageBuf::set_write_format)
         .def("set_write_format", &ImageBuf_set_write_format)
         .def("set_write_tiles", &ImageBuf::set_write_tiles,
              (arg("width")=0, arg("height")=0, arg("depth")=0))

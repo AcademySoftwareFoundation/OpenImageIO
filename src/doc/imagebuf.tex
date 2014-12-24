@@ -163,7 +163,8 @@ Constructing a readable \ImageBuf that will hold an image to be read
 from disk.
 
 \apiitem{ImageBuf (string_view name, int subimage=0, int miplevel=0, \\
-\bigspc\bigspc ImageCache *imagecache=NULL)}
+\bigspc\bigspc ImageCache *imagecache = NULL, \\
+\bigspc\bigspc const ImageSpec *config = NULL)}
 Construct an \ImageBuf that will be used to read the named file (at the
 given subimage and MIP-level, defaulting to the first in the file).  But
 don't read it yet!  The image will actually be read when other methods
@@ -172,12 +173,19 @@ need to access the spec and/or pixels, or when an explicit call to
 If {\cf imagecache} is non-NULL, the custom
 \ImageCache will be used (if applicable); otherwise, a NULL imagecache
 indicates that the global/shared \ImageCache should be used.
+If {\cf config} is not NULL, it points to an \ImageSpec giving requests
+or special instructions to be passed on to the eventual
+{\cf ImageInput::open()} call.
 \apiend
 
 \apiitem{void reset (string_view name, int subimage=0, int miplevel=0, \\
-\bigspc\bigspc ImageCache *imagecache = NULL)}
+\bigspc\bigspc ImageCache *imagecache = NULL \\
+\bigspc\bigspc const ImageSpec *config = NULL)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
 to read the named file (but doesn't actually read yet).
+If {\cf config} is not NULL, it points to an \ImageSpec giving requests
+or special instructions to be passed on to the eventual
+{\cf ImageInput::open()} call.
 \apiend
 
 \apiitem{bool read (int subimage=0, int miplevel=0, bool force=false, \\

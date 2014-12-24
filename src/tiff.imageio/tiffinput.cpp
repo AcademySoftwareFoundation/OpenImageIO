@@ -141,6 +141,7 @@ private:
                                      ///  try to keep it that way!
     bool m_convert_alpha;            ///< Do we need to associate alpha?
     bool m_separate;                 ///< Separate planarconfig?
+    bool m_testopenconfig;           ///< Debug aid to test open-with-config
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
@@ -154,6 +155,7 @@ private:
         m_keep_unassociated_alpha = false;
         m_convert_alpha = false;
         m_separate = false;
+        m_testopenconfig = false;
         m_colormap.clear();
     }
 
@@ -387,6 +389,11 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    // This configuration hint has no function other than as a debugging aid
+    // for testing whether configurations are received properly from other
+    // OIIO components.
+    if (config.get_int_attribute("oiio:DebugOpenConfig!", 0))
+        m_testopenconfig = true;
     return open (name, newspec);
 }
 
@@ -935,6 +942,9 @@ TIFFInput::readspec (bool read_meta)
         else
             m_spec.erase_attribute ("ImageDescription");
     }
+
+    if (m_testopenconfig)  // open-with-config debugging
+        m_spec.attribute ("oiio:DebugOpenConfig!", 42);
 }
 
 
