@@ -375,14 +375,21 @@ Convert a gamma-corrected image (with gamma = 2.2) to linear values.
     oiiotool original.tif --resize 1024x768 -o specific.tif
 \end{code}
 
-Resize by a known scale factor:
+\noindent Resize both dimensions by a known scale factor:
 
 \begin{code}
     oiiotool original.tif --resize 200% -o big.tif
     oiiotool original.tif --resize 25% -o small.tif
 \end{code}
 
-Resize to a known resolution in one dimension, with the other dimension
+\noindent Resize each dimension, independently, by known scale factors:
+
+\begin{code}
+    oiiotool original.tif --resize 300%x200% -o big.tif
+    oiiotool original.tif --resize 100%x25% -o small.tif
+\end{code}
+
+\noindent Resize to a known resolution in one dimension, with the other dimension
 automatically computed to preserve aspect ratio (just specify 0 as the
 resolution in the dimension to be automatically computed):
 
@@ -1532,6 +1539,7 @@ given pixel data resolution rapidly, but at a low quality, by simply
 copying the ``closest'' pixel.  The \emph{size} is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
+\\ or~~~~ \spc \emph{wscale}{\verb|%|}\,{\cf x}\,\emph{hscale}{\verb|%|} \\
 
 \noindent if {\cf width} or {\cf height} is 0, that dimension will be
 automatically computed so as to preserve the original aspect ratio.
@@ -1552,6 +1560,7 @@ Replace the current image with a new image that is resized to the
 given pixel data resolution.  The \emph{size} is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
+\\ or~~~~ \spc \emph{wscale}{\verb|%|}\,{\cf x}\,\emph{hscale}{\verb|%|} \\
 
 \noindent if {\cf width} or {\cf height} is 0, that dimension will be
 automatically computed so as to preserve the original aspect ratio.
