@@ -778,7 +778,8 @@ Oiiotool::adjust_geometry (string_view command,
                            int &w, int &h, int &x, int &y, const char *geom,
                            bool allow_scaling)
 {
-    float scale = 1.0f;
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
     int ww = w, hh = h;
     int xx = x, yy = y;
     int xmax, ymax;
@@ -803,21 +804,30 @@ Oiiotool::adjust_geometry (string_view command,
             hh = int (ww * float(h)/float(w) + 0.5f);
         w = ww;
         h = hh;
+    } else if (allow_scaling && sscanf (geom, "%f%%x%f%%", &scaleX, &scaleY) == 2) {
+        scaleX = std::max(0.0f, scaleX*0.01f);
+        scaleY = std::max(0.0f, scaleY*0.01f);
+        if (scaleX == 0 && scaleY != 0)
+            scaleX = scaleY;
+        if (scaleY == 0 && scaleX != 0)
+            scaleY = scaleX;
+        w = (int)(w * scaleX + 0.5f);
+        h = (int)(h * scaleY + 0.5f);
     } else if (sscanf (geom, "%d%d", &xx, &yy) == 2) {
         x = xx;
         y = yy;
-    } else if (allow_scaling && sscanf (geom, "%f%%", &scale) == 1) {
-        scale *= 0.01f;
-        w = (int)(w * scale + 0.5f);
-        h = (int)(h * scale + 0.5f);
-    } else if (allow_scaling && sscanf (geom, "%f", &scale) == 1) {
-        w = (int)(w * scale + 0.5f);
-        h = (int)(h * scale + 0.5f);
+    } else if (allow_scaling && sscanf (geom, "%f%%", &scaleX) == 1) {
+        scaleX *= 0.01f;
+        w = (int)(w * scaleX + 0.5f);
+        h = (int)(h * scaleX + 0.5f);
+    } else if (allow_scaling && sscanf (geom, "%f", &scaleX) == 1) {
+        w = (int)(w * scaleX + 0.5f);
+        h = (int)(h * scaleX + 0.5f);
     } else {
         error (command, Strutil::format ("Unrecognized geometry \"%s\"", geom));
         return false;
     }
-//    printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
+    // printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
     return true;
 }
 

@@ -375,14 +375,21 @@ Convert a gamma-corrected image (with gamma = 2.2) to linear values.
     oiiotool original.tif --resize 1024x768 -o specific.tif
 \end{code}
 
-Resize by a known scale factor:
+\noindent Resize both dimensions by a known scale factor:
 
 \begin{code}
     oiiotool original.tif --resize 200% -o big.tif
     oiiotool original.tif --resize 25% -o small.tif
 \end{code}
 
-Resize to a known resolution in one dimension, with the other dimension
+\noindent Resize each dimension, independently, by known scale factors:
+
+\begin{code}
+    oiiotool original.tif --resize 300%x200% -o big.tif
+    oiiotool original.tif --resize 100%x25% -o small.tif
+\end{code}
+
+\noindent Resize to a known resolution in one dimension, with the other dimension
 automatically computed to preserve aspect ratio (just specify 0 as the
 resolution in the dimension to be automatically computed):
 
