@@ -390,6 +390,31 @@ public:
     }
 
     /// Equality comparison, component by component
+    friend OIIO_FORCEINLINE const mask4 veq (mask4 a, mask4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a.m_vec), _mm_castps_si128(b.m_vec)));
+#else
+        return mask4 (a[0] == b[0],
+                      a[1] == b[1],
+                      a[2] == b[2],
+                      a[3] == b[3]);
+#endif
+    }
+
+    /// Inequality comparison, component by component
+    friend OIIO_FORCEINLINE const mask4 vne (mask4 a, mask4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_xor_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] != b[0],
+                      a[1] != b[1],
+                      a[2] != b[2],
+                      a[3] != b[3]);
+#endif
+    }
+
+#if 1
+    /// Equality comparison, component by component
     friend OIIO_FORCEINLINE const mask4 operator== (mask4 a, mask4 b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a.m_vec), _mm_castps_si128(b.m_vec)));
@@ -412,6 +437,7 @@ public:
                       a[3] != b[3]);
 #endif
     }
+#endif
 
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, mask4 a) {
@@ -906,6 +932,43 @@ public:
     }
 
 
+    friend OIIO_FORCEINLINE mask4 veq (int4 a, int4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_castsi128_ps(_mm_cmpeq_epi32 (a.m_vec, b.m_vec));
+#else
+        return mask4 (a[0] == b[0], a[1] == b[1], a[2] == b[2], a[3] == b[3]);
+#endif
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vne (int4 a, int4 b) {
+        return ! veq(a,b);
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vlt (int4 a, int4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_castsi128_ps(_mm_cmplt_epi32 (a.m_vec, b.m_vec));
+#else
+        return mask4 (a[0] < b[0], a[1] < b[1], a[2] < b[2], a[3] < b[3]);
+#endif
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vgt (int4 a, int4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_castsi128_ps(_mm_cmpgt_epi32 (a.m_vec, b.m_vec));
+#else
+        return mask4 (a[0] > b[0], a[1] > b[1], a[2] > b[2], a[3] > b[3]);
+#endif
+    }
+
+    friend OIIO_FORCEINLINE mask4 vge (int4 a, int4 b) {
+        return !vlt(a,b);
+    }
+
+    friend OIIO_FORCEINLINE mask4 vle (int4 a, int4 b) {
+        return !vgt(a,b);
+    }
+
+#if 1
     friend OIIO_FORCEINLINE mask4 operator== (int4 a, int4 b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_castsi128_ps(_mm_cmpeq_epi32 (a.m_vec, b.m_vec));
@@ -917,7 +980,9 @@ public:
     friend OIIO_FORCEINLINE mask4 operator!= (int4 a, int4 b) {
         return ! (a == b);
     }
-  
+#endif
+
+#if 1
     friend OIIO_FORCEINLINE mask4 operator< (int4 a, int4 b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_castsi128_ps(_mm_cmplt_epi32 (a.m_vec, b.m_vec));
@@ -941,6 +1006,7 @@ public:
     friend OIIO_FORCEINLINE mask4 operator<= (int4 a, int4 b) {
         return !(a > b);
     }
+#endif
 
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, int4 val) {
@@ -1440,6 +1506,55 @@ public:
     }
 
 
+    friend OIIO_FORCEINLINE mask4 veq (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmpeq_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] == b[0], a[1] == b[1], a[2] == b[2], a[3] == b[3]);
+#endif
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vne (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmpneq_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] != b[0], a[1] != b[1], a[2] != b[2], a[3] != b[3]);
+#endif
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vlt (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmplt_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] < b[0], a[1] < b[1], a[2] < b[2], a[3] < b[3]);
+#endif
+    }
+  
+    friend OIIO_FORCEINLINE mask4 vgt  (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmpgt_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] > b[0], a[1] > b[1], a[2] > b[2], a[3] > b[3]);
+#endif
+    }
+
+    friend OIIO_FORCEINLINE mask4 vge (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmpge_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] >= b[0], a[1] >= b[1], a[2] >= b[2], a[3] >= b[3]);
+#endif
+    }
+
+    friend OIIO_FORCEINLINE mask4 vle (float4 a, float4 b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_cmple_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a[0] <= b[0], a[1] <= b[1], a[2] <= b[2], a[3] <= b[3]);
+#endif
+    }
+
+#if 1
     friend OIIO_FORCEINLINE mask4 operator== (float4 a, float4 b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpeq_ps (a.m_vec, b.m_vec);
@@ -1455,7 +1570,9 @@ public:
         return mask4 (a[0] != b[0], a[1] != b[1], a[2] != b[2], a[3] != b[3]);
 #endif
     }
-  
+#endif
+
+#if 1
     friend OIIO_FORCEINLINE mask4 operator< (float4 a, float4 b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmplt_ps (a.m_vec, b.m_vec);
@@ -1487,6 +1604,7 @@ public:
         return mask4 (a[0] <= b[0], a[1] <= b[1], a[2] <= b[2], a[3] <= b[3]);
 #endif
     }
+#endif
 
     // Some oddball items that are handy
 
