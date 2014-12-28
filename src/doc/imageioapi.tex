@@ -22,7 +22,7 @@ There are two kinds of data that are important to \product:
 Both internal and file data is stored in a particular \emph{data format}
 that describes the numerical encoding of the values.  \product
 understands several types of data encodings, and there is 
-a special type, \TypeDesc, that allows their enumeration and
+a special class, \TypeDesc, that allows their enumeration and
 is described in the header file {\cf OpenImageIO/typedesc.h}.
 A \TypeDesc describes a base data format type, aggregation into simple
 vector and matrix types, and an array length (if
@@ -200,10 +200,10 @@ There are two important caveats to using this class:
    will incur extra expense to internally allocate a valid C string.
 \end{enumerate}
 
-\apiitem{string_view (const char *chars) \\
-string_view (const char *chars, size_t length) \\
-string_view (const std::string \&str) \\
-string_view (ustring ustr)}
+\apiitem{{\ce string_view} (const char *chars) \\
+{\ce string_view} (const char *chars, size_t length) \\
+{\ce string_view} (const std::string \&str) \\
+{\ce string_view} (ustring ustr)}
 Constructs a \stringview.  The \stringview doesn't have its own copy of the
 characters, so don't use the \stringview after the original string has been
 destroyed or altered.
@@ -263,10 +263,10 @@ you want to use \ustring extensively in your own code. But here are the most
 important details to know if you are calling the \OpenImageIO functions that
 take \ustring parameters:
 
-\apiitem{ustring (const char *chars) \\
-ustring (const char *chars, size_t length) \\
-ustring (const std::string \&str) \\
-ustring (string\_view sref)}
+\apiitem{{\ce ustring} (const char *chars) \\
+{\ce ustring} (const char *chars, size_t length) \\
+{\ce ustring} (const std::string \&str) \\
+{\ce ustring} (string\_view sref)}
 Constructs a \ustring from a C string ({\cf char*}), C++ {\cf std::string},
 or a \stringview.
 \apiend
@@ -629,7 +629,7 @@ example, \product 1.2.3 would return a value of 10203.
 \index{error checking}
 \indexapi{geterror}
 Returns any error string describing what went wrong if 
-{\cf ImageInput::create()} or {\cf ImageOutput::create()} failed
+{\cf ImageInput::create()} or \\ {\cf ImageOutput::create()} failed
 (since in such cases, the \ImageInput or \ImageOutput itself does 
 not exist to have its own {\cf geterror()} function called).
 This function returns the last error

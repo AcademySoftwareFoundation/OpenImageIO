@@ -89,13 +89,15 @@ making simplifying assumptions.  Among them:
 \begin{itemize}
   \item \product only deals with ordinary 2D images, and to a limited
     extent 3D volumes, and image files that contain multiple (but
-    finite) independent images within them.  \product {\bf~ does not deal
-      with motion picture files.}  At least, not currently.
+    finite) independent images within them.  \product's support of ``movie''
+    files is limited to viewing them as a sequence of separate frames within
+    the file, but not as movies per se (for example, no support for dealing
+    with audio or synchronization).
 
-  \item Pixel data are 8- 16- or 32-bit int (signed or unsigned), 16-
+  \item Pixel data are presented as 8- 16- or 32-bit int (signed or unsigned), 16-
     32- or 64-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixels
     boundaries that aren't byte boundaries.  Files with $<8$ bits will
-    appear to the client as 8-bit unsigned grayscale images.
+    appear to the client application as 8-bit unsigned grayscale images.
 
   \item Only fully elaborated, non-compressed data are accepted
     and returned by the API.  Compression or special encodings are
@@ -115,7 +117,7 @@ making simplifying assumptions.  Among them:
     resolution channel in the subimage.
 
   \item Color information is always in the order R, G, B, and the alpha
-    channel, if any, always follows RGB, and z channel (if any) always
+    channel, if any, always follows RGB, and Z channel (if any) always
     follows alpha.  So if a file actually stores ABGR, the plugin is
     expected to rearrange it as RGBA.
 
@@ -202,8 +204,8 @@ open source their own implementation in a timely manner, I was forced to
 create this clearly superior descendant.
 \end{comment}
 
-\product incorporates or depends upon several other open source
-packages:
+\product incorporates, depends upon, or dynamically links against several
+other open source packages:
 
 \begin{itemize}
 \item {\cf libtiff} \copyright\ 1988-1997 Sam Leffler and 1991-1997 Silicon
@@ -225,7 +227,7 @@ Dominik Reichl \\ {\cf http://www.dominik-reichl.de/}
 \item Squish \copyright\ 2006 Simon Brown.
 {\cf http://sjbrown.co.uk/?code=squish}
 \item PugiXML \copyright\ 2006-2009 by Arseny Kapoulkine (based on work
-\copyright 2003 Kristen Wegner). {\cf http://pugixml.org/}
+\copyright\ 2003 Kristen Wegner). {\cf http://pugixml.org/}
 \item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer.
 {\cf http://code.google.com/p/dpx}
 \item Ptex \copyright\ 2009 Disney Enterprises, Inc.
@@ -236,17 +238,20 @@ Dominik Reichl \\ {\cf http://www.dominik-reichl.de/}
 {\cf http://github.com/c42f/tinyformat}
 \item {\cf lookup3} code by Bob Jenkins, Public Domain.
 {\cf http://burtleburtle.net/bob/c/lookup3.c}
-\item {\cf xxhash} \copyright 2012 Yann Collet (BSD Licensed). 
+\item {\cf xxhash} \copyright\ 2012 Yann Collet.
 {\cf http://code.google.com/p/xxhash/}
-\item {\cf KissFFT} \copyright 2003--2010 Mark Borgerding (BSD Licensed).\\
+\item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding.\\
 {\cf http://sourceforge.net/projects/kissfft/}
-\item {\cf GIFLIB} \copyright 1997 Eric S. Raymond (MIT Licensed).
+\item {\cf GIFLIB} \copyright\ 1997 Eric S. Raymond (MIT Licensed).
 {\cf http://giflib.sourceforge.net/}
-\item {\cf LibRaw} \copyright 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw
+\item {\cf LibRaw} \copyright\ 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw
     licenses). \\ {\cf http://www.libraw.org/}
+\item {\cf FFmpeg} \copyright\ various authors and distributed under LGPL.
+   {\cf https://www.ffmpeg.org}
 \end{itemize}
 
 These other packages are all distributed under licenses that allow them
-to be used by and distributed with \product.
+to be used by \product. Where not specifically noted, they are all using
+the same BSD license that \product uses.
 
 \chapwidthend

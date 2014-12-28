@@ -495,6 +495,54 @@ the metadata robustly.
 
 \vspace{.25in}
 
+\section{Movie formats (using ffmpeg)}
+\label{sec:bundledplugins:ffmpeg}
+\index{ffmpeg}\index{movie files}
+
+\NEW % 1.5
+
+The {\cf ffmpeg}-based reader is capable of reading the individual frames
+from a variety of movie file formats, including:
+
+\smallskip
+
+\noindent\begin{tabular}{p{0.5in} p{1.5in} p{2.5in}}
+& Format & Extensions \\[0.75ex]
+%\hline
+& AVI       & {\cf .avi} \\
+& QuickTime & {\cf .qt}, {\cf .mov} \\
+& MPEG-4    & {\cf .mp4}, {\cf .m4a}, {\cf .m4v} \\
+& 3GPP files & {\cf .3gp}, {\cf .3g2} \\
+& Motion JPEG-2000 & {\cf .mj2} \\
+& Apple M4V & {\cf .m4v} \\
+& MPEG-1/MPEG-2 & {\cf .mpg} \\
+\end{tabular}
+
+\medskip
+
+Currently, these files may only be read. Write support may be added in a
+future release.  Also, currently, these files simply look to OIIO like
+simple multi-image files and not much support is given to the fact that they
+are technically \emph{movies} (for example, there is no support for reading
+audio information).
+
+\medskip
+
+Some special attributes are used for movie files:
+
+\medskip
+
+\noindent\begin{tabular}{p{1.8in}|p{0.65in}|p{2.75in}}
+OIIO Attribute & Type & Explanation \\
+\hline
+\qkw{oiio:Movie} & int & Nonzero value for movie files \\
+\qkw{fps} & float & Frames per second \\
+\end{tabular}
+
+
+
+\vspace{.25in}
+
 \section{OpenEXR}
 \label{sec:bundledplugins:openexr}
 \index{OpenEXR}
@@ -510,14 +558,12 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
+\noindent\begin{tabular}{p{1.95in}|p{0.5in}|p{2.8in}}
 \ImageSpec Attribute & Type & OpenEXR header data or explanation \\
 \hline
-{\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\
-& & \\
+{\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\[1ex]
 {\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
-  {\cf\small full_y} & & {\cf displayWindow}.  \\
-& & \\
+  {\cf\small full_y} & & {\cf displayWindow}.  \\[4ex]
 \qkw{worldtocamera} & matrix & worldToCamera \\
 \qkw{worldtoscreen} & matrix & worldToNDC \\
 \qkw{ImageDescription} & string & comments \\
@@ -551,9 +597,9 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   (set to \qkws{increasingY}, \qkws{randomY}, or \qkws{decreasingY}).
  \\
 \qkws{openexr:roundingmode} & int & the MIPmap rounding mode of the
-  file. \\[2ex]
-\qkws{openexr:dwaCompressionLevel} & float & compression level for
-   dwaa or dwab compression (default: 45.0). \\
+  file. \\
+\qkws{\small openexr:dwaCompressionLevel} & float & compression level for
+   dwaa or dwab compression (default: 45.0). \\[2ex]
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
 \end{tabular}
@@ -561,8 +607,6 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \subsubsection*{Limitations}
 
 \begin{itemize}
-\item The OpenEXR format does not currently support multiple subimages,
-  except for the special case of MIP-maps.
 \item The OpenEXR format only supports HALF, FLOAT, and UINT32 pixel
   data.  \product's OpenEXR writer will silently convert data in formats
   (including the common UINT8 and UINT16 cases) to HALF data for output.
@@ -751,7 +795,7 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \subsubsection*{Limitations}
 
 \begin{itemize}
-\item \product will only write 1 image to 1 file, multiple subimages
+\item \product will only write a single image to each file, multiple subimages
   are not supported by the writer (but are supported by the reader).
 \end{itemize}
 
@@ -931,6 +975,22 @@ photometric mode (will convert to ``minisblack'').
 The TIFF plugin attempts to support all the standard Exif, IPTC, and XMP
 metadata if present.
 
+\subsubsection*{Limitations}
+
+\product's TIFF reader and writer have some limitations you should be
+aware of:
+\begin{itemize}
+\item No separate per-channel data formats (not supported by {\cf
+  libtiff}).
+\item Only multiples of 8 bits per pixel may be passed through
+  \product's APIs, e.g., 1-, 2-, and 4-bits per pixel will be reported
+  by OIIO as 8 bit images; 12 bits per pixel will be reported as 16,
+  etc.  But the \qkw{oiio:BitsPerSample} attribute in the \ImageSpec
+  will correctly report the original bit depth of the file.
+\end{itemize}
+
+
+\newpage 
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
@@ -979,22 +1039,6 @@ metadata if present.
 \qkw{oiio:UnassociatedAlpha} & int & Nonzero if the alpha channel
   contained ``unassociated'' alpha. \\
 \end{tabular}
-
-\subsubsection*{Limitations}
-
-\product's TIFF reader and writer have some limitations you should be
-aware of:
-\begin{itemize}
-\item No separate per-channel data formats (not supported by {\cf
-  libtiff}).
-\item Only multiples of 8 bits per pixel may be passed through
-  \product's APIs, e.g., 1-, 2-, and 4-bits per pixel will be reported
-  by OIIO as 8 bit images; 12 bits per pixel will be reported as 16,
-  etc.  But the \qkw{oiio:BitsPerSample} attribute in the \ImageSpec
-  will correctly report the original bit depth of the file.  Note that
-  the TIFF specification itself does not support 16-bit floating point
-  pixels ({\cf half} data).
-\end{itemize}
 
 
 

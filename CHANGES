@@ -1,38 +1,42 @@
 Changes:
 
-Release 1.5 (development in progress) -- compared to 1.4.x
+Release 1.5 (January ??, 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool functionality/commands:
    * --rotate90, --rotate180, --rotate270 rotate the image in 90 degree
-     axially-aligned increments. (1.5.2)
+     axially-aligned increments with no filtering. (1.5.2)
    * --reorient will perform whatever series of rotations or flips are
-     necessary to move the pixels to match the Orientation metadata that
+     necessary to move the pixels to match the "Orientation" metadata that
      describes the desired display orientation. (1.5.2)
    * --autoorient will automatically do the equivalent of --reorient on
      every image as it is read in, if it has a nonstandard orientation.
      (This is generally a good idea to use if you are using oiiotool to
      combine images that may have different orientations.) (1.5.2)
-   * --rotate rotates an image by arbitrary angle and center point.
-     #932 (1.5.3)
-   * --warp transforms an image using a 3x3 matrix. #932 (1.5.3)
+   * --rotate rotates an image by arbitrary angle and center point,
+     with high-quality filtering. #932 (1.5.3)
+   * --warp transforms an image using a 3x3 matrix, with high-quality
+     filtering. #932 (1.5.3)
    * --median performs a median filter. (1.5.4)
 * New ImageBufAlgo functions:
    * rotate90(), rotate180(), rotate270() rotate the image in 90 degree
-     axially-aligned increments. (1.5.2)
+     axially-aligned increments with no filtering. (1.5.2)
    * reorient() will perform whatever series of rotations or flips are
-     necessary to move the pixels to match the Orientation metadata that
+     necessary to move the pixels to match the "Orientation" metadata that
      describes the desired display orientation. (1.5.2)
-   * rotate() performs rotation with arbitrary angle and center point.
-     #932 (1.5.3)
-   * warp() transforms an image by a 3x3 matrix. #932 (1.5.3)
+   * rotate() performs rotation with arbitrary angle and center point,
+     with high-quality filtering. #932 (1.5.3)
+   * warp() transforms an image by a 3x3 matrix, with high-quality
+     filtering. #932 (1.5.3)
    * median_filter performs a median filter. (1.5.4)
 * Significant internal speedups by utilizing SIMD instructions (SSE) in
   the TextureSystem (1.5.5 / #948, 1.5.6 / #990). To use this to its
   fullest extent, build OIIO with the make/cmake option USE_SIMD=arch,
   where arch is sse2, ssse3, sse4.1, sse4.2, depending on what machines
   you'll be deploying to. (Note that x86_64 automatically implies at
-  least sse2.)  (1.5.5)
+  least sse2.) We're finding that this has approximately doubled the
+  speed of the math part of texture mapping (it doesn't speed up the disk
+  I/O, of course).  (1.5.5)
 * Basic support for many movie files via a plugin using 'ffmpeg'. Works
   with avi, mov, qt, mp4, m4a, 3gp, 3g2, mj2, m4v, mpg, and more.  Movie
   files simply look like multi-image files to OIIO. There isn't really
@@ -65,6 +69,26 @@ Public API changes:
   "arbitrary_metadata" reveals if the format allows arbitrarily-named
   metadata; "exif" if the format can store camera Exif data; "iptc" if
   the format can store IPTC metadata. #1001 (1.5.7)
+* Removed ImageBuf and ImageBufAlgo functions that have been deprecated
+  since OIIO 1.3. #1016 (1.5.8)
+* ImageCache::add_file has been extended to allow an ImageSpec pointer
+  as "configuration", which will be passed along to the underlying
+  ImageInput::open() when the file is first opened. This allows you to
+  use the same kind of configuration options/hints that you would with a
+  raw ImageInput. (1.5.8)
+* ImageBuf constructor and reset methods have been extended to allow an
+  ImageSpec pointer as "configuration", which will be passed along to
+  the underlying ImageCache and/or ImageInput::open() when the file is
+  first opened. This allows you to use the same kind of configuration
+  options/hints that you would with a raw ImageInput. (1.5.8)
+* The DeepData helper structure now has methods to set (already allocated)
+  deep values, as well as to retrieve uint values. (1.5.8)
+* ImageBuf methods to get and set deep values and to allocate the DeepData
+  structure. (1.5.8)
+* ImageBuf::interppixel_NDC has been changed to consider the coordinates
+  relate to full (aka display) window, rather than data window. (1.5.8)
+* ImageBuf::interppixel_bicubic and interppixel_bicubic_NDC added to
+  sample an image with B-spline bicubic interpolation. (1.5.8)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -72,6 +96,7 @@ Fixes, minor enhancements, and performance improvements:
      sensibly for cropped images. In particular, the transformation now
      happens with respect to the display (full) window, rather than
      simply flipping or flopping within the data window. (1.5.2)
+   * channels() now works properly with "deep" images. (1.5.8)
 * oiiotool:
    * oiiotool --nosoftwareattrib suppresses the altering of Software and
      ImageHistory fields upon output. (1.5.1)
@@ -121,6 +146,15 @@ Fixes, minor enhancements, and performance improvements:
      you are now able to say newchannel=oldchannel, both shuffling and
      renaming channels simultaneously, thus removing a frequent necessity
      of a --chnames action following a --ch. (1.5.8)
+   * oiiotool -d now supports uint32, sint32. #1013 (1.5.8)
+   * oiiotool -native forces native data format read in cases where going
+     through the ImageCache would have sacrificed precision or range.
+     #1014 (1.5.8)
+   * oiiotool --resize (and similar, such as --fix, --resample, etc.) size
+     specifiers now allow percentage values that are not the same in each
+     direction, such as "200%x50%", which would double horizontal resolution
+     while cutting vertical resolution in half. #1017 (1.5.8)
+   * oiiotool --ch now works properly with "deep" images. (1.5.8)
 * maketx & TextureSystem:
    * texture lookups have roughly doubled in performance because of SSE
      optimization. (1.5.5 / #948, 1.5.6 / #990).
@@ -193,6 +227,9 @@ Fixes, minor enhancements, and performance improvements:
      images (if the user is reading them into a higher-precision buffer).
      #960, #962 (1.5.2)
    * Change default compression (if otherwise unspecified) to "zip". (1.5.6)
+   * Robust to Exif blocks with corrupted GPS data. #1008 (1.5.8)
+   * Fixes to allow proper output of TIFF files with uint32 or int32 pixels
+     (1.5.8)
 * RAW:
    * Fix for portrait-orientation image reads. (#878) (1.5.1/1.4.10)
    * Fix bug with "open with config" options. #996 (1.5.6)
@@ -214,6 +251,8 @@ Fixes, minor enhancements, and performance improvements:
   (1.5.2)
 * TextureSystem: anisotropic texture lookups are slightly sped up (~7%)
   by using some approximate math (but not visibly different) #953. (1.5.5)
+* Better exception safety in Filesystem::exists() and similar functions.
+  #1026 (1.5.8)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -263,6 +302,7 @@ Build/test system improvements:
 * grid.tx and checker.tx have been moved from ../oiio/images to
   testsuite/common/texture (allow it to be versioned along with any changes
   to maketx. (1.5.7)
+* Support for freetype 2.5.4. #1012 (1.5.8)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -292,6 +332,8 @@ Developer goodies / internals:
 * Timer API now has queries for ticks as well as seconds. (1.5.5)
 * platform.h now has macros to mark functions as pure, const, nothrow,
   or unused. (1.5.5)
+* Filesystem::read_text_file reads a whole text file into a string
+  efficiently. (1.5.8)
 
 
 
