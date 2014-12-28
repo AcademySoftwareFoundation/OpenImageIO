@@ -625,13 +625,43 @@ public:
     /// Load from an array of 4 values
     OIIO_FORCEINLINE void load (const int *values) {
 #if defined(OIIO_SIMD_SSE)
-        m_vec = _mm_loadu_si128 ((simd_t *)values);
+        m_vec = _mm_loadu_si128 ((const simd_t *)values);
 #else
         m_val[0] = values[0];
         m_val[1] = values[1];
         m_val[2] = values[2];
         m_val[3] = values[3];
 #endif
+    }
+
+    OIIO_FORCEINLINE void load (const int *values, int n) {
+#if defined(OIIO_SIMD_SSE)
+        switch (n) {
+        case 1:
+            m_vec = _mm_castps_si128 (_mm_load_ss ((const float *)values));
+            break;
+        case 2:
+            // Trickery: load one double worth of bits!
+            m_vec = _mm_castpd_si128 (_mm_load_sd ((const double*)values));
+            break;
+        case 3:
+            // Trickery: load one double worth of bits, then a float,
+            // and combine, casting to ints.
+            m_vec = _mm_castps_si128 (
+                        _mm_movelh_ps(_mm_castpd_ps(_mm_load_sd((const double*)values)),
+                                      _mm_load_ss ((const float *)values + 2)));
+            break;
+        case 4:
+            m_vec = _mm_loadu_si128 ((const simd_t *)values);
+            break;
+        default:
+            break;
+        }
+#endif
+        for (int i = 0; i < n; ++i)
+            m_val[i] = values[i];
+        for (int i = n; i < 4; ++i)
+            m_val[i] = 0;
     }
 
     /// Store the values into memory
@@ -1291,6 +1321,38 @@ public:
 #endif
     }
 
+    /// Load from a partial array of <=4 values. Unassigned values are
+    /// undefined.
+    OIIO_FORCEINLINE void load (const float *values, int n) {
+#if defined(OIIO_SIMD_SSE)
+        switch (n) {
+        case 1:
+            m_vec = _mm_load_ss (values);
+            break;
+        case 2:
+            // Trickery: load one double worth of bits!
+            m_vec = _mm_castpd_ps (_mm_load_sd ((const double*)values));
+            break;
+        case 3:
+            // Trickery: load one double worth of bits, then a float,
+            // and combine.
+            m_vec = _mm_movelh_ps(_mm_castpd_ps(_mm_load_sd((const double*)values)),
+                                  _mm_load_ss (values + 2));
+            break;
+        case 4:
+            m_vec = _mm_loadu_ps (values);
+            break;
+        default:
+            break;
+        }
+#else
+        for (int i = 0; i < n; ++i)
+            m_val[i] = values[i];
+        for (int i = n; i < 4; ++i)
+            m_val[i] = 0;
+#endif
+    }
+
     OIIO_FORCEINLINE void store (float *values) const {
 #if defined(OIIO_SIMD_SSE)
         // Use an unaligned store -- it's just as fast when the memory turns
@@ -1309,10 +1371,26 @@ public:
     OIIO_FORCEINLINE void store (float *values, int n) const {
         DASSERT (n >= 0 && n < 4);
 #if defined(OIIO_SIMD_SSE)
-        // For SSE, there is a speed advantage to storing all 4 components.
-        if (n == 4)
+        switch (n) {
+        case 1:
+            _mm_store_ss( values, m_vec);
+            break;
+        case 2:
+            // Trickery: store two floats as a double worth of bits
+            _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
+            break;
+        case 3:
+            // Trickery: store three floats as a double worth of bits, then
+            // a single float.
+            _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
+            _mm_store_ss (values + 2, _mm_movehl_ps(m_vec,m_vec));
+            break;
+        case 4:
             store (values);
-        else
+            break;
+        default:
+            break;
+        }
 #endif
         for (int i = 0; i < n; ++i)
             values[i] = m_val[i];

@@ -68,6 +68,32 @@ OIIO_CHECK_SIMD_EQUAL_impl (const X& x, const Y& y,
 
 
 template<typename VEC>
+void test_loadstore ()
+{
+    typedef typename VEC::value_t ELEM;
+    std::cout << "test_loadstore " << VEC::type_name() << "\n";
+    VEC C1234 (1, 2, 3, 4);
+    // VEC C0 (0);
+    ELEM partial[4] = { 101, 102, 103, 104 };
+    for (int i = 1; i <= 4; ++i) {
+        VEC a (ELEM(0));
+        a.load (partial, i);
+        for (int j = 0; j < 4; ++j)
+            OIIO_CHECK_EQUAL (a[j], j<i ? partial[j] : ELEM(0));
+        std::cout << "  partial load " << i << " : " << a << "\n";
+        ELEM stored[4] = { 0, 0, 0, 0 };
+        C1234.store (stored, i);
+        for (int j = 0; j < 4; ++j)
+            OIIO_CHECK_EQUAL (stored[j], j<i ? ELEM(j+1) : ELEM(0));
+        std::cout << "  partial store " << i << " : " 
+                  << stored[0] << ' ' << stored[1] << ' '
+                  << stored[2] << ' ' << stored[3] << "\n";
+    }
+}
+
+
+
+template<typename VEC>
 void test_component_access ()
 {
     typedef typename VEC::value_t ELEM;
@@ -222,6 +248,7 @@ main (int argc, char *argv[])
 #endif
 
     std::cout << "\n";
+    test_loadstore<float4> ();
     test_component_access<float4> ();
     test_arithmetic<float4> ();
     test_comparisons<float4> ();
@@ -230,6 +257,7 @@ main (int argc, char *argv[])
     test_transpose<float4> ();
 
     std::cout << "\n";
+    test_loadstore<int4> ();
     test_component_access<int4> ();
     test_arithmetic<int4> ();
     test_comparisons<int4> ();
