@@ -96,9 +96,14 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                        const ImageBuf *A, const ImageBuf *B,
                        ImageSpec *force_spec, int prepflags)
 {
-    if ((A && !A->initialized()) || (B && !B->initialized())) {
+    if (A && !A->initialized()) {
         if (dst)
             dst->error ("Uninitialized input image");
+        return false;
+    }
+    if (B && !B->initialized()) {
+        if (dst)
+            dst->error ("Uninitialized destination image");
         return false;
     }
     if (dst->initialized()) {

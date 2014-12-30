@@ -649,6 +649,17 @@ public:
     /// deep samples.
     float deep_value (int x, int y, int z, int c, int s) const;
 
+    /// Retrieve deep sample value within a pixel, as an untigned int.
+    uint32_t deep_value_uint (int x, int y, int z, int c, int s) const;
+    /// Set deep sample value within a pixel, as a float.
+    void set_deep_value (int x, int y, int z, int c, int s, float value);
+    /// Set deep sample value within a pixel, as a uint32.
+    void set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value);
+
+    /// Allocate all the deep samples, called after deepdata()->nsamples
+    /// is set.
+    void deep_alloc ();
+
     /// Retrieve the "deep" data.
     DeepData *deepdata ();
     const DeepData *deepdata () const;
