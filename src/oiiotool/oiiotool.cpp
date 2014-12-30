@@ -1380,7 +1380,7 @@ set_channelnames (int argc, const char *argv[])
     for (int s = 0; s < A->subimages(); ++s) {
         int miplevels = A->miplevels(s);
         for (int m = 0;  m < miplevels;  ++m) {
-            ImageSpec *spec = A->spec(s,m);
+            ImageSpec *spec = &(*A)(s,m).specmod();
             spec->channelnames.resize (spec->nchannels);
             for (int c = 0; c < spec->nchannels;  ++c) {
                 if (c < (int)newchannelnames.size() &&
@@ -1399,6 +1399,7 @@ set_channelnames (int argc, const char *argv[])
                         spec->z_channel = c;
                 }
             }
+           A->update_spec_from_imagebuf(s,m);
         }
     }
     ot.function_times["chnames"] += timer();
