@@ -163,9 +163,6 @@ command += info_command ("allhalf.exr", safematch=1)
 command += oiiotool ("src/rgbaz.exr -d half -d Z=float -o rgbahalf-zfloat.exr")
 command += info_command ("rgbahalf-zfloat.exr", safematch=1)
 
-# test --flatten
-command += oiiotool("src/deepalpha.exr --flatten -o flat.exr")
-
 # test hole filling
 command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
 
@@ -247,7 +244,7 @@ outputs = [ "filled.tif", "autotrim.tif",
             "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
-            "chappend-rgbaz.exr", "chname.exr", "flat.exr",
+            "chappend-rgbaz.exr", "chname.exr",
             "cmul1.exr", "cmul2.exr",
             "cadd1.exr", "cadd2.exr",
             "cpow1.exr", "cpow2.exr",

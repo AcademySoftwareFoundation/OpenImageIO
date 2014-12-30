@@ -71,7 +71,7 @@ try:
 
     # flatten
     b = ImageBuf()
-    ImageBufAlgo.flatten (b, ImageBuf("../oiiotool/src/deepalpha.exr"))
+    ImageBufAlgo.flatten (b, ImageBuf("../oiiotool-deep/src/deepalpha.exr"))
     write (b, "flat.exr")
 
     # crop
