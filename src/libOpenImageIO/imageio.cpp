@@ -956,6 +956,124 @@ DeepData::deep_value (int pixel, int channel, int sample) const
 
 
 
+uint32_t
+DeepData::deep_value_uint (int pixel, int channel, int sample) const
+{
+    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+        return 0.0f;
+    int nsamps = nsamples[pixel];
+    if (nsamps == 0 || sample < 0 || sample >= nsamps)
+        return 0.0f;
+    const void *ptr = pointers[pixel*nchannels + channel];
+    if (! ptr)
+        return 0.0f;
+    switch (channeltypes[channel].basetype) {
+    case TypeDesc::FLOAT :
+        return ConstDataArrayProxy<float,uint32_t>((const float *)ptr)[sample];
+    case TypeDesc::HALF  :
+        return ConstDataArrayProxy<half,uint32_t>((const half *)ptr)[sample];
+    case TypeDesc::UINT8 :
+        return ConstDataArrayProxy<unsigned char,uint32_t>((const unsigned char *)ptr)[sample];
+    case TypeDesc::INT8  :
+        return ConstDataArrayProxy<char,uint32_t>((const char *)ptr)[sample];
+    case TypeDesc::UINT16:
+        return ConstDataArrayProxy<unsigned short,uint32_t>((const unsigned short *)ptr)[sample];
+    case TypeDesc::INT16 :
+        return ConstDataArrayProxy<short,uint32_t>((const short *)ptr)[sample];
+    case TypeDesc::UINT  :
+        return ((const unsigned int *)ptr)[sample];
+    case TypeDesc::INT   :
+        return ConstDataArrayProxy<int,uint32_t>((const int *)ptr)[sample];
+    case TypeDesc::UINT64:
+        return ConstDataArrayProxy<unsigned long long,uint32_t>((const unsigned long long *)ptr)[sample];
+    case TypeDesc::INT64 :
+        return ConstDataArrayProxy<long long,uint32_t>((const long long *)ptr)[sample];
+    default:
+        ASSERT (0);
+        return 0.0f;
+    }
+}
+
+
+
+void
+DeepData::set_deep_value (int pixel, int channel, int sample, float value)
+{
+    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+        return;
+    int nsamps = nsamples[pixel];
+    if (nsamps == 0 || sample < 0 || sample >= nsamps)
+        return;
+    void *ptr = pointers[pixel*nchannels + channel];
+    if (! ptr)
+        return;
+    switch (channeltypes[channel].basetype) {
+    case TypeDesc::FLOAT :
+        DataArrayProxy<float,float>((float *)ptr)[sample] = value; break;
+    case TypeDesc::HALF  :
+        DataArrayProxy<half,float>((half *)ptr)[sample] = value; break;
+    case TypeDesc::UINT8 :
+        DataArrayProxy<unsigned char,float>((unsigned char *)ptr)[sample] = value; break;
+    case TypeDesc::INT8  :
+        DataArrayProxy<char,float>((char *)ptr)[sample] = value; break;
+    case TypeDesc::UINT16:
+        DataArrayProxy<unsigned short,float>((unsigned short *)ptr)[sample] = value; break;
+    case TypeDesc::INT16 :
+        DataArrayProxy<short,float>((short *)ptr)[sample] = value; break;
+    case TypeDesc::UINT  :
+        DataArrayProxy<uint32_t,float>((uint32_t *)ptr)[sample] = value; break;
+    case TypeDesc::INT   :
+        DataArrayProxy<int,float>((int *)ptr)[sample] = value; break;
+    case TypeDesc::UINT64:
+        DataArrayProxy<uint64_t,float>((uint64_t *)ptr)[sample] = value; break;
+    case TypeDesc::INT64 :
+        DataArrayProxy<int64_t,float>((int64_t *)ptr)[sample] = value; break;
+    default:
+        ASSERT (0);
+    }
+}
+
+
+
+void
+DeepData::set_deep_value_uint (int pixel, int channel, int sample, uint32_t value)
+{
+    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+        return;
+    int nsamps = nsamples[pixel];
+    if (nsamps == 0 || sample < 0 || sample >= nsamps)
+        return;
+    void *ptr = pointers[pixel*nchannels + channel];
+    if (! ptr)
+        return;
+    switch (channeltypes[channel].basetype) {
+    case TypeDesc::FLOAT :
+        DataArrayProxy<float,uint32_t>((float *)ptr)[sample] = value; break;
+    case TypeDesc::HALF  :
+        DataArrayProxy<half,uint32_t>((half *)ptr)[sample] = value; break;
+    case TypeDesc::UINT8 :
+        DataArrayProxy<unsigned char,uint32_t>((unsigned char *)ptr)[sample] = value; break;
+    case TypeDesc::INT8  :
+        DataArrayProxy<char,uint32_t>((char *)ptr)[sample] = value; break;
+    case TypeDesc::UINT16:
+        DataArrayProxy<unsigned short,uint32_t>((unsigned short *)ptr)[sample] = value; break;
+    case TypeDesc::INT16 :
+        DataArrayProxy<short,uint32_t>((short *)ptr)[sample] = value; break;
+    case TypeDesc::UINT  :
+        DataArrayProxy<uint32_t,uint32_t>((uint32_t *)ptr)[sample] = value; break;
+    case TypeDesc::INT   :
+        DataArrayProxy<int,uint32_t>((int *)ptr)[sample] = value; break;
+    case TypeDesc::UINT64:
+        DataArrayProxy<uint64_t,uint32_t>((uint64_t *)ptr)[sample] = value; break;
+    case TypeDesc::INT64 :
+        DataArrayProxy<int64_t,uint32_t>((int64_t *)ptr)[sample] = value; break;
+    default:
+        ASSERT (0);
+    }
+}
+
+
+
 bool
 wrap_black (int &coord, int origin, int width)
 {

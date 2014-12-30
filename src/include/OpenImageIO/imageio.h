@@ -56,6 +56,7 @@
 
 #include "export.h"
 #include "oiioversion.h"
+#include "platform.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
 
@@ -382,7 +383,8 @@ public:
     std::vector<char> data;          // for each sample [z][y][x][c][s]
 
     DeepData () : npixels(0), nchannels(0) { }
-    /// Initialize size and allocate nsamples, pointers
+    /// Initialize size and allocate nsamples, pointers. It is important to
+    /// completely fill in nsamples after init() but before alling alloc().
     void init (int npix, int nchan,
                const TypeDesc *chbegin, const TypeDesc *chend);
     /// After nsamples[] has been filled in, allocate enough scratch space
@@ -395,8 +397,14 @@ public:
     /// Retrieve the pointer to the first sample of the given pixel and
     /// channel. Return NULL if there are no samples for that pixel.
     void *channel_ptr (int pixel, int channel) const;
-    /// Retrieve sample value within a pixel, cast to a float.
+    /// Retrieve deep sample value within a pixel, cast to a float.
     float deep_value (int pixel, int channel, int sample) const;
+    /// Retrieve deep sample value within a pixel, as an untigned int.
+    uint32_t deep_value_uint (int pixel, int channel, int sample) const;
+    /// Set deep sample value within a pixel, as a float.
+    void set_deep_value (int pixel, int channel, int sample, float value);
+    /// Set deep sample value within a pixel, as a uint32.
+    void set_deep_value_uint (int pixel, int channel, int sample, uint32_t value);
 };
 
 
