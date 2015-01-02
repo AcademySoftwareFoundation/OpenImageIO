@@ -258,6 +258,14 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         bps = 16;
         sampformat = SAMPLEFORMAT_UINT;
         break;
+    case TypeDesc::INT32:
+        bps = 32;
+        sampformat = SAMPLEFORMAT_INT;
+        break;
+    case TypeDesc::UINT32:
+        bps = 32;
+        sampformat = SAMPLEFORMAT_UINT;
+        break;
     case TypeDesc::HALF:
         // Silently change requests for unsupported 'half' to 'float'
         m_spec.set_format (TypeDesc::FLOAT);
