@@ -117,6 +117,10 @@ Fixes, minor enhancements, and performance improvements:
      (1.5.6).
    * oiiotool -subimage has better error detection and reporting for
      requests for nonexistant subimages. #1005 (1.5.7)
+   * oiiotool --ch is a bit more flexible in its channel-shuffling syntax:
+     you are now able to say newchannel=oldchannel, both shuffling and
+     renaming channels simultaneously, thus removing a frequent necessity
+     of a --chnames action following a --ch. (1.5.8)
 * maketx & TextureSystem:
    * texture lookups have roughly doubled in performance because of SSE
      optimization. (1.5.5 / #948, 1.5.6 / #990).

@@ -453,12 +453,12 @@ yielding RGB only:
 
 \noindent Zero out the red and green channels:
 \begin{code}
-    oiiotool rgb.tif --ch =0,=0,B -o justblue.tif
+    oiiotool rgb.tif --ch R=0,G=0,B -o justblue.tif
 \end{code}
 
 \noindent Swap the red and blue channels from an RGBA image:
 \begin{code}
-    oiiotool rgba.tif --ch 2,1,0,3 -o bgra.tif
+    oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
 \end{code}
 
 \noindent Extract just the named channels from a complicted many-channel
@@ -476,7 +476,7 @@ and naming it ``A'' so it will be recognized as an alpha channel:
 \noindent Add an alpha channel to an RGB image, setting it to be the same
 as the R channel and naming it ``A'' so it will be recognized as an alpha channel:
 \begin{code}
-    oiiotool rgb.tif --ch R,G,B,R --chnames ",,,A" -o rgba.tif
+    oiiotool rgb.tif --ch R,G,B,A=R -o rgba.tif
 \end{code}
 
 \noindent Add a $z$ channel to an RGBA image, setting it to 3.0 everywhere,
@@ -1078,17 +1078,24 @@ subimages of both images appended together.
 \apiend
 
 \apiitem{--ch {\rm \emph{channellist}}}
-Replaces the top image with a new copy whose channels have been 
+Replaces the top image with a new image whose channels have been
 reordered as given by the \emph{channellist}.  The {\cf channellist}
-is a comma-separated list of channel names and/or numbers (e.g., 
-\qkw{R,G,B}, \qkw{A}, \qkw{B,G,R}, \qkw{4,5,6,A}).  Channel numbers outside
-the valid range of input channels, or unknown names, will be replaced
-by black channels.
+is a comma-separated list of channel designations, each of which may be
+(a) an integer channel index of the channel to copy,
+(b) the name of a channel to copy,
+(c) \emph{newname}{\cf =}\emph{oldname}, which copies a named channel and
+also renames it,
+(d) {\cf =}\emph{float}, which will set the channel to a constant value,
+or
+(e) \emph{newname}{\cf =}\emph{float},
+which sets the channel to a constant value as well as names the new channel.
+Examples include:  \qkw{R,G,B}, \qkw{R=0.0,G,B,A=1.0}, \qkw{R=B,G,B=R},
+\qkw{4,5,6,A}.
 
-A channel designation beginning with the {\cf =} character and followed
-by a number is a \emph{literal value} that will be used to fill that
-channel.  If the \emph{channellist} is shorter than the number of
-channels in the source image, unspecified channels will be omitted.
+Channel numbers outside the valid range of input channels, or unknown names,
+will be replaced by black channels. If the \emph{channellist} is shorter
+than the number of channels in the source image, unspecified channels will
+be omitted.
 \apiend
 
 \apiitem{--chappend}

@@ -1412,7 +1412,8 @@ set_channelnames (int argc, const char *argv[])
 // a comma separated list of channels (e.g., "B,G,R,A"), compute the
 // vector of integer indices for those channels (e.g., {2,1,0,3}).
 // A channel may be a literal assignment (e.g., "=0.5"), or a literal
-// assignment with channel naming (e.g., "Z=0.5").
+// assignment with channel naming (e.g., "Z=0.5"), the name of a channel
+// ("A"), or the name of a channel with a new name reassigned ("R=G").
 // Return true for success, false for failure, including if any of the
 // channels were not present in the image.  Upon return, channels
 // will be the indices of the source image channels to copy (-1 for
@@ -1420,52 +1421,82 @@ set_channelnames (int argc, const char *argv[])
 // the value to fill un-sourced channels (defaulting to zero), and
 // newchannelnames will be the name of renamed or non-default-named
 // channels (defaulting to "" if no special name is needed).
-static bool
-decode_channel_set (const ImageSpec &spec, std::string chanlist,
+bool
+decode_channel_set (const ImageSpec &spec, string_view chanlist,
                     std::vector<std::string> &newchannelnames,
                     std::vector<int> &channels, std::vector<float> &values)
 {
+    // std::cout << "Decode_channel_set '" << chanlist << "'\n";
     channels.clear ();
-    while (chanlist.length()) {
-        // Extract the next channel name
-        size_t pos = chanlist.find_first_of(",");
-        std::string onechan (chanlist, 0, pos);
-        onechan = Strutil::strip (onechan);
-        if (pos == std::string::npos)
-            chanlist.clear();
-        else
-            chanlist = chanlist.substr (pos+1, std::string::npos);
-
-        // Find the index corresponding to that channel
-        newchannelnames.push_back (std::string());
-        float value = 0.0f;
-        int ch = -1;
-        for (int i = 0;  i < spec.nchannels;  ++i)
-            if (spec.channelnames[i] == onechan) { // name of a known channel?
-                ch = i;
-                break;
-            }
-        if (ch < 0) { // Didn't find a match? Try case-insensitive.
-            for (int i = 0;  i < spec.nchannels;  ++i)
-                if (Strutil::iequals (spec.channelnames[i], onechan)) {
-                    ch = i;
-                    break;
+    for (int c = 0; chanlist.length(); ++c) {
+        // It looks like:
+        //     <int>                (put old channel here, by numeric index)
+        //     oldname              (put old named channel here)
+        //     newname=oldname      (put old channel here, with new name)
+        //     newname=<float>      (put constant value here, with a name)
+        //     =<float>             (put constant value here, default name)
+        std::string newname;
+        int chan = -1;
+        float val = 0.0f;
+        Strutil::skip_whitespace (chanlist);
+        if (chanlist.empty())
+            break;
+        if (Strutil::parse_int (chanlist, chan) && chan >= 0
+                                                && chan < spec.nchannels) {
+            // case: <int>
+            newname = spec.channelnames[chan];
+        } else if (Strutil::parse_char (chanlist, '=')) {
+            // case: =<float>
+            Strutil::parse_float (chanlist, val);
+        } else {
+            string_view n = Strutil::parse_until (chanlist, "=,");
+            string_view oldname;
+            if (Strutil::parse_char (chanlist, '=')) {
+                if (Strutil::parse_float (chanlist, val)) {
+                    // case: newname=float
+                    newname = n;
+                } else {
+                    // case: newname=oldname
+                    newname = n;
+                    oldname = Strutil::parse_until (chanlist, ",");
                 }
-        }
-        if (ch < 0 && onechan.length() &&
-                (isdigit(onechan[0]) || onechan[0] == '-'))
-            ch = atoi (onechan.c_str());  // numeric channel index
-        if (ch < 0 && onechan.length()) {
-            // Look for Either =val or name=val
-            size_t equal_pos = onechan.find ('=');
-            if (equal_pos != std::string::npos) {
-                value = (float) atof (onechan.c_str()+equal_pos+1);
-                onechan.erase (equal_pos);
-                newchannelnames.back() = onechan;
+            } else {
+                // case: oldname
+                oldname = n;
+            }
+            if (oldname.size()) {
+                for (int i = 0;  i < spec.nchannels;  ++i)
+                    if (spec.channelnames[i] == oldname) { // name of a known channel?
+                        chan = i;
+                        break;
+                    }
+                if (chan < 0) { // Didn't find a match? Try case-insensitive.
+                    for (int i = 0;  i < spec.nchannels;  ++i)
+                        if (Strutil::iequals (spec.channelnames[i], oldname)) {
+                            chan = i;
+                            break;
+                        }
+                }
+                if (newname.empty() && chan >= 0)
+                    newname = spec.channelnames[chan];
             }
         }
-        channels.push_back (ch);
-        values.push_back (value);
+
+        if (! newname.size()) {
+            const char *RGBAZ[] = { "R", "G", "B", "A", "Z" };
+            if (c <= 4)
+                newname = std::string(RGBAZ[c]);
+            else
+                newname = Strutil::format ("channel%d", c);
+        }
+
+        // std::cout << "  Chan " << c << ": " << newname << ' ' << chan << ' ' << val << "\n";
+        newchannelnames.push_back (newname);
+        channels.push_back (chan);
+        values.push_back (val);
+
+        if (! Strutil::parse_char (chanlist, ','))
+            break;
     }
     return true;
 }
