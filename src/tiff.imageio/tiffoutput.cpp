@@ -271,8 +271,18 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         sampformat = SAMPLEFORMAT_UINT;
         break;
     case TypeDesc::HALF:
+#if 0
+        // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
+        // Unfortunately, Nuke 9.0, and probably many other apps we care
+        // about, cannot read 16 bit float TIFFs correctly. Revisit this
+        // again in future releases. (comment added Feb 2015)
+        bps = 16;
+        sampformat = SAMPLEFORMAT_IEEEFP;
+        break;
+#else
         // Silently change requests for unsupported 'half' to 'float'
         m_spec.set_format (TypeDesc::FLOAT);
+#endif
     case TypeDesc::FLOAT:
         bps = 32;
         sampformat = SAMPLEFORMAT_IEEEFP;
