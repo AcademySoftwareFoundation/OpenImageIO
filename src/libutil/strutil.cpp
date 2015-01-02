@@ -605,13 +605,14 @@ Strutil::parse_int (string_view &str, int &val, bool eat)
     if (! p.size())
         return false;
     const char *end = p.begin();
-    val = strtol (p.begin(), (char**)&end, 10);
+    int v = strtol (p.begin(), (char**)&end, 10);
     if (end == p.begin())
         return false;  // no integer found
     if (eat) {
         p.remove_prefix (end-p.begin());
         str = p;
     }
+    val = v;
     return true;
 }
 
@@ -625,13 +626,14 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
     if (! p.size())
         return false;
     const char *end = p.begin();
-    val = (float) strtod (p.begin(), (char**)&end);
+    float v = (float) strtod (p.begin(), (char**)&end);
     if (end == p.begin())
         return false;  // no integer found
     if (eat) {
         p.remove_prefix (end-p.begin());
         str = p;
     }
+    val = v;
     return true;
 }
 
