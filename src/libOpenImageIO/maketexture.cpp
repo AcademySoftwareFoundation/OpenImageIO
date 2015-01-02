@@ -685,7 +685,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 smallspec.y = 0;
                 smallspec.full_x = 0;
                 smallspec.full_y = 0;
-                small->alloc (smallspec);  // Realocate with new size
+                small->reset (smallspec);  // Realocate with new size
                 img->set_full (img->xbegin(), img->xend(), img->ybegin(),
                                img->yend(), img->zbegin(), img->zend());
 
@@ -710,7 +710,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                         outstream << "\n";
                     }
                     if (do_highlight_compensation)
-                        ImageBufAlgo::rangecompress (*img);
+                        ImageBufAlgo::rangecompress (*img, *img);
                     if (sharpen > 0.0f && sharpen_first) {
                         boost::shared_ptr<ImageBuf> sharp (new ImageBuf);
                         bool uok = ImageBufAlgo::unsharp_mask (*sharp, *img,
@@ -729,8 +729,9 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                         std::swap (small, sharp);
                     }
                     if (do_highlight_compensation) {
-                        ImageBufAlgo::rangeexpand (*small);
-                        ImageBufAlgo::clamp (*small, 0.0f, std::numeric_limits<float>::max(), true);
+                        ImageBufAlgo::rangeexpand (*small, *small);
+                        ImageBufAlgo::clamp (*small, *small, 0.0f,
+                                    std::numeric_limits<float>::max(), true);
                     }
                     Filter2D::destroy (filter);
                 }
@@ -1191,7 +1192,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         (srcspec.format.basetype == TypeDesc::FLOAT ||
          srcspec.format.basetype == TypeDesc::HALF ||
          srcspec.format.basetype == TypeDesc::DOUBLE) &&
-        ! ImageBufAlgo::fixNonFinite (*src, fixmode, &pixelsFixed)) {
+        ! ImageBufAlgo::fixNonFinite (*src, *src, fixmode, &pixelsFixed)) {
         outstream << "maketx ERROR: Error fixing nans/infs.\n";
         return false;
     }

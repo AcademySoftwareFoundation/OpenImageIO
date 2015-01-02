@@ -109,15 +109,6 @@ ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
-ImageBufAlgo::clamp (ImageBuf &dst, const float *min, const float *max,
-                     bool clampalpha01, ROI roi, int nthreads)
-{
-    return clamp (dst, dst, min, max, clampalpha01, roi, nthreads);
-}
-
-
-
-bool
 ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
                      float min, float max,
                      bool clampalpha01, ROI roi, int nthreads)
@@ -125,15 +116,6 @@ ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
     std::vector<float> minvec (src.nchannels(), min);
     std::vector<float> maxvec (src.nchannels(), max);
     return clamp (dst, src, &minvec[0], &maxvec[0], clampalpha01, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::clamp (ImageBuf &dst, float min, float max,
-                     bool clampalpha01, ROI roi, int nthreads)
-{
-    return clamp (dst, dst, min, max, clampalpha01, roi, nthreads);
 }
 
 
@@ -234,22 +216,6 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, float b,
     OIIO_DISPATCH_TYPES2 (ok, "add", add_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
-}
-
-
-
-bool
-ImageBufAlgo::add (ImageBuf &dst, const float *val, ROI roi, int nthreads)
-{
-    return add (dst, dst, val, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::add (ImageBuf &R, float val, ROI roi, int nthreads)
-{
-    return add (R, R, val, roi, nthreads);
 }
 
 
@@ -427,22 +393,6 @@ ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, float b,
     return ok;
 }
 
-
-
-
-bool
-ImageBufAlgo::mul (ImageBuf &dst, const float *val, ROI roi, int nthreads)
-{
-    return mul (dst, dst, val, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::mul (ImageBuf &dst, float val, ROI roi, int nthreads)
-{
-    return mul (dst, dst, val, roi, nthreads);
-}
 
 
 
@@ -782,24 +732,6 @@ ImageBufAlgo::rangeexpand (ImageBuf &dst, const ImageBuf &src,
 
 
 
-bool
-ImageBufAlgo::rangecompress (ImageBuf &dst, bool useluma,
-                             ROI roi, int nthreads)
-{
-    return rangecompress (dst, dst, useluma, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::rangeexpand (ImageBuf &dst, bool useluma,
-                           ROI roi, int nthreads)
-{
-    return rangeexpand (dst, dst, useluma, roi, nthreads);
-}
-
-
-
 template<class Rtype, class Atype>
 static bool
 unpremult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
@@ -866,14 +798,6 @@ ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
 
 
 
-bool
-ImageBufAlgo::unpremult (ImageBuf &dst, ROI roi, int nthreads)
-{
-    return unpremult (dst, dst, roi, nthreads);
-}
-
-
-
 template<class Rtype, class Atype>
 static bool
 premult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
@@ -931,13 +855,6 @@ ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
     OIIO_DISPATCH_TYPES2 (ok, "premult", premult_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
     return ok;
-}
-
-
-bool
-ImageBufAlgo::premult (ImageBuf &dst, ROI roi, int nthreads)
-{
-    return premult (dst, dst, roi, nthreads);
 }
 
 
@@ -1074,17 +991,6 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
         // pixel values, so the copy was enough.
         return true;
     }
-}
-
-
-
-// DEPRECATED (1.3)
-bool
-ImageBufAlgo::fixNonFinite (ImageBuf &dst,
-                            NonFiniteFixMode mode, int *pixelsFixed,
-                            ROI roi, int nthreads)
-{
-    return fixNonFinite (dst, dst, mode, pixelsFixed, roi, nthreads);
 }
 
 

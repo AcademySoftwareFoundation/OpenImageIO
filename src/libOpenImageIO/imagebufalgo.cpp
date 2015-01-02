@@ -183,7 +183,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
                                 boost::regex_replace (desc, regex_sha, ""));
         }
 
-        dst->alloc (spec);
+        dst->reset (spec);
     }
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 ||
@@ -423,7 +423,7 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
     spec.full_width = spec.width;
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
-    dst.alloc (spec);
+    dst.reset (spec);
 
     if (Filter2D *filter = Filter2D::create (name, width, height)) {
         // Named continuous filter from filter.h
@@ -534,7 +534,7 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
 
     // Scale the difference image by the contrast
     if (ok)
-        ok = mul (Diff, contrast, roi, nthreads);
+        ok = mul (Diff, Diff, contrast, roi, nthreads);
     if (! ok) {
         dst.error ("%s", Diff.geterror());
         return false;

@@ -121,11 +121,20 @@ std::string ImageCacheWrap::resolve_filename (const std::string &val) {
     return m_cache->resolve_filename(val);
 }
 
-bool ImageCacheWrap::get_image_info (ustring filename, ustring dataname,
+bool ImageCacheWrap::get_image_info (ustring filename, int subimage,
+                                     int miplevel, ustring dataname,
+                                     TypeDesc datatype, void *data)
+{
+    ScopedGILRelease gil;
+    return m_cache->get_image_info(filename, subimage, miplevel,
+                                   dataname, datatype, data);
+}
+
+bool ImageCacheWrap::get_image_info_old (ustring filename, ustring dataname,
                         TypeDesc datatype, void *data)
 {
     ScopedGILRelease gil;
-    return m_cache->get_image_info(filename, dataname, datatype, data);
+    return m_cache->get_image_info(filename, 0, 0, dataname, datatype, data);
 }   
 
 bool ImageCacheWrap::get_imagespec(ustring filename, ImageSpec &spec, int subimage=0)
@@ -204,6 +213,7 @@ void declare_imagecache()
         .def("getattribute", &ImageCacheWrap::getattribute_string)
         .def("resolve_filename", &ImageCacheWrap::resolve_filename)
         .def("get_image_info", &ImageCacheWrap::get_image_info)
+        .def("get_image_info", &ImageCacheWrap::get_image_info_old)
         .def("get_imagespec", &ImageCacheWrap::get_imagespec)
         .def("get_pixels", &ImageCacheWrap::get_pixels)
 //      .def("get_tile", &ImageCacheWrap::get_tile)
