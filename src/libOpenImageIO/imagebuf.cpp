@@ -1411,8 +1411,8 @@ void
 ImageBuf::interppixel_NDC (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->spec());
-    interppixel (static_cast<float>(spec.x) + x * static_cast<float>(spec.width),
-                 static_cast<float>(spec.y) + y * static_cast<float>(spec.height),
+    interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
+                 static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
                  pixel, wrap);
 }
 

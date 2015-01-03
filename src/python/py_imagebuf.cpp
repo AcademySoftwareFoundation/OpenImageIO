@@ -202,23 +202,6 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_NDC_overloads,
 
 
 object
-ImageBuf_interppixel_NDC_full (const ImageBuf &buf, float x, float y,
-                               ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
-{
-    int nchans = buf.nchannels();
-    float *pixel = ALLOCA (float, nchans);
-    buf.interppixel_NDC_full (x, y, pixel, wrap);
-    PyObject *result = PyTuple_New (nchans);
-    for (int i = 0;  i < nchans;  ++i)
-        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
-    return object(handle<>(result));
-}
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_NDC_full_overloads,
-                                ImageBuf_interppixel_NDC_full, 3, 4)
-
-
-object
 ImageBuf_interppixel_bicubic (const ImageBuf &buf, float x, float y,
                               ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
 {
@@ -406,8 +389,8 @@ void declare_imagebuf()
              ImageBuf_interppixel_overloads())
         .def("interppixel_NDC", &ImageBuf_interppixel_NDC,
              ImageBuf_interppixel_NDC_overloads())
-        .def("interppixel_NDC_full", &ImageBuf_interppixel_NDC_full,
-             ImageBuf_interppixel_NDC_full_overloads())
+        .def("interppixel_NDC_full", &ImageBuf_interppixel_NDC,
+             ImageBuf_interppixel_NDC_overloads())
         .def("interppixel_bicubic", &ImageBuf_interppixel_bicubic,
              ImageBuf_interppixel_bicubic_overloads())
         .def("interppixel_bicubic_NDC", &ImageBuf_interppixel_bicubic_NDC,

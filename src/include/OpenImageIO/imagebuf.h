@@ -423,18 +423,13 @@ public:
     void interppixel (float x, float y, float *pixel,
                       WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at image data NDC coordinates (s,t), where
-    /// (0,0) is the upper left corner of the pixel data window, (1,1)
-    /// the lower right corner of the pixel data.
-    /// FIXME -- lg thinks that this is stupid, and the only useful NDC
-    /// space is the one used by interppixel_NDC_full.  We should deprecate
-    /// this in the future.
-    void interppixel_NDC (float s, float t, float *pixel,
-                          WrapMode wrap=WrapBlack) const;
-
     /// Linearly interpolate at NDC coordinates (s,t), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
+    void interppixel_NDC (float s, float t, float *pixel,
+                          WrapMode wrap=WrapBlack) const;
+
+    /// DEPCRECATED (1.5) synonym for interppixel_NDC.
     void interppixel_NDC_full (float s, float t, float *pixel,
                                WrapMode wrap=WrapBlack) const;
 

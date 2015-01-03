@@ -1356,8 +1356,10 @@ window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
 \end{code}
 \apiend
 
-\apiitem{tuple ImageBuf.{\ce interppixel} (x, y, wrap=oiio.WrapBlack)}
-Interpolates the image value at coordinates $(x,y)$ and return it as a tuple
+\apiitem{tuple ImageBuf.{\ce interppixel} (x, y, wrap=oiio.WrapBlack) \\
+tuple ImageBuf.{\ce interppixel_bicubic} (x, y, wrap=oiio.WrapBlack)}
+Interpolates the image value (bilinearly or bicubically)
+at coordinates $(x,y)$ and return it as a tuple
 of {\cf float} values, one for each color channel.  The {\cf x, y} values
 are continuous {\cf float} coordinates in ``pixel space.''   The optional
 {\cf wrap} parameter describes what should happen if the coordinates are
@@ -1375,9 +1377,11 @@ WrapPeriodic, WrapMirror}).
 \end{code}
 \apiend
 
-\apiitem{tuple ImageBuf.{\ce interppixel_NDC_full} (x, y, wrap=oiio.WrapBlack)}
+\apiitem{tuple ImageBuf.{\ce interppixel_NDC} (x, y, wrap=oiio.WrapBlack) \\
+tuple ImageBuf.{\ce interppixel_bicubic_NDC} (x, y, wrap=oiio.WrapBlack)}
 
-Interpolates the image value at coordinates $(x,y)$ and return it as a tuple
+Interpolates the image value (bilinearly or bicubically)
+at coordinates $(x,y)$ and return it as a tuple
 of {\cf float} values, one for each color channel.  The {\cf x, y} values
 are continuous, normalized {\cf float} coordinates in ``NDC space,'' where
 {\cf (0,0)} is the upper left corner of the full (a.k.a.\ ``display'')
@@ -1389,7 +1393,7 @@ WrapClamp, WrapPeriodic, WrapMirror}).
 \noindent Example:
 \begin{code}
     buf = ImageBuf ("tahoe.jpg")
-    p = buf.interpixel_NDC_full (0.5, 0.5)
+    p = buf.interpixel_NDC (0.5, 0.5)
     # Now p is the interpolated value from right in the center of
     # the display window
 \end{code}
