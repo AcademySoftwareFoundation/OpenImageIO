@@ -92,6 +92,8 @@ try:
     print "Pixel 0,1 is", b.getpixel(0,1)
     print "Interpolating 1,0.5 ->", b.interppixel(1,0.5)
     print "Interpolating NDC 0.25,0.5 ->", b.interppixel_NDC(0.25,0.5)
+    print "Interpolating bicubic 0.25,0.5 ->", b.interppixel_bicubic(1.0,0.5)
+    print "Interpolating NDC bicubic 0.25,0.5 ->", b.interppixel_bicubic_NDC(0.25,0.5)
     print "The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat)
     print ""
     print "Saving file..."
