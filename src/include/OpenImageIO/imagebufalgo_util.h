@@ -138,16 +138,17 @@ inline bool IBAprep (ROI &roi, ImageBuf *dst,
 
 enum IBAprep_flags {
     IBAprep_DEFAULT = 0,
-    IBAprep_REQUIRE_ALPHA = 1,
-    IBAprep_REQUIRE_Z = 2,
-    IBAprep_REQUIRE_SAME_NCHANNELS = 4,
-    IBAprep_NO_COPY_ROI_FULL = 8,       // Don't copy the src's roi_full
-    IBAprep_NO_SUPPORT_VOLUME = 16,     // Don't know how to do volumes
-    IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
-    IBAprep_COPY_ALL_METADATA = 512,    // Even unsafe things
+    IBAprep_REQUIRE_ALPHA = 1<<0,
+    IBAprep_REQUIRE_Z = 1<<1,
+    IBAprep_REQUIRE_SAME_NCHANNELS = 1<<2,
+    IBAprep_NO_COPY_ROI_FULL = 1<<3,    // Don't copy the src's roi_full
+    IBAprep_NO_SUPPORT_VOLUME = 1<<4,   // Don't know how to do volumes
+    IBAprep_NO_COPY_METADATA = 1<<8,    // N.B. default copies all metadata
+    IBAprep_COPY_ALL_METADATA = 1<<9,   // Even unsafe things
     IBAprep_CLAMP_MUTUAL_NCHANNELS = 1<<10, // Clamp roi.chend to max of inputs
     IBAprep_SUPPORT_DEEP = 1<<11,       // Operation allows deep images
     IBAprep_DEEP_MIXED = 1<<12,         // Allow deep & non-deep combinations
+    IBAprep_DST_FLOAT_PIXELS = 1<<13    // If dst is uninit, make it float
 };
 
 

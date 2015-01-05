@@ -154,7 +154,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
             // they should have pre-allocated dst with their desired format.
-            if (B && A->spec().format != B->spec().format)
+            if ((B && A->spec().format != B->spec().format)
+                    || (prepflags & IBAprep_DST_FLOAT_PIXELS))
                 spec.set_format (TypeDesc::FLOAT);
             if (C && (A->spec().format != C->spec().format ||
                       B->spec().format != C->spec().format))
