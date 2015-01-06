@@ -413,7 +413,7 @@ endif()
 
 # List all the individual testsuite tests here:
 oiio_add_tests (gpsread misnamed-file nonwhole-tiles
-                oiiotool oiiotool-composite oiiotool-fixnan
+                oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
                 oiiotool-readerror oiiotool-text
                 perchannel dither
                 dpx ico iff png psd rla sgi

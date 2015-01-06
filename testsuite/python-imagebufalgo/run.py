@@ -6,6 +6,7 @@ imagedir = parent + "oiio-images"
 refdir2 = "../oiiotool/ref/"
 refdir3 = "../oiiotool-composite/ref/"
 refdir4 = "../oiiotool-fixnan/ref/"
+refdir5 = "../oiiotool-deep/ref/"
 failthresh = 0.004
 failpercent = 0.2
 
@@ -17,6 +18,8 @@ def checkref (name) :
         return diff_command (name, refdir3+name)
     elif os.path.isfile(refdir4+name) :
         return diff_command (name, refdir4+name)
+    elif os.path.isfile(refdir5+name) :
+        return diff_command (name, refdir5+name)
     else :
         return diff_command (name, refdir+name)
 

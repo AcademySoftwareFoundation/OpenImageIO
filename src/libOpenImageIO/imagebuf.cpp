@@ -628,6 +628,14 @@ ImageBufImpl::realloc ()
     // NB make it big enough for SSE
     if (m_allocated_size)
         m_pixels_valid = true;
+    if (m_spec.deep) {
+        int npixels = (int)m_spec.image_pixels();
+        std::vector<TypeDesc> chanformats (m_spec.channelformats);
+        chanformats.resize (m_spec.nchannels, m_spec.format);
+        m_deepdata.init (npixels, m_spec.nchannels,
+                         &(*chanformats.begin()), &(*chanformats.end()));
+        m_storage = ImageBuf::LOCALBUFFER;
+    }
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << m_allocated_size << "\n";
 #endif
@@ -1585,6 +1593,57 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
     int p = (z * m_spec.height + y) * m_spec.width + x;
     return impl()->m_deepdata.deep_value (p, c, s);
+}
+
+
+
+uint32_t
+ImageBuf::deep_value_uint (int x, int y, int z, int c, int s) const
+{
+    impl()->validate_pixels();
+    if (! deep())
+        return 0;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    return impl()->m_deepdata.deep_value_uint (p, c, s);
+}
+
+
+
+void
+ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
+{
+    impl()->validate_pixels();
+    if (! deep())
+        return ;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    return impl()->m_deepdata.set_deep_value (p, c, s, value);
+}
+
+
+
+void
+ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value)
+{
+    impl()->validate_pixels();
+    if (! deep())
+        return;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    return impl()->m_deepdata.set_deep_value_uint (p, c, s, value);
+}
+
+
+
+void
+ImageBuf::deep_alloc ()
+{
+    deepdata()->alloc ();
+    m_impl->m_storage = ImageBuf::LOCALBUFFER;
 }
 
 
