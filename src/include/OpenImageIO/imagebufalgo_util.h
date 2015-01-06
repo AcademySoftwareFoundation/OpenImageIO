@@ -62,11 +62,19 @@ using boost::this_thread::get_id;
 
 namespace ImageBufAlgo {
 
+enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest };
+
 /// Helper template for generalized multithreading for image processing
 /// functions.  Some function/functor f is applied to every pixel the
 /// region of interest roi, dividing the region into multiple threads if
 /// threads != 1.  Note that threads == 0 indicates that the number of
 /// threads should be as set by the global OIIO "threads" attribute.
+///
+/// The optional splitdir determines along which axis the split will be
+/// made. The default is Split_Y (vertical splits), which generally seems
+/// the fastest (due to cache layout issues?), but perhaps there are
+/// algorithms where it's better to split in X, Z, or along the longest
+/// axis.
 ///
 /// Most image operations will require additional arguments, including
 /// additional input and output images or other parameters.  The
@@ -78,35 +86,60 @@ namespace ImageBufAlgo {
 /// Then you can parallelize it as follows:
 ///     ImageBuf R /*result*/, A /*input*/;
 ///     ROI roi = get_roi (R.spec());
-///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1),
-///                     roi);
+///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1), roi);
 ///
 template <class Func>
 void
-parallel_image (Func f, ROI roi, int nthreads=0)
+parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
 {
     // Special case: threads <= 0 means to use the "threads" attribute
     if (nthreads <= 0)
         OIIO::getattribute ("threads", nthreads);
-
-    if (nthreads <= 1 || roi.npixels() < 1000) {
+    // Try not to assign a thread less than 16k pixels, or it's not worth
+    // the thread startup/teardown cost.
+    nthreads = std::min (nthreads, 1 + int(roi.npixels() / size_t(16384)));
+    if (nthreads <= 1) {
         // Just one thread, or a small image region: use this thread only
         f (roi);
-    } else {
-        // Spawn threads by dividing the region into y bands.
-        OIIO::thread_group threads;
-        int blocksize = std::max (1, (roi.height() + nthreads - 1) / nthreads);
-        int roi_ybegin = roi.ybegin;
-        int roi_yend = roi.yend;
-        for (int i = 0;  i < nthreads;  i++) {
-            roi.ybegin = roi_ybegin + i * blocksize;
-            roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
+        return;
+    }
+
+    // If splitdir was not explicit, find the longest edge.
+    if (splitdir >= Split_Biggest)
+        splitdir = roi.width() > roi.height() ? Split_X : Split_Y;
+    int minmax[6] = { roi.xbegin, roi.xend, roi.ybegin, roi.yend,
+                      roi.zbegin, roi.zend };
+    int roi_begin = minmax[2*int(splitdir)];
+    int roi_end = minmax[2*int(splitdir)+1];
+    int splitlen = roi_end - roi_begin;
+    nthreads = std::min (nthreads, splitlen);
+
+    // Spawn threads by dividing the region into bands.
+    OIIO::thread_group threads;
+    int blocksize = std::max (1, (splitlen + nthreads - 1) / nthreads);
+    for (int i = 0;  i < nthreads;  i++) {
+        if (splitdir == Split_Y) {
+            roi.ybegin = roi_begin + i * blocksize;
+            roi.yend = std::min (roi.ybegin + blocksize, roi_end);
             if (roi.ybegin >= roi.yend)
                 break;   // no more work to dole out
-            threads.add_thread (new OIIO::thread (f, roi));
+        } else if (splitdir == Split_X) {
+            roi.xbegin = roi_begin + i * blocksize;
+            roi.xend = std::min (roi.xbegin + blocksize, roi_end);
+            if (roi.xbegin >= roi.xend)
+                break;   // no more work to dole out
+        } else { // if (splitdir == Split_Z)
+            roi.zbegin = roi_begin + i * blocksize;
+            roi.zend = std::min (roi.zbegin + blocksize, roi_end);
+            if (roi.zbegin >= roi.zend)
+                break;   // no more work to dole out
         }
-        threads.join_all ();
+        if (i < nthreads-1)
+            threads.add_thread (new OIIO::thread (f, roi));
+        else
+            f (roi);   // Run the last one in the calling thread
     }
+    threads.join_all ();
 }
 
 
