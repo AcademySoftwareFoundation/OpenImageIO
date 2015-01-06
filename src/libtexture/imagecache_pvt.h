@@ -37,6 +37,7 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/unordered_map.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 
 #include "OpenImageIO/export.h"
