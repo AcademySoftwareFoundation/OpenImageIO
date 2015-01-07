@@ -1411,8 +1411,8 @@ void
 ImageBuf::interppixel_NDC (float x, float y, float *pixel, WrapMode wrap) const
 {
     const ImageSpec &spec (impl()->spec());
-    interppixel (static_cast<float>(spec.x) + x * static_cast<float>(spec.width),
-                 static_cast<float>(spec.y) + y * static_cast<float>(spec.height),
+    interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
+                 static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
                  pixel, wrap);
 }
 
@@ -1425,6 +1425,68 @@ ImageBuf::interppixel_NDC_full (float x, float y, float *pixel, WrapMode wrap) c
     interppixel (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
                  static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
                  pixel, wrap);
+}
+
+
+
+template <class T>
+static bool
+interppixel_bicubic_ (const ImageBuf &img, float x, float y, float *pixel,
+                      ImageBuf::WrapMode wrap)
+{
+    int n = img.spec().nchannels;
+    x -= 0.5f;
+    y -= 0.5f;
+    int xtexel, ytexel;
+    float xfrac, yfrac;
+    xfrac = floorfrac (x, &xtexel);
+    yfrac = floorfrac (y, &ytexel);
+
+    float wx[4]; evalBSplineWeights (wx, xfrac);
+    float wy[4]; evalBSplineWeights (wy, yfrac);
+    for (int c = 0;  c < n;  ++c)
+        pixel[c] = 0.0f;
+    ImageBuf::ConstIterator<T> it (img, xtexel-1, xtexel+3, ytexel-1, ytexel+3,
+                                   0, 1, wrap);
+    for (int j = 0;  j < 4;  ++j) {
+        for (int i = 0;  i < 4;  ++i, ++it) {
+            float w = wx[i] * wy[j];
+            for (int c = 0;  c < n;  ++c)
+                pixel[c] += w * it[c];
+        }
+    }
+    return true;
+}
+
+
+
+inline bool
+interppixel_bicubic_wrapper (float x, float y, float *pixel,
+                     ImageBuf::WrapMode wrap, const ImageBuf &img)
+{
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "interppixel_bicubic", interppixel_bicubic_,
+                         img.spec().format, img, x, y, pixel, wrap);
+    return ok;
+}
+
+
+
+void
+ImageBuf::interppixel_bicubic (float x, float y, float *pixel, WrapMode wrap) const
+{
+    interppixel_bicubic_wrapper (x, y, pixel, wrap, *this);
+}
+
+
+
+void
+ImageBuf::interppixel_bicubic_NDC (float x, float y, float *pixel, WrapMode wrap) const
+{
+    const ImageSpec &spec (impl()->spec());
+    interppixel_bicubic (static_cast<float>(spec.full_x) + x * static_cast<float>(spec.full_width),
+                         static_cast<float>(spec.full_y) + y * static_cast<float>(spec.full_height),
+                         pixel, wrap);
 }
 
 

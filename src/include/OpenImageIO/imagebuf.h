@@ -423,20 +423,28 @@ public:
     void interppixel (float x, float y, float *pixel,
                       WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at image data NDC coordinates (s,t), where
-    /// (0,0) is the upper left corner of the pixel data window, (1,1)
-    /// the lower right corner of the pixel data.
-    /// FIXME -- lg thinks that this is stupid, and the only useful NDC
-    /// space is the one used by interppixel_NDC_full.  We should deprecate
-    /// this in the future.
+    /// Linearly interpolate at NDC coordinates (s,t), where (0,0) is
+    /// the upper left corner of the display window, (1,1) the lower
+    /// right corner of the display window.
     void interppixel_NDC (float s, float t, float *pixel,
                           WrapMode wrap=WrapBlack) const;
 
-    /// Linearly interpolate at space coordinates (s,t), where (0,0) is
-    /// the upper left corner of the display window, (1,1) the lower
-    /// right corner of the display window.
+    /// DEPCRECATED (1.5) synonym for interppixel_NDC.
     void interppixel_NDC_full (float s, float t, float *pixel,
                                WrapMode wrap=WrapBlack) const;
+
+    /// Bicubic interpolation at pixel coordinates (x,y), where (0,0) is
+    /// the upper left corner, (xres,yres) the lower right corner of
+    /// the pixel data.
+    void interppixel_bicubic (float x, float y, float *pixel,
+                              WrapMode wrap=WrapBlack) const;
+
+    /// Bicubic interpolattion at NDC space coordinates (s,t), where (0,0)
+    /// is the upper left corner of the display (aka "full") window, (1,1)
+    /// the lower right corner of the display window.
+    void interppixel_bicubic_NDC (float s, float t, float *pixel,
+                                  WrapMode wrap=WrapBlack) const;
+
 
     /// Set the pixel with coordinates (x,y,0) to have the values in
     /// pixel[0..n-1].  The number of channels copied, n, is the minimum

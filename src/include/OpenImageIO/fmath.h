@@ -334,6 +334,58 @@ trilerp_mad (const T *v0, const T *v1, const T *v2, const T *v3,
 
 
 
+/// Evaluate B-spline weights in w[0..3] for the given fraction.  This
+/// is an important component of performing a cubic interpolation.
+template <typename T>
+inline void evalBSplineWeights (T w[4], T fraction)
+{
+    T one_frac = 1 - fraction;
+    w[0] = T(1.0 / 6.0) * one_frac * one_frac * one_frac;
+    w[1] = T(2.0 / 3.0) - T(0.5) * fraction * fraction * (2 - fraction);
+    w[2] = T(2.0 / 3.0) - T(0.5) * one_frac * one_frac * (2 - one_frac);
+    w[3] = T(1.0 / 6.0) * fraction * fraction * fraction;
+}
+
+
+/// Evaluate B-spline derivative weights in w[0..3] for the given
+/// fraction.  This is an important component of performing a cubic
+/// interpolation with derivatives.
+template <typename T>
+inline void evalBSplineWeightDerivs (T dw[4], T fraction)
+{
+    T one_frac = 1 - fraction;
+    dw[0] = -T(0.5) * one_frac * one_frac;
+    dw[1] =  T(0.5) * fraction * (3 * fraction - 4);
+    dw[2] = -T(0.5) * one_frac * (3 * one_frac - 4);
+    dw[3] =  T(0.5) * fraction * fraction;
+}
+
+
+
+/// Bicubically interoplate arrays of pointers arranged in a 4x4 pattern
+/// with val[0] pointing to the data in the upper left corner, val[15]
+/// pointing to the lower right) at coordinates (s,t), storing the
+/// results in 'result'.  These are all vectors, so do it for each of
+/// 'n' contiguous values (using the same s,t interpolants).
+template <class T>
+inline void
+bicubic_interp (const T **val, T s, T t, int n, T *result)
+{
+    for (int c = 0;  c < n;  ++c)
+        result[c] = T(0);
+    T wx[4]; evalBSplineWeights (wx, s);
+    T wy[4]; evalBSplineWeights (wy, t);
+    for (int j = 0;  j < 4;  ++j) {
+        for (int i = 0;  i < 4;  ++i) {
+            T w = wx[i] * wy[j];
+            for (int c = 0;  c < n;  ++c)
+                result[c] += w * val[j*4+i][c];
+        }
+    }
+}
+
+
+
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
