@@ -462,13 +462,16 @@ array of 4 integers (returning xmin, ymin, xmax, ymax) or an array of 6
 integers (returning xmin, ymin, zmin, xmax, ymax, zmax). The $z$ values may
 be useful for 3D/volumetric images; for 2D images they will be 0).
 
-\item[\rm \kw{viewingmatrix}] The viewing matrix, which is a
-$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
-  TypeDesc(FLOAT,MATRIX)}).
+\item[\rm \kw{worldtocamera}] The viewing matrix, which is a $4 \times 4$
+matrix (an {\cf Imath::M44f}, described as {\cf TypeDesc(FLOAT,MATRIX)}),
+giving the world-to-camera 3D transformation matrix that was used when  the
+image was created. Generally, only rendered images will have this.
 
-\item[\rm \kw{projectionmatrix}] The projection matrix, which is a
-$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
-  TypeDesc(FLOAT,MATRIX)}).
+\item[\rm \kw{worldtoscreen}] The projection matrix, which is a $4 \times 4$
+matrix (an {\cf Imath::M44f}, described as {\cf TypeDesc(FLOAT,MATRIX)}),
+giving the matrix that projected points from world space into a 2D screen
+coordinate system where $x$ and $y$ range from $-1$ to $+1$.  Generally,
+only rendered images will have this.
 
 \item[Anything else] -- For all other data names, the
 the metadata of the image file will be searched for an item that
