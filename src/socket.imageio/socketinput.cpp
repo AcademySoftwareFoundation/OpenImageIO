@@ -113,6 +113,9 @@ SocketInput::read_native_scanline (int y, int z, void *data)
     } catch (boost::system::system_error &err) {
         error ("Error while reading: %s", err.what ());
         return false;
+    } catch (...) {
+        error ("Error while reading: unknown exception");
+        return false;
     }
 
     return true;
@@ -128,6 +131,9 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
                 m_spec.tile_bytes ()));
     } catch (boost::system::system_error &err) {
         error ("Error while reading: %s", err.what ());
+        return false;
+    } catch (...) {
+        error ("Error while reading: unknown exception");
         return false;
     }
 
@@ -167,6 +173,9 @@ SocketInput::accept_connection(const std::string &name)
     } catch (boost::system::system_error &err) {
         error ("Error while accepting: %s", err.what ());
         return false;
+    } catch (...) {
+        error ("Error while accepting: unknown exception");
+        return false;
     }
 
     return true;
@@ -189,7 +198,10 @@ SocketInput::get_spec_from_client (ImageSpec &spec)
         spec.from_xml (spec_xml);
         delete [] spec_xml;
     } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
+        error ("Error while get_spec_from_client: %s", err.what ());
+        return false;
+    } catch (...) {
+        error ("Error while get_spec_from_client: unknown exception");
         return false;
     }
 

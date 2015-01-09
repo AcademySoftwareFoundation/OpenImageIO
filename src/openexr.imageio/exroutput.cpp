@@ -345,9 +345,13 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                 m_output_scanline = new Imf::OutputFile (*m_output_stream,
                                                          m_headers[m_subimage]);
             }
-        }
-        catch (const std::exception &e) {
+        } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
+            m_output_scanline = NULL;
+            m_output_tiled = NULL;
+            return false;
+        } catch (...) {   // catch-all for edge cases or compiler bugs
+            error ("OpenEXR exception: unknown");
             m_output_scanline = NULL;
             m_output_tiled = NULL;
             return false;
@@ -391,9 +395,15 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             } else {
                 ASSERT (0);
             }
-        }
-        catch (const std::exception &e) {
+        } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
+            m_scanline_output_part = NULL;
+            m_tiled_output_part = NULL;
+            m_deep_scanline_output_part = NULL;
+            m_deep_tiled_output_part = NULL;
+            return false;
+        } catch (...) {   // catch-all for edge cases or compiler bugs
+            error ("OpenEXR exception: unknown exception");
             m_scanline_output_part = NULL;
             m_tiled_output_part = NULL;
             m_deep_scanline_output_part = NULL;
@@ -496,11 +506,15 @@ OpenEXROutput::open (const std::string &name, int subimages,
         // do this quite yet.
         m_output_multipart = new Imf::MultiPartOutputFile (name.c_str(),
                                                  &m_headers[0], subimages);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         delete m_output_stream;
         m_output_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        delete m_output_stream;
+        m_output_stream = NULL;
+        error ("OpenEXR exception: unknown exception");
         return false;
     }
     try {
@@ -517,9 +531,16 @@ OpenEXROutput::open (const std::string &name, int subimages,
                 m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, 0);
             }
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("OpenEXR exception: %s", e.what());
+        delete m_output_stream;  m_output_stream = NULL;
+        m_scanline_output_part = NULL;
+        m_tiled_output_part = NULL;
+        m_deep_scanline_output_part = NULL;
+        m_deep_tiled_output_part = NULL;
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        error ("OpenEXR exception: unknown exception");
         delete m_output_stream;  m_output_stream = NULL;
         m_scanline_output_part = NULL;
         m_tiled_output_part = NULL;
@@ -1069,6 +1090,10 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 #ifndef NDEBUG
         std::cout << "Caught OpenEXR exception: " << e.what() << "\n";
 #endif
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+#ifndef NDEBUG
+        std::cout << "Caught unknown OpenEXR exception\n";
+#endif
     }
 
 #ifndef NDEBUG
@@ -1155,9 +1180,11 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
         } else {
             ASSERT (0);
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1230,9 +1257,11 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
             } else {
                 ASSERT (0);
             }
-        }
-        catch (const std::exception &e) {
+        } catch (const std::exception &e) {
             error ("Failed OpenEXR write: %s", e.what());
+            return false;
+        } catch (...) {  // catch-all for edge cases or compiler bugs
+            error ("Failed OpenEXR write: unknown exception");
             return false;
         }
 
@@ -1353,9 +1382,11 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
         } else {
             ASSERT (0);
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1405,9 +1436,11 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
 
         // Write the pixels
         m_deep_scanline_output_part->writePixels (yend-ybegin);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR write: unknown exception");
         return false;
     }
 
@@ -1472,9 +1505,11 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         m_deep_tiled_output_part->writeTiles (firstxtile, firstxtile+xtiles-1,
                                               firstytile, firstytile+ytiles-1,
                                               m_miplevel, m_miplevel);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR write: unknown exception");
         return false;
     }
 
