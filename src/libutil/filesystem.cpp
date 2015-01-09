@@ -249,7 +249,7 @@ Filesystem::exists (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::exists (path);
-    } catch (const std::exception &) {
+    } catch (...) {
         r = false;
     }
     return r;
@@ -263,7 +263,7 @@ Filesystem::is_directory (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::is_directory (path);
-    } catch (const std::exception &) {
+    } catch (...) {
         r = false;
     }
     return r;
@@ -277,7 +277,7 @@ Filesystem::is_regular (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::is_regular_file (path);
-    } catch (const std::exception &) {
+    } catch (...) {
         r = false;
     }
     return r;
@@ -474,7 +474,7 @@ Filesystem::last_write_time (const std::string& path)
 #else
         return boost::filesystem::last_write_time (path);
 #endif
-    } catch (const std::exception &) {
+    } catch (...) {
         // File doesn't exist
         return 0;
     }
@@ -492,7 +492,7 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
 #else
         boost::filesystem::last_write_time (path, time);
 #endif
-    } catch (const std::exception &) {
+    } catch (...) {
         // File doesn't exist
     }
 }
@@ -807,7 +807,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
         }
     }
 
-    } catch (std::exception &e) {
+    } catch (...) {
         // Botched regex. Just fail.
         return false;
     }

@@ -359,21 +359,27 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     
     try {
         m_input_stream = new OpenEXRInputStream (name.c_str());
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        m_input_stream = NULL;
+        error ("OpenEXR exception: unknown");
         return false;
     }
 
 #ifdef USE_OPENEXR_VERSION2
     try {
         m_input_multipart = new Imf::MultiPartInputFile (*m_input_stream);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         delete m_input_stream;
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        m_input_stream = NULL;
+        error ("OpenEXR exception: unknown");
         return false;
     }
 
@@ -386,11 +392,14 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         } else {
             m_input_scanline = new Imf::InputFile (*m_input_stream);
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         delete m_input_stream;
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        m_input_stream = NULL;
+        error ("OpenEXR exception: unknown");
         return false;
     }
 
@@ -827,9 +836,16 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                 else
                     m_scanline_input_part = new Imf::InputPart (*m_input_multipart, subimage);
             }
-        }
-        catch (const std::exception &e) {
+        } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
+            m_scanline_input_part = NULL;
+            m_tiled_input_part = NULL;
+            m_deep_scanline_input_part = NULL;
+            m_deep_tiled_input_part = NULL;
+            ASSERT(0);
+            return false;
+        } catch (...) {   // catch-all for edge cases or compiler bugs
+            error ("OpenEXR exception: unknown");
             m_scanline_input_part = NULL;
             m_tiled_input_part = NULL;
             m_deep_scanline_input_part = NULL;
@@ -982,9 +998,11 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
         } else {
             ASSERT (0);
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR read: unknown exception");
         return false;
     }
     return true;
@@ -1094,9 +1112,11 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                         (char *)data+(y-ybegin)*scanline_stride,
                         user_scanline_bytes);
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR read: unknown exception");
         return false;
     }
 
@@ -1154,9 +1174,11 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
 
         // Read the pixels
         m_deep_scanline_input_part->readPixels (ybegin, yend-1);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR read: unknown exception");
         return false;
     }
 
@@ -1225,9 +1247,11 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         // Read the pixels
         m_deep_tiled_input_part->readTiles (0, xtiles-1, 0, ytiles-1,
                                             m_miplevel, m_miplevel);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
+        return false;
+    } catch (...) {   // catch-all for edge cases or compiler bugs
+        error ("Failed OpenEXR read: unknown exception");
         return false;
     }
 
