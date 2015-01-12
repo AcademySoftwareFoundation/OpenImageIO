@@ -722,7 +722,7 @@ static LabelTable GPSAltitudeRef_table[] = {
 };
 
 static LabelTable GPSStatus_table[] = {
-    { 'A', "measurement in progress" }, { 'V', "measurement interoperability" },
+    { 'A', "measurement active" }, { 'V', "measurement void" },
     { -1, NULL }
 };
 
@@ -736,12 +736,12 @@ static LabelTable GPSSpeedRef_table[] = {
 };
 
 static LabelTable GPSDestDistanceRef_table[] = {
-    { 'K', "km" }, { 'M', "miles" }, { 'N', "knots" }, 
+    { 'K', "km" }, { 'M', "miles" }, { 'N', "nautical miles" },
     { -1, NULL }
 };
 
 static LabelTable magnetic_table[] = {
-    { 'T', "true direction" }, { 'M', "magnetic direction" }, { -1, NULL }
+    { 'T', "true north" }, { 'M', "magnetic north" }, { -1, NULL }
 };
 
 typedef std::string (*ExplainerFunc) (const ImageIOParameter &p, 
