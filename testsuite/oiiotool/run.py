@@ -59,9 +59,20 @@ command += oiiotool ("cmul-input.exr --cmul 1.5 -o cmul1.exr")
 # Test --cmul val,val,val... (multiply per-channel scalars)
 command += oiiotool ("cmul-input.exr --cmul 1.5,1,0.5 -o cmul2.exr")
 
-# Test --cadd val (multiply all channels by the same scalar)
+# Test --divc val (divide all channels by the same scalar)
+command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
+                     "--divc 2.0 -d half -o divc1.exr")
+# Test --divc val,val,val... (divide per-channel scalars)
+command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
+                     "--divc 2.0,1,0.5 -d half -o divc2.exr")
+# Test --div of images
+command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
+                     "--pattern constant:color=2.0,1,0.5 64x64 3 "
+                     "--div -d half -o div.exr")
+
+# Test --cadd val (add to all channels the same scalar)
 command += oiiotool ("cmul-input.exr --cadd 0.25 -o cadd1.exr")
-# Test --cadd val,val,val... (multiply per-channel scalars)
+# Test --cadd val,val,val... (add per-channel scalars)
 command += oiiotool ("cmul-input.exr --cadd 0,0.25,-0.25 -o cadd2.exr")
 
 # Test --cpow val (raise all channels by the same power)
@@ -73,10 +84,22 @@ command += oiiotool ("cmul-input.exr --cpow 2,2,1 -o cpow2.exr")
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --add -d half -o add.exr")
-# Test --sub
+# Test --sub, csub
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --sub -d half -o sub.exr")
+command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
+            + " --csub 0.1,0.1,0.1 -d half -o subc.exr")
+
+# Test --abs, --absdiff, --absdiffc
+# First, make a test image that's 0.5 on the left, -0.5 on the right
+command += oiiotool ("-pattern constant:color=-0.25,-0.25,-0.25 64x128 3 "
+                   + "-pattern constant:color=0.5,0.5,0.5 64x128 3 "
+                   + "-mosaic 2x1 -d half -o negpos.exr")
+command += oiiotool ("negpos.exr -abs -o abs.exr")
+command += oiiotool ("negpos.exr -pattern constant:color=0.2,0.2,0.2 128x128 3 "
+                   + "-absdiff -d half -o absdiff.exr")
+command += oiiotool ("negpos.exr -absdiffc 0.2,0.2,0.2 -d half -o absdiffc.exr")
 
 # test --chsum
 command += oiiotool ("tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
@@ -246,9 +269,12 @@ outputs = [ "filled.tif", "autotrim.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr",
             "cmul1.exr", "cmul2.exr",
+            "div.exr", "divc1.exr", "divc2.exr",
             "cadd1.exr", "cadd2.exr",
             "cpow1.exr", "cpow2.exr",
-            "add.exr", "sub.exr", "chsum.tif",
+            "add.exr", "sub.exr", "subc.exr",
+            "abs.exr", "absdiff.exr", "absdiffc.exr",
+            "chsum.tif",
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif",
             "rangecompress.tif", "rangeexpand.tif",

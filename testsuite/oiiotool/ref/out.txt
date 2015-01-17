@@ -159,6 +159,12 @@ Comparing "cmul1.exr" and "ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "ref/cmul2.exr"
 PASS
+Comparing "div.exr" and "ref/div.exr"
+PASS
+Comparing "divc1.exr" and "ref/divc1.exr"
+PASS
+Comparing "divc2.exr" and "ref/divc2.exr"
+PASS
 Comparing "cadd1.exr" and "ref/cadd1.exr"
 PASS
 Comparing "cadd2.exr" and "ref/cadd2.exr"
@@ -170,6 +176,14 @@ PASS
 Comparing "add.exr" and "ref/add.exr"
 PASS
 Comparing "sub.exr" and "ref/sub.exr"
+PASS
+Comparing "subc.exr" and "ref/subc.exr"
+PASS
+Comparing "abs.exr" and "ref/abs.exr"
+PASS
+Comparing "absdiff.exr" and "ref/absdiff.exr"
+PASS
+Comparing "absdiffc.exr" and "ref/absdiffc.exr"
 PASS
 Comparing "chsum.tif" and "ref/chsum.tif"
 PASS

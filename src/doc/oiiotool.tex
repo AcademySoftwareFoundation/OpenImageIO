@@ -231,7 +231,7 @@ resolution:
 \noindent If you also want to save an image showing just the differences:
 
 \begin{code}
-    oiiotool old.tif new.tif --diff --sub --abs -o diff.tif
+    oiiotool old.tif new.tif --diff --absdiff -o diff.tif
 \end{code}
 
 This looks complicated, but it's really simple: read {\cf old.tif},
@@ -1250,15 +1250,46 @@ Replace the \emph{two} top images with a new image that is the difference
 between the first and second images.
 \apiend
 
+\apiitem{--absdiff}
+\NEW %1.6
+Replace the \emph{two} top images with a new image that is the absolute
+value of the difference between the first and second images.
+\apiend
+
+\apiitem{--absdiffc {\rm \emph{value}} \\
+--absdiffc {\rm \emph{value0,value1,value2...}}}
+\NEW %1.6
+Replace the top image by the absolute value of the difference between each
+pixel and a constant color.
+\apiend
+
+\apiitem{--abs}
+Replace the current image with a new image that has each pixel
+consisting of the \emph{absolute value} of he old pixel value.
+\apiend
+
 \apiitem{--mul}
 Replace the \emph{two} top images with a new image that the
 pixel-by-pixel, channel-by-channel multiplicative product of
 the first and second images.
 \apiend
 
-\apiitem{--abs}
-Replace the current image with a new image that has each pixel
-consisting of the \emph{absolute value} of he old pixel value.
+\apiitem{--div}
+\NEW %1.6
+Replace the \emph{two} top images with a new image that is the
+pixel-by-pixel, channel-by-channel result of the first image divided by
+the second image. Division by zero is defined as resulting in 0.
+\apiend
+
+\apiitem{--divc {\rm \emph{value}} \\
+--divc {\rm \emph{value0,value1,value2...}}}
+\NEW %1.6
+Divide all the pixel values in the top image by a constant value.
+If a single constant value is given, all color channels will have their values
+divided by the same value.  Alternatively, a series of
+comma-separated constant values (with no spaces!) may be used to specifiy a
+different multiplier for each channel in the image, respectively.
+Division by zero is defined as resulting in 0.
 \apiend
 
 \apiitem{--cadd {\rm \emph{value}} \\

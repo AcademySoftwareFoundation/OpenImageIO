@@ -1885,6 +1885,38 @@ be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce absdiff} (dst, A, B, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!absdiff} \indexapi{absdiff}
+\NEW % 1.6
+
+Compute {\cf dst = abs(A - B)}.  {\cf A} is an \ImageBuf, and {\cf B}  may
+be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
+{\cf float} for each color channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf ()
+    ImageBufAlgo.absdiff (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce abs} (dst, A, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!abs} \indexapi{abs}
+\NEW % 1.6
+
+Compute {\cf dst = abs(A)}.  {\cf A} is an \ImageBuf.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf ()
+    ImageBufAlgo.abs (buf, ImageBuf("a.exr"))
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce mul} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!mul} \indexapi{mul}
 
@@ -1900,7 +1932,29 @@ all channels) or a tuple giving a {\cf float} for each color channel.
     ImageBufAlgo.mul (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
 
     # Reduce intensity of buf's channels 0-2 by 50%, in place
-    ImageBufAlgo.mul (buf, buf, (0.5, 0.5, 0.5, 1))
+    ImageBufAlgo.mul (buf, buf, (0.5, 0.5, 0.5, 1.0))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce div} (dst, A, B, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!div} \indexapi{div}
+\NEW % 1.6
+
+Compute {\cf dst} = {\cf A / B} (channel-by-channel division), where $x/0$
+is defined to be $0$.  {\cf A} is an \ImageBuf, and {\cf B}  may be an
+\ImageBuf, a {\cf float} (scaling all channels) or a tuple giving a {\cf
+float} for each color channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Divide a.exr by b.exr
+    buf = ImageBuf ()
+    ImageBufAlgo.div (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+
+    # Reduce intensity of buf's channels 0-2 by 50%, in place
+    ImageBufAlgo.div (buf, buf, (2.0, 2.0, 2.0, 1.0))
 \end{code}
 \apiend
 

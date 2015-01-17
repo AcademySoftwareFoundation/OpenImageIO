@@ -342,6 +342,50 @@ IBA_sub_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
+IBA_absdiff_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return false;
+    ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::absdiff (dst, A, &values[0], roi, nthreads);
+}
+
+bool
+IBA_absdiff_float (ImageBuf &dst, const ImageBuf &A, float val,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::absdiff (dst, A, val, roi, nthreads);
+}
+
+bool
+IBA_absdiff_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::absdiff (dst, A, B, roi, nthreads);
+}
+
+
+
+bool
+IBA_abs (ImageBuf &dst, const ImageBuf &A,
+         ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::abs (dst, A, roi, nthreads);
+}
+
+
+
+bool
 IBA_mul_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
                ROI roi=ROI::All(), int nthreads=0)
 {
@@ -371,6 +415,40 @@ IBA_mul_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 {
     ScopedGILRelease gil;
     return ImageBufAlgo::mul (dst, A, B, roi, nthreads);
+}
+
+
+
+bool
+IBA_div_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return false;
+    ASSERT (values.size() > 0);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::div (dst, A, &values[0], roi, nthreads);
+}
+
+bool
+IBA_div_float (ImageBuf &dst, const ImageBuf &A, float B,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::div (dst, A, B, roi, nthreads);
+}
+
+bool
+IBA_div_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::div (dst, A, B, roi, nthreads);
 }
 
 
@@ -1025,6 +1103,22 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("sub")
 
+        .def("absdiff", &IBA_absdiff_images,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("absdiff", &IBA_absdiff_float,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("absdiff", IBA_absdiff_color,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("absdiff")
+
+        .def("abs", &IBA_abs,
+             (arg("dst"), arg("A"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("abs")
+
         .def("mul", &IBA_mul_images,
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
@@ -1035,6 +1129,17 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("mul")
+
+        .def("div", &IBA_div_images,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("div", &IBA_div_float,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("div", &IBA_div_color,
+             (arg("dst"), arg("A"), arg("B"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("div")
 
         .def("pow", &IBA_pow_float,
              (arg("dst"), arg("A"), arg("B"),

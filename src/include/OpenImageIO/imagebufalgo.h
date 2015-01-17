@@ -633,6 +633,55 @@ bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, float B,
                    ROI roi=ROI::All(), int nthreads=0);
 
 
+/// For all pixels within the designated ROI, compute dst = abs(A - B).
+///
+/// A is an ImageBuf. B may be an ImageBuf (with the same number of channels
+/// as A), or an array of floats (one per channel, for each channel of A),
+/// or a single float (same value for all channels).
+///
+/// If roi is not initialized, it will be set to the union of the pixel
+/// regions of A and B.  If dst is not initialized, it will be sized based
+/// on roi. If dst is initialized, it also must have the same number of
+/// channels as A.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+/// It is permitted for dst and A to be the same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                       ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, const float *B,
+                       ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, float B,
+                       ROI roi=ROI::All(), int nthreads=0);
+
+
+/// For all pixels within the designated ROI, compute dst = abs(A).
+///
+/// If roi is not initialized, it will be set to the pixel data region of A.
+/// If dst is not initialized, it will be sized based on roi. If dst is
+/// initialized, it must have the same number of channels as A.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+/// It is permitted for dst and A to be the same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API abs (ImageBuf &dst, const ImageBuf &A,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+
 /// For all pixels within the designated ROI, compute dst = A * B.
 /// All three images must have the same number of channels.
 ///
@@ -683,6 +732,36 @@ bool OIIO_API mul (ImageBuf &dst, const ImageBuf &A, float B,
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API mul (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
+
+
+/// For all pixels within the designated ROI, compute dst = A / B.
+/// We define division-by-zero to result in 0.
+///
+/// A is an ImageBuf. B may be an ImageBuf (with the same number of channels
+/// as A), or an array of floats (one per channel, for each channel of A),
+/// or a single float (same value for all channels).
+///
+/// If roi is not initialized, it will be set to the union of the pixel
+/// regions of A and B.  If dst is not initialized, it will be sized based
+/// on roi. If dst is initialized, it also must have the same number of
+/// channels as A.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works only for pixel types float, half, uint8, uint16.
+/// It is permitted for dst and A to be the same image.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API div (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API div (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API div (ImageBuf &dst, const ImageBuf &A, float B,
                    ROI roi=ROI::All(), int nthreads=0);
 
 

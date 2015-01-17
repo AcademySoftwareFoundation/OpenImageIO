@@ -66,6 +66,10 @@ Comparing "add.exr" and "../oiiotool/ref/add.exr"
 PASS
 Comparing "sub.exr" and "../oiiotool/ref/sub.exr"
 PASS
+Comparing "abs.exr" and "../oiiotool/ref/abs.exr"
+PASS
+Comparing "absdiff.exr" and "../oiiotool/ref/absdiff.exr"
+PASS
 Comparing "cmul1.exr" and "../oiiotool/ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "../oiiotool/ref/cmul2.exr"
@@ -73,6 +77,12 @@ PASS
 Comparing "cpow1.exr" and "../oiiotool/ref/cpow1.exr"
 PASS
 Comparing "cpow2.exr" and "../oiiotool/ref/cpow2.exr"
+PASS
+Comparing "div.exr" and "../oiiotool/ref/div.exr"
+PASS
+Comparing "divc1.exr" and "../oiiotool/ref/divc1.exr"
+PASS
+Comparing "divc2.exr" and "../oiiotool/ref/divc2.exr"
 PASS
 Comparing "chsum.tif" and "../oiiotool/ref/chsum.tif"
 PASS

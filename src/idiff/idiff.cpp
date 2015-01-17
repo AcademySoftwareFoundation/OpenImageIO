@@ -44,11 +44,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/filesystem.h"
-
-#ifdef __APPLE__
- using std::isinf;
- using std::isnan;
-#endif
+#include "OpenImageIO/fmath.h"
 
 
 OIIO_NAMESPACE_USING
@@ -329,28 +325,13 @@ main (int argc, char *argv[])
             // right now, because ImageBuf doesn't really know how to
             // write subimages.
             if (diffimage.size() && (cr.maxerror != 0 || !outdiffonly)) {
-                ImageBuf diff (img0.spec());
-                ImageBuf::ConstIterator<float,float> pix0 (img0);
-                ImageBuf::ConstIterator<float,float> pix1 (img1);
-                ImageBuf::Iterator<float,float> pixdiff (diff);
-                // Subtract the second image from the first.  At which
-                // time we no longer need the second image, so free it.
-                if (diffabs) {
-                    for (  ;  pix0.valid();  ++pix0) {
-                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                        pixdiff.pos (pix0.x(), pix0.y());
-                        for (int c = 0;  c < img0.nchannels();  ++c)
-                            pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
-                    }
-                } else {
-                    for (  ;  pix0.valid();  ++pix0) {
-                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                        pixdiff.pos (pix0.x(), pix0.y());
-                        for (int c = 0;  c < img0.spec().nchannels;  ++c)
-                            pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
-                    }
-                }
-
+                ImageBuf diff;
+                if (diffabs)
+                    ImageBufAlgo::absdiff (diff, img0, img1);
+                else
+                    ImageBufAlgo::sub (diff, img0, img1);
+                if (diffscale != 1.0f)
+                    ImageBufAlgo::mul (diff, diff, diffscale);
                 diff.write (diffimage);
 
                 // Clear diff image name so we only save the first

@@ -1916,6 +1916,131 @@ action_sub (int argc, const char *argv[])
 
 
 static int
+action_csub (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_csub, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = ot.curimg->subimages(); s < subimages; ++s) {
+        int nchans = R->spec(s,0)->nchannels;
+        std::vector<float> val (nchans, 0.0f);
+        int nvals = Strutil::extract_from_list_string (val, argv[1]);
+        val.resize (nvals);
+        val.resize (nchans, val.size() == 1 ? val.back() : 0.0f);
+        for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
+            if (! ImageBufAlgo::sub ((*R)(s,m), (*R)(s,m), &val[0]))
+                ot.error ("csub", (*R)(s,m).geterror());
+        }
+    }
+
+    ot.function_times["csub"] += timer();
+    return 0;
+}
+
+
+
+
+static int
+action_absdiff (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_absdiff, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
+
+    int subimages = R->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        const ImageBuf &Aib ((*A)(s));
+        const ImageBuf &Bib ((*B)(s));
+        bool ok = ImageBufAlgo::absdiff (Rib, Aib, Bib);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
+    }
+
+    ot.function_times["absdiff"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_absdiffc (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_absdiffc, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = ot.curimg->subimages(); s < subimages; ++s) {
+        int nchans = R->spec(s,0)->nchannels;
+        std::vector<float> val (nchans, 0.0f);
+        int nvals = Strutil::extract_from_list_string (val, argv[1]);
+        val.resize (nvals);
+        val.resize (nchans, val.size() == 1 ? val.back() : 0.0f);
+        for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
+            if (! ImageBufAlgo::absdiff ((*R)(s,m), (*R)(s,m), &val[0]))
+                ot.error ("absdiffc", (*R)(s,m).geterror());
+        }
+    }
+
+    ot.function_times["absdiffc"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_abs (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_abs, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    for (int s = 0, subimages = ot.curimg->subimages(); s < subimages; ++s) {
+        for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            bool ok = ImageBufAlgo::abs (Rib, Aib);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
+        }
+    }
+
+    ot.function_times["abs"] += timer();
+    return 0;
+}
+
+
+
+static int
 action_mul (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_mul, argc, argv))
@@ -1941,41 +2066,6 @@ action_mul (int argc, const char *argv[])
     }
              
     ot.function_times["mul"] += timer();
-    return 0;
-}
-
-
-
-static int
-action_abs (int argc, const char *argv[])
-{
-    if (ot.postpone_callback (1, action_abs, argc, argv))
-        return 0;
-    Timer timer (ot.enable_function_timing);
-
-    ot.read ();
-    ImageRecRef A = ot.pop();
-    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                           ot.allsubimages ? -1 : 0, true, false));
-
-    int subimages = ot.curimg->subimages();
-    for (int s = 0;  s < subimages;  ++s) {
-        int miplevels = ot.curimg->miplevels(s);
-        for (int m = 0;  m < miplevels;  ++m) {
-            const ImageBuf &Aib ((*A)(s,m));
-            ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = fabsf(a[c]);
-            }
-        }
-    }
-             
-    ot.function_times["abs"] += timer();
     return 0;
 }
 
@@ -2022,6 +2112,66 @@ action_cmul (int argc, const char *argv[])
     }
 
     ot.function_times["cmul"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_div (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_div, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ImageRecRef R (new ImageRec (*A, *B, ot.allsubimages ? -1 : 0,
+                                 ImageRec::WinMergeUnion,
+                                 ImageRec::WinMergeUnion, TypeDesc::FLOAT));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        ImageBuf &Rib ((*R)(s));
+        if (! ImageBufAlgo::div (Rib, (*A)(s), (*B)(s)))
+            ot.error (argv[0], Rib.geterror());
+    }
+
+    ot.function_times["div"] += timer();
+    return 0;
+}
+
+
+
+static int
+action_divc (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_divc, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+
+    ImageRecRef A = ot.pop();
+    A->read ();
+    ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                                 ot.allsubimages ? -1 : 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    for (int s = 0, subimages = ot.curimg->subimages(); s < subimages; ++s) {
+        int nchans = R->spec(s,0)->nchannels;
+        std::vector<float> val (nchans, 0.0f);
+        int nvals = Strutil::extract_from_list_string (val, argv[1]);
+        val.resize (nvals);
+        val.resize (nchans, val.size() == 1 ? val.back() : 0.0f);
+        for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
+            if (! ImageBufAlgo::div ((*R)(s,m), (*R)(s,m), &val[0]))
+                ot.error ("divc", (*R)(s,m).geterror());
+        }
+    }
+
+    ot.function_times["divc"] += timer();
     return 0;
 }
 
@@ -3855,8 +4005,13 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--absdiff %@", action_absdiff, NULL, "Absolute difference between two images",
                 "--mul %@", action_mul, NULL, "Multiply two images",
+                "--div %@", action_div, NULL, "Divide first image by second image",
+                "--divc %s %@", action_divc, NULL, "Divide the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--csub %s %@", action_csub, NULL, "Subtract from all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--absdiffc %s %@", action_absdiffc, NULL, "Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--cpow %s %@", action_cpow, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
                 "--chsum %@", action_chsum, NULL,

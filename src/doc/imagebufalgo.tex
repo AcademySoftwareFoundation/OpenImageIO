@@ -746,6 +746,51 @@ have the same number of channels.
 \apiend
 
 
+\apiitem{bool {\ce absdiff} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce absdiff} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce absdiff} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!absdiff} \indexapi{absdiff}
+\NEW % 1.6
+
+For all pixels within the designated region, compute the absolute value of
+the difference between the corresponding pixels of {\cf A} from {\cf B},
+putting the results into {\cf dst}. {\cf A} is an \ImageBuf.  {\cf B} may be
+an \ImageBuf (with the same number of channels as {\cf A}), or an array of
+floats (one per channel, for each channel of {\cf A}), or a single float
+(same value for all channels).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
+    ImageBuf Difference;
+    ImageBufAlgo::absdiff (Difference, A, B);
+\end{code}
+\apiend
+
+
+\apiitem{bool {\ce abs} (ImageBuf \&dst, const ImageBuf \&A, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!abs} \indexapi{abs}
+\NEW % 1.6
+
+For all pixels within the designated region, compute the absolute value of
+the corresponding pixels of {\cf A}, putting the results into {\cf dst}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ImageBuf Abs;
+    ImageBufAlgo::abs (Abs, A);
+\end{code}
+\apiend
+
+
 
 \apiitem{bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
@@ -773,6 +818,38 @@ All of the images must have the same number of channels.
     ROI roi = get_roi (A.spec());
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::mul (A, A, 0.5, roi);
+\end{code}
+\apiend
+
+
+\apiitem{bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!div} \indexapi{div}
+\NEW %1.6
+
+For all pixels within the designated region, divide the pixel values
+of image {\cf A} by {\cf B} (channel by channel), putting the result in
+{\cf dst}.  {\cf B} is either an image,
+a float (added to all channels) or a per-channel float array.
+All of the images must have the same number of channels.
+Division by zero is definied to result in zero.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
+    ImageBuf Result;
+    ImageBufAlgo::div (Result, A, B);
+
+    // Reduce intensity of A's channels 0-2 by 50%
+    ROI roi = get_roi (A.spec());
+    roi.chbegin = 0;  roi.chend = 3;
+    ImageBufAlgo::div (A, A, 2.0f, roi);
 \end{code}
 \apiend
 
