@@ -155,8 +155,8 @@ const TextureSystemImpl::wrap_impl TextureSystemImpl::wrap_functions[] = {
 
 
 simd::mask4
-wrap_black_simd (simd::int4 &coord_, simd::int4 origin,
-                 simd::int4 width)
+wrap_black_simd (simd::int4 &coord_, const simd::int4& origin,
+                 const simd::int4& width)
 {
     simd::int4 coord (coord_);
     return (coord >= origin) & (coord < (width+origin));
@@ -164,8 +164,8 @@ wrap_black_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 simd::mask4
-wrap_clamp_simd (simd::int4 &coord_, simd::int4 origin,
-                 simd::int4 width)
+wrap_clamp_simd (simd::int4 &coord_, const simd::int4& origin,
+                 const simd::int4& width)
 {
     simd::int4 coord (coord_);
     coord = simd::blend (coord, origin, coord < origin);
@@ -176,8 +176,8 @@ wrap_clamp_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 simd::mask4
-wrap_periodic_simd (simd::int4 &coord_, simd::int4 origin,
-                    simd::int4 width)
+wrap_periodic_simd (simd::int4 &coord_, const simd::int4& origin,
+                    const simd::int4& width)
 {
     simd::int4 coord (coord_);
     coord = coord - origin;
@@ -190,8 +190,8 @@ wrap_periodic_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 simd::mask4
-wrap_periodic_pow2_simd (simd::int4 &coord_, simd::int4 origin,
-                         simd::int4 width)
+wrap_periodic_pow2_simd (simd::int4 &coord_, const simd::int4& origin,
+                         const simd::int4& width)
 {
     simd::int4 coord (coord_);
 //    DASSERT (ispow2(width));
@@ -204,8 +204,8 @@ wrap_periodic_pow2_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 simd::mask4
-wrap_mirror_simd (simd::int4 &coord_, simd::int4 origin,
-                  simd::int4 width)
+wrap_mirror_simd (simd::int4 &coord_, const simd::int4& origin,
+                  const simd::int4& width)
 {
     simd::int4 coord (coord_);
     coord = coord - origin;
@@ -223,8 +223,8 @@ wrap_mirror_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 simd::mask4
-wrap_periodic_sharedborder_simd (simd::int4 &coord_, simd::int4 origin,
-                                 simd::int4 width)
+wrap_periodic_sharedborder_simd (simd::int4 &coord_, const simd::int4& origin,
+                                 const simd::int4& width)
 {
     // Like periodic, but knowing that the first column and last are
     // actually the same position, so we essentially skip the last
@@ -240,8 +240,8 @@ wrap_periodic_sharedborder_simd (simd::int4 &coord_, simd::int4 origin,
 
 
 
-typedef simd::mask4 (*wrap_impl_simd) (simd::int4 &coord, simd::int4 origin,
-                                       simd::int4 width);
+typedef simd::mask4 (*wrap_impl_simd) (simd::int4 &coord, const simd::int4& origin,
+                                       const simd::int4& width);
 
 
 const wrap_impl_simd wrap_functions_simd[] = {
@@ -1629,7 +1629,7 @@ TextureSystemImpl::sample_closest (int nsamples, const float *s_,
 
 
 // return the greatest integer <= x, for 4 values at once
-OIIO_FORCEINLINE int4 quick_floor (float4 x) {
+OIIO_FORCEINLINE int4 quick_floor (const float4& x) {
 #if 0
     // Even on SSE 4.1, this is actually very slightly slower!
     // Continue to test on future architectures.
@@ -1646,7 +1646,7 @@ OIIO_FORCEINLINE int4 quick_floor (float4 x) {
 
 
 // floatfrac for four sets of values at once.
-inline float4 floorfrac (float4 x, int4 * i) {
+inline float4 floorfrac (const float4& x, int4 * i) {
 #if 0
     float4 thefloor = floor(x);
     *i = int4(thefloor);
@@ -1666,21 +1666,22 @@ inline float4 floorfrac (float4 x, int4 * i) {
 /// and jfrac are the fractional (0-1) portion of the way to the next texel
 /// to the right or down, respectively.  Do this for 4 s,t values at a time.
 inline void
-st_to_texel_simd (float4 s, float4 t, TextureSystemImpl::TextureFile &texturefile,
+st_to_texel_simd (const float4& s_, const float4& t_, TextureSystemImpl::TextureFile &texturefile,
                   const ImageSpec &spec, int4 &i, int4 &j,
                   float4 &ifrac, float4 &jfrac)
 {
+	float4 s,t;
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     // Note that we have two modes, depending on the m_sample_border.
     if (texturefile.sample_border() == 0) {
         // texel samples are at 0.5/res, 1.5/res, ..., (res-0.5)/res,
-        s = s * float(spec.width)  + (spec.x - 0.5f);
-        t = t * float(spec.height) + (spec.y - 0.5f);
+        s = s_ * float(spec.width)  + (spec.x - 0.5f);
+        t = t_ * float(spec.height) + (spec.y - 0.5f);
     } else {
         // first and last rows/columns are *exactly* on the boundary,
         // so samples are at 0, 1/(res-1), ..., 1.
-        s = s * float(spec.width-1)  + float(spec.x);
-        t = t * float(spec.height-1) + float(spec.y);
+        s = s_ * float(spec.width-1)  + float(spec.x);
+        t = t_ * float(spec.height-1) + float(spec.y);
     }
     ifrac = floorfrac (s, &i);
     jfrac = floorfrac (t, &j);
@@ -1862,7 +1863,7 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
         }
     
         simd::float4 weight_simd = weight;
-        accum += weight_simd * bilerp (texel_simd[0][0], texel_simd[0][1],
+        accum += weight_simd * bilerp(texel_simd[0][0], texel_simd[0][1],
                                        texel_simd[1][0], texel_simd[1][1],
                                        sfrac, tfrac);
         if (daccumds_) {
@@ -1875,7 +1876,6 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
                                        texel_simd[1][1] - texel_simd[0][1],
                                        sfrac);
         }
-    
         if (use_fill && ! all (stvalid)) {
             // Compute appropriate amount of "fill" color to extra channels in
             // non-"black"-wrapped regions.
@@ -1928,7 +1928,7 @@ inline void evalBSplineWeights_and_derivs (T *w, T fraction,
 // Evaluate the 4 Bspline weights (no derivs), returing them as a float4.
 // The fraction also comes in as a float4 (assuming the same value in all 4
 // slots).
-inline float4 evalBSplineWeights (float4 fraction)
+inline float4 evalBSplineWeights (const float4& fraction)
 {
 #if 0
     // Version that's easy to read and understand:

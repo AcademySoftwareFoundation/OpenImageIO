@@ -219,7 +219,7 @@ inline T madd (const T& a, const T& b, const T& c) {
 /// This is a template, and so should work for any types.
 template <class T, class Q>
 inline T
-lerp (T v0, T v1, Q x)
+lerp (const T& v0, const T& v1, const Q& x)
 {
     // NOTE: a*(1-x) + b*x is much more numerically stable than a+x*(b-a)
     return v0*(Q(1)-x) + v1*x;
@@ -232,7 +232,7 @@ lerp (T v0, T v1, Q x)
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
 inline T
-bilerp (T v0, T v1, T v2, T v3, Q s, Q t)
+bilerp(const T& v0, const T& v1, const T& v2, const T& v3, const Q& s, const Q& t)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
     Q s1 = Q(1) - s;
