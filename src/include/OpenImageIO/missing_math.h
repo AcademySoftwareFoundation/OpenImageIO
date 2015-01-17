@@ -121,7 +121,8 @@ truncf (float val)
 }
 
 
-#if defined(_MSC_VER) && _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
+#if defined(_MSC_VER)
+#if _MSC_VER < 1800 /* Needed for MSVS prior to 2013 */
 
 template<class T>
 inline int isnan (T x) {
@@ -152,13 +153,26 @@ roundf (float val) {
     return static_cast<float>(round (val));
 }
 
-#endif /* MSVS < 2013 */
-
 
 inline float
 log2f (float val) {
     return logf (val)/static_cast<float>(M_LN2);
 }
+
+
+#elif _MSC_VER >= 1800 && __cplusplus <= 201103L
+// Prior to c++11, these were implementation defined, and on msvc, were not in the
+// std namespace
+using ::isnan;
+using ::isinf;
+using ::isfinite;
+#else
+using std::isnan;
+using std::isinf;
+using std::isfinite;
+#endif
+
+#endif /* MSVS < 2013 */
 
 
 inline float
@@ -246,13 +260,7 @@ erfcf (float val)
 #endif  /* _WIN32 */
 
 
-#if defined(_MSC_VER) && __cplusplus <= 201103L
-// Prior to c++11, these were implementation defined, and on msvc, were not in the
-// std namespace
- using ::isnan;
- using ::isinf;
- using ::isfinite;
-#else
+#if !defined(_MSC_VER)
  using std::isnan;
  using std::isinf;
  using std::isfinite;
