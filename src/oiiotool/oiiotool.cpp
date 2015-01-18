@@ -1916,9 +1916,9 @@ action_sub (int argc, const char *argv[])
 
 
 static int
-action_csub (int argc, const char *argv[])
+action_subc (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_csub, argc, argv))
+    if (ot.postpone_callback (1, action_subc, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -1937,11 +1937,11 @@ action_csub (int argc, const char *argv[])
         val.resize (nchans, val.size() == 1 ? val.back() : 0.0f);
         for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
             if (! ImageBufAlgo::sub ((*R)(s,m), (*R)(s,m), &val[0]))
-                ot.error ("csub", (*R)(s,m).geterror());
+                ot.error ("subc", (*R)(s,m).geterror());
         }
     }
 
-    ot.function_times["csub"] += timer();
+    ot.function_times["subc"] += timer();
     return 0;
 }
 
@@ -2072,9 +2072,9 @@ action_mul (int argc, const char *argv[])
 
 
 static int
-action_cmul (int argc, const char *argv[])
+action_mulc (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_cmul, argc, argv))
+    if (ot.postpone_callback (1, action_mulc, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -2107,11 +2107,11 @@ action_cmul (int argc, const char *argv[])
         for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
             bool ok = ImageBufAlgo::mul ((*R)(s,m), (*R)(s,m), &scale[0]);
             if (! ok)
-                ot.error ("cmul", (*R)(s,m).geterror());
+                ot.error ("mulc", (*R)(s,m).geterror());
         }
     }
 
-    ot.function_times["cmul"] += timer();
+    ot.function_times["mulc"] += timer();
     return 0;
 }
 
@@ -2178,9 +2178,9 @@ action_divc (int argc, const char *argv[])
 
 
 static int
-action_cadd (int argc, const char *argv[])
+action_addc (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_cadd, argc, argv))
+    if (ot.postpone_callback (1, action_addc, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -2213,20 +2213,20 @@ action_cadd (int argc, const char *argv[])
         for (int m = 0, miplevels = ot.curimg->miplevels(s);  m < miplevels;  ++m) {
             bool ok = ImageBufAlgo::add ((*R)(s,m), (*R)(s,m), &val[0]);
             if (! ok)
-                ot.error ("cadd", (*R)(s,m).geterror());
+                ot.error ("addc", (*R)(s,m).geterror());
         }
     }
 
-    ot.function_times["cadd"] += timer();
+    ot.function_times["addc"] += timer();
     return 0;
 }
 
 
 
 static int
-action_cpow (int argc, const char *argv[])
+action_powc (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_cpow, argc, argv))
+    if (ot.postpone_callback (1, action_powc, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
 
@@ -2259,11 +2259,11 @@ action_cpow (int argc, const char *argv[])
         for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
             bool ok = ImageBufAlgo::pow ((*R)(s,m), (*R)(s,m), &scale[0]);
             if (! ok)
-                ot.error ("cpow", (*R)(s,m).geterror());
+                ot.error ("powc", (*R)(s,m).geterror());
         }
     }
 
-    ot.function_times["cpow"] += timer();
+    ot.function_times["powc"] += timer();
     return 0;
 }
 
@@ -4003,17 +4003,21 @@ getargs (int argc, char *argv[])
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--pdiff %@", action_pdiff, NULL, "Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, NULL, "Add two images",
+                "--addc %s %@", action_addc, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cadd %s %@", action_addc, NULL, "", // Deprecated synonym
                 "--sub %@", action_sub, NULL, "Subtract two images",
-                "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
-                "--absdiff %@", action_absdiff, NULL, "Absolute difference between two images",
+                "--subc %s %@", action_subc, NULL, "Subtract from all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--csub %s %@", action_subc, NULL, "", // Deprecated synonym
                 "--mul %@", action_mul, NULL, "Multiply two images",
+                "--mulc %s %@", action_mulc, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--cmul %s %@", action_mulc, NULL, "", // Deprecated synonym
                 "--div %@", action_div, NULL, "Divide first image by second image",
                 "--divc %s %@", action_divc, NULL, "Divide the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--cadd %s %@", action_cadd, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--csub %s %@", action_csub, NULL, "Subtract from all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--absdiff %@", action_absdiff, NULL, "Absolute difference between two images",
                 "--absdiffc %s %@", action_absdiffc, NULL, "Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)",
-                "--cmul %s %@", action_cmul, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--cpow %s %@", action_cpow, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
+                "--powc %s %@", action_powc, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
+                "--cpow %s %@", action_powc, NULL, "", // Depcrcated synonym
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",

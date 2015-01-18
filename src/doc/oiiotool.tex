@@ -356,7 +356,7 @@ Reduce the brightness of the R, G, and B channels by 10\%,
 but leave the A channel at its original value:
 
 \begin{code}
-    oiiotool original.exr --cmul 0.9,0.9,0.9,1.0 -o out.exr
+    oiiotool original.exr --mulc 0.9,0.9,0.9,1.0 -o out.exr
 \end{code}
 
 \subsection*{Remove gamma-correction from an image}
@@ -364,7 +364,7 @@ but leave the A channel at its original value:
 Convert a gamma-corrected image (with gamma = 2.2) to linear values.
 
 \begin{code}
-    oiiotool corrected.exr --cpow 2.2,2.2,2.2,1.0 -o linear.exr
+    oiiotool corrected.exr --powc 2.2,2.2,2.2,1.0 -o linear.exr
 \end{code}
 
 \subsection*{Resize an image}
@@ -491,7 +491,7 @@ and naming it ``Z'' so it will be recognized as a depth channel:
 \noindent Fade 30\% of the way from A to B:
 
 \begin{code}
-    oiiotool A.exr --cmul 0.7 B.exr --cmul 0.3 --add -o fade.exr
+    oiiotool A.exr --mulc 0.7 B.exr --mulc 0.3 --add -o fade.exr
 \end{code}
 
 
@@ -1292,8 +1292,8 @@ different multiplier for each channel in the image, respectively.
 Division by zero is defined as resulting in 0.
 \apiend
 
-\apiitem{--cadd {\rm \emph{value}} \\
---cadd {\rm \emph{value0,value1,value2...}}}
+\apiitem{--addc {\rm \emph{value}} \\
+--addc {\rm \emph{value0,value1,value2...}}}
 Add a constant value to all the pixels in the current image.  If a
 single constant value is given, it will be added to all color channels.
 Alternatively, a series of comma-separated constant values (with no
@@ -1302,15 +1302,25 @@ channel in the image, respectively.
 
 \noindent Example:
 \begin{code}
-    oiiotool tahoe.jpg --cadd 0.5 -o cadd.jpg
+    oiiotool tahoe.jpg --addc 0.5 -o addc.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
 ~ {\Huge $\rightarrow$} ~
-\includegraphics[width=1.25in]{figures/cadd.jpg} \\
+\includegraphics[width=1.25in]{figures/addc.jpg} \\
 \apiend
 
-\apiitem{--cmul {\rm \emph{value}} \\
---cmul {\rm \emph{value0,value1,value2...}}}
+\apiitem{--subc {\rm \emph{value}} \\
+--subc {\rm \emph{value0,value1,value2...}}}
+\NEW %1.6
+Subtrace a constant value from all the pixels in the current image.  If a
+single constant value is given, it will be subtracted from all color channels.
+Alternatively, a series of comma-separated constant values (with no
+spaces!) may be used to specifiy a different value to subtract from each
+channel in the image, respectively.
+\apiend
+
+\apiitem{--mulc {\rm \emph{value}} \\
+--mulc {\rm \emph{value0,value1,value2...}}}
 Multiply all the pixel values in the top image by a constant value.
 If a single constant value is given, all color channels will have their values
 multiplied by the same value.  Alternatively, a series of
@@ -1319,15 +1329,15 @@ different multiplier for each channel in the image, respectively.
 
 \noindent Example:
 \begin{code}
-    oiiotool tahoe.jpg --cmul 0.2 -o cmul.jpg
+    oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
 ~ {\Huge $\rightarrow$} ~
-\includegraphics[width=1.25in]{figures/cmul.jpg} \\
+\includegraphics[width=1.25in]{figures/mulc.jpg} \\
 \apiend
 
-\apiitem{--cpow {\rm \emph{value}} \\
---cpow {\rm \emph{value0,value1,value2...}}}
+\apiitem{--powc {\rm \emph{value}} \\
+--powc {\rm \emph{value0,value1,value2...}}}
 Raise all the pixel values in the top image to a constant power value.
 If a single constant value is given, all color channels will have their values
 raised to this power.  Alternatively, a series of

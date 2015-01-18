@@ -51,13 +51,13 @@ command += oiiotool ("resize.tif --rotate 45 --rotate 90 --rotate 90 --rotate 90
 # test warp
 command += oiiotool ("resize.tif --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,128,-53.01933,1 -o warped.tif")
 
-# test --cmul
+# test --mulc
 # First, make a small gray swatch
 command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o cmul-input.exr")
-# Test --cmul val (multiply all channels by the same scalar)
-command += oiiotool ("cmul-input.exr --cmul 1.5 -o cmul1.exr")
-# Test --cmul val,val,val... (multiply per-channel scalars)
-command += oiiotool ("cmul-input.exr --cmul 1.5,1,0.5 -o cmul2.exr")
+# Test --mulc val (multiply all channels by the same scalar)
+command += oiiotool ("cmul-input.exr --mulc 1.5 -o cmul1.exr")
+# Test --mulc val,val,val... (multiply per-channel scalars)
+command += oiiotool ("cmul-input.exr --mulc 1.5,1,0.5 -o cmul2.exr")
 
 # Test --divc val (divide all channels by the same scalar)
 command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
@@ -70,26 +70,26 @@ command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
                      "--pattern constant:color=2.0,1,0.5 64x64 3 "
                      "--div -d half -o div.exr")
 
-# Test --cadd val (add to all channels the same scalar)
-command += oiiotool ("cmul-input.exr --cadd 0.25 -o cadd1.exr")
-# Test --cadd val,val,val... (add per-channel scalars)
-command += oiiotool ("cmul-input.exr --cadd 0,0.25,-0.25 -o cadd2.exr")
+# Test --addc val (add to all channels the same scalar)
+command += oiiotool ("cmul-input.exr --addc 0.25 -o cadd1.exr")
+# Test --addc val,val,val... (add per-channel scalars)
+command += oiiotool ("cmul-input.exr --addc 0,0.25,-0.25 -o cadd2.exr")
 
-# Test --cpow val (raise all channels by the same power)
-command += oiiotool ("cmul-input.exr --cpow 2 -o cpow1.exr")
-# Test --cpow val,val,val... (per-channel powers)
-command += oiiotool ("cmul-input.exr --cpow 2,2,1 -o cpow2.exr")
+# Test --powc val (raise all channels by the same power)
+command += oiiotool ("cmul-input.exr --powc 2 -o cpow1.exr")
+# Test --powc val,val,val... (per-channel powers)
+command += oiiotool ("cmul-input.exr --powc 2,2,1 -o cpow2.exr")
 
 # Test --add
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --add -d half -o add.exr")
-# Test --sub, csub
+# Test --sub, subc
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --sub -d half -o sub.exr")
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
-            + " --csub 0.1,0.1,0.1 -d half -o subc.exr")
+            + " --subc 0.1,0.1,0.1 -d half -o subc.exr")
 
 # Test --abs, --absdiff, --absdiffc
 # First, make a test image that's 0.5 on the left, -0.5 on the right
