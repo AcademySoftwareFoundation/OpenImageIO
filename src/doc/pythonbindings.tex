@@ -1498,11 +1498,18 @@ Zero out the destination buffer (or a specific region of it).
 \end{code}
 \apiend
 
-\apiitem{bool ImageBufAlgo.{\ce fill} (dst, values, roi=ROI.All, nthreads=0)}
+\apiitem{bool ImageBufAlgo.{\ce fill} (dst, values, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce fill} (dst, top, bottom, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce fill} (dst, topleft, topright, \\
+\bigspc bottomleft, bottomright, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fill} \indexapi{fill}
 
-Set the pixels in {\cf dst} within the ROI to the
-values in the tuple {\cf values}.
+Sets the the pixels in {\cf dst} within the ROI to a color or gradient.
+Three options are available: (a) if one color tuple is supplied, the whole
+ROI will be filled with that constant value, (b) if two color tuples are
+supplied, a linear gradient will be applied from top to bottom, (c) if
+four color cuples are supplied, the ROI will be be filled with values
+bilinearly interpolated from the four corner colors supplied.
 
 \smallskip
 \noindent Examples:

@@ -54,6 +54,198 @@
 OIIO_NAMESPACE_ENTER {
 
 
+template<typename T>
+static bool
+fill_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fill_<T>, boost::ref(dst), values,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            p[c] = values[c];
+    return true;
+}
+
+
+template<typename T>
+static bool
+fill_ (ImageBuf &dst, const float *top, const float *bottom,
+       ROI origroi, ROI roi=ROI(), int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fill_<T>, boost::ref(dst), top, bottom,
+                        origroi, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    float h = std::max (1, origroi.height() - 1);
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        float v = (p.y() - origroi.ybegin) / h;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            p[c] = lerp (top[c], bottom[c], v);
+    }
+    return true;
+}
+
+
+template<typename T>
+static bool
+fill_ (ImageBuf &dst, const float *topleft, const float *topright,
+       const float *bottomleft, const float *bottomright,
+       ROI origroi, ROI roi=ROI(), int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(fill_<T>, boost::ref(dst), topleft, topright,
+                        bottomleft, bottomright,
+                        origroi, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    float w = std::max (1, origroi.width() - 1);
+    float h = std::max (1, origroi.height() - 1);
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        float u = (p.x() - origroi.xbegin) / w;
+        float v = (p.y() - origroi.ybegin) / h;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            p[c] = bilerp (topleft[c], topright[c],
+                           bottomleft[c], bottomright[c], u, v);
+    }
+    return true;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
+{
+    ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
+    if (! IBAprep (roi, &dst))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+                         dst, pixel, roi, nthreads);
+    return ok;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst, const float *top, const float *bottom,
+                    ROI roi, int nthreads)
+{
+    ASSERT (top && bottom && "fill must have a non-NULL pixel value pointers");
+    if (! IBAprep (roi, &dst))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+                         dst, top, bottom, roi, roi, nthreads);
+    return ok;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst, const float *topleft, const float *topright,
+                    const float *bottomleft, const float *bottomright,
+                    ROI roi, int nthreads)
+{
+    ASSERT (topleft && topright && bottomleft && bottomright &&
+            "fill must have a non-NULL pixel value pointers");
+    if (! IBAprep (roi, &dst))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+                         dst, topleft, topright, bottomleft, bottomright,
+                         roi, roi, nthreads);
+    return ok;
+}
+
+
+bool
+ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst))
+        return false;
+    float *zero = ALLOCA(float,roi.chend);
+    memset (zero, 0, roi.chend*sizeof(float));
+    return fill (dst, zero, roi, nthreads);
+}
+
+
+
+// Convenient helper struct to bundle a 3-int describing a block size.
+struct Dim3 {
+    int x, y, z;
+    Dim3 (int x, int y=1, int z=1) : x(x), y(y), z(z) { }
+};
+
+
+
+template<typename T>
+static bool
+checker_ (ImageBuf &dst, Dim3 size,
+          const float *color1, const float *color2,
+          Dim3 offset,
+          ROI roi, int nthreads=1)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(checker_<T>, boost::ref(dst),
+                        size, color1, color2, offset,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int xtile = (p.x()-offset.x)/size.x;  xtile += (p.x()<offset.x);
+        int ytile = (p.y()-offset.y)/size.y;  ytile += (p.y()<offset.y);
+        int ztile = (p.z()-offset.z)/size.z;  ztile += (p.z()<offset.z);
+        int v = xtile + ytile + ztile;
+        if (v & 1)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color2[c];
+        else
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = color1[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
+                       const float *color1, const float *color2,
+                       int xoffset, int yoffset, int zoffset,
+                       ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "checker", checker_, dst.spec().format,
+                         dst, Dim3(width, height, depth), color1, color2,
+                         Dim3(xoffset, yoffset, zoffset), roi, nthreads);
+    return ok;
+}
+
+
+
 #ifdef USE_FREETYPE
 namespace { // anon
 static mutex ft_mutex;

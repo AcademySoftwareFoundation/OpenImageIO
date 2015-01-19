@@ -24,7 +24,10 @@ ${OIIOTOOL} grid-small.jpg --transpose -o transpose.jpg
 ${OIIOTOOL} grid-small.jpg --rotate 45 -o rotate45.jpg
 ${OIIOTOOL} grid-small.jpg --cshift +70+30 -o cshift.jpg
 ${OIIOTOOL} --pattern constant:color=1,0.7,0.7 320x240 3 --fill:color=1,0,0 50x100+50+75 --tocolorspace sRGB -o fill.jpg
+${OIIOTOOL} --create 320x240 3 -gradient:color1=1,0.7,0.7:color2=1,0,0 --tocolorspace sRGB -o fill.jpg
 ${OIIOTOOL} --pattern checker:color1=0.1,0.1,0.1:color2=0.4,0.4,0.4:width=32:height=32 320x240 3 --tocolorspace sRGB -o checker.jpg
+${OIIOTOOL} --pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.75 320x240 3 --tocolorspace sRGB -o gradient.jpg
+${OIIOTOOL} --pattern checker:width=16:height=16 256x256 3 --tocolorspace sRGB -o checker.jpg
 ${OIIOTOOL} --create 320x240 3 --text:x=25:y=50 "Hello, world" \
             --text:x=50:y=100:font="Arial Bold":color=1,0,0:size=30 "Go Big Red!" --tocolorspace sRGB -o text.jpg
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif

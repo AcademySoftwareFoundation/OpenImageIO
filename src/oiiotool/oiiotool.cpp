@@ -2708,20 +2708,44 @@ action_pattern (int argc, const char *argv[])
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
+    ot.push (img);
     ImageBuf &ib ((*img)());
     std::string pattern = argv[1];
+    bool ok = true;
     if (Strutil::iequals(pattern,"black")) {
-        bool ok = ImageBufAlgo::zero (ib);
-        if (! ok)
-            ot.error (argv[0], ib.geterror());
+        ok = ImageBufAlgo::zero (ib);
     } else if (Strutil::istarts_with(pattern,"constant")) {
         std::vector<float> fill (nchans, 1.0f);
         std::map<std::string,std::string> options;
         extract_options (options, pattern);
         Strutil::extract_from_list_string (fill, options["color"]);
-        bool ok = ImageBufAlgo::fill (ib, &fill[0]);
-        if (! ok)
-            ot.error (argv[0], ib.geterror());
+        ok = ImageBufAlgo::fill (ib, &fill[0]);
+    } else if (Strutil::istarts_with(pattern,"fill")) {
+        std::vector<float> topleft (nchans, 1.0f);
+        std::vector<float> topright (nchans, 1.0f);
+        std::vector<float> bottomleft (nchans, 1.0f);
+        std::vector<float> bottomright (nchans, 1.0f);
+        std::map<std::string,std::string> options;
+        extract_options (options, pattern);
+        if (Strutil::extract_from_list_string (topleft,     options["topleft"]) &&
+            Strutil::extract_from_list_string (topright,    options["topright"]) &&
+            Strutil::extract_from_list_string (bottomleft,  options["bottomleft"]) &&
+            Strutil::extract_from_list_string (bottomright, options["bottomright"])) {
+            ok = ImageBufAlgo::fill (ib, &topleft[0], &topright[0],
+                                     &bottomleft[0], &bottomright[0]);
+        }
+        else if (Strutil::extract_from_list_string (topleft,    options["top"]) &&
+                 Strutil::extract_from_list_string (bottomleft, options["bottom"])) {
+            ok = ImageBufAlgo::fill (ib, &topleft[0], &bottomleft[0]);
+        }
+        else if (Strutil::extract_from_list_string (topleft,  options["left"]) &&
+                 Strutil::extract_from_list_string (topright, options["right"])) {
+            ok = ImageBufAlgo::fill (ib, &topleft[0], &topright[0],
+                                     &topleft[0], &topright[0]);
+        }
+        else if (Strutil::extract_from_list_string (topleft, options["color"])) {
+            ok = ImageBufAlgo::fill (ib, &topleft[0]);
+        }
     } else if (Strutil::istarts_with(pattern,"checker")) {
         std::map<std::string,std::string> options;
         options["width"] = "8";
@@ -2735,16 +2759,13 @@ action_pattern (int argc, const char *argv[])
         std::vector<float> color2 (nchans, 1.0f);
         Strutil::extract_from_list_string (color1, options["color1"]);
         Strutil::extract_from_list_string (color2, options["color2"]);
-        bool ok = ImageBufAlgo::checker (ib, width, height, depth,
-                                         &color1[0], &color2[0], 0, 0, 0);
-        if (! ok)
-            ot.error (argv[0], ib.geterror());
+        ok = ImageBufAlgo::checker (ib, width, height, depth,
+                                    &color1[0], &color2[0], 0, 0, 0);
     } else {
-        bool ok = ImageBufAlgo::zero (ib);
-        if (! ok)
-            ot.error (argv[0], ib.geterror());
+        ok = ImageBufAlgo::zero (ib);
     }
-    ot.push (img);
+    if (! ok)
+        ot.error (argv[0], ib.geterror());
     ot.function_times["pattern"] += timer();
     return 0;
 }
@@ -3601,29 +3622,38 @@ action_fill (int argc, const char *argv[])
         return 0;
     }
 
-    float *color = ALLOCA (float, Rspec.nchannels);
-    for (int c = 0;  c < Rspec.nchannels;  ++c)
-        color[c] = 1.0f;
+    std::vector<float> topleft (Rspec.nchannels, 1.0f);
+    std::vector<float> topright (Rspec.nchannels, 1.0f);
+    std::vector<float> bottomleft (Rspec.nchannels, 1.0f);
+    std::vector<float> bottomright (Rspec.nchannels, 1.0f);
 
-    // Parse optional arguments for overrides
-    std::string command = argv[0];
-    size_t pos;
-    while ((pos = command.find_first_of(":")) != std::string::npos) {
-        command = command.substr (pos+1, std::string::npos);
-        if (Strutil::istarts_with(command,"color=")) {
-            // Parse comma-separated color list
-            size_t numpos = 6;
-            for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
-                color[c] = (float) atof (command.c_str()+numpos);
-                while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
-                    ++numpos;
-                if (numpos < command.size())
-                    ++numpos;
-            }
-        }
+    std::map<std::string,std::string> options;
+    extract_options (options, argv[0]);
+
+    bool ok = true;
+    if (Strutil::extract_from_list_string (topleft,     options["topleft"]) &&
+        Strutil::extract_from_list_string (topright,    options["topright"]) &&
+        Strutil::extract_from_list_string (bottomleft,  options["bottomleft"]) &&
+        Strutil::extract_from_list_string (bottomright, options["bottomright"])) {
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], &topright[0],
+                                 &bottomleft[0], &bottomright[0],
+                                 ROI(x, x+w, y, y+h));
+    }
+    else if (Strutil::extract_from_list_string (topleft,    options["top"]) &&
+             Strutil::extract_from_list_string (bottomleft, options["bottom"])) {
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], &bottomleft[0],
+                                 ROI(x, x+w, y, y+h));
+    }
+    else if (Strutil::extract_from_list_string (topleft,  options["left"]) &&
+             Strutil::extract_from_list_string (topright, options["right"])) {
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], &topright[0],
+                                 &topleft[0], &topright[0],
+                                 ROI(x, x+w, y, y+h));
+    }
+    else if (Strutil::extract_from_list_string (topleft, options["color"])) {
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
 
-    bool ok = ImageBufAlgo::fill (Rib, color, ROI(x, x+w, y, y+h));
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
@@ -4062,12 +4092,12 @@ getargs (int argc, char *argv[])
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
-                "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
                 "--rangecompress %@", action_rangecompress, NULL,
                     "Compress the range of pixel values with a log scale (options: luma=0|1)",
                 "--rangeexpand %@", action_rangeexpand, NULL,
                     "Un-rangecompress pixel values back to a linear scale (options: luma=0|1)",
+                "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Manipulating channels or subimages:",

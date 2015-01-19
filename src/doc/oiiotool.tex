@@ -1143,7 +1143,7 @@ Create new black image with the given size and number of channels,
 pushing it onto the image stack and making it the new current image.
 
 The \emph{size} is in the form
-\\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+\\ \spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
   [+-]}\emph{yoffset} \\
 If the offset is omitted, it will be $x=0,y=0$.
 
@@ -1162,7 +1162,7 @@ initialize its pixels to the named pattern, and push it onto
 the image stack to make it the new current image.
 
 The \emph{size} is in the form
-\\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+\\ \spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
   [+-]}\emph{yoffset} \\
 If the offset is omitted, it will be $x=0,y=0$.
 
@@ -1175,7 +1175,13 @@ The patterns recognized include the following:
        arguments giving a numerical value for each channel. \\
     {\cf checker} & A black and white checkerboard pattern.  The
        optional argument {\cf :width=} sets with width of the checkers
-       (defaulting to 8 pixels).
+       (defaulting to 8 pixels). \\
+    {\cf fill}  & A constant color or gradient, depending on the optional
+       colors. Argument {\cf :color=r,g,b,...} results in a constant color.
+       Argument {\cf :top=r,g,b,...:bottom=...} results in a top-to-bottom gradient.
+       Argument {\cf :left=r,g,b,...:right=...} results in a left-to-right gradient.
+       Argument {\small\cf :topleft=r,g,b,...:topright=...:bottomleft=...:bottomright=...}
+       results in a 4-corner bilinear gradient. \\
 \end{tabular}
 
 \noindent Examples:
@@ -1186,9 +1192,20 @@ A constant 4-channel, $640\times 480$ image with all pixels (0.5, 0.5,
 0.1, 1).
 \apiend
 
-\apiitem{--pattern checker:width=16 512x512 3}
+\apiitem{--pattern checker:width=16:height=16 256x256 3}
 \vspace{10pt}
-An $512 \times 512$ RGB image with a 16-pixel-wide checker pattern.
+An $256 \times 256$ RGB image with a 16-pixel-wide checker pattern.
+
+\spc \includegraphics[width=1.25in]{figures/checker.jpg} 
+\apiend
+
+\apiitem{--pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 3}
+\vspace{10pt}
+An $640 \times 480$ RGB image that is a gradient ranging from dark grey at
+the top, fading to a medium blue at the bottom.
+
+\spc \includegraphics[width=1.75in]{figures/gradient.jpg} 
+
 \apiend
 
 \apiend
@@ -1233,7 +1250,7 @@ include:
 
 \begin{tabular}{p{2in} p{4in}}
     {\cf --capture}  &      Capture from the default camera. \\
-    {\cf --capture:camera=1}  & Capture from camera 2. \\
+    {\cf --capture:camera=1}  & Capture from camera \#1. \\
 \end{tabular}
 \apiend
 
@@ -1920,6 +1937,48 @@ surrounding $\alpha > 0$ pixels, resulting in an image that is
 $\alpha = 1$ and plausible color everywhere.
 This can be used both to fill internal ``holes'' as well as to extend an
 image out.
+\apiend
+
+
+\apiitem{--fill {\rm \emph{size}}}
+Alter the top image by filling the ROI specified by \emph{size}.
+The fill can be a constant color, vertical gradient, horizontal gradient,
+or four-corner gradient.
+
+Optional arguments for constant color: \\
+\begin{tabular}{p{10pt} p{1.5in} p{3.75in}}
+ & {\cf color=}\emph{r,g,b,...} & the color of the constant \\
+\end{tabular}
+
+Optional arguments for vertical gradient: \\
+\begin{tabular}{p{10pt} p{1.5in} p{3.75in}}
+ & {\cf top=}\emph{r,g,b,...}    & the color for the top edge of the region \\
+ & {\cf bottom=}\emph{r,g,b,...} & the color for the bottom edge of the region \\
+\end{tabular}
+
+Optional arguments for horizontal gradient: \\
+\begin{tabular}{p{10pt} p{1.5in} p{3.75in}}
+ & {\cf left=}\emph{r,g,b,...}  & the color for the left edge of the region \\
+ & {\cf right=}\emph{r,g,b,...} & the color for the right edge of the region \\
+\end{tabular}
+
+Optional arguments for 4-corner gradient: \\
+\begin{tabular}{p{10pt} p{1.5in} p{3.75in}}
+ & {\cf topleft=}\emph{r,g,b,...}     & the color for the top left corner of the region \\
+ & {\cf topright=}\emph{r,g,b,...}    & the color for the top right corner of the region \\
+ & {\cf bottomleft=}\emph{r,g,b,...}  & the color for the bottom left corner of the region \\
+ & {\cf bottomright=}\emph{r,g,b,...} & the color for the bottom right corner of the region \\
+\end{tabular}
+
+
+\noindent Examples: 
+
+\begin{smallcode}
+    oiiotool --create 640x480 3 --fill:top=0.1,0.1,0.1:bottom=0,0,0.5 \
+            640x480 -o gradient.tif
+\end{smallcode}
+\spc \includegraphics[width=2.5in]{figures/gradient.jpg}  \\
+
 \apiend
 
 

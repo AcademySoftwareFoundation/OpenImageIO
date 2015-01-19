@@ -117,6 +117,12 @@ bool OIIO_API zero (ImageBuf &dst, ROI roi=ROI::All(), int nthreads=0);
 /// values pointer starts with channel 0, even if the ROI indicates that
 /// a later channel is the first to be changed.
 ///
+/// Three varieties of fill() exist: (a) a single set of channel values that
+/// will apply to the whole ROI, (b) two sets of values that will create a
+/// linearly interpolated gradient from top to bottom of the ROI, (c) four
+/// sets of values that will be bilnearly interpolated across all four
+/// corners of the ROI.
+///
 /// Only the pixels (and channels) in dst that are specified by roi will
 /// be altered; the default roi is to alter all the pixels in dst.
 ///
@@ -135,7 +141,11 @@ bool OIIO_API zero (ImageBuf &dst, ROI roi=ROI::All(), int nthreads=0);
 /// message set in dst).
 bool OIIO_API fill (ImageBuf &dst, const float *values,
                     ROI roi=ROI::All(), int nthreads=0);
-
+bool OIIO_API fill (ImageBuf &dst, const float *top, const float *bottom,
+                    ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API fill (ImageBuf &dst, const float *topleft, const float *topright,
+                    const float *bottomleft, const float *bottomright,
+                    ROI roi=ROI::All(), int nthreads=0);
 
 
 /// Fill a subregion of the volume with a checkerboard with origin

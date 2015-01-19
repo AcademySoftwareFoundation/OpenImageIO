@@ -68,6 +68,59 @@ IBA_fill (ImageBuf &dst, tuple values_tuple,
 
 
 bool
+IBA_fill2 (ImageBuf &dst, tuple top_tuple, tuple bottom_tuple,
+          ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> top, bottom;
+    py_to_stdvector (top, top_tuple);
+    py_to_stdvector (bottom, bottom_tuple);
+    if (dst.initialized()) {
+        top.resize (dst.nchannels(), 0.0f);
+        bottom.resize (dst.nchannels(), 0.0f);
+    } else if (roi.defined()) {
+        top.resize (roi.nchannels(), 0.0f);
+        bottom.resize (roi.nchannels(), 0.0f);
+    }
+    else return false;
+    ASSERT (top.size() > 0 && bottom.size() > 0);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::fill (dst, &top[0], &bottom[0], roi, nthreads);
+}
+
+
+bool
+IBA_fill4 (ImageBuf &dst, tuple top_left_tuple, tuple top_right_tuple,
+          tuple bottom_left_tuple, tuple bottom_right_tuple,
+          ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> top_left, top_right, bottom_left, bottom_right;
+    py_to_stdvector (top_left, top_left_tuple);
+    py_to_stdvector (top_right, top_right_tuple);
+    py_to_stdvector (bottom_left, bottom_left_tuple);
+    py_to_stdvector (bottom_right, bottom_right_tuple);
+    if (dst.initialized()) {
+        top_left.resize (dst.nchannels(), 0.0f);
+        top_right.resize (dst.nchannels(), 0.0f);
+        bottom_left.resize (dst.nchannels(), 0.0f);
+        bottom_right.resize (dst.nchannels(), 0.0f);
+    } else if (roi.defined()) {
+        top_left.resize (roi.nchannels(), 0.0f);
+        top_right.resize (roi.nchannels(), 0.0f);
+        bottom_left.resize (roi.nchannels(), 0.0f);
+        bottom_right.resize (roi.nchannels(), 0.0f);
+    }
+    else return false;
+    ASSERT (top_left.size() > 0 && top_right.size() > 0 &&
+            bottom_left.size() > 0 && bottom_right.size() > 0);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::fill (dst, &top_left[0], &top_right[0],
+                               &bottom_left[0], &bottom_right[0],
+                               roi, nthreads);
+}
+
+
+
+bool
 IBA_checker (ImageBuf &dst, int width, int height, int depth,
              tuple color1_tuple, tuple color2_tuple,
              int xoffset, int yoffset, int zoffset,
@@ -994,6 +1047,13 @@ void declare_imagebufalgo()
 
         .def("fill", &IBA_fill,
              (arg("dst"), arg("values"), 
+              arg("roi")=ROI::All(), arg("nthreads")=0) )
+        .def("fill", &IBA_fill2,
+             (arg("dst"), arg("top"), arg("bottom"), 
+              arg("roi")=ROI::All(), arg("nthreads")=0) )
+        .def("fill", &IBA_fill4,
+             (arg("dst"), arg("topleft"), arg("topright"), 
+              arg("bottomleft"), arg("bottomright"),
               arg("roi")=ROI::All(), arg("nthreads")=0) )
         .staticmethod("fill")
 

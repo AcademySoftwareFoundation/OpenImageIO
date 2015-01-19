@@ -120,6 +120,11 @@ big to make it or what data type it should have.
 \apiend
 
 \apiitem{bool {\ce fill} (ImageBuf \&dst, const float *values, \\
+  \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce fill} (ImageBuf \&dst, const float *top, const float *bottom, \\
+  \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce fill} (ImageBuf \&dst, const float *topleft, const float *topright, \\
+  \bigspc const float *bottomleft, const float *bottomright, \\
   \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fill} \indexapi{fill}
 Set the pixels in the destination image within the specified region
@@ -127,17 +132,25 @@ to the values in {\cf values[]}.  The {\cf
   values} array must point to at least {\cf chend} values, or the
 number of channels in the image, whichever is smaller.
 
+\NEW % 1.6
+Three varieties of {\cf fill()} exist: (a) a single set of channel values that
+will apply to the ROI, (b) two sets of values that will create a linearly
+interpolated gradient from top to bottom of the ROI, (c) four sets of values
+that will be bilnearly interpolated across all four corners of the ROI.
+
 \smallskip
 \noindent Examples:
 \begin{code}
-    // Create a new 640x480 RGB image, fill it with pink
+    // Create a new 640x480 RGB image, fill it with pink, then draw a filled
+    // red rectangle.
     ImageBuf A ("myimage", ImageSpec(640, 480, 3, TypeDesc::FLOAT);
     float pink[3] = { 1, 0.7, 0.7 };
-    ImageBufAlgo::fill (A, pink);
-
-    // Draw a red rectangle
     float red[3] = { 1, 0, 0 };
+    ImageBufAlgo::fill (A, pink);
     ImageBufAlgo::fill (A, red, ROI(50,100, 75, 175));
+
+    // Draw a top-to-bottom gradient from red to pink
+    ImageBufAlgo::fill (A, red, pink);
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/fill.jpg}  \\
 \apiend
