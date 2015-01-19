@@ -1,9 +1,13 @@
 Changes:
 
 
-Release 1.4.15 (?? 2014 -- compared to 1.4.15)
+Release 1.4.16 (19 Jan 2015 -- compared to 1.4.15)
 --------------------------------------------------
-
+* Fix gcc 4.9 warnings.
+* Improved error propagation through ImageCache, ImageBuf, and oiiotool.
+* TIFF more robust to Exif blocks with corrupted GPS data. #1008
+* Support for freetype 2.5.4. #1012
+* Better exception safety in Filesystem::exists() and similar functions. #1026
 
 Release 1.4.15 (24 Nov 2014 -- compared to 1.4.14)
 --------------------------------------------------
