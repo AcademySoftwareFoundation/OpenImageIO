@@ -1,3 +1,7 @@
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 #include "DDImage/Enumeration_KnobI.h"
 #include "DDImage/Reader.h"
 #include "DDImage/Row.h"
@@ -262,7 +266,7 @@ public:
             const int needSize = oiioInput_->spec().width
                                 * oiioInput_->spec().height
                                 * oiioInput_->spec().nchannels;
-            if (needSize > imageBuf_.size())
+            if (size_t(needSize) > imageBuf_.size())
                 imageBuf_.resize(needSize);
             oiioInput_->read_image(&imageBuf_[0]);
             haveImage_ = true;
@@ -325,6 +329,10 @@ public:
 
 
 static Reader* buildReader(Read* iop, int fd, const unsigned char* b, int n) {
+    // FIXME: I expect that this close() may be problematic on Windows.
+    // For Linux/gcc, we needed to #include <unistd.h> at the top of
+    // this file. If this is a problem for Windows, a different #include
+    // or a different close call here may be necessary.
     close(fd);
     return new TxReaderNS::txReader(iop);
 }
