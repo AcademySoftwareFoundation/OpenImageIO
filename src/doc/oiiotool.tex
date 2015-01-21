@@ -528,39 +528,39 @@ series of files with frame numbers in their names:
 \newpage
 \section{\oiiotool commands: general}
 
-\apiitem{--help}
+\apiitem{\ce --help}
 Prints usage information to the terminal.
 \apiend
 
-\apiitem{-v}
+\apiitem{\ce -v}
 Verbose status messages --- print out more information about what
 \oiiotool is doing at every step.
 \apiend
 
-\apiitem{-q}
+\apiitem{\ce -q}
 Quet mode --- print out less information about what \oiiotool is doing
 (only errors).
 \apiend
 
-\apiitem{--runstats}
+\apiitem{\ce --runstats}
 Print timing and memory statistics about the work done by \oiiotool.
 \apiend
 
-\apiitem{-a}
+\apiitem{\ce -a}
 Performs all operations on all subimages and/or MIPmap levels of each
 input image.  Without {\cf -a}, generally each input image will really
 only read the top-level MIPmap of the first subimage of the file.
 \apiend
 
-\apiitem{--info}
+\apiitem{\ce --info}
 Prints information about each input image as it is read.  If verbose mode
 is turned on ({\cf -v}), all the metadata for the image is printed.
 If verbose mode is not turned on, only the resolution and data format
 are printed.
 \apiend
 
-\apiitem{--metamatch \emph{regex} \\
---no-metamatch \emph{regex}}
+\apiitem{{\ce --metamatch} {\rm \emph{regex}} \\
+{\ce --no-metamatch} {\rm \emph{regex}}}
 Regular expressions to restrict which metadata are output when using
 {\cf oiiotool --info -v}.  The {\cf --metamatch} expression causes only
 metadata whose name matches to print; non-matches are not output.  The
@@ -570,16 +570,16 @@ both of these options at the same time (probably nothing bad will
 happen, but it's hard to reason about the behavior in that case).
 \apiend
 
-\apiitem{--stats}
+\apiitem{\ce --stats}
 Prints detailed statistical information about each input image as it is
 read.
 \apiend
 
-\apiitem{--hash}
+\apiitem{\ce --hash}
 Print the SHA-1 hash of the pixels of each input image.
 \apiend
 
-\apiitem{--dumpdata}
+\apiitem{\ce --dumpdata}
 Print to the console detailed information about the values in every pixel.
 
 \noindent Optional appended arguments include:
@@ -590,21 +590,21 @@ Print to the console detailed information about the values in every pixel.
 \end{tabular}
 \apiend
 
-\apiitem{--diff}
+\apiitem{\ce --diff}
 This command computes the difference of the current image and the next
 image on the stack, and prints a report of those differences (how
 many pixels differed, the maximum amount, etc.).  This command does not
 alter the image stack.
 \apiend
 
-\apiitem{--pdiff}
+\apiitem{\ce --pdiff}
 This command computes the difference of the current image and the next
 image on the stack using a perceptual metric, and prints whether or not they
 match according to that metric.  This command does not
 alter the image stack.
 \apiend
 
-\apiitem{--colorcount \emph{r1,g1,b1,...:r2,g2,b2,...:...}}
+\apiitem{{\ce --colorcount} {\rm\emph{r1,g1,b1,...}}:{\rm\emph{r2,g2,b2,...}}:{\rm\emph{...}}}
 Given a list of colors separated by colons or semicolons, where each
 color is a list of comma-separated values (for each channel), examine
 all pixels of the current image and print a short report of how many
@@ -650,7 +650,7 @@ it effectively ensures that alpha will not be considered in the matching
 of pixels to the color value.
 \apiend
 
-\apiitem{--rangecheck \emph{Rlow,Glow,Blow,...}  \emph{Rhi,Bhi,Ghi,...}}
+\apiitem{{\ce --rangecheck} \rm \emph{Rlow,Glow,Blow,...}  \emph{Rhi,Bhi,Ghi,...}}
 Given a two colors (each a comma-separated list of values for each
 channel), print a count of the number of pixels in the image that has
 channel values outside the [low,hi] range.  Any channels not
@@ -669,19 +669,19 @@ specified will assume a low of 0.0 and high of 1.0.
 \end{code}
 \apiend
 
-\apiitem{--no-clobber}
+\apiitem{\ce --no-clobber}
 Sets ``no clobber'' mode, in which existing images on disk will never be 
 overridden, even if the {\cf -o} command specifies that file.
 \apiend
 
-\apiitem{--threads \emph{n}}
+\apiitem{\ce --threads \emph{n}}
 Use \emph{n} execution threads if it helps to speed up image operations.
 The default (also if $n=0$) is to use as many threads as there are cores
 present in the hardware.
 \apiend
 
-\apiitem{--frames \emph{seq}\\
---framepadding \emph{n}}
+\apiitem{{\ce --frames} \rm\emph{seq}\\
+{\ce --framepadding} \rm\emph{n}}
 Describes the frame range to substitute for the {\cf \#} or {\cf \%0Nd} 
 numeric wildcards.  The
 sequence is a comma-separated list of subsequences; each subsequence
@@ -701,12 +701,12 @@ For example,
 {\cf blah.020.tif}.
 \apiend
 
-\apiitem{--views \emph{name1,name2,...}}
+\apiitem{{\ce --views} \rm\emph{name1,name2,...}}
 Supplies a comma-separated list of view names (substituted for {\cf \%V}
 and {\cf \%v}). If not supplied, the view list will be {\cf left,right}.
 \apiend
 
-\apiitem{--wildcardoff \\
+\apiitem{\ce --wildcardoff \\
 --wildcardon}
 \NEW % 1.5
 Turns off (or on) numeric wildcard expansion for subsequent command
@@ -715,7 +715,7 @@ expansion for a subset of the command line.
 \apiend
 
 \begin{comment}
-\apiitem{--inplace}
+\apiitem{\ce --inplace}
 Causes the output to \emph{replace} the input file, rather than create a
 new file with a different name.
 
@@ -742,13 +742,13 @@ vacation'' to all JPEG files in the current directory:
 The commands described in this section read images, write images,
 or control the way that subsequent images will be written upon output.
 
-\apiitem{\rm \emph{filename}}
+\apiitem{\ce \rm \emph{filename}}
 If a command-line option is the name of an image file, that file will
 be read and will become the new \emph{current image}, with the previous
 current image pushed onto the image stack.
 \apiend
 
-\apiitem{--no-autopremult \\
+\apiitem{\ce --no-autopremult \\
 --autopremult}
 \NEW  % 1.5
 By default, \product's format readers convert any ``unassociated alpha''
@@ -758,7 +758,7 @@ flag is found, subsequent inputs will not do this premultiplication. It
 can be turned on again via {\cf --autopremult}.
 \apiend
 
-\apiitem{--autoorient}
+\apiitem{\ce --autoorient}
 \NEW  % 1.5
 Automatically do the equivalent of {\cf --reorient} on every image as it is
 read in, if it has a nonstandard orientation. This is generally a good idea
@@ -766,7 +766,7 @@ to use if you are using oiiotool to combine images that may have different
 orientations.
 \apiend
 
-\apiitem{--native}
+\apiitem{\ce --native}
 \NEW  % 1.5
 
 Normally, all image reads into an \ImageBuf will be performed via an
@@ -785,12 +785,12 @@ native format (if it's not a format that can use the ImageCache without a
 loss of precision).
 \apiend
 
-\apiitem{-o \rm \emph{filename}}
+\apiitem{\ce -o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
 current image, it merely saves a copy of it.
 \apiend
 
-\apiitem{-d {\rm \emph{datatype}} \\
+\apiitem{\ce -d {\rm \emph{datatype}} \\
 -d {\rm \emph{channelname}{\cf =}\emph{datatype}}}
 
 Attempts to set the pixel data type of all subsequent outputs.  If no
@@ -814,12 +814,12 @@ in the least amount of precision lost.
 \apiend
 
 % FIXME -- no it doesn't!
-%\apiitem{-g {\rm \emph{gamma}}}
+%\apiitem{\ce -g {\rm \emph{gamma}}}
 %Applies a gamma correction of $1/\mathrm{gamma}$ to the pixels as they
 %are output.
 %\apiend
 
-%\apiitem{--sRGB}
+%\apiitem{\ce --sRGB}
 %Explicitly tags the image as being in sRGB color space.  Note that this
 %does not alter pixel values, it only marks which color space those
 %values refer to (and only works for file formats that understand such
@@ -828,21 +828,21 @@ in the least amount of precision lost.
 %but you know that the values are sRGB.
 %\apiend
 
-\apiitem{--scanline}
+\apiitem{\ce --scanline}
 Requests that subsequent output files be scanline-oriented, if scanline
 orientation is supported by the output file format.  By default, the
 output file will be scanline if the input is scanline, or tiled if the
 input is tiled.
 \apiend
 
-\apiitem{--tile {\rm \emph{x}} {\rm \emph{y}}}
+\apiitem{\ce --tile {\rm \emph{x}} {\rm \emph{y}}}
 Requests that subsequent output files be tiled, with the given $x \times y$ 
 tile size, if tiled images are supported by the output format.
 By default, the output file will take on the tiledness and tile size
 of the input file.
 \apiend
 
-\apiitem{--compression {\rm \emph{method}}}
+\apiitem{\ce --compression {\rm \emph{method}}}
 Sets the compression method for subsequent output images.  Each
 \ImageOutput plugin will have its own set of methods that it supports.
 By default, the output image will use the same compression technique as
@@ -851,19 +851,19 @@ otherwise it will use the default compression method of the output
 plugin).  
 \apiend
 
-\apiitem{--quality {\rm \emph{q}}}
+\apiitem{\ce --quality {\rm \emph{q}}}
 Sets the compression quality, on a 1--100 floating-point scale.
 This only has an effect if the particular compression method supports
 a quality metric (as JPEG does).
 \apiend
 
-\apiitem{--dither}
+\apiitem{\ce --dither}
 Turns on \emph{dither} when outputting to 8-bit image files (does not affect
 other data types). This adds just a bit of noise that reduces visible
 banding artifacts.
 \apiend
 
-\apiitem{--planarconfig {\rm \emph{config}}}
+\apiitem{\ce --planarconfig {\rm \emph{config}}}
 Sets the planar configuration of subsequent outputs (if supported by
 their formats).  Valid choices are: {\cf config} for contiguous (or
 interleaved) packing of channels in the file (e.g., RGBRGBRGB...), 
@@ -873,7 +873,7 @@ given format.  This command will be ignored for output files whose
 file format does not support the given choice.
 \apiend
 
-\apiitem{--adjust-time}
+\apiitem{\ce --adjust-time}
 When this flag is present, after writing each output, the resulting
 file's modification time will be adjusted to match any \qkw{DateTime}
 metadata in the image.  After doing this, a directory listing will show
@@ -882,7 +882,7 @@ rather than simply when \oiiotool was run.  This has no effect on
 image files that don't contain any \qkw{DateTime} metadata.
 \apiend
 
-\apiitem{--noautocrop}
+\apiitem{\ce --noautocrop}
 For subsequent outputs, do \emph{not} automatically crop images whose
 formats don't support separate pixel data and full/display windows.
 Without this, the default is that outputs will be cropped or padded with
@@ -891,7 +891,7 @@ concepts of pixel data windows and full/display windows.  This is a
 non-issue for file formats that support these concepts, such as OpenEXR.
 \apiend
 
-\apiitem{--autotrim}
+\apiitem{\ce --autotrim}
 For subsequent outputs, if the output format supports separate pixel
 data and full/display windows, automatically trim the output so that
 it writes the minimal data window that contains all the non-zero valued
@@ -912,7 +912,7 @@ all subimages or MIPmap levels of the current top image.  Otherwise,
 they only apply to the highest-resolution MIPmap level of the first
 subimage of the current top image.
 
-\apiitem{--attrib {\rm \emph{name value}}}
+\apiitem{\ce --attrib {\rm \emph{name value}}}
 Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}.
 
@@ -929,14 +929,14 @@ with:
 \end{code}
 \apiend
 
-\apiitem{--sattrib {\rm \emph{name value}}}
+\apiitem{\ce --sattrib {\rm \emph{name value}}}
 Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}, forcing it to be interpreted as a {\cf string}.
 This is helpful if you want to set a {\cf string} metadata to a value
 that the {\cf --attrib} command would normally interpret as a number.
 \apiend
 
-\apiitem{--caption {\rm \emph{text}}}
+\apiitem{\ce --caption {\rm \emph{text}}}
 Sets the image metadata \qkw{ImageDescription}.
 This has no effect if the output image format does not support some kind
 of title, caption, or description metadata field.
@@ -944,7 +944,7 @@ Be careful to enclose \emph{text} in quotes if you want your caption to
 include spaces or certain punctuation!
 \apiend
 
-\apiitem{--keyword {\rm \emph{text}}}
+\apiitem{\ce --keyword {\rm \emph{text}}}
 Adds a keyword to the image metadata \qkw{Keywords}.  Any existing
 keywords will be preserved, not replaced, and the new keyword will not
 be added if it is an exact duplicate of existing keywords.  This has no
@@ -958,24 +958,24 @@ separated by semicolon (`;'), so don't use semicolons within your
 keywords.
 \apiend
 
-\apiitem{--clear-keywords}
+\apiitem{\ce --clear-keywords}
 Clears all existing keywords in the current image.
 \apiend
 
-\apiitem{--nosoftwareattrib}
+\apiitem{\ce --nosoftwareattrib}
 \NEW % 1.5
 When set, this prevents the normal adjustment of \qkw{Software} and
 \qkw{ImageHistory} metadata to reflect what \oiiotool is doing.
 \apiend
 
-\apiitem{--sansattrib}
+\apiitem{\ce --sansattrib}
 \NEW % 1.5
 When set, this edits the command line inserted in the \qkw{Software} and
 \qkw{ImageHistory} metadata to omit any verbose {\cf --attrib} and
 {\cf --sattrib} commands.
 \apiend
 
-\apiitem{--orientation {\rm \emph{orient}}}
+\apiitem{\ce --orientation {\rm \emph{orient}}}
 Explicitly sets the image's \qkw{Orientation} metadata to a numeric
 value (see Section~\ref{metadata:orientation} for the numeric codes).
 This only changes the metadata field that specifies
@@ -984,7 +984,7 @@ themselves, and so has no effect for image formats that don't
 support some kind of orientation metadata.
 \apiend
 
-\apiitem{--orientcw \\
+\apiitem{\ce --orientcw \\
 --orientccw \\
 --orient180}
 Adjusts the image's \qkw{Orientation} metadata by rotating
@@ -1000,7 +1000,7 @@ See the {\cf --rotate90}, {\cf --rotate180}, {\cf --rotate270}, and
 metadata).
 \apiend
 
-\apiitem{--origin {\rm \emph{offset}}}
+\apiitem{\ce --origin {\rm \emph{offset}}}
 Set the pixel data window origin, essentially translating the existing
 pixel data window to a different position on the image plane.
 The offset is in the form
@@ -1014,7 +1014,7 @@ The offset is in the form
 \end{code}
 \apiend
 
-\apiitem{--fullsize {\rm \emph{size}}}
+\apiitem{\ce --fullsize {\rm \emph{size}}}
 Set the display/full window size and/or offset.  The size is in the
 form 
 \\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
@@ -1033,11 +1033,11 @@ unchanged.
 
 \apiend
 
-\apiitem{--fullpixels}
+\apiitem{\ce --fullpixels}
 Set the full/display window range to exactly cover the pixel data window.
 \apiend
 
-\apiitem{--chnames {\rm \emph{name-list}}}
+\apiitem{\ce --chnames {\rm \emph{name-list}}}
 Rename some or all of the channels of the top image to the given
 comma-separated list.  Any completely empty channel names in the
 list will not be changed.  For example,
@@ -1053,31 +1053,31 @@ list will not be changed.  For example,
 
 \section{\oiiotool commands that shuffle channels or subimages}
 
-\apiitem{--selectmip {\rm \emph{level}}}
+\apiitem{\ce --selectmip {\rm \emph{level}}}
 If the current image is MIP-mapped, replace the current image with a new
 image consisting of only the given \emph{level} of the MIPmap.
 Level 0 is the highest resolution version, level 1 is the next-lower
 resolution version, etc.
 \apiend
 
-\apiitem{--unmip}
+\apiitem{\ce --unmip}
 If the current image is MIP-mapped, discard all but the top level
 (i.e., replacing the current image with a new image consisting of only the
 highest-resolution level).  Note that this is equivalent to 
 {\cf --selectmip 0}.
 \apiend
 
-\apiitem{--subimage {\rm \emph{n}}}
+\apiitem{\ce --subimage {\rm \emph{n}}}
 If the current image has multiple subimages, replace the current image
 with a new image consisting of only the given subimage.
 \apiend
 
-\apiitem{--siappend {\rm \emph{n}}}
+\apiitem{\ce --siappend {\rm \emph{n}}}
 Replaces the two two images on the stack with a new image comprised of the
 subimages of both images appended together.
 \apiend
 
-\apiitem{--ch {\rm \emph{channellist}}}
+\apiitem{\ce --ch {\rm \emph{channellist}}}
 Replaces the top image with a new image whose channels have been
 reordered as given by the \emph{channellist}.  The {\cf channellist}
 is a comma-separated list of channel designations, each of which may be
@@ -1098,12 +1098,12 @@ than the number of channels in the source image, unspecified channels will
 be omitted.
 \apiend
 
-\apiitem{--chappend}
+\apiitem{\ce --chappend}
 Replaces the top two images on the stack with a new image comprised of
 the channels of both images appended together.
 \apiend
 
-\apiitem{--flatten}
+\apiitem{\ce --flatten}
 \index{deep images}
 If the top image is ``deep,'' then ``flatten'' it by compositing the depth
 samples in each pixel.
@@ -1112,22 +1112,22 @@ samples in each pixel.
 
 \section{\oiiotool commands that adjust the image stack}
 
-\apiitem{--pop}
+\apiitem{\ce --pop}
 Pop the image stack, discarding the current image and thereby
 making the next image on the stack into the new current image.
 \apiend
 
-\apiitem{--dup}
+\apiitem{\ce --dup}
 Duplicate the current image and push the duplicate on the stack.
 Note that this results in both the current and the next image 
 on the stack being identical copies.
 \apiend
 
-\apiitem{--swap}
+\apiitem{\ce --swap}
 Swap the current image and the next one on the stack.
 \apiend
 
-\apiitem{--label {\rm \emph{name}}}
+\apiitem{\ce --label {\rm \emph{name}}}
 Gives a name to (and saves) the current image at the top of the stack.
 Thereafter, the label name may be used to refer to that saved image,
 in the usual manner that an ordinary input image would be specified by
@@ -1137,7 +1137,7 @@ filename.
 
 \section{\oiiotool commands that make entirely new images}
 
-\apiitem{--create {\rm \emph{size channels}}}
+\apiitem{\ce --create {\rm \emph{size channels}}}
 
 Create new black image with the given size and number of channels,
 pushing it onto the image stack and making it the new current image.
@@ -1211,7 +1211,7 @@ the top, fading to a medium blue at the bottom.
 \apiend
 
 
-\apiitem{--kernel {\rm \emph{name size}}}
+\apiitem{\ce --kernel {\rm \emph{name size}}}
 Create new 1-channel {\cf float} image big enough to hold the named
 kernel and size (size is expressed as \emph{width}{\cf x}\emph{height},
 e.g. {\cf 5x5}).  The \emph{width} and \emph{height} are allowed to be
@@ -1235,7 +1235,7 @@ therefore probably less useful in most cases.
 
 
 
-\apiitem{--capture}
+\apiitem{\ce --capture}
 
 Capture a frame from a camera device, pushing it onto the image stack
 and making it the new current image.  Optional appended arguments
@@ -1257,103 +1257,111 @@ include:
 
 \section{\oiiotool commands that do image processing}
 
-\apiitem{--add}
-Replace the \emph{two} top images with a new image that is the sum of
-those images.
-\apiend
+\apiitem{{\ce --add} \\
+{\ce --addc} {\rm \emph{value}} \\
+{\ce --addc} {\rm \emph{value0,value1,value2...}}}
 
-\apiitem{--sub}
-Replace the \emph{two} top images with a new image that is the difference
-between the first and second images.
-\apiend
+Replace the \emph{two} top images with a new image that is the pixel-by-
+pixel sum of those images ({\cf --add}), or add a constant color value to
+all pixels in the top image ({\cf --addc}).
 
-\apiitem{--absdiff}
-\NEW %1.6
-Replace the \emph{two} top images with a new image that is the absolute
-value of the difference between the first and second images.
-\apiend
+For {\cf --addc}, if a single constant value is given, it will be added to
+all color channels. Alternatively, a series of comma-separated constant
+values (with no spaces!) may be used to specifiy a different value to add to
+each channel in the image.
 
-\apiitem{--absdiffc {\rm \emph{value}} \\
---absdiffc {\rm \emph{value0,value1,value2...}}}
-\NEW %1.6
-Replace the top image by the absolute value of the difference between each
-pixel and a constant color.
-\apiend
+% \noindent Examples:
 
-\apiitem{--abs}
-Replace the current image with a new image that has each pixel
-consisting of the \emph{absolute value} of he old pixel value.
-\apiend
+% \begin{tabular}{m{3in} m{2.5in}}
+%   {\cf \footnotesize oiiotool tahoe.jpg --addc 0.5 -o addc.jpg}
+%      & \includegraphics[width=1in]{figures/tahoe-small.jpg}
+%          \raisebox{24pt}{\large $\rightarrow$} 
+%         \includegraphics[width=1in]{figures/addc.jpg} \\
+% \end{tabular}
 
-\apiitem{--mul}
-Replace the \emph{two} top images with a new image that the
-pixel-by-pixel, channel-by-channel multiplicative product of
-the first and second images.
-\apiend
-
-\apiitem{--div}
-\NEW %1.6
-Replace the \emph{two} top images with a new image that is the
-pixel-by-pixel, channel-by-channel result of the first image divided by
-the second image. Division by zero is defined as resulting in 0.
-\apiend
-
-\apiitem{--divc {\rm \emph{value}} \\
---divc {\rm \emph{value0,value1,value2...}}}
-\NEW %1.6
-Divide all the pixel values in the top image by a constant value.
-If a single constant value is given, all color channels will have their values
-divided by the same value.  Alternatively, a series of
-comma-separated constant values (with no spaces!) may be used to specifiy a
-different multiplier for each channel in the image, respectively.
-Division by zero is defined as resulting in 0.
-\apiend
-
-\apiitem{--addc {\rm \emph{value}} \\
---addc {\rm \emph{value0,value1,value2...}}}
-Add a constant value to all the pixels in the current image.  If a
-single constant value is given, it will be added to all color channels.
-Alternatively, a series of comma-separated constant values (with no
-spaces!) may be used to specifiy a different value to add to each
-channel in the image, respectively.
-
-\noindent Example:
+\noindent Examples:
 \begin{code}
     oiiotool tahoe.jpg --addc 0.5 -o addc.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/addc.jpg} \\
+
+\vspace{12pt}
+
+\begin{code}
+    oiiotool imageA.tif imageB.tif --add -o sum.jpg
+\end{code}
 \apiend
 
-\apiitem{--subc {\rm \emph{value}} \\
---subc {\rm \emph{value0,value1,value2...}}}
+\apiitem{{\ce --sub} \\
+{\ce --subc} {\rm \emph{value}} \\
+{\ce --subc} {\rm \emph{value0,value1,value2...}}}
+Replace the \emph{two} top images with a new image that is the pixel-by-
+pixel difference between the first and second images ({\cf --sub}), or
+subtract a constant color value from all pixels in the top image ({\cf
+--subc}).
+
 \NEW %1.6
-Subtrace a constant value from all the pixels in the current image.  If a
-single constant value is given, it will be subtracted from all color channels.
-Alternatively, a series of comma-separated constant values (with no
-spaces!) may be used to specifiy a different value to subtract from each
-channel in the image, respectively.
+For {\cf --subc}, if a single constant value is given, it will be subtracted
+from all color channels. Alternatively, a series of comma-separated constant
+values (with no spaces!) may be used to specifiy a different value to
+subtract from each channel in the image.
 \apiend
 
-\apiitem{--mulc {\rm \emph{value}} \\
---mulc {\rm \emph{value0,value1,value2...}}}
-Multiply all the pixel values in the top image by a constant value.
-If a single constant value is given, all color channels will have their values
-multiplied by the same value.  Alternatively, a series of
-comma-separated constant values (with no spaces!) may be used to specifiy a
-different multiplier for each channel in the image, respectively.
+\apiitem{{\ce --mul} \\
+{\ce --mulc} {\rm \emph{value}} \\
+{\ce --mulc} {\rm \emph{value0,value1,value2...}}}
+Replace the \emph{two} top images with a new image that is the pixel-by-
+pixel multiplicative product of those images ({\cf --mul}), or multiply all
+pixels in the top image by a constant value ({\cf --mulc}).
+
+For {\cf --mulc}, if a single constant value is given, it will be multiplied
+to all color channels. Alternatively, a series of comma-separated constant
+values (with no spaces!) may be used to specifiy a different value to
+multiply with each channel in the image.
 
 \noindent Example:
 \begin{code}
     oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/mulc.jpg} \\
 \apiend
 
-\apiitem{--powc {\rm \emph{value}} \\
+\apiitem{{\ce --div} \\
+{\ce --divc} {\rm \emph{value}} \\
+{\ce --divc} {\rm \emph{value0,value1,value2...}}}
+\NEW %1.6
+Replace the \emph{two} top images with a new image that is the
+pixel-by-pixel, channel-by-channel result of the first image divided by
+the second image ({\cf --div}), or divide all
+pixels in the top image by a constant value ({\cf --divc}).
+Division by zero is defined as resulting in 0.
+
+For {\cf --divc}, if a single constant value is given, all color channels
+will have their values divided by the same value.  Alternatively, a series
+of comma-separated constant values (with no spaces!) may be used to specifiy
+a different multiplier for each channel in the image, respectively.
+\apiend
+
+\apiitem{{\ce --absdiff} \\
+{\ce --absdiffc} {\rm \emph{value}} \\
+{\ce --absdiffc} {\rm \emph{value0,value1,value2...}}}
+\NEW %1.6
+Replace the \emph{two} top images with a new image that is the absolute
+value of the difference between the first and second images ({\cf --absdiff}),
+or replace the top image by the absolute value of the difference between each
+pixel and a constant color ({\cf --absdiffc}).
+\apiend
+
+\apiitem{\ce --abs}
+Replace the current image with a new image that has each pixel
+consisting of the \emph{absolute value} of he old pixel value.
+\apiend
+
+\apiitem{\ce --powc {\rm \emph{value}} \\
 --powc {\rm \emph{value0,value1,value2...}}}
 Raise all the pixel values in the top image to a constant power value.
 If a single constant value is given, all color channels will have their values
@@ -1362,7 +1370,7 @@ comma-separated constant values (with no spaces!) may be used to specifiy a
 different exponent for each channel in the image, respectively.
 \apiend
 
-\apiitem{--chsum}
+\apiitem{\ce --chsum}
 Replaces the top image by a copy that contains only 1 color channel,
 whose value at each pixel is the sum of all channels of the original
 image.  Using the optional {\cf weight} allows you to customize the
@@ -1378,11 +1386,11 @@ weight of each channel in the sum.
     oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/luma.jpg} \\
 \apiend
 
-\apiitem{--paste {\rm \emph{location}}}
+\apiitem{\ce --paste {\rm \emph{location}}}
 Takes two images -- the first is the ``foreground'' and the second is
 the ``background'' -- and uses the pixels of the foreground to replace
 those of the backgroud beginning at the upper left \emph{location}
@@ -1390,7 +1398,7 @@ those of the backgroud beginning at the upper left \emph{location}
 or of course using {\cf -} for negative offsets).
 \apiend
 
-\apiitem{--mosaic {\rm \emph{size}}}
+\apiitem{\ce --mosaic {\rm \emph{size}}}
 Removes \emph{w}{\cf x}\emph{h} images, dictated by the
 \emph{size}, and turns them into a single image mosaic.
 Optional appended arguments
@@ -1409,7 +1417,7 @@ include:
 \end{code}
 \apiend
 
-\apiitem{--over}
+\apiitem{\ce --over}
 \index{composite}
 Replace the \emph{two} top images with a new image that is the
 Porter/Duff ``over'' composite with the first image as the foreground
@@ -1418,7 +1426,7 @@ Both input images must have the same number and order of channels
 and must contain an alpha channel.
 \apiend
 
-\apiitem{--zover}
+\apiitem{\ce --zover}
 \index{depth composite}
 Replace the \emph{two} top images with a new image that is a \emph{depth
 composite} of the two images -- the operation is the 
@@ -1437,7 +1445,7 @@ include:
 
 \apiend
 
-\apiitem{--rotate90}
+\apiitem{\ce --rotate90}
 \NEW % 1.5
 Replace the current image with a new image that is rotated 90 degrees
 clockwise.
@@ -1447,11 +1455,11 @@ clockwise.
     oiiotool grid.jpg --rotate90 -o rotate90.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/rotate90.jpg} \\
 \apiend
 
-\apiitem{--rotate180}
+\apiitem{\ce --rotate180}
 \NEW % 1.5
 Replace the current image with a new image that is rotated by
 180 degrees.
@@ -1461,11 +1469,11 @@ Replace the current image with a new image that is rotated by
     oiiotool grid.jpg --rotate180 -o rotate180.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/rotate180.jpg} \\
 \apiend
 
-\apiitem{--rotate270}
+\apiitem{\ce --rotate270}
 \NEW % 1.5
 Replace the current image with a new image that is rotated 270 degrees
 clockwise (or 90 degrees counter-clockwise).
@@ -1475,11 +1483,11 @@ clockwise (or 90 degrees counter-clockwise).
     oiiotool grid.jpg --rotate270 -o rotate270.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/rotate270.jpg} \\
 \apiend
 
-\apiitem{--flip}
+\apiitem{\ce --flip}
 Replace the current image with a new image that is flipped vertically,
 with the top scanline becoming the bottom, and vice versa.
 
@@ -1488,11 +1496,11 @@ with the top scanline becoming the bottom, and vice versa.
     oiiotool grid.jpg --flip -o flip.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/flip.jpg} \\
 \apiend
 
-\apiitem{--flop}
+\apiitem{\ce --flop}
 Replace the current image with a new image that is flopped horizontally,
 with the leftmost column becoming the rightmost, and vice versa.
 
@@ -1501,11 +1509,11 @@ with the leftmost column becoming the rightmost, and vice versa.
     oiiotool grid.jpg --flop -o flop.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
-\apiitem{--reorient}
+\apiitem{\ce --reorient}
 \NEW % 1.5
 Replace the current image with a new image that is rotated and/or flipped
 as necessary to move the pixels to match the Orientation metadata
@@ -1516,11 +1524,11 @@ that describes the desired display orientation.
     oiiotool tahoe.jpg --reorient -o oriented.jpg
 \end{code}
 %\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-%~ {\Huge $\rightarrow$} ~
+%\raisebox{24pt}{\large $\rightarrow$} 
 %\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
-\apiitem{--transpose}
+\apiitem{\ce --transpose}
 Replace the current image with a new image that is trasposed about
 the $xy$ axis (x and coordinates and size are flipped).
 
@@ -1529,11 +1537,11 @@ the $xy$ axis (x and coordinates and size are flipped).
     oiiotool grid.jpg --transpose -o transpose.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/transpose.jpg} \\
 \apiend
 
-\apiitem{--cshift {\rm \emph{offset}}}
+\apiitem{\ce --cshift {\rm \emph{offset}}}
 Circularly shift the pixels of the image by the given offset (expressed
 as {\cf +10+100} to move by 10 pixels horizontally and 100 pixels
 vertically, or {\cf +50-30} to move by 50 pixels horizontally and
@@ -1545,11 +1553,11 @@ pixels wrap to the other side as they shift.
     oiiotool grid.jpg --cshift +70+30 -o cshift.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/cshift.jpg} \\
 \apiend
 
-\apiitem{--crop {\rm \emph{size}}}
+\apiitem{\ce --crop {\rm \emph{size}}}
 Replace the current image with a new copy with the given \emph{size},
 cropping old pixels no longer needed, padding black pixels where they
 previously did not exist in the old image, and adjusting the offsets
@@ -1571,13 +1579,13 @@ Note that {\cf crop} does not \emph{reposition} pixels, it only trims or
 pads to reset the image's pixel data window to the specified region.
 \apiend
 
-\apiitem{--croptofull}
+\apiitem{\ce --croptofull}
 Replace the current image with a new image that is cropped or padded
 as necessary to make the pixel data window exactly cover
 the full/display window.
 \apiend
 
-\apiitem{--cut {\rm \emph{size}}}
+\apiitem{\ce --cut {\rm \emph{size}}}
 Replace the current image with a new copy with the given \emph{size},
 cropping old pixels no longer needed, padding black pixels where they
 previously did not exist in the old image, repositioning the cut region
@@ -1598,7 +1606,7 @@ The size is in the form
 \end{tabular}
 \apiend
 
-\apiitem{--resample {\rm \emph{size}}}
+\apiitem{\ce --resample {\rm \emph{size}}}
 Replace the current image with a new image that is resampled to the
 given pixel data resolution rapidly, but at a low quality, by simply
 copying the ``closest'' pixel.  The \emph{size} is in the form 
@@ -1620,7 +1628,7 @@ automatically computed so as to preserve the original aspect ratio.
 
 \apiend
 
-\apiitem{--resize {\rm \emph{size}}}
+\apiitem{\ce --resize {\rm \emph{size}}}
 Replace the current image with a new image that is resized to the 
 given pixel data resolution.  The \emph{size} is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
@@ -1649,7 +1657,7 @@ decreasing resolution. \\
 
 \apiend
 
-\apiitem{--fit {\rm \emph{size}}}
+\apiitem{\ce --fit {\rm \emph{size}}}
 Replace the current image with a new image that is resized to fit
 into the given pixel data resolution, keeping the original aspect ratio
 and padding with black pixels if the requested image size does not
@@ -1677,7 +1685,7 @@ decreasing resolution. \\
 \end{code}
 \apiend
 
-\apiitem{--rotate {\rm \emph{angle}}}
+\apiitem{\ce --rotate {\rm \emph{angle}}}
 \NEW % 1.5
 Replace the current image with a new image that is rotated by the given
 angle (in degrees). Positive angles mean to rotate counter-clockwise,
@@ -1702,12 +1710,12 @@ Optional appended arguments include:
   oiiotool mandrill.tif --rotate:center=80,91.5:filter=lanczos3 45 -o rotated.tif
 \end{tinycode}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-~ {\Huge $\rightarrow$} ~
+\raisebox{24pt}{\large $\rightarrow$} 
 \includegraphics[width=1.25in]{figures/rotate45.jpg} \\
 \apiend
 
 
-\apiitem{--warp {\rm \emph{M33}}}
+\apiitem{\ce --warp {\rm \emph{M33}}}
 \NEW % 1.5
 Replace the current image with a new image that is warped by the given
 $3 \times 3$ matrix (presented as a comma-separated list of values, without
@@ -1729,7 +1737,7 @@ Optional appended arguments include:
 \apiend
 
 
-\apiitem{--convolve}
+\apiitem{\ce --convolve}
 Use the top image as a kernel to convolve the next image farther down
 the stack, replacing both with the result.
 
@@ -1743,7 +1751,7 @@ the stack, replacing both with the result.
 \end{code}
 \apiend
 
-\apiitem{--blur {\rm \emph{size}}}
+\apiitem{\ce --blur {\rm \emph{size}}}
 Blur the top image with a blur kernel of the given size expressed as
 \emph{width}{\cf x}\emph{height}.  (The sizes may be floating point 
 numbers.)
@@ -1764,7 +1772,7 @@ Optional appended arguments include:
 \apiend
 
 
-\apiitem{--median {\rm \emph{size}}}
+\apiitem{\ce --median {\rm \emph{size}}}
 
 \NEW % 1.5
 Perform a median filter on the top image with a window of the given size
@@ -1779,7 +1787,7 @@ without blurring long edges the way a {\cf --blur} command would.
 \apiend
 
 
-\apiitem{--unsharp}
+\apiitem{\ce --unsharp}
 Unblur the top image using an ``unsharp mask.'' 
 
 Optional appended arguments include:
@@ -1810,7 +1818,7 @@ Optional appended arguments include:
 \apiend
 
 
-\apiitem{--fft \\
+\apiitem{\ce --fft \\
 --ifft}
 Performs forward and inverse unitized discrete Fourier transform.
 The forward FFT always transforms only the first channel of the
@@ -1834,7 +1842,7 @@ the real component only of the spatial domain result).
 \apiend
 
 
-\apiitem{--polar \\
+\apiitem{\ce --polar \\
 --unpolar}
 The {\cf --polar} transforms a 2-channel image whose channels are
 interpreted as complex values (real and imaginary components) into the
@@ -1852,7 +1860,7 @@ polar values (amplitude and phase) to complex (real and imaginary).
 \apiend
 
 
-\apiitem{--fixnan {\rm \emph{streategy}}}
+\apiitem{\ce --fixnan {\rm \emph{streategy}}}
 Replace the top image with a copy in which any pixels that contained
 {\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
 ``nonfinite'') are repaired.  If \emph{strategy} is {\cf black},
@@ -1861,7 +1869,7 @@ nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
 finite values within a $3 \times 3$ region surrounding the pixel.
 \apiend
 
-\apiitem{--clamp}
+\apiitem{\ce --clamp}
 Replace the top image with a copy in which pixel values have been
 clamped.  Optional arguments include:
 
@@ -1898,7 +1906,7 @@ corresponding channel should not be clamped.
 
 \apiend
 
-\apiitem{--rangecompress \\
+\apiitem{\ce --rangecompress \\
 --rangeexpand}
 Range compression re-maps input values to a logarithmic scale.
 Range expansion is the inverse mapping back to a linear scale.
@@ -1930,7 +1938,7 @@ pixel values.  For example,
 \end{smallcode}
 \apiend
 
-\apiitem{--fillholes}
+\apiitem{\ce --fillholes}
 Replace the top image with a copy in which any pixels that had
 $\alpha < 1$ are ``filled'' in a smooth way using data from
 surrounding $\alpha > 0$ pixels, resulting in an image that is
@@ -1940,7 +1948,7 @@ image out.
 \apiend
 
 
-\apiitem{--fill {\rm \emph{size}}}
+\apiitem{\ce --fill {\rm \emph{size}}}
 Alter the top image by filling the ROI specified by \emph{size}.
 The fill can be a constant color, vertical gradient, horizontal gradient,
 or four-corner gradient.
@@ -1982,7 +1990,7 @@ Optional arguments for 4-corner gradient: \\
 \apiend
 
 
-\apiitem{--text {\rm \emph{words}}}
+\apiitem{\ce --text {\rm \emph{words}}}
 Draw (rasterize) text overtop of the current image.
 
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
@@ -2016,14 +2024,14 @@ identical on different platforms supported by \product.
 
 \section{\oiiotool commands for color management}
 
-\apiitem{--iscolorspace {\rm \emph{colorspace}}}
+\apiitem{\ce --iscolorspace {\rm \emph{colorspace}}}
 Alter the metadata of the current image so that it thinks its pixels
 are in the named color space.  This does not alter the pixels of the
 image, it only changes \oiiotool's understanding of what color
 space those those pixels are in.
 \apiend
 
-\apiitem{--colorconvert {\rm \emph{fromspace tospace}}}
+\apiitem{\ce --colorconvert {\rm \emph{fromspace tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from the named \emph{fromspace} color space into the named
 \emph{tospace} (disregarding any notion it may have previously had 
@@ -2043,7 +2051,7 @@ bottom you will see the list of all color spaces that \oiiotool knows
 about.
 \apiend
 
-\apiitem{--tocolorspace {\rm \emph{tospace}}}
+\apiitem{\ce --tocolorspace {\rm \emph{tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from their existing color space (as best understood or guessed by OIIO)
 into the named \emph{tospace}.  This is equivalent to a use of
@@ -2051,7 +2059,7 @@ into the named \emph{tospace}.  This is equivalent to a use of
 automatically deduced.
 \apiend
 
-\apiitem{--ociolook {\rm \emph{lookname}}}
+\apiitem{\ce --ociolook {\rm \emph{lookname}}}
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO look description.  Optional appended
 arguments include:
@@ -2083,7 +2091,7 @@ looks that \oiiotool knows about.
 
 \apiend
 
-\apiitem{--ociodisplay {\rm \emph{displayname viewname}}}
+\apiitem{\ce --ociodisplay {\rm \emph{displayname viewname}}}
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO ``display'' transformation given by the
 \emph{displayname} and \emph{viewname}.  Optional appended
@@ -2112,7 +2120,7 @@ looks that \oiiotool knows about.
 
 \apiend
 
-\apiitem{--unpremult}
+\apiitem{\ce --unpremult}
 Divide all color channels (those not alpha or z) of the current image by
 the alpha value, to ``un-premultiply'' them.  This presumes that the
 image starts of as ``associated alpha,'' a.k.a.\ ``premultipled.''
@@ -2121,7 +2129,7 @@ operation is undefined in that case).  This is a no-op if there is no
 identified alpha channel.
 \apiend
 
-\apiitem{--premult}
+\apiitem{\ce --premult}
 Multiply all color channels (those not alpha or z) of the current image
 by the alpha value, to ``premultiply'' them.  This presumes that the
 image starts of as ``unassociated alpha,'' a.k.a.\ ``non-premultipled.''

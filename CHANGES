@@ -3,10 +3,49 @@ Changes:
 Release 1.6 (in progress) -- compared to 1.5.x
 ----------------------------------------------
 Major new features and improvements:
+* New oiiotool functionality:
+    * --absdiff, --absdiffc compute the absolute difference (abs(A-B)) of
+      two images, or between an image and a constant color. #1029 (1.6.0)
+    * --abs computes the absolute value of an image.  #1029 (1.6.0)
+    * --div, divc divide one image by another (pixel by pixel), or divides
+      the pixels of an image by a constant color. #1029 (1.6.0)
+    * --addc, --subc, --mulc, --powc are the new names for --cadd, --csub,
+      --cmul, and --cpow. The old ones will continue to work but are
+      considered depcrected. #1030 (1.6.0)
+    * --create now supports a "fill" pattern that works just like --fill
+      (and supports all of --fill's new options, below).
+    * --fill, in addition to taking optional parameter color=... to give a
+      solid color for the fill region, now also takes top=...:bottom=... to
+      make a vertical gradient, left=...:right=... to make a horizontal
+      gradient, and topleft=...:topright=...:bottomleft=...:bottomright=...
+      to make a 4-corner gradient. (1.6.0)
+* New ImageBufAlgo functions:
+    * absdiff() computes the absolute difference (abs(A-B)) of two images,
+      or between an image and a constant color. #1029 (1.6.0)
+    * abs() computes the absolute value of an image. #1029 (1.6.0)
+    * div() divides one image by another (pixel by pixel), or divides all
+      the pixels of an image by a constant color. #1029 (1.6.0)
+    * fill() has been extended with new varieties that take 2 colors (making
+      a vertical gradient) and 4 colors (one for each ROI corner, for a
+      bilinearly interpolated gradient). (1.6.0)
+
 Public API changes:
+
 Fixes, minor enhancements, and performance improvements:
+* Fix broken bicubic texture sampling with non-power-of-two sized tiles.
+  #1035 (1.6.0/1.5.10)
+* OpenEXR:
+    * Fix read_deep_tiles() error when not starting at the image origin.
+      #1040 (1.6.0/1.5.10)
+    * Fix output of multi-part exr file when some parts are tiled and
+      others aren't. #1040 (1.6.0/1.5.10)
+
 Build/test system improvements:
+* Python plugin is now build as a cmake "module" rather than "library",
+  which fixes some things on OSX. #1043 (1.6.0/1.5.10)
+
 Developer goodies / internals:
+
 
 
 
@@ -237,7 +276,7 @@ Fixes, minor enhancements, and performance improvements:
      images (if the user is reading them into a higher-precision buffer).
      #960, #962 (1.5.2)
    * Change default compression (if otherwise unspecified) to "zip". (1.5.6)
-   * Robust to Exif blocks with corrupted GPS data. #1008 (1.5.8)
+   * Robust to Exif blocks with corrupted GPS data. #1008 (1.5.8/1.4.16)
    * Fixes to allow proper output of TIFF files with uint32 or int32 pixels
      (1.5.8)
 * RAW:
@@ -262,7 +301,7 @@ Fixes, minor enhancements, and performance improvements:
 * TextureSystem: anisotropic texture lookups are slightly sped up (~7%)
   by using some approximate math (but not visibly different) #953. (1.5.5)
 * Better exception safety in Filesystem::exists() and similar functions.
-  #1026 (1.5.8)
+  #1026 (1.5.8/1.4.16)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -312,7 +351,7 @@ Build/test system improvements:
 * grid.tx and checker.tx have been moved from ../oiio/images to
   testsuite/common/texture (allow it to be versioned along with any changes
   to maketx. (1.5.7)
-* Support for freetype 2.5.4. #1012 (1.5.8)
+* Support for freetype 2.5.4. #1012 (1.5.8/1.4.16)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -326,7 +365,7 @@ Developer goodies / internals:
 * Improved error propagation through ImageCache, ImageBuf, and oiiotool.
   (1.5.1)
 * Moved certain platform-dependent macros from sysutil.h to platform.h
-  (1.5.4)
+  (1.5.4/1.4.16)
 * ustring: add comparisons between ustrings versus char* and string_view.
   (1.5.4)
 * New simd.h exposes float4, int4, and mask4 classes that utilize SSE
@@ -346,6 +385,14 @@ Developer goodies / internals:
   efficiently. (1.5.8)
 
 
+
+Release 1.4.16 (19 Jan 2015 -- compared to 1.4.15)
+--------------------------------------------------
+* Fix gcc 4.9 warnings.
+* Improved error propagation through ImageCache, ImageBuf, and oiiotool.
+* TIFF more robust to Exif blocks with corrupted GPS data. #1008
+* Support for freetype 2.5.4. #1012
+* Better exception safety in Filesystem::exists() and similar functions. #1026
 
 Release 1.4.15 (24 Nov 2014 -- compared to 1.4.14)
 --------------------------------------------------
