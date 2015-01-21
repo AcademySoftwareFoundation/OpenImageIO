@@ -2085,8 +2085,8 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
             tile_s &= tilewidthmask;
             tile_t &= tileheightmask;
         } else {
-            tile_s %= tilewidthmask;
-            tile_t %= tileheightmask;
+            tile_s %= spec.tile_width;
+            tile_t %= spec.tile_height;
         }
         bool s_onetile = (tile_s <= tilewidthmask-3);
         bool t_onetile = (tile_t <= tileheightmask-3);
