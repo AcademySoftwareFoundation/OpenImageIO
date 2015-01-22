@@ -83,7 +83,7 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
 
     include_directories (${PYTHON_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
-    add_library (${target_name} SHARED ${python_srcs})
+    add_library (${target_name} MODULE ${python_srcs})
     target_link_libraries (${target_name} OpenImageIO ${Boost_LIBRARIES} ${Boost_PYTHON_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
 
     # Exclude the 'lib' prefix from the name
@@ -106,11 +106,6 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
             SOVERSION ${SOVERSION}
         )
     endif()
-
-    if (APPLE)
-        # Python seems to only look for plugins that end in .so, not .dylib
-        set_target_properties (${target_name} PROPERTIES SUFFIX ".so")
-    endif ()
 
     if (WIN32)
         set_target_properties (${target_name} PROPERTIES
