@@ -460,9 +460,11 @@ bool
 TextureSystemImpl::get_texture_info (ustring filename, int subimage,
                              ustring dataname, TypeDesc datatype, void *data)
 {
+	static ustring s_exists("exists");
+
     bool ok = m_imagecache->get_image_info (filename, subimage, 0,
                                             dataname, datatype, data);
-    if (! ok)
+	if (!ok && dataname == s_exists && datatype == TypeDesc::TypeInt)
         error ("%s", m_imagecache->geterror().c_str());
     return ok;
 }
