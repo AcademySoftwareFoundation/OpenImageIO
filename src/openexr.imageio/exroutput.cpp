@@ -695,6 +695,9 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
         header.insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
     }
 
+    // We must setTileDescription here before the put_parameter calls below,
+    // since put_parameter will check the header to ensure this is a tiled
+    // image before setting lineOrder to randomY.
     if (spec.tile_width)
         header.setTileDescription (
             Imf::TileDescription (spec.tile_width, spec.tile_height,
@@ -837,7 +840,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         header.lineOrder() = Imf::INCREASING_Y;   // Default
         if (str) {
             if (Strutil::iequals (str, "randomY")
-                  && m_spec.tile_width /* randomY is only for tiled files */)
+                  && header.hasTileDescription() /* randomY is only for tiled files */)
                 header.lineOrder() = Imf::RANDOM_Y;
             else if (Strutil::iequals (str, "decreasingY"))
                 header.lineOrder() = Imf::DECREASING_Y;
