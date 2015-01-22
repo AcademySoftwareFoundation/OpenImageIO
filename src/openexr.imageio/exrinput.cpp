@@ -1244,14 +1244,21 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
         int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
 
+        int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;
+        int firstytile = (ybegin - m_spec.y) / m_spec.tile_height;
+
         // Get the sample counts for each pixel and compute the total
         // number of samples and resize the data area appropriately.
-        m_deep_tiled_input_part->readPixelSampleCounts (0, xtiles-1, 0, ytiles-1);
+        m_deep_tiled_input_part->readPixelSampleCounts (
+                firstxtile, firstxtile+xtiles-1,
+                firstytile, firstytile+ytiles-1);
         deepdata.alloc ();
 
         // Read the pixels
-        m_deep_tiled_input_part->readTiles (0, xtiles-1, 0, ytiles-1,
-                                            m_miplevel, m_miplevel);
+        m_deep_tiled_input_part->readTiles (
+                firstxtile, firstxtile+xtiles-1,
+                firstytile, firstytile+ytiles-1,
+                m_miplevel, m_miplevel);
     } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
         return false;
