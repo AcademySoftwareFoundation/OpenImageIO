@@ -355,6 +355,20 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     if (Strutil::iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute ("Exif:ColorSpace", 1);
 
+    // Deal with missing XResolution or YResolution, or a PixelAspectRatio
+    // that contradicts them.
+    float X_density = m_spec.get_float_attribute ("XResolution", 1.0f);
+    float Y_density = m_spec.get_float_attribute ("YResolution", 1.0f);
+    float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    if (X_density < 1.0f || Y_density < 1.0f || aspect*X_density != Y_density) {
+        if (X_density < 1.0f || Y_density < 1.0f) {
+            X_density = Y_density = 1.0f;
+            m_spec.attribute ("ResolutionUnit", "none");
+        }
+        m_spec.attribute ("XResolution", X_density);
+        m_spec.attribute ("YResolution", X_density * aspect);
+    }
+
     // Deal with all other params
     for (size_t p = 0;  p < m_spec.extra_attribs.size();  ++p)
         put_parameter (m_spec.extra_attribs[p].name().string(),
@@ -463,10 +477,6 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
             TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
         else ok = false;
         return ok;
-    }
-    if (Strutil::iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
-        TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, *(unsigned int *)data);
-        return true;
     }
     if (Strutil::iequals(name, "tiff:RowsPerStrip")
           && ! m_spec.tile_width /* don't set rps for tiled files */

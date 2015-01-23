@@ -18,6 +18,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
+    PixelAspectRatio: 1
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:SHA-1: "9CA964417213269190944948273FB1F00A4A8393"
 Reading grid-resize.tx
@@ -40,6 +41,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
+    PixelAspectRatio: 1
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:SHA-1: "C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
 Reading checker-uint16.tx
