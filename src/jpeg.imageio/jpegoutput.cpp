@@ -169,9 +169,29 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         m_cinfo.input_components = 1;
         m_cinfo.in_color_space = JCS_GRAYSCALE;
     }
-    m_cinfo.density_unit = 2; // RESUNIT_INCH;
-    m_cinfo.X_density = 72;
-    m_cinfo.Y_density = 72;
+
+    string_view resunit = m_spec.get_string_attribute ("ResolutionUnit");
+    if (Strutil::iequals (resunit, "none"))
+        m_cinfo.density_unit = 0;
+    else if (Strutil::iequals (resunit, "in"))
+        m_cinfo.density_unit = 1;
+    else if (Strutil::iequals (resunit, "cm"))
+        m_cinfo.density_unit = 2;
+    else
+        m_cinfo.density_unit = 0;
+    m_cinfo.X_density = int (m_spec.get_float_attribute ("XResolution"));
+    m_cinfo.Y_density = int (m_spec.get_float_attribute ("YResolution"));
+    float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    if (m_cinfo.X_density <= 1 && m_cinfo.Y_density <= 1 && aspect != 1.0f) {
+        // No useful [XY]Resolution, but there is an aspect ratio requested.
+        // Arbitrarily pick 72 dots per undefined unit, and jigger it to
+        // honor it as best as we can.
+        m_cinfo.X_density = 72;
+        m_cinfo.Y_density = int (m_cinfo.X_density * aspect);
+        m_spec.attribute ("XResolution", 72.0f);
+        m_spec.attribute ("YResolution", 72.0f*aspect);
+    }
+
     m_cinfo.write_JFIF_header = TRUE;
 
     if (m_copy_coeffs) {

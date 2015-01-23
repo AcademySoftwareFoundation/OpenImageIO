@@ -748,6 +748,10 @@ TIFFInput::readspec (bool read_meta)
     case RESUNIT_INCH : m_spec.attribute ("ResolutionUnit", "in"); break;
     case RESUNIT_CENTIMETER : m_spec.attribute ("ResolutionUnit", "cm"); break;
     }
+    float xdensity = m_spec.get_float_attribute ("XResolution", 0.0f);
+    float ydensity = m_spec.get_float_attribute ("YResolution", 0.0f);
+    if (xdensity && ydensity)
+        m_spec.attribute ("PixelAspectRatio", ydensity/xdensity);
 
     get_matrix_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
     get_matrix_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);

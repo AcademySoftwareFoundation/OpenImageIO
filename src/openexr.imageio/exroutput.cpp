@@ -695,6 +695,22 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
         header.insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
     }
 
+    // Fix up density and aspect to be consistent
+    float aspect = spec.get_float_attribute ("PixelAspectRatio", 0.0f);
+    float xdensity = spec.get_float_attribute ("XResolution", 0.0f);
+    float ydensity = spec.get_float_attribute ("XResolution", 0.0f);
+    if (! aspect && xdensity && ydensity) {
+        // No aspect ratio. Compute it from density, if supplied.
+        spec.attribute ("PixelAspectRatio", xdensity / ydensity);
+    }
+    if (xdensity && ydensity &&
+            spec.get_string_attribute("ResolutionUnit") == "cm") {
+        // OpenEXR only supports pixels per inch, so fix the values if they
+        // came to us in cm.
+        spec.attribute ("XResolution", xdensity / 2.54f);
+        spec.attribute ("YResolution", ydensity / 2.54f);
+    }
+
     // We must setTileDescription here before the put_parameter calls below,
     // since put_parameter will check the header to ensure this is a tiled
     // image before setting lineOrder to randomY.
@@ -786,6 +802,10 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         xname = "owner";
     else if (Strutil::iequals(xname, "PixelAspectRatio"))
         xname = "pixelAspectRatio";
+    else if (Strutil::iequals(xname, "XResolution"))
+        xname = "xDensity";
+    else if (Strutil::iequals(xname, "YResolution"))
+        xname = "";  // make us skip it
     else if (Strutil::iequals(xname, "ExposureTime"))
         xname = "expTime";
     else if (Strutil::iequals(xname, "FNumber"))
@@ -900,6 +920,9 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         Strutil::iequals(xname, "maxSamplesPerPixel")) {
         return false;
     }
+
+    if (! xname.length())
+        return false;    // Skip suppressed names
 
     // General handling of attributes
     try {

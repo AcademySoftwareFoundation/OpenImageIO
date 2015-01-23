@@ -15,6 +15,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-02.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
@@ -34,6 +35,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-06.tif
@@ -53,6 +55,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-06.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 148
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-06.tif" and "flower-minisblack-06.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-08.tif
@@ -72,6 +75,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-08.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
@@ -91,6 +95,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 89
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-10.tif" and "flower-minisblack-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
@@ -110,6 +115,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-12.tif" and "flower-minisblack-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-14.tif
@@ -129,6 +135,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-14.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 64
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-14.tif" and "flower-minisblack-14.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
@@ -148,6 +155,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 56
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
@@ -167,6 +175,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
@@ -186,6 +195,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-08.tif
@@ -205,6 +215,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-08.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-02.tif
@@ -224,6 +235,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-02.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 148
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-02.tif" and "flower-rgb-contig-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-04.tif
@@ -243,6 +255,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-04.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-04.tif" and "flower-rgb-contig-04.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-08.tif
@@ -262,6 +275,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-08.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 37
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-10.tif
@@ -281,6 +295,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-10.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 29
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-10.tif" and "flower-rgb-contig-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-12.tif
@@ -300,6 +315,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-12.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 24
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-12.tif" and "flower-rgb-contig-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-14.tif
@@ -319,6 +335,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-14.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 21
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-14.tif" and "flower-rgb-contig-14.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-16.tif
@@ -338,6 +355,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-16.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 18
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
@@ -357,6 +375,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-02.tif" and "flower-rgb-planar-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-04.tif
@@ -376,6 +395,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-04.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-04.tif" and "flower-rgb-planar-04.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-08.tif
@@ -395,6 +415,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-08.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-08.tif" and "flower-rgb-planar-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-10.tif
@@ -414,6 +435,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-10.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 89
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-10.tif" and "flower-rgb-planar-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-12.tif
@@ -433,6 +455,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-12.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-12.tif" and "flower-rgb-planar-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-14.tif
@@ -452,6 +475,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-14.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 64
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-14.tif" and "flower-rgb-planar-14.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-16.tif
@@ -471,5 +495,6 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-16.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 56
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-16.tif" and "flower-rgb-planar-16.tif"
 PASS

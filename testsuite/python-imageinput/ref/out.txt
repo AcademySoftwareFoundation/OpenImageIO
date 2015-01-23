@@ -16,7 +16,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   Orientation = 1
   XResolution = 72.0
   YResolution = 72.0
-  ResolutionUnit = 2
+  ResolutionUnit = "none"
   Software = "title;va"
   Exif:YCbCrPositioning = 1
   Exif:DateTimeOriginal = "2009:02:21 08:32:04"
@@ -59,6 +59,7 @@ Opened "../common/textures/grid.tx" as a tiff
   planarconfig = "contig"
   tiff:Compression = 8
   compression = "zip"
+  PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 Subimage 0 MIP level 1 :

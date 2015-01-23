@@ -9,7 +9,7 @@ Reading ../../../../../oiio-images/tahoe-gps.jpg
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
-    ResolutionUnit: 2 (inches)
+    ResolutionUnit: "none"
     Software: "title;va"
     Exif:YCbCrPositioning: 1
     Exif:DateTimeOriginal: "2009:02:21 08:32:04"

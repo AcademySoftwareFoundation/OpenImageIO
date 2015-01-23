@@ -12,6 +12,7 @@ Reading ../../../../../libtiffpic/cramps.tif
     tiff:Compression: 32773
     compression: "packbits"
     tiff:RowsPerStrip: 12
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/cramps.tif" and "cramps.tif"
 PASS
 Reading ../../../../../libtiffpic/cramps-tile.tif
@@ -45,6 +46,7 @@ Reading ../../../../../libtiffpic/fax2d.tif
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
+    PixelAspectRatio: 0.480392
 Comparing "../../../../../libtiffpic/fax2d.tif" and "fax2d.tif"
 PASS
 Reading ../../../../../libtiffpic/g3test.tif
@@ -62,6 +64,7 @@ Reading ../../../../../libtiffpic/g3test.tif
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
+    PixelAspectRatio: 0.480392
 Comparing "../../../../../libtiffpic/g3test.tif" and "g3test.tif"
 PASS
 Reading ../../../../../libtiffpic/jello.tif
@@ -98,6 +101,7 @@ Reading ../../../../../libtiffpic/pc260001.tif
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 32
+    PixelAspectRatio: 1
     ExposureTime: 0.0125
     FNumber: 5.6
     Exif:ExposureProgram: 2 (normal program)
@@ -165,6 +169,7 @@ Reading ../../../../../libtiffpic/strike.tif
     tiff:Compression: 5
     compression: "lzw"
     tiff:RowsPerStrip: 8
+    PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/strike.tif" and "strike.tif"
 PASS
 Reading ../../../../../libtiffpic/oxford.tif

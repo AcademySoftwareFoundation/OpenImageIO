@@ -16,3 +16,4 @@ misnamed.exr         : 1000 x 1000, 4 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     tiff:RowsPerStrip: 8
+    PixelAspectRatio: 1

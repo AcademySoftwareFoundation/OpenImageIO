@@ -270,6 +270,7 @@ private:
         m_map["comments"] = "ImageDescription";
         m_map["owner"] = "Copyright";
         m_map["pixelAspectRatio"] = "PixelAspectRatio";
+        m_map["xDensity"] = "XResolution";
         m_map["expTime"] = "ExposureTime";
         // Ones we don't rename -- OpenEXR convention matches ours
         m_map["wrapmodes"] = "wrapmodes";
@@ -297,7 +298,6 @@ private:
         // screenWindowCenter
         // chromaticities whiteLuminance adoptedNeutral
         // renderingTransform, lookModTransform
-        // xDensity
         // utcOffset
         // longitude latitude altitude
         // focus isoSpeed
@@ -305,7 +305,7 @@ private:
     }
 };
 
-static StringMap exr_tag_to_ooio_std;
+static StringMap exr_tag_to_oiio_std;
 
 
 namespace pvt {
@@ -566,7 +566,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::StringVectorAttribute *svattr;
 #endif
         const char *name = hit.name();
-        std::string oname = exr_tag_to_ooio_std[name];
+        std::string oname = exr_tag_to_oiio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
             continue;
 //        if (oname == name)
@@ -657,6 +657,14 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
 #endif
         }
+    }
+
+    float aspect = spec.get_float_attribute ("PixelAspectRatio", 0.0f);
+    float xdensity = spec.get_float_attribute ("XResolution", 0.0f);
+    if (xdensity) {
+        // If XResolution is found, supply the YResolution and unit.
+        spec.attribute ("YResolution", xdensity * (aspect ? aspect : 1.0f));
+        spec.attribute ("ResolutionUnit", "in"); // EXR is always pixels/inch
     }
 
 #ifdef USE_OPENEXR_VERSION2

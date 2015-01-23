@@ -272,6 +272,29 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
         }
     }
 
+    // Handle density/pixelaspect. We need to do this AFTER the exif is
+    // decoded, in case it contains useful information.
+    float xdensity = m_spec.get_float_attribute ("XResolution");
+    float ydensity = m_spec.get_float_attribute ("YResolution");
+    if (! xdensity || ! ydensity) {
+        xdensity = float(m_cinfo.X_density);
+        ydensity = float(m_cinfo.Y_density);
+        if (xdensity && ydensity) {
+            m_spec.attribute ("XResolution", xdensity);
+            m_spec.attribute ("YResolution", ydensity);
+        }
+    }
+    if (xdensity && ydensity) {
+        float aspect = ydensity/xdensity;
+        if (aspect != 1.0f)
+            m_spec.attribute ("PixelAspectRatio", aspect);
+        switch (m_cinfo.density_unit) {
+        case 0 : m_spec.attribute ("ResolutionUnit", "none"); break;
+        case 1 : m_spec.attribute ("ResolutionUnit", "in");   break;
+        case 2 : m_spec.attribute ("ResolutionUnit", "cm");   break;
+        }
+    }
+
     read_icc_profile(&m_cinfo, m_spec); /// try to read icc profile
 
     newspec = m_spec;
