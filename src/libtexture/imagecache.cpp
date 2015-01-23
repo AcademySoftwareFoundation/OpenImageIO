@@ -2174,7 +2174,7 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
-    if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_exists) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
         // for the file to be nonexistant or broken!
