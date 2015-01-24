@@ -40,6 +40,7 @@ extern "C" {
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
+#include "OpenImageIO/color.h"
 #include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -226,6 +227,17 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
         error ("Bad JPEG header for \"%s\"", filename().c_str());
         return false;
     }
+
+    int nchannels = m_cinfo.num_components;
+
+    if (m_cinfo.jpeg_color_space == JCS_CMYK ||
+        m_cinfo.jpeg_color_space == JCS_YCCK) {
+        // CMYK jpegs get converted by us to RGB
+        m_cinfo.out_color_space = JCS_CMYK;     // pre-convert YCbCrK->CMYK
+        nchannels = 3;
+        m_cmyk = true;
+    }
+
     if (m_raw)
         m_coeffs = jpeg_read_coefficients (&m_cinfo);
     else
@@ -235,10 +247,15 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     m_next_scanline = 0;                        // next scanline we'll read
 
     m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
-                        m_cinfo.output_components, TypeDesc::UINT8);
+                        nchannels, TypeDesc::UINT8);
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
     m_spec.attribute ("oiio:ColorSpace", "sRGB");
+
+    if (m_cinfo.jpeg_color_space == JCS_CMYK)
+        m_spec.attribute ("jpeg:ColorSpace", "CMYK");
+    else if (m_cinfo.jpeg_color_space == JCS_YCCK)
+        m_spec.attribute ("jpeg:ColorSpace", "YCbCrK");
 
     // If the chroma subsampling is detected and matches something
     // we expect, then set an attribute so that it can be preserved
@@ -362,6 +379,27 @@ JpgInput::read_icc_profile (j_decompress_ptr cinfo, ImageSpec& spec)
 
 
 
+static void
+cmyk_to_rgb (int n, const unsigned char *cmyk, size_t cmyk_stride,
+             unsigned char *rgb, size_t rgb_stride)
+{
+    for ( ; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
+        // JPEG seems to store CMYK as 1-x
+        float C = convert_type<unsigned char,float>(cmyk[0]);
+        float M = convert_type<unsigned char,float>(cmyk[1]);
+        float Y = convert_type<unsigned char,float>(cmyk[2]);
+        float K = convert_type<unsigned char,float>(cmyk[3]);
+        float R = C * K;
+        float G = M * K;
+        float B = Y * K;
+        rgb[0] = convert_type<float,unsigned char>(R);
+        rgb[1] = convert_type<float,unsigned char>(G);
+        rgb[2] = convert_type<float,unsigned char>(B);
+    }
+}
+
+
+
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)
 {
@@ -387,14 +425,27 @@ JpgInput::read_native_scanline (int y, int z, void *data)
         return false;
     }
 
+    void *readdata = data;
+    if (m_cmyk) {
+        // If the file's data is CMYK, read into a 4-channel buffer, then
+        // we'll have to convert.
+        m_cmyk_buf.resize (m_spec.width * 4);
+        readdata = &m_cmyk_buf[0];
+        ASSERT (m_spec.nchannels == 3);
+    }
+
     for (  ;  m_next_scanline <= y;  ++m_next_scanline) {
         // Keep reading until we've read the scanline we really need
-        if (jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1) != 1
+        if (jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&readdata, 1) != 1
             || m_fatalerr) {
             error ("JPEG failed scanline read (\"%s\")", filename().c_str());
             return false;
         }
     }
+
+    if (m_cmyk)
+        cmyk_to_rgb (m_spec.width, (unsigned char *)readdata, 4,
+                     (unsigned char *)data, 3);
 
     return true;
 }
