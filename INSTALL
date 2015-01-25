@@ -27,11 +27,18 @@ installed using the standard package managers on your system.
 Optionally, to build the image viewing tools, you will need Qt, OpenGL,
 and GLEW.
 
-On OS X, these dependencies can be installed using MacPorts or 
-Homebrew.  After installation of either of these package installers,
-use the "port" or "brew" commands (respectively) to install the
-dependencies (e.g. "port install qt4-mac" or "brew update; 
-brew doctor; brew install qt") before invoking make as described below.
+On OS X, these dependencies can be installed using Fink, MacPorts or
+Homebrew.  After installation of any of these package installers, use
+the "fink", "port" or "brew" commands (respectively) to install the
+dependencies (e.g. "fink install libpng16", "port install qt4-mac" or "brew
+update; brew doctor; brew install qt") before invoking make as described
+below.
+
+On OS X, Fink can also be used to directly compile and install the OpenImageIO
+tools directly with the command "fink install openimageio-tools".  On OS X
+releases where Fink has a binary distribution (10.8, 10.9, and 10.10 as
+of 2015), the command "apt-get install openimageio-tools" will fetch
+prebuilt binaries.
 
 Dependent libraries can be installed in either the system default
 locations or in custom directories.  Libraries installed in custom
