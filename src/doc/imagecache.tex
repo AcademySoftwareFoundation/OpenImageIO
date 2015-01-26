@@ -400,19 +400,25 @@ be retrieved, {\cf datatype} is the type of data expected, and
 placed.  It is up to the caller to ensure that {\cf data} contains
 enough space to hold an item of the requested {\cf datatype}.
 
-The return value is {\cf true} if {\cf get_image_info()} is able
-to find the requested {\cf dataname} and it matched the requested
-{\cf datatype}.  If the requested data was not found, or was not
-of the right data type, {\cf get_image_info()} will return {\cf false}.
+The return value is {\cf true} if {\cf get_image_info()} is able to answer
+the query -- that is, find the requested {\cf dataname} for the texture and
+it matched the requested {\cf datatype}.  If the requested data was not
+found, or was not of the right data type, {\cf get_texture_info()} will
+return {\cf false}. Except for the \qkw{exists} query, file that does not
+exist or could not be read properly as an image also constitutes a query
+failure that will return {\cf false}.
 
 Supported {\cf dataname} values include:
 
 \begin{description}
 \item[\spc] \spc
 \vspace{-12pt} 
-\item[\rm \kw{exists}] Return 1 if the file exists and
-is an image format that OpenImageIO knows how to read, otherwise return
-0.  The {\cf data} pointer is not used.
+
+\item[\rm \kw{exists}] Stores the value 1 (as an {\cf int} if the file
+exists and is an image format that \product can read, or 0 if the file
+does not exist, or could not be properly read as an image. Note that
+unlike all other queries, this query will ``succeed'' (return {\cf true})
+even if the file does not exist.
 
 \item[\rm \kw{subimages}] The number of subimages in the file, as an integer.
 
