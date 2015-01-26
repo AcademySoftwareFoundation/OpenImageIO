@@ -1,6 +1,6 @@
 Changes:
 
-Release 1.5 (January ??, 2015) -- compared to 1.4.x
+Release 1.5 (January 26, 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool functionality/commands:
@@ -89,6 +89,10 @@ Public API changes:
   relate to full (aka display) window, rather than data window. (1.5.8)
 * ImageBuf::interppixel_bicubic and interppixel_bicubic_NDC added to
   sample an image with B-spline bicubic interpolation. (1.5.8)
+* Clarified in the docs that TextureSystem::get_texture_info and
+  ImageCache::get_image_info "exists" queries should return true, and
+  place in *data the value 1 or 0 depending on whether the image exists
+  and can be read. (1.5.10)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -210,6 +214,10 @@ Fixes, minor enhancements, and performance improvements:
      (1.5.4)
    * Fix bug that prevented proper saving/reporting of subimage name
      for multi-subimage OpenEXR files. (1.5.5).
+   * Fix read_deep_tiles() error when not starting at the image origin.
+     #1040 (1.6.0/1.5.10)
+   * Fix output of multi-part exr file when some parts are tiled and
+     others aren't. #1040 (1.6.0/1.5.10)
 * JPEG:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
@@ -227,7 +235,7 @@ Fixes, minor enhancements, and performance improvements:
      images (if the user is reading them into a higher-precision buffer).
      #960, #962 (1.5.2)
    * Change default compression (if otherwise unspecified) to "zip". (1.5.6)
-   * Robust to Exif blocks with corrupted GPS data. #1008 (1.5.8)
+   * Robust to Exif blocks with corrupted GPS data. #1008 (1.5.8/1.4.16)
    * Fixes to allow proper output of TIFF files with uint32 or int32 pixels
      (1.5.8)
 * RAW:
@@ -252,7 +260,7 @@ Fixes, minor enhancements, and performance improvements:
 * TextureSystem: anisotropic texture lookups are slightly sped up (~7%)
   by using some approximate math (but not visibly different) #953. (1.5.5)
 * Better exception safety in Filesystem::exists() and similar functions.
-  #1026 (1.5.8)
+  #1026 (1.5.8/1.4.16)
 
 Build/test system improvements:
 * Fix several compiler warnings and build breakages for a variety of
@@ -302,7 +310,9 @@ Build/test system improvements:
 * grid.tx and checker.tx have been moved from ../oiio/images to
   testsuite/common/texture (allow it to be versioned along with any changes
   to maketx. (1.5.7)
-* Support for freetype 2.5.4. #1012 (1.5.8)
+* Support for freetype 2.5.4. #1012 (1.5.8/1.4.16)
+* Python plugin is now build as a cmake "module" rather than "library",
+  which fixes some things on OSX. #1043 (1.6.0/1.5.10)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
@@ -336,6 +346,14 @@ Developer goodies / internals:
   efficiently. (1.5.8)
 
 
+
+Release 1.4.16 (19 Jan 2015 -- compared to 1.4.15)
+--------------------------------------------------
+* Fix gcc 4.9 warnings.
+* Improved error propagation through ImageCache, ImageBuf, and oiiotool.
+* TIFF more robust to Exif blocks with corrupted GPS data. #1008
+* Support for freetype 2.5.4. #1012
+* Better exception safety in Filesystem::exists() and similar functions. #1026
 
 Release 1.4.15 (24 Nov 2014 -- compared to 1.4.14)
 --------------------------------------------------
