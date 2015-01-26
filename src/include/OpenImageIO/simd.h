@@ -1340,10 +1340,14 @@ public:
             m_vec = _mm_castpd_ps (_mm_load_sd ((const double*)values));
             break;
         case 3:
-            // Trickery: load one double worth of bits, then a float,
-            // and combine.
-            m_vec = _mm_movelh_ps(_mm_castpd_ps(_mm_load_sd((const double*)values)),
-                                  _mm_load_ss (values + 2));
+            m_vec = _mm_setr_ps (values[0], values[1], values[2], 0.0f);
+            // This looks wasteful, but benchmarks show that it's the
+            // fastest way to set 3 values with the 4th getting zero.
+            // Actually, gcc and clang both turn it into something more
+            // efficient than _mm_setr_ps. The version below looks smart,
+            // but was much more expensive as the _mm_setr_ps!
+            //   __m128 xy = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*)values));
+            //   m_vec = _mm_movelh_ps(xy, _mm_load_ss (values + 2));
             break;
         case 4:
             m_vec = _mm_loadu_ps (values);
@@ -1379,17 +1383,21 @@ public:
 #if defined(OIIO_SIMD_SSE)
         switch (n) {
         case 1:
-            _mm_store_ss( values, m_vec);
+            _mm_store_ss (values, m_vec);
             break;
         case 2:
             // Trickery: store two floats as a double worth of bits
             _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
             break;
         case 3:
-            // Trickery: store three floats as a double worth of bits, then
-            // a single float.
-            _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
-            _mm_store_ss (values + 2, _mm_movehl_ps(m_vec,m_vec));
+            values[0] = m_val[0];
+            values[1] = m_val[1];
+            values[2] = m_val[2];
+            // This looks wasteful, but benchmarks show that it's the
+            // fastest way to store 3 values, in benchmarks was faster than
+            // this, below:
+            //   _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
+            //   _mm_store_ss (values + 2, _mm_movehl_ps(m_vec,m_vec));
             break;
         case 4:
             store (values);
@@ -1397,9 +1405,10 @@ public:
         default:
             break;
         }
-#endif
+#else
         for (int i = 0; i < n; ++i)
             values[i] = m_val[i];
+#endif
     }
 
     friend OIIO_FORCEINLINE float4 operator+ (const float4& a, const float4& b) {
