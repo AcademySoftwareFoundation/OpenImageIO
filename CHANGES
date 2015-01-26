@@ -30,6 +30,10 @@ Major new features and improvements:
       bilinearly interpolated gradient). (1.6.0)
 
 Public API changes:
+* Clarified in the docs that TextureSystem::get_texture_info and
+  ImageCache::get_image_info "exists" queries should return true, and
+  place in *data the value 1 or 0 depending on whether the image exists
+  and can be read. (1.6.0/1.5.10)
 
 Fixes, minor enhancements, and performance improvements:
 * Fix broken bicubic texture sampling with non-power-of-two sized tiles.
@@ -49,7 +53,7 @@ Developer goodies / internals:
 
 
 
-Release 1.5 (January ??, 2015) -- compared to 1.4.x
+Release 1.5 (January 26, 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool functionality/commands:
@@ -138,6 +142,14 @@ Public API changes:
   relate to full (aka display) window, rather than data window. (1.5.8)
 * ImageBuf::interppixel_bicubic and interppixel_bicubic_NDC added to
   sample an image with B-spline bicubic interpolation. (1.5.8)
+* Clarified in the docs that TextureSystem::get_texture_info and
+  ImageCache::get_image_info "exists" queries should return true, and
+  place in *data the value 1 or 0 depending on whether the image exists
+  and can be read. (1.5.10)
+* Clarified in the docs that TextureSystem::get_texture_info and
+  ImageCache::get_image_info "exists" queries should return true, and
+  place in *data the value 1 or 0 depending on whether the image exists
+  and can be read. (1.5.10)
 
 Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo:
@@ -259,6 +271,10 @@ Fixes, minor enhancements, and performance improvements:
      (1.5.4)
    * Fix bug that prevented proper saving/reporting of subimage name
      for multi-subimage OpenEXR files. (1.5.5).
+   * Fix read_deep_tiles() error when not starting at the image origin.
+     #1040 (1.6.0/1.5.10)
+   * Fix output of multi-part exr file when some parts are tiled and
+     others aren't. #1040 (1.6.0/1.5.10)
 * JPEG:
    * Fix broken recognition of .jfi extension. (#876)
    * Read and write ICC profiles as attribute "ICCProfile". (#911)
@@ -352,6 +368,8 @@ Build/test system improvements:
   testsuite/common/texture (allow it to be versioned along with any changes
   to maketx. (1.5.7)
 * Support for freetype 2.5.4. #1012 (1.5.8/1.4.16)
+* Python plugin is now build as a cmake "module" rather than "library",
+  which fixes some things on OSX. #1043 (1.6.0/1.5.10)
 
 Developer goodies / internals:
 * New Strutil string comparison functions: starts_with, ends_with.
