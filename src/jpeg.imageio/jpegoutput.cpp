@@ -289,7 +289,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         if (icc_profile && icc_profile_length){
             /* Calculate the number of markers we'll need, rounding up of course */
             int num_markers = icc_profile_length / MAX_DATA_BYTES_IN_MARKER;
-            if (num_markers * MAX_DATA_BYTES_IN_MARKER != icc_profile_length)
+            if ((unsigned int)(num_markers * MAX_DATA_BYTES_IN_MARKER) != icc_profile_length)
                 num_markers++;
             int curr_marker = 1;  /* per spec, count strarts at 1*/
             std::vector<unsigned char> profile (MAX_DATA_BYTES_IN_MARKER + ICC_HEADER_SIZE);
