@@ -1,5 +1,12 @@
 Changes:
 
+Release 1.5.11 (January 28, 2015) -- compared to 1.5.10)
+----------------------------------------------
+* Fix build breaks for very old versions of Ilmbase (1.6 and earlier)
+  that lack a definition of V4f used by our simd.h. #1048
+* Fix signed/unsigned warning on 32 bit platforms in jpeginput.cpp. #1049
+
+
 Release 1.5 (January 26, 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
