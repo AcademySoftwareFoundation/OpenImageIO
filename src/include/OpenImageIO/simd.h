@@ -1198,12 +1198,6 @@ public:
 #endif
     }
 
-    /// Construct from a Imath::V4f
-    OIIO_FORCEINLINE float4 (const Imath::V4f &v) { load ((const float *)&v); }
-
-    /// Construct from a Imath::V3f
-    OIIO_FORCEINLINE float4 (const Imath::V3f &v) { load (v[0], v[1], v[2], 0.0f); }
-
 #if OIIO_SIMD
     /// Construct from the underlying SIMD type
     OIIO_FORCEINLINE float4 (const simd_t m) : m_vec(m) { }
@@ -1213,11 +1207,21 @@ public:
     OIIO_FORCEINLINE simd_t simd () const { return m_vec; }
 #endif
 
+    /// Construct from a Imath::V3f
+    OIIO_FORCEINLINE float4 (const Imath::V3f &v) { load (v[0], v[1], v[2], 0.0f); }
+
     /// Cast to a Imath::V3f
     OIIO_FORCEINLINE const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
 
+#if defined(ILMBASE_VERSION_MAJOR) && ILMBASE_VERSION_MAJOR >= 2
+    // V4f is not defined for older Ilmbase. It's certainly safe for 2.x.
+
+    /// Construct from a Imath::V4f
+    OIIO_FORCEINLINE float4 (const Imath::V4f &v) { load ((const float *)&v); }
+
     /// Cast to a Imath::V4f
     OIIO_FORCEINLINE const Imath::V4f& V4f () const { return *(const Imath::V4f*)this; }
+#endif
 
     /// Assign a single value to all components
     OIIO_FORCEINLINE const float4 & operator= (float a) { load(a); return *this; }
@@ -1262,11 +1266,13 @@ public:
 #endif
     }
 
+#if defined(ILMBASE_VERSION_MAJOR) && ILMBASE_VERSION_MAJOR >= 2
     /// Assign from a Imath::V4f
     OIIO_FORCEINLINE const float4 & operator= (const Imath::V4f &v) {
         load ((const float *)&v);
         return *this;
     }
+#endif
 
     /// Assign from a Imath::V3f
     OIIO_FORCEINLINE const float4 & operator= (const Imath::V3f &v) {
