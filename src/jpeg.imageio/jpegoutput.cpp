@@ -253,7 +253,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
     encode_iptc_iim (m_spec, iptc);
-    if (iptc.size()) {
+    if (!iptc.empty()) {
         static char photoshop[] = "Photoshop 3.0";
         std::vector<char> head (photoshop, photoshop+strlen(photoshop)+1);
         static char _8BIM[] = "8BIM";

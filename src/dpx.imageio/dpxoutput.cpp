@@ -666,7 +666,7 @@ DPXOutput::get_image_descriptor ()
     switch (m_spec.nchannels) {
     case 1:
         {
-        std::string name = m_spec.channelnames.size() ? m_spec.channelnames[0] : "";
+        std::string name = !m_spec.channelnames.empty() ? m_spec.channelnames[0] : "";
         if (m_spec.z_channel == 0 || name == "Z")
             return dpx::kDepth;
         else if (m_spec.alpha_channel == 0 || name == "A")

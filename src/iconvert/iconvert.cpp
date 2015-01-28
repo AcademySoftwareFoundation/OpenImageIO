@@ -224,7 +224,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 
     // Copy the spec, with possible change in format
     outspec.set_format (inspec.format);
-    if (inspec.channelformats.size()) {
+    if (!inspec.channelformats.empty()) {
         // Input file has mixed channels
         if (out->supports("channelformats")) {
             // Output supports mixed formats -- so request it
@@ -266,7 +266,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             outspec.set_format (TypeDesc::DOUBLE);
         outspec.channelformats.clear ();
     }
-    if (outspec.format != inspec.format || inspec.channelformats.size())
+    if (outspec.format != inspec.format || !inspec.channelformats.empty())
         nocopy = true;
     
     outspec.attribute ("oiio:Gamma", gammaval);
@@ -330,7 +330,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 
     if (clear_keywords)
         outspec.attribute ("Keywords", "");
-    if (keywords.size()) {
+    if (!keywords.empty()) {
         std::string oldkw = outspec.get_string_attribute ("Keywords");
         std::vector<std::string> oldkwlist;
         if (! oldkw.empty())
@@ -463,7 +463,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
                                 ImageOutput::AppendSubimage);
             } else {
                 // First time opening
-                if (subimagespecs.size())
+                if (!subimagespecs.empty())
                     ok = out->open (tempname.c_str(), int(subimagespecs.size()),
                                     &subimagespecs[0]);
                 else

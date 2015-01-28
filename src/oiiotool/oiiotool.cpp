@@ -424,7 +424,7 @@ adjust_output_options (string_view filename,
         else
             spec.erase_attribute ("oiio:BitsPerSample");
     }
-    if (ot.output_channelformats.size()) {
+    if (!ot.output_channelformats.empty()) {
         spec.channelformats.clear ();
         spec.channelformats.resize (spec.nchannels, spec.format);
         for (int c = 0;  c < spec.nchannels;  ++c) {
@@ -437,7 +437,7 @@ adjust_output_options (string_view filename,
             }
         }
         bool allsame = true;
-        if (spec.channelnames.size())
+        if (!spec.channelnames.empty())
             for (int c = 1;  c < spec.nchannels;  ++c)
                 allsame &= (spec.channelformats[c] == spec.channelformats[0]);
         if (allsame) {

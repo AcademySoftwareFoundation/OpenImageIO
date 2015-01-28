@@ -164,7 +164,7 @@ GIFInput::decode_line_number (int line_number, int height)
 bool
 GIFInput::read_native_scanline (int y, int z, void *data)
 {
-    if (y < 0 || y > m_spec.height || ! m_canvas.size())
+    if (y < 0 || y > m_spec.height || m_canvas.empty())
         return false;
 
     memcpy (data, &m_canvas[y * m_spec.width * m_spec.nchannels],

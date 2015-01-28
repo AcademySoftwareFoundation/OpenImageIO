@@ -276,10 +276,10 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // the per-channel format, if specified when the file was opened.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
     // perchanfile is true if the file has different per-channel formats
-    bool perchanfile = m_spec.channelformats.size() && supports("channelformats");
+    bool perchanfile = !m_spec.channelformats.empty() && supports("channelformats");
     // It's an error to pass per-channel data formats to a writer that
     // doesn't support it.
-    if (m_spec.channelformats.size() && !perchanfile)
+    if (!m_spec.channelformats.empty() && !perchanfile)
         return NULL;
     // native_data is true if the user is passing data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
@@ -510,7 +510,7 @@ ImageOutput::copy_image (ImageInput *in)
     // Naive implementation -- read the whole image and write it back out.
     // FIXME -- a smarter implementation would read scanlines or tiles at
     // a time, to minimize mem footprint.
-    bool native = supports("channelformats") && inspec.channelformats.size();
+    bool native = supports("channelformats") && !inspec.channelformats.empty();
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
     boost::scoped_array<char> pixels (new char [inspec.image_bytes(native)]);
     bool ok = in->read_image (format, &pixels[0]);
