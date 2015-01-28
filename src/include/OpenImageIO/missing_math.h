@@ -160,6 +160,12 @@ log2f (float val) {
 }
 
 
+inline float
+cbrtf (float val) {
+	return powf (val, 1.0/3.0);
+}
+
+
 #elif _MSC_VER >= 1800 && __cplusplus <= 201103L
 // Prior to c++11, these were implementation defined, and on msvc, were not in the
 // std namespace
