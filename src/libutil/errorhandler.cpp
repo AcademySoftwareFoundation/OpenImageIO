@@ -48,7 +48,7 @@ OIIO_NAMESPACE_ENTER
 namespace {
 static ErrorHandler default_handler_instance;
 static mutex err_mutex;
-};
+}
 
 
 ErrorHandler &
