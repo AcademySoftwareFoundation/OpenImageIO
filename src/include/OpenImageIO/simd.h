@@ -242,7 +242,7 @@ public:
 
 #if OIIO_SIMD
     /// Construct from the underlying SIMD type
-    OIIO_FORCEINLINE mask4 (const simd_t m) : m_vec(m) { }
+    OIIO_FORCEINLINE mask4 (const simd_t& m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
@@ -268,7 +268,7 @@ public:
     OIIO_FORCEINLINE const mask4 & operator= (bool a) { load(a); return *this; }
 
     /// Assignment of another mask4
-    OIIO_FORCEINLINE const mask4 & operator= (mask4 other) {
+    OIIO_FORCEINLINE const mask4 & operator= (const mask4 & other) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = other.m_vec;
 #else
@@ -349,7 +349,7 @@ public:
     }
 
     /// Logical "not", component-by-component
-    friend OIIO_FORCEINLINE mask4 operator! (mask4 a) {
+    friend OIIO_FORCEINLINE mask4 operator! (const mask4 & a) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_xor_ps (a.m_vec, True());
 #else
@@ -359,7 +359,7 @@ public:
     }
 
     /// Logical "and", component-by-component
-    friend OIIO_FORCEINLINE mask4 operator& (mask4 a, mask4 b) {
+    friend OIIO_FORCEINLINE mask4 operator& (const mask4 & a, const mask4 & b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_and_ps (a.m_vec, b.m_vec);
 #else
@@ -369,13 +369,13 @@ public:
                       a.m_val[3] & b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE const mask4& operator&= (mask4 b) {
+    OIIO_FORCEINLINE const mask4& operator&= (const mask4 & b) {
         return *this = *this & b;
     }
 
 
     /// Logical "or" component-by-component
-    friend OIIO_FORCEINLINE mask4 operator| (mask4 a, mask4 b) {
+    friend OIIO_FORCEINLINE mask4 operator| (const mask4 & a, const mask4 & b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_or_ps (a.m_vec, b.m_vec);
 #else
@@ -385,12 +385,12 @@ public:
                       a.m_val[3] | b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE const mask4& operator|= (mask4 a) {
+    OIIO_FORCEINLINE const mask4& operator|= (const mask4 & a) {
         return *this = *this | a;
     }
 
     /// Equality comparison, component by component
-    friend OIIO_FORCEINLINE const mask4 operator== (mask4 a, mask4 b) {
+    friend OIIO_FORCEINLINE const mask4 operator== (const mask4 & a, const mask4 & b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a.m_vec), _mm_castps_si128(b.m_vec)));
 #else
@@ -402,7 +402,7 @@ public:
     }
 
     /// Inequality comparison, component by component
-    friend OIIO_FORCEINLINE const mask4 operator!= (mask4 a, mask4 b) {
+    friend OIIO_FORCEINLINE const mask4 operator!= (const mask4 & a, const mask4 & b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_xor_ps (a.m_vec, b.m_vec);
 #else
@@ -414,7 +414,7 @@ public:
     }
 
     /// Stream output
-    friend inline std::ostream& operator<< (std::ostream& cout, mask4 a) {
+    friend inline std::ostream& operator<< (std::ostream& cout, const mask4 & a) {
         return cout << a[0] << ' ' << a[1] << ' ' << a[2] << ' ' << a[3];
     }
 
@@ -837,7 +837,7 @@ public:
         m_val[3] %= a;
         return *this;
     }
-    friend OIIO_FORCEINLINE int4 operator% (int a, int4 b) {
+    friend OIIO_FORCEINLINE int4 operator% (int a, const int4& b) {
         // NO INTEGER MODULUS in SSE!
         return int4 (a % b.m_val[0],
                      a % b.m_val[1],
@@ -889,7 +889,7 @@ public:
         return *this = *this ^ a;
     }
 
-    OIIO_FORCEINLINE int4 operator<< (const int bits) {
+    OIIO_FORCEINLINE int4 operator<< (const unsigned int bits) const {
 #if defined(OIIO_SIMD_SSE)
         return _mm_slli_epi32 (m_vec, bits);
 #else
@@ -900,13 +900,13 @@ public:
 #endif        
     }
 
-    OIIO_FORCEINLINE int4 operator<<= (const int bits) {
+    OIIO_FORCEINLINE int4 operator<<= (const unsigned int bits) {
         return *this = *this << bits;
     }
 
     // Arithmetic shift right (matches int>>, in that it preserves the
     // sign bit).
-    OIIO_FORCEINLINE int4 operator>> (const int bits) {
+    OIIO_FORCEINLINE int4 operator>> (const unsigned int bits) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_srai_epi32 (m_vec, bits);
 #else
@@ -917,14 +917,14 @@ public:
 #endif
     }
 
-    OIIO_FORCEINLINE int4 operator>>= (const int bits) {
+    OIIO_FORCEINLINE int4 operator>>= (const unsigned int bits) {
         return *this = *this << bits;
     }
 
     // Shift right logical -- unsigned shift. This differs from operator>>
     // in how it handles the sign bit.  (1<<31) >> 1 == (1<<31), but
     // srl((1<<31),1) == 1<<30.
-    OIIO_FORCEINLINE friend int4 srl (int4 val, const int bits) {
+    OIIO_FORCEINLINE friend int4 srl (const int4& val, const unsigned int bits) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_srli_epi32 (val.m_vec, bits);
 #else
@@ -973,7 +973,7 @@ public:
     }
 
     /// Stream output
-    friend inline std::ostream& operator<< (std::ostream& cout, int4 val) {
+    friend inline std::ostream& operator<< (std::ostream& cout, const int4& val) {
         return cout << val[0] << ' ' << val[1] << ' ' << val[2] << ' ' << val[3];
     }
 
@@ -1402,7 +1402,7 @@ public:
             values[i] = m_val[i];
     }
 
-    friend OIIO_FORCEINLINE float4 operator+ (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 operator+ (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_add_ps (a.m_vec, b.m_vec);
 #else
@@ -1413,7 +1413,7 @@ public:
 #endif
     }
 
-    OIIO_FORCEINLINE const float4 & operator+= (float4 a) {
+    OIIO_FORCEINLINE const float4 & operator+= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_add_ps (m_vec, a.m_vec);
 #else
@@ -1433,7 +1433,7 @@ public:
 #endif
     }
 
-    friend OIIO_FORCEINLINE float4 operator- (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 operator- (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_sub_ps (a.m_vec, b.m_vec);
 #else
@@ -1444,7 +1444,7 @@ public:
 #endif
     }
 
-    OIIO_FORCEINLINE const float4 & operator-= (float4 a) {
+    OIIO_FORCEINLINE const float4 & operator-= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_sub_ps (m_vec, a.m_vec);
 #else
@@ -1456,7 +1456,7 @@ public:
         return *this;
     }
 
-    friend OIIO_FORCEINLINE float4 operator* (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 operator* (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_mul_ps (a.m_vec, b.m_vec);
 #else
@@ -1467,7 +1467,7 @@ public:
 #endif
     }
 
-    OIIO_FORCEINLINE const float4 & operator*= (float4 a) {
+    OIIO_FORCEINLINE const float4 & operator*= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_mul_ps (m_vec, a.m_vec);
 #else
@@ -1490,7 +1490,7 @@ public:
         return *this;
     }
 
-    friend OIIO_FORCEINLINE float4 operator/ (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 operator/ (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_div_ps (a.m_vec, b.m_vec);
 #else
@@ -1500,7 +1500,7 @@ public:
                        a.m_val[3] / b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE const float4 & operator/= (float4 a) {
+    OIIO_FORCEINLINE const float4 & operator/= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_div_ps (m_vec, a.m_vec);
 #else
@@ -1524,7 +1524,7 @@ public:
     }
 
 
-    friend OIIO_FORCEINLINE mask4 operator== (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator== (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpeq_ps (a.m_vec, b.m_vec);
 #else
@@ -1532,7 +1532,7 @@ public:
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator!= (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator!= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpneq_ps (a.m_vec, b.m_vec);
 #else
@@ -1540,7 +1540,7 @@ public:
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator< (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator< (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmplt_ps (a.m_vec, b.m_vec);
 #else
@@ -1548,7 +1548,7 @@ public:
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator>  (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator>  (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpgt_ps (a.m_vec, b.m_vec);
 #else
@@ -1556,7 +1556,7 @@ public:
 #endif
     }
 
-    friend OIIO_FORCEINLINE mask4 operator>= (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator>= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpge_ps (a.m_vec, b.m_vec);
 #else
@@ -1564,7 +1564,7 @@ public:
 #endif
     }
 
-    friend OIIO_FORCEINLINE mask4 operator<= (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE mask4 operator<= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmple_ps (a.m_vec, b.m_vec);
 #else
@@ -1576,7 +1576,7 @@ public:
 
     /// Combine the first two components of A with the first two components
     /// of B.
-    friend OIIO_FORCEINLINE float4 AxyBxy (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 AxyBxy (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_movelh_ps (a.m_vec, b.m_vec);
 #else
@@ -1586,7 +1586,7 @@ public:
 
     /// Combine the first two components of A with the first two components
     /// of B, but interleaved.
-    friend OIIO_FORCEINLINE float4 AxBxAyBy (float4 a, float4 b) {
+    friend OIIO_FORCEINLINE float4 AxBxAyBy (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_unpacklo_ps (a.m_vec, b.m_vec);
 #else
@@ -1595,7 +1595,7 @@ public:
     }
 
     /// Stream output
-    friend inline std::ostream& operator<< (std::ostream& cout, float4 val) {
+    friend inline std::ostream& operator<< (std::ostream& cout, const float4& val) {
         return cout << val[0] << ' ' << val[1] << ' ' << val[2] << ' ' << val[3];
     }
 
