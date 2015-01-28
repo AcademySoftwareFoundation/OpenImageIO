@@ -175,7 +175,7 @@ private:
 static CameraHolder cameras;
 #endif
 
-};
+}
 
 
 bool
