@@ -122,7 +122,7 @@ static UstringTable & ustring_table ()
     return table;
 }
 
-};          // end anonymous namespace
+}           // end anonymous namespace
 
 
 // Put a ustring in the global scope to force at least one call to
@@ -131,7 +131,7 @@ static UstringTable & ustring_table ()
 // the ustring_table statically declared within make_unique.
 namespace pvt {
 static ustring ustring_force_make_unique_call("");
-};
+}
 
 
 
@@ -166,7 +166,7 @@ struct libcpp_string__long {
 enum {libcpp_string__min_cap = (sizeof(libcpp_string__long) - 1)/sizeof(std::string::value_type) > 2 ?
                                (sizeof(libcpp_string__long) - 1)/sizeof(std::string::value_type) : 2};
 
-};
+}
 
 
 
