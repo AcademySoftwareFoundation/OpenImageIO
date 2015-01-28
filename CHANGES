@@ -1,5 +1,9 @@
 Changes:
 
+Release 1.5.12 (??, 2015) -- compared to 1.5.11)
+----------------------------------------------
+
+
 Release 1.5.11 (January 28, 2015) -- compared to 1.5.10)
 ----------------------------------------------
 * Fix build breaks for very old versions of Ilmbase (1.6 and earlier)
