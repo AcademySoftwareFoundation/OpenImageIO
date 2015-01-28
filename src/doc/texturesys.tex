@@ -582,12 +582,18 @@ directly.
 \apiitem{TextureHandle * {\ce get_texture_handle} (ustring filename,\\
 \bigspc\bigspc\bigspc  Perthread *thread_info=NULL)}
 \indexapi{get_texture_handle}
-
-Retrieve an opaque handle for fast texture lookups.  The opaque
+Retrieve an opaque handle for fast texture lookups.  The optional opaque
 pointer {\cf thread_info} is thread-specific information returned by
 {\cf get_perthread_info()}.  Return {\cf NULL} if something has gone
 horribly wrong.
+\apiend
 
+\apiitem{bool {\ce good} (TextureHandle *texture_handle)}
+\indexapi{good}
+\NEW % 1.6
+Return true if the texture handle (previously returned by
+{\cf get_texture_handle()}) is a valid image that can be subsequently read
+or sampled.
 \apiend
 
 
@@ -1104,9 +1110,12 @@ plugin.
 \label{sec:texturesys:api:getimagespec}
 
 \apiitem{bool {\ce get_texture_info} (ustring filename, int subimage, \\
+\bigspc\spc\spc ustring dataname, TypeDesc datatype, void *data) \\
+bool {\ce get_texture_info} (TextureHandle *texture_handle, int subimage, \\
 \bigspc\spc\spc ustring dataname, TypeDesc datatype, void *data)}
 
-Retrieves information about the texture named by {\cf filename}.
+Retrieves information about the texture, either named by {\cf filename} or
+specified by an opaque handle returned by {\cf get_texture_handle()}.
 The {\cf dataname} is a keyword indcating what information should
 be retrieved, {\cf datatype} is the type of data expected, and
 {\cf data} points to caller-owned memory where the results should be
@@ -1213,9 +1222,11 @@ matches both the name and data type.
 \end{description}
 \apiend
 
-\apiitem{bool {\ce get_imagespec} (ustring filename, int subimage, ImageSpec \&spec)}
+\apiitem{bool {\ce get_imagespec} (ustring filename, int subimage, ImageSpec \&spec) \\
+bool {\ce get_imagespec} (TextureHandle *texture_handle, int subimage, ImageSpec \&spec)}
 
-If the named image is found and able to be opened by an available
+If the image (specified by either name or handle)
+is found and able to be opened by an available
 image format plugin, this function copies its image specification into
 {\cf spec} and returns {\cf true}.  Otherwise, if the file is not
 found, could not be opened, or is not of a format readable by any
@@ -1223,7 +1234,8 @@ plugin that could be found, the return value is {\cf false}.
 \apiend
 
 
-\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage)}
+\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage) \\
+const ImageSpec * {\ce imagespec} (TextureHandle *texture_handle, int subimage)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -1243,9 +1255,15 @@ caller must beware that the pointer is only valid as long as nobody
 \apiitem{bool {\ce get_texels} (ustring filename, TextureOpt \&options, int miplevel, \\
 \bigspc                       int xbegin, int xend, int ybegin, int yend,\\
 \bigspc                       int zbegin, int zend, int chbegin, int chend,\\
+\bigspc                       TypeDesc format, void *result) \\
+bool {\ce get_texels} (TextureHandle *texture_handle, PerThread *thread_info, \\
+\bigspc                       TextureOpt \&options, int miplevel, \\
+\bigspc                       int xbegin, int xend, int ybegin, int yend,\\
+\bigspc                       int zbegin, int zend, int chbegin, int chend,\\
 \bigspc                       TypeDesc format, void *result)}
 
-Retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
+For a texture identified by either name or handle,
+retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
 the texel values beginning at the address specified by result.
 Note that the face/subimage is communicated through {\kw options.subimage}.
 The texel values will be converted to the type specified by
