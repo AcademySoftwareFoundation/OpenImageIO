@@ -589,7 +589,7 @@ print_info_subimage (Oiiotool &ot,
         printf (", %d channel, %s%s", spec.nchannels,
                 spec.deep ? "deep " : "",
                 spec.depth > 1 ? "volume " : "");
-        if (spec.channelformats.size()) {
+        if (!spec.channelformats.empty()) {
             for (size_t c = 0;  c < spec.channelformats.size();  ++c)
                 printf ("%s%s", c ? "/" : "",
                         spec.channelformats[c].c_str());
@@ -729,7 +729,7 @@ OiioTool::print_info (Oiiotool &ot,
         printf (", %d channel, %s%s", spec.nchannels,
                 spec.deep ? "deep " : "",
                 spec.depth > 1 ? "volume " : "");
-        if (spec.channelformats.size()) {
+        if (!spec.channelformats.empty()) {
             for (size_t c = 0;  c < spec.channelformats.size();  ++c)
                 printf ("%s%s", c ? "/" : "",
                         spec.channelformats[c].c_str());

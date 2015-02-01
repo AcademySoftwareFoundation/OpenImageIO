@@ -102,7 +102,7 @@ ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
     // perchanfile is true if the file has different per-channel formats
-    bool perchanfile = m_spec.channelformats.size();
+    bool perchanfile = !m_spec.channelformats.empty();
     // native_data is true if the user asking for data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
                         (format == m_spec.format && !perchanfile));
@@ -313,7 +313,7 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
     // perchanfile is true if the file has different per-channel formats
-    bool perchanfile = m_spec.channelformats.size();
+    bool perchanfile = !m_spec.channelformats.empty();
     // native_data is true if the user asking for data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
                         (format == m_spec.format && !perchanfile));
@@ -399,7 +399,7 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (chbegin, chend, true);
     // perchanfile is true if the file has different per-channel formats
-    bool perchanfile = m_spec.channelformats.size();
+    bool perchanfile = !m_spec.channelformats.empty();
     // native_data is true if the user asking for data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
                         (format == m_spec.format && !perchanfile));

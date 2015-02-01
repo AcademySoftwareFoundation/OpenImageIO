@@ -650,7 +650,7 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
         bool pLinear = false;
 #endif
         m_pixeltype.push_back (ptype);
-        if (spec.channelformats.size())
+        if (!spec.channelformats.empty())
             spec.channelformats[c] = format;
         header.channels().insert (spec.channelnames[c].c_str(),
                                      Imf::Channel(ptype, 1, 1

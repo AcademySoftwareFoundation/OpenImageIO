@@ -913,7 +913,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 #endif
 
     // If any legit Exif info was found...
-    if (exifdirs.size()) {
+    if (!exifdirs.empty()) {
         // Add some required Exif tags that wouldn't be in the spec
         append_dir_entry (exif_tagmap, exifdirs, data, 
                           EXIFTAG_EXIFVERSION, TIFF_UNDEFINED, 4, "0220");
@@ -947,7 +947,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     }
 
     // If any GPS info was found...
-    if (gpsdirs.size()) {
+    if (!gpsdirs.empty()) {
         // Add some required Exif tags that wouldn't be in the spec
         static char ver[] = { 2, 2, 0, 0 };
         append_dir_entry (gps_tagmap, gpsdirs, data,
@@ -958,7 +958,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
         // If we had gps info, add one more main dir entry to point to
         // the private gps tag directory.
         unsigned int size = (unsigned int) data.size();
-        if (exifdirs.size())
+        if (!exifdirs.empty())
             size += sizeof(unsigned short) + exifdirs.size()*sizeof(TIFFDirEntry) + 4;
         append_dir_entry (exif_tagmap, tiffdirs, data, TIFFTAG_GPSIFD, TIFF_LONG, 1, &size);
     }
@@ -981,7 +981,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     // If legit Exif metadata was found, adjust the Exif directory offsets,
     // append the Exif tag directory entries onto the main data block,
     // followed by 4 bytes of 0's.
-    if (exifdirs.size()) {
+    if (!exifdirs.empty()) {
         reoffset (exifdirs, exif_tagmap, datastart);
         unsigned short nd = exifdirs.size();
         data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));
@@ -992,7 +992,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     // If legit GPS metadata was found, adjust the GPS directory offsets,
     // append the GPS tag directory entries onto the main data block,
     // followed by 4 bytes of 0's.
-    if (gpsdirs.size()) {
+    if (!gpsdirs.empty()) {
         reoffset (gpsdirs, gps_tagmap, datastart);
         unsigned short nd = gpsdirs.size();
         data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));

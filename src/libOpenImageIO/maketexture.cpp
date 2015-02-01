@@ -639,7 +639,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
             Timer miptimer;
             ImageSpec smallspec;
 
-            if (mipimages.size()) {
+            if (!mipimages.empty()) {
                 // Special case -- the user specified a custom MIP level
                 small->reset (mipimages[0]);
                 small->read (0, 0, true, TypeDesc::FLOAT);

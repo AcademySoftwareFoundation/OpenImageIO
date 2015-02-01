@@ -388,7 +388,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:prman_metadata", prman_metadata);
     configspec.attribute ("maketx:oiio_options", oiio);
     configspec.attribute ("maketx:prman_options", prman);
-    if (mipimages.size())
+    if (!mipimages.empty())
         configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
     std::string cmdline = Strutil::format ("OpenImageIO %s : %s",
