@@ -79,7 +79,7 @@
 #  if defined(_WIN64)
 #    pragma intrinsic(_InterlockedExchangeAdd64)
 #  endif
-// InterlockedExchangeAdd64 is not available for XP
+// InterlockedExchangeAdd64 & InterlockedExchange64 are not available for XP
 #  if defined(_WIN32_WINNT) && _WIN32_WINNT <= 0x0501
 inline long long
 InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
@@ -88,6 +88,16 @@ InterlockedExchangeAdd64 (volatile long long *Addend, long long Value)
     do {
         Old = *Addend;
     } while (_InterlockedCompareExchange64(Addend, Old + Value, Old) != Old);
+    return Old;
+}
+
+inline long long
+InterlockedExchange64 (volatile long long *Target, long long Value)
+{
+    long long Old;
+    do {
+        Old = *Target;
+    } while (_InterlockedCompareExchange64(Target, Value, Old) != Old);
     return Old;
 }
 #  endif
