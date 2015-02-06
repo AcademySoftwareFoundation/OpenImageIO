@@ -536,7 +536,7 @@ public:
 
 #if OIIO_SIMD
     /// Construct from the underlying SIMD type
-    OIIO_FORCEINLINE int4 (simd_t m) : m_vec(m) { }
+    OIIO_FORCEINLINE int4 (const simd_t& m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
@@ -814,7 +814,7 @@ public:
                      a.m_val[2] % b.m_val[2],
                      a.m_val[3] % b.m_val[3]);
     }
-    OIIO_FORCEINLINE int4 operator%= (int4 a) {
+    OIIO_FORCEINLINE const int4 & operator%= (const int4& a) {
         // NO INTEGER MODULUS in SSE!
         m_val[0] %= a.m_val[0];
         m_val[1] %= a.m_val[1];
@@ -829,7 +829,7 @@ public:
                      a.m_val[2] % w,
                      a.m_val[3] % w);
     }
-    OIIO_FORCEINLINE int4 operator%= (int a) {
+    OIIO_FORCEINLINE const int4 & operator%= (int a) {
         // NO INTEGER MODULUS IN SSE!
         m_val[0] %= a;
         m_val[1] %= a;
@@ -856,7 +856,7 @@ public:
                      a.m_val[3] & b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE int4 operator&= (int4 a) {
+    OIIO_FORCEINLINE const int4 & operator&= (const int4& a) {
         return *this = *this & a;
     }
 
@@ -871,7 +871,7 @@ public:
                      a.m_val[3] | b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE int4 operator|= (int4 a) {
+    OIIO_FORCEINLINE const int4 & operator|= (const int4& a) {
         return *this = *this | a;
     }
 
@@ -885,7 +885,7 @@ public:
                      a.m_val[3] ^ b.m_val[3]);
 #endif
     }
-    OIIO_FORCEINLINE int4 operator^= (const int4& a) {
+    OIIO_FORCEINLINE const int4 & operator^= (const int4& a) {
         return *this = *this ^ a;
     }
 
@@ -900,7 +900,7 @@ public:
 #endif        
     }
 
-    OIIO_FORCEINLINE int4 operator<<= (const unsigned int bits) {
+    OIIO_FORCEINLINE const int4 & operator<<= (const unsigned int bits) {
         return *this = *this << bits;
     }
 
@@ -917,7 +917,7 @@ public:
 #endif
     }
 
-    OIIO_FORCEINLINE int4 operator>>= (const unsigned int bits) {
+    OIIO_FORCEINLINE const int4 & operator>>= (const unsigned int bits) {
         return *this = *this << bits;
     }
 
@@ -1200,7 +1200,7 @@ public:
 
 #if OIIO_SIMD
     /// Construct from the underlying SIMD type
-    OIIO_FORCEINLINE float4 (const simd_t m) : m_vec(m) { }
+    OIIO_FORCEINLINE float4 (const simd_t& m) : m_vec(m) { }
 
     /// Return the raw SIMD type
     OIIO_FORCEINLINE operator simd_t () const { return m_vec; }
