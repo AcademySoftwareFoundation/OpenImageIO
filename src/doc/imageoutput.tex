@@ -1478,10 +1478,10 @@ Write the tile with $(x,y,z)$ as the upper left corner.  For 2D
 non-volume images, $z$ is ignored.  The three stride values give the
 distance (in bytes) between successive pixels, scanlines, and volumetric
 slices, respectively.  Strides set to the special value {\kw AutoStride}
-imply contiguous data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
-\spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
-\spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
+imply contiguous data in the shape of a full tile, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.tile_height} \\
 This method automatically converts the
 data from the specified {\kw format} to the actual output format of the
 file. 
@@ -1513,10 +1513,11 @@ to already be in the native format (including per-channel formats, if applicable
 The stride values
 give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
-value of {\kw AutoStride} imply contiguous data, i.e., \\
+value of {\kw AutoStride} imply contiguous data in the shape of the
+region specified, i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
-\spc {\kw ystride} $=$ {\kw xstride * (xend-xbegin)} \\
-\spc {\kw zstride} $=$ {\kw ystride * (yend-ybegin)} \\
+\spc {\kw ystride} $=$ {\kw xstride * (xend - xbegin)} \\
+\spc {\kw zstride} $=$ {\kw ystride * (yend - ybegin)} \\
 The data for those tiles is assumed to be in the usual image order, as if
 it were just one big tile, and not ``paded'' to a whole multiple of the tile size.
 
