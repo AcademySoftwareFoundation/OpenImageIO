@@ -1,3 +1,8 @@
+message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
+configure_file (imageio_pvt.h.in "${CMAKE_CURRENT_BINARY_DIR}/imageio_pvt.h" @ONLY)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)

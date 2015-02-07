@@ -278,6 +278,7 @@ if (UNIX)
     set (MAN_INSTALL_DIR ${DEFAULT_MAN_INSTALL_DIR} CACHE STRING
          "Install location for manual pages (relative to CMAKE_INSTALL_PREFIX or absolute)")
 endif()
+set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 
 set (INSTALL_DOCS ON CACHE BOOL "Install documentation")
 

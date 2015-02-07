@@ -53,7 +53,7 @@ namespace pvt {
 recursive_mutex imageio_mutex;
 atomic_int oiio_threads (boost::thread::hardware_concurrency());
 atomic_int oiio_read_chunk (256);
-ustring plugin_searchpath;
+ustring plugin_searchpath (PVT_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
 }
