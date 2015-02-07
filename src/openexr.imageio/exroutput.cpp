@@ -1288,6 +1288,11 @@ OpenEXROutput::write_tile (int x, int y, int z,
                            TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    bool native = (format == TypeDesc::UNKNOWN);
+    if (native && xstride == AutoStride)
+        xstride = (stride_t) m_spec.pixel_bytes (native);
+    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        m_spec.tile_width, m_spec.tile_height);
     return write_tiles (x, std::min (x+m_spec.tile_width, m_spec.x+m_spec.width),
                         y, std::min (y+m_spec.tile_height, m_spec.y+m_spec.height),
                         z, std::min (z+m_spec.tile_depth, m_spec.z+m_spec.depth),

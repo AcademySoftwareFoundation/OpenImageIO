@@ -981,7 +981,8 @@ in its native format (including per-channel formats, if applicable).
 The stride values
 give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
-value of {\kw AutoStride} imply contiguous data, i.e., \\
+value of {\kw AutoStride} imply contiguous data in the shape of a full tile,
+i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.tile_width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.tile_height} \\
@@ -1024,10 +1025,11 @@ in its native format (including per-channel formats, if applicable).
 The stride values
 give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
-value of {\kw AutoStride} imply contiguous data, i.e., \\
+value of {\kw AutoStride} imply contiguous data in the shape of
+the region specified, i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
-\spc {\kw ystride} $=$ {\kw xstride * spec.tile_width} \\
-\spc {\kw zstride} $=$ {\kw ystride * spec.tile_height} \\
+\spc {\kw ystride} $=$ {\kw xstride * (xend - xbegin)} \\
+\spc {\kw zstride} $=$ {\kw ystride * (yend - ybegin)} \\
 The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given tile, it
 should transparently close, reopen, and sequentially read through prior

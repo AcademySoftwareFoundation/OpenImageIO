@@ -591,10 +591,10 @@ public:
 
     /// Read the tile whose upper-left origin is (x,y,z) into data,
     /// converting if necessary from the native data format of the file
-    /// into the 'format' specified.  (z==0 for non-volume images.)  The
-    /// stride values give the data spacing of adjacent pixels,
-    /// scanlines, and volumetric slices (measured in bytes).  Strides
-    /// set to AutoStride imply 'contiguous' data, i.e.,
+    /// into the 'format' specified. (z==0 for non-volume images.) The
+    /// stride values give the data spacing of adjacent pixels, scanlines,
+    /// and volumetric slices (measured in bytes). Strides set to AutoStride
+    /// imply 'contiguous' data in the shape of a full tile, i.e.,
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
@@ -632,6 +632,13 @@ public:
     /// boundaries, with the exception that it may also be the end of
     /// the image data if the image resolution is not a whole multiple
     /// of the tile size.
+    /// The stride values give the data spacing of adjacent pixels,
+    /// scanlines, and volumetric slices (measured in bytes). Strides set to
+    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
+    /// region, i.e.,
+    ///     xstride == spec.nchannels*format.size()
+    ///     ystride == xstride * (xend-xbegin)
+    ///     zstride == ystride * (yend-ybegin)
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
@@ -942,7 +949,8 @@ public:
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
-    /// imply 'contiguous' data, i.e.,
+    /// imply 'contiguous' data in the shape of a full tile, i.e.,
+
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
@@ -960,13 +968,20 @@ public:
                              stride_t zstride=AutoStride);
 
     /// Write the block of multiple tiles that include all pixels in
-    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
-    /// analogous to write_tile except that it may be used to write more
-    /// than one tile at a time (which, for some formats, may be able to
-    /// be done much more efficiently or in parallel).
-    /// The begin/end pairs must correctly delineate tile boundaries,
-    /// with the exception that it may also be the end of the image data
-    /// if the image resolution is not a whole multiple of the tile size.
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is analogous to
+    /// write_tile except that it may be used to write more than one tile at
+    /// a time (which, for some formats, may be able to be done much more
+    /// efficiently or in parallel).
+    /// The begin/end pairs must correctly delineate tile boundaries, with
+    /// the exception that it may also be the end of the image data if the
+    /// image resolution is not a whole multiple of the tile size.
+    /// The stride values give the data spacing of adjacent pixels,
+    /// scanlines, and volumetric slices (measured in bytes). Strides set to
+    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
+    /// region, i.e.,
+    ///     xstride == spec.nchannels*format.size()
+    ///     ystride == xstride * (xend-xbegin)
+    ///     zstride == ystride * (yend-ybegin)
     virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride=AutoStride,
@@ -975,13 +990,13 @@ public:
 
     /// Write a rectangle of pixels given by the range
     ///   [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
-    /// The three stride values give the distance (in bytes) between
-    /// successive pixels, scanlines, and volumetric slices,
-    /// respectively.  Strides set to AutoStride imply 'contiguous'
-    /// data, i.e.,
+    /// The stride values give the data spacing of adjacent pixels,
+    /// scanlines, and volumetric slices (measured in bytes). Strides set to
+    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
+    /// region, i.e.,
     ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride * (xmax-xmin+1)
-    ///     zstride == ystride * (ymax-ymin+1)
+    ///     ystride == xstride * (xend-xbegin)
+    ///     zstride == ystride * (yend-ybegin)
     /// The data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  If
     /// format is TypeDesc::UNKNOWN, it will just copy pixels assuming
