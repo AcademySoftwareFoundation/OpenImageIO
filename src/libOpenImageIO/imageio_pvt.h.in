@@ -120,6 +120,6 @@ const void *parallel_convert_from_float (const float *src, void *dst,
 OIIO_NAMESPACE_EXIT
 
 //Define a default plugin search path
-#define PVT_DEFAULT_PLUGIN_SEARCHPATH "@PLUGIN_SEARCH_PATH_NATIVE@"
+#define OIIO_DEFAULT_PLUGIN_SEARCHPATH "@PLUGIN_SEARCH_PATH_NATIVE@"
 
 #endif // OPENIMAGEIO_IMAGEIO_PVT_H
