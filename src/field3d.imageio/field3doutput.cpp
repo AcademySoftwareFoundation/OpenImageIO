@@ -71,7 +71,6 @@ private:
     int m_subimage;       ///< What subimage/field are we writing now
     int m_nsubimages;     ///< How many subimages will be in the file?
     bool m_writepending;  ///< Is there an unwritten current layer?
-    std::vector<layerrecord> Xm_layers;
     std::vector<ImageSpec> m_specs;
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
     FieldRes::Ptr m_field;
@@ -82,7 +81,6 @@ private:
         m_output = NULL;
         m_subimage = -1;
         m_nsubimages = 0;
-        // m_layers.clear ();
         m_specs.clear ();
         m_writepending = false;
     }
