@@ -284,6 +284,10 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "mipmap")
         return true;
+    if (feature == "alpha")
+        return true;
+    if (feature == "nchannels")
+        return true;
     if (feature == "channelformats")
         return true;
     if (feature == "displaywindow")

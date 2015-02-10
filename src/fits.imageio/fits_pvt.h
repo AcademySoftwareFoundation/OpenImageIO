@@ -141,13 +141,7 @@ class FitsOutput : public ImageOutput {
     FitsOutput () { init (); }
     virtual ~FitsOutput () { close (); }
     virtual const char *format_name (void) const { return "fits"; }
-    virtual bool supports (const std::string &feature) const {
-        return (feature == "multiimage"
-             || feature == "random_access"
-             || feature == "arbitrary_metadata"
-             || feature == "exif"   // Because of arbitrary_metadata
-             || feature == "iptc"); // Because of arbitrary_metadata
-    }
+    virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close (void);

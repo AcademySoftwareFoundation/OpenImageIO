@@ -417,6 +417,8 @@ ICOOutput::supports (const std::string &feature) const
     // advertise our support for subimages
     if (Strutil::iequals (feature, "multiimage"))
         return true;
+    if (Strutil::iequals (feature, "alpha"))
+        return true;
     return false;
 }
 

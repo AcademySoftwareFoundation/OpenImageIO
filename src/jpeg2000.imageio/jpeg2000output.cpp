@@ -44,7 +44,7 @@ class Jpeg2000Output : public ImageOutput {
     virtual ~Jpeg2000Output () { close (); }
     virtual const char *format_name (void) const { return "jpeg2000"; }
     virtual bool supports (const std::string &feature) const {
-        return false;
+        return (feature == "alpha");
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
@@ -114,6 +114,26 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
 
     m_filename = name;
     m_spec = spec;
+
+    // Check for things this format doesn't support
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+    if (m_spec.depth > 1) {
+        error ("%s does not support volume images (depth > 1)", format_name());
+        return false;
+    }
+
+    if (m_spec.nchannels != 1 && m_spec.nchannels != 3 &&
+            m_spec.nchannels != 4) {
+        error ("%s does not support %d-channel images\n",
+               format_name(), m_spec.nchannels);
+        return false;
+    }
 
     // If not uint8 or uint16, default to uint8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)

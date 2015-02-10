@@ -66,6 +66,42 @@ to a file:
   \end{code}
 \end{itemize}
 
+\subsection*{What happens when the file format doesn't support the spec?}
+
+The {\cf open()} call will fail (return {\cf false} and set an appropriate
+error message) if the output format cannot accommodate what is requested by
+the \ImageSpec. This includes:
+\begin{itemize}
+\item Dimensions (width, height, or number of channels) exceeding the limits
+  supported by the file format.\footnote{One exception to the rule about
+  number of channels is that a file format that supports only RGB, but not
+  alpha, is permitted to silently drop the alpha channel without considering
+  that to be an error.}
+\item Volumetric (depth $> 1$) if the format does not support volumetric
+  data.
+\item Tile size $>1$ if the format does not support tiles.
+\item Multiple subimages or MIP levels if not supported by the format.
+\end{itemize}
+
+
+However, several other mismatches between requested \ImageSpec and file
+format capabilities will be silently ignored, allowing {\cf open()} to
+succeed:
+
+\begin{itemize}
+\item If the pixel data format is not supported (for example, a request for
+  {\cf half} pixels when writing a JPEG/JFIF file), the format writer
+  may substitute another data format (generally, whichever commonly-used
+  data format supported by the file type will result in the least reduction
+  of precision or range).
+\item If the \ImageSpec requests different per-channel data formats, but
+  the format supports only a single format for all channels, it may just
+  choose the most precise format requested and use it for all channels.
+\item If the file format does not support arbitrarily-named channels, the
+  channel names may be lost when saving the file.
+\item Any other metadata in the \ImageSpec may be summarily dropped if not
+  supported by the file format.
+\end{itemize}
 
 
 \section{Advanced Image Output}
@@ -1332,6 +1368,9 @@ by this query:
   image/subimage (MIP-map levels)?
 \item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
   (a.k.a.\ volume images)?
+\item[\rm \qkw{alpha}] Does this format support an alpha channel?
+\item[\rm \qkw{nchannels}] Does this format support an arbitrary number
+  of channels (beyond RGBA)?
 \item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
   tile to be sent more than once?  Generally this is true for plugins
   that implement some sort of interactive display, rather than a saved
