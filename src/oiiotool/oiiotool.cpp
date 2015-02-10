@@ -524,6 +524,46 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
 
 
 
+// For a comma-separated list of channel names (e.g., "B,G,R,A"), compute
+// the vector of integer indices for those channels as found in the spec
+// (e.g., {2,1,0,3}), using -1 for any channels whose names were not found
+// in the spec. Return true if all named channels were found, false if one
+// or more were not found.
+static bool
+parse_channels (const ImageSpec &spec, string_view chanlist,
+                std::vector<int> &channels)
+{
+    bool ok = true;
+    channels.clear ();
+    for (int c = 0; chanlist.length(); ++c) {
+        int chan = -1;
+        Strutil::skip_whitespace (chanlist);
+        string_view name = Strutil::parse_until (chanlist, ",");
+        if (name.size()) {
+            for (int i = 0;  i < spec.nchannels;  ++i)
+                if (spec.channelnames[i] == name) { // name of a known channel?
+                    chan = i;
+                    break;
+                }
+            if (chan < 0) { // Didn't find a match? Try case-insensitive.
+                for (int i = 0;  i < spec.nchannels;  ++i)
+                    if (Strutil::iequals (spec.channelnames[i], name)) {
+                        chan = i;
+                        break;
+                    }
+            }
+            if (chan < 0)
+                ok = false;
+            channels.push_back (chan);
+        }
+        if (! Strutil::parse_char (chanlist, ','))
+            break;
+    }
+    return ok;
+}
+
+
+
 static int
 output_file (int argc, const char *argv[])
 {
@@ -552,6 +592,23 @@ output_file (int argc, const char *argv[])
     ot.read ();
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir (ot.curimg);
+
+    // Automatically drop channels we can't support in output
+    if ((ir->spec()->nchannels > 4 && ! out->supports("nchannels")) ||
+        (ir->spec()->nchannels > 3 && ! out->supports("alpha"))) {
+        bool alpha = (ir->spec()->nchannels > 3 && out->supports("alpha"));
+        string_view chanlist = alpha ? "R,G,B,A" : "R,G,B";
+        std::vector<int> channels;
+        bool found = parse_channels (*ir->spec(), chanlist, channels);
+        if (! found)
+            chanlist = alpha ? "0,1,2,3" : "0,1,2";
+        const char *argv[] = { "channels", chanlist.c_str() };
+        int action_channels (int argc, const char *argv[]); // forward decl
+        action_channels (2, argv);
+        ot.warning ("output", Strutil::format("Can't save %d channels to %f... saving only %s",
+                                              ir->spec()->nchannels, out->format_name(), chanlist.c_str()));
+        ir = ot.curimg;
+    }
 
     // Handle --autotrim
     if (supports_displaywindow && ot.output_autotrim) {
@@ -1503,7 +1560,7 @@ decode_channel_set (const ImageSpec &spec, string_view chanlist,
 
 
 
-static int
+int
 action_channels (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_channels, argc, argv))
