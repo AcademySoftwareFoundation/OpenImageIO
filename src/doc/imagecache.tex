@@ -637,8 +637,8 @@ image file will be filled with zero values.
 \label{sec:imagecache:api:tiles}
 
 \apiitem{ImageCache::Tile * {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
-  \bigspc \bigspc int x, int y, int z)}
-\apiitem{ImageCache::Tile * {\ce get_tile} (ImageHandle *file, Perthread *thread_info, \\
+  \bigspc \bigspc int x, int y, int z) \\
+ImageCache::Tile * {\ce get_tile} (ImageHandle *file, Perthread *thread_info, \\
 \bigspc\bigspc int subimage, int miplevel, \\
   \bigspc \bigspc int x, int y, int z)}
 Find a tile of an image (identified by either name or handle)
