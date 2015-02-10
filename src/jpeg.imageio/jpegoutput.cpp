@@ -143,7 +143,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
 
     if (m_spec.nchannels != 1 && m_spec.nchannels != 3 &&
             m_spec.nchannels != 4) {
-        error ("%s does not support %d-channel images\n",
+        error ("%s does not support %d-channel images",
                format_name(), m_spec.nchannels);
         return false;
     }
