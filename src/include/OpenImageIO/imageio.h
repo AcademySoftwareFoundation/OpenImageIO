@@ -847,6 +847,9 @@ public:
     ///    "mipmap"         Does this format support multiple resolutions
     ///                       for an image/subimage?
     ///    "volumes"        Does this format support "3D" pixel arrays?
+    ///    "alpha"          Can this format support an alpha channel?
+    ///    "nchannels"      Can this format support arbitrary number of
+    ///                        channels (beyond RGBA)?
     ///    "rewrite"        May the same scanline or tile be sent more than
     ///                       once?  (Generally, this will be true for
     ///                       plugins that implement interactive display.)
@@ -872,7 +875,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string & /*feature*/) const { return false; }
+    virtual bool supports (const std::string &feature) const { return false; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 

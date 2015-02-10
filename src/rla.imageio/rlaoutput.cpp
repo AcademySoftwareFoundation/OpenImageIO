@@ -161,6 +161,10 @@ RLAOutput::supports (const std::string &feature) const
         return true;
     if (feature == "negativeorigin")
         return true;
+    if (feature == "alpha")
+        return true;
+    if (feature == "nchannels")
+        return true;
     // Support nothing else nonstandard
     return false;
 }

@@ -95,6 +95,8 @@ PtexOutput::supports (const std::string &feature) const
     return (feature == "tiles"
          || feature == "multiimage"
          || feature == "mipmap"
+         || feature == "alpha"
+         || feature == "nchannels"
          || feature == "arbitrary_metadata"
          || feature == "exif"   // Because of arbitrary_metadata
          || feature == "iptc"); // Because of arbitrary_metadata

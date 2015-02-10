@@ -51,6 +51,20 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+FitsOutput::supports (const std::string &feature) const
+{
+    return (feature == "multiimage"
+         || feature == "alpha"
+         || feature == "nchannels"
+         || feature == "random_access"
+         || feature == "arbitrary_metadata"
+         || feature == "exif"   // Because of arbitrary_metadata
+         || feature == "iptc"); // Because of arbitrary_metadata
+}
+
+
+
+bool
 FitsOutput::open (const std::string &name, const ImageSpec &spec,
                   OpenMode mode)
 {

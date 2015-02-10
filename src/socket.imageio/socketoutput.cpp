@@ -59,6 +59,15 @@ SocketOutput::SocketOutput()
 
 
 bool
+SocketOutput::supports (const std::string &property) const
+{
+    return (property == "alpha" ||
+            property == "nchannels");
+}
+
+
+
+bool
 SocketOutput::open (const std::string &name, const ImageSpec &newspec,
                     OpenMode mode)
 {

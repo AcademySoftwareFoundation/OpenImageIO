@@ -175,6 +175,12 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     m_dither = (m_spec.format == TypeDesc::UINT8) ?
                     m_spec.get_int_attribute ("oiio:dither", 0) : 0;
 
+    if (m_spec.nchannels != 1 && m_spec.nchannels != 3) {
+        error ("%s does not support %d-channel images\n",
+               format_name(), m_spec.nchannels);
+        return false;
+    }
+
     if (bits_per_sample == 1)
         m_pnm_type = 4;
     else if (m_spec.nchannels == 1)

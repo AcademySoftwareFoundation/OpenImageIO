@@ -155,6 +155,10 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "appendsubimage")
         return true;
+    if (feature == "alpha")
+        return true;
+    if (feature == "nchannels")
+        return true;
     if (feature == "displaywindow")
         return true;
     if (feature == "origin")

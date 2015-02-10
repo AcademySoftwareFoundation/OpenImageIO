@@ -48,6 +48,15 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+SgiOutput::supports (const std::string &feature) const
+{
+    return (feature == "alpha"
+         || feature == "nchannels");
+}
+
+
+
+bool
 SgiOutput::open (const std::string &name, const ImageSpec &spec,
                  OpenMode mode)
 {
