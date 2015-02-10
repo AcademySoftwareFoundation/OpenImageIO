@@ -65,7 +65,7 @@ namespace pvt {
 
 
 class ImageCacheImpl;
-struct ImageCachePerThreadInfo;
+class ImageCachePerThreadInfo;
 
 const char * texture_format_name (TexFormat f);
 const char * texture_type_name (TexFormat f);
@@ -579,7 +579,8 @@ typedef unordered_map_concurrent<TileID, ImageCacheTileRef, TileID::Hasher, std:
 /// ImageCache and TextureSystem, so they don't each need a costly
 /// thread_specific_ptr retrieval.  There's no real penalty for this,
 /// even if you are using only ImageCache but not TextureSystem.
-struct ImageCachePerThreadInfo {
+class ImageCachePerThreadInfo {
+public:
     // Store just a few filename/fileptr pairs
     static const int nlastfile = 4;
     ustring last_filename[nlastfile];
@@ -697,6 +698,8 @@ public:
     ///
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data);
+    virtual bool get_image_info (ImageCacheFile *file, int subimage, int miplevel,
+                         ustring dataname, TypeDesc datatype, void *data);
 
     /// Get the ImageSpec associated with the named image.  If the file
     /// is found and is an image format that can be read, store a copy
@@ -706,13 +709,23 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false);
+    virtual bool get_imagespec (ImageCacheFile *file, ImageSpec &spec,
+                                int subimage=0, int miplevel=0,
+                                bool native=false);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
+                                        int miplevel=0, bool native=false);
+    virtual const ImageSpec *imagespec (ImageCacheFile *file, int subimage=0,
                                         int miplevel=0, bool native=false);
 
     // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, int subimage, int miplevel,
                              int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             TypeDesc format, void *result);
+    virtual bool get_pixels (ImageCacheFile *file,
+                             ImageCachePerThreadInfo *thread_info,
+                             int subimage, int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
     virtual bool get_pixels (ustring filename,
@@ -721,10 +734,7 @@ public:
                     int chbegin, int chend, TypeDesc format, void *result,
                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                     stride_t zstride=AutoStride);
-
-    /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
-    /// ImageCacheFile.
-    bool get_pixels (ImageCacheFile *file,
+    virtual bool get_pixels (ImageCacheFile *file,
                      ImageCachePerThreadInfo *thread_info,
                      int subimage, int miplevel, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend,
@@ -743,6 +753,15 @@ public:
                                ImageInput::Creator creator=NULL,
                                bool header_only=false,
                                const ImageSpec *config=NULL);
+
+    virtual ImageCacheFile * get_image_handle (ustring filename,
+                             ImageCachePerThreadInfo *thread_info=NULL) {
+        return find_file (filename, thread_info);
+    }
+
+    virtual bool good (ImageCacheFile *handle) {
+        return handle  &&  ! handle->broken();
+    }
 
     /// Is the tile specified by the TileID already in the cache?
     bool tile_in_cache (const TileID &id,
@@ -785,6 +804,8 @@ public:
 
     virtual Tile *get_tile (ustring filename, int subimage, int miplevel,
                             int x, int y, int z);
+    virtual Tile *get_tile (ImageHandle *file, Perthread *thread_info,
+                            int subimage, int miplevel, int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
     virtual bool add_file (ustring filename, ImageInput::Creator creator,
@@ -861,7 +882,7 @@ public:
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
-    ImageCachePerThreadInfo *get_perthread_info ();
+    virtual ImageCachePerThreadInfo *get_perthread_info ();
 
     /// Called when the IC is destroyed.  We have a list of all the 
     /// perthread pointers -- go through and delete the ones for which we

@@ -47,6 +47,8 @@ OIIO_NAMESPACE_ENTER
 namespace pvt {
 // Forward declaration
 class ImageCacheImpl;
+class ImageCacheFile;
+class ImageCachePerThreadInfo;
 };
 
 
@@ -118,6 +120,31 @@ public:
     virtual bool getattribute (string_view name, char **val) = 0;
     virtual bool getattribute (string_view name, std::string &val) = 0;
 
+    /// Define an opaque data type that allows us to have a pointer
+    /// to certain per-thread information that the ImageCache maintains.
+    typedef pvt::ImageCachePerThreadInfo Perthread;
+
+    /// Retrieve an opaque handle for per-thread info, to be used for
+    /// get_texture_handle and the texture routines that take handles
+    /// directly.
+    virtual Perthread * get_perthread_info () = 0;
+
+    /// Define an opaque data type that allows us to have a handle to an
+    /// image (already having its name resolved) but without exposing
+    /// any internals.
+    typedef pvt::ImageCacheFile ImageHandle;
+
+    /// Retrieve an opaque handle for fast image lookups.  The opaque
+    /// pointer thread_info is thread-specific information returned by
+    /// get_perthread_info().  Return NULL if something has gone
+    /// horribly wrong.
+    virtual ImageHandle * get_image_handle (ustring filename,
+                                            Perthread *thread_info=NULL) = 0;
+
+    /// Return true if the image handle (previously returned by
+    /// get_image_handle()) is a valid image that can be subsequently read.
+    virtual bool good (ImageHandle *file) = 0;
+
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.
     virtual std::string resolve_filename (const std::string &filename) const=0;
@@ -128,6 +155,8 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
+    virtual bool get_image_info (ImageHandle *file, int subimage, int miplevel,
+                         ustring dataname, TypeDesc datatype, void *data) = 0;
 
     /// Get the ImageSpec associated with the named image (the first
     /// subimage & miplevel by default, or as set by 'subimage' and
@@ -136,6 +165,9 @@ public:
     /// return true.  Return false if the file was not found or could
     /// not be opened as an image file by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
+                                int subimage=0, int miplevel=0,
+                                bool native=false) = 0;
+    virtual bool get_imagespec (ImageHandle *file, ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false) = 0;
 
@@ -151,6 +183,8 @@ public:
     /// as long as nobody (even other threads) calls invalidate() on the
     /// file, or invalidate_all(), or destroys the ImageCache.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
+                                        int miplevel=0, bool native=false) = 0;
+    virtual const ImageSpec *imagespec (ImageHandle *file, int subimage=0,
                                         int miplevel=0, bool native=false) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
@@ -168,6 +202,11 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_pixels (ustring filename, int subimage, int miplevel,
+                             int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend,
+                             TypeDesc format, void *result) = 0;
+    virtual bool get_pixels (ImageHandle *file, Perthread *thread_info,
+                             int subimage, int miplevel,
                              int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
@@ -195,6 +234,12 @@ public:
                     int chbegin, int chend, TypeDesc format, void *result,
                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                     stride_t zstride=AutoStride) = 0;
+    virtual bool get_pixels (ImageHandle *file, Perthread *thread_info,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void *result,
+                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                    stride_t zstride=AutoStride) = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to a tile but without exposing any internals.
@@ -208,7 +253,10 @@ public:
     /// the same number of times that get_tile() was called (refcnt).
     /// This is thread-safe!
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
-                                int x, int y, int z) = 0;
+                             int x, int y, int z) = 0;
+    virtual Tile * get_tile (ImageHandle *file, Perthread *thread_info,
+                             int subimage, int miplevel,
+                             int x, int y, int z) = 0;
 
     /// After finishing with a tile, release_tile will allow it to
     /// once again be purged from the tile cache if required.

@@ -386,14 +386,47 @@ settings of named options.  For example,
 
 \bigskip
 
+\subsection{Opaque data for performance lookups}
+\label{sec:imagecache:api:opaque}
+
+\apiitem{Perthread * {\ce get_perthread_info} ()}
+\indexapi{get_perthread_info}
+\NEW % 1.6
+Retrieves an opaque handle for per-thread info, to be used for
+{\cf get_image_handle()} and the \ImageCache methods that take handles
+directly.
+\apiend
+
+\apiitem{ImageHandle * {\ce get_image_handle} (ustring filename,\\
+\bigspc\bigspc\bigspc  Perthread *thread_info=NULL)}
+\indexapi{get_image_handle}
+\NEW % 1.6
+Retrieve an opaque handle for fast \ImageCache lookups.  The optional opaque
+pointer {\cf thread_info} is thread-specific information returned by
+{\cf get_perthread_info()}.  Return {\cf NULL} if something has gone
+horribly wrong.
+\apiend
+
+\apiitem{bool {\ce good} (ImageHandle *file)}
+\indexapi{good}
+\NEW % 1.6
+Return true if the image handle (previously returned by
+{\cf get_image_handle()}) is a valid image that can be subsequently read.
+\apiend
+
+
 \subsection{Getting information about images}
 \label{sec:imagecache:api:getimageinfo}
 \label{sec:imagecache:api:getimagespec}
 
+
 \apiitem{bool {\ce get_image_info} (ustring filename, int subimage, int
   miplevel, \\
+  \bigspc\bigspc ustring dataname, TypeDesc datatype, void *data) \\
+bool {\ce get_image_info} (ImageHandle *file, int subimage, int miplevel, \\
   \bigspc\bigspc ustring dataname, TypeDesc datatype, void *data)}
-Retrieves information about the image named by {\cf filename}.
+Retrieves information about the image named by {\cf filename} (or specified
+by the opaque image handle).
 The {\cf dataname} is a keyword indcating what information should
 be retrieved, {\cf datatype} is the type of data expected, and
 {\cf data} points to caller-owned memory where the results should be
@@ -487,15 +520,20 @@ matches both the name and data type.
 \apiend
 
 \apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,\\
-\bigspc  int subimage=0, int miplevel=0, bool native=false)}
+\bigspc\spc\spc  int subimage=0, int miplevel=0, bool native=false)\\
+bool {\ce get_imagespec} (ImageHandle *file, ImageSpec \&spec,\\
+\bigspc\spc\spc  int subimage=0, int miplevel=0, bool native=false)}
 
-If the named image (and the specific subimage and MIP level) is found and able to be opened by an available
+If the image (and the specific subimage and MIP level) is found and able to
+be opened by an available
 image format plugin, and the designated subimage exists, this function copies
 its image specification for that subimage into {\cf spec} and returns
 {\cf true}.  Otherwise, if the file is not found, could not be opened,
 is not of a format readable by any plugin that could be found, or
 the designated subimage did not exist in the file, the return value is
 {\cf false} and {\cf spec} will not be modified.
+The image may be specified either by name, or by the opaque handle returned
+by {\cf get_image_handle()}.
 
 If {\cf native} is {\cf false} (the default), then the spec retrieved
 will accurately describe the image stored internally in the cache,
@@ -507,14 +545,18 @@ settings such as \qkw{forcefloat} or \qkw{autotile}.
 
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
   subimage=0, \\
+      \bigspc\bigspc\spc int miplevel=0, bool native=false) \\
+const ImageSpec * {\ce imagespec} (ImageHandle *file, int subimage=0, \\
       \bigspc\bigspc\spc int miplevel=0, bool native=false)}
 
-If the named image is found and able to be opened by an available
+If the image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
 returns a pointer to an \ImageSpec that describes it.  Otherwise, if the
 file is not found, could not be opened, is not of a format readable by
 any plugin that could be find, or the designated subimage did
 not exist in the file, the return value is NULL.
+The image may be specified either by name, or by the opaque handle returned
+by {\cf get_image_handle()}.
 
 If {\cf native} is {\cf false} (the default), then the spec retrieved
 will accurately describe the image stored internally in the cache,
@@ -541,8 +583,14 @@ applied.
 \apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, int miplevel, \\
          \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
          \bigspc\spc int zbegin, int zend, \\
+         \bigspc\spc TypeDesc format, void *result) \\
+bool {\ce get\_pixels} (ImageHandle *file, Perthread *thread_info, \\
+         \bigspc\spc int subimage, int miplevel, \\
+         \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
+         \bigspc\spc int zbegin, int zend, \\
          \bigspc\spc TypeDesc format, void *result)}
-Retrieve the rectangle of pixels
+For an image specified by either name or handle,
+retrieve the rectangle of pixels
 of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
 beginning at the address specified by result.  The pixel values will be
 converted to the type specified by {\cf format}.  It is up to the caller
@@ -559,8 +607,15 @@ image file will be filled with zero values.
          \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
          \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
          \bigspc\spc TypeDesc format, void *result, \\
+         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride) \\
+bool {\ce get\_pixels} (ImageHandle *file, Perthread *thread_info, \\
+         \bigspc\spc int subimage, int miplevel, \\
+         \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
+         \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
+         \bigspc\spc TypeDesc format, void *result, \\
          \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride)}
-Retrieve the rectangle of pixels and subset of channels
+For an image specified by either name or handle,
+retrieve the rectangle of pixels and subset of channels
 of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
 beginning at the address specified by result and with the given strides.
 The pixel values will be
@@ -583,7 +638,11 @@ image file will be filled with zero values.
 
 \apiitem{ImageCache::Tile * {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
   \bigspc \bigspc int x, int y, int z)}
-Find a tile given by an image {\cf filename}, {\cf subimage}, and pixel
+\apiitem{ImageCache::Tile * {\ce get_tile} (ImageHandle *file, Perthread *thread_info, \\
+\bigspc\bigspc int subimage, int miplevel, \\
+  \bigspc \bigspc int x, int y, int z)}
+Find a tile of an image (identified by either name or handle)
+for the requested {\cf subimage}, and pixel
 coordinates.  An opaque pointer to the tile will be returned,
 or {\cf NULL} if no such file (or tile within the file) exists or can
 be read.  The tile will not be purged from the cache until 
@@ -703,10 +762,10 @@ esoteric information.
 
 \apiitem{void {\ce reset_stats} ()}
 Reset most statistics to be as they were with a fresh
-\TextureSystem.  Caveat emptor: this does not flush the cache
+\ImageCache.  Caveat emptor: this does not flush the cache
 itelf, so the resulting statistics from the next set of texture
 requests will not match the number of tile reads, etc., that
-would have resulted from a new \TextureSystem.
+would have resulted from a new \ImageCache.
 \apiend
 
 

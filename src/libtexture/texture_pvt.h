@@ -127,6 +127,10 @@ public:
         return (TextureHandle *) find_texturefile (filename, thread_info);
     }
 
+    virtual bool good (TextureHandle *texture_handle) {
+        return texture_handle && ! ((TextureFile *)texture_handle)->broken();
+    }
+
     virtual bool texture (ustring filename, TextureOpt &options,
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy,
@@ -251,13 +255,25 @@ public:
 
     virtual bool get_texture_info (ustring filename, int subimage,
                            ustring dataname, TypeDesc datatype, void *data);
+    virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
+                          ustring dataname, TypeDesc datatype, void *data);
 
     virtual bool get_imagespec (ustring filename, int subimage,
                                 ImageSpec &spec);
+    virtual bool get_imagespec (TextureHandle *texture_handle, int subimage,
+                                ImageSpec &spec);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0);
+    virtual const ImageSpec *imagespec (TextureHandle *texture_handle,
+                                        int subimage=0);
 
     virtual bool get_texels (ustring filename, TextureOpt &options,
+                             int miplevel, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             int chbegin, int chend,
+                             TypeDesc format, void *result);
+    virtual bool get_texels (TextureHandle *texture_handle,
+                             Perthread *thread_info, TextureOpt &options,
                              int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              int chbegin, int chend,
