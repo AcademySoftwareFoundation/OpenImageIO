@@ -80,7 +80,7 @@ static bool PtexHalfInit()
     return 1;
 }
 
-static bool PtexHalfInitialized = PtexHalfInit();
+bool PtexHalfInitialized = PtexHalfInit();
 
 
 /** Handle exceptional cases for half-to-float conversion */
