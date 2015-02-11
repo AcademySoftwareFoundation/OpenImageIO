@@ -1348,15 +1348,18 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (verbose)
             outstream << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
+        string_view resize_filter (filtername);
+        if (Strutil::istarts_with (resize_filter, "unsharp-"))
+            resize_filter = "lanczos3";
         toplevel.reset (new ImageBuf (dstspec));
-        if ((filtername == "box" || filtername == "triangle")
+        if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
             ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));
         } else {
-            Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), filtername);
+            Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), resize_filter);
             if (! filter) {
-                outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
+                outstream << "maketx ERROR: could not make filter \"" << resize_filter << "\"\n";
                 return false;
             }
             ImageBufAlgo::resize (*toplevel, *src, filter);
