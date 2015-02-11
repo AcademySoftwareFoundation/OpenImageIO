@@ -1,17 +1,28 @@
 Changes:
 
-Release 1.5.12 (??, 2015) -- compared to 1.5.11)
+Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
 ----------------------------------------------
+* Various build fixes for Windows. #1052 #1054
+* New CMake build-time option to specify the default plugin search path.
+  #1056 (1.5.12)
+* OpenEXR: fixed write_tile() with AutoStride calculated the wrong
+  default strides for "edge" tiles when the image width or length was
+  not an integer multiple of the tile size. Also clarified the PDF and
+  imageio.h docs in how they explain strides for this case. #1055 (1.5.12)
+* maketx: when the source image was a crop (data window != display window),
+  and the sharpening filters were used, it would incorrectly issue an
+  "unknown filter name" error. #1059 (1.5.12)
+* Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.5.12)
 
 
-Release 1.5.11 (January 28, 2015) -- compared to 1.5.10)
+Release 1.5.11 (28 Jan 2015) -- compared to 1.5.10)
 ----------------------------------------------
 * Fix build breaks for very old versions of Ilmbase (1.6 and earlier)
   that lack a definition of V4f used by our simd.h. #1048
 * Fix signed/unsigned warning on 32 bit platforms in jpeginput.cpp. #1049
 
 
-Release 1.5 (January 26, 2015) -- compared to 1.4.x
+Release 1.5 (26 Jan 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool functionality/commands:
