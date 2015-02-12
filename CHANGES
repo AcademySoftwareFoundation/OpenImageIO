@@ -3,7 +3,7 @@ Changes:
 Release 1.6 (in progress) -- compared to 1.5.x
 ----------------------------------------------
 Major new features and improvements:
-* New oiiotool functionality:
+ * New oiiotool functionality:
     * --absdiff, --absdiffc compute the absolute difference (abs(A-B)) of
       two images, or between an image and a constant color. #1029 (1.6.0)
     * --abs computes the absolute value of an image.  #1029 (1.6.0)
@@ -19,7 +19,7 @@ Major new features and improvements:
       make a vertical gradient, left=...:right=... to make a horizontal
       gradient, and topleft=...:topright=...:bottomleft=...:bottomright=...
       to make a 4-corner gradient. (1.6.0)
-* New ImageBufAlgo functions:
+ * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
     * abs() computes the absolute value of an image. #1029 (1.6.0)
@@ -30,30 +30,83 @@ Major new features and improvements:
       bilinearly interpolated gradient). (1.6.0)
 
 Public API changes:
-* Clarified in the docs that TextureSystem::get_texture_info and
-  ImageCache::get_image_info "exists" queries should return true, and
-  place in *data the value 1 or 0 depending on whether the image exists
-  and can be read. (1.6.0/1.5.10)
-
+ * Clarified in the docs that TextureSystem::get_texture_info and
+   ImageCache::get_image_info "exists" queries should return true, and
+   place in *data the value 1 or 0 depending on whether the image exists
+   and can be read. (1.6.0/1.5.10)
+ * Removed deprecated header "string_ref.h" (use string_view.h). (1.6.1)
+ * ImageCache: Added get_perthread_info() and get_image_handle() to return
+   opaque perthread and file handle pointers, much like TextureSystem
+   already had, and added handle-based versions of get_image_info(),
+   get_imagespec(), imagespec(), get_pixels(), and get_tile(), in addition
+   to the existing name-based versions of those methods. #1057 (1.6.1)
+ * TextureSystem: added handle-based versions of get_texture_info(),
+   get_imagespec(), imagespec(), and get_texels(), in addition to the
+   existing name-based versions of those methods. Note that texture(),
+   environment(), and texture3d() already had both named-based and
+   handle-based varieties. #1057 (1.6.1)
+ 
 Fixes, minor enhancements, and performance improvements:
-* Fix broken bicubic texture sampling with non-power-of-two sized tiles.
-  #1035 (1.6.0/1.5.10)
-* OpenEXR:
+ * maketx & TextureSystem:
+    * Fix broken bicubic texture sampling with non-power-of-two sized
+      tiles. #1035 (1.6.0/1.5.10)
+    * maketx: when the source image was a crop (data window != display
+      window), and the sharpening filters were used, it would
+      incorrectly issue an "unknown filter name" error. #1059 (1.6.2/1.5.12)
+ * OpenEXR:
     * Fix read_deep_tiles() error when not starting at the image origin.
       #1040 (1.6.0/1.5.10)
     * Fix output of multi-part exr file when some parts are tiled and
       others aren't. #1040 (1.6.0/1.5.10)
+    * write_tile() with AutoStride calculated the wrong default strides
+      for "edge" tiles when the image width or length was not an integer
+      multiple of the tile size. Also clarified the PDF and imageio.h
+      docs in how they explain strides for this case. #1055 (1.6.1/1.5.12)
+ * JPEG:
+    * Support JPEG files encoded as CMYK (by converting to RGB upon read)
+      #1044 (1.6.1)
 
 Build/test system improvements:
-* Python plugin is now build as a cmake "module" rather than "library",
-  which fixes some things on OSX. #1043 (1.6.0/1.5.10)
+ * Python plugin is now build as a cmake "module" rather than "library",
+   which fixes some things on OSX. #1043 (1.6.0/1.5.10)
+ * Various build fixes for Windows. #1052 #1054 (1.6.1)
+ * New CMake build-time option to specify the default plugin search path.
+   #1056 (1.6.1/1.5.12)
+ * Fix build breaks for very old versions of Ilmbase (1.6 and earlier)
+   that lack a definition of V4f used by our simd.h. #1048 (1.6.1/1.5.11)
+ * Fix signed/unsigned warning on 32 bit platforms in jpeginput.cpp.
+   #1049 (1.6.1/1.5.11)
+ * New CMake build-time option to specify the default plugin search path.
+   #1056 (1.6.1/1.5.12)
+ * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.6.2/1.5.12)
 
 Developer goodies / internals:
 
 
 
 
-Release 1.5 (January 26, 2015) -- compared to 1.4.x
+Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
+----------------------------------------------
+* Various build fixes for Windows. #1052 #1054
+* New CMake build-time option to specify the default plugin search path.
+  #1056 (1.5.12)
+* OpenEXR: fixed write_tile() with AutoStride calculated the wrong
+  default strides for "edge" tiles when the image width or length was
+  not an integer multiple of the tile size. Also clarified the PDF and
+  imageio.h docs in how they explain strides for this case. #1055 (1.5.12)
+* maketx: when the source image was a crop (data window != display window),
+  and the sharpening filters were used, it would incorrectly issue an
+  "unknown filter name" error. #1059 (1.5.12)
+* Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.5.12)
+
+Release 1.5.11 (28 Jan 2015) -- compared to 1.5.10)
+----------------------------------------------
+* Fix build breaks for very old versions of Ilmbase (1.6 and earlier)
+  that lack a definition of V4f used by our simd.h. #1048
+* Fix signed/unsigned warning on 32 bit platforms in jpeginput.cpp. #1049
+
+
+Release 1.5 (26 Jan 2015) -- compared to 1.4.x
 ----------------------------------------------
 Major new features and improvements:
 * New oiiotool functionality/commands:
