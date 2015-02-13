@@ -41,8 +41,7 @@ public:
     virtual ~PSDOutput ();
     virtual const char * format_name (void) const { return "psd"; }
     virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
+        return (feature == "alpha");
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);

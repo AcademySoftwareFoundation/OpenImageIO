@@ -52,11 +52,10 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 IffOutput::supports (const std::string &feature) const
 {
-    if (feature == "tiles")
-        return true;
-
-    // Everything else, we either don't support or don't know about
-    return false;
+    return (feature == "tiles"
+         || feature == "alpha"
+         || feature == "nchannels"
+        );
 }
 
 

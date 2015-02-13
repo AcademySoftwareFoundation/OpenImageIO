@@ -51,6 +51,14 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+BmpOutput::supports (const std::string &feature) const
+{
+    return (feature == "alpha");
+}
+
+
+
+bool
 BmpOutput::open (const std::string &name, const ImageSpec &spec,
                  OpenMode mode)
 {
@@ -63,7 +71,11 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
     m_filename = name;
     m_spec = spec;
 
-    // TODO: Figure out what to do with nchannels.
+    if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
+        error ("%s does not support %d-channel images\n",
+               format_name(), m_spec.nchannels);
+        return false;
+    }
 
     m_fd = Filesystem::fopen (m_filename, "wb");
     if (! m_fd) {

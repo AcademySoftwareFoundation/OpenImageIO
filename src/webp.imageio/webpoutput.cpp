@@ -45,7 +45,7 @@ class WebpOutput : public ImageOutput
     virtual const char* format_name () const { return "webp"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
-    virtual bool supports (const std::string &property) const { return false; }
+    virtual bool supports (const std::string &property) const;
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
@@ -68,6 +68,15 @@ class WebpOutput : public ImageOutput
         m_file = NULL;
     }
 };
+
+
+
+bool
+WebpOutput::supports (const std::string &property) const
+{
+    return (property == "alpha");
+}
+
 
 
 static int WebpImageWriter(const uint8_t* img_data, size_t data_size,
@@ -96,6 +105,12 @@ WebpOutput::open (const std::string &name, const ImageSpec &spec,
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec = spec;
+
+    if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
+        error ("%s does not support %d-channel images\n",
+               format_name(), m_spec.nchannels);
+        return false;
+    }
 
     m_file = Filesystem::fopen (m_filename, "wb");
     if (!m_file) {
