@@ -4316,7 +4316,7 @@ handle_sequence (int argc, const char **argv)
                                             frame_numbers[a]);
             Filesystem::enumerate_file_sequence (normalized_pattern,
                                                  frame_numbers[a],
-                                                 views,
+                                                 frame_views[a],
                                                  filenames[a]);
         } else if (sequence_is_output[i]) {
             // use frame numbers from first sequence
