@@ -678,7 +678,7 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
                                      const std::vector<string_view> &views,
                                      std::vector<std::string> &filenames)
 {
-    DASSERT (views.size() == 0 || views.size() == numbers.size());
+    ASSERT (views.size() == 0 || views.size() == numbers.size());
 
     static boost::regex view_re ("%V"), short_view_re ("%v");
 
