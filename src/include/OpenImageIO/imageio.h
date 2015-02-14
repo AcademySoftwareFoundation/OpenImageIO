@@ -318,6 +318,19 @@ public:
                                             TypeDesc searchtype=TypeDesc::UNKNOWN,
                                             bool casesensitive=false) const;
 
+    /// Search for the named attribute and return a pointer to an
+    /// ImageIOParameter record, or NULL if not found.  This variety of
+    /// find_attribute() can retrieve items such as "width", which are part
+    /// of the ImageSpec, but not in extra_attribs. The tmpparam is a
+    /// temporary storage area owned by the caller, which is used as
+    /// temporary buffer in cases where the information does not correspond
+    /// to an actual extra_attribs (in this case, the return value will be
+    /// &tmpparam).
+    const ImageIOParameter * find_attribute (string_view name,
+                         ImageIOParameter &tmpparam,
+                         TypeDesc searchtype=TypeDesc::UNKNOWN,
+                         bool casesensitive=false) const;
+
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte.

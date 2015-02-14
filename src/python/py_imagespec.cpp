@@ -273,7 +273,8 @@ static object
 ImageSpec_get_attribute_typed (const ImageSpec& spec,
                                const std::string &name, TypeDesc type)
 {
-    const ImageIOParameter *p = spec.find_attribute (name, type);
+    ImageIOParameter tmpparam;
+    const ImageIOParameter *p = spec.find_attribute (name, tmpparam, type);
     if (!p)
         return object();   // None
     type = p->type();
