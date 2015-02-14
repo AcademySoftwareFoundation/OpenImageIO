@@ -296,14 +296,21 @@ public:
         attribute (name, TypeDesc::STRING, &s);
     }
 
-    /// Remove the specified attribute from the list of extra
-    /// attributes. If not found, do nothing.
+    /// Remove the specified attribute from the list of extra_attribs. If
+    /// not found, do nothing.  If searchtype is anything but UNKNOWN,
+    /// restrict matches to only those of the given type. If casesensitive
+    /// is true, the name search will be case-sensitive, otherwise the name
+    /// search will be performed without regard to case (this is the
+    /// default).
     void erase_attribute (string_view name,
                           TypeDesc searchtype=TypeDesc::UNKNOWN,
                           bool casesensitive=false);
 
-    /// Search for a attribute of the given name in the list of extra
-    /// attributes.
+    /// Search for an attribute of the given name in the list of
+    /// extra_attribs. If searchtype is anything but UNKNOWN, restrict
+    /// matches to only those of the given type. If casesensitive is true,
+    /// the name search will be case-sensitive, otherwise the name search
+    /// will be performed without regard to case (this is the default).
     ImageIOParameter * find_attribute (string_view name,
                                        TypeDesc searchtype=TypeDesc::UNKNOWN,
                                        bool casesensitive=false);

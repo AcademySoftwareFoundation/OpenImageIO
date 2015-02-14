@@ -172,6 +172,15 @@ ImageSpec_set_format_2(ImageSpec& spec, TypeDesc::BASETYPE basetype)
 
 
 static void
+ImageSpec_erase_attribute (ImageSpec& spec, const std::string &name,
+                           TypeDesc searchtype=TypeDesc::UNKNOWN,
+                           bool casesensitive=false)
+{
+    spec.erase_attribute (name, searchtype, casesensitive);
+}
+
+
+static void
 ImageSpec_attribute_int (ImageSpec& spec, const std::string &name, int val)
 {
     spec.attribute (name, val);
@@ -422,6 +431,9 @@ void declare_imagespec()
         .def("get_string_attribute", &ImageSpec_get_string_attribute_d)
         .def("get_attribute", &ImageSpec_get_attribute_typed)
         .def("get_attribute", &ImageSpec_get_attribute_untyped)
+        .def("erase_attribute", &ImageSpec_erase_attribute,
+             (arg("name")="", arg("type")=TypeDesc(TypeDesc::UNKNOWN),
+              arg("casesensitive")=false))
 
         .def("metadata_val", &ImageSpec::metadata_val)
     ;          
