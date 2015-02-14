@@ -588,10 +588,10 @@ function for when you know you are just looking for a simple string value.
 \apiend
 
 
-\apiitem{std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
+\apiitem{static std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
   bool human=true) const}
-For a given parameter (in this \ImageSpec's {\cf extra_attribs} field),
-format the value nicely as a string.  If {\cf human} is true, use
+For a given parameter {\cf p}, format the value nicely as a string.
+If {\cf human} is true, use
 especially human-readable explanations (units, or decoding of
 values) for certain known metadata.
 \apiend

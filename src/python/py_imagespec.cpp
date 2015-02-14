@@ -436,6 +436,7 @@ void declare_imagespec()
               arg("casesensitive")=false))
 
         .def("metadata_val", &ImageSpec::metadata_val)
+        .staticmethod("metadata_val")
     ;          
 }
 
