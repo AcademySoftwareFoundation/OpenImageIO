@@ -458,6 +458,15 @@ string_view OIIO_API parse_identifier (string_view &str,
 string_view OIIO_API parse_until (string_view &str,
                                   string_view sep=" \t\r\n", bool eat=true);
 
+/// Assuming the string str starts with either '(', '[', or '{', return the
+/// head, up to and including the corresponding closing character (')', ']',
+/// or '}', respectively), recognizing nesting structures. For example,
+/// parse_nested("(a(b)c)d") should return "(a(b)c)", NOT "(a(b)". Return an
+/// empty string if str doesn't start with one of those characters, or
+/// doesn't contain a correctly matching nested pair. If eat==true, str will
+/// be modified to trim off the part of the string that is returned as the
+/// match.
+string_view OIIO_API parse_nested (string_view &str, bool eat=true);
 
 }  // namespace Strutil
 

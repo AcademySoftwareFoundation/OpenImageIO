@@ -746,5 +746,44 @@ Strutil::parse_until (string_view &str, string_view sep, bool eat)
 }
 
 
+string_view
+Strutil::parse_nested (string_view &str, bool eat)
+{
+    // Make sure we have a valid string and ascertain the characters that
+    // nest and unnest.
+    string_view p = str;
+    if (! p.size())
+        return string_view();    // No proper opening
+    char opening = p[0];
+    char closing = 0;
+    if      (opening == '(') closing = ')';
+    else if (opening == '[') closing = ']';
+    else if (opening == '{') closing = '}';
+    else    return string_view();
+
+    // Walk forward in the string until we exactly unnest compared to the
+    // start.
+    int len = 1;
+    int nesting = 1;
+    for ( ; nesting && len < p.size(); ++len) {
+        if (p[len] == opening)
+            ++nesting;
+        else if (p[len] == closing)
+            --nesting;
+    }
+
+    if (nesting)
+        return string_view();    // No proper closing
+
+    ASSERT (p[len-1] == closing);
+
+    // The result is the first len characters
+    string_view result = str.substr (0, len);
+    if (eat)
+        str.remove_prefix (len);
+    return result;
+}
+
+
 }
 OIIO_NAMESPACE_EXIT
