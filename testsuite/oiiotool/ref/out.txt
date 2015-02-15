@@ -237,5 +237,9 @@ Comparing "unpolar.exr" and "ref/unpolar.exr"
 PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"
 PASS
+Comparing "exprgradient.tif" and "ref/exprgradient.tif"
+PASS
+Comparing "exprcropped.tif" and "ref/exprcropped.tif"
+PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS

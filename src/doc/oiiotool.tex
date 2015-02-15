@@ -179,6 +179,48 @@ For example,
 \noindent would only match {\cf blah_l.0001.tif}, {\cf blah_l.0002.tif},
 {\cf blah_l.0003.tif}, {\cf blah_l.0004.tif}, {\cf blah_l.0005.tif}.
 
+\subsubsection*{Expression evaluation and substitution}
+\NEW % 1.6
+
+\oiiotool can perform \emph{expression evaluation and substitution} on
+command-line arguments. As command-line arguments are needed, they are
+scanned for containing braces {\cf \{ \}}. If found, the braces and any
+text they enclose will be evaluated as an expression and replaced by its
+result. The contents of an expression may be any of:
+
+\begin{description}
+\item[{\emph{number}}]
+
+A numerical value (e.g., {\cf 1} or {\cf 3.14159}).
+
+\item[{\emph{imagename.metadata}}]
+
+The named metadata of an image.
+
+The \emph{imagename} may be one of: {\cf TOP} (the top or current image),
+{\cf IMG[}\emph{i}{\cf ]} describing the \emph{i}{\textsuperscript{th}} image
+on the stack (thus {\cf TOP} is a synonym for {\cf IMG[0]} , the next image
+on the stack is {\cf IMG[1]}, etc.), or {\cf IMG["}\emph{name}{\cf "]} to
+denote an image named by filename or by label name.
+
+The \emph{metadata} may be the name of any standard metadata of the
+specified image (e.g., \qkw{ImageDescription}, or \qkw{width}), or one of
+the following special names: \qkw{filename}, \qkw{file_extension},
+\qkw{file_noextension}, \qkw{geom} (giving the pixel data size in the form
+\qkw{640x480+0+0}), or \qkw{full_geom} (similar, for the ``full'' or
+``display'' size).
+
+\item[{Arithmetic}] Sub-expressions may be joined by {\cf +}, {\cf -},
+{\cf *}, or {\cf /} for simple arithmetic operations.
+\end{description}
+
+To illustrate how this works, consider the following command, which trims
+a two-pixel border from all sides, without needing to know the resolution
+of the original image:
+
+\begin{smallcode}
+    oiiotool input.exr -cut "{TOP.width-4}x{TOP.height-4}+{TOP.x+2}+{TOP.y+2}" -o cropped.exr
+\end{smallcode}
 
 \section{\oiiotool Tutorial / Recipes}
 
@@ -535,7 +577,6 @@ and naming it ``Z'' so it will be recognized as a depth channel:
 \end{code}
 
 
-
 \subsection*{Frame sequences: composite a sequence of images}
 
 \noindent Composite foreground images over background images for a
@@ -548,6 +589,18 @@ series of files with frame numbers in their names:
 \begin{code}
     oiiotool --frames 1-50 fg.%04d.exr bg.%04d.exr --over -o comp.%04d.exr
 \end{code}
+
+
+\subsection*{Expression example: annotate the image with its caption}
+
+\noindent This command reads a file, and draws any text in the
+\qkw{ImageDescription} metadata, 30 pixels from the bottom of the image.
+\begin{code}
+    oiiotool input.exr --text:x=30:y={TOP.height-30} {TOP.ImageDescription} -o out.exr
+\end{code}
+\noindent Note that this works without needing to know the caption ahead
+of time, and will always put the text 30 pixels from the bottom of the image
+without requiring you to know the resolution.
 
 
 \newpage
