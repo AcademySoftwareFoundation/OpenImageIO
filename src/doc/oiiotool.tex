@@ -31,6 +31,31 @@ the alteration), or in some cases will pull more than one image off the
 stack (such as the current image and the next item on the stack) and
 then push a new image.
 
+\subsubsection*{Argument order matters!}
+
+\oiiotool processes operations \emph{in order}. Thus, the order of operations
+on the command line is extremely important. For example,
+
+\begin{code}
+    oiiotool in.tif -resize 640x480 -o out.tif
+\end{code}
+
+\noindent has the effect of reading \qkw{in.tif} (thus making it the
+\emph{current image}), resizing it (as the current image, and making the
+resized version the new current image), and then writing the new current
+image to the file \qkw{out.tif}.  Contrast that with the following
+subtly-incorrect command:
+
+\begin{code}
+    oiiotool in.tif -o out.tif -resize 640x480
+\end{code}
+
+\noindent has the effect of reading \qkw{in.tif} (thus making it the
+\emph{current image}), saving the current image to the file \qkw{out.tif}
+(note that it will be an exact copy of \qkw{in.tif}), resizing the current
+image, and then... exiting. Thus, the resized image is never saved, and
+\qkw{out.tif} will be an unaltered copy of \qkw{in.tif}.
+
 \subsubsection*{Optional arguments}
 
 Some commands stand completely on their own (like {\cf --flip}), others
