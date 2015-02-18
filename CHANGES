@@ -45,15 +45,33 @@ Public API changes:
    existing name-based versions of those methods. Note that texture(),
    environment(), and texture3d() already had both named-based and
    handle-based varieties. #1057 (1.6.1)
- 
+ * Clarified in the docs that TextureSystem::get_texture_info and
+   ImageCache::get_image_info "exists" queries should return true, and
+   place in *data the value 1 or 0 depending on whether the image exists
+   and can be read. #1046 (1.6.0/1.5.10)
+ * Removed deprecated header string_ref.h. (Should use string_view.h)
+   #1047 (1.6.0)
+ * New ImageOutput::supports() tags: supports("alpha") should be true for
+   image formats that support an alpha channel, supports("nchannels") should
+   be true for output formats that support an arbitrary number of output
+   channels. (1.6.1)
+
 Fixes, minor enhancements, and performance improvements:
+ * oiiotool
+    * Bug fix for frame sequences -- could crash in Windows. #1060 (1.6.1)
+    * Gracefully handle requests to save an image with more channels than
+      the output file format can handle. Instead of being a fatal error,
+      now it's just a warning, and extra channels are dropped. It tries to
+      to find R, G, B, and A channels, saving them. If those names are
+      not found, it just saves the first 3 (or 4) channels. #1058 (1.6.1)
  * maketx & TextureSystem:
     * Fix broken bicubic texture sampling with non-power-of-two sized
       tiles. #1035 (1.6.0/1.5.10)
     * maketx: when the source image was a crop (data window != display
       window), and the sharpening filters were used, it would
-      incorrectly issue an "unknown filter name" error. #1059 (1.6.2/1.5.12)
+      incorrectly issue an "unknown filter name" error. #1059 (1.6.1/1.5.12)
  * OpenEXR:
+    * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Fix read_deep_tiles() error when not starting at the image origin.
       #1040 (1.6.0/1.5.10)
     * Fix output of multi-part exr file when some parts are tiled and
@@ -63,8 +81,15 @@ Fixes, minor enhancements, and performance improvements:
       multiple of the tile size. Also clarified the PDF and imageio.h
       docs in how they explain strides for this case. #1055 (1.6.1/1.5.12)
  * JPEG:
+    * Now properly read/write xdensity and ydensity (what OIIO and TIFF
+      call "XResolution" and "YResolution" and, therefore,
+      "PixelAspectRatio". #1042 (1.6.0)
     * Support JPEG files encoded as CMYK (by converting to RGB upon read)
       #1044 (1.6.1)
+ * TIFF:
+    * Improved handling of density and aspect ratio. #1042 (1.6.0)
+    * Improved proper handling of the interplay between "XResolution",
+      "YResolution", and "PixelAspectRatio". #1042 (1.6.0)
 
 Build/test system improvements:
  * Python plugin is now build as a cmake "module" rather than "library",
@@ -78,10 +103,10 @@ Build/test system improvements:
    #1049 (1.6.1/1.5.11)
  * New CMake build-time option to specify the default plugin search path.
    #1056 (1.6.1/1.5.12)
- * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.6.2/1.5.12)
+ * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.6.1/1.5.12)
 
 Developer goodies / internals:
-
+ * Strutil additions: parse_until, parse_nested (1.6.1)
 
 
 
