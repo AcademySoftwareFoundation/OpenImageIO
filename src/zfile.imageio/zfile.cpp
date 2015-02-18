@@ -93,7 +93,6 @@ public:
     ZfileOutput () { init(); }
     virtual ~ZfileOutput () { close(); }
     virtual const char * format_name (void) const { return "zfile"; }
-    virtual bool supports (const std::string &feature) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();

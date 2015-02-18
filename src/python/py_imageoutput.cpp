@@ -269,7 +269,7 @@ const char* ImageOutputWrap::format_name (void) const
 }
 
 
-bool ImageOutputWrap::supports (const std::string &feature) const
+int ImageOutputWrap::supports (const std::string &feature) const
 {
     return m_output->supports(feature);
 }

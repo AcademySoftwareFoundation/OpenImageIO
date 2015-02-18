@@ -154,7 +154,7 @@ public:
     bool open_regular (const std::string &name);
     bool open_with_config(const std::string &name, const ImageSpec &config);
     const ImageSpec &spec() const;
-    bool supports (const std::string &feature) const;
+    int supports (const std::string &feature) const;
     bool close();
     int current_subimage() const;
     int current_miplevel() const;
@@ -217,7 +217,7 @@ public:
                          stride_t zstride=AutoStride);
     bool copy_image (ImageInputWrap *iiw);
     const char *format_name () const;
-    bool supports (const std::string&) const;
+    int supports (const std::string&) const;
     std::string geterror()const;
 };
 

@@ -43,7 +43,7 @@ public:
     PtexInput () : m_ptex(NULL) { init(); }
     virtual ~PtexInput () { close(); }
     virtual const char * format_name (void) const { return "ptex"; }
-    virtual bool supports (const std::string &feature) const {
+    virtual int supports (string_view feature) const {
         return (feature == "arbitrary_metadata"
              || feature == "exif"   // Because of arbitrary_metadata
              || feature == "iptc"); // Because of arbitrary_metadata

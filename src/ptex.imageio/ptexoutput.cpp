@@ -42,7 +42,7 @@ public:
     PtexOutput ();
     virtual ~PtexOutput ();
     virtual const char * format_name (void) const { return "ptex"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        ImageOutput::OpenMode mode);
     virtual bool close ();
@@ -89,8 +89,8 @@ PtexOutput::~PtexOutput ()
 
 
 
-bool
-PtexOutput::supports (const std::string &feature) const
+int
+PtexOutput::supports (string_view feature) const
 {
     return (feature == "tiles"
          || feature == "multiimage"

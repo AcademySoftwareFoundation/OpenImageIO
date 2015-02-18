@@ -74,7 +74,7 @@ public:
     TIFFOutput ();
     virtual ~TIFFOutput ();
     virtual const char * format_name (void) const { return "tiff"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -146,8 +146,8 @@ TIFFOutput::~TIFFOutput ()
 
 
 
-bool
-TIFFOutput::supports (const std::string &feature) const
+int
+TIFFOutput::supports (string_view feature) const
 {
     if (feature == "tiles")
         return true;

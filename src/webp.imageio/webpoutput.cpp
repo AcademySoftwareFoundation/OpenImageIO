@@ -45,7 +45,7 @@ class WebpOutput : public ImageOutput
     virtual const char* format_name () const { return "webp"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
-    virtual bool supports (const std::string &property) const;
+    virtual int supports (string_view feature) const;
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
@@ -71,10 +71,10 @@ class WebpOutput : public ImageOutput
 
 
 
-bool
-WebpOutput::supports (const std::string &property) const
+int
+WebpOutput::supports (string_view feature) const
 {
-    return (property == "alpha");
+    return (feature == "alpha");
 }
 
 

@@ -91,8 +91,10 @@ namespace OIIO = OIIO_NAMESPACE::OIIO_VERSION_NS;
 ///     ImageInput, ImageOutput).
 /// Version 16 changed the ImageInput functions taking channel ranges
 ///     from firstchan,nchans to chbegin,chend.
+/// Version 17 changed to int supports(string_view) rather than
+///     bool supports(const std::string&)). (OIIO 1.6)
 
-#define OIIO_PLUGIN_VERSION 16
+#define OIIO_PLUGIN_VERSION 17
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_ENTER {
 #define OIIO_PLUGIN_NAMESPACE_END } OIIO_NAMESPACE_EXIT

@@ -53,7 +53,7 @@ public:
     Field3DOutput ();
     virtual ~Field3DOutput ();
     virtual const char * format_name (void) const { return "field3d"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool open (const std::string &name, int subimages,
@@ -148,8 +148,8 @@ Field3DOutput::~Field3DOutput ()
 
 
 
-bool
-Field3DOutput::supports (const std::string &feature) const
+int
+Field3DOutput::supports (string_view feature) const
 {
     return (feature == "tiles"
          || feature == "multiimage"

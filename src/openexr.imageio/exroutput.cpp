@@ -134,7 +134,7 @@ public:
     OpenEXROutput ();
     virtual ~OpenEXROutput ();
     virtual const char * format_name (void) const { return "openexr"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool open (const std::string &name, int subimages,
@@ -277,8 +277,8 @@ OpenEXROutput::~OpenEXROutput ()
 
 
 
-bool
-OpenEXROutput::supports (const std::string &feature) const
+int
+OpenEXROutput::supports (string_view feature) const
 {
     if (feature == "tiles")
         return true;

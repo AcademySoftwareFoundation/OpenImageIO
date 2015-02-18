@@ -96,7 +96,7 @@ public:
     virtual ~TIFFInput ();
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool valid_file (const std::string &filename) const;
-    virtual bool supports (const std::string &feature) const {
+    virtual int supports (string_view feature) const {
         return (feature == "exif"
              || feature == "iptc");
         // N.B. No support for arbitrary metadata.

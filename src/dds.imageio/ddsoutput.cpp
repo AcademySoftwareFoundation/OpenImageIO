@@ -47,10 +47,6 @@ public:
     DDSOutput ();
     virtual ~DDSOutput ();
     virtual const char * format_name (void) const { return "dds"; }
-    virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
-    }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close ();

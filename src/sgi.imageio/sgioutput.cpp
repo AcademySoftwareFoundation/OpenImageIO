@@ -47,8 +47,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-bool
-SgiOutput::supports (const std::string &feature) const
+int
+SgiOutput::supports (string_view feature) const
 {
     return (feature == "alpha"
          || feature == "nchannels");

@@ -50,8 +50,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-bool
-BmpOutput::supports (const std::string &feature) const
+int
+BmpOutput::supports (string_view feature) const
 {
     return (feature == "alpha");
 }

@@ -58,7 +58,7 @@ public:
     RLAOutput ();
     virtual ~RLAOutput ();
     virtual const char * format_name (void) const { return "rla"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -150,8 +150,8 @@ RLAOutput::~RLAOutput ()
 
 
 
-bool
-RLAOutput::supports (const std::string &feature) const
+int
+RLAOutput::supports (string_view feature) const
 {
     if (feature == "random_access")
         return true;

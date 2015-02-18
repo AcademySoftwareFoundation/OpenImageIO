@@ -46,7 +46,6 @@ class HdrOutput : public ImageOutput {
     HdrOutput () { init(); }
     virtual ~HdrOutput () { close(); }
     virtual const char * format_name (void) const { return "hdr"; }
-    virtual bool supports (const std::string &property) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool write_scanline (int y, int z, TypeDesc format,

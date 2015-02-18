@@ -118,7 +118,7 @@ const ImageSpec& ImageInputWrap::spec() const
     return m_input->spec();
 }
 
-bool ImageInputWrap::supports (const std::string &feature) const
+int ImageInputWrap::supports (const std::string &feature) const
 {
     return m_input->supports (feature);
 }

@@ -177,7 +177,7 @@ public:
     IffOutput () { init (); }
     virtual ~IffOutput () { close (); }
     virtual const char *format_name (void) const { return "iff"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close (void);

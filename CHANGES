@@ -72,6 +72,9 @@ Public API changes:
    #1063 (1.6.1)
  * Python bindings:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
+ * ImageInput and ImageOutput supports() method has been changed to accept
+   a string_view (rather than a const std::string&), and return an int
+   (rather than a bool). (1.6.1)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool

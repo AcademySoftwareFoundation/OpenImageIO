@@ -49,8 +49,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-bool
-IffOutput::supports (const std::string &feature) const
+int
+IffOutput::supports (string_view feature) const
 {
     return (feature == "tiles"
          || feature == "alpha"

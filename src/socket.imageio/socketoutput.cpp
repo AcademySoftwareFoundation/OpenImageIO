@@ -58,11 +58,11 @@ SocketOutput::SocketOutput()
 
 
 
-bool
-SocketOutput::supports (const std::string &property) const
+int
+SocketOutput::supports (string_view feature) const
 {
-    return (property == "alpha" ||
-            property == "nchannels");
+    return (feature == "alpha" ||
+            feature == "nchannels");
 }
 
 

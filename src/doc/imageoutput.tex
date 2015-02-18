@@ -1343,11 +1343,14 @@ Returns the canonical name of the format that this \ImageOutput
 instance is capable of writing.
 \apiend
 
-\apiitem{bool {\ce supports} (const std::string \&feature)}
+\apiitem{int {\ce supports} (string_view feature)}
 \label{sec:supportsfeaturelist}
-Given the name of a \emph{feature}, tells if this \ImageOutput 
-instance supports that feature.  The following features are recognized
-by this query:
+Given the name of a \emph{feature}, tells if this \ImageOutput  instance
+supports that feature.  Most queries will simply return 0 for ``doesn't
+support the feature'' and nonzero for ``supports the feature,'' but it is
+acceptable to have queries return other nonzero integers to indicate varying
+degrees of support or limits (but those queries should be clearly documented
+as such). The following features are recognized by this query:
 \begin{description}
 \item[\spc] \spc 
 \item[\rm \qkw{tiles}] Is this plugin able to write tiled images?

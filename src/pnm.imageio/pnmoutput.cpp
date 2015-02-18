@@ -40,10 +40,6 @@ class PNMOutput : public ImageOutput {
 public:
     virtual ~PNMOutput ();
     virtual const char * format_name (void) const { return "pnm"; }
-    virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
-    }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();

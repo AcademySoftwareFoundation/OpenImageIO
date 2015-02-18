@@ -48,7 +48,7 @@ public:
     PNGOutput ();
     virtual ~PNGOutput ();
     virtual const char * format_name (void) const { return "png"; }
-    virtual bool supports (const std::string &feature) const {
+    virtual int supports (string_view feature) const {
         return (feature == "alpha");
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,

@@ -47,7 +47,7 @@ class Jpeg2000Input : public ImageInput {
     Jpeg2000Input () { init (); }
     virtual ~Jpeg2000Input () { close (); }
     virtual const char *format_name (void) const { return "jpeg2000"; }
-    virtual bool supports (const std::string &feature) const {
+    virtual int supports (string_view feature) const {
         return false;
         // FIXME: we should support Exif/IPTC, but currently don't.
     }

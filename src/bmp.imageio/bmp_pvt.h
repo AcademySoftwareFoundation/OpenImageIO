@@ -169,7 +169,7 @@ class BmpOutput : public ImageOutput {
     BmpOutput () { init (); }
     virtual ~BmpOutput () { close (); }
     virtual const char *format_name (void) const { return "bmp"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close (void);

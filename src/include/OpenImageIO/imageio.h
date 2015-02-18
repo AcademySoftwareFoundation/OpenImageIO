@@ -471,7 +471,12 @@ public:
     virtual const char *format_name (void) const = 0;
 
     /// Given the name of a 'feature', return whether this ImageInput
-    /// supports input of images with the given properties.
+    /// supports input of images with the given properties. Most queries
+    /// will simply return 0 for "doesn't support" and nonzero for "supports
+    /// it", but it is acceptable to have queries return other nonzero
+    /// integers to indicate varying degrees of support or limits (but
+    /// should be clearly documented as such).
+    ///
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
     ///    "arbitrary_metadata" Does this format allow metadata with
@@ -484,7 +489,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string & /*feature*/) const { return false; }
+    virtual int supports (string_view feature) const { return false; }
 
     /// Return true if the named file is file of the type for this
     /// ImageInput.  The implementation will try to determine this as
@@ -847,7 +852,12 @@ public:
     // to inform the client which formats are supported
 
     /// Given the name of a 'feature', return whether this ImageOutput
-    /// supports output of images with the given properties.
+    /// supports output of images with the given properties. Most queries
+    /// will simply return 0 for "doesn't support" and nonzero for "supports
+    /// it", but it is acceptable to have queries return other nonzero
+    /// integers to indicate varying degrees of support or limits (but
+    /// should be clearly documented as such).
+    ///
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
     ///    "tiles"          Is this format able to write tiled images?
@@ -894,7 +904,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual int supports (string_view feature) const { return false; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 

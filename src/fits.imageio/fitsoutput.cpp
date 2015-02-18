@@ -50,8 +50,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-bool
-FitsOutput::supports (const std::string &feature) const
+int
+FitsOutput::supports (string_view feature) const
 {
     return (feature == "multiimage"
          || feature == "alpha"

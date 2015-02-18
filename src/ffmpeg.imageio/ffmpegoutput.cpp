@@ -37,7 +37,7 @@ public:
     FFmpegOutput () { init (); }
     virtual ~FFmpegOutput () { close (); }
     virtual const char *format_name (void) const { return "mov"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual int supports (string_view feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close (void);
@@ -68,8 +68,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-bool
-FFmpegOutput::supports (const std::string &feature) const
+int
+FFmpegOutput::supports (string_view feature) const
 {
     // Everything else, we either don't support or don't know about
     return false;
