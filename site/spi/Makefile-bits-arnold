@@ -54,7 +54,7 @@ ifeq ($(SP_OS), spinux1)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
     ifeq (${FIELD3D_HOME},)
-        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155/v406"
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v401"
     endif
 
     ## If not overridden, here is our preferred LLVM installation
@@ -110,15 +110,15 @@ ifeq ($(SP_OS), spinux1)
     # Our minimal architecture for workstations and farm supports SSE 4.1
     USE_SIMD = sse4.1
 
-    ifneq (,$(wildcard /usr/include/OpenEXR220))
+    ifneq (,$(wildcard /usr/include/OpenEXR2))
         MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
-	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR220 \
-          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR220 \
+	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
 	  -DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
 	  -DOPENEXR_CUSTOM=1 \
-	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR220 \
-          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR220 \
+	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
 	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"
     else
         MY_CMAKE_FLAGS += \
@@ -139,7 +139,7 @@ ifeq ($(SP_OS), spinux1)
 	  -DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
 
     ifneq (${SPCOMP2_USE_BOOSTVERS}, 1)
-	BOOSTVERS=1.55
+	BOOSTVERS=1.51
     endif
     BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
     CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
