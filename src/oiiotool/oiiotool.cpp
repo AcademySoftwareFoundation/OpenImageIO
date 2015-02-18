@@ -233,7 +233,7 @@ Oiiotool::error (string_view command, string_view explanation)
 {
     std::cerr << "oiiotool ERROR: " << command;
     if (explanation.length())
-        std::cerr << " (" << explanation << ")";
+        std::cerr << " : " << explanation;
     std::cerr << "\n";
     exit (-1);
 }
@@ -245,7 +245,7 @@ Oiiotool::warning (string_view command, string_view explanation)
 {
     std::cerr << "oiiotool WARNING: " << command;
     if (explanation.length())
-        std::cerr << " (" << explanation << ")";
+        std::cerr << " : " << explanation;
     std::cerr << "\n";
 }
 
@@ -334,10 +334,25 @@ input_file (int argc, const char *argv[])
         }
         Timer timer (ot.enable_function_timing);
         int exists = 1;
-        if (! ot.imagecache->get_image_info (ustring(argv[i]), 0, 0, 
+        ustring filename (argv[i]);
+        if (! ot.imagecache->get_image_info (filename, 0, 0,
                             ustring("exists"), TypeDesc::TypeInt, &exists)
             || !exists) {
-            ot.error ("read", Strutil::format ("Could not open file \"%s\"", argv[i]));
+            // Try to get a more precise error message to report
+            if (! Filesystem::exists(filename.string()))
+                ot.error ("read", Strutil::format ("File does not exist: \"%s\"", filename));
+            else {
+                std::string err;
+                ImageInput *in = ImageInput::open (filename.string());
+                if (in) {
+                    err = in->geterror();
+                    in->close ();
+                    delete in;
+                } else {
+                    err = OIIO::geterror();
+                }
+                ot.error ("read", err.size() ? err : "(unknown error)");
+            }
             exit (1);
         }
         if (ot.verbose)
