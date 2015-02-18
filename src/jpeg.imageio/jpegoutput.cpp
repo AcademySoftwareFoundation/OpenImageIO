@@ -203,6 +203,9 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     } else {
         // normal write of scanlines
         jpeg_set_defaults (&m_cinfo);                 // default compression
+        // Careful -- jpeg_set_defaults overwrites density
+        m_cinfo.X_density = int (m_spec.get_float_attribute ("XResolution"));
+        m_cinfo.Y_density = int (m_spec.get_float_attribute ("YResolution", m_cinfo.X_density));
         DBG std::cout << "out open: set_defaults\n";
         int quality = newspec.get_int_attribute ("CompressionQuality", 98);
         jpeg_set_quality (&m_cinfo, quality, TRUE);   // baseline values
