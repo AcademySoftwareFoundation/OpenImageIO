@@ -2,7 +2,17 @@ Changes:
 
 Release 1.5.13 (?? 2015) -- compared to 1.5.12)
 ----------------------------------------------
-
+ * oiiotool: Bug fix for frame sequences -- could crash in Windows. #1060
+ * New ImageOutput::supports() tags: supports("alpha") should be true for
+   image formats that support an alpha channel, supports("nchannels") should
+   be true for output formats that support an arbitrary number of output
+   channels. #1058
+ * oiiotool: Gracefully handle requests to save an image with more channels
+   than the output file format can handle. Instead of being a fatal error,
+   now it's just a warning, and extra channels are dropped. It tries to
+   to find R, G, B, and A channels, saving them. If those names are
+   not found, it just saves the first 3 (or 4) channels. #1058
+ * Improved handling of "PixelAspectRatio" for JPEG, TIFF, and OpenEXR. #1042
 
 Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
 ----------------------------------------------
@@ -17,7 +27,6 @@ Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
   and the sharpening filters were used, it would incorrectly issue an
   "unknown filter name" error. #1059 (1.5.12)
 * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.5.12)
-
 
 Release 1.5.11 (28 Jan 2015) -- compared to 1.5.10)
 ----------------------------------------------
