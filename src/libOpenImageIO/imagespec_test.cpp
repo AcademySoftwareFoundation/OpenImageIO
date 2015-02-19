@@ -38,6 +38,7 @@ OIIO_NAMESPACE_USING;
 
 void test_imagespec_pixels ()
 {
+    std::cout << "test_imagespec_pixels\n";
     // images with dimensions > 2^16 (65536) on a side have > 2^32 pixels
     const long long WIDTH = 456789;
     const long long HEIGHT = 345678;
@@ -97,6 +98,7 @@ metadata_val_test (void *data, int num_elements, TypeDesc type, std::string& val
 
 void test_imagespec_metadata_val ()
 {
+    std::cout << "test_imagespec_metadata_val\n";
     std::string ret;
 
     int imatrix[] = {100, 200, 300, 400};
@@ -153,6 +155,7 @@ attribute_test (const std::string &data, TypeDesc type, std::string &ret)
 
 void test_imagespec_attribute_from_string ()
 {
+    std::cout << "test_imagespec_attribute_from_string\n";
     TypeDesc type = TypeDesc::TypeInt;
     std::string ret, data, invalid_data;
 
@@ -188,12 +191,54 @@ void test_imagespec_attribute_from_string ()
 
 
 
+static void
+test_get_attribute ()
+{
+    std::cout << "test_get_attribute\n";
+    ImageSpec spec (640, 480, 4, TypeDesc::FLOAT);
+    spec.x = 10; spec.y = 12;
+    spec.full_x = -5; spec.full_y = -8;
+    spec.full_width = 1024; spec.full_height = 800;
+    spec.tile_width = 64; spec.tile_height = 32;
+    spec.attribute ("foo", int(42));
+    spec.attribute ("pi", float(M_PI));
+    spec.attribute ("bar", "barbarbar?");
+
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("width"), 640);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("height"), 480);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("nchannels"), 4);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("x"), 10);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("y"), 12);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("full_x"), -5);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("full_y"), -8);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("full_width"), 1024);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("full_height"), 800);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("tile_width"), 64);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("tile_height"), 32);
+    OIIO_CHECK_EQUAL (spec.get_string_attribute("geom"), "640x480+10+12");
+    OIIO_CHECK_EQUAL (spec.get_string_attribute("full_geom"), "1024x800-5-8");
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("foo"), 42);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("pi",4), 4);  // should fail int
+    OIIO_CHECK_EQUAL (spec.get_float_attribute("pi"), float(M_PI));
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("bar"), 0);
+    OIIO_CHECK_EQUAL (spec.get_int_attribute("bar"), 0);
+    OIIO_CHECK_EQUAL (spec.get_string_attribute("bar"), "barbarbar?");
+    OIIO_CHECK_NE    (spec.find_attribute("foo"), NULL);
+    OIIO_CHECK_NE    (spec.find_attribute("Foo"), NULL);
+    OIIO_CHECK_NE    (spec.find_attribute("Foo", TypeDesc::UNKNOWN, false), NULL);
+    OIIO_CHECK_EQUAL (spec.find_attribute("Foo", TypeDesc::UNKNOWN, true), NULL);
+    OIIO_CHECK_NE    (spec.find_attribute("foo", TypeDesc::INT), NULL);
+    OIIO_CHECK_EQUAL (spec.find_attribute("foo", TypeDesc::FLOAT), NULL);
+}
+
+
 
 int main (int argc, char *argv[])
 {
     test_imagespec_pixels ();
     test_imagespec_metadata_val ();
     test_imagespec_attribute_from_string ();
+    test_get_attribute ();
 
     return unit_test_failures;
 }

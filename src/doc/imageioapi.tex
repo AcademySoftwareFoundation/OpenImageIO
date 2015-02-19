@@ -537,26 +537,47 @@ Shortcuts for passing attributes comprised of a single integer,
 floating-point value, or string.
 \apiend
 
-\apiitem{ImageIOParameter * {\ce find_attribute} (string_view name,\\
-\bigspc\bigspc\spc                           TypeDesc searchtype=UNKNOWN,\\
-\bigspc\bigspc\spc                           bool casesensitive=false)\\
-const ImageIOParameter * {\ce find_attribute} (string_view name,\\
-\bigspc\bigspc\spc                           TypeDesc searchtype=UNKNOWN,\\
-\bigspc\bigspc\spc                           bool casesensitive=false) const
-\\
-}
+\apiitem{void {\ce erase_attribute} (string_view name,\\
+\bigspc\bigspc                   TypeDesc searchtype=UNKNOWN,\\
+\bigspc\bigspc                   bool casesensitive=false)}
 
 Searches {\cf extra_attribs} for an attribute matching {\cf name},
-returning a pointer to the attribute record, or NULL if there was no
-match.  If {\cf searchtype} is {\cf TypeDesc::UNKNOWN}, the search will be made
-regardless of the data type, whereas other values of {\cf searchtype}
-will reject a matching name if the data type does not also match.  The
-name comparison will be exact if {\cf casesensitive} is true, otherwise
+and if it exists, remove it entirely from {\cf extra_attribs}.
+If {\cf searchtype} is anything other than {\cf TypeDesc::UNKNOWN},
+matches will be restricted only to attributes with the given type.
+The name comparison will be exact if {\cf casesensitive} is true, otherwise
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
-\apiitem{int {\ce get_int_attribute} (string_view name, int
-  defaultval=0) const}
+\apiitem{ImageIOParameter * {\ce find_attribute} (string_view name,\\
+\bigspc\bigspc\bigspc                        TypeDesc searchtype=UNKNOWN,\\
+\bigspc\bigspc\bigspc                        bool casesensitive=false)\\
+const ImageIOParameter * {\ce find_attribute} (string_view name,\\
+\bigspc\bigspc\bigspc\spc                     TypeDesc searchtype=UNKNOWN,\\
+\bigspc\bigspc\bigspc\spc                     bool casesensitive=false) const}
+
+Searches {\cf extra_attribs} for an attribute matching {\cf name},
+returning a pointer to the attribute record, or NULL if there was no
+match.  If {\cf searchtype} is anything other than {\cf TypeDesc::UNKNOWN},
+matches will be restricted only to attributes with the given type.
+The name comparison will be exact if {\cf casesensitive} is true, otherwise
+in a case-insensitive manner if {\cf caseinsensitive} is false.
+\apiend
+
+\apiitem{const ImageIOParameter * {\ce find_attribute} (string_view name,\\
+\bigspc\bigspc\bigspc\spc                     ImageIOParameter \&tmpparam,\\
+\bigspc\bigspc\bigspc\spc                     TypeDesc searchtype=UNKNOWN,\\
+\bigspc\bigspc\bigspc\spc                     bool casesensitive=false) const}
+Search for the named attribute and return the pointer to its
+{\cf ImageIOParameter} record, or {\cf NULL} if not found.  This variety of
+{\cf find_attribute(}) can retrieve items such as \qkw{width}, which are
+part of the \ImageSpec, but not in {\cf extra_attribs}. The {\cf tmpparam}
+is a temporary storage area owned by the caller, which is used as temporary
+buffer in cases where the information does not correspond to an actual
+{\cf extra_attribs} (in this case, the return value will be {\cf \&tmpparam}).
+\apiend
+
+\apiitem{int {\ce get_int_attribute} (string_view name, int defaultval=0) const}
 Gets an integer metadata attribute (silently converting to {\cf int}
 even if if the data is really int8, uint8, int16, uint16, or uint32),
 and simply substituting the supplied default value if no such metadata
@@ -564,8 +585,7 @@ exists.  This is a convenience function for when you know you are just
 looking for a simple integer value.
 \apiend
 
-\apiitem{float {\ce get_float_attribute} (string_view name,\\
-\bigspc\bigspc float defaultval=0) const}
+\apiitem{float {\ce get_float_attribute} (string_view name, float defaultval=0) const}
 Gets a float metadata attribute (silently converting to {\cf float} even
 if the data is really half or double), simply substituting the supplied
 default value if no such metadata exists.  This is a convenience
@@ -573,17 +593,17 @@ function for when you know you are just looking for a simple float value.
 \apiend
 
 \apiitem{string_view {\ce get_string_attribute} (string_view name, \\
-\bigspc\bigspc  string_view defaultval = string_view()) const}
+\bigspc\bigspc\bigspc  string_view defaultval = "") const}
 Gets a string metadata attribute, simply substituting the supplied
 default value if no such metadata exists.  This is a convenience
 function for when you know you are just looking for a simple string value.
 \apiend
 
 
-\apiitem{std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
+\apiitem{static std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
   bool human=true) const}
-For a given parameter (in this \ImageSpec's {\cf extra_attribs} field),
-format the value nicely as a string.  If {\cf human} is true, use
+For a given parameter {\cf p}, format the value nicely as a string.
+If {\cf human} is true, use
 especially human-readable explanations (units, or decoding of
 values) for certain known metadata.
 \apiend

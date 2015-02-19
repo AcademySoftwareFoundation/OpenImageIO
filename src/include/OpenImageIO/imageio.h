@@ -296,20 +296,40 @@ public:
         attribute (name, TypeDesc::STRING, &s);
     }
 
-    /// Remove the specified attribute from the list of extra
-    /// attributes. If not found, do nothing.
+    /// Remove the specified attribute from the list of extra_attribs. If
+    /// not found, do nothing.  If searchtype is anything but UNKNOWN,
+    /// restrict matches to only those of the given type. If casesensitive
+    /// is true, the name search will be case-sensitive, otherwise the name
+    /// search will be performed without regard to case (this is the
+    /// default).
     void erase_attribute (string_view name,
                           TypeDesc searchtype=TypeDesc::UNKNOWN,
                           bool casesensitive=false);
 
-    /// Search for a attribute of the given name in the list of extra
-    /// attributes.
+    /// Search for an attribute of the given name in the list of
+    /// extra_attribs. If searchtype is anything but UNKNOWN, restrict
+    /// matches to only those of the given type. If casesensitive is true,
+    /// the name search will be case-sensitive, otherwise the name search
+    /// will be performed without regard to case (this is the default).
     ImageIOParameter * find_attribute (string_view name,
                                        TypeDesc searchtype=TypeDesc::UNKNOWN,
                                        bool casesensitive=false);
     const ImageIOParameter *find_attribute (string_view name,
                                             TypeDesc searchtype=TypeDesc::UNKNOWN,
                                             bool casesensitive=false) const;
+
+    /// Search for the named attribute and return a pointer to an
+    /// ImageIOParameter record, or NULL if not found.  This variety of
+    /// find_attribute() can retrieve items such as "width", which are part
+    /// of the ImageSpec, but not in extra_attribs. The tmpparam is a
+    /// temporary storage area owned by the caller, which is used as
+    /// temporary buffer in cases where the information does not correspond
+    /// to an actual extra_attribs (in this case, the return value will be
+    /// &tmpparam).
+    const ImageIOParameter * find_attribute (string_view name,
+                         ImageIOParameter &tmpparam,
+                         TypeDesc searchtype=TypeDesc::UNKNOWN,
+                         bool casesensitive=false) const;
 
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
@@ -326,12 +346,11 @@ public:
     string_view get_string_attribute (string_view name,
                            string_view defaultval = string_view()) const;
 
-    /// For a given parameter (in this ImageSpec's extra_attribs),
-    /// format the value nicely as a string.  If 'human' is true, use
-    /// especially human-readable explanations (units, or decoding of
-    /// values) for certain known metadata.
-    std::string metadata_val (const ImageIOParameter &p,
-                              bool human=false) const;
+    /// For a given parameter p, format the value nicely as a string.  If
+    /// 'human' is true, use especially human-readable explanations (units,
+    /// or decoding of values) for certain known metadata.
+    static std::string metadata_val (const ImageIOParameter &p,
+                              bool human=false);
 
     /// Convert ImageSpec class into XML string.
     ///

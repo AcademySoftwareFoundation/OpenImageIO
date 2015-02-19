@@ -402,10 +402,70 @@ ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
 
 
 
+const ImageIOParameter *
+ImageSpec::find_attribute (string_view name, ImageIOParameter &tmpparam,
+                           TypeDesc searchtype, bool casesensitive) const
+{
+    ImageIOParameterList::const_iterator iter =
+        extra_attribs.find (name, searchtype, casesensitive);
+    if (iter != extra_attribs.end())
+        return &(*iter);
+    // Check named items in the ImageSpec structs, not in extra_attrubs
+#define MATCH(n,t) (((!casesensitive && Strutil::iequals(name,n)) || \
+                     ( casesensitive && name == n)) && \
+                    (searchtype == TypeDesc::UNKNOWN || searchtype == t))
+#define GETINT(n) if (MATCH(#n,TypeDesc::TypeInt)) { \
+                      tmpparam.init (#n, TypeDesc::TypeInt, 1, &this->n); \
+                      return &tmpparam; \
+                  }
+    GETINT(nchannels);
+    GETINT(width);
+    GETINT(height);
+    GETINT(depth);
+    GETINT(x);
+    GETINT(y);
+    GETINT(z);
+    GETINT(full_width);
+    GETINT(full_height);
+    GETINT(full_depth);
+    GETINT(full_x);
+    GETINT(full_y);
+    GETINT(full_z);
+    GETINT(tile_width);
+    GETINT(tile_height);
+    GETINT(tile_depth);
+    GETINT(alpha_channel);
+    GETINT(z_channel);
+    // some special cases
+    if (MATCH("geom", TypeDesc::TypeString)) {
+        ustring s = (depth <= 1 && full_depth <= 1)
+                    ? ustring::format ("%dx%d%+d%+d", width, height, x, y)
+                    : ustring::format ("%dx%dx%d%+d%+d%+d", width, height, depth, x, y, z);
+        tmpparam.init ("geom", TypeDesc::TypeString, 1, &s);
+        return &tmpparam;
+    }
+    if (MATCH("full_geom", TypeDesc::TypeString)) {
+        ustring s = (depth <= 1 && full_depth <= 1)
+                    ? ustring::format ("%dx%d%+d%+d",
+                                       full_width, full_height, full_x, full_y)
+                    : ustring::format ("%dx%dx%d%+d%+d%+d",
+                                       full_width, full_height, full_depth,
+                                       full_x, full_y, full_z);
+        tmpparam.init ("full_geom", TypeDesc::TypeString, 1, &s);
+        return &tmpparam;
+    }
+#undef GETINT
+#undef MATCH
+    return NULL;
+}
+
+
+
 int
 ImageSpec::get_int_attribute (string_view name, int val) const
 {
-    const ImageIOParameter *p = find_attribute (name);
+    ImageIOParameter tmpparam;
+    const ImageIOParameter *p = find_attribute (name, tmpparam);
     if (p) {
         if (p->type() == TypeDesc::INT)
             val = *(const int *)p->data();
@@ -432,7 +492,8 @@ ImageSpec::get_int_attribute (string_view name, int val) const
 float
 ImageSpec::get_float_attribute (string_view name, float val) const
 {
-    const ImageIOParameter *p = find_attribute (name);
+    ImageIOParameter tmpparam;
+    const ImageIOParameter *p = find_attribute (name, tmpparam);
     if (p) {
         if (p->type() == TypeDesc::FLOAT)
             val = *(const float *)p->data();
@@ -465,7 +526,8 @@ ImageSpec::get_float_attribute (string_view name, float val) const
 string_view
 ImageSpec::get_string_attribute (string_view name, string_view val) const
 {
-    const ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
+    ImageIOParameter tmpparam;
+    const ImageIOParameter *p = find_attribute (name, tmpparam, TypeDesc::STRING);
     if (p)
         return *(ustring *)p->data();
     else return val;
@@ -797,7 +859,7 @@ static ExplanationTableEntry explanation[] = {
 
 
 std::string
-ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
+ImageSpec::metadata_val (const ImageIOParameter &p, bool human)
 {
     std::string out = format_raw_metadata (p, human ? 16 : 1024);
 
