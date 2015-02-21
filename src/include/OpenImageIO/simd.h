@@ -1016,8 +1016,22 @@ OIIO_FORCEINLINE int extract (const int4& v) {
 #endif
 }
 
-/// The sum of all components.
-OIIO_FORCEINLINE int reduce_add (const int4& v) {
+
+/// Helper: substitute val for a[i]
+template<int i>
+OIIO_FORCEINLINE int4 insert (const int4& a, int val) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+    return _mm_insert_epi32 (a, val, i);
+#else
+    int4 tmp = a;
+    tmp[i] = val;
+    return tmp;
+#endif
+}
+
+
+/// The sum of all components, returned in all components.
+OIIO_FORCEINLINE int4 vreduce_add (const int4& v) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
     // People seem to agree that SSE3 does add reduction best with 2
     // horizontal adds.
@@ -1026,7 +1040,7 @@ OIIO_FORCEINLINE int reduce_add (const int4& v) {
     // ab_cd = (a+b, c+d, a+b, c+d)
     simd::int4 abcd = _mm_hadd_epi32 (ab_cd.simd(), ab_cd.simd());
     // all abcd elements are a+b+c+d, return an element as fast as possible
-    return _mm_cvtsi128_si32(abcd);
+    return abcd;
 #elif defined(OIIO_SIMD_SSE)
     // I think this is the best we can do for SSE2, and I'm still not sure
     // it's faster than the default scalar operation. But anyway...
@@ -1036,7 +1050,17 @@ OIIO_FORCEINLINE int reduce_add (const int4& v) {
     int4 cd_cd_ab_ab = shuffle<2,3,0,1>(ab_ab_cd_cd);
     // cd_cd_ab_ab = (c+d,c+d,a+b,a+b)
     int4 abcd = ab_ab_cd_cd + cd_cd_ab_ab;   // a+b+c+d in all components
-    return _mm_cvtsi128_si32(abcd);
+    return abcd;
+#else
+    return int4(v[0] + v[1] + v[2] + v[3]);
+#endif
+}
+
+
+/// The sum of all components, returned as a scalar.
+OIIO_FORCEINLINE int reduce_add (const int4& v) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_cvtsi128_si32(vreduce_add(v));
 #else
     return v[0] + v[1] + v[2] + v[3];
 #endif
@@ -1100,6 +1124,22 @@ OIIO_FORCEINLINE int4 blend0 (const int4& a, const mask4& mask)
                  mask[1] & a[1],
                  mask[2] & a[2],
                  mask[3] & a[3]);
+#endif
+}
+
+
+
+/// Use a mask to select between components of a (if mask[i] is FALSE) or
+/// 0 (if mask[i] is TRUE).
+OIIO_FORCEINLINE int4 blend0not (const int4& a, const mask4& mask)
+{
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_si128(_mm_castps_si128(mask), a.simd());
+#else
+    return int4 (mask[0] ? 0.0f : a[0],
+                 mask[1] ? 0.0f : a[1],
+                 mask[2] ? 0.0f : a[2],
+                 mask[3] ? 0.0f : a[3]);
 #endif
 }
 
@@ -1603,6 +1643,17 @@ public:
 #endif
     }
 
+    /// Return xyz components, plus 0 for w
+    float4 xyz0 () const {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+        return _mm_insert_ps (m_vec, _mm_set_ss(0.0f), 3<<4);
+#else
+        float4 tmp = m_vec;
+        tmp[3] = val;
+        return tmp;
+#endif
+    }
+
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, const float4& val) {
         return cout << val[0] << ' ' << val[1] << ' ' << val[2] << ' ' << val[3];
@@ -1682,6 +1733,19 @@ template<> OIIO_FORCEINLINE float extract<0> (const float4& a) {
 #endif
 
 
+/// Helper: substitute val for a[i]
+template<int i>
+OIIO_FORCEINLINE float4 insert (const float4& a, float val) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+    return _mm_insert_ps (a, _mm_set_ss(val), i<<4);
+#else
+    float4 tmp = a;
+    tmp[i] = val;
+    return tmp;
+#endif
+}
+
+
 OIIO_FORCEINLINE int4 bitcast_to_int4 (const mask4& x)
 {
 #if defined(OIIO_SIMD_SSE)
@@ -1710,8 +1774,8 @@ OIIO_FORCEINLINE float4 bitcast_to_float4 (const int4& x)
 }
 
 
-/// The sum of all components.
-OIIO_FORCEINLINE float reduce_add (const float4& v) {
+/// The sum of all components, returned in all components.
+OIIO_FORCEINLINE float4 vreduce_add (const float4& v) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
     // People seem to agree that SSE3 does add reduction best with 2
     // horizontal adds.
@@ -1719,8 +1783,8 @@ OIIO_FORCEINLINE float reduce_add (const float4& v) {
     simd::float4 ab_cd = _mm_hadd_ps (v.simd(), v.simd());
     // ab_cd = (a+b, c+d, a+b, c+d)
     simd::float4 abcd = _mm_hadd_ps (ab_cd.simd(), ab_cd.simd());
-    // all abcd elements are a+b+c+d, return an element as fast as possible
-    return _mm_cvtss_f32(abcd);
+    // all abcd elements are a+b+c+d
+    return abcd;
 #elif defined(OIIO_SIMD_SSE)
     // I think this is the best we can do for SSE2, and I'm still not sure
     // it's faster than the default scalar operation. But anyway...
@@ -1730,12 +1794,49 @@ OIIO_FORCEINLINE float reduce_add (const float4& v) {
     float4 cd_cd_ab_ab = shuffle<2,3,0,1>(ab_ab_cd_cd);
     // now y = (c+d,c+d,a+b,a+b)
     float4 abcd = ab_ab_cd_cd + cd_cd_ab_ab;   // a+b+c+d in all components
-    return _mm_cvtss_f32(abcd);
+    return abcd;
+#else
+    return float4 (v[0] + v[1] + v[2] + v[3]);
+#endif
+}
+
+
+/// The sum of all components, returned as a scalar.
+OIIO_FORCEINLINE float reduce_add (const float4& v) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_cvtss_f32(vreduce_add (v));
 #else
     return v[0] + v[1] + v[2] + v[3];
 #endif
 }
 
+
+
+/// Return the float dot (inner) product of a and b.
+OIIO_FORCEINLINE float dot (const float4 &a, const float4 &b) {
+    return reduce_add (a*b);
+}
+
+
+/// Return the float dot (inner) product of the first three components of
+/// a and b.
+OIIO_FORCEINLINE float dot3 (const float4 &a, const float4 &b) {
+    return reduce_add (insert<3>(a*b, 0.0f));
+}
+
+
+/// Return the dot (inner) product of a and b in every component of a
+/// float4.
+OIIO_FORCEINLINE float4 vdot (const float4 &a, const float4 &b) {
+    return vreduce_add (a*b);
+}
+
+
+/// Return the dot (inner) product of the first three components of
+/// a and b, in every product of a float4.
+OIIO_FORCEINLINE float4 vdot3 (const float4 &a, const float4 &b) {
+    return vreduce_add (insert<3>(a*b, 0.0f));
+}
 
 
 /// Use a mask to select between components of a (if mask[i] is false) and
@@ -1756,6 +1857,38 @@ OIIO_FORCEINLINE float4 blend (const float4& a, const float4& b, const mask4& ma
                    mask[3] ? b[3] : a[3]);
 #endif
 }
+
+
+/// Use a mask to select between components of a (if mask[i] is true) or
+/// 0 (if mask[i] is true).
+OIIO_FORCEINLINE float4 blend0 (const float4& a, const mask4& mask)
+{
+#if defined(OIIO_SIMD_SSE)
+    return _mm_and_ps(mask.simd(), a.simd());
+#else
+    return float4 (mask[0] ? a[0] : 0.0f,
+                   mask[1] ? a[1] : 0.0f,
+                   mask[2] ? a[2] : 0.0f,
+                   mask[3] ? a[3] : 0.0f);
+#endif
+}
+
+
+
+/// Use a mask to select between components of a (if mask[i] is FALSE) or
+/// 0 (if mask[i] is TRUE).
+OIIO_FORCEINLINE float4 blend0not (const float4& a, const mask4& mask)
+{
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_ps(mask.simd(), a.simd());
+#else
+    return float4 (mask[0] ? 0.0f : a[0],
+                   mask[1] ? 0.0f : a[1],
+                   mask[2] ? 0.0f : a[2],
+                   mask[3] ? 0.0f : a[3]);
+#endif
+}
+
 
 
 /// Per-element absolute value.
@@ -1918,6 +2051,35 @@ OIIO_FORCEINLINE void transpose (const int4& a, const int4& b, const int4& c, co
     r1.load (a[1], b[1], c[1], d[1]);
     r2.load (a[2], b[2], c[2], d[2]);
     r3.load (a[3], b[3], c[3], d[3]);
+#endif
+}
+
+
+
+/// Make a float4 consisting of the first element of each of 4 float4's.
+OIIO_FORCEINLINE float4 AxBxCxDx (const float4& a, const float4& b,
+                                  const float4& c, const float4& d)
+{
+#if defined(OIIO_SIMD_SSE)
+    float4 l02 = _mm_unpacklo_ps (a, c);
+    float4 l13 = _mm_unpacklo_ps (b, d);
+    return _mm_unpacklo_ps (l02, l13);
+#else
+    return float4 (a[0], b[0], c[0], d[0]);
+#endif
+}
+
+
+/// Make an int4 consisting of the first element of each of 4 int4's.
+OIIO_FORCEINLINE int4 AxBxCxDx (const int4& a, const int4& b,
+                                const int4& c, const int4& d)
+{
+#if defined(OIIO_SIMD_SSE)
+    float4 l02 = _mm_unpacklo_epi32 (a, c);
+    float4 l13 = _mm_unpacklo_epi32 (b, d);
+    return _mm_unpacklo_epi32 (l02, l13);
+#else
+    return int4 (a[0], b[0], c[0], d[0]);
 #endif
 }
 
