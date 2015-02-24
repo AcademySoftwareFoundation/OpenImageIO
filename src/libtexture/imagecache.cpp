@@ -117,8 +117,8 @@ iotime_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 static bool
 iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 {
-    double arate = a->bytesread()/(1024.0*1024.0) / a->iotime();
-    double brate = b->bytesread()/(1024.0*1024.0) / b->iotime();
+    double arate = (a->iotime() == 0)? 0 : a->bytesread()/(1024.0*1024.0) / a->iotime();
+    double brate = (b->iotime() == 0)? 0 : b->bytesread()/(1024.0*1024.0) / b->iotime();
     return arate < brate;
 }
 
@@ -1062,7 +1062,7 @@ ImageCacheImpl::find_file (ustring filename,
 #endif
     }
 
-    // Part 2 - open tihe file if it's never been opened before.
+    // Part 2 - open the file if it's never been opened before.
     // No need to have the file cache locked for this, though we lock
     // the tf->m_input_mutex if we need to open it.
     if (! tf->validspec()) {
