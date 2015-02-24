@@ -516,7 +516,7 @@ TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
         //    aliasing along the major axis.  You can't please everybody.
         if (options.conservative_filter) {
 #if 0
-            // Soltion (a) -- never alias by blurring more along minor axis
+            // Solution (a) -- never alias by blurring more along minor axis
             minorlength = majorlength / options.anisotropic;
 #else
             // Solution (c) -- this is our default, usually a nice balance.
