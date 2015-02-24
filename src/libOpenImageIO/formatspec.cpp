@@ -537,6 +537,16 @@ ImageSpec::get_string_attribute (string_view name, string_view val) const
 
 namespace {  // make an anon namespace
 
+template < typename T >
+void formatType(const ImageIOParameter& p, const int n, const TypeDesc& element, const char* formatString, std::string& out) {
+  const T *f = (const T *)p.data();
+  for (int i = 0;  i < n;  ++i) {
+      if (i)
+          out += ", ";
+      for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
+          out += Strutil::format (formatString, (c ? " " : ""), f[0]);
+  }
+}
 
 static std::string
 format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
@@ -545,59 +555,33 @@ format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
     TypeDesc element = p.type().elementtype();
     int nfull = p.type().numelements() * p.nvalues();
     int n = std::min (nfull, maxsize);
-    if (element == TypeDesc::STRING) {
+    if (element.basetype == TypeDesc::STRING) {
         for (int i = 0;  i < n;  ++i) {
             const char *s = ((const char **)p.data())[i];
             out += Strutil::format ("%s\"%s\"", (i ? ", " : ""), s ? s : "");
         }
     } else if (element.basetype == TypeDesc::FLOAT) {
-        const float *f = (const float *)p.data();
-        for (int i = 0;  i < n;  ++i) {
-            if (i)
-                out += ", ";
-            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
-                out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
-        }
+        formatType< float >(p, n, element, "%s%g", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {
-        const double *f = (const double *)p.data();
-        for (int i = 0;  i < n;  ++i) {
-            if (i)
-                out += ", ";
-            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
-                out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
-        }
+        formatType< double >(p, n, element, "%s%g", out);
     } else if (element.basetype == TypeDesc::HALF) {
-        const half *f = (const half *)p.data();
-        for (int i = 0;  i < n;  ++i) {
-            if (i)
-                out += ", ";
-            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
-                out += Strutil::format ("%s%g", (c ? " " : ""), (float)f[0]);
-        }
-    } else if (element == TypeDesc::INT) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const int *)p.data())[i]);
-    } else if (element == TypeDesc::UINT) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const unsigned int *)p.data())[i]);
-    } else if (element == TypeDesc::UINT16) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%u", (i ? ", " : ""), ((const unsigned short *)p.data())[i]);
-    } else if (element == TypeDesc::INT16) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
-    } else if (element == TypeDesc::UINT64) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%llu", (i ? ", " : ""), ((const unsigned long long *)p.data())[i]);
-    } else if (element == TypeDesc::INT64) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
-    } else if (element == TypeDesc::UINT8) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const unsigned char *)p.data())[i]));
-    } else if (element == TypeDesc::INT8) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%d", (i ? ", " : ""), int(((const char *)p.data())[i]));
+        formatType< half >(p, n, element, "%s%g", out);
+    } else if (element.basetype == TypeDesc::INT) {
+        formatType< int >(p, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT) {
+        formatType< unsigned int >(p, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT16) {
+        formatType< unsigned short >(p, n, element, "%s%u", out);
+    } else if (element.basetype == TypeDesc::INT16) {
+        formatType< short >(p, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT64) {
+        formatType< unsigned long long >(p, n, element, "%s%llu", out);
+    } else if (element.basetype == TypeDesc::INT64) {
+        formatType< long long >(p, n, element, "%s%lld", out);
+    } else if (element.basetype == TypeDesc::UINT8) {
+        formatType< unsigned char >(p, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::INT8) {
+        formatType< char >(p, n, element, "%s%d", out);
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 p.type().basetype, p.type().aggregate,
@@ -607,8 +591,6 @@ format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
         out += ", ...";
     return out;
 }
-
-
 
 struct LabelTable {
     int value;
