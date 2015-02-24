@@ -199,7 +199,12 @@ Filesystem::get_directory_entries (const std::string &dirname,
     if (dirname.size() && ! is_directory(dirname))
         return false;
     boost::filesystem::path dirpath (dirname.size() ? dirname : std::string("."));
-    boost::regex re (filter_regex);
+    boost::regex re;
+    try {
+        re = boost::regex(filter_regex);
+    } catch (...) {
+        return false;
+    }
 
     if (recursive) {
         for (boost::filesystem::recursive_directory_iterator s (dirpath);
