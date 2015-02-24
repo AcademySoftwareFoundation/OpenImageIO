@@ -241,12 +241,14 @@ struct OIIO_API TypeDesc {
     /// inequality is differing vector semantics.
     friend bool equivalent (const TypeDesc &a, const TypeDesc &b) {
         return a.basetype == b.basetype && a.aggregate == b.aggregate &&
-               a.arraylen == b.arraylen;
+               (a.arraylen == b.arraylen || (a.arraylen == -1 && b.arraylen > 0)
+                                         || (a.arraylen > 0   && b.arraylen == -1));
     }
     /// Member version of equivalent
     bool equivalent (const TypeDesc &b) const {
         return this->basetype == b.basetype && this->aggregate == b.aggregate &&
-               this->arraylen == b.arraylen;
+               (this->arraylen == b.arraylen || (this->arraylen == -1 && b.arraylen > 0)
+                                             || (this->arraylen > 0   && b.arraylen == -1));
     }
 
     /// Is this a 3-vector aggregate (of the given type, float by default)?
