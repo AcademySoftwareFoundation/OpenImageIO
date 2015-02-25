@@ -440,6 +440,7 @@ public:
     /// Do the two ID's refer to the same tile?  
     ///
     bool operator== (const TileID &b) const { return equal (*this, b); }
+    bool operator!= (const TileID &b) const { return ! equal (*this, b); }
 
     /// Digest the TileID into a size_t to use as a hash key.
     size_t hash () const {
@@ -462,6 +463,13 @@ public:
       public:
         size_t operator() (const TileID &a) const { return a.hash(); }
     };
+
+    friend std::ostream& operator<< (std::ostream& o, const TileID &id) {
+        return (o << "{xyz=" << id.m_x << ',' << id.m_y << ',' << id.m_z
+                  << ", sub=" << id.m_subimage << ", mip=" << id.m_miplevel
+                  << ' ' << (id.m_file ? ustring("nofile") : id.m_file->filename())
+                  << '}');
+    }
 
 private:
     int m_x, m_y, m_z;        ///< x,y,z tile index within the subimage
