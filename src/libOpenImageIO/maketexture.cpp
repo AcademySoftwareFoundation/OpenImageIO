@@ -857,6 +857,14 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         }
     }
 
+    // Write the texture to a temp file first, then rename it to the final
+    // destination (same directory). This improves robustness. There is less
+    // chance a crash during texture conversion will leave behind a
+    // partially formed tx with incomplete mipmaps levels which happesn to
+    // be extremely slow to use in a raytracer.
+    std::string extension = Filesystem::extension(outputfilename);
+    std::string tmpfilename = Filesystem::replace_extension (outputfilename, ".temp"+extension);
+
     // When was the input file last modified?
     // This is only used when we're reading from a filename
     std::time_t in_time;
@@ -1481,7 +1489,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
 
     // Write out, and compute, the mipmap levels for the speicifed image
     bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap") != 0;
-    bool ok = write_mipmap (mode, toplevel, dstspec, outputfilename,
+    bool ok = write_mipmap (mode, toplevel, dstspec, tmpfilename,
                             out, out_dataformat, !shadowmode && !nomipmap,
                             filtername, configspec, outstream,
                             stat_writetime, stat_miptime, peak_mem);
@@ -1490,7 +1498,18 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
     if (ok && updatemode && from_filename)
-        Filesystem::last_write_time (outputfilename, in_time);
+        Filesystem::last_write_time (tmpfilename, in_time);
+
+    // Since we wrote the texture to a temp file first, now we rename it to
+    // the final destination.
+    if (ok) {
+        std::string err;
+        ok = Filesystem::rename (tmpfilename, outputfilename, err);
+        if (! ok)
+            outstream << "maketx ERROR: could not rename file: " << err << "\n";
+    }
+    if (! ok)
+        Filesystem::remove (tmpfilename);
 
     if (verbose || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();
