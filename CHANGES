@@ -4,6 +4,13 @@ Release 1.6 (in progress) -- compared to 1.5.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool functionality:
+    * Expression evaluation/substitution on the oiiotool command line.
+      Anything enclosed in braces { } in a command line argument will be
+      substituted by the evaluation of the enclosed expression. Expressions
+      may be numbers, simple arithmetic (like 'expr+expr'), or retrieving
+      image metadata from named images or images on the stack.
+      Please see the PDF documentation, Section 12.1 for details and
+      examples.
     * --absdiff, --absdiffc compute the absolute difference (abs(A-B)) of
       two images, or between an image and a constant color. #1029 (1.6.0)
     * --abs computes the absolute value of an image.  #1029 (1.6.0)
@@ -55,6 +62,16 @@ Public API changes:
    image formats that support an alpha channel, supports("nchannels") should
    be true for output formats that support an arbitrary number of output
    channels. (1.6.1)
+ * ImageSpec::metadata_val() is now static, rather than simply const,
+   since it doesn't need access to *this at all. #1063 (1.6.1)
+ * Added a new variety of ImageSpec::find_attribute that takes a temporary
+   ImageIOParameter as scratch space. The advantage of this call is that it
+   can retrieve items from the named ImageSpec fields, such as "width",
+   "full_x", etc. Also, the get_int_attribute, get_float_attribute, and
+   get_string_attribute can now retrieve these fixed fields as well.
+   #1063 (1.6.1)
+ * Python bindings:
+    * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -64,7 +81,11 @@ Fixes, minor enhancements, and performance improvements:
       now it's just a warning, and extra channels are dropped. It tries to
       to find R, G, B, and A channels, saving them. If those names are
       not found, it just saves the first 3 (or 4) channels. #1058 (1.6.1)
- * maketx & TextureSystem:
+    * Improve error messages when files can't be read. It is now easier
+      to to distinguish files that don't exist from those that are an
+      unknown format from those that are corrupted or have read
+      errors. #1065 (1.6.1)
+* maketx & TextureSystem:
     * Fix broken bicubic texture sampling with non-power-of-two sized
       tiles. #1035 (1.6.0/1.5.10)
     * maketx: when the source image was a crop (data window != display
@@ -83,7 +104,7 @@ Fixes, minor enhancements, and performance improvements:
  * JPEG:
     * Now properly read/write xdensity and ydensity (what OIIO and TIFF
       call "XResolution" and "YResolution" and, therefore,
-      "PixelAspectRatio". #1042 (1.6.0)
+      "PixelAspectRatio". #1042 #1066 (1.6.0, 1.6.1)
     * Support JPEG files encoded as CMYK (by converting to RGB upon read)
       #1044 (1.6.1)
  * TIFF:
