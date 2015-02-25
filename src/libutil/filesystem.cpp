@@ -322,7 +322,31 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 # else
     boost::filesystem::copy (from.str(), to.str(), ec);
 # endif
-    if (ec) {
+    if (! ec) {
+        err.clear();
+        return true;
+    } else {
+        err = ec.message();
+        return false;
+    }
+#else
+    return false; // I'm too lazy to figure this out.
+#endif
+}
+
+
+
+bool
+Filesystem::rename (string_view from, string_view to, std::string &err)
+{
+#if BOOST_FILESYSTEM_VERSION >= 3
+    boost::system::error_code ec;
+# if BOOST_VERSION < 105000
+    boost::filesystem3::rename (from.str(), to.str(), ec);
+# else
+    boost::filesystem::rename (from.str(), to.str(), ec);
+# endif
+    if (! ec) {
         err.clear();
         return true;
     } else {

@@ -155,6 +155,14 @@ inline bool copy (string_view from, string_view to) {
     return copy (from, to, err);
 }
 
+/// Rename (or move) a file, directory, or link.  Return true upon success,
+/// false upon failure and place an error message in err.
+OIIO_API bool rename (string_view from, string_view to, std::string &err);
+inline bool rename (string_view from, string_view to) {
+    std::string err;
+    return rename (from, to, err);
+}
+
 /// Remove the file or directory. Return true for success, false for
 /// failure and place an error message in err.
 OIIO_API bool remove (string_view path, std::string &err);
