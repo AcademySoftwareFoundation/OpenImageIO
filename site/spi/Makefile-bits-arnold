@@ -60,7 +60,7 @@ ifeq ($(SP_OS), spinux1)
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
     ifeq (${LLVM_DIRECTORY},)
-        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.4.1
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
     endif
 
     # default compiler is clang, taken from the LLVM directory
@@ -85,6 +85,11 @@ ifeq ($(SP_OS), spinux1)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang++
+    endif
+    ifeq (${COMPILER}, clang342)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
+           -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
     endif
     ifeq (${COMPILER}, gcc463)
       MY_CMAKE_FLAGS += \
