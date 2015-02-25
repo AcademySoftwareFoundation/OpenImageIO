@@ -273,7 +273,7 @@ public:
     }
     string_view name (void) const { return "blackman-harris"; }
     static float bh1d (float x) {
-	if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
+    if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
             return 0.0f;
         // Compute BH.  Straight from classic BH paper, but the usual
         // formula assumes that the filter is centered at 0.5, so scale:
@@ -351,21 +351,22 @@ private:
 
 
 
-class FilterLanczos3_1D : public Filter1D {
+class FilterLanczos_1D : public Filter1D {
 public:
-    FilterLanczos3_1D (float /*width*/) : Filter1D(6.0f) { }
-    ~FilterLanczos3_1D (void) { }
-    float operator() (float x) const {
-        return lanczos3 (x);
+    FilterLanczos_1D (float width)
+        : Filter1D(width)
+    { m_a = width / 2.0f; }
+    virtual ~FilterLanczos_1D (void) { }
+    virtual float operator() (float x) const {
+        return lanczos (x, m_a);
     }
-    string_view name (void) const { return "lanczos3"; }
+    virtual string_view name (void) const { return "lanczos"; }
 
-    static float lanczos3 (float x) {
-        const float a = 3.0f;  // Lanczos 3 lobe
+    static float lanczos (float x, float a) {
         x = fabsf(x);
         if (x > a)
              return 0.0f;
-        if (x < 0.0001f)
+        if (x < 0.0001f) // should this be (x <= 0.0f) instead ? referring to http://en.wikipedia.org/wiki/Lanczos_resampling
             return 1.0f;
         const float m_pi = float (M_PI);
         const float ainv = 1.0f/a;
@@ -379,37 +380,78 @@ public:
         return a/(x*x*(m_pi*m_pi)) * sinf(pix)*sinf(pix*ainv);
 #endif
     }
+protected:
+    float m_a;
+};
+
+
+class FilterLanczos_2D : public Filter2D {
+public:
+    FilterLanczos_2D (float width, float height)
+        : Filter2D(width,height) {
+        m_ax = width / 2.0f;
+        m_ay = height / 2.0f;
+    }
+    virtual ~FilterLanczos_2D (void) { }
+    virtual float operator() (float x, float y) const {
+        return FilterLanczos_1D::lanczos(x, m_ax) * FilterLanczos_1D::lanczos(y, m_ay);
+    }
+    virtual bool separable (void) const { return true; }
+    float xfilt (float x) const { return FilterLanczos_1D::lanczos(x, m_ax); }
+    float yfilt (float y) const { return FilterLanczos_1D::lanczos(y, m_ay); }
+    virtual string_view name (void) const { return "lanczos"; }
+protected:
+    float m_ax;
+    float m_ay;
 };
 
 
 
-class FilterLanczos3_2D : public Filter2D {
+class FilterLanczos2_1D : public FilterLanczos_1D {
 public:
-    FilterLanczos3_2D (float /*width*/, float /*height*/)
-        : Filter2D(6.0f,6.0f)
-    { }
-    ~FilterLanczos3_2D (void) { }
-    float operator() (float x, float y) const {
-        return FilterLanczos3_1D::lanczos3(x) * FilterLanczos3_1D::lanczos3(y);
-    }
-    bool separable (void) const { return true; }
-    float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x); }
-    float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y); }
-    string_view name (void) const { return "lanczos3"; }
+    FilterLanczos2_1D (float /*width*/) : FilterLanczos_1D(4.0f) { }
+    virtual ~FilterLanczos2_1D (void) { }
+    virtual string_view name (void) const { return "lanczos2"; }
+};
+
+
+
+class FilterLanczos2_2D : public FilterLanczos_2D {
+public:
+    FilterLanczos2_2D (float /*width*/, float /*height*/) : FilterLanczos_2D(4.0f,4.0f) { }
+    virtual ~FilterLanczos2_2D (void) { }
+    virtual string_view name (void) const { return "lanczos2"; }
+};
+
+
+
+class FilterLanczos3_1D : public FilterLanczos_1D {
+public:
+    FilterLanczos3_1D (float /*width*/) : FilterLanczos_1D(6.0f) { }
+    virtual ~FilterLanczos3_1D (void) { }
+    virtual string_view name (void) const { return "lanczos3"; }
+};
+
+
+
+class FilterLanczos3_2D : public FilterLanczos_2D {
+public:
+    FilterLanczos3_2D (float /*width*/, float /*height*/) : FilterLanczos_2D(6.0f,6.0f) { }
+    virtual ~FilterLanczos3_2D (void) { }
+    virtual string_view name (void) const { return "lanczos3"; }
 };
 
 
 
 class FilterRadialLanczos3_2D : public FilterLanczos3_2D {
 public:
-    FilterRadialLanczos3_2D (float /*width*/, float /*height*/)
-        : FilterLanczos3_2D(6.0f,6.0f)
-    { }
-    float operator() (float x, float y) const {
-        return FilterLanczos3_1D::lanczos3(sqrtf(x*x + y*y));
+    FilterRadialLanczos3_2D (float /*width*/, float /*height*/) : FilterLanczos3_2D(6.0f,6.0f) { }
+    virtual ~FilterRadialLanczos3_2D (void) { }
+    virtual float operator() (float x, float y) const {
+        return FilterLanczos_1D::lanczos(sqrtf(x*x + y*y),m_ax);
     }
-    bool separable (void) const { return false; }
-    string_view name (void) const { return "radial-lanczos3"; }
+    virtual bool separable (void) const { return false; }
+    virtual string_view name (void) const { return "radial-lanczos3"; }
 };
 
 
@@ -566,16 +608,16 @@ public:
     virtual string_view name (void) const { return "cubic"; }
 protected:
     float m_a;
-	float m_rad_inv;
+    float m_rad_inv;
 };
 
 
 
 class FilterCubic2D : public Filter2D {
 public:
-	FilterCubic2D (float width, float height)
-		: Filter2D(width,height), m_a(0.0f)
-		, m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
+    FilterCubic2D (float width, float height)
+        : Filter2D(width,height), m_a(0.0f)
+        , m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
     ~FilterCubic2D (void) { }
     float operator() (float x, float y) const {
         return FilterCubic1D::cubic(x * m_wrad_inv, m_a)
@@ -657,6 +699,8 @@ FilterDesc filter1d_list[] = {
     { "catrom",          1,   4,    true,     false,    true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
+    { "lanczos",         1,   2,    false,    false,    true },
+    { "lanczos2",        1,   4,    true,     false,    true },
     { "lanczos3",        1,   6,    true,     false,    true },
     { "mitchell",        1,   4,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true },
@@ -703,7 +747,11 @@ Filter1D::create (string_view filtername, float width)
         return new FilterBlackmanHarris1D (width);
     if (filtername == "sinc")
         return new FilterSinc1D (width);
-    if (filtername == "lanczos3" || filtername == "lanczos")
+    if (filtername == "lanczos")
+        return new FilterLanczos_1D (width);
+    if (filtername == "lanczos2")
+        return new FilterLanczos2_1D (width);
+    if (filtername == "lanczos3")
         return new FilterLanczos3_1D (width);
     if (filtername == "mitchell")
         return new FilterMitchell1D (width);
@@ -739,6 +787,8 @@ static FilterDesc filter2d_list[] = {
     { "catrom",          2,   4,    true,     false,    true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
+    { "lanczos",         2,   2,    false,    false,    true  },
+    { "lanczos2",        2,   4,    true,     false,    true  },
     { "lanczos3",        2,   6,    true,     false,    true  },
     { "radial-lanczos3", 2,   6,    true,     false,    false },
     { "mitchell",        2,   4,    false,    true,     true  },
@@ -787,7 +837,11 @@ Filter2D::create (string_view filtername, float width, float height)
         return new FilterBlackmanHarris2D (width, height);
     if (filtername == "sinc")
         return new FilterSinc2D (width, height);
-    if (filtername == "lanczos3" || filtername == "lanczos")
+    if (filtername == "lanczos")
+        return new FilterLanczos_2D (width, height);
+    if (filtername == "lanczos2")
+        return new FilterLanczos2_2D (width, height);
+    if (filtername == "lanczos3")
         return new FilterLanczos3_2D (width, height);
     if (filtername == "radial-lanczos3" || filtername == "radial-lanczos")
         return new FilterRadialLanczos3_2D (width, height);
