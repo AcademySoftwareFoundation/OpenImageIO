@@ -12,7 +12,21 @@ Release 1.5.13 (?? 2015) -- compared to 1.5.12)
    now it's just a warning, and extra channels are dropped. It tries to
    to find R, G, B, and A channels, saving them. If those names are
    not found, it just saves the first 3 (or 4) channels. #1058
- * Improved handling of "PixelAspectRatio" for JPEG, TIFF, and OpenEXR. #1042
+ * Improved handling of "PixelAspectRatio" for JPEG, TIFF, and OpenEXR.
+   #1042 #1066
+ * oiiotool: Improve error messages when files can't be read. It is now
+   easier to to distinguish files that don't exist from those that
+   are an unknown format from those that are corrupted or have read
+   errors. #1065
+ * maketx now writes to a temporary file, then moving it to the final
+   requested output filename only when the write completed without error.
+   This prevents situations where maketx crashes or is killed and leaves
+   behind a file that looks correct but is actually corrupted or
+   truncated. #1072
+ * Python: added previously-M.I.A. ImageSpec.erase_attribute(). #1063
+ * Add Filesystem::rename() utility. #1070
+ * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
+   length with ones of definite length. #1072
 
 Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
 ----------------------------------------------
