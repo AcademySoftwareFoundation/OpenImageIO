@@ -763,7 +763,7 @@ Strutil::parse_nested (string_view &str, bool eat)
 
     // Walk forward in the string until we exactly unnest compared to the
     // start.
-    int len = 1;
+    size_t len = 1;
     int nesting = 1;
     for ( ; nesting && len < p.size(); ++len) {
         if (p[len] == opening)
