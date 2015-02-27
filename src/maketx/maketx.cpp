@@ -345,6 +345,10 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
             configspec.format = TypeDesc::FLOAT;
         else if (dataformatname == "double")
             configspec.format = TypeDesc::DOUBLE;
+        else {
+            std::cerr << "maketx ERROR: unknown data format \"" << dataformatname << "\"\n";
+            exit (EXIT_FAILURE);
+        }
     }
 
     configspec.tile_width  = tile[0];

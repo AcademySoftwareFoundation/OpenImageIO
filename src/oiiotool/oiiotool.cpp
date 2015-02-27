@@ -778,6 +778,8 @@ set_dataformat (int argc, const char *argv[])
         ot.output_bitspersample = 0;
         string_to_dataformat (chans[0], ot.output_dataformat,
                               ot.output_bitspersample);
+        if (ot.output_dataformat == TypeDesc::UNKNOWN)
+            ot.error (command, Strutil::format ("Unknown data format \"%s\"", chans[0]));
         ot.output_channelformats.clear ();
         return 0;  // we're done
     }
