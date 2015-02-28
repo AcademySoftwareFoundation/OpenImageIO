@@ -61,7 +61,7 @@ Public API changes:
  * New ImageOutput::supports() tags: supports("alpha") should be true for
    image formats that support an alpha channel, supports("nchannels") should
    be true for output formats that support an arbitrary number of output
-   channels. (1.6.1)
+   channels. (1.6.2/1.5.13)
  * ImageSpec::metadata_val() is now static, rather than simply const,
    since it doesn't need access to *this at all. #1063 (1.6.1)
  * Added a new variety of ImageSpec::find_attribute that takes a temporary
@@ -74,7 +74,7 @@ Public API changes:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
  * ImageInput and ImageOutput supports() method has been changed to accept
    a string_view (rather than a const std::string&), and return an int
-   (rather than a bool). (1.6.1)
+   (rather than a bool). (1.6.2)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -88,12 +88,21 @@ Fixes, minor enhancements, and performance improvements:
       to to distinguish files that don't exist from those that are an
       unknown format from those that are corrupted or have read
       errors. #1065 (1.6.1)
-* maketx & TextureSystem:
+    * Flag errors properly when -d specifies an unknown data format name.
+      #1077 (1.5.13)
+ * maketx & TextureSystem:
     * Fix broken bicubic texture sampling with non-power-of-two sized
       tiles. #1035 (1.6.0/1.5.10)
     * maketx: when the source image was a crop (data window != display
       window), and the sharpening filters were used, it would
       incorrectly issue an "unknown filter name" error. #1059 (1.6.1/1.5.12)
+    * maketx: Flag errors properly when -d specifies an unknown data
+      format name. #1077 (1.5.13)
+    * maketx now writes to a temporary file, then moving it to the final
+      requested output filename only when the write completed without
+      error.  This prevents situations where maketx crashes or is killed
+      and leaves behind a file that looks correct but is actually
+      corrupted or truncated. #1072 (1.6.2/1.5.13)
  * OpenEXR:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Fix read_deep_tiles() error when not starting at the image origin.
@@ -131,6 +140,9 @@ Build/test system improvements:
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1)
+ * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
+   length with ones of definite length. #1072  (1.6.2/1.5.13)
+ * Add Filesystem::rename() utility. #1070  (1.6.2/1.5.13)
 
 
 
