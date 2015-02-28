@@ -355,12 +355,22 @@ public:
 
     /// Define an opaque data type that allows us to have a pointer
     /// to certain per-thread information that the TextureSystem maintains.
+    /// Any given one of these should NEVER be shared between running
+    /// threads.
     class Perthread;
 
-    /// Retrieve an opaque handle for per-thread info, to be used for
-    /// get_texture_handle and the texture routines that take handles
-    /// directly.
+    /// Retrieve a Perthread, unique to the calling thread. This is a
+    /// thread-specific pointer that will always return the Perthread for a
+    /// thread, which will also be automatically destroyed when the thread
+    /// terminates.
     virtual Perthread * get_perthread_info () = 0;
+
+    /// Create a new Perthread. It is the caller's responsibility to
+    /// eventually destroy it using destroy_thread_info().
+    virtual Perthread * create_thread_info () = 0;
+
+    /// Destroy a Perthread that was allocated by create_thread_info().
+    virtual void destroy_thread_info (Perthread *threadinfo) = 0;
 
     /// Define an opaque data type that allows us to have a handle to a
     /// texture (already having its name resolved) but without exposing

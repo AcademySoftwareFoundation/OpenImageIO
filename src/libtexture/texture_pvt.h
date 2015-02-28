@@ -116,8 +116,16 @@ public:
         result = m_Mc2w;
     }
 
-    virtual Perthread *get_perthread_info (void) {
+    virtual Perthread *get_perthread_info () {
         return (Perthread *)m_imagecache->get_perthread_info ();
+    }
+    virtual Perthread *create_thread_info () {
+        ASSERT (m_imagecache);
+        return (Perthread *)m_imagecache->create_thread_info ();
+    }
+    virtual void destroy_thread_info (Perthread *threadinfo) {
+        ASSERT (m_imagecache);
+        m_imagecache->destroy_thread_info ((ImageCachePerThreadInfo *)threadinfo);
     }
 
     virtual TextureHandle *get_texture_handle (ustring filename,

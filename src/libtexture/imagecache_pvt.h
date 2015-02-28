@@ -603,9 +603,14 @@ public:
     ImageCachePerThreadInfo ()
         : next_last_file(0), shared(false)
     {
+        // std::cout << "Creating PerThreadInfo " << (void*)this << "\n";
         for (int i = 0;  i < nlastfile;  ++i)
             last_file[i] = NULL;
         purge = 0;
+    }
+
+    ~ImageCachePerThreadInfo () {
+        // std::cout << "Destroying PerThreadInfo " << (void*)this << "\n";
     }
 
     // Add a new filename/fileptr pair to our microcache
@@ -888,9 +893,9 @@ public:
     /// Append a string to the current error message
     void append_error (const std::string& message) const;
 
-    /// Get a pointer to the caller's thread's per-thread info, or create
-    /// one in the first place if there isn't one already.
-    virtual ImageCachePerThreadInfo *get_perthread_info ();
+    virtual Perthread * get_perthread_info ();
+    virtual Perthread * create_thread_info ();
+    virtual void destroy_thread_info (Perthread *threadinfo);
 
     /// Called when the IC is destroyed.  We have a list of all the 
     /// perthread pointers -- go through and delete the ones for which we
@@ -949,7 +954,7 @@ private:
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
-    static mutex m_perthread_info_mutex; ///< Thread safety for perthread
+    static spin_mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
     atomic_ll m_max_memory_bytes;
     std::string m_searchpath;    ///< Colon-separated image directory list

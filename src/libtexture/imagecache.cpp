@@ -68,7 +68,7 @@ namespace pvt {
 // The static perthread mutex needs to outlive the shared_image_cache
 // instance, so must be declared first in this file to avoid static
 // initialization order problems.
-mutex ImageCacheImpl::m_perthread_info_mutex;
+spin_mutex ImageCacheImpl::m_perthread_info_mutex;
 
 }
 
@@ -1430,7 +1430,7 @@ void
 ImageCacheImpl::mergestats (ImageCacheStatistics &stats) const
 {
     stats.init ();
-    lock_guard lock (m_perthread_info_mutex);
+    spin_lock lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
         stats.merge (m_all_perthread_info[i]->m_stats);
 }
@@ -1544,7 +1544,7 @@ ImageCacheImpl::getstats (int level) const
             out << "    File I/O time : " 
                 << Strutil::timeintervalformat (stats.fileio_time);
             {
-                lock_guard lock (m_perthread_info_mutex);
+                spin_lock lock (m_perthread_info_mutex);
                 size_t nthreads = m_all_perthread_info.size();
                 if (nthreads > 1) {
                     double perthreadtime = stats.fileio_time / (float)nthreads;
@@ -1713,7 +1713,7 @@ void
 ImageCacheImpl::reset_stats ()
 {
     {
-        lock_guard lock (m_perthread_info_mutex);
+        spin_lock lock (m_perthread_info_mutex);
         for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
             m_all_perthread_info[i]->m_stats.init ();
     }
@@ -2851,6 +2851,36 @@ ImageCacheImpl::invalidate_all (bool force)
 
 
 ImageCachePerThreadInfo *
+ImageCacheImpl::create_thread_info ()
+{
+    ImageCachePerThreadInfo *p = new ImageCachePerThreadInfo;
+    // printf ("New perthread %p\n", (void *)p);
+    spin_lock lock (m_perthread_info_mutex);
+    m_all_perthread_info.push_back (p);
+    p->shared = true;  // both the IC and the caller point to it
+    return p;
+}
+
+
+
+void
+ImageCacheImpl::destroy_thread_info (ImageCachePerThreadInfo *thread_info)
+{
+    if (! thread_info)
+        return;
+    spin_lock lock (m_perthread_info_mutex);
+    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
+        if (m_all_perthread_info[i] == thread_info) {
+            m_all_perthread_info[i] = NULL;
+            break;
+        }
+    }
+    delete thread_info;
+}
+
+
+
+ImageCachePerThreadInfo *
 ImageCacheImpl::get_perthread_info ()
 {
     ImageCachePerThreadInfo *p = m_perthread_info.get();
@@ -2858,13 +2888,13 @@ ImageCacheImpl::get_perthread_info ()
         p = new ImageCachePerThreadInfo;
         m_perthread_info.reset (p);
         // printf ("New perthread %p\n", (void *)p);
-        lock_guard lock (m_perthread_info_mutex);
+        spin_lock lock (m_perthread_info_mutex);
         m_all_perthread_info.push_back (p);
         p->shared = true;  // both the IC and the thread point to it
     }
     if (p->purge) {  // has somebody requested a tile purge?
         // This is safe, because it's our thread.
-        lock_guard lock (m_perthread_info_mutex);
+        spin_lock lock (m_perthread_info_mutex);
         p->tile = NULL;
         p->lasttile = NULL;
         p->purge = 0;
@@ -2881,7 +2911,7 @@ ImageCacheImpl::get_perthread_info ()
 void
 ImageCacheImpl::erase_perthread_info ()
 {
-    lock_guard lock (m_perthread_info_mutex);
+    spin_lock lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
         ImageCachePerThreadInfo *p = m_all_perthread_info[i];
         if (p) {
@@ -2907,7 +2937,7 @@ ImageCacheImpl::erase_perthread_info ()
 void
 ImageCacheImpl::cleanup_perthread_info (ImageCachePerThreadInfo *p)
 {
-    lock_guard lock (m_perthread_info_mutex);
+    spin_lock lock (m_perthread_info_mutex);
     if (p) {
         // Clear the microcache.
         p->tile = NULL;
@@ -2925,7 +2955,7 @@ void
 ImageCacheImpl::purge_perthread_microcaches ()
 {
     // Mark the per-thread microcaches as invalid
-    lock_guard lock (m_perthread_info_mutex);
+    spin_lock lock (m_perthread_info_mutex);
     for (size_t i = 0, e = m_all_perthread_info.size();  i < e;  ++i)
         if (m_all_perthread_info[i])
             m_all_perthread_info[i]->purge = 1;
