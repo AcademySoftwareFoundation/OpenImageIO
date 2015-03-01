@@ -76,9 +76,6 @@ namespace bjhash {
 // Bob Jenkins "lookup3" hashes:  http://burtleburtle.net/bob/c/lookup3.c
 // It's in the public domain.
 
-inline uint32_t rotl32 (uint32_t x, int k) { return (x<<k) | (x>>(32-k)); }
-inline uint64_t rotl64 (uint64_t x, int k) { return (x<<k) | (x>>(64-k)); }
-
 // Mix up the bits of a, b, and c (changing their values in place).
 inline void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
 {

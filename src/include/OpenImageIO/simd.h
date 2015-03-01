@@ -1182,6 +1182,13 @@ OIIO_FORCEINLINE int4 max (const int4& a, const int4& b)
 }
 
 
+// Circular bit rotate by k bits, for 4 values at once.
+OIIO_FORCEINLINE int4 rotl32 (const int4& x, const unsigned int k)
+{
+    return (x<<k) | srl(x,32-k);
+}
+
+
 
 
 /// Floating point 4-vector, accelerated by SIMD instructions when

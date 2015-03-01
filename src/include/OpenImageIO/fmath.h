@@ -178,6 +178,18 @@ clamped_mult64 (uint64_t a, uint64_t b)
 }
 
 
+
+/// Bitwise circular rotation left by k bits (for 32 bit unsigned integers)
+OIIO_FORCEINLINE uint32_t rotl32 (uint32_t x, int k) {
+    return (x<<k) | (x>>(32-k));
+}
+
+/// Bitwise circular rotation left by k bits (for 64 bit unsigned integers)
+OIIO_FORCEINLINE uint64_t rotl64 (uint64_t x, int k) {
+    return (x<<k) | (x>>(64-k));
+}
+
+
 // (end of integer helper functions)
 ////////////////////////////////////////////////////////////////////////////
 
