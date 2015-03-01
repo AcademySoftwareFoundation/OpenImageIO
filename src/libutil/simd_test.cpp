@@ -266,6 +266,13 @@ void test_shift ()
                                              unsigned(c)>>4, unsigned(d)>>4));
     std::cout << Strutil::format ("  [%x] >>  4 == [%x]\n", hard, hard>>4);
     std::cout << Strutil::format ("  [%x] srl 4 == [%x]\n", hard, srl(hard,4));
+
+    i = int4(1,2,4,8);
+    i <<= 1;
+    OIIO_CHECK_SIMD_EQUAL (i, int4(2,4,8,16));
+    i = int4(1,2,4,8);
+    i >>= 1;
+    OIIO_CHECK_SIMD_EQUAL (i, int4(0,1,2,4));
 }
 
 

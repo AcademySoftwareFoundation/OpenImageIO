@@ -918,7 +918,7 @@ public:
     }
 
     OIIO_FORCEINLINE const int4 & operator>>= (const unsigned int bits) {
-        return *this = *this << bits;
+        return *this = *this >> bits;
     }
 
     // Shift right logical -- unsigned shift. This differs from operator>>
