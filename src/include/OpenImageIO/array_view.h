@@ -37,9 +37,23 @@
 
 #include "oiioversion.h"
 #include "strided_ptr.h"
+#include "platform.h"
+
+#if OIIO_CPLUSPLUS11
+#include <type_traits>
+#else
+#include <boost/type_traits.hpp>
+#endif
 
 
 OIIO_NAMESPACE_ENTER {
+
+#if OIIO_CPLUSPLUS11
+using std::remove_const;
+#else
+using boost::remove_const;
+#endif
+
 
 
 /// array_view : a non-owning reference to a contiguous array with known
@@ -102,6 +116,12 @@ public:
     array_view (std::vector<T> &v)
         : m_data(v.size() ? &v[0] : NULL), m_len(v.size()) {}
 
+    /// Construct from const std::vector<T>.
+    /// This turns const std::vector<T> into an array_view<const T> (the
+    /// array_view isn't const, but the data it points to will be).
+    array_view (const std::vector<typename remove_const<T>::type> &v)
+        : m_data(v.size() ? &v[0] : NULL), m_len(v.size()) {}
+
     // assignments
     array_view& operator= (const array_view &copy) {
         m_data = copy.data();
@@ -149,7 +169,7 @@ public:
 
     array_view slice (size_type pos, size_type n=npos) const {
         if (pos > size())
-            throw (std::out_of_range ("OIIO::array_view::slice"));
+            throw (std::out_of_range ("OpenImageIO::array_view::slice"));
         if (n == npos || pos + n > size())
             n = size() - pos;
         return array_view (data() + pos, n);
@@ -242,6 +262,12 @@ public:
     array_view_strided (std::vector<T> &v)
         : m_data(v.size() ? &v[0] : NULL), m_len(v.size()), m_stride(sizeof(T)) {}
 
+    /// Construct from const std::vector<T>.
+    /// This turns const std::vector<T> into an array_view<const T> (the
+    /// array_view isn't const, but the data it points to will be).
+    array_view_strided (const std::vector<typename remove_const<T>::type> &v)
+        : m_data(v.size() ? &v[0] : NULL), m_len(v.size()), m_stride(sizeof(T)) {}
+
     // assignments
     array_view_strided& operator= (const array_view_strided &copy) {
         m_data = copy.data();
@@ -279,7 +305,7 @@ public:
 
     array_view_strided slice (size_type pos, size_type n=npos) const {
         if (pos > size())
-            throw (std::out_of_range ("OIIO::array_view_strided::slice"));
+            throw (std::out_of_range ("OpenImageIO::array_view_strided::slice"));
         if (n == npos || pos + n > size())
             n = size() - pos;
         return array_view_strided (getptr(pos), n, m_stride);
