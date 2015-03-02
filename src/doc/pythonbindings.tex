@@ -1429,7 +1429,7 @@ Sets pixel $(x,y,z)$ to be the {\cf pixel_value}, expressed as a tuple of
 \apiend
 
 \apiitem{array ImageBuf.{\ce get_pixels} (format=OpenImageIO.UNKNOWN, roi=ROI.All)}
-\NEW % 1.5
+
 Retrieves the rectangle of pixels (and channels) specified by {\cf roi} from
 the image and returns them as an array of values with type specified by
 {\cf format}.
@@ -1547,6 +1547,41 @@ tuples giving the values for each color channel.
 \begin{code}
     buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
     ImageBufAlgo.checker (buf, 64, 64, 1, (0.1,0.1,0.1), (0.4,0.4,0.4))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce noise_uniform} (dst, min=0.0, max=1.0, \\
+ seed=0, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!noise_uniform} \indexapi{noise_uniform}
+\NEW % 1.6
+
+Add noise to {\cf dst} that is uniformly-distributed over the range
+{\cf [min,max)}.  Choosing different seed values will result in a different pattern.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
+    ImageBufAlgo.noise_uniform (buf, 0.25, 0.75)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce noise_gaussian} (dst, mean=0.0, stddev=0.1, \\
+ seed=0, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!noise_gaussian} \indexapi{noise_gaussian}
+\NEW % 1.6
+
+Fill {\cf dst} with Gaussian noise (normal distribution) with given mean
+and standard deviation.
+Choosing different seed values will result in a different pattern.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
+    ImageBufAlgo.noise_gaussian (buf, (0.5,0.5,0.5), (0.1,0.1,0.1))
 \end{code}
 \apiend
 
@@ -1704,7 +1739,6 @@ bool ImageBufAlgo.{\ce rotate270} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!roate90} \indexapi{roate90}
 \index{ImageBufAlgo!rotate180} \indexapi{rotate180}
 \index{ImageBufAlgo!rotate270} \indexapi{rotate270}
-\NEW % 1.5
 Copy while rotating the image by a multiple of 90 degrees.
 
 \smallskip
@@ -1739,7 +1773,7 @@ or both vertically and horizontally (flipflip).
 
 \apiitem{bool ImageBufAlgo.{\ce reorient} (dst, src, nthreads=0)}
 \index{ImageBufAlgo!reorient} \indexapi{reorient}
-\NEW % 1.5
+
 Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
 or flops are necessary to transform the pixels into the configuration
 suggested by the \qkw{Orientation} metadata of the image (and the
@@ -1791,7 +1825,7 @@ bool ImageBufAlgo.{\ce rotate} (dst, src, angle, \\
         \bigspc\bigspc center_x, center_y, filtername="", filtersize=0.0, \\
         \bigspc\bigspc  recompute_roi=False, roi=ROI.All, nthreads=0) }
 \index{ImageBufAlgo!rotate} \indexapi{rotate}
-\NEW % 1.5
+
 Set {\cf dst}, over the ROI, to be a rotated version of the
 corresponding portion of {\cf src}.  The angle is in radians, with positive
 values indicating clockwise rotation. If the filter and size are not
@@ -1811,7 +1845,7 @@ specified, an appropriate default will be chosen.
         \bigspc\bigspc wrap=oiio.WrapDefault, recompute_roi=False, \\
         \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!warp} \indexapi{warp}
-\NEW % 1.5
+
 Set {\cf dst}, over the ROI, to be a warped (transformed) copy of {\cf src},
 with the warp specified by {\cf M} consisting of 9 floating-point numbers
 representing a $3 \times 3$ transformation matrix.  If the filter and size
@@ -2517,7 +2551,7 @@ of src was < 1, dst will have a pixel color that is a plausible
   \bigspc\spc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!median_filter} \indexapi{median_filter}
 
-\NEW % 1.5
+
 Replace the given ROI of {\cf dst} with a sharpened version of the
 corresponding region of {\cf src} using the ``unsharp mask'' technique.
 

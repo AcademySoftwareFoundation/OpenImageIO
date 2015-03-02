@@ -148,7 +148,7 @@ bool OIIO_API fill (ImageBuf &dst, const float *topleft, const float *topright,
                     ROI roi=ROI::All(), int nthreads=0);
 
 
-/// Fill a subregion of the volume with a checkerboard with origin
+/// Fill the image region with a checkerboard with origin
 /// (xoffset,yoffset,zoffset) and that alternates between color1[] and
 /// color2[] every width pixels in x, every height pixels in y, and
 /// every depth pixels in z.  The pattern is definied in abstract "image
@@ -175,6 +175,42 @@ bool OIIO_API checker (ImageBuf &dst, int width, int height, int depth,
                        int xoffset=0, int yoffset=0, int zoffset=0,
                        ROI roi=ROI::All(), int nthreads=0);
 
+
+/// Inject pseudorandom noise into image dst, in every pixel and channel
+/// specified by the roi (defaulting to all pixels, all channels). There are
+/// several noise types to choose from, and each behaves differently and has
+/// a different interpretation of the A and B parameters:
+///   "gaussian"   adds Gaussian (normal distribution) noise values with
+///                   mean value A and standard deviation B.
+///   "uniform"    adds noise values uninformly distributed on range [A,B).
+///   "salt"       changes to value A a portion of pixels given by B.
+/// If the 'mono' flag is true, a single noise value will be applied to all
+/// channels specified by roi, but if 'mono' is false, a separate noise
+/// value will be computed for each channel in the region.
+///
+/// The random number generator is actually driven by a hash on the "image
+/// space" coordinates and channel, independently of the pixel data window
+/// of dst or the ROI. Choosing different seed values will result in a
+/// different pattern, but for the same seed value, the noise at a  given
+/// pixel coordinate (x,y,z) channel c will is completely deterministic and
+/// repeatable.
+///
+/// If dst is uninitialized, it will be resized to be a float ImageBuf
+/// large enough to hold the region specified by roi.  It is an error
+/// to pass both an uninitialied dst and an undefined roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API noise (ImageBuf &dst, string_view noisetype,
+                     float A = 0.0f, float B = 0.1f, bool mono = false,
+                     int seed = 0, ROI roi=ROI::All(), int nthreads=0);
 
 
 /// Generic channel shuffling -- copy src to dst, but with channels in

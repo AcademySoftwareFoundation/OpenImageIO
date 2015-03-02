@@ -148,6 +148,16 @@ IBA_checker (ImageBuf &dst, int width, int height, int depth,
 
 
 bool
+IBA_noise (ImageBuf &dst, std::string type, float A, float B, bool mono, int seed,
+           ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::noise (dst, type, A, B, mono, seed, roi, nthreads);
+}
+
+
+
+bool
 IBA_channels (ImageBuf &dst, const ImageBuf &src,
               tuple channelorder_, tuple newchannelnames_,
               bool shuffle_channel_names)
@@ -1063,6 +1073,11 @@ void declare_imagebufalgo()
               arg("xoffset")=0, arg("yoffset")=0, arg("zoffset")=0,
               arg("roi")=ROI::All(), arg("nthreads")=0) )
         .staticmethod("checker")
+
+        .def("noise", &IBA_noise,
+             (arg("dst"), arg("type")="gaussian", arg("A")=0.0f, arg("B")=0.1f,
+              arg("mono")=false, arg("seed")=0, arg("roi")=ROI::All(), arg("nthreads")=0) )
+        .staticmethod("noise")
 
         .def("channels", &IBA_channels,
              (arg("dst"), arg("src"), arg("channelorder"),

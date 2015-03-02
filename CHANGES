@@ -19,13 +19,17 @@ Major new features and improvements:
     * --addc, --subc, --mulc, --powc are the new names for --cadd, --csub,
       --cmul, and --cpow. The old ones will continue to work but are
       considered depcrected. #1030 (1.6.0)
-    * --create now supports a "fill" pattern that works just like --fill
-      (and supports all of --fill's new options, below).
+    * --pattern supports new patterns: "fill" makes a solid, vertical or
+       horizontal gradient, or four-corner interpolated image (just like
+       the --fill commmand) (1.6.0); "noise" can generate uniform, gaussian,
+       or salt & pepper noise (1.6.2).
     * --fill, in addition to taking optional parameter color=... to give a
       solid color for the fill region, now also takes top=...:bottom=... to
       make a vertical gradient, left=...:right=... to make a horizontal
       gradient, and topleft=...:topright=...:bottomleft=...:bottomright=...
       to make a 4-corner gradient. (1.6.0)
+    * --noise adds noise to the current image: additive uniform or gaussian
+      noise, or making "salt & pepper" noise. (1.6.2)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
@@ -35,6 +39,8 @@ Major new features and improvements:
     * fill() has been extended with new varieties that take 2 colors (making
       a vertical gradient) and 4 colors (one for each ROI corner, for a
       bilinearly interpolated gradient). (1.6.0)
+    * noise() injects noise into an image -- uniform, gaussian/normal,
+      or salt & pepper noise. (1.6.2)
 
 Public API changes:
  * Clarified in the docs that TextureSystem::get_texture_info and

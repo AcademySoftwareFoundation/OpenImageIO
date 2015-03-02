@@ -2532,6 +2532,66 @@ action_powc (int argc, const char *argv[])
 
 
 static int
+action_noise (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_noise, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    std::map<std::string,std::string> options;
+    options["type"] = "gaussian";
+    options["min"] = "0";
+    options["max"] = "0.1";
+    options["mean"] = "0";
+    options["stddev"] = "0.1";
+    options["portion"] = "0.01";
+    options["value"] = "0";
+    options["mono"] = "0";
+    options["seed"] = "0";
+    options["nchannels"] = "10000";
+    extract_options (options, command);
+    std::string type = options["type"];
+    float A = 0.0f, B = 0.1f;
+    if (type == "gaussian") {
+        A = Strutil::from_string<float> (options["mean"]);
+        B = Strutil::from_string<float> (options["stddev"]);
+    } else if (type == "uniform") {
+        A = Strutil::from_string<float> (options["min"]);
+        B = Strutil::from_string<float> (options["max"]);
+    } else if (type == "salt") {
+        A = Strutil::from_string<float> (options["value"]);
+        B = Strutil::from_string<float> (options["portion"]);
+    } else {
+        ot.error (command, Strutil::format ("Unknown noise type \"%s\"", type));
+        return 0;
+    }
+    bool mono = Strutil::from_string<int> (options["mono"]);
+    int seed = Strutil::from_string<int> (options["seed"]);
+    int nchannels = Strutil::from_string<int> (options["nchannels"]);
+
+    ImageRecRef src = ot.pop();
+    src->read ();
+    ImageRecRef R (new ImageRec (*src, ot.allsubimages ? -1 : 0, 0,
+                                 true /*writable*/, true /*copy_pixels*/));
+    ot.push (R);
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s, ++seed) {
+        ROI roi = (*R)(s,0).roi();
+        roi.chend = std::min (roi.chend, nchannels);
+        bool ok = ImageBufAlgo::noise ((*R)(s,0), type, A, B, mono, seed, roi);
+        if (! ok)
+            ot.error (command, (*R)(s,0).geterror());
+    }
+
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static int
 action_chsum (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_chsum, argc, argv))
@@ -3043,8 +3103,42 @@ action_pattern (int argc, const char *argv[])
         Strutil::extract_from_list_string (color2, options["color2"]);
         ok = ImageBufAlgo::checker (ib, width, height, depth,
                                     &color1[0], &color2[0], 0, 0, 0);
+    } else if (Strutil::istarts_with(pattern, "noise")) {
+        std::map<std::string,std::string> options;
+        options["type"] = "gaussian";
+        options["min"] = "0.5";
+        options["max"] = "1";
+        options["mean"] = "0.5";
+        options["stddev"] = "0.1";
+        options["portion"] = "0.01";
+        options["value"] = "0";
+        options["mono"] = "0";
+        options["seed"] = "0";
+        extract_options (options, pattern);
+        std::string type = options["type"];
+        float A = 0, B = 1;
+        bool ok = true;
+        if (type == "gaussian") {
+            A = Strutil::from_string<float> (options["mean"]);
+            B = Strutil::from_string<float> (options["stddev"]);
+        } else if (type == "uniform") {
+            A = Strutil::from_string<float> (options["min"]);
+            B = Strutil::from_string<float> (options["max"]);
+        } else if (type == "salt") {
+            A = Strutil::from_string<float> (options["value"]);
+            B = Strutil::from_string<float> (options["portion"]);
+        } else {
+            ot.error (command, Strutil::format ("Unknown noise type \"%s\"", type));
+            ok = false;
+        }
+        bool mono = Strutil::from_string<int> (options["mono"]);
+        int seed = Strutil::from_string<int> (options["seed"]);
+        ImageBufAlgo::zero (ib);
+        if (ok)
+            ok = ImageBufAlgo::noise (ib, type, A, B, mono, seed);
     } else {
         ok = ImageBufAlgo::zero (ib);
+        ot.warning (command, Strutil::format("Unknown pattern \"%s\"", pattern));
     }
     if (! ok)
         ot.error (command, ib.geterror());
@@ -3958,7 +4052,9 @@ action_fill (int argc, const char *argv[])
     else if (Strutil::extract_from_list_string (topleft, options["color"])) {
         ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
-
+    else {
+        ot.warning (command, "No recognized fill parameters");
+    }
     if (! ok)
         ot.error (command, Rib.geterror());
 
@@ -4328,7 +4424,7 @@ getargs (int argc, char *argv[])
                 "--create %@ %s %d", action_create, NULL, NULL,
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
-                        "Create a patterned image (args: pattern, geom, channels)",
+                        "Create a patterned image (args: pattern, geom, channels). Patterns: black, fill, checker, noise",
                 "--kernel %@ %s %s", action_kernel, NULL, NULL,
                         "Create a centered convolution kernel (args: name, geom)",
                 "--capture %@", action_capture, NULL,
@@ -4351,6 +4447,7 @@ getargs (int argc, char *argv[])
                 "--absdiffc %s %@", action_absdiffc, NULL, "Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)",
                 "--powc %s %@", action_powc, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
                 "--cpow %s %@", action_powc, NULL, "", // Depcrcated synonym
+                "--noise %@", action_noise, NULL, "Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0",
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
@@ -4403,6 +4500,9 @@ getargs (int argc, char *argv[])
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
+                // "--noise_uniform %@", action_noise_uniform, NULL, "Add uniform noise to the image (options: min=, max=)",
+                // "--noise_gaussian %@", action_noise_gaussian, NULL, "Add Gaussian noise to the image (options: mean=, stddev=)",
+                // "--noise_salt %@", action_noise_saltpepp, NULL, "Add 'salt & pepper' noise to the image (options: min=, max=)",
                 "<SEPARATOR>", "Manipulating channels or subimages:",
                 "--ch %@ %s", action_channels, NULL,
                     "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",

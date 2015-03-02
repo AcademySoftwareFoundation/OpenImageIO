@@ -133,7 +133,6 @@ Alternately, you can use the {\cf printf} notation, such as
     oiiotool --frames 3,4,10-20x2 blah.%03d.tif
 \end{code}
 
-\NEW % 1.5
 Two special command line arguments can be used to disable numeric wildcard
 expansion: {\cf --wildcardoff} disables numeric wildcard expansion for
 subsequent command line arguments, until {\cf --wildcardon} re-enables
@@ -787,7 +786,6 @@ and {\cf \%v}). If not supplied, the view list will be {\cf left,right}.
 
 \apiitem{\ce --wildcardoff \\
 --wildcardon}
-\NEW % 1.5
 Turns off (or on) numeric wildcard expansion for subsequent command
 line arguments. This can be useful in selectively disabling numeric wildcard
 expansion for a subset of the command line.
@@ -829,7 +827,6 @@ current image pushed onto the image stack.
 
 \apiitem{\ce --no-autopremult \\
 --autopremult}
-\NEW  % 1.5
 By default, \product's format readers convert any ``unassociated alpha''
 (color values that are not ``premultiplied'' by alpha) to the usual
 associated/premultiplied convention.  If the {\cf --no-autopremult}
@@ -838,7 +835,6 @@ can be turned on again via {\cf --autopremult}.
 \apiend
 
 \apiitem{\ce --autoorient}
-\NEW  % 1.5
 Automatically do the equivalent of {\cf --reorient} on every image as it is
 read in, if it has a nonstandard orientation. This is generally a good idea
 to use if you are using oiiotool to combine images that may have different
@@ -846,8 +842,6 @@ orientations.
 \apiend
 
 \apiitem{\ce --native}
-\NEW  % 1.5
-
 Normally, all image reads into an \ImageBuf will be performed via an
 underlying \ImageCache. But since an \ImageCache does not support all
 possible data formats, some lesser-used formats may be auto-converted upon
@@ -1042,13 +1036,11 @@ Clears all existing keywords in the current image.
 \apiend
 
 \apiitem{\ce --nosoftwareattrib}
-\NEW % 1.5
 When set, this prevents the normal adjustment of \qkw{Software} and
 \qkw{ImageHistory} metadata to reflect what \oiiotool is doing.
 \apiend
 
 \apiitem{\ce --sansattrib}
-\NEW % 1.5
 When set, this edits the command line inserted in the \qkw{Software} and
 \qkw{ImageHistory} metadata to omit any verbose {\cf --attrib} and
 {\cf --sattrib} commands.
@@ -1235,7 +1227,7 @@ If the offset is omitted, it will be $x=0,y=0$.
 \apiend
 
 
-\apiitem{--pattern {\rm \emph{patternname size channels}}}
+\apiitem{\ce --pattern {\rm \emph{patternname size channels}}}
 Create new image with the given size and number of channels,
 initialize its pixels to the named pattern, and push it onto 
 the image stack to make it the new current image.
@@ -1261,6 +1253,18 @@ The patterns recognized include the following:
        Argument {\cf :left=r,g,b,...:right=...} results in a left-to-right gradient.
        Argument {\small\cf :topleft=r,g,b,...:topright=...:bottomleft=...:bottomright=...}
        results in a 4-corner bilinear gradient. \\
+    {\cf noise} & Create a noise image, with the option {\cf :type=} specifying
+       the kind of noise: (1) {\cf gaussian} (default) for normal distribution
+       noise with mean and standard deviation given by {\cf :mean=} and
+       {\cf :stddev=}, respectively (defaulting to 0 and 0.1); (2) {\cf uniform}
+       for uniformly-distributed noise over the range of values given by
+       options {\cf :min=} and {\cf :max=} (defaults: 0 and 0.1); (3) {\cf salt}
+       for ``salt and pepper'' noise where a portion of pixels given by 
+       option {\cf portion=} (default: 0.1) is replaced with value given by
+       option {\cf value=} (default: 0). For any of these noise types,
+       the option {\cf seed=} can be used to change the random number seed
+       and {\cf mono=1} can be used to make monochromatic noise (same value
+       in all channels). \\
 \end{tabular}
 
 \noindent Examples:
@@ -1278,13 +1282,36 @@ An $256 \times 256$ RGB image with a 16-pixel-wide checker pattern.
 \spc \includegraphics[width=1.25in]{figures/checker.jpg} 
 \apiend
 
-\apiitem{--pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 3}
 \vspace{10pt}
-An $640 \times 480$ RGB image that is a gradient ranging from dark grey at
-the top, fading to a medium blue at the bottom.
+\begin{tinycode}
+--pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 3
+--pattern fill:left=0.1,0.1,0.1:right=0,0.75,0 640x480 3
+--pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 640x480 3
+\end{tinycode}
 
-\spc \includegraphics[width=1.75in]{figures/gradient.jpg} 
+\noindent Horizontal, vertical, or 4-corner gradients.
 
+\noindent \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/gradient.jpg} &
+ \includegraphics[width=1.5in]{figures/gradienth.jpg} &
+ \includegraphics[width=1.5in]{figures/gradient4.jpg}
+\end{tabular}
+
+\apiitem{\small oiiotool --pattern noise:type=uniform:max=1 256x256 3 -o colornoise.jpg \\
+oiiotool --pattern noise:type=uniform:max=1:mono=1 256x256 3 -o greynoise.jpg}
+\vspace{10pt}
+The first example puts uniform noise independently in 3 channels, while the
+second generates a single greyscale noise and replicates it in all channels.
+
+\spc \includegraphics[width=1.25in]{figures/unifnoise3.jpg}
+\spc \includegraphics[width=1.25in]{figures/unifnoise1.jpg}
+\apiend
+
+\apiitem{\small oiiotool --pattern noise:type=gaussian:mean=0.5:stddev=0.2 256x256 3 -o gaussnoise.jpg}
+\vspace{10pt}
+Generate Gaussian noise with mean 0.5 and standard deviation 0.2 for each channel.
+
+\spc \includegraphics[width=1.25in]{figures/gaussnoise.jpg}
 \apiend
 
 \apiend
@@ -1449,6 +1476,42 @@ comma-separated constant values (with no spaces!) may be used to specifiy a
 different exponent for each channel in the image, respectively.
 \apiend
 
+\apiitem{\ce --noise}
+\NEW % 1.6
+Alter the top image to introduce noise, with the option {\cf :type=}
+specifying the kind of noise: (1) {\cf gaussian} (default) for normal
+distribution noise with mean and standard deviation given by {\cf :mean=}
+and {\cf :stddev=}, respectively (defaulting to 0 and 0.1); (2) {\cf
+uniform} for uniformly-distributed noise over the range of values given by
+options {\cf :min=} and {\cf :max=} (defaults: 0 and 0.1); (3) {\cf salt}
+for ``salt and pepper'' noise where a portion of pixels given by  option
+{\cf portion=} (default: 0.1) is replaced with value given by option {\cf
+value=} (default: 0).
+
+For any of these noise types, the option {\cf seed=} can be used to change
+the random number seed, {\cf mono=1} can be used to make monochromatic noise
+(same value in all channels), and {\cf nchannels=} can be used to limit
+which channels are affected by the noise
+
+\noindent Example:
+\begin{code}
+    # Add color gaussian noise to an image
+    oiiotool tahoe.jpg --noise:type=gaussian:stddev=0.1 -o noisy.jpg
+
+    # Simulate bad pixels by turning 1% of pixels black, but only in RGB
+    # channels (leave A alone)
+    oiiotool tahoe-rgba.tif --noise:type=salt:value=0:portion=0.01:mono=1:nchannels=3 \
+        -o dropouts.tif
+\end{code}
+
+\spc \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-gauss.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-pepper.jpg} \\
+original & gaussian noise & salt \& pepper dropouts \\
+\end{tabular}
+\apiend
+
 \apiitem{\ce --chsum}
 Replaces the top image by a copy that contains only 1 color channel,
 whose value at each pixel is the sum of all channels of the original
@@ -1525,7 +1588,6 @@ include:
 \apiend
 
 \apiitem{\ce --rotate90}
-\NEW % 1.5
 Replace the current image with a new image that is rotated 90 degrees
 clockwise.
 
@@ -1539,7 +1601,6 @@ clockwise.
 \apiend
 
 \apiitem{\ce --rotate180}
-\NEW % 1.5
 Replace the current image with a new image that is rotated by
 180 degrees.
 
@@ -1553,7 +1614,6 @@ Replace the current image with a new image that is rotated by
 \apiend
 
 \apiitem{\ce --rotate270}
-\NEW % 1.5
 Replace the current image with a new image that is rotated 270 degrees
 clockwise (or 90 degrees counter-clockwise).
 
@@ -1593,7 +1653,6 @@ with the leftmost column becoming the rightmost, and vice versa.
 \apiend
 
 \apiitem{\ce --reorient}
-\NEW % 1.5
 Replace the current image with a new image that is rotated and/or flipped
 as necessary to move the pixels to match the Orientation metadata
 that describes the desired display orientation.
@@ -1765,7 +1824,6 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{\ce --rotate {\rm \emph{angle}}}
-\NEW % 1.5
 Replace the current image with a new image that is rotated by the given
 angle (in degrees). Positive angles mean to rotate counter-clockwise,
 negative angles mean clockwise. By default, the center of rotation is at the
@@ -1795,7 +1853,6 @@ Optional appended arguments include:
 
 
 \apiitem{\ce --warp {\rm \emph{M33}}}
-\NEW % 1.5
 Replace the current image with a new image that is warped by the given
 $3 \times 3$ matrix (presented as a comma-separated list of values, without
 any spaces).
@@ -1838,8 +1895,7 @@ numbers.)
 Optional appended arguments include:
 
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
- & {\cf kernel=}\emph{name} & Kernel name. The default is {\cf
-  gaussian}.
+ & {\cf kernel=}\emph{name} & Kernel name. The default is {\cf gaussian}.
 \end{tabular}
 
 \noindent Examples:
@@ -1848,21 +1904,32 @@ Optional appended arguments include:
 
     oiiotool image.jpg --blur:kernel=bspline 7x7 -o blurred.jpg
 \end{code}
+
+\spc \begin{tabular}{ll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-blur.jpg} \\
+original & blurred \\
+\end{tabular}
 \apiend
 
 
 \apiitem{\ce --median {\rm \emph{size}}}
-
-\NEW % 1.5
 Perform a median filter on the top image with a window of the given size
 expressed as \emph{width}{\cf x}\emph{height}.  (The sizes are integers.)
 This helps to eliminate noise and other unwanted high-frequency detail, but
 without blurring long edges the way a {\cf --blur} command would.
+
 \noindent Examples:
 \begin{code}
-    oiiotool noisy.jpg --median 5x5 -o smoothed.jpg
+    oiiotool noisy.jpg --median 3x3 -o smoothed.jpg
 \end{code}
-% FIXME - should have a visual example
+
+\spc \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-pepper.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-pepper-median.jpg} \\
+original & with dropouts & median filtered \\
+\end{tabular}
 \apiend
 
 
@@ -2061,10 +2128,25 @@ Optional arguments for 4-corner gradient: \\
 \noindent Examples: 
 
 \begin{smallcode}
-    oiiotool --create 640x480 3 --fill:top=0.1,0.1,0.1:bottom=0,0,0.5 \
-            640x480 -o gradient.tif
+    # make a grey-to-blue vertical gradient
+    oiiotool --create 640x480 3 \
+        --fill:top=0.1,0.1,0.1:bottom=0,0,0.5 640x480 -o gradient.tif
+
+    # make a grey-to-green horizontal gradient
+    oiiotool --create 640x480 3 \
+        --fill:left=0.1,0.1,0.1:right=0,0.75,0 640x480 -o gradient.tif
 \end{smallcode}
-\spc \includegraphics[width=2.5in]{figures/gradient.jpg}  \\
+\begin{tinycode}
+    # four-corner interpolated gradient
+    oiiotool --create 640x480 3 \
+        -fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:botromright=0,0,1 \
+            640x480 -o gradient.tif
+\end{tinycode}
+\noindent \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/gradient.jpg} &
+ \includegraphics[width=1.5in]{figures/gradienth.jpg} &
+ \includegraphics[width=1.5in]{figures/gradient4.jpg}
+\end{tabular}
 
 \apiend
 

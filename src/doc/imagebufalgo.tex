@@ -182,10 +182,59 @@ image.
 \apiend
 
 
-\apiitem{bool {\ce render_text} (ImageBuf \&dst, int x, int y, \\
-  \bigspc  string_view text, int fontsize=16, \\
-  \bigspc  string_view fontname="", \\
-  \bigspc  const float *textcolor = NULL)}
+\apiitem{bool {\ce noise} (ImageBuf \&dst, string_view noisetype, \\
+\bigspc\bigspc float A = 0.0f, float B = 0.1f, bool mono = false, \\
+\bigspc\bigspc int seed = 0, ROI roi=ROI::All(), int nthreads=0)}
+\indexapi{noise}
+\NEW % 1.6
+
+Add pseudorandom noise to the specified region of {\cf dst}. For noise
+type \qkw{uniform}, the noise is uniformly distributed on the
+range {\cf [A,B)]}. For noise \qkw{gaussian}, the noise will have a
+normal distribution with mean A and standard deviation B.
+For noise \qkw{salt}, the value A will be stored in a random set of pixels
+whose proportion (of the overall image) is B.
+For all noise types, choosing different {\cf seed} values will result in a
+
+different pattern. If the {\cf mono} flag is {\cf true}, a single noise
+value will be applied to all channels specified by {\cf roi}, but if {\cf
+mono} is {\cf false}, a separate noise value will be computed for each channel in
+the region.
+
+If {\cf dst} is uninitialized, it will be resized to be a {\cf float}
+\ImageBuf large enough to hold the region specified by {\cf roi}. It is an
+error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Create a new 256x256 field of grayscale uniformly distributed noise on [0,1)
+    ImageBuf A (ImageSpec(256, 256, 3, TypeDesc::FLOAT));
+    ImageBufAlgo::zero (A);
+    ImageBufAlgo::noise (A, "uniform", 0.0f /*min*/, 1.0f /*max*/,
+                         true /*mono*/, 1 /*seed*/);
+
+    // Add color Gaussian noise to an existing image
+    ImageBuf B ("tahoe.jpg");
+    ImageBufAlgo::noise (B, "gaussian", 0.0f /*mean*/, 0.1f /*stddev*/,
+                         false /*mono*/, 1 /*seed*/);
+
+    // Use salt and pepper noise to make occasional random dropouts
+    ImageBuf C ("tahoe.jpg");
+    ImageBufAlgo::noise (C, "salt", 0.0f /*value*/, 0.01f /*portion*/,
+                         true /*mono*/, 1 /*seed*/);
+\end{code}
+
+\spc \includegraphics[width=1.25in]{figures/unifnoise1.jpg}
+\spc \includegraphics[width=1.65in]{figures/tahoe-gauss.jpg} 
+\spc \includegraphics[width=1.65in]{figures/tahoe-pepper.jpg}
+
+\apiend
+
+
+\apiitem{bool {\ce render_text} (ImageBuf \&dst, int x, int y, string_view text,\\
+  \bigspc\spc\spc int fontsize=16, string_view fontname="", \\
+  \bigspc\spc\spc  const float *textcolor = NULL)}
 \index{ImageBufAlgo!render_text} \indexapi{render_text}
 Render a text string into the destination, essentially doing an ``over'' of
 the antialiased character into the existing pixel data.  The baseline of the
@@ -379,7 +428,6 @@ the entirety of src will be used.  It will copy into channels
 \apiitem{bool {\ce rotate90} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!rotate90} \indexapi{rotate90}
-\NEW  % 1.5
 Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
 of {\cf dst}, but rotated 90 degrees clockwise.
 
@@ -399,7 +447,6 @@ of {\cf dst}, but rotated 90 degrees clockwise.
 \apiitem{bool {\ce rotate180} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!rotate180} \indexapi{rotate180}
-\NEW % 1.5
 Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
 of {\cf dst}, but rotated 180 degrees.
 
@@ -419,7 +466,6 @@ of {\cf dst}, but rotated 180 degrees.
 \apiitem{bool {\ce rotate270} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!rotate270} \indexapi{rotate270}
-\NEW % 1.5
 Copy {\cf src} (or a subregion of {\cf src} to the corresponding pixels
 of {\cf dst}, but rotated 270 degrees clockwise (or 90 degrees
 counter-clockwise).
@@ -477,7 +523,6 @@ of {\cf dst}, but with the columns exchanged horizontally.
 \apiitem{bool {\ce reorient} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!reorient} \indexapi{reorient}
-\NEW % 1.5
 Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
 or flops are necessary to transform the pixels into the configuration
 suggested by the \qkw{Orientation} metadata of the image (and the
@@ -563,7 +608,6 @@ bool {\ce rotate} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc bool recompute_roi = false, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!rotate} \indexapi{rotate}
-\NEW % 1.5
 
 Rotate the {\cf src} image by the {\cf angle} (in radians, with positive
 angles clockwise). When {\cf center_x} and {\cf center_y} are supplied, they
@@ -610,7 +654,6 @@ bool {\ce warp} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc ImageBuf::WrapMode wrap = ImageBuf::WrapDefault, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!warp} \indexapi{warp}
-\NEW % 1.5
 
 Warp the {\cf src} image using the supplied 3x3 transformation matrix {\cf M}.
 
@@ -1455,6 +1498,12 @@ convolution, otherwise the original values will be used.
     ImageBuf Blurred;
     ImageBufAlgo::convolve (Blurred, Src, K);
 \end{code}
+
+\spc \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-blur.jpg} \\
+original & blurred \\
+\end{tabular}
 \apiend
 
 \apiitem{bool {\ce fft} (ImageBuf \&dst, const ImageBuf \&src, \\
@@ -1601,7 +1650,6 @@ of src was < 1, dst will have a pixel color that is a plausible
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!median_filter} \indexapi{median_filter}
 
-\NEW % 1.5
 Replace the given ROI of {\cf dst} with a median-filtered version of the
 corresponding region of {\cf src}.  The median filter replaces each pixel
 with the median value underneath the $\mathit{width} \times \mathit{height}$
@@ -1618,7 +1666,13 @@ preserving the sharpness of long edges.
     ImageBufAlgo::median_filter (Clean, Noisy, 3, 3);
 \end{code}
 
-%FIXME - example would be good here
+\spc \begin{tabular}{lll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-pepper.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-pepper-median.jpg} \\
+original & with dropouts & median filtered \\
+\end{tabular}
+
 \apiend
 
 

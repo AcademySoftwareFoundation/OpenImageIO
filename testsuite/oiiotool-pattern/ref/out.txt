@@ -1,0 +1,25 @@
+constant.tif         :  320 x  240, 4 channel, float tiff
+    Stats Min: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats Max: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats Avg: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats StdDev: 0.000020 0.000040 nan 0.000000 (float)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 76800 76800 76800 76800 
+    Constant: Yes
+    Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
+    Monochrome: No
+Comparing "pattern-const.tif" and "ref/pattern-const.tif"
+PASS
+Comparing "pattern-gradienth.tif" and "ref/pattern-gradienth.tif"
+PASS
+Comparing "pattern-gradientv.tif" and "ref/pattern-gradientv.tif"
+PASS
+Comparing "pattern-gradient4.tif" and "ref/pattern-gradient4.tif"
+PASS
+Comparing "noise-uniform3.tif" and "ref/noise-uniform3.tif"
+PASS
+Comparing "noise-gauss.tif" and "ref/noise-gauss.tif"
+PASS
+Comparing "noise-salt.tif" and "ref/noise-salt.tif"
+PASS

@@ -53,6 +53,24 @@ try:
     ImageBufAlgo.checker (b, 64, 64, 64, (1,.5,.5), (.5,1,.5), 10, 5)
     write (b, "checker.tif")
 
+    # noise-uniform
+    b = ImageBuf (ImageSpec(64,64,3,oiio.UINT8))
+    ImageBufAlgo.zero (b)
+    ImageBufAlgo.noise (b, "uniform", 0.25, 0.75)
+    write (b, "noise-uniform3.tif")
+
+    # noise-gaussian
+    b = ImageBuf (ImageSpec(64,64,3,oiio.UINT8))
+    ImageBufAlgo.zero (b)
+    ImageBufAlgo.noise (b, "gaussian", 0.5, 0.1);
+    write (b, "noise-gauss.tif")
+
+    # noise-gaussian
+    b = ImageBuf (ImageSpec(64,64,3,oiio.UINT8))
+    ImageBufAlgo.zero (b)
+    ImageBufAlgo.noise (b, "salt", 1, 0.01);
+    write (b, "noise-salt.tif")
+
     # channels, channel_append
     b = ImageBuf()
     ImageBufAlgo.channels (b, grid, (0.25,2,"G"))

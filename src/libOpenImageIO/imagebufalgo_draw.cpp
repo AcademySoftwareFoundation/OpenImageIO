@@ -44,6 +44,7 @@
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/hash.h"
 
 #ifdef USE_FREETYPE
 #include <ft2build.h>
@@ -243,6 +244,157 @@ ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
                          Dim3(xoffset, yoffset, zoffset), roi, nthreads);
     return ok;
 }
+
+
+
+// Return a repeatable hash-based pseudo-random value uniform on [0,1).
+// It's a hash, so it's completely deterministic, based on x,y,z,c,seed.
+// But it can be used in similar ways to a PRNG.
+OIIO_FORCEINLINE float
+hashrand (int x, int y, int z, int c, int seed)
+{
+    const uint32_t magic = 0xfffff;
+    uint32_t xu(x), yu(y), zu(z), cu(c), seedu(seed);
+    using bjhash::bjfinal;
+    uint32_t h = bjfinal (bjfinal(xu,yu,zu), cu, seedu) & magic;
+    return h * (1.0f/(magic+1));
+}
+
+
+// Return a hash-based normal-distributed pseudorandom value.
+// We use the Marsaglia polar method, and hashrand to 
+OIIO_FORCEINLINE float
+hashnormal (int x, int y, int z, int c, int seed)
+{
+    float xr, yr, r2;
+    int s = seed-1;
+    do {
+        s += 1;
+        xr = 2.0 * hashrand(x,y,z,c,s) - 1.0;
+        yr = 2.0 * hashrand(x,y,z,c,s+139) - 1.0;
+        r2 = xr*xr + yr*yr;
+    } while (r2 > 1.0 || r2 == 0.0);
+    float M = sqrt(-2.0 * log(r2) / r2);
+    return xr * M;
+}
+    
+
+
+template<typename T>
+static bool
+noise_uniform_ (ImageBuf &dst, float min, float max, bool mono,
+                int seed, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(noise_uniform_<T>, boost::ref(dst),
+                        min, max, mono, seed,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int x = p.x(), y = p.y(), z = p.z();
+        float n;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            if (c == 0 || !mono)
+                n = lerp (min, max, hashrand (x, y, z, c, seed));
+            p[c] = p[c] + n;
+        }
+    }
+    return true;
+}
+
+
+
+template<typename T>
+static bool
+noise_gaussian_ (ImageBuf &dst, float mean, float stddev, bool mono,
+                 int seed, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(noise_gaussian_<T>, boost::ref(dst),
+                        mean, stddev, mono, seed,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int x = p.x(), y = p.y(), z = p.z();
+        float n;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            if (c == 0 || !mono)
+                n = mean + stddev * hashnormal (x, y, z, c, seed);
+            p[c] = p[c] + n;
+        }
+    }
+    return true;
+}
+
+
+
+template<typename T>
+static bool
+noise_salt_ (ImageBuf &dst, float saltval, float saltportion, bool mono,
+             int seed, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            boost::bind(noise_salt_<T>, boost::ref(dst),
+                        saltval, saltportion, mono, seed,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+        int x = p.x(), y = p.y(), z = p.z();
+        float n;
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            if (c == 0 || !mono)
+                n = hashrand (x, y, z, c, seed);
+            if (n < saltportion)
+                p[c] = saltval;
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::noise (ImageBuf &dst, string_view noisetype,
+                     float A, float B, bool mono, int seed,
+                     ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst))
+        return false;
+    bool ok;
+    if (noisetype == "gaussian" || noisetype == "normal") {
+        OIIO_DISPATCH_TYPES (ok, "noise_gaussian", noise_gaussian_, dst.spec().format,
+                             dst, A, B, mono, seed, roi, nthreads);
+    } else if (noisetype == "uniform") {
+        OIIO_DISPATCH_TYPES (ok, "noise_uniform", noise_uniform_, dst.spec().format,
+                             dst, A, B, mono, seed, roi, nthreads);
+    } else if (noisetype == "salt") {
+        OIIO_DISPATCH_TYPES (ok, "noise_salt", noise_salt_, dst.spec().format,
+                             dst, A, B, mono, seed, roi, nthreads);
+    } else {
+        ok = false;
+        dst.error ("noise", "unknown noise type \"%s\"", noisetype);
+    }
+    return ok;
+}
+
 
 
 
