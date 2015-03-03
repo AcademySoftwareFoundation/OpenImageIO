@@ -1649,7 +1649,7 @@ public:
         return _mm_insert_ps (m_vec, _mm_set_ss(0.0f), 3<<4);
 #else
         float4 tmp = m_vec;
-        tmp[3] = val;
+        tmp[3] = 0.0f;
         return tmp;
 #endif
     }
