@@ -831,7 +831,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     std::string prefix (format_match.prefix().first, format_match.prefix().second);
     std::string suffix (format_match.suffix().first, format_match.suffix().second);
 
-    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + "})" + suffix;
+    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + ",})" + suffix;
     std::vector< std::pair< int, std::string > > matches;
 
     // There are some corner cases regex that could be constructed here that
