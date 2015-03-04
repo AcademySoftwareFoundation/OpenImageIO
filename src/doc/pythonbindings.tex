@@ -1161,6 +1161,13 @@ will infer it from the extension of the file name).
 \end{code}
 \apiend
 
+\apiitem{bool ImageBuf.{\ce make_writeable} (keep_cache_type = false)}
+Force the \ImageBuf to be writeable. That means that if it was previously
+backed by an \ImageCache (storage was {\cf IMAGECACHE}), it will force a
+full read so that the whole image is in local memory.
+\apiend
+
+
 \apiitem{bool ImageBuf.{\ce set_write_format} (format=oiio.UNKNOWN) \\
 bool ImageBuf.{\ce set_write_tiles} (width=0, height=0, depth=0)}
 Override the data format or tile size in a subsequent call to {\cf write()}.

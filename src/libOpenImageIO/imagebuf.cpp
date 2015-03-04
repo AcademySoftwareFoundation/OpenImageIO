@@ -1022,6 +1022,18 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
 
 
 
+bool
+ImageBuf::make_writeable (bool keep_cache_type)
+{
+    if (storage() == IMAGECACHE) {
+        return read (subimage(), miplevel(), true /*force*/,
+                     keep_cache_type ? impl()->m_cachedpixeltype : TypeDesc());
+    }
+    return true;
+}
+
+
+
 void
 ImageBufImpl::copy_metadata (const ImageBufImpl &src)
 {

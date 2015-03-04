@@ -95,7 +95,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
     }
     if (B && !B->initialized()) {
         if (dst)
-            dst->error ("Uninitialized destination image");
+            dst->error ("Uninitialized input image");
         return false;
     }
     if (dst->initialized()) {
@@ -110,10 +110,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         // If the dst is initialized but is a cached image, we'll need
         // to fully read it into allocated memory so that we're able
         // to write to it subsequently.
-        if (dst->storage() == ImageBuf::IMAGECACHE) {
-            dst->read (dst->subimage(), dst->miplevel(), true /*force*/);
-            ASSERT (dst->storage() == ImageBuf::LOCALBUFFER);
-        }
+        dst->make_writeable (true);
     } else {
         // Not an initialized destination image!
         ASSERT ((A || roi.defined()) &&

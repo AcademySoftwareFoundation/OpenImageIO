@@ -120,6 +120,15 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_write_overloads,
                                 ImageBuf_write, 2, 3)
 
 
+bool
+ImageBuf_make_writeable (ImageBuf &buf, bool keep_cache_type)
+{
+    ScopedGILRelease gil;
+    return buf.make_writeable (keep_cache_type);
+}
+
+
+
 void
 ImageBuf_set_write_format (ImageBuf &buf, TypeDesc::BASETYPE format)
 {
@@ -326,6 +335,8 @@ void declare_imagebuf()
         .def("write", &ImageBuf_write,
              ImageBuf_write_overloads())
         // FIXME -- write(ImageOut&)
+        .def("make_writeable", &ImageBuf_make_writeable,
+             (arg("keep_cache_type")=false))
         .def("set_write_format", &ImageBuf_set_write_format)
         .def("set_write_tiles", &ImageBuf::set_write_tiles,
              (arg("width")=0, arg("height")=0, arg("depth")=0))

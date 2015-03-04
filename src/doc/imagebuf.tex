@@ -157,6 +157,20 @@ resolution, data type, metadata, etc.).  Optionally, you may name the
 \ImageBuf.
 \apiend
 
+\apiitem{bool make_writeable (bool keep_cache_type = false)}
+\NEW % 1.6
+Force the \ImageBuf to be writeable. That means that if it was previously
+backed by an \ImageCache (storage was {\cf IMAGECACHE}), it will force a
+full read so that the whole image is in local memory.
+This will invalidate any current iterators on the image. It has
+no effect if the image storage not {\cf IMAGECACHE}.  Return {\cf true} if
+it works (including if no read was necessary), {\cf false} if something went
+horribly wrong. If {\cf keep_cache_type} is true, it preserves any
+\ImageCache-forced data types (you might want to do this if it is critical
+that the apparent data type doesn't change, for example if you are calling
+make_writeable from within a type-specialized function).
+\apiend
+
 \subsection*{Constructing a readable \ImageBuf and reading from a file}
 
 Constructing a readable \ImageBuf that will hold an image to be read

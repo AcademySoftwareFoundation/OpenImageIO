@@ -299,6 +299,18 @@ public:
                 ProgressCallback progress_callback=NULL,
                 void *progress_callback_data=NULL) const;
 
+    /// Force the ImageBuf to be writeable. That means that if it was
+    /// previously backed by ImageCache (storage was IMAGECACHE), it will
+    /// force a full read so that the whole image is in local memory. This
+    /// will invalidate any current iterators on the image. It has no effect
+    /// if the image storage not IMAGECACHE.  Return true if it works
+    /// (including if no read was necessary), false if something went
+    /// horribly wrong. If keep_cache_type is true, it preserves any IC-
+    /// forced data types (you might want to do this if it is critical that
+    /// the apparent data type doesn't change, for example if you are
+    /// calling make_writeable from within a type-specialized function).
+    bool make_writeable (bool keep_cache_type = false);
+
     /// Copy all the metadata from src to *this (except for pixel data
     /// resolution, channel information, and data format).
     void copy_metadata (const ImageBuf &src);
@@ -983,6 +995,17 @@ public:
                 }
             }
         }
+
+        // Make sure it's writeable. Use with caution!
+        void make_writeable () {
+            if (! m_localpixels) {
+                const_cast<ImageBuf*>(m_ib)->make_writeable (true);
+                DASSERT (m_ib->storage() != IMAGECACHE);
+                m_tile = NULL;
+                m_proxydata = NULL;
+                init_ib (m_wrap);
+            }
+        }
     };
 
     /// Templated class for referring to an individual pixel in an
@@ -1011,6 +1034,7 @@ public:
         Iterator (ImageBuf &ib, WrapMode wrap=WrapDefault)
             : IteratorBase(ib,wrap)
         {
+            make_writeable ();
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         /// Construct from an ImageBuf and a specific pixel index.
@@ -1019,12 +1043,14 @@ public:
                   WrapMode wrap=WrapDefault)
             : IteratorBase(ib,wrap)
         {
+            make_writeable ();
             pos (x, y, z);
         }
         /// Construct read-write iteration region from ImageBuf and ROI.
         Iterator (ImageBuf &ib, const ROI &roi, WrapMode wrap=WrapDefault)
             : IteratorBase (ib, roi, wrap)
         {
+            make_writeable ();
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
@@ -1034,6 +1060,7 @@ public:
                   WrapMode wrap=WrapDefault)
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
+            make_writeable ();
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Copy constructor.
@@ -1041,6 +1068,7 @@ public:
         Iterator (Iterator &i)
             : IteratorBase (i.m_ib, i.m_wrap)
         {
+            make_writeable ();
             pos (i.m_x, i.m_y, i.m_z);
         }
 
