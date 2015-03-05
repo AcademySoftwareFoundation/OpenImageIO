@@ -2075,8 +2075,8 @@ OIIO_FORCEINLINE int4 AxBxCxDx (const int4& a, const int4& b,
                                 const int4& c, const int4& d)
 {
 #if defined(OIIO_SIMD_SSE)
-    float4 l02 = _mm_unpacklo_epi32 (a, c);
-    float4 l13 = _mm_unpacklo_epi32 (b, d);
+    int4 l02 = _mm_unpacklo_epi32 (a, c);
+    int4 l13 = _mm_unpacklo_epi32 (b, d);
     return _mm_unpacklo_epi32 (l02, l13);
 #else
     return int4 (a[0], b[0], c[0], d[0]);
