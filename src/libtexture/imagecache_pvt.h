@@ -711,7 +711,9 @@ public:
     ///
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data);
-    virtual bool get_image_info (ImageCacheFile *file, int subimage, int miplevel,
+    virtual bool get_image_info (ImageCacheFile *file,
+                         ImageCachePerThreadInfo *thread_info,
+                         int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data);
 
     /// Get the ImageSpec associated with the named image.  If the file
@@ -722,13 +724,17 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false);
-    virtual bool get_imagespec (ImageCacheFile *file, ImageSpec &spec,
+    virtual bool get_imagespec (ImageCacheFile *file,
+                                ImageCachePerThreadInfo *thread_info,
+                                ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
                                         int miplevel=0, bool native=false);
-    virtual const ImageSpec *imagespec (ImageCacheFile *file, int subimage=0,
+    virtual const ImageSpec *imagespec (ImageCacheFile *file,
+                                        ImageCachePerThreadInfo *thread_info=NULL,
+                                        int subimage=0,
                                         int miplevel=0, bool native=false);
 
     // Retrieve a rectangle of raw unfiltered pixels.
@@ -761,15 +767,29 @@ public:
     /// and those won't be freed until the texture system is destroyed.
     /// If header_only is true, we are finding the file only for the sake
     /// of header information (e.g., called by get_image_info).
+    /// A call to verify_file() is still needed after find_file().
     ImageCacheFile *find_file (ustring filename,
                                ImageCachePerThreadInfo *thread_info,
                                ImageInput::Creator creator=NULL,
                                bool header_only=false,
                                const ImageSpec *config=NULL);
 
+    /// Verify & prep the ImageCacheFile record for the named image,
+    /// return the pointer (which may have changed for deduplication),
+    /// or NULL if no such file can be found. This returns a plain old
+    /// pointer, which is ok because the file hash table has ref-counted
+    /// pointers and those won't be freed until the texture system is
+    /// destroyed.  If header_only is true, we are finding the file only
+    /// for the sake of header information (e.g., called by
+    /// get_image_info).
+    ImageCacheFile *verify_file (ImageCacheFile *tf,
+                                 ImageCachePerThreadInfo *thread_info,
+                                 bool header_only=false);
+    
     virtual ImageCacheFile * get_image_handle (ustring filename,
                              ImageCachePerThreadInfo *thread_info=NULL) {
-        return find_file (filename, thread_info);
+        ImageCacheFile *file = find_file (filename, thread_info);
+        return verify_file (file, thread_info);
     }
 
     virtual bool good (ImageCacheFile *handle) {

@@ -577,6 +577,10 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_texture_info (ustring filename, int subimage,
                           ustring dataname, TypeDesc datatype, void *data) = 0;
+    virtual bool get_texture_info (TextureHandle *texture_handle,
+                          Perthread *thread_info, int subimage,
+                          ustring dataname, TypeDesc datatype, void *data) = 0;
+    /// DEPRECATED (1.6.2)
     virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
                           ustring dataname, TypeDesc datatype, void *data) = 0;
 
@@ -588,7 +592,8 @@ public:
     /// available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, int subimage,
                                 ImageSpec &spec) = 0;
-    virtual bool get_imagespec (TextureHandle *texture_handle, int subimage,
+    virtual bool get_imagespec (TextureHandle *texture_handle,
+                                Perthread *thread_info, int subimage,
                                 ImageSpec &spec) = 0;
 
     /// Return a pointer to an ImageSpec associated with the named
@@ -605,6 +610,7 @@ public:
     /// the TextureSystem.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0) = 0;
     virtual const ImageSpec *imagespec (TextureHandle *texture_handle,
+                                        Perthread *thread_info = NULL,
                                         int subimage=0) = 0;
 
     /// Retrieve the rectangle of raw unfiltered texels spanning

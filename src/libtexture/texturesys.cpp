@@ -470,11 +470,14 @@ TextureSystemImpl::get_texture_info (ustring filename, int subimage,
 
 
 bool
-TextureSystemImpl::get_texture_info (TextureHandle *texture_handle, int subimage,
+TextureSystemImpl::get_texture_info (TextureHandle *texture_handle,
+                             Perthread *thread_info, int subimage,
                              ustring dataname, TypeDesc datatype, void *data)
 {
     bool ok = m_imagecache->get_image_info ((ImageCache::ImageHandle *)texture_handle,
-                                    subimage, 0, dataname, datatype, data);
+                                            (ImageCache::Perthread *)thread_info,
+                                            subimage, 0,
+                                            dataname, datatype, data);
     if (! ok)
         error ("%s", m_imagecache->geterror());
     return ok;
@@ -495,10 +498,12 @@ TextureSystemImpl::get_imagespec (ustring filename, int subimage,
 
 
 bool
-TextureSystemImpl::get_imagespec (TextureHandle *texture_handle, int subimage,
+TextureSystemImpl::get_imagespec (TextureHandle *texture_handle,
+                                  Perthread *thread_info, int subimage,
                                   ImageSpec &spec)
 {
     bool ok = m_imagecache->get_imagespec ((ImageCache::ImageHandle *)texture_handle,
+                                           (ImageCache::Perthread *)thread_info,
                                            spec, subimage);
     if (! ok)
         error ("%s", m_imagecache->geterror());
@@ -519,11 +524,12 @@ TextureSystemImpl::imagespec (ustring filename, int subimage)
 
 
 const ImageSpec *
-TextureSystemImpl::imagespec (TextureHandle *texture_handle, int subimage)
+TextureSystemImpl::imagespec (TextureHandle *texture_handle,
+                              Perthread *thread_info, int subimage)
 {
     const ImageSpec *spec =
         m_imagecache->imagespec ((ImageCache::ImageHandle *)texture_handle,
-                                 subimage);
+                                 (ImageCache::Perthread *)thread_info, subimage);
     if (! spec)
         error ("%s", m_imagecache->geterror());
     return spec;
@@ -561,7 +567,7 @@ TextureSystemImpl::get_texels (TextureHandle *texture_handle_,
 {
     PerThreadInfo *thread_info = thread_info_ ? (PerThreadInfo *)thread_info_
                                               : m_imagecache->get_perthread_info();
-    TextureFile *texfile = (TextureFile *)texture_handle_;
+    TextureFile *texfile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     if (! texfile) {
         error ("Invalid texture handle NULL");
         return false;
@@ -864,7 +870,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
 
     PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
-    TextureFile *texturefile = (TextureFile *)texture_handle_;
+    TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
     ++stats.texture_queries;

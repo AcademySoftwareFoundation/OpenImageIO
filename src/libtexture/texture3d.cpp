@@ -139,7 +139,7 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
 #endif
 
     PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
-    TextureFile *texturefile = (TextureFile *)texture_handle_;
+    TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture3d_batches;
     ++stats.texture3d_queries;

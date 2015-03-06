@@ -165,7 +165,8 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
-    virtual bool get_image_info (ImageHandle *file, int subimage, int miplevel,
+    virtual bool get_image_info (ImageHandle *file, Perthread *thread_info,
+                         int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
     /// Get the ImageSpec associated with the named image (the first
@@ -177,7 +178,8 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false) = 0;
-    virtual bool get_imagespec (ImageHandle *file, ImageSpec &spec,
+    virtual bool get_imagespec (ImageHandle *file, Perthread *thread_info,
+                                ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false) = 0;
 
@@ -194,8 +196,10 @@ public:
     /// file, or invalidate_all(), or destroys the ImageCache.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
                                         int miplevel=0, bool native=false) = 0;
-    virtual const ImageSpec *imagespec (ImageHandle *file, int subimage=0,
-                                        int miplevel=0, bool native=false) = 0;
+    virtual const ImageSpec *imagespec (ImageHandle *file,
+                                        Perthread *thread_info,
+                                        int subimage=0, int miplevel=0,
+                                        bool native=false) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,
