@@ -381,7 +381,7 @@ help:
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
 	@echo "      NUKE_HOME=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
-	@echo "      USE_OPENSSL=0            Don't use OpenSSL even if found"
+#	@echo "      USE_OPENSSL=1            Use OpenSSL's SHA-1 implementation"
 	@echo "      USE_LIBRAW=0             Don't use LibRaw, even if found"
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
