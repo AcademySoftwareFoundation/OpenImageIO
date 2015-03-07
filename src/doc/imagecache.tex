@@ -389,16 +389,41 @@ settings of named options.  For example,
 \subsection{Opaque data for performance lookups}
 \label{sec:imagecache:api:opaque}
 
-\apiitem{Perthread * {\ce get_perthread_info} ()}
+\apiitem{Perthread * {\ce get_perthread_info} (Perthread *thread_info=NULL) \\
+Perthread * {\ce create_perthread_info} () \\
+void {\ce destroy_perthread_info} (Perthread *thread_info)}
 \indexapi{get_perthread_info}
+\indexapi{create_perthread_info} \indexapi{destroy_perthread_info}
 \NEW % 1.6
-Retrieves an opaque handle for per-thread info, to be used for
-{\cf get_image_handle()} and the \ImageCache methods that take handles
-directly.
+
+The \ImageCache implementation needs to maintain certain per-thread
+state, and some \ImageCache methods take an opaque {\cf Perthread} pointer
+to this record. There are three options for how to deal with it:
+
+1. Don't worry about it at all: don't use the methods that want {\cf
+Perthread} pointers, or always pass {\cf NULL} for any {\cf Perthread*}
+arguments, and \ImageCache will do thread-specific-pointer retrieval as
+necessary (though at some small cost).
+
+2. If your app already stores per-thread information of its own, you may
+call {\cf get_perthread_info(NULL)} to retrieve it for that thread, and then
+pass it into the functions that allow it (thus sparing them the need and
+expense of retrieving the thread-specific pointer). However, it is crucial
+that this pointer not be shared between multiple threads. In this case,
+the \ImageCache manages the storage, which will automatically be released
+when the thread terminates.
+
+3. If your app also wants to manage the storage of the {\cf Perthread},
+it can explicitly create one with {\cf create_perthread_info}, pass it around,
+and eventually be responsible for destroying it with {\cf destroy_perthread_info}.
+When managing the storage, the app may reuse the {\cf Perthread} for another
+thread after the first is terminated, but still may not use the same
+{\cf Perthread} for two threads running concurrently.
 \apiend
 
+
 \apiitem{ImageHandle * {\ce get_image_handle} (ustring filename,\\
-\bigspc\bigspc\bigspc  Perthread *thread_info=NULL)}
+\bigspc\bigspc\spc\spc  Perthread *thread_info=NULL)}
 \indexapi{get_image_handle}
 \NEW % 1.6
 Retrieve an opaque handle for fast \ImageCache lookups.  The optional opaque
@@ -423,7 +448,8 @@ Return true if the image handle (previously returned by
 \apiitem{bool {\ce get_image_info} (ustring filename, int subimage, int
   miplevel, \\
   \bigspc\bigspc ustring dataname, TypeDesc datatype, void *data) \\
-bool {\ce get_image_info} (ImageHandle *file, int subimage, int miplevel, \\
+bool {\ce get_image_info} (ImageHandle *file, Perthread *thread_info,\\
+  \bigspc\bigspc int subimage, int miplevel, \\
   \bigspc\bigspc ustring dataname, TypeDesc datatype, void *data)}
 Retrieves information about the image named by {\cf filename} (or specified
 by the opaque image handle).
@@ -521,8 +547,9 @@ matches both the name and data type.
 
 \apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,\\
 \bigspc\spc\spc  int subimage=0, int miplevel=0, bool native=false)\\
-bool {\ce get_imagespec} (ImageHandle *file, ImageSpec \&spec,\\
-\bigspc\spc\spc  int subimage=0, int miplevel=0, bool native=false)}
+bool {\ce get_imagespec} (ImageHandle *file,  Perthread *thread_info,\\
+  \bigspc\bigspc ImageSpec \&spec, int subimage=0, \\
+  \bigspc\bigspc int miplevel=0, bool native=false)}
 
 If the image (and the specific subimage and MIP level) is found and able to
 be opened by an available
@@ -546,8 +573,8 @@ settings such as \qkw{forcefloat} or \qkw{autotile}.
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
   subimage=0, \\
       \bigspc\bigspc\spc int miplevel=0, bool native=false) \\
-const ImageSpec * {\ce imagespec} (ImageHandle *file, int subimage=0, \\
-      \bigspc\bigspc\spc int miplevel=0, bool native=false)}
+const ImageSpec * {\ce imagespec} (ImageHandle *file, Perthread *thread_info,\\
+  \bigspc\bigspc int subimage=0, int miplevel=0, bool native=false)}
 
 If the image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function

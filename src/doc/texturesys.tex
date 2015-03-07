@@ -571,13 +571,38 @@ settings of named options.  For example,
 \subsection{Opaque data for performance lookups}
 \label{sec:texturesys:api:opaque}
 
-\apiitem{Perthread * {\ce get_perthread_info} ()}
+\apiitem{Perthread * {\ce get_perthread_info} (Perthread *thread_info=NULL) \\
+Perthread * {\ce create_perthread_info} () \\
+void {\ce destroy_perthread_info} (Perthread *thread_info)}
 \indexapi{get_perthread_info}
+\indexapi{create_perthread_info} \indexapi{destroy_perthread_info}
+\NEW % 1.6
 
-Retrieves an opaque handle for per-thread info, to be used for
-{\cf get_texture_handle()} and the texture routines that take handles
-directly.
+The \TextureSystem implementation needs to maintain certain per-thread
+state, and some \TextureSystem methods take an opaque {\cf Perthread} pointer
+to this record. There are three options for how to deal with it:
+
+1. Don't worry about it at all: don't use the methods that want {\cf
+Perthread} pointers, or always pass {\cf NULL} for any {\cf Perthread*}
+arguments, and \TextureSystem will do thread-specific-pointer retrieval as
+necessary (though at some small cost).
+
+2. If your app already stores per-thread information of its own, you may
+call {\cf get_perthread_info(NULL)} to retrieve it for that thread, and then
+pass it into the functions that allow it (thus sparing them the need and
+expense of retrieving the thread-specific pointer). However, it is crucial
+that this pointer not be shared between multiple threads. In this case,
+the \TextureSystem manages the storage, which will automatically be released
+when the thread terminates.
+
+3. If your app also wants to manage the storage of the {\cf Perthread},
+it can explicitly create one with {\cf create_perthread_info}, pass it around,
+and eventually be responsible for destroying it with {\cf destroy_perthread_info}.
+When managing the storage, the app may reuse the {\cf Perthread} for another
+thread after the first is terminated, but still may not use the same
+{\cf Perthread} for two threads running concurrently.
 \apiend
+
 
 \apiitem{TextureHandle * {\ce get_texture_handle} (ustring filename,\\
 \bigspc\bigspc\bigspc  Perthread *thread_info=NULL)}
@@ -1111,7 +1136,8 @@ plugin.
 
 \apiitem{bool {\ce get_texture_info} (ustring filename, int subimage, \\
 \bigspc\spc\spc ustring dataname, TypeDesc datatype, void *data) \\
-bool {\ce get_texture_info} (TextureHandle *texture_handle, int subimage, \\
+bool {\ce get_texture_info} (TextureHandle *texture_handle, \\
+\bigspc\spc\spc Perthread *thread_info, int subimage, \\
 \bigspc\spc\spc ustring dataname, TypeDesc datatype, void *data)}
 
 Retrieves information about the texture, either named by {\cf filename} or
@@ -1223,7 +1249,8 @@ matches both the name and data type.
 \apiend
 
 \apiitem{bool {\ce get_imagespec} (ustring filename, int subimage, ImageSpec \&spec) \\
-bool {\ce get_imagespec} (TextureHandle *texture_handle, int subimage, ImageSpec \&spec)}
+bool {\ce get_imagespec} (TextureHandle *texture_handle, Perthread *thread_info,\\
+  \bigspc\bigspc int subimage, ImageSpec \&spec)}
 
 If the image (specified by either name or handle)
 is found and able to be opened by an available
@@ -1235,7 +1262,8 @@ plugin that could be found, the return value is {\cf false}.
 
 
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage) \\
-const ImageSpec * {\ce imagespec} (TextureHandle *texture_handle, int subimage)}
+const ImageSpec * {\ce imagespec} (TextureHandle *texture_handle, \\
+\bigspc\bigspc Perthread *thread_info, int subimage)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -1257,7 +1285,7 @@ caller must beware that the pointer is only valid as long as nobody
 \bigspc                       int zbegin, int zend, int chbegin, int chend,\\
 \bigspc                       TypeDesc format, void *result) \\
 bool {\ce get_texels} (TextureHandle *texture_handle, PerThread *thread_info, \\
-\bigspc                       TextureOpt \&options, int miplevel, \\
+\bigspc                       Perthread *thread_info, TextureOpt \&options, int miplevel, \\
 \bigspc                       int xbegin, int xend, int ybegin, int yend,\\
 \bigspc                       int zbegin, int zend, int chbegin, int chend,\\
 \bigspc                       TypeDesc format, void *result)}
