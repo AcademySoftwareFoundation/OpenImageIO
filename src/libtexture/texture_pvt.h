@@ -116,8 +116,8 @@ public:
         result = m_Mc2w;
     }
 
-    virtual Perthread *get_perthread_info () {
-        return (Perthread *)m_imagecache->get_perthread_info ();
+    virtual Perthread *get_perthread_info (Perthread *thread_info = NULL) {
+        return (Perthread *)m_imagecache->get_perthread_info ((ImageCachePerThreadInfo *)thread_info);
     }
     virtual Perthread *create_thread_info () {
         ASSERT (m_imagecache);

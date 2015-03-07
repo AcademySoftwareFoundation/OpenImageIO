@@ -363,7 +363,13 @@ public:
     /// thread-specific pointer that will always return the Perthread for a
     /// thread, which will also be automatically destroyed when the thread
     /// terminates.
-    virtual Perthread * get_perthread_info () = 0;
+    ///
+    /// Applications that want to manage their own Perthread pointers (with
+    /// create_thread_info and destroy_thread_info) should still call this,
+    /// but passing in their managed pointer. If the passed-in threadinfo is
+    /// not NULL, it won't create a new one or retrieve a TSP, but it will
+    /// do other necessary housekeeping on the Perthread information.
+    virtual Perthread * get_perthread_info (Perthread *thread_info=NULL) = 0;
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using destroy_thread_info().

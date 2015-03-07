@@ -2907,9 +2907,10 @@ ImageCacheImpl::destroy_thread_info (ImageCachePerThreadInfo *thread_info)
 
 
 ImageCachePerThreadInfo *
-ImageCacheImpl::get_perthread_info ()
+ImageCacheImpl::get_perthread_info (ImageCachePerThreadInfo *p)
 {
-    ImageCachePerThreadInfo *p = m_perthread_info.get();
+    if (!p)
+        p = m_perthread_info.get();
     if (! p) {
         p = new ImageCachePerThreadInfo;
         m_perthread_info.reset (p);

@@ -913,9 +913,9 @@ public:
     /// Append a string to the current error message
     void append_error (const std::string& message) const;
 
-    virtual Perthread * get_perthread_info ();
+    virtual Perthread * get_perthread_info (Perthread *thread_info = NULL);
     virtual Perthread * create_thread_info ();
-    virtual void destroy_thread_info (Perthread *threadinfo);
+    virtual void destroy_thread_info (Perthread *thread_info);
 
     /// Called when the IC is destroyed.  We have a list of all the 
     /// perthread pointers -- go through and delete the ones for which we
@@ -928,7 +928,7 @@ public:
     /// clear its tile microcache), so don't delete the perthread info
     /// (it will be owned thereafter by the IC).  If there is no IC still
     /// depending on it (signalled by m_imagecache == NULL), delete it.
-    static void cleanup_perthread_info (ImageCachePerThreadInfo *p);
+    static void cleanup_perthread_info (Perthread *thread_info);
 
     /// Ensure that the max_memory_bytes is at least newsize bytes.
     /// Override the previous value if necessary, with thread-safety.

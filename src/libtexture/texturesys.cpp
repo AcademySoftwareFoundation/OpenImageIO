@@ -565,8 +565,7 @@ TextureSystemImpl::get_texels (TextureHandle *texture_handle_,
                                int chbegin, int chend,
                                TypeDesc format, void *result)
 {
-    PerThreadInfo *thread_info = thread_info_ ? (PerThreadInfo *)thread_info_
-                                              : m_imagecache->get_perthread_info();
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info((PerThreadInfo *)thread_info_);
     TextureFile *texfile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     if (! texfile) {
         error ("Invalid texture handle NULL");
@@ -869,7 +868,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     };
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
 
-    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info((PerThreadInfo *)thread_info_);
     TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
