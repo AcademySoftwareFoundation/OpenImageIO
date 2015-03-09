@@ -1034,7 +1034,7 @@ ImageCacheImpl::find_file (ustring filename,
     // expensive lock on the shared file cache.
     ImageCacheFile *tf = thread_info->find_file (filename);
 
-    // Part 1 - make sure the ImageCacheFile entry exists and is in the
+    // Make sure the ImageCacheFile entry exists and is in the
     // file cache.  For this part, we need to lock the file cache.
     bool newfile = false;
     if (! tf) {  // was not found in microcache
@@ -1054,19 +1054,39 @@ ImageCacheImpl::find_file (ustring filename,
         }
         m_files.unlock_bin (bin);
 
-        if (newfile)
+        if (newfile) {
             check_max_files (thread_info);
+            if (! tf->duplicate())
+                ++thread_info->m_stats.unique_files;
+        }
         thread_info->filename (filename, tf);  // add to the microcache
 #if IMAGECACHE_TIME_STATS
         thread_info->m_stats.find_file_time += timer();
 #endif
     }
 
-    // Part 2 - open the file if it's never been opened before.
+    // Ensure that it's open and do other important housekeeping.
+//    tf = verify_file (tf, thread_info, header_only);
+    return tf;
+}
+
+
+
+ImageCacheFile *
+ImageCacheImpl::verify_file (ImageCacheFile *tf,
+                             ImageCachePerThreadInfo *thread_info,
+                             bool header_only)
+{
+    if (! tf)
+        return NULL;
+
+    // Open the file if it's never been opened before.
     // No need to have the file cache locked for this, though we lock
     // the tf->m_input_mutex if we need to open it.
     if (! tf->validspec()) {
         Timer timer;
+        if (! thread_info)
+            thread_info = get_perthread_info ();
         recursive_lock_guard guard (tf->m_input_mutex);
         if (! tf->validspec()) {
             tf->open (thread_info);
@@ -1114,21 +1134,15 @@ ImageCacheImpl::find_file (ustring filename,
         }
     }
 
-    // if this is a duplicate texture, switch to the canonical copy
-    if (tf->duplicate()) {
-        if (! header_only)
-            tf = tf->duplicate();
+    if (! header_only) {
+        // if this is a duplicate texture, switch to the canonical copy
         // N.B. If looking up header info (i.e., get_image_info, rather
         // than getting pixels, use the original not the duplicate, since
         // metadata may differ even if pixels are identical).
-    } else {
-        // not a duplicate -- if opening the first time, count as unique
-        if (newfile)
-            ++thread_info->m_stats.unique_files;
-    }
-
-    if (! header_only)
+        if (tf->duplicate())
+            tf = tf->duplicate();
         tf->use ();  // Mark it as recently used
+    }
     return tf;
 }
 
@@ -2178,7 +2192,7 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
         error ("Invalid image file \"%s\"", filename);
         return false;
     }
-    return get_image_info (file, /* thread_info,*/ subimage, miplevel,
+    return get_image_info (file, thread_info, subimage, miplevel,
                            dataname, datatype, data);
 }
 
@@ -2186,11 +2200,12 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
 
 bool
 ImageCacheImpl::get_image_info (ImageCacheFile *file,
-                                // ImageCachePerThreadInfo *thread_info,
+                                ImageCachePerThreadInfo *thread_info,
                                 int subimage, int miplevel,
                                 ustring dataname,
                                 TypeDesc datatype, void *data)
 {
+    file = verify_file (file, thread_info, true);
     if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
@@ -2363,10 +2378,11 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec,
 
 bool
 ImageCacheImpl::get_imagespec (ImageCacheFile *file,
+                               ImageCachePerThreadInfo *thread_info,
                                ImageSpec &spec,
                                int subimage, int miplevel, bool native)
 {
-    const ImageSpec *specptr = imagespec (file, subimage, miplevel, native);
+    const ImageSpec *specptr = imagespec (file, thread_info, subimage, miplevel, native);
     if (specptr) {
         spec = *specptr;
         return true;
@@ -2387,19 +2403,23 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
         error ("Image file \"%s\" not found", filename.c_str());
         return NULL;
     }
-    return imagespec (file, subimage, miplevel, native);
+    return imagespec (file, thread_info, subimage, miplevel, native);
 }
 
 
 
 const ImageSpec *
 ImageCacheImpl::imagespec (ImageCacheFile *file,
+                           ImageCachePerThreadInfo *thread_info,
                            int subimage, int miplevel, bool native)
 {
     if (! file) {
         error ("Image file handle was NULL");
         return NULL;
     }
+    if (! thread_info)
+        thread_info = get_perthread_info ();
+    file = verify_file (file, thread_info, true);
     if (file->broken()) {
         error ("Invalid image file \"%s\"", file->filename());
         return NULL;
@@ -2491,6 +2511,9 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                             TypeDesc format, void *result,
                             stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! thread_info)
+        thread_info = get_perthread_info ();
+    file = verify_file (file, thread_info);
     if (file->broken()) {
         error ("Invalid image file \"%s\"", file->filename());
         return false;
@@ -2644,6 +2667,7 @@ ImageCacheImpl::get_tile (ImageHandle *file, Perthread *thread_info,
 {
     if (! thread_info)
         thread_info = get_perthread_info ();
+    file = verify_file (file, thread_info);
     if (! file || file->broken())
         return NULL;
     const ImageSpec &spec (file->spec(subimage,miplevel));
@@ -2698,6 +2722,7 @@ ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info, creator,
                                       false, config);
+    file = verify_file (file, thread_info);
     if (!file || file->broken())
         return false;
     return true;
@@ -2713,6 +2738,7 @@ ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
+    file = verify_file (file, thread_info);
     if (! file || file->broken()) {
         error ("Cannot add_tile for an image file that was not set up with add_file()");
         return false;
@@ -2881,9 +2907,10 @@ ImageCacheImpl::destroy_thread_info (ImageCachePerThreadInfo *thread_info)
 
 
 ImageCachePerThreadInfo *
-ImageCacheImpl::get_perthread_info ()
+ImageCacheImpl::get_perthread_info (ImageCachePerThreadInfo *p)
 {
-    ImageCachePerThreadInfo *p = m_perthread_info.get();
+    if (!p)
+        p = m_perthread_info.get();
     if (! p) {
         p = new ImageCachePerThreadInfo;
         m_perthread_info.reset (p);

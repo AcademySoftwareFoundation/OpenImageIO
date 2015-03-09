@@ -130,14 +130,20 @@ public:
     /// thread-specific pointer that will always return the Perthread for a
     /// thread, which will also be automatically destroyed when the thread
     /// terminates.
-    virtual Perthread * get_perthread_info () = 0;
+    ///
+    /// Applications that want to manage their own Perthread pointers (with
+    /// create_thread_info and destroy_thread_info) should still call this,
+    /// but passing in their managed pointer. If the passed-in thread_info
+    /// is not NULL, it won't create a new one or retrieve a TSP, but it
+    /// will do other necessary housekeeping on the Perthread information.
+    virtual Perthread * get_perthread_info (Perthread *thread_info = NULL) = 0;
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using destroy_thread_info().
     virtual Perthread * create_thread_info () = 0;
 
     /// Destroy a Perthread that was allocated by create_thread_info().
-    virtual void destroy_thread_info (Perthread *threadinfo) = 0;
+    virtual void destroy_thread_info (Perthread *thread_info) = 0;
 
     /// Define an opaque data type that allows us to have a handle to an
     /// image (already having its name resolved) but without exposing
@@ -165,7 +171,8 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
-    virtual bool get_image_info (ImageHandle *file, int subimage, int miplevel,
+    virtual bool get_image_info (ImageHandle *file, Perthread *thread_info,
+                         int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
     /// Get the ImageSpec associated with the named image (the first
@@ -177,7 +184,8 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false) = 0;
-    virtual bool get_imagespec (ImageHandle *file, ImageSpec &spec,
+    virtual bool get_imagespec (ImageHandle *file, Perthread *thread_info,
+                                ImageSpec &spec,
                                 int subimage=0, int miplevel=0,
                                 bool native=false) = 0;
 
@@ -194,8 +202,10 @@ public:
     /// file, or invalidate_all(), or destroys the ImageCache.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
                                         int miplevel=0, bool native=false) = 0;
-    virtual const ImageSpec *imagespec (ImageHandle *file, int subimage=0,
-                                        int miplevel=0, bool native=false) = 0;
+    virtual const ImageSpec *imagespec (ImageHandle *file,
+                                        Perthread *thread_info,
+                                        int subimage=0, int miplevel=0,
+                                        bool native=false) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,

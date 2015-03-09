@@ -362,8 +362,8 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
         return true;
     }
 
-    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
-    TextureFile *texturefile = (TextureFile *)texture_handle_;
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info((PerThreadInfo *)thread_info_);
+    TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.environment_batches;
     ++stats.environment_queries;

@@ -116,8 +116,8 @@ public:
         result = m_Mc2w;
     }
 
-    virtual Perthread *get_perthread_info () {
-        return (Perthread *)m_imagecache->get_perthread_info ();
+    virtual Perthread *get_perthread_info (Perthread *thread_info = NULL) {
+        return (Perthread *)m_imagecache->get_perthread_info ((ImageCachePerThreadInfo *)thread_info);
     }
     virtual Perthread *create_thread_info () {
         ASSERT (m_imagecache);
@@ -263,16 +263,24 @@ public:
 
     virtual bool get_texture_info (ustring filename, int subimage,
                            ustring dataname, TypeDesc datatype, void *data);
+    virtual bool get_texture_info (TextureHandle *texture_handle,
+                           Perthread *thread_info, int subimage,
+                           ustring dataname, TypeDesc datatype, void *data);
     virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
-                          ustring dataname, TypeDesc datatype, void *data);
+                           ustring dataname, TypeDesc datatype, void *data) {
+        return get_texture_info (texture_handle, NULL, subimage,
+                                 dataname, datatype, data);
+    }
 
     virtual bool get_imagespec (ustring filename, int subimage,
                                 ImageSpec &spec);
-    virtual bool get_imagespec (TextureHandle *texture_handle, int subimage,
+    virtual bool get_imagespec (TextureHandle *texture_handle,
+                                Perthread *thread_info, int subimage,
                                 ImageSpec &spec);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0);
     virtual const ImageSpec *imagespec (TextureHandle *texture_handle,
+                                        Perthread *thread_info=NULL,
                                         int subimage=0);
 
     virtual bool get_texels (ustring filename, TextureOpt &options,
@@ -307,9 +315,15 @@ private:
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename, PerThreadInfo *thread_info) {
-        TextureFile *texturefile = m_imagecache->find_file (filename, thread_info);
-        if (!texturefile || texturefile->broken())
-            error ("%s", m_imagecache->geterror().c_str());
+        return m_imagecache->find_file (filename, thread_info);
+    }
+    TextureFile *verify_texturefile (TextureFile *texturefile,
+                                     PerThreadInfo *thread_info) {
+        texturefile = m_imagecache->verify_file (texturefile, thread_info);
+        if (!texturefile || texturefile->broken()) {
+            std::string err = m_imagecache->geterror();
+            error ("%s", err.size() ? err.c_str() : "(unknown error)");
+        }
         return texturefile;
     }
 

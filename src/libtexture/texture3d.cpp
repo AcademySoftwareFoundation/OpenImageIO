@@ -138,8 +138,8 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     texture3d_lookup_prototype lookup = &TextureSystemImpl::texture3d_lookup_nomip;
 #endif
 
-    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
-    TextureFile *texturefile = (TextureFile *)texture_handle_;
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info((PerThreadInfo *)thread_info_);
+    TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture3d_batches;
     ++stats.texture3d_queries;
