@@ -51,11 +51,14 @@ Public API changes:
    get_imagespec(), imagespec(), and get_texels(), in addition to the
    existing name-based versions of those methods. Note that texture(),
    environment(), and texture3d() already had both named-based and
-   handle-based varieties. #1057 (1.6.1)
+   handle-based varieties. #1057 (1.6.1) #1083 (1.6.2)
  * Clarified in the docs that TextureSystem::get_texture_info and
    ImageCache::get_image_info "exists" queries should return true, and
    place in *data the value 1 or 0 depending on whether the image exists
    and can be read. #1046 (1.6.0/1.5.10)
+ * IC/TS: add create_thread_info() and destroy_thread_info() methods that
+   allow an app to manage the per-thread records needed by the IC.
+   #1080 (1.6.2)
  * Removed deprecated header string_ref.h. (Should use string_view.h)
    #1047 (1.6.0)
  * New ImageOutput::supports() tags: supports("alpha") should be true for
@@ -75,6 +78,9 @@ Public API changes:
  * ImageInput and ImageOutput supports() method has been changed to accept
    a string_view (rather than a const std::string&), and return an int
    (rather than a bool). (1.6.2)
+ * Add ImageBuf::make_writeable(), which forces IC-backed read-only
+   ImageBuf to read into locally allocated pixels so they can be
+   subsequently altered. #1087 (1.6.2)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -89,7 +95,9 @@ Fixes, minor enhancements, and performance improvements:
       unknown format from those that are corrupted or have read
       errors. #1065 (1.6.1)
     * Flag errors properly when -d specifies an unknown data format name.
-      #1077 (1.5.13)
+      #1077 (1.6.2/1.5.13)
+    * oiiotool numeric wildcard improvement: allow more digits to match.
+      #1082 (1.6.2/1.5.13)
  * maketx & TextureSystem:
     * Fix broken bicubic texture sampling with non-power-of-two sized
       tiles. #1035 (1.6.0/1.5.10)
@@ -137,14 +145,51 @@ Build/test system improvements:
  * New CMake build-time option to specify the default plugin search path.
    #1056 (1.6.1/1.5.12)
  * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.6.1/1.5.12)
+ * Remove dependency of OpenSSL by default. #1086 (1.6.2/1.5.13)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1)
  * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
    length with ones of definite length. #1072  (1.6.2/1.5.13)
  * Add Filesystem::rename() utility. #1070  (1.6.2/1.5.13)
+ * New SIMD methods: insert<>, xyz0, vreduce_add, dot, dot3, vdot, vdot3,
+   AxBxCxDx, blend0not (1.6.2)
+ * array_view enhancements that let you initialize an array_view<const float>
+   from a const std::vector<float>&.  #1084 (1.6.2/1.5.14)
 
 
+
+Release 1.5.13 (10 Mar 2015) -- compared to 1.5.12)
+----------------------------------------------
+ * oiiotool: Bug fix for frame sequences -- could crash in Windows. #1060
+ * New ImageOutput::supports() tags: supports("alpha") should be true for
+   image formats that support an alpha channel, supports("nchannels") should
+   be true for output formats that support an arbitrary number of output
+   channels. #1058
+ * oiiotool: Gracefully handle requests to save an image with more channels
+   than the output file format can handle. Instead of being a fatal error,
+   now it's just a warning, and extra channels are dropped. It tries to
+   to find R, G, B, and A channels, saving them. If those names are
+   not found, it just saves the first 3 (or 4) channels. #1058
+ * Improved handling of "PixelAspectRatio" for JPEG, TIFF, and OpenEXR.
+   #1042 #1066
+ * oiiotool: Improve error messages when files can't be read. It is now
+   easier to to distinguish files that don't exist from those that
+   are an unknown format from those that are corrupted or have read
+   errors. #1065
+ * maketx now writes to a temporary file, then moving it to the final
+   requested output filename only when the write completed without error.
+   This prevents situations where maketx crashes or is killed and leaves
+   behind a file that looks correct but is actually corrupted or
+   truncated. #1072
+ * Python: added previously-M.I.A. ImageSpec.erase_attribute(). #1063
+ * Add Filesystem::rename() utility. #1070
+ * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
+   length with ones of definite length. #1072
+ * oiiotool & maketx have improved error message when unknown data format
+   names are requested with "-d". #1077
+ * oiiotool numeric wildcard improvement: allow more digits to match. #1082
+ * Remove dependency of OpenSSL by default. #1086
 
 Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
 ----------------------------------------------
