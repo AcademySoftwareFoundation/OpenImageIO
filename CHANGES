@@ -1,6 +1,6 @@
 Changes:
 
-Release 1.5.13 (?? 2015) -- compared to 1.5.12)
+Release 1.5.13 (10 Mar 2015) -- compared to 1.5.12)
 ----------------------------------------------
  * oiiotool: Bug fix for frame sequences -- could crash in Windows. #1060
  * New ImageOutput::supports() tags: supports("alpha") should be true for
@@ -27,6 +27,10 @@ Release 1.5.13 (?? 2015) -- compared to 1.5.12)
  * Add Filesystem::rename() utility. #1070
  * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
    length with ones of definite length. #1072
+ * oiiotool & maketx have improved error message when unknown data format
+   names are requested with "-d". #1077
+ * oiiotool numeric wildcard improvement: allow more digits to match. #1082
+ * Remove dependency of OpenSSL by default. #1086
 
 Release 1.5.12 (11 Feb 2015) -- compared to 1.5.11)
 ----------------------------------------------
