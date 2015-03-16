@@ -1,8 +1,8 @@
 set (libOpenImageIO_Util_srcs argparse.cpp errorhandler.cpp filesystem.cpp
-                  filter.cpp hashes.cpp paramlist.cpp
+                  farmhash.cpp filter.cpp hashes.cpp paramlist.cpp
                   plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp timer.cpp
-                  typedesc.cpp ustring.cpp)
+                  typedesc.cpp ustring.cpp xxhash.cpp)
 
 if (BUILDSTATIC)
     add_library (OpenImageIO_Util STATIC ${libOpenImageIO_Util_srcs})

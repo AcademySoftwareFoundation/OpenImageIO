@@ -29,6 +29,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/argparse.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
+                          ../libutil/farmhash.cpp 
                           ../libutil/filter.cpp 
                           ../libutil/hashes.cpp 
                           ../libutil/paramlist.cpp 
@@ -39,6 +40,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/timer.cpp 
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
+                          ../libutil/xxhash.cpp 
                           ../libtexture/texturesys.cpp 
                           ../libtexture/texture3d.cpp 
                           ../libtexture/environment.cpp 

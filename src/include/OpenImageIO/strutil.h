@@ -51,6 +51,7 @@
 #include "oiioversion.h"
 #include "tinyformat.h"
 #include "string_view.h"
+#include "hash.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -144,44 +145,11 @@ std::string OIIO_API unescape_chars (string_view escaped);
 /// "0 1 2\n    3 4 5\n    6 7 8"
 std::string OIIO_API wordwrap (string_view src, int columns=80, int prefix=0);
 
-/// Hash a string without pre-known length.  We use the Jenkins
-/// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
-/// which seems to be a good speed/quality/requirements compromise.
-inline size_t
-strhash (const char *s)
-{
-    if (! s) return 0;
-    unsigned int h = 0;
-    while (*s) {
-        h += (unsigned char)(*s);
-        h += h << 10;
-        h ^= h >> 6;
-        ++s;
-    }
-    h += h << 3;
-    h ^= h >> 11;
-    h += h << 15;
-    return h;
-}
-
-
-/// Hash a string_view.  We use the Jenkins
-/// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
-/// which seems to be a good speed/quality/requirements compromise.
+/// Hash a string_view.
 inline size_t
 strhash (string_view s)
 {
-    if (! s.length()) return 0;
-    unsigned int h = 0;
-    for (size_t i = 0;  i < s.length();  ++i) {
-        h += (unsigned char)(s[i]);
-        h += h << 10;
-        h ^= h >> 6;
-    }
-    h += h << 3;
-    h ^= h >> 11;
-    h += h << 15;
-    return h;
+    return s.length() ? farmhash::Hash (s) : 0;
 }
 
 
@@ -302,12 +270,6 @@ int extract_from_list_string (std::vector<T> &vals,
 /// \endcode
 class StringHash {
 public:
-    size_t operator() (const char *s) const {
-        return (size_t)Strutil::strhash(s);
-    }
-    size_t operator() (const std::string &s) const {
-        return (size_t)Strutil::strhash(s.c_str());
-    }
     size_t operator() (string_view s) const {
         return (size_t)Strutil::strhash(s);
     }

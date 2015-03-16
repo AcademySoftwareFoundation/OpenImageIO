@@ -162,6 +162,11 @@ Developer goodies / internals:
    AxBxCxDx, blend0not (1.6.2)
  * array_view enhancements that let you initialize an array_view<const float>
    from a const std::vector<float>&.  #1084 (1.6.2/1.5.14)
+ * hash.h contains several new hashes in namespaces 'OIIO::xxhash' and
+   'OIIO::farmhash'. Also, Strutil::strhash now uses farmhash rather than
+   the Jenkins one-at-a-time hash, bringing big speed improvements
+   (including ustring creation). Beware that the strhash value returned
+   will be different than they were before. #1090 (1.6.3)
 
 
 

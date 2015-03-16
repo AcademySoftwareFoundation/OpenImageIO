@@ -46,20 +46,26 @@
 
 OIIO_NAMESPACE_USING;
 
-static int iterations = 1000000000;
+static int iterations = 100000000;
 static int ntrials = 1;
 static bool verbose = false;
 
-static std::string shortstring ("abcde");
-static std::string longstring (1000,char('a'));
+static const int shortlength = 5;
+static const int medlength = 50;
+static const int longlength = 501;  // Purposely not multiple of 4
+static std::string shortstring (shortlength,char('a'));
+static std::string medstring (medlength,char('a'));
+static std::string longstring (longlength,char('a'));
 static std::vector<uint32_t> data (1000,42);
+size_t dummy = 0;
 
-int
+
+size_t
 test_bjhash_small ()
 {
     void *ptr = &data[0];
     int len = 2*sizeof(int);
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
         a += bjhash::hashlittle (ptr, len);
     return a;
@@ -67,12 +73,12 @@ test_bjhash_small ()
 
 
 
-int
+size_t
 test_bjhash_big ()
 {
     void *ptr = &data[0];
     int len = (int)(data.size() * sizeof(int));
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
         a += bjhash::hashlittle (ptr, len);
     return a;
@@ -80,12 +86,12 @@ test_bjhash_big ()
 
 
 
-int
+size_t
 test_bjhash_small_words ()
 {
     uint32_t *ptr = &data[0];
     int len = 2*sizeof(int);
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
         a += bjhash::hashword (ptr, len/sizeof(int));
     return a;
@@ -93,12 +99,12 @@ test_bjhash_small_words ()
 
 
 
-int
+size_t
 test_bjhash_big_words ()
 {
     uint32_t *ptr = &data[0];
     int len = (int)(data.size() * sizeof(int));
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
         a += bjhash::hashword (ptr, len/sizeof(int));
     return a;
@@ -106,12 +112,10 @@ test_bjhash_big_words ()
 
 
 
-int
-test_xxhash_small ()
+size_t
+test_xxhash_fast32 (const void *ptr, size_t len)
 {
-    void *ptr = &data[0];
-    int len = 2*sizeof(int);
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
         a += xxhash::XXH_fast32 (ptr, len);
     return a;
@@ -119,14 +123,54 @@ test_xxhash_small ()
 
 
 
-int
-test_xxhash_big ()
+size_t
+test_xxhash (const void *ptr, size_t len)
 {
-    void *ptr = &data[0];
-    int len = (int)(data.size() * sizeof(int));
-    int a = 0;
+    size_t a = 0;
     for (int i = 0, e = iterations/len;  i < e;  ++i)
-        a += xxhash::XXH_fast32 (ptr, len);
+        a += xxhash::xxhash (ptr, len);
+    return a;
+}
+
+
+
+size_t
+test_bjstrhash (const std::string &str)
+{
+    int len = int(str.length());
+    size_t a = 0;
+    for (int i = 0, e = iterations/len;  i < e;  ++i) {
+        a += bjhash::strhash (str);
+        dummy = a;
+    }
+    return a;
+}
+
+
+
+size_t
+test_farmhashstr (const std::string &str)
+{
+    int len = int(str.length());
+    size_t a = 0;
+    for (int i = 0, e = iterations/len;  i < e;  ++i) {
+        a += farmhash::Hash (str);
+        // dummy = a;
+    }
+    return a;
+}
+
+
+
+size_t
+test_farmhashchar (const char *str)
+{
+    int len = strlen(str);
+    size_t a = 0;
+    for (int i = 0, e = iterations/len;  i < e;  ++i) {
+        a += farmhash::Hash (str, strlen(str));
+        // dummy = a;
+    }
     return a;
 }
 
@@ -166,25 +210,77 @@ int main (int argc, char *argv[])
 
     double t;
 
+    std::cout << "All times are seconds per " << iterations << " bytes.\n\n";
+
     t = time_trial (test_bjhash_small, ntrials);
     std::cout << "BJ hash of small data as bytes: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
+              << Strutil::timeintervalformat(t, 2) << "\n";
     t = time_trial (test_bjhash_small_words, ntrials);
     std::cout << "BJ hash of small data as words: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
+              << Strutil::timeintervalformat(t, 2) << "\n";
     t = time_trial (test_bjhash_big, ntrials);
     std::cout << "BJ hash of big data: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
+              << Strutil::timeintervalformat(t, 2) << "\n";
     t = time_trial (test_bjhash_big_words, ntrials);
     std::cout << "BJ hash of big data as words: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
+              << Strutil::timeintervalformat(t, 2) << "\n";
 
-    t = time_trial (test_xxhash_small, ntrials);
+    t = time_trial (boost::bind(test_xxhash, &data[0], 2*sizeof(data[0])), ntrials);
     std::cout << "XX hash of small data: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
-    t = time_trial (test_xxhash_big, ntrials);
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_xxhash, &data[0], data.size()*sizeof(data[0])), ntrials);
     std::cout << "XX hash of big data: " 
-              << Strutil::timeintervalformat(t, 3) << "\n";
+              << Strutil::timeintervalformat(t, 2) << "\n";
+
+    t = time_trial (boost::bind(test_bjstrhash, shortstring), ntrials);
+    std::cout << "BJ strhash hash of short string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_bjstrhash, medstring), ntrials);
+    std::cout << "BJ strhash hash of medium string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_bjstrhash, longstring), ntrials);
+    std::cout << "BJ strhash hash of long string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+
+    t = time_trial (boost::bind(test_farmhashstr, shortstring), ntrials);
+    std::cout << "farmhash of short string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_farmhashstr, medstring), ntrials);
+    std::cout << "farmhash of medium string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_farmhashstr, longstring), ntrials);
+    std::cout << "farmhash of long string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+
+    t = time_trial (boost::bind(test_farmhashchar, shortstring.c_str()), ntrials);
+    std::cout << "farmhash of short char*: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_farmhashchar, medstring.c_str()), ntrials);
+    std::cout << "farmhash of medium char*: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_farmhashchar, longstring.c_str()), ntrials);
+    std::cout << "farmhash of long char*: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+
+    t = time_trial (boost::bind(test_xxhash_fast32, shortstring.c_str(), shortstring.length()), ntrials);
+    std::cout << "xxhash fast32 of short string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_xxhash_fast32, medstring.c_str(), medstring.length()), ntrials);
+    std::cout << "xxhash fast32 of medium string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_xxhash_fast32, longstring.c_str(), longstring.length()), ntrials);
+    std::cout << "xxhash fast32 of long string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+
+    t = time_trial (boost::bind(test_xxhash, shortstring.c_str(), shortstring.length()), ntrials);
+    std::cout << "xxhash XH64 of short string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_xxhash, medstring.c_str(), medstring.length()), ntrials);
+    std::cout << "xxhash XH64 of medium string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
+    t = time_trial (boost::bind(test_xxhash, longstring.c_str(), longstring.length()), ntrials);
+    std::cout << "xxhash XH64 of long string: "
+              << Strutil::timeintervalformat(t, 2) << "\n";
 
     return unit_test_failures;
 }
