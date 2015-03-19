@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # test 1: seed top level, no MIP map
 command += testtex_command (parent + " -res 256 256 -d uint8 -o out1.tif --testicwrite 1 blah")

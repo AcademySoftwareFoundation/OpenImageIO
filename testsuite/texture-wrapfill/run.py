@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # This tests a particular tricky case: the interplay of "black" wrap mode
 # with fill color.  Outside the s,t [0,1] range, it should be black, NOT

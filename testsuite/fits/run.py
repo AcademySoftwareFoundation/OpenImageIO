@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # ../fits-image/pg93:
 # tst0001.fits to tst0014.fits

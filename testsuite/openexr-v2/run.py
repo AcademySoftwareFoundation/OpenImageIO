@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 imagedir = parent + "/openexr-images/v2/Stereo"
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # Regression test for stride bugs for tiled images where resolution isn't
 # a whole number of tiles.  This particular resolution mimics a particular

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # FIXME -- eventually, we want more (all?) of these to work
 

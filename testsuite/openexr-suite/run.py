@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # ../openexr-images/DisplayWindow:
 # README   t03.exr  t06.exr  t09.exr  t12.exr  t15.exr

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 imagedir = "../texture-field3d"
 files = [ "dense_float.f3d", "sparse_float.f3d",

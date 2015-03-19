@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 command = (oiio_app("maketx") + " --filter lanczos3 "
            + parent + "/oiio-images/grid-overscan.exr"

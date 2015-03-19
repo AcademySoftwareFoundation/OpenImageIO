@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 imagedir = parent + "/oiio-images/"
 files = [ "psd_123.psd", "psd_123_nomaxcompat.psd", "psd_bitmap.psd",

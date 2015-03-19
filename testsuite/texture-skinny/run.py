@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 command = testtex_command ("vertgrid.tx", " --scalest 4 1 ")
 outputs = [ "out.exr" ]

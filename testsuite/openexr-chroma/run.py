@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # ../openexr-images/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # Test reading and writing of files with per-channel data formats.
 

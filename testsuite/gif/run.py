@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 
 imagedir = parent + "/oiio-images"
 files = ["gif_animation.gif", "gif_oiio_logo_with_alpha.gif",

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 imagedir = parent + "/oiio-images"
 files = [ "oiio-logo-no-alpha.png",  "oiio-logo-with-alpha.png" ]

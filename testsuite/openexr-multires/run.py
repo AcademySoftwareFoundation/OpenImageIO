@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # ../openexr-images/MultiResolution:
 # Bonita.exr              MirrorPattern.exr       StageEnvCube.exr

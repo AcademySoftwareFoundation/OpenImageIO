@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 command = (oiio_app("testtex") + " -res 256 256 --nowarp "
            + parent + "/oiio-images/miplevels.tx"

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 # ../j2kp4files_v1_5/codestreams_profile0:
 imagedir = parent + "/j2kp4files_v1_5/codestreams_profile0"

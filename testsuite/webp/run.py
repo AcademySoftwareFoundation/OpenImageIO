@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 imagedir = parent + "/webp-images/"
 files = [ "1.webp", "2.webp", "3.webp", "4.webp" ]

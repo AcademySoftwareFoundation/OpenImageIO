@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/env python
 
 imagedir = parent + "/bmpsuite"
 files = [ "g01bg.bmp", "g04.bmp", "g08.bmp",
