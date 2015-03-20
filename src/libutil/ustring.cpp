@@ -83,11 +83,21 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #define USE_CONCURRENT_MAP 1
 #endif
 
+class UstringTable : public
 #if USE_CONCURRENT_MAP
-typedef unordered_map_concurrent <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual, 8> UstringTable;
+    unordered_map_concurrent <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual, 8>
 #else
-typedef boost::unordered_map <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
+    boost::unordered_map <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual>
 #endif
+{
+ public:
+   ~UstringTable() {
+       for (UstringTable::iterator it = begin(); it != end(); ++it) {
+           ustring::TableRep *rep = it->second;
+           free(rep);
+       }
+   }
+};
 
 std::string ustring::empty_std_string ("");
 
