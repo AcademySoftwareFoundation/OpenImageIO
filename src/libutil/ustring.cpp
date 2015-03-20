@@ -257,15 +257,20 @@ struct UstringTable {
     }
 
 private:
-    enum { NUM_BINS = 32 }; // NOTE: must be power of 2
+    enum {
+        BIN_SHIFT = 5,
+        NUM_BINS = 1 << BIN_SHIFT, // NOTE: this guarentees NUM_BINS is a power of 2
+        TOP_SHIFT = 8 * sizeof(size_t) - BIN_SHIFT
+    };
 
     typedef TableRepMap<(1 << 20) / NUM_BINS, (4 << 20) / NUM_BINS> Bin;
 
     Bin bins[NUM_BINS];
 
     Bin& whichbin(size_t hash) {
-        size_t h = (size_t) murmur::fmix (uint64_t(hash));  // scramble again
-        return bins[h % NUM_BINS];
+        // use the top bits of the hash to pick a bin
+        // (lower bits choose position within the table)
+        return bins[(hash >> TOP_SHIFT) % NUM_BINS];
     }
 };
 #endif // USE_CUSTOM_MAP
