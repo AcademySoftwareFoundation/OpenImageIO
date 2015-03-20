@@ -119,6 +119,9 @@ int main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
+    OIIO_CHECK_ASSERT(ustring("foo") == ustring("foo"));
+    OIIO_CHECK_ASSERT(ustring("bar") != ustring("foo"));
+
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
     std::cout << "threads\ttime (best of " << ntrials << ")\n";
     std::cout << "-------\t----------\n";
