@@ -883,8 +883,8 @@ inline T safe_logb (T x) {
 #endif
 }
 
-/// Safe pow: clamp the domain so it never returns Inf or NaN has divide by
-/// zero error.
+/// Safe pow: clamp the domain so it never returns Inf or NaN or has divide
+/// by zero error.
 template <typename T>
 inline T safe_pow (T x, T y) {
     if (y == T(0)) return T(1);
@@ -893,11 +893,8 @@ inline T safe_pow (T x, T y) {
     if ((x < T(0)) && (y != floor(y))) return T(0);
     // FIXME: this does not match "fast" variant because clamping limits are different
     T r = std::pow(x, y);
-    // Clamp to avoid Inf values.  We purposely clamp at considerably
-    // less than FLOAT_MAX (but still bigger than anyone is likely to
-    // need) so that subsequent additions or multiplications are less
-    // likely to overflow and end up with an Inf right afterwards.
-    const T big = T(1e30);
+    // Clamp to avoid returning Inf.
+    const T big = std::numeric_limits<T>::max();
     return clamp (r, -big, big);
 }
 
@@ -1269,8 +1266,13 @@ inline float fast_tanh (float x) {
 }
 
 inline float fast_safe_pow (float x, float y) {
-    if (y == 0) return 1.0f; // x^1=1
+    if (y == 0) return 1.0f; // x^0=1
     if (x == 0) return 0.0f; // 0^y=0
+    // be cheap & exact for special case of squaring and identity
+    if (y == 1.0f)
+        return x;
+    if (y == 2.0f)
+        return std::min (x*x, std::numeric_limits<float>::max());
     float sign = 1.0f;
     if (x < 0) {
         // if x is negative, only deal with integer powers
