@@ -692,7 +692,7 @@ public:
         size_t length;       // Length of the string; must be right before cap
         size_t dummy_capacity;  // Dummy field! must be right before refcount
         int    dummy_refcount;  // Dummy field! must be right before chars
-        TableRep (string_view strref);
+        TableRep (string_view strref, size_t hash);
         ~TableRep ();
         const char *c_str () const { return (const char *)(this + 1); }
     };

@@ -67,7 +67,12 @@ typedef null_lock<null_mutex> ustring_read_lock_t;
 typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
+// 0 turns off the custom implementation
+// 1 is vanilla custom map
+// 2 is the optimized concurrent custom map
+#define USE_CUSTOM_MAP      2
 
+#if !USE_CUSTOM_MAP
 #if defined(__i386__) && !defined(__clang__) && !defined(_MSC_VER)
 #if ((10000*__GNUC__ + 100*__GNUC_MINOR__ + __GNUC_PATCHLEVEL__) < 40300)
 // On a 32bit build using gcc4.2, make_unique() seg faults with the
@@ -89,11 +94,191 @@ typedef unordered_map_concurrent <string_view, ustring::TableRep *, Strutil::Str
 typedef boost::unordered_map <string_view, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 #endif
 
-std::string ustring::empty_std_string ("");
+#else // USE_CUSTOM_MAP
+// NOTE: BASE_CAPACITY must be a power of 2
+template <unsigned BASE_CAPACITY = 1 << 20, unsigned POOL_SIZE = 4 << 20>
+struct TableRepMap {
+    TableRepMap() :
+        mask(BASE_CAPACITY - 1),
+        entries(static_cast<ustring::TableRep**>(calloc(BASE_CAPACITY, sizeof(ustring::TableRep*)))),
+        num_entries(0),
+        pool(static_cast<char*>(malloc(POOL_SIZE))),
+        pool_offset(0),
+        memory_usage(sizeof(*this) + POOL_SIZE + sizeof(ustring::TableRep*) * BASE_CAPACITY),
+        num_lookups(0) {}
+
+    ~TableRepMap() { /* just let memory leak */ }
+
+    size_t get_memory_usage() {
+        ustring_read_lock_t lock(mutex);
+        return memory_usage;
+    }
+
+    size_t get_num_entries() {
+        ustring_read_lock_t lock(mutex);
+        return num_entries;
+    }
+
+    size_t get_num_lookups() {
+        ustring_read_lock_t lock(mutex);
+        return num_lookups;
+    }
+
+    const char* lookup(string_view str, size_t hash) {
+        ustring_read_lock_t lock(mutex);
+#if 0
+        // NOTE: this simple increment adds a substantial amount of overhead
+        // so keep it off by default, unless the user really wants it
+        // NOTE2: note that in debug, asserts like the one in ustring::from_unique
+        // can skew the number of lookups compared to release builds
+        ++num_lookups;
+#endif
+        size_t pos = hash & mask, dist = 0;
+        for (;;) {
+            if (entries[pos] == 0) return 0;
+            if (entries[pos]->hashed == hash &&
+                entries[pos]->length == str.length() &&
+                strncmp(entries[pos]->c_str(), str.data(), str.length()) == 0)
+                return entries[pos]->c_str();
+            ++dist;
+            pos = (pos + dist) & mask; // quadratic probing
+        }
+    }
+
+    const char* insert(string_view str, size_t hash) {
+        ustring_write_lock_t lock(mutex);
+        size_t pos = hash & mask, dist = 0;
+        for (;;) {
+            if (entries[pos] == 0) break; // found insert pos
+            if (entries[pos]->hashed == hash &&
+                entries[pos]->length == str.length() &&
+                strncmp(entries[pos]->c_str(), str.data(), str.length()) == 0)
+                return entries[pos]->c_str(); // same string is already inserted, return the one that is already in the table
+            ++dist;
+            pos = (pos + dist) & mask; // quadratic probing
+        }
+
+        ustring::TableRep* rep = make_rep(str, hash);
+        entries[pos] = rep;
+        ++num_entries;
+        if (2 * num_entries > mask) grow(); // maintain 0.5 load factor
+        return rep->c_str();                // rep is now in the table
+    }
+
+private:
+    void grow() {
+        size_t new_mask = mask * 2 + 1;
+
+        // NOTE: only increment by half because we are doubling the entries and freeing the old
+        memory_usage += (mask + 1) * sizeof(ustring::TableRep*);
+
+        ustring::TableRep** new_entries = static_cast<ustring::TableRep**>(calloc(new_mask + 1, sizeof(ustring::TableRep*)));
+        size_t to_copy = num_entries;
+        for (size_t i = 0; to_copy != 0; i++) {
+            if (entries[i] == 0)  continue;
+            size_t pos = entries[i]->hashed & new_mask, dist = 0;
+            for (;;) {
+                if (new_entries[pos] == 0)
+                    break;
+                ++dist;
+                pos = (pos + dist) & new_mask; // quadratic probing
+            }
+            new_entries[pos] = entries[i];
+            to_copy--;
+        }
+
+        free(entries);
+        entries = new_entries;
+        mask    = new_mask;
+    }
+
+    ustring::TableRep* make_rep(string_view str, size_t hash) {
+        char* repmem = pool_alloc(sizeof(ustring::TableRep) + str.length() + 1);
+        return new (repmem) ustring::TableRep (str, hash);;
+    }
+
+    char* pool_alloc(size_t len) {
+        if (len >= POOL_SIZE) {
+            memory_usage += len;
+            return (char*) malloc(len); // no need to try and use the pool
+        }
+        if (pool_offset + len > POOL_SIZE) {
+            // NOTE: old pool will leak - this is ok because ustrings cannot be freed
+            memory_usage += POOL_SIZE;
+            pool = (char*) malloc(POOL_SIZE);
+            pool_offset = 0;
+        }
+        char* result = pool + pool_offset;
+        pool_offset += len;
+        return result;
+    }
+
+    OIIO_CACHE_ALIGN ustring_mutex_t mutex;
+    size_t mask;
+    ustring::TableRep** entries;
+    size_t num_entries;
+    char* pool;
+    size_t pool_offset;
+    size_t memory_usage;
+    OIIO_CACHE_ALIGN size_t num_lookups;
+};
+
+#if USE_CUSTOM_MAP == 1
+typedef TableRepMap<1 << 20, 4 << 20> UstringTable;
+#elif USE_CUSTOM_MAP == 2
+struct UstringTable {
+    const char* lookup(string_view str, size_t hash) {
+        return whichbin(hash).lookup(str, hash);
+    }
+
+    const char* insert(string_view str, size_t hash) {
+        return whichbin(hash).insert(str, hash);
+    }
+
+    size_t get_memory_usage() {
+        size_t mem = 0;
+        for (int i = 0; i < NUM_BINS; i++)
+            mem += bins[i].get_memory_usage();
+        return mem;
+    }
+
+    size_t get_num_entries() {
+        size_t num = 0;
+        for (int i = 0; i < NUM_BINS; i++)
+            num += bins[i].get_num_entries();
+        return num;
+    }
+
+    size_t get_num_lookups() {
+        size_t num = 0;
+        for (int i = 0; i < NUM_BINS; i++)
+            num += bins[i].get_num_lookups();
+        return num;
+    }
+
+private:
+    enum { NUM_BINS = 32 }; // NOTE: must be power of 2
+
+    typedef TableRepMap<(1 << 20) / NUM_BINS, (4 << 20) / NUM_BINS> Bin;
+
+    Bin bins[NUM_BINS];
+
+    Bin& whichbin(size_t hash) {
+        size_t h = (size_t) murmur::fmix (uint64_t(hash));  // scramble again
+        return bins[h % NUM_BINS];
+    }
+};
+#endif // USE_CUSTOM_MAP
+
+#endif // USE_CUSTOM_MAP
+
+// This string is here so that we can return sensible values of str when the ustring's pointer is NULL
+std::string ustring::empty_std_string;
 
 
 namespace { // anonymous
 
+#if !USE_CUSTOM_MAP
 #if USE_CONCURRENT_MAP
 static OIIO_CACHE_ALIGN atomic_ll ustring_stats_memory;
 static OIIO_CACHE_ALIGN atomic_ll ustring_stats_constructed;
@@ -102,10 +287,7 @@ static OIIO_CACHE_ALIGN atomic_ll ustring_stats_unique;
 static OIIO_CACHE_ALIGN long long ustring_stats_memory = 0;
 static OIIO_CACHE_ALIGN long long ustring_stats_constructed = 0;
 static OIIO_CACHE_ALIGN long long ustring_stats_unique = 0;
-#endif
 
-
-#if !USE_CONCURRENT_MAP
 // Wrap our static mutex in a function to guarantee it exists when we
 // need it, regardless of module initialization order.
 static ustring_mutex_t & ustring_mutex ()
@@ -113,8 +295,8 @@ static ustring_mutex_t & ustring_mutex ()
     static OIIO_CACHE_ALIGN ustring_mutex_t the_real_mutex;
     return the_real_mutex;
 }
-#endif
-
+#endif // USE_CONCURRENT_MAP
+#endif // USE_CUSTOM_MAP
 
 static UstringTable & ustring_table ()
 {
@@ -127,7 +309,7 @@ static UstringTable & ustring_table ()
 
 // Put a ustring in the global scope to force at least one call to
 // make_unique to happen before main(), i.e. before threads are launched,
-// in order to eliminate any possible thread collosion on construction of
+// in order to eliminate any possible thread collision on construction of
 // the ustring_table statically declared within make_unique.
 namespace pvt {
 static ustring ustring_force_make_unique_call("");
@@ -170,8 +352,8 @@ enum {libcpp_string__min_cap = (sizeof(libcpp_string__long) - 1)/sizeof(std::str
 
 
 
-ustring::TableRep::TableRep (string_view strref)
-    : hashed(Strutil::strhash(strref))
+ustring::TableRep::TableRep (string_view strref, size_t hash)
+    : hashed(hash)
 {
     length = strref.length();
     memcpy ((char *)c_str(), strref.data(), length);
@@ -242,9 +424,26 @@ ustring::TableRep::~TableRep ()
     }
 }
 
+#if USE_CUSTOM_MAP
 
+const char *
+ustring::make_unique (string_view strref)
+{
+    UstringTable &table (ustring_table());
+    // Eliminate NULLs
+    if (! strref.data())
+        strref = string_view("", 0);
 
-#if USE_CONCURRENT_MAP
+    size_t hash = Strutil::strhash(strref);
+
+    // Check the ustring table to see if this string already exists.  If so,
+    // construct from its canonical representation.
+    // NOTE: all locking is performed internally to the table implementation
+    const char* result = table.lookup(strref, hash);
+    return result ? result : table.insert(strref, hash);
+}
+
+#elif USE_CONCURRENT_MAP
 
 const char *
 ustring::make_unique (string_view strref)
@@ -265,10 +464,11 @@ ustring::make_unique (string_view strref)
     }
 
     // This string is not yet in the ustring table.  Create a new entry.
+    size_t hash = Strutil::strhash(strref);
     size_t len = strref.length();
     size_t size = sizeof(ustring::TableRep) + len + 1;
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
-    new (rep) ustring::TableRep (strref);
+    new (rep) ustring::TableRep (strref, hash);
 
     // Lock the table and add the entry if it's not already there
     const char *result = rep->c_str();
@@ -326,10 +526,11 @@ ustring::make_unique (string_view strref)
     // This string is not yet in the ustring table.  Create a new entry.
     // Note that we are speculatively releasing the lock and building the
     // string locally.  Then we'll lock again to put it in the table.
+    size_t hash = Strutil::strhash(strref);
     size_t len = strref.length();
     size_t size = sizeof(ustring::TableRep) + len + 1;
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
-    new (rep) ustring::TableRep (strref);
+    new (rep) ustring::TableRep (strref, hash);
 
     const char *result = rep->c_str(); // start assuming new one
     {
@@ -371,6 +572,28 @@ ustring::make_unique (string_view strref)
 std::string
 ustring::getstats (bool verbose)
 {
+#if USE_CUSTOM_MAP
+    UstringTable &table (ustring_table());
+    std::ostringstream out;
+    size_t n_l = table.get_num_lookups();
+    size_t n_e = table.get_num_entries();
+    size_t mem = table.get_memory_usage();
+    if (verbose) {
+        out << "ustring statistics:\n";
+        if (n_l) // NOTE: see #if 0 above
+        out << "  ustring requests: " << n_l << ", unique " << n_e << "\n";
+        else
+        out << "  unique strings: " << n_e << "\n";
+        out << "  ustring memory: " << Strutil::memformat(mem)
+            << "\n";
+    } else {
+        if (n_l) // NOTE: see #if 0 above
+        out << "requests: " << n_l << ", ";
+        out << "unique " << n_e
+            << ", " << Strutil::memformat(mem);
+    }
+    return out.str();
+#else // USE_CUSTOM_MAP
 #if ! USE_CONCURRENT_MAP
     ustring_read_lock_t read_lock (ustring_mutex());
 #endif
@@ -429,6 +652,7 @@ ustring::getstats (bool verbose)
 #endif
 
     return out.str();
+#endif // USE_CUSTOM_MAP
 }
 
 
@@ -437,10 +661,15 @@ ustring::getstats (bool verbose)
 size_t
 ustring::memory ()
 {
+#if USE_CUSTOM_MAP
+    UstringTable &table (ustring_table());
+    return table.get_memory_usage();
+#else
 #if ! USE_CONCURRENT_MAP
     ustring_read_lock_t read_lock (ustring_mutex());
 #endif
     return ustring_stats_memory;
+#endif
 }
 
 }
