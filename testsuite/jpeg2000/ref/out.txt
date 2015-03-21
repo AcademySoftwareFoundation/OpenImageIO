@@ -1,80 +1,84 @@
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_01.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_01.j2k :  128 x  128, 1 channel, uint8 jpeg2000
-    SHA-1: A2163520C5E739A780CD63A92CAAA1D665DFF74B
-    channel list: A
-    oiio:BitsPerSample: 8
-    oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_01.j2k" and "p0_01.j2k"
-PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_02.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_02.j2k :   64 x  126, 1 channel, uint8 jpeg2000
-    SHA-1: 168DD620ECFC216FE282E3489E2CC75DED441943
-    channel list: A
-    oiio:BitsPerSample: 8
-    oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_02.j2k" and "p0_02.j2k"
-PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k :  256 x  256, 1 channel, uint4 jpeg2000
-    SHA-1: A0F0816029340C5AEDB4124333DF915F37B72B81
-    channel list: A
-    oiio:BitsPerSample: 4
-    oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k" and "p0_03.j2k"
-PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_04.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_04.j2k :  640 x  480, 3 channel, uint8 jpeg2000
-    SHA-1: CB70AF147E044CD073966C6BF40E1037F89A9F45
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file1.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file1.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
+    SHA-1: 746B1B44D0E5EE3999B1350B2A4245D679A617F7
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_04.j2k" and "p0_04.j2k"
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file1.jp2" and "file1.jp2"
 PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_05.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_05.j2k : 1024 x 1024, 4 channel, uint8 jpeg2000
-    SHA-1: A2F7A2A02416496FF57ED82DDFD0549C3531FCA8
-    channel list: R, G, B, A
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2 :  480 x  640, 3 channel, uint8 jpeg2000
+    SHA-1: 668A651D2B8C3B99CCCC560F993F5BBD33F2B3E7
+    channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_05.j2k" and "p0_05.j2k"
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2" and "file2.jp2"
 PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k :  513 x  129, 4 channel, uint12 jpeg2000
-    SHA-1: D3061DF764BB425332C790C209D6BFEFF24B9196
-    channel list: R, G, B, A
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2 :  480 x  640, 3 channel, uint8 jpeg2000
+    SHA-1: B8A8FBF015263C072B051839F6BE645E7F27C671
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:Orientation: 1
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2" and "file3.jp2"
+PASS
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2 :  768 x  512, 1 channel, uint8 jpeg2000
+    SHA-1: A45171430806BA3E74705675C855A781FC04BE44
+    channel list: A
+    oiio:BitsPerSample: 8
+    oiio:Orientation: 1
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2" and "file4.jp2"
+PASS
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
+    SHA-1: FEF67669AB05A25F8A42455206B64C789CFCA38F
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:Orientation: 1
+    oiio:ColorSpace: "sRGB"
+    ICCProfile: 0, 0, 2, 34, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ...
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
+PASS
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2 :  768 x  512, 1 channel, uint12 jpeg2000
+    SHA-1: 3A29DFAD0AA3F910AA2D37007989A4CC6E7BDE2A
+    channel list: A
     oiio:BitsPerSample: 12
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k" and "p0_06.j2k"
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2" and "file6.jp2"
 PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_10.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_10.j2k :   64 x   64, 3 channel, uint8 jpeg2000
-    SHA-1: 94CE2C5B2DBACAAEFBBB22AD7D5D7DD261630CED
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2 :  480 x  640, 3 channel, uint16 jpeg2000
+    SHA-1: C1110501C2784B4AB29B98B2C6EC05C0C6C16F77
     channel list: R, G, B
-    oiio:BitsPerSample: 8
+    oiio:BitsPerSample: 16
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_10.j2k" and "p0_10.j2k"
+    oiio:ColorSpace: "sRGB"
+    ICCProfile: 0, 0, 52, 20, 65, 80, 80, 76, 2, 16, 0, 0, 115, 99, 110, 114, ...
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
 PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_11.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_11.j2k :  128 x    1, 1 channel, uint8 jpeg2000
-    SHA-1: 57FA1018D62FC617E9200676A54D6610E5A58663
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2 :  700 x  400, 1 channel, uint8 jpeg2000
+    SHA-1: 593D82DE9935FC3F7963CABAAD5ACB7F8134E39A
     channel list: A
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_11.j2k" and "p0_11.j2k"
+    oiio:ColorSpace: "sRGB"
+    ICCProfile: 0, 0, 1, 158, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ...
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_12.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_12.j2k :    3 x    5, 1 channel, uint8 jpeg2000
-    SHA-1: D5943D1CD45BB7DCE98B33E1FE2875EFA94B1A19
-    channel list: A
-    oiio:BitsPerSample: 8
-    oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_12.j2k" and "p0_12.j2k"
-PASS
-Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_14.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_14.j2k :   49 x   49, 3 channel, uint8 jpeg2000
-    SHA-1: 243375ADAB26B1DB226E328F98C8B98B6B7CFD5B
+Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2
+../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
+    SHA-1: 501807547A6F9B8FA61EF7A4FD9AB7B369E7800C
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
-Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_14.j2k" and "p0_14.j2k"
+    oiio:ColorSpace: "sRGB"
+Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2" and "file9.jp2"
 PASS

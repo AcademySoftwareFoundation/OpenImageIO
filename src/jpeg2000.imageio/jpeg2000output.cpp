@@ -61,12 +61,15 @@ class Jpeg2000Output : public ImageOutput {
     opj_cparameters_t m_compression_parameters;
     opj_image_t *m_image;
     unsigned int m_dither;
+    bool m_convert_alpha;             //< Do we deassociate alpha?
     std::vector<unsigned char> m_tilebuffer;
+    std::vector<unsigned char> m_scratch;
 
     void init (void)
     {
         m_file = NULL;
         m_image = NULL;
+        m_convert_alpha = true;
     }
 
     opj_image_t* create_jpeg2000_image();
@@ -76,8 +79,6 @@ class Jpeg2000Output : public ImageOutput {
     opj_cinfo_t* create_compressor();
 
     bool save_image();
-
-    uint16_t write_pixel(int p_nativePrecision, int p_pixelData);
 
     template<typename T>
     void write_scanline(int y, int z, const void *data);
@@ -141,6 +142,8 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
 
     m_dither = (m_spec.format == TypeDesc::UINT8) ?
                     m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+    m_convert_alpha = m_spec.alpha_channel != -1 &&
+                      !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
     m_file = Filesystem::fopen (m_filename, "wb");
     if (m_file == NULL) {
@@ -159,19 +162,66 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
 
 
 
+template <class T>
+static void
+deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
+{
+    unsigned int max = std::numeric_limits<T>::max();
+    if (gamma == 1) {
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel])
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel) {
+                        unsigned int f = data[c];
+                        f = (f * max) / data[alpha_channel];
+                        data[c] = (T) std::min (max, f);
+                    }
+    } else {
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel]) {
+                // See associateAlpha() for an explanation.
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel)
+                        data[c] = static_cast<T> (std::min (max,
+                                (unsigned int)(data[c] * alpha_deassociate)));
+            }
+    }
+}
+
+
+
 bool
 Jpeg2000Output::write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride)
+                                const void *data, stride_t xstride)
 {
+    y -= m_spec.y;
     if (y > m_spec.height) {
-        error ("Attempt to write too many scanlines to %s", m_filename.c_str());
-        close ();
+        error ("Attempt to write too many scanlines to %s", m_filename);
         return false;
     }
 
-    std::vector<uint8_t> scratch;
-    data = to_native_scanline (format, data, xstride, scratch,
+    m_spec.auto_stride (xstride, format, spec().nchannels);
+    const void *origdata = data;
+    data = to_native_scanline (format, data, xstride, m_scratch,
                                m_dither, y, z);
+    if (data == origdata) {
+        m_scratch.assign ((unsigned char *)data,
+                          (unsigned char *)data+m_spec.scanline_bytes());
+        data = &m_scratch[0];
+    }
+
+    // JPEG-2000 specifically dictates unassociated (un-"premultiplied") alpha
+    if (m_convert_alpha) {
+        if (m_spec.format == TypeDesc::UINT16)
+            deassociateAlpha ((unsigned short *)data, m_spec.width,
+                              m_spec.nchannels, m_spec.alpha_channel, 2.2f);
+        else
+            deassociateAlpha ((unsigned char *)data, m_spec.width,
+                              m_spec.nchannels, m_spec.alpha_channel, 2.2f);
+    }
+
     if (m_spec.format == TypeDesc::UINT8)
         write_scanline<uint8_t>(y, z, data);
     else
@@ -284,6 +334,13 @@ Jpeg2000Output::create_jpeg2000_image()
     m_image->y0 = m_compression_parameters.image_offset_y0;
     m_image->x1 = m_compression_parameters.image_offset_x0 + (m_spec.width - 1) * m_compression_parameters.subsampling_dx + 1;
     m_image->y1 = m_compression_parameters.image_offset_y0 + (m_spec.height - 1) * m_compression_parameters.subsampling_dy + 1;
+
+    const ImageIOParameter *icc = m_spec.find_attribute ("ICCProfile");
+    if (icc && icc->type().basetype == TypeDesc::UINT8 && icc->type().arraylen > 0) {
+        m_image->icc_profile_len = icc->type().arraylen;
+        m_image->icc_profile_buf = (unsigned char *) icc->data();
+    }
+
     return m_image;
 }
 
@@ -319,42 +376,24 @@ Jpeg2000Output::create_compressor()
 }
 
 
+
 template<typename T>
 void
 Jpeg2000Output::write_scanline(int y, int z, const void *data)
 {
+    int bits = sizeof(T)*8;
     const T* scanline = static_cast<const T*>(data);
-    const size_t scanline_pos =  y * m_spec.width;
-    if (m_spec.nchannels == 1) {
-        for (int i = 0; i < m_spec.width; i++)
-        {
-            m_image->comps[0].data[scanline_pos + i] = write_pixel(m_image->comps[0].prec, scanline[i]);
+    const size_t scanline_pos =  (y - m_spec.y) * m_spec.width;
+    for (int i = 0, j = 0; i < m_spec.width; i++) {
+        for (int c = 0; c < m_spec.nchannels; ++c) {
+            unsigned int val = scanline[j++];
+            if (bits != m_image->comps[c].prec)
+                val = bit_range_convert (val, bits, m_image->comps[c].prec);
+            m_image->comps[c].data[scanline_pos + i] = val;
         }
-        return;
-    }
-
-    for (int i = 0, j = 0; i < m_spec.width; i++)
-    {
-        m_image->comps[0].data[scanline_pos + i] = write_pixel(m_image->comps[0].prec, scanline[j++]);
-        m_image->comps[1].data[scanline_pos + i] = write_pixel(m_image->comps[0].prec, scanline[j++]);
-        m_image->comps[2].data[scanline_pos + i] = write_pixel(m_image->comps[0].prec, scanline[j++]);
-
-        if (m_spec.nchannels < 4)
-            continue;
-
-        m_image->comps[3].data[scanline_pos + i] = write_pixel(m_image->comps[0].prec, scanline[j++]);
     }
 }
 
-inline uint16_t
-Jpeg2000Output::write_pixel(int p_nativePrecision, int p_pixelData)
-{
-    if (p_nativePrecision == 10)
-        return p_pixelData >> 6;
-    if (p_nativePrecision == 12)
-        return p_pixelData >> 4;
-    return p_pixelData;
-}
 
 
 void Jpeg2000Output::setup_cinema_compression(OPJ_RSIZ_CAPABILITIES p_rsizCap)
