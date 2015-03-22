@@ -173,6 +173,10 @@ def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
             cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
                    + " " + extraargs + " " + filename + " >> out.txt ;\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
+               + " -fail " + str(failthresh/4)
+               + " -failpercent " + str(failpercent)
+               + " -hardfail " + str(failthresh)
+               + " -warn " + str(2*failthresh)
                + " " + idiffextraargs + " " + filename + " >> out.txt ;\n")
     return cmd
 
