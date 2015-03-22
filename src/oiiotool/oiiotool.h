@@ -108,7 +108,9 @@ public:
 
     void clear_options ();
 
-    // Force img to be read at this point.
+    /// Force img to be read at this point.  Use this wrapper, don't directly
+    /// call img->read(), because there's extra work done here specific to
+    /// oiiotool.
     bool read (ImageRecRef img);
     // Read the current image
     bool read () {

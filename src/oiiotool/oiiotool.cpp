@@ -141,8 +141,6 @@ format_resolution (int w, int h, int d, int x, int y, int z)
 
 
 // FIXME -- lots of things we skimped on so far:
-// FIXME: check binary ops for compatible image dimensions
-// FIXME: handle missing image
 // FIXME: reject volume images?
 // FIXME: do all ops respect -a (or lack thereof?)
 
@@ -962,7 +960,7 @@ Oiiotool::express_impl (string_view s)
             }
             string_view metadata = Strutil::parse_identifier (s);
             if (metadata.size()) {
-                img->read ();
+                read (img);
                 ImageIOParameter tmpparam;
                 const ImageIOParameter *p = img->spec(0,0)->find_attribute (metadata, tmpparam);
                 if (p) {
@@ -1524,7 +1522,7 @@ action_unpremult (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -1549,7 +1547,7 @@ action_premult (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2177,7 +2175,7 @@ action_subc (int argc, const char *argv[])
     string_view colorarg = ot.express (argv[1]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2245,7 +2243,7 @@ action_absdiffc (int argc, const char *argv[])
     string_view colorarg = ot.express(argv[1]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2343,7 +2341,7 @@ action_mulc (int argc, const char *argv[])
         return 0;   // Implicit multiplication by 1 if we can't figure it out
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2415,7 +2413,7 @@ action_divc (int argc, const char *argv[])
     string_view colorarg = ot.express (argv[1]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2452,7 +2450,7 @@ action_addc (int argc, const char *argv[])
         return 0;   // Implicit addition by 0 if we can't figure it out
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2498,7 +2496,7 @@ action_powc (int argc, const char *argv[])
         return 0;   // Implicit multiplication by 1 if we can't figure it out
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writable*/, true /*copy_pixels*/));
@@ -2571,7 +2569,7 @@ action_noise (int argc, const char *argv[])
     int nchannels = Strutil::from_string<int> (options["nchannels"]);
 
     ImageRecRef src = ot.pop();
-    src->read ();
+    ot.read (src);
     ImageRecRef R (new ImageRec (*src, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, true /*copy_pixels*/));
     ot.push (R);
@@ -3500,8 +3498,8 @@ action_convolve (int argc, const char *argv[])
 
     ImageRecRef K = ot.pop();  // kernel
     ImageRecRef A = ot.pop();
-    A->read();
-    K->read();
+    ot.read (A);
+    ot.read (K);
 
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, false /*copy_pixels*/));
@@ -3542,7 +3540,7 @@ action_blur (int argc, const char *argv[])
         ot.error (command, Kernel.geterror());
 
     ImageRecRef A = ot.pop();
-    A->read();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, false /*copy_pixels*/));
     ot.push (R);
@@ -3574,7 +3572,7 @@ action_median (int argc, const char *argv[])
         ot.error (command, Strutil::format ("Unknown size %s", size));
 
     ImageRecRef A = ot.pop();
-    A->read();
+    ot.read (A);
 
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, false /*copy_pixels*/));
@@ -3613,7 +3611,7 @@ action_unsharp (int argc, const char *argv[])
     float threshold = Strutil::from_string<float> (options["threshold"]);
 
     ImageRecRef A = ot.pop();
-    A->read();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0, 0,
                                  true /*writable*/, false /*copy_pixels*/));
     ot.push (R);
@@ -3641,7 +3639,7 @@ action_fft (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
 
     ImageRecRef A = ot.pop();
-    A->read();
+    ot.read (A);
     ImageRecRef R (new ImageRec ("fft", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
@@ -3668,7 +3666,7 @@ action_ifft (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
 
     ImageRecRef A = ot.pop();
-    A->read();
+    ot.read (A);
     ImageRecRef R (new ImageRec ("ifft", ot.allsubimages ? A->subimages() : 1));
     ot.push (R);
 
@@ -4073,7 +4071,7 @@ action_clamp (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
 
     ImageRecRef A = ot.pop();
-    A->read ();
+    ot.read (A);
     ImageRecRef R (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                  ot.allsubimages ? -1 : 0,
                                  true /*writeable*/, false /*copy_pixels*/));
