@@ -98,6 +98,16 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             dst->error ("Uninitialized input image");
         return false;
     }
+    int maxchans = 10000;
+    if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS) {
+        // Instructions to clamp chend to the highest of the inputs
+        if (dst && dst->initialized())
+            maxchans = std::min (maxchans, dst->spec().nchannels);
+        if (A && A->initialized())
+            maxchans = std::min (maxchans, A->spec().nchannels);
+        if (B && B->initialized())
+            maxchans = std::min (maxchans, B->spec().nchannels);
+    }
     if (dst->initialized()) {
         // Valid destination image.  Just need to worry about ROI.
         if (roi.defined()) {
@@ -179,6 +189,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
 
         dst->reset (spec);
     }
+    roi.chend = std::min (roi.chend, maxchans);
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 ||
               (A && A->spec().alpha_channel < 0) ||
@@ -271,14 +282,15 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
                         const ImageBuf &kernel, bool normalize,
                         ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
-    if (dst.nchannels() != src.nchannels()) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dst.spec().nchannels, src.spec().nchannels);
-        return false;
-    }
     bool ok;
+    const ImageBuf *K = &kernel;
+    ImageBuf Ktmp;
+    if (kernel.spec().format != TypeDesc::FLOAT) {
+        Ktmp.copy (kernel, TypeDesc::FLOAT);
+        K = &Ktmp;
+    }
     OIIO_DISPATCH_TYPES2 (ok, "convolve", convolve_,
                           dst.spec().format, src.spec().format,
                           dst, src, kernel, normalize, roi, nthreads);
