@@ -1315,15 +1315,23 @@ Replace the pixels in this \ImageBuf with the values from the other
 \ImageBuf.
 \apiend
 
-\apiitem{ImageBuf.{\ce copy} (other_imagebuf)}
+\apiitem{ImageBuf.{\ce copy} (other_imagebuf) \\
+ImageBuf.{\ce copy} (other_imagebuf, format)}
 Make this \ImageBuf a complete copy of the other \ImageBuf.
+If a {\cf format} is provided, {\cf this} will get the specified pixel
+data type rather than using the same pixel format as the source \ImageBuf.
 
 \noindent Example:
 \begin{code}
-    A = ImageBuf()
-    B = ImageBuf("B.tif")
-    A.copy (B)
-    # Now A is a separate, duplicate copy of "B.tif"
+    A = ImageBuf("A.tif")
+
+    # Make a separate, duplicate copy of A
+    B = ImageBuf()
+    B.copy (A)
+
+    # Make another copy of A, but converting to float pixels
+    C = ImageBuf()
+    C.copy (A, OIIO.FLOAT)
 \end{code}
 \apiend
 

@@ -338,6 +338,9 @@ public:
     /// converted automatically to the data type of the app buffer.
     bool copy (const ImageBuf &src);
 
+    /// copy(src), but with optional override of pixel data type
+    bool copy (const ImageBuf &src, TypeDesc format /*= TypeDesc::UNKNOWN*/);
+
     /// Swap with another ImageBuf
     void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
 

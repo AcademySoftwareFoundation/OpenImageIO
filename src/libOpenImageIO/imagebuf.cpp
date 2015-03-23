@@ -1307,7 +1307,7 @@ ImageBuf::copy_pixels (const ImageBuf &src)
 
 
 bool
-ImageBuf::copy (const ImageBuf &src)
+ImageBuf::copy (const ImageBuf &src, TypeDesc format)
 {
     src.impl()->validate_pixels ();
     if (this == &src)     // self-assignment
@@ -1316,8 +1316,23 @@ ImageBuf::copy (const ImageBuf &src)
         clear();
         return true;
     }
-    reset (src.name(), src.spec());
+    if (format.basetype == TypeDesc::UNKNOWN)
+        reset (src.name(), src.spec());
+    else {
+        ImageSpec newspec (src.spec());
+        newspec.set_format (format);
+        newspec.channelformats.clear ();
+        reset (src.name(), newspec);
+    }
     return this->copy_pixels (src);
+}
+
+
+
+bool
+ImageBuf::copy (const ImageBuf &src)
+{
+    return copy (src, TypeDesc::UNKNOWN);
 }
 
 
