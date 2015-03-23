@@ -910,6 +910,40 @@ Division by zero is definied to result in zero.
 \apiend
 
 
+\apiitem{bool {\ce mad} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  const ImageBuf \&C, ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce mad} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
+        \bigspc float C, ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce mad} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc const float *C, ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!mad} \indexapi{mad}
+\NEW % 1.6
+
+For all pixels within the designated region, compute {\cf dst = A * B + C}
+(pixel by pixel, channel by channel). {\cf A} must be an image. {\cf B} and
+{\cf C} are either both images, both single floats (applied to all
+channels), or are both per-channel float arrays. All of the images must have
+the same number of channels.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
+    ImageBuf C ("c.exr");
+    ImageBuf Result;
+    ImageBufAlgo::mad (Result, A, B, C);
+
+    // Compute the "inverse" A, which is 1.0-A, as A*(-1) + 1
+    // Do this in-place, and only for the first 3 channels (leave any
+    // alpha channel, if present, as it is).
+    ROI roi = get_roi (A.spec());
+    roi.chbegin = 0;  roi.chend = 3;
+    ImageBufAlgo::mad (A, A, -1.0, 1.0, roi);
+\end{code}
+\apiend
+
+
 \apiitem{bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, float b, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, const float *b, \\

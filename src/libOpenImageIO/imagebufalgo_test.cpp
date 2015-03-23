@@ -346,6 +346,43 @@ void test_mul ()
 
 
 
+// Tests ImageBufAlgo::mad
+void test_mad ()
+{
+    std::cout << "test mad\n";
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+
+    // Create buffers
+    ImageBuf A (spec);
+    const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
+    ImageBufAlgo::fill (A, Aval);
+    ImageBuf B (spec);
+    const float Bval[CHANNELS] = { 1, 2, 3, 4 };
+    ImageBufAlgo::fill (B, Bval);
+    ImageBuf C (spec);
+    const float Cval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
+    ImageBufAlgo::fill (C, Cval);
+
+    // Test multiplication of images
+    ImageBuf R (spec);
+    ImageBufAlgo::mad (R, A, B, C);
+    for (int j = 0;  j < spec.height;  ++j)
+        for (int i = 0;  i < spec.width;  ++i)
+            for (int c = 0;  c < spec.nchannels;  ++c)
+                OIIO_CHECK_EQUAL (R.getchannel (i, j, 0, c),
+                                  Aval[c] * Bval[c] + Cval[c]);
+
+    // Test multiplication of image and constant color
+    ImageBuf D (spec);
+    ImageBufAlgo::mad (D, A, Bval, Cval);
+    ImageBufAlgo::CompareResults comp;
+    ImageBufAlgo::compare (R, D, 1e-6, 1e-6, comp);
+    OIIO_CHECK_EQUAL (comp.maxerror, 0.0);
+}
+
+
+
 // Tests ImageBufAlgo::compare
 void test_compare ()
 {
@@ -513,6 +550,7 @@ main (int argc, char **argv)
     test_add ();
     test_sub ();
     test_mul ();
+    test_mad ();
     test_compare ();
     test_isConstantColor ();
     test_isConstantChannel ();

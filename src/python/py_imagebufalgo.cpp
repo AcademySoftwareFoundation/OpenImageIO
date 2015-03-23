@@ -517,6 +517,47 @@ IBA_div_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
+IBA_mad_color (ImageBuf &dst, const ImageBuf &A,
+               tuple Bvalues_tuple, tuple Cvalues_tuple,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> Bvalues, Cvalues;
+    py_to_stdvector (Bvalues, Bvalues_tuple);
+    if (roi.defined())
+        Bvalues.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        Bvalues.resize (A.nchannels(), 0.0f);
+    else return false;
+    py_to_stdvector (Cvalues, Cvalues_tuple);
+    if (roi.defined())
+        Cvalues.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        Cvalues.resize (A.nchannels(), 0.0f);
+    else return false;
+    ASSERT (Bvalues.size() > 0 && Cvalues.size() > 0);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::mad (dst, A, &Bvalues[0], &Cvalues[0], roi, nthreads);
+}
+
+bool
+IBA_mad_float (ImageBuf &dst, const ImageBuf &A, float B, float C,
+               ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::mad (dst, A, B, C, roi, nthreads);
+}
+
+bool
+IBA_mad_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                const ImageBuf &C, ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::mad (dst, A, B, C, roi, nthreads);
+}
+
+
+
+bool
 IBA_pow_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
                ROI roi=ROI::All(), int nthreads=0)
 {
@@ -1215,6 +1256,17 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("div")
+
+        .def("mad", &IBA_mad_images,
+             (arg("dst"), arg("A"), arg("B"), arg("C"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("mad", &IBA_mad_float,
+             (arg("dst"), arg("A"), arg("B"), arg("C"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("mad", &IBA_mad_color,
+             (arg("dst"), arg("A"), arg("B"), arg("C"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("mad")
 
         .def("pow", &IBA_pow_float,
              (arg("dst"), arg("A"), arg("B"),
