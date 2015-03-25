@@ -27,7 +27,7 @@ to a file:
         out->open (filename, spec);
         out->write_image (TypeDesc::UINT8, pixels);
         out->close ();
-        delete out;
+        ImageOutput::destroy (out);
 \end{code}
 
 \noindent This little bit of code does a surprising amount of useful work:  
@@ -62,7 +62,7 @@ to a file:
   the plugin.
   \begin{code}
         out->close ();
-        delete out;
+        ImageOutput::destroy (out);
   \end{code}
 \end{itemize}
 
@@ -854,7 +854,7 @@ completed.  Here is an example:
         if (subimages > 1 &&  (! out->supports("multiimage") ||
                                ! out->supports("appendsubimage"))) {
             std::cerr << "Does not support appending of subimages\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
@@ -869,7 +869,7 @@ completed.  Here is an example:
             appendmode = ImageOutput::AppendSubimage;
         }
         out->close ();
-        delete out;
+        ImageOutput::destroy (out);
 \end{code}
 
 
@@ -897,7 +897,7 @@ specification of the subimages at the time you first open the file.
         // Be sure we can support subimages
         if (subimages > 1 && ! out->supports ("multiimage")) {
             std::cerr << "Cannot write multiple subimages\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
@@ -911,7 +911,7 @@ specification of the subimages at the time you first open the file.
             out->write_image (TypeDesc::UINT8, pixels[s]);
         }
         out->close ();
-        delete out;
+        ImageOutput::destroy (out);
 \end{code}
 
 In both of these examples, we have used \writeimage, but of course
@@ -959,7 +959,7 @@ used for texture mapping):
         // Be sure we can support either mipmaps or subimages
         if (! out->supports ("mipmap") && ! out->supports ("multiimage")) {
             std::cerr << "Cannot write a MIP-map\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
         // Set up spec for the highest resolution
@@ -988,7 +988,7 @@ used for texture mapping):
                 appendmode = ImageOutput::AppendSubimage;
         }
         out->close ();
-        delete out;
+        ImageOutput::destroy (out);
 \end{code}
 
 In this example, we have used \writeimage, but of course \writescanline,
@@ -1028,7 +1028,7 @@ a Z channel in {\cf float}:
 
         // Double check that this format accepts per-channel formats
         if (! out->supports("channelformats")) {
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
@@ -1161,7 +1161,7 @@ deep data in a special {\cf DeepData} structure, defined in
     out->open (filename, spec);
     out->write_deep_image (deepdata);
     out->close ();
-    delete out;
+    ImageOutput::destroy (out);
 \end{code}
 
 
@@ -1214,9 +1214,9 @@ without alteration while modifying the image description metadata:
 
     // Clean up
     out->close ();
-    delete out;
+    ImageOutput::destroy (out);
     in->close ();
-    delete in;
+    ImageInput::destroy (in);
 \end{code}
 
 
@@ -1300,25 +1300,25 @@ elaborated with error checking and reporting:
         if (! out->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
                       << ", error = " << out->geterror() << "\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
         if (! out->write_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could not write pixels to " << filename 
                       << ", error = " << out->geterror() << "\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
         if (! out->close ()) {
             std::cerr << "Error closing " << filename 
                       << ", error = " << out->geterror() << "\n";
-            delete out;
+            ImageOutput::destroy (out);
             return;
         }
 
-        delete out;
+        ImageOutput::destroy (out);
 \end{code}
 
 
@@ -1335,7 +1335,16 @@ returned, and the plugin that contains its methods) is inferred from the
 extension of the file name.  The {\kw plugin_searchpath} parameter is a
 colon-separated list of directories to search for \product plugin
 DSO/DLL's.
+\apiend
 
+\apiitem{void {\ce destroy} (ImageOutput *Output)}
+\NEW  % 1.6
+Destroy an \ImageOutput that was created by {\cf create()}.
+The {\cf destroy()} method is just a wrapper around operator {\cf delete},
+but by being implemented within the \product DLL, it can ensure that the
+memory deallocation is done in the same DLL arena as where it was originally
+allocated. This is considered safer than a bare {\cf delete} when
+used inside ``plug-ins,'' especially on Windows systems.
 \apiend
 
 \apiitem{const char * {\ce format_name} ()}
