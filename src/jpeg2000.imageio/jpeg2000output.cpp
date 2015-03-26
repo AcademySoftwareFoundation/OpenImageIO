@@ -335,11 +335,17 @@ Jpeg2000Output::create_jpeg2000_image()
     m_image->x1 = m_compression_parameters.image_offset_x0 + (m_spec.width - 1) * m_compression_parameters.subsampling_dx + 1;
     m_image->y1 = m_compression_parameters.image_offset_y0 + (m_spec.height - 1) * m_compression_parameters.subsampling_dy + 1;
 
+#ifndef OPENJPEG_VERSION
+    // Sigh... openjpeg.h doesn't seem to have a clear version #define.
+    // OPENJPEG_VERSION only seems to exist in 1.3, which doesn't have
+    // the ICC fields. So assume its absence in the newer one (at least,
+    // 1.5) means the field is valid.
     const ImageIOParameter *icc = m_spec.find_attribute ("ICCProfile");
     if (icc && icc->type().basetype == TypeDesc::UINT8 && icc->type().arraylen > 0) {
         m_image->icc_profile_len = icc->type().arraylen;
         m_image->icc_profile_buf = (unsigned char *) icc->data();
     }
+#endif
 
     return m_image;
 }

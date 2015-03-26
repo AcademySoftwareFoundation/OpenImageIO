@@ -278,9 +278,15 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
     m_spec.attribute ("oiio:BitsPerSample", maxPrecision);
     m_spec.attribute ("oiio:Orientation", 1);
     m_spec.attribute ("oiio:ColorSpace", "sRGB");
+#ifndef OPENJPEG_VERSION
+    // Sigh... openjpeg.h doesn't seem to have a clear version #define.
+    // OPENJPEG_VERSION only seems to exist in 1.3, which doesn't have
+    // the ICC fields. So assume its absence in the newer one (at least,
+    // 1.5) means the field is valid.
     if (m_image->icc_profile_len && m_image->icc_profile_buf)
         m_spec.attribute ("ICCProfile", TypeDesc(TypeDesc::UINT8,m_image->icc_profile_len),
                           m_image->icc_profile_buf);
+#endif
 
     p_spec = m_spec;
     return true;
