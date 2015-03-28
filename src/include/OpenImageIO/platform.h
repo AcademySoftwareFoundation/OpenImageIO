@@ -116,7 +116,7 @@
 // Caveat: Programmers are notoriously bad at guessing this, so it
 // should be used only with thorough benchmarking.
 #ifdef __GNUC__
-#define OIIO_LIKELY(x)   (__builtin_expect((x), 1))
+#define OIIO_LIKELY(x)   (__builtin_expect(!!(x), 1))
 #define OIIO_UNLIKELY(x) (__builtin_expect((x), 0))
 #else
 #define OIIO_LIKELY(x)   (x)

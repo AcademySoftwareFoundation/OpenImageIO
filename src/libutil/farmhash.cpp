@@ -76,18 +76,6 @@
 #define STATIC_INLINE static inline
 #endif
 
-// FARMHASH PORTABILITY LAYER: LIKELY and UNLIKELY
-
-#if !defined(LIKELY)
-#if defined(FARMHASH_NO_BUILTIN_EXPECT) || (defined(FARMHASH_OPTIONAL_BUILTIN_EXPECT) && !defined(HAVE_BUILTIN_EXPECT))
-#define LIKELY(x) (x)
-#else
-#define LIKELY(x) (__builtin_expect(!!(x), 1))
-#endif
-#endif
-
-#undef UNLIKELY
-#define UNLIKELY(x) !LIKELY(!(x))
 
 // FARMHASH PORTABILITY LAYER: endianness and byteswapping functions
 
@@ -1846,7 +1834,7 @@ uint128_t CityHash128WithSeed(const char *s, size_t len, uint128_t seed) {
     std::swap(z, x);
     s += 64;
     len -= 128;
-  } while (LIKELY(len >= 128));
+  } while (OIIO_LIKELY(len >= 128));
   x += Rotate(v.first + z, 49) * k0;
   y = y * k0 + Rotate(w.second, 37);
   z = z * k0 + Rotate(w.first, 27);
