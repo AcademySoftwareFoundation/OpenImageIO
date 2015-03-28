@@ -1078,7 +1078,7 @@ The offset is in the form
 \begin{code}
      [+-]x[+-]y
 \end{code}
-\noindent Examples: 
+\noindent Examples:
 \begin{code}
     --origin +20+10           x=20, y=10
     --origin +0-40            x=0, y=-40
@@ -1093,7 +1093,7 @@ form
 If either the offset or resolution is omitted, it will remain
 unchanged.
 
-\noindent Examples: 
+\noindent Examples:
 
 \begin{tabular}{p{2in} p{4in}}
     {\cf --fullsize 1920x1080}  &      resolution w=1920, h=1080, offset unchanged \\
@@ -1381,7 +1381,7 @@ each channel in the image.
 % \begin{tabular}{m{3in} m{2.5in}}
 %   {\cf \footnotesize oiiotool tahoe.jpg --addc 0.5 -o addc.jpg}
 %      & \includegraphics[width=1in]{figures/tahoe-small.jpg}
-%          \raisebox{24pt}{\large $\rightarrow$} 
+%          \raisebox{40pt}{\large $\rightarrow$}
 %         \includegraphics[width=1in]{figures/addc.jpg} \\
 % \end{tabular}
 
@@ -1389,9 +1389,9 @@ each channel in the image.
 \begin{code}
     oiiotool tahoe.jpg --addc 0.5 -o addc.jpg
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
-\includegraphics[width=1.25in]{figures/addc.jpg} \\
+\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\includegraphics[width=1.5in]{figures/addc.jpg} \\
 
 \vspace{12pt}
 
@@ -1431,9 +1431,9 @@ multiply with each channel in the image.
 \begin{code}
     oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
-\includegraphics[width=1.25in]{figures/mulc.jpg} \\
+\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\includegraphics[width=1.5in]{figures/mulc.jpg} \\
 \apiend
 
 \apiitem{{\ce --div} \\
@@ -1527,9 +1527,9 @@ weight of each channel in the sum.
 \begin{code}
     oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
 \end{code}
-\spc \includegraphics[width=1.25in]{figures/tahoe-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
-\includegraphics[width=1.25in]{figures/luma.jpg} \\
+\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\includegraphics[width=1.5in]{figures/luma.jpg} \\
 \apiend
 
 \apiitem{\ce --paste {\rm \emph{location}}}
@@ -1596,7 +1596,7 @@ clockwise.
     oiiotool grid.jpg --rotate90 -o rotate90.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/rotate90.jpg} \\
 \apiend
 
@@ -1609,7 +1609,7 @@ Replace the current image with a new image that is rotated by
     oiiotool grid.jpg --rotate180 -o rotate180.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/rotate180.jpg} \\
 \apiend
 
@@ -1622,7 +1622,7 @@ clockwise (or 90 degrees counter-clockwise).
     oiiotool grid.jpg --rotate270 -o rotate270.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/rotate270.jpg} \\
 \apiend
 
@@ -1635,7 +1635,7 @@ with the top scanline becoming the bottom, and vice versa.
     oiiotool grid.jpg --flip -o flip.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/flip.jpg} \\
 \apiend
 
@@ -1648,7 +1648,7 @@ with the leftmost column becoming the rightmost, and vice versa.
     oiiotool grid.jpg --flop -o flop.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
@@ -1662,7 +1662,7 @@ that describes the desired display orientation.
     oiiotool tahoe.jpg --reorient -o oriented.jpg
 \end{code}
 %\spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-%\raisebox{24pt}{\large $\rightarrow$} 
+%\raisebox{40pt}{\large $\rightarrow$}
 %\includegraphics[width=1.25in]{figures/flop.jpg} \\
 \apiend
 
@@ -1675,7 +1675,7 @@ the $xy$ axis (x and coordinates and size are flipped).
     oiiotool grid.jpg --transpose -o transpose.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/transpose.jpg} \\
 \apiend
 
@@ -1691,7 +1691,7 @@ pixels wrap to the other side as they shift.
     oiiotool grid.jpg --cshift +70+30 -o cshift.jpg
 \end{code}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/cshift.jpg} \\
 \apiend
 
@@ -1706,15 +1706,21 @@ The size is in the form
   [+-]}\emph{yoffset}
 \\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
 
-\noindent Examples: 
-
-\begin{tabular}{p{2in} p{4in}}
-    {\cf --crop 100x120+35+40}  &      resolution w=100, h=120, offset x=35, y=40 \\
-    {\cf --crop 35,40,134,159}  &      resolution w=100, h=120, offset x=35, y=40
-\end{tabular}
 
 Note that {\cf crop} does not \emph{reposition} pixels, it only trims or
 pads to reset the image's pixel data window to the specified region.
+
+\noindent Examples:
+
+\begin{code}
+    # Both of these crop to a 100x120 region that begins at x=35,y=40
+    oiiotool tahoe.exr --crop 100x120+35+40 -o crop.exr
+    oiiotool tahoe.exr --crop 35,40,134,159 -o crop.exr
+\end{code}
+
+\hspace{0.4in} \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+ \includegraphics[width=1.5in]{figures/crop.jpg}
 \apiend
 
 \apiitem{\ce --croptofull}
@@ -1752,12 +1758,17 @@ The size is in the form
   [+-]}\emph{yoffset}
 \\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
 
-\noindent Examples: 
+\noindent Examples:
 
-\begin{tabular}{p{2in} p{4in}}
-    {\cf --cut 100x120+35+40}  &      resolution w=100, h=120, offset x=35, y=40 \\
-    {\cf --cut 35,40,134,159}  &      resolution w=100, h=120, offset x=35, y=40
-\end{tabular}
+\begin{code}
+    # Both of these crop to a 100x120 region that begins at x=35,y=40
+    oiiotool tahoe.exr --cut 100x120+35+40 -o cut.exr
+    oiiotool tahoe.exr --cut 35,40,134,159 -o cut.exr
+\end{code}
+
+\hspace{0.4in} \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\raisebox{0.55in}{\includegraphics[width=0.476in]{figures/cut.jpg}}
 \apiend
 
 \apiitem{\ce --resample {\rm \emph{size}}}
@@ -1863,7 +1874,7 @@ Optional appended arguments include:
   oiiotool mandrill.tif --rotate:center=80,91.5:filter=lanczos3 45 -o rotated.tif
 \end{tinycode}
 \spc \includegraphics[width=1.25in]{figures/grid-small.jpg} 
-\raisebox{24pt}{\large $\rightarrow$} 
+\raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.25in]{figures/rotate45.jpg} \\
 \apiend
 
@@ -2055,7 +2066,7 @@ clamp in that direction.  For the variety of minimum and maximum that
 specify per-channel values, a missing value indicates that the
 corresponding channel should not be clamped.  
 
-\noindent Examples: 
+\noindent Examples:
 
 \begin{tabular}{p{2in} p{4in}}
     {\cf --clamp:min=0} & Clamp all channels to a mimimum of 0 (all \\
@@ -2141,7 +2152,7 @@ Optional arguments for 4-corner gradient: \\
 \end{tabular}
 
 
-\noindent Examples: 
+\noindent Examples:
 
 \begin{smallcode}
     # make a grey-to-blue vertical gradient
@@ -2183,7 +2194,7 @@ The default positions the text starting at the center of the image,
 drawn 16 pixels high in opaque white in all channels (1,1,1,...), and
 using a default font (which may be system dependent).
 
-\noindent Examples: 
+\noindent Examples:
 
 \begin{smallcode}
     oiiotool in.exr --text:x=10:y=400:size=40 "Hello world" \

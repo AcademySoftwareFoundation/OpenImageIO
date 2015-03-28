@@ -4089,7 +4089,8 @@ action_fill (int argc, const char *argv[])
         ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
     else {
-        ot.warning (command, "No recognized fill parameters");
+        ot.warning (command, "No recognized fill parameters: filling with white.");
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
     if (! ok)
         ot.error (command, Rib.geterror());
