@@ -58,8 +58,9 @@
 # include <sys/sysctl.h>
 #endif
 
+#include "OpenImageIO/platform.h"
+
 #ifdef _WIN32
-# include "OpenImageIO/osdep.h"
 # include <Psapi.h>
 #else
 # include <sys/resource.h>

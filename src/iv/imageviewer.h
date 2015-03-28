@@ -42,7 +42,7 @@
 #endif
 
 // included to remove std::min/std::max errors
-#include "OpenImageIO/osdep.h"
+#include "OpenImageIO/platform.h"
 
 #include <vector>
 
