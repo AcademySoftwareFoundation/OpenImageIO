@@ -124,6 +124,10 @@ command += oiiotool (parent + "/oiio-images/grid.tif --cut 100x400+50+200 -o cut
 command += oiiotool (parent + "/oiio-images/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
+# test --trim
+command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
+                     + " -rotate 30 -trim -origin +0+0 -fullpixels -d uint8 -o trim.tif")
+
 # test mosaic
 command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--pattern constant:color=0,1,0 50x50 3 "
@@ -268,7 +272,7 @@ outputs = [
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
-            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
+            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif", "trim.tif",
             "flip.tif", "flip-crop.tif",
             "flop.tif", "flop-crop.tif",
             "flipflop.tif", "flipflop-crop.tif",

@@ -1723,6 +1723,22 @@ as necessary to make the pixel data window exactly cover
 the full/display window.
 \apiend
 
+\apiitem{\ce --trim}
+\NEW   % 1.6.3
+Replace the current image with a new image that is cropped to contain the
+minimal rectangular ROI that contains all of the nonzero-valued pixels of
+the original image.
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool greenrect.exr -trim -o trimmed.jpg
+\end{code}
+\hspace{0.4in} \includegraphics[width=1.5in]{figures/pretrim.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+ \includegraphics[width=1.5in]{figures/trim.jpg}
+\apiend
+
 \apiitem{\ce --cut {\rm \emph{size}}}
 Replace the current image with a new copy with the given \emph{size},
 cropping old pixels no longer needed, padding black pixels where they
