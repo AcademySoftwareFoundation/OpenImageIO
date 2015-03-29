@@ -397,7 +397,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     }
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "resize", resize_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "resize", resize_,
                           dst.spec().format, src.spec().format,
                           dst, src, filter, roi, nthreads);
     return ok;
@@ -448,7 +448,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     }
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "resize", resize_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "resize", resize_,
                           dstspec.format, srcspec.format,
                           dst, src, filter.get(), roi, nthreads);
     return ok;
@@ -534,7 +534,7 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
             IBAprep_NO_COPY_ROI_FULL))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "resample", resample_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "resample", resample_,
                           dst.spec().format, src.spec().format,
                           dst, src, interpolate, roi, nthreads);
     return ok;
@@ -644,7 +644,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
     }
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "warp", warp_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "warp", warp_,
                           dst.spec().format, src.spec().format,
                           dst, src, M, filter, wrap, dst_roi, nthreads);
     return ok;

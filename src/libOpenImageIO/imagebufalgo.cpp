@@ -291,7 +291,7 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
         Ktmp.copy (kernel, TypeDesc::FLOAT);
         K = &Ktmp;
     }
-    OIIO_DISPATCH_TYPES2 (ok, "convolve", convolve_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "convolve", convolve_,
                           dst.spec().format, src.spec().format,
                           dst, src, kernel, normalize, roi, nthreads);
     return ok;
