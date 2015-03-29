@@ -300,7 +300,7 @@ noise_uniform_ (ImageBuf &dst, float min, float max, bool mono,
         int x = p.x(), y = p.y(), z = p.z();
         float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == 0 || !mono)
+            if (c == roi.chbegin || !mono)
                 n = lerp (min, max, hashrand (x, y, z, c, seed));
             p[c] = p[c] + n;
         }
@@ -330,7 +330,7 @@ noise_gaussian_ (ImageBuf &dst, float mean, float stddev, bool mono,
         int x = p.x(), y = p.y(), z = p.z();
         float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == 0 || !mono)
+            if (c == roi.chbegin || !mono)
                 n = mean + stddev * hashnormal (x, y, z, c, seed);
             p[c] = p[c] + n;
         }
@@ -360,7 +360,7 @@ noise_salt_ (ImageBuf &dst, float saltval, float saltportion, bool mono,
         int x = p.x(), y = p.y(), z = p.z();
         float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == 0 || !mono)
+            if (c == roi.chbegin || !mono)
                 n = hashrand (x, y, z, c, seed);
             if (n < saltportion)
                 p[c] = saltval;
