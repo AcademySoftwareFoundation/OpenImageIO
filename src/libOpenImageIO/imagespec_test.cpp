@@ -223,12 +223,12 @@ test_get_attribute ()
     OIIO_CHECK_EQUAL (spec.get_int_attribute("bar"), 0);
     OIIO_CHECK_EQUAL (spec.get_int_attribute("bar"), 0);
     OIIO_CHECK_EQUAL (spec.get_string_attribute("bar"), "barbarbar?");
-    OIIO_CHECK_NE    (spec.find_attribute("foo"), NULL);
-    OIIO_CHECK_NE    (spec.find_attribute("Foo"), NULL);
-    OIIO_CHECK_NE    (spec.find_attribute("Foo", TypeDesc::UNKNOWN, false), NULL);
-    OIIO_CHECK_EQUAL (spec.find_attribute("Foo", TypeDesc::UNKNOWN, true), NULL);
-    OIIO_CHECK_NE    (spec.find_attribute("foo", TypeDesc::INT), NULL);
-    OIIO_CHECK_EQUAL (spec.find_attribute("foo", TypeDesc::FLOAT), NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("foo") != NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("Foo") != NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("Foo", TypeDesc::UNKNOWN, false) != NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("Foo", TypeDesc::UNKNOWN, true) == NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("foo", TypeDesc::INT) != NULL);
+    OIIO_CHECK_ASSERT(spec.find_attribute("foo", TypeDesc::FLOAT) == NULL);
 }
 
 
