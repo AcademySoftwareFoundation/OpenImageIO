@@ -262,7 +262,7 @@ hashrand (int x, int y, int z, int c, int seed)
 
 
 // Return a hash-based normal-distributed pseudorandom value.
-// We use the Marsaglia polar method, and hashrand to 
+// We use the Marsaglia polar method, and hashrand to
 OIIO_FORCEINLINE float
 hashnormal (int x, int y, int z, int c, int seed)
 {
@@ -277,7 +277,7 @@ hashnormal (int x, int y, int z, int c, int seed)
     float M = sqrt(-2.0 * log(r2) / r2);
     return xr * M;
 }
-    
+
 
 
 template<typename T>
@@ -298,7 +298,7 @@ noise_uniform_ (ImageBuf &dst, float min, float max, bool mono,
     // Serial case
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
         int x = p.x(), y = p.y(), z = p.z();
-        float n;
+        float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
             if (c == 0 || !mono)
                 n = lerp (min, max, hashrand (x, y, z, c, seed));
@@ -328,7 +328,7 @@ noise_gaussian_ (ImageBuf &dst, float mean, float stddev, bool mono,
     // Serial case
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
         int x = p.x(), y = p.y(), z = p.z();
-        float n;
+        float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
             if (c == 0 || !mono)
                 n = mean + stddev * hashnormal (x, y, z, c, seed);
@@ -358,7 +358,7 @@ noise_salt_ (ImageBuf &dst, float saltval, float saltportion, bool mono,
     // Serial case
     for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
         int x = p.x(), y = p.y(), z = p.z();
-        float n;
+        float n = 0.0;
         for (int c = roi.chbegin;  c < roi.chend;  ++c) {
             if (c == 0 || !mono)
                 n = hashrand (x, y, z, c, seed);
