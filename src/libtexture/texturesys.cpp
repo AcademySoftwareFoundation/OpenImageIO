@@ -75,12 +75,12 @@ simd::float4 uchar2float4 (const unsigned char *c) {
 }
 
 
-static const OIIO_SIMD4_ALIGN float channel_masks[5][4] = {
-    { 0.0f, 0.0f, 0.0f, 0.0f },
-    { 1.0f, 0.0f, 0.0f, 0.0f },
-    { 1.0f, 1.0f, 0.0f, 0.0f },
-    { 1.0f, 1.0f, 1.0f, 0.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f }
+static const OIIO_SIMD4_ALIGN mask4 channel_masks[5] = {
+    mask4(false, false, false, false),
+    mask4(true,  false, false, false),
+    mask4(true,  true,  false, false),
+    mask4(true,  true,  true,  false),
+    mask4(true,  true,  true,  true),
 };
 
 }  // end anonymous namespace
@@ -1611,11 +1611,11 @@ TextureSystemImpl::sample_closest (int nsamples, const float *s_,
         accum += weight * texel_simd;
     }
 
-    simd::float4 channel_mask = *(simd::float4 *)(channel_masks[actualchannels]);
-    accum *= channel_mask;
+    simd::mask4 channel_mask = channel_masks[actualchannels];
+    accum = blend0(accum, channel_mask);
     if (nonfill < 1.0f && nchannels_result > actualchannels && options.fill) {
         // Add the weighted fill color
-        accum += ((1.0f - nonfill) * options.fill) * (simd::float4::One() - channel_mask);
+        accum += blend0not(float4((1.0f - nonfill) * options.fill), channel_mask);
     }
 
     *accum_ = accum;
@@ -1886,17 +1886,17 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
         }
     }
 
-    simd::float4 channel_mask = *(simd::float4 *)(channel_masks[actualchannels]);
-    accum *= channel_mask;
+    simd::mask4 channel_mask = channel_masks[actualchannels];
+    accum = blend0(accum, channel_mask);
     if (use_fill) {
         // Add the weighted fill color
-        accum += ((1.0f - nonfill) * options.fill) * (simd::float4::One() - channel_mask);
+        accum += blend0not(float4((1.0f - nonfill) * options.fill), channel_mask);
     }
 
     *accum_ = accum;
     if (daccumds_) {
-        *daccumds_ = daccumds * channel_mask;
-        *daccumdt_ = daccumdt * channel_mask;
+        *daccumds_ = blend0(daccumds, channel_mask);
+        *daccumdt_ = blend0(daccumdt, channel_mask);
     }
     return true;
 }
@@ -2273,18 +2273,18 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
         }
     }
 
-    float4 channel_mask = *(simd::float4 *)(channel_masks[actualchannels]);
-    accum *= channel_mask;
+    simd::mask4 channel_mask = channel_masks[actualchannels];
+    accum = blend0(accum, channel_mask);
     if (use_fill) {
         // Add the weighted fill color
-        accum += ((1.0f - nonfill) * options.fill) * (simd::float4::One() - channel_mask);
+        accum += blend0not(float4((1.0f - nonfill) * options.fill), channel_mask);
     }
 
     *accum_ = accum;
     if (daccumds_) {
-        *daccumds_ = daccumds * channel_mask;
-        *daccumdt_ = daccumdt * channel_mask;
-    }
+        *daccumds_ = blend0(daccumds, channel_mask);
+        *daccumdt_ = blend0(daccumdt, channel_mask);
+     }
     return true;
 }
 
