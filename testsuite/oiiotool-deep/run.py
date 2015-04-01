@@ -1,9 +1,5 @@
 #!/usr/bin/env python 
 
-# Allow a bit of LSB slop
-failthresh = 0.004
-failpercent = 0.2
-
 # test --flatten : turn deep into composited non-deep
 command += oiiotool("src/deepalpha.exr --flatten -o flat.exr")
 

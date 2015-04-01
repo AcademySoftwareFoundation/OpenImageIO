@@ -1,8 +1,5 @@
 #!/usr/bin/env python 
 
-# Allow a bit of LSB slop
-failthresh = 0.004
-failpercent = 0.2
 
 # test --create
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")

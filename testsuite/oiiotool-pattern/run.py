@@ -1,9 +1,5 @@
 #!/usr/bin/env python 
 
-# Allow a bit of LSB slop
-failthresh = 0.004
-failpercent = 0.2
-
 # test --pattern constant
 command += oiiotool ("--pattern constant:color=.1,.2,.3,1 320x240 4 -o constant.tif")
 command += oiiotool ("--stats constant.tif")
