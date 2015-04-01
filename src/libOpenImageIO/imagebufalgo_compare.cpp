@@ -237,22 +237,29 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
                float &maxval, double &batcherror, double &batch_sqrerror,
                bool &failed, bool &warned, float failthresh, float warnthresh)
 {
+    if (!isfinite(aval) || !isfinite(bval)) {
+        if (isnan(aval) == isnan(bval) && isinf(aval) == isinf(bval))
+            return; // NaN may match NaN, Inf may match Inf
+    }
     maxval = std::max (maxval, std::max (aval, bval));
     double f = fabs (aval - bval);
     batcherror += f;
     batch_sqrerror += f*f;
-    if (f > result.maxerror) {
+    // We use the awkward '!(a<=threshold)' construct so that we have
+    // failures when f is a NaN (since all comparisons involving NaN will
+    // return false).
+    if (!(f <= result.maxerror)) {
         result.maxerror = f;
         result.maxx = a.x();
         result.maxy = a.y();
         result.maxz = a.z();
         result.maxc = chan;
     }
-    if (! warned && f > warnthresh) {
+    if (! warned && !(f <= warnthresh)) {
         ++result.nwarn;
         warned = true;
     }
-    if (! failed && f > failthresh) {
+    if (! failed && !(f <= failthresh)) {
         ++result.nfail;
         failed = true;
     }
