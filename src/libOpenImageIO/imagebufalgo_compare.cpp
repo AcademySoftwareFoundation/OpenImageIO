@@ -240,6 +240,15 @@ compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
     if (!isfinite(aval) || !isfinite(bval)) {
         if (isnan(aval) == isnan(bval) && isinf(aval) == isinf(bval))
             return; // NaN may match NaN, Inf may match Inf
+        if (isfinite(result.maxerror)) {
+            // non-finite errors trump finite ones
+            result.maxerror = std::numeric_limits<float>::infinity();
+            result.maxx = a.x();
+            result.maxy = a.y();
+            result.maxz = a.z();
+            result.maxc = chan;
+            return;
+        }
     }
     maxval = std::max (maxval, std::max (aval, bval));
     double f = fabs (aval - bval);
