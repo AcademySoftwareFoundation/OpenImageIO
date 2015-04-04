@@ -119,6 +119,8 @@ Comparing "pasted.tif" and "ref/pasted.tif"
 PASS
 Comparing "mosaic.tif" and "ref/mosaic.tif"
 PASS
+Comparing "trim.tif" and "ref/trim.tif"
+PASS
 Comparing "flip.tif" and "ref/flip.tif"
 PASS
 Comparing "flip-crop.tif" and "ref/flip-crop.tif"

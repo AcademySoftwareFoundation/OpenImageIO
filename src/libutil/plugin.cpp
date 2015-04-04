@@ -31,9 +31,9 @@
 #include <cstdlib>
 #include <string>
 
-#ifdef _WIN32
-# include "OpenImageIO/osdep.h"
-#else
+#include "OpenImageIO/platform.h"
+
+#ifndef _WIN32
 # include <dlfcn.h>
 #endif
 

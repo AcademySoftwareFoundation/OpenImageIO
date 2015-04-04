@@ -47,6 +47,7 @@ command = ""
 outputs = [ "out.txt" ]    # default
 failureok = 0
 failthresh = 0.004
+hardfail = 0.01
 failpercent = 0.02
 
 #print ("srcdir = " + srcdir)
@@ -122,9 +123,9 @@ def info_command (file, extraargs="", safematch=0, hash=True) :
 # compilers always match to every last floating point bit.
 def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
     command = (oiio_app("idiff") + "-a"
-               + " -fail " + str(failthresh/4)
+               + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
-               + " -hardfail " + str(failthresh)
+               + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
                + " " + extraargs + " " + oiio_relpath(fileA,tmpdir) 
                + " " + oiio_relpath(fileB,tmpdir))
@@ -173,9 +174,9 @@ def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
             cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
                    + " " + extraargs + " " + filename + " >> out.txt ;\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
-               + " -fail " + str(failthresh/4)
+               + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
-               + " -hardfail " + str(failthresh)
+               + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
                + " " + idiffextraargs + " " + filename + " >> out.txt ;\n")
     return cmd

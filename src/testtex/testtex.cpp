@@ -318,12 +318,11 @@ adjust_spec (ImageSpec &outspec, const std::string &dataformatname)
 
 
 
-inline Imath::V3f
+inline Imath::V2f
 warp (float x, float y, const Imath::M33f &xform)
 {
-    Imath::V3f coord (x, y, 1.0f);
-    coord *= xform;
-    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
+    Imath::V2f coord (x, y);
+    xform.multVecMatrix (coord, coord);
     return coord;
 }
 
@@ -333,7 +332,6 @@ warp (float x, float y, float z, const Imath::M33f &xform)
 {
     Imath::V3f coord (x, y, z);
     coord *= xform;
-    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
     return coord;
 }
 
@@ -341,11 +339,11 @@ warp (float x, float y, float z, const Imath::M33f &xform)
 inline Imath::V2f
 warp_coord (float x, float y)
 {
-    Imath::V3f coord = warp (x/output_xres, y/output_yres, xform);
+    Imath::V2f coord = warp (x/output_xres, y/output_yres, xform);
     coord.x *= sscale;
     coord.y *= tscale;
-    coord += offset;
-    return Imath::V2f (coord.x, coord.y);
+    coord += Imath::V2f(offset.x, offset.y);
+    return coord;
 }
 
 
@@ -1131,10 +1129,13 @@ main (int argc, const char *argv[])
         test_hash ();
     }
 
-    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
-    Imath::M33f rot;    rot.rotate (radians(30.0f));
-    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
-    xform = scale * rot * trans;
+    Imath::M33f scale;  scale.scale (Imath::V2f (0.3, 0.3));
+    Imath::M33f rot;    rot.rotate (radians(25.0f));
+    Imath::M33f trans;  trans.translate (Imath::V2f (0.75f, 0.25f));
+    Imath::M33f persp (2, 0, 0,
+                       0, 0.8, -0.55,
+                       0, 0, 1);
+    xform = persp * rot * trans * scale;
     xform.invert();
 
     if (threadtimes) {

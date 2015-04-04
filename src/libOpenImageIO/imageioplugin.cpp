@@ -395,6 +395,14 @@ ImageOutput::create (const std::string &filename,
 
 
 
+void
+ImageOutput::destroy (ImageOutput *x)
+{
+    delete x;
+}
+
+
+
 ImageInput *
 ImageInput::create (const std::string &filename, 
                     const std::string &plugin_searchpath)
@@ -544,6 +552,15 @@ ImageInput::create (const std::string &filename,
 
     return (ImageInput *) create_function();
 }
+
+
+
+void
+ImageInput::destroy (ImageInput *x)
+{
+    delete x;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

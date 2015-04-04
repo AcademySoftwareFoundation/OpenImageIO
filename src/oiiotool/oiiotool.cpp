@@ -3268,6 +3268,44 @@ action_croptofull (int argc, const char *argv[])
 
 
 int
+action_trim (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_trim, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+
+    // Implement by calling action_crop with a geometry specifier built
+    // from examining the nonzero region of the image.
+    ROI origroi = get_roi(*A->spec(0,0));
+    ROI roi = ImageBufAlgo::nonzero_region ((*A)(0,0), origroi);
+    if (roi.npixels() == 0) {
+        // Special case -- all zero; but doctor to make it 1 zero pixel
+        roi = origroi;
+        roi.xend = roi.xbegin+1;
+        roi.yend = roi.ybegin+1;
+        roi.zend = roi.zbegin+1;
+    }
+    std::string crop = (A->spec(0,0)->depth == 1)
+            ? format_resolution (roi.width(), roi.height(),
+                                 roi.xbegin, roi.ybegin)
+            : format_resolution (roi.width(), roi.height(), roi.depth(),
+                                 roi.xbegin, roi.ybegin, roi.zbegin);
+    const char *newargv[2] = { "crop", crop.c_str() };
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
+    int result = action_crop (2, newargv);
+    ot.function_times[command] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
+    return result;
+}
+
+
+
+int
 action_cut (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_cut, argc, argv))
@@ -4051,7 +4089,8 @@ action_fill (int argc, const char *argv[])
         ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
     else {
-        ot.warning (command, "No recognized fill parameters");
+        ot.warning (command, "No recognized fill parameters: filling with white.");
+        ok = ImageBufAlgo::fill (Rib, &topleft[0], ROI(x, x+w, y, y+h));
     }
     if (! ok)
         ot.error (command, Rib.geterror());
@@ -4450,6 +4489,7 @@ getargs (int argc, char *argv[])
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
+                "--trim %@", action_trim, NULL, "Crop to the minimal ROI containing nonzero pixel values",
                 "--cut %@ %s", action_cut, NULL, "Cut out the ROI and reposition to the origin (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--paste %@ %s", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
                 "--mosaic %@ %s", action_mosaic, NULL,

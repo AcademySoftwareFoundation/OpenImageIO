@@ -25,7 +25,7 @@ out its resolution, and read the pixels (converting them into
         std::vector<unsigned char> pixels (xres*yres*channels);
         in->read_image (TypeDesc::UINT8, &pixels[0]);
         in->close ();
-        delete in;
+        ImageInput::destroy (in);
 \end{code}
 
 \noindent Here is a breakdown of what work this code is doing:
@@ -69,7 +69,7 @@ out its resolution, and read the pixels (converting them into
   the plugin.
   \begin{code}
         in->close ();
-        delete in;
+        ImageInput::destroy (in);
   \end{code}
 \end{itemize}
 
@@ -573,7 +573,7 @@ multi-image files:
         // to find a next MIP level.
 
         in->close ();
-        delete in;
+        ImageInput::destroy (in);
 \end{code}
 
 In this example, we have used \readimage, but of course \readscanline
@@ -716,7 +716,7 @@ a file and print all its values:
         }
     }
     in->close ();
-    delete in;
+    ImageInput::destroy (in);
 \end{code}
 
 
@@ -783,17 +783,17 @@ elaborated with error checking and reporting:
         if (! in->read_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could not read pixels from " << filename 
                       << ", error = " << in->geterror() << "\n";
-            delete in;
+            ImageInput::destroy (in);
             return;
         }
 
         if (! in->close ()) {
             std::cerr << "Error closing " << filename 
                       << ", error = " << in->geterror() << "\n";
-            delete in;
+            ImageInput::destroy (in);
             return;
         }
-        delete in;
+        ImageInput::destroy (in);
 \end{code}
 
 
@@ -830,6 +830,17 @@ DSO/DLL's (not a searchpath for the image itself!).  This will
 actually just try every ImageIO plugin it can locate, until it
 finds one that's able to open the file without error.  This just
 creates the \ImageInput, it does not open the file.
+\apiend
+
+\apiitem{void {\ce destroy} (ImageInput *input)}
+\NEW  % 1.6
+
+Destroy an \ImageInput that was created by {\cf create()} or {\cf open()}.
+The {\cf destroy()} method is just a wrapper around operator {\cf delete},
+but by being implemented within the \product DLL, it can ensure that the
+memory deallocation is done in the same DLL arena as where it was originally
+allocated. This is considered safer than a bare {\cf delete} when
+used inside ``plug-ins,'' especially on Windows systems.
 \apiend
 
 \apiitem{const char * {\ce format_name} (void) const}

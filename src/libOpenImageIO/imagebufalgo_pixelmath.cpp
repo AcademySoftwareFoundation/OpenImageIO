@@ -177,7 +177,7 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B))
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "add", add_impl, dst.spec().format,
@@ -192,10 +192,10 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "add", add_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "add", add_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
     return ok;
 }
@@ -206,14 +206,14 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "add", add_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "add", add_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -252,7 +252,7 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B))
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "sub", sub_impl, dst.spec().format,
@@ -267,14 +267,14 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = -b[c];
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "sub", add_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "sub", add_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -285,14 +285,14 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = -b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "sub", add_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "sub", add_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -356,7 +356,7 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                        ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B))
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "absdiff", absdiff_impl, dst.spec().format,
@@ -371,10 +371,10 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
                        ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
     return ok;
 }
@@ -385,14 +385,14 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, float b,
                        ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -440,7 +440,7 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B))
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "mul", mul_impl, dst.spec().format,
@@ -477,10 +477,10 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
     return ok;
 }
@@ -491,14 +491,14 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -539,7 +539,7 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B))
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "div", div_impl, dst.spec().format,
@@ -554,14 +554,14 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = dst.nchannels();
     float *binv = OIIO_ALLOCA (float, nc);
     for (int c = 0; c < nc; ++c)
         binv[c] = (b[c] == 0.0f) ? 1.0f : 1.0f/b[c];
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "div", mul_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "div", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, binv, roi, nthreads);
     return ok;
 }
@@ -572,7 +572,7 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     b = (b == 0.0f) ? 1.0f : 1.0f/b;
     int nc = dst.nchannels();
@@ -580,7 +580,7 @@ ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, float b,
     for (int c = 0;  c < nc;  ++c)
         binv[c] = b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "div", mul_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "div", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, binv, roi, nthreads);
     return ok;
 }
@@ -613,10 +613,10 @@ bool
 ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
     return ok;
 }
@@ -627,14 +627,14 @@ bool
 ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A))
+    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = b;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
                           A.spec().format, dst, A, vals, roi, nthreads);
     return ok;
 }
@@ -893,10 +893,10 @@ ImageBufAlgo::rangecompress (ImageBuf &dst, const ImageBuf &src,
         dst.error ("in-place rangecompress requires the ImageBuf to be initialized");
         return false;
     }
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "rangecompress", rangecompress_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "rangecompress", rangecompress_,
                           dst.spec().format, src.spec().format,
                           dst, src, useluma, roi, nthreads);
     return ok;
@@ -912,10 +912,10 @@ ImageBufAlgo::rangeexpand (ImageBuf &dst, const ImageBuf &src,
         dst.error ("in-place rangeexpand requires the ImageBuf to be initialized");
         return false;
     }
-    if (! IBAprep (roi, &dst))
+    if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "rangeexpand", rangeexpand_,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "rangeexpand", rangeexpand_,
                           dst.spec().format, src.spec().format,
                           dst, src, useluma, roi, nthreads);
     return ok;
@@ -973,7 +973,7 @@ bool
 ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0) {
         if (&dst != &src)
@@ -982,7 +982,7 @@ ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
         return true;
     }
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "unpremult", unpremult_, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "unpremult", unpremult_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
     return ok;
 }
@@ -1034,7 +1034,7 @@ bool
 ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
                        ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0) {
         if (&dst != &src)
@@ -1043,7 +1043,7 @@ ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
         return true;
     }
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "premult", premult_, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "premult", premult_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
     return ok;
 }

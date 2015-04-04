@@ -120,7 +120,8 @@ enum IBAprep_flags {
     IBAprep_NO_COPY_ROI_FULL = 8,       // Don't copy the src's roi_full
     IBAprep_NO_SUPPORT_VOLUME = 16,     // Don't know how to do volumes
     IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
-    IBAprep_COPY_ALL_METADATA = 512     // Even unsafe things
+    IBAprep_COPY_ALL_METADATA = 512,    // Even unsafe things
+    IBAprep_CLAMP_MUTUAL_NCHANNELS = 1024 // Clamp roi.chend to max of inputs
 };
 
 
@@ -152,69 +153,69 @@ enum IBAprep_flags {
     }
 
 // Helper, do not call from the outside world.
-#define OIIO_DISPATCH_TYPES2_HELP(ret,name,func,Atype,Btype,R,...)      \
-    switch (Btype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        ret = func<Atype,float> (R, __VA_ARGS__); break;                \
-    case TypeDesc::UINT8 :                                              \
-        ret = func<Atype,unsigned char> (R, __VA_ARGS__); break;        \
-    case TypeDesc::HALF  :                                              \
-        ret = func<Atype,half> (R, __VA_ARGS__); break;                 \
-    case TypeDesc::UINT16:                                              \
-        ret = func<Atype,unsigned short> (R, __VA_ARGS__); break;       \
-    case TypeDesc::INT8 :                                               \
-        ret = func<Atype,char> (R, __VA_ARGS__); break;                 \
-    case TypeDesc::INT16 :                                              \
-        ret = func<Atype,short> (R, __VA_ARGS__); break;                \
-    case TypeDesc::UINT :                                               \
-        ret = func<Atype,unsigned int> (R, __VA_ARGS__); break;         \
-    case TypeDesc::INT :                                                \
-        ret = func<Atype,int> (R, __VA_ARGS__); break;                  \
-    case TypeDesc::DOUBLE :                                             \
-        ret = func<Atype,double> (R, __VA_ARGS__); break;               \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        ret = false;                                                    \
-    }
-
-// Macro to call a type-specialzed version func<Atype,Btype>(R,...).
-#define OIIO_DISPATCH_TYPES2(ret,name,func,Atype,Btype,R,...)           \
+#define OIIO_DISPATCH_TYPES2_HELP(ret,name,func,Rtype,Atype,R,...)      \
     switch (Atype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,float,Btype,R,__VA_ARGS__); \
-        break;                                                          \
+        ret = func<Rtype,float> (R, __VA_ARGS__); break;                \
     case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned char,Btype,R,__VA_ARGS__); \
-        break;                                                          \
+        ret = func<Rtype,unsigned char> (R, __VA_ARGS__); break;        \
     case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,half,Btype,R,__VA_ARGS__);  \
-        break;                                                          \
+        ret = func<Rtype,half> (R, __VA_ARGS__); break;                 \
     case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned short,Btype,R,__VA_ARGS__); \
-        break;                                                          \
-    case TypeDesc::INT8:                                                \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,char,Btype,R,__VA_ARGS__);  \
-        break;                                                          \
-    case TypeDesc::INT16:                                               \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,short,Btype,R,__VA_ARGS__); \
-        break;                                                          \
-    case TypeDesc::UINT:                                                \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned int,Btype,R,__VA_ARGS__); \
-        break;                                                          \
-    case TypeDesc::INT:                                                 \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,int,Btype,R,__VA_ARGS__); \
-        break;                                                          \
-    case TypeDesc::DOUBLE:                                              \
-        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,double,Btype,R,__VA_ARGS__);\
-        break;                                                          \
+        ret = func<Rtype,unsigned short> (R, __VA_ARGS__); break;       \
+    case TypeDesc::INT8 :                                               \
+        ret = func<Rtype,char> (R, __VA_ARGS__); break;                 \
+    case TypeDesc::INT16 :                                              \
+        ret = func<Rtype,short> (R, __VA_ARGS__); break;                \
+    case TypeDesc::UINT :                                               \
+        ret = func<Rtype,unsigned int> (R, __VA_ARGS__); break;         \
+    case TypeDesc::INT :                                                \
+        ret = func<Rtype,int> (R, __VA_ARGS__); break;                  \
+    case TypeDesc::DOUBLE :                                             \
+        ret = func<Rtype,double> (R, __VA_ARGS__); break;               \
     default:                                                            \
         (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
         ret = false;                                                    \
     }
 
+// Macro to call a type-specialzed version func<Rtype,Atype>(R,...).
+#define OIIO_DISPATCH_TYPES2(ret,name,func,Rtype,Atype,R,...)           \
+    switch (Rtype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,float,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::UINT8 :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned char,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::HALF  :                                              \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,half,Atype,R,__VA_ARGS__);  \
+        break;                                                          \
+    case TypeDesc::UINT16:                                              \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned short,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::INT8:                                                \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,char,Atype,R,__VA_ARGS__);  \
+        break;                                                          \
+    case TypeDesc::INT16:                                               \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,short,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::UINT:                                                \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,unsigned int,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::INT:                                                 \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,int,Atype,R,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::DOUBLE:                                              \
+        OIIO_DISPATCH_TYPES2_HELP(ret,name,func,double,Atype,R,__VA_ARGS__);\
+        break;                                                          \
+    default:                                                            \
+        (R).error ("%s: Unsupported pixel data format '%s'", name, Rtype); \
+        ret = false;                                                    \
+    }
+
 
 // Macro to call a type-specialzed version func<type>(R,...) for
-// the most common types, fail for anything else.
+// the most common types, will auto-convert the rest to float.
 #define OIIO_DISPATCH_COMMON_TYPES(ret,name,func,type,R,...)            \
     switch (type.basetype) {                                            \
     case TypeDesc::FLOAT :                                              \
@@ -225,104 +226,136 @@ enum IBAprep_flags {
         ret = func<half> (R, __VA_ARGS__); break;                       \
     case TypeDesc::UINT16:                                              \
         ret = func<unsigned short> (R, __VA_ARGS__); break;             \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, type); \
-        ret = false;                                                    \
+    default: {                                                          \
+        /* other types: punt and convert to float, then copy back */    \
+        ImageBuf Rtmp;                                                  \
+        if ((R).initialized())                                          \
+            Rtmp.copy (R, TypeDesc::FLOAT);                             \
+        ret = func<float> (Rtmp, __VA_ARGS__);                          \
+        if (ret)                                                        \
+            (R).copy (Rtmp);                                            \
+        else                                                            \
+            (R).error ("%s", Rtmp.geterror());                          \
+        }                                                               \
     }
 
 // Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,Atype,Btype,R,...) \
-    switch (Btype.basetype) {                                           \
-    case TypeDesc::FLOAT :                                              \
-        ret = func<Atype,float> (R, __VA_ARGS__); break;                \
-    case TypeDesc::UINT8 :                                              \
-        ret = func<Atype,unsigned char> (R, __VA_ARGS__); break;        \
-    case TypeDesc::HALF  :                                              \
-        ret = func<Atype,half> (R, __VA_ARGS__); break;                 \
-    case TypeDesc::UINT16:                                              \
-        ret = func<Atype,unsigned short> (R, __VA_ARGS__); break;       \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        ret = false;                                                    \
-    }
-
-// Macro to call a type-specialzed version func<Atype,Btype>(R,...) for
-// the most common types, fail for anything else.
-#define OIIO_DISPATCH_COMMON_TYPES2(ret,name,func,Atype,Btype,R,...)    \
+#define OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,Rtype,Atype,R,A,...) \
     switch (Atype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,float,Btype,R,__VA_ARGS__); \
-        break;                                                          \
+        ret = func<Rtype,float> (R, A, __VA_ARGS__); break;             \
     case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned char,Btype,R,__VA_ARGS__); \
-        break;                                                          \
+        ret = func<Rtype,unsigned char> (R, A, __VA_ARGS__); break;     \
     case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,half,Btype,R,__VA_ARGS__); \
-        break;                                                          \
+        ret = func<Rtype,half> (R, A, __VA_ARGS__); break;              \
     case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned short,Btype,R,__VA_ARGS__); \
-        break;                                                          \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
-        ret = false;                                                    \
+        ret = func<Rtype,unsigned short> (R, A, __VA_ARGS__); break;    \
+    default: {                                                          \
+        /* other types: punt and convert to float, then copy back */    \
+        ImageBuf Atmp;                                                  \
+        Atmp.copy (A, TypeDesc::FLOAT);                                 \
+        ret = func<Rtype,float> (R, Atmp, __VA_ARGS__);                 \
+        }                                                               \
     }
 
-
-// Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,Btype,R,...) \
+// Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
+// the most common types, will auto-convert the rest to float.
+#define OIIO_DISPATCH_COMMON_TYPES2(ret,name,func,Rtype,Atype,R,A,...)  \
     switch (Rtype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
-        ret = func<float,Atype,Btype> (R, __VA_ARGS__); break;          \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,float,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
     case TypeDesc::UINT8 :                                              \
-        ret = func<unsigned char,Atype,Btype> (R, __VA_ARGS__); break;  \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned char,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
     case TypeDesc::HALF  :                                              \
-        ret = func<half,Atype,Btype> (R, __VA_ARGS__); break;           \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,half,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
     case TypeDesc::UINT16:                                              \
-        ret = func<unsigned short,Atype,Btype> (R, __VA_ARGS__); break;  \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Rtype); \
-        ret = false;                                                    \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned short,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
+    default: {                                                          \
+        /* other types: punt and convert to float, then copy back */    \
+        ImageBuf Rtmp;                                                  \
+        if ((R).initialized())                                          \
+            Rtmp.copy (R, TypeDesc::FLOAT);                             \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,float,Atype,Rtmp,A,__VA_ARGS__); \
+        if (ret)                                                        \
+            (R).copy (Rtmp);                                            \
+        else                                                            \
+            (R).error ("%s", Rtmp.geterror());                          \
+        }                                                               \
+    }
+
+
+// Helper, do not call from the outside world.
+#define OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,Btype,R,A,B,...) \
+    switch (Rtype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        ret = func<float,Atype,Btype> (R,A,B,__VA_ARGS__); break;       \
+    case TypeDesc::UINT8 :                                              \
+        ret = func<unsigned char,Atype,Btype> (R,A,B,__VA_ARGS__); break;  \
+    case TypeDesc::HALF  :                                              \
+        ret = func<half,Atype,Btype> (R,A,B,__VA_ARGS__); break;        \
+    case TypeDesc::UINT16:                                              \
+        ret = func<unsigned short,Atype,Btype> (R,A,B,__VA_ARGS__); break;  \
+    default: {                                                          \
+        /* other types: punt and convert to float, then copy back */    \
+        ImageBuf Rtmp;                                                  \
+        if ((R).initialized())                                          \
+            Rtmp.copy (R, TypeDesc::FLOAT);                             \
+        ret = func<float,Atype,Btype> (R,A,B,__VA_ARGS__);              \
+        if (ret)                                                        \
+            (R).copy (Rtmp);                                            \
+        else                                                            \
+            (R).error ("%s", Rtmp.geterror());                          \
+        }                                                               \
     }
 
 // Helper, do not call from the outside world.
-#define OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,Atype,Btype,R,...) \
+#define OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,Atype,Btype,R,A,B,...) \
     switch (Btype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,float,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,float,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,unsigned char,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,unsigned char,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::HALF :                                               \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,half,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,half,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::UINT16 :                                             \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,unsigned short,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,unsigned short,R,A,B,__VA_ARGS__); \
         break;                                                          \
-    default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Btype); \
-        ret = false;                                                    \
+    default: {                                                          \
+        /* other types: punt and convert to float */                    \
+        ImageBuf Btmp;                                                  \
+        Btmp.copy (B, TypeDesc::FLOAT);                                 \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP2(ret,name,func,Rtype,Atype,float,R,A,Btmp,__VA_ARGS__); \
+        }                                                               \
     }
 
-// Macro to call a type-specialzed version func<Rtype,Atype,Btype>(R,...)
-// for the most common types, fail for anything else.
-#define OIIO_DISPATCH_COMMON_TYPES3(ret,name,func,Rtype,Atype,Btype,R,...)  \
+// Macro to call a type-specialzed version func<Rtype,Atype,Btype>(R,A,B,...)
+// the most common types, will auto-convert the rest to float.
+#define OIIO_DISPATCH_COMMON_TYPES3(ret,name,func,Rtype,Atype,Btype,R,A,B,...)  \
     switch (Atype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,float,Btype,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,float,Btype,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::UINT8 :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,unsigned char,Btype,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,unsigned char,Btype,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::HALF  :                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,half,Btype,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,half,Btype,R,A,B,__VA_ARGS__); \
         break;                                                          \
     case TypeDesc::UINT16:                                              \
-        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,unsigned short,Btype,R,__VA_ARGS__); \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,unsigned short,Btype,R,A,B,__VA_ARGS__); \
         break;                                                          \
     default:                                                            \
-        (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
-        ret = false;                                                    \
+        /* other types: punt and convert to float */                    \
+        ImageBuf Atmp;                                                  \
+        Atmp.copy (A, TypeDesc::FLOAT);                                 \
+        OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,float,Btype,R,Atmp,B,__VA_ARGS__); \
     }
 
 

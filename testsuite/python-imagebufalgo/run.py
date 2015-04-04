@@ -8,8 +8,6 @@ refdir3 = "../../../../testsuite/oiiotool-composite/ref/"
 refdir4 = "../../../../testsuite/oiiotool-fixnan/ref/"
 refdir5 = "../../../../testsuite/oiiotool-deep/ref/"
 refdir6 = "../../../../testsuite/oiiotool-pattern/ref/"
-failthresh = 0.004
-failpercent = 0.2
 
 
 def checkref (name) :

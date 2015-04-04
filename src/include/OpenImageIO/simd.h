@@ -122,6 +122,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "platform.h"
 #include "oiioversion.h"
 
+#include <algorithm>
+
 
 OIIO_NAMESPACE_ENTER {
 

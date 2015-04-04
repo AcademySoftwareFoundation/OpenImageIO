@@ -38,9 +38,10 @@
 
 #include "oiioversion.h"
 #include "export.h"
+#include "platform.h"    /* Must be before windows.h */
 
 #ifdef _WIN32
-# include "osdep.h"
+# include <windows.h>
 #elif defined(__APPLE__)
 # include <mach/mach_time.h>
 #else

@@ -441,8 +441,11 @@ CAUTION.
 
 \section{Copying \ImageBuf's and blocks of pixels}
 
-\apiitem{bool copy (const ImageBuf \&src)}
+\apiitem{bool {\ce copy} (const ImageBuf \&src) \\
+bool {\ce copy} (const ImageBuf \&src, TypeDesc format)}
 Copies {\cf src} to {\cf this} -- both pixel values and all metadata.
+If a {\cf format} is provided, {\cf this} will get the specified pixel
+data type rather than using the same pixel format as {\cf src}.
 \apiend
 
 \apiitem{void copy_metadata (const ImageBuf \&src)}

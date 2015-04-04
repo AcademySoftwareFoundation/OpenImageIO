@@ -35,10 +35,6 @@
 # can at least be sure that our basic MIPmap level selection is dead-on.
 
 
-# Allow a bit of LSB slop
-failthresh = 0.004
-failpercent = 0.1
-
 
 command = testtex_command (parent + "/oiio-images/miplevels.tx",
                            " --filtertest -res 256 256 -d uint8 -o out.tif")

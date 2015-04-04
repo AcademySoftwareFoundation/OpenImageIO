@@ -463,6 +463,14 @@ public:
     static ImageInput *create (const std::string &filename,
                                const std::string &plugin_searchpath="");
 
+    /// Destroy an ImageInput that was created using ImageInput::create() or
+    /// the static open(). For some systems (Windows, I'm looking at you),
+    /// it is not necessarily safe to allocate memory in one DLL and free it
+    /// in another, so directly calling 'delete' on an ImageInput allocated
+    /// by create() or open() may be unusafe, but passing it to destroy()
+    /// should be safe.
+    static void destroy (ImageInput *x);
+
     ImageInput () { }
     virtual ~ImageInput () { }
 
@@ -840,6 +848,13 @@ public:
     /// does not open the file.
     static ImageOutput *create (const std::string &filename,
                                 const std::string &plugin_searchpath="");
+
+    /// Destroy an ImageOutput that was created using ImageOutput::create().
+    /// For some systems (Windows, I'm looking at you), it is not
+    /// necessarily safe to allocate memory in one DLL and free it in
+    /// another, so directly calling 'delete' on an ImageOutput allocated by
+    /// create() may be unusafe, but passing it to destroy() should be safe.
+    static void destroy (ImageOutput *x);
 
     ImageOutput () { }
     virtual ~ImageOutput () { }

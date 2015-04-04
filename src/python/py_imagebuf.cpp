@@ -137,6 +137,31 @@ ImageBuf_set_write_format (ImageBuf &buf, TypeDesc::BASETYPE format)
 
 
 
+bool
+ImageBuf_copy (ImageBuf &buf, const ImageBuf &src,
+               TypeDesc format = TypeDesc::UNKNOWN)
+{
+    ScopedGILRelease gil;
+    return buf.copy (src, format);
+}
+
+
+bool
+ImageBuf_copy2 (ImageBuf &buf, const ImageBuf &src,
+                TypeDesc::BASETYPE format = TypeDesc::UNKNOWN)
+{
+    ScopedGILRelease gil;
+    return buf.copy (src, format);
+}
+
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_copy_overloads,
+                                ImageBuf_copy, 2, 3)
+BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_copy2_overloads,
+                                ImageBuf_copy2, 2, 3)
+
+
+
 void
 ImageBuf_set_full (ImageBuf &buf, int xbegin, int xend, int ybegin, int yend,
                    int zbegin, int zend)
@@ -389,7 +414,10 @@ void declare_imagebuf()
 
         .def("copy_metadata", &ImageBuf::copy_metadata)
         .def("copy_pixels", &ImageBuf::copy_pixels)
-        .def("copy", &ImageBuf::copy)
+        .def("copy",  &ImageBuf_copy,
+             ImageBuf_copy_overloads())
+        .def("copy",  &ImageBuf_copy2,
+             ImageBuf_copy2_overloads())
         .def("swap", &ImageBuf::swap)
 
         .def("getchannel", &ImageBuf_getchannel,

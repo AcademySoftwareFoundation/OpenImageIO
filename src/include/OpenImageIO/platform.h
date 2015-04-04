@@ -67,6 +67,18 @@
 #include <malloc.h> // for alloca
 #endif
 
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+# endif
+# ifndef VC_EXTRALEAN
+#   define VC_EXTRALEAN
+# endif
+# ifndef NOMINMAX
+#   define NOMINMAX
+# endif
+# include <windows.h>
+#endif
 
 
 // Detect if we're C++11
@@ -116,7 +128,7 @@
 // Caveat: Programmers are notoriously bad at guessing this, so it
 // should be used only with thorough benchmarking.
 #ifdef __GNUC__
-#define OIIO_LIKELY(x)   (__builtin_expect((x), 1))
+#define OIIO_LIKELY(x)   (__builtin_expect(!!(x), 1))
 #define OIIO_UNLIKELY(x) (__builtin_expect((x), 0))
 #else
 #define OIIO_LIKELY(x)   (x)
