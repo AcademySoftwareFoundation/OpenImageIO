@@ -644,9 +644,10 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     ImageSpec newspec = src.spec();
     newspec.nchannels = nchannels;
     newspec.default_channel_names ();
+    newspec.channelformats.clear();
     newspec.alpha_channel = -1;
     newspec.z_channel = -1;
-    std::vector<TypeDesc> newchanneltypes;
+    bool all_same_type = true;
     for (int c = 0; c < nchannels;  ++c) {
         int csrc = channelorder[c];
         // If the user gave an explicit name for this channel, use it...
@@ -661,10 +662,10 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
         else if (csrc >= 0 && csrc < src.spec().nchannels) {
             newspec.channelnames[c] = src.spec().channelnames[csrc];
         }
-        if (csrc >= 0)
-            newchanneltypes.push_back (src.spec().channelformat(csrc));
-        else
-            newchanneltypes.push_back (TypeDesc::TypeFloat);
+        TypeDesc type = src.spec().channelformat(csrc);
+        newspec.channelformats.push_back (type);
+        if (type != newspec.channelformats.front())
+            all_same_type = false;
         // Use the names (or designation of the src image, if
         // shuffle_channel_names is true) to deduce the alpha and z channels.
         if ((shuffle_channel_names && csrc == src.spec().alpha_channel) ||
@@ -675,6 +676,8 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
               Strutil::iequals (newspec.channelnames[c], "Z"))
             newspec.z_channel = c;
     }
+    if (all_same_type)                      // clear per-chan formats if
+        newspec.channelformats.clear();     // they're all the same
 
     // Update the image (realloc with the new spec)
     dst.reset (newspec);
@@ -700,9 +703,9 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                 } else if (dstdata.channeltypes[c] == srcdata.channeltypes[csrc]) {
                     // Same channel types -- copy all samples at once
                     memcpy (dstdata.channel_ptr(p,c), srcdata.channel_ptr(p,csrc),
-                            dstdata.nsamples[p] * newchanneltypes[csrc].size());
+                            dstdata.nsamples[p] * srcdata.channeltypes[csrc].size());
                 } else {
-                    if (newchanneltypes[c] == TypeDesc::UINT)
+                    if (dstdata.channeltypes[c] == TypeDesc::UINT)
                         for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
                             dstdata.set_deep_value (p, c, s,
                                           srcdata.deep_value(p,csrc,s));
