@@ -364,7 +364,8 @@ public:
 
     /// Return teh channelformat of the given channel.
     TypeDesc channelformat (int chan) const {
-        return chan >= (int)channelformats.size() ? format : channelformats[chan];
+        return chan >= 0 && chan < (int)channelformats.size()
+            ? channelformats[chan] : format;
     }
 
     /// Fill in an array of channel formats describing all channels in
