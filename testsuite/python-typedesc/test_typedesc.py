@@ -138,6 +138,7 @@ try:
     breakdown_test (oiio.TypeDesc.TypeTimeCode, "TypeTimeCode", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeKeyCode,  "TypeKeyCode",  verbose=False)
     breakdown_test (oiio.TypeDesc.TypeFloat4,   "TypeFloat4",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeHalf,     "TypeHalf",     verbose=False)
     print
 
     print "Done."
