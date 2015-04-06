@@ -83,6 +83,7 @@
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/imagebufalgo_util.h"
 
 #include <boost/scoped_array.hpp>
 
@@ -680,16 +681,33 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
 
 namespace {
 
+
+static TypeDesc
+TypeDesc_from_ImfPixelType (Imf::PixelType ptype)
+{
+    switch (ptype) {
+    case Imf::UINT  : return TypeDesc::UINT;  break;
+    case Imf::HALF  : return TypeDesc::HALF;  break;
+    case Imf::FLOAT : return TypeDesc::FLOAT; break;
+    default: ASSERT (0);
+    }
+}
+
+
+
 // Used to hold channel information for sorting into canonical order
 struct ChanNameHolder {
     string_view fullname;
-    int channel_number;
+    int exr_channel_number;  // channel index in the exr (sorted by name)
     string_view layer;
     string_view suffix;
     int special_index;
+    Imf::PixelType exr_data_type;
+    TypeDesc datatype;
 
-    ChanNameHolder (string_view fullname, int n)
-        : fullname(fullname), channel_number(n)
+    ChanNameHolder (string_view fullname, int n, Imf::PixelType exrtype)
+        : fullname(fullname), exr_channel_number(n), exr_data_type(exrtype),
+          datatype(TypeDesc_from_ImfPixelType(exrtype))
     {
         size_t dot = fullname.find_last_of ('.');
         if (dot == string_view::npos) {
@@ -702,7 +720,7 @@ struct ChanNameHolder {
             "R", "Red", "G", "Green", "B", "Blue", "real", "imag",
             "A", "Alpha", "RA", "RG", "RB", "Z", "Depth", "Zback", NULL
         };
-        special_index = 1000;
+        special_index = 10000;
         for (int i = 0; special[i]; ++i)
             if (Strutil::iequals (suffix, special[i])) {
                 special_index = i;
@@ -740,14 +758,22 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
     int c = 0;
     for (Imf::ChannelList::ConstIterator ci = channels.begin();
          ci != channels.end();  ++c, ++ci) {
-        cnh.push_back (ChanNameHolder (ci.name(), c));
+        cnh.push_back (ChanNameHolder (ci.name(), c, ci.channel().type));
         ++spec.nchannels;
     }
     std::sort (cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);
-    c = 0;
-    for (Imf::ChannelList::ConstIterator ci = channels.begin();
-         ci != channels.end();  ++c, ++ci) {
+    // Now we should have cnh sorted into the order that we want to present
+    // to the OIIO client.
+    spec.format = TypeDesc::UNKNOWN;
+    bool all_one_format = true;
+    for (int c = 0; c < spec.nchannels; ++c) {
         spec.channelnames.push_back (cnh[c].fullname);
+        spec.channelformats.push_back (cnh[c].datatype);
+        spec.format = TypeDesc(ImageBufAlgo::type_merge (TypeDesc::BASETYPE(spec.format.basetype),
+                                                         TypeDesc::BASETYPE(cnh[c].datatype.basetype)));
+        pixeltype.push_back (cnh[c].exr_data_type);
+        chanbytes.push_back (cnh[c].datatype.size());
+        all_one_format &= (cnh[c].datatype == cnh[0].datatype);
         if (spec.alpha_channel < 0 && (Strutil::iequals (cnh[c].suffix, "A") ||
                                        Strutil::iequals (cnh[c].suffix, "Alpha")))
             spec.alpha_channel = c;
@@ -756,50 +782,9 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
             spec.z_channel = c;
     }
     ASSERT ((int)spec.channelnames.size() == spec.nchannels);
-
-    // Figure out data types -- choose the highest range
-    spec.format = TypeDesc::UNKNOWN;
-    std::vector<TypeDesc> chanformat;
-    c = 0;
-    for (Imf::ChannelList::ConstIterator ci = channels.begin();
-         ci != channels.end();  ++c, ++ci) {
-        Imf::PixelType ptype = ci.channel().type;
-        TypeDesc fmt = TypeDesc::HALF;
-        switch (ptype) {
-        case Imf::UINT :
-            fmt = TypeDesc::UINT;
-            if (spec.format == TypeDesc::UNKNOWN)
-                spec.format = TypeDesc::UINT;
-            break;
-        case Imf::HALF :
-            fmt = TypeDesc::HALF;
-            if (spec.format != TypeDesc::FLOAT)
-                spec.format = TypeDesc::HALF;
-            break;
-        case Imf::FLOAT :
-            fmt = TypeDesc::FLOAT;
-            spec.format = TypeDesc::FLOAT;
-            break;
-        default: ASSERT (0);
-        }
-        pixeltype.push_back (ptype);
-        chanbytes.push_back (fmt.size());
-        if (chanformat.size() == 0)
-            chanformat.resize (spec.nchannels, fmt);
-        for (int i = 0;  i < spec.nchannels;  ++i) {
-            ASSERT ((int)spec.channelnames.size() > i);
-            if (spec.channelnames[i] == ci.name()) {
-                chanformat[i] = fmt;
-                break;
-            }
-        }
-    }
     ASSERT (spec.format != TypeDesc::UNKNOWN);
-    bool differing_chanformats = false;
-    for (int c = 1;  c < spec.nchannels;  ++c)
-        differing_chanformats |= (chanformat[c] != chanformat[0]);
-    if (differing_chanformats)
-        spec.channelformats = chanformat;
+    if (all_one_format)
+        spec.channelformats.clear();
 }
 
 
