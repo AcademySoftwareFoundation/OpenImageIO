@@ -577,6 +577,62 @@ def poor_mans_iinfo (filename) :
 \end{tinycode}
 
 
+\section{DeepData}
+\label{sec:pythondeepdata}
+\NEW % 1.6
+
+The \DeepData class describing ``deep'' image data (multiple depth
+sample per pixel), which is explained in deail in
+Section~\ref{sec:imageinput:deepdata}, is replicated for Python.
+
+\apiitem{{\ce DeepData} ()}
+Constructs a \DeepData object. It needs to have its {\cf init()} and
+{\cf alloc()} methods called before it can hold any meaningful data.
+\apiend
+
+\apiitem{DeepData.{\ce init} (npixels, nchannels, pixeltypes)}
+Initializes this \DeepData to hold {\cf npixels} total pixels, with
+{\cf nchannels} color channels. The data types of the channels are
+described by {\cf pixeltypes}, a tuple of \TypeDesc values (one per
+channel). After calling {\cf init}, you still need to set the number of
+samples for each pixel (using {\cf set_nsamples}) and then call {\cf alloc()}
+to actually allocate the sample memory.
+\apiend
+
+\apiitem{DeepData.{\ce set_nsamples} (pixel, nsamples) \\
+int DeepData.{\ce get_nsamples} (pixel)}
+Set or get the number of samples for a given pixel (specified by integer
+index).
+\apiend
+
+\apiitem{DeepData.{\ce alloc()}}
+After {\cf set_nsamples} has been called for each pixel, {\cf alloc()}
+is called to allocate the sample data.
+\apiend
+
+\apiitem{DeepData.{\ce set_deep_value} (pixel, channel, sample, value) \\
+float DeepData.{\ce deep_value} (pixel, channel, sample)}
+Set or retrieve the specific float value of a given pixel, channel, and
+sample index.
+\apiend
+
+\apiitem{DeepData.{\ce set_deep_value_uint} (pixel, channel, sample, value) \\
+int DeepData.{\ce deep_value_uint} (pixel, channel, sample)}
+Set or retrieve the specific unsigned integer value of a given pixel,
+channel, and sample index.
+\apiend
+
+\apiitem{DeepData.{\ce npixels}}
+This {\cf int} field constains the total number of pixels in this
+collection of deep data.
+\apiend
+
+\apiitem{DeepData.{\ce nchannels}}
+This {\cf int} field constains the number of channels.
+\apiend
+
+
+
 \section{ImageInput}
 \label{sec:pythonimageinput}
 
@@ -761,6 +817,15 @@ a subset of channels.
                                    spec.z, spec.z+spec.depth,
                                    0, spec.nchannels, oiio.FLOAT)
 \end{code}
+\apiend
+
+\apiitem{DeepData ImageOutput.{\ce read_native_deep_scanlines} (ybegin, yend, z, chbegin, chend) \\
+DeepData ImageOutput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
+DeepData ImageOutput.{\ce read_native_deep_image} (chbegin, chend)}
+\NEW % 1.6
+Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
+data. The begin/end coordinates are all integer values. The value returned
+will be a \DeepData if the read succeeds, or {\cf None} if the read fails.
 \apiend
 
 \apiitem{str ImageInput.{\ce geterror} ()}
@@ -1004,6 +1069,15 @@ Write one or many tiles to the currently open file.
                               oiio.FLOAT, pixels)
     ...
 \end{code}
+\apiend
+
+\apiitem{bool ImageOutput.{\ce write_deep_scanlines} (ybegin, yend, z, deepdata) \\
+bool ImageOutput.{\ce write_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, deepdata) \\
+bool ImageOutput.{\ce write_deep_image} (deepdata)}
+\NEW % 1.6
+Write a collection of scanlines, tiles, or an entire image of ``deep''
+pixel data. The begin/end coordinates are all integer values, and
+{\cf deepdata} should be a \DeepData.
 \apiend
 
 \apiitem{bool ImageOutput.{\ce copy_image} (imageinput)}

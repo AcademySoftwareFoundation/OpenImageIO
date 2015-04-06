@@ -418,7 +418,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 oiiotool-readerror oiiotool-text
                 perchannel dither
                 dpx ico iff png psd rla sgi
-                python-typedesc python-imagespec python-roi
+                python-typedesc python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
                 maketx

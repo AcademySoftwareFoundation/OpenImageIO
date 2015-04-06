@@ -57,6 +57,7 @@ void declare_imageinput();
 void declare_imageoutput();
 void declare_typedesc();
 void declare_roi();
+void declare_deepdata();
 void declare_imagecache();
 void declare_imagebuf();
 void declare_imagebufalgo();
@@ -167,6 +168,11 @@ public:
     object read_tiles (int xbegin, int xend, int ybegin, int yend,
                        int zbegin, int zend, int chbegin, int chend,
                        TypeDesc format);
+    object read_native_deep_scanlines (int ybegin, int yend, int z,
+                                       int chbegin, int chend);
+    object read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend, int chbegin, int chend);
+    object read_native_deep_image ();
     std::string geterror() const;
 };
 
@@ -215,6 +221,11 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
+    bool write_deep_scanlines (int ybegin, int yend, int z,
+                               const DeepData &deepdata);
+    bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend, const DeepData &deepdata);
+    bool write_deep_image (const DeepData &deepdata);
     bool copy_image (ImageInputWrap *iiw);
     const char *format_name () const;
     bool supports (const std::string&) const;
