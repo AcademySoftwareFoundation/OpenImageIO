@@ -87,11 +87,18 @@ static void
 ImageSpec_set_channelformats(ImageSpec& spec, const tuple& channelformats)
 {
     const size_t length = len(channelformats);
-    spec.channelformats.resize(length);
+    spec.channelformats.resize(length, spec.format);
     for (size_t i = 0; i < length; ++i) {
-        extract<int> e (channelformats[i]);
-        int base = e.check() ? e() : 0;
-        spec.channelformats[i] = (TypeDesc::BASETYPE)base;
+        extract<int> base (channelformats[i]);
+        if (base.check()) {
+            spec.channelformats[i] = (TypeDesc::BASETYPE)base();
+            continue;
+        }
+        extract<TypeDesc> type (channelformats[i]);
+        if (type.check()) {
+            spec.channelformats[i] = type();
+            continue;
+        }
     }
 }
 
