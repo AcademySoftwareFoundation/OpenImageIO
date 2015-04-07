@@ -40,6 +40,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 
+#include <OpenEXR/half.h>
+
 #include "OpenImageIO/export.h"
 #include "OpenImageIO/texture.h"
 #include "OpenImageIO/refcnt.h"
@@ -184,7 +186,9 @@ public:
 
     size_t channelsize (int subimage) const { return m_subimages[subimage].channelsize; }
     size_t pixelsize (int subimage) const { return m_subimages[subimage].pixelsize; }
-    bool eightbit (int subimage) const { return m_subimages[subimage].eightbit; }
+    TypeDesc::BASETYPE pixeltype (int subimage) const {
+        return (TypeDesc::BASETYPE) m_subimages[subimage].datatype.basetype;
+    }
     bool mipused (void) const { return m_mipused; }
     bool sample_border (void) const { return m_sample_border; }
     const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
@@ -228,7 +232,6 @@ public:
         bool unmipped;                  ///< Not really MIP-mapped
         bool volume;                    ///< It's a volume image
         bool full_pixel_range;          ///< pixel data window matches image window
-        bool eightbit;                  ///< Eight bit?  (or float)
         bool is_constant_image;         ///< Is the image a constant color?
         bool has_average_color;         ///< We have an average color
         std::vector<float> average_color; ///< Average color
@@ -243,7 +246,7 @@ public:
         SubimageInfo () : datatype(TypeDesc::UNKNOWN),
                           channelsize(0), pixelsize(0),
                           untiled(false), unmipped(false), volume(false),
-                          full_pixel_range(false), eightbit(false),
+                          full_pixel_range(false),
                           is_constant_image(false), has_average_color(false),
                           sscale(1.0f), soffset(0.0f),
                           tscale(1.0f), toffset(0.0f) { }
@@ -511,9 +514,18 @@ public:
     const void *data (int x, int y, int z=0) const;
 
     /// Return a pointer to the character data
-    ///
     const unsigned char *bytedata (void) const {
         return (unsigned char *) &m_pixels[0];
+    }
+
+    /// Return a pointer to unsigned short data
+    const unsigned short *ushortdata (void) const {
+        return (unsigned short *) &m_pixels[0];
+    }
+
+    /// Return a pointer to half data
+    const half *halfdata (void) const {
+        return (half *) &m_pixels[0];
     }
 
     /// Return the id for this tile.

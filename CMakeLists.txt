@@ -431,7 +431,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 texture-interp-bicubic
                 texture-interp-bilinear
                 texture-interp-closest
-                texture-gray texture-grid
+                texture-gray texture-uint8 texture-uint16 texture-half
                 texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res

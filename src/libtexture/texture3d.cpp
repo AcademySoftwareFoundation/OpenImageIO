@@ -62,6 +62,18 @@ namespace {  // anonymous
 static EightBitConverter<float> uchar2float;
 static ustring s_field3d ("field3d");
 
+// OIIO_FORCEINLINE float uchar2float (unsigned char val) {
+//     return float(val) * (1.0f/255.0f);
+// }
+
+OIIO_FORCEINLINE float ushort2float (unsigned short val) {
+    return float(val) * (1.0f/65535.0f);
+}
+
+OIIO_FORCEINLINE float half2float (half val) {
+    return float(val);
+}
+
 
 }  // end anonymous namespace
 
@@ -339,6 +351,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     float s = P[0] * spec.full_width  + spec.full_x;
     float t = P[1] * spec.full_height + spec.full_y;
@@ -376,17 +389,23 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     TileRef &tile (thread_info->tile);
     if (! tile  ||  ! ok)
         return false;
-    size_t channelsize = texturefile.channelsize(options.subimage);
     int tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
     int offset = spec.nchannels * tilepel + options.firstchannel;
     DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
-    if (channelsize == 1) {
-        // special case for 8-bit tiles
+    if (pixeltype == TypeDesc::UINT8) {
         const unsigned char *texel = tile->bytedata() + offset;
         for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * uchar2float(texel[c]);
+    } else if (pixeltype == TypeDesc::UINT16) {
+        const unsigned short *texel = tile->ushortdata() + offset;
+        for (int c = 0;  c < actualchannels;  ++c)
+            accum[c] += weight * ushort2float(texel[c]);
+    } else if (pixeltype == TypeDesc::HALF) {
+        const half *texel = tile->halfdata() + offset;
+        for (int c = 0;  c < actualchannels;  ++c)
+            accum[c] += weight * half2float(texel[c]);
     } else {
-        // General case for float tiles
+        DASSERT (pixeltype == TypeDesc::FLOAT);
         const float *texel = tile->data() + offset;
         for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * texel[c];
@@ -415,6 +434,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
     float s = P[0] * spec.full_width  + spec.full_x - 0.5f;
@@ -544,10 +564,8 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     }
     // FIXME -- optimize the above loop by unrolling
 
-    if (channelsize == 1) {
-        // special case for 8-bit tiles
-        int c;
-        for (c = 0;  c < actualchannels;  ++c)
+    if (pixeltype == TypeDesc::UINT8) {
+        for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * trilerp (uchar2float(texel[0][0][0][c]), uchar2float(texel[0][0][1][c]),
                                           uchar2float(texel[0][1][0][c]), uchar2float(texel[0][1][1][c]),
                                           uchar2float(texel[1][0][0][c]), uchar2float(texel[1][0][1][c]),
@@ -557,11 +575,10 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
             float scalex = weight * spec.full_width;
             float scaley = weight * spec.full_height;
             float scalez = weight * spec.full_depth;
-            for (c = 0;  c < actualchannels;  ++c) {
+            for (int c = 0;  c < actualchannels;  ++c) {
                 daccumds[c] += scalex * bilerp(
                     uchar2float(texel[0][0][1][c]) - uchar2float(texel[0][0][0][c]),
                     uchar2float(texel[0][1][1][c]) - uchar2float(texel[0][1][0][c]),
-
                     uchar2float(texel[1][0][1][c]) - uchar2float(texel[1][0][0][c]),
                     uchar2float(texel[1][1][1][c]) - uchar2float(texel[1][1][0][c]),
                     tfrac, rfrac
@@ -578,6 +595,76 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                     uchar2float(texel[0][1][1][c]) - uchar2float(texel[1][1][1][c]),
                     uchar2float(texel[0][0][1][c]) - uchar2float(texel[1][0][0][c]),
                     uchar2float(texel[0][1][1][c]) - uchar2float(texel[1][1][1][c]),
+                    sfrac, tfrac
+                );
+            }
+        }
+    } else if (pixeltype == TypeDesc::UINT16) {
+        for (int c = 0;  c < actualchannels;  ++c)
+            accum[c] += weight * trilerp (ushort2float(((const uint16_t *)texel[0][0][0])[c]), ushort2float(((const uint16_t *)texel[0][0][1])[c]),
+                                          ushort2float(((const uint16_t *)texel[0][1][0])[c]), ushort2float(((const uint16_t *)texel[0][1][1])[c]),
+                                          ushort2float(((const uint16_t *)texel[1][0][0])[c]), ushort2float(((const uint16_t *)texel[1][0][1])[c]),
+                                          ushort2float(((const uint16_t *)texel[1][1][0])[c]), ushort2float(((const uint16_t *)texel[1][1][1])[c]),
+                                          sfrac, tfrac, rfrac);
+        if (daccumds) {
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            float scalez = weight * spec.full_depth;
+            for (int c = 0;  c < actualchannels;  ++c) {
+                daccumds[c] += scalex * bilerp(
+                    ushort2float(((const uint16_t *)texel[0][0][1])[c]) - ushort2float(((const uint16_t *)texel[0][0][0])[c]),
+                    ushort2float(((const uint16_t *)texel[0][1][1])[c]) - ushort2float(((const uint16_t *)texel[0][1][0])[c]),
+                    ushort2float(((const uint16_t *)texel[1][0][1])[c]) - ushort2float(((const uint16_t *)texel[1][0][0])[c]),
+                    ushort2float(((const uint16_t *)texel[1][1][1])[c]) - ushort2float(((const uint16_t *)texel[1][1][0])[c]),
+                    tfrac, rfrac
+                );
+                daccumdt[c] += scaley * bilerp(
+                    ushort2float(((const uint16_t *)texel[0][1][0])[c]) - ushort2float(((const uint16_t *)texel[0][0][0])[c]),
+                    ushort2float(((const uint16_t *)texel[0][1][1])[c]) - ushort2float(((const uint16_t *)texel[0][0][1])[c]),
+                    ushort2float(((const uint16_t *)texel[1][1][0])[c]) - ushort2float(((const uint16_t *)texel[1][0][0])[c]),
+                    ushort2float(((const uint16_t *)texel[1][1][1])[c]) - ushort2float(((const uint16_t *)texel[1][0][1])[c]),
+                    sfrac, rfrac
+                );
+                daccumdr[c] += scalez * bilerp(
+                    ushort2float(((const uint16_t *)texel[0][1][0])[c]) - ushort2float(((const uint16_t *)texel[1][1][0])[c]),
+                    ushort2float(((const uint16_t *)texel[0][1][1])[c]) - ushort2float(((const uint16_t *)texel[1][1][1])[c]),
+                    ushort2float(((const uint16_t *)texel[0][0][1])[c]) - ushort2float(((const uint16_t *)texel[1][0][0])[c]),
+                    ushort2float(((const uint16_t *)texel[0][1][1])[c]) - ushort2float(((const uint16_t *)texel[1][1][1])[c]),
+                    sfrac, tfrac
+                );
+            }
+        }
+    } else if (pixeltype == TypeDesc::HALF) {
+        for (int c = 0;  c < actualchannels;  ++c)
+            accum[c] += weight * trilerp (half2float(((const half *)texel[0][0][0])[c]), half2float(((const half *)texel[0][0][1])[c]),
+                                          half2float(((const half *)texel[0][1][0])[c]), half2float(((const half *)texel[0][1][1])[c]),
+                                          half2float(((const half *)texel[1][0][0])[c]), half2float(((const half *)texel[1][0][1])[c]),
+                                          half2float(((const half *)texel[1][1][0])[c]), half2float(((const half *)texel[1][1][1])[c]),
+                                          sfrac, tfrac, rfrac);
+        if (daccumds) {
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            float scalez = weight * spec.full_depth;
+            for (int c = 0;  c < actualchannels;  ++c) {
+                daccumds[c] += scalex * bilerp(
+                    half2float(((const half *)texel[0][0][1])[c]) - half2float(((const half *)texel[0][0][0])[c]),
+                    half2float(((const half *)texel[0][1][1])[c]) - half2float(((const half *)texel[0][1][0])[c]),
+                    half2float(((const half *)texel[1][0][1])[c]) - half2float(((const half *)texel[1][0][0])[c]),
+                    half2float(((const half *)texel[1][1][1])[c]) - half2float(((const half *)texel[1][1][0])[c]),
+                    tfrac, rfrac
+                );
+                daccumdt[c] += scaley * bilerp(
+                    half2float(((const half *)texel[0][1][0])[c]) - half2float(((const half *)texel[0][0][0])[c]),
+                    half2float(((const half *)texel[0][1][1])[c]) - half2float(((const half *)texel[0][0][1])[c]),
+                    half2float(((const half *)texel[1][1][0])[c]) - half2float(((const half *)texel[1][0][0])[c]),
+                    half2float(((const half *)texel[1][1][1])[c]) - half2float(((const half *)texel[1][0][1])[c]),
+                    sfrac, rfrac
+                );
+                daccumdr[c] += scalez * bilerp(
+                    half2float(((const half *)texel[0][1][0])[c]) - half2float(((const half *)texel[1][1][0])[c]),
+                    half2float(((const half *)texel[0][1][1])[c]) - half2float(((const half *)texel[1][1][1])[c]),
+                    half2float(((const half *)texel[0][0][1])[c]) - half2float(((const half *)texel[1][0][0])[c]),
+                    half2float(((const half *)texel[0][1][1])[c]) - half2float(((const half *)texel[1][1][1])[c]),
                     sfrac, tfrac
                 );
             }

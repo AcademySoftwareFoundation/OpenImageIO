@@ -35,6 +35,7 @@
 #include <cstring>
 #include <list>
 
+#include <OpenEXR/half.h>
 #include <OpenEXR/ImathMatrix.h>
 
 #include "OpenImageIO/dassert.h"
@@ -65,13 +66,24 @@ OIIO_NAMESPACE_ENTER
     using namespace pvt;
     using namespace simd;
 
-
 namespace {  // anonymous
 
 static EightBitConverter<float> uchar2float;
+static float4 u8scale (1.0f/255.0f);
+static float4 u16scale (1.0f/65535.0f);
 
-simd::float4 uchar2float4 (const unsigned char *c) {
-    return simd::float4(simd::int4(c[0],c[1],c[2],c[3])) * (1.0f/255.0f);
+OIIO_FORCEINLINE float4 uchar2float4 (const unsigned char *c) {
+    return float4(c) * u8scale;
+}
+
+
+OIIO_FORCEINLINE float4 ushort2float4 (const unsigned short *s) {
+    return float4(s) * u16scale;
+}
+
+
+OIIO_FORCEINLINE float4 half2float4 (const half *h) {
+    return float4(h);
 }
 
 
@@ -1538,7 +1550,7 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
         return NULL;   // Only compute color for one-tile MIP levels
     const ImageSpec &spec (levelinfo.spec);
     size_t pixelsize = texturefile.pixelsize(subimage);
-    bool eightbit = texturefile.eightbit(subimage);
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(subimage);
     if (! levelinfo.polecolorcomputed) {
         static spin_mutex mutex;   // Protect everybody's polecolor
         spin_lock lock (mutex);
@@ -1555,11 +1567,18 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
                     p[c] = 0.0f;
                 const unsigned char *texel = tile->bytedata() + y*spec.tile_width*pixelsize;
                 for (size_t i = 0;  i < width;  ++i, texel += pixelsize)
-                    for (int c = 0;  c < spec.nchannels;  ++c)
-                        if (eightbit)
+                    for (int c = 0;  c < spec.nchannels;  ++c) {
+                        if (pixeltype == TypeDesc::UINT8)
                             p[c] += uchar2float(texel[c]);
-                        else
+                        else if (pixeltype == TypeDesc::UINT16)
+                            p[c] += convert_type<uint16_t,float> (((const uint16_t *)texel)[c]);
+                        else if (pixeltype == TypeDesc::HALF)
+                            p[c] += ((const half *)texel)[c];
+                        else {
+                            DASSERT (pixeltype == TypeDesc::FLOAT);
                             p[c] += ((const float *)texel)[c];
+                        }
+                    }
                 for (int c = 0;  c < spec.nchannels;  ++c)
                     p[c] *= scale;
             }            
@@ -1619,6 +1638,7 @@ TextureSystemImpl::sample_closest (int nsamples, const float *s_,
     bool allok = true;
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func = wrap_functions[(int)options.twrap];
     float4 accum;
@@ -1663,15 +1683,18 @@ TextureSystemImpl::sample_closest (int nsamples, const float *s_,
             allok = false;
             continue;
         }
-        size_t channelsize = texturefile.channelsize(options.subimage);
         int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
         DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
         simd::float4 texel_simd;
-        if (channelsize == 1) {
+        if (pixeltype == TypeDesc::UINT8) {
             // special case for 8-bit tiles
             texel_simd = uchar2float4 (tile->bytedata() + offset);
+        } else if (pixeltype == TypeDesc::UINT16) {
+            texel_simd = ushort2float4 (tile->ushortdata() + offset);
+        } else if (pixeltype == TypeDesc::HALF) {
+            texel_simd = half2float4 (tile->halfdata() + offset);
         } else {
-            // General case for float tiles
+            DASSERT (pixeltype == TypeDesc::FLOAT);
             texel_simd.load (tile->data() + offset);
         }
 
@@ -1773,6 +1796,7 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl swrap_func = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func = wrap_functions[(int)options.twrap];
     wrap_impl_simd wrap_func = (swrap_func == twrap_func) ? wrap_functions_simd[(int)options.swrap] : NULL;
@@ -1861,13 +1885,26 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
                 return false;
             int offset = pixelsize * (tile_st[T0] * spec.tile_width + tile_st[S0]);
             const unsigned char *p = tile->bytedata() + offset + channelsize * firstchannel;
-            if (channelsize == 1) {
+            if (pixeltype == TypeDesc::UINT8) {
                 texel_simd[0][0] = uchar2float4 (p);
                 texel_simd[0][1] = uchar2float4 (p+pixelsize);
                 p += pixelsize * spec.tile_width;
                 texel_simd[1][0] = uchar2float4 (p);
                 texel_simd[1][1] = uchar2float4 (p+pixelsize);
+            } else if (pixeltype == TypeDesc::UINT16) {
+                texel_simd[0][0] = ushort2float4 ((uint16_t *)p);
+                texel_simd[0][1] = ushort2float4 ((uint16_t *)(p+pixelsize));
+                p += pixelsize * spec.tile_width;
+                texel_simd[1][0] = ushort2float4 ((uint16_t *)p);
+                texel_simd[1][1] = ushort2float4 ((uint16_t *)(p+pixelsize));
+            } else if (pixeltype == TypeDesc::HALF) {
+                texel_simd[0][0] = half2float4 ((half *)p);
+                texel_simd[0][1] = half2float4 ((half *)(p+pixelsize));
+                p += pixelsize * spec.tile_width;
+                texel_simd[1][0] = half2float4 ((half *)p);
+                texel_simd[1][1] = half2float4 ((half *)(p+pixelsize));
             } else {
+                DASSERT (pixeltype == TypeDesc::FLOAT);
                 texel_simd[0][0].load ((const float *)p);
                 texel_simd[0][1].load ((const float *)(p+pixelsize));
                 p += pixelsize * spec.tile_width;
@@ -1908,10 +1945,16 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
                     TileRef &tile (thread_info->tile);
                     int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                     DASSERT ((size_t)offset < spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize);
-                    if (channelsize == 1)
+                    if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4 ((const unsigned char *)(tile->bytedata() + offset + channelsize * firstchannel));
-                    else
+                    else if (pixeltype == TypeDesc::UINT16)
+                        texel_simd[j][i] = ushort2float4 ((const unsigned short *)(tile->bytedata() + offset + channelsize * firstchannel));
+                    else if (pixeltype == TypeDesc::HALF)
+                        texel_simd[j][i] = half2float4 ((const half *)(tile->bytedata() + offset + channelsize * firstchannel));
+                    else {
+                        DASSERT (pixeltype == TypeDesc::FLOAT);
                         texel_simd[j][i].load ((const float *)(tile->bytedata() + offset + channelsize * firstchannel));
+                    }
                 }
             }
         }
@@ -2070,6 +2113,7 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
+    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(options.subimage);
     wrap_impl_simd swrap_func_simd = wrap_functions_simd[(int)options.swrap];
     wrap_impl_simd twrap_func_simd = wrap_functions_simd[(int)options.twrap];
 
@@ -2180,10 +2224,18 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
             int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
             const unsigned char *base = tile->bytedata() + offset + firstchannel_offset_bytes;
             DASSERT (tile->data());
-            if (channelsize == 1) {
+            if (pixeltype == TypeDesc::UINT8) {
                 for (int j = 0, j_offset = 0;  j < 4;  ++j, j_offset += pixelsize*spec.tile_width)
                     for (int i = 0, i_offset = j_offset;  i < 4;  ++i, i_offset += pixelsize)
                         texel_simd[j][i] = uchar2float4 (base + i_offset);
+            } else if (pixeltype == TypeDesc::UINT16) {
+                for (int j = 0, j_offset = 0;  j < 4;  ++j, j_offset += pixelsize*spec.tile_width)
+                    for (int i = 0, i_offset = j_offset;  i < 4;  ++i, i_offset += pixelsize)
+                        texel_simd[j][i] = ushort2float4 ((const uint16_t *)(base + i_offset));
+            } else if (pixeltype == TypeDesc::HALF) {
+                for (int j = 0, j_offset = 0;  j < 4;  ++j, j_offset += pixelsize*spec.tile_width)
+                    for (int i = 0, i_offset = j_offset;  i < 4;  ++i, i_offset += pixelsize)
+                        texel_simd[j][i] = half2float4 ((const half *)(base + i_offset));
             } else {
                 for (int j = 0, j_offset = 0;  j < 4;  ++j, j_offset += pixelsize*spec.tile_width)
                     for (int i = 0, i_offset = j_offset;  i < 4;  ++i, i_offset += pixelsize)
@@ -2227,8 +2279,12 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
                     DASSERT (tile->data());
                     int offset = row_offset_bytes + column_offset_bytes[i];
                     // const unsigned char *pixelptr = tile->bytedata() + offset[i];
-                    if (channelsize == 1)
+                    if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4 (tile->bytedata() + offset);
+                    else if (pixeltype == TypeDesc::UINT16)
+                        texel_simd[j][i] = ushort2float4 ((const uint16_t *)(tile->bytedata() + offset));
+                    else if (pixeltype == TypeDesc::HALF)
+                        texel_simd[j][i] = half2float4 ((const half *)(tile->bytedata() + offset));
                     else
                         texel_simd[j][i].load ((const float *)(tile->bytedata() + offset));
                 }
