@@ -80,6 +80,7 @@
 # include <windows.h>
 #endif
 
+#include "oiioversion.h"
 
 // Detect if we're C++11
 #if (__cplusplus >= 201103L)
@@ -216,7 +217,7 @@
 #endif
 
 
-namespace {   // anon
+OIIO_NAMESPACE_ENTER {
 
 /// Return true if the architecture we are running on is little endian
 OIIO_FORCEINLINE bool littleendian (void)
@@ -239,5 +240,8 @@ OIIO_FORCEINLINE bool bigendian (void)
     return ! littleendian();
 }
 
-} // end anon namespace
+
+
+
+} OIIO_NAMESPACE_EXIT
 
