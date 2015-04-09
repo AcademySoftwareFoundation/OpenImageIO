@@ -34,6 +34,7 @@
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/unittest.h"
 
 #include <iostream>
@@ -42,6 +43,34 @@
 #include <cstdio>
 
 OIIO_NAMESPACE_USING;
+
+
+void test_type_merge ()
+{
+    std::cout << "test type_merge\n";
+    using namespace OIIO::ImageBufAlgo;
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::UINT8, TypeDesc::UINT8),
+                      TypeDesc::UINT8);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::UINT8, TypeDesc::FLOAT),
+                      TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::FLOAT, TypeDesc::UINT8),
+                      TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::UINT8, TypeDesc::UINT16),
+                      TypeDesc::UINT16);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::UINT16, TypeDesc::FLOAT),
+                      TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::HALF, TypeDesc::FLOAT),
+                      TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::HALF, TypeDesc::UINT8),
+                      TypeDesc::HALF);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::HALF, TypeDesc::UNKNOWN),
+                      TypeDesc::HALF);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::FLOAT, TypeDesc::UNKNOWN),
+                      TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (type_merge(TypeDesc::UINT8, TypeDesc::UNKNOWN),
+                      TypeDesc::UINT8);
+}
+
 
 
 // Test ImageBuf::zero and ImageBuf::fill
@@ -410,6 +439,7 @@ test_maketx_from_imagebuf()
 int
 main (int argc, char **argv)
 {
+    test_type_merge ();
     test_zero_fill ();
     test_crop ();
     test_paste ();

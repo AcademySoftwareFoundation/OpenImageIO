@@ -429,6 +429,62 @@ ImageInputWrap_read_tiles_default (ImageInputWrap& in,
 
 
 
+object
+ImageInputWrap::read_native_deep_scanlines (int ybegin, int yend, int z,
+                                            int chbegin, int chend)
+{
+    DeepData* dd = NULL;
+    bool ok = true;
+    {
+        ScopedGILRelease gil;
+        dd = new DeepData;
+        ok = m_input->read_native_deep_scanlines (ybegin, yend, z,
+                                                  chbegin, chend, *dd);
+    }
+    if (ok)
+        return object(dd);
+    delete dd;
+    return object(handle<>(Py_None));
+}
+
+
+object
+ImageInputWrap::read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                        int zbegin, int zend, int chbegin, int chend)
+{
+    DeepData* dd = NULL;
+    bool ok = true;
+    {
+        ScopedGILRelease gil;
+        dd = new DeepData;
+        ok = m_input->read_native_deep_tiles (xbegin, xend, ybegin, yend,
+                                              zbegin, zend, chbegin, chend, *dd);
+    }
+    if (ok)
+        return object(dd);
+    delete dd;
+    return object(handle<>(Py_None));
+}
+
+
+object
+ImageInputWrap::read_native_deep_image ()
+{
+    DeepData* dd = NULL;
+    bool ok = true;
+    {
+        ScopedGILRelease gil;
+        dd = new DeepData;
+        ok = m_input->read_native_deep_image (*dd);
+    }
+    if (ok)
+        return object(dd);
+    delete dd;
+    return object(handle<>(Py_None));
+}
+
+
+
 std::string
 ImageInputWrap::geterror() const
 {
@@ -474,7 +530,9 @@ void declare_imageinput()
         .def("read_image",       &ImageInputWrap::read_image)
         .def("read_image",       &ImageInputWrap_read_image_bt)
         .def("read_image",       &ImageInputWrap_read_image_default)
-//FIXME: read_native_deep_{scanlines,tiles,image}
+        .def("read_native_deep_scanlines", &ImageInputWrap::read_native_deep_scanlines)
+        .def("read_native_deep_tiles",     &ImageInputWrap::read_native_deep_tiles)
+        .def("read_native_deep_image",     &ImageInputWrap::read_native_deep_image)
         .def("geterror",         &ImageInputWrap::geterror)
     ;
 }
