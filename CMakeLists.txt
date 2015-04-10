@@ -196,11 +196,15 @@ if (NOT USE_SIMD STREQUAL "")
     if (USE_SIMD STREQUAL "0")
         add_definitions ("-DOIIO_NO_SSE=1")
     else ()
-        if (MSVC OR CMAKE_COMPILER_IS_INTEL)
-            add_definitions ("/arch:${USE_SIMD}")
-        else ()
-            add_definitions ("-m${USE_SIMD}")
-        endif ()
+        string (REPLACE "," ";" SIMD_FEATURE_LIST ${USE_SIMD})
+        foreach (feature ${SIMD_FEATURE_LIST})
+            message (STATUS "SIMD feature: ${feature}")
+            if (MSVC OR CMAKE_COMPILER_IS_INTEL)
+                add_definitions ("/arch:${feature}")
+            else ()
+                add_definitions ("-m${feature}")
+            endif ()
+        endforeach()
     endif ()
 endif ()
 
@@ -427,7 +431,7 @@ oiio_add_tests (gpsread misnamed-file nonwhole-tiles
                 texture-interp-bicubic
                 texture-interp-bilinear
                 texture-interp-closest
-                texture-gray texture-grid
+                texture-gray texture-uint8 texture-uint16 texture-half
                 texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res

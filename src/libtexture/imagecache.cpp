@@ -295,14 +295,14 @@ ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
     if (! forcefloat) {
         // If we aren't forcing everything to be float internally, then 
         // there are a few other types we allow.
-        // But at present, it's only UINT8 and FLOAT.
         if (spec.format == TypeDesc::UINT8
+            || spec.format == TypeDesc::UINT16
+            || spec.format == TypeDesc::HALF
             /* future expansion:  || spec.format == AnotherFormat ... */)
             datatype = spec.format;
     }
     channelsize = datatype.size();
     pixelsize = channelsize * spec.nchannels;
-    eightbit = (datatype == TypeDesc::UINT8);
 
     // See if there's a constant color tag
     string_view software = spec.get_string_attribute ("Software");

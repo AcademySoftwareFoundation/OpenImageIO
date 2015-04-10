@@ -89,6 +89,19 @@ void test_loadstore ()
                   << stored[0] << ' ' << stored[1] << ' '
                   << stored[2] << ' ' << stored[3] << "\n";
     }
+
+    {
+    // Check load from integers
+    VEC C1234 (1, 2, 3, 4);
+    unsigned short us1234[] = {1, 2, 3, 4};
+    short s1234[] = {1, 2, 3, 4};
+    unsigned char uc1234[] = {1, 2, 3, 4};
+    char c1234[] = {1, 2, 3, 4};
+    OIIO_CHECK_SIMD_EQUAL (VEC(us1234), C1234);
+    OIIO_CHECK_SIMD_EQUAL (VEC( s1234), C1234);
+    OIIO_CHECK_SIMD_EQUAL (VEC(uc1234), C1234);
+    OIIO_CHECK_SIMD_EQUAL (VEC( c1234), C1234);
+    }
 }
 
 
@@ -293,6 +306,30 @@ void test_vectorops ()
 
 
 
+// Miscellaneous one-off stuff not caught by other tests
+void test_special ()
+{
+    {
+        // Make sure a float4 constructed from saturated unsigned short,
+        // short, unsigned char, or char values, then divided by the float
+        // max, exactly equals 1.0.
+        short s32767[] = {32767, 32767, 32767, 32767};
+        unsigned short us65535[] = {65535, 65535, 65535, 65535};
+        char c127[] = {127, 127, 127, 127};
+        unsigned char uc255[] = {255, 255, 255, 255};
+        OIIO_CHECK_SIMD_EQUAL (float4(us65535)/float4(65535.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(us65535)*float4(1.0f/65535.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(s32767)/float4(32767.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(s32767)*float4(1.0f/32767.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(uc255)/float4(255.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(uc255)*float4(1.0f/255.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(c127)/float4(127.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (float4(c127)*float4(1.0f/127.0), float4(1.0f));
+    }
+}
+
+
+
 
 int
 main (int argc, char *argv[])
@@ -327,6 +364,8 @@ main (int argc, char *argv[])
 
     std::cout << "\n";
     test_shuffle<mask4> ();
+
+    test_special();
 
     return unit_test_failures;
 }

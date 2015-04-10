@@ -59,6 +59,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
 #    include <smmintrin.h>
 #  endif
+#  if defined(__GNUC__)
+#    include <x86intrin.h>
+#  endif
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
 #    define OIIO_SIMD_SSE 4
       /* N.B. We consider both SSE4.1 and SSE4.2 to be "4". There are a few
@@ -87,16 +90,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // FIXME Future: support AVX
-#if 0 && defined(__AVX__) && !defined(OIIO_NO_AVX)
+#if defined(__AVX__) && !defined(OIIO_NO_AVX)
    // N.B. Any machine with AVX will also have SSE
 #  include <immintrin.h>
 #  define OIIO_SIMD_AVX 1
-#  define OIIO_SIMD_MASK_BYTE_WIDTH 4
-#  undef OIIO_SIMD_MAX_SIZE_BYTES
-#  define OIIO_SIMD_MAX_SIZE_BYTES 32
-#  undef OIIO_SIMD_ALIGN
-#  define OIIO_SIMD_ALIGN OIIO_ALIGN(32)
-#  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
+// #  define OIIO_SIMD_MASK_BYTE_WIDTH 4
+// #  undef OIIO_SIMD_MAX_SIZE_BYTES
+// #  define OIIO_SIMD_MAX_SIZE_BYTES 32
+// #  undef OIIO_SIMD_ALIGN
+// #  define OIIO_SIMD_ALIGN OIIO_ALIGN(32)
+// #  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
 #endif
 
 // FIXME Future: support ARM Neon
@@ -521,6 +524,18 @@ public:
     /// Construct from a pointer to 4 values
     OIIO_FORCEINLINE int4 (const int *vals) { load (vals); }
 
+    /// Construct from a pointer to 4 unsigned short values
+    OIIO_FORCEINLINE explicit int4 (const unsigned short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 signed short values
+    OIIO_FORCEINLINE explicit int4 (const short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 unsigned char values (0 - 255)
+    OIIO_FORCEINLINE explicit int4 (const unsigned char *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 signed char values (-128 - 127)
+    OIIO_FORCEINLINE explicit int4 (const char *vals) { load(vals); }
+
     /// Copy construct from another int4
     OIIO_FORCEINLINE int4 (const int4 & other) {
 #if defined(OIIO_SIMD_SSE)
@@ -664,6 +679,62 @@ public:
             m_val[i] = values[i];
         for (int i = n; i < 4; ++i)
             m_val[i] = 0;
+    }
+
+    /// Load from an array of 4 unsigned short values, convert to int4
+    OIIO_FORCEINLINE void load (const unsigned short *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+        // Trickery: load one double worth of bits = 4 uint16's!
+        simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
+        m_vec = _mm_cvtepu16_epi32 (a);
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 unsigned short values, convert to int4
+    OIIO_FORCEINLINE void load (const short *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+        // Trickery: load one double worth of bits = 4 int16's!
+        simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
+        m_vec = _mm_cvtepi16_epi32 (a);
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 unsigned char values, convert to int4
+    OIIO_FORCEINLINE void load (const unsigned char *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+        // Trickery: load one float worth of bits = 4 uint8's!
+        simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
+        m_vec = _mm_cvtepu8_epi32 (a);
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 unsigned char values, convert to int4
+    OIIO_FORCEINLINE void load (const char *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+        // Trickery: load one float worth of bits = 4 uint8's!
+        simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
+        m_vec = _mm_cvtepi8_epi32 (a);
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
     }
 
     /// Store the values into memory
@@ -1272,6 +1343,23 @@ public:
     OIIO_FORCEINLINE const Imath::V4f& V4f () const { return *(const Imath::V4f*)this; }
 #endif
 
+    /// Construct from a pointer to 4 unsigned short values
+    OIIO_FORCEINLINE explicit float4 (const unsigned short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 short values
+    OIIO_FORCEINLINE explicit float4 (const short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 unsigned char values
+    OIIO_FORCEINLINE explicit float4 (const unsigned char *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 char values
+    OIIO_FORCEINLINE explicit float4 (const char *vals) { load(vals); }
+
+#ifdef _HALF_H_
+    /// Construct from a pointer to 4 half (16 bit float) values
+    OIIO_FORCEINLINE explicit float4 (const half *vals) { load(vals); }
+#endif
+
     /// Assign a single value to all components
     OIIO_FORCEINLINE const float4 & operator= (float a) { load(a); return *this; }
 
@@ -1411,6 +1499,96 @@ public:
             m_val[i] = 0;
 #endif
     }
+
+    /// Load from an array of 4 unsigned short values, convert to float
+    OIIO_FORCEINLINE void load (const unsigned short *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
+        m_vec = _mm_cvtepi32_ps (int4(values).simd());
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 short values, convert to float
+    OIIO_FORCEINLINE void load (const short *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
+        m_vec = _mm_cvtepi32_ps (int4(values).simd());
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 unsigned char values, convert to float
+    OIIO_FORCEINLINE void load (const unsigned char *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
+        m_vec = _mm_cvtepi32_ps (int4(values).simd());
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+    /// Load from an array of 4 char values, convert to float
+    OIIO_FORCEINLINE void load (const char *values) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
+        m_vec = _mm_cvtepi32_ps (int4(values).simd());
+#else
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+
+#ifdef _HALF_H_
+    /// Load from an array of 4 half values, convert to float
+    OIIO_FORCEINLINE void load (const half *values) {
+#ifdef __F16C__ /* Enabled 16 bit float instructions! */
+        __m128i a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
+        m_vec = _mm_cvtph_ps (a);
+#elif defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
+        // SSE half-to-float by Fabian "ryg" Giesen. Public domain.
+        // https://gist.github.com/rygorous/2144712
+        int4 h ((const unsigned short *)values);
+# define SSE_CONST4(name, val) static const OIIO_SIMD_ALIGN uint32_t name[4] = { (val), (val), (val), (val) }
+# define CONST(name) *(const __m128i *)&name
+# define CONSTF(name) *(const __m128 *)&name
+        SSE_CONST4(mask_nosign,         0x7fff);
+        SSE_CONST4(magic,               (254 - 15) << 23);
+        SSE_CONST4(was_infnan,          0x7bff);
+        SSE_CONST4(exp_infnan,          255 << 23);
+        __m128i mnosign     = CONST(mask_nosign);
+        __m128i expmant     = _mm_and_si128(mnosign, h);
+        __m128i justsign    = _mm_xor_si128(h, expmant);
+        __m128i expmant2    = expmant; // copy (just here for counting purposes)
+        __m128i shifted     = _mm_slli_epi32(expmant, 13);
+        __m128  scaled      = _mm_mul_ps(_mm_castsi128_ps(shifted), *(const __m128 *)&magic);
+        __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant2, CONST(was_infnan));
+        __m128i sign        = _mm_slli_epi32(justsign, 16);
+        __m128  infnanexp   = _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), CONSTF(exp_infnan));
+        __m128  sign_inf    = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
+        __m128  final       = _mm_or_ps(scaled, sign_inf);
+        // ~11 SSE2 ops.
+        m_vec = final;
+# undef SSE_CONST4
+# undef CONST
+# undef CONSTF
+#else /* No SIMD defined: */
+        m_val[0] = values[0];
+        m_val[1] = values[1];
+        m_val[2] = values[2];
+        m_val[3] = values[3];
+#endif
+    }
+#endif /* _HALF_H_ */
 
     OIIO_FORCEINLINE void store (float *values) const {
 #if defined(OIIO_SIMD_SSE)

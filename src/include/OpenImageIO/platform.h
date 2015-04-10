@@ -80,6 +80,7 @@
 # include <windows.h>
 #endif
 
+#include "oiioversion.h"
 
 // Detect if we're C++11
 #if (__cplusplus >= 201103L)
@@ -216,7 +217,7 @@
 #endif
 
 
-namespace {   // anon
+OIIO_NAMESPACE_ENTER {
 
 /// Return true if the architecture we are running on is little endian
 OIIO_FORCEINLINE bool littleendian (void)
@@ -239,5 +240,46 @@ OIIO_FORCEINLINE bool bigendian (void)
     return ! littleendian();
 }
 
-} // end anon namespace
+
+
+/// Retrieve cpuid flags into 'info'.
+inline void cpuid (int info[4], int infoType, int extra)
+{
+    // Implementation cribbed from Halide (http://halide-lang.org), which
+    // cribbed it from ISPC (https://github.com/ispc/ispc).
+#if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
+# ifdef _MSC_VER
+    __cpuidex(info, infoType, extra);
+# elif defined(__x86_64__)
+    __asm__ __volatile__ (
+        "cpuid                 \n\t"
+        : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
+        : "0" (infoType), "2" (extra));
+# else
+    __asm__ __volatile__ (
+        "mov{l}\t{%%}ebx, %1  \n\t"
+        "cpuid                 \n\t"
+        "xchg{l}\t{%%}ebx, %1  \n\t"
+        : "=a" (info[0]), "=r" (info[1]), "=c" (info[2]), "=d" (info[3])
+        : "0" (infoType), "2" (extra));
+# endif
+#else
+    info[0] = 0; info[1] = 0; info[2] = 0; info[3] = 0;
+#endif
+}
+
+
+inline bool cpu_has_sse2  () {int i[4]; cpuid(i,1,0); return i[3] & (1<<26); }
+inline bool cpu_has_sse3  () {int i[4]; cpuid(i,1,0); return i[2] & (1<<0); }
+inline bool cpu_has_ssse3 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<9); }
+inline bool cpu_has_fma   () {int i[4]; cpuid(i,1,0); return i[2] & (1<<12); }
+inline bool cpu_has_sse41 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<19); }
+inline bool cpu_has_sse42 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<20); }
+inline bool cpu_has_popcnt() {int i[4]; cpuid(i,1,0); return i[2] & (1<<23); }
+inline bool cpu_has_avx   () {int i[4]; cpuid(i,1,0); return i[2] & (1<<28); }
+inline bool cpu_has_f16c  () {int i[4]; cpuid(i,1,0); return i[2] & (1<<29); }
+inline bool cpu_has_rdrand() {int i[4]; cpuid(i,1,0); return i[2] & (1<<30); }
+
+
+} OIIO_NAMESPACE_EXIT
 
