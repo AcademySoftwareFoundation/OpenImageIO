@@ -159,6 +159,7 @@ void declare_typedesc() {
         .def_readonly("TypeColor",    &TypeDesc::TypeColor)
         .def_readonly("TypeString",   &TypeDesc::TypeString)
         .def_readonly("TypeInt",      &TypeDesc::TypeInt)
+        .def_readonly("TypeHalf",     &TypeDesc::TypeHalf)
         .def_readonly("TypePoint",    &TypeDesc::TypePoint)
         .def_readonly("TypeVector",   &TypeDesc::TypeVector)
         .def_readonly("TypeNormal",   &TypeDesc::TypeNormal)

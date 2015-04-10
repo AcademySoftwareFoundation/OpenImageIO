@@ -861,10 +861,11 @@ DeepData::alloc ()
     // Calculate the total size we need, align each channel to 4 byte boundary
     size_t totalsamples = 0, totalbytes = 0;
     for (int i = 0;  i < npixels;  ++i) {
-        int s = nsamples[i];
-        totalsamples += s;
-        for (int c = 0;  c < nchannels;  ++c)
-            totalbytes += round_to_multiple (channeltypes[c].size() * s, 4);
+        if (int s = nsamples[i]) {
+            totalsamples += s;
+            for (int c = 0;  c < nchannels;  ++c)
+                totalbytes += round_to_multiple (channeltypes[c].size() * s, 4);
+        }
     }
 
     // Set all the data pointers to the right offsets within the
@@ -872,10 +873,10 @@ DeepData::alloc ()
     data.resize (totalbytes);
     char *p = &data[0];
     for (int i = 0;  i < npixels;  ++i) {
-        if (nsamples[i]) {
+        if (int s = nsamples[i]) {
             for (int c = 0;  c < nchannels;  ++c) {
                 pointers[i*nchannels+c] = p;
-                p += round_to_multiple (channeltypes[c].size()*nsamples[i], 4);
+                p += round_to_multiple (channeltypes[c].size()*s, 4);
             }
         }
     }

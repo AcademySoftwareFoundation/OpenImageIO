@@ -273,6 +273,7 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeColor;
     static const TypeDesc TypeString;
     static const TypeDesc TypeInt;
+    static const TypeDesc TypeHalf;
     static const TypeDesc TypePoint;
     static const TypeDesc TypeVector;
     static const TypeDesc TypeNormal;
