@@ -841,6 +841,54 @@ to use if you are using oiiotool to combine images that may have different
 orientations.
 \apiend
 
+\apiitem{\ce --autocc}
+\NEW % 1.6
+
+Turns on automatic color conversion: Every input image file will be
+immediately converted to a scene-referred linear color space, and every file
+written will be first transformed to an appropriate output color space based
+on the filename or type.   Additionally, if the name of an output file
+contains a color space and that color space is associated with a particular
+data format, it will output that data format (akin to {\cf -d}).
+
+The rules for deducing color spaces are as follows, in order of priority:
+
+\begin{enumerate}
+\item[]
+\item If the filename (input or output) contains as a substring the name
+  of a color space from the current OpenColorIO configuration, that will
+  be assumed to be the color space of input data (or be the requested
+  color space for output).
+\item For input files, if the \ImageInput set the \qkw{oiio:ColorSpace}
+  metadata, it will be honored if the filename did not override it.
+\item When outputting to JPEG files, assume that sRGB is the desired
+  output color space (since JPEG requires sRGB), but still this only
+  occurs if the filename does not specify something different.
+\end{enumerate}
+
+\noindent Example:
+
+If the input file \qkw{in_lg10.dpx} is in the \qkw{lg10} color space,
+and you want to read it in, brighten the RGB uniformly by 10\% (in a linear
+space, of course), and then save it as a 16 bit integer TIFF file encoded
+in the {\cf vd16} color space, you could specifiy the conversions
+explicitly:
+
+\begin{code}
+  oiiotool in_lg10.dpx --colorconvert lg10 linear \
+                       --mulc 1.1,1.1,1.1,1.0 -colorconvert linear vd16 \
+                       -d uint16 -o out_vd16.tif
+\end{code}
+
+\noindent or rely on the naming convention matching the OCIO color space
+names and use automatic conversion:
+
+\begin{code}
+  oiiotool --autocc in_lg10.dpx --mulc 1.1 -o out_vd16.tif
+\end{code}
+
+\apiend
+
 \apiitem{\ce --native}
 Normally, all image reads into an \ImageBuf will be performed via an
 underlying \ImageCache. But since an \ImageCache does not support all

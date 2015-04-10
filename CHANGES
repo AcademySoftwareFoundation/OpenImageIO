@@ -32,6 +32,11 @@ Major new features and improvements:
       noise, or making "salt & pepper" noise. (1.6.2)
     * --trim crops the image to the minimal rectangle containing all
       the non-0 pixels. (1.6.3)
+    * --autocc : when turned on, automatic color conversion of input files
+      into a scene_linear space, and conversion to an appropriate space
+      and pixel type upon output. It infers the color spaces based on
+      metadata and filenames (looking for OCIO-recognized color space names
+      as substrings of the filenames). (1.6.3)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
