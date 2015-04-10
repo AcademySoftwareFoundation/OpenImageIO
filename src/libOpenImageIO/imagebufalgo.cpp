@@ -426,7 +426,7 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "convolve", convolve_,
                           dst.spec().format, src.spec().format,
-                          dst, src, *K, normalize, roi, nthreads);
+                          dst, src, kernel, normalize, roi, nthreads);
     return ok;
 }
 

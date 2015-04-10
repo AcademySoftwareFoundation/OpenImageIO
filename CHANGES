@@ -19,8 +19,6 @@ Release 1.5.14 (10 April 2015) -- compared to 1.5.13)
   writes (ImageOutput). #1113 (1.5.13)
 * Fix bugs in reading deep OpenEXR images with mixed channel types.
   #1113 (1.5.13)
-* Fix bug in IBA::convolve() for the case when the kernel image passed
-  is not a float image. #1116 (1.5.13)
 
 
 Release 1.5.13 (10 Mar 2015) -- compared to 1.5.12)
