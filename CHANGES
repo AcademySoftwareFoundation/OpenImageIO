@@ -2,7 +2,7 @@ Changes:
 
 Release 1.5.14 (10 April 2015) -- compared to 1.5.13)
 ----------------------------------------------
-* fmath: save_fast_pow improves the precision of its results for
+* fmath: safe_fast_pow improves the precision of its results for
   special cases of pow(x,1) and pow(x,2). #1094 (1.5.13)
 * Fix warnings when compiling with C++11. (1.5.13)
 * Dont link Python framework on OSX. #1099 (1.5.13)
