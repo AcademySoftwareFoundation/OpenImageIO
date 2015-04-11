@@ -99,6 +99,9 @@ Public API changes:
    IO objects are deleted on the same side of a DLL boundary as where they
    were created. (Helps with using OIIO from DLL-based plugins on Windows.)
    (1.6.3)
+ * The ColorConfig wrapper for OCIO functionality has been extended to
+   parse color names from filename strings, and to report the recommended
+   pixel data type for a color space. (1.6.3)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool

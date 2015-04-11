@@ -619,6 +619,20 @@ ColorConfig::createDisplayTransform (string_view display,
 }
 
 
+
+string_view
+ColorConfig::parseColorSpaceFromString (string_view str) const
+{
+#ifdef USE_OCIO
+    string_view result (getImpl()->config_->parseColorSpaceFromString (str.c_str()));
+    return result;
+#else
+    return "";
+#endif
+}
+
+
+
 void
 ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 {

@@ -186,6 +186,12 @@ public:
                                             string_view context_key="",
                                             string_view context_value="") const;
 
+    /// Given a string (like a filename), look for the longest, right-most
+    /// colorspace substring that appears. Returns "" if no such color space
+    /// is found. (This is just a wrapper around OCIO's
+    /// ColorConfig::parseColorSpaceFromString.)
+    string_view parseColorSpaceFromString (string_view str) const;
+
     /// Delete the specified ColorProcessor
     static void deleteColorProcessor(ColorProcessor * processor);
     
