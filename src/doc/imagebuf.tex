@@ -68,57 +68,57 @@ channel}.
 
 \smallskip
 
-\apiitem{ROI ()}
+\apiitem{{\ce ROI} ()}
 A default-constructed \ROI has an \emph{undefined} region, which
 is interpreted to mean all valid pixels and all valid channels of
 an image.
 \apiend
 
-\apiitem{bool ROI::defined () const}
+\apiitem{bool ROI::{\ce defined} () const}
 Returns {\cf true} if the \ROI is defined, having a specified region,
 or {\cf false} if the \ROI is undefined.
 \apiend
 
-\apiitem{static ROI ROI::All ()}
+\apiitem{static ROI ROI::{\ce All} ()}
 Returns an undefined \ROI, which is interpreted to mean all valid pixels
 and all valid channels of an image.
 \apiend
 
-\apiitem{int ROI::width () const \\
-int ROI::height () const \\
-int ROI::depth () const}
+\apiitem{int ROI::{\ce width} () const \\
+int ROI::{\ce height} () const \\
+int ROI::{\ce depth} () const}
 Returns the width, height, and depth, respectively, of a defined region.
 These do not return sensible values for an \ROI that is not {\cf defined()}.
 \apiend
 
-\apiitem{imagesize_t ROI::npixels () const}
+\apiitem{imagesize_t ROI::{\ce npixels} () const}
 For an \ROI that is {\cf defined()}, returns the total number of pixels
 included in the region, or {\cf 0} for an undefined \ROI.
 \apiend
 
-\apiitem{imagesize_t ROI::nchannels () const}
+\apiitem{imagesize_t ROI::{\ce nchannels} () const}
 For an \ROI that is {\cf defined()}, returns the number of channels
 in the channel range.
 \apiend
 
-\apiitem{ROI roi_union (const ROI \&A, const ROI \&B) \\
-ROI roi_intersection (const ROI \&A, const ROI \&B)}
+\apiitem{ROI {\ce roi_union} (const ROI \&A, const ROI \&B) \\
+ROI {\ce roi_intersection} (const ROI \&A, const ROI \&B)}
 Returns the union of two \ROI's (an \ROI that is exactly big enough
 to include all the pixels of both individual \ROI's) or intersection
 of two \ROI's (an \ROI that contains only the pixels that are contained
 in \emph{both} \ROI's).
 \apiend
 
-\apiitem{ROI get_roi (const ImageSpec \&spec) \\
-ROI get_roi_full (const ImageSpec \&spec)}
+\apiitem{ROI {\ce get_roi} (const ImageSpec \&spec) \\
+ROI {\ce get_roi_full} (const ImageSpec \&spec)}
 Return the ROI describing {\cf spec}'s pixel data window (the {\cf x, y, z,
 width, height, depth} fields)
 or the full (display) window (the {\cf full_x, full_y, full_z,
 full_width, full_height, full_depth} fields), respectively.
 \apiend
 
-\apiitem{void set_roi (const ImageSpec \&spec, const ROI \&newroi) \\
-void set_roi_full (const ImageSpec \&spec, const ROI \&newroi)}
+\apiitem{void {\ce set_roi} (const ImageSpec \&spec, const ROI \&newroi) \\
+void {\ce set_roi_full} (const ImageSpec \&spec, const ROI \&newroi)}
 Alters the {\cf spec} so to make its pixel data window 
 or the full (display) window match {\cf newroi}.
 \apiend
@@ -129,12 +129,12 @@ or the full (display) window match {\cf newroi}.
 
 \subsection*{Default constructor of an empty \ImageBuf}
 
-\apiitem{ImageBuf ()}
+\apiitem{{\ce ImageBuf} ()}
 The default constructor makes an uninitialized \ImageBuf.  There isn't
 much you can do with an uninitialized buffer until you call {\cf reset()}.
 \apiend
 
-\apiitem{void clear ()}
+\apiitem{void {\ce clear} ()}
 Resets the \ImageBuf to a pristine state identical to that of a freshly
 constructed \ImageBuf using the default constructor.
 \apiend
@@ -142,15 +142,15 @@ constructed \ImageBuf using the default constructor.
 
 \subsection*{Constructing and initializing a writeable \ImageBuf}
 
-\apiitem{ImageBuf (const ImageSpec \&spec) \\
-ImageBuf (string_view name, const ImageSpec \&spec)}
+\apiitem{{\ce ImageBuf} (const ImageSpec \&spec) \\
+{\ce ImageBuf} (string_view name, const ImageSpec \&spec)}
 Constructs a writeable \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.), initially set to all black pixels.
 Optionally, you may name the \ImageBuf.
 \apiend
 
-\apiitem{void reset (const ImageSpec \&spec) \\
-void reset (string_view name, const ImageSpec \&spec)}
+\apiitem{void {\ce reset} (const ImageSpec \&spec) \\
+void {\ce reset} (string_view name, const ImageSpec \&spec)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
 as a writeable all-black \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.).  Optionally, you may name the
@@ -176,7 +176,7 @@ make_writeable from within a type-specialized function).
 Constructing a readable \ImageBuf that will hold an image to be read
 from disk.
 
-\apiitem{ImageBuf (string_view name, int subimage=0, int miplevel=0, \\
+\apiitem{{\ce ImageBuf} (string_view name, int subimage=0, int miplevel=0, \\
 \bigspc\bigspc ImageCache *imagecache = NULL, \\
 \bigspc\bigspc const ImageSpec *config = NULL)}
 Construct an \ImageBuf that will be used to read the named file (at the
@@ -192,7 +192,7 @@ or special instructions to be passed on to the eventual
 {\cf ImageInput::open()} call.
 \apiend
 
-\apiitem{void reset (string_view name, int subimage=0, int miplevel=0, \\
+\apiitem{void {\ce reset} (string_view name, int subimage=0, int miplevel=0, \\
 \bigspc\bigspc ImageCache *imagecache = NULL \\
 \bigspc\bigspc const ImageSpec *config = NULL)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
@@ -202,7 +202,7 @@ or special instructions to be passed on to the eventual
 {\cf ImageInput::open()} call.
 \apiend
 
-\apiitem{bool read (int subimage=0, int miplevel=0, bool force=false, \\
+\apiitem{bool {\ce read} (int subimage=0, int miplevel=0, bool force=false, \\
    \bigspc            TypeDesc convert=TypeDesc::UNKNOWN, \\
    \bigspc            ProgressCallback progress_callback=NULL, \\
    \bigspc            void *progress_callback_data=NULL)}
@@ -254,7 +254,7 @@ to use {\cf force=true} or a specific {\cf convert} value to force data
 format conversion.
 \apiend
 
-\apiitem{bool init_spec (string_view filename,
+\apiitem{bool {\ce init_spec} (string_view filename,
                     int subimage, int miplevel)}
 This call will read the \ImageSpec for the given file, subimage, and
 MIP level into the \ImageBuf, but will not read the pixels or allocate
@@ -275,8 +275,8 @@ a specific {\cf convert} value to force data format conversion.
 
 \subsection*{Constructing an \ImageBuf that ``wraps'' an application buffer}
 
-\apiitem{ImageBuf (const ImageSpec \&spec, void *buffer) \\
-ImageBuf (string_view name, const ImageSpec \&spec, void *buffer)}
+\apiitem{{\ce ImageBuf} (const ImageSpec \&spec, void *buffer) \\
+{\ce ImageBuf} (string_view name, const ImageSpec \&spec, void *buffer)}
 Constructs an ImageBuf that "wraps" a memory buffer owned by the calling
 application.  It can write pixels to this buffer, but can't change its
 resolution or data type.  Optionally, it names the \ImageBuf.
@@ -285,7 +285,7 @@ resolution or data type.  Optionally, it names the \ImageBuf.
 
 \subsection*{Writing an \ImageBuf to a file}
 
-\apiitem{bool write (string_view filename, \\
+\apiitem{bool {\ce write} (string_view filename, \\
   \bigspc               string_view fileformat = "", \\
   \bigspc               ProgressCallback progress_callback=NULL, \\
   \bigspc               void *progress_callback_data=NULL) const}
@@ -300,7 +300,7 @@ Also, it will use the data format of the buffer itself, unless the
 {\cf set_write_format()} method has been used to override the data format.
 \apiend
 
-\apiitem{bool write (ImageOutput *out, \\
+\apiitem{bool {\ce write} (ImageOutput *out, \\
   \bigspc                ProgressCallback progress_callback=NULL, \\
   \bigspc                void *progress_callback_data=NULL) const}
 Write the image to the open \ImageOutput {\cf out}.  Return {\cf true}
@@ -309,8 +309,8 @@ close the file when it's done (and so may be called in a loop to write a
 multi-image file).
 \apiend
 
-\apiitem{void set_write_format (TypeDesc format=TypeDesc::UNKNOWN) \\
-set set_write_tiles (int width=0, int height=0, int depth=0)}
+\apiitem{void {\ce set_write_format} (TypeDesc format=TypeDesc::UNKNOWN) \\
+void {\ce set_write_tiles} (int width=0, int height=0, int depth=0)}
 These methods allow the caller to override the data format and tile
 sizing when using the {\cf write()} function (the variety that does
 not take an open {\cf ImageOutput*}).
@@ -319,7 +319,7 @@ not take an open {\cf ImageOutput*}).
 
 \section{Getting and setting basic information about an \ImageBuf}
 
-\apiitem{bool initialized () const}
+\apiitem{bool {\ce initialized} () const}
 Returns {\cf true} if the \ImageBuf is initialized, {\cf false} if not
 yet initialized.
 \apiend
@@ -332,8 +332,8 @@ by the \ImageBuf: {\cf UNINITIALIZED} (no storage), {\cf LOCALBUFFER} (the
 {\cf IMAGECACHE} (the image is backed by an \ImageCache).
 \apiend
 
-\apiitem{const ImageSpec \& spec () const \\
-const ImageSpec \& nativespec () const}
+\apiitem{const ImageSpec \& {\ce spec} () const \\
+const ImageSpec \& {\ce nativespec} () const}
 
 The {\cf spec()} function returns a {\cf const} reference to an
 \ImageSpec that describes the image data held by the \ImageBuf.  
@@ -360,10 +360,10 @@ Returns the name of the file format, for an \ImageBuf read from disk
 (for example, \qkw{openexr}).
 \apiend
 
-\apiitem{int subimage () const \\
-int nsubimages () const \\
-int miplevel () const \\
-int nmiplevels () const}
+\apiitem{int {\ce subimage} () const \\
+int {\ce nsubimages} () const \\
+int {\ce miplevel} () const \\
+int {\ce nmiplevels} () const}
 The {\cf subimage()} and {\cf miplevel()} methods return the subimage and MIP
 level of the image held by the \ImageBuf (the file it came from may hold
 multiple subimages and/or MIP levels, but the \ImageBuf can only store
@@ -374,32 +374,32 @@ the file, and the {\cf nmiplevels()} method returns the total number
 of MIP levels in the currently-loaded subimage.
 \apiend
 
-\apiitem{int nchannels () const}
+\apiitem{int {\ce nchannels} () const}
 Returns the number of channels stored in the buffer (this is equivalent
 to {\cf spec().nchannels}).
 \apiend
 
-\apiitem{int xbegin () const \\
-    int xend () const \\
-    int ybegin () const \\
-    int yend () const \\
-    int zbegin () const \\
-    int zend () const}
+\apiitem{int {\ce xbegin} () const \\
+    int {\ce xend} () const \\
+    int {\ce ybegin} () const \\
+    int {\ce yend} () const \\
+    int {\ce zbegin} () const \\
+    int {\ce zend} () const}
 Returns the {\cf [begin,end)} range of the pixel data window of the
 buffer.  These are equivalent to {\cf spec().x}, {\cf spec().x+spec().width},
 {\cf spec().y}, {\cf spec().y+spec().height},
 {\cf spec().z}, and {\cf spec().z+spec().depth}, respectively.
 \apiend
 
-\apiitem{int orientation () const \\
-    int oriented_width () const \\
-    int oriented_height () const \\
-    int oriented_x () const \\
-    int oriented_y () const \\
-    int oriented_full_width () const \\
-    int oriented_full_height () const \\
-    int oriented_full_x () const \\
-    int oriented_full_y () const
+\apiitem{int {\ce orientation} () const \\
+    int {\ce oriented_width} () const \\
+    int {\ce oriented_height} () const \\
+    int {\ce oriented_x} () const \\
+    int {\ce oriented_y} () const \\
+    int {\ce oriented_full_width} () const \\
+    int {\ce oriented_full_height} () const \\
+    int {\ce oriented_full_x} () const \\
+    int {\ce oriented_full_y} () const
 }
 
 The {\cf orientation()} returns the interpretation of the layout
@@ -416,19 +416,19 @@ the display orientation into consideration.
 Sets the \qkw{Orientation} metadata value.
 \apiend
 
-\apiitem{TypeDesc pixeltype () const}
+\apiitem{TypeDesc {\ce pixeltype} () const}
 The data type of the pixels stored in the buffer (equivalent to
 {\cf spec().format}).
 \apiend
 
-\apiitem{void set_full (int xbegin, int xend, int ybegin, int yend, \\
+\apiitem{void {\ce set_full} (int xbegin, int xend, int ybegin, int yend, \\
   \bigspc\spc       int zbegin, int zend)}
 Alters the metadata of the spec in the \ImageBuf to reset the ``full''
 image size (a.k.a.\ ``display window'').  This does not affect the size
 of the pixel data window.
 \apiend
 
-\apiitem{ImageSpec \& specmod ()}
+\apiitem{ImageSpec \& {\ce specmod} ()}
 This returns a \emph{writeable} reference to the \ImageSpec describing
 the buffer.  It's ok to modify most of the metadata, but if you modify
 the spec's {\cf format}, {\cf width}, {\cf height}, or {\cf depth}
@@ -448,21 +448,21 @@ If a {\cf format} is provided, {\cf this} will get the specified pixel
 data type rather than using the same pixel format as {\cf src}.
 \apiend
 
-\apiitem{void copy_metadata (const ImageBuf \&src)}
+\apiitem{void {\ce copy_metadata} (const ImageBuf \&src)}
 Copies all metadata (except for {\cf format}, {\cf width}, {\cf height},
 {\cf depth} from {\cf src} to {\cf this}.
 \apiend
 
-\apiitem{bool copy_pixels (const ImageBuf \&src)}
+\apiitem{bool {\ce copy_pixels} (const ImageBuf \&src)}
 Copies the pixels of {\cf src} to {\cf this}, but does not change the
 metadata (other than format and resolution) of {\cf this}.
 \apiend
 
-\apiitem{void swap (ImageBuf \&other)}
+\apiitem{void {\ce swap} (ImageBuf \&other)}
 Swaps the entire contents of {\cf other} and {\cf this}.
 \apiend
 
-\apiitem{bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend, \\
+\apiitem{bool {\ce get_pixel_channels} (int xbegin, int xend, int ybegin, int yend, \\
   \bigspc\bigspc            int zbegin, int zend, int chbegin, int chend,\\
   \bigspc\bigspc            TypeDesc format, void *result,\\
   \bigspc\bigspc            stride_t xstride=AutoStride,\\
@@ -484,7 +484,7 @@ return {\cf false}.
 \apiend
 
 
-\apiitem{bool get_pixels (int xbegin, int xend, int ybegin, int yend, \\
+\apiitem{bool {\ce get_pixels} (int xbegin, int xend, int ybegin, int yend, \\
   \bigspc\bigspc                   int zbegin, int zend, TypeDesc format, \\
   \bigspc\bigspc                   void *result, stride_t xstride=AutoStride,\\
   \bigspc\bigspc                   stride_t ystride=AutoStride, \\
@@ -506,7 +506,7 @@ return {\cf false}.
 
 \section{Getting and setting individual pixel values -- simple but slow}
 
-\apiitem{float getchannel (int x, int y, int z, int c, \\
+\apiitem{float {\ce getchannel} (int x, int y, int z, int c, \\
   \bigspc\spc WrapMode wrap=WrapBlack) const}
 Returns the value of pixel {\cf x, y, z}, channel {\cf c}.  
 
@@ -516,7 +516,7 @@ coordinates are outside the pixel data window, and may be one of:
 \apiend
 
 
-\apiitem{void getpixel (int x, int y, int z, float *pixel, \\
+\apiitem{void {\ce getpixel} (int x, int y, int z, float *pixel, \\
   \bigspc\spc int maxchannels=1000, WrapMode wrap=WrapBlack) const}
 Retrieves pixel ({\cf x, y, z}), placing its contents in
 {\cf pixel[0..n-1]}, where $n$ is the smaller of {\cf maxchannels}
@@ -561,7 +561,7 @@ device coordinate) system where (0,0) is the upper left corner of the full
 full/display window.
 \apiend
 
-\apiitem{void setpixel (int x, int y, int z, const float *pixel, int maxchannels=1000)}
+\apiitem{void {\ce setpixel} (int x, int y, int z, const float *pixel, int maxchannels=1000)}
 Set the pixel with coordinates {\cf (x, y, z)} to have the values
 {\cf pixel[0..n-1]}.  The number of channels, {\cf n}, is the minimum of
 {\cf minchannels} and the actual number of channels in the image.
@@ -570,18 +570,18 @@ Set the pixel with coordinates {\cf (x, y, z)} to have the values
 
 \subsection*{Deep data in an \ImageBuf}
 
-\apiitem{bool deep () const}
+\apiitem{bool {\ce deep} () const}
 Returns {\cf true} if the \ImageBuf holds a ``deep'' image, {\cf false}
 if the \ImageBuf holds an ordinary pixel-based image.
 \apiend
 
-\apiitem{int deep_samples (int x, int y, int z=0) const}
+\apiitem{int {\ce deep_samples} (int x, int y, int z=0) const}
 Returns the number of deep samples for the given pixel, or 0 if there
 are no deep samples for that pixel (including if the pixel coordinates
 are outside the data area).  For non-deep images, it will always return 0.
 \apiend
 
-\apiitem{const void *deep_pixel_ptr (int x, int y, int z, int c) const}
+\apiitem{const void *{\ce deep_pixel_ptr} (int x, int y, int z, int c) const}
 Returns a pointer to the raw array of deep samples for channel {\cf c}
 of pixel {\cf (x,y,z)}.  This will return {\cf NULL} if the pixel
 coordinates or channel number are out of range, if the pixel/channel has
@@ -589,7 +589,7 @@ no deep samples, or if the image is not deep.
 \apiend
 
 
-\apiitem{float deep_value (int x, int y, int z, int c, int s) const}
+\apiitem{float {\ce deep_value} (int x, int y, int z, int c, int s) const}
 Return the value (as a {\cf float}) of sample {\cf s} of channel {\cf c}
 of pixel {\cf (x,y,z)}.  Return {\cf 0.0} if not a deep image or if the
 pixel coordinates, channel number, or sample number are out of range, or
@@ -598,31 +598,31 @@ if it has no deep samples.
 
 \section{Miscellaneous}
 
-\apiitem{void error (const char *format, ...) const}
+\apiitem{void {\ce error} (const char *format, ...) const}
 This can be used to register an error associated with this \ImageBuf.
 \apiend
 
-\apiitem{bool has_error (void) const}
+\apiitem{bool {\ce has_error} (void) const}
 Returns {\cf true} if the \ImageBuf has had an error and has an error
 message to retrieve via {\cf geterror()}.
 \apiend
 
-\apiitem{std::string geterror (void) const}
+\apiitem{std::string {\ce geterror} (void) const}
 Return the text of all error messages issued since {\cf geterror()} was
 called (or an empty string if no errors are pending).  This also
 clears the error message for next time.
 \apiend
 
-\apiitem{void *localpixels (); \\
-    const void *localpixels () const;}
+\apiitem{void *{\ce localpixels} (); \\
+    const void *{\ce localpixels} () const;}
 Returns a raw pointer to the ``local'' pixel memory, if they are fully
 in RAM and not backed by an \ImageCache (in which case, {\cf NULL} will
 be returned).  You can also test it like a {\cf bool} to find out if
 pixels are local.
 \apiend
 
-\apiitem{const void *pixeladdr (int x, int y, int z=0) const \\
-void *pixeladdr (int x, int y, int z)}
+\apiitem{const void *{\ce pixeladdr} (int x, int y, int z=0) const \\
+void *{\ce pixeladdr} (int x, int y, int z)}
 Return the address where pixel (x,y,z) is stored in the image buffer.
 Use with extreme caution!  Will return NULL if the pixel values
 aren't local (for example, if backed by an \ImageCache).
@@ -732,7 +732,7 @@ Returns {\cf true} if the iterator's current pixel coordinates
 are within the data window of the \ImageBuf.
 \apiend
 
-\apiitem{bool Iterator::exists (int x, int y, int z=0) const}
+\apiitem{bool {\ce Iterator}::exists (int x, int y, int z=0) const}
 Returns {\cf true} if pixel coordinate ({\cf x, y, z}) are within the
 pixel data window of the \ImageBuf (regardless of where the iterator itself
 is currently pointing).
