@@ -30,6 +30,8 @@ Major new features and improvements:
       to make a 4-corner gradient. (1.6.0)
     * --noise adds noise to the current image: additive uniform or gaussian
       noise, or making "salt & pepper" noise. (1.6.2)
+    * --trim crops the image to the minimal rectangle containing all
+      the non-0 pixels. (1.6.3)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
@@ -81,12 +83,22 @@ Public API changes:
    #1063 (1.6.1)
  * Python bindings:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
+    * ImageSpec.set_channel_formats() now works when the channel
+      type lists are either TypeDesc, in addition to the existing support
+      for BASETYPE. #1113 (1.6.3/1.5.13)
+    * Added Python bindings for DeepData and deep reads (ImageInput) and
+      writes (ImageOutput). #1113 (1.6.3/1.5.13)
  * ImageInput and ImageOutput supports() method has been changed to accept
    a string_view (rather than a const std::string&), and return an int
    (rather than a bool). (1.6.2)
  * Add ImageBuf::make_writeable(), which forces IC-backed read-only
    ImageBuf to read into locally allocated pixels so they can be
    subsequently altered. #1087 (1.6.2)
+ * ImageInput and ImageOutput have added destroy() static methods. They are
+   just wrappers around 'delete', but can help you to ensure that II and
+   IO objects are deleted on the same side of a DLL boundary as where they
+   were created. (Helps with using OIIO from DLL-based plugins on Windows.)
+   (1.6.3)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -104,7 +116,14 @@ Fixes, minor enhancements, and performance improvements:
       #1077 (1.6.2/1.5.13)
     * oiiotool numeric wildcard improvement: allow more digits to match.
       #1082 (1.6.2/1.5.13)
- * maketx & TextureSystem:
+    * Bug fix: input file data format didn't always end up in the output.
+      (1.6.3)
+    * --channels bugs were fixed when dealing with "deep" images. (1.6.3)
+  * maketx & TextureSystem:
+    * TextureSystem/IC now directly stores uint16 and half pixel data in
+      the cache rather than converting internally to float for tile storage,
+      thus effectively doubling the cache capacity for files of those
+      formats. (1.6.3)
     * Fix broken bicubic texture sampling with non-power-of-two sized
       tiles. #1035 (1.6.0/1.5.10)
     * maketx: when the source image was a crop (data window != display
@@ -117,6 +136,14 @@ Fixes, minor enhancements, and performance improvements:
       error.  This prevents situations where maketx crashes or is killed
       and leaves behind a file that looks correct but is actually
       corrupted or truncated. #1072 (1.6.2/1.5.13)
+    * TextureSystem bug fix that occasionally resulted in NaN in the
+      alpha channel result when looking up from 3-channel images. #1108
+      (1.6.3/1.5.13)
+* ImageBufAlgo:
+    * compare() (and therefore oiiotool -diff and idiff) did not notice
+      image differences when the pixels that differed had NaN or NaN or
+      Inf values! Now it is right. #1109 (1.6.3/1.5.13)
+    * channels() bugs were fixed when dealing with "deep" images. (1.6.3)
  * OpenEXR:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Fix read_deep_tiles() error when not starting at the image origin.
@@ -127,6 +154,8 @@ Fixes, minor enhancements, and performance improvements:
       for "edge" tiles when the image width or length was not an integer
       multiple of the tile size. Also clarified the PDF and imageio.h
       docs in how they explain strides for this case. #1055 (1.6.1/1.5.12)
+    * Fix bugs in reading deep OpenEXR images with mixed channel types.
+      #1113 (1.6.3/1.5.13)
  * JPEG:
     * Now properly read/write xdensity and ydensity (what OIIO and TIFF
       call "XResolution" and "YResolution" and, therefore,
@@ -137,6 +166,17 @@ Fixes, minor enhancements, and performance improvements:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Improved proper handling of the interplay between "XResolution",
       "YResolution", and "PixelAspectRatio". #1042 (1.6.0)
+ * JPEG-2000:
+    * Fix handling of un-premultiplied alpha (which is dictated by the
+      JPEG-2000 spec). (1.6.3)
+    * Fix reading of YUV-encoded files. (1.6.3)
+    * Read and write the ICC profile, if present. (1.6.3)
+    * Handle all bit depth precisions properly (previously only 8, 10,
+      12, and 16 were right). (1.6.3)
+    * Set the full/display window correctly. (1.6.3)
+    * Deal with differing per-channel data windows and sampling rates. (1.6.3)
+ * Improve IBA::compare() (and therefore oiiotool -diff and idiff) when
+   the images being compared have NaN or Inf values. #1109 (1.5.13)
 
 Build/test system improvements:
  * Python plugin is now build as a cmake "module" rather than "library",
@@ -152,6 +192,13 @@ Build/test system improvements:
    #1056 (1.6.1/1.5.12)
  * Fix gcc 5.0 compiler warning in PtexHalf.cpp. (1.6.1/1.5.12)
  * Remove dependency of OpenSSL by default. #1086 (1.6.2/1.5.13)
+ * Fix warnings when compiling with C++11. (1.6.3/1.5.13)
+ * Dont link Python framework on OSX. #1099 (1.6.3/1.5.13)
+ * Changed the way testtex warps the image to give faux perspective to
+   test texture mapping. (1.6.3)
+ * Build-time USE_SIMD=... has been changed from accepting a single tag to
+   a comma-separated list of feature options. So you can, for example, do
+   make USE_SIMD=avx,f16c ...    (1.6.3)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1)
@@ -167,8 +214,48 @@ Developer goodies / internals:
    the Jenkins one-at-a-time hash, bringing big speed improvements
    (including ustring creation). Beware that the strhash value returned
    will be different than they were before. #1090 (1.6.3)
+ * fmath: safe_fast_pow improves the precision of its results for
+   special cases of pow(x,1) and pow(x,2). #1094 (1.6.3/1.5.13)
+ * Added TypeDesc::TypeHalf(). #1113 (1.6.3/1.5.13)
+ * thread.h: our atomic types have had their API adjusted somewhat to
+   more closely conform to C++11's std::atomic. (1.6.3)
+ * ustring's internals and underlying hash table have been overhauled,
+   yielding much higher performance, especially when many threads are
+   simultaneously creating ustrings. (1.6.3)
+ * ROI improvement: make intersection & union robust to uninitialized ROIs
+   as arguments. (1.6.3)
+ * osdep.h is deprecated. Use platform.h instead. (1.6.3)
+ * The DISPATCH_TYPES utility macros used internally by IBA have been
+   improved, and in particular the DISPATCH_COMMON_TYPES now handle ALL
+   types ("uncommon" ones are silently converted to float). (1.6.3)
+ * platform.h moves the endian functions into the OIIO namespace. (1.6.3)
+ * platform.h adds functions for runtime query of CPU capabilities. (1.6.3)
+ * simd.h: float4 and int4 can now construct and load from unsigned short*,
+   short*, unsigned char*, char*, and 'half'. (1.6.3)
 
 
+
+Release 1.5.14 (10 April 2015) -- compared to 1.5.13)
+----------------------------------------------
+* fmath: save_fast_pow improves the precision of its results for
+  special cases of pow(x,1) and pow(x,2). #1094 (1.5.13)
+* Fix warnings when compiling with C++11. (1.5.13)
+* Dont link Python framework on OSX. #1099 (1.5.13)
+* Improve IBA::compare() (and therefore oiiotool -diff and idiff) when
+  the images being compared have NaN or Inf values. #1109 (1.5.13)
+* TextureSystem bug fix that occasionally resulted in NaN in the alpha
+  channel result when looking up from 3-channel images. #1108 (1.5.13)
+* Added TypeDesc::TypeHalf(). #1113 (1.5.13)
+* Fix IBA::channels() bugs when dealing with "deep" images. #1113 (1.5.13)
+* Python ImageSpec.set_channel_formats() now works when the channel
+  type lists are either TypeDesc, in addition to the existing support
+  for BASETYPE. #1113 (1.5.13)
+* Added Python bindings for DeepData and deep reads (ImageInput) and
+  writes (ImageOutput). #1113 (1.5.13)
+* Fix bugs in reading deep OpenEXR images with mixed channel types.
+  #1113 (1.5.13)
+* Fix bug in IBA::convolve() for the case when the kernel image passed
+  is not a float image. #1116 (1.5.13)
 
 Release 1.5.13 (10 Mar 2015) -- compared to 1.5.12)
 ----------------------------------------------
