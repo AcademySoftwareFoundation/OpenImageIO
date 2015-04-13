@@ -458,6 +458,14 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
     if (getImpl()->config_) {
+        // If the names are roles, convert them to color space names
+        string_view name;
+        name = getColorSpaceNameByRole (inputColorSpace);
+        if (! name.empty())
+            inputColorSpace = name;
+        name = getColorSpaceNameByRole (outputColorSpace);
+        if (! name.empty())
+            outputColorSpace = name;
         OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
