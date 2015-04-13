@@ -34,14 +34,12 @@
 #include <cstdio>
 #include <vector>
 
-extern "C" {
-#include "jpeglib.h"
-}
-
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
-#include "jpeg_pvt.h"
+
+// have to be the last include to avoid preprocessor redefinition errors (INT32 from basetsd.h under windows fro example)
+#include "jpeg_pvt.h" // will include jpeglib.h
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
