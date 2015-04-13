@@ -1,6 +1,10 @@
 ###########################################################################
 # Find libraries
 
+if(WIN32 AND NOT THIRD_PARTY_TOOLS_HOME)
+    message(STATUS "You can set THIRD_PARTY_TOOLS_HOME to try to auto find external dependencies.")
+endif()
+
 setup_path (THIRD_PARTY_TOOLS_HOME 
 #            "${PROJECT_SOURCE_DIR}/../external/dist/${platform}"
             "unknown"
@@ -9,17 +13,26 @@ setup_path (THIRD_PARTY_TOOLS_HOME
 # Add all third party tool directories to the include and library paths so
 # that they'll be correctly found by the various FIND_PACKAGE() invocations.
 if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
-    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" ${CMAKE_INCLUDE_PATH})
     # Detect third party tools which have been successfully built using the
     # lock files which are placed there by the external project Makefile.
-    file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d")
+    file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*")
     foreach (_dir_lockfile ${_external_dir_lockfiles})
         # Grab the tool directory_name.d
         get_filename_component (_ext_dirname ${_dir_lockfile} NAME)
         # Strip off the .d extension
         string (REGEX REPLACE "\\.d$" "" _ext_dirname ${_ext_dirname})
-        set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}" ${CMAKE_INCLUDE_PATH})
-        set (CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}" ${CMAKE_LIBRARY_PATH})
+		if(EXISTS "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}")
+			set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}" ${CMAKE_INCLUDE_PATH})
+		endif()
+		if(EXISTS "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}")
+			set (CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}" ${CMAKE_LIBRARY_PATH})
+		endif()
+		if(EXISTS "${THIRD_PARTY_TOOLS_HOME}/${_ext_dirname}/include")
+			set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/${_ext_dirname}/include" ${CMAKE_INCLUDE_PATH})
+		endif()
+		if(EXISTS "${THIRD_PARTY_TOOLS_HOME}/${_ext_dirname}/lib")
+			set (CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/${_ext_dirname}/lib" ${CMAKE_LIBRARY_PATH})
+		endif()
     endforeach ()
 endif ()
 
@@ -200,19 +213,31 @@ if (USE_OCIO)
         endif ()
     endif()
 
-    find_package (OpenColorIO)
-    FindOpenColorIO ()
-
-    if (OCIO_FOUND)
+    set(OpenColorIO_DIR ${OCIO_PATH} CACHE PATH "The install dir of OpenColorIO (where OpenColorIOConfig.cmake is)")
+    option(OpenColorIO_USE_STATIC OFF "use static target version of OpenColorIO if available")
+    find_package (OpenColorIO QUIET)
+    if(NOT OCIO_FOUND)
+        find_package (OpenColorIO CONFIG)
+    endif()
+    if(OCIO_FOUND OR OPENCOLORIO_FOUND) ## keep consistency with local OCIO_* variables
+        set(OCIO_FOUND ON)
         message (STATUS "OpenColorIO enabled")
-        if (VERBOSE)
-            message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
-        endif ()
-        include_directories (${OCIO_INCLUDES})
         add_definitions ("-DUSE_OCIO=1")
-    else ()
+        if(OCIO_INCLUDES)
+            include_directories (${OCIO_INCLUDES})
+        elseif(OpenColorIO_INCLUDE_DIRS)
+            include_directories (${OpenColorIO_INCLUDE_DIRS})
+        endif()
+        if(NOT OCIO_LIBRARIES AND OpenColorIO_LIBRARIES)
+            set(OCIO_LIBRARIES ${OpenColorIO_LIBRARIES})
+        endif()
+        foreach(OCIO_DEF ${OCIO_COMPILE_DEFINITIONS})
+            add_definitions(-D${OCIO_DEF})
+        endforeach()
+    else()
+        set(OCIO_FOUND OFF)
         message (STATUS "Skipping OpenColorIO support")
-    endif ()
+    endif()
 else ()
     message (STATUS "OpenColorIO disabled")
 endif ()

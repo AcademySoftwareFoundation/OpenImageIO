@@ -25,7 +25,7 @@ include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 include (SelectLibraryConfigurations)
 
-
+option(ILMBASE_USE_STATIC_LIBS OFF "shared lib built mean specific export config uner windows")
 if( ILMBASE_USE_STATIC_LIBS )
   set( _ilmbase_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
   if(WIN32)
@@ -33,6 +33,8 @@ if( ILMBASE_USE_STATIC_LIBS )
   else()
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a )
   endif()
+else()
+  add_definitions(-DOPENEXR_DLL)
 endif()
 
 # Macro to assemble a helper state variable
@@ -73,11 +75,16 @@ endmacro ()
 macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
   string (TOUPPER ${prefix}_${libname} tmp_prefix)
   # Handle new library names for OpenEXR 2.1 build via cmake
-  string(REPLACE "." "_" _ILMBASE_VERSION ${ILMBASE_VERSION})
-  string(SUBSTRING ${_ILMBASE_VERSION} 0 3 _ILMBASE_VERSION )
-  
+  if(ILMBASE_VERSION)
+    string(REPLACE "." "_" _ILMBASE_VERSION ${ILMBASE_VERSION})
+    string(SUBSTRING ${_ILMBASE_VERSION} 0 3 _ILMBASE_VERSION )
+    set(libnameVersion ${libname}-${_ILMBASE_VERSION})
+  else()
+    message(WARNING "Cannot extract ILMBASE version since ILMBASE_VERSION is empty!")
+    set(libnameVersion ${libname})
+  endif()
   find_library(${tmp_prefix}_LIBRARY_RELEASE
-    NAMES ${libname} ${libname}-${_ILMBASE_VERSION}
+    NAMES ${libname} ${libnameVersion}
     HINTS ${${libpath_var}}
     PATH_SUFFIXES lib
     ${ILMBASE_FIND_OPTIONS}

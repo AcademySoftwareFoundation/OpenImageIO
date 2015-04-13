@@ -13,7 +13,6 @@
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 
-MACRO(FindOpenColorIO)
     if (VERBOSE)
         if (OCIO_PATH)
             message(STATUS "OCIO path explicitly specified: ${OCIO_PATH}")
@@ -45,7 +44,18 @@ MACRO(FindOpenColorIO)
         /sw/lib
         /opt/local/lib
         DOC "The OCIO library")
-
+    option(OCIO_STATIC OFF "Use STATIC lib mean use specific config for use")
+    if(OCIO_STATIC)
+        add_definitions(-DOpenColorIO_STATIC)
+    endif()
+    option(OCIO_TINYXML_STATIC OFF "Use STATIC lib mean use specific config for use")
+    if(OCIO_TINYXML_STATIC)
+        add_definitions(-DTIXML_USE_STL)
+    endif()
+    option(OCIO_YAML_STATIC OFF "How yaml was build to use specific export config under windows")
+    if(NOT OCIO_YAML_STATIC)
+        add_definitions(-DYAML_CPP_DLL)
+    endif()
     if(OCIO_INCLUDES AND OCIO_LIBRARIES)
         set(OCIO_FOUND TRUE)
         if (VERBOSE)
@@ -56,5 +66,4 @@ MACRO(FindOpenColorIO)
         set(OCIO_FOUND FALSE)
         message(STATUS "OCIO not found. Specify OCIO_PATH to locate it")
     endif()
-ENDMACRO()
 
