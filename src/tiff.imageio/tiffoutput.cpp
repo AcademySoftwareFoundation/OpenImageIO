@@ -532,7 +532,7 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
 bool
 TIFFOutput::write_exif_data ()
 {
-#if TIFFLIB_VERSION >= 20120922
+#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
     // Older versions of libtiff do not support writing Exif directories
 
     // First, see if we have any Exif data at all
