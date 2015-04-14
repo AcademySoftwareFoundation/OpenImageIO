@@ -780,7 +780,7 @@ elaborated with error checking and reporting:
         channels = spec.nchannels;
         pixels.resize (xres*yres*channels);
 
-        if (! in->read_image (TypeDesc::UINT8, pixels)) {
+        if (! in->read_image (TypeDesc::UINT8, &pixels[0])) {
             std::cerr << "Could not read pixels from " << filename 
                       << ", error = " << in->geterror() << "\n";
             ImageInput::destroy (in);
