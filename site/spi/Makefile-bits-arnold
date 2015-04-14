@@ -8,6 +8,7 @@ $(info Including spi/Makefile-bits-arnold)
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
+MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1"
 PYVER ?= 2.6
 PYVERNOSPACE=${shell echo ${PYVER} | sed "s/\\.//"}
 NUKE_VERSION ?= 8.0v5
