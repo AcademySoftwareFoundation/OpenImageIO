@@ -239,6 +239,10 @@ ifneq (${USE_CPP11},)
 MY_CMAKE_FLAGS += -DOIIO_BUILD_CPP11:BOOL=${USE_CPP11}
 endif
 
+ifneq (${USE_CPP14},)
+MY_CMAKE_FLAGS += -DOIIO_BUILD_CPP14:BOOL=${USE_CPP14}
+endif
+
 ifneq (${USE_LIBCPLUSPLUS},)
 MY_CMAKE_FLAGS += -DOIIO_BUILD_LIBCPLUSPLUS:BOOL=${USE_LIBCPLUSPLUS}
 endif
@@ -396,6 +400,7 @@ help:
 	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
 	@echo "      USE_CPP11=1              Compile in C++11 mode"
+	@echo "      USE_CPP14=1              Compile in C++14 mode"
 	@echo "      USE_LIBCPLUSPLUS=1       Use clang libc++"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"

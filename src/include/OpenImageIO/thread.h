@@ -103,7 +103,7 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
 #  endif
 #endif
 
-#if OIIO_USING_CPP11
+#if OIIO_CPLUSPLUS_VERSION >= 11
 #  include <atomic>
 #  define not_yet_OIIO_USE_STDATOMIC 1
 #endif

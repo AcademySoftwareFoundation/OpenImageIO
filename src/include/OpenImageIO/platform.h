@@ -86,18 +86,44 @@
 
 #include "oiioversion.h"
 
-// Detect if we're C++11.
+// Detect which C++ standard we're using, and handy macros.
 //
-// Note: oiioversion.h defined OIIO_BUILD_CPP11 to be 1 if OIIO was built
-// using C++11. In contrast, OIIO_USING_CPP11 defined below will be 1 if
-// we're compiling C++11 RIGHT NOW. These two things may be the same when
-// compiling OIIO, but they may not be the same if another packages is
-// compiling against OIIO and using these headers (OIIO may be C++11 but the
-// client package may be older, or vice versa -- use these two symbols to
-// differentiate these cases, when important).
-#if (__cplusplus >= 201103L)
-#define OIIO_USING_CPP11 1
-#define OIIO_CPLUSPLUS11 1 /* DEPRECATED */
+// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (3, 11, 14, ...)
+// OIIO_USING_CPP11 : (deprecated) defined and 1 if using C++11 or newer.
+// OIIO_CONSTEXPR : constexpr for C++ >= 11, otherwise nothing
+// OIIO_CONSTEXPR_OR_CONST : constexpr for C++ >= 11, otherwise const
+// OIIO_CONSTEXPR14 : constexpr for C++ >= 14, otherwise nothing (this is
+//                      useful for things that can only be constexpr for 14)
+// OIIO_NOEXCEPT : noexcept for C++ >= 11, otherwise nothing
+//
+// Note: oiioversion.h defines OIIO_BUILD_CPP11 or OIIO_BUILD_CPP14 to be 1
+// if OIIO itself was built using C++11 or C++14, respectively. In contrast,
+// OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
+// the C++ standard being compiled RIGHT NOW. These two things may be the
+// same when compiling OIIO, but they may not be the same if another
+// packages is compiling against OIIO and using these headers (OIIO may be
+// C++11 but the client package may be older, or vice versa -- use these two
+// symbols to differentiate these cases, when important).
+#if (__cplusplus >= 201402L)
+#  define OIIO_USING_CPP11 1
+#  define OIIO_CPLUSPLUS_VERSION  14
+#  define OIIO_CONSTEXPR          constexpr
+#  define OIIO_CONSTEXPR_OR_CONST constexpr
+#  define OIIO_CONSTEXPR14        constexpr
+#  define OIIO_NOEXCEPT           noexcept
+#elif (__cplusplus >= 201103L)
+#  define OIIO_USING_CPP11        1 /* deprecated */
+#  define OIIO_CPLUSPLUS_VERSION  11
+#  define OIIO_CONSTEXPR          constexpr
+#  define OIIO_CONSTEXPR_OR_CONST constexpr
+#  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
+#  define OIIO_NOEXCEPT           noexcept
+#else
+#  define OIIO_CPLUSPLUS_VERSION  3 /* presume C++03 */
+#  define OIIO_CONSTEXPR          /* not constexpr before C++11 */
+#  define OIIO_CONSTEXPR_OR_CONST const /* not constexpr before C++11 */
+#  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
+#  define OIIO_NOEXCEPT           /* no noexcept before C++11 */
 #endif
 
 

@@ -848,7 +848,7 @@ inline T safe_log2 (T x) {
     // match clamping from fast version
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
-#if defined(OIIO_USING_CPP11)
+#if OIIO_CPLUSPLUS_VERSION >= 11
     return std::log2(x);
 #else
     return log2f(x);   // punt: just use the float one
@@ -876,7 +876,7 @@ inline T safe_log10 (T x) {
 /// Safe logb: clamp to valid domain.
 template <typename T>
 inline T safe_logb (T x) {
-#if defined(OIIO_USING_CPP11)
+#if OIIO_CPLUSPLUS_VERSION >= 11
     return (x != T(0)) ? std::logb(x) : -std::numeric_limits<T>::max();
 #else
     return (x != T(0)) ? logbf(x) : -std::numeric_limits<T>::max();
