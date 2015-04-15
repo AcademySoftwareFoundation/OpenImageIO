@@ -32,6 +32,8 @@
 #include <vector>
 #include <string>
 
+#include <OpenEXR/half.h>
+
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/color.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -721,33 +723,23 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
 
 
 
-bool
-ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            const ColorProcessor* processor, bool unpremult,
-                            ROI roi, int nthreads)
+template<class Rtype, class Atype>
+static bool
+colorconvert_impl (ImageBuf &R, const ImageBuf &A,
+                   const ColorProcessor* processor, bool unpremult,
+                   ROI roi, int nthreads)
 {
-    // FIXME -- currently, we do not split across threads.
-
-    // If the processor is NULL, return false (error)
-    if (!processor) {
-        dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
-        return false;
-    }
-
-    // If the processor is a no-op and the conversion is being done
-    // in place, no work needs to be done. Early exit.
-    if (processor->isNoOp() && (&dst == &src))
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(colorconvert_impl<Rtype,Atype>,
+                        boost::ref(R), boost::cref(A), processor, unpremult,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
         return true;
-
-    IBAprep (roi, &dst, &src);
-
-    // If the processor is a no-op (and it's not an in-place conversion),
-    // use paste() to simplify the operation.
-    if (processor->isNoOp()) {
-        roi.chend = std::max (roi.chbegin+4, roi.chend);
-        return ImageBufAlgo::paste (dst, roi.xbegin, roi.ybegin, roi.zbegin,
-                                    roi.chbegin, src, roi, nthreads);
     }
+
+    // Serial case
 
     int width = roi.width();
     // Temporary space to hold one RGBA scanline
@@ -757,7 +749,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     // does let us process images with fewer than 4 channels, which is
     // the intent.
     // FIXME: Instead of loading the first 4 channels, obey
-    //        dstspec.alpha_channel index (but first validate that the
+    //        Rspec.alpha_channel index (but first validate that the
     //        index is set properly for normal formats)
     
     int channelsToCopy = std::min (4, roi.nchannels());
@@ -767,11 +759,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     // the datawindow to be union of data + display? This is useful if
     // the color of black moves.  (In which case non-zero sections should
     // now be promoted).  Consider the lin->log of a roto element, where
-    // black now moves to non-black
-    //
-    // FIXME: Use the ImageBuf::ConstIterator<T,T> s (src);   s.isValid()
-    // idiom for traversal instead, to allow for more efficient tile access
-    // iteration order
+    // black now moves to non-black.
     
     float * dstPtr = NULL;
     const float fltmin = std::numeric_limits<float>::min();
@@ -781,6 +769,8 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     bool clearScanline = (channelsToCopy<4 && 
                           (processor->hasChannelCrosstalk() || unpremult));
     
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    ImageBuf::Iterator<Rtype> r (R, roi);
     for (int k = roi.zbegin; k < roi.zend; ++k) {
         for (int j = roi.ybegin; j < roi.yend; ++j) {
             // Clear the scanline
@@ -788,11 +778,12 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                 memset (&scanline[0], 0, sizeof(float)*scanline.size());
             
             // Load the scanline
-            src.get_pixel_channels (roi.xbegin, roi.xend, j, j+1, k, k+1,
-                                    0, channelsToCopy,
-                                TypeDesc::TypeFloat, &scanline[0],
-                                4*sizeof(float));
-            
+            dstPtr = &scanline[0];
+            a.rerange (roi.xbegin, roi.xend, j, j+1, k, k+1);
+            for ( ; !a.done(); ++a, dstPtr += 4)
+                for (int c = 0; c < channelsToCopy; ++c)
+                    dstPtr[c] = a[c];
+
             // Optionally unpremult
             if ((channelsToCopy >= 4) && unpremult) {
                 for (int i = 0; i < width; ++i) {
@@ -824,14 +815,51 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
 
             // Store the scanline
             dstPtr = &scanline[0];
-            for (int i = roi.xbegin; i < roi.xend ; i++) {
-                dst.setpixel (i, j, k, dstPtr, channelsToCopy);
-                dstPtr += 4;
-            }
+            r.rerange (roi.xbegin, roi.xend, j, j+1, k, k+1);
+            for ( ; !r.done(); ++r, dstPtr += 4)
+                for (int c = 0; c < channelsToCopy; ++c)
+                    r[c] = dstPtr[c];
         }
     }
-    
     return true;
+}
+
+
+
+bool
+ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            const ColorProcessor* processor, bool unpremult,
+                            ROI roi, int nthreads)
+{
+    // FIXME -- currently, we do not split across threads.
+
+    // If the processor is NULL, return false (error)
+    if (!processor) {
+        dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
+        return false;
+    }
+
+    // If the processor is a no-op and the conversion is being done
+    // in place, no work needs to be done. Early exit.
+    if (processor->isNoOp() && (&dst == &src))
+        return true;
+
+    if (! IBAprep (roi, &dst, &src))
+        return false;
+
+    // If the processor is a no-op (and it's not an in-place conversion),
+    // use paste() to simplify the operation.
+    if (processor->isNoOp()) {
+        roi.chend = std::max (roi.chbegin+4, roi.chend);
+        return ImageBufAlgo::paste (dst, roi.xbegin, roi.ybegin, roi.zbegin,
+                                    roi.chbegin, src, roi, nthreads);
+    }
+
+    bool ok = true;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "colorconvert", colorconvert_impl,
+                                 dst.spec().format, src.spec().format,
+                                 dst, src, processor, unpremult, roi, nthreads);
+    return ok;
 }
 
 
