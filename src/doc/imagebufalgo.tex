@@ -236,15 +236,15 @@ error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
   \bigspc\spc\spc int fontsize=16, string_view fontname="", \\
   \bigspc\spc\spc  const float *textcolor = NULL)}
 \index{ImageBufAlgo!render_text} \indexapi{render_text}
-Render a text string into the destination, essentially doing an ``over'' of
-the antialiased character into the existing pixel data.  The baseline of the
-first character will start at position ({\cf x, y}).  The font is given by
-{\cf fontname} as a full pathname to the font file (defaulting to some
-reasonable system font if not supplied at all), and with a nominal
-height of {\cf fontsize} (in pixels).  The characters will be drawn in
-opaque white (1.0 in all channels), unless {\cf textcolor} is
-supplied (and is expected to point to a {\cf float} array of length at
-least equal to the number of channels in {\cf dst}).
+Render a text string (encode as UTF-8) into the destination, essentially
+doing an ``over'' of the antialiased character into the existing pixel data.
+The baseline of the first character will start at position ({\cf x, y}).
+The font is given by {\cf fontname} as a full pathname to the font file
+(defaulting to some reasonable system font if not supplied at all), and with
+a nominal height of {\cf fontsize} (in pixels).  The characters will be
+drawn in opaque white (1.0 in all channels), unless {\cf textcolor} is
+supplied (and is expected to point to a {\cf float} array of length at least
+equal to the number of channels in {\cf dst}).
 
 \smallskip
 \noindent Examples:

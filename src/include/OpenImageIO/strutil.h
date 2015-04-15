@@ -430,6 +430,19 @@ string_view OIIO_API parse_until (string_view &str,
 /// match.
 string_view OIIO_API parse_nested (string_view &str, bool eat=true);
 
+
+/// Converts utf-8 string to vector of unicode codepoints. This function
+/// will not stop on invalid sequences. It will let through some invalid
+/// utf-8 sequences like: 0xfdd0-0xfdef, 0x??fffe/0x??ffff. It does not
+/// support 5-6 bytes long utf-8 sequences. Will skip trailing character if
+/// there are not enough bytes for decoding a codepoint.
+///
+/// N.B. Following should probably return u32string instead of taking
+/// vector, but C++11 support is not yet stabilized across compilers.
+/// We will eventually add that and deprecate this one, after everybody
+/// is caught up to C++11.
+void OIIO_API utf8_to_unicode (string_view &str, std::vector<uint32_t> &uvec);
+
 }  // namespace Strutil
 
 }

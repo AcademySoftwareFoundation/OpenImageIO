@@ -520,9 +520,12 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
         textcolor = localtextcolor;
     }
 
-    for (size_t n = 0, e = text.size();  n < e;  ++n) {
-        // load glyph image into the slot (erase previous one)
-        error = FT_Load_Char (face, text[n], FT_LOAD_RENDER);
+    std::vector<uint32_t> utext;
+    utext.reserve(text.size()); //Possible overcommit, but most text will be ascii
+    Strutil::utf8_to_unicode(text, utext);
+
+    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
+        error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
         // now, draw to our target surface

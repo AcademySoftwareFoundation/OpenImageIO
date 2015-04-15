@@ -1613,15 +1613,15 @@ bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
-/// Render a text string into image dst, essentially doing an "over" of
-/// the character into the existing pixel data.  The baseline of the
-/// first character will start at position (x,y).  The font is given by
-/// fontname as a full pathname to the font file (defaulting to some
-/// reasonable system font if not supplied at all), and with a nominal
-/// height of fontsize (in pixels).  The characters will be drawn in
-/// opaque white (1.0,1.0,...) in all channels, unless textcolor is
-/// supplied (and is expected to point to a float array of length at
-/// least equal to R.spec().nchannels).
+/// Render a text string (encoded as UTF-8) into image dst, essentially
+/// doing an "over" of the character into the existing pixel data.  The
+/// baseline of the first character will start at position (x,y).  The font
+/// is given by fontname as a full pathname to the font file (defaulting to
+/// some reasonable system font if not supplied at all), and with a nominal
+/// height of fontsize (in pixels).  The characters will be drawn in opaque
+/// white (1.0,1.0,...) in all channels, unless textcolor is supplied (and
+/// is expected to point to a float array of length at least equal to
+/// R.spec().nchannels).
 bool OIIO_API render_text (ImageBuf &dst, int x, int y,
                            string_view text,
                            int fontsize=16, string_view fontname="",
