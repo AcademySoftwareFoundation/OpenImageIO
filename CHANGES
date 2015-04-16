@@ -32,6 +32,11 @@ Major new features and improvements:
       noise, or making "salt & pepper" noise. (1.6.2)
     * --trim crops the image to the minimal rectangle containing all
       the non-0 pixels. (1.6.3)
+    * --autocc : when turned on, automatic color conversion of input files
+      into a scene_linear space, and conversion to an appropriate space
+      and pixel type upon output. It infers the color spaces based on
+      metadata and filenames (looking for OCIO-recognized color space names
+      as substrings of the filenames). (1.6.3)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
@@ -99,6 +104,9 @@ Public API changes:
    IO objects are deleted on the same side of a DLL boundary as where they
    were created. (Helps with using OIIO from DLL-based plugins on Windows.)
    (1.6.3)
+ * The ColorConfig wrapper for OCIO functionality has been extended to
+   parse color names from filename strings, and to report the recommended
+   pixel data type for a color space. (1.6.3)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -119,6 +127,8 @@ Fixes, minor enhancements, and performance improvements:
     * Bug fix: input file data format didn't always end up in the output.
       (1.6.3)
     * --channels bugs were fixed when dealing with "deep" images. (1.6.3)
+    * All the color space conversion operations run much faster now,
+      since the underlying IBA::colorconvert() has been parallelized. (1.6.3)
   * maketx & TextureSystem:
     * TextureSystem/IC now directly stores uint16 and half pixel data in
       the cache rather than converting internally to float for tile storage,
@@ -144,6 +154,8 @@ Fixes, minor enhancements, and performance improvements:
       image differences when the pixels that differed had NaN or NaN or
       Inf values! Now it is right. #1109 (1.6.3/1.5.13)
     * channels() bugs were fixed when dealing with "deep" images. (1.6.3)
+    * colorconvert() has been parallelized, and thus on most systems will
+      now run much faster. (1.6.3)
  * OpenEXR:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Fix read_deep_tiles() error when not starting at the image origin.

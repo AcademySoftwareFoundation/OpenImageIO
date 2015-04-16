@@ -60,6 +60,7 @@ public:
     bool hash;
     bool updatemode;
     bool autoorient;
+    bool autocc;                      // automatically color correct
     bool nativeread;                  // force native data type reads
     int threads;
     std::string full_command_line;

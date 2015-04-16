@@ -93,6 +93,7 @@ Oiiotool::clear_options ()
     hash = false;
     updatemode = false;
     autoorient = false;
+    autocc = false;
     nativeread = false;
     threads = 0;
     full_command_line.clear ();
@@ -381,6 +382,30 @@ input_file (int argc, const char *argv[])
             action_reorient (1, argv);
         }
 
+        if (ot.autocc) {
+            // Try to deduce the color space it's in
+            string_view colorspace (ot.colorconfig.parseColorSpaceFromString(filename));
+            if (colorspace.size() && ot.verbose)
+                std::cout << "From " << filename << ", we deduce color space \""
+                          << colorspace << "\"\n";
+            if (colorspace.empty()) {
+                colorspace = ot.curimg->spec()->get_string_attribute ("oiio:ColorSpace");
+                std::cout << "Metadata of " << filename << " indicates color space \""
+                          << colorspace << "\"\n";
+            }
+            string_view linearspace = ot.colorconfig.getColorSpaceNameByRole("linear");
+            if (linearspace.empty())
+                linearspace = string_view("Linear");
+            if (colorspace.size() && !Strutil::iequals(colorspace,linearspace)) {
+                const char *argv[] = { "colorconvert", colorspace.c_str(),
+                                       linearspace.c_str() };
+                if (ot.verbose)
+                    std::cout << "Converting " << filename << " from " << colorspace << " to " << linearspace << "\n";
+                int action_colorconvert (int argc, const char *argv[]);
+                action_colorconvert (3, argv);
+            }
+        }
+
         ot.process_pending ();
     }
     return 0;
@@ -597,8 +622,6 @@ output_file (int argc, const char *argv[])
         ot.warning (command, Strutil::format("%s already exists, not overwriting.", filename));
         return 0;
     }
-    if (ot.verbose)
-        std::cout << "Writing " << filename << "\n";
     ImageOutput *out = ImageOutput::create (filename.c_str());
     if (! out) {
         ot.error (command, OIIO::geterror());
@@ -610,6 +633,10 @@ output_file (int argc, const char *argv[])
     ot.read ();
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir (ot.curimg);
+    TypeDesc saved_output_dataformat = ot.output_dataformat;
+    int saved_bitspersample = ot.output_bitspersample;
+
+    timer.stop();   // resume after all these auto-transforms
 
     // Automatically drop channels we can't support in output
     if ((ir->spec()->nchannels > 4 && ! out->supports("nchannels")) ||
@@ -663,6 +690,44 @@ output_file (int argc, const char *argv[])
         ir = ot.curimg;
     }
 
+    // See if the filename appears to contain a color space name embedded.
+    // Automatically color convert if --autocc is used and the current
+    // color space doesn't match that implied by the filename, and
+    // automatically set -d based on the name if --autod is used.
+    string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(filename);
+    if (ot.autocc && outcolorspace.size()) {
+        TypeDesc type;
+        int bits;
+        type = ot.colorconfig.getColorSpaceDataType(outcolorspace,&bits);
+        if (type.basetype != TypeDesc::UNKNOWN) {
+            ot.output_dataformat = type;
+            ot.output_bitspersample = bits;
+            if (ot.verbose)
+                std::cout << "Deduced data type " << type << " (" << bits
+                          << "bits) for output to " << filename << "\n";
+        }
+    }
+    if (ot.autocc) {
+        string_view linearspace = ot.colorconfig.getColorSpaceNameByRole("linear");
+        if (linearspace.empty())
+            linearspace = string_view("Linear");
+        string_view currentspace = ir->spec()->get_string_attribute ("oiio:ColorSpace", linearspace);
+        // Special cases where we know formats should be particular color
+        // spaces
+        if (outcolorspace.empty() && (Strutil::iends_with (filename, ".jpg") ||
+                                      Strutil::iends_with (filename, ".jpeg")))
+            outcolorspace = string_view("sRGB");
+        if (outcolorspace.size() && currentspace != outcolorspace) {
+            if (ot.verbose)
+                std::cout << "Converting from " << currentspace << " to "
+                          << outcolorspace << " for output to " << filename << "\n";
+            const char *argv[] = { "colorconvert", "", outcolorspace.c_str() };
+            int action_colorconvert (int argc, const char *argv[]);
+            action_colorconvert (3, argv);
+            ir = ot.curimg;
+        }
+    }
+
     // Automatically crop out the negative areas if outputting to a format
     // that doesn't support negative origins.
     if (! supports_negativeorigin && ot.output_autocrop &&
@@ -682,7 +747,11 @@ output_file (int argc, const char *argv[])
         ir = ot.curimg;
     }
 
-    // FIXME -- both autotrim and autocrop above neglect to handle
+    timer.start();
+    if (ot.verbose)
+        std::cout << "Writing " << filename << "\n";
+
+    // FIXME -- the various automatic transformations above neglect to handle
     // MIPmaps or subimages with full generality.
 
     std::vector<ImageSpec> subimagespecs (ir->subimages());
@@ -756,6 +825,8 @@ output_file (int argc, const char *argv[])
     }
 
     ot.curimg = saveimg;
+    ot.output_dataformat = saved_output_dataformat;
+    ot.output_bitspersample = saved_bitspersample;
     ot.total_writetime.stop();
     ot.function_times[command] += timer();
     return 0;
@@ -1339,7 +1410,7 @@ set_colorspace (int argc, const char *argv[])
 
 
 
-static int
+int
 action_colorconvert (int argc, const char *argv[])
 {
     ASSERT (argc == 3);
@@ -4406,6 +4477,8 @@ getargs (int argc, char *argv[])
                 "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
                 "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",
                 "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
+                "--autocc", &ot.autocc, "Automatically color convert based on filename",
+                "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
                 "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
