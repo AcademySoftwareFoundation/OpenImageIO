@@ -33,6 +33,8 @@
 
 #include "export.h"
 #include "oiioversion.h"
+#include "typedesc.h"
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -93,6 +95,11 @@ public:
     /// Get the name of the color space representing the named role,
     /// or NULL if none could be identified.
     const char * getColorSpaceNameByRole (string_view role) const;
+
+    /// Get the data type that OCIO thinks this color space is. The name
+    /// may be either a color space name or a role.
+    OIIO::TypeDesc getColorSpaceDataType (string_view name, int *bits) const;
+
     
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;

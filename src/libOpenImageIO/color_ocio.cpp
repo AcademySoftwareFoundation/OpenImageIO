@@ -245,6 +245,31 @@ ColorConfig::getColorSpaceNameByRole (string_view role) const
 
 
 
+TypeDesc
+ColorConfig::getColorSpaceDataType (string_view name, int *bits) const
+{
+#ifdef USE_OCIO
+    OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (name.c_str());
+    if (c) {
+        OCIO::BitDepth b = c->getBitDepth();
+        switch (b) {
+        case OCIO::BIT_DEPTH_UNKNOWN : return TypeDesc::UNKNOWN;
+        case OCIO::BIT_DEPTH_UINT8   : *bits =  8; return TypeDesc::UINT8;
+        case OCIO::BIT_DEPTH_UINT10  : *bits = 10; return TypeDesc::UINT16;
+        case OCIO::BIT_DEPTH_UINT12  : *bits = 12; return TypeDesc::UINT16;
+        case OCIO::BIT_DEPTH_UINT14  : *bits = 14; return TypeDesc::UINT16;
+        case OCIO::BIT_DEPTH_UINT16  : *bits = 16; return TypeDesc::UINT16;
+        case OCIO::BIT_DEPTH_UINT32  : *bits = 32; return TypeDesc::UINT32;
+        case OCIO::BIT_DEPTH_F16     : *bits = 16; return TypeDesc::HALF;
+        case OCIO::BIT_DEPTH_F32     : *bits = 32; return TypeDesc::FLOAT;
+        }
+    }
+#endif
+    return TypeDesc::UNKNOWN;
+}
+
+
+
 int
 ColorConfig::getNumDisplays() const
 {
