@@ -599,6 +599,15 @@ samples for each pixel (using {\cf set_nsamples}) and then call {\cf alloc()}
 to actually allocate the sample memory.
 \apiend
 
+\apiitem{DeepData.{\ce pixels}}
+This {\cf int} field constains the total number of pixels in this
+collection of deep data.
+\apiend
+
+\apiitem{DeepData.{\ce channels}}
+This {\cf int} field constains the number of channels.
+\apiend
+
 \apiitem{DeepData.{\ce set_nsamples} (pixel, nsamples) \\
 int DeepData.{\ce get_nsamples} (pixel)}
 Set or get the number of samples for a given pixel (specified by integer
@@ -610,26 +619,17 @@ After {\cf set_nsamples} has been called for each pixel, {\cf alloc()}
 is called to allocate the sample data.
 \apiend
 
-\apiitem{DeepData.{\ce set_deep_value} (pixel, channel, sample, value) \\
-float DeepData.{\ce deep_value} (pixel, channel, sample)}
-Set or retrieve the specific float value of a given pixel, channel, and
+\apiitem{DeepData.{\ce set_deep_value} (pixel, channel, sample, value)}
+Set specific float value of a given pixel, channel, and
 sample index.
 \apiend
 
-\apiitem{DeepData.{\ce set_deep_value_uint} (pixel, channel, sample, value) \\
+\apiitem{DeepData.{\ce deep_value} (pixel, channel, sample, value) \\
 int DeepData.{\ce deep_value_uint} (pixel, channel, sample)}
-Set or retrieve the specific unsigned integer value of a given pixel,
-channel, and sample index.
+Retrieve the specific value of a given pixel,
+channel, and sample index (for float or uint channels, respectively).
 \apiend
 
-\apiitem{DeepData.{\ce npixels}}
-This {\cf int} field constains the total number of pixels in this
-collection of deep data.
-\apiend
-
-\apiitem{DeepData.{\ce nchannels}}
-This {\cf int} field constains the number of channels.
-\apiend
 
 
 
@@ -1374,11 +1374,6 @@ Returns the description of the data type of the pixels stored within the
 \ImageBuf.
 \apiend
 
-\apiitem{bool ImageBuf.{\ce deep}}
-Will be {\cf True} if the file contains ``deep'' pixel data, or {\cf False}
-for an ordinary images.
-\apiend
-
 \apiitem{ImageBuf.{\ce copy_metadata} (other_imagebuf)}
 Replaces the metadata (all \ImageSpec items, except for the data format
 and pixel data window size) with the corresponding metadata from the
@@ -1541,6 +1536,44 @@ retrieve the error message (and clear it afterwards).
         print "Could not convert the file:", buf.geterror()
 \end{code}
 \apiend
+
+\apiitem{bool ImageBuf.{\ce deep}}
+Will be {\cf True} if the file contains ``deep'' pixel data, or {\cf False}
+for an ordinary images.
+\apiend
+
+\apiitem{int ImageBuf.{\ce deep_samples} (x, y, z=0)}
+Return the number of deep samples for pixel (x,y,z).
+\apiend
+
+\apiitem{ImageBuf.{\ce set_deep_samples} (x, y, z, nsamples)}
+Set the number of deep samples for pixel (x,y,z).
+\apiend
+
+\apiitem{float ImageBuf.{\ce deep_value} (x, y, z, channel, sample) \\
+uint ImageBuf.{\ce deep_value_uint} (x, y, z, channel, sample)}
+Return the value of the given deep sample (particular pixel, channel, and
+sample number) for a channel that is a float or an unsigned integer type,
+respectively.
+\apiend
+
+\apiitem{ImageBuf.{\ce set_deep_value} (x, y, z, channel, sample, value) \\
+ImageBuf.{\ce set_deep_value_uint} (x, y, z, channel, sample, value)}
+Set the value of the given deep sample (particular pixel, channel, and
+sample number) for a channel that is a float or an unsigned integer type,
+respectively.
+\apiend
+
+\apiitem{DeepData ImageBuf.{\ce deepdata}}
+Returns a reference to the underlying {\cf DeepData} of the image.
+\apiend
+
+\apiitem{ImageBuf.{\ce deep_alloc} ()}
+Allocate the space for all samples (assuming you have already properly
+called {\cf deepdata().init()}).
+\apiend
+
+
 
 
 \newpage

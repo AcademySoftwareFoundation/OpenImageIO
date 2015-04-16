@@ -674,6 +674,10 @@ public:
 
     /// Retrieve deep sample value within a pixel, as an untigned int.
     uint32_t deep_value_uint (int x, int y, int z, int c, int s) const;
+
+    /// Set the number of deep samples for a particular pixel.
+    void set_deep_samples (int x, int y, int z, int nsamples);
+
     /// Set deep sample value within a pixel, as a float.
     void set_deep_value (int x, int y, int z, int c, int s, float value);
     /// Set deep sample value within a pixel, as a uint32.

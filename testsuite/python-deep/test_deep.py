@@ -16,10 +16,10 @@ def make_test_deep_image () :
     dd.init (test_xres*test_yres, test_nchannels, test_chantypes)
     for p in range(dd.npixels) :
         if p&1 :
-            dd.set_nsamples (p, p)
+            dd.set_samples (p, p)
     dd.alloc()
     for p in range(dd.npixels) :
-        ns = dd.get_nsamples(p)
+        ns = dd.samples(p)
         for s in range(ns) :
             for c in range(dd.nchannels) :
                 dd.set_deep_value (p, c, s, c*10+s+p/10.0)
@@ -30,7 +30,7 @@ def make_test_deep_image () :
 def print_deep_image (dd) :
     print "After init, dd has", dd.npixels, "pixels,", dd.nchannels, "channels."
     for p in range(dd.npixels) :
-        ns = dd.get_nsamples(p)
+        ns = dd.samples(p)
         if ns > 0 :
             print "  Nsamples[", p, "] =", ns, "samples:"
             for s in range(ns) :

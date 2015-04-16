@@ -13,7 +13,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     )
 endif()
 
-set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
+set (libOpenImageIO_srcs deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp

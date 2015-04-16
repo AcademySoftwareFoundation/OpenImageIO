@@ -330,6 +330,13 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_bt_overloads,
                                 ImageBuf_get_pixels_bt, 2, 3)
 
 
+DeepData&
+ImageBuf_deepdataref (ImageBuf *ib)
+{
+    return *ib->deepdata();
+}
+
+
 
 void declare_imagebuf()
 {
@@ -408,7 +415,6 @@ void declare_imagebuf()
 
         .add_property("pixels_valid", &ImageBuf::pixels_valid)
         .add_property("pixeltype", &ImageBuf::pixeltype)
-        .add_property("deep", &ImageBuf::deep)
         .add_property("has_error",   &ImageBuf::has_error)
         .def("geterror",    &ImageBuf::geterror)
 
@@ -439,6 +445,18 @@ void declare_imagebuf()
         .def("setpixel", &ImageBuf_setpixel1)
         .def("get_pixels", &ImageBuf_get_pixels, ImageBuf_get_pixels_overloads())
         .def("get_pixels", &ImageBuf_get_pixels_bt, ImageBuf_get_pixels_bt_overloads())
+
+        .add_property("deep", &ImageBuf::deep)
+        .def("deep_samples", &ImageBuf::deep_samples,
+             (arg("x"), arg("y"), arg("z")=0))
+        .def("set_deep_samples", &ImageBuf::set_deep_samples)
+        .def("deep_value", &ImageBuf::deep_value)
+        .def("deep_value_uint", &ImageBuf::deep_value_uint)
+        .def("set_deep_value", &ImageBuf::set_deep_value)
+        .def("set_deep_value_uint", &ImageBuf::set_deep_value_uint)
+        .def("deep_alloc", &ImageBuf::deep_alloc)
+        .def("deepdata", &ImageBuf_deepdataref,
+             return_value_policy<reference_existing_object>())
 
         // FIXME -- do we want to provide pixel iterators?
     ;

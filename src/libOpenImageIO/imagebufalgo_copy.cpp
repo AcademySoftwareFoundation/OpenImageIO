@@ -688,29 +688,30 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
         const DeepData &srcdata (*src.deepdata());
         DeepData &dstdata (*dst.deepdata());
         // The earlier dst.alloc() already called dstdata.init()
-        dstdata.nsamples = srcdata.nsamples;
+        for (int p = 0, npels = (int)newspec.image_pixels(); p < npels; ++p)
+            dstdata.set_samples (p, srcdata.samples(p));
         dst.deep_alloc ();
         for (int p = 0, npels = (int)newspec.image_pixels(); p < npels; ++p) {
-            if (! dstdata.nsamples[p])
+            if (! dstdata.samples(p))
                 continue;   // no samples for this pixel
             for (int c = 0;  c < newspec.nchannels;  ++c) {
                 int csrc = channelorder[c];
                 if (csrc < 0) {
                     // Replacing the channel with a new value
                     float val = channelvalues ? channelvalues[c] : 0.0f;
-                    for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
+                    for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
                         dstdata.set_deep_value (p, c, s, val);
-                } else if (dstdata.channeltypes[c] == srcdata.channeltypes[csrc]) {
+                } else if (dstdata.channeltype(c) == srcdata.channeltype(csrc)) {
                     // Same channel types -- copy all samples at once
                     memcpy (dstdata.channel_ptr(p,c), srcdata.channel_ptr(p,csrc),
-                            dstdata.nsamples[p] * srcdata.channeltypes[csrc].size());
+                            dstdata.samples(p) * srcdata.channeltype(csrc).size());
                 } else {
-                    if (dstdata.channeltypes[c] == TypeDesc::UINT)
-                        for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
-                            dstdata.set_deep_value_uint (p, c, s,
+                    if (dstdata.channeltype(c) == TypeDesc::UINT)
+                        for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
+                            dstdata.set_deep_value (p, c, s,
                                           srcdata.deep_value_uint(p,csrc,s));
                     else
-                        for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
+                        for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
                             dstdata.set_deep_value (p, c, s,
                                           srcdata.deep_value(p,csrc,s));
                 }

@@ -48,17 +48,44 @@ DeepData_init (DeepData &dd, int npix, int nchan, tuple p)
 
 
 
-int
-DeepData_get_nsamples (DeepData &dd, int pixel)
+void
+DeepData_init_spec (DeepData &dd, const ImageSpec &spec)
 {
-    return int (dd.nsamples[pixel]);
+    ScopedGILRelease gil;
+    dd.init (spec);
+}
+
+
+
+int
+DeepData_get_samples (DeepData &dd, int pixel)
+{
+    return int (dd.samples(pixel));
 }
 
 
 void
 DeepData_set_nsamples (DeepData &dd, int pixel, int nsamples)
 {
-    dd.nsamples[pixel] = (unsigned int)nsamples;
+    dd.set_samples (pixel, uint32_t(nsamples));
+}
+
+
+
+void
+DeepData_set_deep_value_float (DeepData &dd, int pixel,
+                               int channel, int sample, float value)
+{
+    dd.set_deep_value (pixel, channel, sample, value);
+}
+
+
+
+void
+DeepData_set_deep_value_uint (DeepData &dd, int pixel,
+                              int channel, int sample, uint32_t value)
+{
+    dd.set_deep_value (pixel, channel, sample, value);
 }
 
 
@@ -69,22 +96,23 @@ void declare_deepdata()
     class_<DeepData>("DeepData")
         .def_readonly ("npixels",      &DeepData::npixels)
         .def_readonly ("nchannels",    &DeepData::nchannels)
-        // .def_readwrite("channeltypes", &DeepData::channeltypes)
         .def_readwrite("nsamples",     &DeepData::nsamples)
-
-//        .def(init<const DeepData&>())
+        .def_readonly ("pixels",       &DeepData::npixels)
+        .def_readonly ("channels",     &DeepData::nchannels)
 
         .def("init",  &DeepData_init)
+        .def("init",  &DeepData_init_spec)
         .def("alloc", &DeepData::alloc)
         .def("clear", &DeepData::clear)
         .def("free",  &DeepData::free)
 
-        .def("get_nsamples",        &DeepData_get_nsamples)
-        .def("set_nsamples",        &DeepData_set_nsamples)
-        .def("deep_value",          &DeepData::deep_value)
-        .def("deep_value_uint",     &DeepData::deep_value_uint)
-        .def("set_deep_value",      &DeepData::set_deep_value)
-        .def("set_deep_value_uint", &DeepData::set_deep_value_uint)
+        .def("samples",         &DeepData_get_samples)
+        .def("set_samples",     &DeepData::set_samples)
+        .def("channeltype",     &DeepData::channeltype)
+        .def("deep_value",      &DeepData::deep_value)
+        .def("deep_value_uint", &DeepData::deep_value_uint)
+        .def("set_deep_value",  &DeepData_set_deep_value_float)
+        .def("set_deep_value",  &DeepData_set_deep_value_uint)
     ;
 }
 

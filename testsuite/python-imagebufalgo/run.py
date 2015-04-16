@@ -48,11 +48,11 @@ for f in [ "black.tif", "filled.tif", "checker.tif",
            "resize.tif", "resample.tif",
            "bsplinekernel.exr", "bspline-blur.tif", "tahoe-median.tif",
            "unsharp.tif", "unsharp-median.tif",
-           "fft.exr", "ifft.exr", "polar.exr", "complex.exr",
            "tahoe-filled.tif",
            "box3.exr",
            "a_over_b.exr",
-           "tahoe-small.tx"
+           "tahoe-small.tx",
+           "fft.exr", "ifft.exr", "polar.exr", "complex.exr",
          ] :
     command += checkref (f)
 

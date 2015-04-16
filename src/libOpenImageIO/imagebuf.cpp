@@ -635,11 +635,7 @@ ImageBufImpl::realloc ()
     if (m_allocated_size)
         m_pixels_valid = true;
     if (m_spec.deep) {
-        int npixels = (int)m_spec.image_pixels();
-        std::vector<TypeDesc> chanformats (m_spec.channelformats);
-        chanformats.resize (m_spec.nchannels, m_spec.format);
-        m_deepdata.init (npixels, m_spec.nchannels,
-                         &(*chanformats.begin()), &(*chanformats.end()));
+        m_deepdata.init (m_spec);
         m_storage = ImageBuf::LOCALBUFFER;
     }
 #if 0
@@ -1654,7 +1650,7 @@ ImageBuf::deep_samples (int x, int y, int z) const
     if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth)
         return 0;
     int p = (z * m_spec.height + y) * m_spec.width  + x;
-    return deepdata()->nsamples[p];
+    return deepdata()->samples(p);
 }
 
 
@@ -1673,7 +1669,7 @@ ImageBuf::deep_pixel_ptr (int x, int y, int z, int c) const
         c < 0 || c >= m_spec.nchannels)
         return NULL;
     int p = (z * m_spec.height + y) * m_spec.width  + x;
-    return deepdata()->nsamples[p] ? deepdata()->pointers[p*m_spec.nchannels] : NULL;
+    return deepdata()->samples(p) ? deepdata()->channel_ptr (p, c) : NULL;
 }
 
 
@@ -1707,6 +1703,19 @@ ImageBuf::deep_value_uint (int x, int y, int z, int c, int s) const
 
 
 void
+ImageBuf::set_deep_samples (int x, int y, int z, int samps)
+{
+    if (! deep())
+        return ;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    impl()->m_deepdata.set_samples (p, samps);
+}
+
+
+
+void
 ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
 {
     impl()->validate_pixels();
@@ -1729,7 +1738,7 @@ ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value
     const ImageSpec &m_spec (spec());
     x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
     int p = (z * m_spec.height + y) * m_spec.width + x;
-    return impl()->m_deepdata.set_deep_value_uint (p, c, s, value);
+    return impl()->m_deepdata.set_deep_value (p, c, s, value);
 }
 
 

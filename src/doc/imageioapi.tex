@@ -680,6 +680,79 @@ formats.)
 \apiend
 
 
+
+\section{``Deep'' pixel data: {\cf DeepData}}
+\label{sec:deepdata}
+\indexapi{DeepData}
+
+A \DeepData holds the contents of an image of ``deep'' pixels (multiple
+depth samples per pixel).
+
+\noindent Commonly used \DeepData fields and methods include:
+
+\apiitem{void {\ce init} (const ImageSpec &spec)}
+Initialize the \DeepData based on the \ImageSpec's total number of pixels,
+number and types of channels. At this stage, all pixels are assumed to
+have 0 samples, and no sample data is allocated.
+\apiend
+
+\apiitem{void {\ce clear} ()}
+Reset the \DeepData to be equivalent to its empty initial state.
+\apiend
+
+\apiitem{void {\ce free} ()}
+Not only {\cf clear()}, but also ensure that all allocated memory has been
+truly freed.
+\apiend
+
+\apiitem{int {\ce npixels} () const}
+Retrieve the total number of pixels.
+\apiend
+
+\apiitem{int {\ce nchannels} () const}
+Retrieve the number of channels.
+\apiend
+
+\apiitem{TypeDesc {\ce channeltype} (int c) const}
+Retrieve the data type of channel {\cf c}.
+\apiend
+
+\apiitem{int {\ce samples} (int pixel) const}
+Retrieve the number of samples for the given pixel index.
+\apiend
+
+\apiitem{void {\ce set_samples} (int pixel, int samps)}
+Set the number of samples for the given pixel index. This method should
+be called after {\cf init()}, for each pixel with $>0$ samples, \emph{before}
+calling {\cf init()}.
+\apiend
+
+\apiitem{void {\ce alloc} ()}
+For an initialized \DeepData, given the number of samples specified for each
+pixel (via {\cf set_samples}), allocate the space for the pixel data itself.
+\apiend
+
+\apiitem{float {\ce deep_value} (int pixel, int channel, int sample) const \\
+uint32_t {\ce deep_value_uint} (int pixel, int channel, int sample) const}
+Retrieve the value of the given pixel, channel, and sample indices, for
+floating point or unsigned integer channel types, respectively.
+\apiend
+
+\apiitem{void {\ce set_deep_value} (int pixel, int channel, int sample, float value) \\
+void {\ce set_deep_value} (int pixel, int channel, int sample, uint32_t value)}
+Set the value of the given pixel, channel, and sample indices, for
+floating point or unsigned integer channel types, respectively.
+\apiend
+
+\apiitem{void* {\ce channel_ptr} (int pixel, int channel) \\
+const void* {\ce channel_ptr} (int pixel, int channel) const}
+Retrieve a raw pointer to the first sample of the given pixel and channel,
+or NULL if there are no samples for that pixel.
+\apiend
+
+
+
+
 \subsection{Miscellaneous Utilities}
 \label{sec:miscapi}
 

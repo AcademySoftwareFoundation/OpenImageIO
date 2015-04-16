@@ -98,7 +98,36 @@ try:
     print ""
     print "Saving file..."
     b.write ("out.tif")
-    print "Done."
+
+
+    # Test write and read of deep data
+    # Let's try writing one
+    print "\nWriting deep buffer..."
+    deepbufout_spec = oiio.ImageSpec (2, 2, 5, oiio.FLOAT)
+    deepbufout_spec.channelnames = ("R", "G", "B", "A", "Z")
+    deepbufout_spec.deep = True
+    deepbufout = oiio.ImageBuf(deepbufout_spec)
+    deepbufout.deepdata().set_samples (1, 2)
+    deepbufout.deepdata().set_deep_value (1, 0, 0, 0.42)
+    deepbufout.deepdata().set_deep_value (1, 4, 0, 42.0)
+    deepbufout.deepdata().set_deep_value (1, 0, 1, 0.47)
+    deepbufout.deepdata().set_deep_value (1, 4, 1, 43.0)
+    deepbufout.write ("deepbuf.exr")
+    # And read it back
+    print "\nReading back deep buffer:"
+    deepbufin = oiio.ImageBuf ("deepbuf.exr")
+    deepbufin_spec = deepbufin.spec()
+    dd = deepbufin.deepdata()
+    for p in range(dd.pixels) :
+        ns = dd.samples(p)
+        if ns > 1 :
+            print "Pixel", p/deepbufin_spec.width, p%deepbufin_spec.width, "had", ns, "samples"
+            for s in range(ns) :
+                print "Sample", s
+                for c in range(dd.nchannels) :
+                    print "\tc", c, ":", dd.deep_value(p,c,s)
+
+    print "\nDone."
 except Exception as detail:
     print "Unknown exception:", detail
 
