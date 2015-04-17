@@ -84,16 +84,13 @@ OIIO_NAMESPACE_ENTER
 
 
 bool
-ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
-                       const ImageBuf *A, const ImageBuf *B,
+ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
+                       const ImageBuf *B, const ImageBuf *C,
                        ImageSpec *force_spec, int prepflags)
 {
-    if (A && !A->initialized()) {
-        if (dst)
-            dst->error ("Uninitialized input image");
-        return false;
-    }
-    if (B && !B->initialized()) {
+    if ((A && !A->initialized()) ||
+        (B && !B->initialized()) ||
+        (C && !C->initialized())) {
         if (dst)
             dst->error ("Uninitialized input image");
         return false;
@@ -107,6 +104,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             maxchans = std::min (maxchans, A->spec().nchannels);
         if (B && B->initialized())
             maxchans = std::min (maxchans, B->spec().nchannels);
+        if (C && C->initialized())
+            maxchans = std::min (maxchans, C->spec().nchannels);
     }
     if (dst->initialized()) {
         // Valid destination image.  Just need to worry about ROI.
@@ -128,11 +127,15 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
         ROI full_roi;
         if (! roi.defined()) {
             // No ROI -- make it the union of the pixel regions of the inputs
-            roi = get_roi (A->spec());
-            full_roi = get_roi_full (A->spec());
+            roi = A->roi();
+            full_roi = A->roi_full();
             if (B) {
-                roi = roi_union (roi, get_roi (B->spec()));
-                full_roi = roi_union (full_roi, get_roi_full (B->spec()));
+                roi = roi_union (roi, B->roi());
+                full_roi = roi_union (full_roi, B->roi_full());
+            }
+            if (C) {
+                roi = roi_union (roi, C->roi());
+                full_roi = roi_union (full_roi, C->roi_full());
             }
         } else {
             if (A) {
@@ -150,10 +153,13 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
             // If there's an input image, give dst A's spec (with
             // modifications detailed below...)
             spec = force_spec ? (*force_spec) : A->spec();
-            // For two inputs, if they aren't the same data type, punt and
+            // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
             // they should have pre-allocated dst with their desired format.
             if (B && A->spec().format != B->spec().format)
+                spec.set_format (TypeDesc::FLOAT);
+            if (C && (A->spec().format != C->spec().format ||
+                      B->spec().format != C->spec().format))
                 spec.set_format (TypeDesc::FLOAT);
             // No good can come from automatically polluting an ImageBuf
             // with some other ImageBuf's tile sizes.
@@ -193,7 +199,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 ||
               (A && A->spec().alpha_channel < 0) ||
-              (B && B->spec().alpha_channel < 0)) {
+              (B && B->spec().alpha_channel < 0) ||
+              (C && C->spec().alpha_channel < 0)) {
             dst->error ("images must have alpha channels");
             return false;
         }
@@ -201,7 +208,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
     if (prepflags & IBAprep_REQUIRE_Z) {
         if (dst->spec().z_channel < 0 ||
               (A && A->spec().z_channel < 0) ||
-              (B && B->spec().z_channel < 0)) {
+              (B && B->spec().z_channel < 0) ||
+              (C && C->spec().z_channel < 0)) {
             dst->error ("images must have depth channels");
             return false;
         }
@@ -209,7 +217,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
     if (prepflags & IBAprep_REQUIRE_SAME_NCHANNELS) {
         int n = dst->spec().nchannels;
         if ((A && A->spec().nchannels != n) ||
-            (B && B->spec().nchannels != n)) {
+            (B && B->spec().nchannels != n) ||
+            (C && C->spec().nchannels != n)) {
             dst->error ("images must have the same number of channels");
             return false;
         }
@@ -217,7 +226,8 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst,
     if (prepflags & IBAprep_NO_SUPPORT_VOLUME) {
         if (dst->spec().depth > 1 ||
                 (A && A->spec().depth > 1) ||
-                (B && B->spec().depth > 1)) {
+                (B && B->spec().depth > 1) ||
+                (C && C->spec().depth > 1)) {
             dst->error ("volumes not supported");
             return false;
         }

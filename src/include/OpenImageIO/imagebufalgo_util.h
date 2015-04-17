@@ -104,12 +104,17 @@ parallel_image (Func f, ROI roi, int nthreads=0)
 /// If all is ok, return true.  Some additional checks and behaviors may be
 /// specified by the 'prepflags', which is a bit field defined by
 /// IBAprep_flags.
-bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst,
-                       const ImageBuf *A=NULL, const ImageBuf *B=NULL,
+bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A=NULL,
+                       const ImageBuf *B=NULL, const ImageBuf *C=NULL,
                        ImageSpec *force_spec=NULL, int prepflags=0);
+inline bool IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
+                     const ImageBuf *B, ImageSpec *force_spec,
+                     int prepflags=0) {
+    return IBAprep (roi, dst, A, B, NULL, force_spec, prepflags);
+}
 inline bool IBAprep (ROI &roi, ImageBuf *dst,
                      const ImageBuf *A, int prepflags) {
-    return IBAprep (roi, dst, A, NULL, NULL, prepflags);
+    return IBAprep (roi, dst, A, NULL, NULL, NULL, prepflags);
 }
 
 enum IBAprep_flags {
