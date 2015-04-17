@@ -707,12 +707,12 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                 } else {
                     if (dstdata.channeltypes[c] == TypeDesc::UINT)
                         for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
-                            dstdata.set_deep_value (p, c, s,
-                                          srcdata.deep_value(p,csrc,s));
-                    else
-                        for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
                             dstdata.set_deep_value_uint (p, c, s,
                                           srcdata.deep_value_uint(p,csrc,s));
+                    else
+                        for (int s = 0, ns = dstdata.nsamples[p]; s < ns; ++s)
+                            dstdata.set_deep_value (p, c, s,
+                                          srcdata.deep_value(p,csrc,s));
                 }
             }
         }
