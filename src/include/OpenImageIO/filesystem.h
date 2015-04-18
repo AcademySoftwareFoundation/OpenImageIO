@@ -192,6 +192,10 @@ OIIO_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
 ///
 OIIO_API FILE *fopen (string_view path, string_view mode);
 
+/// Return the current (".") directory path.
+///
+OIIO_API std::string current_path ();
+
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
 OIIO_API void open (std::ifstream &stream, string_view path,
