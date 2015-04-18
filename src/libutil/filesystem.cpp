@@ -47,6 +47,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <shellapi.h>
+#include <direct.h>
+#else
+#include <unistd.h>
 #endif
 
 
@@ -440,6 +443,27 @@ Filesystem::unique_path (string_view model)
     char buf[L_tmpnam];
     char *result = tmpnam (buf);
     return result ? std::string(result) : std::string();
+#endif
+}
+
+
+
+std::string
+Filesystem::current_path()
+{
+#if BOOST_FILESYSTEM_VERSION >= 3
+    boost::system::error_code ec;
+    boost::filesystem::path p = boost::filesystem::current_path (ec);
+    return ec ? std::string() : p.string();
+#else
+    // Fallback if we don't have recent Boost
+    char path[FILENAME_MAX];
+#ifdef _WIN32
+    bool ok = _getcwd (path, sizeof(path));
+#else
+    bool ok = getcwd (path, sizeof(path));
+#endif
+    return ok ? std::string(path) : std::string();
 #endif
 }
 
