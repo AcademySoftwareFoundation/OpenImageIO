@@ -185,7 +185,9 @@ test_scan_file_seq (const char *pattern, const std::string &expected)
     // formed patterns.
     const char *weird = "{'cpu_model': 'Intel(R) Xeon(R) CPU E5-2630 @ 2.30GHz'}";
     Filesystem::parse_pattern (weird, 0, normalized_pattern, frame_range);
-    OIIO_CHECK_ASSERT (! Filesystem::scan_for_matching_filenames (normalized_pattern, numbers, names));
+    Filesystem::scan_for_matching_filenames (normalized_pattern, numbers, names);
+    OIIO_CHECK_EQUAL (names.size(), 0);
+    // If we didn't crash above, we're ok!
 }
 
 
