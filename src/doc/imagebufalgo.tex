@@ -944,6 +944,40 @@ the same number of channels.
 \apiend
 
 
+\apiitem{bool {\ce invert} (ImageBuf \&dst, const ImageBuf \&A, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!invert} \indexapi{invert}
+\NEW % 1.6
+
+For all pixels and channels within the designated region, set {\cf dst}
+to be the color inverse of the corresponding pixels of {\cf A}, that is,
+1.0 - A.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ImageBuf Inverse;
+    ImageBufAlgo::invert (Inverse, A);
+
+    // In this example, we are careful to deal with alpha in an RGBA
+    // image. First we copy A to Inverse, and then in-place, we will:
+    // un-premultiply the color values by alpha, invert just the color
+    // channels, and then re-premultiply the colors by alpha.
+    Inverse.copy (A);   // First copy A to inverse
+    roi = A.roi();
+    roi.chend = 3;      // Restrict roi to only R,G,B
+    ImageBufAlgo::unpremult (Inverse, Inverse);
+    ImageBufAlgo::invert (Inverse, Inverse, roi);
+    ImageBufAlgo::premult (Inverse, Inverse);
+\end{code}
+
+%\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+%\raisebox{40pt}{\large $\rightarrow$}
+%\includegraphics[width=1.5in]{figures/invert.jpg} \\
+\apiend
+
+
 \apiitem{bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, float b, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce pow} (ImageBuf \&dst, const ImageBuf \&A, const float *b, \\

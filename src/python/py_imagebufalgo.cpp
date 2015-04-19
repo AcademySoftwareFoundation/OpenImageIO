@@ -558,6 +558,16 @@ IBA_mad_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
+IBA_invert (ImageBuf &dst, const ImageBuf &A,
+             ROI roi=ROI::All(), int nthreads=0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::invert (dst, A, roi, nthreads);
+}
+
+
+
+bool
 IBA_pow_color (ImageBuf &dst, const ImageBuf &A, tuple values_tuple,
                ROI roi=ROI::All(), int nthreads=0)
 {
@@ -1267,6 +1277,11 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"), arg("C"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("mad")
+
+        .def("invert", &IBA_invert,
+             (arg("dst"), arg("A"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("invert")
 
         .def("pow", &IBA_pow_float,
              (arg("dst"), arg("A"), arg("B"),

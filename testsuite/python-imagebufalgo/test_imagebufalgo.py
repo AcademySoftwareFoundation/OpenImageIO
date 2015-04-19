@@ -227,6 +227,12 @@ try:
     ImageBufAlgo.div (b, gray64, (2.0,1,0.5))
     write (b, "divc2.exr", oiio.HALF)
 
+    # invert
+    a = ImageBuf ("../oiiotool/tahoe-small.tif")
+    b = ImageBuf()
+    ImageBufAlgo.invert (b, a)
+    write (b, "invert.tif", oiio.UINT8)
+
     # pow
     b = ImageBuf()
     ImageBufAlgo.pow (b, gray128, 2)

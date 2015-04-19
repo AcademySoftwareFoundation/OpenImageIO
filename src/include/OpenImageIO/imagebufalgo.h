@@ -784,6 +784,30 @@ inline bool OIIO_API mad (ImageBuf &dst, float A, const ImageBuf &B,
 }
 
 
+/// For all pixels and channels within the designated ROI, compute
+/// dst = 1 - A. It is permitted for dst and A to be the same image.
+///
+/// Tips for callers: (1) You probably want to set roi to restrict the
+/// operation to only the color channels, and not accidentally include
+/// alpha, z, or others. (2) There may be situations where you want to
+/// unpremult() before the inverst, then premult() the result, so that you
+/// are computing the inverse of the unmasked color.
+///
+/// If roi is not initialized, it will be set to the pixel data region of A.
+/// If dst is not initialized, it will be sized based on roi. If dst is
+/// initialized, it must have the same number of channels as A.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API invert (ImageBuf &dst, const ImageBuf &A,
+                      ROI roi=ROI::All(), int nthreads=0);
+
+
 /// For all pixels and channels of dst within region roi (defaulting to
 /// all the defined pixels of dst), set dst = A ^ b. (raise to power)
 /// B may be either a single float (for all channels), or a float* pointing

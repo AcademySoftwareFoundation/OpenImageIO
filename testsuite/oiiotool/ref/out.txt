@@ -187,6 +187,8 @@ Comparing "divc2.exr" and "ref/divc2.exr"
 PASS
 Comparing "mad.exr" and "ref/mad.exr"
 PASS
+Comparing "invert.tif" and "ref/invert.tif"
+PASS
 Comparing "cpow1.exr" and "ref/cpow1.exr"
 PASS
 Comparing "cpow2.exr" and "ref/cpow2.exr"

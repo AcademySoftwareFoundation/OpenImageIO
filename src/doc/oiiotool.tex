@@ -1517,6 +1517,21 @@ though using {\cf --mad} may be somewhat faster and preserve more precision.
 \apiend
 
 
+\apiitem{{\ce --invert}}
+\NEW % 1.6
+Replace the top images with its color inverse. It only inverts the first
+three channels, in order to preserve alpha.
+
+\noindent Example:
+\begin{code}
+   oiiotool tahoe.jpg --inverse -o inverse.jpg
+\end{code}
+\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\includegraphics[width=1.5in]{figures/invert.jpg} \\
+\apiend
+
+
 \apiitem{{\ce --absdiff} \\
 {\ce --absdiffc} {\rm \emph{value}} \\
 {\ce --absdiffc} {\rm \emph{value0,value1,value2...}}}

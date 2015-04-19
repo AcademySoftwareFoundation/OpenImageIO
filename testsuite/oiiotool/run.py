@@ -88,6 +88,9 @@ command += oiiotool ("grey64.exr --pattern constant:color=2.0,1,0.5 64x64 3 "
 command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 "
                    + "-pattern constant:color=.1,.1,.1 64x64 3 --mad -o mad.exr")
 
+# test --invert
+command += oiiotool ("tahoe-small.tif --invert -o invert.tif")
+
 # Test --powc val (raise all channels by the same power)
 command += oiiotool ("grey128.exr --powc 2 -o cpow1.exr")
 # Test --powc val,val,val... (per-channel powers)
@@ -286,7 +289,7 @@ outputs = [
             "sub.exr", "subc.exr",
             "mul.exr", "cmul1.exr", "cmul2.exr",
             "div.exr", "divc1.exr", "divc2.exr",
-            "mad.exr",
+            "mad.exr", "invert.tif",
             "cpow1.exr", "cpow2.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",

@@ -720,6 +720,17 @@ ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, float b,
 }
 
 
+
+bool
+ImageBufAlgo::invert (ImageBuf &dst, const ImageBuf &A,
+                      ROI roi, int nthreads)
+{
+    // Calculate invert as simply 1-A == A*(-1)+1
+    return mad (dst, A, -1.0, 1.0, roi, nthreads);
+}
+
+
+
 template<class Rtype, class Atype>
 static bool
 pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,
