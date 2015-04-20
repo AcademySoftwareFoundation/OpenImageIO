@@ -48,7 +48,6 @@
 
 #ifdef USE_FREETYPE
 #include <ft2build.h>
-#include "utf8_dfa.h"
 #include FT_FREETYPE_H
 #endif
 
@@ -408,23 +407,6 @@ static const char * default_font_name[] = {
         "cour", "Courier New", "FreeMono", NULL
      };
 } // anon namespace
-
-template <typename InputIterator, typename OutputIterator>
-static bool utf8_to_unicode(InputIterator begin,
-                            InputIterator end,
-                            OutputIterator out)
-{
-    uint32_t codepoint;
-    uint32_t state = 0;
-    for (; begin != end; ++begin) {
-        uint32_t byte = (unsigned char) *begin;
-        if (!decode(&state, &codepoint, byte)) {
-            *out++ = codepoint;
-        }
-    }
-    return state == UTF8_ACCEPT;
-}
-
 #endif
 
 
@@ -540,7 +522,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
 
     std::vector<uint32_t> utext;
     utext.reserve(text.size()); //Possible overcommit, but most text will be ascii
-    utf8_to_unicode(text.begin(), text.end(), std::back_inserter(utext));
+    Strutil::utf8_to_unicode(text, utext);
 
     for (size_t n = 0, e = utext.size();  n < e;  ++n) {
         error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
