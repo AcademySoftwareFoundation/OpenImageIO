@@ -1033,10 +1033,6 @@ bool
 ImageBufAlgo::rangecompress (ImageBuf &dst, const ImageBuf &src,
                              bool useluma, ROI roi, int nthreads)
 {
-    if (! dst.initialized()) {
-        dst.error ("in-place rangecompress requires the ImageBuf to be initialized");
-        return false;
-    }
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -1052,10 +1048,6 @@ bool
 ImageBufAlgo::rangeexpand (ImageBuf &dst, const ImageBuf &src,
                            bool useluma, ROI roi, int nthreads)
 {
-    if (! dst.initialized()) {
-        dst.error ("in-place rangeexpand requires the ImageBuf to be initialized");
-        return false;
-    }
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
