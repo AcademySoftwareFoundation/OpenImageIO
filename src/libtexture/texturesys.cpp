@@ -68,6 +68,15 @@ OIIO_NAMESPACE_ENTER
 
 namespace {  // anonymous
 
+// We would like shared_texturesys to be a shared_ptr so that it is
+// automatically deleted when the app exists, but because it contains a
+// reference to an ImageCache, we get into the "destruction order fiasco."
+// The only easy way to fix this is to make shared_texturesys be an ordinary
+// pointer and just let it leak (who cares? the app is done, and it only
+// contains a few hundred bytes).
+static TextureSystemImpl *shared_texturesys = NULL;
+static spin_mutex shared_texturesys_mutex;
+
 static EightBitConverter<float> uchar2float;
 static float4 u8scale (1.0f/255.0f);
 static float4 u16scale (1.0f/65535.0f);
@@ -101,8 +110,27 @@ static const OIIO_SIMD4_ALIGN mask4 channel_masks[5] = {
 TextureSystem *
 TextureSystem::create (bool shared)
 {
-    ImageCache *ic = ImageCache::create (shared);
-    return new TextureSystemImpl (ic);
+    if (shared) {
+        // They requested a shared texture system.  If a shared one already
+        // exists, just return it, otherwise record the new texture system.
+        spin_lock guard (shared_texturesys_mutex);
+        if (! shared_texturesys)
+            shared_texturesys = new TextureSystemImpl(ImageCache::create(true));
+        else
+            shared_texturesys->invalidate_all ();
+#if 0
+        std::cerr << " shared TextureSystem is "
+                  << (void *)shared_texturesys.get() << "\n";
+#endif
+        return shared_texturesys;
+    }
+
+    // Doesn't need a shared cache
+    TextureSystemImpl *ts = new TextureSystemImpl (ImageCache::create(false));
+#if 0
+    std::cerr << "creating new ImageCache " << (void *)ts << "\n";
+#endif
+    return ts;
 }
 
 
@@ -110,6 +138,7 @@ TextureSystem::create (bool shared)
 void
 TextureSystem::destroy (TextureSystem *x, bool teardown_imagecache)
 {
+    // std::cerr << "Destroying TS " << (void *)x << "\n";
     if (! x)
         return;
     TextureSystemImpl *impl = (TextureSystemImpl *) x;
@@ -117,7 +146,14 @@ TextureSystem::destroy (TextureSystem *x, bool teardown_imagecache)
         ImageCache::destroy (impl->m_imagecache, true);
         impl->m_imagecache = NULL;
     }
-    delete (TextureSystemImpl *) impl;
+
+    spin_lock guard (shared_texturesys_mutex);
+    if (impl == shared_texturesys) {
+        // This is the shared TS, so don't really delete it.
+    } else {
+        // Not a shared cache, we are the only owner, so truly destroy it.
+        delete x;
+    }
 }
 
 
