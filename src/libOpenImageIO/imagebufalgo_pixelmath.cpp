@@ -587,6 +587,150 @@ ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, float b,
 
 
 
+template<class Rtype, class ABCtype>
+static bool
+mad_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, const ImageBuf &C,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(mad_impl<Rtype,ABCtype>, boost::ref(R),
+                        boost::cref(A), boost::cref(B), boost::cref(C),
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<ABCtype> a (A, roi);
+    ImageBuf::ConstIterator<ABCtype> b (B, roi);
+    ImageBuf::ConstIterator<ABCtype> c (C, roi);
+    for ( ;  !r.done();  ++r, ++a, ++b, ++c)
+        for (int ch = roi.chbegin;  ch < roi.chend;  ++ch)
+            r[ch] = a[ch] * b[ch] + c[ch];
+    return true;
+}
+
+
+
+template<class Rtype, class Atype>
+static bool
+mad_implf (ImageBuf &R, const ImageBuf &A, const float *b, const float *c,
+          ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(mad_implf<Rtype,Atype>, boost::ref(R),
+                        boost::cref(A), b, c,
+                        _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    // Serial case
+    ImageBuf::Iterator<Rtype> r (R, roi);
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for ( ;  !r.done();  ++r, ++a)
+        for (int ch = roi.chbegin;  ch < roi.chend;  ++ch)
+            r[ch] = a[ch] * b[ch] + c[ch];
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A_, const ImageBuf &B_,
+                   const ImageBuf &C_, ROI roi, int nthreads)
+{
+    const ImageBuf *A = &A_, *B = &B_, *C = &C_;
+    if (!A->initialized() || !B->initialized() || !C->initialized()) {
+        dst.error ("Uninitialized input image");
+        return false;
+    }
+
+    // To avoid the full cross-product of dst/A/B/C types, force A,B,C to
+    // all be the same data type, copying if we have to.
+    TypeDesc abc_type = type_merge (A->spec().format, B->spec().format,
+                                    C->spec().format);
+    ImageBuf Anew, Bnew, Cnew;
+    if (A->spec().format != abc_type) {
+        Anew.copy (*A, abc_type);
+        A = &Anew;
+    }
+    if (B->spec().format != abc_type) {
+        Bnew.copy (*B, abc_type);
+        B = &Bnew;
+    }
+    if (C->spec().format != abc_type) {
+        Cnew.copy (*C, abc_type);
+        C = &Cnew;
+    }
+    ASSERT (A->spec().format == B->spec().format &&
+            A->spec().format == C->spec().format);
+
+    if (! IBAprep (roi, &dst, A, B, C))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl, dst.spec().format,
+                                 abc_type, dst, *A, *B, *C, roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   const float *C, ROI roi, int nthreads)
+{
+    if (!A.initialized()) {
+        dst.error ("Uninitialized input image");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &A))
+        return false;
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_implf, dst.spec().format,
+                                 A.spec().format, dst, A, B, C,
+                                 roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, float b,
+                   float c, ROI roi, int nthreads)
+{
+    if (!A.initialized()) {
+        dst.error ("Uninitialized input image");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &A))
+        return false;
+    std::vector<float> B (roi.chend, b);
+    std::vector<float> C (roi.chend, c);
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_implf, dst.spec().format,
+                                 A.spec().format, dst, A, &B[0], &C[0],
+                                 roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::invert (ImageBuf &dst, const ImageBuf &A,
+                      ROI roi, int nthreads)
+{
+    // Calculate invert as simply 1-A == A*(-1)+1
+    return mad (dst, A, -1.0, 1.0, roi, nthreads);
+}
+
+
+
 template<class Rtype, class Atype>
 static bool
 pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,

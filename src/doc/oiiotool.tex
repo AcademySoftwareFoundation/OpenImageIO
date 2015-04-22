@@ -1500,6 +1500,38 @@ of comma-separated constant values (with no spaces!) may be used to specifiy
 a different multiplier for each channel in the image, respectively.
 \apiend
 
+\apiitem{{\ce --mad}}
+\NEW % 1.6
+Replace the \emph{three} top images A, B, and C (C being the top of stack, B
+below it, and A below B), and compute A*B+C, placing the result on the
+stack. Note that \qkw{A B C --mad} is equivalent to \qkw{A B --mul C --add},
+though using {\cf --mad} may be somewhat faster and preserve more precision.
+
+%\noindent Example:
+%\begin{code}
+%    oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
+%\end{code}
+%\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+%\raisebox{40pt}{\large $\rightarrow$}
+%\includegraphics[width=1.5in]{figures/mulc.jpg} \\
+\apiend
+
+
+\apiitem{{\ce --invert}}
+\NEW % 1.6
+Replace the top images with its color inverse. It only inverts the first
+three channels, in order to preserve alpha.
+
+\noindent Example:
+\begin{code}
+   oiiotool tahoe.jpg --inverse -o inverse.jpg
+\end{code}
+\spc \includegraphics[width=1.5in]{figures/tahoe-small.jpg}
+\raisebox{40pt}{\large $\rightarrow$}
+\includegraphics[width=1.5in]{figures/invert.jpg} \\
+\apiend
+
+
 \apiitem{{\ce --absdiff} \\
 {\ce --absdiffc} {\rm \emph{value}} \\
 {\ce --absdiffc} {\rm \emph{value0,value1,value2...}}}

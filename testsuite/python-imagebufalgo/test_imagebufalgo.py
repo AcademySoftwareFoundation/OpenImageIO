@@ -204,11 +204,17 @@ try:
     b = ImageBuf()
     ImageBufAlgo.mul (b, gray128, (1.5,1,0.5))
     write (b, "cmul2.exr")
-    # FIXME -- image multiplication; it's not in testsuite/oiiotool either
-    # b = ImageBuf()
-    # ImageBufAlgo.mul (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-    #                        make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
-    # write (b, "mul.exr")
+    b = ImageBuf()
+    ImageBufAlgo.mul (b, make_constimage(64,64,3,oiio.HALF,(.5,.5,.5)),
+                         make_constimage(64,64,3,oiio.HALF,(1.5,1,0.5)))
+    write (b, "mul.exr", oiio.HALF)
+
+    # mad
+    b = ImageBuf()
+    ImageBufAlgo.mad (b, make_constimage(64,64,3,oiio.HALF,(.5,.5,.5)),
+                         make_constimage(64,64,3,oiio.HALF,(1.5,1,0.5)),
+                         make_constimage(64,64,3,oiio.HALF,(0.1,0.1,0.1)))
+    write (b, "mad.exr", oiio.HALF)
 
     # div
     b = ImageBuf()
@@ -220,6 +226,12 @@ try:
     b = ImageBuf()
     ImageBufAlgo.div (b, gray64, (2.0,1,0.5))
     write (b, "divc2.exr", oiio.HALF)
+
+    # invert
+    a = ImageBuf ("../oiiotool/tahoe-small.tif")
+    b = ImageBuf()
+    ImageBufAlgo.invert (b, a)
+    write (b, "invert.tif", oiio.UINT8)
 
     # pow
     b = ImageBuf()

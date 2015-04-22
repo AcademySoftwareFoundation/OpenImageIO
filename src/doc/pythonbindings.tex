@@ -2129,6 +2129,44 @@ float} for each color channel.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce mad} (dst, A, B, C, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!mad} \indexapi{mad}
+\NEW % 1.6
+
+Compute {\cf dst} = {\cf A * B + C} (channel-by-channel multiplication
+and addition). {\cf A}
+is an \ImageBuf, and {\cf B} and {\cf C} may be both \ImageBuf, both
+{\cf float} (scaling all channels) or a both tuples giving a {\cf float} for
+each color channel.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Multiply a and b, then add c
+    buf = ImageBuf ()
+    ImageBufAlgo.mad (buf, ImageBuf("a.exr"),
+                      ImageBuf("b.exr"), ImageBuf("c.exr"))
+\end{code}
+\apiend
+
+
+
+\apiitem{bool ImageBufAlgo.{\ce invert} (dst, A, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!invert} \indexapi{invert}
+\NEW % 1.6
+
+Compute {\cf dst = 1-A} (channel by channel color inverse).
+{\cf A} is an \ImageBuf.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf ()
+    ImageBufAlgo.invert (buf, ImageBuf("a.exr"))
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce pow} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!pow} \indexapi{pow}
 

@@ -37,6 +37,10 @@ Major new features and improvements:
       and pixel type upon output. It infers the color spaces based on
       metadata and filenames (looking for OCIO-recognized color space names
       as substrings of the filenames). (1.6.3)
+    * --mad takes three image arguments, multiplies the first two and then
+      adds the third to it. (1.6.3)
+    * --invert computes the color inverse (1-value) for color channels.
+      (1.6.3)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
@@ -48,6 +52,9 @@ Major new features and improvements:
       bilinearly interpolated gradient). (1.6.0)
     * noise() injects noise into an image -- uniform, gaussian/normal,
       or salt & pepper noise. (1.6.2)
+    * mad() multiplies the first two arguments and then adds the third to
+      it. (1.6.3)
+    * invert() computes 1-val. (1.6.3)
 
 Public API changes:
  * Clarified in the docs that TextureSystem::get_texture_info and

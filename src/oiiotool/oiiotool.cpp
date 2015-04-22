@@ -2555,6 +2555,67 @@ action_addc (int argc, const char *argv[])
 
 
 static int
+action_mad (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (3, action_mad, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    ImageRecRef C (ot.pop());
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ot.read (C);
+    ImageRecRef R (new ImageRec ("mad", ot.allsubimages ? A->subimages() : 1));
+    ot.push (R);
+
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        bool ok = ImageBufAlgo::mad ((*R)(s), (*A)(s), (*B)(s), (*C)(s));
+        if (! ok)
+            ot.error (command, (*R)(s).geterror());
+        R->update_spec_from_imagebuf (s);
+    }
+
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static int
+action_invert (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_invert, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, true/* copy pixels*/));
+
+    for (int s = 0, subimages = ot.curimg->subimages(); s < subimages; ++s) {
+        for (int m = 0, miplevels = ot.curimg->miplevels(s); m < miplevels; ++m) {
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            // invert the first three channels only, spare alpha
+            ROI roi = Rib.roi();
+            roi.chend = std::min (3, Rib.spec().nchannels);
+            bool ok = ImageBufAlgo::invert (Rib, Rib, roi);
+            if (! ok)
+                ot.error (command, Rib.geterror());
+        }
+    }
+
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static int
 action_powc (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_powc, argc, argv))
@@ -4552,6 +4613,8 @@ getargs (int argc, char *argv[])
                 "--cmul %s %@", action_mulc, NULL, "", // Deprecated synonym
                 "--div %@", action_div, NULL, "Divide first image by second image",
                 "--divc %s %@", action_divc, NULL, "Divide the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--mad %@", action_mad, NULL, "Multiply two images, add a third",
+                "--invert %@", action_invert, NULL, "Take the color inverse (subtract from 1)",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--absdiff %@", action_absdiff, NULL, "Absolute difference between two images",
                 "--absdiffc %s %@", action_absdiffc, NULL, "Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)",

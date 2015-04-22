@@ -163,6 +163,18 @@ Comparing "chappend-rgbaz.exr" and "ref/chappend-rgbaz.exr"
 PASS
 Comparing "chname.exr" and "ref/chname.exr"
 PASS
+Comparing "add.exr" and "ref/add.exr"
+PASS
+Comparing "cadd1.exr" and "ref/cadd1.exr"
+PASS
+Comparing "cadd2.exr" and "ref/cadd2.exr"
+PASS
+Comparing "sub.exr" and "ref/sub.exr"
+PASS
+Comparing "subc.exr" and "ref/subc.exr"
+PASS
+Comparing "mul.exr" and "ref/mul.exr"
+PASS
 Comparing "cmul1.exr" and "ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "ref/cmul2.exr"
@@ -173,19 +185,13 @@ Comparing "divc1.exr" and "ref/divc1.exr"
 PASS
 Comparing "divc2.exr" and "ref/divc2.exr"
 PASS
-Comparing "cadd1.exr" and "ref/cadd1.exr"
+Comparing "mad.exr" and "ref/mad.exr"
 PASS
-Comparing "cadd2.exr" and "ref/cadd2.exr"
+Comparing "invert.tif" and "ref/invert.tif"
 PASS
 Comparing "cpow1.exr" and "ref/cpow1.exr"
 PASS
 Comparing "cpow2.exr" and "ref/cpow2.exr"
-PASS
-Comparing "add.exr" and "ref/add.exr"
-PASS
-Comparing "sub.exr" and "ref/sub.exr"
-PASS
-Comparing "subc.exr" and "ref/subc.exr"
 PASS
 Comparing "abs.exr" and "ref/abs.exr"
 PASS

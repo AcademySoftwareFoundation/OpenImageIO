@@ -45,5 +45,6 @@ ${OIIOTOOL} tahoe-small.jpg --cut 100x120+35+40 -tocolorspace sRGB -o cut.jpg
 ${OIIOTOOL} -create 320x240 4 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 -o pretrim.jpg \
             -trim -ch R,G,B,A=1.0 -create 320x240 4 -fill:color=0.75,0.75,0.75,1 320x240 \
             -fill:color=1,1,1,1 318x238+1+1 -over -tocolorspace sRGB -o trim.jpg
+${OIIOTOOL} --autocc tahoe-small.jpg --invert -o invert.jpg
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif
 

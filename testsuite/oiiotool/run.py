@@ -8,6 +8,8 @@ command += oiiotool ("--stats black.tif")
 # test --pattern constant
 command += oiiotool ("--pattern constant:color=.1,.2,.3,1 320x240 4 -o constant.tif")
 command += oiiotool ("--stats constant.tif")
+command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")
+command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 -d half -o grey64.exr")
 
 # test --fill
 command += oiiotool ("--create 256x256 3 --fill:color=1,.5,.5 256x256 --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif")
@@ -51,45 +53,48 @@ command += oiiotool ("resize.tif --rotate 45 --rotate 90 --rotate 90 --rotate 90
 # test warp
 command += oiiotool ("resize.tif --warp 0.7071068,0.7071068,0,-0.7071068,0.7071068,0,128,-53.01933,1 -o warped.tif")
 
-# test --mulc
-# First, make a small gray swatch
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o cmul-input.exr")
-# Test --mulc val (multiply all channels by the same scalar)
-command += oiiotool ("cmul-input.exr --mulc 1.5 -o cmul1.exr")
-# Test --mulc val,val,val... (multiply per-channel scalars)
-command += oiiotool ("cmul-input.exr --mulc 1.5,1,0.5 -o cmul2.exr")
-
-# Test --divc val (divide all channels by the same scalar)
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
-                     "--divc 2.0 -d half -o divc1.exr")
-# Test --divc val,val,val... (divide per-channel scalars)
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
-                     "--divc 2.0,1,0.5 -d half -o divc2.exr")
-# Test --div of images
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 "
-                     "--pattern constant:color=2.0,1,0.5 64x64 3 "
-                     "--div -d half -o div.exr")
-
-# Test --addc val (add to all channels the same scalar)
-command += oiiotool ("cmul-input.exr --addc 0.25 -o cadd1.exr")
-# Test --addc val,val,val... (add per-channel scalars)
-command += oiiotool ("cmul-input.exr --addc 0,0.25,-0.25 -o cadd2.exr")
-
-# Test --powc val (raise all channels by the same power)
-command += oiiotool ("cmul-input.exr --powc 2 -o cpow1.exr")
-# Test --powc val,val,val... (per-channel powers)
-command += oiiotool ("cmul-input.exr --powc 2,2,1 -o cpow2.exr")
-
 # Test --add
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --add -d half -o add.exr")
+# Test --addc val (add to all channels the same scalar)
+command += oiiotool ("grey128.exr --addc 0.25 -o cadd1.exr")
+# Test --addc val,val,val... (add per-channel scalars)
+command += oiiotool ("grey128.exr --addc 0,0.25,-0.25 -o cadd2.exr")
+
 # Test --sub, subc
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --pattern constant:color=.1,.1,.1 64x64+20+20 3 "
             + " --sub -d half -o sub.exr")
 command += oiiotool ("--pattern constant:color=.1,.2,.3 64x64+0+0 3 "
             + " --subc 0.1,0.1,0.1 -d half -o subc.exr")
+
+# test --mul of images
+command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 --mul -o mul.exr")
+# Test --mulc val (multiply all channels by the same scalar)
+command += oiiotool ("grey128.exr --mulc 1.5 -o cmul1.exr")
+# Test --mulc val,val,val... (multiply per-channel scalars)
+command += oiiotool ("grey128.exr --mulc 1.5,1,0.5 -o cmul2.exr")
+
+# Test --divc val (divide all channels by the same scalar)
+command += oiiotool ("grey64.exr --divc 2.0 -d half -o divc1.exr")
+# Test --divc val,val,val... (divide per-channel scalars)
+command += oiiotool ("grey64.exr --divc 2.0,1,0.5 -d half -o divc2.exr")
+# Test --div of images
+command += oiiotool ("grey64.exr --pattern constant:color=2.0,1,0.5 64x64 3 "
+                   + "--div -d half -o div.exr")
+
+# test --mad of images
+command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 "
+                   + "-pattern constant:color=.1,.1,.1 64x64 3 --mad -o mad.exr")
+
+# test --invert
+command += oiiotool ("tahoe-small.tif --invert -o invert.tif")
+
+# Test --powc val (raise all channels by the same power)
+command += oiiotool ("grey128.exr --powc 2 -o cpow1.exr")
+# Test --powc val,val,val... (per-channel powers)
+command += oiiotool ("grey128.exr --powc 2,2,1 -o cpow2.exr")
 
 # Test --abs, --absdiff, --absdiffc
 # First, make a test image that's 0.5 on the left, -0.5 on the right
@@ -280,11 +285,12 @@ outputs = [
             "cshift.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr",
-            "cmul1.exr", "cmul2.exr",
+            "add.exr", "cadd1.exr", "cadd2.exr",
+            "sub.exr", "subc.exr",
+            "mul.exr", "cmul1.exr", "cmul2.exr",
             "div.exr", "divc1.exr", "divc2.exr",
-            "cadd1.exr", "cadd2.exr",
+            "mad.exr", "invert.tif",
             "cpow1.exr", "cpow2.exr",
-            "add.exr", "sub.exr", "subc.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
             "rgbahalf-zfloat.exr",
