@@ -1233,6 +1233,28 @@ stored.
 \apiend
 
 
+\apiitem{ROI {\ce nonzero_region} (const ImageBuf \&src, ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!nonzero_region} \indexapi{nonzero_region}
+
+Find the minimal rectangular region within {\cf roi} (which defaults to
+the entire pixel data window of {\cf src}) that consists of nonzero pixel
+values.  In other words, gives the region that is a ``shrink-wraps''
+of {\cf src} to exclude black border pixels.  Note that if the entire
+image was black, the ROI returned will contain no pixels.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("a.exr");
+    ROI shrunk = ImageBufAlgo::nonzero_region (A);
+    if (shrunk.undefined())
+        std::cout << "All pixels were empty\n";
+    else
+        std::cout << "Non-empty region was " << shrunk << "\n";
+\end{code}
+\apiend
+
+
 \apiitem{std::string {\ce computePixelHashSHA1} (const ImageBuf \&src, \\
   \bigspc\bigspc string_view extrainfo = "", \\
   \bigspc\bigspc  ROI roi=ROI::All(), int blocksize=0, int nthreads=0)}
