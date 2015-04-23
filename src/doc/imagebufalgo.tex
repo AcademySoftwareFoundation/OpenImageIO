@@ -275,7 +275,7 @@ identical on different platforms supported by \product.
         \bigspc  const int *channelorder,  const float *channelvalues=NULL, \\
         \bigspc                 const std::string *newchannelnames=NULL, \\
         \bigspc                 bool shuffle_channel_names=false)}
-\index{ImageBufAlgo!channels} \indexapi{channels}
+\index{ImageBufAlgo!channels} \indexapi{channels} \label{sec:iba:channels}
 
 Generic channel shuffling: copy {\cf src} to {\cf dst}, but with channels in
 the order specified by {\cf channelorder[0..nchannels-1]}.  Does not support in-place
@@ -343,24 +343,6 @@ region.
     ImageBuf Z (...);      // assume initialized, 1 channel
     ImageBuf RGBAZ;
     ImageBufAlgo::channel_append (RGBAZ, RGBA, Z);
-\end{code}
-\apiend
-
-
-\apiitem{bool {\ce flatten} (ImageBuf \&dst, const ImageBuf \&src, \\
-        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
-\index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
-Copy pixels from \emph{deep} image {\cf src} into non-deep {\cf dst},
-compositing the depth samples within each pixel to yield a single ``flat''
-value per pixel. If {\cf src} is not deep, it just copies the pixels without
-alteration.
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    ImageBuf Deep ("deepalpha.exr");
-    ImageBuf Flat;
-    ImageBufAlgo::flatten (Flat, Deep);
 \end{code}
 \apiend
 
@@ -1182,6 +1164,7 @@ as if they are infinitely far away.
 \apiitem{bool {\ce computePixelStats} (PixelStats \&stats, const ImageBuf \&src, \\
    \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!computePixelStats} \indexapi{computePixelStats}
+\label{sec:iba:computePixelStats}
 
 Compute statistics about the ROI of the image {\cf src}, storing results
 in {\cf stats} (each of the vectors within {\cf stats} will be
@@ -2216,6 +2199,55 @@ alter {\cf dst}.
 \end{code}
 \apiend
 
+
+
+\section{Deep images}
+\label{sec:iba:deep}
+
+A number of {\cf ImageBufAlgo} functions are designed to work with ``deep''
+images. These are detailed below. In general, {\cf ImageBufAlgo} functions
+not listed in this section should not be expected to work with deep images.
+
+\subsection{Functions specific to deep images}
+
+\apiitem{bool {\ce flatten} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
+Copy pixels from \emph{deep} image {\cf src} into non-deep {\cf dst},
+compositing the depth samples within each pixel to yield a single ``flat''
+value per pixel. If {\cf src} is not deep, it just copies the pixels without
+alteration.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Deep ("deepalpha.exr");
+    ImageBuf Flat;
+    ImageBufAlgo::flatten (Flat, Deep);
+\end{code}
+\apiend
+
+\subsection{General functions that also work for deep images}
+
+\apiitem{bool {\ce channels} (ImageBuf \&dst, const ImageBuf \&src, int nchannels, \\
+        \bigspc  const int *channelorder,  const float *channelvalues=NULL, \\
+        \bigspc                 const std::string *newchannelnames=NULL, \\
+        \bigspc                 bool shuffle_channel_names=false)}
+Reorder, rename, remove, or add channels to a deep image.
+See Section~\ref{sec:iba:channels}
+\apiend
+
+\apiitem{bool {\ce computePixelStats} (PixelStats \&stats, const ImageBuf \&src, \\
+   \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
+Compute per-channel statistics about the image.
+See Section~\ref{sec:iba:computePixelStats}
+\apiend
+
+\apiitem{bool {\ce compare} (const ImageBuf \&A, const ImageBuf \&B, \\
+  \bigspc float failthresh, float warnthresh, CompareResults \&result,\\
+   \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+Numerically compare two images.
+\apiend
 
 
 

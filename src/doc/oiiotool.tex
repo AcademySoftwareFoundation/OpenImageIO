@@ -950,6 +950,7 @@ in the least amount of precision lost.
 %\apiend
 
 \apiitem{\ce --scanline}
+\label{sec:oiiotool:scanline}
 Requests that subsequent output files be scanline-oriented, if scanline
 orientation is supported by the output file format.  By default, the
 output file will be scanline if the input is scanline, or tiled if the
@@ -957,6 +958,7 @@ input is tiled.
 \apiend
 
 \apiitem{\ce --tile {\rm \emph{x}} {\rm \emph{y}}}
+\label{sec:oiiotool:tile}
 Requests that subsequent output files be tiled, with the given $x \times y$ 
 tile size, if tiled images are supported by the output format.
 By default, the output file will take on the tiledness and tile size
@@ -1197,6 +1199,7 @@ subimages of both images appended together.
 \apiend
 
 \apiitem{\ce --ch {\rm \emph{channellist}}}
+\label{sec:oiiotool:ch}
 Replaces the top image with a new image whose channels have been
 reordered as given by the \emph{channellist}.  The {\cf channellist}
 is a comma-separated list of channel designations, each of which may be
@@ -1222,11 +1225,6 @@ Replaces the top two images on the stack with a new image comprised of
 the channels of both images appended together.
 \apiend
 
-\apiitem{\ce --flatten}
-\index{deep images}
-If the top image is ``deep,'' then ``flatten'' it by compositing the depth
-samples in each pixel.
-\apiend
 
 
 \section{\oiiotool commands that adjust the image stack}
@@ -2415,3 +2413,52 @@ image starts of as ``unassociated alpha,'' a.k.a.\ ``non-premultipled.''
 \apiend
 
 
+\section{\oiiotool commands for deep images}
+
+A number of \oiiotool operations are designed to work with ``deep'' images.
+These are detailed below. In general, operations not listed in this section
+should not be expected to work with deep images.
+
+\subsection{Commands specific to deep images}
+
+\apiitem{\ce --flatten}
+\index{deep images}
+If the top image is ``deep,'' then ``flatten'' it by compositing the depth
+samples in each pixel.
+\apiend
+
+\subsection{General commands that also work for deep images}
+
+\apiitem{\ce --info}
+Prints information about each input image as it is read. 
+\apiend
+
+\apiitem{\ce --stats}
+Prints detailed statistical information about each input image as it is
+read.
+\apiend
+
+\apiitem{\ce --diff}
+Report on the difference of the top two images.
+\apiend
+
+\apiitem{\ce --dumpdata}
+Print to the console detailed information about the values in every pixel.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf empty=}{\verb&0|1&} & If 0, will cause deep images to skip printing
+                            of information about pixels with no samples.
+\end{tabular}
+\apiend
+
+\apiitem{\ce --scanline \\
+\ce --tile {\rm \emph{x}} {\rm \emph{y}}}
+Convert to scanline or to tiled representations upon output.
+\apiend
+
+\apiitem{\ce --ch {\rm \emph{channellist}}}
+Reorder, rename, remove, or add channels to a deep image.
+See Section~\ref{sec:oiiotool:ch}
+\apiend
