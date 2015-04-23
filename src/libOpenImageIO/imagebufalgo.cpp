@@ -232,6 +232,12 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             return false;
         }
     }
+    if (! (prepflags & IBAprep_SUPPORT_DEEP) &&
+        ((dst && dst->deep()) || (A && A->deep()) ||
+         (B && B->deep()) || (C && C->deep()))) {
+        dst->error ("deep data not supported");
+        return false;
+    }
     return true;
 }
 

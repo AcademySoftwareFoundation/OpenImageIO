@@ -126,7 +126,8 @@ enum IBAprep_flags {
     IBAprep_NO_SUPPORT_VOLUME = 16,     // Don't know how to do volumes
     IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
     IBAprep_COPY_ALL_METADATA = 512,    // Even unsafe things
-    IBAprep_CLAMP_MUTUAL_NCHANNELS = 1024 // Clamp roi.chend to max of inputs
+    IBAprep_CLAMP_MUTUAL_NCHANNELS = 1<<10, // Clamp roi.chend to max of inputs
+    IBAprep_SUPPORT_DEEP = 1<<11,
 };
 
 

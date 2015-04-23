@@ -162,7 +162,7 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
     force_spec.deep = false;
     force_spec.channelformats.clear();
 
-    if (! IBAprep (roi, &dst, &src, NULL, &force_spec))
+    if (! IBAprep (roi, &dst, &src, NULL, &force_spec, IBAprep_SUPPORT_DEEP))
         return false;
     if (dst.spec().deep) {
         dst.error ("Cannot flatten to a deep image");
