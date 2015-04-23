@@ -1426,6 +1426,10 @@ values.  In other words, gives the region that is a ``shrink-wraps''
 of {\cf src} to exclude black border pixels.  Note that if the entire
 image was black, the ROI returned will contain no pixels.
 
+For ``deep'' images, this function returns the smallest ROI that contains
+all pixels that contain depth samples, and excludes the border pixels
+that contain no depth samples at all.
+
 \smallskip
 \noindent Examples:
 \begin{code}
@@ -2272,6 +2276,13 @@ See Section~\ref{sec:iba:channels}
    \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
 Compute per-channel statistics about the image.
 See Section~\ref{sec:iba:computePixelStats}
+\apiend
+
+\apiitem{ROI {\ce nonzero_region} (const ImageBuf \&src, ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!nonzero_region} \indexapi{nonzero_region}
+For ``deep'' images, this function returns the smallest ROI that contains
+all pixels that contain depth samples, and excludes the border pixels
+that contain no depth samples at all.
 \apiend
 
 \apiitem{bool {\ce compare} (const ImageBuf \&A, const ImageBuf \&B, \\

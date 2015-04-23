@@ -1237,6 +1237,10 @@ bool OIIO_API color_range_check (const ImageBuf &src,
 /// of src to exclude black border pixels.  Note that if the entire
 /// image was black, the ROI returned will contain no pixels.
 ///
+/// For "deep" images, this function returns the smallest ROI that contains
+/// all pixels that contain depth samples, and excludes the border pixels
+/// that contain no depth samples at all.
+///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use
 /// the global OIIO attribute "nthreads".  If nthreads == 1, it
