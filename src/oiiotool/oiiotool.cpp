@@ -2280,7 +2280,9 @@ action_crop (int argc, const char *argv[])
 
     ot.adjust_geometry (argv[0], newspec.width, newspec.height,
                         newspec.x, newspec.y, size.c_str());
-    if (newspec.width != Aspec.width || newspec.height != Aspec.height) {
+    if (newspec.width != Aspec.width || newspec.height != Aspec.height ||
+        newspec.depth != Aspec.depth ||
+        newspec.x != Aspec.x || newspec.y != Aspec.y || newspec.z != Aspec.z) {
         // resolution changed -- we need to do a full crop
         ot.pop();
         ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
@@ -2289,12 +2291,6 @@ action_crop (int argc, const char *argv[])
         bool ok = ImageBufAlgo::crop (Rib, Aib, get_roi(newspec));
         if (! ok)
             ot.error (command, Rib.geterror());
-    } else if (newspec.x != Aspec.x || newspec.y != Aspec.y) {
-        // only offset changed; don't copy the image or crop, simply
-        // adjust the origins.
-        Aspec.x = newspec.x;
-        Aspec.y = newspec.y;
-        A->metadata_modified (true);
     }
 
     ot.function_times[command] += timer();
