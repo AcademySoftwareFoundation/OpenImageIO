@@ -215,6 +215,16 @@ IBA_channel_append (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
+IBA_deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
+            ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::deepen (dst, src, zvalue, roi, nthreads);
+}
+
+
+
+bool
 IBA_flatten (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1140,6 +1150,11 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("channel_append")
+
+        .def("deepen", IBA_deepen,
+             (arg("dst"), arg("src"), arg("zvalue")=1.0f,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("deepen")
 
         .def("flatten", IBA_flatten,
              (arg("dst"), arg("src"),

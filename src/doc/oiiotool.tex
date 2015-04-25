@@ -2421,6 +2421,24 @@ should not be expected to work with deep images.
 
 \subsection{Commands specific to deep images}
 
+\apiitem{\ce --deepen}
+\index{deep images}
+\NEW  % 1.6
+If the top image is not deep, then turn it into the equivalent ``deep''
+image. Pixels with non-infinite $z$ or with any non-zero color channels will
+get a single depth sample in the resulting deep image. Pixels in the source
+that have 0 in all channels, and either no \qkw{Z} channel or a $z$ value
+indicating an infinite distance, will result in a pixel with no depth
+samples.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf z=}\emph{val} & The depth to use for deep samples if the source
+    image did not have a \qkw{Z} channel. (The default is {\cf 1.0}.)
+\end{tabular}
+\apiend
+
 \apiitem{\ce --flatten}
 \index{deep images}
 If the top image is ``deep,'' then ``flatten'' it by compositing the depth

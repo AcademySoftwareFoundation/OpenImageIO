@@ -2210,6 +2210,37 @@ not listed in this section should not be expected to work with deep images.
 
 \subsection{Functions specific to deep images}
 
+\apiitem{bool {\ce deepen} (ImageBuf \&dst, const ImageBuf \&src, float zvalue, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
+\NEW % 1.6
+Copy pixels from regular (not ``deep'') image {\cf src} into deep {\cf dst}.
+
+If the {\cf src} image has a \qkw{Z} channel: if the source pixel's {\cf Z}
+channel value is not infinite, the corresponding pixel of {\cf dst} will get
+a single depth sample that copies the data from the soruce pixel; otherwise,
+{\cf dst} will get an empty pixel. In other words, infinitely far pixels
+will not turn into deep samples.
+
+If the {\cf src} image lacks a \qkw{Z} channel: if any of the source pixel's
+channel values are nonzero, the corresponding pixel of {\cf dst} will get a
+single depth sample that copies the data from the source pixel and uses the
+{\cf zvalue} parameter for the depth; otherwise, if all source channels in
+that pixel are zero, the destination pixel will get no depth samples.
+
+If {\cf src} is already a deep image, it will just copy pixel values from
+{\cf src} to {\cf dst}. If {\cf dst} is not already an initialized
+\ImageBuf, it will be sized to match {\cf src} (but made deep).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Flat ("RGBAZ.exr");
+    ImageBuf Deep;
+    ImageBufAlgo::deepen (Deep, Flat);
+\end{code}
+\apiend
+
 \apiitem{bool {\ce flatten} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}

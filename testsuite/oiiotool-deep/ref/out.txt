@@ -2,3 +2,5 @@ Comparing "flat.exr" and "ref/flat.exr"
 PASS
 Comparing "ch.exr" and "ref/ch.exr"
 PASS
+Comparing "deepen.exr" and "ref/deepen.exr"
+PASS

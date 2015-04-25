@@ -246,6 +246,37 @@ bool OIIO_API channel_append (ImageBuf &dst, const ImageBuf &A,
                               int nthreads=0);
 
 
+/// Set dst to the "deep" version of "flat" input src. Turning a flat
+/// image into a deep one means:
+///
+/// If the src image has a "Z" channel: if the source pixel's Z channel
+/// value is not infinite, the corresponding pixel of dst will get a single
+/// depth sample that copies the data from the soruce pixel; otherwise, dst
+/// will get an empty pixel. In other words, infinitely far pixels will not
+/// turn into deep samples.
+///
+/// If the src image lacks a "Z" channel: if any of the source pixel's
+/// channel values are nonzero, the corresponding pixel of dst will get a
+/// single depth sample that copies the data from the source pixel and uses
+/// the zvalue parameter for the depth; otherwise, if all source channels in
+/// that pixel are zero, the destination pixel will get no depth samples.
+///
+/// If src is already a deep image, it will just copy pixel values from src
+/// to dst. If dst is not already an initialized ImageBuf, it will be sized
+/// to match src (but made deep).
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+bool OIIO_API deepen (ImageBuf &dst, const ImageBuf &src, float zvalue = 1.0f,
+                      ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Set dst to the ``flattened'' composite of deep image src.  That is, it
 /// converts a deep image to a simple flat image by front-to-back
 /// compositing the samples within each pixel.  If src is already a non-

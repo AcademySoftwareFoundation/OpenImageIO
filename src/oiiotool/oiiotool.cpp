@@ -2876,6 +2876,21 @@ action_zover (int argc, const char *argv[])
 
 
 
+class OpDeepen : public OiiotoolOp {
+public:
+    OpDeepen (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual void option_defaults () { options["z"] = 1.0; }
+    virtual int impl (ImageBuf **img) {
+        float z = Strutil::from_string<float>(options["z"]);
+        return ImageBufAlgo::deepen (*img[0], *img[1], z);
+    }
+};
+
+OP_CUSTOMCLASS (deepen, OpDeepen, 1);
+
+
+
 UNARY_IMAGE_OP (flatten, ImageBufAlgo::flatten);
 
 
@@ -3684,6 +3699,7 @@ getargs (int argc, char *argv[])
                 "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--siappend %@", action_subimage_append, NULL,
                     "Append the last two images into one multi-subimage image",
+                "--deepen %@", action_deepen, NULL, "Deepen normal 2D image to deep",
                 "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
                 "<SEPARATOR>", "Image stack manipulation:",
                 "--dup %@", action_dup, NULL,

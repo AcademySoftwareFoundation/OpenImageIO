@@ -1784,6 +1784,23 @@ the region of interest.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce deepen} (dst, src, zvalue=1.0, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
+
+Convert a flat image to a deep one that has one depth sample per pixel
+(but no depth samples for the pixels corresponding to those in the source
+image that have infinite \qkw{Z} or that had 0 for all color channels and no
+\qkw{Z} channel).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Deep = ImageBuf()
+    ImageBufAlgo.deepen (Deep, ImageBuf("az.exr"))
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce flatten} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
 

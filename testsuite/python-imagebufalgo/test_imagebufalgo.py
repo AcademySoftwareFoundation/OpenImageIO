@@ -93,6 +93,11 @@ try:
     ImageBufAlgo.flatten (b, ImageBuf("../oiiotool-deep/src/deepalpha.exr"))
     write (b, "flat.exr")
 
+    # deepen
+    b = ImageBuf()
+    ImageBufAlgo.deepen (b, ImageBuf("../oiiotool-deep/az.exr"))
+    write (b, "deepen.exr")
+
     # crop
     b = ImageBuf()
     ImageBufAlgo.crop (b, grid, oiio.ROI(50,150,200,600))

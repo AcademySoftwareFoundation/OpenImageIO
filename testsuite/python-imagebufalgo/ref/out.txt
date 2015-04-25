@@ -34,6 +34,8 @@ Comparing "chappend-rgbaz.exr" and "../../../../testsuite/oiiotool/ref/chappend-
 PASS
 Comparing "flat.exr" and "../../../../testsuite/oiiotool-deep/ref/flat.exr"
 PASS
+Comparing "deepen.exr" and "../../../../testsuite/oiiotool-deep/ref/deepen.exr"
+PASS
 Comparing "crop.tif" and "../../../../testsuite/oiiotool/ref/crop.tif"
 PASS
 Comparing "cut.tif" and "../../../../testsuite/oiiotool/ref/cut.tif"
@@ -76,9 +78,13 @@ Comparing "abs.exr" and "../../../../testsuite/oiiotool/ref/abs.exr"
 PASS
 Comparing "absdiff.exr" and "../../../../testsuite/oiiotool/ref/absdiff.exr"
 PASS
+Comparing "mul.exr" and "../../../../testsuite/oiiotool/ref/mul.exr"
+PASS
 Comparing "cmul1.exr" and "../../../../testsuite/oiiotool/ref/cmul1.exr"
 PASS
 Comparing "cmul2.exr" and "../../../../testsuite/oiiotool/ref/cmul2.exr"
+PASS
+Comparing "mad.exr" and "../../../../testsuite/oiiotool/ref/mad.exr"
 PASS
 Comparing "cpow1.exr" and "../../../../testsuite/oiiotool/ref/cpow1.exr"
 PASS
@@ -89,6 +95,8 @@ PASS
 Comparing "divc1.exr" and "../../../../testsuite/oiiotool/ref/divc1.exr"
 PASS
 Comparing "divc2.exr" and "../../../../testsuite/oiiotool/ref/divc2.exr"
+PASS
+Comparing "invert.tif" and "../../../../testsuite/oiiotool/ref/invert.tif"
 PASS
 Comparing "chsum.tif" and "../../../../testsuite/oiiotool/ref/chsum.tif"
 PASS
