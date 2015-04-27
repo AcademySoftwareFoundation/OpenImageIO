@@ -1,0 +1,8 @@
+Comparing "fit_lg10.dpx" and "../../../../../spi-oiio-tests/ref/fit_lg10.dpx"
+PASS
+Comparing "mkt019_comp_wayn_fullres_s3d_lf_v51_alpha_misc_vd16.1001.tif" and "../../../../../spi-oiio-tests/ref/mkt019_comp_wayn_fullres_s3d_lf_v51_alpha_misc_vd16.1001.tif"
+PASS
+Comparing "ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg" and "../../../../../spi-oiio-tests/ref/ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg"
+PASS
+Comparing "ep0400_bg1_v101_1kalxog_vd8.1001.jpg" and "../../../../../spi-oiio-tests/ref/ep0400_bg1_v101_1kalxog_vd8.1001.jpg"
+PASS

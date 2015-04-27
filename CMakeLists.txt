@@ -487,7 +487,7 @@ oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
 
 if (SPI_TESTS)
-  oiio_add_tests (spi
+  oiio_add_tests (oiiotool-spi
     FOUNDVAR SPI_TESTS
     IMAGEDIR spi-oiio-tests
     URL "noplace -- it's SPI specific tests")
