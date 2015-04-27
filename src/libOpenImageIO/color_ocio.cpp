@@ -111,47 +111,10 @@ ColorConfig::Impl::inventory ()
 
 
 
-ColorConfig::ColorConfig ()
-    : m_impl (new ColorConfig::Impl)
-{
-#ifdef USE_OCIO
-    OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
-    try {
-        getImpl()->config_ = OCIO::GetCurrentConfig();
-    }
-    catch(OCIO::Exception &e) {
-        getImpl()->error_ = e.what();
-    }
-    catch(...) {
-        getImpl()->error_ = "An unknown error occurred in OpenColorIO, GetCurrentConfig";
-    }
-#endif
-
-    getImpl()->inventory ();
-
-    // If we populated our own, remove any errors.
-    if (getNumColorSpaces() && !getImpl()->error_.empty())
-        getImpl()->error_.clear();
-}
-
-
-
 ColorConfig::ColorConfig (string_view filename)
-    : m_impl (new ColorConfig::Impl)
+    : m_impl (NULL)
 {
-#ifdef USE_OCIO
-    OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
-    try {
-        getImpl()->config_ = OCIO::Config::CreateFromFile (filename.c_str());
-    }
-    catch (OCIO::Exception &e) {
-        getImpl()->error_ = e.what();
-    }
-    catch (...)
-    {
-        getImpl()->error_ = "An unknown error occurred in OpenColorIO, CreateFromFile";
-    }
-#endif
+    reset (filename);
 }
 
 
@@ -160,6 +123,43 @@ ColorConfig::~ColorConfig()
 {
     delete m_impl;
     m_impl = NULL;
+}
+
+
+
+bool
+ColorConfig::reset (string_view filename)
+{
+    bool ok = true;
+    delete m_impl;
+
+    m_impl = new ColorConfig::Impl;
+#ifdef USE_OCIO
+    OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
+    try {
+        if (filename.empty()) {
+            getImpl()->config_ = OCIO::GetCurrentConfig();
+        } else {
+            getImpl()->config_ = OCIO::Config::CreateFromFile (filename.c_str());
+        }
+    }
+    catch(OCIO::Exception &e) {
+        getImpl()->error_ = e.what();
+        ok = false;
+    }
+    catch(...) {
+        getImpl()->error_ = "An unknown error occurred in OpenColorIO creating the config";
+        ok = false;
+    }
+#endif
+
+    getImpl()->inventory ();
+
+    // If we populated our own, remove any errors.
+    if (getNumColorSpaces() && !getImpl()->error_.empty())
+        getImpl()->error_.clear();
+
+    return ok;
 }
 
 
@@ -691,6 +691,17 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
                             bool unpremult, ROI roi, int nthreads)
 {
+    return colorconvert (dst, src, from, to, unpremult, NULL, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult, ColorConfig *colorconfig,
+                            ROI roi, int nthreads)
+{
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -698,17 +709,17 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorConfig *config = NULL;
     ColorProcessor *processor = NULL;
     {
         spin_lock lock (colorconfig_mutex);
-        config = default_colorconfig.get();
-        if (! config)
-            default_colorconfig.reset (config = new ColorConfig);
-        processor = config->createColorProcessor (from, to);
+        if (! colorconfig)
+            colorconfig = default_colorconfig.get();
+        if (! colorconfig)
+            default_colorconfig.reset (colorconfig = new ColorConfig);
+        processor = colorconfig->createColorProcessor (from, to);
         if (! processor) {
-            if (config->error())
-                dst.error ("%s", config->geterror());
+            if (colorconfig->error())
+                dst.error ("%s", colorconfig->geterror());
             else
                 dst.error ("Could not construct the color transform");
             return false;
@@ -717,7 +728,10 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
-    config->deleteColorProcessor (processor);
+    {
+        spin_lock lock (colorconfig_mutex);
+        colorconfig->deleteColorProcessor (processor);
+    }
     return ok;
 }
 
@@ -831,8 +845,6 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             const ColorProcessor* processor, bool unpremult,
                             ROI roi, int nthreads)
 {
-    // FIXME -- currently, we do not split across threads.
-
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
@@ -871,6 +883,20 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view key, string_view value,
                         ROI roi, int nthreads)
 {
+    return ociolook (dst, src, looks, from, to, inverse, unpremult,
+                     key, value, NULL, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
+                        string_view looks, string_view from, string_view to,
+                        bool inverse, bool unpremult,
+                        string_view key, string_view value,
+                        ColorConfig *colorconfig,
+                        ROI roi, int nthreads)
+{
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -881,18 +907,18 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorConfig *config = NULL;
     ColorProcessor *processor = NULL;
     {
         spin_lock lock (colorconfig_mutex);
-        config = default_colorconfig.get();
-        if (! config)
-            default_colorconfig.reset (config = new ColorConfig);
-        processor = config->createLookTransform (looks, from, to, inverse,
+        if (! colorconfig)
+            colorconfig = default_colorconfig.get();
+        if (! colorconfig)
+            default_colorconfig.reset (colorconfig = new ColorConfig);
+        processor = colorconfig->createLookTransform (looks, from, to, inverse,
                                                  key, value);
         if (! processor) {
-            if (config->error())
-                dst.error ("%s", config->geterror());
+            if (colorconfig->error())
+                dst.error ("%s", colorconfig->geterror());
             else
                 dst.error ("Could not construct the color transform");
             return false;
@@ -901,7 +927,10 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
     bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
-    config->deleteColorProcessor (processor);
+    {
+        spin_lock lock (colorconfig_mutex);
+        colorconfig->deleteColorProcessor (processor);
+    }
     return ok;
 }
 
@@ -915,6 +944,21 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view key, string_view value,
                            ROI roi, int nthreads)
 {
+    return ociodisplay (dst, src, display, view, from, looks, unpremult,
+                        key, value, NULL, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                           string_view display, string_view view,
+                           string_view from, string_view looks,
+                           bool unpremult,
+                           string_view key, string_view value,
+                           ColorConfig *colorconfig,
+                           ROI roi, int nthreads)
+{
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -922,24 +966,27 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorConfig *config = NULL;
     ColorProcessor *processor = NULL;
     {
         spin_lock lock (colorconfig_mutex);
-        config = default_colorconfig.get();
-        if (! config)
-            default_colorconfig.reset (config = new ColorConfig);
-        processor = config->createDisplayTransform (display, view, from, looks, key, value);
+        if (! colorconfig)
+            colorconfig = default_colorconfig.get();
+        if (! colorconfig)
+            default_colorconfig.reset (colorconfig = new ColorConfig);
+        processor = colorconfig->createDisplayTransform (display, view, from, looks, key, value);
         if (! processor) {
-            if (config->error())
-                dst.error ("%s", config->geterror());
+            if (colorconfig->error())
+                dst.error ("%s", colorconfig->geterror());
             else
                 dst.error ("Could not construct the color transform");
             return false;
         }
     }
     bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
-    config->deleteColorProcessor (processor);
+    {
+        spin_lock lock (colorconfig_mutex);
+        colorconfig->deleteColorProcessor (processor);
+    }
     return ok;
 }
 

@@ -897,50 +897,12 @@ bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
                             bool unpremult=false,
+                            ColorConfig *colorconfig=NULL,
                             ROI roi=ROI::All(), int nthreads=0);
-
-/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
-/// "look" transform. In-place operations (dst == src) are supported.
-///
-/// If dst is not yet initialized, it will be allocated to the same
-/// size as specified by roi.  If roi is not defined it will be all
-/// of dst, if dst is defined, or all of src, if dst is not yet defined.
-///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
-bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
-                        string_view looks, string_view from, string_view to,
-                        bool unpremult=false, bool inverse=false,
-                        string_view key="", string_view value="",
-                        ROI roi=ROI::All(), int nthreads=0);
-
-/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
-/// "display" transform.  If from or looks are NULL, it will not
-/// override the look or source color space (subtly different than
-/// passing "", the empty string, which means to use no look or source
-/// space).
-///
-/// If dst is not yet initialized, it will be allocated to the same
-/// size as specified by roi.  If roi is not defined it will be all
-/// of dst, if dst is defined, or all of src, if dst is not yet defined.
-/// In-place operations (dst == src) are supported.
-///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
-bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
-                        string_view display, string_view view,
-                        string_view from="", string_view looks="",
-                        bool unpremult=false,
-                        string_view key="", string_view value="",
-                        ROI roi=ROI::All(), int nthreads=0);
+// DEPRECATED (1.6)
+bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult, ROI roi, int nthreads=0);
 
 /// Copy pixels within the ROI from src to dst, applying a color transform.
 /// In-place operations (dst == src) are supported.
@@ -969,6 +931,64 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
 /// flag if your image contains an alpha channel.
 bool OIIO_API colorconvert (float *color, int nchannels,
                             const ColorProcessor *processor, bool unpremult);
+
+
+/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
+/// "look" transform. In-place operations (dst == src) are supported.
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
+                        string_view looks, string_view from, string_view to,
+                        bool unpremult=false, bool inverse=false,
+                        string_view key="", string_view value="",
+                        ColorConfig *colorconfig=NULL,
+                        ROI roi=ROI::All(), int nthreads=0);
+// DEPRECATED (1.6)
+bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
+                        string_view looks, string_view from, string_view to,
+                        bool unpremult, bool inverse,
+                        string_view key, string_view value,
+                        ROI roi, int nthreads=0);
+
+/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
+/// "display" transform.  If from or looks are NULL, it will not
+/// override the look or source color space (subtly different than
+/// passing "", the empty string, which means to use no look or source
+/// space).
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+/// In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                        string_view display, string_view view,
+                        string_view from="", string_view looks="",
+                        bool unpremult=false,
+                        string_view key="", string_view value="",
+                        ColorConfig *colorconfig=NULL,
+                        ROI roi=ROI::All(), int nthreads=0);
+// DEPRECATED (1.6)
+bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
+                        string_view display, string_view view,
+                        string_view from, string_view looks,
+                        bool unpremult, string_view key, string_view value,
+                        ROI roi, int nthreads=0);
 
 
 /// Copy pixels from dst to src, and in the process divide all color

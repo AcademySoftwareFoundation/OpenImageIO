@@ -61,21 +61,24 @@ class OIIO_API ColorProcessor;
 class OIIO_API ColorConfig
 {
 public:
-    /// If OpenColorIO is enabled at build time, initialize with the current
-    /// color configuration. ($OCIO)
-    /// If OpenColorIO is not enabled, this does nothing.
+    /// Construct a ColorConfig using the named OCIO configuration file,
+    /// or if filename is empty, to the current color configuration
+    /// specified by env variable $OCIO.
     ///
-    /// Multiple calls to this are inexpensive.
-    ColorConfig();
-    
-    /// If OpenColorIO is enabled at build time, initialize with the 
-    /// specified color configuration (.ocio) file
-    /// If OpenColorIO is not enabled, this will result in an error.
-    /// 
-    /// Multiple calls to this are potentially expensive.
-    ColorConfig(string_view filename);
+    /// Multiple calls to this are potentially expensive. A ColorConfig
+    /// should usually be shared by an app for its entire runtime.
+    ColorConfig (string_view filename = "");
     
     ~ColorConfig();
+
+    /// Reset the config to the named OCIO configuration file, or if
+    /// filename is empty, to the current color configuration specified
+    /// by env variable $OCIO. Return true for success, false if there
+    /// was an error.
+    ///
+    /// Multiple calls to this are potentially expensive. A ColorConfig
+    /// should usually be shared by an app for its entire runtime.
+    bool reset (string_view filename = "");
     
     /// Has an error string occurred?
     /// (This will not affect the error state.)

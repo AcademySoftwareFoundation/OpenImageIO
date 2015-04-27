@@ -2292,6 +2292,23 @@ identical on different platforms supported by \product.
 
 \section{\oiiotool commands for color management}
 
+Many of the color management commands depend on an installation of
+OpenColorIO ({\cf http://opencolorio.org/}).
+
+If OIIO has been compiled with OpenColorIO support and the environment
+variable {\cf \$OCIO} is set to point to a valid OpenColorIO configuration
+file, you will have access to all the color spaces that are known by that
+OCIO configuration.  Alternately, you can use the {\cf --colorconfig} option
+to explicitly point to a configuration file. If no  valid configuration file
+is found (either in {\cf \$OCIO} or specified by {\cf --colorconfig}) or
+OIIO was not compiled with OCIO support, then the only color space
+transformats available are {\cf linear} to {\cf Rec709} (and vice versa) and
+{\cf linear} to {\cf sRGB} (and vice versa).
+
+If you ask for \oiiotool help ({\cf oiiotool --help}), at the very bottom
+you will see the list of all color spaces, looks, and displays that
+\oiiotool knows about.
+
 \apiitem{\ce --iscolorspace {\rm \emph{colorspace}}}
 Alter the metadata of the current image so that it thinks its pixels
 are in the named color space.  This does not alter the pixels of the
@@ -2299,24 +2316,18 @@ image, it only changes \oiiotool's understanding of what color
 space those those pixels are in.
 \apiend
 
+\apiitem{\ce --colorconfig {\rm \emph{filename}}}
+\NEW % 1.6
+Instruct \oiiotool to read an OCIO configuration from a custom location.
+Without this, the default is to use the {\cf \$OCIO} environment variable
+as a guide for the location of the configuration file.
+\apiend
+
 \apiitem{\ce --colorconvert {\rm \emph{fromspace tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from the named \emph{fromspace} color space into the named
 \emph{tospace} (disregarding any notion it may have previously had 
 about the color space of the current image).  
-
-If OIIO has been compiled with OpenColorIO support and the environment
-variable {\cf \$OCIO} is set to point to a valid OpenColorIO
-configuration file, you will have access to all the color spaces that
-are known by that OCIO configuration.  If {\cf \$OCIO} does not point to
-a valid configuration file or OIIO was not compiled with OCIO support,
-then the only color space transformats available are {\cf linear} to
-{\cf Rec709} (and vice versa) and {\cf linear} to {\cf sRGB} (and vice
-versa).
-
-If you ask for \oiiotool help ({\cf oiiotool --help}), at the very
-bottom you will see the list of all color spaces that \oiiotool knows
-about.
 \apiend
 
 \apiitem{\ce --tocolorspace {\rm \emph{tospace}}}

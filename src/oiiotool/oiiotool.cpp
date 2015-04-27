@@ -1400,6 +1400,16 @@ set_full_to_pixels (int argc, const char *argv[])
 
 
 static int
+set_colorconfig (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.colorconfig.reset (argv[1]);
+    return 0;
+}
+
+
+
+static int
 set_colorspace (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
@@ -1445,7 +1455,8 @@ action_colorconvert (int argc, const char *argv[])
     for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s) {
         for (int m = 0, mend = ot.curimg->miplevels(s);  m < mend;  ++m) {
             bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m),
-                                 fromspace.c_str(), tospace.c_str(), false);
+                                   fromspace.c_str(), tospace.c_str(), false,
+                                   &ot.colorconfig);
             if (! ok)
                 ot.error (command, (*ot.curimg)(s,m).geterror());
         }
@@ -1516,7 +1527,7 @@ action_ociolook (int argc, const char *argv[])
                 (*ot.curimg)(s,m), (*A)(s,m),
                 lookname.c_str(), fromspace.c_str(), tospace.c_str(),
                 false, inverse,
-                contextkey.c_str(), contextvalue.c_str());
+                contextkey.c_str(), contextvalue.c_str(), &ot.colorconfig);
             if (! ok)
                 ot.error (command, (*ot.curimg)(s,m).geterror());
         }
@@ -1572,7 +1583,7 @@ action_ociodisplay (int argc, const char *argv[])
                     displayname.c_str(), viewname.c_str(),
                     fromspace.c_str(), 
                     override_looks ? options["looks"].c_str() : 0, false,
-                    contextkey.c_str(), contextvalue.c_str());
+                    contextkey.c_str(), contextvalue.c_str(), &ot.colorconfig);
             if (! ok)
                 ot.error (command, (*ot.curimg)(s,m).geterror());
         }
@@ -4699,6 +4710,8 @@ getargs (int argc, char *argv[])
                 "--label %@ %s", action_label, NULL,
                     "Label the top image",
                 "<SEPARATOR>", "Color management:",
+                "--colorconfig %@ %s", set_colorconfig, NULL,
+                    "Explicitly specify an OCIO configuration file",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",
                 "--tocolorspace %@ %s", action_tocolorspace, NULL,
