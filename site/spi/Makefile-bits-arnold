@@ -166,11 +166,6 @@ ifeq ($(SP_OS), rhel7)
     platform=rhel7
     SPCOMP2_COMPILER=gcc48m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
-    # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
-    # uses a special libGL (below).  The other is based on Fedora which uses
-    # the standard libGL.  This attempts to detect which libGL to use.
-    SPINUX_GL_LIB = /usr/lib64/xorg.nvidia.3d/libGL.so
-    MY_CMAKE_FLAGS += $(if $(wildcard ${SPINUX_GL_LIB}), -DOPENGL_gl_LIBRARY=${SPINUX_GL_LIB})
     ifeq (${OCIO_PATH},)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
@@ -202,25 +197,10 @@ ifeq ($(SP_OS), rhel7)
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    ifeq (${COMPILER}, clang341)
-        MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang \
-           -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang++
-    endif
     ifeq (${COMPILER}, clang342)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    endif
-    ifeq (${COMPILER}, gcc463)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc470)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
     endif
     ifeq (${COMPILER}, gcc472)
       MY_CMAKE_FLAGS += \
