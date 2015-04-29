@@ -161,6 +161,107 @@ ifeq ($(SP_OS), spinux1)
 
 endif  # endif spinux1
 
+## Rhel7 (current)
+ifeq ($(SP_OS), rhel7)
+    platform=rhel7
+    SPCOMP2_COMPILER=gcc48m64
+    INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+    ifeq (${OCIO_PATH},)
+        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
+    endif
+    ifeq (${FIELD3D_HOME},)
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v406"
+    endif
+
+    ## If not overridden, here is our preferred LLVM installation
+    ## (may be changed as new versions are rolled out to the facility)
+    ifeq (${LLVM_DIRECTORY},)
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
+    endif
+
+    # default compiler is clang, taken from the LLVM directory
+    ifeq (${COMPILER},)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+    endif
+
+    # requesting 'clang' or 'gcc' (no version) means the first clang or
+    # gcc in your path
+    ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    endif
+    ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    endif
+
+    # A variety of tags can be used to try specific versions of gcc or
+    # clang from the site-specific places we have installed them.
+    ifeq (${COMPILER}, clang342)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
+           -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
+    endif
+    ifeq (${COMPILER}, gcc472)
+      MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
+    endif
+    ifeq (${COMPILER}, gcc490)
+      MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
+         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    endif
+
+    # Our minimal architecture for workstations and farm supports SSE 4.1
+    USE_SIMD = sse4.1
+
+    ifneq (,$(wildcard /usr/include/OpenEXR2))
+        MY_CMAKE_FLAGS += \
+	  -DILMBASE_CUSTOM=1 \
+	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
+	  -DOPENEXR_CUSTOM=1 \
+	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"
+    else
+        MY_CMAKE_FLAGS += \
+	  -DILMBASE_CUSTOM=1 \
+          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64 \
+	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
+	  -DOPENEXR_CUSTOM=1 \
+          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64 \
+	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
+    endif
+    MY_CMAKE_FLAGS += \
+	  -DOCIO_PATH=${OCIO_PATH} \
+	  -DFIELD3D_HOME=${FIELD3D_HOME} \
+          -DHDF5_CUSTOM=1 \
+	  -DHDF5_INCLUDE_DIRS=/usr/include \
+	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
+	  -DHDF5_LIBRARY_DIRS=/usr/lib64 \
+	  -DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
+
+    ifneq (${SPCOMP2_USE_BOOSTVERS}, 1)
+	BOOSTVERS=1.55
+    endif
+    BOOSTVERSSP=${BOOSTVERS}sp
+    BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    BOOSTVERS_PREFIX = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}_0
+    CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
+    MY_CMAKE_FLAGS += \
+	-DBOOST_CUSTOM=1 \
+	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
+	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
+	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
+	-DBoost_python_FOUND=1 -Doiio_boost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
+        -DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+        -DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+        -DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+
+endif  # endif rhel7
 
 
 
