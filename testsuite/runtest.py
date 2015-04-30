@@ -205,6 +205,7 @@ def oiiotool (args, silent=False, concat=True) :
 # to pass.  If any outputs do not match their references return 1 to
 # fail.
 def runtest (command, outputs, failureok=0) :
+    err = 0
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
     open ("out.txt", "w").close()    # truncate out.txt
@@ -228,9 +229,8 @@ def runtest (command, outputs, failureok=0) :
         if cmdret != 0 and failureok == 0 :
             print ("#### Error: this command failed: ", sub_command)
             print ("FAIL")
-            return (1)
+            err = 1
 
-    err = 0
     for out in outputs :
         extension = os.path.splitext(out)[1]
         ok = 0
