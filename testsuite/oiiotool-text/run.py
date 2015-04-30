@@ -2,8 +2,9 @@
 
 
 # test --text
-command += oiiotool ("--create 320x240 3 --text:x=25:y=50 'Hello, world' "
-            "--text:x=50:y=100:font=Arial:color=1,0,0:size=30 \"Go Big Red!\" "
+command += oiiotool ("--create 320x240 3 "
+            "--text:x=25:y=50:font=DroidSerif 'Hello, world' "
+            "--text:x=50:y=120:color=1,0,0:size=42 \"Go Big Red!\" "
             "-d uint8 -o text.tif >> out.txt")
 
 

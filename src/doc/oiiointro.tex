@@ -205,8 +205,40 @@ create this clearly superior descendant.
 \end{comment}
 
 \product incorporates, depends upon, or dynamically links against several
-other open source packages:
+other open source packages, detailed below. These other packages are all
+distributed under licenses that allow them to be used by \product. Where not
+specifically noted, they are all using the same BSD license that \product
+uses. Any omissions or inaccuracies in this list are inadvertent and will be
+fixed if pointed out. The full original licenses can be found in the
+relevant parts of the source code.
 
+\smallskip
+\noindent \product incorporates or distributes:
+
+\begin{itemize}
+\item The SHA-1 implemenation we use is public domain by
+Dominik Reichl \\ {\cf http://www.dominik-reichl.de/}
+\item Squish \copyright\ 2006 Simon Brown, MIT license.
+{\cf http://sjbrown.co.uk/?code=squish}
+\item PugiXML \copyright\ 2006-2009 by Arseny Kapoulkine (based on work
+\copyright\ 2003 Kristen Wegner). {\cf http://pugixml.org/}
+\item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer.
+{\cf http://code.google.com/p/dpx}
+\item {\cf tinyformat.h} \copyright\ 2011 Chris Foster, Boost
+    license. {\cf http://github.com/c42f/tinyformat}
+\item {\cf lookup3} code by Bob Jenkins, Public Domain.
+{\cf http://burtleburtle.net/bob/c/lookup3.c}
+\item {\cf xxhash} \copyright\ 2014 Yann Collet, BSD license.
+{\cf http://code.google.com/p/xxhash/}
+\item {\cf farmhash} \copyright\ 2014 Google, Inc., MIT license.
+{\cf http://code.google.com/p/farmhash/}
+\item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding.
+{\cf http://sourceforge.net/projects/kissfft}
+\item Droid fonts from the Android SDK are distributed under the
+    Apache license. \\ {\cf http://www.droidfonts.com}
+\end{itemize}
+
+\noindent \product dynamically links against:
 \begin{itemize}
 \item {\cf libtiff} \copyright\ 1988-1997 Sam Leffler and 1991-1997 Silicon
 Graphics, Inc. \\ {\cf http://www.remotesensing.org/libtiff}
@@ -217,43 +249,25 @@ Graphics, Inc. \\ {\cf http://www.remotesensing.org/libtiff}
 {\cf http://www.zlib.net}
 \item {\cf libpng} \copyright\ 1998-2008 Glenn Randers-Pehrson, et al.  
 {\cf http://www.libpng.org}
-\item The SHA-1 implemenation we use is public domain by
-Dominik Reichl \\ {\cf http://www.dominik-reichl.de/}
 \item Boost \copyright\ various authors. {\cf http://www.boost.org}
 \item GLEW \copyright\ 2002-2007 Milan Ikits, et al. 
 {\cf http://glew.sourceforge.net}
 \item Jasper \copyright\ 2001-2006 Michael David Adams, et al. \\
 {\cf http://www.ece.uvic.ca/~mdadams/jasper/}
-\item Squish \copyright\ 2006 Simon Brown.
-{\cf http://sjbrown.co.uk/?code=squish}
-\item PugiXML \copyright\ 2006-2009 by Arseny Kapoulkine (based on work
-\copyright\ 2003 Kristen Wegner). {\cf http://pugixml.org/}
-\item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer.
-{\cf http://code.google.com/p/dpx}
 \item Ptex \copyright\ 2009 Disney Enterprises, Inc.
 {\cf http://ptex.us}
 \item Field3D \copyright\ 2009 Sony Pictures Imageworks.
 {\cf http://sites.google.com/site/field3d/}
-\item {\cf tinyformat.h} \copyright\ 2011 Chris Foster.
-{\cf http://github.com/c42f/tinyformat}
-\item {\cf lookup3} code by Bob Jenkins, Public Domain.
-{\cf http://burtleburtle.net/bob/c/lookup3.c}
-\item {\cf xxhash} \copyright\ 2014 Yann Collet.
-{\cf http://code.google.com/p/xxhash/}
-\item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding.\\
-{\cf http://sourceforge.net/projects/kissfft/}
 \item {\cf GIFLIB} \copyright\ 1997 Eric S. Raymond (MIT Licensed).
 {\cf http://giflib.sourceforge.net/}
 \item {\cf LibRaw} \copyright\ 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw
     licenses). \\ {\cf http://www.libraw.org/}
 \item {\cf FFmpeg} \copyright\ various authors and distributed under LGPL.
    {\cf https://www.ffmpeg.org}
-\item {\cf farmhash} \copyright\ 2014 Google, Inc., distributed under MIT license.
-{\cf http://code.google.com/p/farmhash/}
+\item {\cf FreeType} \copyright\ 1996-2002, 2006 by David Turner, Robert
+    Wilhelm, and Werner Lemberg. Distributed under the FreeType license (BSD compatible).
 \end{itemize}
 
-These other packages are all distributed under licenses that allow them
-to be used by \product. Where not specifically noted, they are all using
-the same BSD license that \product uses.
+
 
 \chapwidthend

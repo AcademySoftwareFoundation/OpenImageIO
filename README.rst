@@ -77,6 +77,11 @@ proprietary or open, free or commercial.  Using it in a commercial or
 proprietary application DOES NOT obligate you to pay us, or to use any
 particular licensing terms in your own application.
 
+Some code and resources are distributed along with OIIO that have highly
+compatible, though slightly different, licenses (generally MIT or Apache).
+See the PDF documentation Acknowledgements section for details.
+
+
 
 Web Resources
 -------------
