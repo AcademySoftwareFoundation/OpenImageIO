@@ -216,8 +216,7 @@ ifeq ($(SP_OS), rhel7)
     # Our minimal architecture for workstations and farm supports SSE 4.1
     USE_SIMD = sse4.1
 
-    ifneq (,$(wildcard /usr/include/OpenEXR2))
-        MY_CMAKE_FLAGS += \
+    MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
           -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
@@ -225,17 +224,7 @@ ifeq ($(SP_OS), rhel7)
 	  -DOPENEXR_CUSTOM=1 \
 	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
           -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"
-    else
-        MY_CMAKE_FLAGS += \
-	  -DILMBASE_CUSTOM=1 \
-          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64 \
-	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
-	  -DOPENEXR_CUSTOM=1 \
-          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64 \
-	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
-    endif
-    MY_CMAKE_FLAGS += \
+	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf"\
 	  -DOCIO_PATH=${OCIO_PATH} \
 	  -DFIELD3D_HOME=${FIELD3D_HOME} \
           -DHDF5_CUSTOM=1 \
