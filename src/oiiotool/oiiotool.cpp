@@ -3034,40 +3034,27 @@ OP_CUSTOMCLASS (rangeexpand, OpRangeExpand, 1);
 
 
 
-static int
-action_text (int argc, const char *argv[])
-{
-    if (ot.postpone_callback (1, action_text, argc, argv))
-        return 0;
-    Timer timer (ot.enable_function_timing);
-    string_view command = ot.express (argv[0]);
-    string_view text    = ot.express (argv[1]);
 
-    // Read and copy the top-of-stack image
-    ImageRecRef A (ot.pop());
-    ot.read (A);
-    ot.push (new ImageRec (*A, 0, 0, true, true /*copy_pixels*/));
-    ImageBuf &Rib ((*ot.curimg)(0,0));
-    const ImageSpec &Rspec = Rib.spec();
+class OpText : public OiiotoolOp {
+public:
+    OpText (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual int impl (ImageBuf **img) {
+        img[0]->copy (*img[1]);
+        const ImageSpec &Rspec (img[0]->spec());
+        int x = options["x"].size() ? Strutil::from_string<int>(options["x"]) : (Rspec.x + Rspec.width/2);
+        int y = options["y"].size() ? Strutil::from_string<int>(options["y"]) : (Rspec.y + Rspec.height/2);
+        int fontsize = options["size"].size() ? Strutil::from_string<int>(options["size"]) : 16;
+        std::string font = options["font"];
+        std::vector<float> textcolor (Rspec.nchannels, 1.0f);
+        Strutil::extract_from_list_string (textcolor, options["color"]);
+        return ImageBufAlgo::render_text (*img[0], x, y, args[1],
+                                          fontsize, font, &textcolor[0]);
+    }
+};
 
-    // Set up defaults for text placement, size, font, color
-    std::map<std::string,std::string> options;
-    ot.extract_options (options, command);
-    int x = options["x"].size() ? Strutil::from_string<int>(options["x"]) : (Rspec.x + Rspec.width/2);
-    int y = options["y"].size() ? Strutil::from_string<int>(options["y"]) : (Rspec.y + Rspec.height/2);
-    int fontsize = options["size"].size() ? Strutil::from_string<int>(options["size"]) : 16;
-    std::string font = options["font"];
-    std::vector<float> textcolor (Rspec.nchannels, 1.0f);
-    Strutil::extract_from_list_string (textcolor, options["color"]);
+OP_CUSTOMCLASS (text, OpText, 1);
 
-    bool ok = ImageBufAlgo::render_text (Rib, x, y, text,
-                                         fontsize, font, &textcolor[0]);
-    if (! ok)
-        ot.error (command, Rib.geterror());
-
-    ot.function_times[command] += timer();
-    return 0;
-}
 
 
 
