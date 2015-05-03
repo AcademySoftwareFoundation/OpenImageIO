@@ -154,7 +154,7 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
 
             // Print the report
             //
-            if (ot.verbose || ret != DiffErrOK) {
+            if (ot.verbose || ot.debug || ret != DiffErrOK) {
                 if (ot.allsubimages)
                     print_subimage (ir0, subimage, m);
                 std::cout << "  Mean error = ";

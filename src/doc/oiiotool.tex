@@ -620,6 +620,20 @@ Quet mode --- print out less information about what \oiiotool is doing
 (only errors).
 \apiend
 
+\apiitem{\ce -n}
+\NEW % 1.6
+No saved output --- do not save any image files. This is helpful for certain
+kinds of tests, or in combination with {\cf --runstats} or {\cf --debug},
+for getting detailed information about what a command sequence will do and
+what it costs, but without producing any saved output files.
+\apiend
+
+\apiitem{\ce --debug}
+\NEW % 1.6
+Debug mode --- print lots of information about what operations are being
+performed.
+\apiend
+
 \apiitem{\ce --runstats}
 Print timing and memory statistics about the work done by \oiiotool.
 \apiend

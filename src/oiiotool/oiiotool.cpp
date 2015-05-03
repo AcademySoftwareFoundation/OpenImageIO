@@ -132,6 +132,8 @@ void
 Oiiotool::clear_options ()
 {
     verbose = false;
+    debug = false;
+    dryrun = false;
     runstats = false;
     noclobber = false;
     allsubimages = false;
@@ -806,7 +808,7 @@ Oiiotool::express_impl (string_view s)
         break;
     }
     result += std::string(s);
-    // if (verbose)
+    // if (ot.debug)
     //     std::cout << "  express_impl \"" << orig << "\" -> \"" << result << "\"\n";
 
     return result;
@@ -836,7 +838,7 @@ Oiiotool::express (string_view str)
     expr.remove_suffix(1);
     // eg. expr="cde"
     ustring result = ustring::format("%s%s%s", prefix, express_impl(expr), express(s));
-    if (verbose)
+    if (ot.debug)
         std::cout << "Expanding expression \"" << str << "\" -> \"" << result << "\"\n";
     return result;
 }
@@ -2454,19 +2456,21 @@ public:
         newspec.full_y = newspec.y;
         newspec.full_width = newspec.width;
         newspec.full_height = newspec.height;
-        if (ot.verbose) {
-            string_view filtername = options["filter"];
-            std::cout << "Resizing " << Aspec.width << "x" << Aspec.height
+        (*ir[0])(0,0).reset (newspec);
+        return true;
+    }
+    virtual int impl (ImageBuf **img) {
+        string_view filtername = options["filter"];
+        if (ot.debug) {
+            const ImageSpec &newspec (img[0]->spec());
+            const ImageSpec &Aspec (img[1]->spec());
+            std::cout << "  Resizing " << Aspec.width << "x" << Aspec.height
                       << " to " << newspec.width << "x" << newspec.height
                       << " using "
                       << (filtername.size() ? filtername.c_str() : "default")
                       << " filter\n";
         }
-        (*ir[0])(0,0).reset (newspec);
-        return true;
-    }
-    virtual int impl (ImageBuf **img) {
-        return ImageBufAlgo::resize (*img[0], *img[1], options["filter"],
+        return ImageBufAlgo::resize (*img[0], *img[1], filtername,
                                      0.0f, img[0]->roi());
     }
 };
@@ -2520,15 +2524,15 @@ action_fit (int argc, const char *argv[])
         yoffset = (fit_full_height - resize_full_height) / 2;
     }
 
-    if (ot.verbose) {
-        std::cout << "Fitting " 
+    if (ot.debug) {
+        std::cout << "  Fitting "
                   << format_resolution(Aspec->full_width, Aspec->full_height,
                                        Aspec->full_x, Aspec->full_y)
                   << " into "
                   << format_resolution(fit_full_width, fit_full_height,
                                        fit_full_x, fit_full_y) 
                   << "\n";
-        std::cout << "  Resizing to "
+        std::cout << "    Resizing to "
                   << format_resolution(resize_full_width, resize_full_height,
                                        fit_full_x, fit_full_y) << "\n";
     }
@@ -3156,7 +3160,7 @@ input_file (int argc, const char *argv[])
         std::map<std::string,ImageRecRef>::const_iterator found;
         found = ot.image_labels.find(filename);
         if (found != ot.image_labels.end()) {
-            if (ot.verbose)
+            if (ot.debug)
                 std::cout << "Referencing labeled image " << filename << "\n";
             ot.push (found->second);
             ot.process_pending ();
@@ -3185,7 +3189,7 @@ input_file (int argc, const char *argv[])
             }
             exit (1);
         }
-        if (ot.verbose)
+        if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
         if (ot.printinfo || ot.printstats || ot.dumpdata || ot.hash) {
@@ -3214,13 +3218,14 @@ input_file (int argc, const char *argv[])
         if (ot.autocc) {
             // Try to deduce the color space it's in
             string_view colorspace (ot.colorconfig.parseColorSpaceFromString(filename));
-            if (colorspace.size() && ot.verbose)
-                std::cout << "From " << filename << ", we deduce color space \""
+            if (colorspace.size() && ot.debug)
+                std::cout << "  From " << filename << ", we deduce color space \""
                           << colorspace << "\"\n";
             if (colorspace.empty()) {
                 colorspace = ot.curimg->spec()->get_string_attribute ("oiio:ColorSpace");
-                std::cout << "Metadata of " << filename << " indicates color space \""
-                          << colorspace << "\"\n";
+                if (ot.debug)
+                    std::cout << "  Metadata of " << filename << " indicates color space \""
+                              << colorspace << "\"\n";
             }
             string_view linearspace = ot.colorconfig.getColorSpaceNameByRole("linear");
             if (linearspace.empty())
@@ -3228,8 +3233,9 @@ input_file (int argc, const char *argv[])
             if (colorspace.size() && !Strutil::iequals(colorspace,linearspace)) {
                 const char *argv[] = { "colorconvert", colorspace.c_str(),
                                        linearspace.c_str() };
-                if (ot.verbose)
-                    std::cout << "Converting " << filename << " from " << colorspace << " to " << linearspace << "\n";
+                if (ot.debug)
+                    std::cout << "  Converting " << filename << " from "
+                              << colorspace << " to " << linearspace << "\n";
                 action_colorconvert (3, argv);
             }
         }
@@ -3250,6 +3256,8 @@ output_file (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
     string_view filename = ot.express (argv[1]);
 
+    if (ot.debug)
+        std::cout << "Output: " << filename << "\n";
     if (! ot.curimg.get()) {
         ot.warning (command, Strutil::format("%s did not have any current image to output.", filename));
         return 0;
@@ -3338,8 +3346,8 @@ output_file (int argc, const char *argv[])
         if (type.basetype != TypeDesc::UNKNOWN) {
             ot.output_dataformat = type;
             ot.output_bitspersample = bits;
-            if (ot.verbose)
-                std::cout << "Deduced data type " << type << " (" << bits
+            if (ot.debug)
+                std::cout << "  Deduced data type " << type << " (" << bits
                           << "bits) for output to " << filename << "\n";
         }
     }
@@ -3354,8 +3362,8 @@ output_file (int argc, const char *argv[])
                                       Strutil::iends_with (filename, ".jpeg")))
             outcolorspace = string_view("sRGB");
         if (outcolorspace.size() && currentspace != outcolorspace) {
-            if (ot.verbose)
-                std::cout << "Converting from " << currentspace << " to "
+            if (ot.debug)
+                std::cout << "  Converting from " << currentspace << " to "
                           << outcolorspace << " for output to " << filename << "\n";
             const char *argv[] = { "colorconvert", "", outcolorspace.c_str() };
             action_colorconvert (3, argv);
@@ -3382,8 +3390,15 @@ output_file (int argc, const char *argv[])
         ir = ot.curimg;
     }
 
+    if (ot.dryrun) {
+        ot.curimg = saveimg;
+        ot.output_dataformat = saved_output_dataformat;
+        ot.output_bitspersample = saved_bitspersample;
+        return 0;
+    }
+
     timer.start();
-    if (ot.verbose)
+    if (ot.debug || ot.verbose)
         std::cout << "Writing " << filename << "\n";
 
     // FIXME -- the various automatic transformations above neglect to handle
@@ -3522,6 +3537,8 @@ getargs (int argc, char *argv[])
                 "--help", &help, "Print help message",
                 "-v", &ot.verbose, "Verbose status messages",
                 "-q %!", &ot.verbose, "Quiet mode (turn verbose off)",
+                "-n", &ot.dryrun, "No saved output (dry run)",
+                "--debug", &ot.debug, "Debug mode",
                 "--runstats", &ot.runstats, "Print runtime statistics",
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
@@ -3842,7 +3859,9 @@ handle_sequence (int argc, const char **argv)
         }
         std::string strarg (argv[a]);
         boost::match_results<std::string::const_iterator> range_match;
-        if ((strarg == "--frames" || strarg == "-frames") && a < argc-1) {
+        if (strarg == "--debug" || strarg == "-debug")
+            ot.debug = true;
+        else if ((strarg == "--frames" || strarg == "-frames") && a < argc-1) {
             framespec = argv[++a];
         }
         else if ((strarg == "--framepadding" || strarg == "-framepadding")
@@ -3942,9 +3961,13 @@ handle_sequence (int argc, const char **argv)
     // every time.
     std::vector<const char *> seq_argv (argv, argv+argc+1);
     for (size_t i = 0;  i < nfilenames;  ++i) {
+        if (ot.debug)
+            std::cout << "SEQUENCE " << i << "\n";
         for (size_t j = 0;  j < sequence_args.size();  ++j) {
             size_t a = sequence_args[j];
             seq_argv[a] = filenames[a][i].c_str();
+            if (ot.debug)
+                std::cout << "  " << argv[a] << " -> " << seq_argv[a] << "\n";
         }
 
         ot.clear_options (); // Careful to reset all command line options!
@@ -3961,6 +3984,8 @@ handle_sequence (int argc, const char **argv)
             std::cout << "End iteration " << i << ": "
                     << Strutil::timeintervalformat(totaltime(),2) << "  "
                     << Strutil::memformat(Sysutil::memory_used()) << "\n";
+        if (ot.debug)
+            std::cout << "\n";
     }
 
     return true;

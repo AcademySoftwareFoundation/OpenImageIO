@@ -50,6 +50,8 @@ class Oiiotool {
 public:
     // General options
     bool verbose;
+    bool debug;
+    bool dryrun;
     bool runstats;
     bool noclobber;
     bool allsubimages;
@@ -487,6 +489,14 @@ public:
         // Set up a timer to automatically record how much time is spent in
         // every class of operation.
         Timer timer (ot.enable_function_timing);
+        if (ot.debug) {
+            std::cout << "Performing '" << opname() << "'";
+            if (nargs() > 1)
+                std::cout << " with args: ";
+            for (int i = 0; i < nargs(); ++i)
+                std::cout << (i > 0 ? ", \"" : " \"") << args[i] << "\"";
+            std::cout << "\n";
+        }
 
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
