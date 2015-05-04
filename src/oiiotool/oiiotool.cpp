@@ -3904,10 +3904,8 @@ handle_sequence (int argc, const char **argv)
             return true;
         }
 
-        // --frames overrides sequence framespec
-        if (! framespec.empty())
+        if (sequence_framespec.empty())
             sequence_framespec = framespec;
-
         if (! sequence_framespec.empty()) {
             Filesystem::enumerate_sequence (sequence_framespec.c_str(),
                                             frame_numbers[a]);
