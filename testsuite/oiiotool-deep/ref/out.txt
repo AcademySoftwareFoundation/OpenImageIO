@@ -4,3 +4,11 @@ Comparing "ch.exr" and "ref/ch.exr"
 PASS
 Comparing "deepen.exr" and "ref/deepen.exr"
 PASS
+Comparing "crop1.exr" and "ref/crop1.exr"
+PASS
+Comparing "crop2.exr" and "ref/crop2.exr"
+PASS
+Comparing "trim1.exr" and "ref/trim1.exr"
+PASS
+Comparing "trim2.exr" and "ref/trim2.exr"
+PASS

@@ -351,6 +351,9 @@ region.
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.
+Pixels from {\cf src} which are outside {\cf roi} will not be copied, and
+new black pixels will be added for regions of {\cf roi} which were outside
+the data window of {\cf src}.
 
 Note that the {\cf crop} operation does not actually move the pixels on the
 image plane or adjust the full/display window; it merely restricts which
@@ -2272,10 +2275,22 @@ Reorder, rename, remove, or add channels to a deep image.
 See Section~\ref{sec:iba:channels}
 \apiend
 
+\apiitem{bool {\ce compare} (const ImageBuf \&A, const ImageBuf \&B, \\
+  \bigspc float failthresh, float warnthresh, CompareResults \&result,\\
+   \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+Numerically compare two images.
+\apiend
+
 \apiitem{bool {\ce computePixelStats} (PixelStats \&stats, const ImageBuf \&src, \\
    \bigspc\bigspc  ROI roi=ROI::All(), int nthreads=0)}
 Compute per-channel statistics about the image.
 See Section~\ref{sec:iba:computePixelStats}
+\apiend
+
+\apiitem{bool {\ce crop} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!crop} \indexapi{crop}
+Reset the data region of {\cf dst} to be the specified region of {\cf src}.
 \apiend
 
 \apiitem{ROI {\ce nonzero_region} (const ImageBuf \&src, ROI roi=ROI::All(), int nthreads=0)}
@@ -2285,11 +2300,6 @@ all pixels that contain depth samples, and excludes the border pixels
 that contain no depth samples at all.
 \apiend
 
-\apiitem{bool {\ce compare} (const ImageBuf \&A, const ImageBuf \&B, \\
-  \bigspc float failthresh, float warnthresh, CompareResults \&result,\\
-   \bigspc  ROI roi=ROI::All(), int nthreads=0)}
-Numerically compare two images.
-\apiend
 
 
 

@@ -121,6 +121,22 @@ crop_ (ImageBuf &dst, const ImageBuf &src,
     }
 
     // Serial case
+
+    // Deep
+    if (dst.deep()) {
+        ImageBuf::ConstIterator<S,D> s (src, roi);
+        for (ImageBuf::Iterator<D,D> d (dst, roi);  ! d.done();  ++d, ++s) {
+            int samples = d.deep_samples ();
+            if (samples == 0)
+                continue;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                for (int samp = 0; samp < samples; ++samp)
+                    d.set_deep_value (c, samp, (float)s.deep_value(c, samp));
+        }
+        return true;
+    }
+    // Below is the non-deep case
+
     ImageBuf::ConstIterator<S,D> s (src, roi);
     ImageBuf::Iterator<D,D> d (dst, roi);
     for ( ;  ! d.done();  ++d, ++s) {
@@ -139,6 +155,15 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     dst.clear ();
     roi.chend = std::min (roi.chend, src.nchannels());
     IBAprep (roi, &dst, &src);
+
+    if (dst.deep()) {
+        // If it's deep, figure out the sample allocations first
+        ImageBuf::ConstIterator<float> s (src, roi);
+        for (ImageBuf::Iterator<float> d (dst, roi);  !d.done();  ++d, ++s)
+            d.set_deep_samples (s.deep_samples());
+        dst.deep_alloc ();
+    }
+
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "crop", crop_, dst.spec().format, src.spec().format,
                           dst, src, roi, nthreads);

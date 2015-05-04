@@ -2461,13 +2461,18 @@ samples in each pixel.
 
 \subsection{General commands that also work for deep images}
 
-\apiitem{\ce --info}
-Prints information about each input image as it is read. 
+\apiitem{\ce --autotrim}
+For subsequent outputs, automatically {\cf --trim} before writing the file.
 \apiend
 
-\apiitem{\ce --stats}
-Prints detailed statistical information about each input image as it is
-read.
+\apiitem{\ce --ch {\rm \emph{channellist}}}
+Reorder, rename, remove, or add channels to a deep image.
+See Section~\ref{sec:oiiotool:ch}
+\apiend
+
+\apiitem{\ce --crop {\rm \emph{size}}}
+Crop (adjust the pixel data window), removing pixels or adding empty pixels
+as needed.
 \apiend
 
 \apiitem{\ce --diff}
@@ -2485,12 +2490,26 @@ Print to the console detailed information about the values in every pixel.
 \end{tabular}
 \apiend
 
+\apiitem{\ce --info}
+Prints information about each input image as it is read.
+\apiend
+
+\apiitem{\ce --trim}
+Replace the current image with a new image that is cropped to contain the
+minimal rectangular ROI that contains all of the non-empty pixels of
+the original image.
+\apiend
+
 \apiitem{\ce --scanline \\
 \ce --tile {\rm \emph{x}} {\rm \emph{y}}}
 Convert to scanline or to tiled representations upon output.
 \apiend
 
-\apiitem{\ce --ch {\rm \emph{channellist}}}
-Reorder, rename, remove, or add channels to a deep image.
-See Section~\ref{sec:oiiotool:ch}
+\apiitem{\ce --stats}
+Prints detailed statistical information about each input image as it is
+read.
 \apiend
+
+
+
+\chapwidthend
