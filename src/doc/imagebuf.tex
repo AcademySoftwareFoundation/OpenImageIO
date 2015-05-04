@@ -750,9 +750,22 @@ For deep images only, retrieves the number of deep samples for the
 current pixel.
 \apiend
 
-\apiitem{USERT\& Iterator::deep_value (int c, int s)}
+\apiitem{void Iterator::set_deep_samples ()}
+For deep images only (and non-const \ImageBuf), set the number of deep
+samples for the current pixel. This only is useful if the \ImageBuf has
+not yet had the {\cf deep_alloc()} method called.
+\apiend
+
+\apiitem{USERT Iterator::deep_value (int c, int s) const}
 For deep images only, returns the value of channel {\cf c}, sample
 number {\cf s}, at the current pixel.
+\apiend
+
+\apiitem{void Iterator::set_deep_value (int c, int s, float value) \\
+void Iterator::set_deep_value (int c, int s, uint32_t value)}
+For deep images only (and non-cconst \ImageBuf, sets the value of channel
+{\cf c}, sample number {\cf s}, at the current pixel. This only is useful
+if the \ImageBuf has already had the {\cf deep_alloc()} method called.
 \apiend
 
 \subsection*{Example: Visiting all pixels to compute an average color}

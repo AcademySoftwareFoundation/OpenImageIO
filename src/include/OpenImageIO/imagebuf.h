@@ -813,7 +813,7 @@ public:
         }
 
         /// Retrieve the number of deep data samples at this pixel.
-        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+        int deep_samples () const { return m_ib->deep_samples (m_x, m_y, m_z); }
 
         /// Return the wrap mode
         WrapMode wrap () const { return m_wrap; }
@@ -1112,10 +1112,26 @@ public:
 
         void * rawptr () const { return m_proxydata; }
 
+        /// Set the number of deep data samples at this pixel. (Only use
+        /// this if deep_alloc() has not yet been called on the buffer.)
+        void set_deep_samples (int n) {
+            return const_cast<ImageBuf*>(m_ib)->set_deep_samples (m_x, m_y, m_z, n);
+        }
+
         /// Retrieve the deep data value of sample s of channel c.
         USERT deep_value (int c, int s) const {
             return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
         }
+
+        /// Set the deep data value of sample s of channel c. (Only use this
+        /// if deep_alloc() has been called.)
+        void set_deep_value (int c, int s, float value) {
+            return const_cast<ImageBuf*>(m_ib)->set_deep_value (m_x, m_y, m_z, c, s, value);
+        }
+        void set_deep_value (int c, int s, uint32_t value) {
+            return const_cast<ImageBuf*>(m_ib)->set_deep_value_uint (m_x, m_y, m_z, c, s, value);
+        }
+
     };
 
 
