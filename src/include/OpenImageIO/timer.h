@@ -48,6 +48,8 @@
 #include <sys/time.h>
 #include <cstdlib>    // Just for NULL definition
 #endif
+#include <iostream>
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -81,18 +83,39 @@ OIIO_NAMESPACE_BEGIN
 class OIIO_API Timer {
 public:
     typedef long long ticks_t;
+    enum StartNowVal { DontStartNow, StartNow };
+    enum PrintDtrVal { DontPrintDtr, PrintDtr };
 
     /// Constructor -- reset at zero, and start timing unless optional
     /// 'startnow' argument is false.
-    Timer (bool startnow=true)
-        : m_ticking(false), m_starttime(0), m_elapsed_ticks(0)
+    Timer (StartNowVal startnow=StartNow,
+           PrintDtrVal printdtr=DontPrintDtr,
+           const char *name=NULL)
+        : m_ticking(false), m_printdtr(printdtr),
+          m_starttime(0), m_elapsed_ticks(0),
+          m_name(name)
+    {
+        if (startnow == StartNow)
+            start();
+    }
+
+    /// DEPRECATED Constructor -- reset at zero, and start timing unless
+    /// optional 'startnow' argument is false.
+    Timer (bool startnow)
+        : m_ticking(false), m_printdtr(DontPrintDtr),
+          m_starttime(0), m_elapsed_ticks(0),
+          m_name(NULL)
     {
         if (startnow)
             start();
     }
 
     /// Destructor.
-    ~Timer () { }
+    ~Timer () {
+        if (m_printdtr == PrintDtr)
+            std::cout << "Timer " << (m_name?m_name:"") << ": "
+                      << seconds(ticks()) << "s\n";
+    }
 
     /// Start (or restart) ticking, if we are not currently.
     void start () {
@@ -165,8 +188,10 @@ public:
 
 private:
     bool m_ticking;       ///< Are we currently ticking?
+    bool m_printdtr;      ///< Print upon destruction?
     ticks_t m_starttime;  ///< Time since last call to start()
     ticks_t m_elapsed_ticks; ///< Time elapsed BEFORE the current start().
+    const char *m_name;      ///< Timer name
 
     /// Platform-dependent grab of current time, expressed as ticks_t.
     ///
@@ -203,12 +228,11 @@ private:
 
 /// Helper class that starts and stops a timer when the ScopedTimer goes
 /// in and out of scope.
-template <class TIMER=Timer>
 class ScopedTimer {
 public:
     /// Given a reference to a timer, start it when this constructor
     /// occurs.
-    ScopedTimer (TIMER &t) : m_timer(t) { start(); }
+    ScopedTimer (Timer &t) : m_timer(t) { start(); }
 
     /// Stop the timer from ticking when this object is destroyed (i.e.
     /// it leaves scope).
@@ -227,7 +251,7 @@ public:
     void reset () { m_timer.reset(); }
 
 private:
-    TIMER &m_timer;
+    Timer &m_timer;
 };
 
 
