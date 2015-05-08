@@ -134,7 +134,7 @@ enum IBAprep_flags {
 
 /// Given data types a and b, return a type that is a best guess for one
 /// that can handle both without any loss of range or precision.
-TypeDesc::BASETYPE type_merge (TypeDesc::BASETYPE a, TypeDesc::BASETYPE b);
+TypeDesc::BASETYPE OIIO_API type_merge (TypeDesc::BASETYPE a, TypeDesc::BASETYPE b);
 
 inline TypeDesc::BASETYPE
 type_merge (TypeDesc::BASETYPE a, TypeDesc::BASETYPE b, TypeDesc::BASETYPE c)

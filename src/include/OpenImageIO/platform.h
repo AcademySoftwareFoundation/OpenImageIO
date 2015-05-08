@@ -80,6 +80,10 @@
 # include <windows.h>
 #endif
 
+# ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 #include "oiioversion.h"
 
 // Detect if we're C++11

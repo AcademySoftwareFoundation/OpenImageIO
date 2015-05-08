@@ -32,7 +32,7 @@
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
+using boost::python::make_tuple;
 using namespace std;
 
 template <typename BaseType>

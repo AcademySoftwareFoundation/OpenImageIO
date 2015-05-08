@@ -40,6 +40,10 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
+#include "OpenImageIO/dassert.h"
+#include "OpenImageIO/ustring.h"
+#include "OpenImageIO/filesystem.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #include <shellapi.h>
@@ -47,10 +51,6 @@
 #else
 #include <unistd.h>
 #endif
-
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/filesystem.h"
 
 
 OIIO_NAMESPACE_ENTER
