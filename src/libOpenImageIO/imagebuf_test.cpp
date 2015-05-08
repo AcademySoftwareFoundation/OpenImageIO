@@ -275,12 +275,27 @@ void test_open_with_config ()
 
 
 
+void test_empty_iterator ()
+{
+    // Ensure that ImageBuf iterators over empty ROIs immediately appear
+    // done
+    ImageBuf A (ImageSpec (64, 64, 3, TypeDesc::FLOAT));
+    ROI roi (10, 10, 20, 40, 0, 1);
+    for (ImageBuf::Iterator<float> p (A, roi);  ! p.done();  ++p) {
+        std::cout << "p is " << p.x() << ' ' << p.y() << ' ' << p.z() << "\n";
+        OIIO_CHECK_ASSERT (0 && "should never execute this loop body");
+    }
+}
+
+
+
 int
 main (int argc, char **argv)
 {
     test_wrapmodes ();
 
     // Lots of tests related to ImageBuf::Iterator
+    test_empty_iterator ();
     iterator_read_test<ImageBuf::ConstIterator<float> > ();
     iterator_read_test<ImageBuf::Iterator<float> > ();
 

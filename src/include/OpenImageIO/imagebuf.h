@@ -1003,6 +1003,14 @@ public:
             }
         }
 
+        // Set to the "done" position
+        void pos_done () {
+            m_valid = false;
+            m_x = m_rng_xbegin;
+            m_y = m_rng_ybegin;
+            m_z = m_rng_zend;
+        }
+
         // Make sure it's writeable. Use with caution!
         void make_writeable () {
             if (! m_localpixels) {
@@ -1043,6 +1051,9 @@ public:
         {
             make_writeable ();
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
@@ -1059,6 +1070,9 @@ public:
         {
             make_writeable ();
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
@@ -1069,6 +1083,9 @@ public:
         {
             make_writeable ();
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Copy constructor.
         ///
@@ -1146,6 +1163,9 @@ public:
             : IteratorBase(ib,wrap)
         {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
@@ -1161,6 +1181,9 @@ public:
             : IteratorBase (ib, roi, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
@@ -1170,6 +1193,9 @@ public:
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+                  || m_rng_zbegin == m_rng_zend)
+                pos_done();  // make empty range look "done"
         }
         /// Copy constructor.
         ///
