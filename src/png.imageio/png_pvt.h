@@ -502,13 +502,11 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         spec.attribute ("DateTime", date);
     }
 
-    ImageIOParameter *unit=NULL, *xres=NULL, *yres=NULL;
-    if ((unit = spec.find_attribute("ResolutionUnit", TypeDesc::STRING)) &&
-        (xres = spec.find_attribute("XResolution", TypeDesc::FLOAT)) &&
-        (yres = spec.find_attribute("YResolution", TypeDesc::FLOAT))) {
-        const char *unitname = *(const char **)unit->data();
-        const float x = *(const float *)xres->data();
-        const float y = *(const float *)yres->data();
+    string_view unitname = spec.get_string_attribute ("ResolutionUnit");
+    float xres = spec.get_float_attribute ("XResolution");
+    float yres = spec.get_float_attribute ("YResolution");
+    float paspect = spec.get_float_attribute ("PixelAspectRatio");
+    if (xres || yres || paspect || unitname.size()) {
         int unittype = PNG_RESOLUTION_UNKNOWN;
         float scale = 1;
         if (Strutil::iequals (unitname, "meter") || Strutil::iequals (unitname, "m"))
@@ -520,8 +518,23 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
             unittype = PNG_RESOLUTION_METER;
             scale = 100.0/2.54;
         }
-        png_set_pHYs (sp, ip, (png_uint_32)(x*scale),
-                      (png_uint_32)(y*scale), unittype);
+        if (paspect) {
+            // If pixel aspect is given, allow resolution to be reset
+            if (xres)
+                yres = 0.0f;
+            else
+                xres = 0.0f;
+        }
+        if (xres == 0.0f && yres == 0.0f) {
+            xres = 100.0f;
+            yres = xres * (paspect ? paspect : 1.0f);
+        } else if (xres == 0.0f) {
+            xres = yres / (paspect ? paspect : 1.0f);
+        } else if (yres == 0.0f) {
+            yres = xres * (paspect ? paspect : 1.0f);
+        }
+        png_set_pHYs (sp, ip, (png_uint_32)(xres*scale),
+                      (png_uint_32)(yres*scale), unittype);
     }
 
     // Deal with all other params
