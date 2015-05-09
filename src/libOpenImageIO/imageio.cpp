@@ -551,8 +551,8 @@ convert_image (int nchannels, int width, int height, int depth,
     ImageSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
                             dst_type, nchannels, width, height);
     bool result = true;
-    bool contig = (src_xstride == dst_xstride &&
-                   src_xstride == stride_t(nchannels*src_type.size()));
+    bool contig = (src_xstride == stride_t(nchannels * src_type.size()) &&
+                   dst_xstride == stride_t(nchannels * dst_type.size()));
     for (int z = 0;  z < depth;  ++z) {
         for (int y = 0;  y < height;  ++y) {
             const char *f = (const char *)src + (z*src_zstride + y*src_ystride);
