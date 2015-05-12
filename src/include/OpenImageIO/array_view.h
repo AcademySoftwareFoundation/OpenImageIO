@@ -39,7 +39,7 @@
 #include "strided_ptr.h"
 #include "platform.h"
 
-#if OIIO_CPLUSPLUS11
+#if OIIO_USING_CPP11
 #include <type_traits>
 #else
 #include <boost/type_traits.hpp>
@@ -48,7 +48,7 @@
 
 OIIO_NAMESPACE_ENTER {
 
-#if OIIO_CPLUSPLUS11
+#if OIIO_USING_CPP11
 using std::remove_const;
 #else
 using boost::remove_const;
