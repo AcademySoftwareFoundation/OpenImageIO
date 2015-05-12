@@ -644,21 +644,6 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
 
 
 // Helper: is the roi devoid of any deep samples?
-static bool
-empty_sample_region (const ImageBuf &src, ROI roi)
-{
-    DASSERT (src.deep());
-    for (int z = roi.zbegin; z < roi.zend; ++z)
-        for (int y = roi.ybegin; y < roi.yend; ++y)
-            for (int x = roi.xbegin; x < roi.xend; ++x)
-                if (src.deep_samples (x, y, z) != 0)
-                    return false;
-    return true;
-}
-
-
-
-// Helper: is the roi devoid of any deep samples?
 static ROI
 deep_nonempty_region (const ImageBuf &src, ROI roi)
 {
