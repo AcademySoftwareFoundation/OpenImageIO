@@ -727,13 +727,15 @@ public:
 /// the pointers themselves, which is safe because once allocated, a
 /// ustring's characters will never be moved. But beware, the resulting
 /// sorting order may vary from run to run!
-class ustringHashIsLess
+class ustringPtrIsLess
 {
 public:
     size_t operator() (ustring a, ustring b) const {
         return size_t(a.data()) < size_t(b.data());
     }
 };
+
+typedef ustringPtrIsLess ustringHashIsLess;   // DEPRECATED
 
 
 
