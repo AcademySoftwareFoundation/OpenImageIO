@@ -1,5 +1,9 @@
 Changes:
 
+Release 1.5.16 (?? 2015) -- compared to 1.5.15)
+---------------------------------------------------
+
+
 Release 1.5.15 (11 May 2015) -- compared to 1.5.14)
 ---------------------------------------------------
 * Bug fix with IBA::channels() with deep data with UINT channels.
