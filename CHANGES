@@ -1,8 +1,12 @@
 Changes:
 
-Release 1.5.15 (??  2015) -- compared to 1.5.14)
-----------------------------------------------
-
+Release 1.5.15 (11 May 2015) -- compared to 1.5.14)
+---------------------------------------------------
+* Bug fix with IBA::channels() with deep data with UINT channels.
+* Fix TypeDesc compatibility with OSL.
+* Misc WIN32 / VS2010 fixes.
+* Fix incorrect logic in convert_image with certain channel types and
+  strides. #1144
 
 Release 1.5.14 (14 April 2015) -- compared to 1.5.13)
 ----------------------------------------------
