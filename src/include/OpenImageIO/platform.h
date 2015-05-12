@@ -86,9 +86,18 @@
 
 #include "oiioversion.h"
 
-// Detect if we're C++11
+// Detect if we're C++11.
+//
+// Note: oiioversion.h defined OIIO_BUILD_CPP11 to be 1 if OIIO was built
+// using C++11. In contrast, OIIO_USING_CPP11 defined below will be 1 if
+// we're compiling C++11 RIGHT NOW. These two things may be the same when
+// compiling OIIO, but they may not be the same if another packages is
+// compiling against OIIO and using these headers (OIIO may be C++11 but the
+// client package may be older, or vice versa -- use these two symbols to
+// differentiate these cases, when important).
 #if (__cplusplus >= 201103L)
-#define OIIO_CPLUSPLUS11 1
+#define OIIO_USING_CPP11 1
+#define OIIO_CPLUSPLUS11 1 /* DEPRECATED */
 #endif
 
 
