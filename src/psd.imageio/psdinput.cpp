@@ -1533,7 +1533,16 @@ bool
 PSDInput::load_global_mask_info ()
 {
     m_file.seekg (m_layer_mask_info.layer_info.end);
+    uint64_t remaining = m_layer_mask_info.end - m_file.tellg();
     uint32_t length;
+
+    // This section should be at least 17 bytes, but some files lack
+    // global mask info and additional layer info, not convered in the spec
+    if (remaining < 17) {
+        m_file.seekg(m_layer_mask_info.end);
+        return true;
+    }
+
     read_bige<uint32_t> (length);
     std::streampos start = m_file.tellg ();
     std::streampos end = start + (std::streampos)length;
@@ -1593,6 +1602,8 @@ PSDInput::load_global_additional ()
         // skip it for now
         m_file.seekg (length, std::ios::cur);
     }
+    // finished with the layer and mask information section, seek to the end
+    m_file.seekg (m_layer_mask_info.end);
     return check_io ();
 }
 
