@@ -1577,7 +1577,8 @@ PSDInput::load_global_additional ()
         if (!check_io ())
             return false;
 
-        if (std::memcmp (signature, "8BIM", 4) != 0) {
+        // the spec supports 8BIM, and 8B64 (presumably for psb support)
+        if (std::memcmp (signature, "8BIM", 4) != 0 && std::memcmp (signature, "8B64", 4) != 0) {
             error ("[Global Additional Layer Info] invalid signature");
             return false;
         }
