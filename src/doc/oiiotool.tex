@@ -1942,6 +1942,36 @@ decreasing resolution. \\
 \end{code}
 \apiend
 
+\apiitem{\ce --pixelaspect {\rm \emph{aspect}}}
+\NEW % 1.6
+Replace the current image with a new image that scales up the width or
+height in order to match the requested pixel aspect ratio.  If displayed
+in a manner that honors the PixelAspectRatio, it should look the same,
+but it will have different pixel dimensions than the original. It will
+always be the same or higher resolution, so it does not lose any detail
+present in the original.
+
+As an example, if you have a $512 \times 512$ image with pixel aspect
+ratio 1.0, {\cf --pixelaspect 2.0} will result in a $512 \times 1024$
+image that has \qkw{PixelAspectRatio} metadata set to 2.0.
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1.25in} p{3.5in}}
+ & {\cf filter=}\emph{name} & Filter name. The default is \qkw{lanczos3}. \\
+\end{tabular}
+
+\noindent Examples:
+
+\begin{tinycode}
+  oiiotool mandrill.tif --pixelaspect 2.0 -o widepixels.tif
+\end{tinycode}
+%\spc \includegraphics[width=1.25in]{figures/grid-small.jpg}
+%\raisebox{40pt}{\large $\rightarrow$}
+%\includegraphics[width=1.25in]{figures/rotate45.jpg} \\
+\apiend
+
+
 \apiitem{\ce --rotate {\rm \emph{angle}}}
 Replace the current image with a new image that is rotated by the given
 angle (in degrees). Positive angles mean to rotate counter-clockwise,

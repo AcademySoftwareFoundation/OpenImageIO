@@ -45,6 +45,9 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
 
+# test --pixelaspect
+command += oiiotool ("tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
+
 # test rotate
 command += oiiotool ("resize.tif --rotate 45 -o rotated.tif")
 command += oiiotool ("resize.tif --rotate:center=50,50 45 -o rotated-offcenter.tif")
@@ -271,6 +274,7 @@ outputs = [
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "fit.tif", "fit2.tif",
+            "pixelaspect.tif",
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",

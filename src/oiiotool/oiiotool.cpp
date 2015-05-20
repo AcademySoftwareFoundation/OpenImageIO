@@ -2575,14 +2575,14 @@ action_fit (int argc, const char *argv[])
 static int
 action_pixelaspect (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (1, action_fit, argc, argv))
+    if (ot.postpone_callback (1, action_pixelaspect, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
     bool old_enable_function_timing = ot.enable_function_timing;
     ot.enable_function_timing = false;
     string_view command = ot.express (argv[0]);
 
-    float new_paspect = Strutil::from_string<float> (argv[1]);
+    float new_paspect = Strutil::from_string<float> (ot.express (argv[1]));
     if (new_paspect <= 0.0f) {
         ot.error (command, Strutil::format ("Invalid pixel aspect ratio '%g'", new_paspect));
         return 0;
@@ -3751,7 +3751,7 @@ getargs (int argc, char *argv[])
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (options: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d)",
-                "--pixelaspect %@ %g", action_pixelaspect, NULL, "Scale the image to match the given pixel aspect ratio (options: filter=%s)",
+                "--pixelaspect %@ %g", action_pixelaspect, NULL, "Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)",
                 "--rotate %@ %g", action_rotate, NULL, "Rotate pixels (argument is degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d",
                 "--warp %@ %s", action_warp, NULL, "Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)",
                 "--convolve %@", action_convolve, NULL,
