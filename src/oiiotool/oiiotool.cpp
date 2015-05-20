@@ -2572,6 +2572,97 @@ action_fit (int argc, const char *argv[])
 
 
 
+static int
+action_pixelaspect (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fit, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    bool old_enable_function_timing = ot.enable_function_timing;
+    ot.enable_function_timing = false;
+    string_view command = ot.express (argv[0]);
+
+    float new_paspect = Strutil::from_string<float> (argv[1]);
+    if (new_paspect <= 0.0f) {
+        ot.error (command, Strutil::format ("Invalid pixel aspect ratio '%g'", new_paspect));
+        return 0;
+    }
+
+    // Examine the top of stack
+    ImageRecRef A = ot.top();
+    ot.read ();
+    const ImageSpec *Aspec = A->spec(0,0);
+
+    // Get the current pixel aspect ratio
+    float paspect = Aspec->get_float_attribute ("PixelAspectRatio", 1.0);
+    if (paspect <= 0.0f) {
+        ot.error (command, Strutil::format ("Invalid pixel aspect ratio '%g' in source", paspect));
+        return 0;
+    }
+
+    // Get the current (if any) XResolution/YResolution attributes
+    float xres = Aspec->get_float_attribute( "XResolution", 0.0);
+    float yres = Aspec->get_float_attribute( "YResolution", 0.0);
+
+    // Compute scaling factors and use action_resize to do the heavy lifting
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+
+    float factor = paspect / new_paspect;
+    if (factor > 1.0)
+        scaleX = factor;
+    else if (factor < 1.0)
+        scaleY = 1.0/factor;
+
+    int scale_full_width = (int)(Aspec->full_width * scaleX + 0.5f);
+    int scale_full_height = (int)(Aspec->full_height * scaleY + 0.5f);
+
+    float scale_xres = xres * scaleX;
+    float scale_yres = yres * scaleY;
+
+    std::map<std::string,std::string> options;
+    ot.extract_options (options, command);
+    string_view filtername = options["filter"];
+
+    if (ot.debug) {
+        std::cout << "  Scaling "
+                  << format_resolution(Aspec->full_width, Aspec->full_height,
+                                       Aspec->full_x, Aspec->full_y)
+                  << " with a pixel aspect ratio of " << paspect
+                  << " to "
+                  << format_resolution(scale_full_width, scale_full_height,
+                                       Aspec->full_x, Aspec->full_y)
+                  << "\n";
+    }
+    if (scale_full_width != Aspec->full_width ||
+        scale_full_height != Aspec->full_height) {
+        std::string resize = format_resolution(scale_full_width,
+                                               scale_full_height,
+                                               0, 0);
+        std::string command = "resize";
+        if (filtername.size())
+            command += Strutil::format (":filter=%s", filtername);
+        const char *newargv[2] = { command.c_str(), resize.c_str() };
+        action_resize (2, newargv);
+        A = ot.top ();
+        Aspec = A->spec(0,0);
+        A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = scale_full_width;
+        A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = scale_full_height;
+        A->spec(0,0)->attribute ("PixelAspectRatio", new_paspect);
+        if (xres)
+            A->spec(0,0)->attribute ("XResolution", scale_xres);
+        if (yres)
+            A->spec(0,0)->attribute ("YResolution", scale_yres);
+        // Now A,Aspec are for the NEW resized top of stack
+    }
+
+    ot.function_times[command] += timer();
+    ot.enable_function_timing = old_enable_function_timing;
+    return 0;
+}
+
+
+
 class OpConvolve : public OiiotoolOp {
 public:
     OpConvolve (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -3660,6 +3751,7 @@ getargs (int argc, char *argv[])
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (options: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d)",
+                "--pixelaspect %@ %g", action_pixelaspect, NULL, "Scale the image to match the given pixel aspect ratio (options: filter=%s)",
                 "--rotate %@ %g", action_rotate, NULL, "Rotate pixels (argument is degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d",
                 "--warp %@ %s", action_warp, NULL, "Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)",
                 "--convolve %@", action_convolve, NULL,
