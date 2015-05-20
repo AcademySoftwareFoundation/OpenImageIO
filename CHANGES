@@ -48,6 +48,8 @@ Major new features and improvements:
       stats) but does not write any output files to disk. #1134 (1.6.3)
     * --debug prints debugging information, this is now separate from
       -v which just makes more verbose (non-debugging) output. #1134 (1.6.3)
+    * --pixelaspect rescales the image to have the given pixel aspect
+      ratio. #1146 (1.6.5)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)

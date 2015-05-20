@@ -99,6 +99,8 @@ Comparing "fit.tif" and "ref/fit.tif"
 PASS
 Comparing "fit2.tif" and "ref/fit2.tif"
 PASS
+Comparing "pixelaspect.tif" and "ref/pixelaspect.tif"
+PASS
 Comparing "warped.tif" and "ref/warped.tif"
 PASS
 Comparing "rotated.tif" and "ref/rotated.tif"
