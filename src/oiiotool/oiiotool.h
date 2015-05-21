@@ -171,7 +171,8 @@ public:
     // Expand substitution expressions in string str. Expressions are
     // enclosed in braces: {...}. An expression consists of:
     //   * a numeric constant ("42" or "3.14")
-    //   * a parenthesized expression ("(expr)")
+    //   * simple math expr+expr, expr-expr, expr*expr, expr/expr, evaluated
+    //     left-to-right (no operator precedence).
     //   * IMG[n].metadata for the metadata of an image. The 'n' may be an
     //     image name, or an integer giving stack position (for example,
     //     "IMG[0]" is the top of the stack; also "TOP" is a synonym). The
