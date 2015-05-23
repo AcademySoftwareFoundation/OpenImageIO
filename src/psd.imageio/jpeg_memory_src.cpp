@@ -32,10 +32,8 @@
 
 #include "OpenImageIO/imageio.h"
 
-extern "C" {
-#include <jpeglib.h>
-#include <jerror.h>
-}
+#include "jpeg_memory_src.h"
+#include "jerror.h"
 
 namespace {
 
