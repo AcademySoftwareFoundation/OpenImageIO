@@ -166,6 +166,11 @@ cbrtf (float val) {
 }
 
 
+inline float
+rintf (float val) {
+    return val + copysignf(0.5f, val);
+}
+
 #elif _MSC_VER >= 1800 && __cplusplus <= 201103L
 // Prior to c++11, these were implementation defined, and on msvc, were not in the
 // std namespace
