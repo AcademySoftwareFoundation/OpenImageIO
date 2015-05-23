@@ -29,14 +29,9 @@
   (This is the Modified BSD License)
 */
 
-
 #include <cassert>
 #include <cstdio>
 #include <vector>
-
-extern "C" {
-#include "jpeglib.h"
-}
 
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/filesystem.h"

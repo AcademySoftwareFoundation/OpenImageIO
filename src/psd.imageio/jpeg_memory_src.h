@@ -31,6 +31,11 @@
 #ifndef OPENIMAGEIO_PSD_JPEG_MEMORY_SRC_H
 #define OPENIMAGEIO_PSD_JPEG_MEMORY_SRC_H
 
+#ifdef WIN32
+//#undef FAR
+#define XMD_H
+#endif
+
 extern "C" {
 #include "jpeglib.h"
 }

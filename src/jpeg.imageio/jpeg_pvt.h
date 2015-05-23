@@ -39,6 +39,11 @@
 
 #include <csetjmp>
 
+#ifdef WIN32
+#undef FAR
+#define XMD_H
+#endif
+
 extern "C" {
 #include "jpeglib.h"
 }
