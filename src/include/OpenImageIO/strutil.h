@@ -209,6 +209,26 @@ std::string OIIO_API join (const std::vector<std::string> &seq,
 
 
 
+// Helper template to test if a string is a generic type
+template<typename T>
+inline bool string_is (string_view s) {
+    return false; // Generic: assume there is an explicit specialization
+}
+// Special case for int
+template <> inline bool string_is<int> (string_view s) {
+    char *endptr = 0;
+    strtol (s.data(), &endptr, 10);
+    return (s.data() + s.size() == endptr);
+}
+// Special case for float
+template <> inline bool string_is<float> (string_view s) {
+    char *endptr = 0;
+    strtod (s.data(), &endptr);
+    return (s.data() + s.size() == endptr);
+}
+
+
+
 // Helper template to convert from generic type to string
 template<typename T>
 inline T from_string (string_view s) {

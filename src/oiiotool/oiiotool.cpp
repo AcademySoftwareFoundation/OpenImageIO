@@ -712,102 +712,270 @@ Oiiotool::adjust_geometry (string_view command,
 
 
 
+void
+Oiiotool::express_error (const string_view expr, const string_view s, string_view explanation)
+{
+    int offset = expr.rfind(s) + 1;
+    error("expression", Strutil::format ("%s at char %d of `%s'", explanation, offset, expr));
+}
+
+
+
+bool
+Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string& result)
+{
+    // std::cout << " Entering express_parse_atom, s='" << s << "'\n";
+
+    string_view orig = s;
+    string_view stringval;
+    float floatval;
+
+    Strutil::skip_whitespace(s);
+
+    // handle + or - prefixes
+    bool negative = false;
+    while (s.size()) {
+        if (Strutil::parse_char (s, '-')) {
+            negative = ! negative;
+        } else if (Strutil::parse_char (s, '+')) {
+            // no op
+        } else {
+            break;
+        }
+    }
+
+    if (Strutil::parse_char (s, '(')) {
+        // handle parentheses
+        if (express_parse_summands (expr, s, result)) {
+            if (! Strutil::parse_char (s, ')')) {
+                express_error (expr, s, "missing `)'");
+                result = orig;
+                return false;
+            }
+        } else {
+            result = orig;
+            return false;
+        }
+
+    } else if (Strutil::starts_with (s,"TOP") || Strutil::starts_with (s, "IMG[")) {
+        // metadata substitution
+        ImageRecRef img;
+        if (Strutil::parse_prefix (s, "TOP")) {
+            img = curimg;
+        } else if (Strutil::parse_prefix (s, "IMG[")) {
+            int index = -1;
+            if (Strutil::parse_int (s, index) && Strutil::parse_char (s, ']')
+                  && index >= 0 && index <= (int)image_stack.size()) {
+                if (index == 0)
+                    img = curimg;
+                else
+                    img = image_stack[image_stack.size()-index];
+            } else {
+                string_view name = Strutil::parse_until (s, "]");
+                std::map<std::string,ImageRecRef>::const_iterator found;
+                found = ot.image_labels.find(name);
+                if (found != ot.image_labels.end())
+                    img = found->second;
+                else
+                    img = ImageRecRef (new ImageRec (name, ot.imagecache));
+                Strutil::parse_char (s, ']');
+            }
+        }
+        if (! img.get()) {
+            express_error (expr, s, "not a valid image");
+            result = orig;
+            return false;
+        }
+        if (! Strutil::parse_char (s, '.')) {
+            express_error (expr, s, "expected `.'");
+            result = orig;
+            return false;
+        }
+        string_view metadata = Strutil::parse_identifier (s);
+        if (metadata.size()) {
+            read (img);
+            ImageIOParameter tmpparam;
+            const ImageIOParameter *p = img->spec(0,0)->find_attribute (metadata, tmpparam);
+            if (p) {
+                std::string val = ImageSpec::metadata_val (*p);
+                if (p->type().basetype == TypeDesc::STRING) {
+                    // metadata_val returns strings double quoted, strip
+                    val.erase (0, 1);
+                    val.erase (val.size()-1, 1);
+                }
+                result = val;
+            }
+            else if (metadata == "filename")
+                result = img->name();
+            else if (metadata == "file_extension")
+                result = Filesystem::extension (img->name());
+            else if (metadata == "file_noextension") {
+                std::string filename = img->name();
+                std::string ext = Filesystem::extension (img->name());
+                result = filename.substr (0, filename.size()-ext.size());
+            } else {
+                express_error (expr, s, Strutil::format ("unknown attribute name `%s'", metadata));
+                result = orig;
+                return false;
+            }
+        }
+    } else if (Strutil::parse_float (s, floatval)) {
+        result = Strutil::format ("%g", floatval);
+    } else {
+        express_error (expr, s, "syntax error");
+        result = orig;
+        return false;
+    }
+
+    if (negative)
+        result = "-" + result;
+
+    // std::cout << " Exiting express_parse_atom, result='" << result << "'\n";
+
+    return true;
+}
+
+
+
+bool
+Oiiotool::express_parse_factors(const string_view expr, string_view& s, std::string& result)
+{
+    // std::cout << " Entering express_parse_factors, s='" << s << "'\n";
+
+    string_view orig = s;
+    std::string atom;
+    float lval, rval;
+
+    // parse the first factor
+    if (! express_parse_atom (expr, s, atom)) {
+        result = orig;
+        return false;
+    }
+
+    if (Strutil::string_is<float> (atom)) {
+        // lval is a number
+        lval = Strutil::from_string<float> (atom);
+        while (s.size()) {
+            char op;
+            if (Strutil::parse_char (s, '*'))
+                op = '*';
+            else if (Strutil::parse_char (s, '/'))
+                op = '/';
+            else {
+                // no more factors
+                break;
+            }
+
+            // parse the next factor
+            if (! express_parse_atom (expr, s, atom)) {
+                result = orig;
+                return false;
+            }
+
+            if (! Strutil::string_is<float> (atom)) {
+                express_error (expr, s, Strutil::format ("expected number but got `%s'", atom));
+                result = orig;
+                return false;
+            }
+
+            // rval is a number, so we can math
+            rval = Strutil::from_string<float>(atom);
+            if (op == '*')
+                lval *= rval;
+            else // op == '/'
+                lval /= rval;
+        }
+
+        result = Strutil::format ("%g", lval);
+
+    } else {
+        // atom is not a number, so we're done
+        result = atom;
+    }
+
+    // std::cout << " Exiting express_parse_factors, result='" << result << "'\n";
+
+    return true;
+}
+
+
+
+bool
+Oiiotool::express_parse_summands(const string_view expr, string_view& s, std::string& result)
+{
+    // std::cout << " Entering express_parse_summands, s='" << s << "'\n";
+
+    string_view orig = s;
+    std::string atom;
+    float lval, rval;
+
+    // parse the first summand
+    if (! express_parse_factors(expr, s, atom)) {
+        result = orig;
+        return false;
+    }
+
+    if (Strutil::string_is<float> (atom)) {
+        // lval is a number
+        lval = Strutil::from_string<float> (atom);
+        while (s.size()) {
+            char op;
+            if (Strutil::parse_char (s, '+'))
+                op = '+';
+            else if (Strutil::parse_char (s, '-'))
+                op = '-';
+            else {
+                // no more summands
+                break;
+            }
+
+            // parse the next summand
+            if (! express_parse_factors(expr, s, atom)) {
+                result = orig;
+                return false;
+            }
+
+            if (! Strutil::string_is<float> (atom)) {
+                express_error (expr, s, Strutil::format ("`%s' is not a number", atom));
+                result = orig;
+                return false;
+            }
+
+            // rval is also a number, we can math
+            rval = Strutil::from_string<float>(atom);
+            if (op == '+')
+                lval += rval;
+            else // op == '-'
+                lval -= rval;
+        }
+
+        result = Strutil::format ("%g", lval);
+
+    } else {
+        // atom is not a number, so we're done
+        result = atom;
+    }
+
+    // std::cout << " Exiting express_parse_summands, result='" << result << "'\n";
+
+    return true;
+}
+
+
+
 // Expression evaluation and substitution for a single expression
 std::string
 Oiiotool::express_impl (string_view s)
 {
     std::string result;
     string_view orig = s;
-    char pending_op = 0;
 
     // std::cout << "express_impl '" << s << "'\n";
-    while (s.size()) {
-        // std::cout << " In iter, result='" << result << "', s='" << s << "', pending=" << pending_op << "\n";
-        orig = s;
-        std::string r;
-        float floatval;
-        if (Strutil::starts_with(s,"TOP") || Strutil::starts_with (s, "IMG[")) {
-            // metadata substitution
-            ImageRecRef img;
-            if (Strutil::parse_prefix (s, "TOP")) {
-                img = curimg;
-            } else if (Strutil::parse_prefix (s, "IMG[")) {
-                int index = -1;
-                if (Strutil::parse_int (s, index) && Strutil::parse_char (s, ']')
-                      && index >= 0 && index <= (int)image_stack.size()) {
-                    if (index == 0)
-                        img = curimg;
-                    else
-                        img = image_stack[image_stack.size()-index];
-                } else {
-                    string_view name = Strutil::parse_until (s, "]");
-                    std::map<std::string,ImageRecRef>::const_iterator found;
-                    found = ot.image_labels.find(name);
-                    if (found != ot.image_labels.end())
-                        img = found->second;
-                    else
-                        img = ImageRecRef (new ImageRec (name, ot.imagecache));
-                    Strutil::parse_char (s, ']');
-                }
-            }
-            if (! img.get()) {
-                s = orig; break;  // Not a valid image
-            }
-            if (! Strutil::parse_char (s, '.')) {
-                s = orig; break;
-            }
-            string_view metadata = Strutil::parse_identifier (s);
-            if (metadata.size()) {
-                read (img);
-                ImageIOParameter tmpparam;
-                const ImageIOParameter *p = img->spec(0,0)->find_attribute (metadata, tmpparam);
-                if (p) {
-                    std::string val = ImageSpec::metadata_val (*p);
-                    if (p->type().basetype == TypeDesc::STRING) {
-                        // metadata_val returns strings double quoted, strip
-                        val.erase (0, 1);
-                        val.erase (val.size()-1, 1);
-                    }
-                    r = val;
-                }
-                else if (metadata == "filename")
-                    r = img->name();
-                else if (metadata == "file_extension")
-                    r = Filesystem::extension (img->name());
-                else if (metadata == "file_noextension") {
-                    std::string filename = img->name();
-                    std::string ext = Filesystem::extension (img->name());
-                    r = filename.substr (0, filename.size()-ext.size());
-                }
-            }
-        } else if (Strutil::parse_float (s, floatval)) {
-            r = Strutil::format ("%g", floatval);
-        }
-        if (pending_op) {
-            float a = Strutil::from_string<float>(result);
-            float b = Strutil::from_string<float>(r);
-            float val = 0.0f;
-            if (pending_op == '*')
-                val = a*b;
-            else if (pending_op == '/')
-                val = a/b;
-            else if (pending_op == '+')
-                val = a+b;
-            else if (pending_op == '-')
-                val = a-b;
-            result = Strutil::format("%g", val);
-            pending_op = 0;
-            continue;
-        }
-        result += r;
-        if (s[0] == '*' || s[0] == '/' || s[0] == '+' || s[0] == '-') {
-            pending_op = s[0];
-            s.remove_prefix (1);
-            continue;
-        }
-        break;
+
+    if (! express_parse_summands(orig, s, result)) {
+        result = orig;
     }
-    result += std::string(s);
+
     // if (ot.debug)
     //     std::cout << "  express_impl \"" << orig << "\" -> \"" << result << "\"\n";
 
