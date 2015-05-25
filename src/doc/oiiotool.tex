@@ -211,16 +211,18 @@ the following special names: \qkw{filename}, \qkw{file_extension},
 ``display'' size).
 
 \item[{Arithmetic}] Sub-expressions may be joined by {\cf +}, {\cf -},
-{\cf *}, or {\cf /} for simple arithmetic operations. The evaluation is
-simple left-to-right order without any special operator precedence.
+{\cf *}, or {\cf /} for arithmetic operations. Parentheses are supported,
+and standard operator precedence applies.
 \end{description}
 
 To illustrate how this works, consider the following command, which trims
-a two-pixel border from all sides, without needing to know the resolution
-of the original image:
+a four-pixel border from all sides and outputs a new image prefixed with
+"cropped_", without needing to know the resolution or filename of the
+original image:
 
 \begin{smallcode}
-    oiiotool input.exr -cut "{TOP.width-4}x{TOP.height-4}+{TOP.x+2}+{TOP.y+2}" -o cropped.exr
+    oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
+        -o cropped_{TOP.filename}
 \end{smallcode}
 
 \section{\oiiotool Tutorial / Recipes}

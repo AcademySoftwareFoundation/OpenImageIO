@@ -243,5 +243,7 @@ Comparing "exprgradient.tif" and "ref/exprgradient.tif"
 PASS
 Comparing "exprcropped.tif" and "ref/exprcropped.tif"
 PASS
+Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
+PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS

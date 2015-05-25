@@ -256,8 +256,8 @@ command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x
 # test expression substitution
 command += oiiotool ("tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,1,1 " +
                      "{TOP.geom} {TOP.nchannels} -d uint8 -o exprgradient.tif")
-command += oiiotool ("tahoe-small.tif -cut {TOP.width-40}x{TOP.height-40}+{TOP.x+20}+{TOP.y+20} -d uint8 -o exprcropped.tif")
-
+command += oiiotool ("tahoe-small.tif -cut '{TOP.width-20* 2}x{TOP.height-40+(4*2- 2 ) /6-1}+{TOP.x+100.5-80.5 }+{TOP.y+20}' -d uint8 -o exprcropped.tif")
+command += oiiotool ("tahoe-small.tif -o exprstrcat{TOP.compression}.tif")
 
 # test --no-autopremult on a TGA file thet needs it.
 command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
@@ -308,7 +308,7 @@ outputs = [
             "fft.exr", "ifft.exr",
             "polar.exr", "unpolar.exr",
             "labeladd.exr",
-            "exprgradient.tif", "exprcropped.tif",
+            "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "rgbfromtga.png",
             "out.txt" ]
 
