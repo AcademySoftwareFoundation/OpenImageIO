@@ -63,7 +63,7 @@ static std::string full_command_line;
 static std::vector<std::string> filenames;
 static std::string outputfilename;
 static bool verbose = false;
-static bool stats = false;
+static bool runstats = false;
 static int nthreads = 0;    // default: use #cores threads if available
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
@@ -275,7 +275,8 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
                   "--no-compute-average %!", &compute_average, "Don't compute and store average color",
                   "--ignore-unassoc", &ignore_unassoc, "Ignore unassociated alpha tags in input (don't autoconvert)",
-                  "--stats", &stats, "Print runtime statistics",
+                  "--runstats", &runstats, "Print runtime statistics",
+                  "--stats", &runstats, "", // DEPRECATED 1.6
                   "--mipimage %L", &mipimages, "Specify an individual MIP level",
                   "<SEPARATOR>", "Basic modes (default is plain texture):",
                   "--shadow", &shadowmode, "Create shadow map",
@@ -367,7 +368,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("wrapmodes", wrapmodes);
 
     configspec.attribute ("maketx:verbose", verbose);
-    configspec.attribute ("maketx:stats", stats);
+    configspec.attribute ("maketx:runstats", runstats);
     configspec.attribute ("maketx:resize", doresize);
     configspec.attribute ("maketx:nomipmap", nomipmap);
     configspec.attribute ("maketx:updatemode", updatemode);
@@ -468,7 +469,7 @@ main (int argc, char *argv[])
     bool ok = ImageBufAlgo::make_texture (mode, filenames[0],
                                           outputfilename, configspec,
                                           &std::cout);
-    if (stats)
+    if (runstats)
         std::cout << "\n" << ic->getstats();
 
     return ok ? 0 : EXIT_FAILURE;

@@ -1818,7 +1818,7 @@ enum OIIO_API MakeTextureMode {
 ///    worldtoscreen (matrix) World-to-screen space matrix of the view.
 ///    wrapmodes (string)     Default: "black,black"
 ///    maketx:verbose (int)   How much detail should go to outstream (0).
-///    maketx:stats (int)     If nonzero, print stats to outstream (0).
+///    maketx:runstats (int)  If nonzero, print run stats to outstream (0).
 ///    maketx:resize (int)    If nonzero, resize to power of 2. (0)
 ///    maketx:nomipmap (int)  If nonzero, only output the top MIP level (0).
 ///    maketx:updatemode (int) If nonzero, write new output only if the

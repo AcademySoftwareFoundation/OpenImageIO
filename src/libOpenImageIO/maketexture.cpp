@@ -1511,7 +1511,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     if (! ok)
         Filesystem::remove (tmpfilename);
 
-    if (verbose || configspec.get_int_attribute("maketx:stats")) {
+    if (verbose || configspec.get_int_attribute("maketx:runstats")
+                || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();
         outstream << Strutil::format ("maketx run time (seconds): %5.2f\n", all);;
 
