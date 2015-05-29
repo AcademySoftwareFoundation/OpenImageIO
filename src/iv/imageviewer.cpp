@@ -763,8 +763,8 @@ ImageViewer::add_image (const std::string &filename)
     if (filename.empty())
         return;
     IvImage *newimage = new IvImage(filename);
-    newimage->gamma (m_default_gamma);
     ASSERT (newimage);
+    newimage->gamma (m_default_gamma);
     m_images.push_back (newimage);
     addRecentFile (filename);
     updateRecentFilesMenu ();
