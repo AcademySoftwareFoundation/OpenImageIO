@@ -2161,6 +2161,14 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
 std::string
 ImageCacheImpl::resolve_filename (const std::string &filename) const
 {
+    // Ask if the format can generate imagery procedurally. If so, don't
+    // go looking for a file.
+    ImageInput *input = ImageInput::create (filename);
+    bool procedural = input ? input->supports ("procedural") : false;
+    ImageInput::destroy (input);
+    if (procedural)
+        return filename;
+
     std::string s = Filesystem::searchpath_find (filename, m_searchdirs, true);
     return s.empty() ? filename : s;
 }

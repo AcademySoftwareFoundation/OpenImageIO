@@ -467,6 +467,8 @@ public:
     ///                        arbitrary names and types?
     ///    "exif"           Can this format store Exif camera data?
     ///    "iptc"           Can this format store IPTC data?
+    ///    "procedural"     Can this format create images without reading
+    ///                        from a disk file?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
