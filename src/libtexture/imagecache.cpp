@@ -3043,8 +3043,6 @@ ImageCache::create (bool shared)
         spin_lock guard (shared_image_cache_mutex);
         if (! shared_image_cache.get())
             shared_image_cache.reset (new ImageCacheImpl);
-        else
-            shared_image_cache->invalidate_all ();
 
 #if 0
         std::cerr << " shared ImageCache is "

@@ -116,11 +116,9 @@ TextureSystem::create (bool shared)
         spin_lock guard (shared_texturesys_mutex);
         if (! shared_texturesys)
             shared_texturesys = new TextureSystemImpl(ImageCache::create(true));
-        else
-            shared_texturesys->invalidate_all ();
 #if 0
         std::cerr << " shared TextureSystem is "
-                  << (void *)shared_texturesys.get() << "\n";
+                  << (void *)shared_texturesys << "\n";
 #endif
         return shared_texturesys;
     }
