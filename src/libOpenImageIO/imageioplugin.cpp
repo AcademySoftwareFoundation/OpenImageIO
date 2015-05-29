@@ -305,6 +305,25 @@ catalog_builtin_plugins ()
 
 
 
+static void
+append_if_env_exists (std::string &searchpath, const char *env,
+                      bool prepend=false)
+{
+    const char *path = getenv (env);
+    if (path && *path) {
+        std::string newpath = path;
+        if (searchpath.length()) {
+            if (prepend)
+                newpath = newpath + ':' + searchpath;
+            else
+                newpath = searchpath + ':' + newpath;
+        }
+        searchpath = newpath;
+    }
+}
+
+
+
 /// Look at ALL imageio plugins in the searchpath and add them to the
 /// catalog.  This routine is not reentrant and should only be called
 /// by a routine that is holding a lock on imageio_mutex.
@@ -313,13 +332,13 @@ pvt::catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
-    const char *oiio_library_path = getenv ("OIIO_LIBRARY_PATH");
-    if (oiio_library_path && *oiio_library_path) {
-        std::string newpath = oiio_library_path;
-        if (searchpath.length())
-            newpath = newpath + ':' + searchpath;
-        searchpath = newpath;
-    }
+    append_if_env_exists (searchpath, "OIIO_LIBRARY_PATH", true);
+#ifdef __APPLE__
+    append_if_env_exists (searchpath, "DYLD_LIBRARY_PATH");
+#endif
+#if defined(__linux__) || defined(__FreeBSD__)
+    append_if_env_exists (searchpath, "LD_LIBRARY_PATH");
+#endif
 
     size_t patlen = pattern.length();
     std::vector<std::string> dirs;
