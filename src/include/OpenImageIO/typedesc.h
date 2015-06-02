@@ -55,6 +55,7 @@
 #include "export.h"
 #include "oiioversion.h"
 #include "dassert.h"
+#include "string_view.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -143,7 +144,8 @@ struct OIIO_API TypeDesc {
 
     /// Construct from a string (e.g., "float[3]").  If no valid
     /// type could be assembled, set base to UNKNOWN.
-    TypeDesc (const char *typestring);
+    TypeDesc (string_view typestring);
+    TypeDesc (const char *typestring);   // DEPRECATED (1.6)
 
     /// Copy constructor.
     TypeDesc (const TypeDesc &t)
@@ -221,7 +223,8 @@ struct OIIO_API TypeDesc {
     /// length of the part of the string that describes the type.  If
     /// no valid type could be assembled, return 0 and do not modify
     /// *this.
-    size_t fromstring (const char *typestring);
+    size_t fromstring (string_view typestring);
+    size_t fromstring (const char *typestring);   // DEPRECATED (1.6)
 
     /// Compare two TypeDesc values for equality.
     ///
