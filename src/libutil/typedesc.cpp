@@ -44,6 +44,15 @@
 OIIO_NAMESPACE_ENTER
 {
 
+TypeDesc::TypeDesc (string_view typestring)
+    : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
+      reserved(0), arraylen(0)
+{
+    fromstring (typestring);
+}
+
+
+
 TypeDesc::TypeDesc (const char *typestring)
     : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
       reserved(0), arraylen(0)
@@ -235,17 +244,27 @@ copy_until (const char *src, const char *delim, char *dst, size_t maxlen)
 size_t
 TypeDesc::fromstring (const char *typestring)
 {
-    TypeDesc t;
-    size_t len = 0;
-    if (! typestring)
+    return fromstring (string_view(typestring));
+}
+
+
+
+size_t
+TypeDesc::fromstring (string_view typestring)
+{
+    *this = TypeDesc::UNKNOWN;
+    string_view orig = typestring;
+    if (typestring.empty()) {
         return 0;
+    }
 
     // The first "word" should be a type name.
-    char type[16];
-    len = copy_until (typestring, " [", type, sizeof(type));
+    string_view type = Strutil::parse_identifier (typestring);
+
     // Check the scalar types in our table above
+    TypeDesc t;
     for (int i = 0;  i < LASTBASE;  ++i) {
-        if (! strcmp (type, basetype_name[i])) {
+        if (type == basetype_name[i]) {
             t.basetype = i;
             break;
         }
@@ -255,43 +274,31 @@ TypeDesc::fromstring (const char *typestring)
     if (t.basetype != UNKNOWN) {
         // already solved
     }
-    else if (! strcmp (type, "color"))
+    else if (type == "color")
         t = TypeColor;
-    else if (! strcmp (type, "point"))
+    else if (type == "point")
         t = TypePoint;
-    else if (! strcmp (type, "vector"))
+    else if (type == "vector")
         t = TypeVector;
-    else if (! strcmp (type, "normal"))
+    else if (type == "normal")
         t = TypeNormal;
-    else if (! strcmp (type, "matrix"))
+    else if (type == "matrix")
         t = TypeMatrix;
     else {
         return 0;  // unknown
     }
 
     // Is there an array length following the type name?
-    while (typestring[len] == ' ')
-        ++len;
-    if (typestring[len] == '[') {
-        ++len;
-        while (typestring[len] == ' ')
-            ++len;
-        if (typestring[len] == ']') {   // '[]' indicates array of unknown len
-            t.arraylen = -1;
-        } else {
-            t.arraylen = atoi (typestring+len);
-            while ((typestring[len] >= '0' && typestring[len] <= '9') ||
-                   typestring[len] == ' ')
-                ++len;
-        }
-        if (typestring[len] == ']')
-            ++len;
-        else
-            return 0;
+    if (Strutil::parse_char (typestring, '[')) {
+        int arraylen = -1;
+        Strutil::parse_int (typestring, arraylen);
+        if (! Strutil::parse_char (typestring, ']'))
+            return 0;   // malformed
+        t.arraylen = arraylen;
     }
 
     *this = t;
-    return len;
+    return orig.length() - typestring.length();
 }
 
     
