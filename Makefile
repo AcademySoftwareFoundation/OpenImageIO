@@ -30,6 +30,8 @@ MY_MAKE_FLAGS ?=
 MY_NINJA_FLAGS ?=
 MY_CMAKE_FLAGS ?= -g3 -DSELF_CONTAINED_INSTALL_TREE:BOOL=TRUE
 BUILDSENTINEL ?= Makefile
+NINJA ?= ninja
+CMAKE ?= cmake
 
 # Site-specific build instructions
 ifndef OPENIMAGEIO_SITE
@@ -55,7 +57,6 @@ VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
 MY_CMAKE_FLAGS += -DVERBOSE:BOOL=1
-MY_NINJA_FLAGS += VERBOSE=${VERBOSE}
 TEST_FLAGS += -V
 endif
 
@@ -241,13 +242,16 @@ ifneq (${USE_SIMD},)
 MY_CMAKE_FLAGS += -DUSE_SIMD:STRING="${USE_SIMD}"
 endif
 
+ifneq (${TEST},)
+TEST_FLAGS += -R ${TEST}
+endif
+
 ifeq (${USE_NINJA},1)
 MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
-endif
-
-ifneq (${TEST},)
-TEST_FLAGS += -R ${TEST}
+RUN_BUILD := ${NINJA} ${MY_NINJA_FLAGS}
+else
+RUN_BUILD := ${MAKE} ${MY_MAKE_FLAGS}
 endif
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
@@ -277,84 +281,59 @@ profile:
 # cmake generated makefiles to regenerate themselves when necessary.
 cmakesetup:
 	@ (if [ ! -e ${build_dir}/${BUILDSENTINEL} ] ; then \
-		cmake -E make_directory ${build_dir} ; \
+		${CMAKE} -E make_directory ${build_dir} ; \
 		cd ${build_dir} ; \
-		cmake -DCMAKE_INSTALL_PREFIX=${INSTALLDIR}/${dist_dir} \
+		${CMAKE} -DCMAKE_INSTALL_PREFIX=${INSTALLDIR}/${dist_dir} \
 			${MY_CMAKE_FLAGS} -DBOOST_ROOT=${BOOST_HOME} \
 			../.. ; \
 	 fi)
 
-ifeq (${USE_NINJA},1)
-
 # 'make cmake' does a basic build (after first setting it up)
 cmake: cmakesetup
-	( cd ${build_dir} ; ninja ${MY_NINJA_FLAGS} )
+	( cd ${build_dir} ; ${RUN_BUILD} )
 
 # 'make cmakeinstall' builds everthing and installs it in 'dist'.
 # Suppress pointless output from docs installation.
 cmakeinstall: cmake
-	( cd ${build_dir} ; ninja ${MY_NINJA_FLAGS} install | grep -v '^-- \(Installing\|Up-to-date\).*doc/html' )
+	( cd ${build_dir} ; ${RUN_BUILD} install | grep -v '^-- \(Installing\|Up-to-date\).*doc/html' )
 
 # 'make package' builds everything and then makes an installable package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package: cmakeinstall
-	( cd ${build_dir} ; ninja ${MY_NINJA_FLAGS} package )
+	( cd ${build_dir} ; ${RUN_BUILD} package )
 
 # 'make package_source' makes an installable source package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package_source: cmakeinstall
-	( cd ${build_dir} ; ninja ${MY_NINJA_FLAGS} package_source )
-
-else
-
-# 'make cmake' does a basic build (after first setting it up)
-cmake: cmakesetup
-	( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} )
-
-# 'make cmakeinstall' builds everthing and installs it in 'dist'.
-# Suppress pointless output from docs installation.
-cmakeinstall: cmake
-	( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} install | grep -v '^-- \(Installing\|Up-to-date\).*doc/html' )
-
-# 'make package' builds everything and then makes an installable package
-# (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
-package: cmakeinstall
-	( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} package )
-
-# 'make package_source' makes an installable source package
-# (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
-package_source: cmakeinstall
-	( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} package_source )
-
-endif
+	( cd ${build_dir} ; ${RUN_BUILD} package_source )
 
 # 'make dist' is just a synonym for 'make cmakeinstall'
 dist : cmakeinstall
 
 # 'make test' does a full build and then runs all tests
 test: cmake
-	cmake -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
+	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} -E broken )
 
 # 'make testall' does a full build and then runs all tests (even the ones
 # that are expected to fail on some platforms)
 testall: cmake
-	cmake -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
+	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
 	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} )
 
 #clean: testclean
 # 'make clean' clears out the build directory for this platform
 clean:
-	cmake -E remove_directory ${build_dir}
+	${CMAKE} -E remove_directory ${build_dir}
 
 # 'make realclean' clears out both build and dist directories for this platform
 realclean: clean
-	cmake -E remove_directory ${dist_dir}
+	${CMAKE} -E remove_directory ${dist_dir}
 
 # 'make nuke' blows away the build and dist areas for all platforms
 nuke:
-	cmake -E remove_directory ${top_build_dir}
-	cmake -E remove_directory ${top_dist_dir}
+	${CMAKE} -E remove_directory ${top_build_dir}
+	${CMAKE} -E remove_directory ${top_dist_dir}
 
 doxygen:
 	doxygen src/doc/Doxyfile
