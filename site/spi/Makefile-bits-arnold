@@ -46,6 +46,9 @@ ifeq ($(SP_OS), spinux1)
     platform=spinux1
     SPCOMP2_COMPILER=gcc44m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+    USE_NINJA := 1
+    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
+    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
     # the standard libGL.  This attempts to detect which libGL to use.
@@ -158,7 +161,6 @@ ifeq ($(SP_OS), spinux1)
         -DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
         -DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
         -DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
-
 endif  # endif spinux1
 
 ## Rhel7 (current)
@@ -166,6 +168,9 @@ ifeq ($(SP_OS), rhel7)
     platform=rhel7
     SPCOMP2_COMPILER=gcc48m64
     INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+    USE_NINJA := 1
+    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
+    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
     ifeq (${OCIO_PATH},)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
