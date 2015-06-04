@@ -2165,7 +2165,7 @@ ImageCacheImpl::resolve_filename (const std::string &filename) const
     // go looking for a file.
     ImageInput *input = ImageInput::create (filename);
     bool procedural = input ? input->supports ("procedural") : false;
-    ImageInput::destroy (input);
+    delete input;
     if (procedural)
         return filename;
 
