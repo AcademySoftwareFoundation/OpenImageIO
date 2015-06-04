@@ -49,6 +49,7 @@ ifeq ($(SP_OS), spinux1)
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
     CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
+    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
     # the standard libGL.  This attempts to detect which libGL to use.
@@ -171,6 +172,7 @@ ifeq ($(SP_OS), rhel7)
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
     CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
+    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     ifeq (${OCIO_PATH},)
         OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v2"
     endif
