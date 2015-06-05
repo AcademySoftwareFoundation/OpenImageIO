@@ -166,7 +166,9 @@ if (ILMBASE_INCLUDE_DIR)
          REGEX "^[ \t]*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
 
     if(ILMBASE_BUILD_SPECIFICATION)
-      message(STATUS "${ILMBASE_BUILD_SPECIFICATION}")
+      if (NOT IlmBase_FIND_QUIETLY)
+        message(STATUS "${ILMBASE_BUILD_SPECIFICATION}")
+      endif ()
       string(REGEX REPLACE ".*#define[ \t]+ILMBASE_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
              "\\1" XYZ ${ILMBASE_BUILD_SPECIFICATION})
       set("ILMBASE_VERSION" ${XYZ} CACHE STRING "Version of ILMBase lib")
@@ -234,7 +236,7 @@ if (ILMBASE_FOUND)
     list (APPEND ILMBASE_LIBRARIES ${${tmplib}})
   endforeach ()
   list (APPEND ILMBASE_LIBRARIES ${ILMBASE_PTHREADS})
-  if (VERBOSE)
+  if (NOT IlmBase_FIND_QUIETLY)
     FIND_PACKAGE_MESSAGE (ILMBASE
       "Found IlmBase: ${ILMBASE_LIBRARIES}"
       "[${ILMBASE_INCLUDE_DIR}][${ILMBASE_LIBRARIES}][${ILMBASE_CURRENT_STATE}]"

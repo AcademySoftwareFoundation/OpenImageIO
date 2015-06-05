@@ -79,7 +79,9 @@ ifeq (${platform},unknown)
   $(error "ERROR: Could not determine the platform")
 endif
 
+ifneq (${VERBOSE},)
 $(info platform=${platform}, hw=${hw})
+endif
 
 # end of section where we figure out the platform
 #########################################################################

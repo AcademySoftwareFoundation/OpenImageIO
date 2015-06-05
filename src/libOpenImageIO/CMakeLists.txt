@@ -1,4 +1,6 @@
-message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+if (VERBOSE)
+   message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
+endif ()
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 configure_file (imageio_pvt.h.in "${CMAKE_CURRENT_BINARY_DIR}/imageio_pvt.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
@@ -142,7 +144,7 @@ if (EMBEDPLUGINS)
     else ()
         message (STATUS "Field3D plugin will not be built")
         set (FIELD3D_LIBRARY "")
-        set (HDF5_LIBRARY "")
+        set (HDF5_LIBRARIES "")
     endif ()
 
     if (GIF_FOUND AND USE_GIF)
@@ -218,14 +220,18 @@ target_link_libraries (OpenImageIO
 
 # Include FFmpeg if using it
 if (USE_FFMPEG AND FFMPEG_FOUND)
-    message (STATUS "Linking FFmpeg ${FFMPEG_LIBRARIES}")
+    if (VERBOSE)
+        message (STATUS "Linking FFmpeg ${FFMPEG_LIBRARIES}")
+    endif ()
     target_link_libraries (OpenImageIO ${FFMPEG_LIBRARIES})
 endif ()
 
         
 # Include OpenColorIO if using it
 if (USE_OCIO AND OCIO_FOUND)
-    message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
+    if (VERBOSE)
+        message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
+    endif ()
     target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
 endif ()
 
@@ -260,7 +266,7 @@ if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
                                ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
                                ${FIELD3D_LIBRARY}
-                               ${HDF5_LIBRARY}
+                               ${HDF5_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
                           )
@@ -280,7 +286,9 @@ if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
 endif ()
 
-message(STATUS "Setting SOVERSION to: ${SOVERSION}")
+if (VERBOSE)
+    message(STATUS "Setting SOVERSION to: ${SOVERSION}")
+endif ()
 set_target_properties(OpenImageIO
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
@@ -290,7 +298,9 @@ set_target_properties(OpenImageIO
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
 # with a .so suffix instead of a .dylib suffix.
 if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
-  message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
+  if (VERBOSE)
+      message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
+  endif ()
   set_target_properties(OpenImageIO
                            PROPERTIES
                            SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}

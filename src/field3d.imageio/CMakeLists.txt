@@ -3,7 +3,7 @@ if (USE_FIELD3D)
     include_directories (${FIELD3D_INCLUDES})
     add_oiio_plugin (field3dinput.cpp field3doutput.cpp
                      LINK_LIBRARIES ${FIELD3D_LIBRARY}
-                                    ${HDF5_LIBRARY}
+                                    ${HDF5_LIBRARIES}
                      )
   else()
     message (STATUS "Field3D not found: field3d plugin will not be built")

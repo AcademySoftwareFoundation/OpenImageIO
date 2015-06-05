@@ -10,8 +10,20 @@ cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
     cmake_policy (SET CMP0017 NEW)
 endif ()
-message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
+if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
+    cmake_policy (SET CMP0042 OLD)
+    cmake_policy (SET CMP0046 OLD)
+endif ()
+set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+
+if (VERBOSE)
+    message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
+endif ()
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
+
+if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message (FATAL_ERROR "Not allowed to run in-source build!")
+endif ()
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
@@ -36,24 +48,32 @@ if (CMAKE_COMPILER_IS_GNUCC)
     execute_process (COMMAND ${CMAKE_C_COMPILER} -dumpversion
                      OUTPUT_VARIABLE GCC_VERSION
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
+    if (VERBOSE)
+        message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
+    endif ()
 endif ()
 message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set (CMAKE_COMPILER_IS_CLANG 1)
-    message (STATUS "Using clang as the compiler")
+    if (VERBOSE)
+        message (STATUS "Using clang as the compiler")
+    endif ()
 endif ()
 # Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
 # appears to be unreliable and may say "GNU" despite using clang, so
 # directly match against the compiler name.
 if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
     set (CMAKE_COMPILER_IS_CLANG 1)
-    message (STATUS "The compiler seems to be clang")
+    if (VERBOSE)
+        message (STATUS "The compiler seems to be clang")
+    endif ()
 endif ()
 if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     set (CMAKE_COMPILER_IS_INTEL 1)
-    message (STATUS "Using Intel as the compiler")
+    if (VERBOSE)
+        message (STATUS "Using Intel as the compiler")
+    endif ()
 endif ()
 
 ## turn on more detailed warnings and consider warnings as errors
@@ -106,6 +126,12 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
             set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
         endif ()
     endif ()
+endif ()
+
+# Try to detect if this is an OSX distro new enough that the system library
+# is libc++.
+if (EXISTS "/usr/lib/libc++.dylib")
+    set (OSL_SYSTEM_HAS_LIBCPP ON)
 endif ()
 
 
@@ -198,7 +224,9 @@ if (NOT USE_SIMD STREQUAL "")
     else ()
         string (REPLACE "," ";" SIMD_FEATURE_LIST ${USE_SIMD})
         foreach (feature ${SIMD_FEATURE_LIST})
-            message (STATUS "SIMD feature: ${feature}")
+            if (VERBOSE)
+                message (STATUS "SIMD feature: ${feature}")
+            endif ()
             if (MSVC OR CMAKE_COMPILER_IS_INTEL)
                 add_definitions ("/arch:${feature}")
             else ()
@@ -220,7 +248,6 @@ if (NOT OIIO_NAMESPACE)
 endif ()
 
 message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
-
 
 include (util_macros)
 include (oiio_macros)

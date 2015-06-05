@@ -165,7 +165,9 @@ if (OPENEXR_INCLUDE_DIR)
          REGEX "^[ \t]*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"[.0-9]+\".*$")
 
     if(OPENEXR_BUILD_SPECIFICATION)
-      message(STATUS "${OPENEXR_BUILD_SPECIFICATION}")
+      if (NOT OpenEXR_FIND_QUIETLY)
+        message(STATUS "${OPENEXR_BUILD_SPECIFICATION}")
+      endif ()
       string(REGEX REPLACE ".*#define[ \t]+OPENEXR_VERSION_STRING[ \t]+\"([.0-9]+)\".*"
              "\\1" XYZ ${OPENEXR_BUILD_SPECIFICATION})
       set("OPENEXR_VERSION" ${XYZ} CACHE STRING "Version of OpenEXR lib")
@@ -218,7 +220,7 @@ if (OPENEXR_FOUND)
     list (APPEND OPENEXR_LIBRARIES ${${tmplib}})
   endforeach ()
   list (APPEND OPENEXR_LIBRARIES ${ZLIB_LIBRARIES})
-  if (VERBOSE)
+  if (NOT OpenEXR_FIND_QUIETLY)
     FIND_PACKAGE_MESSAGE (OPENEXR
       "Found OpenEXR: ${OPENEXR_LIBRARIES}"
       "[${OPENEXR_INCLUDE_DIR}][${OPENEXR_LIBRARIES}][${OPENEXR_CURRENT_STATE}]"

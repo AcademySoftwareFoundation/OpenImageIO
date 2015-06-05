@@ -76,11 +76,13 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
          py_typedesc.cpp py_paramvalue.cpp py_deepdata.cpp
          py_oiio.cpp)
 
-    message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
-    message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
-    message (STATUS "Python libraries    ${PYTHON_LIBRARIES}")
-    message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
-    message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
+    if (VERBOSE)
+        message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
+        message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
+        message (STATUS "Python libraries    ${PYTHON_LIBRARIES}")
+        message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
+        message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
+    endif ()
 
     include_directories (${PYTHON_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
     add_library (${target_name} MODULE ${python_srcs})
@@ -105,7 +107,9 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     endif ()
 
     if(PYLIB_INCLUDE_SONAME)
-        message(STATUS "Setting PyOIIO SOVERSION to: ${SOVERSION}")
+        if (VERBOSE)
+            message(STATUS "Setting PyOIIO SOVERSION to: ${SOVERSION}")
+        endif ()
         set_target_properties(${target_name} PROPERTIES
             VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
             SOVERSION ${SOVERSION}

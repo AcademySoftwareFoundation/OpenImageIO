@@ -1,5 +1,7 @@
 # SPI-specific settings
+ifneq (${VERBOSE},)
 $(info Including spi/Makefile-bits-spcomp2)
+endif
 
 # READ THIS FIRST
 #

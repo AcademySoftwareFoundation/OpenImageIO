@@ -7,7 +7,9 @@ if (NOT USE_EXTERNAL_PUGIXML)
           OpenImageIO/pugixml.cpp)
 endif ()
 
-message(STATUS "Create oiioversion.h from oiioversion.h.in")
+if (VERBOSE)
+    message(STATUS "Create oiioversion.h from oiioversion.h.in")
+endif ()
 # Mangle the SOVERSION so that it's a valid C++ identifier for the versioning
 # namespace defined in oiioversion.h
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})

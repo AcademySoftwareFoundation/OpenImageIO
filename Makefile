@@ -37,7 +37,6 @@ CMAKE ?= cmake
 ifndef OPENIMAGEIO_SITE
     OPENIMAGEIO_SITE := ${shell uname -n}
 endif
-$(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
 ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks},)
 include ${working_dir}/site/spi/Makefile-bits
 endif
@@ -49,15 +48,14 @@ build_dir     := ${top_build_dir}/${platform}${variant}
 top_dist_dir  := dist
 dist_dir      := ${top_dist_dir}/${platform}${variant}
 
-$(info dist_dir = ${dist_dir})
-$(info INSTALLDIR = ${INSTALLDIR})
-
-
 VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
 MY_CMAKE_FLAGS += -DVERBOSE:BOOL=1
 TEST_FLAGS += -V
+$(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
+$(info dist_dir = ${dist_dir})
+$(info INSTALLDIR = ${INSTALLDIR})
 endif
 
 ifneq (${EMBEDPLUGINS},)
@@ -290,22 +288,22 @@ cmakesetup:
 
 # 'make cmake' does a basic build (after first setting it up)
 cmake: cmakesetup
-	( cd ${build_dir} ; ${RUN_BUILD} )
+	@ ( cd ${build_dir} ; ${RUN_BUILD} )
 
 # 'make cmakeinstall' builds everthing and installs it in 'dist'.
 # Suppress pointless output from docs installation.
 cmakeinstall: cmake
-	( cd ${build_dir} ; ${RUN_BUILD} install | grep -v '^-- \(Installing\|Up-to-date\).*doc/html' )
+	@ ( cd ${build_dir} ; ${RUN_BUILD} install | grep -v '^-- \(Installing\|Up-to-date\|Set runtime path\)' )
 
 # 'make package' builds everything and then makes an installable package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package: cmakeinstall
-	( cd ${build_dir} ; ${RUN_BUILD} package )
+	@ ( cd ${build_dir} ; ${RUN_BUILD} package )
 
 # 'make package_source' makes an installable source package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package_source: cmakeinstall
-	( cd ${build_dir} ; ${RUN_BUILD} package_source )
+	@ ( cd ${build_dir} ; ${RUN_BUILD} package_source )
 
 # 'make dist' is just a synonym for 'make cmakeinstall'
 dist : cmakeinstall
