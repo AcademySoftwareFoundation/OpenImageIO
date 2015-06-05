@@ -20,8 +20,10 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS (PugiXML DEFAULT_MSG PUGIXML_LIBRARY
 
 if (PUGIXML_FOUND)
     set (PUGIXML_LIBRARIES ${PUGIXML_LIBRARY})
-    message (STATUS "PugiXML include = ${PUGIXML_INCLUDE_DIR}")
-    message (STATUS "PugiXML library = ${PUGIXML_LIBRARY}")
+    if (NOT PugiXML_FIND_QUIETLY)
+        message (STATUS "PugiXML include = ${PUGIXML_INCLUDE_DIR}")
+        message (STATUS "PugiXML library = ${PUGIXML_LIBRARY}")
+    endif ()
 else ()
     message (STATUS "No PugiXML found")
 endif()

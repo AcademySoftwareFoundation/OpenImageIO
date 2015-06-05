@@ -17,7 +17,9 @@ if (WIN32)
 endif ()
 link_ilmbase (OpenImageIO_Util)
 
-message(STATUS "Setting SOVERSION to: ${SOVERSION}")
+if (VERBOSE)
+    message(STATUS "Setting SOVERSION to: ${SOVERSION}")
+endif ()
 set_target_properties(OpenImageIO_Util
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}

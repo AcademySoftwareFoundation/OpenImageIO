@@ -1,15 +1,45 @@
 ###########################################################################
 # Find libraries
 
-setup_path (THIRD_PARTY_TOOLS_HOME 
-#            "${PROJECT_SOURCE_DIR}/../external/dist/${platform}"
+# When not in VERBOSE mode, try to make things as quiet as possible
+if (NOT VERBOSE)
+    set (Boost_FIND_QUIETLY true)
+    set (FFmpeg_FIND_QUIETLY true)
+    set (Field3D_FIND_QUIETLY true)
+    set (Freetype_FIND_QUIETLY true)
+    set (GIF_FIND_QUIETLY true)
+    set (GLEW_FIND_QUIETLY true)
+    set (HDF5_FIND_QUIETLY true)
+    set (IlmBase_FIND_QUIETLY true)
+    set (JPEG_FIND_QUIETLY true)
+    set (LibRaw_FIND_QUIETLY true)
+    set (Nuke_FIND_QUIETLY true)
+    set (OpenColorIO_FIND_QUIETLY true)
+    set (OpenCV_FIND_QUIETLY true)
+    set (OpenEXR_FIND_QUIETLY true)
+    set (OpenGL_FIND_QUIETLY true)
+    set (OpenJpeg_FIND_QUIETLY true)
+    set (PkgConfig_FIND_QUIETLY true)
+    set (PNG_FIND_QUIETLY TRUE)
+    set (PugiXML_FIND_QUIETLY TRUE)
+    set (PythonInterp_FIND_QUIETLY true)
+    set (PythonLibs_FIND_QUIETLY true)
+    set (Qt4_FIND_QUIETLY true)
+    set (Threads_FIND_QUIETLY true)
+    set (TIFF_FIND_QUIETLY true)
+    set (WEBP_FIND_QUIETLY true)
+    set (ZLIB_FIND_QUIETLY true)
+endif ()
+
+
+setup_path (THIRD_PARTY_TOOLS_HOME
             "unknown"
             "Location of third party libraries in the external project")
 
 # Add all third party tool directories to the include and library paths so
 # that they'll be correctly found by the various FIND_PACKAGE() invocations.
 if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
-    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" ${CMAKE_INCLUDE_PATH})
+    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" "${CMAKE_INCLUDE_PATH}")
     # Detect third party tools which have been successfully built using the
     # lock files which are placed there by the external project Makefile.
     file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d")
@@ -24,7 +54,7 @@ if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
 endif ()
 
 
-setup_string (SPECIAL_COMPILE_FLAGS "" 
+setup_string (SPECIAL_COMPILE_FLAGS ""
                "Custom compilation flags")
 if (SPECIAL_COMPILE_FLAGS)
     add_definitions (${SPECIAL_COMPILE_FLAGS})
@@ -56,12 +86,12 @@ find_package (OpenEXR REQUIRED)
 if (EXISTS "${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h")
     add_definitions (-DUSE_OPENEXR_VERSION2=1)
     setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
-    if (VERBOSE)
+    if (NOT OpenEXR_FIND_QUIETLY)
         message (STATUS "OpenEXR version 2.x")
     endif ()
 else ()
     setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
-    if (VERBOSE)
+    if (NOT OpenEXR_FIND_QUIETLY)
         message (STATUS "OpenEXR version 1.x")
     endif ()
 endif ()
@@ -82,12 +112,14 @@ endmacro ()
 ###########################################################################
 # Boost setup
 
-message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
+if (NOT Boost_FIND_QUIETLY)
+    message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
+endif ()
 
 if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
   set (Boost_ADDITIONAL_VERSIONS "1.57" "1.56"
                                  "1.55" "1.54" "1.53" "1.52" "1.51" "1.50"
-                                 "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
+                                 "1.49" "1.48" "1.47" "1.46" "1.45" "1.44"
                                  "1.43" "1.43.0" "1.42" "1.42.0")
 endif ()
 if (LINKSTATIC)
@@ -100,7 +132,7 @@ if (BOOST_CUSTOM)
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     set (Boost_COMPONENTS filesystem regex system thread)
-    find_package (Boost 1.42 REQUIRED 
+    find_package (Boost 1.42 REQUIRED
                   COMPONENTS ${Boost_COMPONENTS}
                  )
 
@@ -152,7 +184,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND ${Boost_VERSION} GREATER 105499)
     list (APPEND Boost_LIBRARIES "rt")
 endif ()
 
-if (VERBOSE)
+if (NOT Boost_FIND_QUIETLY)
     message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
     message (STATUS "Boost found ${Boost_FOUND} ")
     message (STATUS "Boost version      ${Boost_VERSION}")
@@ -182,8 +214,10 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 
 if (USE_OPENGL)
     find_package (OpenGL)
+    if (NOT OpenGL_FIND_QUIETLY)
+        message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
+    endif ()
 endif ()
-message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
 
 # end OpenGL setup
 ###########################################################################
@@ -204,8 +238,8 @@ if (USE_OCIO)
     FindOpenColorIO ()
 
     if (OCIO_FOUND)
-        message (STATUS "OpenColorIO enabled")
-        if (VERBOSE)
+        if (NOT OpenColorIO_FIND_QUIETLY)
+            message (STATUS "OpenColorIO enabled")
             message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
         endif ()
         include_directories (${OCIO_INCLUDES})
@@ -231,7 +265,7 @@ if (USE_QT)
     find_package (Qt4)
 endif ()
 if (USE_QT AND QT4_FOUND)
-    if (VERBOSE)
+    if (NOT Qt4_FIND_QUIETLY)
         message (STATUS "QT4_FOUND=${QT4_FOUND}")
         message (STATUS "QT_INCLUDES=${QT_INCLUDES}")
         message (STATUS "QT_LIBRARIES=${QT_LIBRARIES}")
@@ -255,7 +289,7 @@ if (USE_OPENGL)
                PATH_SUFFIXES GL)
     if (GLEW_INCLUDES AND GLEW_LIBRARIES)
         set (GLEW_FOUND TRUE)
-        if (VERBOSE)
+        if (NOT GLEW_FIND_QUIETLY)
             message (STATUS "GLEW includes = ${GLEW_INCLUDES}")
             message (STATUS "GLEW library = ${GLEW_LIBRARIES}")
         endif ()
@@ -277,7 +311,7 @@ if (USE_FFMPEG)
     find_package (FFmpeg)
     if (FFMPEG_INCLUDE_DIR AND FFMPEG_LIBRARIES)
         set (FFMPEG_FOUND TRUE)
-        if (VERBOSE)
+        if (NOT FFmpeg_FIND_QUIETLY)
             message (STATUS "FFMPEG includes = ${FFMPEG_INCLUDE_DIR}")
             message (STATUS "FFMPEG library = ${FFMPEG_LIBRARIES}")
         endif ()
@@ -295,30 +329,30 @@ endif()
 
 if (USE_FIELD3D)
     if (HDF5_CUSTOM)
-        if (VERBOSE)
+        if (NOT HDF5_FIND_QUIETLY)
             message (STATUS "Using custom HDF5")
         endif ()
         set (HDF5_FOUND true)
         # N.B. For a custom version, the caller had better set up the
         # variables HDF5_INCLUDE_DIRS and HDF5_LIBRARIES.
     else ()
-        find_library (HDF5_LIBRARY
+        find_library (HDF5_LIBRARIES
                       NAMES hdf5
                       PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
                       /usr/local/lib
                       /opt/local/lib
                      )
-        if (HDF5_LIBRARY)
+        if (HDF5_LIBRARIES)
             set (HDF5_FOUND true)
         endif ()
     endif ()
-    if (VERBOSE)
+    if (NOT HDF5_FIND_QUIETLY)
         message (STATUS "HDF5_FOUND=${HDF5_FOUND}")
-        message (STATUS "HDF5_LIBRARY=${HDF5_LIBRARY}")
+        message (STATUS "HDF5_LIBRARIES=${HDF5_LIBRARIES}")
     endif ()
 endif ()
 if (USE_FIELD3D AND HDF5_FOUND)
-    if (VERBOSE)
+    if (NOT Field3D_FIND_QUIETLY)
         message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
     endif ()
     if (FIELD3D_HOME)
@@ -337,7 +371,7 @@ if (USE_FIELD3D AND HDF5_FOUND)
                  )
     if (FIELD3D_INCLUDES AND FIELD3D_LIBRARY)
         set (FIELD3D_FOUND TRUE)
-        if (VERBOSE)
+        if (NOT Field3D_FIND_QUIETLY)
             message (STATUS "Field3D includes = ${FIELD3D_INCLUDES}")
             message (STATUS "Field3D library = ${FIELD3D_LIBRARY}")
         endif ()
@@ -367,7 +401,9 @@ endif()
 ###########################################################################
 # LibRaw
 if (USE_LIBRAW)
-    message (STATUS "Looking for LibRaw with ${LIBRAW_PATH}")
+    if (NOT LibRaw_FIND_QUIETLY)
+        message (STATUS "Looking for LibRaw with ${LIBRAW_PATH}")
+    endif ()
     if (LIBRAW_PATH)
         # Customized path requested, don't use find_package
         FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
@@ -384,7 +420,7 @@ if (USE_LIBRAW)
 	if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
 		set (LIBRAW_FOUND TRUE)
 		include_directories (${LibRaw_INCLUDE_DIR})
-        if (VERBOSE)
+        if (NOT LibRaw_FIND_QUIETLY)
             message (STATUS "Found LibRaw, include ${LibRaw_INCLUDE_DIR}")
         endif ()
 	else ()
@@ -402,7 +438,7 @@ endif()
 ###########################################################################
 # WebP setup
 
-if (VERBOSE)
+if (NOT WEBP_FIND_QUIETLY)
     message (STATUS "WEBP_HOME=${WEBP_HOME}")
 endif ()
 find_path (WEBP_INCLUDE_DIR webp/encode.h
@@ -416,7 +452,7 @@ find_library (WEBP_LIBRARY
              )
 if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
     set (WEBP_FOUND TRUE)
-    if (VERBOSE)
+    if (NOT WEBP_FIND_QUIETLY)
         message (STATUS "WEBP includes = ${WEBP_INCLUDE_DIR} ")
         message (STATUS "WEBP library = ${WEBP_LIBRARY} ")
     endif ()
@@ -471,7 +507,7 @@ if (USE_OPENCV)
     if (OpenCV_INCLUDE_DIR AND OpenCV_LIBS)
         set (OpenCV_FOUND TRUE)
         add_definitions ("-DUSE_OPENCV")
-        if (VERBOSE)
+        if (NOT OpenCV_FIND_QUIETLY)
             message (STATUS "OpenCV includes = ${OpenCV_INCLUDE_DIR} ")
             message (STATUS "OpenCV libs = ${OpenCV_LIBS} ")
         endif ()
@@ -494,7 +530,7 @@ if (USE_FREETYPE)
     find_package (Freetype)
     if (FREETYPE_FOUND)
         add_definitions ("-DUSE_FREETYPE")
-        if (VERBOSE)
+        if (NOT Freetype_FIND_QUIETLY)
             message (STATUS "Freetype includes = ${FREETYPE_INCLUDE_DIRS} ")
             message (STATUS "Freetype libs = ${FREETYPE_LIBRARIES} ")
         endif ()
@@ -515,8 +551,8 @@ endif ()
 if (USE_OPENSSL)
     find_package (OpenSSL)
     if (OPENSSL_FOUND)
-        message (STATUS "OpenSSL enabled")
-        if (VERBOSE)
+        if (NOT OpenSSL_FIND_QUIETLY)
+            message (STATUS "OpenSSL enabled")
             message(STATUS "OPENSSL_INCLUDES: ${OPENSSL_INCLUDE_DIR}")
         endif ()
         include_directories (${OPENSSL_INCLUDE_DIR})
