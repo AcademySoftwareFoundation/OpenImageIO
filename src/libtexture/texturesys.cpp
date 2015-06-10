@@ -1147,21 +1147,32 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     OIIO_SIMD4_ALIGN float weight[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
     bool ok = true;
     int npointson = 0;
+    float4 r_sum, drds_sum, drdt_sum;
+    r_sum.clear();
+    if (dresultds) {
+        drds_sum.clear(); drdt_sum.clear();
+    }
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
         float4 r, drds, drdt;
-        weight[0] = levelweight[level];
         ok &= (this->*sampler) (1, sval, tval, miplevel[level],
                                 texturefile, thread_info, options,
                                 nchannels_result, actualchannels, weight,
                                 &r, dresultds ? &drds : NULL, dresultds ? &drdt : NULL);
         ++npointson;
-        *(simd::float4 *)(result) += r;
+        float4 lw = levelweight[level];
+        r_sum += lw * r;
         if (dresultds) {
-            *(simd::float4 *)(dresultds) += drds;
-            *(simd::float4 *)(dresultdt) += drdt;
+            drds_sum += lw * drds;
+            drdt_sum += lw * drdt;
         }
+    }
+
+    *(simd::float4 *)(result) = r_sum;
+    if (dresultds) {
+        *(simd::float4 *)(dresultds) = drds_sum;
+        *(simd::float4 *)(dresultdt) = drdt_sum;
     }
 
     // Update stats
