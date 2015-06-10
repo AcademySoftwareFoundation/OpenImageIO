@@ -1264,16 +1264,16 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
         float4 r, drds, drdt;
-        weight[0] = levelweight[level];
         ok &= (this->*sampler) (1, sval, tval, miplevel[level],
                                 texturefile, thread_info, options,
                                 nchannels_result, actualchannels, weight,
                                 &r, dresultds ? &drds : NULL, dresultds ? &drdt : NULL);
         ++npointson;
-        *(simd::float4 *)(result) += r;
+        float lw = levelweight[level];
+        *(simd::float4 *)(result) += lw * r;
         if (dresultds) {
-            *(simd::float4 *)(dresultds) += drds;
-            *(simd::float4 *)(dresultdt) += drdt;
+            *(simd::float4 *)(dresultds) += lw * drds;
+            *(simd::float4 *)(dresultdt) += lw * drdt;
         }
     }
 
