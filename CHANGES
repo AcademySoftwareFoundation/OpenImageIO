@@ -1,8 +1,21 @@
 Changes:
 
-Release 1.5.16 (?? 2015) -- compared to 1.5.15)
+Release 1.5.16 (11 Jun 2015) -- compared to 1.5.15)
 ---------------------------------------------------
-
+* PNG writes now honor PixelAspectRatio attribute.
+* Build fixes for Visual Studio 2010
+* PSD & JPEG plugins fixes for Win32 compilation.
+* Also search for OIIO plugins in [DY]LD_LIBRARY_PATH.
+* Give Strutil::parse_string an option to not strip surrounding quotes.
+* Fix Nuke plugin build files to not do anything if USE_NUKE=0
+* New ImageInput query: "procedural" -- returns 1 if the ImageInput may
+  not correspond to an actual file.
+* TypeDesc has a new constructor and fromstring of a string_view, in
+  addition to the old versions that took char*.
+* Eliminate spurious ImageCache invalidation just because the shared
+  cache is requested again.
+* Fixed trilinear MIPmap texture lookups that gave invalid alpha fill.
+* Filesystem: sequence matching should clear results arrays upon start.
 
 Release 1.5.15 (11 May 2015) -- compared to 1.5.14)
 ---------------------------------------------------
