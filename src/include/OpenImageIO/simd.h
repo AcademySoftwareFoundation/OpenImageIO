@@ -343,7 +343,7 @@ public:
 
     /// Store the first n values into memory.
     OIIO_FORCEINLINE void store (bool *values, int n) const {
-        DASSERT (n >= 0 && n < 4);
+        DASSERT (n >= 0 && n <= 4);
         for (int i = 0; i < n; ++i)
             values[i] = m_val[i] ? true : false;
     }
@@ -681,7 +681,7 @@ public:
 
     /// Store the first n values into memory
     OIIO_FORCEINLINE void store (int *values, int n) const {
-        DASSERT (n >= 0 && n < 4);
+        DASSERT (n >= 0 && n <= 4);
 #if defined(OIIO_SIMD_SSE)
         // For SSE, there is a speed advantage to storing all 4 components.
         if (n == 4)
@@ -1419,7 +1419,7 @@ public:
 
     /// Store the first n values into memory
     OIIO_FORCEINLINE void store (float *values, int n) const {
-        DASSERT (n >= 0 && n < 4);
+        DASSERT (n >= 0 && n <= 4);
 #if defined(OIIO_SIMD_SSE)
         switch (n) {
         case 1:
