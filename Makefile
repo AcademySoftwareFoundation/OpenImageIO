@@ -247,9 +247,6 @@ endif
 ifeq (${USE_NINJA},1)
 MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
-RUN_BUILD := ${NINJA} ${MY_NINJA_FLAGS}
-else
-RUN_BUILD := ${MAKE} ${MY_MAKE_FLAGS}
 endif
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
@@ -286,24 +283,49 @@ cmakesetup:
 			../.. ; \
 	 fi)
 
+ifeq (${USE_NINJA},1)
+
 # 'make cmake' does a basic build (after first setting it up)
 cmake: cmakesetup
-	@ ( cd ${build_dir} ; ${RUN_BUILD} )
+	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} )
 
 # 'make cmakeinstall' builds everthing and installs it in 'dist'.
 # Suppress pointless output from docs installation.
 cmakeinstall: cmake
-	@ ( cd ${build_dir} ; ${RUN_BUILD} install | grep -v '^-- \(Installing\|Up-to-date\|Set runtime path\)' )
+	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} install | grep -v '^-- \(Installing\|Up-to-date\|Set runtime path\)' )
 
 # 'make package' builds everything and then makes an installable package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package: cmakeinstall
-	@ ( cd ${build_dir} ; ${RUN_BUILD} package )
+	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} package )
 
 # 'make package_source' makes an installable source package
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package_source: cmakeinstall
-	@ ( cd ${build_dir} ; ${RUN_BUILD} package_source )
+	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} package_source )
+
+else
+
+# 'make cmake' does a basic build (after first setting it up)
+cmake: cmakesetup
+	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} )
+
+# 'make cmakeinstall' builds everthing and installs it in 'dist'.
+# Suppress pointless output from docs installation.
+cmakeinstall: cmake
+	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} install | grep -v '^-- \(Installing\|Up-to-date\|Set runtime path\)' )
+
+# 'make package' builds everything and then makes an installable package
+# (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
+package: cmakeinstall
+	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} package )
+
+# 'make package_source' makes an installable source package
+# (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
+package_source: cmakeinstall
+	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} package_source )
+
+endif
 
 # 'make dist' is just a synonym for 'make cmakeinstall'
 dist : cmakeinstall
