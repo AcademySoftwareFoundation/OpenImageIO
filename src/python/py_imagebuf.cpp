@@ -307,9 +307,7 @@ ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
 
     size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
     boost::scoped_array<char> data (new char [size]);
-    if (! buf.get_pixel_channels (roi.xbegin, roi.xend, roi.ybegin, roi.yend,
-                                  roi.zbegin, roi.zend, roi.chbegin, roi.chend,
-                                  format, &data[0])) {
+    if (! buf.get_pixels (roi, format, &data[0])) {
         return object(handle<>(Py_None));
     }
 
@@ -328,6 +326,43 @@ ImageBuf_get_pixels_bt (const ImageBuf &buf, TypeDesc::BASETYPE format,
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_bt_overloads,
                                 ImageBuf_get_pixels_bt, 2, 3)
+
+
+bool
+ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, tuple data)
+{
+    if (! roi.defined())
+        roi = buf.roi();
+    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    size_t size = (size_t) roi.npixels() * roi.nchannels();
+    if (size == 0)
+        return true;   // done
+    std::vector<float> vals;
+    py_to_stdvector (vals, data);
+    if (size > vals.size())
+        return false;   // Not enough data to fill our ROI
+    buf.set_pixels (roi, TypeDesc::TypeFloat, &vals[0]);
+    return true;
+}
+
+
+bool
+ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, numeric::array data)
+{
+    if (! roi.defined())
+        roi = buf.roi();
+    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    size_t size = (size_t) roi.npixels() * roi.nchannels();
+    if (size == 0)
+        return true;   // done
+    std::vector<float> vals;
+    py_to_stdvector (vals, data);
+    if (size > vals.size())
+        return false;   // Not enough data to fill our ROI
+    buf.set_pixels (roi, TypeDesc::TypeFloat, &vals[0]);
+    return true;
+}
+
 
 
 DeepData&
@@ -445,6 +480,8 @@ void declare_imagebuf()
         .def("setpixel", &ImageBuf_setpixel1)
         .def("get_pixels", &ImageBuf_get_pixels, ImageBuf_get_pixels_overloads())
         .def("get_pixels", &ImageBuf_get_pixels_bt, ImageBuf_get_pixels_bt_overloads())
+        .def("set_pixels", &ImageBuf_set_pixels_tuple)
+        .def("set_pixels", &ImageBuf_set_pixels_array)
 
         .add_property("deep", &ImageBuf::deep)
         .def("deep_samples", &ImageBuf::deep_samples,

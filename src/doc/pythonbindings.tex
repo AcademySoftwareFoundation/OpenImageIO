@@ -1519,6 +1519,19 @@ the image and returns them as an array of values with type specified by
 \end{code}
 \apiend
 
+\apiitem{ImageBuf.{\ce set_pixels} (roi, data)}
+\NEW % 1.6
+Sets the rectangle of pixels (and channels) specified by {\cf roi} with
+values in the {\cf data} (which may be either a tuple or a numeric float array).
+
+\noindent Example:
+\begin{code}
+    buf = ImageBuf (...)
+    pixels = (....)
+    buf.set_pixels (ROI(), pixels)
+\end{code}
+\apiend
+
 \apiitem{bool ImageBuf.{\ce has_error} \\
 str ImageBuf.{\ce geterror} ()}
 The {\cf ImageBuf.has_error} field will be {\cf True} if an error has

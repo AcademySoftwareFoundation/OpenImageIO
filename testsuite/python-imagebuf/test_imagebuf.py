@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
 
+import array
 import OpenImageIO as oiio
 
 
@@ -99,6 +100,13 @@ try:
     print "Saving file..."
     b.write ("out.tif")
 
+    # test set_pixels, too
+    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3), (0.1,0.0,0.9, 0.2,0.0,0.7,
+                                                     0.3,0.0,0.8, 0.4,0.0,0.6))
+    b.write ("outtuple.tif")
+    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
+                  array.array('f',[0.1,0.5,0.9, 0.2,0.5,0.7, 0.3,0.5,0.8, 0.4,0.5,0.6]))
+    b.write ("outarray.tif")
 
     # Test write and read of deep data
     # Let's try writing one
