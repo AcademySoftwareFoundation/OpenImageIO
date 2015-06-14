@@ -29,10 +29,10 @@
 */
 
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/unittest.h>
 
 #include <iostream>
 
@@ -289,6 +289,42 @@ void test_empty_iterator ()
 
 
 
+void
+print (const ImageBuf &A)
+{
+    ASSERT (A.spec().format == TypeDesc::FLOAT);
+    for (ImageBuf::ConstIterator<float> p (A);  ! p.done();  ++p) {
+        std::cout << "   @" << p.x() << ',' << p.y() << "=(";
+        for (int c = 0; c < A.nchannels(); ++c)
+            std::cout << (c ? "," : "") << p[c];
+        std::cout << ')' << (p.x() == A.xmax() ? "\n" : "");
+    }
+    std::cout << "\n";
+}
+
+
+
+void
+test_set_get_pixels ()
+{
+    std::cout << "\nTesting set_pixels, get_pixels:\n";
+    const int nchans = 3;
+    ImageBuf A (ImageSpec (4, 4, nchans, TypeDesc::FLOAT));
+    ImageBufAlgo::zero (A);
+    std::cout << " Cleared:\n";
+    print (A);
+    float newdata[2*2*nchans] = { 1,2,3,  4,5,6,
+                                  7,8,9,  10,11,12 };
+    A.set_pixels (ROI(1,3,1,3), TypeDesc::FLOAT, newdata);
+    std::cout << " After set:\n";
+    print (A);
+    float retrieved[2*2*nchans] = { 9,9,9, 9,9,9, 9,9,9, 9,9,9 };
+    A.get_pixels (1, 3, 1, 3, 0, 1, TypeDesc::FLOAT, retrieved);
+    OIIO_CHECK_ASSERT (0 == memcmp (retrieved, newdata, 2*2*nchans));
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -307,6 +343,8 @@ main (int argc, char **argv)
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
     test_open_with_config ();
+
+    test_set_get_pixels ();
 
     return unit_test_failures;
 }

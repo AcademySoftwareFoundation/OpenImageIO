@@ -1567,24 +1567,39 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 template<typename D, typename S>
 static bool
-get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
-                     int ybegin, int yend, int zbegin, int zend, 
-                     int chbegin, int chend, void *r_,
-                     stride_t xstride, stride_t ystride, stride_t zstride)
+get_pixels_ (const ImageBuf &buf, ROI roi, void *r_,
+             stride_t xstride, stride_t ystride, stride_t zstride)
 {
     D *r = (D *)r_;
-    int w = (xend-xbegin), h = (yend-ybegin);
-    int nchans = chend - chbegin;
+    int w = roi.width(), h = roi.height();
+    int nchans = roi.nchannels();
     ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D), nchans, w, h);
-    for (ImageBuf::ConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend, zbegin, zend);
-         !p.done(); ++p) {
-        imagesize_t offset = (p.z()-zbegin)*zstride + (p.y()-ybegin)*ystride
-                           + (p.x()-xbegin)*xstride;
+    for (ImageBuf::ConstIterator<S,D> p (buf, roi); !p.done(); ++p) {
+        imagesize_t offset = (p.z()-roi.zbegin)*zstride
+                           + (p.y()-roi.ybegin)*ystride
+                           + (p.x()-roi.xbegin)*xstride;
         D *rc = (D *)((char *)r + offset);
         for (int c = 0;  c < nchans;  ++c)
-            rc[c] = p[c+chbegin];
+            rc[c] = p[c+roi.chbegin];
     }
     return true;
+}
+
+
+
+bool
+ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
+                      stride_t xstride, stride_t ystride,
+                      stride_t zstride) const
+{
+    if (! roi.defined())
+        roi = this->roi();
+    roi.chend = std::min (roi.chend, nchannels());
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "get_pixels", get_pixels_,
+                          format, spec().format, *this, roi,
+                          result, xstride, ystride, zstride);
+    return ok;
 }
 
 
@@ -1598,10 +1613,10 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t zstride) const
 {
     bool ok;
-    OIIO_DISPATCH_TYPES2_HELP (ok, "get_pixel_channels", get_pixel_channels_,
+    OIIO_DISPATCH_TYPES2_HELP (ok, "get_pixel_channels", get_pixels_,
                                D, spec().format, *this,
-                               xbegin, xend, ybegin, yend, zbegin, zend,
-                               chbegin, chend, r, xstride, ystride, zstride);
+                               ROI(xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend),
+                               r, xstride, ystride, zstride);
     return ok;
 }
 
@@ -1614,12 +1629,8 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
-    bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "get_pixel_channels", get_pixel_channels_,
-                          format, spec().format, *this,
-                          xbegin, xend, ybegin, yend, zbegin, zend,
-                          chbegin, chend, result, xstride, ystride, zstride);
-    return ok;
+    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend);
+    return get_pixels (roi, format, result, xstride, ystride, zstride);
 }
 
 
@@ -1630,9 +1641,48 @@ ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
                       stride_t xstride, stride_t ystride,
                       stride_t zstride) const
 {
-    return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
-                               0, nchannels(), format, result,
-                               xstride, ystride, zstride);
+    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, 0, nchannels());
+    return get_pixels (roi, format, result, xstride, ystride, zstride);
+}
+
+
+
+template<typename D, typename S>
+static bool
+set_pixels_ (ImageBuf &buf, ROI roi, const void *data_,
+             stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    const D *data = (const D *)data_;
+    int w = roi.width(), h = roi.height(), nchans = roi.nchannels();
+    ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(S), nchans, w, h);
+    for (ImageBuf::Iterator<D,S> p (buf, roi);  !p.done();  ++p) {
+        if (! p.exists())
+            continue;
+        imagesize_t offset = (p.z()-roi.zbegin)*zstride
+                           + (p.y()-roi.ybegin)*ystride
+                           + (p.x()-roi.xbegin)*xstride;
+        const S *src = (const S *)((const char *)data + offset);
+        for (int c = 0;  c < nchans;  ++c)
+            p[c+roi.chbegin] = src[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBuf::set_pixels (ROI roi, TypeDesc format, const void *data,
+                      stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    bool ok;
+    if (! roi.defined())
+        roi = this->roi();
+    roi.chend = std::min (roi.chend, nchannels());
+    OIIO_DISPATCH_TYPES2 (ok, "set_pixels", set_pixels_,
+                          spec().format, format, *this, roi,
+                          data, xstride, ystride, zstride);
+    return ok;
+
 }
 
 

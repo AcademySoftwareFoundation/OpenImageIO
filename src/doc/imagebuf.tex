@@ -462,6 +462,21 @@ metadata (other than format and resolution) of {\cf this}.
 Swaps the entire contents of {\cf other} and {\cf this}.
 \apiend
 
+\apiitem{bool {\ce get_pixels} (ROI roi, TypeDesc format, \\
+  \bigspc\bigspc                void *result, stride_t xstride=AutoStride,\\
+  \bigspc\bigspc                stride_t ystride=AutoStride, \\
+  \bigspc\bigspc                stride_t zstride=AutoStride) const}
+\NEW % 1.6
+Retrieve the rectangle of pixels specified by ROI, at the current subimage
+and MIP-map level, storing the pixel values beginning at the address
+specified by {\cf result} and with the given strides (by default, {\cf
+AutoStride} means the usual contiguous packing of pixels) and converting
+into the data type described by {\cf format}.  It is up to the caller to
+ensure that {\cf result} points to an area of memory big enough to
+accommodate the requested rectangle. Return {\cf true} if the operation
+could be completed, otherwise return {\cf false}.
+\apiend
+
 \apiitem{bool {\ce get_pixel_channels} (int xbegin, int xend, int ybegin, int yend, \\
   \bigspc\bigspc            int zbegin, int zend, int chbegin, int chend,\\
   \bigspc\bigspc            TypeDesc format, void *result,\\
@@ -500,6 +515,19 @@ up to the caller to ensure that {\cf result} points to an area of
 memory big enough to accommodate the requested rectangle.
 Return {\cf true} if the operation could be completed, otherwise
 return {\cf false}.
+\apiend
+
+\apiitem{bool {\ce set_pixels} (ROI roi, TypeDesc format, \\
+  \bigspc\bigspc                const void *result, stride_t xstride=AutoStride,\\
+  \bigspc\bigspc                stride_t ystride=AutoStride, \\
+  \bigspc\bigspc                stride_t zstride=AutoStride)}
+\NEW  % 1.6
+Copy the rectangle of data into the specified ROI of the ImageBuf. The data
+points to values specified by {\cf format}, with layout detailed by the
+stride values (in bytes, with {\cf AutoStride} indicating ``contiguous''
+layout). It is up to the caller to ensure that data points to an area of
+memory big enough to account for the ROI. Return {\cf true} if the operation
+could be completed, otherwise return {\cf false}.
 \apiend
 
 
