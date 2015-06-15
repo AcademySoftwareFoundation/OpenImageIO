@@ -35,6 +35,12 @@ extern "C" { // ffmpeg is a C api
 #include <libswscale/swscale.h>
 }
 
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,28,1)
+#define av_frame_alloc  avcodec_alloc_frame
+#define av_frame_free   avcodec_free_frame
+#endif
+
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/once.hpp>
 
