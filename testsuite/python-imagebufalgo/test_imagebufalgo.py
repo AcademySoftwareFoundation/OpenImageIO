@@ -305,15 +305,15 @@ try:
     # fft, ifft
     fft = ImageBuf()
     blue = ImageBuf()
-    ImageBufAlgo.channels (blue, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.channels (blue, ImageBuf("../oiiotool/tahoe-tiny.tif"),
                            (2,))
     ImageBufAlgo.fft (fft, blue)
-    write (fft, "fft.exr", oiio.HALF)
+    write (fft, "fft.exr", oiio.FLOAT)
     inv = ImageBuf()
     ImageBufAlgo.ifft (inv, fft)
     b = ImageBuf()
     ImageBufAlgo.channels (b, inv, (0,0,0))
-    write (b, "ifft.exr", oiio.HALF)
+    write (b, "ifft.exr", oiio.FLOAT)
     inv.clear()
     fft.clear()
 
@@ -322,8 +322,8 @@ try:
     ImageBufAlgo.complex_to_polar (polar, fft)
     b = ImageBuf()
     ImageBufAlgo.polar_to_complex (b, polar)
-    write (polar, "polar.exr", oiio.HALF)
-    write (b, "complex.exr", oiio.HALF)
+    write (polar, "polar.exr", oiio.FLOAT)
+    write (b, "unpolar.exr", oiio.FLOAT)
     fft.clear()
     polar.clear()
 
