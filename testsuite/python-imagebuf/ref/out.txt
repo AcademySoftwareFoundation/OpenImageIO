@@ -126,3 +126,7 @@ Sample 1
 Done.
 Comparing "out.tif" and "ref/out.tif"
 PASS
+Comparing "outtuple.tif" and "ref/outtuple.tif"
+PASS
+Comparing "outarray.tif" and "ref/outarray.tif"
+PASS
