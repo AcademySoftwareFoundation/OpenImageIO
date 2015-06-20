@@ -232,13 +232,13 @@ command += oiiotool ("tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
 command += oiiotool ("tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
 
 # test fft, ifft
-command += oiiotool ("tahoe-small.tif --ch 2 --fft -o fft.exr")
-command += oiiotool ("fft.exr --ifft --ch 0,0,0 -o ifft.exr")
+command += oiiotool ("tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
+command += oiiotool ("fft.exr --ifft --ch 0,0,0 -d float -o ifft.exr")
 
 # test --polar, --unpolar
 # note that fft.exr that we built above is in complex form
-command += oiiotool ("fft.exr --polar -d half -o polar.exr")
-command += oiiotool ("polar.exr --unpolar -d half -o unpolar.exr")
+command += oiiotool ("fft.exr --polar -d float -o polar.exr")
+command += oiiotool ("polar.exr --unpolar -d float -o unpolar.exr")
 
 # test labels
 command += oiiotool (
