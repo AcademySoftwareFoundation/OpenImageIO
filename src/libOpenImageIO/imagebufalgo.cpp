@@ -659,7 +659,13 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
     dst.reset (dst.name(), spec);
 
     // Copy src to a 2-channel (for "complex") float buffer
-    ImageBuf A (spec);   // zeros it out automatically
+    ImageBuf A (spec);
+    if (src.nchannels() < 2) {
+        // If we're pasting fewer than 2 channels, zero out channel 1.
+        ROI r = roi;
+        r.chbegin = 1; r.chend = 2;
+        zero (A, r);
+    }
     if (! ImageBufAlgo::paste (A, 0, 0, 0, 0, src, roi, nthreads)) {
         dst.error ("%s", A.geterror());
         return false;
