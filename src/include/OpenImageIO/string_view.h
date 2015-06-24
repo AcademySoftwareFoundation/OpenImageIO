@@ -36,6 +36,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
+#include <ostream>
 
 #include "oiioversion.h"
 #include "export.h"

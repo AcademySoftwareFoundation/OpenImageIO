@@ -45,12 +45,6 @@
 #include <string.h>   // for memcpy and memset
 #include <utility>
 
-#include <boost/version.hpp>
-
-#define OIIO_HAVE_BOOST_UNORDERED_MAP
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
-
 #include "export.h"
 #include "oiioversion.h"
 #include "fmath.h"   /* for endian */
