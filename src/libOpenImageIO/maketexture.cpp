@@ -577,7 +577,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
     }
 
     // OpenEXR always uses border sampling for environment maps
-    bool src_samples_border;
+    bool src_samples_border = false;
     if (envlatlmode && !strcmp(out->format_name(), "openexr")) {
         src_samples_border = true;
         outspec.attribute ("oiio:updirection", "y");
