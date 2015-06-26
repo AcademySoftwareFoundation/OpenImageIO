@@ -183,7 +183,12 @@ ustring::TableRep::TableRep (string_view strref)
     // the std::string to make it point to our chars!  In such a case, the
     // destructor will be careful not to allow a deallocation.
 
-#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)
+#if defined(__GNUC__) && !defined(_LIBCPP_VERSION) && defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI
+    // NEW gcc ABI
+    // FIXME -- do something smart with this.
+
+#elif defined(__GNUC__) && !defined(_LIBCPP_VERSION)
+    // OLD gcc ABI
     // It turns out that the first field of a gcc std::string is a pointer
     // to the characters within the basic_string::_Rep.  We merely redirect
     // that pointer, though for std::string to function properly, the chars
