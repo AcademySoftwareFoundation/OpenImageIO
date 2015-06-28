@@ -1210,9 +1210,21 @@ If the current image has multiple subimages, replace the current image
 with a new image consisting of only the given subimage.
 \apiend
 
+\apiitem{\ce --sisplit}
+\NEW % 1.6
+Remove the top image from the stack, split it into its constituent
+subimages, and push them all onto the stack (first to last).
+\apiend
+
 \apiitem{\ce --siappend}
-Replaces the top two images on the stack with a new image comprised of the
-subimages of both images appended together.
+Replaces the top two images on the stack with a single new image comprised
+of the subimages of both images appended together.
+\apiend
+
+\apiitem{\ce --siappendall}
+\NEW % 1.6
+Replace \emph{all} of the individual images on the stack with a single new
+image comprised of the subimages of all original images appended together.
 \apiend
 
 \apiitem{\ce --ch {\rm \emph{channellist}}}

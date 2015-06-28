@@ -1767,6 +1767,70 @@ action_select_subimage (int argc, const char *argv[])
 
 
 static int
+action_subimage_split (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_subimage_split, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    ImageRecRef A = ot.pop();
+    ot.read (A);
+
+    // Push the individual subimages onto the stack
+    for (int subimage = 0;  subimage <  A->subimages();  ++subimage)
+        ot.push (new ImageRec (*A, subimage));
+
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static void
+action_subimage_append_n (int n, string_view command)
+{
+    std::vector<ImageRecRef> images (n);
+    for (int i = n-1; i >= 0; --i) {
+        images[i] = ot.pop();
+        ot.read (images[i]);   // necessary?
+    }
+
+    // Find the MIP levels in all the subimages of both A and B
+    std::vector<int> allmiplevels;
+    for (int i = 0; i < n; ++i) {
+        ImageRecRef A = images[i];
+        for (int s = 0;  s < A->subimages();  ++s) {
+            int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
+            allmiplevels.push_back (miplevels);
+        }
+    }
+
+    // Create the replacement ImageRec
+    ImageRecRef R (new ImageRec(images[0]->name(), (int)allmiplevels.size(),
+                                &allmiplevels[0]));
+    ot.push (R);
+
+    // Subimage by subimage, MIP level by MIP level, copy
+    int sub = 0;
+    for (int i = 0; i < n; ++i) {
+        ImageRecRef A = images[i];
+        for (int s = 0;  s <  A->subimages();  ++s, ++sub) {
+            for (int m = 0;  m < A->miplevels(s);  ++m) {
+                bool ok = (*R)(sub,m).copy ((*A)(s,m));
+                if (! ok)
+                    ot.error (command, (*R)(sub,m).geterror());
+                // Tricky subtlety: IBA::channels changed the underlying IB,
+                // we may need to update the IRR's copy of the spec.
+                R->update_spec_from_imagebuf(sub,m);
+            }
+        }
+    }
+}
+
+
+
+static int
 action_subimage_append (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_subimage_append, argc, argv))
@@ -1774,49 +1838,23 @@ action_subimage_append (int argc, const char *argv[])
     Timer timer (ot.enable_function_timing);
     string_view command = ot.express (argv[0]);
 
-    ImageRecRef B (ot.pop());
-    ImageRecRef A (ot.pop());
-    ot.read (A);
-    ot.read (B);
+    action_subimage_append_n (2, command);
 
-    // Find the MIP levels in all the subimages of both A and B
-    std::vector<int> allmiplevels;
-    for (int s = 0;  s < A->subimages();  ++s) {
-        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
-        allmiplevels.push_back (miplevels);
-    }
-    for (int s = 0;  s < B->subimages();  ++s) {
-        int miplevels = ot.allsubimages ? B->miplevels(s) : 1;
-        allmiplevels.push_back (miplevels);
-    }
+    ot.function_times[command] += timer();
+    return 0;
+}
 
-    // Create the replacement ImageRec
-    ImageRecRef R (new ImageRec(A->name(), (int)allmiplevels.size(),
-                                &allmiplevels[0]));
-    ot.push (R);
 
-    // Subimage by subimage, MIP level by MIP level, copy
-    int sub = 0;
-    for (int s = 0;  s <  A->subimages();  ++s, ++sub) {
-        for (int m = 0;  m < A->miplevels(s);  ++m) {
-            bool ok = (*R)(sub,m).copy ((*A)(s,m));
-            if (! ok)
-                ot.error (command, (*R)(sub,m).geterror());
-            // Tricky subtlety: IBA::channels changed the underlying IB,
-            // we may need to update the IRR's copy of the spec.
-            R->update_spec_from_imagebuf(sub,m);
-        }
-    }
-    for (int s = 0;  s <  B->subimages();  ++s, ++sub) {
-        for (int m = 0;  m < B->miplevels(s);  ++m) {
-            bool ok = (*R)(sub,m).copy ((*B)(s,m));
-            if (! ok)
-                ot.error (command, (*R)(sub,m).geterror());
-            // Tricky subtlety: IBA::channels changed the underlying IB,
-            // we may need to update the IRR's copy of the spec.
-            R->update_spec_from_imagebuf(sub,m);
-        }
-    }
+
+static int
+action_subimage_append_all (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_subimage_append_all, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command = ot.express (argv[0]);
+
+    action_subimage_append_n (int(ot.image_stack.size()+1), command);
 
     ot.function_times[command] += timer();
     return 0;
@@ -3964,8 +4002,12 @@ getargs (int argc, char *argv[])
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
                 "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
+                "--sisplit %@", action_subimage_split, NULL,
+                    "Split the top image's subimges into separate images",
                 "--siappend %@", action_subimage_append, NULL,
                     "Append the last two images into one multi-subimage image",
+                "--siappendall %@", action_subimage_append_all, NULL,
+                    "Append all images on the stack into a single multi-subimage image",
                 "--deepen %@", action_deepen, NULL, "Deepen normal 2D image to deep",
                 "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
                 "<SEPARATOR>", "Image stack manipulation:",
