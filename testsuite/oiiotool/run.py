@@ -249,6 +249,18 @@ command += oiiotool (
             " R G --add -d half -o labeladd.exr")
 
 
+# test subimages
+command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +
+                     "--pattern constant:color=0.0,0.5,0.0 64x64 3 " +
+                     "--siappend -d half -o subimages-2.exr")
+command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +
+                     "--pattern constant:color=0.0,0.5,0.0 64x64 3 " +
+                     "--pattern constant:color=0.0,0.0,0.5 64x64 3 " +
+                     "--pattern constant:color=0.5,0.5,0.0 64x64 3 " +
+                     "--siappendall -d half -o subimages-4.exr")
+command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
+                     "--pop -o subimage1.exr")
+
 # test sequences
 command += oiiotool ("fit.tif -o copyA.1-10#.jpg");
 command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
@@ -310,6 +322,8 @@ outputs = [
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "rgbfromtga.png",
+            "subimages-2.exr", "subimages-4.exr",
+            "subimage1.exr", "subimage2.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
