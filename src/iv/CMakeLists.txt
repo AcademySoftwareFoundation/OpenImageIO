@@ -27,5 +27,5 @@ if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
     oiio_install_targets (iv)
 
 else ()
-    message (STATUS "\n\n   WARNING: No QT/OpenGL -- 'iv' will not be built!\n")
+    message (STATUS "\n\n   WARNING: Qt, OpenGL, or GLEW not found -- 'iv' will not be built!\n")
 endif ()
