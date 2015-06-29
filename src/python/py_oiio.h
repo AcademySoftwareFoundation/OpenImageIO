@@ -96,6 +96,16 @@ void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
 
 
 
+// Suck up a tuple of presumed T values into a vector<T>
+template<typename T>
+void py_to_stdvector (std::vector<T> &vals, const numeric::array &arr)
+{
+    for (int i = 0, e = len(arr); i < e; ++i)
+        vals.push_back (extract<T>(arr[i]));
+}
+
+
+
 // Convert an array of T values into either tuple. FUNC is a conversion
 // function such as PyInt_FromLong, PyFloat_FromDouble, or
 // PyString_FromString.

@@ -5,7 +5,7 @@ Comparison: of flip.tif and flop.tif
   max  = 0.450980424881
   max @ (214, 88, 0, 0)
   warns 2034 fails 2034
-isConstantColor on pink image is (1.0, 0.501960813999176, 0.501960813999176)
+isConstantColor on pink image is (1.0, 0.50196081399917603, 0.50196081399917603)
 isConstantColor on checker is  None
 Is cmul1.exr monochrome?  True
 Is cmul2.exr monochrome?  False

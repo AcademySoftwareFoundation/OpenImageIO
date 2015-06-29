@@ -3419,7 +3419,10 @@ input_file (int argc, const char *argv[])
                             ustring("exists"), TypeDesc::TypeInt, &exists)
             || !exists) {
             // Try to get a more precise error message to report
-            if (! Filesystem::exists(filename))
+            ImageInput *input = ImageInput::create (filename);
+            bool procedural = input ? input->supports ("procedural") : false;
+            ImageInput::destroy (input);
+            if (! Filesystem::exists(filename) && !procedural)
                 ot.error ("read", Strutil::format ("File does not exist: \"%s\"", filename));
             else {
                 std::string err;

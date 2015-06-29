@@ -591,7 +591,11 @@ hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,
 {
     ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT &&
             src.spec().format.basetype == TypeDesc::FLOAT &&
-            dst.spec().nchannels == 2 && src.spec().nchannels == 2);
+            dst.spec().nchannels == 2 && src.spec().nchannels == 2 &&
+            dst.roi() == src.roi() &&
+            (dst.storage() == ImageBuf::LOCALBUFFER || dst.storage() == ImageBuf::APPBUFFER) &&
+            (src.storage() == ImageBuf::LOCALBUFFER || src.storage() == ImageBuf::APPBUFFER)
+        );
 
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
@@ -659,7 +663,13 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
     dst.reset (dst.name(), spec);
 
     // Copy src to a 2-channel (for "complex") float buffer
-    ImageBuf A (spec);   // zeros it out automatically
+    ImageBuf A (spec);
+    if (src.nchannels() < 2) {
+        // If we're pasting fewer than 2 channels, zero out channel 1.
+        ROI r = roi;
+        r.chbegin = 1; r.chend = 2;
+        zero (A, r);
+    }
     if (! ImageBufAlgo::paste (A, 0, 0, 0, 0, src, roi, nthreads)) {
         dst.error ("%s", A.geterror());
         return false;

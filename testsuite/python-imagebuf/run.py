@@ -6,5 +6,5 @@ imagedir = parent + "oiio-images"
 command += "python test_imagebuf.py > out.txt ;"
 
 # compare the outputs
-outputs = [ "out.tif", "out.txt" ]
+outputs = [ "out.tif", "outtuple.tif", "outarray.tif", "out.txt" ]
 

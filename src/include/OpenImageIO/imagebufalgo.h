@@ -327,7 +327,8 @@ bool OIIO_API cut (ImageBuf &dst, const ImageBuf &src,
 /// Copy into dst, beginning at (xbegin,ybegin,zbegin), the pixels of
 /// src described by srcroi.  If srcroi is ROI::All(), the entirety of src
 /// will be used.  It will copy into channels [chbegin...], as many
-/// channels as are described by srcroi.
+/// channels as are described by srcroi. Pixels or channels of dst outside
+/// the range of roi will not be altered.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use

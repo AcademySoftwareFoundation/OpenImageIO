@@ -479,17 +479,32 @@ public:
     /// maxchannels (will be clamped to the actual number of channels).
     void setpixel (int i, const float *pixel, int maxchannels=1000);
 
-    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) X [zbegin..zend), channels [chbegin,chend) (all
-    /// with exclusive 'end'), specified as integer pixel coordinates,
-    /// at the current subimage and MIP-map level, storing the pixel
-    /// values beginning at the address specified by result and with the
-    /// given strides (by default, AutoStride means the usual contiguous
-    /// packing of pixels) and converting into the data type described
-    /// by 'format'.  It is up to the caller to ensure that result
-    /// points to an area of memory big enough to accommodate the
-    /// requested rectangle.  Return true if the operation could be
-    /// completed, otherwise return false.
+    /// Retrieve the rectangle of pixels spanning the ROI (including
+    /// channels) at the current subimage and MIP-map level, storing the
+    /// pixel values beginning at the address specified by result and with
+    /// the given strides (by default, AutoStride means the usual contiguous
+    /// packing of pixels) and converting into the data type described by
+    /// 'format'.  It is up to the caller to ensure that result points to an
+    /// area of memory big enough to accommodate the requested rectangle.
+    /// Return true if the operation could be completed, otherwise return
+    /// false.
+    bool get_pixels (ROI roi, TypeDesc format, void *result,
+                     stride_t xstride=AutoStride,
+                     stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) const;
+
+    /// Copy the data into the given ROI of the ImageBuf. The data points to
+    /// values specified by 'format', with layout detailed by the stride
+    /// values (in bytes, with AutoStride indicating "contiguous" layout).
+    /// It is up to the caller to ensure that data points to an area of
+    /// memory big enough to account for the ROI. Return true if the
+    /// operation could be completed, otherwise return false.
+    bool set_pixels (ROI roi, TypeDesc format, const void *data,
+                     stride_t xstride=AutoStride,
+                     stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride);
+
+    /// DEPRECATED (1.6) -- use get_pixels(ROI, ...) instead.
     bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
                              TypeDesc format, void *result,
@@ -497,16 +512,7 @@ public:
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride) const;
 
-    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) X [zbegin..zend) (with exclusive 'end'),
-    /// specified as integer pixel coordinates, at the current MIP-map
-    /// level, storing the pixel values beginning at the address
-    /// specified by result and with the given strides (by default,
-    /// AutoStride means the usual contiguous packing of pixels) and
-    /// converting into the data type described by 'format'.  It is up
-    /// to the caller to ensure that result points to an area of memory
-    /// big enough to accommodate the requested rectangle.  Return true
-    /// if the operation could be completed, otherwise return false.
+    /// DEPRECATED (1.6) -- use get_pixels(ROI, ...) instead.
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend,
                      TypeDesc format, void *result,
@@ -514,16 +520,7 @@ public:
                      stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride) const;
 
-    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) (with exclusive 'end'), specified as integer
-    /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result and
-    /// with the given strides (by default, AutoStride means the usual
-    /// contiguous packing of pixels), converting to the type <T> in the
-    /// process.  It is up to the caller to ensure that result points to
-    /// an area of memory big enough to accommodate the requested
-    /// rectangle.  Return true if the operation could be completed,
-    /// otherwise return false.
+    /// DEPRECATED (1.6) -- use get_pixels(ROI, ...) instead.
     template<typename T>
     bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
@@ -531,6 +528,7 @@ public:
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride) const;
 
+    /// DEPRECATED (1.6) -- use get_pixels(ROI, ...) instead.
     template<typename T>
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, T *result,
@@ -542,12 +540,7 @@ public:
                                    xstride, ystride, zstride);
     }
 
-    /// Even safer version of get_pixels: Retrieve the rectangle of
-    /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
-    /// 'end'), specified as integer pixel coordinates, at the current
-    /// MIP-map level, storing the pixel values in the 'result' vector
-    /// (even allocating the right size).  Return true if the operation
-    /// could be completed, otherwise return false.
+    /// DEPRECATED (1.6) -- use get_pixels(ROI, ...) instead.
     template<typename T>
     bool get_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
                       int zbegin_, int zend_,
@@ -557,6 +550,7 @@ public:
         return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
                            &result[0]);
     }
+
 
     int orientation () const;
     void set_orientation (int orient);
