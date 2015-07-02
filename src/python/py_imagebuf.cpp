@@ -355,11 +355,22 @@ ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, numeric::array data)
     size_t size = (size_t) roi.npixels() * roi.nchannels();
     if (size == 0)
         return true;   // done
-    std::vector<float> vals;
-    py_to_stdvector (vals, data);
-    if (size > vals.size())
+
+    // Figure out the type of the array
+    object tcobj = data.attr("typecode");
+    extract<char> tce (tcobj);
+    char typecode = tce.check() ? (char)tce : 0;
+    TypeDesc type = typedesc_from_python_array_code (typecode);
+
+    const void *addr = NULL;
+    Py_ssize_t pylen = 0;
+    int success = PyObject_AsReadBuffer(data.ptr(), &addr, &pylen);
+    if (success != 0)
+        throw_error_already_set();
+
+    if (type == TypeDesc::UNKNOWN || size*type.size() > pylen)
         return false;   // Not enough data to fill our ROI
-    buf.set_pixels (roi, TypeDesc::TypeFloat, &vals[0]);
+    buf.set_pixels (roi, type, addr);
     return true;
 }
 

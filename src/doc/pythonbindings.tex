@@ -1522,7 +1522,9 @@ the image and returns them as an array of values with type specified by
 \apiitem{ImageBuf.{\ce set_pixels} (roi, data)}
 \NEW % 1.6
 Sets the rectangle of pixels (and channels) specified by {\cf roi} with
-values in the {\cf data} (which may be either a tuple or a numeric float array).
+values in the {\cf data}, which may be either a tuple of floats or an array
+(if it's an array, the type of array --- float, unsigned char, etc. ---
+will be correctly discerned).
 
 \noindent Example:
 \begin{code}

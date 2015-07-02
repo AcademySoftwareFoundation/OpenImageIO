@@ -130,3 +130,7 @@ Comparing "outtuple.tif" and "ref/outtuple.tif"
 PASS
 Comparing "outarray.tif" and "ref/outarray.tif"
 PASS
+Comparing "outarrayB.tif" and "ref/outarrayB.tif"
+PASS
+Comparing "outarrayH.tif" and "ref/outarrayH.tif"
+PASS
