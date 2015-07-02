@@ -3555,7 +3555,8 @@ output_file (int argc, const char *argv[])
     }
     ImageOutput *out = ImageOutput::create (filename.c_str());
     if (! out) {
-        ot.error (command, OIIO::geterror());
+        std::string err = OIIO::geterror();
+        ot.error (command, err.size() ? err.c_str() : "unknown error creating an ImageOutput");
         return 0;
     }
     bool supports_displaywindow = out->supports ("displaywindow");
@@ -3705,12 +3706,14 @@ output_file (int argc, const char *argv[])
     ImageOutput::OpenMode mode = ImageOutput::Create;
     if (ir->subimages() > 1 && out->supports("multiimage")) {
         if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
-            ot.error (command, out->geterror());
+            std::string err = out->geterror();
+            ot.error (command, err.size() ? err.c_str() : "unknown error");
             return 0;
         }
     } else {
         if (! out->open (filename, subimagespecs[0], mode)) {
-            ot.error (command, out->geterror());
+            std::string err = out->geterror();
+            ot.error (command, err.size() ? err.c_str() : "unknown error");
             return 0;
         }
     }
@@ -3722,7 +3725,8 @@ output_file (int argc, const char *argv[])
             adjust_output_options (filename, spec, ot, supports_tiles);
             if (s > 0 || m > 0) {  // already opened first subimage/level
                 if (! out->open (filename, spec, mode)) {
-                    ot.error (command, out->geterror());
+                    std::string err = out->geterror();
+                    ot.error (command, err.size() ? err.c_str() : "unknown error");
                     return 0;
                 }
             }
