@@ -35,6 +35,68 @@ namespace PyOpenImageIO
 using namespace boost::python;
 
 
+
+const char *
+python_array_code (TypeDesc format)
+{
+    switch (format.basetype) {
+    case TypeDesc::UINT8 :  return "B";
+    case TypeDesc::INT8 :   return "b";
+    case TypeDesc::UINT16 : return "H";
+    case TypeDesc::INT16 :  return "h";
+    case TypeDesc::UINT32 : return "I";
+    case TypeDesc::INT32 :  return "i";
+    case TypeDesc::FLOAT :  return "f";
+    case TypeDesc::DOUBLE : return "d";
+    default :               return "f";   // Punt -- return float
+    }
+}
+
+
+
+TypeDesc
+typedesc_from_python_array_code (char code)
+{
+    switch (code) {
+    case 'b' :
+    case 'c' : return TypeDesc::INT8;
+    case 'B' : return TypeDesc::UINT8;
+    case 'h' : return TypeDesc::INT16;
+    case 'H' : return TypeDesc::UINT16;
+    case 'i' : return TypeDesc::INT;
+    case 'I' : return TypeDesc::UINT;
+    case 'l' : return TypeDesc::INT;
+    case 'L' : return TypeDesc::UINT;
+    case 'f' : return TypeDesc::FLOAT;
+    case 'd' : return TypeDesc::DOUBLE;
+    }
+    return TypeDesc::UNKNOWN;
+}
+
+
+
+object
+C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
+{
+    // Construct a Python array, convert the buffer we read into a string
+    // and then into the array.
+    object arr_module(handle<>(PyImport_ImportModule("array")));
+    object array = arr_module.attr("array")(python_array_code(type));
+#if PY_MAJOR_VERSION >= 3
+    object string_py(handle<>(PyBytes_FromStringAndSize(data, size)));
+#else
+    object string_py(handle<>(PyString_FromStringAndSize(data, size)));
+#endif
+#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
+    array.attr("fromstring")(string_py);
+#else
+    array.attr("frombytes")(string_py);
+#endif
+    return array;
+}
+
+
+
 struct ustring_to_python_str {
     static PyObject* convert(ustring const& s) {
         return boost::python::incref(boost::python::object(s.string()).ptr());

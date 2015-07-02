@@ -36,7 +36,8 @@ else ()
 
     #cmake 2.8 does not look for python 3.4
     set(Python_ADDITIONAL_VERSIONS 3.4)
-    find_package (PythonLibs ${PYTHON3_VERSION})
+    find_package (PythonInterp ${PYTHON3_VERSION} REQUIRED)
+    find_package (PythonLibs ${PYTHON3_VERSION} REQUIRED)
 
     #Finding the python3 component for boost is a little tricky, since it has
     #different names on different systems. Try the most common ones

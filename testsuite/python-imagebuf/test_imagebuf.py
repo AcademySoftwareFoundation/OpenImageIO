@@ -38,6 +38,14 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
             print " ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
 
 
+def write (image, filename, format=oiio.UNKNOWN) :
+    if not image.has_error :
+        image.set_write_format (format)
+        image.write (filename)
+    if image.has_error :
+        print "Error writing", filename, ":", image.geterror()
+
+
 
 ######################################################################
 # main test starts here
@@ -107,6 +115,13 @@ try:
     b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
                   array.array('f',[0.1,0.5,0.9, 0.2,0.5,0.7, 0.3,0.5,0.8, 0.4,0.5,0.6]))
     b.write ("outarray.tif")
+    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
+                  array.array('B',[26,128,230, 51,128,178, 76,128,204, 102,128,153]))
+    write (b, "outarrayB.tif", oiio.UINT8)
+    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
+                  array.array('H',[6554,32767,58982, 13107,32767,45874,
+                                   19660,32767,52428, 26214,32767,39321]))
+    write (b, "outarrayH.tif", oiio.UINT16)
 
     # Test write and read of deep data
     # Let's try writing one
