@@ -37,7 +37,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput *gif_output_imageio_create () { return NULL; }
-OIIO_EXPORT const char *gif_output_extensions[] = { "gif", NULL };
+OIIO_EXPORT const char *gif_output_extensions[] = { NULL };
 
 OIIO_PLUGIN_EXPORTS_END
 
