@@ -974,12 +974,10 @@ Closes an open output.
 Retrieves the \ImageSpec of the currently-open output image.
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_image} (typedesc, pixels, xstride=AutoStride, \\
-\bigspc\bigspc\spc ystride=AutoStride, zstride=AutoStride)}
+\apiitem{bool ImageOutput.{\ce write_image} (typedesc, pixels)}
 Write the currently opened image all at once.  The {\cf pixels} parameter
-should be an {\cf array} containing data elements of the type described by
-the \TypeDesc.  Optional strides describe data layout in the array (the
-default values of {\cf AutoStride} are used if the data are contiguous).
+should be an {\cf array} containing data elements. The data type is
+deduced from the contents of the array itself.
 Returns {\cf True} upon success, {\cf False} upon failure.
 
 \noindent Example:
@@ -997,15 +995,13 @@ Returns {\cf True} upon success, {\cf False} upon failure.
         spec.tile_width = 64
         spec.tile_height = 64
         output.open (filename, spec, oiio.Create)
-        output.write_image (oiio.FLOAT, pixels)
+        output.write_image (pixels)
         output.close ()
 \end{code}
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_scanline} (y, z, typesdesc, pixels, \\
-\bigspc\bigspc xstride=AutoStride) \\
-bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, typesdesc, pixels, \\
-\bigspc\bigspc xstride=AutoStride)}
+\apiitem{bool ImageOutput.{\ce write_scanline} (y, z, pixels) \\
+bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, pixels)}
 
 Write one or many scanlines to the currently open file.
 
@@ -1019,7 +1015,7 @@ Write one or many scanlines to the currently open file.
     for z in range(spec.z, spec.z+spec.depth) :
         for y in range(spec.y, spec.y+spec.height) :
             pixels = input.read_scanline (y, z, oiio.FLOAT)
-            output.write_scanline (y, z, oiio.FLOAT, pixels)
+            output.write_scanline (y, z, pixels)
     output.close ()
     input.close ()
 
@@ -1028,18 +1024,13 @@ Write one or many scanlines to the currently open file.
     for z in range(spec.z, spec.z+spec.depth) :
         pixels = input.read_scanlines (spec.y, spec.y+spec.height,
                                        z, oiio.FLOAT)
-        output.write_scanlines (spec.y, spec.y+spec.height,
-                                z, oiio.FLOAT, pixels)
+        output.write_scanlines (spec.y, spec.y+spec.height, z, pixels)
     ...
 \end{code}
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, typesdesc, pixels, \\
-\bigspc\bigspc\spc xstride=AutoStride, ystride=AutoStride, \\
-\bigspc\bigspc\spc zstride=AutoStride) \\
-bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
-\bigspc\bigspc\spc  xstride=AutoStride, ystride=AutoStride, \\
-\bigspc\bigspc\spc  zstride=AutoStride)}
+\apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, pixels) \\
+bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend)}
 
 Write one or many tiles to the currently open file.
 
@@ -1053,7 +1044,7 @@ Write one or many tiles to the currently open file.
         for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
             for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
                 pixels = input.read_tile (x, y, z, oiio.FLOAT)
-                output.write_tile (x, y, z, oiio.FLOAT, pixels)
+                output.write_tile (x, y, z, pixels)
     output.close ()
     input.close ()
 
@@ -1065,8 +1056,7 @@ Write one or many tiles to the currently open file.
                                        y, y+tile_width,
                                        z, z+tile_width, oiio.FLOAT)
             output.write_tiles (spec.x, spec.x+spec.width,
-                               y, y+tile_width, z, z+tile_width,
-                               oiio.FLOAT, pixels)
+                                y, y+tile_width, z, z+tile_width, pixels)
     ...
 \end{code}
 \apiend
@@ -1114,7 +1104,7 @@ file.
         ok = output.open (filename, spec, oiio.Create)
         if not ok :
             print "Open error:", output.geterror()
-        ok = output.write_image (oiio.FLOAT, pixels)
+        ok = output.write_image (pixels)
         if not ok :
             print "Write error:", output.geterror()
         output.close ()

@@ -230,6 +230,38 @@ oiio_attribute_tuple_typed (const std::string &name,
 
 
 
+const void *
+python_array_address (numeric::array &data, TypeDesc &elementtype,
+                      size_t &numelements)
+{
+    // Figure out the type of the array
+    object tcobj = data.attr("typecode");
+    extract<char> tce (tcobj);
+    char typecode = tce.check() ? (char)tce : 0;
+    elementtype = typedesc_from_python_array_code (typecode);
+    if (elementtype == TypeDesc::UNKNOWN)
+        return NULL;
+
+    // TODO: The PyObject_AsReadBuffer is a deprecated API dating from
+    // Python 1.6 (see https://docs.python.org/2/c-api/objbuffer.html). It
+    // still works in 2.x, but for future-proofing, we should switch to the
+    // memory buffer interface:
+    // https://docs.python.org/2/c-api/buffer.html#bufferobjects
+    // https://docs.python.org/3/c-api/buffer.html
+    const void *addr = NULL;
+    Py_ssize_t pylen = 0;
+    int success = PyObject_AsReadBuffer(data.ptr(), &addr, &pylen);
+    if (success != 0) {
+        throw_error_already_set();
+        return NULL;
+    }
+
+    numelements = size_t(pylen) / elementtype.size();
+    return addr;
+}
+
+
+
 // This OIIO_DECLARE_PYMODULE mojo is necessary if we want to pass in the
 // MODULE name as a #define. Google for Argument-Prescan for additional
 // info on why this is necessary

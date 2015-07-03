@@ -112,6 +112,25 @@ ImageOutputWrap::make_read_buffer (object &buffer, imagesize_t size)
 
 
 bool
+ImageOutputWrap::write_scanline_array (int y, int z, numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (numelements < spec().width*spec().nchannels) {
+        m_output->error ("write_scanline was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_scanline (y, z, format, array);
+}
+
+
+// DEPRECATED (1.6)
+bool
 ImageOutputWrap::write_scanline (int y, int z, TypeDesc format, object &buffer,
                                  stride_t xstride)
 {
@@ -124,6 +143,7 @@ ImageOutputWrap::write_scanline (int y, int z, TypeDesc format, object &buffer,
 }
 
 
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_scanline_bt (int y, int z, TypeDesc::BASETYPE format,
                                     object &buffer, stride_t xstride)
@@ -132,6 +152,26 @@ ImageOutputWrap::write_scanline_bt (int y, int z, TypeDesc::BASETYPE format,
 }
 
 
+bool
+ImageOutputWrap::write_scanlines_array (int ybegin, int yend, int z,
+                                        numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (numelements < spec().width*spec().nchannels*(yend-ybegin)) {
+        m_output->error ("write_scanlines was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_scanlines (ybegin, yend, z, format, array);
+}
+
+
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_scanlines (int ybegin, int yend, int z,
                                   TypeDesc format, object &buffer,
@@ -146,6 +186,7 @@ ImageOutputWrap::write_scanlines (int ybegin, int yend, int z,
 }
 
 
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_scanlines_bt (int ybegin, int yend, int z,
                                      TypeDesc::BASETYPE format,
@@ -156,6 +197,25 @@ ImageOutputWrap::write_scanlines_bt (int ybegin, int yend, int z,
 
 
 
+bool
+ImageOutputWrap::write_tile_array (int x, int y, int z,
+                                   numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (numelements < spec().tile_pixels()*spec().nchannels) {
+        m_output->error ("write_tile was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_tile (x, y, z, format, array);
+}
+
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_tile (int x, int y, int z, TypeDesc format,
                              object &buffer, stride_t xstride,
@@ -169,6 +229,7 @@ ImageOutputWrap::write_tile (int x, int y, int z, TypeDesc format,
     return m_output->write_tile(x, y, z, format, array, xstride, ystride, zstride);    
 }
 
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_tile_bt (int x, int y, int z, TypeDesc::BASETYPE format,
                                 object &buffer, stride_t xstride,
@@ -179,6 +240,27 @@ ImageOutputWrap::write_tile_bt (int x, int y, int z, TypeDesc::BASETYPE format,
 
 
 
+bool
+ImageOutputWrap::write_tiles_array (int xbegin, int xend, int ybegin, int yend,
+                                    int zbegin, int zend,
+                                    numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (numelements < (xend-xbegin)*(yend-ybegin)*(zend-zbegin)*spec().nchannels) {
+        m_output->error ("write_tiles was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                                  format, array);
+}
+
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
@@ -194,6 +276,7 @@ ImageOutputWrap::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                   format, array, xstride, ystride, zstride);    
 }
 
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_tiles_bt (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, TypeDesc::BASETYPE format,
@@ -206,6 +289,25 @@ ImageOutputWrap::write_tiles_bt (int xbegin, int xend, int ybegin, int yend,
 
 
 
+bool
+ImageOutputWrap::write_image_array (numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (numelements < spec().image_pixels()*spec().nchannels) {
+        m_output->error ("write_image was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_image (format, array);
+}
+
+
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_image (TypeDesc format, object &buffer,
                               stride_t xstride, stride_t ystride,
@@ -222,6 +324,7 @@ ImageOutputWrap::write_image (TypeDesc format, object &buffer,
 }
 
 
+// DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_image_bt (TypeDesc::BASETYPE format, object &data,
                                  stride_t xstride, stride_t ystride,
@@ -325,22 +428,27 @@ void declare_imageoutput()
              ImageOutputWrap_write_image_overloads())
         .def("write_image",     &ImageOutputWrap::write_image_bt,
              ImageOutputWrap_write_image_bt_overloads())
+        .def("write_image",     &ImageOutputWrap::write_image_array)
         .def("write_scanline",  &ImageOutputWrap::write_scanline,
              ImageOutputWrap_write_scanline_overloads())
         .def("write_scanline",  &ImageOutputWrap::write_scanline_bt,
              ImageOutputWrap_write_scanline_bt_overloads())
+        .def("write_scanline",  &ImageOutputWrap::write_scanline_array)
         .def("write_scanlines",  &ImageOutputWrap::write_scanlines,
              ImageOutputWrap_write_scanlines_overloads())
         .def("write_scanlines",  &ImageOutputWrap::write_scanlines_bt,
              ImageOutputWrap_write_scanlines_bt_overloads())
+        .def("write_scanlines",  &ImageOutputWrap::write_scanlines_array)
         .def("write_tile",      &ImageOutputWrap::write_tile,
              ImageOutputWrap_write_tile_overloads())
         .def("write_tile",      &ImageOutputWrap::write_tile_bt,
              ImageOutputWrap_write_tile_bt_overloads())
+        .def("write_tile",       &ImageOutputWrap::write_tile_array)
         .def("write_tiles",      &ImageOutputWrap::write_tiles,
              ImageOutputWrap_write_tiles_overloads())
         .def("write_tiles",      &ImageOutputWrap::write_tiles_bt,
              ImageOutputWrap_write_tiles_bt_overloads())
+        .def("write_tiles",      &ImageOutputWrap::write_tiles_array)
         .def("write_deep_scanlines", &ImageOutputWrap::write_deep_scanlines)
         .def("write_deep_tiles", &ImageOutputWrap::write_deep_tiles)
         .def("write_deep_image", &ImageOutputWrap::write_deep_image)

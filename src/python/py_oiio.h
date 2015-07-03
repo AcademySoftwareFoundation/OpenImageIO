@@ -70,6 +70,13 @@ const char * python_array_code (TypeDesc format);
 TypeDesc typedesc_from_python_array_code (char code);
 
 
+// Given python array 'data', figure out its element type and number of
+// elements, and return the memory address of its contents.  Return NULL as
+// the address for an error.
+const void * python_array_address (numeric::array &data, TypeDesc &elementtype,
+                                   size_t &numelements);
+
+
 
 // Suck up one or more presumed T values into a vector<T>
 template<typename T>
@@ -205,10 +212,12 @@ public:
                          stride_t xstride=AutoStride);
     bool write_scanline_bt (int, int, TypeDesc::BASETYPE,
                             boost::python::object&, stride_t xstride=AutoStride);
+    bool write_scanline_array (int, int, numeric::array&);
     bool write_scanlines (int, int, int, TypeDesc, boost::python::object&,
                          stride_t xstride=AutoStride);
     bool write_scanlines_bt (int, int, int, TypeDesc::BASETYPE,
                             boost::python::object&, stride_t xstride=AutoStride);
+    bool write_scanlines_array (int, int, int, numeric::array&);
     bool write_tile (int, int, int, TypeDesc, boost::python::object&,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
@@ -216,6 +225,7 @@ public:
                         boost::python::object&, stride_t xstride=AutoStride,
                         stride_t ystride=AutoStride,
                         stride_t zstride=AutoStride);
+    bool write_tile_array (int, int, int, numeric::array&);
     bool write_tiles (int, int, int, int, int, int,
                       TypeDesc, boost::python::object&,
                       stride_t xstride=AutoStride, stride_t ystride=AutoStride,
@@ -225,6 +235,7 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
+    bool write_tiles_array (int, int, int, int, int, int, numeric::array&);
     bool write_image (TypeDesc format, object &buffer,
                       stride_t xstride=AutoStride,
                       stride_t ystride=AutoStride,
@@ -233,6 +244,7 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
+    bool write_image_array (numeric::array &buffer);
     bool write_deep_scanlines (int ybegin, int yend, int z,
                                const DeepData &deepdata);
     bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,

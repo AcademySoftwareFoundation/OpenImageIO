@@ -15,14 +15,14 @@ def copy_subimage (input, output, method="image",
         if not pixels :
             print "Error reading input pixels in", in_filename
             return False
-        output.write_image (memformat, pixels)
+        output.write_image (pixels)
     elif method == "scanlines" and spec.tile_width == 0 :
         pixels = input.read_image (memformat)
         if not pixels :
             print "Error reading input pixels in", in_filename
             return False
         output.write_scanlines (spec.y, spec.y+spec.height, spec.z,
-                                memformat, pixels)
+                                pixels)
     elif method == "scanline" and spec.tile_width == 0 :
         for z in range(spec.z, spec.z+spec.depth) :
             for y in range(spec.y, spec.y+spec.height) :
@@ -30,7 +30,7 @@ def copy_subimage (input, output, method="image",
                 if not pixels :
                     print "Error reading input pixels in", in_filename
                     return False
-                output.write_scanline (y, z, memformat, pixels)
+                output.write_scanline (y, z, pixels)
     elif method == "tiles" and spec.tile_width != 0 :
         pixels = input.read_image (memformat)
         if not pixels :
@@ -39,7 +39,7 @@ def copy_subimage (input, output, method="image",
         output.write_tiles (spec.x, spec.x+spec.width,
                             spec.y, spec.y+spec.height,
                             spec.z, spec.z+spec.depth,
-                            memformat, pixels)
+                            pixels)
     elif method == "tile" and spec.tile_width != 0 :
         for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
             for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
@@ -48,7 +48,7 @@ def copy_subimage (input, output, method="image",
                     if not pixels :
                         print "Error reading input pixels in", in_filename
                         return False
-                    output.write_tile (x, y, z, memformat, pixels)
+                    output.write_tile (x, y, z, pixels)
     else :
         print "Unknown method:", method
         return False
