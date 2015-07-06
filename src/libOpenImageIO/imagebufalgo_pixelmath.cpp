@@ -583,7 +583,7 @@ rangecompress_ (ImageBuf &R, const ImageBuf &A,
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
             if (useluma) {
                 float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-                float scale = rangecompress (luma) / luma;
+                float scale = luma > 0.0f ? rangecompress (luma) / luma : 0.0f;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     if (c == alpha_channel || c == z_channel)
                         continue;
@@ -601,8 +601,8 @@ rangecompress_ (ImageBuf &R, const ImageBuf &A,
         ImageBuf::ConstIterator<Atype> a (A, roi);
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
             if (useluma) {
-                float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-                float scale = rangecompress (luma) / luma;
+                float luma = 0.21264f * a[roi.chbegin] + 0.71517f * a[roi.chbegin+1] + 0.07219f * a[roi.chbegin+2];
+                float scale = luma > 0.0f ? rangecompress (luma) / luma : 0.0f;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     if (c == alpha_channel || c == z_channel)
                         r[c] = a[c];
@@ -653,7 +653,7 @@ rangeexpand_ (ImageBuf &R, const ImageBuf &A,
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
             if (useluma) {
                 float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-                float scale = rangeexpand (luma) / luma;
+                float scale = luma > 0.0f ? rangeexpand (luma) / luma : 0.0f;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     if (c == alpha_channel || c == z_channel)
                         continue;
@@ -671,8 +671,8 @@ rangeexpand_ (ImageBuf &R, const ImageBuf &A,
         ImageBuf::ConstIterator<Atype> a (A, roi);
         for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
             if (useluma) {
-                float luma = 0.21264f * r[roi.chbegin] + 0.71517f * r[roi.chbegin+1] + 0.07219f * r[roi.chbegin+2];
-                float scale = rangeexpand (luma) / luma;
+                float luma = 0.21264f * a[roi.chbegin] + 0.71517f * a[roi.chbegin+1] + 0.07219f * a[roi.chbegin+2];
+                float scale = luma > 0.0f ? rangeexpand (luma) / luma : 0.0f;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     if (c == alpha_channel || c == z_channel)
                         r[c] = a[c];
