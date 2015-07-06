@@ -211,6 +211,10 @@ Comparing "rangecompress.tif" and "ref/rangecompress.tif"
 PASS
 Comparing "rangeexpand.tif" and "ref/rangeexpand.tif"
 PASS
+Comparing "rangecompress-luma.tif" and "ref/rangecompress-luma.tif"
+PASS
+Comparing "rangeexpand-luma.tif" and "ref/rangeexpand-luma.tif"
+PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
 PASS
 Comparing "unpremult.exr" and "ref/unpremult.exr"
