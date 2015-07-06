@@ -29,6 +29,8 @@ command += oiiotool ("filled.tif --rangecheck 0,0,0 1,0.9,1")
 # test --rangecompress & --rangeexpand
 command += oiiotool ("tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
 command += oiiotool ("rangecompress.tif --rangeexpand -d uint8 -o rangeexpand.tif")
+command += oiiotool ("tahoe-small.tif --rangecompress:luma=1 -d uint8 -o rangecompress-luma.tif")
+command += oiiotool ("rangecompress-luma.tif --rangeexpand:luma=1 -d uint8 -o rangeexpand-luma.tif")
 
 # test resample
 command += oiiotool (parent + "/oiio-images/grid.tif --resample 128x128 -o resample.tif")
@@ -312,6 +314,7 @@ outputs = [
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif",
             "rangecompress.tif", "rangeexpand.tif",
+            "rangecompress-luma.tif", "rangeexpand-luma.tif",
             "grid-clamped.tif",
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
