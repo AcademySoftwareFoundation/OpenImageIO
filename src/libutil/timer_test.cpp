@@ -87,19 +87,35 @@ main (int argc, char **argv)
         Timer timer;
         int n = 10000000;
         int zeroes = 0;
+        Timer::ticks_t biggest = 0;
         for (int i = 0;  i < n;  ++i) {
             Timer t;
-            long long ticks = t.ticks();  // force getting the time
+            Timer::ticks_t ticks = t.ticks();  // force getting the time
             if (!ticks)
                 ++zeroes;
+            if (ticks > biggest)
+                biggest = ticks;
         }
         std::cout << "Timer begin/end cost is " 
                   << double(n)/timer() << " /sec\n";
         std::cout << "Out of " << n << " queries, " << zeroes << " had no time\n";
+        std::cout << "Longest was " << Timer::seconds(biggest) << " s.\n";
     }
 
     const int interval = 100000;  // 1/10 sec
-    const double eps = 1e-2;   // slop we allow in our timings
+    double eps = 0.01;   // slop we allow in our timings
+#ifdef __APPLE__
+    eps = 0.03;
+    // On some Apple OSX systems (especially >= 10.10 Yosemite), a feature
+    // called "timer coalescing" causes sleep/wake events to merge in order
+    // to produce longer idle periods for the CPU to go into a lower power
+    // state. This tends to make usleep() less reliable in its timing.
+    //
+    // One (permanent) fix is to disable timer coalescing with this command:
+    //     $ sudo sysctl -w kern.timer.coalescing_enabled=0
+    // But you want better power use, so instead we just increase the timing
+    // tolereance on Apple to make this test pass.
+#endif
 
     // Verify that Timer(false) doesn't start
     Timer all(true);
