@@ -48,11 +48,14 @@ build_dir     := ${top_build_dir}/${platform}${variant}
 top_dist_dir  := dist
 dist_dir      := ${top_dist_dir}/${platform}${variant}
 
-VERBOSE := ${SHOWCOMMANDS}
+VERBOSE ?= ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
-MY_CMAKE_FLAGS += -DVERBOSE:BOOL=1
-TEST_FLAGS += -V
+MY_CMAKE_FLAGS += -DVERBOSE:BOOL=${VERBOSE}
+ifneq (${VERBOSE},0)
+	MY_NINJA_FLAGS += -v
+	TEST_FLAGS += -V
+endif
 $(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
 $(info dist_dir = ${dist_dir})
 $(info INSTALLDIR = ${INSTALLDIR})
