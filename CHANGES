@@ -1,5 +1,16 @@
 Changes:
 
+Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
+---------------------------------------------------
+* Fix support for older ffmpeg version on Ubuntu 14.04. #1168
+* Fix bug in fft -- was not always zeroing out the imaginary channel. #1171
+* Build-time fixes for Nocona CPUs that have SSE3 without SSSE3. #1175
+* ustring fixes for new gcc (5.1+) and new std::string ABI. #1176
+* Fixes for unit test timer_test for new OSX versions with timer
+  coalescing. #1181
+* Fix bugs with rangecompress and rangeexpand when using luma. #1180
+* Fixes for clean build when using clang 3.6. #1182
+
 Release 1.5.16 (11 Jun 2015) -- compared to 1.5.15)
 ---------------------------------------------------
 * PNG writes now honor PixelAspectRatio attribute.
