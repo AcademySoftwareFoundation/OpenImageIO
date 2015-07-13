@@ -56,19 +56,23 @@ message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set (CMAKE_COMPILER_IS_CLANG 1)
-    if (VERBOSE)
-        message (STATUS "Using clang as the compiler")
-    endif ()
 endif ()
-# Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
-# appears to be unreliable and may say "GNU" despite using clang, so
-# directly match against the compiler name.
 if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
+    # Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
+    # appears to be unreliable and may say "GNU" despite using clang, so
+    # directly match against the compiler name.
     set (CMAKE_COMPILER_IS_CLANG 1)
+endif ()
+if (CMAKE_COMPILER_IS_CLANG)
+    if (NOT CLANG_VERSION_STRING)
+        EXECUTE_PROCESS( COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string )
+        string (REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+    endif ()
     if (VERBOSE)
-        message (STATUS "The compiler seems to be clang")
+        message (STATUS "The compiler is Clang version ${CLANG_VERSION_STRING}")
     endif ()
 endif ()
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     set (CMAKE_COMPILER_IS_INTEL 1)
     if (VERBOSE)
@@ -102,11 +106,13 @@ if (CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-Wno-overloaded-virtual")
     add_definitions ("-Wno-unneeded-internal-declaration")
     add_definitions ("-Wno-unused-private-field")
-    add_definitions ("-Wno-unused-local-typedefs")
     # disable warning about unused command line arguments
     add_definitions ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
     add_definitions ("-Wunknown-warning-option")
+    if (CLANG_VERSION_STRING VERSION_GREATER 3.5)
+        add_definitions ("-Wno-unused-local-typedefs")
+    endif ()
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG) AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
