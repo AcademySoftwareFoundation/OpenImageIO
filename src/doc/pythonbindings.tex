@@ -819,9 +819,9 @@ a subset of channels.
 \end{code}
 \apiend
 
-\apiitem{DeepData ImageOutput.{\ce read_native_deep_scanlines} (ybegin, yend, z, chbegin, chend) \\
-DeepData ImageOutput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
-DeepData ImageOutput.{\ce read_native_deep_image} (chbegin, chend)}
+\apiitem{DeepData ImageInput.{\ce read_native_deep_scanlines} (ybegin, yend, z, chbegin, chend) \\
+DeepData ImageInput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
+DeepData ImageInput.{\ce read_native_deep_image} (chbegin, chend)}
 \NEW % 1.6
 Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
 data. The begin/end coordinates are all integer values. The value returned
@@ -1053,7 +1053,7 @@ Write one or many tiles to the currently open file.
         for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
             for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
                 pixels = input.read_tile (x, y, z, oiio.FLOAT)
-                output.read_tile (x, y, z, oiio.FLOAT, pixels)
+                output.write_tile (x, y, z, oiio.FLOAT, pixels)
     output.close ()
     input.close ()
 
@@ -1064,9 +1064,9 @@ Write one or many tiles to the currently open file.
             pixels = input.read_tiles (spec.x, spec.x+spec.width,
                                        y, y+tile_width,
                                        z, z+tile_width, oiio.FLOAT)
-            output.read_tile (spec.x, spec.x+spec.width,
-                              y, y+tile_width, z, z+tile_width,
-                              oiio.FLOAT, pixels)
+            output.write_tiles (spec.x, spec.x+spec.width,
+                               y, y+tile_width, z, z+tile_width,
+                               oiio.FLOAT, pixels)
     ...
 \end{code}
 \apiend
