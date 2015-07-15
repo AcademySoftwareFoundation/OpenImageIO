@@ -854,7 +854,6 @@ public:
     /// the caller, who is responsible for deleting it when done with it.
     typedef ImageInput* (*Creator)();
 
-protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
     // void error (const char *format, ...) const;
@@ -1176,13 +1175,13 @@ public:
     /// the caller, who is responsible for deleting it when done with it.
     typedef ImageOutput* (*Creator)();
 
-protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
     /// void error (const char *format, ...)
     TINYFORMAT_WRAP_FORMAT (void, error, const,
         std::ostringstream msg;, msg, append_error(msg.str());)
 
+protected:
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
     /// (described by the 'spec' member variable), in contiguous order. This
