@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.5.18 (?? 2015) -- compared to 1.5.17)
+---------------------------------------------------
+
 Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
 ---------------------------------------------------
 * Fix support for older ffmpeg version on Ubuntu 14.04. #1168
