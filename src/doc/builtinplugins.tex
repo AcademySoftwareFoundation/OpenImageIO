@@ -973,6 +973,42 @@ photometric mode (will convert to ``minisblack'').
 The TIFF plugin attempts to support all the standard Exif, IPTC, and XMP
 metadata if present.
 
+\subsubsection*{Configuration settings for TIFF input}
+
+When opening an \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+options are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkw{oiio:UnassociatedAlpha} & int & If nonzero, will leave alpha unassociated
+                                     (versus the default of premultiplying
+                                     color channels by alpha if the alpha channel
+                                     is unassociated). \\
+\end{tabular}
+
+\subsubsection*{Configuration settings for TIFF output}
+
+When opening an \ImageOutput, the following special metadata tokens control
+aspects of the writing itself:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
+Output attribute & Type & Meaning \\
+\hline
+\qkw{oiio:UnassociatedAlpha} & int & If nonzero, any alpha channel is
+                                understood do be unassociated, and the
+                                EXTRASAMPLES tag in the TIFF file will be
+                                set to reflect this). \\
+\qkw{tiff:write_exif} & int & If zero, will not write any Exif data to the
+                            TIFF file. (The default is 1.) \\
+\end{tabular}
+
+
 \subsubsection*{Limitations}
 
 \product's TIFF reader and writer have some limitations you should be
@@ -989,8 +1025,7 @@ aware of:
 
 
 \newpage 
-%\subsubsection*{Attributes}
-\vspace{.125in}
+\subsubsection*{TIFF Attributes}
 
 \noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
 \ImageSpec Attribute & Type & TIFF header data or explanation \\
@@ -1037,6 +1072,9 @@ aware of:
 \qkw{oiio:UnassociatedAlpha} & int & Nonzero if the alpha channel
   contained ``unassociated'' alpha. \\
 \end{tabular}
+
+\vspace{.25in}
+
 
 
 

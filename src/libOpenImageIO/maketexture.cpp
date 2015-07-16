@@ -1179,6 +1179,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");
     }
+    if (prman_metadata) {
+        // Suppress writing of exif directory in the TIFF file to not
+        // confuse the older libtiff that PRMan uses.
+        dstspec.attribute ("tiff:write_exif", 0);
+    }
 
     // FIXME -- should we allow tile sizes to reduce if the image is
     // smaller than the tile size?  And when we do, should we also try
