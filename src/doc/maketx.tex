@@ -328,7 +328,9 @@ Specifically, this option sets the tile size (to 64x64 for 8 bit,
 uses ``separate'' planar configuration ({\cf --separate}), and sets
 PRMan-specific metadata ({\cf --prman-metadata}).  It also outputs 
 sint16 textures if uint16 is requested (because PRMan for some reason
-does not accept true uint16 textures).
+does not accept true uint16 textures), and in the case of TIFF files will
+omit the Exif directory block which will not be recognized by the older
+version of libtiff used by PRMan.
 
 \OpenImageIO will happily accept textures that conform to PRMan's
 expectations, but not vice versa.  But \OpenImageIO's \TextureSystem
