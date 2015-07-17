@@ -368,7 +368,7 @@ ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, numeric::array data)
     if (success != 0)
         throw_error_already_set();
 
-    if (type == TypeDesc::UNKNOWN || size*type.size() > pylen)
+    if (type == TypeDesc::UNKNOWN || size*type.size() > (size_t)pylen)
         return false;   // Not enough data to fill our ROI
     buf.set_pixels (roi, type, addr);
     return true;
