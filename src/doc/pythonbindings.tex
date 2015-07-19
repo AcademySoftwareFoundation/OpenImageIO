@@ -2764,7 +2764,12 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
 \label{sec:iba:py:color}
 
 \apiitem{bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
-  unpremult=False, \\ \bigspc\bigspc  roi=ROI.All, nthreads=0)}
+  unpremult=False, \\
+  \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
+  unpremult=False, \\
+  \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
+}
 \index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying a color transform to the pixel values.
@@ -2782,8 +2787,13 @@ are supported.
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
-  \bigspc\spc  inverse=False, unpremult=False, key="", value="", \\
-  \bigspc\spc roi=ROI.All, nthreads=0)}
+  \bigspc\bigspc  inverse=False, unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
+ bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to, \\
+  \bigspc\bigspc inverse=False, unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``look'' transform to the pixel values.
@@ -2796,14 +2806,19 @@ are supported.
     Src = ImageBuf ("tahoe.jpg")
     Dst = ImageBuf ()
     ImageBufAlgo.ociolook (Dst, Src, "look", "vd8", "lnf", False, False,
-                            key="SHOT", value="pe0012")
+                            context_key="SHOT", context_value="pe0012")
 \end{code}
 \apiend
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
-  \bigspc\spc from=None, looks=None, unpremult=False, key="", value="", \\
-  \bigspc\spc roi=ROI.All, nthreads=0)}
+  \bigspc\bigspc from=None, looks=None, unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
+  \bigspc\bigspc from=None, looks=None, unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``display'' transform to the pixel values.
@@ -2816,7 +2831,7 @@ are supported.
     Src = ImageBuf ("tahoe.exr")
     Dst = ImageBuf ()
     ImageBufAlgo.ociodisplay (Dst, Src, "sRGB", "Film", "lnf", False,
-                              key="SHOT", value="pe0012")
+                              context_key="SHOT", context_value="pe0012")
 \end{code}
 \apiend
 
