@@ -27,7 +27,7 @@
 
   (This is the Modified BSD License)
 */
-
+#include "OpenImageIO/color.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "py_oiio.h"
 
@@ -933,6 +933,20 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
+IBA_colorconvert_colorconfig (ImageBuf &dst, const ImageBuf &src,
+                  const std::string &from, const std::string &to,
+                  bool unpremult = false, const std::string &colorconfig="",
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config (colorconfig);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::colorconvert (dst, src, from.c_str(), to.c_str(),
+                                       unpremult, &config, roi, nthreads);
+}
+
+
+
+bool
 IBA_ociolook (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
               const std::string &from, const std::string &to,
               bool inverse, bool unpremult,
@@ -945,6 +959,25 @@ IBA_ociolook (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
                                    inverse, unpremult,
                                    context_key.c_str(), context_value.c_str(),
                                    roi, nthreads);
+}
+
+
+
+bool
+IBA_ociolook_colorconfig (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
+              const std::string &from, const std::string &to,
+              bool inverse, bool unpremult,
+              const std::string &context_key, const std::string &context_value,
+              const std::string &colorconfig="",
+              ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config (colorconfig);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::ociolook (dst, src, looks.c_str(),
+                                   from.c_str(), to.c_str(),
+                                   inverse, unpremult,
+                                   context_key.c_str(), context_value.c_str(),
+                                   &config, roi, nthreads);
 }
 
 
@@ -969,6 +1002,32 @@ IBA_ociodisplay (ImageBuf &dst, const ImageBuf &src,
                                       unpremult,
                                       context_key.c_str(), context_value.c_str(),
                                       roi, nthreads);
+}
+
+
+
+bool
+IBA_ociodisplay_colorconfig (ImageBuf &dst, const ImageBuf &src,
+                 const std::string &display, const std::string &view,
+                 const object &from, const object &looks,
+                 bool unpremult,
+                 const std::string &context_key, const std::string &context_value,
+                 const std::string &colorconfig = "",
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config (colorconfig);
+    std::string from_str, looks_str;
+    if (from != object())
+        from_str = extract<std::string>(from);
+    if (looks != object())
+        looks_str = extract<std::string>(looks);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::ociodisplay (dst, src, display.c_str(), view.c_str(),
+                                      from == object() ? NULL : from_str.c_str(),
+                                      looks == object() ? NULL : looks_str.c_str(),
+                                      unpremult,
+                                      context_key.c_str(), context_value.c_str(),
+                                      &config, roi, nthreads);
 }
 
 
@@ -1351,6 +1410,11 @@ void declare_imagebufalgo()
              (arg("dst"), arg("src"),
               arg("from"), arg("to"), arg("unpremult")=false,
               arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("colorconvert", &IBA_colorconvert_colorconfig,
+             (arg("dst"), arg("src"),
+              arg("from"), arg("to"), 
+              arg("unpremult")=false, arg("colorconfig")="",
+              arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("colorconvert")
 
         .def("ociolook", &IBA_ociolook,
@@ -1358,6 +1422,13 @@ void declare_imagebufalgo()
               arg("looks"), arg("from"), arg("to"),
               arg("unpremult")=false, arg("invert")=false,
               arg("context_key")="", arg("context_value")="",
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("ociolook", &IBA_ociolook_colorconfig,
+             (arg("dst"), arg("src"),
+              arg("looks"), arg("from"), arg("to"),
+              arg("unpremult")=false, arg("invert")=false,
+              arg("context_key")="", arg("context_value")="",
+              arg("colorconfig")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ociolook")
 
@@ -1367,6 +1438,14 @@ void declare_imagebufalgo()
               arg("from")=object(), arg("looks")=object(),
               arg("unpremult")=false,
               arg("context_key")="", arg("context_value")="",
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("ociodisplay", &IBA_ociodisplay_colorconfig,
+             (arg("dst"), arg("src"),
+              arg("display"), arg("view"),
+              arg("from")=object(), arg("looks")=object(),
+              arg("unpremult")=false,
+              arg("context_key")="", arg("context_value")="",
+              arg("colorconfig")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ociodisplay")
 
