@@ -1532,6 +1532,9 @@ PSDInput::read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths)
 bool
 PSDInput::load_global_mask_info ()
 {
+    if (!m_layer_mask_info.length)
+        return true;
+
     m_file.seekg (m_layer_mask_info.layer_info.end);
     uint64_t remaining = m_layer_mask_info.end - m_file.tellg();
     uint32_t length;
@@ -1568,6 +1571,9 @@ PSDInput::load_global_mask_info ()
 bool
 PSDInput::load_global_additional ()
 {
+    if (!m_layer_mask_info.length)
+        return true;
+
     char signature[4];
     char key[4];
     uint64_t length;
