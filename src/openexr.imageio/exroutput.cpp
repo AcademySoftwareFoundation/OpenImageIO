@@ -415,6 +415,10 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             return false;
         }
         m_spec = m_subimagespecs[m_subimage];
+        // We have to reset the m_pixeltype var as well. So just rebuild it from the spec for now
+        if (! spec_to_header(m_subimagespecs[m_subimage],m_subimage,m_headers[m_subimage])){
+            return false;
+        }
         return true;
 #else
         // OpenEXR 1.x does not support subimages (multi-part)
@@ -500,6 +504,15 @@ OpenEXROutput::open (const std::string &name, int subimages,
 
     m_spec = m_subimagespecs[0];
 
+    // We have to reset the m_pixeltype as well. So just rebuild it from the header/spec for now
+    if (! spec_to_header(m_subimagespecs[0],0,m_headers[0])){
+        return false;
+    }else{
+        bool tiled = m_subimagespecs[0].tile_width;
+        // Need to reset type as well otherwise it will fail
+        m_headers[0].setType (deep ? (tiled ? Imf::DEEPTILE   : Imf::DEEPSCANLINE)
+                                   : (tiled ? Imf::TILEDIMAGE : Imf::SCANLINEIMAGE));
+    }
     // Create an ImfMultiPartOutputFile
     try {
         // m_output_stream = new OpenEXROutputStream (name.c_str());
