@@ -751,6 +751,16 @@ public:
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
+    // Read the specified channels of the original image into data
+    // (which must be large enough to accept it in memory). Since
+    // no format is specified, data is read back in its original format.
+    // All channels requested are automatically interleaved together
+    // into a contiguous block in the order specified by channelorder.
+    // This implies out of order access to channels, but relies on
+    // read_native_scanlines to pull image data from the current ImageInput.
+    virtual bool read_native_channels (void *data, const int *channelorder,
+                                       const int nchannels);
+
     ///
     /// Simple read_image reads to contiguous float pixels.
     bool read_image (float *data) {
