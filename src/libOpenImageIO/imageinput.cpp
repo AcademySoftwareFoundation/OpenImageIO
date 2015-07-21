@@ -589,6 +589,53 @@ ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
+ImageInput::read_native_channels(void *data, const int *channelorder, const int nchannels)
+{
+    std::vector<int> channelSizes(nchannels);
+    std::vector<uint8_t> buffer;
+
+    int pixelSize = 0;
+    for (int c = 0; c < nchannels ;++c){
+            int currentSize = 0;
+            if (m_spec.channelformats.size() < 1){
+                // non-per channel format case
+                // we assume all the channels match the overall format
+                currentSize = m_spec.format.size();
+            } else {
+                currentSize = m_spec.channelformats[channelorder[c]].size();
+            }
+            channelSizes[c] = currentSize;
+            pixelSize += currentSize;
+    }
+
+    int pixelStart = 0;
+    for (int c = 0; c < nchannels; ++c){
+            buffer.resize(channelSizes[c] * m_spec.height * m_spec.width);
+
+            if (!read_native_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
+                                       channelorder[c], channelorder[c]+1, buffer.data())) {
+                return false;
+            }
+            uint8_t* channelOffset = buffer.data();
+            int currentChannelSize = channelSizes[c];
+            uint8_t* pixelOffset = static_cast<uint8_t*>(data) + pixelStart;
+
+            for (int y = 0; y < m_spec.height; ++y){
+                for (int x = 0; x < m_spec.width; ++x, channelOffset += currentChannelSize, pixelOffset += pixelSize) {
+                    // Fill the output buffer based on scanline width and pixel stride
+                    memcpy(pixelOffset, channelOffset, currentChannelSize);
+                }
+            }
+            pixelStart += currentChannelSize;
+
+    }
+    return true;
+
+}
+
+
+
+bool
 ImageInput::read_image (TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
                         ProgressCallback progress_callback,
