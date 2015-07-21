@@ -524,58 +524,80 @@ ImageOutput::copy_image (ImageInput *in)
 
 
 bool
-ImageOutput::copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
-                                        const void *data, stride_t xstride,
-                                        stride_t ystride, stride_t zstride,
-                                        void *image_buffer)
+ImageOutput::copy_to_image_buffer (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend, TypeDesc format,
+                                   const void *data, stride_t xstride,
+                                   stride_t ystride, stride_t zstride,
+                                   void *image_buffer, TypeDesc buf_format)
 {
-    if (! m_spec.tile_width || ! m_spec.tile_height) {
-        error ("Called write_tile for non-tiled image.");
-        return false;
-    }
-
     const ImageSpec &spec (this->spec());
+    if (buf_format == TypeDesc::UNKNOWN)
+        buf_format = spec.format;
     spec.auto_stride (xstride, ystride, zstride, format, spec.nchannels,
-                        spec.tile_width, spec.tile_height);
-    stride_t buf_xstride = spec.pixel_bytes();
-    stride_t buf_ystride = spec.scanline_bytes();
-    stride_t buf_zstride = spec.scanline_bytes() * spec.height;
-    stride_t offset = (x-spec.x)*buf_xstride 
-                    + (y-spec.y)*buf_ystride
-                    + (z-spec.z)*buf_zstride;
-    int xend = std::min (x+spec.tile_width,  spec.x+spec.width);
-    int yend = std::min (y+spec.tile_height, spec.y+spec.height);
-    int zend = std::min (z+spec.tile_depth,  spec.z+spec.depth);
-    int width = xend-x, height = yend-y, depth = zend-z;
+                      spec.width, spec.height);
+    stride_t buf_xstride = spec.nchannels * buf_format.size();
+    stride_t buf_ystride = buf_xstride * spec.width;
+    stride_t buf_zstride = buf_ystride * spec.height;
+    stride_t offset = (xbegin-spec.x)*buf_xstride
+                    + (ybegin-spec.y)*buf_ystride
+                    + (zbegin-spec.z)*buf_zstride;
+    int width = xend-xbegin, height = yend-ybegin, depth = zend-zbegin;
+    imagesize_t npixels = imagesize_t(width) * imagesize_t(height) * imagesize_t(depth);
 
     // Add dither if requested -- requires making a temporary staging area
     boost::scoped_array<float> ditherarea;
     unsigned int dither = spec.get_int_attribute ("oiio:dither", 0);
     if (dither && format.is_floating_point() &&
-            spec.format.basetype == TypeDesc::UINT8) {
+            buf_format.basetype == TypeDesc::UINT8) {
         stride_t pixelsize = spec.nchannels * sizeof(float);
-        ditherarea.reset (new float [pixelsize * spec.tile_pixels()]);
+        ditherarea.reset (new float [pixelsize * npixels]);
         OIIO::convert_image (spec.nchannels, width, height, depth,
                              data, format, xstride, ystride, zstride,
                              ditherarea.get(), TypeDesc::FLOAT,
-                             pixelsize, pixelsize*spec.tile_width,
-                             pixelsize*spec.tile_width*spec.tile_height);
+                             pixelsize, pixelsize*width,
+                             pixelsize*width*height);
         data = ditherarea.get();
         format = TypeDesc::FLOAT;
         xstride = pixelsize;
-        ystride = xstride * spec.tile_width;
-        zstride = ystride * spec.tile_height;
+        ystride = xstride * width;
+        zstride = ystride * height;
+        float ditheramp = spec.get_float_attribute ("oiio:ditheramplitude", 1.0f/255.0f);
         OIIO::add_dither (spec.nchannels, width, height, depth, (float *)data,
                           pixelsize, pixelsize*width, pixelsize*width*height,
-                          1.0f/255.0f, spec.alpha_channel, spec.z_channel,
-                          dither, 0, x, y, z);
+                          ditheramp, spec.alpha_channel, spec.z_channel,
+                          dither, 0, xbegin, ybegin, zbegin);
     }
 
     return OIIO::convert_image (spec.nchannels, width, height, depth,
                                 data, format, xstride, ystride, zstride,
-                                (char *)image_buffer + offset, spec.format,
+                                (char *)image_buffer + offset, buf_format,
                                 buf_xstride, buf_ystride, buf_zstride);
 }
+
+
+
+bool
+ImageOutput::copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
+                                        const void *data, stride_t xstride,
+                                        stride_t ystride, stride_t zstride,
+                                        void *image_buffer,
+                                        TypeDesc buf_format)
+{
+    if (! m_spec.tile_width || ! m_spec.tile_height) {
+        error ("Called write_tile for non-tiled image.");
+        return false;
+    }
+    const ImageSpec &spec (this->spec());
+    spec.auto_stride (xstride, ystride, zstride, format, spec.nchannels,
+                      spec.tile_width, spec.tile_height);
+    int xend = std::min (x+spec.tile_width,  spec.x+spec.width);
+    int yend = std::min (y+spec.tile_height, spec.y+spec.height);
+    int zend = std::min (z+spec.tile_depth,  spec.z+spec.depth);
+    return copy_to_image_buffer (x, xend, y, yend, z, zend,
+                                 format, data, xstride, ystride, zstride,
+                                 image_buffer, buf_format);
+}
+
 
 
 }

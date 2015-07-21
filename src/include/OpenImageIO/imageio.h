@@ -1214,11 +1214,28 @@ protected:
                                      std::vector<unsigned char> &scratch,
                                      unsigned int dither=0,
                                      int xorigin=0, int yorigin=0, int zorigin=0);
-    /// Helper function to copy a tile of data into an image-sized buffer.
+
+    /// Helper function to copy a rectangle of data into the right spot in
+    /// an image-sized buffer. In addition to copying to the right place,
+    /// this handles data format conversion and dither (if the spec's
+    /// "oiio:dither" is nonzero, and if it's converting from a float-like
+    /// type to UINT8). The buf_format describes the type of image_buffer,
+    /// if it's TypeDesc::UNKNOWN it will be assumed to be spec.format.
+    bool copy_to_image_buffer (int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend, TypeDesc format,
+                               const void *data, stride_t xstride,
+                               stride_t ystride, stride_t zstride,
+                               void *image_buffer,
+                               TypeDesc buf_format = TypeDesc::UNKNOWN);
+    /// Helper function to copy a tile of data into the right spot in an
+    /// image-sized buffer. This is really just a wrapper for
+    /// copy_to_image_buffer, passing all the right parameters to copy
+    /// exactly one tile.
     bool copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
                                     const void *data, stride_t xstride,
                                     stride_t ystride, stride_t zstride,
-                                    void *image_buffer);
+                                    void *image_buffer,
+                                    TypeDesc buf_format = TypeDesc::UNKNOWN);
 
 protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
