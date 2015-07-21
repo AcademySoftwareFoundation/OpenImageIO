@@ -3647,7 +3647,8 @@ output_file (int argc, const char *argv[])
         // Special cases where we know formats should be particular color
         // spaces
         if (outcolorspace.empty() && (Strutil::iends_with (filename, ".jpg") ||
-                                      Strutil::iends_with (filename, ".jpeg")))
+                                      Strutil::iends_with (filename, ".jpeg") ||
+                                      Strutil::iends_with (filename, ".gif")))
             outcolorspace = string_view("sRGB");
         if (outcolorspace.size() && currentspace != outcolorspace) {
             if (ot.debug)

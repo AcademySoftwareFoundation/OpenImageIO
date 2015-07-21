@@ -580,6 +580,18 @@ and naming it ``Z'' so it will be recognized as a depth channel:
 \end{code}
 
 
+\subsection*{Creating an animated GIF from still images}
+\index{GIF} \index{animated GIF}
+\NEW
+
+\noindent Combine several separate JPEG images into an animated GIF with
+a frame rate of 8 frames per second:
+
+\begin{code}
+    oiiotool foo??.jpg --siappendall --attrib FramesPerSecond 10.0 -o anim.gif
+\end{code}
+
+
 \subsection*{Frame sequences: composite a sequence of images}
 
 \noindent Composite foreground images over background images for a

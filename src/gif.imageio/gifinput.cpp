@@ -191,7 +191,8 @@ GIFInput::read_gif_extension (int ext_code, GifByteType *ext,
 
         int delay = (ext[3] << 8) | ext[2];
         if (delay) {
-            newspec.attribute ("gif:DelayMs", delay * 10);
+            newspec.attribute ("fps", float(100.0f/delay));
+            newspec.attribute ("oiio:Movie", 1);
         }
         
     } else if (ext_code == COMMENT_EXT_FUNC_CODE) {
@@ -218,6 +219,7 @@ GIFInput::read_subimage_metadata (ImageSpec &newspec)
     newspec.nchannels = 4;
     newspec.default_channel_names ();
     newspec.alpha_channel = 4;
+    newspec.attribute ("oiio:ColorSpace", "sRGB");
 
     m_previous_disposal_method = m_disposal_method;
     m_disposal_method = DISPOSAL_UNSPECIFIED;
