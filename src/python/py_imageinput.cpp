@@ -236,6 +236,35 @@ ImageInputWrap_read_scanline_default (ImageInputWrap& in, int y, int z)
 }
 
 
+object
+ImageInputWrap::read_native_scanlines (int ybegin,int yend,int z,int chbegin,int chend, int pixel_bytes)
+{
+    // Based on the pixel_size fed from the caller, return a UINT8 buffer
+    // If the read fails, return None.
+    ASSERT (m_input);
+    const ImageSpec &spec = m_input->spec();
+    chend = clamp (chend, chbegin+1, spec.nchannels);
+    int nchans = chend - chbegin;
+    size_t size = (size_t) spec.width * (yend-ybegin) * (nchans * pixel_bytes);
+    char *data = new char[size];
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_native_scanlines (ybegin, yend, z, chbegin, chend, data);
+    }
+    if (! ok) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
+    }
+
+    // We're assuming a UINT8 buffer here because the format is native
+    object array = C_array_to_Python_array (data, TypeDesc::UINT8, size);
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
+}
+
 
 object
 ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
@@ -286,6 +315,43 @@ ImageInputWrap_read_scanlines_default (ImageInputWrap& in, int ybegin, int yend,
 }
 
 
+object
+ImageInputWrap::read_native_channels (tuple channelorder_ )
+{
+    ASSERT(m_input);
+    std::vector<int> channelorder;
+    int nchannels = (int) len(channelorder_);
+    py_to_stdvector (channelorder, channelorder_);
+    const ImageSpec &spec = m_input->spec();
+    int pixelSize = 0;
+    for (int i=0;i< (int) channelorder.size();++i){
+        int currentSize = 0;
+        if (spec.channelformats.size() < 1){
+            //non-per channel format case
+            //we assume all the channels match the overall format
+            currentSize = spec.format.size();
+        }else{
+            currentSize = spec.channelformats[channelorder[i]].size();
+        }
+        pixelSize += currentSize;
+    }
+    char *data = new  char[pixelSize * spec.height * spec.width];
+    bool ok;
+    {
+        ScopedGILRelease gil;
+        ok = m_input->read_native_channels(data,&channelorder[0],nchannels);
+    }
+    if (! ok) {
+        delete [] data;  // never mind
+        return object(handle<>(Py_None));
+    }
+    object array = C_array_to_Python_array (data, TypeDesc::UINT8, (pixelSize * spec.height * spec.width));
+
+    // clean up and return the array handle
+    delete [] data;
+    return array;
+
+}
 
 object
 ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
@@ -478,9 +544,11 @@ void declare_imageinput()
         .def("read_scanline",    &ImageInputWrap::read_scanline)
         .def("read_scanline",    &ImageInputWrap_read_scanline_bt)
         .def("read_scanline",    &ImageInputWrap_read_scanline_default)
+        .def("read_native_scanlines", &ImageInputWrap::read_native_scanlines)
         .def("read_scanlines",   &ImageInputWrap::read_scanlines)
         .def("read_scanlines",   &ImageInputWrap_read_scanlines_bt)
         .def("read_scanlines",   &ImageInputWrap_read_scanlines_default)
+        .def("read_native_channels",  &ImageInputWrap::read_native_channels)
         .def("read_tile",        &ImageInputWrap::read_tile)
         .def("read_tile",        &ImageInputWrap_read_tile_bt)
         .def("read_tile",        &ImageInputWrap_read_tile_default)

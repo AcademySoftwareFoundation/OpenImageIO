@@ -181,6 +181,9 @@ public:
     bool seek_subimage (int, int);
     object read_image (TypeDesc);
     object read_scanline (int y, int z, TypeDesc format);
+    object read_native_scanlines(int ybegin, int yend, int z,
+                                 int chbegin, int chend, int pixel_bytes);
+    object read_native_channels(tuple channelorder);
     object read_scanlines (int ybegin, int yend, int z,
                            int chbegin, int chend, TypeDesc format);
     object read_tile (int x, int y, int z, TypeDesc format);
