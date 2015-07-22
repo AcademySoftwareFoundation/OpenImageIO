@@ -1360,7 +1360,8 @@ OIIO_API bool parallel_convert_image (
 /// Add random [-theramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The
 /// image origin and dither seed values allow a reproducible (or variable)
-/// dither pattern.
+/// dither pattern.  If the strides are set to AutoStride, they will be
+/// assumed to be contiguous floats in data of the given dimensions.
 OIIO_API void add_dither (int nchannels, int width, int height, int depth,
                           float *data,
                           stride_t xstride, stride_t ystride, stride_t zstride,
