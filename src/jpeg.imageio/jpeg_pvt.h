@@ -74,7 +74,7 @@ class JpgInput : public ImageInput {
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
-    virtual int supports (string_view feature) {
+    virtual int supports (string_view feature) const {
         return (feature == "exif"
              || feature == "iptc");
     }

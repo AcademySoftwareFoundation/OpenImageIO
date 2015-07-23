@@ -1316,7 +1316,7 @@ Returns the canonical name of the format that this \ImageOutput
 instance is capable of writing.
 \apiend
 
-\apiitem{int {\ce supports} (string_view feature)}
+\apiitem{int {\ce supports} (string_view feature) const}
 \label{sec:supportsfeaturelist}
 Given the name of a \emph{feature}, tells if this \ImageOutput  instance
 supports that feature.  Most queries will simply return 0 for ``doesn't
