@@ -119,6 +119,16 @@ The ICC color profile takes the form of an array of bytes (unsigned 8 bit
 chars). The length of the array is the length of the profile blob.
 \apiend
 
+\apiitem{"oiio:Movie" : int}
+If nonzero, a hint that a multi-image file is meant to be interpreted as
+an animation (i.e., that the subimages are a time sequence).
+\apiend
+
+\apiitem{"FramesPerSecond" : float}
+For a multi-image file intended to be played back as an animation,
+the frame refresh rate.
+\apiend
+
 \section{Disk file format info/hints}
 
 \apiitem{"oiio:BitsPerSample" : int}

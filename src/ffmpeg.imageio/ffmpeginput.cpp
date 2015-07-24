@@ -276,7 +276,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     while ((tag = av_dict_get (m_format_context->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute (tag->key, tag->value);
     }
-    m_spec.attribute ("fps", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
+    m_spec.attribute ("FramesPerSecond", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
     m_spec.attribute ("oiio:Movie", true);
     m_nsubimages = m_frames;
     spec = m_spec;

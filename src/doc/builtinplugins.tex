@@ -288,8 +288,9 @@ despite its technical limitations.
 \noindent\begin{tabular}{p{1.5in}|p{0.5in}|p{3.25in}}
 \ImageSpec Attribute & Type & GIF header data or explanation \\
 \hline
-\qkw{gif:DelayMs} & int & Delay between frames in miliseconds. \\
 \qkw{gif:Interlacing} & int & Specifies if image is interlaced (0 or 1). \\
+\qkw{FramesPerSecond} & float & Frames per second \\
+\qkw{oiio:Movie} & int & If nonzero, indicates that it's an animated GIF. \\
 \qkw{gif:LoopCount} & int & Number of times the animation should be played 
 (0--65535, 0 stands for infinity). \\
 \qkw{ImageDescription} & string & The GIF comment field.
@@ -534,7 +535,7 @@ Some special attributes are used for movie files:
 OIIO Attribute & Type & Explanation \\
 \hline
 \qkw{oiio:Movie} & int & Nonzero value for movie files \\
-\qkw{fps} & float & Frames per second \\
+\qkw{FramesPerSecond} & float & Frames per second \\
 \end{tabular}
 
 
