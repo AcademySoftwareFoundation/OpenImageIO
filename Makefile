@@ -141,6 +141,10 @@ ifneq (${USE_OPENSSL},)
 MY_CMAKE_FLAGS += -DUSE_OPENSSL:BOOL=${USE_OPENSSL}
 endif
 
+ifneq (${USE_OPENCV},)
+MY_CMAKE_FLAGS += -DUSE_OPENCV:BOOL=${USE_OPENCV}
+endif
+
 ifneq (${USE_LIBRAW},)
 MY_CMAKE_FLAGS += -DUSE_LIBRAW:BOOL=${USE_LIBRAW}
 endif
@@ -422,6 +426,7 @@ help:
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
 	@echo "      GIF_DIR=path             Custom GIFLIB installation"
+	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "  OIIO build-time options:"
 	@echo "      NAMESPACE=name           Wrap everything in another namespace"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"
