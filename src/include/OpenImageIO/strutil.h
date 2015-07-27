@@ -440,7 +440,7 @@ bool OIIO_API parse_float (string_view &str, float &val, bool eat=true);
 
 enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// If str's first non-whitespace characters form a valid string (either a
-/// single word weparated by whitespace or anything inside a double-quoted
+/// single word separated by whitespace or anything inside a double-quoted
 /// string (""), return true, place the string's value (not including
 /// surrounding double quotes) in val, and additionally modify str to skip
 /// over the parsed string if eat is also true. Otherwise, if no string is
@@ -449,7 +449,7 @@ enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// will be kept in val.
 bool OIIO_API parse_string (string_view &str, string_view &val, bool eat/*=true*/,
                             QuoteBehavior keep_quotes/*=DeleteQuotes*/);
-// DEPRECATED (1.6)
+// DEPRECATED (1.5)
 bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true);
 
 /// Return the first "word" (set of contiguous alphabetical characters) in
