@@ -88,14 +88,6 @@ if (EMBEDPLUGINS)
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
         ../psd.imageio/psdinput.cpp ../psd.imageio/psdoutput.cpp
         ../psd.imageio/jpeg_memory_src.cpp
-        ../ptex.imageio/ptexinput.cpp ../ptex.imageio/ptexoutput.cpp
-        ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
-        ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
-        ../ptex.imageio/ptex/PtexSeparableFilter.cpp
-        ../ptex.imageio/ptex/PtexSeparableKernel.cpp
-        ../ptex.imageio/ptex/PtexTriangleFilter.cpp
-        ../ptex.imageio/ptex/PtexTriangleKernel.cpp
-        ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
         ../rla.imageio/rlainput.cpp ../rla.imageio/rlaoutput.cpp
         ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
@@ -187,6 +179,30 @@ if (EMBEDPLUGINS)
         set (WEBP_LIBRARY "")
     endif ()
 
+
+    if (USE_PTEX)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../ptex.imageio/ptexinput.cpp
+             ../ptex.imageio/ptexoutput.cpp)
+        if (NOT PTEX_FOUND)
+            # No external Ptex found -- use embedded one
+            set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+                ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
+                ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
+                ../ptex.imageio/ptex/PtexSeparableFilter.cpp
+                ../ptex.imageio/ptex/PtexSeparableKernel.cpp
+                ../ptex.imageio/ptex/PtexTriangleFilter.cpp
+                ../ptex.imageio/ptex/PtexTriangleKernel.cpp
+                ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp)
+            message (STATUS "Using embedded PTex source")
+        endif ()
+        include_directories (${PTEX_INCLUDE_DIR})
+        add_definitions("-DUSE_PTEX")
+    else()
+        message (STATUS "PTex plugin will not be built")
+        set (PTEX_LIBRARY "")
+    endif()
+
     # Organize the embedded plugins into source folders
     set (plugin_types "")
     foreach (src ${libOpenImageIO_srcs})
@@ -264,11 +280,13 @@ add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")
 
 if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
-                               ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
+                               ${JPEG_LIBRARIES}
                                ${FIELD3D_LIBRARY}
                                ${HDF5_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
+                               ${PTEX_LIBRARY}
                                ${WEBP_LIBRARY}
+                               ${ZLIB_LIBRARIES}
                           )
     link_openexr (OpenImageIO)
     if (USE_GIF AND GIF_FOUND)

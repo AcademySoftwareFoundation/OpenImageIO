@@ -282,7 +282,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
     DECLAREPLUG (psd);
+#ifdef USE_PTEX
     DECLAREPLUG (ptex);
+#endif
 #ifdef USE_LIBRAW
     DECLAREPLUG (raw);
 #endif

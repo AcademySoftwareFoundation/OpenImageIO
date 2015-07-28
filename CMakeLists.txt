@@ -162,6 +162,7 @@ set (USE_OPENCV ON CACHE BOOL "Use OpenCV if found")
 set (USE_OPENSSL OFF CACHE BOOL "Use OpenSSL if found (for faster SHA-1)")
 set (USE_FREETYPE ON CACHE BOOL "Use Freetype if found")
 set (USE_GIF ON CACHE BOOL "Use GIF if found")
+set (USE_PTEX ON CACHE BOOL "Use PTex if found")
 set (USE_LIBRAW ON CACHE BOOL "Use LibRaw if found")
 set (LIBRAW_PATH "" CACHE STRING "Custom LibRaw path")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
@@ -526,6 +527,9 @@ oiio_add_tests (webp
 
 oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
+
+oiio_add_tests (ptex
+    FOUNDVAR USE_PTEX)
 
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi

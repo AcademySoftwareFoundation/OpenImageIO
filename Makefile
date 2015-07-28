@@ -153,6 +153,10 @@ ifneq (${LIBRAW_PATH},)
 MY_CMAKE_FLAGS += -DLIBRAW_PATH:STRING=${LIBRAW_PATH}
 endif
 
+ifneq (${USE_PTEX},)
+MY_CMAKE_FLAGS += -DUSE_PTEX:BOOL=${USE_PTEX}
+endif
+
 ifneq (${USE_EXTERNAL_PUGIXML},)
 MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
 endif
@@ -413,9 +417,11 @@ help:
 	@echo "      USE_PYTHON3=1            If 1, try to build against Python3, not 2.x"
 	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
 	@echo "      USE_FIELD3D=0            Don't build the Field3D plugin"
+	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
 	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"
 	@echo "      USE_OPENJPEG=0           Don't build the JPEG-2000 plugin"
 	@echo "      USE_GIF=0                Don't build the GIF plugin"
+	@echo "      GIF_DIR=path             Custom GIFLIB installation"
 	@echo "      USE_OCIO=0               Don't use OpenColorIO even if found"
 	@echo "      OCIO_HOME=path           Custom OpenColorIO installation"
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
@@ -424,9 +430,8 @@ help:
 #	@echo "      USE_OPENSSL=1            Use OpenSSL's SHA-1 implementation"
 	@echo "      USE_LIBRAW=0             Don't use LibRaw, even if found"
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
-	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
-	@echo "      GIF_DIR=path             Custom GIFLIB installation"
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
+	@echo "      USE_PTEX=0               Skip anything that needs PTex"
 	@echo "  OIIO build-time options:"
 	@echo "      NAMESPACE=name           Wrap everything in another namespace"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"

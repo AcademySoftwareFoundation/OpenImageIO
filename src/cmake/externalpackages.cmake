@@ -21,6 +21,7 @@ if (NOT VERBOSE)
     set (OpenJpeg_FIND_QUIETLY true)
     set (PkgConfig_FIND_QUIETLY true)
     set (PNG_FIND_QUIETLY TRUE)
+    set (PTex_FIND_QUIETLY TRUE)
     set (PugiXML_FIND_QUIETLY TRUE)
     set (PythonInterp_FIND_QUIETLY true)
     set (PythonLibs_FIND_QUIETLY true)
@@ -573,6 +574,25 @@ endif ()
 if (USE_GIF)
     find_package (GIF)
 endif()
-# end GIF setup_path
+# end GIF setup
+###########################################################################
+
+
+###########################################################################
+# PTex
+if (USE_PTEX)
+    find_package (PTex)
+    if (VERBOSE)
+        if (PTEX_FOUND)
+            message (STATUS "PTex include ${PTEX_INCLUDE_DIR}")
+            message (STATUS "PTex library ${PTEX_LIBRARY}")
+        else ()
+            message (STATUS "PTex not found externally, using embedded source")
+            set (PTEX_LIBRARY "")
+            set (PTEX_INCLUDE_DIR "")
+        endif ()
+    endif ()
+endif()
+# end PTEX setup
 ###########################################################################
 
