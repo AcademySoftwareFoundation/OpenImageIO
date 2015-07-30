@@ -30,8 +30,9 @@ ${OIIOTOOL} --pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.75 320x240 3 --tocolorsp
 ${OIIOTOOL} --pattern fill:left=0.1,0.1,0.1:right=0,0.75,0 320x240 3 --tocolorspace sRGB -o gradienth.jpg
 ${OIIOTOOL} --pattern fill:topleft=.1,.1,.1:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 320x240 3 --tocolorspace sRGB -o gradient4.jpg
 ${OIIOTOOL} --pattern checker:width=16:height=16 256x256 3 --tocolorspace sRGB -o checker.jpg
-${OIIOTOOL} --pattern noise:type=uniform:max=1:mono=1 256x256 3 --tocolorspace sRGB -o unifnoise1.jpg
-${OIIOTOOL} --pattern noise:type=uniform:max=1 256x256 3 --tocolorspace sRGB -o unifnoise3.jpg
+${OIIOTOOL} --pattern noise:type=uniform:min=0:max=1:mono=1 256x256 3 --tocolorspace sRGB -o unifnoise1.jpg
+${OIIOTOOL} --pattern noise:type=uniform:min=0:max=1 256x256 3 --tocolorspace sRGB -o unifnoise3.jpg
+${OIIOTOOL} --pattern noise:type=gaussian:mean=0.5:stddev=0.2 256x256 3 --tocolorspace sRGB -o gaussnoise.jpg
 ${OIIOTOOL} tahoe-small.jpg --noise:type=gaussian:mean=0:stddev=0.1 -o tahoe-gauss.jpg
 ${OIIOTOOL} tahoe-small.jpg --noise:type=salt:portion=0.01:value=0:mono=1 -o tahoe-pepper.jpg
 ${OIIOTOOL} tahoe-small.jpg --blur 7x7 -o tahoe-blur.jpg

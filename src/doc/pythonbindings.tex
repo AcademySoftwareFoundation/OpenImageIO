@@ -819,8 +819,10 @@ a subset of channels.
 \end{code}
 \apiend
 
-\apiitem{DeepData ImageInput.{\ce read_native_deep_scanlines} (ybegin, yend, z, chbegin, chend) \\
-DeepData ImageInput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
+\apiitem{DeepData ImageInput.{\ce read_native_deep_scanlines} (ybegin, yend, z,\\
+\bigspc\bigspc chbegin, chend) \\
+DeepData ImageInput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend,\\
+\bigspc\bigspc zbegin, zend, chbegin, chend) \\
 DeepData ImageInput.{\ce read_native_deep_image} (chbegin, chend)}
 \NEW % 1.6
 Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
@@ -1062,7 +1064,8 @@ Write one or many tiles to the currently open file.
 \apiend
 
 \apiitem{bool ImageOutput.{\ce write_deep_scanlines} (ybegin, yend, z, deepdata) \\
-bool ImageOutput.{\ce write_deep_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, deepdata) \\
+bool ImageOutput.{\ce write_deep_tiles} (xbegin, xend, ybegin, yend, \\
+\bigspc\bigspc\bigspc zbegin, zend, deepdata) \\
 bool ImageOutput.{\ce write_deep_image} (deepdata)}
 \NEW % 1.6
 Write a collection of scanlines, tiles, or an entire image of ``deep''
@@ -1673,7 +1676,7 @@ tuples giving the values for each color channel.
 
 
 \apiitem{bool ImageBufAlgo.{\ce noise_uniform} (dst, min=0.0, max=1.0, \\
- seed=0, roi=ROI.All, nthreads=0)}
+\bigspc\bigspc seed=0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!noise_uniform} \indexapi{noise_uniform}
 \NEW % 1.6
 
@@ -1690,7 +1693,7 @@ Add noise to {\cf dst} that is uniformly-distributed over the range
 
 
 \apiitem{bool ImageBufAlgo.{\ce noise_gaussian} (dst, mean=0.0, stddev=0.1, \\
- seed=0, roi=ROI.All, nthreads=0)}
+\bigspc\bigspc  seed=0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!noise_gaussian} \indexapi{noise_gaussian}
 \NEW % 1.6
 
