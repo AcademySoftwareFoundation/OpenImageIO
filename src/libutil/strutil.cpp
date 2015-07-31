@@ -61,8 +61,7 @@
 #include "OpenImageIO/string_view.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 const char *
@@ -876,5 +875,4 @@ Strutil::utf8_to_unicode (string_view &str, std::vector<uint32_t> &uvec)
     }
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

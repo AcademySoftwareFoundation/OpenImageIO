@@ -61,8 +61,7 @@
 #define TEX_FAST_MATH 1
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
     using namespace simd;
 
@@ -2569,5 +2568,4 @@ TextureSystemImpl::unit_test_texture ()
 
 }  // end namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

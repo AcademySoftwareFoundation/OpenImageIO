@@ -37,7 +37,7 @@
 #include "oiioversion.h"
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 /// strided_ptr<T> looks like a 'T*', but it incorporates a stride (in
@@ -113,4 +113,4 @@ private:
 
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -43,8 +43,7 @@
 #include "OpenImageIO/thread.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 // Helper for flatten: identify channels in the spec that are important to
@@ -286,5 +285,4 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

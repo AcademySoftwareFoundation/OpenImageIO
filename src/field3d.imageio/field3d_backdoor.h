@@ -29,7 +29,7 @@
 */
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 namespace f3dpvt {
 
@@ -48,5 +48,5 @@ public:
 
 } // end namespace f3dpvt
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

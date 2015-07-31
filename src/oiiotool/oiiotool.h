@@ -36,7 +36,7 @@
 #include "OpenImageIO/timer.h"
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 namespace OiioTool {
 
 typedef int (*CallbackFunction)(int argc,const char*argv[]);
@@ -645,7 +645,7 @@ protected:
 
 
 } // OiioTool namespace
-} OIIO_NAMESPACE_EXIT;
+OIIO_NAMESPACE_END;
 
 
 #endif // OIIOTOOL_H

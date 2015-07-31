@@ -34,8 +34,7 @@
 #include "OpenImageIO/timer.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 double Timer::seconds_per_tick = 1.0e-6;
 
@@ -65,5 +64,4 @@ public:
 
 static TimerSetupOnce once;
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

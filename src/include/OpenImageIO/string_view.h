@@ -42,7 +42,7 @@
 #include "export.h"
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 /// string_view : a non-owning, non-copying, non-allocating reference to a
@@ -350,4 +350,4 @@ inline std::ostream& operator<< (std::ostream& out, const string_view& str) {
 typedef string_view string_ref;
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

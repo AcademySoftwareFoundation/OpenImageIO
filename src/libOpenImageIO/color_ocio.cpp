@@ -45,8 +45,7 @@ namespace OCIO = OCIO_NAMESPACE;
 #endif
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 bool
@@ -1044,5 +1043,4 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

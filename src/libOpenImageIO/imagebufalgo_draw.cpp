@@ -52,7 +52,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 template<typename T>
@@ -565,4 +565,4 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
 
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -39,8 +39,7 @@
 #include "OpenImageIO/texture.h"
 #include "OpenImageIO/simd.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 class ImageCache;
 class Filter1D;
@@ -607,7 +606,6 @@ TextureSystemImpl::st_to_texel (float s, float t, TextureFile &texturefile,
 
 }  // end namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_TEXTURE_PVT_H

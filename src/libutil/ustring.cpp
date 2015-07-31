@@ -36,8 +36,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/ustring.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 #if 0
 // Use regular mutex
@@ -431,5 +430,4 @@ ustring::memory ()
     return table.get_memory_usage();
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

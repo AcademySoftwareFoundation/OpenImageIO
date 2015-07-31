@@ -47,8 +47,7 @@
 #include <boost/intrusive_ptr.hpp>
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 using boost::shared_ptr;
 using boost::intrusive_ptr;
@@ -116,7 +115,6 @@ inline void intrusive_ptr_release (T *x)
 // meant to delete and destroy.
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_REFCNT_H

@@ -50,8 +50,7 @@
 #include "OpenImageIO/unordered_map_concurrent.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
 
@@ -1066,8 +1065,7 @@ private:
 
 }  // end namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_IMAGECACHE_PVT_H

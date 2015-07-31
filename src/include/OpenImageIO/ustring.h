@@ -143,8 +143,7 @@
 #define NULL 0
 #endif
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 class OIIO_API ustring {
 public:
@@ -752,7 +751,6 @@ inline bool iequals (const std::string &a, ustring b) {
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_USTRING_H

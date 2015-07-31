@@ -41,8 +41,7 @@
 #include "OpenImageIO/typedesc.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 TypeDesc::TypeDesc (string_view typestring)
     : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
@@ -419,5 +418,4 @@ const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc:
 const TypeDesc TypeDesc::TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

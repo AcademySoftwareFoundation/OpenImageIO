@@ -50,8 +50,7 @@
 #include "tinyformat.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 class ArgOption;   // Forward declaration
@@ -192,8 +191,7 @@ private:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_ARGPARSE_H

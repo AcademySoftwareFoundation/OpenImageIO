@@ -59,8 +59,7 @@
 #include <boost/scoped_array.hpp>
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
 
 namespace pvt {
@@ -3090,5 +3089,4 @@ ImageCache::destroy (ImageCache *x)
     destroy (x, false);
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

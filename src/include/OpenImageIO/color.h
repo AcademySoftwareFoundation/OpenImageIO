@@ -36,8 +36,7 @@
 #include "typedesc.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// The ColorProcessor encapsulates a baked color transformation, suitable for
 /// application to raw pixels, or ImageBuf(s). These are generated using
@@ -259,7 +258,6 @@ inline float linear_to_Rec709 (float x)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_COLOR_H

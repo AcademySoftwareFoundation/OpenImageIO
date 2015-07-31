@@ -41,8 +41,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
 
@@ -116,8 +115,7 @@ const void *parallel_convert_from_float (const float *src, void *dst,
 
 }  // namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 //Define a default plugin search path
 #define OIIO_DEFAULT_PLUGIN_SEARCHPATH "@PLUGIN_SEARCH_PATH_NATIVE@"

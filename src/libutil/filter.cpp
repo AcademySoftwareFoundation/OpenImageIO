@@ -55,8 +55,7 @@
 #include "OpenImageIO/dassert.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 // Below are the implementations of several 2D filters.  They all
 // inherit their interface from Filter2D.  Each must redefine two
@@ -817,5 +816,4 @@ Filter2D::destroy (Filter2D *filt)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

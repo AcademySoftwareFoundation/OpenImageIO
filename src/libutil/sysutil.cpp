@@ -74,8 +74,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/sysutil.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 using namespace Sysutil;
 
@@ -340,5 +339,4 @@ Sysutil::put_in_background (int, char* [])
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

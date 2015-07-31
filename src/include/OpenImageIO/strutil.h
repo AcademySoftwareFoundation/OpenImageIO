@@ -73,8 +73,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 /// @namespace Strutil
 ///
 /// @brief     String-related utilities.
@@ -471,8 +470,7 @@ void OIIO_API utf8_to_unicode (string_view &str, std::vector<uint32_t> &uvec);
 
 }  // namespace Strutil
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_STRUTIL_H

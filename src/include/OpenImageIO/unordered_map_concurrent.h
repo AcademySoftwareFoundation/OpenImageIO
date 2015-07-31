@@ -39,8 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hash.h"      // from OIIO
 #include "dassert.h"   // from OIIO
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 /// unordered_map_concurrent provides an unordered_map replacement that
@@ -419,7 +418,6 @@ private:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_UNORDERED_MAP_CONCURRENT_H

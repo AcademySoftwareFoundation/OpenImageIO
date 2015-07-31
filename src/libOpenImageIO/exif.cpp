@@ -77,8 +77,7 @@ struct TIFFDirEntry {
 #define DEBUG_EXIF_READ  0
 #define DEBUG_EXIF_WRITE 0
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace {
 
@@ -1033,6 +1032,5 @@ exif_tag_lookup (string_view name, int &tag, int &tifftype, int &count)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

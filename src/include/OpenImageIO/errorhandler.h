@@ -39,8 +39,7 @@
 #include "strutil.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// ErrorHandler is a simple class that accepts error messages
 /// (classified as errors, severe errors, warnings, info, messages, or
@@ -160,7 +159,6 @@ private:
     int m_verbosity;
 };
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif /* !defined(OPENIMAGEIO_ERRORMANAGER_H) */

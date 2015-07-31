@@ -52,8 +52,7 @@
 #include "texture_pvt.h"
 #include "../field3d.imageio/field3d_backdoor.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 using namespace pvt;
 using namespace f3dpvt;
 
@@ -725,5 +724,4 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 
 }  // end namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

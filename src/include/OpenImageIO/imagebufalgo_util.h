@@ -35,8 +35,7 @@
 #include "imagebufalgo.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 
@@ -390,7 +389,6 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 }  // end namespace ImageBufAlgo
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_IMAGEBUFALGO_UTIL_H

@@ -48,8 +48,7 @@
 #include <boost/scoped_array.hpp>
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
 
 bool
@@ -600,5 +599,4 @@ ImageOutput::copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

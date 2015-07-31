@@ -58,8 +58,7 @@
 #include "string_view.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /////////////////////////////////////////////////////////////////////////////
 /// A TypeDesc describes simple data types.
@@ -352,7 +351,6 @@ template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
 template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif /* !defined(OPENIMAGEIO_TYPEDESC_H) */

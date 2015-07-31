@@ -191,8 +191,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // Declare SHA-1 workspace
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 typedef union
 {
@@ -257,7 +256,6 @@ private:
 	SHA1_WORKSPACE_BLOCK* m_block; // SHA1 pointer to the byte array above
 };
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // ___SHA1_HDR___

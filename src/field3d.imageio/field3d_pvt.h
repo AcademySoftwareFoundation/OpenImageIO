@@ -45,8 +45,7 @@ using namespace FIELD3D_NS;
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace f3dpvt {
 
@@ -94,6 +93,5 @@ void oiio_field3d_initialize ();
 
 } // end namespace f3dpvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

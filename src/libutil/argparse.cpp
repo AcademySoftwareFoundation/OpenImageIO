@@ -46,8 +46,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/filesystem.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 class ArgOption {
 public:
@@ -557,5 +556,4 @@ ArgParse::command_line () const
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -51,7 +51,7 @@
 #include "platform.h"
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 /// @namespace  Sysutil
 ///
@@ -96,4 +96,4 @@ OIIO_API bool put_in_background (int argc, char* argv[]);
 
 }  // namespace Sysutils
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

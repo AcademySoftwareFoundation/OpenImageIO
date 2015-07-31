@@ -36,8 +36,7 @@
 #include "OpenImageIO/paramlist.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 void
@@ -181,5 +180,4 @@ ParamValueList::find (string_view name, TypeDesc type, bool casesensitive)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

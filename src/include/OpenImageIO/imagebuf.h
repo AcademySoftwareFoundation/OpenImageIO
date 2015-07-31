@@ -51,8 +51,7 @@
 #include <limits>
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 class ImageBuf;
 
@@ -1269,7 +1268,6 @@ protected:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_IMAGEBUF_H

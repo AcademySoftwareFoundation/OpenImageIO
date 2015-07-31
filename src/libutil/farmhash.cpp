@@ -183,7 +183,7 @@
 
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-  OIIO_NAMESPACE_ENTER {
+  OIIO_NAMESPACE_BEGIN
     namespace farmhash {
 
 
@@ -240,7 +240,7 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
 #endif
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
-} /*end namespace farmhash*/ } OIIO_NAMESPACE_EXIT
+} /*end namespace farmhash*/ OIIO_NAMESPACE_END
 
 // FARMHASH PORTABILITY LAYER: debug mode or max speed?
 // One may use -DFARMHASH_DEBUG=1 or -DFARMHASH_DEBUG=0 to force the issue.
@@ -349,7 +349,7 @@ STATIC_INLINE __m128i Fetch128(const char* s) {
 
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
     namespace farmhash {
 
 
@@ -406,7 +406,7 @@ template <> uint128_t DebugTweak(uint128_t x) {
 }
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
-} /*end namespace farmhash*/ } OIIO_NAMESPACE_EXIT
+} /*end namespace farmhash*/ OIIO_NAMESPACE_END
 
 using namespace std;
 // using namespace NAMESPACE_FOR_HASH_FUNCTIONS;
@@ -1873,7 +1873,7 @@ uint128_t Fingerprint128(const char* s, size_t len) {
 }  // namespace farmhashcc
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
     namespace farmhash {
 
 
@@ -1974,7 +1974,7 @@ uint128_t Fingerprint128(const char* s, size_t len) {
 //   farmhashns::Hash32{,WithSeed}()
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
-} /*end namespace farmhash*/ } OIIO_NAMESPACE_EXIT
+} /*end namespace farmhash*/ OIIO_NAMESPACE_END
 
 #if FARMHASHSELFTEST
 

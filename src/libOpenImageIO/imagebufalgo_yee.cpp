@@ -56,8 +56,7 @@ powf (const Imath::Vec3<T> &x, float y)
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace
 {
@@ -374,5 +373,4 @@ ImageBufAlgo::compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

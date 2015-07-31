@@ -49,8 +49,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 
@@ -220,5 +219,4 @@ ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

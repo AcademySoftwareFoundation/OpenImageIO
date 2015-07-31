@@ -37,8 +37,7 @@
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/imageio.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 void
@@ -328,4 +327,4 @@ DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
 
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

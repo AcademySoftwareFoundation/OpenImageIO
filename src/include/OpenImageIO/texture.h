@@ -43,8 +43,7 @@
 
 #include <OpenEXR/ImathVec.h>       /* because we need V3f */
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 // Forward declaration
 namespace pvt {
@@ -682,7 +681,6 @@ private:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_TEXTURE_H

@@ -45,8 +45,7 @@
 #include "OpenImageIO/imageio.h"
 #include "imageio_pvt.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 // Global private data
 namespace pvt {
@@ -899,5 +898,4 @@ wrap_mirror (int &coord, int origin, int width)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

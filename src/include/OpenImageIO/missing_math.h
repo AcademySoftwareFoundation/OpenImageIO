@@ -104,7 +104,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 #ifdef _WIN32
 // Windows doesn't define these functions from math.h
@@ -290,6 +290,6 @@ log2f (float val) {
 #endif
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 

@@ -38,8 +38,7 @@
 #include "string_view.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// Quick structure that describes a filter.
 ///
@@ -146,7 +145,6 @@ protected:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_FILTER_H

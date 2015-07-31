@@ -54,8 +54,7 @@ struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 class Filter2D;  // forward declaration
 
@@ -1946,7 +1945,6 @@ bool OIIO_API make_texture (MakeTextureMode mode,
 
 }  // end namespace ImageBufAlgo
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_IMAGEBUFALGO_H

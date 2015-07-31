@@ -63,7 +63,7 @@
 #include "missing_math.h"
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1435,4 +1435,4 @@ inline float fast_expf (float x) { return fast_exp(x); }
 
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

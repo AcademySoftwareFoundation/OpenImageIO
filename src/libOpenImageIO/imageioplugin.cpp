@@ -45,8 +45,7 @@
 #include "imageio_pvt.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
 
 typedef std::map <std::string, ImageInput::Creator> InputPluginMap;
@@ -583,5 +582,4 @@ ImageInput::destroy (ImageInput *x)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

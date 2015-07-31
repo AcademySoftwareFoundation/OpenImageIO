@@ -130,7 +130,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 namespace simd {
 
@@ -2286,4 +2286,4 @@ template<> struct VecType<bool,4>  { typedef mask4 type; };
 
 } // end namespace
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

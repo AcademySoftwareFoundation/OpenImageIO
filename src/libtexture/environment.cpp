@@ -226,8 +226,7 @@ convention is dictated by OpenEXR.
 */
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
     using namespace simd;
 
@@ -580,5 +579,4 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
 }  // end namespace pvt
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

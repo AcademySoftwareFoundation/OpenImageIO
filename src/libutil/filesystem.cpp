@@ -53,8 +53,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 std::string
@@ -903,5 +902,4 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     return true;
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

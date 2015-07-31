@@ -37,8 +37,7 @@
 
 #include "oiioversion.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// VaryingRef is a templated class (on class T) that holds either a
 /// pointer to a single T value, or an "array" of T values, each
@@ -232,7 +231,6 @@ template<class T>
 VaryingRef<T> Uniform (T &x) { return VaryingRef<T> (&x, 0); }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_VARYINGREF_H

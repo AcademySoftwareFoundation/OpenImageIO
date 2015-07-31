@@ -139,8 +139,7 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// Null mutex that can be substituted for a real one to test how much
 /// overhead is associated with a particular mutex.
@@ -885,7 +884,6 @@ typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
 typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_THREAD_H

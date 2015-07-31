@@ -45,8 +45,7 @@
 
 #define MY_ENCODING "ISO-8859-1"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 namespace {  // anonymous
 
@@ -592,6 +591,5 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

@@ -48,7 +48,7 @@
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 namespace {
@@ -748,4 +748,4 @@ ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src, float angle,
 }
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -49,8 +49,7 @@
 #include <cstdlib>    // Just for NULL definition
 #endif
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// Simple timer class.
 ///
@@ -258,7 +257,6 @@ time_trial (FUNC func, int n=1, double *range=NULL)
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_TIMER_H

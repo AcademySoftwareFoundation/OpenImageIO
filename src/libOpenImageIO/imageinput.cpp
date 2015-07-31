@@ -43,8 +43,7 @@
 #include <boost/scoped_array.hpp>
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
     using namespace pvt;
 
 
@@ -724,5 +723,4 @@ ImageInput::read_native_tile (int x, int y, int z, void * data)
     return false;
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

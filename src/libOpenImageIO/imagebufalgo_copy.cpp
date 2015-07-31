@@ -47,8 +47,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 template<class D, class S>
@@ -859,5 +858,4 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -46,8 +46,7 @@
 #include "OpenImageIO/pugixml.hpp"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 // Generate the default quantization parameters, templated on the data
 // type.
@@ -992,6 +991,5 @@ ImageSpec::from_xml (const char *xml)
 }
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

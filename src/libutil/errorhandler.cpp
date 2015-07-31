@@ -40,8 +40,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 
@@ -222,5 +221,4 @@ ErrorHandler::operator() (int errcode, const std::string &msg)
     fflush (stderr);
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

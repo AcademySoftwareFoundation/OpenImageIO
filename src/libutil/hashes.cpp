@@ -19,7 +19,7 @@
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/hash.h"
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 
 namespace xxhash {
@@ -986,4 +986,4 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
 } // end namespace bjhash
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -52,8 +52,7 @@
 #include "ustring.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// ParamValue holds a parameter and a pointer to its value(s)
 ///
@@ -242,7 +241,6 @@ private:
 };
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif /* !defined(OPENIMAGEIO_PARAMLIST_H) */

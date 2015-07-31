@@ -43,8 +43,7 @@
 #define _R4(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0xCA62C1D6+ROL32(v,5);w=ROL32(w,30);}
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 SHA1::SHA1 (const void *data, size_t size)
 {
@@ -308,5 +307,4 @@ bool CSHA1::GetHash(UINT_8* pbDest) const
 	return true;
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

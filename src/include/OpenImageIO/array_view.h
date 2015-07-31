@@ -46,7 +46,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 #if OIIO_USING_CPP11
 using std::remove_const;
@@ -354,4 +354,4 @@ private:
 
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

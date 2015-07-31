@@ -62,8 +62,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 inline void
@@ -1040,5 +1039,4 @@ ImageBufAlgo::histogram_draw (ImageBuf &R,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

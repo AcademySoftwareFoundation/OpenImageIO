@@ -230,7 +230,7 @@
 #endif
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 /// Return true if the architecture we are running on is little endian
 OIIO_FORCEINLINE bool littleendian (void)
@@ -294,5 +294,5 @@ inline bool cpu_has_f16c  () {int i[4]; cpuid(i,1,0); return i[2] & (1<<29); }
 inline bool cpu_has_rdrand() {int i[4]; cpuid(i,1,0); return i[2] & (1<<30); }
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 

@@ -51,7 +51,7 @@
 #include "string_view.h"   /* for endian */
 
 
-OIIO_NAMESPACE_ENTER {
+OIIO_NAMESPACE_BEGIN
 
 namespace xxhash {
 
@@ -507,6 +507,6 @@ private:
 };
 
 
-} OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif // OPENIMAGEIO_HASH_H

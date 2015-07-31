@@ -51,8 +51,7 @@
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/simd.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 static atomic_ll IB_local_mem_current;
@@ -2196,5 +2195,4 @@ ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

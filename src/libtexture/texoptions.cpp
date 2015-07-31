@@ -41,8 +41,7 @@
 #include "OpenImageIO/texture.h"
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 namespace {  // anonymous
@@ -173,5 +172,4 @@ TextureOpt::parse_wrapmodes (const char *wrapmodes,
     twrapcode = decode_wrapmode (twrap);
 }
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

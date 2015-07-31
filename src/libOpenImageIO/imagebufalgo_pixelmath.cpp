@@ -47,8 +47,7 @@
 
 
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 
 template<class D, class S>
@@ -1450,5 +1449,4 @@ ImageBufAlgo::zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END

@@ -60,8 +60,7 @@
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
 
-OIIO_NAMESPACE_ENTER
-{
+OIIO_NAMESPACE_BEGIN
 
 /// Type we use for stride lengths.  This is only used to designate
 /// pixel, scanline, tile, or image plane sizes in user-allocated memory,
@@ -1478,7 +1477,6 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 // to force correct linkage on some systems
 OIIO_API void _ImageIO_force_link ();
 
-}
-OIIO_NAMESPACE_EXIT
+OIIO_NAMESPACE_END
 
 #endif  // OPENIMAGEIO_IMAGEIO_H
