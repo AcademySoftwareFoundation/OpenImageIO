@@ -1,7 +1,17 @@
 Changes:
 
-Release 1.5.18 (?? 2015) -- compared to 1.5.17)
+Release 1.5.18 (4 Aug 2015) -- compared to 1.5.17)
 ---------------------------------------------------
+* PSD input improvements: better error handling fo files lacking "global
+  layer mask info" or "additional layer info"; additional PSD signatures
+  for global additional layer info; better error handling when dealing
+  with an empty layer mask.
+* TIFF output: recognize special "tiff:write_exif" metadata, which when
+  present and set to 0, will skip writing the Exif directory into the TIFF
+  file. This can be helpful when you expect the resulting TIFF file to be
+  read with very old versions of libtiff.
+* Top-level Makefile option USE_OPENCV=0 to turn off even searching for
+  OpenCV components.
 
 Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
 ---------------------------------------------------
