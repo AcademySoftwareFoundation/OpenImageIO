@@ -117,7 +117,7 @@ ImageOutputWrap::write_scanline_array (int y, int z, numeric::array &buffer)
     TypeDesc format;
     size_t numelements = 0;
     const void *array = python_array_address (buffer, format, numelements);
-    if (numelements < spec().width*spec().nchannels) {
+    if (static_cast<int>(numelements) < spec().width*spec().nchannels) {
         m_output->error ("write_scanline was not passed a long enough array");
         return false;
     }
@@ -159,7 +159,7 @@ ImageOutputWrap::write_scanlines_array (int ybegin, int yend, int z,
     TypeDesc format;
     size_t numelements = 0;
     const void *array = python_array_address (buffer, format, numelements);
-    if (numelements < spec().width*spec().nchannels*(yend-ybegin)) {
+    if (static_cast<int>(numelements) < spec().width*spec().nchannels*(yend-ybegin)) {
         m_output->error ("write_scanlines was not passed a long enough array");
         return false;
     }
@@ -248,7 +248,7 @@ ImageOutputWrap::write_tiles_array (int xbegin, int xend, int ybegin, int yend,
     TypeDesc format;
     size_t numelements = 0;
     const void *array = python_array_address (buffer, format, numelements);
-    if (numelements < (xend-xbegin)*(yend-ybegin)*(zend-zbegin)*spec().nchannels) {
+    if (static_cast<int>(numelements) < (xend-xbegin)*(yend-ybegin)*(zend-zbegin)*spec().nchannels) {
         m_output->error ("write_tiles was not passed a long enough array");
         return false;
     }
