@@ -106,6 +106,7 @@ if (CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-Wno-overloaded-virtual")
     add_definitions ("-Wno-unneeded-internal-declaration")
     add_definitions ("-Wno-unused-private-field")
+    add_definitions ("-Wno-tautological-compare")
     # disable warning about unused command line arguments
     add_definitions ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
