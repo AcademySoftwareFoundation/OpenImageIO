@@ -47,6 +47,8 @@
 ///  - DASSERT is the same as ASSERT when NDEBUG is not defined but a
 ///            no-op when not in debug mode.
 ///  - DASSERT_MSG: like DASSERT, but takes printf-like extra arguments
+///  - OIIO_STATIC_ASSERT(cond) : static assertion
+///  - OIIO_STATIC_ASSERT_MSG(cond,msg) : static assertion + message
 ///
 /// The presumed usage is that you want ASSERT for dire conditions that
 /// must be checked at runtime even in an optimized build.  DASSERT is
@@ -108,6 +110,22 @@
 #define DASSERTMSG DASSERT_MSG
 #endif
 
+
+
+/// Define OIIO_STATIC_ASSERT and OIIO_STATIC_ASSERT_MSG as wrappers around
+/// static_assert and static_assert_msg, with appropriate fallbacks for
+/// older C++ standards.
+#if (__cplusplus >= 201700L)  /* FIXME - guess the token, fix when C++17 */
+#  define OIIO_STATIC_ASSERT(cond)         static_assert(cond)
+#  define OIIO_STATIC_ASSERT_MSG(cond,msg) static_assert(cond,msg)
+#elif (__cplusplus >= 201103L)
+#  define OIIO_STATIC_ASSERT(cond)         static_assert(cond,"")
+#  define OIIO_STATIC_ASSERT_MSG(cond,msg) static_assert(cond,msg)
+#else /* fall back on Boost static assert */
+#  include <boost/static_assert.hpp>
+#  define OIIO_STATIC_ASSERT(cond)         BOOST_STATIC_ASSERT(cond)
+#  define OIIO_STATIC_ASSERT_MSG(cond,msg) BOOST_STATIC_ASSERT_MSG(cond,msg)
+#endif
 
 
 #endif // OPENIMAGEIO_DASSERT_H
