@@ -201,6 +201,7 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
         if (demosaic == demosaic_algs[d])
             m_processor.imgdata.params.user_qual = d;
         else if (demosaic == "none") {
+#ifdef LIBRAW_DECODER_FLATFIELD
             // See if we can access the Bayer patterned data for this raw file
             libraw_decoder_info_t decoder_info;
             m_processor.get_decoder_info(&decoder_info);
@@ -209,6 +210,7 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
                 return false;
             }
 
+#endif
             // User has selected no demosaicing, so no processing needs to be done
             m_process = false;
 
