@@ -142,10 +142,13 @@ private:
     bool m_convert_alpha;            ///< Do we need to associate alpha?
     bool m_separate;                 ///< Separate planarconfig?
     bool m_testopenconfig;           ///< Debug aid to test open-with-config
+    bool m_use_rgba_interface;       ///< Sometimes we punt
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
+    unsigned short m_compression;    ///< TIFF compression tag
     std::vector<unsigned short> m_colormap;  ///< Color map for palette images
+    std::vector<uint32_t> m_rgbadata; ///< Sometimes we punt
 
     // Reset everything to initial state
     void init () {
@@ -157,12 +160,15 @@ private:
         m_separate = false;
         m_testopenconfig = false;
         m_colormap.clear();
+        m_use_rgba_interface = false;
     }
 
     void close_tif () {
         if (m_tif) {
             TIFFClose (m_tif);
             m_tif = NULL;
+            if (m_rgbadata.size())
+                std::vector<uint32_t>().swap(m_rgbadata); // release
         }
     }
 
@@ -334,6 +340,58 @@ oiio_tiff_set_error_handler ()
 
 
 
+struct CompressionCode {
+    int code;
+    const char *name;
+};
+
+static CompressionCode tiff_compressions[] = {
+    { COMPRESSION_NONE,          "none" },        // no compression
+    { COMPRESSION_LZW,           "lzw" },         // LZW
+    { COMPRESSION_ADOBE_DEFLATE, "zip" },         // deflate / zip
+    { COMPRESSION_DEFLATE,       "zip" },         // deflate / zip
+    { COMPRESSION_CCITTRLE,      "ccittrle" },    // CCITT RLE
+    { COMPRESSION_CCITTFAX3,     "ccittfax3" },   // CCITT group 3 fax
+    { COMPRESSION_CCITT_T4,      "ccitt_t4" },    // CCITT T.4
+    { COMPRESSION_CCITTFAX4,     "ccittfax4" },   // CCITT group 4 fax
+    { COMPRESSION_CCITT_T6,      "ccitt_t6" },    // CCITT T.6
+    { COMPRESSION_OJPEG,         "ojpeg" },       // old (pre-TIFF6.0) JPEG
+    { COMPRESSION_JPEG,          "jpeg" },        // JPEG
+    { COMPRESSION_NEXT,          "next" },        // NeXT 2-bit RLE
+    { COMPRESSION_CCITTRLEW,     "ccittrle2" },   // #1 w/ word alignment
+    { COMPRESSION_PACKBITS,      "packbits" },    // Macintosh RLE
+    { COMPRESSION_THUNDERSCAN,   "thunderscan" }, // ThundeScan RLE
+    { COMPRESSION_IT8CTPAD,      "IT8CTPAD" },    // IT8 CT w/ patting
+    { COMPRESSION_IT8LW,         "IT8LW" },       // IT8 linework RLE
+    { COMPRESSION_IT8MP,         "IT8MP" },       // IT8 monochrome picture
+    { COMPRESSION_IT8BL,         "IT8BL" },       // IT8 binary line art
+    { COMPRESSION_PIXARFILM,     "pixarfilm" },   // Pixar 10 bit LZW
+    { COMPRESSION_PIXARLOG,      "pixarlog" },    // Pixar 11 bit ZIP
+    { COMPRESSION_DCS,           "dcs" },         // Kodak DCS encoding
+    { COMPRESSION_JBIG,          "isojbig" },     // ISO JBIG
+    { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
+    { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
+    { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
+#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
+    // Others supported in more recent TIFF library versions.
+    { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
+    { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
+    { COMPRESSION_LZMA,          "lzma" },        // LZMA2
+#endif
+    { -1, NULL }
+};
+
+static const char *
+tiff_compression_name (int code)
+{
+    for (int i = 0; tiff_compressions[i].name; ++i)
+        if (code == tiff_compressions[i].code)
+            return tiff_compressions[i].name;
+    return NULL;
+}
+
+
+
 TIFFInput::TIFFInput ()
 {
     oiio_tiff_set_error_handler ();
@@ -445,6 +503,23 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (TIFFSetDirectory (m_tif, subimage)) {
         m_subimage = subimage;
         readspec (read_meta);
+        // OK, some edge cases we just don't handle. For those, fall back on
+        // the TIFFRGBA interface.
+        if (m_compression == COMPRESSION_JPEG || m_compression == COMPRESSION_OJPEG ||
+            m_photometric == PHOTOMETRIC_YCBCR || m_photometric == PHOTOMETRIC_CIELAB ||
+            m_photometric == PHOTOMETRIC_ICCLAB || m_photometric == PHOTOMETRIC_ITULAB ||
+            m_photometric == PHOTOMETRIC_LOGL || m_photometric == PHOTOMETRIC_LOGLUV) {
+            char emsg[1024];
+            m_use_rgba_interface = true;
+            if (! TIFFRGBAImageOK (m_tif, emsg)) {
+                error ("No support for this flavor of TIFF file");
+                return false;
+            }
+            // This falls back to looking like uint8 images
+            m_spec.format = TypeDesc::UINT8;
+            m_spec.channelformats.clear ();
+            m_photometric = PHOTOMETRIC_RGB;
+        }
         newspec = m_spec;
         if (newspec.format == TypeDesc::UNKNOWN) {
             error ("No support for data format of \"%s\"", m_filename.c_str());
@@ -706,29 +781,11 @@ TIFFInput::readspec (bool read_meta)
     else
         m_spec.attribute ("planarconfig", "contig");
 
-    int compress = 0;
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    m_spec.attribute ("tiff:Compression", compress);
-    switch (compress) {
-    case COMPRESSION_NONE :
-        m_spec.attribute ("compression", "none");
-        break;
-    case COMPRESSION_LZW :
-        m_spec.attribute ("compression", "lzw");
-        break;
-    case COMPRESSION_CCITTRLE :
-        m_spec.attribute ("compression", "ccittrle");
-        break;
-    case COMPRESSION_DEFLATE :
-    case COMPRESSION_ADOBE_DEFLATE :
-        m_spec.attribute ("compression", "zip");
-        break;
-    case COMPRESSION_PACKBITS :
-        m_spec.attribute ("compression", "packbits");
-        break;
-    default:
-        break;
-    }
+    m_compression = 0;
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &m_compression);
+    m_spec.attribute ("tiff:Compression", (int)m_compression);
+    if (const char *compressname = tiff_compression_name(m_compression))
+        m_spec.attribute ("compression", compressname);
 
     int rowsperstrip = -1;
     if (! m_spec.tile_width) {
@@ -739,7 +796,7 @@ TIFFInput::readspec (bool read_meta)
 
     // The libtiff docs say that only uncompressed images, or those with
     // rowsperstrip==1, support random access to scanlines.
-    m_no_random_access = (compress != COMPRESSION_NONE && rowsperstrip != 1);
+    m_no_random_access = (m_compression != COMPRESSION_NONE && rowsperstrip != 1);
 
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
@@ -1071,6 +1128,26 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
 {
     y -= m_spec.y;
 
+    if (m_use_rgba_interface) {
+        // We punted and used the RGBA image interface -- copy from buffer.
+        // libtiff has no way to read just one scanline as RGBA. So we
+        // buffer the whole image.
+        if (! m_rgbadata.size()) { // first time through: allocate & read
+            m_rgbadata.resize (m_spec.width * m_spec.height * m_spec.depth);
+            bool ok = TIFFReadRGBAImageOriented (m_tif, m_spec.width, m_spec.height,
+                                       &m_rgbadata[0], ORIENTATION_TOPLEFT, 0);
+            if (! ok) {
+                error ("Unknown error trying to read TIFF as RGBA");
+                return false;
+            }
+        }
+        copy_image (m_spec.nchannels, m_spec.width, 1, 1,
+                    &m_rgbadata[y*m_spec.width], m_spec.nchannels,
+                    4, 4*m_spec.width, AutoStride,
+                    data, m_spec.nchannels, m_spec.width*m_spec.nchannels, AutoStride);
+        return true;
+    }
+
     // For compression modes that don't support random access to scanlines
     // (which I *think* is only LZW), we need to emulate random access by
     // re-seeking.
@@ -1168,6 +1245,28 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 {
     x -= m_spec.x;
     y -= m_spec.y;
+
+    if (m_use_rgba_interface) {
+        // We punted and used the RGBA image interface
+        // libtiff has a call to read just one tile as RGBA. So that's all
+        // we need to do, not buffer the whole image.
+        m_rgbadata.resize (m_spec.tile_pixels() * 4);
+        bool ok = TIFFReadRGBATile (m_tif, x, y, &m_rgbadata[0]);
+        if (!ok) {
+            error ("Unknown error trying to read TIFF as RGBA");
+            return false;
+        }
+        // Copy, and use stride magic to reverse top-to-bottom
+        int tw = std::min (m_spec.tile_width, m_spec.width-x);
+        int th = std::min (m_spec.tile_height, m_spec.height-y);
+        copy_image (m_spec.nchannels, tw, th, 1,
+                    &m_rgbadata[(th-1)*m_spec.tile_width], m_spec.nchannels,
+                    4, -m_spec.tile_width*4, AutoStride,
+                    data, m_spec.nchannels, m_spec.nchannels*m_spec.tile_width,
+                    AutoStride);
+        return true;
+    }
+
     imagesize_t tile_pixels = m_spec.tile_pixels();
     imagesize_t nvals = tile_pixels * m_spec.nchannels;
     m_scratch.resize (m_spec.tile_bytes());
@@ -1219,7 +1318,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
     }
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
-        invert_photometric (tile_pixels, data);
+        invert_photometric (nvals, data);
 
     return true;
 }

@@ -11,14 +11,13 @@ imagedir = parent + "/libtiffpic"
 #    This tests 1-bit images, and packbits compression
 # cramps-tile.tif	256x256 tiled version of cramps.tif (no compression)
 #    Tests tiled images (especially tiled 1-bit) -- compare it to cramps
+# dscf0013.tif  640x480 YCbCr digital camera image which lacks Reference
+#       Black/White values. Contains EXIF SubIFD. No compression.
 command += rw_command (imagedir, "cramps.tif")
 command += rw_command (imagedir, "cramps-tile.tif")
 command += diff_command (imagedir+"/cramps-tile.tif",
                                           imagedir+"/cramps.tif")
-
-# dscf0013.tif	640x480 YCbCr digital camera image which lacks Reference
-# 		Black/White values. Contains EXIF SubIFD. No compression.
-# FIXME - we don't support YCbCr yet.  
+command += rw_command (imagedir, "dscf0013.tif")
 
 # fax2d.tif	1728x1082 1-bit b&w (G3/2D) facsimile
 # FIXME - we read the pixel data fine, but we fail to recognize that
@@ -40,7 +39,9 @@ command += rw_command (imagedir, "jello.tif")
 # off_l16.tif	333x225 8-bit CIE LogL (SGILog) office from Greg Larson
 # off_luv24.tif	333x225 8-bit CIE LogLuv (SGILog24) office from " "
 # off_luv32.tif	333x225	8-bit CIE LogLuv (SGILog) office from " "
-#  FIXME -- we just don't handle LogL or LogLuv yet
+command += rw_command (imagedir, "off_l16.tif")
+command += rw_command (imagedir, "off_luv24.tif")
+command += rw_command (imagedir, "off_luv32.tif")
 
 # pc260001.tif	640x480 8-bit RGB digital camera image. Contains EXIF SubIFD.
 # 		No compression.
@@ -48,16 +49,15 @@ command += rw_command (imagedir, "jello.tif")
 #    'Maker Note', which includes GainControl
 command += rw_command (imagedir, "pc260001.tif")
 
-# quad-jpeg.tif	512x384 8-bit YCbCr (jpeg) version of quad-lzw.tif
-#  FIXME -- we don't handle this (YCbCr? jpeg?)
-#  NOTE -- OSX preview doesn't handle this either (but ImageMagick does)
-
 # quad-lzw.tif	512x384 8-bit RGB (lzw) "quadric surfaces"
 # quad-tile.tif	512x384 tiled version of quad-lzw.tif (lzw)
+# quad-jpeg.tif 512x384 8-bit YCbCr (jpeg) version of quad-lzw.tif
 command += rw_command (imagedir, "quad-lzw.tif")
 command += rw_command (imagedir, "quad-tile.tif")
 command += diff_command (imagedir+"/quad-tile.tif",
                                           imagedir+"/quad-lzw.tif")
+command += rw_command (imagedir, "quad-jpeg.tif",
+                       extraargs="-compression zip")
 
 # strike.tif	256x200 8-bit RGBA (lzw) "bowling pins" from Pixar
 command += rw_command (imagedir, "strike.tif")
@@ -66,11 +66,13 @@ command += rw_command (imagedir, "strike.tif")
 #  FIXME -- we don't get this right
 
 # ycbcr-cat.tif	250x325 8-bit YCbCr (lzw) "kitty" created by rgb2ycbcr
-#  FIXME -- we don't get this right
+command += rw_command (imagedir, "ycbcr-cat.tif")
 
 # smallliz.tif	160x160 8-bit YCbCr (OLD jpeg) lizard from HP**
+command += rw_command (imagedir, "smallliz.tif", 0)
 # zackthecat.tif 234x213 8-bit YCbCr (OLD jpeg) tiled "ZackTheCat" from NeXT**
 #   considered a deprecated format, not supported by libtiff
+command += rw_command (imagedir, "zackthecat.tif", 0)
 
 # oxford.tif	601x81 8-bit RGB (lzw) screendump off oxford
 command += rw_command (imagedir, "oxford.tif", 0)

@@ -66,7 +66,7 @@ namespace
     // re-writes the tiff header and any new tiles / scanlines)
     
     static double DEFAULT_CHECKPOINT_INTERVAL_SECONDS = 5.0;
-    static int MIN_SCANLINES_OR_TILES_PER_CHECKPOINT = 16;
+    static int MIN_SCANLINES_OR_TILES_PER_CHECKPOINT = 64;
 }
 
 class TIFFOutput : public ImageOutput {
@@ -91,11 +91,15 @@ private:
     Timer m_checkpointTimer;
     int m_checkpointItems;
     unsigned int m_dither;
+    int m_compression;
+    int m_photometric;
 
     // Initialize private members to pre-opened state
     void init (void) {
         m_tif = NULL;
         m_checkpointItems = 0;
+        m_compression = COMPRESSION_ADOBE_DEFLATE;
+        m_photometric = PHOTOMETRIC_RGB;
     }
 
     // Convert planar contiguous to planar separate data format
@@ -127,6 +131,62 @@ OIIO_PLUGIN_EXPORTS_END
 extern std::string & oiio_tiff_last_error ();
 extern void oiio_tiff_set_error_handler ();
 
+
+
+
+struct CompressionCode {
+    int code;
+    const char *name;
+};
+
+// We comment out a lot of these because we only support a subset for
+// writing. These can be uncommented on a case by case basis as they are
+// thoroughly tested and included in the testsuite.
+static CompressionCode tiff_compressions[] = {
+    { COMPRESSION_NONE,          "none" },        // no compression
+    { COMPRESSION_LZW,           "lzw" },         // LZW
+    { COMPRESSION_ADOBE_DEFLATE, "zip" },         // deflate / zip
+    { COMPRESSION_DEFLATE,       "zip" },         // deflate / zip
+    { COMPRESSION_CCITTRLE,      "ccittrle" },    // CCITT RLE
+//  { COMPRESSION_CCITTFAX3,     "ccittfax3" },   // CCITT group 3 fax
+//  { COMPRESSION_CCITT_T4,      "ccitt_t4" },    // CCITT T.4
+//  { COMPRESSION_CCITTFAX4,     "ccittfax4" },   // CCITT group 4 fax
+//  { COMPRESSION_CCITT_T6,      "ccitt_t6" },    // CCITT T.6
+//  { COMPRESSION_OJPEG,         "ojpeg" },       // old (pre-TIFF6.0) JPEG
+    { COMPRESSION_JPEG,          "jpeg" },        // JPEG
+//  { COMPRESSION_NEXT,          "next" },        // NeXT 2-bit RLE
+//  { COMPRESSION_CCITTRLEW,     "ccittrle2" },   // #1 w/ word alignment
+    { COMPRESSION_PACKBITS,      "packbits" },    // Macintosh RLE
+//  { COMPRESSION_THUNDERSCAN,   "thunderscan" }, // ThundeScan RLE
+//  { COMPRESSION_IT8CTPAD,      "IT8CTPAD" },    // IT8 CT w/ patting
+//  { COMPRESSION_IT8LW,         "IT8LW" },       // IT8 linework RLE
+//  { COMPRESSION_IT8MP,         "IT8MP" },       // IT8 monochrome picture
+//  { COMPRESSION_IT8BL,         "IT8BL" },       // IT8 binary line art
+//  { COMPRESSION_PIXARFILM,     "pixarfilm" },   // Pixar 10 bit LZW
+//  { COMPRESSION_PIXARLOG,      "pixarlog" },    // Pixar 11 bit ZIP
+//  { COMPRESSION_DCS,           "dcs" },         // Kodak DCS encoding
+//  { COMPRESSION_JBIG,          "isojbig" },     // ISO JBIG
+//  { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
+//  { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
+//  { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
+#if defined(TIFF_VERSION_BIG) && TIFFLIB_VERSION >= 20120922
+    // Others supported in more recent TIFF library versions.
+//  { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
+//  { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
+//  { COMPRESSION_LZMA,          "lzma" },        // LZMA2
+#endif
+    { -1, NULL }
+};
+
+static int tiff_compression_code (string_view name)
+{
+    if (name.empty())
+        COMPRESSION_ADOBE_DEFLATE;  // default
+    for (int i = 0; tiff_compressions[i].name; ++i)
+        if (Strutil::iequals (name, tiff_compressions[i].name))
+            return tiff_compressions[i].code;
+    return COMPRESSION_ADOBE_DEFLATE;  // default
+}
 
 
 
@@ -301,8 +361,42 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, bps);
     TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
 
-    int photo = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
-    TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, photo);
+    m_photometric = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
+
+    string_view comp = m_spec.get_string_attribute("Compression", "zip");
+    if (Strutil::iequals (comp, "jpeg") &&
+        (m_spec.format != TypeDesc::UINT8 || m_spec.nchannels != 3)) {
+        comp = "zip";   // can't use JPEG for anything but 3xUINT8
+    }
+    m_compression = tiff_compression_code (comp);
+    TIFFSetField (m_tif, TIFFTAG_COMPRESSION, m_compression);
+
+    // Use predictor when using compression
+    if (m_compression == COMPRESSION_LZW || m_compression == COMPRESSION_ADOBE_DEFLATE) {
+        if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF) {
+            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+            // N.B. Very old versions of libtiff did not support this
+            // predictor.  It's possible that certain apps can't read
+            // floating point TIFFs with this set.  But since it's been
+            // documented since 2005, let's take our chances.  Comment
+            // out the above line if this is problematic.
+        }
+        else
+            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
+    } else if (m_compression == COMPRESSION_JPEG) {
+        TIFFSetField (m_tif, TIFFTAG_JPEGQUALITY,
+                      m_spec.get_int_attribute("CompressionQuality", 95));
+        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 64);
+        m_spec.attribute ("tiff:RowsPerStrip", 64);
+        if (m_photometric == PHOTOMETRIC_RGB) {
+            // Compression works so much better when we ask the library to
+            // auto-convert RGB to YCbCr.
+            TIFFSetField (m_tif, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
+            m_photometric = PHOTOMETRIC_YCBCR;
+        }
+    }
+
+    TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, m_photometric);
 
     // ExtraSamples tag
     if (m_spec.nchannels > 3) {
@@ -317,10 +411,6 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         }
         TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
-
-    // Default to ZIP compression if no request came with the user spec
-    if (! m_spec.find_attribute("compression"))
-        m_spec.attribute ("compression", "zip");
 
     ImageIOParameter *param;
     const char *str = NULL;
@@ -415,36 +505,6 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
     if (Strutil::iequals(name, "Artist") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
-    }
-    if (Strutil::iequals(name, "Compression") && type == TypeDesc::STRING) {
-        int compress = COMPRESSION_LZW;  // default
-        const char *str = *(char **)data;
-        if (str) {
-            if (Strutil::iequals (str, "none"))
-                compress = COMPRESSION_NONE;
-            else if (Strutil::iequals (str, "lzw"))
-                compress = COMPRESSION_LZW;
-            else if (Strutil::istarts_with (str, "zip") || Strutil::iequals (str, "deflate"))
-                compress = COMPRESSION_ADOBE_DEFLATE;
-            else if (Strutil::iequals (str, "packbits"))
-                compress = COMPRESSION_PACKBITS;
-            else if (Strutil::iequals (str, "ccittrle"))
-                compress = COMPRESSION_CCITTRLE;
-        }
-        TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
-        // Use predictor when using compression
-        if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
-            if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF) {
-                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
-                // N.B. Very old versions of libtiff did not support this
-                // predictor.  It's possible that certain apps can't read
-                // floating point TIFFs with this set.  But since it's been
-                // documented since 2005, let's take our chances.  Comment
-                // out the above line if this is problematic.
-            }
-            else
-                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
-        }
     }
     if (Strutil::iequals(name, "Copyright") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
@@ -572,6 +632,12 @@ TIFFOutput::write_exif_data ()
     if (! any_exif)
         return true;
 
+    if (m_compression == COMPRESSION_JPEG) {
+        // For reasons we don't understand, JPEG-compressed TIFF seems
+        // to not output properly without a directory checkpoint here.
+        TIFFCheckpointDirectory (m_tif);
+    }
+
     // First, finish writing the current directory
     if (! TIFFWriteDirectory (m_tif)) {
         error ("failed TIFFWriteDirectory()");
@@ -679,7 +745,9 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
         contig_to_separate (m_spec.width, (const char *)data, (char *)&m_scratch[0]);
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             if (TIFFWriteScanline (m_tif, (tdata_t)&m_scratch[plane_bytes*c], y, c) < 0) {
-                error ("TIFFWriteScanline failed");
+                std::string err = oiio_tiff_last_error();
+                error ("TIFFWriteScanline failed writing line y=%d,z=%d (%s)",
+                       y, z, err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -693,21 +761,23 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
             data = &m_scratch[0];
         }
         if (TIFFWriteScanline (m_tif, (tdata_t)data, y) < 0) {
-            error ("TIFFWriteScanline failed");
+            std::string err = oiio_tiff_last_error();
+            error ("TIFFWriteScanline failed writing line y=%d,z=%d (%s)",
+                   y, z, err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
     
     // Should we checkpoint? Only if we have enough scanlines and enough
-    // time has passed
-    if (m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS && 
-        m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
+    // time has passed (or if using JPEG compression, for which it seems
+    // necessary).
+    ++m_checkpointItems;
+    if ((m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS ||
+         m_compression == COMPRESSION_JPEG)
+        && m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
         TIFFCheckpointDirectory (m_tif);
         m_checkpointTimer.lap();
         m_checkpointItems = 0;
-    }
-    else {
-        ++m_checkpointItems;
     }
     
     return true;
@@ -726,6 +796,7 @@ TIFFOutput::write_tile (int x, int y, int z,
                         spec().tile_width, spec().tile_height);
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
     y -= m_spec.y;   // image relative
+    z -= m_spec.z;
     const void *origdata = data;   // Stash original pointer
     data = to_native_tile (format, data, xstride, ystride, zstride,
                            m_scratch, m_dither, x, y, z);
@@ -748,7 +819,10 @@ TIFFOutput::write_tile (int x, int y, int z,
         contig_to_separate (tile_pixels, (const char *)data, separate);
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             if (TIFFWriteTile (m_tif, (tdata_t)&separate[plane_bytes*c], x, y, z, c) < 0) {
-                error ("TIFFWriteTile failed");
+                std::string err = oiio_tiff_last_error();
+                error ("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
+                       x+m_spec.x, y+m_spec.y, z+m_spec.z,
+                       err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -762,20 +836,24 @@ TIFFOutput::write_tile (int x, int y, int z,
             data = &m_scratch[0];
         }
         if (TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0) < 0) {
-            error ("TIFFWriteTile failed");
+            std::string err = oiio_tiff_last_error();
+            error ("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
+                   x+m_spec.x, y+m_spec.y, z+m_spec.z,
+                   err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
     
-    // Should we checkpoint? Only if we have enough tiles and enough time has passed
-    if (m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS && 
-        m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
+    // Should we checkpoint? Only if we have enough tiles and enough
+    // time has passed (or if using JPEG compression, for which it seems
+    // necessary).
+    ++m_checkpointItems;
+    if ((m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS ||
+         m_compression == COMPRESSION_JPEG)
+        && m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
         TIFFCheckpointDirectory (m_tif);
         m_checkpointTimer.lap();
         m_checkpointItems = 0;
-    }
-    else {
-        ++m_checkpointItems;
     }
     
     return true;

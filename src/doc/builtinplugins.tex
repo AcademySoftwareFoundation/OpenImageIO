@@ -1010,6 +1010,40 @@ Output attribute & Type & Meaning \\
 \end{tabular}
 
 
+\subsubsection*{TIFF compression modes}
+
+\noindent The full list of possible TIFF compression mode values are as
+follows ($ ^*$ indicates that \product can write that format, and is not
+part of the format name): \\
+    {\kw none}$ ^*$  ~
+    {\kw lzw}$ ^*$  ~
+    {\kw zip}$ ^*$  ~ \\
+    {\kw ccitt_t4}  ~
+    {\kw ccitt_t6}  ~
+    {\kw ccittfax3}  ~
+    {\kw ccittfax4}  ~
+    {\kw ccittrle2}  ~
+    {\kw ccittrle}$ ^*$  ~
+    {\kw dcs}  ~
+    {\kw isojbig}  ~
+    {\kw IT8BL}  ~
+    {\kw IT8CTPAD}  ~
+    {\kw IT8LW}  ~
+    {\kw IT8MP}  ~
+    {\kw jp2000}  ~
+    {\kw jpeg}$ ^*$  ~
+    {\kw lzma}  ~
+    {\kw next}  ~
+    {\kw ojpeg}  ~
+    {\kw packbits}$ ^*$  ~
+    {\kw pixarfilm}  ~
+    {\kw pixarlog}  ~
+    {\kw sgilog24}  ~
+    {\kw sgilog}  ~
+    {\kw T43}  ~
+    {\kw T85}  ~
+    {\kw thunderscan}  ~
+
 \subsubsection*{Limitations}
 
 \product's TIFF reader and writer have some limitations you should be
@@ -1022,6 +1056,7 @@ aware of:
   by OIIO as 8 bit images; 12 bits per pixel will be reported as 16,
   etc.  But the \qkw{oiio:BitsPerSample} attribute in the \ImageSpec
   will correctly report the original bit depth of the file.
+\item JPEG compression is limited to 8-bit per channel, 3-channel files.
 \end{itemize}
 
 
@@ -1055,7 +1090,7 @@ aware of:
 \qkw{worldtocamera} & matrix & PIXAR\_MATRIX\_WORLDTOCAMERA \\
 \qkw{worldtoscreen} & matrix & PIXAR\_MATRIX\_WORLDTOSCREEN\\
 \qkw{comrpession} & string & based on TIFF Compression 
-  (one of \qkw{none}, \qkw{lzw}, \qkw{ccittrle}, \qkw{zip}, \qkw{packbits}).\\
+  (one of \qkw{none}, \qkw{lzw}, \qkw{zip}, or others listed above.).\\
 \qkw{tiff:compression} & int & the original integer code
   from the TIFF Compression tag.\\
 \qkw{tiff:planarconfig} & string & PlanarConfiguration (\qkw{separate} or

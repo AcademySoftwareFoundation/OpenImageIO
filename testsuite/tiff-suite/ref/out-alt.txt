@@ -272,7 +272,7 @@ Comparing "../../../../../libtiffpic/quad-tile.tif" and "../../../../../libtiffp
 PASS
 Reading ../../../../../libtiffpic/quad-jpeg.tif
 ../../../../../libtiffpic/quad-jpeg.tif :  512 x  384, 3 channel, uint8 tiff
-    SHA-1: F035DB0C05B1AC8E0301F41D27C1FF604EFA65E3
+    SHA-1: 3EF052D81D73F129B65F2199DFDD74E0A8E6356B
     channel list: R, G, B
     oiio:BitsPerSample: 8
     tiff:PhotometricInterpretation: 6
