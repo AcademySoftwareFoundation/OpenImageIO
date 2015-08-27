@@ -1107,6 +1107,14 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
 
     bool orig_was_overscan = (roi != roi_full);
+    // FIXME? For now, we don't have a strategy for making the MIPmaps in a
+    // sensible way for source image with overscan. Just reject them. Maybe
+    // someday we will return and do something smart, but for now a good way
+    // to deal with this case eludes us.
+    if (orig_was_overscan) {
+        outstream << "maketx ERROR: can't handle source images with overscan\n";
+        return false;
+    }
     if (orig_was_overscan) {
         configspec.attribute ("wrapmodes", "black,black");
     }
