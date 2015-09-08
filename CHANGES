@@ -72,44 +72,76 @@ Major new features and improvements:
    available to ImageBufAlgo::render_text() and oiiotool --text, on all
    platforms and even if you don't have any other installed fonts on
    your system. DroidSans is now the default font. #1132 (1.6.3)
+* GIF output support (including writing animated GIF images, just write it
+  as a multi-subimage file). For example, this works:
+      oiiotool foo*.jpg -siappendall -attrib FramesPerSecond 10.0 -o anim.gif
+  #1193 (1.6.4)
 
 Public API changes:
- * Clarified in the docs that TextureSystem::get_texture_info and
-   ImageCache::get_image_info "exists" queries should return true, and
-   place in *data the value 1 or 0 depending on whether the image exists
-   and can be read. (1.6.0/1.5.10)
- * Removed deprecated header "string_ref.h" (use string_view.h). (1.6.1)
- * ImageCache: Added get_perthread_info() and get_image_handle() to return
-   opaque perthread and file handle pointers, much like TextureSystem
-   already had, and added handle-based versions of get_image_info(),
-   get_imagespec(), imagespec(), get_pixels(), and get_tile(), in addition
-   to the existing name-based versions of those methods. #1057 (1.6.1)
- * TextureSystem: added handle-based versions of get_texture_info(),
-   get_imagespec(), imagespec(), and get_texels(), in addition to the
-   existing name-based versions of those methods. Note that texture(),
-   environment(), and texture3d() already had both named-based and
-   handle-based varieties. #1057 (1.6.1) #1083 (1.6.2)
- * Clarified in the docs that TextureSystem::get_texture_info and
-   ImageCache::get_image_info "exists" queries should return true, and
-   place in *data the value 1 or 0 depending on whether the image exists
-   and can be read. #1046 (1.6.0/1.5.10)
- * IC/TS: add create_thread_info() and destroy_thread_info() methods that
-   allow an app to manage the per-thread records needed by the IC.
-   #1080 (1.6.2)
- * Removed deprecated header string_ref.h. (Should use string_view.h)
-   #1047 (1.6.0)
- * New ImageOutput::supports() tags: supports("alpha") should be true for
-   image formats that support an alpha channel, supports("nchannels") should
-   be true for output formats that support an arbitrary number of output
-   channels. (1.6.2/1.5.13)
- * ImageSpec::metadata_val() is now static, rather than simply const,
-   since it doesn't need access to *this at all. #1063 (1.6.1)
- * Added a new variety of ImageSpec::find_attribute that takes a temporary
-   ImageIOParameter as scratch space. The advantage of this call is that it
-   can retrieve items from the named ImageSpec fields, such as "width",
-   "full_x", etc. Also, the get_int_attribute, get_float_attribute, and
-   get_string_attribute can now retrieve these fixed fields as well.
-   #1063 (1.6.1)
+ * TypeDesc:
+    * New helper methods: is_array(), is_unsized_array(),
+      is_sized_array(). #1136 (1.6.3)
+    * New constructor and fromstring of a string_view, in addition to
+      the old versions that took char*. #1159 (1.6.4/1.5.16)
+ * ImageSpec:
+    * ImageSpec::metadata_val() is now static, rather than simply const,
+      since it doesn't need access to *this at all. #1063 (1.6.1)
+    * Added a new variety of find_attribute that takes a temporary
+      ImageIOParameter as scratch space. The advantage of this call is
+      that it can retrieve items from the named ImageSpec fields, such
+      as "width", "full_x", etc. Also, the get_int_attribute,
+      get_float_attribute, and get_string_attribute can now retrieve
+      these fixed fields as well.  #1063 (1.6.1)
+ * ImageInput & ImageOutput:
+    * New ImageOutput::supports() tags: supports("alpha") should be true
+      for image formats that support an alpha channel, supports("nchannels")
+      should be true for output formats that support an arbitrary number
+      of output channels. (1.6.2/1.5.13)
+    * ImageInput and ImageOutput supports() method has been changed to accept
+      a string_view (rather than a const std::string&), and return an int
+      (rather than a bool). (1.6.2)
+    * ImageInput and ImageOutput have added destroy() static
+      methods. They are just wrappers around 'delete', but can help you
+      to ensure that II and IO objects are deleted on the same side of a
+      DLL boundary as where they were created. (Helps with using OIIO
+      from DLL-based plugins on Windows.)  (1.6.3)
+    * New ImageInput query: "procedural" -- returns 1 if the ImageInput may
+      not correspond to an actual file. #1154 (1.6.4/1.5.16)
+    * ImageInput and ImageOutput's error() method is changed from protected
+      to public, making it easier for an app to set an error on a reader
+      or writer. (1.6.4)
+    * ImageOutput::copy_to_image_buffer is a helper function that
+      generalizes the existing copy_tile_to_image_buffer, but for any
+      rectangle.  #1193 (1.6.4)
+ * ImageBuf:
+    * Add make_writeable(), which forces ImageCache-backed read-only
+      ImageBuf to read into locally allocated pixels so they can be
+      subsequently altered. #1087 (1.6.2)
+    * ImageBuf::Iterator has added set_deep_samples() and set_deep_value()
+      methods. (1.6.3)
+    * ImageBuf::set_pixels() now provides a way to set an arbitrary
+      rectancle of an ImageBuf from raw values. #1167 (1.6.4)
+    * ImageBuf::get_pixels() now has a variety that takes an ROI to
+      describe the rectangle of pixels being requested. #1167 (1.6.4)
+ * ImageCache/TextureSystem:
+    * Clarified in the docs that TextureSystem::get_texture_info and
+      ImageCache::get_image_info "exists" queries should return true, and
+      place in *data the value 1 or 0 depending on whether the image exists
+      and can be read. (1.6.0/1.5.10)
+    * Added handle-based versions of TextureSystem get_texture_info(),
+      get_imagespec(), imagespec(), and get_texels(), in addition to the
+      existing name-based versions of those methods. Note that
+      texture(), environment(), and texture3d() already had both
+      name-based and handle-based varieties. #1057 (1.6.1) #1083 (1.6.2)
+    * Add create_thread_info() and destroy_thread_info() methods that
+      allow an app to manage the per-thread records needed by the IC.
+      #1080 (1.6.2)
+   * Added ImageCache get_perthread_info() and get_image_handle() to
+     return opaque perthread and file handle pointers, much like
+     TextureSystem already had, and added handle-based versions of
+     get_image_info(), get_imagespec(), imagespec(), get_pixels(), and
+     get_tile(), in addition to the existing name-based versions of
+     those methods. #1057 (1.6.1)
  * Python bindings:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
     * ImageSpec.set_channel_formats() now works when the channel
@@ -118,24 +150,33 @@ Public API changes:
     * Added Python bindings for DeepData and deep reads (ImageInput) and
       writes (ImageOutput), as well as additional DeepData and ImageBuf
       methods to fully match the C++ API. #1113 #1122 (1.6.3/1.5.13)
- * ImageInput and ImageOutput supports() method has been changed to accept
-   a string_view (rather than a const std::string&), and return an int
-   (rather than a bool). (1.6.2)
- * Add ImageBuf::make_writeable(), which forces IC-backed read-only
-   ImageBuf to read into locally allocated pixels so they can be
-   subsequently altered. #1087 (1.6.2)
- * ImageInput and ImageOutput have added destroy() static methods. They are
-   just wrappers around 'delete', but can help you to ensure that II and
-   IO objects are deleted on the same side of a DLL boundary as where they
-   were created. (Helps with using OIIO from DLL-based plugins on Windows.)
-   (1.6.3)
+    * ImageBuf.set_pixels, and ImageBuf.get_pixels with ROI. #1167,1179 (1.6.4)
+    * Change Python ImageOutput bindings to simplify the write_* methods.
+      They no longer take both a TypeDesc and an array; it can figure out
+      the type from the array itself. Also get rid of the stride parameters,
+      which weren't useful in a Python context. #1184 (1.6.4)
+    * ImageBufAlgo colorconvert, ociolook, and ociodisplay now take an
+      optional string colorconfig argument. #1187 (1.6.4)
  * The ColorConfig wrapper for OCIO functionality has been extended to
    parse color names from filename strings, and to report the recommended
    pixel data type for a color space. #1129 (1.6.3)
- * TypeDesc helper methods: is_array(), is_unsized_array(),
-   is_sized_array(). #1136  (1.6.3)
- * ImageBuf::Iterator has added set_deep_samples() and set_deep_value()
-   methods. (1.6.3)
+ * C++11 definitions: oiioversion.h defines OIIO_BUILD_CPP11 as nonzero
+   if OIIO itself was built in C++11 (or later) mode, and platform.h
+   defines OIIO_USING_CPP11 as nonzero if at this moment C++11 (or
+   later) mode is detected. Note that these can differ if one set of
+   compiler flags was used to build OIIO, and a different set is used to
+   build a project that uses OIIO headers. #1148 (1.6.4)
+ * Renamed the "fps" standard metadata to "FramesPerSecond. #1193 (1.6.4)
+ * Removed deprecated header "string_ref.h" (use string_view.h). (1.6.1)
+ * oiioversion.h: Renamed the namespace macros OIIO_NAMESPACE_ENTER/EXIT to
+   OIIO_NAMESPACE_BEGIN/END, and roll the braces into it. #1196 (1.6.4)
+ * array_view.h: Refactor array_view to be more in line with what is slated
+   for C++17, in particular it is now templated on Rank and so can be a view
+   to a multi-dimensional array. Also change array_view_strided to have
+   strides measured in units of sizeof(T), not bytes (to keep with C++17).
+   This also adds coordinate.h to give definitions for the offset<>,
+   bounds<>, and bounds_iterator<> templates used by array_view. #1205
+   (1.6.4)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -166,6 +207,11 @@ Fixes, minor enhancements, and performance improvements:
       wildcards on the command line. #1133 (1.6.3)
     * --crop, --trim, and --autotrim have been extended to work on
       "deep" images. #1137 (1.6.3)
+    * For "procedural" ImageInputs, don't give "file doesn't exist"
+      errors. (1.6.4)
+    * Suppress output/copying of "textureformat" metadata inherited from
+      input if it's not plausibly still a valid texture (i.e., if it's
+      no longer tiled or MIPmapped). #1206 (1.6.4)
   * maketx & TextureSystem:
     * TextureSystem/IC now directly stores uint16 and half pixel data in
       the cache rather than converting internally to float for tile storage,
@@ -186,6 +232,10 @@ Fixes, minor enhancements, and performance improvements:
     * TextureSystem bug fix that occasionally resulted in NaN in the
       alpha channel result when looking up from 3-channel images. #1108
       (1.6.3/1.5.13)
+    * maketx --runstats prints runtime staticstics (deprecating --stats).
+      #1152 (1.6.4)
+    * Fixed trilinear MIPmap texture lookups that gave invalid alpha fill.
+      #1163 (1.6.4/1.5.16)
  * ImageBufAlgo:
     * compare() (and therefore oiiotool -diff and idiff) did not notice
       image differences when the pixels that differed had NaN or NaN or
@@ -197,8 +247,34 @@ Fixes, minor enhancements, and performance improvements:
     * colorconvert(), ociodisplay(), and ociolook() have new varities that
       accept an optional ColorConfig, rather than having no choice but to
       construct a new one internally. (1.6.3)
-   * nonempty_region() and crop() have been extended to handle "deep"
-     images. #1137 (1.6.3)
+    * nonempty_region() and crop() have been extended to handle "deep"
+      images. #1137 (1.6.3)
+    * Fix bug in fft() -- was not always zeroing out the imaginary channel.
+      #1171 (1.6.4/1.5.17)
+    * Fixed uninitialized variable bugs with rangecompress() and
+      rangeexpand() when using luma. #1180 (1.6.4)
+ * Eliminate spurious ImageCache invalidation just because the shared
+   cache is requested again. #1157 (1.6.4/1.5.16)
+ * GIF:
+    * Write support! #1193 (1.6.4)
+    * On input, renamed "fps" metadata to "FramesPerSecond". #1193 (1.6.4)
+ * JPEG:
+    * Now properly read/write xdensity and ydensity (what OIIO and TIFF
+      call "XResolution" and "YResolution" and, therefore,
+      "PixelAspectRatio". #1042 #1066 (1.6.0, 1.6.1)
+    * Support JPEG files encoded as CMYK (by converting to RGB upon read)
+      #1044 (1.6.1)
+    * Fix misdeclared supports() which would make the JPEG plugin appear
+      to not support exif or iptc. #1192 (1.6.4)
+ * JPEG-2000:
+    * Fix handling of un-premultiplied alpha (which is dictated by the
+      JPEG-2000 spec). (1.6.3)
+    * Fix reading of YUV-encoded files. (1.6.3)
+    * Read and write the ICC profile, if present. (1.6.3)
+    * Handle all bit depth precisions properly (previously only 8, 10,
+      12, and 16 were right). (1.6.3)
+    * Set the full/display window correctly. (1.6.3)
+    * Deal with differing per-channel data windows and sampling rates. (1.6.3)
  * OpenEXR:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Fix read_deep_tiles() error when not starting at the image origin.
@@ -211,33 +287,32 @@ Fixes, minor enhancements, and performance improvements:
       docs in how they explain strides for this case. #1055 (1.6.1/1.5.12)
     * Fix bugs in reading deep OpenEXR images with mixed channel types.
       #1113 (1.6.3/1.5.13)
- * JPEG:
-    * Now properly read/write xdensity and ydensity (what OIIO and TIFF
-      call "XResolution" and "YResolution" and, therefore,
-      "PixelAspectRatio". #1042 #1066 (1.6.0, 1.6.1)
-    * Support JPEG files encoded as CMYK (by converting to RGB upon read)
-      #1044 (1.6.1)
+ * PNG:
+    * Writing PNG files now honors the PixelAspectRatio metadata.
+      #1142 (1.6.3)
+ * PSD:
+    * Better error handling for files lacking "global layer mask info"
+      or "additional layer info". #1147 (1.6.4/1.5.18)
+    * Additional PSD signatures for global additional layer info.
+      #1147 (1.6.4/1.5.18)
+    * Better error handling when dealing with an empty layer mask.
+      #1147 (1.6.4/1.5.18)
  * TIFF:
     * Improved handling of density and aspect ratio. #1042 (1.6.0)
     * Improved proper handling of the interplay between "XResolution",
       "YResolution", and "PixelAspectRatio". #1042 (1.6.0)
- * JPEG-2000:
-    * Fix handling of un-premultiplied alpha (which is dictated by the
-      JPEG-2000 spec). (1.6.3)
-    * Fix reading of YUV-encoded files. (1.6.3)
-    * Read and write the ICC profile, if present. (1.6.3)
-    * Handle all bit depth precisions properly (previously only 8, 10,
-      12, and 16 were right). (1.6.3)
-    * Set the full/display window correctly. (1.6.3)
-    * Deal with differing per-channel data windows and sampling rates. (1.6.3)
- * PNG: writing PNG files now honors the PixelAspectRatio metadata.
-   #1142 (1.6.3)
- * Improve IBA::compare() (and therefore oiiotool -diff and idiff) when
-   the images being compared have NaN or Inf values. #1109 (1.5.13)
+    * TIFF output: recognize special "tiff:write_exif" metadata, which when
+      present and set to 0, will skip writing the Exif directory into the
+      TIFF file. This can be helpful when you expect the resulting TIFF
+      file to be read with very old versions of libtiff. #1185 (1.6.4/1.5.18)
+    * Correct read and write of JPEG-compressed TIFF. #1207 (1.6.4)
+    * Correct support for reading LAB, LOG, YCbCr, subsampled chroma.
+       #1207 (1.6.4)
  * ImageBuf iterator constructors with 0-size ranges or ROIs have been
    fixed to look like they are immediately done(). #1141 (1.6.3)
  * Fix bug in internal convert_image() that could corrupt certain image
    copying of non-contiguous data layouts. #1144 (1.6.3)
+ * Also search for OIIO plugins in [DY]LD_LIBRARY_PATH. #1153 (1.6.4/1.5.16)
 
 Build/test system improvements:
  * Python plugin is now build as a cmake "module" rather than "library",
@@ -259,10 +334,36 @@ Build/test system improvements:
    test texture mapping. (1.6.3)
  * Build-time USE_SIMD=... has been changed from accepting a single tag to
    a comma-separated list of feature options. So you can, for example, do
-   make USE_SIMD=avx,f16c ...    (1.6.3)
+   make USE_SIMD=avx,f16c ...  (1.6.3)
+ * make USE_NINJA=1 causes CMake to build Ninja build files instead of
+   Makefiles (they execute much faster, espectially for incremental builds).
+   #1158 (1.6.4)
+ * PSD & JPEG plugins fixes for Win32 compilation. #1150 (1.6.4/1.5.16)
+ * Fix Nuke plugin build files to not do anything if USE_NUKE=0.
+   #1156 (1.6.4/1.5.16)
+ * Builds now produce much less console output by default (use VERBOSE=1
+   to get all the details, most of which is only useful when debugging
+   broken builds). #1162 (1.6.4)
+ * Fix support for older ffmpeg version on Ubuntu 14.04. #1168 (1.6.4/1.5.17)
+ * Build-time fixes for Nocona CPUs that have SSE3 without SSSE3.
+   #1175 (1.6.4/1.5.17)
+ * ustring internals fixes for gcc 5.x changs to std::string ABI. #1176 (1.6.4)
+ * Fixes for clean build with clang 3.6. #1182,1183 (1.6.4)
+ * Fix signed/unsigned comparison error. #1186 (1.6.4)
+ * Top-level Makefile option USE_OPENCV=0 to turn off even searching for
+   OpenCV components. #1194 (1.6.4/1.5.18)
+ * If a system-installed (external) PTex implementation is found, use
+   it.  Only use the "bundled" version if no other is found. Also add a
+   top-level USE_PTEX=0 that will skip PTex support, even if the library
+   is found.  #1195,1197 (1.6.4)
+ * Fix compiler warnings about int vs size_t mismatches. 1199 (1.6.4)
+ * Improve C++11 and C++14 readiness. #1200
+ * Fix build break with certain new versions of libraw. #1204 (1.6.4/1.5.19)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1)
+ * Give Strutil::parse_string an option to not strip surrounding quotes.
+   (1.6.4)
  * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
    length with ones of definite length. #1072  (1.6.2/1.5.13)
  * Add Filesystem::rename() utility. #1070  (1.6.2/1.5.13)
@@ -301,7 +402,73 @@ Developer goodies / internals:
  * oiiotool internals have been refactored to be class-oriented and move
    a lot of boilerplate repeated in each op to be part of the base
    class. #1127 (1.6.3)
+ * timer.h: Timer and ScopedTimer have changed slightly. This isn't used
+   in any public OIIO APIs, but may affect 3rd party programs that like
+   to use OIIO's timer.h for convenience. #1201 (1.6.4/1.5.19)
+ * dassert.h: added OIIO_STATIC_ASSERT macros for static
+   assertion. Doesn't affect existing OIIO apps since they are new
+   additions, but feel free to use them! #1202 (1.6.4/1.5.19)
 
+
+Release 1.5.19 (8 Sep 2015) -- compared to 1.5.18)
+--------------------------------------------------
+* Fix compile warnings on some platforms/compilers.
+* Fix build break with certain new versions of libraw. #1204
+* Internals: Timer and ScopedTimer have changed slightly. This isn't used
+  in any public OIIO APIs, but may affect 3rd party programs that like
+  to use OIIO's timer.h for convenience. #1201
+* Internals: dassert.h has added OIIO_STATIC_ASSERT macros for static
+  assertion. Doesn't affect existing OIIO apps since they are new
+  additions, but feel free to use them! #1202
+
+Release 1.5.18 (4 Aug 2015) -- compared to 1.5.17)
+---------------------------------------------------
+* PSD input improvements: better error handling for files lacking "global
+  layer mask info" or "additional layer info"; additional PSD signatures
+  for global additional layer info; better error handling when dealing
+  with an empty layer mask. #1147
+* TIFF output: recognize special "tiff:write_exif" metadata, which when
+  present and set to 0, will skip writing the Exif directory into the TIFF
+  file. This can be helpful when you expect the resulting TIFF file to be
+  read with very old versions of libtiff. #1185
+* Top-level Makefile option USE_OPENCV=0 to turn off even searching for
+  OpenCV components. #1194
+
+Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
+---------------------------------------------------
+* Fix support for older ffmpeg version on Ubuntu 14.04. #1168
+* Fix bug in fft -- was not always zeroing out the imaginary channel. #1171
+* Build-time fixes for Nocona CPUs that have SSE3 without SSSE3. #1175
+* ustring fixes for new gcc (5.1+) and new std::string ABI. #1176
+* Fixes for unit test timer_test for new OSX versions with timer
+  coalescing. #1181
+* Fix bugs with rangecompress and rangeexpand when using luma. #1180
+* Fixes for clean build when using clang 3.6. #1182
+
+Release 1.5.16 (11 Jun 2015) -- compared to 1.5.15)
+---------------------------------------------------
+* PNG writes now honor PixelAspectRatio attribute. #1142
+* Build fixes for Visual Studio 2010 #1140
+* PSD & JPEG plugins fixes for Win32 compilation.
+* Also search for OIIO plugins in [DY]LD_LIBRARY_PATH. #1153
+* Give Strutil::parse_string an option to not strip surrounding quotes.
+* Fix Nuke plugin build files to not do anything if USE_NUKE=0  #1156
+* New ImageInput query: "procedural" -- returns 1 if the ImageInput may
+  not correspond to an actual file. #1154
+* TypeDesc has a new constructor and fromstring of a string_view, in
+  addition to the old versions that took char*. #1159
+* Eliminate spurious ImageCache invalidation just because the shared
+  cache is requested again. #1157
+* Fixed trilinear MIPmap texture lookups that gave invalid alpha fill. #1163
+* Filesystem: sequence matching should clear results arrays upon start.
+
+Release 1.5.15 (11 May 2015) -- compared to 1.5.14)
+---------------------------------------------------
+* Bug fix with IBA::channels() with deep data with UINT channels.
+* Fix TypeDesc compatibility with OSL.
+* Misc WIN32 / VS2010 fixes.
+* Fix incorrect logic in convert_image with certain channel types and
+  strides. #1144
 
 Release 1.5.14 (10 April 2015) -- compared to 1.5.13)
 ----------------------------------------------
@@ -1204,6 +1371,10 @@ Fixes, minor enhancements, and performance improvements:
   * --autotrim   Shrinks pixel data window upon output to trim black 
     edges. (1.3.2)
   * --siappend   Appends subimages of top two images on the stack. (1.2.2)
+  * --siappendall Appends ALL images on the stack into a single image with
+    multiple subimages. #1178 (1.6.4)
+  * --sisplit   Splits the top multi-image into separate images on the
+    stack for each subimage. #1178 (1.6.4)
   * --datadump will print all pixel values of an image (debugging tool) (1.3.6)
   * --flatten turns a "deep" image into a flat one by depth-compositing within
     each pixel (1.3.6).
@@ -1340,6 +1511,8 @@ Build/test system improvements:
   it more robust for builds with paths containing spaces. (1.3.7)
 * Moved the main CMakeLists.txt file to the top level directory, per usual
   CMake conventions. (1.3.7)
+* Fixed timer_test to allow for timing slop of newer OSX versions that have
+  "timer coalescing." (1.6.4)
 
 Developer goodies:
 * Docs improvement: full documentation of ImageBufAlgo. (1.2.1/1.3.2)
