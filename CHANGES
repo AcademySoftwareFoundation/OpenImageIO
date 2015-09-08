@@ -1,17 +1,28 @@
 Changes:
 
+Release 1.5.19 (8 Sep 2015) -- compared to 1.5.18)
+--------------------------------------------------
+* Fix compile warnings on some platforms/compilers.
+* Fix build break with certain new versions of libraw. #1204
+* Internals: Timer and ScopedTimer have changed slightly. This isn't used
+  in any public OIIO APIs, but may affect 3rd party programs that like
+  to use OIIO's timer.h for convenience. #1201
+* Internals: dassert.h has added OIIO_STATIC_ASSERT macros for static
+  assertion. Doesn't affect existing OIIO apps since they are new
+  additions, but feel free to use them! #1202
+
 Release 1.5.18 (4 Aug 2015) -- compared to 1.5.17)
 ---------------------------------------------------
 * PSD input improvements: better error handling fo files lacking "global
   layer mask info" or "additional layer info"; additional PSD signatures
   for global additional layer info; better error handling when dealing
-  with an empty layer mask.
+  with an empty layer mask. #1147
 * TIFF output: recognize special "tiff:write_exif" metadata, which when
   present and set to 0, will skip writing the Exif directory into the TIFF
   file. This can be helpful when you expect the resulting TIFF file to be
-  read with very old versions of libtiff.
+  read with very old versions of libtiff. #1185
 * Top-level Makefile option USE_OPENCV=0 to turn off even searching for
-  OpenCV components.
+  OpenCV components. #1194
 
 Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
 ---------------------------------------------------
@@ -26,19 +37,19 @@ Release 1.5.17 (13 Jul 2015) -- compared to 1.5.16)
 
 Release 1.5.16 (11 Jun 2015) -- compared to 1.5.15)
 ---------------------------------------------------
-* PNG writes now honor PixelAspectRatio attribute.
-* Build fixes for Visual Studio 2010
+* PNG writes now honor PixelAspectRatio attribute. #1142
+* Build fixes for Visual Studio 2010 #1140
 * PSD & JPEG plugins fixes for Win32 compilation.
-* Also search for OIIO plugins in [DY]LD_LIBRARY_PATH.
+* Also search for OIIO plugins in [DY]LD_LIBRARY_PATH. #1153
 * Give Strutil::parse_string an option to not strip surrounding quotes.
-* Fix Nuke plugin build files to not do anything if USE_NUKE=0
+* Fix Nuke plugin build files to not do anything if USE_NUKE=0  #1156
 * New ImageInput query: "procedural" -- returns 1 if the ImageInput may
-  not correspond to an actual file.
+  not correspond to an actual file. #1154
 * TypeDesc has a new constructor and fromstring of a string_view, in
-  addition to the old versions that took char*.
+  addition to the old versions that took char*. #1159
 * Eliminate spurious ImageCache invalidation just because the shared
-  cache is requested again.
-* Fixed trilinear MIPmap texture lookups that gave invalid alpha fill.
+  cache is requested again. #1157
+* Fixed trilinear MIPmap texture lookups that gave invalid alpha fill. #1163
 * Filesystem: sequence matching should clear results arrays upon start.
 
 Release 1.5.15 (11 May 2015) -- compared to 1.5.14)
