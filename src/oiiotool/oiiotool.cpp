@@ -3813,6 +3813,78 @@ command_line_string (int argc, char * argv[], bool sansattrib)
 
 
 static void
+print_help (ArgParse &ap)
+{
+    ap.usage ();
+    std::cout << "\n";
+
+
+    // debugging color space names
+    std::stringstream s;
+    s << "Known color spaces: ";
+    const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
+    for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
+        const char *n = ot.colorconfig.getColorSpaceNameByIndex(i);
+        s << "\"" << n << "\"";
+        if (linear && !Strutil::iequals(n,"linear") &&
+            Strutil::iequals (n, linear))
+            s << " (linear)";
+        if (i < e-1)
+            s << ", ";
+    }
+    int columns = Sysutil::terminal_columns() - 2;
+    std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+
+    int nlooks = ot.colorconfig.getNumLooks();
+    if (nlooks) {
+        std::stringstream s;
+        s << "Known looks: ";
+        for (int i = 0;  i < nlooks;  ++i) {
+            const char *n = ot.colorconfig.getLookNameByIndex(i);
+            s << "\"" << n << "\"";
+            if (i < nlooks-1)
+                s << ", ";
+        }
+        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+    }
+
+    const char *default_display = ot.colorconfig.getDefaultDisplayName();
+    int ndisplays = ot.colorconfig.getNumDisplays();
+    if (ndisplays) {
+        std::stringstream s;
+        s << "Known displays: ";
+        for (int i = 0; i < ndisplays; ++i) {
+            const char *d = ot.colorconfig.getDisplayNameByIndex(i);
+            s << "\"" << d << "\"";
+            if (! strcmp(d, default_display))
+                s << "*";
+            const char *default_view = ot.colorconfig.getDefaultViewName(d);
+            int nviews = ot.colorconfig.getNumViews(d);
+            if (nviews) {
+                s << " (views: ";
+                for (int i = 0; i < nviews; ++i) {
+                    const char *v = ot.colorconfig.getViewNameByIndex(d, i);
+                    s << "\"" << v << "\"";
+                    if (! strcmp(v, default_view))
+                        s << "*";
+                    if (i < nviews-1)
+                        s << ", ";
+                }
+                s << ")";
+            }
+            if (i < ndisplays-1)
+                s << ", ";
+        }
+        s << " (* = default)";
+        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+    }
+    if (! ot.colorconfig.supportsOpenColorIO())
+        std::cout << "No OpenColorIO support was enabled at build time.\n";
+}
+
+
+
+static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
@@ -4048,75 +4120,11 @@ getargs (int argc, char *argv[])
 
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
+        print_help (ap);
         exit (EXIT_SUCCESS);
     }
     if (help || argc <= 1) {
-        ap.usage ();
-
-        // debugging color space names
-        std::stringstream s;
-        s << "Known color spaces: ";
-        const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
-        for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
-            const char *n = ot.colorconfig.getColorSpaceNameByIndex(i);
-            s << "\"" << n << "\"";
-            if (linear && !Strutil::iequals(n,"linear") &&
-                    Strutil::iequals (n, linear))
-                s << " (linear)";
-            if (i < e-1)
-                s << ", ";
-        }
-        int columns = Sysutil::terminal_columns() - 2;
-        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
-
-        int nlooks = ot.colorconfig.getNumLooks();
-        if (nlooks) {
-            std::stringstream s;
-            s << "Known looks: ";
-            for (int i = 0;  i < nlooks;  ++i) {
-                const char *n = ot.colorconfig.getLookNameByIndex(i);
-                s << "\"" << n << "\"";
-                if (i < nlooks-1)
-                    s << ", ";
-            }
-            std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
-        }
-
-        const char *default_display = ot.colorconfig.getDefaultDisplayName();
-        int ndisplays = ot.colorconfig.getNumDisplays();
-        if (ndisplays) {
-            std::stringstream s;
-            s << "Known displays: ";
-            for (int i = 0; i < ndisplays; ++i) {
-                const char *d = ot.colorconfig.getDisplayNameByIndex(i);
-                s << "\"" << d << "\"";
-                if (! strcmp(d, default_display))
-                    s << "*";
-                const char *default_view = ot.colorconfig.getDefaultViewName(d);
-                int nviews = ot.colorconfig.getNumViews(d);
-                if (nviews) {
-                    s << " (views: ";
-                    for (int i = 0; i < nviews; ++i) {
-                        const char *v = ot.colorconfig.getViewNameByIndex(d, i);
-                        s << "\"" << v << "\"";
-                        if (! strcmp(v, default_view))
-                            s << "*";
-                        if (i < nviews-1)
-                            s << ", ";
-                    }
-                    s << ")";
-                }
-                if (i < ndisplays-1)
-                    s << ", ";
-            }
-            s << " (* = default)";
-            std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
-        }
-
-        if (! ot.colorconfig.supportsOpenColorIO())
-            std::cout << "No OpenColorIO support was enabled at build time.\n";
-
+        print_help (ap);
         exit (EXIT_SUCCESS);
     }
 }
