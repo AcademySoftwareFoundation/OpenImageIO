@@ -37,6 +37,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <algorithm>
 #include <utility>
 #include <ctype.h>
 #include <map>
@@ -3817,7 +3818,20 @@ print_help (ArgParse &ap)
 {
     ap.usage ();
     std::cout << "\n";
+    int columns = Sysutil::terminal_columns() - 2;
 
+    {
+        std::stringstream s;
+        s << "Image formats supported: ";
+        std::string format_list;
+        OIIO::getattribute ("format_list", format_list);
+        std::vector<string_view> formats;
+        Strutil::split (format_list, formats, ",");
+        std::sort (formats.begin(), formats.end());
+        format_list = Strutil::join (formats, ", ");
+        s << format_list;
+        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+    }
 
     // debugging color space names
     std::stringstream s;
@@ -3832,7 +3846,6 @@ print_help (ArgParse &ap)
         if (i < e-1)
             s << ", ";
     }
-    int columns = Sysutil::terminal_columns() - 2;
     std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
 
     int nlooks = ot.colorconfig.getNumLooks();
