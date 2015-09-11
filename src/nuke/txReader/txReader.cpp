@@ -53,7 +53,8 @@ public:
     inline int mipLevel() { return mipLevel_; }
 
     void setMipLabels(std::vector<std::string> items) {
-        mipLevelKnob_->enumerationKnob()->menu(items);
+        if (mipLevelKnob_)
+            mipLevelKnob_->enumerationKnob()->menu(items);
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }
