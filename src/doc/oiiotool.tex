@@ -2468,6 +2468,30 @@ looks that \oiiotool knows about.
 
 \apiend
 
+\apiitem{\ce --ociofiletransform {\rm \emph{name}}}
+\NEW % 1.6
+Replace the current image with a new image whose pixels are transformed
+using the named OpenColorIO file transform.  Optional appended
+arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf inverse=}\emph{val} & If \emph{val} is nonzero, inverts the 
+  color transformation. \\
+\end{tabular}
+
+This command is only meaningful if OIIO was compiled with OCIO support
+and the environment variable {\cf \$OCIO} is set to point to a valid
+OpenColorIO configuration file.  If you ask for \oiiotool help 
+({\cf oiiotool --help}), at the very bottom you will see the list of all
+looks that \oiiotool knows about.
+
+\noindent Examples:
+\begin{tinycode}
+  oiiotool in.jpg --ociofiletransform footransform.csp -o out.jpg
+\end{tinycode}
+
+\apiend
+
 \apiitem{\ce --unpremult}
 Divide all color channels (those not alpha or z) of the current image by
 the alpha value, to ``un-premultiply'' them.  This presumes that the

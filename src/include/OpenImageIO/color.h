@@ -195,6 +195,22 @@ public:
                                             string_view context_key="",
                                             string_view context_value="") const;
 
+    /// Construct a processor to perform color transforms determined by an
+    /// OpenColorIO FileTransform.
+    ///
+    /// It is possible that this will return NULL, if the FileTransform
+    /// doesn't exist or is not allowed.  When the user is finished with a
+    /// ColorProcess, deleteColorProcessor should be called.
+    /// ColorProcessor(s) remain valid even if the ColorConfig that created
+    /// them no longer exists.
+    ///
+    /// Multiple calls to this are potentially expensive, so you should
+    /// call once to create a ColorProcessor to use on an entire image
+    /// (or multiple images), NOT for every scanline or pixel
+    /// separately!
+    ColorProcessor* createFileTransform (string_view name,
+                                         bool inverse=false) const;
+
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
     /// is found. (This is just a wrapper around OCIO's

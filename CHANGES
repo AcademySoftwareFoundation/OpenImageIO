@@ -50,6 +50,8 @@ Major new features and improvements:
       -v which just makes more verbose (non-debugging) output. #1134 (1.6.3)
     * --pixelaspect rescales the image to have the given pixel aspect
       ratio. #1146 (1.6.5)
+    * --ociofiletransform() implements OpenColorIO "file" transforms.
+      #1213 (1.6.5)
  * New ImageBufAlgo functions:
     * absdiff() computes the absolute difference (abs(A-B)) of two images,
       or between an image and a constant color. #1029 (1.6.0)
@@ -66,6 +68,8 @@ Major new features and improvements:
     * invert() computes 1-val. #1125 (1.6.3)
     * deepen() turns a flat RGBA (and optional Z) image into a "deep"
       image. #1130 (1.6.3)
+    * ociofiletransform() implements OpenColorIO "file" transforms.
+      #1213 (1.6.5)
 * Some open source fonts are now distributed with OIIO (DroidSans,
    DroidSans-Bold, DroidSerif, DroidSerif-Bold, DroidSerif-Italic,
    DroidSerif-BoldItalic, and DroidSansMono), and so those are always

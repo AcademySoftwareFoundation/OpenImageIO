@@ -1929,6 +1929,36 @@ environment variable will be used instead.
 \apiend
 
 
+\apiitem{bool {\ce ociofiletransform} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc string_view name, bool inverse=false, bool unpremult=false, \\
+  \bigspc\spc ColorConfig *colorconfig=NULL, \\
+  \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!ociofiletransform} \indexapi{ociofiletransform}
+\NEW % 1.6
+Copy pixels from {\cf src} to {\cf dst} (within the ROI), while applying an
+OpenColorIO ``file'' transform to the pixel values. If {\cf inverse} is {\cf
+true}, it will reverse the color transformation and look application. In-
+place operations ({\cf dst} and {\cf src} being the same image) are
+supported.
+
+If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
+then premultiply again after the color conversion.  You may want to use
+this flag if your image contains an alpha channel.
+
+An optional {\cf ColorConfig} is specified, but {\cf NULL} is passed, the
+default OCIO color configuration found by examining the {\cf \$OCIO}
+environment variable will be used instead.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Src ("tahoe.jpg");
+    ImageBuf Dst;
+    ImageBufAlgo::ociofiletransform (Dst, Src, "footransform.csp");
+\end{code}
+\apiend
+
+
 \apiitem{bool {\ce unpremult} (ImageBuf \&dst, const ImageBuf \&src,\\
   \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!unpremult} \indexapi{unpremult}

@@ -1417,6 +1417,23 @@ OP_CUSTOMCLASS (ociodisplay, OpOcioDisplay, 1);
 
 
 
+class OpOcioFileTransform : public OiiotoolOp {
+public:
+    OpOcioFileTransform (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual void option_defaults () { }
+    virtual int impl (ImageBuf **img) {
+        string_view name = args[1];
+        bool inverse = Strutil::from_string<int> (options["inverse"]);
+        return ImageBufAlgo::ociofiletransform (*img[0], *img[1], name,
+                                       false, inverse, &ot.colorconfig);
+    }
+};
+
+OP_CUSTOMCLASS (ociofiletransform, OpOcioFileTransform, 1);
+
+
+
 static int
 output_tiles (int /*argc*/, const char *argv[])
 {
@@ -4126,6 +4143,8 @@ getargs (int argc, char *argv[])
                     "Apply the named OCIO look (options: from=, to=, inverse=, key=, value=)",
                 "--ociodisplay %@ %s %s", action_ociodisplay, NULL, NULL,
                     "Apply the named OCIO display and view (options: from=, looks=, key=, value=)",
+                "--ociofiletransform %@ %s", action_ociofiletransform, NULL,
+                    "Apply the named OCIO filetransform (options: inverse=)",
                 "--unpremult %@", action_unpremult, NULL,
                     "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
                 "--premult %@", action_premult, NULL,

@@ -973,7 +973,8 @@ bool OIIO_API colorconvert (float *color, int nchannels,
 ///
 /// If unpremult is true, unpremultiply before color conversion, then
 /// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
+/// flag if your image contains an alpha channel. If inverse is true, it
+/// will reverse the color transformation.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
@@ -1021,6 +1022,25 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                         bool unpremult, string_view key, string_view value,
                         ROI roi, int nthreads=0);
 
+/// Copy pixels within the ROI from src to dst, applying an OpenColorIO
+/// "file" transform.  If inverse is true, it will reverse the color
+/// transformation. In-place operations (dst == src) are supported.
+///
+/// If dst is not yet initialized, it will be allocated to the same
+/// size as specified by roi.  If roi is not defined it will be all
+/// of dst, if dst is defined, or all of src, if dst is not yet defined.
+///
+/// If unpremult is true, unpremultiply before color conversion, then
+/// premultiply after the color conversion.  You may want to use this
+/// flag if your image contains an alpha channel. 
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
+                                 string_view name,
+                                 bool unpremult=false, bool inverse=false,
+                                 ColorConfig *colorconfig=NULL,
+                                 ROI roi=ROI::All(), int nthreads=0);
 
 /// Copy pixels from dst to src, and in the process divide all color
 /// channels (those not alpha or z) by the alpha value, to "un-premultiply"

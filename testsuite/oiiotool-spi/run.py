@@ -36,6 +36,24 @@ command += oiiotool_and_test ("ep0400_bg1_v101_3kalxog_alogc16.1001.dpx",
                               "ep0400_bg1_v101_1kalxog_vd8.1001.jpg",
                               precommand = "--colorconfig " + imagedir + "pxl.ocio/config.ocio")
 
+# Test ociofiletransform
+command += oiiotool_and_test ("os0225_110_lightingfix_v002.0101.dpx",
+                              "--ociofiletransform srgb_look.csp",
+                              "os0225_110_lightingfix_v002.0101.png",
+                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
+command += oiiotool_and_test ("os0225_110_lightingfix_v002.0170.dpx",
+                              "--ociofiletransform srgb_look.csp",
+                              "os0225_110_lightingfix_v002.0170.png",
+                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
+command += oiiotool_and_test ("os0525_120_lighting_v008.0101.dpx",
+                              "--ociofiletransform srgb_look.csp",
+                              "os0525_120_lighting_v008.0101.png",
+                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
+command += oiiotool_and_test ("os0525_120_lighting_v008.0132.dpx",
+                              "--ociofiletransform srgb_look.csp",
+                              "os0525_120_lighting_v008.0132.png",
+                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
+
 
 
 # Regression test on dealing with DPX with overscan

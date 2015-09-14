@@ -654,6 +654,44 @@ ColorConfig::createDisplayTransform (string_view display,
 
 
 
+ColorProcessor*
+ColorConfig::createFileTransform (string_view name, bool inverse) const
+{
+#ifdef USE_OCIO
+    // Ask OCIO to make a Processor that can handle the requested
+    // transformation.
+    if (getImpl()->config_) {
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        OCIO::FileTransformRcPtr transform = OCIO::FileTransform::Create();
+        transform->setSrc (name.c_str());
+        transform->setInterpolation (OCIO::INTERP_BEST);
+        OCIO::TransformDirection dir = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                               : OCIO::TRANSFORM_DIR_FORWARD;
+        OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        OCIO::ConstProcessorRcPtr p;
+        try {
+            // Get the processor corresponding to this transform.
+            p = getImpl()->config_->getProcessor (context, transform, dir);
+        }
+        catch(OCIO::Exception &e) {
+            getImpl()->error_ = e.what();
+            return NULL;
+        }
+        catch(...) {
+            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
+            return NULL;
+        }
+    
+        getImpl()->error_ = "";
+        return new ColorProcessor_OCIO(p);
+    }
+#endif
+
+    return NULL;    // if we get this far, we've failed
+}
+
+
+
 string_view
 ColorConfig::parseColorSpaceFromString (string_view str) const
 {
@@ -991,6 +1029,43 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
 
 
 
+bool
+ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
+                        string_view name, bool inverse, bool unpremult,
+                        ColorConfig *colorconfig, ROI roi, int nthreads)
+{
+    if (name.empty()) {
+        dst.error ("Unknown filetransform name");
+        return false;
+    }
+    ColorProcessor *processor = NULL;
+    {
+        spin_lock lock (colorconfig_mutex);
+        if (! colorconfig)
+            colorconfig = default_colorconfig.get();
+        if (! colorconfig)
+            default_colorconfig.reset (colorconfig = new ColorConfig);
+        processor = colorconfig->createFileTransform (name, inverse);
+        if (! processor) {
+            if (colorconfig->error())
+                dst.error ("%s", colorconfig->geterror());
+            else
+                dst.error ("Could not construct the color transform");
+            return false;
+        }
+    }
+    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    if (ok)
+        dst.specmod().attribute ("oiio:ColorSpace", name);
+    {
+        spin_lock lock (colorconfig_mutex);
+        colorconfig->deleteColorProcessor (processor);
+    }
+    return ok;
+}
+
+
+    
 bool
 ImageBufAlgo::colorconvert (float * color, int nchannels,
                             const ColorProcessor* processor, bool unpremult)

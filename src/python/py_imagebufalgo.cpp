@@ -1032,6 +1032,36 @@ IBA_ociodisplay_colorconfig (ImageBuf &dst, const ImageBuf &src,
 
 
 
+bool
+IBA_ociofiletransform (ImageBuf &dst, const ImageBuf &src,
+                       const std::string &name,
+                       bool inverse, bool unpremult,
+                       ROI roi = ROI::All(), int nthreads = 0)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::ociofiletransform (dst, src, name,
+                                            inverse, unpremult, NULL,
+                                            roi, nthreads);
+}
+
+
+
+bool
+IBA_ociofiletransform_colorconfig (ImageBuf &dst, const ImageBuf &src,
+                                   const std::string &name,
+                                   bool inverse, bool unpremult,
+                                   const std::string &colorconfig="",
+                                   ROI roi = ROI::All(), int nthreads = 0)
+{
+    ColorConfig config (colorconfig);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::ociofiletransform (dst, src, name,
+                                            inverse, unpremult, &config,
+                                            roi, nthreads);
+}
+
+
+
 object
 IBA_isConstantColor (const ImageBuf &src,
                      ROI roi = ROI::All(), int nthreads = 0)
@@ -1448,6 +1478,17 @@ void declare_imagebufalgo()
               arg("colorconfig")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ociodisplay")
+
+        .def("ociofiletransform", &IBA_ociofiletransform,
+             (arg("dst"), arg("src"), arg("name"),
+              arg("unpremult")=false, arg("invert")=false,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("ociofiletransform", &IBA_ociofiletransform_colorconfig,
+             (arg("dst"), arg("src"), arg("name"),
+              arg("unpremult")=false, arg("invert")=false,
+              arg("colorconfig")="",
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("ociofiletransform")
 
         // computePixelStats, 
 
