@@ -6,3 +6,5 @@ Comparing "ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg" and "../../../../../s
 PASS
 Comparing "ep0400_bg1_v101_1kalxog_vd8.1001.jpg" and "../../../../../spi-oiio-tests/ref/ep0400_bg1_v101_1kalxog_vd8.1001.jpg"
 PASS
+Comparing "os0225_110_lightingfix_v002.0101.png" and "../../../../../spi-oiio-tests/ref/os0225_110_lightingfix_v002.0101.png"
+PASS

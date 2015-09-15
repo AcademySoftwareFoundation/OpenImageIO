@@ -38,20 +38,8 @@ command += oiiotool_and_test ("ep0400_bg1_v101_3kalxog_alogc16.1001.dpx",
 
 # Test ociofiletransform
 command += oiiotool_and_test ("os0225_110_lightingfix_v002.0101.dpx",
-                              "--ociofiletransform srgb_look.csp",
+                              "--colorconvert lm10 lnf --ociofiletransform srgb_look.csp --colorconvert lnf vd8 -d uint8",
                               "os0225_110_lightingfix_v002.0101.png",
-                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
-command += oiiotool_and_test ("os0225_110_lightingfix_v002.0170.dpx",
-                              "--ociofiletransform srgb_look.csp",
-                              "os0225_110_lightingfix_v002.0170.png",
-                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
-command += oiiotool_and_test ("os0525_120_lighting_v008.0101.dpx",
-                              "--ociofiletransform srgb_look.csp",
-                              "os0525_120_lighting_v008.0101.png",
-                              precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
-command += oiiotool_and_test ("os0525_120_lighting_v008.0132.dpx",
-                              "--ociofiletransform srgb_look.csp",
-                              "os0525_120_lighting_v008.0132.png",
                               precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
 
 
