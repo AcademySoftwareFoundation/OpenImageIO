@@ -192,7 +192,7 @@ if (NOT Boost_FIND_QUIETLY)
     message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
     message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
     message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-    message (STATUS "Boost_python_FOUND ${oiio_boost_PYTHON_FOUND}")
+    message (STATUS "Boost python found ${oiio_boost_PYTHON_FOUND}")
 endif ()
 if (NOT oiio_boost_PYTHON_FOUND)
     # If Boost python components were not found, turn off all python support.
