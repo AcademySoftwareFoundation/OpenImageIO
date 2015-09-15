@@ -103,7 +103,7 @@ public:
 #else
     static const size_t rank = Rank;
     typedef offset<Rank> offset_type;
-    typedef bounds<Rank> bounds_type;
+    typedef OIIO::bounds<Rank> bounds_type;
     typedef offset<Rank> stride_type;
     typedef size_t size_type;
     typedef T value_type;
@@ -193,7 +193,7 @@ private:
     reference VIEW_ACCESS (T* data, const offset_type &idx,
                            const stride_type &stride, size_t rank=Rank) const {
         ptrdiff_t offset = 0;
-        for (int i = 0; i < rank; ++i)
+        for (size_t i = 0; i < rank; ++i)
             offset += idx[i] * stride[i];
         return data[offset];
     }
@@ -224,7 +224,7 @@ public:
 #else
     static const size_t rank = Rank;
     typedef offset<Rank> offset_type;
-    typedef bounds<Rank> bounds_type;
+    typedef OIIO::bounds<Rank> bounds_type;
     typedef offset<Rank> stride_type;
     typedef size_t size_type;
     typedef T value_type;
@@ -303,7 +303,7 @@ private:
     reference VIEW_ACCESS (T* data, const offset_type &idx,
                            const stride_type &stride, size_t rank=Rank) const {
         ptrdiff_t offset = 0;
-        for (int i = 0; i < rank; ++i)
+        for (size_t i = 0; i < rank; ++i)
             offset += idx[i] * stride[i];
         return data[offset];
     }
