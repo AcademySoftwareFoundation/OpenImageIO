@@ -3510,6 +3510,7 @@ input_file (int argc, const char *argv[])
                 std::cout << "  From " << filename << ", we deduce color space \""
                           << colorspace << "\"\n";
             if (colorspace.empty()) {
+                ot.read ();
                 colorspace = ot.curimg->spec()->get_string_attribute ("oiio:ColorSpace");
                 if (ot.debug)
                     std::cout << "  Metadata of " << filename << " indicates color space \""
