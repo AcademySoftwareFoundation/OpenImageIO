@@ -298,9 +298,14 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
         ap.usage ();
         exit (EXIT_FAILURE);
     }
-    if (help || filenames.empty()) {
+    if (help) {
         ap.usage ();
         exit (EXIT_FAILURE);
+    }
+    if (filenames.empty()) {
+        ap.briefusage ();
+        std::cout << "\nFor detailed help: maketx --help\n";
+        exit (EXIT_SUCCESS);
     }
 
     int optionsum = ((int)shadowmode + (int)envlatlmode + (int)envcubemode +
@@ -308,7 +313,6 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     if (optionsum > 1) {
         std::cerr << "maketx ERROR: At most one of the following options may be set:\n"
                   << "\t--shadow --envlatl --envcube --lightprobe\n";
-        ap.usage ();
         exit (EXIT_FAILURE);
     }
     if (optionsum == 0)
@@ -318,7 +322,6 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
         std::cerr << "maketx ERROR: '--prman' compatibility, and '--oiio' optimizations are mutually exclusive.\n";
         std::cerr << "\tIf you'd like both prman and oiio compatibility, you should choose --prman\n";
         std::cerr << "\t(at the expense of oiio-specific optimizations)\n";
-        ap.usage ();
         exit (EXIT_FAILURE);
     }
 

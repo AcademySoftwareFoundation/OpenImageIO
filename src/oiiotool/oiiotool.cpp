@@ -4136,8 +4136,13 @@ getargs (int argc, char *argv[])
         print_help (ap);
         exit (EXIT_SUCCESS);
     }
-    if (help || argc <= 1) {
+    if (help) {
         print_help (ap);
+        exit (EXIT_SUCCESS);
+    }
+    if (argc <= 1) {
+        ap.briefusage ();
+        std::cout << "\nFor detailed help: oiiotool --help\n";
         exit (EXIT_SUCCESS);
     }
 }
