@@ -180,8 +180,6 @@ static CompressionCode tiff_compressions[] = {
 
 static int tiff_compression_code (string_view name)
 {
-    if (name.empty())
-        COMPRESSION_ADOBE_DEFLATE;  // default
     for (int i = 0; tiff_compressions[i].name; ++i)
         if (Strutil::iequals (name, tiff_compressions[i].name))
             return tiff_compressions[i].code;
