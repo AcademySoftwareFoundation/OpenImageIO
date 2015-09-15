@@ -44,7 +44,6 @@
 #include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/dassert.h"
-#include "OpenImageIO/filesystem.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -87,6 +86,7 @@ public:
     void description (const char *d) { m_descript = d; }
     const std::string & description() const { return m_descript; }
 
+    bool is_separator () const { return fmt() == "<SEPARATOR>"; }
 private:
     enum OptionType { None, Regular, Flag, ReverseFlag, Sublist };
 
@@ -130,7 +130,7 @@ ArgOption::initialize()
         m_count = 1;                      // sublist callback function pointer
         m_code = "*";
         m_flag = "";
-    } else if (m_format == "<SEPARATOR>") {
+    } else if (is_separator()) {
     } else {
         // extract the flag name
         s = &m_format[0];
@@ -520,7 +520,7 @@ ArgParse::usage () const
         ArgOption *opt = m_option[i];
         if (opt->description().length()) {
             size_t fmtlen = opt->fmt().length();
-            if (opt->fmt() == "<SEPARATOR>") {
+            if (opt->is_separator()) {
                 std::cout << Strutil::wordwrap(opt->description(), columns-2, 0) << '\n';
             } else {
                 std::cout << "    " << opt->fmt();
@@ -532,6 +532,33 @@ ArgParse::usage () const
             }
         }
     }
+}
+
+
+
+void
+ArgParse::briefusage () const
+{
+    std::cout << m_intro << '\n';
+    // Try to figure out how wide the terminal is, so we can word wrap.
+    int columns = Sysutil::terminal_columns ();
+
+    std::string pending;
+    for (unsigned int i=0; i<m_option.size(); ++i) {
+        ArgOption *opt = m_option[i];
+        if (opt->description().length()) {
+            if (opt->is_separator()) {
+                if (pending.size())
+                    std::cout << "    " << Strutil::wordwrap(pending, columns-2, 4) << '\n';
+                pending.clear ();
+                std::cout << Strutil::wordwrap(opt->description(), columns-2, 0) << '\n';
+            } else {
+                pending += opt->name() + " ";
+            }
+        }
+    }
+    if (pending.size())
+        std::cout << "    " << Strutil::wordwrap(pending, columns-2, 4) << '\n';
 }
 
 

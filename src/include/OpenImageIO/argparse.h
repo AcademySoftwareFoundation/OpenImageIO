@@ -170,6 +170,11 @@ public:
     /// description arguments passed to parse().
     void usage () const;
 
+    /// Print a brief usage message to stdout.  The usage message is
+    /// generated and formatted automatically based on the command and
+    /// description arguments passed to parse().
+    void briefusage () const;
+
     /// Return the entire command-line as one string.
     ///
     std::string command_line () const;
@@ -189,6 +194,12 @@ private:
 
     int found (const char *option);      // number of times option was parsed
 };
+
+
+
+// Define symbols that let client applications determine if newly added
+// features are supported.
+#define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE 1
 
 
 OIIO_NAMESPACE_END
