@@ -93,6 +93,7 @@ private:
     unsigned int m_dither;
     int m_compression;
     int m_photometric;
+    int m_bitspersample;  ///< Of the *file*, not the client's view
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -302,30 +303,33 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     int orientation = m_spec.get_int_attribute("Orientation", 1);
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, orientation);
     
-    int bps, sampformat;
+    m_bitspersample = m_spec.get_int_attribute ("oiio:BitsPerSample");
+    int sampformat;
     switch (m_spec.format.basetype) {
     case TypeDesc::INT8:
-        bps = 8;
+        m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT8:
-        bps = 8;
+        if (m_bitspersample != 2 && m_bitspersample != 4)
+            m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_UINT;
         break;
     case TypeDesc::INT16:
-        bps = 16;
+        m_bitspersample = 16;
         sampformat = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT16:
-        bps = 16;
+        if (m_bitspersample != 10 && m_bitspersample != 12)
+            m_bitspersample = 16;
         sampformat = SAMPLEFORMAT_UINT;
         break;
     case TypeDesc::INT32:
-        bps = 32;
+        m_bitspersample = 32;
         sampformat = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT32:
-        bps = 32;
+        m_bitspersample = 32;
         sampformat = SAMPLEFORMAT_UINT;
         break;
     case TypeDesc::HALF:
@@ -334,7 +338,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         // Unfortunately, Nuke 9.0, and probably many other apps we care
         // about, cannot read 16 bit float TIFFs correctly. Revisit this
         // again in future releases. (comment added Feb 2015)
-        bps = 16;
+        m_bitspersample = 16;
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
 #else
@@ -342,21 +346,21 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.set_format (TypeDesc::FLOAT);
 #endif
     case TypeDesc::FLOAT:
-        bps = 32;
+        m_bitspersample = 32;
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
     case TypeDesc::DOUBLE:
-        bps = 64;
+        m_bitspersample = 64;
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
     default:
         // Everything else, including UNKNOWN -- default to 8 bit
-        bps = 8;
+        m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_UINT;
         m_spec.set_format (TypeDesc::UINT8);
         break;
     }
-    TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, bps);
+    TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
     TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
 
     m_photometric = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
@@ -379,8 +383,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
             // documented since 2005, let's take our chances.  Comment
             // out the above line if this is problematic.
         }
-        else
+        else if (m_bitspersample == 8 || m_bitspersample == 16) {
+            // predictors not supported for unusual bit depths (e.g. 10)
             TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
+        }
     } else if (m_compression == COMPRESSION_JPEG) {
         TIFFSetField (m_tif, TIFFTAG_JPEGQUALITY,
                       m_spec.get_int_attribute("CompressionQuality", 95));
@@ -418,13 +424,18 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING)) ||
         (param = m_spec.find_attribute("tiff:planarconfig", TypeDesc::STRING))) {
         str = *(char **)param->data();
-        if (str && Strutil::iequals (str, "separate")) {
+        if (str && Strutil::iequals (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
-            if (! m_spec.tile_width) {
-                // I can only seem to make separate planarconfig work when
-                // rowsperstrip is 1.
-                TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 1);
-            }
+    }
+    // Can't deal with the headache of separate image planes and bit
+    // packing. Just punt by forcing contig in that case.
+    if (m_bitspersample != spec().format.size()*8)
+        m_planarconfig = PLANARCONFIG_CONTIG;
+    if (m_planarconfig == PLANARCONFIG_SEPARATE) {
+        if (! m_spec.tile_width) {
+            // I can only seem to make separate planarconfig work when
+            // rowsperstrip is 1.
+            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 1);
         }
     }
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
@@ -724,6 +735,52 @@ TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
 
 
 
+// Convert T data[0..nvals-1] in-place to BITS_TO per sample, *packed*.
+// The bit width of T is definitely wider than BITS_TO. T should be an
+// unsigned type.
+template <typename T, int BITS_TO>
+static void
+convert_pack_bits (T *data, int nvals)
+{
+    const int BITS_FROM = sizeof(T)*8;
+    T *in = data;
+    T *out = in - 1;    // because we'll increment first time through
+
+    int bitstofill = 0;
+    // Invariant: the next value to convert is *in. We're going to write
+    // the result of the conversion starting at *out, which still has
+    // bitstofill bits left before moving on to the next slot.
+    for (int i = 0; i < nvals; ++i) {
+        // Grab the next value and convert it
+        T val = bit_range_convert<BITS_FROM,BITS_TO> (*in++);
+        // If we have no more bits to fill in the slot, move on to the
+        // next slot.
+        if (bitstofill == 0) {
+            ++out; *out = 0;        // move to next slot and clear its bits
+            bitstofill = BITS_FROM; // all bits are for the taking
+        }
+        if (bitstofill >= BITS_TO) {
+            // we can fit the whole val in this slot
+            *out |= val << (bitstofill - BITS_TO);
+            bitstofill -= BITS_TO;
+            // printf ("\t\t%d bits left\n", bitstofill);
+        } else {
+            // not enough bits -- will need to split across slots
+            int bitsinnext = BITS_TO - bitstofill;
+            *out |= val >> bitsinnext;
+            val &= (1 << bitsinnext) - 1;  // mask out bits we saved
+            ++out; *out = 0;        // move to next slot and clear its bits
+            *out |= val << (BITS_FROM - bitsinnext);
+            bitstofill = BITS_FROM - bitsinnext;
+        }
+    }
+    // Because we filled in a big-endian way, swap bytes if we need to
+    if (littleendian())
+        swap_endian (data, nvals);
+}
+
+
+
 bool
 TIFFOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
@@ -732,6 +789,29 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch,
                                m_dither, y, z);
+
+    // Handle weird bit depths
+    if (spec().format.size()*8 != m_bitspersample) {
+        // Move to scratch area if not already there
+        imagesize_t nbytes = spec().scanline_bytes();
+        int nvals = spec().width * spec().nchannels;
+        if (data == origdata) {
+            m_scratch.assign ((unsigned char *)data,
+                              (unsigned char *)data+nbytes);
+            data = &m_scratch[0];
+        }
+        if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
+            convert_pack_bits<unsigned short, 10> ((unsigned short *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
+            convert_pack_bits<unsigned short, 12> ((unsigned short *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
+            convert_pack_bits<unsigned char, 4> ((unsigned char *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
+            convert_pack_bits<unsigned char, 2> ((unsigned char *)data, nvals);
+        } else {
+            ASSERT (0 && "unsupported bit conversion -- shouldn't reach here");
+        }
+    }
 
     y -= m_spec.y;
     if (m_planarconfig == PLANARCONFIG_SEPARATE) {
@@ -798,6 +878,30 @@ TIFFOutput::write_tile (int x, int y, int z,
     const void *origdata = data;   // Stash original pointer
     data = to_native_tile (format, data, xstride, ystride, zstride,
                            m_scratch, m_dither, x, y, z);
+
+    // Handle weird bit depths
+    if (spec().format.size()*8 != m_bitspersample) {
+        // Move to scratch area if not already there
+        imagesize_t nbytes = spec().scanline_bytes();
+        int nvals = int (spec().tile_pixels()) * spec().nchannels;
+        if (data == origdata) {
+            m_scratch.assign ((unsigned char *)data,
+                              (unsigned char *)data+nbytes);
+            data = &m_scratch[0];
+        }
+        if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
+            convert_pack_bits<unsigned short, 10> ((unsigned short *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
+            convert_pack_bits<unsigned short, 12> ((unsigned short *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
+            convert_pack_bits<unsigned char, 4> ((unsigned char *)data, nvals);
+        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
+            convert_pack_bits<unsigned char, 2> ((unsigned char *)data, nvals);
+        } else {
+            ASSERT (0 && "unsupported bit conversion -- shouldn't reach here");
+        }
+    }
+
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         imagesize_t tile_pixels = m_spec.tile_pixels();

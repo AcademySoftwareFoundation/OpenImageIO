@@ -159,10 +159,10 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
-../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint2 tiff
+../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
     channel list: R, G, B
-    oiio:BitsPerSample: 2
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -170,6 +170,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
     Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
     DocumentName: "flower-palette-02.tif"
     tiff:PhotometricInterpretation: 3
+    tiff:BitsPerSample: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 1
@@ -179,10 +180,10 @@ Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
 Comparing "../../../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
-../../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint4 tiff
+../../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
     channel list: R, G, B
-    oiio:BitsPerSample: 4
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -190,6 +191,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
     Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
     DocumentName: "flower-palette-04.tif"
     tiff:PhotometricInterpretation: 3
+    tiff:BitsPerSample: 4
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 1

@@ -767,6 +767,15 @@ TIFFInput::readspec (bool read_meta)
         // Palette TIFF images are always 3 channels (to the client)
         m_spec.nchannels = 3;
         m_spec.default_channel_names ();
+        if (m_bitspersample != m_spec.format.size()*8) {
+            // For palette images with unusual bits per sample, set
+            // oiio:BitsPerSample to the "full" version, to avoid problems
+            // when copying the file back to a TIFF file (we don't write
+            // palette images), but do leave "tiff:BitsPerSample" to reflect
+            // the original file.
+            m_spec.attribute ("tiff:BitsPerSample", (int)m_bitspersample);
+            m_spec.attribute ("oiio:BitsPerSample", (int)m_spec.format.size()*8);
+        }
         // FIXME - what about palette + extra (alpha?) channels?  Is that
         // allowed?  And if so, ever encountered in the wild?
     }

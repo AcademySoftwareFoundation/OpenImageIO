@@ -1052,10 +1052,14 @@ aware of:
 \item No separate per-channel data formats (not supported by {\cf
   libtiff}).
 \item Only multiples of 8 bits per pixel may be passed through
-  \product's APIs, e.g., 1-, 2-, and 4-bits per pixel will be reported
-  by OIIO as 8 bit images; 12 bits per pixel will be reported as 16,
+  \product's APIs, e.g., 1-, 2-, and 4-bits per pixel will be passed
+  by OIIO as 8 bit images; 12 bits per pixel will be passed as 16,
   etc.  But the \qkw{oiio:BitsPerSample} attribute in the \ImageSpec
-  will correctly report the original bit depth of the file.
+  will correctly report the original bit depth of the file. Similarly
+  for output, you must pass 8 or 16 bit output, but \qkw{oiio:BitsPerSample}
+  gives a hint about how you want it to be when written to the file, and
+  it will try to accommodate the request (for signed integers,
+  TIFF output can accommodate 2, 4, 8, 10, 12, and 16 bits).
 \item JPEG compression is limited to 8-bit per channel, 3-channel files.
 \end{itemize}
 
