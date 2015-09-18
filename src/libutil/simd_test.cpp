@@ -161,7 +161,6 @@ void test_arithmetic ()
 template<typename VEC>
 void test_comparisons ()
 {
-    typedef typename VEC::value_t ELEM;
     std::cout << "test_comparisons " << VEC::type_name() << "\n";
 
     VEC a (0, 1, 2, 3);
@@ -178,7 +177,6 @@ void test_comparisons ()
 template<typename VEC>
 void test_shuffle ()
 {
-    typedef typename VEC::value_t ELEM;
     std::cout << "test_shuffle " << VEC::type_name() << "\n";
 
     VEC a (0, 1, 2, 3);
@@ -193,7 +191,6 @@ void test_shuffle ()
 template<typename VEC>
 void test_swizzle ()
 {
-    typedef typename VEC::value_t ELEM;
     std::cout << "test_swizzle " << VEC::type_name() << "\n";
 
     VEC a (0, 1, 2, 3);
@@ -208,7 +205,6 @@ void test_swizzle ()
 template<typename VEC>
 void test_blend ()
 {
-    typedef typename VEC::value_t ELEM;
     std::cout << "test_blend " << VEC::type_name() << "\n";
 
     VEC a (1, 2, 3, 4);
@@ -232,7 +228,6 @@ void test_blend ()
 template<typename VEC>
 void test_transpose ()
 {
-    typedef typename VEC::value_t ELEM;
     std::cout << "test_transpose " << VEC::type_name() << "\n";
 
     VEC a (0, 1, 2, 3);
