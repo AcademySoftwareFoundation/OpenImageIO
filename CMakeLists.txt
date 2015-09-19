@@ -10,6 +10,9 @@ cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
     cmake_policy (SET CMP0017 NEW)
 endif ()
+if (NOT CMAKE_VERSION VERSION_LESS 3.0)
+    cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
+endif ()
 if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
     cmake_policy (SET CMP0042 OLD)
     cmake_policy (SET CMP0046 OLD)
@@ -43,43 +46,6 @@ if (CMAKE_USE_FOLDERS)
     set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 endif ()
 
-# Figure out which compiler we're using
-if (CMAKE_COMPILER_IS_GNUCC)
-    execute_process (COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                     OUTPUT_VARIABLE GCC_VERSION
-                     OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if (VERBOSE)
-        message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
-    endif ()
-endif ()
-message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
-message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set (CMAKE_COMPILER_IS_CLANG 1)
-endif ()
-if (CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
-    # Second try: for earlier versions of CMake, the CMAKE_CXX_COMPILER_ID
-    # appears to be unreliable and may say "GNU" despite using clang, so
-    # directly match against the compiler name.
-    set (CMAKE_COMPILER_IS_CLANG 1)
-endif ()
-if (CMAKE_COMPILER_IS_CLANG)
-    if (NOT CLANG_VERSION_STRING)
-        EXECUTE_PROCESS( COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string )
-        string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
-    endif ()
-    if (VERBOSE)
-        message (STATUS "The compiler is Clang version ${CLANG_VERSION_STRING}")
-    endif ()
-endif ()
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    set (CMAKE_COMPILER_IS_INTEL 1)
-    if (VERBOSE)
-        message (STATUS "Using Intel as the compiler")
-    endif ()
-endif ()
-
 ## turn on more detailed warnings and consider warnings as errors
 set (STOP_ON_WARNING ON CACHE BOOL "Stop building if there are any compiler warnings")
 if (NOT MSVC)
@@ -89,7 +55,49 @@ if (NOT MSVC)
     endif ()
 endif ()
 
-if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
+message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
+message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+
+# Figure out which compiler we're using
+if (CMAKE_COMPILER_IS_GNUCC)
+    execute_process (COMMAND ${CMAKE_C_COMPILER} -dumpversion
+                     OUTPUT_VARIABLE GCC_VERSION
+                     OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if (VERBOSE)
+        message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
+    endif ()
+endif ()
+
+# Figure out which compiler we're using, for tricky cases
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
+    # If using any flavor of clang, set CMAKE_COMPILER_IS_CLANG. If it's
+    # Apple's variety, set CMAKE_COMPILER_IS_APPLECLANG and
+    # APPLECLANG_VERSION_STRING, otherwise for generic clang set
+    # CLANG_VERSION_STRING.
+    set (CMAKE_COMPILER_IS_CLANG 1)
+    EXECUTE_PROCESS( COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string )
+    if (clang_full_version_string MATCHES "Apple")
+        set (CMAKE_CXX_COMPILER_ID "AppleClang")
+        set (CMAKE_COMPILER_IS_APPLECLANG 1)
+        string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" APPLECLANG_VERSION_STRING ${clang_full_version_string})
+        if (VERBOSE)
+            message (STATUS "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${APPLECLANG_VERSION_STRING}")
+        endif ()
+    else ()
+        string (REGEX REPLACE ".* version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+        if (VERBOSE)
+            message (STATUS "The compiler is Clang: ${CMAKE_CXX_COMPILER_ID} version ${CLANG_VERSION_STRING}")
+        endif ()
+    endif ()
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    set (CMAKE_COMPILER_IS_INTEL 1)
+    if (VERBOSE)
+        message (STATUS "Using Intel as the compiler")
+    endif ()
+endif ()
+
+# Options common to gcc and clang
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # CMake doesn't automatically know what do do with
     # include_directories(SYSTEM...) when using clang or gcc.
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
@@ -97,9 +105,21 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     add_definitions ("-D__STDC_LIMIT_MACROS")
     # this allows native instructions to be used for sqrtf instead of a function call
     add_definitions ("-fno-math-errno")
+    if (HIDE_SYMBOLS AND NOT DEBUGMODE)
+        # Turn default symbol visibility to hidden
+        set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
+        add_definitions (${VISIBILITY_COMMAND})
+        if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
+            # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
+            # libraries to prevent clashes if an app using OIIO is linked
+            # against other verions of our dependencies.
+            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
+        endif ()
+    endif ()
 endif ()
 
-if (CMAKE_COMPILER_IS_CLANG)
+# Clang-specific options
+if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     # Disable some warnings for Clang, for some things that are too awkward
     # to change just for the sake of having no warnings.
     add_definitions ("-Wno-unused-function")
@@ -111,28 +131,18 @@ if (CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
     add_definitions ("-Wunknown-warning-option")
-    if (CLANG_VERSION_STRING VERSION_GREATER 3.5)
+    if (CLANG_VERSION_STRING VERSION_GREATER 3.5 OR
+        APPLECLANG_VERSION_STRING VERSION_GREATER 6.0)
         add_definitions ("-Wno-unused-local-typedefs")
     endif ()
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG) AND (NOT ${GCC_VERSION} VERSION_LESS 4.8))
-    # suppress a warning that Boost::Python hits in g++ 4.8
-    add_definitions ("-Wno-error=unused-local-typedefs")
-    add_definitions ("-Wno-unused-local-typedefs")
-endif ()
-
-if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
-    if (HIDE_SYMBOLS AND NOT DEBUGMODE)
-        # Turn default symbol visibility to hidden
-        set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
-        add_definitions (${VISIBILITY_COMMAND})
-        if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
-            # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
-            # libraries to prevent clashes if an app using OIIO is linked
-            # against other verions of our dependencies.
-            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
-        endif ()
+# gcc specific options
+if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG))
+    if (NOT ${GCC_VERSION} VERSION_LESS 4.8)
+        # suppress a warning that Boost::Python hits in g++ 4.8
+        add_definitions ("-Wno-error=unused-local-typedefs")
+        add_definitions ("-Wno-unused-local-typedefs")
     endif ()
 endif ()
 
@@ -252,18 +262,17 @@ if (NOT USE_SIMD STREQUAL "")
     endif ()
 endif ()
 
-set (CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
-
 # Set the default namespace
 if (NOT OIIO_NAMESPACE)
     set (OIIO_NAMESPACE OpenImageIO CACHE STRING
          "Specify the master OpenImageIO C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc."
          FORCE)
 endif ()
-
 message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
+
+set (CMAKE_MODULE_PATH
+     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+     "${PROJECT_SOURCE_DIR}/src/cmake")
 
 include (util_macros)
 include (oiio_macros)
@@ -271,10 +280,10 @@ include (platform)
 include (externalpackages)
 
 
-include_directories(
+include_directories (
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
-)
+  )
 
 
 ###########################################################################
