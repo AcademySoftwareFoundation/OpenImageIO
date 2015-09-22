@@ -1043,6 +1043,13 @@ channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
                              stride_t ystride=AutoStride, \\
                              \bigspc stride_t zstride=AutoStride, \\
                              \bigspc ProgressCallback progress_callback=NULL,\\
+                             \bigspc void *progress_callback_data=NULL) \\
+bool {\ce read_image} (int chbegin, int chend, \\
+                             \bigspc TypeDesc format, void *data, \\
+                             \bigspc stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride, \\
+                             \bigspc stride_t zstride=AutoStride, \\
+                             \bigspc ProgressCallback progress_callback=NULL,\\
                              \bigspc void *progress_callback_data=NULL)}
 
 Read the entire image of {\kw spec.width * spec.height * spec.depth}
@@ -1062,6 +1069,9 @@ data, i.e., \\
 The function will internally either call {\kw read_scanlines} or 
 {\kw read_tiles}, depending on whether the file is scanline- or
 tile-oriented.
+
+The version that specifies a channel range will read only
+channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
 
 Because this may be an expensive operation, a progress callback may be passed.
 Periodically, it will be called as follows:\\

@@ -751,6 +751,21 @@ public:
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
+    /// Read the entire image of spec.width x spec.height x spec.depth
+    /// pixels into data (which must already be sized large enough for
+    /// the entire image) with the given strides and in the desired
+    /// format.  Read tiles or scanlines automatically. Only channels
+    /// [chbegin,chend) will be read/copied (chbegin=0, chend=spec.nchannels
+    /// reads all channels, yielding equivalent behavior to the simpler
+    /// variant of read_image).
+    virtual bool read_image (int chbegin, int chend,
+                             TypeDesc format, void *data,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride,
+                             ProgressCallback progress_callback=NULL,
+                             void *progress_callback_data=NULL);
+
     ///
     /// Simple read_image reads to contiguous float pixels.
     bool read_image (float *data) {

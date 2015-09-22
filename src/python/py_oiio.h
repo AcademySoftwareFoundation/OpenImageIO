@@ -179,7 +179,7 @@ public:
     int current_subimage() const;
     int current_miplevel() const;
     bool seek_subimage (int, int);
-    object read_image (TypeDesc);
+    object read_image (int chbegin, int chend, TypeDesc);
     object read_scanline (int y, int z, TypeDesc format);
     object read_scanlines (int ybegin, int yend, int z,
                            int chbegin, int chend, TypeDesc format);

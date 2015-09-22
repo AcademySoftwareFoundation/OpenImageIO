@@ -593,12 +593,28 @@ ImageInput::read_image (TypeDesc format, void *data,
                         ProgressCallback progress_callback,
                         void *progress_callback_data)
 {
+    return read_image (0, -1, format, data, xstride, ystride, zstride,
+                       progress_callback, progress_callback_data);
+}
+
+
+
+bool
+ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
+                        stride_t xstride, stride_t ystride, stride_t zstride,
+                        ProgressCallback progress_callback,
+                        void *progress_callback_data)
+{
+    if (chend < 0)
+        chend = m_spec.nchannels;
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
+    int nchans = chend - chbegin;
     bool native = (format == TypeDesc::UNKNOWN);
-    stride_t pixel_bytes = native ? (stride_t) m_spec.pixel_bytes (native)
-                                  : (stride_t) (format.size()*m_spec.nchannels);
+    stride_t pixel_bytes = native ? (stride_t) m_spec.pixel_bytes (chbegin, chend, native)
+                                  : (stride_t) (format.size()*nchans);
     if (native && xstride == AutoStride)
         xstride = pixel_bytes;
-    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+    m_spec.auto_stride (xstride, ystride, zstride, format, nchans,
                         m_spec.width, m_spec.height);
     bool ok = true;
     if (progress_callback)
@@ -611,6 +627,7 @@ ImageInput::read_image (TypeDesc format, void *data,
                 ok &= read_tiles (m_spec.x, m_spec.x+m_spec.width,
                                   y+m_spec.y, std::min (y+m_spec.y+m_spec.tile_height, m_spec.y+m_spec.height),
                                   z+m_spec.z, std::min (z+m_spec.z+m_spec.tile_depth, m_spec.z+m_spec.depth),
+                                  chbegin, chend,
                                   format, (char *)data + z*zstride + y*ystride,
                                   xstride, ystride, zstride);
                 if (progress_callback &&
@@ -627,7 +644,8 @@ ImageInput::read_image (TypeDesc format, void *data,
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  y += read_chunk) {
                 int yend = std::min (y+m_spec.y+read_chunk, m_spec.y+m_spec.height);
-                ok &= read_scanlines (y+m_spec.y, yend, z+m_spec.z, format,
+                ok &= read_scanlines (y+m_spec.y, yend, z+m_spec.z,
+                                      chbegin, chend, format,
                                       (char *)data + z*zstride + y*ystride,
                                       xstride, ystride);
                 if (progress_callback)

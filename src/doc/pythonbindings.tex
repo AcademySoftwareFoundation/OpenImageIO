@@ -724,14 +724,15 @@ specified subimage or MIP level).
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.UNKNOWN)}
+\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.UNKNOWN) \\
+array ImageInput.{\ce read_image} (chbegin, chend, type=OpenImageIO.UNKNOWN)}
 Read the entire image and return the pixels as an array of
 $\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
 values (or {\cf None} if an error occurred).  The array will be of the type
 specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or  if the
 argument is missing or is {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
 appropriate data type that is the ``smallest'' type that can hold the actual
-types in the file.
+types in the file. The call may optionally specify a subset of channels.
 
 \noindent Example:
 \begin{code}

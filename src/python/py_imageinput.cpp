@@ -151,19 +151,23 @@ bool ImageInputWrap::seek_subimage(int subimage, int miplevel)
 // "function" is a function which takes a float, and the 
 // PyProgressCallback function is called automatically.
 object
-ImageInputWrap::read_image (TypeDesc format)
+ImageInputWrap::read_image (int chbegin, int chend, TypeDesc format)
 {
     // Allocate our own temp buffer and try to read the image into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
     if (format.basetype == TypeDesc::UNKNOWN)
         format = spec.format;
-    size_t size = (size_t) spec.image_pixels() * spec.nchannels * format.size();
+    if (chend < 0)
+        chend = spec.nchannels;
+    chend = clamp (chend, chbegin+1, spec.nchannels);
+    int nchans = chend - chbegin;
+    size_t size = (size_t) spec.image_pixels() * nchans * format.size();
     char *data = new char[size];
     bool ok;
     {
         ScopedGILRelease gil;
-        ok = m_input->read_image(format, data);
+        ok = m_input->read_image (chbegin, chend, format, data);
     }
     if (! ok) {
         delete [] data;  // never mind
@@ -181,14 +185,31 @@ ImageInputWrap::read_image (TypeDesc format)
 object
 ImageInputWrap_read_image_bt (ImageInputWrap& in, TypeDesc::BASETYPE format)
 {
-    return in.read_image (format);
+    return in.read_image (0, -1, format);
+}
+
+
+object
+ImageInputWrap_read_image_bt_chans (ImageInputWrap& in, int chbegin, int chend,
+                              TypeDesc::BASETYPE format)
+{
+    return in.read_image (chbegin, chend, format);
 }
 
 
 object
 ImageInputWrap_read_image_default (ImageInputWrap& in)
 {
-    return in.read_image (TypeDesc::UNKNOWN);
+    return in.read_image (0, -1, TypeDesc::UNKNOWN);
+}
+
+
+
+object
+ImageInputWrap_read_image_default_chans (ImageInputWrap& in,
+                                         int chbegin, int chend)
+{
+    return in.read_image (chbegin, chend, TypeDesc::UNKNOWN);
 }
 
 
@@ -489,7 +510,9 @@ void declare_imageinput()
         .def("read_tiles",       &ImageInputWrap_read_tiles_default)
         .def("read_image",       &ImageInputWrap::read_image)
         .def("read_image",       &ImageInputWrap_read_image_bt)
+        .def("read_image",       &ImageInputWrap_read_image_bt_chans)
         .def("read_image",       &ImageInputWrap_read_image_default)
+        .def("read_image",       &ImageInputWrap_read_image_default_chans)
         .def("read_native_deep_scanlines", &ImageInputWrap::read_native_deep_scanlines)
         .def("read_native_deep_tiles",     &ImageInputWrap::read_native_deep_tiles)
         .def("read_native_deep_image",     &ImageInputWrap::read_native_deep_image)
