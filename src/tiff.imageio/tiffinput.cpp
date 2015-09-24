@@ -737,17 +737,13 @@ TIFFInput::readspec (bool read_meta)
         break;
     }
 
-    // If we've been instructed to skip reading metadata, because it is
-    // guaranteed to be identical to what we already have in m_spec,
-    // skip everything following.
-    if (! read_meta)
-        return;
-
     // Use the table for all the obvious things that can be mindlessly
     // shoved into the image spec.
-    for (int i = 0;  tiff_tag_table[i].name;  ++i)
-        find_tag (tiff_tag_table[i].tifftag,
-                  tiff_tag_table[i].tifftype, tiff_tag_table[i].name);
+    if (read_meta) {
+        for (int i = 0;  tiff_tag_table[i].name;  ++i)
+            find_tag (tiff_tag_table[i].tifftag,
+                      tiff_tag_table[i].tifftype, tiff_tag_table[i].name);
+    }
 
     // Now we need to get fields "by hand" for anything else that is less
     // straightforward...
@@ -807,39 +803,11 @@ TIFFInput::readspec (bool read_meta)
     // rowsperstrip==1, support random access to scanlines.
     m_no_random_access = (m_compression != COMPRESSION_NONE && rowsperstrip != 1);
 
-    short resunit = -1;
-    TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
-    switch (resunit) {
-    case RESUNIT_NONE : m_spec.attribute ("ResolutionUnit", "none"); break;
-    case RESUNIT_INCH : m_spec.attribute ("ResolutionUnit", "in"); break;
-    case RESUNIT_CENTIMETER : m_spec.attribute ("ResolutionUnit", "cm"); break;
-    }
-    float xdensity = m_spec.get_float_attribute ("XResolution", 0.0f);
-    float ydensity = m_spec.get_float_attribute ("YResolution", 0.0f);
-    if (xdensity && ydensity)
-        m_spec.attribute ("PixelAspectRatio", ydensity/xdensity);
-
-    get_matrix_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
-    get_matrix_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);
-    get_int_attribute ("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
-    // FIXME -- should subfiletype be "conventionized" and used for all
-    // plugins uniformly? 
-
     // Do we care about fillorder?  No, the TIFF spec says, "We
     // recommend that FillOrder=2 (lsb-to-msb) be used only in
     // special-purpose applications".  So OIIO will assume msb-to-lsb
     // convention until somebody finds a TIFF file in the wild that
     // breaks this assumption.
-
-    // Special names for shadow maps
-    char *s = NULL;
-    TIFFGetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, &s);
-    if (s)
-        m_emulate_mipmap = true;
-    if (s && ! strcmp (s, "Shadow")) {
-        for (int c = 0;  c < m_spec.nchannels;  ++c)
-            m_spec.channelnames[c] = "z";
-    }
 
     unsigned short *sampleinfo = NULL;
     unsigned short extrasamples = 0;
@@ -889,6 +857,40 @@ TIFFInput::readspec (bool read_meta)
     // MaxSampleValue MinSampleValue
     // NewSubfileType SubfileType(deprecated)
     // Colorimetry fields
+
+    // If we've been instructed to skip reading metadata, because it is
+    // assumed to be identical to what we already have in m_spec,
+    // skip everything following.
+    if (! read_meta)
+        return;
+
+    short resunit = -1;
+    TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
+    switch (resunit) {
+    case RESUNIT_NONE : m_spec.attribute ("ResolutionUnit", "none"); break;
+    case RESUNIT_INCH : m_spec.attribute ("ResolutionUnit", "in"); break;
+    case RESUNIT_CENTIMETER : m_spec.attribute ("ResolutionUnit", "cm"); break;
+    }
+    float xdensity = m_spec.get_float_attribute ("XResolution", 0.0f);
+    float ydensity = m_spec.get_float_attribute ("YResolution", 0.0f);
+    if (xdensity && ydensity)
+        m_spec.attribute ("PixelAspectRatio", ydensity/xdensity);
+
+    get_matrix_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
+    get_matrix_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);
+    get_int_attribute ("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
+    // FIXME -- should subfiletype be "conventionized" and used for all
+    // plugins uniformly? 
+
+    // Special names for shadow maps
+    char *s = NULL;
+    TIFFGetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, &s);
+    if (s)
+        m_emulate_mipmap = true;
+    if (s && ! strcmp (s, "Shadow")) {
+        for (int c = 0;  c < m_spec.nchannels;  ++c)
+            m_spec.channelnames[c] = "z";
+    }
 
     /// read color profile
     unsigned int icc_datasize = 0;
