@@ -37,9 +37,7 @@
 #include <vector>
 #include <string>
 
-#include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
 
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
@@ -180,40 +178,6 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
 
 
 
-// Utility: split semicolon-separated list
-static void
-split_list (const std::string &list, std::vector<std::string> &items)
-{
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(";");
-    tokenizer tokens (list, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
-         tok_iter != tokens.end(); ++tok_iter) {
-        std::string t = *tok_iter;
-        while (t.length() && t[0] == ' ')
-            t.erase (t.begin());
-        if (t.length())
-            items.push_back (t);
-    }
-}
-
-
-
-// Utility: join list into a single semicolon-separated string
-static std::string
-join_list (const std::vector<std::string> &items)
-{
-    std::string s;
-    for (size_t i = 0;  i < items.size();  ++i) {
-        if (i > 0)
-            s += "; ";
-        s += items[i];
-    }
-    return s;
-}
-
-
-
 // Adjust the output spec based on the command-line arguments.
 // Return whether the specifics preclude using copy_image.
 static bool
@@ -333,8 +297,11 @@ adjust_spec (ImageInput *in, ImageOutput *out,
     if (keywords.size()) {
         std::string oldkw = outspec.get_string_attribute ("Keywords");
         std::vector<std::string> oldkwlist;
-        if (! oldkw.empty())
-            split_list (oldkw, oldkwlist);
+        if (! oldkw.empty()) {
+            Strutil::split (oldkw, oldkwlist, ";");
+            for (size_t i = 0; i < oldkwlist.size(); ++i)
+                oldkwlist[i] = Strutil::strip (oldkwlist[i]);
+        }
         BOOST_FOREACH (const std::string &nk, keywords) {
             bool dup = false;
             BOOST_FOREACH (const std::string &ok, oldkwlist)
@@ -342,7 +309,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             if (! dup)
                 oldkwlist.push_back (nk);
         }
-        outspec.attribute ("Keywords", join_list (oldkwlist));
+        outspec.attribute ("Keywords", Strutil::join (oldkwlist, "; "));
     }
 
     for (size_t i = 0;  i < attribnames.size();  ++i) {
@@ -519,7 +486,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (out_filename != tempname) {
         if (ok) {
             Filesystem::remove (out_filename);
-            boost::filesystem::rename (tempname, out_filename);
+            Filesystem::rename (tempname, out_filename);
         }
         else
             Filesystem::remove (tempname);

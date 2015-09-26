@@ -39,9 +39,7 @@
 #include <utility>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 
 using boost::algorithm::iequals;

@@ -34,7 +34,6 @@
 
 #include <OpenEXR/half.h>
 
-#include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
 #include "OpenImageIO/dassert.h"

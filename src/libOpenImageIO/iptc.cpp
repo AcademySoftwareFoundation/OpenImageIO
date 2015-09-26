@@ -31,8 +31,6 @@
 
 #include <iostream>
 
-#include <boost/tokenizer.hpp>
-
 #include "OpenImageIO/imageio.h"
 
 #define DEBUG_IPTC_READ  0

@@ -32,7 +32,6 @@
 #include <iostream>
 
 #include <boost/regex.hpp>
-#include <boost/tokenizer.hpp>
 
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"

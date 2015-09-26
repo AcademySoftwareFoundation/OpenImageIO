@@ -35,11 +35,6 @@
 
 
 
-#include <map>
-
-#include <boost/foreach.hpp>
-#include <boost/tokenizer.hpp>
-
 #include "socket_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

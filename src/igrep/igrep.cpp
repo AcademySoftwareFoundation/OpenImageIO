@@ -39,8 +39,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-using namespace boost::filesystem;
 
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/strutil.h"
@@ -80,12 +78,10 @@ grep_file (const std::string &filename, boost::regex &re,
             std::cout.flush();
         }
         bool r = false;
-        boost::filesystem::path path (filename);
-        boost::filesystem::directory_iterator end_itr;  // default is past-end
-        for (boost::filesystem::directory_iterator itr(path);  itr != end_itr;  ++itr) {
-            // std::cout << "  rec " << itr->path() << "\n";
-            r |= grep_file (itr->path().string(), re, true);
-        }
+        std::vector<std::string> directory_entries;
+        Filesystem::get_directory_entries (filename, directory_entries);
+        for (size_t i = 0, e = directory_entries.size(); i < e; ++i)
+            r |= grep_file (directory_entries[i], re, true);
         return r;
     }
 

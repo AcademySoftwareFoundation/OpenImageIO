@@ -42,7 +42,6 @@
 #include <ctype.h>
 #include <map>
 
-#include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 

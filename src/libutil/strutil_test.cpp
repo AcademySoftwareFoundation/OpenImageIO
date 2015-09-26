@@ -265,6 +265,10 @@ void test_split ()
     OIIO_CHECK_EQUAL (splits.size(), 2);
     OIIO_CHECK_EQUAL (splits[0], "Now\nis");
     OIIO_CHECK_EQUAL (splits[1], "the  time!");
+
+    Strutil::split ("blah", splits, "!");
+    OIIO_CHECK_EQUAL (splits.size(), 1);
+    OIIO_CHECK_EQUAL (splits[0], "blah");
 }
 
 

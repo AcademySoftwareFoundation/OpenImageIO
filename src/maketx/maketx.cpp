@@ -36,9 +36,6 @@
 #include <limits>
 #include <sstream>
 
-#include <boost/version.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 #include <OpenEXR/ImathMatrix.h>
 
 #include "OpenImageIO/argparse.h"
