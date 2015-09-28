@@ -1,5 +1,16 @@
 Changes:
 
+Release 1.5.20 (28 Sep 2015) -- compared to 1.5.19)
+---------------------------------------------------
+* Nuke plugin: don't crash with NULL Knob* in TxReaderFormat::setMipLabels.
+  #1212
+* Fix build warnings for new Apple tools release that upgrades the standard
+  clang release. #1218
+* Make TIFF reader robust to strange TIFF files that have unexpected MIP
+  level-to-MIP level changes in planarconfig, photometric, palette,
+  extrasamples, etc. We previously assumed these things would never vary
+  between MIP levels of the same file, and Murphy called our bluff. #1220,1221
+
 Release 1.5.19 (8 Sep 2015) -- compared to 1.5.18)
 --------------------------------------------------
 * Fix compile warnings on some platforms/compilers.
