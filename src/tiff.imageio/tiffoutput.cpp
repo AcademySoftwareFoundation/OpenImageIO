@@ -93,7 +93,7 @@ private:
     unsigned int m_dither;
     int m_compression;
     int m_photometric;
-    int m_bitspersample;  ///< Of the *file*, not the client's view
+    unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
 
     // Initialize private members to pre-opened state
     void init (void) {
