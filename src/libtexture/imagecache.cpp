@@ -1543,6 +1543,28 @@ ImageCacheImpl::getstats (int level) const
                 out << (void *)this;
         }
         out << ") ver " << OIIO_VERSION_STRING << "\n";
+
+        std::string opt;
+#define BOOLOPT(name) if (m_##name) opt += #name " "
+#define INTOPT(name) opt += Strutil::format(#name "=%d ", m_##name)
+#define STROPT(name) if (m_##name.size()) opt += Strutil::format(#name "=\"%s\" ", m_##name)
+        opt += Strutil::format("max_memory_MB=%0.1f ", m_max_memory_bytes/(1024.0*1024.0));
+        INTOPT(max_open_files);
+        INTOPT(autotile);
+        INTOPT(autoscanline);
+        INTOPT(automip);
+        INTOPT(forcefloat);
+        INTOPT(accept_untiled);
+        INTOPT(accept_unmipped);
+        INTOPT(read_before_insert);
+        INTOPT(deduplicate);
+        INTOPT(unassociatedalpha);
+        INTOPT(failure_retries);
+#undef BOOLOPT
+#undef INTOPT
+#undef STROPT
+        out << "  Options:  " << Strutil::wordwrap(opt,75,12) << "\n";
+
         if (stats.unique_files) {
             out << "  Images : " << stats.unique_files << " unique\n";
             out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";

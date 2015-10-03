@@ -381,6 +381,17 @@ TextureSystemImpl::getstats (int level, bool icstats) const
                        stats.shadow_queries + stats.environment_queries);
     if (level > 0 && anytexture) {
         out << "OpenImageIO Texture statistics\n";
+
+        std::string opt;
+#define BOOLOPT(name) if (m_##name) opt += #name " "
+#define INTOPT(name) opt += Strutil::format(#name "=%d ", m_##name)
+#define STROPT(name) if (m_##name.size()) opt += Strutil::format(#name "=\"%s\" ", m_##name)
+        INTOPT(gray_to_rgb);
+#undef BOOLOPT
+#undef INTOPT
+#undef STROPT
+        out << "  Options:  " << Strutil::wordwrap(opt,75,12) << "\n";
+
         out << "  Queries/batches : \n";
         out << "    texture     :  " << stats.texture_queries
             << " queries in " << stats.texture_batches << " batches\n";
