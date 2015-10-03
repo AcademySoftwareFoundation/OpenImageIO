@@ -551,6 +551,15 @@ The default value of zero means that all missing channels will get
 the ``fill'' color.
 \apiend
 
+\apiitem{int max_tile_channels}
+\NEW % 1.6
+Sets the maximum number of color channels in a texture file for which all
+channels will be loaded as cached tiles. Files with more than this number
+of color channels will have only the requested subset loaded, in order
+to save cache space (but at the possible wasted expense of separate tiles
+that overlap their channel ranges). The default is 5.
+\apiend
+
 \apiitem{string latlong_up}
 Sets the default ``up'' direction for latlong environment maps (only
 applies if the map itself doesn't specify a format or is in a format

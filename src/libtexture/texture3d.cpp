@@ -377,11 +377,18 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
         return true;
     }
 
+    int tile_chbegin = 0, tile_chend = spec.nchannels;
+    if (spec.nchannels > m_max_tile_channels) {
+        // For files with many channels, narrow the range we cache
+        tile_chbegin = options.firstchannel;
+        tile_chend = options.firstchannel+actualchannels;
+    }
     int tile_s = (stex - spec.x) % spec.tile_width;
     int tile_t = (ttex - spec.y) % spec.tile_height;
     int tile_r = (rtex - spec.z) % spec.tile_depth;
     TileID id (texturefile, options.subimage, miplevel,
-               stex - tile_s, ttex - tile_t, rtex - tile_r);
+               stex - tile_s, ttex - tile_t, rtex - tile_r,
+               tile_chbegin, tile_chend);
     bool ok = find_tile (id, thread_info);
     if (! ok)
         error ("%s", m_imagecache->geterror().c_str());
@@ -389,7 +396,8 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     if (! tile  ||  ! ok)
         return false;
     int tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
-    int offset = spec.nchannels * tilepel + options.firstchannel;
+    int startchan_in_tile = options.firstchannel - id.chbegin();
+    int offset = spec.nchannels * tilepel + startchan_in_tile;
     DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
     if (pixeltype == TypeDesc::UINT8) {
         const unsigned char *texel = tile->bytedata() + offset;
@@ -405,7 +413,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
             accum[c] += weight * half2float(texel[c]);
     } else {
         DASSERT (pixeltype == TypeDesc::FLOAT);
-        const float *texel = tile->data() + offset;
+        const float *texel = tile->floatdata() + offset;
         for (int c = 0;  c < actualchannels;  ++c)
             accum[c] += weight * texel[c];
     }
@@ -502,11 +510,19 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool onetile = (s_onetile & t_onetile & r_onetile);
     size_t channelsize = texturefile.channelsize(options.subimage);
     size_t pixelsize = texturefile.pixelsize(options.subimage);
+    int tile_chbegin = 0, tile_chend = spec.nchannels;
+    if (spec.nchannels > m_max_tile_channels) {
+        // For files with many channels, narrow the range we cache
+        tile_chbegin = options.firstchannel;
+        tile_chend = options.firstchannel+actualchannels;
+    }
+    TileID id (texturefile, options.subimage, miplevel, 0, 0, 0,
+               tile_chbegin, tile_chend);
+    int startchan_in_tile = options.firstchannel - id.chbegin();
     if (onetile &&
         valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
-        TileID id (texturefile, options.subimage, miplevel,
-                   stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
+        id.xyz (stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
         bool ok = find_tile (id, thread_info);
         if (! ok)
             error ("%s", m_imagecache->geterror().c_str());
@@ -514,7 +530,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
         if (! tile->valid())
             return false;
         size_t tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
-        size_t offset = (spec.nchannels * tilepel + options.firstchannel) * channelsize;
+        size_t offset = (spec.nchannels * tilepel + startchan_in_tile) * channelsize;
         DASSERT ((size_t)offset < spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize);
 
         const unsigned char *b = tile->bytedata() + offset;
@@ -538,9 +554,8 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                     tile_s = (stex[i] - spec.x) % spec.tile_width;
                     tile_t = (ttex[j] - spec.y) % spec.tile_height;
                     tile_r = (rtex[k] - spec.z) % spec.tile_depth;
-                    TileID id (texturefile, options.subimage, miplevel,
-                               stex[i] - tile_s, ttex[j] - tile_t,
-                               rtex[k] - tile_r);
+                    id.xyz (stex[i] - tile_s, ttex[j] - tile_t,
+                            rtex[k] - tile_r);
                     bool ok = find_tile (id, thread_info);
                     if (! ok)
                         error ("%s", m_imagecache->geterror().c_str());
@@ -549,7 +564,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                         return false;
                     savetile[k][j][i] = tile;
                     size_t tilepel = (tile_r * spec.tile_height + tile_t) * spec.tile_width + tile_s;
-                    size_t offset = (spec.nchannels * tilepel + options.firstchannel) * channelsize;
+                    size_t offset = (spec.nchannels * tilepel + startchan_in_tile) * channelsize;
 #ifndef NDEBUG
                     if ((size_t)offset >= spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize)
                         std::cerr << "offset=" << offset << ", whd " << spec.tile_width << ' ' << spec.tile_height << ' ' << spec.tile_depth << " pixsize " << pixelsize << "\n";

@@ -43,6 +43,8 @@
 
 OIIO_NAMESPACE_BEGIN
 
+struct ROI;
+
 namespace pvt {
 // Forward declaration
 class ImageCacheImpl;
@@ -243,7 +245,9 @@ public:
     /// enough to accommodate the requested rectangle (taking into
     /// consideration its dimensions, number of channels, and data
     /// format).  Requested pixels outside the valid pixel data region
-    /// will be filled in with 0 values.
+    /// will be filled in with 0 values. The optional cache_chbegin and
+    /// cache_chend hint as to which range of channels should be cached
+    /// (which by default will be all channels of the file).
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
@@ -252,34 +256,47 @@ public:
                     int ybegin, int yend, int zbegin, int zend,
                     int chbegin, int chend, TypeDesc format, void *result,
                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                    stride_t zstride=AutoStride) = 0;
+                    stride_t zstride=AutoStride,
+                    int cache_chbegin = 0, int cache_chend = -1) = 0;
     virtual bool get_pixels (ImageHandle *file, Perthread *thread_info,
                     int subimage, int miplevel, int xbegin, int xend,
                     int ybegin, int yend, int zbegin, int zend,
                     int chbegin, int chend, TypeDesc format, void *result,
                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                    stride_t zstride=AutoStride) = 0;
+                    stride_t zstride=AutoStride,
+                    int cache_chbegin = 0, int cache_chend = -1) = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to a tile but without exposing any internals.
     class Tile;
 
-    /// Find a tile given by an image filename, subimage & miplevel, and
-    /// pixel coordinates.  An opaque pointer to the tile will be
-    /// returned, or NULL if no such file (or tile within the file)
-    /// exists or can be read.  The tile will not be purged from the
-    /// cache until after release_tile() is called on the tile pointer
-    /// the same number of times that get_tile() was called (refcnt).
-    /// This is thread-safe!
+    /// Find a tile given by an image filename, subimage & miplevel, channel
+    /// range, and pixel coordinates.  An opaque pointer to the tile will be
+    /// returned, or NULL if no such file (or tile within the file) exists
+    /// or can be read.  The tile will not be purged from the cache until
+    /// after release_tile() is called on the tile pointer the same number
+    /// of times that get_tile() was called (refcnt). This is thread-safe!
+    /// If chend < chbegin, it will retrieve a tile containing all channels
+    /// in the file.
     virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
-                             int x, int y, int z) = 0;
+                             int x, int y, int z,
+                             int chbegin = 0, int chend = -1) = 0;
     virtual Tile * get_tile (ImageHandle *file, Perthread *thread_info,
                              int subimage, int miplevel,
-                             int x, int y, int z) = 0;
+                             int x, int y, int z,
+                             int chbegin = 0, int chend = -1) = 0;
 
     /// After finishing with a tile, release_tile will allow it to
     /// once again be purged from the tile cache if required.
     virtual void release_tile (Tile *tile) const = 0;
+
+    /// Retrieve the data type of the pixels stored in the tile, which may
+    /// be different than the type of the pixels in the disk file.
+    virtual TypeDesc tile_format (const Tile *tile) const = 0;
+
+    /// Retrieve the ROI describing the pixels and channels stored in the
+    /// tile.
+    virtual ROI tile_roi (const Tile *tile) const = 0;
 
     /// For a tile retrived by get_tile(), return a pointer to the
     /// pixel data itself, and also store in 'format' the data type that
@@ -317,14 +334,25 @@ public:
                            const ImageSpec *config=NULL) = 0;
 
     /// Preemptively add a tile corresponding to the named image, at the
-    /// given subimage and MIP level.  The tile added is the one whose
-    /// corner is (x,y,z), and buffer points to the pixels (in the given
-    /// format, with supplied strides) which will be copied and inserted
-    /// into the cache and made available for future lookups.
+    /// given subimage, MIP level, and channel range.  The tile added is the
+    /// one whose corner is (x,y,z), and buffer points to the pixels (in the
+    /// given format, with supplied strides) which will be copied and
+    /// inserted into the cache and made available for future lookups.
+    /// If chend < chbegin, it will add a tile containing the full set of
+    /// channels for the image.
+    virtual bool add_tile (ustring filename, int subimage, int miplevel,
+                     int x, int y, int z, int chbegin, int chend,
+                     TypeDesc format, const void *buffer,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) = 0;
+    // DEPRECATED(1.6) -- add a tile with all channels.
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                      int x, int y, int z, TypeDesc format, const void *buffer,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride) = 0;
+                     stride_t zstride=AutoStride) {
+        return add_tile (filename, subimage, miplevel, x, y, z, 0, -1,
+                         format, buffer, xstride, ystride, zstride);
+    }
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error

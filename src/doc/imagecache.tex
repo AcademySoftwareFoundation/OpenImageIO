@@ -634,13 +634,15 @@ image file will be filled with zero values.
          \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
          \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
          \bigspc\spc TypeDesc format, void *result, \\
-         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride) \\
+         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride,\\
+         \bitspc\spc int cache_chbegin=0, int cache_chend=-1) \\
 bool {\ce get\_pixels} (ImageHandle *file, Perthread *thread_info, \\
          \bigspc\spc int subimage, int miplevel, \\
          \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
          \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
          \bigspc\spc TypeDesc format, void *result, \\
-         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride)}
+         \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride,\\
+         \bitspc\spc int cache_chbegin=0, int cache_chend=-1)}
 For an image specified by either name or handle,
 retrieve the rectangle of pixels and subset of channels
 of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
@@ -656,7 +658,10 @@ The rectangular region and channel set to be retrieved includes
 {\cf begin} but does not
 include {\cf end} (much like STL begin/end usage).
 Requested pixels that are not part of the valid pixel data region of the
-image file will be filled with zero values.
+image file will be filled with zero values. The optional parameters
+{\cf cache_chbegin} and {\cf cache_chend} can be used to tell the
+\ImageCache to read and cache a subset of channels (if not specified,
+all the channels of the file will be stored in the cached tile).
 \apiend
 
 

@@ -172,7 +172,7 @@ public:
     ///
     bool read_tile (ImageCachePerThreadInfo *thread_info,
                     int subimage, int miplevel, int x, int y, int z,
-                    TypeDesc format, void *data);
+                    int chbegin, int chend, TypeDesc format, void *data);
 
     /// Mark the file as recently used.
     ///
@@ -341,14 +341,14 @@ private:
     /// a seek_subimage to the right subimage and MIP level.
     bool read_untiled (ImageCachePerThreadInfo *thread_info,
                        int subimage, int miplevel, int x, int y, int z,
-                       TypeDesc format, void *data);
+                       int chbegin, int chend, TypeDesc format, void *data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
     bool read_unmipped (ImageCachePerThreadInfo *thread_info,
                         int subimage, int miplevel, int x, int y, int z,
-                        TypeDesc format, void *data);
+                        int chbegin, int chend, TypeDesc format, void *data);
 
     void lock_input_mutex () {
         m_input_mutex.lock ();
@@ -394,10 +394,15 @@ public:
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
     TileID (ImageCacheFile &file, int subimage, int miplevel,
-            int x, int y, int z=0)
+            int x, int y, int z=0, int chbegin=0, int chend=-1)
         : m_x(x), m_y(y), m_z(z), m_subimage(subimage),
-          m_miplevel(miplevel), m_file(&file)
-    { }
+          m_miplevel(miplevel), m_chbegin(chbegin), m_chend(chend),
+          m_file(&file)
+    {
+        int nc = file.spec(subimage,miplevel).nchannels;
+        if (chend < chbegin || chend > nc)
+            m_chend = nc;
+    }
 
     /// Destructor is trivial, because we don't hold any resources
     /// of our own.  This is by design.
@@ -410,6 +415,9 @@ public:
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
+    int chbegin () const { return m_chbegin; }
+    int chend () const { return m_chend; }
+    int nchannels () const { return m_chend - m_chbegin; }
 
     void x (int v) { m_x = v; }
     void y (int v) { m_y = v; }
@@ -427,7 +435,9 @@ public:
         // probable rejection if they really are unequal.
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
                 a.m_subimage == b.m_subimage && 
-                a.m_miplevel == b.m_miplevel && (a.m_file == b.m_file));
+                a.m_miplevel == b.m_miplevel &&
+                (a.m_file == b.m_file) &&
+                a.m_chbegin == b.m_chbegin && a.m_chend == b.m_chend);
     }
 
     /// Do the two ID's refer to the same tile, given that the
@@ -436,7 +446,8 @@ public:
     friend bool equal_same_subimage (const TileID &a, const TileID &b) {
         DASSERT ((a.m_file == b.m_file) &&
                  a.m_subimage == b.m_subimage && a.m_miplevel == b.m_miplevel);
-        return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z);
+        return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
+                a.m_chbegin == b.m_chbegin && a.m_chend == b.m_chend);
     }
 
     /// Do the two ID's refer to the same tile?  
@@ -454,7 +465,8 @@ public:
 #else
         // Good compromise!
         return bjhash::bjfinal (m_x+1543, m_y + 6151 + m_z*769,
-                                m_miplevel + (m_subimage<<8))
+                                m_miplevel + (m_subimage<<8) +
+                                (chbegin()<<4) + nchannels())
                            + m_file->filename().hash();
 #endif
     }
@@ -469,6 +481,7 @@ public:
     friend std::ostream& operator<< (std::ostream& o, const TileID &id) {
         return (o << "{xyz=" << id.m_x << ',' << id.m_y << ',' << id.m_z
                   << ", sub=" << id.m_subimage << ", mip=" << id.m_miplevel
+                  << ", chans=[" << id.chbegin() << "," << id.chend() << ")"
                   << ' ' << (id.m_file ? ustring("nofile") : id.m_file->filename())
                   << '}');
     }
@@ -477,6 +490,7 @@ private:
     int m_x, m_y, m_z;        ///< x,y,z tile index within the subimage
     int m_subimage;           ///< subimage
     int m_miplevel;           ///< MIP-map level
+    short m_chbegin, m_chend; ///< Channel range
     ImageCacheFile *m_file;   ///< Which ImageCacheFile we refer to
 };
 
@@ -504,13 +518,17 @@ public:
     /// that constructed the tile.
     void read (ImageCachePerThreadInfo *thread_info);
 
-    /// Return pointer to the floating-point pixel data
-    ///
-    const float *data (void) const { return (const float *)&m_pixels[0]; }
+    /// Return pointer to the raw pixel data
+    const void *data (void) const { return &m_pixels[0]; }
 
-    /// Return pointer to the floating-point pixel data for a particular
-    /// pixel.  Be extremely sure the pixel is within this tile!
-    const void *data (int x, int y, int z=0) const;
+    /// Return pointer to the pixel data for a particular pixel.  Be
+    /// extremely sure the pixel is within this tile!
+    const void *data (int x, int y, int z, int c) const;
+
+    /// Return pointer to the floating-point pixel data
+    const float *floatdata (void) const {
+        return (const float *) &m_pixels[0];
+    }
 
     /// Return a pointer to the character data
     const unsigned char *bytedata (void) const {
@@ -571,10 +589,15 @@ public:
     ///
     void wait_pixels_ready () const;
 
+    int channelsize () const { return m_channelsize; }
+    int pixelsize () const { return m_pixelsize; }
+
 private:
     TileID m_id;                  ///< ID of this tile
     boost::scoped_array<char> m_pixels;  ///< The pixel data
     size_t m_pixels_size;         ///< How much m_pixels has allocated
+    int m_channelsize;            ///< How big is each channel (bytes)
+    int m_pixelsize;              ///< How big is each pixel (bytes)
     bool m_valid;                 ///< Valid pixels
     volatile bool m_pixels_ready; ///< The pixels have been read from disk
     atomic_int m_used;            ///< Used recently
@@ -763,14 +786,16 @@ public:
                     int ybegin, int yend, int zbegin, int zend,
                     int chbegin, int chend, TypeDesc format, void *result,
                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                    stride_t zstride=AutoStride);
+                    stride_t zstride=AutoStride,
+                    int cache_chbegin = 0, int cache_chend = -1);
     virtual bool get_pixels (ImageCacheFile *file,
                      ImageCachePerThreadInfo *thread_info,
                      int subimage, int miplevel, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend,
                      int chbegin, int chend, TypeDesc format, void *result,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride);
+                     stride_t zstride=AutoStride,
+                     int cache_chbegin = 0, int cache_chend = -1);
 
     /// Find the ImageCacheFile record for the named image, or NULL if
     /// no such file can be found.  This returns a plain old pointer,
@@ -847,16 +872,21 @@ public:
     }
 
     virtual Tile *get_tile (ustring filename, int subimage, int miplevel,
-                            int x, int y, int z);
+                            int x, int y, int z, int chbegin, int chend);
     virtual Tile *get_tile (ImageHandle *file, Perthread *thread_info,
-                            int subimage, int miplevel, int x, int y, int z);
+                            int subimage, int miplevel,
+                            int x, int y, int z, int chbegin, int chend);
     virtual void release_tile (Tile *tile) const;
+    virtual TypeDesc tile_format (const Tile *tile) const;
+    virtual ROI tile_roi (const Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
     virtual bool add_file (ustring filename, ImageInput::Creator creator,
                            const ImageSpec *config);
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
-                     int x, int y, int z, TypeDesc format, const void *buffer,
-                     stride_t xstride, stride_t ystride, stride_t zstride);
+                           int x, int y, int z,  int chbegin, int chend,
+                           TypeDesc format, const void *buffer,
+                           stride_t xstride, stride_t ystride,
+                           stride_t zstride);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
