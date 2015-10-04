@@ -2992,14 +2992,15 @@ action_fit (int argc, const char *argv[])
         action_resize (2, newargv);
         A = ot.top ();
         Aspec = A->spec(0,0);
-        A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
-        A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = fit_full_height;
-        A->spec(0,0)->full_x = (*A)(0,0).specmod().full_x = fit_full_x;
-        A->spec(0,0)->full_y = (*A)(0,0).specmod().full_y = fit_full_y;
-        A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
-        A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
         // Now A,Aspec are for the NEW resized top of stack
     }
+
+    A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
+    A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = fit_full_height;
+    A->spec(0,0)->full_x = (*A)(0,0).specmod().full_x = fit_full_x;
+    A->spec(0,0)->full_y = (*A)(0,0).specmod().full_y = fit_full_y;
+    A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
+    A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
 
     if (pad && (fit_full_width != Aspec->width ||
                 fit_full_height != Aspec->height)) {

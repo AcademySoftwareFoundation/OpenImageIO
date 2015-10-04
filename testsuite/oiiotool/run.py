@@ -44,6 +44,8 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 # test fit
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
+# regression test: --fit without needing resize used to be problematic
+command += oiiotool ("tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 
 # test rotate
 command += oiiotool ("resize.tif --rotate 45 -o rotated.tif")
@@ -232,7 +234,7 @@ command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png
 outputs = [ "filled.tif", "autotrim.tif",
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
-            "fit.tif", "fit2.tif",
+            "fit.tif", "fit2.tif", "fit3.tif",
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
