@@ -46,6 +46,8 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 # test fit
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
+# regression test: --fit without needing resize used to be problematic
+command += oiiotool ("tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 
 # test --pixelaspect
 command += oiiotool ("tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
@@ -287,7 +289,7 @@ outputs = [
             "autotrim.tif",
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
-            "fit.tif", "fit2.tif",
+            "fit.tif", "fit2.tif", "fit3.tif",
             "pixelaspect.tif",
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
