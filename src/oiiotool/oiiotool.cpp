@@ -2755,9 +2755,6 @@ action_fit (int argc, const char *argv[])
                   << format_resolution(fit_full_width, fit_full_height,
                                        fit_full_x, fit_full_y) 
                   << "\n";
-        std::cout << "    Resizing to "
-                  << format_resolution(resize_full_width, resize_full_height,
-                                       fit_full_x, fit_full_y) << "\n";
     }
     if (resize_full_width != Aspec->full_width ||
         resize_full_height != Aspec->full_height ||
@@ -2765,6 +2762,8 @@ action_fit (int argc, const char *argv[])
         std::string resize = format_resolution (resize_full_width,
                                                 resize_full_height,
                                                 0, 0);
+        if (ot.debug)
+            std::cout << "    Resizing to " << resize << "\n";
         std::string command = "resize";
         if (filtername.size())
             command += Strutil::format (":filter=%s", filtername);
@@ -2773,6 +2772,9 @@ action_fit (int argc, const char *argv[])
         A = ot.top ();
         Aspec = A->spec(0,0);
         // Now A,Aspec are for the NEW resized top of stack
+    } else {
+        if (ot.debug)
+            std::cout << "   no need to do a resize\n";
     }
 
     A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
@@ -2785,6 +2787,8 @@ action_fit (int argc, const char *argv[])
     if (pad && (fit_full_width != Aspec->width ||
                 fit_full_height != Aspec->height)) {
         // Needs padding
+        if (ot.debug)
+            std::cout << "   performing a croptofull\n";
         const char *argv[] = { "croptofull" };
         action_croptofull (1, argv);
     }
