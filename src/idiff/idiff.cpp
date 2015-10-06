@@ -62,6 +62,7 @@ enum idiffErrors {
 
 
 static bool verbose = false;
+static bool quiet = false;
 static bool outdiffonly = false;
 static std::string diffimage;
 static float diffscale = 1.0;
@@ -100,6 +101,7 @@ getargs (int argc, char *argv[])
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
+                  "-q", &quiet, "Quiet (minimal messages)",
                   "-a", &compareall, "Compare all subimages/miplevels",
                   "<SEPARATOR>", "Thresholding and comparison options",
                   "-fail %g", &failthresh, "Failure threshold difference (0.000001)",
@@ -194,8 +196,9 @@ main (int argc, char *argv[])
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv);
 
-    std::cout << "Comparing \"" << filenames[0] 
-              << "\" and \"" << filenames[1] << "\"\n";
+    if (! quiet)
+        std::cout << "Comparing \"" << filenames[0]
+                  << "\" and \"" << filenames[1] << "\"\n";
 
     // Create a private ImageCache so we can customize its cache size
     // and instruct it store everything internally as floats.
@@ -225,19 +228,20 @@ main (int argc, char *argv[])
 
         if (! read_input (filenames[0], img0, imagecache, subimage) ||
             ! read_input (filenames[1], img1, imagecache, subimage)) {
-            std::cout << "Failed to read subimage " << subimage << "\n";
+            std::cerr << "Failed to read subimage " << subimage << "\n";
             return ErrFile;
         }
 
         if (img0.nmiplevels() != img1.nmiplevels()) {
-            std::cout << "Files do not match in their number of MIPmap levels\n";
+            if (! quiet)
+                std::cout << "Files do not match in their number of MIPmap levels\n";
         }
 
         for (int m = 0;  m < img0.nmiplevels();  ++m) {
             if (m > 0 && !compareall)
                 break;
             if (m > 0 && img0.nmiplevels() != img1.nmiplevels()) {
-                std::cout << "Files do not match in their number of MIPmap levels\n";
+                std::cerr << "Files do not match in their number of MIPmap levels\n";
                 ret = ErrDifferentSize;
                 break;
             }
@@ -247,7 +251,7 @@ main (int argc, char *argv[])
                 return ErrFile;
 
             if (img0.deep() != img1.deep()) {
-                std::cout << "One image contains deep data, the other does not\n";
+                std::cerr << "One image contains deep data, the other does not\n";
                 ret = ErrDifferentSize;
                 break;
             }
@@ -278,7 +282,7 @@ main (int argc, char *argv[])
 
             // Print the report
             //
-            if (verbose || ret != ErrOK) {
+            if (verbose || (ret != ErrOK && !quiet)) {
                 if (compareall)
                     print_subimage (img0, subimage, m);
                 std::cout << "  Mean error = ";
@@ -342,22 +346,32 @@ main (int argc, char *argv[])
     }
 
     if (compareall && img0.nsubimages() != img1.nsubimages()) {
-        std::cout << "Images had differing numbers of subimages ("
-                  << img0.nsubimages() << " vs " << img1.nsubimages() << ")\n";
+        if (! quiet)
+            std::cerr << "Images had differing numbers of subimages ("
+                      << img0.nsubimages() << " vs " << img1.nsubimages() << ")\n";
         ret = ErrFail;
     }
     if (!compareall && (img0.nsubimages() > 1 || img1.nsubimages() > 1)) {
-        std::cout << "Only compared the first subimage (of "
-                  << img0.nsubimages() << " and " << img1.nsubimages() 
-                  << ", respectively)\n";
+        if (! quiet)
+            std::cout << "Only compared the first subimage (of "
+                      << img0.nsubimages() << " and " << img1.nsubimages()
+                      << ", respectively)\n";
     }
 
-    if (ret == ErrOK)
-        std::cout << "PASS\n";
-    else if (ret == ErrWarn)
-        std::cout << "WARNING\n";
-    else
-        std::cout << "FAILURE\n";
+    if (ret == ErrOK) {
+        if (! quiet)
+            std::cout << "PASS\n";
+    }
+    else if (ret == ErrWarn) {
+        if (! quiet)
+            std::cout << "WARNING\n";
+    }
+    else if (ret) {
+        if (quiet)
+            std::cerr << "FAILURE\n";
+        else
+            std::cout << "FAILURE\n";
+    }
 
     imagecache->invalidate_all (true);
     ImageCache::destroy (imagecache);
