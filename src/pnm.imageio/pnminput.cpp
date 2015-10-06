@@ -54,13 +54,14 @@ private:
     };
 
     std::ifstream m_file;
+    std::streampos m_header_end_pos; // file position after the header
     std::string m_current_line; ///< Buffer the image pixels
     const char * m_pos;
     PNMType m_pnm_type;
     unsigned int m_max_val;
     float m_scaling_factor;
 
-    bool read_file_scanline (void * data);
+    bool read_file_scanline (void * data, int y);
     bool read_file_header ();
 };
 
@@ -241,7 +242,7 @@ read_int (std::istream &in, T &dest, char comment='#')
 
 
 bool 
-PNMInput::read_file_scanline (void * data)
+PNMInput::read_file_scanline (void * data, int y)
 {
     try {
 
@@ -250,6 +251,13 @@ PNMInput::read_file_scanline (void * data)
     if (!m_file.is_open())
         return false;
     int nsamples = m_spec.width * m_spec.nchannels;
+
+    // PFM files are bottom-to-top, so we need to seek to the right spot
+    if (m_pnm_type == PF || m_pnm_type == Pf) {
+        int file_scanline = m_spec.height - 1 - (y-m_spec.y);
+        std::streampos offset = file_scanline * m_spec.scanline_bytes();
+        m_file.seekg (m_header_end_pos + offset, std::ios_base::beg);
+    }
 
     if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF || m_pnm_type == Pf){
         int numbytes;
@@ -375,6 +383,7 @@ PNMInput::read_file_header ()
         //Space before content
         if (!(isspace (m_file.get()) && m_file.good()))
             return false;
+        m_header_end_pos = m_file.tellg ();   // remember file pos
 
         if (m_pnm_type == P3 || m_pnm_type == P6)
             m_spec =  ImageSpec (width, height, 3, 
@@ -404,6 +413,7 @@ PNMInput::read_file_header ()
         //Space before content
         if (!(isspace (m_file.get()) && m_file.good()))
             return false;
+        m_header_end_pos = m_file.tellg ();   // remember file pos
 
         if(m_pnm_type == PF) {
             m_spec = ImageSpec(width, height, 3, TypeDesc::FLOAT);
@@ -464,7 +474,7 @@ PNMInput::read_native_scanline (int y, int z, void *data)
 {
     if (z)
         return false;
-    if (!read_file_scanline (data))
+    if (!read_file_scanline (data, y))
         return false;
     return true;
 }
