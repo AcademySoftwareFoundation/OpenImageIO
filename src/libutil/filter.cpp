@@ -221,9 +221,10 @@ private:
 
 class FilterCatmullRom1D : public Filter1D {
 public:
-    FilterCatmullRom1D (float width) : Filter1D(4.0f) { }
+    FilterCatmullRom1D (float width)
+        : Filter1D(4.0f), m_scale(4.0f/width) { }
     ~FilterCatmullRom1D (void) { }
-    float operator() (float x) const { return catrom1d(x); }
+    float operator() (float x) const { return catrom1d(x * m_scale); }
     string_view name (void) const { return "catmull-rom"; }
 
     static float catrom1d (float x) {
@@ -234,21 +235,25 @@ public:
                                       (3.0f * x3 - 5.0f * x2 + 2.0f) :
                                       (-x3 + 5.0f * x2 - 8.0f * x + 4.0f) );
     }
+private:
+    float m_scale;
 };
 
 
 
 class FilterCatmullRom2D : public Filter2D {
 public:
-    FilterCatmullRom2D (float width, float height) : Filter2D(4.0f,4.0f) { }
+    FilterCatmullRom2D (float width, float height)
+        : Filter2D(width,height), m_wscale(4.0f/width),
+          m_hscale(4.0f/height) { }
     ~FilterCatmullRom2D (void) { }
     float operator() (float x, float y) const {
-        return FilterCatmullRom1D::catrom1d(x)
-             * FilterCatmullRom1D::catrom1d(y);
+        return FilterCatmullRom1D::catrom1d(x * m_wscale)
+             * FilterCatmullRom1D::catrom1d(y * m_hscale);
     }
     bool separable (void) const { return true; }
-    float xfilt (float x) const { return FilterCatmullRom1D::catrom1d(x); }
-    float yfilt (float y) const { return FilterCatmullRom1D::catrom1d(y); }
+    float xfilt (float x) const { return FilterCatmullRom1D::catrom1d(x * m_wscale); }
+    float yfilt (float y) const { return FilterCatmullRom1D::catrom1d(y * m_hscale); }
     string_view name (void) const { return "catmull-rom"; }
 private :
     static float catrom1d (float x) {
@@ -259,6 +264,8 @@ private :
                                       (3.0f * x3 - 5.0f * x2 + 2.0f) :
                                       (-x3 + 5.0f * x2 - 8.0f * x + 4.0f) );
     }
+private:
+    float m_wscale, m_hscale;
 };
 
 
@@ -353,10 +360,11 @@ private:
 
 class FilterLanczos3_1D : public Filter1D {
 public:
-    FilterLanczos3_1D (float /*width*/) : Filter1D(6.0f) { }
+    FilterLanczos3_1D (float width)
+        : Filter1D(width), m_scale(6.0f/width) { }
     ~FilterLanczos3_1D (void) { }
     float operator() (float x) const {
-        return lanczos3 (x);
+        return lanczos3 (x * m_scale);
     }
     string_view name (void) const { return "lanczos3"; }
 
@@ -379,23 +387,28 @@ public:
         return a/(x*x*(m_pi*m_pi)) * sinf(pix)*sinf(pix*ainv);
 #endif
     }
+private:
+    float m_scale;
 };
 
 
 
 class FilterLanczos3_2D : public Filter2D {
 public:
-    FilterLanczos3_2D (float /*width*/, float /*height*/)
-        : Filter2D(6.0f,6.0f)
-    { }
+    FilterLanczos3_2D (float width, float height)
+        : Filter2D(width,height), m_wscale(6.0f/width),
+          m_hscale(6.0f/height) { }
     ~FilterLanczos3_2D (void) { }
     float operator() (float x, float y) const {
-        return FilterLanczos3_1D::lanczos3(x) * FilterLanczos3_1D::lanczos3(y);
+        return FilterLanczos3_1D::lanczos3 (x * m_wscale)
+             * FilterLanczos3_1D::lanczos3 (y * m_hscale);
     }
     bool separable (void) const { return true; }
-    float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x); }
-    float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y); }
+    float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x * m_wscale); }
+    float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y * m_hscale); }
     string_view name (void) const { return "lanczos3"; }
+private:
+    float m_wscale, m_hscale;
 };
 
 
@@ -654,10 +667,10 @@ FilterDesc filter1d_list[] = {
     { "triangle",        1,   2,    false,    true,     true },
     { "gaussian",        1,   3,    false,    true,     true },
     { "sharp-gaussian",  1,   2,    false,    true,     true },
-    { "catrom",          1,   4,    true,     false,    true },
+    { "catrom",          1,   4,    false,    true,     true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
-    { "lanczos3",        1,   6,    true,     false,    true },
+    { "lanczos3",        1,   6,    false,    true,     true },
     { "mitchell",        1,   4,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true },
     { "cubic",           1,   4,    false,    true,     true },
@@ -736,11 +749,11 @@ static FilterDesc filter2d_list[] = {
     { "triangle",        2,   2,    false,    true,     true  },
     { "gaussian",        2,   3,    false,    true,     true  },
     { "sharp-gaussian",  2,   2,    false,    true,     true  },
-    { "catrom",          2,   4,    true,     false,    true  },
+    { "catrom",          2,   4,    false,    true,     true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
-    { "lanczos3",        2,   6,    true,     false,    true  },
-    { "radial-lanczos3", 2,   6,    true,     false,    false },
+    { "lanczos3",        2,   6,    false,    true,     true  },
+    { "radial-lanczos3", 2,   6,    false,    true,     false },
     { "mitchell",        2,   4,    false,    true,     true  },
     { "bspline",         2,   4,    false,    true,     true  },
     { "disk",            2,   1,    false,    true,     false },
