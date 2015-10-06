@@ -243,7 +243,9 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
               << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
     std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
-    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
+    std::cerr << "examining src filter " << filter->name()
+              << " support radius of " << radi << " x " << radj << " pixels\n";
+    std::cout << "  " << xtaps << "x" << ytaps << " filter taps\n";
     std::cerr << "dst range " << roi << "\n";
     std::cerr << "separable filter\n";
 #endif
