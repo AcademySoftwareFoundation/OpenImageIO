@@ -406,7 +406,7 @@ public:
     float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x * m_wscale); }
     float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y * m_hscale); }
     string_view name (void) const { return "lanczos3"; }
-private:
+protected:
     float m_wscale, m_hscale;
 };
 
@@ -414,10 +414,11 @@ private:
 
 class FilterRadialLanczos3_2D : public FilterLanczos3_2D {
 public:
-    FilterRadialLanczos3_2D (float /*width*/, float /*height*/)
-        : FilterLanczos3_2D(6.0f,6.0f)
-    { }
+    FilterRadialLanczos3_2D (float width, float height)
+        : FilterLanczos3_2D(width,height) { }
     float operator() (float x, float y) const {
+        x *= m_wscale;
+        y *= m_hscale;
         return FilterLanczos3_1D::lanczos3(sqrtf(x*x + y*y));
     }
     bool separable (void) const { return false; }
