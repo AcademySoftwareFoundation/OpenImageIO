@@ -35,6 +35,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "platform.h"
+
 
 /// \file
 ///
@@ -68,7 +70,7 @@
 
 #ifndef ASSERT
 # define ASSERT(x)                                              \
-    ((x) ? ((void)0)                                            \
+    (OIIO_LIKELY(x) ? ((void)0)                                 \
          : (fprintf (stderr, "%s:%u: failed assertion '%s'\n",  \
                      __FILE__, __LINE__, #x), abort()))
 #endif
@@ -77,7 +79,7 @@
 /// formatted output (a la printf) to the failure message.
 #ifndef ASSERT_MSG
 # define ASSERT_MSG(x,msg,...)                                      \
-    ((x) ? ((void)0)                                                \
+    (OIIO_LIKELY(x) ? ((void)0)                                     \
          : (fprintf (stderr, "%s:%u: failed assertion '%s': " msg "\n", \
                     __FILE__, __LINE__, #x,  __VA_ARGS__), abort()))
 #endif

@@ -45,16 +45,6 @@
 #include "platform.h"
 
 
-// defining NOMINMAX to prevent problems with std::min/std::max
-// and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
-// when boost include windows.h
-#ifdef _MSC_VER
-# define WIN32_LEAN_AND_MEAN
-# define VC_EXTRALEAN
-# ifndef NOMINMAX
-#   define NOMINMAX
-# endif
-#endif
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 # include <thread>
@@ -78,8 +68,7 @@
 
 
 #if defined(_MSC_VER)
-#  include <windows.h>
-#  include <winbase.h>
+   // N.B. including platform.h also included <windows.h>
 #  pragma intrinsic (_InterlockedExchangeAdd)
 #  pragma intrinsic (_InterlockedCompareExchange)
 #  pragma intrinsic (_InterlockedCompareExchange64)
