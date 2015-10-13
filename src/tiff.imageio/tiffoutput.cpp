@@ -87,13 +87,16 @@ public:
 private:
     TIFF *m_tif;
     std::vector<unsigned char> m_scratch;
-    int m_planarconfig;
     Timer m_checkpointTimer;
     int m_checkpointItems;
     unsigned int m_dither;
+    // The following fields are describing what we are writing to the file,
+    // not what's in the client's view of the buffer.
+    int m_planarconfig;
     int m_compression;
     int m_photometric;
     unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
+    int m_outputchans;   // Number of channels for the output
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -101,10 +104,13 @@ private:
         m_checkpointItems = 0;
         m_compression = COMPRESSION_ADOBE_DEFLATE;
         m_photometric = PHOTOMETRIC_RGB;
+        m_outputchans = 0;
     }
 
     // Convert planar contiguous to planar separate data format
     void contig_to_separate (int n, const char *contig, char *separate);
+    // Convert RGB to CMYK
+    void* convert_to_cmyk (int npixels, const void* data);
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
@@ -399,11 +405,29 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
             m_photometric = PHOTOMETRIC_YCBCR;
         }
     }
+    m_outputchans = m_spec.nchannels;
+    if (m_photometric == PHOTOMETRIC_RGB) {
+        // There are a few ways in which we allow allow the user to specify
+        // translation to different photometric types.
+        string_view photo = m_spec.get_string_attribute("tiff:ColorSpace");
+        if (Strutil::iequals (photo, "CMYK")) {
+            // CMYK: force to 4 channel output, either uint8 or uint16
+            m_photometric = PHOTOMETRIC_SEPARATED;
+            m_outputchans = 4;
+            TIFFSetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, m_outputchans);
+            if (m_spec.format != TypeDesc::UINT8 || m_spec.format != TypeDesc::UINT16) {
+                m_spec.format = TypeDesc::UINT8;
+                m_bitspersample = 8;
+                TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
+                TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+            }
+        }
+    }
 
     TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, m_photometric);
 
     // ExtraSamples tag
-    if (m_spec.nchannels > 3) {
+    if (m_spec.nchannels > 3 && m_photometric != PHOTOMETRIC_SEPARATED) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
         short e = m_spec.nchannels-3;
         std::vector<unsigned short> extra (e);
@@ -427,9 +451,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         if (str && Strutil::iequals (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
     }
-    // Can't deal with the headache of separate image planes and bit
-    // packing. Just punt by forcing contig in that case.
-    if (m_bitspersample != spec().format.size()*8)
+    // Can't deal with the headache of separate image planes when using
+    // bit packing, or CMYK. Just punt by forcing contig in those cases.
+    if (m_bitspersample != spec().format.size()*8 ||
+            m_photometric == PHOTOMETRIC_SEPARATED)
         m_planarconfig = PLANARCONFIG_CONTIG;
     if (m_planarconfig == PLANARCONFIG_SEPARATE) {
         if (! m_spec.tile_width) {
@@ -781,6 +806,47 @@ convert_pack_bits (T *data, int nvals)
 
 
 
+template<typename T>
+static void
+rgb_to_cmyk (int n, const T *rgb, size_t rgb_stride,
+             T *cmyk, size_t cmyk_stride)
+{
+    for ( ; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
+        float R = convert_type<T,float>(rgb[0]);
+        float G = convert_type<T,float>(rgb[1]);
+        float B = convert_type<T,float>(rgb[2]);
+        float K = std::min (0.999f, 1.0f - std::max (R, std::max(G, B)));
+        float C = (1.0f - R - K) / (1.0f-K);
+        float M = (1.0f - G - K) / (1.0f-K);
+        float Y = (1.0f - B - K) / (1.0f-K);
+        cmyk[0] = convert_type<float,T>(C);
+        cmyk[1] = convert_type<float,T>(M);
+        cmyk[2] = convert_type<float,T>(Y);
+        cmyk[3] = convert_type<float,T>(K);
+    }
+}
+
+
+
+void*
+TIFFOutput::convert_to_cmyk (int npixels, const void* data)
+{
+    std::vector<unsigned char> cmyk (m_outputchans * spec().format.size() * npixels);
+    if (spec().format == TypeDesc::UINT8) {
+        rgb_to_cmyk (npixels, (unsigned char *)data, m_spec.nchannels,
+                     (unsigned char *)&cmyk[0], m_outputchans);
+    } else if (spec().format == TypeDesc::UINT16) {
+        rgb_to_cmyk (npixels, (unsigned short *)data, m_spec.nchannels,
+                     (unsigned short *)&cmyk[0], m_outputchans);
+    } else {
+        ASSERT (0 && "CMYK should be forced to UINT8 or UINT16");
+    }
+    m_scratch.swap (cmyk);
+    return &m_scratch[0];
+}
+
+
+
 bool
 TIFFOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
@@ -790,11 +856,15 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
     data = to_native_scanline (format, data, xstride, m_scratch,
                                m_dither, y, z);
 
+    // Handle weird photometric/color spaces
+    if (m_photometric == PHOTOMETRIC_SEPARATED)
+        data = convert_to_cmyk (spec().width, data);
+
     // Handle weird bit depths
     if (spec().format.size()*8 != m_bitspersample) {
         // Move to scratch area if not already there
         imagesize_t nbytes = spec().scanline_bytes();
-        int nvals = spec().width * spec().nchannels;
+        int nvals = spec().width * m_outputchans;
         if (data == origdata) {
             m_scratch.assign ((unsigned char *)data,
                               (unsigned char *)data+nbytes);
@@ -878,6 +948,10 @@ TIFFOutput::write_tile (int x, int y, int z,
     const void *origdata = data;   // Stash original pointer
     data = to_native_tile (format, data, xstride, ystride, zstride,
                            m_scratch, m_dither, x, y, z);
+
+    // Handle weird photometric/color spaces
+    if (m_photometric == PHOTOMETRIC_SEPARATED)
+        data = convert_to_cmyk (spec().tile_pixels(), data);
 
     // Handle weird bit depths
     if (spec().format.size()*8 != m_bitspersample) {

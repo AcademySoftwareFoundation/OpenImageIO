@@ -48,6 +48,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     Copyright: "          "
     DateTime: "2004:11:10 00:00:31"
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 1
@@ -82,6 +83,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     YResolution: 72
     ResolutionUnit: "in"
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 1
@@ -135,6 +137,7 @@ Reading ../../../../../libtiffpic/jello.tif
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 3
+    tiff:ColorSpace: "palette"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 32773
@@ -152,6 +155,7 @@ Reading ../../../../../libtiffpic/off_l16.tif
     YResolution: 72
     ResolutionUnit: "in"
     tiff:PhotometricInterpretation: 32844
+    tiff:ColorSpace: "LOGL"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 34676
@@ -170,6 +174,7 @@ Reading ../../../../../libtiffpic/off_luv24.tif
     YResolution: 72
     ResolutionUnit: "in"
     tiff:PhotometricInterpretation: 32845
+    tiff:ColorSpace: "LOGLUV"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 34677
@@ -188,6 +193,7 @@ Reading ../../../../../libtiffpic/off_luv32.tif
     YResolution: 72
     ResolutionUnit: "in"
     tiff:PhotometricInterpretation: 32845
+    tiff:ColorSpace: "LOGLUV"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 34676
@@ -276,6 +282,7 @@ Reading ../../../../../libtiffpic/quad-jpeg.tif
     channel list: R, G, B
     oiio:BitsPerSample: 8
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 7
@@ -308,6 +315,7 @@ Reading ../../../../../libtiffpic/ycbcr-cat.tif
     ImageDescription: "YCbCr conversion of cat.tif"
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 5
@@ -325,6 +333,7 @@ Reading ../../../../../libtiffpic/smallliz.tif
     ResolutionUnit: "in"
     Software: "HP IL v1.1"
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 6
@@ -342,6 +351,7 @@ Reading ../../../../../libtiffpic/zackthecat.tif
     YResolution: 75
     ResolutionUnit: "in"
     tiff:PhotometricInterpretation: 6
+    tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 6

@@ -133,6 +133,7 @@ private:
     TIFF *m_tif;                     ///< libtiff handle
     std::string m_filename;          ///< Stash the filename
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
+    std::vector<unsigned char> m_scratch2; ///< More scratch
     int m_subimage;                  ///< What subimage are we looking at?
     int m_next_scanline;             ///< Next scanline we'll read
     bool m_no_random_access;         ///< Should we avoid random access?
@@ -147,6 +148,7 @@ private:
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
     unsigned short m_compression;    ///< TIFF compression tag
+    unsigned short m_inputchannels;  ///< Channels in the file (careful with CMYK)
     std::vector<unsigned short> m_colormap;  ///< Color map for palette images
     std::vector<uint32_t> m_rgbadata; ///< Sometimes we punt
 
@@ -158,6 +160,7 @@ private:
         m_keep_unassociated_alpha = false;
         m_convert_alpha = false;
         m_separate = false;
+        m_inputchannels = 0;
         m_testopenconfig = false;
         m_colormap.clear();
         m_use_rgba_interface = false;
@@ -178,7 +181,8 @@ private:
     void readspec (bool read_meta=true);
 
     // Convert planar separate to contiguous data format
-    void separate_to_contig (int n, const unsigned char *separate,
+    void separate_to_contig (int nplanes, int nvals,
+                             const unsigned char *separate,
                              unsigned char *contig);
 
     // Convert palette to RGB
@@ -630,15 +634,14 @@ void
 TIFFInput::readspec (bool read_meta)
 {
     uint32 width = 0, height = 0, depth = 0;
-    unsigned short nchans = 1;
     TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &m_inputchannels);
 
     if (read_meta) {
         // clear the whole m_spec and start fresh
-        m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
+        m_spec = ImageSpec ((int)width, (int)height, (int)m_inputchannels);
     } else {
         // assume m_spec is valid, except for things that might differ
         // between MIP levels
@@ -651,7 +654,7 @@ TIFFInput::readspec (bool read_meta)
         m_spec.full_width = (int)width;
         m_spec.full_height = (int)height;
         m_spec.full_depth = (int)depth;
-        m_spec.nchannels = (int)nchans;
+        m_spec.nchannels = (int)m_inputchannels;
     }
 
     float x = 0, y = 0;
@@ -751,7 +754,31 @@ TIFFInput::readspec (bool read_meta)
     m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
     m_spec.attribute ("tiff:PhotometricInterpretation", (int)m_photometric);
-    if (m_photometric == PHOTOMETRIC_PALETTE) {
+    switch (m_photometric) {
+    case PHOTOMETRIC_SEPARATED :
+        m_spec.attribute ("tiff:ColorSpace", "CMYK");
+        m_spec.nchannels = 3;   // Silently convert to RGB
+        break;
+    case PHOTOMETRIC_YCBCR  :
+        m_spec.attribute ("tiff:ColorSpace", "YCbCr");
+        break;
+    case PHOTOMETRIC_CIELAB :
+        m_spec.attribute ("tiff:ColorSpace", "CIELAB");
+        break;
+    case PHOTOMETRIC_ICCLAB :
+        m_spec.attribute ("tiff:ColorSpace", "ICCLAB");
+        break;
+    case PHOTOMETRIC_ITULAB :
+        m_spec.attribute ("tiff:ColorSpace", "ITULAB");
+        break;
+    case PHOTOMETRIC_LOGL   :
+        m_spec.attribute ("tiff:ColorSpace", "LOGL");
+        break;
+    case PHOTOMETRIC_LOGLUV :
+        m_spec.attribute ("tiff:ColorSpace", "LOGLUV");
+        break;
+    case PHOTOMETRIC_PALETTE : {
+        m_spec.attribute ("tiff:ColorSpace", "palette");
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
         TIFFGetField (m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
@@ -774,6 +801,8 @@ TIFFInput::readspec (bool read_meta)
         }
         // FIXME - what about palette + extra (alpha?) channels?  Is that
         // allowed?  And if so, ever encountered in the wild?
+        break;
+        }
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
@@ -824,7 +853,7 @@ TIFFInput::readspec (bool read_meta)
               m_photometric == PHOTOMETRIC_MASK)
             colorchannels = 1;
         for (int i = 0, c = colorchannels;
-             i < extrasamples && c < m_spec.nchannels;  ++i, ++c) {
+             i < extrasamples && c < m_inputchannels;  ++i, ++c) {
             // std::cerr << "   extra " << i << " " << sampleinfo[i] << "\n";
             if (sampleinfo[i] == EXTRASAMPLE_ASSOCALPHA) {
                 // This is the alpha channel, associated as usual
@@ -1034,15 +1063,16 @@ TIFFInput::close ()
 /// Helper: Convert n pixels from separate (RRRGGGBBB) to contiguous
 /// (RGBRGBRGB) planarconfig.
 void
-TIFFInput::separate_to_contig (int n, const unsigned char *separate,
+TIFFInput::separate_to_contig (int nplanes, int nvals,
+                               const unsigned char *separate,
                                unsigned char *contig)
 {
     int channelbytes = m_spec.channel_bytes();
-    for (int p = 0;  p < n;  ++p)                     // loop over pixels
-        for (int c = 0;  c < m_spec.nchannels;  ++c)    // loop over channels
+    for (int p = 0;  p < nvals;  ++p)                     // loop over pixels
+        for (int c = 0;  c < nplanes;  ++c)   // loop over channels
             for (int i = 0;  i < channelbytes;  ++i)  // loop over data bytes
-                contig[(p*m_spec.nchannels+c)*channelbytes+i] =
-                    separate[(c*n+p)*channelbytes+i];
+                contig[(p*nplanes+c)*channelbytes+i] =
+                    separate[(c*nvals+p)*channelbytes+i];
 }
 
 
@@ -1134,6 +1164,27 @@ TIFFInput::invert_photometric (int n, void *data)
 
 
 
+template <typename T>
+static void
+cmyk_to_rgb (int n, const T *cmyk, size_t cmyk_stride,
+             T *rgb, size_t rgb_stride)
+{
+    for ( ; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
+        float C = convert_type<T,float>(cmyk[0]);
+        float M = convert_type<T,float>(cmyk[1]);
+        float Y = convert_type<T,float>(cmyk[2]);
+        float K = convert_type<T,float>(cmyk[3]);
+        float R = (1.0f - C) * (1.0f - K);
+        float G = (1.0f - M) * (1.0f - K);
+        float B = (1.0f - Y) * (1.0f - K);
+        rgb[0] = convert_type<float,T>(R);
+        rgb[1] = convert_type<float,T>(G);
+        rgb[2] = convert_type<float,T>(B);
+    }
+}
+
+
+
 bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
@@ -1194,10 +1245,10 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     }
     m_next_scanline = y+1;
 
-    int nvals = m_spec.width * m_spec.nchannels;
-    m_scratch.resize (m_spec.scanline_bytes());
-    bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16 ||
-                           m_bitspersample == 32);
+    int nvals = m_spec.width * m_inputchannels;
+    m_scratch.resize (nvals * m_spec.format.size());
+    bool need_bit_convert = (m_bitspersample != 8 && m_bitspersample != 16 &&
+                             m_bitspersample != 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
@@ -1205,41 +1256,75 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
             return false;
         }
         palette_to_rgb (m_spec.width, &m_scratch[0], (unsigned char *)data);
-    } else {
-        // Not palette
-        int plane_bytes = m_spec.width * m_spec.format.size();
-        int planes = m_separate ? m_spec.nchannels : 1;
-        std::vector<unsigned char> scratch2 (m_separate ? m_spec.scanline_bytes() : 0);
-        // Where to read?  Directly into user data if no channel shuffling
-        // or bit shifting is needed, otherwise into scratch space.
-        unsigned char *readbuf = (no_bit_convert && !m_separate) ? (unsigned char *)data : &m_scratch[0];
-        // Perform the reads.  Note that for contig, planes==1, so it will
-        // only do one TIFFReadScanline.
-        for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
-            if (TIFFReadScanline (m_tif, &readbuf[plane_bytes*c], y, c) < 0) {
-                error ("%s", oiio_tiff_last_error());
-                return false;
-            }
-        if (m_bitspersample < 8) {
-            // m_scratch now holds nvals n-bit values, contig or separate
-            std::swap (m_scratch, scratch2);
-            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
-                bit_convert (m_separate ? m_spec.width : nvals,
-                             &scratch2[plane_bytes*c], m_bitspersample,
-                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 8);
-        } else if (m_bitspersample > 8 && m_bitspersample < 16) {
-            // m_scratch now holds nvals n-bit values, contig or separate
-            std::swap (m_scratch, scratch2);
-            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
-                bit_convert (m_separate ? m_spec.width : nvals,
-                             &scratch2[plane_bytes*c], m_bitspersample,
-                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 16);
+        return true;
+    }
+    // Not palette...
+
+    int plane_bytes = m_spec.width * m_spec.format.size();
+    int planes = m_separate ? m_inputchannels : 1;
+    int input_bytes = plane_bytes * m_inputchannels;
+    // Where to read?  Directly into user data if no channel shuffling, bit
+    // shifting, or CMYK conversion is needed, otherwise into scratch space.
+    unsigned char *readbuf = (unsigned char *)data;
+    if (need_bit_convert || m_separate || m_photometric == PHOTOMETRIC_SEPARATED)
+        readbuf = &m_scratch[0];
+    // Perform the reads.  Note that for contig, planes==1, so it will
+    // only do one TIFFReadScanline.
+    for (int c = 0;  c < planes;  ++c) { /* planes==1 for contig */
+        if (TIFFReadScanline (m_tif, &readbuf[plane_bytes*c], y, c) < 0) {
+            error ("%s", oiio_tiff_last_error());
+            return false;
         }
-        if (m_separate) {
-            // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
-            // We know the data is in m_scratch at this point, so 
-            // contiguize it into the user data area.
-            separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
+    }
+
+    // Handle less-than-full bit depths
+    if (m_bitspersample < 8) {
+        // m_scratch now holds nvals n-bit values, contig or separate
+        m_scratch2.resize (input_bytes);
+        m_scratch.swap (m_scratch2);
+        for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+            bit_convert (m_separate ? m_spec.width : nvals,
+                         &m_scratch2[plane_bytes*c], m_bitspersample,
+                         m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 8);
+    } else if (m_bitspersample > 8 && m_bitspersample < 16) {
+        // m_scratch now holds nvals n-bit values, contig or separate
+        m_scratch2.resize (input_bytes);
+        m_scratch.swap (m_scratch2);
+        for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+            bit_convert (m_separate ? m_spec.width : nvals,
+                         &m_scratch2[plane_bytes*c], m_bitspersample,
+                         m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 16);
+    }
+
+    // Handle "separate" planarconfig
+    if (m_separate) {
+        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
+        // We know the data is in m_scratch at this point, so 
+        // contiguize it into the user data area.
+        if (m_photometric == PHOTOMETRIC_SEPARATED) {
+            // CMYK->RGB means we need temp storage.
+            m_scratch2.resize (input_bytes);
+            separate_to_contig (planes, m_spec.width, &m_scratch[0], &m_scratch2[0]);
+            m_scratch.swap (m_scratch2);
+        } else {
+            // If no CMYK->RGB conversion is necessary, we can "separate"
+            // straight into the data area.
+            separate_to_contig (planes, m_spec.width, &m_scratch[0], (unsigned char *)data);
+        }
+    }
+
+    // Handle CMYK
+    if (m_photometric == PHOTOMETRIC_SEPARATED) {
+        // The CMYK will be in m_scratch.
+        if (spec().format == TypeDesc::UINT8) {
+            cmyk_to_rgb (m_spec.width, (unsigned char *)&m_scratch[0], m_inputchannels,
+                         (unsigned char *)data, m_spec.nchannels);
+        } else if (spec().format == TypeDesc::UINT16) {
+            cmyk_to_rgb (m_spec.width, (unsigned short *)&m_scratch[0], m_inputchannels,
+                         (unsigned short *)data, m_spec.nchannels);
+        } else {
+            error ("CMYK only supported for UINT8, UINT16");
+            return false;
         }
     }
 
@@ -1324,7 +1409,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
             // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
             // We know the data is in m_scratch at this point, so 
             // contiguize it into the user data area.
-            separate_to_contig (tile_pixels, &m_scratch[0], (unsigned char *)data);
+            separate_to_contig (planes, tile_pixels, &m_scratch[0], (unsigned char *)data);
         }
     }
 

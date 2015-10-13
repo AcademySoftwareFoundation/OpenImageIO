@@ -158,6 +158,26 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
     PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 PASS
+Reading ../../../../../libtiffpic/depth/flower-minisblack-32.tif
+../../../../../libtiffpic/depth/flower-minisblack-32.tif :   73 x   43, 1 channel, uint tiff
+    SHA-1: C98FB1125C7210E380E3F86DFCAEFF49A16742E0
+    channel list: A
+    oiio:BitsPerSample: 32
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-minisblack-32.tif"
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 28
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-32.tif" and "flower-minisblack-32.tif"
+PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
 ../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
@@ -170,6 +190,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
     Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
     DocumentName: "flower-palette-02.tif"
     tiff:PhotometricInterpretation: 3
+    tiff:ColorSpace: "palette"
     tiff:BitsPerSample: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
@@ -191,6 +212,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
     Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
     DocumentName: "flower-palette-04.tif"
     tiff:PhotometricInterpretation: 3
+    tiff:ColorSpace: "palette"
     tiff:BitsPerSample: 4
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
@@ -212,6 +234,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-08.tif
     Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
     DocumentName: "flower-palette-08.tif"
     tiff:PhotometricInterpretation: 3
+    tiff:ColorSpace: "palette"
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 1
@@ -360,6 +383,26 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-16.tif
     PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 PASS
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-32.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-32.tif :   73 x   43, 3 channel, uint tiff
+    SHA-1: 04DAF56E34180687DB7FA12E7EE8EC3A3E40DAB8
+    channel list: R, G, B
+    oiio:BitsPerSample: 32
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-32.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 9
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-32.tif" and "flower-rgb-contig-32.tif"
+PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
 ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint2 tiff
     SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
@@ -499,4 +542,88 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-16.tif
     tiff:RowsPerStrip: 56
     PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-16.tif" and "flower-rgb-planar-16.tif"
+PASS
+Reading ../../../../../libtiffpic/depth/flower-separated-contig-08.tif
+../../../../../libtiffpic/depth/flower-separated-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: F739D368D37AB99D237FA1358A2EECE913245226
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-separated-contig-08.tif"
+    tiff:PhotometricInterpretation: 5
+    tiff:ColorSpace: "CMYK"
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 28
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-separated-contig-08.tif" and "flower-separated-contig-08.tif"
+PASS
+Reading ../../../../../libtiffpic/depth/flower-separated-contig-16.tif
+../../../../../libtiffpic/depth/flower-separated-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: 11EDBB53957F64BDDD05F0BF4121505763956CA9
+    channel list: R, G, B
+    oiio:BitsPerSample: 16
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-separated-contig-16.tif"
+    tiff:PhotometricInterpretation: 5
+    tiff:ColorSpace: "CMYK"
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 14
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-separated-contig-16.tif" and "flower-separated-contig-16.tif"
+PASS
+Reading ../../../../../libtiffpic/depth/flower-separated-planar-08.tif
+../../../../../libtiffpic/depth/flower-separated-planar-08.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: F739D368D37AB99D237FA1358A2EECE913245226
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-separated-planar-08.tif"
+    tiff:PhotometricInterpretation: 5
+    tiff:ColorSpace: "CMYK"
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 112
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-separated-planar-08.tif" and "flower-separated-planar-08.tif"
+PASS
+Reading ../../../../../libtiffpic/depth/flower-separated-planar-16.tif
+../../../../../libtiffpic/depth/flower-separated-planar-16.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: 11EDBB53957F64BDDD05F0BF4121505763956CA9
+    channel list: R, G, B
+    oiio:BitsPerSample: 16
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-separated-planar-16.tif"
+    tiff:PhotometricInterpretation: 5
+    tiff:ColorSpace: "CMYK"
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 56
+    PixelAspectRatio: 1
+Comparing "../../../../../libtiffpic/depth/flower-separated-planar-16.tif" and "flower-separated-planar-16.tif"
 PASS
