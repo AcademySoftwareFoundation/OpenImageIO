@@ -305,6 +305,8 @@ OpenEXROutput::supports (const std::string &feature) const
 #ifdef USE_OPENEXR_VERSION2
     if (feature == "multiimage")
         return true;  // N.B. But OpenEXR does not support "appendsubimage"
+    if (feature == "deepdata")
+        return true;
 #endif
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
