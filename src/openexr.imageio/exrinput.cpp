@@ -212,7 +212,6 @@ private:
     int m_subimage;                       ///< What subimage are we looking at?
     int m_nsubimages;                     ///< How many subimages are there?
     int m_miplevel;                       ///< What MIP level are we looking at?
-    std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
     void init () {
         m_input_stream = NULL;
