@@ -210,7 +210,7 @@ std::string OIIO_API join (const std::vector<std::string> &seq,
 
 // Helper template to test if a string is a generic type
 template<typename T>
-inline bool string_is (string_view s) {
+inline bool string_is (string_view /*s*/) {
     return false; // Generic: assume there is an explicit specialization
 }
 // Special case for int
