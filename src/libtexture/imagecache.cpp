@@ -1217,7 +1217,7 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
     // looking up the filename of the first entry in the file cache.
     if (! m_file_sweep_name) {
         FilenameMap::iterator sweep = m_files.begin();
-        ASSERT (sweep != m_files.end() &&
+        DASSERT (sweep != m_files.end() &&
                 "no way m_files can be empty and have too many files open");
         m_file_sweep_name = sweep->first;
     }
@@ -2143,7 +2143,7 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
     // looking up the first entry in the tile cache.
     if (m_tile_sweep_id.empty()) {
         TileCache::iterator sweep = m_tilecache.begin();
-        ASSERT (sweep != m_tilecache.end() &&
+        DASSERT (sweep != m_tilecache.end() &&
                 "no way m_tilecache can be empty and use too much memory");
         m_tile_sweep_id = (*sweep).first;
     }
