@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=38
+OPENIMAGEIO_SPCOMP2_VERSION=39
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -66,15 +66,29 @@ OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2
 
 ## Rhel7 (current)
 ifeq ($(SP_OS), rhel7)
+    USE_CPP11 ?= 1
     USE_SIMD = sse4.1
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
     CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
     MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
-    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
-    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v406"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
+    BOOSTSPSUFFIX ?= sp
+    BOOSTVERSSP=${BOOSTVERS}${BOOSTSPSUFFIX}
+    BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
+    BOOSTVERS_PREFIX = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}_0
+    CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
+    SPCOMP2_BOOSTVERS_SUFFIX = ${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
+    # $(info BOOSTVERSSP ${BOOSTVERSSP})
+    # $(info BOOSTVERS_SUFFIX ${BOOSTVERS_SUFFIX})
+    # $(info BOOSTVERS_PREFIX ${BOOSTVERS_PREFIX})
+    # $(info CONSTRUCTED_BOOSTVERS ${CONSTRUCTED_BOOSTVERS})
+    # $(info SPCOMP2_BOOSTVERS_SUFFIX ${SPCOMP2_BOOSTVERS_SUFFIX})
+    OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155${BOOSTSPSUFFIX}/v406
+    OIIO_SPCOMP2_PATH := ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}-boost${SPCOMP2_BOOSTVERS_SUFFIX}/v${OPENIMAGEIO_SPCOMP2_VERSION}
+    $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
@@ -127,25 +141,23 @@ ifeq ($(SP_OS), rhel7)
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
         -DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	-DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
-
-    BOOSTVERSSP=${BOOSTVERS}sp
-    BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
-    BOOSTVERS_PREFIX = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}_0
-    CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
+	-DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
 	-Doiio_boost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
-	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
-	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
-
-#	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
-#	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
-#	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+    ifeq (${BOOSTSPSUFFIX}, sp)
+      MY_CMAKE_FLAGS += \
+	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so"
+    else
+      MY_CMAKE_FLAGS += \
+	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_python-gcc48-mt${BOOSTVERS_SUFFIX}.so"
+    endif
     # end rhel7
 
 ## Spinux (current)
@@ -155,8 +167,8 @@ else ifeq ($(SP_OS), spinux1)
 #    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
 #    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
 #    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
-    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
-#    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v406"
+    OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+#    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v406
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
     # the standard libGL.  This attempts to detect which libGL to use.
@@ -229,7 +241,7 @@ else ifeq ($(SP_OS), spinux1)
 	  -DFIELD3D_HOME=${FIELD3D_HOME} \
           -DHDF5_CUSTOM=1 \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	  -DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
+	  -DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
     ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
 	BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
 	MY_CMAKE_FLAGS += \
@@ -248,8 +260,8 @@ else ifeq ($(SP_OS), spinux1)
 else ifeq ($(SP_OS), lion)
     USE_SIMD = sse4.2
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
-    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
-    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
+    OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+    FIELD3D_HOME ?= ${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306
     # CMAKE_CXX_COMPILER:
     #   otherwise g++ is used and SPI standardized on clang.
     # CMAKE_INSTALL_NAME_DIR:
@@ -308,7 +320,8 @@ endif  # endif $(SP_OS)
 
 
 SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)
-BOOSTVERSSP?=${BOOSTVERS}
+BOOSTVERSSP?=${BOOSTVERS}${BOOSTSPSUFFIX}
+
 ifdef SPCOMP2_USE_BOOSTVERS
 	ifneq ($(BOOSTVERS),1.42)
 		SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)-boost$(subst .,,$(BOOSTVERSSP))
@@ -332,11 +345,10 @@ space:= $(empty) $(empty)
 INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(SP_OS)
 INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
-SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib
-SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
-
-PYSPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${OIIO_SPCOMP2_PATH}/lib
-PYSPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${OIIO_SPCOMP2_PATH}/lib/debug
+SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib
+SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug
+PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib
+PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug
 
 
 spcomp2_install_local: INSTALL_SPCOMP2_LOCATION = $(SPCOMP2_LOCAL_PATH)
@@ -365,60 +377,24 @@ spcomp2_debug: debug
 
 spcomp2_install_fixup_lion: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
-
-	install_name_tool \
-	-add_rpath ${OCIO_PATH}/lib \
-	${dist_dir}/python/libPyOpenImageIO.so
-
-	install_name_tool \
-	-add_rpath ${OIIO_SPCOMP2_PATH}/lib \
-	${dist_dir}/python/libPyOpenImageIO.so
-
-	install_name_tool \
-	-add_rpath ${OCIO_PATH}/lib/debug \
-	${dist_dir}.debug/python/libPyOpenImageIO.so
-
-	install_name_tool \
-	-add_rpath ${OIIO_SPCOMP2_PATH}/lib/debug \
-	${dist_dir}.debug/python/libPyOpenImageIO.so
+	install_name_tool -add_rpath ${OCIO_PATH}/lib ${dist_dir}/python/libPyOpenImageIO.so
+	install_name_tool -add_rpath ${OIIO_SPCOMP2_PATH}/lib ${dist_dir}/python/libPyOpenImageIO.so
+	install_name_tool -add_rpath ${OCIO_PATH}/lib/debug ${dist_dir}.debug/python/libPyOpenImageIO.so
+	install_name_tool -add_rpath ${OIIO_SPCOMP2_PATH}/lib/debug ${dist_dir}.debug/python/libPyOpenImageIO.so
 
 spcomp2_install_fixup_spinux1: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
-
-	patchelf \
-	--set-rpath $(SPCOMP2_RPATH_OPT) \
-	${dist_dir}/lib/libOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
-	${dist_dir}.debug/lib/libOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(PYSPCOMP2_RPATH_OPT) \
-	${dist_dir}/python/libPyOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(PYSPCOMP2_RPATH_DEBUG) \
-	${dist_dir}.debug/python/libPyOpenImageIO.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO.so
+	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
+	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
 
 spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
-
-	patchelf \
-	--set-rpath $(SPCOMP2_RPATH_OPT) \
-	${dist_dir}/lib/libOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
-	${dist_dir}.debug/lib/libOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(PYSPCOMP2_RPATH_OPT) \
-	${dist_dir}/python/libPyOpenImageIO.so
-
-	patchelf \
-	--set-rpath $(PYSPCOMP2_RPATH_DEBUG) \
-	${dist_dir}.debug/python/libPyOpenImageIO.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO.so
+	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
+	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
 
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
@@ -434,7 +410,6 @@ spcomp2_install: spcomp2_install_fixup_$(SP_OS)
 	--srcdir=${dist_dir}/lib \
 	--builddir_o=${dist_dir}/lib \
 	--builddir_d=${dist_dir}.debug/lib
-
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=PyOpenImageIO \
 	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \

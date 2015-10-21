@@ -47,6 +47,7 @@ OCIO_SPCOMP_VERSION ?= 2
 
 ## Rhel7 (current)
 ifeq ($(SP_OS), rhel7)
+    USE_CPP11 ?= 1
     USE_SIMD = sse4.1
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
