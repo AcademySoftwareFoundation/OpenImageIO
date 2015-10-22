@@ -635,14 +635,14 @@ image file will be filled with zero values.
          \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
          \bigspc\spc TypeDesc format, void *result, \\
          \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride,\\
-         \bitspc\spc int cache_chbegin=0, int cache_chend=-1) \\
+         \bigspc\spc int cache_chbegin=0, int cache_chend=-1) \\
 bool {\ce get\_pixels} (ImageHandle *file, Perthread *thread_info, \\
          \bigspc\spc int subimage, int miplevel, \\
          \bigspc\spc int xbegin, int xend, int ybegin, int yend, \\
          \bigspc\spc int zbegin, int zend, int chbegin, int chend,\\
          \bigspc\spc TypeDesc format, void *result, \\
          \bigspc\spc stride_t xstride, stride_t ystride, stride_t zstride,\\
-         \bitspc\spc int cache_chbegin=0, int cache_chend=-1)}
+         \bigspc\spc int cache_chbegin=0, int cache_chend=-1)}
 For an image specified by either name or handle,
 retrieve the rectangle of pixels and subset of channels
 of the designated {\cf subimage} and {\cf miplevel}, storing the pixel values
@@ -669,13 +669,15 @@ all the channels of the file will be stored in the cached tile).
 \label{sec:imagecache:api:tiles}
 
 \apiitem{ImageCache::Tile * {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
-  \bigspc \bigspc int x, int y, int z) \\
+  \bigspc \bigspc int x, int y, int z, int chbegin=0, int chend=-1) \\
 ImageCache::Tile * {\ce get_tile} (ImageHandle *file, Perthread *thread_info, \\
 \bigspc\bigspc int subimage, int miplevel, \\
-  \bigspc \bigspc int x, int y, int z)}
+  \bigspc \bigspc int x, int y, int z, int chbegin=0, int chend=-1)}
 Find a tile of an image (identified by either name or handle)
-for the requested {\cf subimage}, and pixel
-coordinates.  An opaque pointer to the tile will be returned,
+for the requested {\cf subimage}, pixel
+coordinates, and channel range (if {\cf chend < chbegin}, the full
+range of channels in the file will be used).
+An opaque pointer to the tile will be returned,
 or {\cf NULL} if no such file (or tile within the file) exists or can
 be read.  The tile will not be purged from the cache until 
 after {\cf release_tile()} is called on the tile pointer.  This is
@@ -760,12 +762,14 @@ a particular filename is referenced in the lifetime of the
 \apiend
 
 \apiitem{bool {\ce add_tile} (ustring filename, int subimage, int miplevel,\\
-\bigspc        int x, int y, int z, TypeDesc format, const void *buffer,\\
+\bigspc        int x, int y, int z, int chbegin, int chend, \\
+\bigspc        TypeDesc format, const void *buffer,\\
 \bigspc        stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
 \bigspc        stride_t zstride=AutoStride}
 Preemptively add a tile corresponding to the named image, at the
 given subimage and MIP level.  The tile added is the one whose
-corner is (x,y,z), and buffer points to the pixels (in the given
+corner is (x,y,z), with the given channel range,
+and buffer points to the pixels (in the given
 format, with supplied strides) which will be copied and inserted
 into the cache and made available for future lookups.
 \apiend
