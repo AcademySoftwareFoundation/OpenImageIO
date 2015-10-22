@@ -117,6 +117,8 @@ Public API changes:
     * ImageOutput::copy_to_image_buffer is a helper function that
       generalizes the existing copy_tile_to_image_buffer, but for any
       rectangle.  #1193 (1.6.4)
+    * ImageInput::read_image() variant that takes a channel range to
+      read just a subset of the channels present. #1222 (1.6.5)
  * ImageBuf:
     * Add make_writeable(), which forces ImageCache-backed read-only
       ImageBuf to read into locally allocated pixels so they can be
@@ -140,12 +142,17 @@ Public API changes:
     * Add create_thread_info() and destroy_thread_info() methods that
       allow an app to manage the per-thread records needed by the IC.
       #1080 (1.6.2)
-   * Added ImageCache get_perthread_info() and get_image_handle() to
-     return opaque perthread and file handle pointers, much like
-     TextureSystem already had, and added handle-based versions of
-     get_image_info(), get_imagespec(), imagespec(), get_pixels(), and
-     get_tile(), in addition to the existing name-based versions of
-     those methods. #1057 (1.6.1)
+    * Added ImageCache get_perthread_info() and get_image_handle() to
+      return opaque perthread and file handle pointers, much like
+      TextureSystem already had, and added handle-based versions of
+      get_image_info(), get_imagespec(), imagespec(), get_pixels(), and
+      get_tile(), in addition to the existing name-based versions of
+      those methods. #1057 (1.6.1)
+    * ImageCache get_tile and get_pixels have new varieties that let you
+      request channel begin/end range. This allows you to control which
+      channel ranges are in the cache, and thus be much more efficient
+      with cache storage when only a few channels are needed from a file
+      with many channels. #1226 (1.6.5)
  * Python bindings:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
     * ImageSpec.set_channel_formats() now works when the channel
@@ -216,6 +223,10 @@ Fixes, minor enhancements, and performance improvements:
     * Suppress output/copying of "textureformat" metadata inherited from
       input if it's not plausibly still a valid texture (i.e., if it's
       no longer tiled or MIPmapped). #1206 (1.6.4)
+    * oiiotool's full help message lists all supported formats. #1210 (1.6.5)
+    * oiiotool --help prints a briefer help screen. Use --help -v for
+      the full-detail help. #1214 (1.6.5)
+    * Bug fix in --fit when the image didn't need to be resized. #1227 (1.6.5)
   * maketx & TextureSystem:
     * TextureSystem/IC now directly stores uint16 and half pixel data in
       the cache rather than converting internally to float for tile storage,
@@ -240,6 +251,12 @@ Fixes, minor enhancements, and performance improvements:
       #1152 (1.6.4)
     * Fixed trilinear MIPmap texture lookups that gave invalid alpha fill.
       #1163 (1.6.4/1.5.16)
+    * The lanczos3, radial-lanczos, and catrom filters have been change
+      from fixed-width to fully scalable. This fixes artifacts that
+      occur when using them as upsizing filters. #1228,#1232 (1.6.5)
+    * Texture cache memory efficiency is much better for the special case
+      of accessing just a few channels from a texture file with large
+      numbers of channels. #1226 (1.6.5)
  * ImageBufAlgo:
     * compare() (and therefore oiiotool -diff and idiff) did not notice
       image differences when the pixels that differed had NaN or NaN or
@@ -257,11 +274,19 @@ Fixes, minor enhancements, and performance improvements:
       #1171 (1.6.4/1.5.17)
     * Fixed uninitialized variable bugs with rangecompress() and
       rangeexpand() when using luma. #1180 (1.6.4)
- * Eliminate spurious ImageCache invalidation just because the shared
-   cache is requested again. #1157 (1.6.4/1.5.16)
+    * The lanczos3, radial-lanczos, and catrom filters have been change
+      from fixed-width to fully scalable. This fixes artifacts that
+      occur when using them as upsizing filters. #1228,#1232 (1.6.5)
+  * ImageCache / TextureSystem :
+    * Eliminate spurious ImageCache invalidation just because the shared
+      cache is requested again. #1157 (1.6.4/1.5.16)
+    * Statistics output also shows all the option setting values. #1226 (1.6.5)
  * GIF:
     * Write support! #1193 (1.6.4)
     * On input, renamed "fps" metadata to "FramesPerSecond". #1193 (1.6.4)
+ * IFF:
+   * Fix botched output of 16 bit uncompressed data. #1234 (1.6.5)
+   * Make "rle" compression the default. #1234 (1.6.5)
  * JPEG:
     * Now properly read/write xdensity and ydensity (what OIIO and TIFF
       call "XResolution" and "YResolution" and, therefore,
@@ -291,9 +316,14 @@ Fixes, minor enhancements, and performance improvements:
       docs in how they explain strides for this case. #1055 (1.6.1/1.5.12)
     * Fix bugs in reading deep OpenEXR images with mixed channel types.
       #1113 (1.6.3/1.5.13)
+    * OpenEXR output supports("deepdata") now correctly returns 'true'.
+      #1238 (1.6.5)
  * PNG:
     * Writing PNG files now honors the PixelAspectRatio metadata.
       #1142 (1.6.3)
+ * PFM:
+    * PFM (float extension of PNM) was incorrectly flipped top to bottom.
+      Now fixed. #1230 (1.6.5)
  * PSD:
     * Better error handling for files lacking "global layer mask info"
       or "additional layer info". #1147 (1.6.4/1.5.18)
@@ -312,11 +342,26 @@ Fixes, minor enhancements, and performance improvements:
     * Correct read and write of JPEG-compressed TIFF. #1207 (1.6.4)
     * Correct support for reading LAB, LOG, YCbCr, subsampled chroma.
        #1207 (1.6.4)
+    * Make robust to strange TIFF files that have unexpected MIP
+      level-to-MIP level changes in planarconfig, photometric, palette,
+      extrasamples, etc. #1220,1221 (1.6.5/1.5.20)
+    * Support output of 2, 4, 10, and 12 bit unsigned ints into TIFF files.
+      #1216 (1.6.5)
+    * Make TIFF reading more robust to certain subimage-to-subimage
+      changes that were thought to be invariant. #1221 (1.6.5)
+    * CMYK is properly read and written. Upon read, CMYK is auto-converted
+      to RGB (and the "tiff:ColorSpace" metadata is set to "CMYK"). For
+      output, if "tiff:ColorSpace" metadata is set and nonzero, the RGB
+      passed in will be auto-converted to CMYK upon writing. #1233 (1.6.5)
  * ImageBuf iterator constructors with 0-size ranges or ROIs have been
    fixed to look like they are immediately done(). #1141 (1.6.3)
  * Fix bug in internal convert_image() that could corrupt certain image
    copying of non-contiguous data layouts. #1144 (1.6.3)
  * Also search for OIIO plugins in [DY]LD_LIBRARY_PATH. #1153 (1.6.4/1.5.16)
+ * Nuke plugin: don't crash with NULL Knob* in TxReaderFormat::setMipLabels.
+   #1212 (1.6.5/1.5.20)
+ * idiff -q results in quiet mode -- output nothing for success, only
+   minimal errors to stderr for failure. #1231 (1.6.5)
 
 Build/test system improvements:
  * Python plugin is now build as a cmake "module" rather than "library",
@@ -363,6 +408,8 @@ Build/test system improvements:
  * Fix compiler warnings about int vs size_t mismatches. 1199 (1.6.4)
  * Improve C++11 and C++14 readiness. #1200
  * Fix build break with certain new versions of libraw. #1204 (1.6.4/1.5.19)
+ * Fix build warnings for new Apple tools release that upgrades the standard
+   clang release. #1218 (1.6.5/1.5.20)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1)
@@ -413,6 +460,17 @@ Developer goodies / internals:
    assertion. Doesn't affect existing OIIO apps since they are new
    additions, but feel free to use them! #1202 (1.6.4/1.5.19)
 
+
+Release 1.5.20 (28 Sep 2015) -- compared to 1.5.19)
+---------------------------------------------------
+* Nuke plugin: don't crash with NULL Knob* in TxReaderFormat::setMipLabels.
+  #1212
+* Fix build warnings for new Apple tools release that upgrades the standard
+  clang release. #1218
+* Make TIFF reader robust to strange TIFF files that have unexpected MIP
+  level-to-MIP level changes in planarconfig, photometric, palette,
+  extrasamples, etc. We previously assumed these things would never vary
+  between MIP levels of the same file, and Murphy called our bluff. #1220,1221
 
 Release 1.5.19 (8 Sep 2015) -- compared to 1.5.18)
 --------------------------------------------------

@@ -139,6 +139,14 @@ Verbose output --- more detail about what it finds when comparing
 images, even when the comparison does not fail.
 \apiend
 
+\apiitem{-q}
+\NEW % 1.6
+Quiet mode -- output nothing for successful match), output only minimal
+error messages to stderr for failure / no match.  The shell return code
+also indicates success or failure (successful match returns 0, failure
+returns nonzero).
+\apiend
+
 \apiitem{-a}
 Compare all subimages.  Without this flag, only the first subimage
 of each file will be compared.
