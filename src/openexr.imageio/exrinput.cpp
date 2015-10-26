@@ -316,12 +316,12 @@ void set_exr_threads ()
     static spin_mutex exr_threads_mutex;  
 
     int oiio_threads = 1;
-    OIIO::getattribute ("threads", oiio_threads);
+    OIIO::getattribute ("exr_threads", oiio_threads);
 
     spin_lock lock (exr_threads_mutex);
     if (exr_threads != oiio_threads) {
         exr_threads = oiio_threads;
-        Imf::setGlobalThreadCount (exr_threads == 1 ? 0 : exr_threads);
+        Imf::setGlobalThreadCount (exr_threads);
     }
 }
 

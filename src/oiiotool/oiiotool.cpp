@@ -328,7 +328,9 @@ static int
 set_threads (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
-    OIIO::attribute ("threads", atoi(argv[1]));
+    int nthreads = atoi(argv[1]);
+    OIIO::attribute ("threads", nthreads);
+    OIIO::attribute ("exr_threads", nthreads);
     return 0;
 }
 

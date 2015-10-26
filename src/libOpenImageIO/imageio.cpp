@@ -51,6 +51,7 @@ OIIO_NAMESPACE_BEGIN
 namespace pvt {
 recursive_mutex imageio_mutex;
 atomic_int oiio_threads (boost::thread::hardware_concurrency());
+atomic_int oiio_exr_threads (boost::thread::hardware_concurrency());
 atomic_int oiio_read_chunk (256);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
@@ -121,7 +122,7 @@ namespace {
 // Private global OIIO data.
 
 static spin_mutex attrib_mutex;
-static const int maxthreads = 64;   // reasonable maximum for sanity check
+static const int maxthreads = 256;   // reasonable maximum for sanity check
 
 };
 
@@ -144,6 +145,10 @@ attribute (string_view name, TypeDesc type, const void *val)
     }
     if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
         plugin_searchpath = ustring (*(const char **)val);
+        return true;
+    }
+    if (name == "exr_threads" && type == TypeDesc::TypeInt) {
+        oiio_exr_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
         return true;
     }
     return false;
@@ -177,6 +182,10 @@ getattribute (string_view name, TypeDesc type, void *val)
         if (extension_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(extension_list);
+        return true;
+    }
+    if (name == "exr_threads" && type == TypeDesc::TypeInt) {
+        *(int *)val = oiio_exr_threads;
         return true;
     }
     return false;

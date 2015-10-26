@@ -805,11 +805,31 @@ attribute is a string), the attribute will not be modified, and {\cf
 \vspace{10pt}
 \index{threads} \label{sec:attribute:threads}
 Some \product operations can be accelerated if allowed to spawn multiple
-threads to parallelize the task.  (Examples: decompressing multiple
-simultaneously-read OpenEXR scanlines, or many \ImageBuf operations.)
-This attribute sets the maximum number of threads that will be spawned.
-The default is 1.  If set to 0, it means that it should use as many
+threads to parallelize the task.  (Examples: simultaneous format conversions
+of multiple scanlines read together, or many \ImageBufAlgo operations.)
+This attribute sets the default number of threads that will be spawned
+for these operations (the ``fan out'').
+The default is 0, which means that it should spawn as many
 threads as there are hardware cores present on the system.
+
+Situations where the main application logic is essentially single threaded
+(i.e., one top-level call into OIIO at a time) should leave this at the
+default value, or some reasonable number of cores, thus allowing lots of
+threads to fill the cores when OIIO has big tasks to complete. But
+situations where you have many threads at the application level, each of
+which is expected to be making separate OIIO calls simultaneously, should
+set this to 1, thus having each calling thread do its own work inside of
+OIIO rather than spawning new threads with a high overall ``fan out.''
+\apiend
+
+\apiitem{int exr_threads}
+\vspace{10pt}
+\index{exr_threads}
+\NEW % 1.6
+Sets the internal OpenEXR thread pool size. The default is to use as many
+threads as the amount of hardware concurrency detected.
+Note that this is separate from the OIIO
+\qkw{threads} attribute.
 \apiend
 
 \apiitem{string plugin_searchpath}
