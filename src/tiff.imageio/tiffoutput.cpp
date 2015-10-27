@@ -815,10 +815,12 @@ rgb_to_cmyk (int n, const T *rgb, size_t rgb_stride,
         float R = convert_type<T,float>(rgb[0]);
         float G = convert_type<T,float>(rgb[1]);
         float B = convert_type<T,float>(rgb[2]);
-        float K = std::min (0.999f, 1.0f - std::max (R, std::max(G, B)));
-        float C = (1.0f - R - K) / (1.0f-K);
-        float M = (1.0f - G - K) / (1.0f-K);
-        float Y = (1.0f - B - K) / (1.0f-K);
+        float one_minus_K = std::max (R, std::max(G, B));
+        float one_minus_K_inv = (one_minus_K <= 1e-6) ? 0.0f : 1.0f/one_minus_K;
+        float C = (one_minus_K - R) * one_minus_K_inv;
+        float M = (one_minus_K - G) * one_minus_K_inv;
+        float Y = (one_minus_K - B) * one_minus_K_inv;
+        float K = 1.0f - one_minus_K;
         cmyk[0] = convert_type<float,T>(C);
         cmyk[1] = convert_type<float,T>(M);
         cmyk[2] = convert_type<float,T>(Y);
