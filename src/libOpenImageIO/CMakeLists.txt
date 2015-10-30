@@ -348,6 +348,12 @@ if (OIIO_BUILD_TESTS)
     link_ilmbase (imagebuf_test)
     add_test (unit_imagebuf imagebuf_test)
 
+    add_executable (imagecache_test imagecache_test.cpp)
+    set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (imagecache_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    link_ilmbase (imagecache_test)
+    add_test (unit_imagecache imagecache_test)
+
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
     set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})

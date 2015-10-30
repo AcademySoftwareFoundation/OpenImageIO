@@ -2605,7 +2605,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     const stride_t cache_stride = cachesize * cache_nchans;
     size_t formatsize = format.size();
     stride_t result_pixelsize = result_nchans * formatsize;
-    bool xcontig = (result_pixelsize == xstride);
+    bool xcontig = (result_pixelsize == xstride &&
+                    result_nchans == cache_nchans);
     stride_t scanlinesize = (xend-xbegin) * result_pixelsize;
     stride_t zplanesize = (yend-ybegin) * scanlinesize;
     DASSERT (spec.depth >= 1 && spec.tile_depth >= 1);
