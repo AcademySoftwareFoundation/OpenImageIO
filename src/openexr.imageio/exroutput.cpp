@@ -790,38 +790,67 @@ OpenEXROutput::figure_mip (const ImageSpec &spec, int &nmiplevels,
 
 
 
+struct ExrMeta {
+    const char *oiioname, *exrname;
+    TypeDesc exrtype;
+
+    ExrMeta (const char *oiioname=NULL, const char *exrname=NULL,
+             TypeDesc exrtype=TypeDesc::UNKNOWN)
+        : oiioname(oiioname), exrname(exrname), exrtype(exrtype) {}
+};
+
+static ExrMeta exr_meta_translation[] = {
+    // Translate OIIO standard metadata names to OpenEXR standard names
+    ExrMeta ("worldtocamera", "worldToCamera", TypeDesc::TypeMatrix),
+    ExrMeta ("worldtoscreen", "worldToNDC", TypeDesc::TypeMatrix),
+    ExrMeta ("DateTime", "capDate", TypeDesc::TypeString),
+    ExrMeta ("ImageDescription", "comments", TypeDesc::TypeString),
+    ExrMeta ("description", "comments", TypeDesc::TypeString),
+    ExrMeta ("Copyright", "owner", TypeDesc::TypeString),
+    ExrMeta ("PixelAspectRatio", "pixelAspectRatio", TypeDesc::TypeFloat),
+    ExrMeta ("XResolution", "xDensity", TypeDesc::TypeFloat),
+    ExrMeta ("ExposureTime", "expTime", TypeDesc::TypeFloat),
+    ExrMeta ("FNumber", "aperture", TypeDesc::TypeFloat),
+    ExrMeta ("oiio:subimagename", "name", TypeDesc::TypeString),
+    ExrMeta ("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeDesc::TypeFloat),
+    ExrMeta ("smpte:TimeCode", "timeCode", TypeDesc::TypeTimeCode),
+    ExrMeta ("smpte:KeyCode", "keyCode", TypeDesc::TypeKeyCode),
+    // Empty exrname means that we silently drop this metadata.
+    // Often this is because they have particular meaning to OpenEXR and we
+    // don't want to mess it up by inadvertently copying it wrong from the
+    // user or from a file we read.
+    ExrMeta ("YResolution"),
+    ExrMeta ("planarconfig"),
+    ExrMeta ("type"),
+    ExrMeta ("tiles"),
+    ExrMeta ("version"),
+    ExrMeta ("chunkCount"),
+    ExrMeta ("maxSamplesPerPixel"),
+    ExrMeta ()  // empty name signifies end of list
+};
+
+
+
 bool
 OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                               const void *data, Imf::Header &header)
 {
     // Translate
+    if (name.empty())
+        return false;
     std::string xname = name;
-    if (Strutil::iequals(xname, "worldtocamera"))
-        xname = "worldToCamera";
-    else if (Strutil::iequals(xname, "worldtoscreen"))
-        xname = "worldToNDC";
-    else if (Strutil::iequals(xname, "DateTime"))
-        xname = "capDate";
-    else if (Strutil::iequals(xname, "description") || Strutil::iequals(xname, "ImageDescription"))
-        xname = "comments";
-    else if (Strutil::iequals(xname, "Copyright"))
-        xname = "owner";
-    else if (Strutil::iequals(xname, "PixelAspectRatio"))
-        xname = "pixelAspectRatio";
-    else if (Strutil::iequals(xname, "XResolution"))
-        xname = "xDensity";
-    else if (Strutil::iequals(xname, "YResolution"))
-        xname = "";  // make us skip it
-    else if (Strutil::iequals(xname, "ExposureTime"))
-        xname = "expTime";
-    else if (Strutil::iequals(xname, "FNumber"))
-        xname = "aperture";
-    else if (Strutil::iequals(xname, "oiio:subimagename"))
-        xname = "name";
-    else if (Strutil::iequals(xname, "openexr:dwaCompressionLevel"))
-        xname = "dwaCompressionLevel";
+    TypeDesc exrtype = TypeDesc::UNKNOWN;
 
-//    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
+    for (int i = 0; exr_meta_translation[i].oiioname; ++i) {
+        const ExrMeta &e(exr_meta_translation[i]);
+        if (Strutil::iequals(xname, e.oiioname) ||
+            (e.exrname && Strutil::iequals(xname, e.exrname))) {
+            xname = std::string(e.exrname ? e.exrname : "");
+            exrtype = e.exrtype;
+            // std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
+            break;
+        }
+    }
 
     // Special cases
     if (Strutil::iequals(xname, "Compression") && type == TypeDesc::STRING) {
@@ -874,15 +903,6 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
-    // SMPTE types
-    if (Strutil::iequals (xname, "smpte:TimeCode"))
-        xname = "timeCode";
-    if (Strutil::iequals (xname, "smpte:KeyCode"))
-        xname = "keyCode";
-
-    // Supress planarconfig!
-    if (Strutil::iequals (xname, "planarconfig") || Strutil::iequals (xname, "tiff:planarconfig"))
-        return true;
 
     // Special handling of any remaining "oiio:*" metadata.
     if (Strutil::istarts_with (xname, "oiio:")) {
@@ -916,19 +936,33 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         }
     }
 
-    // A few EXR things to suppress -- they should be added automatically by
-    // the library, don't mess it up by inadvertently copying it wrong from
-    // the user or from a file we read.
-    if (Strutil::iequals(xname, "type") ||
-        Strutil::iequals(xname, "tiles") ||
-        Strutil::iequals(xname, "version") ||
-        Strutil::iequals(xname, "chunkCount") ||
-        Strutil::iequals(xname, "maxSamplesPerPixel")) {
-        return false;
-    }
-
     if (! xname.length())
         return false;    // Skip suppressed names
+
+    // Handle some cases where the user passed a type different than what
+    // OpenEXR expects, and we can make a good guess about how to translate.
+    float tmpfloat;
+    int tmpint;
+    if (exrtype == TypeDesc::TypeFloat && type == TypeDesc::TypeInt) {
+        tmpfloat = float (*(const int *)data);
+        data = &tmpfloat;
+        type = TypeDesc::TypeFloat;
+    }
+    if (exrtype == TypeDesc::TypeInt && type == TypeDesc::TypeFloat) {
+        tmpfloat = int (*(const float *)data);
+        data = &tmpint;
+        type = TypeDesc::TypeInt;
+    }
+
+    // Now if we still don't match a specific type OpenEXR is looking for,
+    // skip it.
+    if (exrtype != TypeDesc::UNKNOWN && ! exrtype.equivalent(type)) {
+#ifndef NDEBUG
+        std::cerr << "OpenEXR output metadata type mismatch: expected "
+                  << exrtype << ", got " << type << "\n";
+#endif
+        return false;
+    }
 
     // General handling of attributes
     try {
