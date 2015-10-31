@@ -40,6 +40,12 @@ The creation date of the image, in the following format: {\cf YYYY:MM:DD
   HH:MM:SS} (exactly 19 characters long, not including a terminating
 NULL).  For example, 7:30am on Dec
 31, 2008 is encoded as \qkw{2008:12:31 07:30:00}.
+
+Usually this is simply the time that the image data was last modified.
+It may be wise to also store the \qkw{Exif:DateTimeOriginal} and
+\qkw{Exif:DateTimeDigitized} (see Section~\ref{sec:metadata:exif})
+to further distinguish the original image and its conversion to digital
+media.
 \apiend
 
 \apiitem{"DocumentName" : string}
@@ -335,14 +341,17 @@ The ISO speed and ISO latitude of the camera as specified in ISO 12232.
 %\apiitem{"Exif:OECF",	TIFF_NOTYPE }	 // skip it
 %\apiitem{"Exif:ExifVersion",	TIFF_NOTYPE }	 // skip it
 
-\apiitem{"Exif:DateTimeOriginal" : string}
-Date and time that the original image data was generated (in
-\qkw{YYYY:MM:DD HH:MM:SS} format).
-\apiend
+\apiitem{"Exif:DateTimeOriginal" : string \\
+"Exif:DateTimeDigitized" : string}
+Date and time that the original image data was generated or captured,
+and the time/time that the image was stored as digital data. Both are in
+\qkw{YYYY:MM:DD HH:MM:SS} format.
 
-\apiitem{"Exif:DateTimeDigitized" : string}
-Date and time that the image was stored as digital data (in
-\qkw{YYYY:MM:DD HH:MM:SS} format).
+To clarify the role of these (and also with respect to the standard
+\qkw{DateTime} metadata), consider an analog photograph taken in 1960
+({\cf Exif:DateTimeOriginal}), which was scanned to a digital image in 2010
+({\cf Exif:DateTimeDigitized}), and had color corrections or other
+alterations performed in 2015 ({\cf DateTime}).
 \apiend
 
 %\apiitem{"Exif:ComponentsConfiguration",TIFF_UNDEFINED }
