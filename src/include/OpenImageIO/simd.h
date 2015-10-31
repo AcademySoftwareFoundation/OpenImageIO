@@ -108,11 +108,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // FIXME Future: support ARM Neon
+// Uncomment this when somebody with Neon can verify it works
 #if 0 && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
+#  include <arm_neon.h>
 #  define OIIO_SIMD 1
 #  define OIIO_SIMD_NEON 1
-#  define OIIO_SIMD_MAX_SIZE_BYTES 16UL
-#  define OIIO_SIMD_MAX_SIZE_FLOATS 4UL
 #  define OIIO_SIMD_MASK_BYTE_WIDTH 4
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
@@ -1277,6 +1277,8 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
+#elif defined(OIIO_SIMD_NEON)
+    typedef float32x4_t simd_t;
 #else
     typedef float    simd_t[4];
 #endif
@@ -1298,7 +1300,7 @@ public:
 
     /// Copy construct from another float4
     OIIO_FORCEINLINE float4 (const float4 &other) {
-#if defined(OIIO_SIMD_SSE)
+#if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
         m_vec = other.m_vec;
 #else
         m_val[0] = other.m_val[0];
@@ -1367,7 +1369,7 @@ public:
 
     /// Assign a float4
     OIIO_FORCEINLINE const float4 & operator= (float4 other) {
-#if defined(OIIO_SIMD_SSE)
+#if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
         m_vec = other.m_vec;
 #else
         m_val[0] = other.m_val[0];
@@ -1396,12 +1398,12 @@ public:
         return float4(value,value+1.0f,value+2.0f,value+3.0f);
     }
 
-    /// Sset all components to 0.0
+    /// Set all components to 0.0
     OIIO_FORCEINLINE void clear () {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_setzero_ps();
 #else
-        *this = 0.0f;
+        load (0.0f);
 #endif
     }
 
@@ -1434,6 +1436,8 @@ public:
     OIIO_FORCEINLINE void load (float val) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_set1_ps (val);
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vdupq_n_f32 (val);
 #else
         m_val[0] = val;
         m_val[1] = val;
@@ -1446,6 +1450,9 @@ public:
     OIIO_FORCEINLINE void load (float a, float b, float c, float d=0.0f) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_set_ps (d, c, b, a);
+#elif defined(OIIO_SIMD_NEON)
+        float values[4] = { a, b, c, d };
+        m_vec = vld1q_f32 (values);
 #else
         m_val[0] = a;
         m_val[1] = b;
@@ -1458,6 +1465,8 @@ public:
     OIIO_FORCEINLINE void load (const float *values) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_loadu_ps (values);
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vld1q_f32 (values);
 #else
         m_val[0] = values[0];
         m_val[1] = values[1];
@@ -1493,6 +1502,14 @@ public:
             break;
         default:
             break;
+        }
+#elif defined(OIIO_SIMD_NEON)
+        switch (n) {
+        case 1: m_vec = vdupq_n_f32 (val);                    break;
+        case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
+        case 3: load (values[0], values[1], values[2], 0.0f); break;
+        case 4: m_vec = vld1q_f32 (values);                   break;
+        default: break;
         }
 #else
         for (int i = 0; i < n; ++i)
@@ -1598,6 +1615,8 @@ public:
         // out to be aligned, nearly as fast even when unaligned. Not worth
         // the headache of using stores that require alignment.
         _mm_storeu_ps (values, m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        vst1q_f32 (values, m_vec);
 #else
         values[0] = m_val[0];
         values[1] = m_val[1];
@@ -1634,6 +1653,25 @@ public:
         default:
             break;
         }
+#elif defined(OIIO_SIMD_NEON)
+        switch (n) {
+        case 1:
+            vst1q_lane_f32 (values, m_vec, 0);
+            break;
+        case 2:
+            vst1q_lane_f32 (values++, m_vec, 0);
+            vst1q_lane_f32 (values, m_vec, 1);
+            break;
+        case 3:
+            vst1q_lane_f32 (values++, m_vec, 0);
+            vst1q_lane_f32 (values++, m_vec, 1);
+            vst1q_lane_f32 (values, m_vec, 2);
+            break;
+        case 4:
+            vst1q_f32 (values, m_vec); break;
+        default:
+            break;
+        }
 #else
         for (int i = 0; i < n; ++i)
             values[i] = m_val[i];
@@ -1643,6 +1681,8 @@ public:
     friend OIIO_FORCEINLINE float4 operator+ (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_add_ps (a.m_vec, b.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        return vaddq_f32 (a.m_vec, b.m_vec);
 #else
         return float4 (a.m_val[0] + b.m_val[0],
                        a.m_val[1] + b.m_val[1],
@@ -1654,6 +1694,8 @@ public:
     OIIO_FORCEINLINE const float4 & operator+= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_add_ps (m_vec, a.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vaddq_f32 (m_vec, a.m_vec);
 #else
         m_val[0] += a.m_val[0];
         m_val[1] += a.m_val[1];
@@ -1666,6 +1708,8 @@ public:
     OIIO_FORCEINLINE float4 operator- () const {
 #if defined(OIIO_SIMD_SSE)
         return _mm_sub_ps (_mm_setzero_ps(), m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        return vsubq_f32 (Zero(), m_vec);
 #else
         return float4 (-m_val[0], -m_val[1], -m_val[2], -m_val[3]);
 #endif
@@ -1674,6 +1718,8 @@ public:
     friend OIIO_FORCEINLINE float4 operator- (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_sub_ps (a.m_vec, b.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        return vsubq_f32 (a.m_vec, b.m_vec);
 #else
         return float4 (a.m_val[0] - b.m_val[0],
                        a.m_val[1] - b.m_val[1],
@@ -1685,6 +1731,8 @@ public:
     OIIO_FORCEINLINE const float4 & operator-= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_sub_ps (m_vec, a.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vsubq_f32 (m_vec, a.m_vec);
 #else
         m_val[0] -= a.m_val[0];
         m_val[1] -= a.m_val[1];
@@ -1697,6 +1745,8 @@ public:
     friend OIIO_FORCEINLINE float4 operator* (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_mul_ps (a.m_vec, b.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        return vmulq_f32 (a.m_vec, b.m_vec);
 #else
         return float4 (a.m_val[0] * b.m_val[0],
                        a.m_val[1] * b.m_val[1],
@@ -1708,6 +1758,8 @@ public:
     OIIO_FORCEINLINE const float4 & operator*= (const float4& a) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_mul_ps (m_vec, a.m_vec);
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vmulq_f32 (m_vec, a.m_vec);
 #else
         m_val[0] *= a.m_val[0];
         m_val[1] *= a.m_val[1];
@@ -1719,6 +1771,8 @@ public:
     OIIO_FORCEINLINE const float4 & operator*= (float val) {
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_mul_ps (m_vec, _mm_set1_ps(val));
+#elif defined(OIIO_SIMD_NEON)
+        m_vec = vmulq_f32 (m_vec, vdupq_n_f32(val));
 #else
         m_val[0] *= val;
         m_val[1] *= val;
@@ -1904,6 +1958,22 @@ OIIO_FORCEINLINE float4 shuffle (const float4& a) {
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
 template<int i> OIIO_FORCEINLINE float4 shuffle (const float4& a) { return shuffle<i,i,i,i>(a); }
+
+#if defined(OIIO_SIMD_NEON)
+template<> OIIO_FORCEINLINE float4 shuffle<0> (const float4& a) {
+    float32x2_t t = vget_low_f32(a.m_vec); return vdupq_lane_f32(t,0);
+}
+template<> OIIO_FORCEINLINE float4 shuffle<1> (const float4& a) {
+    float32x2_t t = vget_low_f32(a.m_vec); return vdupq_lane_f32(t,1);
+}
+template<> OIIO_FORCEINLINE float4 shuffle<2> (const float4& a) {
+    float32x2_t t = vget_high_f32(a.m_vec); return vdupq_lane_f32(t,0);
+}
+template<> OIIO_FORCEINLINE float4 shuffle<3> (const float4& a) {
+    float32x2_t t = vget_high_f32(a.m_vec); return vdupq_lane_f32(t,1);
+}
+#endif
+
 
 
 /// Helper: as rapid as possible extraction of one component, when the
