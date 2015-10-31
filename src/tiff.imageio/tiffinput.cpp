@@ -746,6 +746,9 @@ TIFFInput::readspec (bool read_meta)
         for (int i = 0;  tiff_tag_table[i].name;  ++i)
             find_tag (tiff_tag_table[i].tifftag,
                       tiff_tag_table[i].tifftype, tiff_tag_table[i].name);
+        for (int i = 0;  tiff_tag_table[i].name;  ++i)
+            find_tag (exif_tag_table[i].tifftag,
+                      exif_tag_table[i].tifftype, exif_tag_table[i].name);
     }
 
     // Now we need to get fields "by hand" for anything else that is less
