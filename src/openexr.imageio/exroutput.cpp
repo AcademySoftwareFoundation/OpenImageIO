@@ -957,10 +957,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // Now if we still don't match a specific type OpenEXR is looking for,
     // skip it.
     if (exrtype != TypeDesc::UNKNOWN && ! exrtype.equivalent(type)) {
-#ifndef NDEBUG
-        std::cerr << "OpenEXR output metadata type mismatch: expected "
-                  << exrtype << ", got " << type << "\n";
-#endif
+        OIIO::debugmsg ("OpenEXR output metadata type mismatch: expected %s, got %s\n",
+                        exrtype, type);
         return false;
     }
 
@@ -1153,19 +1151,12 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 #endif
     }
     } catch (const std::exception &e) {
-#ifndef NDEBUG
-        std::cout << "Caught OpenEXR exception: " << e.what() << "\n";
-#endif
+        OIIO::debugmsg ("Caught OpenEXR exception: %s\n", e.what());
     } catch (...) {  // catch-all for edge cases or compiler bugs
-#ifndef NDEBUG
-        std::cout << "Caught unknown OpenEXR exception\n";
-#endif
+        OIIO::debugmsg ("Caught unknown OpenEXR exception\n");
     }
 
-#ifndef NDEBUG
-    std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
-#endif
-
+    OIIO::debugmsg ("Don't know what to do with %s %s\n", type, xname);
     return false;
 }
 

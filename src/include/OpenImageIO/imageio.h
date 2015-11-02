@@ -1281,8 +1281,11 @@ OIIO_API std::string geterror ();
 /// Documented attributes:
 ///     int threads
 ///             How many threads to use for operations that can be sped
-///             by spawning threads (default=1; note that 0 means "as
-///             many threads as cores").
+///             by spawning threads (default=0, meaning to use the full
+///             available hardware concurrency detected).
+///     int exr_threads
+///             The size of the internal OpenEXR thread pool. The default
+///             is to use the full available hardware concurrency detected.
 ///     string plugin_searchpath
 ///             Colon-separated list of directories to search for 
 ///             dynamically-loaded format plugins.
@@ -1295,6 +1298,14 @@ OIIO_API std::string geterror ();
 ///             are presumed to be used for that format.  Semicolons
 ///             separate the lists for formats.  For example,
 ///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+///     int read_chunk
+///             The number of scanlines that will be attempted to read at
+///             once for read_image calls (default: 256).
+///     int debug
+///             When nonzero, various debug messages may be printed.
+///             The default is 0 for release builds, 1 for DEBUG builds,
+///             but also may be overridden by the OPENIMAGEIO_DEBUG env
+///             variable.
 OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
 // Shortcuts for common types
 inline bool attribute (string_view name, int val) {
@@ -1487,6 +1498,20 @@ OIIO_API bool wrap_mirror (int &coord, int origin, int width);
 
 // Typedef for the function signature of a wrap implementation.
 typedef bool (*wrap_impl) (int &coord, int origin, int width);
+
+
+namespace pvt {
+// For internal use - use debugmsg() below for a nicer interface.
+void debugmsg_ (string_view message);
+};
+
+/// debugmsg(format, ...) prints debugging message when attribute "debug" is
+/// nonzero, which it is by default for DEBUG compiles or when the
+/// environment variable OPENIMAGEIO_DEBUG is set. This is preferred to raw
+/// output to stderr for debugging statements.
+///   void debugmsg (const char *format, ...);
+TINYFORMAT_WRAP_FORMAT (void, debugmsg, /**/,
+                        std::ostringstream msg;, msg, pvt::debugmsg_(msg.str());)
 
 
 // to force correct linkage on some systems

@@ -58,11 +58,29 @@ std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
 }
 
-
-
 using namespace pvt;
 
+
 namespace {
+// Hidden global OIIO data.
+static spin_mutex attrib_mutex;
+static const int maxthreads = 256;   // reasonable maximum for sanity check
+const char *oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
+#else
+int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
+#endif
+};
+
+
+
+int
+openimageio_version ()
+{
+    return OIIO_VERSION;
+}
+
 
 
 // To avoid thread oddities, we have the storage area buffering error
@@ -82,16 +100,6 @@ error_msg ()
     return *e;
 }
 
-} // end anon namespace
-
-
-
-
-int
-openimageio_version ()
-{
-    return OIIO_VERSION;
-}
 
 
 
@@ -117,14 +125,15 @@ geterror ()
 
 
 
-namespace {
-
-// Private global OIIO data.
-
-static spin_mutex attrib_mutex;
-static const int maxthreads = 256;   // reasonable maximum for sanity check
-
-};
+void
+pvt::debugmsg_ (string_view message)
+{
+    recursive_lock_guard lock (pvt::imageio_mutex);
+    if (print_debug) {
+        std::cerr << "OIIO DEBUG: " << message 
+                  << (message.back() == '\n' ? "" : "\n");
+    }
+}
 
 
 
@@ -149,6 +158,10 @@ attribute (string_view name, TypeDesc type, const void *val)
     }
     if (name == "exr_threads" && type == TypeDesc::TypeInt) {
         oiio_exr_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
+        return true;
+    }
+    if (name == "debug" && type == TypeDesc::TypeInt) {
+        print_debug = *(const int *)val;
         return true;
     }
     return false;
@@ -186,6 +199,10 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "exr_threads" && type == TypeDesc::TypeInt) {
         *(int *)val = oiio_exr_threads;
+        return true;
+    }
+    if (name == "debug" && type == TypeDesc::TypeInt) {
+        *(int *)val = print_debug;
         return true;
     }
     return false;

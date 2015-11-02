@@ -58,15 +58,15 @@ extern std::string extension_list;
 // For internal use - use error() below for a nicer interface.
 void seterror (const std::string& message);
 
-// Make sure all plugins are inventoried.  Should only be called while
-// imageio_mutex is held.  For internal use only.
-void catalog_all_plugins (std::string searchpath);
-
 /// Use error() privately only.  Protoype is conceptually printf-like, but
 /// also fully typesafe:
 /// void error (const char *format, ...);
 TINYFORMAT_WRAP_FORMAT (void, error, /**/,
     std::ostringstream msg;, msg, seterror(msg.str());)
+
+// Make sure all plugins are inventoried.  Should only be called while
+// imageio_mutex is held.  For internal use only.
+void catalog_all_plugins (std::string searchpath);
 
 /// Given the format, set the default quantization range.
 void get_default_quantize (TypeDesc format,
