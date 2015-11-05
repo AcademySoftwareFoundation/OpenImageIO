@@ -1620,24 +1620,26 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
     if (! levelinfo.onetile)
         return NULL;   // Only compute color for one-tile MIP levels
     const ImageSpec &spec (levelinfo.spec);
-    size_t pixelsize = texturefile.pixelsize(subimage);
-    TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(subimage);
     if (! levelinfo.polecolorcomputed) {
         static spin_mutex mutex;   // Protect everybody's polecolor
         spin_lock lock (mutex);
         if (! levelinfo.polecolorcomputed) {
             DASSERT (levelinfo.polecolor.size() == 0);
             levelinfo.polecolor.resize (2*spec.nchannels);
+            ASSERT (tile->id().nchannels() == spec.nchannels &&
+                    "pole_color doesn't work for channel subsets");
+            int pixelsize = tile->pixelsize();
+            TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(subimage);
             // We store north and south poles adjacently in polecolor
             float *p = &(levelinfo.polecolor[0]);
-            size_t width = spec.width;
+            int width = spec.width;
             float scale = 1.0f / width;
             for (int pole = 0;  pole <= 1;  ++pole, p += spec.nchannels) {
                 int y = pole * (spec.height-1);   // 0 or height-1
                 for (int c = 0;  c < spec.nchannels;  ++c)
                     p[c] = 0.0f;
                 const unsigned char *texel = tile->bytedata() + y*spec.tile_width*pixelsize;
-                for (size_t i = 0;  i < width;  ++i, texel += pixelsize)
+                for (int i = 0;  i < width;  ++i, texel += pixelsize)
                     for (int c = 0;  c < spec.nchannels;  ++c) {
                         if (pixeltype == TypeDesc::UINT8)
                             p[c] += uchar2float(texel[c]);
@@ -1888,7 +1890,11 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
     size_t channelsize = texturefile.channelsize(options.subimage);
     int firstchannel = options.firstchannel;
     int tile_chbegin = 0, tile_chend = spec.nchannels;
-    if (spec.nchannels > m_max_tile_channels) {
+    // need_pole: do we potentially need to fade to special pole color?
+    // If we do, can't restrict channel range or fade_to_pole won't work.
+    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile
+                      && !texturefile.sample_border());
+    if (spec.nchannels > m_max_tile_channels && !need_pole) {
         // For files with many channels, narrow the range we cache
         tile_chbegin = options.firstchannel;
         tile_chend = options.firstchannel+actualchannels;
@@ -2051,7 +2057,7 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
         // When we're on the lowest res mipmap levels, it's more pleasing if
         // we converge to a single pole color right at the pole.  Fade to
         // the average color over the texel height right next to the pole.
-        if (options.envlayout == LayoutLatLong && levelinfo.onetile) {
+        if (need_pole) {
             float height = spec.height;
             if (texturefile.m_sample_border)
                 height -= 1.0f;
@@ -2224,6 +2230,11 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
     // region, black takes precedence over fill. By keeping track of when
     // we don't need to worry about fill, which is the comparitively rare
     // case, we do a lot less math and have fewer rounding errors.
+
+    // need_pole: do we potentially need to fade to special pole color?
+    // If we do, can't restrict channel range or fade_to_pole won't work.
+    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile
+                      && !texturefile.sample_border());
     int tile_chbegin = 0, tile_chend = spec.nchannels;
     if (spec.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
@@ -2388,7 +2399,7 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
         // When we're on the lowest res mipmap levels, it's more pleasing if
         // we converge to a single pole color right at the pole.  Fade to
         // the average color over the texel height right next to the pole.
-        if (options.envlayout == LayoutLatLong && levelinfo.onetile) {
+        if (need_pole) {
             float height = spec.height;
             if (texturefile.m_sample_border)
                 height -= 1.0f;
