@@ -799,22 +799,28 @@ struct ExrMeta {
         : oiioname(oiioname), exrname(exrname), exrtype(exrtype) {}
 };
 
+// Make our own type here because TypeDesc::TypeMatrix and friends may
+// not have been constructed yet. Initialization order fiasco, ick!
+static TypeDesc TypeMatrix (TypeDesc::FLOAT,TypeDesc::MATRIX44,0);
+static TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+static TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
+
 static ExrMeta exr_meta_translation[] = {
     // Translate OIIO standard metadata names to OpenEXR standard names
-    ExrMeta ("worldtocamera", "worldToCamera", TypeDesc::TypeMatrix),
-    ExrMeta ("worldtoscreen", "worldToNDC", TypeDesc::TypeMatrix),
-    ExrMeta ("DateTime", "capDate", TypeDesc::TypeString),
-    ExrMeta ("ImageDescription", "comments", TypeDesc::TypeString),
-    ExrMeta ("description", "comments", TypeDesc::TypeString),
-    ExrMeta ("Copyright", "owner", TypeDesc::TypeString),
-    ExrMeta ("PixelAspectRatio", "pixelAspectRatio", TypeDesc::TypeFloat),
-    ExrMeta ("XResolution", "xDensity", TypeDesc::TypeFloat),
-    ExrMeta ("ExposureTime", "expTime", TypeDesc::TypeFloat),
-    ExrMeta ("FNumber", "aperture", TypeDesc::TypeFloat),
-    ExrMeta ("oiio:subimagename", "name", TypeDesc::TypeString),
-    ExrMeta ("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeDesc::TypeFloat),
-    ExrMeta ("smpte:TimeCode", "timeCode", TypeDesc::TypeTimeCode),
-    ExrMeta ("smpte:KeyCode", "keyCode", TypeDesc::TypeKeyCode),
+    ExrMeta ("worldtocamera", "worldToCamera", TypeMatrix),
+    ExrMeta ("worldtoscreen", "worldToNDC", TypeMatrix),
+    ExrMeta ("DateTime", "capDate", TypeDesc::STRING),
+    ExrMeta ("ImageDescription", "comments", TypeDesc::STRING),
+    ExrMeta ("description", "comments", TypeDesc::STRING),
+    ExrMeta ("Copyright", "owner", TypeDesc::STRING),
+    ExrMeta ("PixelAspectRatio", "pixelAspectRatio", TypeDesc::FLOAT),
+    ExrMeta ("XResolution", "xDensity", TypeDesc::FLOAT),
+    ExrMeta ("ExposureTime", "expTime", TypeDesc::FLOAT),
+    ExrMeta ("FNumber", "aperture", TypeDesc::FLOAT),
+    ExrMeta ("oiio:subimagename", "name", TypeDesc::STRING),
+    ExrMeta ("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeDesc::FLOAT),
+    ExrMeta ("smpte:TimeCode", "timeCode", TypeTimeCode),
+    ExrMeta ("smpte:KeyCode", "keyCode", TypeKeyCode),
     // Empty exrname means that we silently drop this metadata.
     // Often this is because they have particular meaning to OpenEXR and we
     // don't want to mess it up by inadvertently copying it wrong from the
@@ -903,7 +909,6 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
-
     // Special handling of any remaining "oiio:*" metadata.
     if (Strutil::istarts_with (xname, "oiio:")) {
         if (Strutil::iequals (xname, "oiio:ConstantColor") ||
@@ -947,18 +952,21 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         tmpfloat = float (*(const int *)data);
         data = &tmpfloat;
         type = TypeDesc::TypeFloat;
-    }
-    if (exrtype == TypeDesc::TypeInt && type == TypeDesc::TypeFloat) {
+    } else if (exrtype == TypeDesc::TypeInt && type == TypeDesc::TypeFloat) {
         tmpfloat = int (*(const float *)data);
         data = &tmpint;
         type = TypeDesc::TypeInt;
+    } else if (exrtype == TypeDesc::TypeMatrix &&
+               type == TypeDesc(TypeDesc::FLOAT, 16)) {
+        // Automatically translate float[16] to Matrix when expected
+        type = TypeDesc::TypeMatrix;
     }
 
     // Now if we still don't match a specific type OpenEXR is looking for,
     // skip it.
-    if (exrtype != TypeDesc::UNKNOWN && ! exrtype.equivalent(type)) {
-        OIIO::debugmsg ("OpenEXR output metadata type mismatch: expected %s, got %s\n",
-                        exrtype, type);
+    if (exrtype != TypeDesc() && ! exrtype.equivalent(type)) {
+        OIIO::debugmsg ("OpenEXR output metadata \"%s\" type mismatch: expected %s, got %s\n",
+                        name, exrtype, type);
         return false;
     }
 
@@ -968,7 +976,6 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // Scalar
     if (type.arraylen == 0) {
         if (type.aggregate == TypeDesc::SCALAR) {
-
             if (type == TypeDesc::INT || type == TypeDesc::UINT) {
                 header.insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
                 return true;
@@ -1061,7 +1068,6 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     }
     // Arrays
     else { 
-
         // TimeCode
         if (type == TypeDesc::TypeTimeCode ) {
             header.insert(xname.c_str(), Imf::TimeCodeAttribute (*(Imf::TimeCode*)data));
