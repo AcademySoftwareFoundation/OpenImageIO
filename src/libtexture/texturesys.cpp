@@ -1892,8 +1892,7 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
     int tile_chbegin = 0, tile_chend = spec.nchannels;
     // need_pole: do we potentially need to fade to special pole color?
     // If we do, can't restrict channel range or fade_to_pole won't work.
-    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile
-                      && !texturefile.sample_border());
+    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile);
     if (spec.nchannels > m_max_tile_channels && !need_pole) {
         // For files with many channels, narrow the range we cache
         tile_chbegin = options.firstchannel;
@@ -2233,8 +2232,7 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
 
     // need_pole: do we potentially need to fade to special pole color?
     // If we do, can't restrict channel range or fade_to_pole won't work.
-    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile
-                      && !texturefile.sample_border());
+    bool need_pole = (options.envlayout == LayoutLatLong && levelinfo.onetile);
     int tile_chbegin = 0, tile_chend = spec.nchannels;
     if (spec.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
