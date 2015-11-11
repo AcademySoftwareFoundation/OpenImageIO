@@ -157,10 +157,10 @@ ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
 bool
 ImageInput::read_scanlines (int ybegin, int yend, int z,
                             TypeDesc format, void *data,
-                            stride_t xstride, stride_t ystride)
+                            stride_t xstride, stride_t ystride, int nthreads)
 {
     return read_scanlines (ybegin, yend, z, 0, m_spec.nchannels,
-                           format, data, xstride, ystride);
+                           format, data, xstride, ystride, nthreads);
 }
 
 
@@ -169,7 +169,7 @@ bool
 ImageInput::read_scanlines (int ybegin, int yend, int z,
                             int chbegin, int chend,
                             TypeDesc format, void *data,
-                            stride_t xstride, stride_t ystride)
+                            stride_t xstride, stride_t ystride, int nthreads)
 {
     chend = clamp (chend, chbegin+1, m_spec.nchannels);
     int nchans = chend - chbegin;
@@ -220,7 +220,8 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             } else {
                 ok = parallel_convert_image (nchans, m_spec.width, nscanlines, 1, 
                                     &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
-                                    data, format, xstride, ystride, zstride);
+                                    data, format, xstride, ystride, zstride,
+                                    -1 /*alpha*/, -1 /*z*/, nthreads);
             }
         } else {
             // Per-channel formats -- have to convert/copy channels individually
@@ -372,11 +373,12 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
 bool 
 ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                         int zbegin, int zend, TypeDesc format, void *data,
-                        stride_t xstride, stride_t ystride, stride_t zstride)
+                        stride_t xstride, stride_t ystride, stride_t zstride,
+                        int nthreads)
 {
     return read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
                        0, m_spec.nchannels, format, data,
-                       xstride, ystride, zstride);
+                       xstride, ystride, zstride, nthreads);
 }
 
 
@@ -387,7 +389,8 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                         int zbegin, int zend, 
                         int chbegin, int chend,
                         TypeDesc format, void *data,
-                        stride_t xstride, stride_t ystride, stride_t zstride)
+                        stride_t xstride, stride_t ystride, stride_t zstride,
+                        int nthreads)
 {
     if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
@@ -591,10 +594,10 @@ bool
 ImageInput::read_image (TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
                         ProgressCallback progress_callback,
-                        void *progress_callback_data)
+                        void *progress_callback_data, int nthreads)
 {
     return read_image (0, -1, format, data, xstride, ystride, zstride,
-                       progress_callback, progress_callback_data);
+                       progress_callback, progress_callback_data, nthreads);
 }
 
 
@@ -603,7 +606,7 @@ bool
 ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
                         ProgressCallback progress_callback,
-                        void *progress_callback_data)
+                        void *progress_callback_data, int nthreads)
 {
     if (chend < 0)
         chend = m_spec.nchannels;
@@ -629,7 +632,7 @@ ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
                                   z+m_spec.z, std::min (z+m_spec.z+m_spec.tile_depth, m_spec.z+m_spec.depth),
                                   chbegin, chend,
                                   format, (char *)data + z*zstride + y*ystride,
-                                  xstride, ystride, zstride);
+                                  xstride, ystride, zstride, nthreads);
                 if (progress_callback &&
                     progress_callback (progress_callback_data, (float)y/m_spec.height))
                     return ok;
@@ -647,7 +650,7 @@ ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
                 ok &= read_scanlines (y+m_spec.y, yend, z+m_spec.z,
                                       chbegin, chend, format,
                                       (char *)data + z*zstride + y*ystride,
-                                      xstride, ystride);
+                                      xstride, ystride, nthreads);
                 if (progress_callback)
                     if (progress_callback (progress_callback_data, (float)y/m_spec.height))
                         return ok;

@@ -121,13 +121,15 @@ public:
     virtual bool read_scanlines (int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
-                                 stride_t xstride, stride_t ystride);
+                                 stride_t xstride, stride_t ystride,
+                                 int nthreads=0);
     virtual bool read_tile (int x, int y, int z, TypeDesc format, void *data,
                             stride_t xstride, stride_t ystride, stride_t zstride);
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
                              TypeDesc format, void *data,
-                             stride_t xstride, stride_t ystride, stride_t zstride);
+                             stride_t xstride, stride_t ystride, stride_t zstride,
+                             int nthreads=0);
 
 private:
     TIFF *m_tif;                     ///< libtiff handle
@@ -1448,10 +1450,11 @@ bool TIFFInput::read_scanline (int y, int z, TypeDesc format, void *data,
 bool TIFFInput::read_scanlines (int ybegin, int yend, int z,
                                 int chbegin, int chend,
                                 TypeDesc format, void *data,
-                                stride_t xstride, stride_t ystride)
+                                stride_t xstride, stride_t ystride,
+                                int nthreads)
 {
     bool ok = ImageInput::read_scanlines (ybegin, yend, z, chbegin, chend,
-                                          format, data, xstride, ystride);
+                                          format, data, xstride, ystride, nthreads);
     if (ok && m_convert_alpha) {
         // If alpha is unassociated and we aren't requested to keep it that
         // way, multiply the colors by alpha per the usual OIIO conventions
@@ -1496,11 +1499,12 @@ bool TIFFInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                             int zbegin, int zend,
                             int chbegin, int chend,
                             TypeDesc format, void *data,
-                            stride_t xstride, stride_t ystride, stride_t zstride)
+                            stride_t xstride, stride_t ystride,
+                            stride_t zstride, int nthreads)
 {
     bool ok = ImageInput::read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
                                       chbegin, chend, format, data,
-                                      xstride, ystride, zstride);
+                                      xstride, ystride, zstride, nthreads);
     if (ok && m_convert_alpha) {
         // If alpha is unassociated and we aren't requested to keep it that
         // way, multiply the colors by alpha per the usual OIIO conventions

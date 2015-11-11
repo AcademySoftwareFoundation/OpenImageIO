@@ -639,10 +639,16 @@ public:
     /// is analogous to read_scanline except that it may be used to read
     /// more than one scanline at a time (which, for some formats, may
     /// be able to be done much more efficiently or in parallel).
+    ///
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_scanlines (int ybegin, int yend, int z,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
-                                 stride_t ystride=AutoStride);
+                                 stride_t ystride=AutoStride,
+                                 int nthreads=0);
 
     /// Read multiple scanlines that include pixels (*,y,z) for all
     /// ybegin <= y < yend, into data, using the strides given and
@@ -652,11 +658,17 @@ public:
     /// channels [chbegin,chend) will be read/copied (chbegin=0,
     /// chend=spec.nchannels reads all channels, yielding equivalent
     /// behavior to the simpler variant of read_scanlines).
+    ///
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_scanlines (int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
-                                 stride_t ystride=AutoStride);
+                                 stride_t ystride=AutoStride,
+                                 int nthreads=0);
 
     /// Read the tile whose upper-left origin is (x,y,z) into data,
     /// converting if necessary from the native data format of the file
@@ -708,11 +720,16 @@ public:
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride * (xend-xbegin)
     ///     zstride == ystride * (yend-ybegin)
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride);
+                             stride_t zstride=AutoStride,
+                             int nthreads=0);
 
     /// Read the block of multiple tiles that include all pixels in
     /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend), into data, using
@@ -722,12 +739,18 @@ public:
     /// formats).  Only channels [chbegin,chend) will be read/copied
     /// (chbegin=0, chend=spec.nchannels reads all channels, yielding
     /// equivalent behavior to the simpler variant of read_tiles).
+    ///
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, 
                              int chbegin, int chend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride);
+                             stride_t zstride=AutoStride,
+                             int nthreads=0);
 
     /// Read the entire image of spec.width x spec.height x spec.depth
     /// pixels into data (which must already be sized large enough for
@@ -744,12 +767,18 @@ public:
     /// may be passed.  Periodically, it will be called as follows:
     ///     progress_callback (progress_callback_data, float done)
     /// where 'done' gives the portion of the image
+    ///
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_image (TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
+                             void *progress_callback_data=NULL,
+                             int nthreads=0);
 
     /// Read the entire image of spec.width x spec.height x spec.depth
     /// pixels into data (which must already be sized large enough for
@@ -758,13 +787,19 @@ public:
     /// [chbegin,chend) will be read/copied (chbegin=0, chend=spec.nchannels
     /// reads all channels, yielding equivalent behavior to the simpler
     /// variant of read_image).
+    ///
+    /// The optional nthreads parameter determines how many threads will
+    /// potentially be launched to help speed up the task: a specific
+    /// maximum, or 1 to guarantee that no new threads will be launched, or
+    /// the default of 0 to use global OIIO attribute "nthreads"
     virtual bool read_image (int chbegin, int chend,
                              TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
+                             void *progress_callback_data=NULL,
+                             int nthreads=0);
 
     ///
     /// Simple read_image reads to contiguous float pixels.
