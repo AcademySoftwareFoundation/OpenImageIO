@@ -246,6 +246,9 @@ public:
         return m_spec;
     }
 
+    void threads (int n) { m_threads = n; }
+    int threads () const { return m_threads; }
+
 private:
     ImageBuf::IBStorage m_storage; ///< Pixel storage class
     ustring m_name;              ///< Filename of the image
@@ -254,6 +257,7 @@ private:
     int m_current_subimage;      ///< Current subimage we're viewing
     int m_current_miplevel;      ///< Current miplevel we're viewing
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
+    int m_threads;               ///< thread policy for this image
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
     boost::scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
@@ -292,6 +296,8 @@ ImageBufImpl::ImageBufImpl (string_view filename,
     : m_storage(ImageBuf::UNINITIALIZED),
       m_name(filename), m_nsubimages(0),
       m_current_subimage(subimage), m_current_miplevel(miplevel),
+      m_nmiplevels(0),
+      m_threads(0),
       m_localpixels(NULL),
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_pixelaspect(1),
@@ -337,6 +343,7 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_current_subimage(src.m_current_subimage),
       m_current_miplevel(src.m_current_miplevel),
       m_nmiplevels(src.m_nmiplevels),
+      m_threads(src.m_threads),
       m_spec(src.m_spec), m_nativespec(src.m_nativespec),
       m_pixels(src.m_localpixels ? new char [src.m_spec.image_bytes()] : NULL),
       m_localpixels(m_pixels.get()),
@@ -795,6 +802,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
             error ("%s", OIIO::geterror());
             return false;
         }
+        input->threads (threads());  // Pass on our thread policy
         ImageSpec dummyspec;
         if (! input->seek_subimage (subimage, miplevel, dummyspec)) {
             error ("%s", input->geterror());
@@ -869,6 +877,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         ImageInput *in = ImageInput::open (m_name.string(), m_configspec.get());
         bool ok = true;
         if (in) {
+            in->threads (threads());  // Pass on our thread policy
             if (subimage || miplevel) {
                 ImageSpec newspec;
                 ok &= in->seek_subimage (subimage, miplevel, newspec);
@@ -987,6 +996,7 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
         error ("%s", geterror());
         return false;
     }
+    out->threads (threads());  // Pass on our thread policy
 
     // Write scanline files by default, but if the file type allows tiles,
     // user can override via ImageBuf::set_write_tiles(), or by using the
@@ -1242,6 +1252,22 @@ bool
 ImageBuf::initialized () const
 {
     return impl()->initialized ();
+}
+
+
+
+void
+ImageBuf::threads (int n) const
+{
+    impl()->threads();
+}
+
+
+
+int
+ImageBuf::threads () const
+{
+    return impl()->threads();
 }
 
 

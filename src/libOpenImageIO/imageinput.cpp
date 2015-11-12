@@ -48,6 +48,19 @@ OIIO_NAMESPACE_BEGIN
 
 
 
+ImageInput::ImageInput ()
+    : m_threads(0)
+{
+}
+
+
+
+ImageInput::~ImageInput ()
+{
+}
+
+
+
 // Default implementation of valid_file: try to do a full open.  If it
 // succeeds, it's the right kind of file.  We assume that most plugins
 // will override this with something smarter and much less expensive,
@@ -220,7 +233,8 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             } else {
                 ok = parallel_convert_image (nchans, m_spec.width, nscanlines, 1, 
                                     &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
-                                    data, format, xstride, ystride, zstride);
+                                    data, format, xstride, ystride, zstride,
+                                    -1 /*alpha*/, -1 /*z*/, threads());
             }
         } else {
             // Per-channel formats -- have to convert/copy channels individually

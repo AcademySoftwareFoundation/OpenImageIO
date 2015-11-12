@@ -684,6 +684,15 @@ public:
     DeepData *deepdata ();
     const DeepData *deepdata () const;
 
+    /// Set the current thread-spawning policy: the maximum number of
+    /// threads that may be spawned by ImagBuf internals. A value of 1
+    /// means all work will be done by the calling thread; 0 means to use
+    /// the global OIIO::attribute("threads") value.
+    void threads (int n) const;
+
+    /// Retrieve the current thread-spawning policy of this ImageBuf.
+    int threads () const;
+
     friend class IteratorBase;
 
     class IteratorBase {

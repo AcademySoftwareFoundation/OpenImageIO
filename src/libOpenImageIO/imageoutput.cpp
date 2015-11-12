@@ -51,6 +51,21 @@
 OIIO_NAMESPACE_BEGIN
     using namespace pvt;
 
+
+
+ImageOutput::ImageOutput ()
+    : m_threads(0)
+{
+}
+
+
+
+ImageOutput::~ImageOutput ()
+{
+}
+
+
+
 bool
 ImageOutput::write_scanline (int y, int z, TypeDesc format,
                              const void *data, stride_t xstride)

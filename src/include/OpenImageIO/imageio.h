@@ -506,8 +506,8 @@ public:
     /// should be safe.
     static void destroy (ImageInput *x);
 
-    ImageInput () { }
-    virtual ~ImageInput () { }
+    ImageInput ();
+    virtual ~ImageInput ();
 
     /// Return the name of the format implemented by this class.
     ///
@@ -874,11 +874,21 @@ public:
     TINYFORMAT_WRAP_FORMAT (void, error, const,
         std::ostringstream msg;, msg, append_error(msg.str());)
 
+    /// Set the current thread-spawning policy: the maximum number of
+    /// threads that may be spawned by ImageInput internals. A value of 1
+    /// means all work will be done by the calling thread; 0 means to use
+    /// the global OIIO::attribute("threads") value.
+    void threads (int n) { m_threads = n; }
+
+    /// Retrieve the current thread-spawning policy.
+    int threads () const { return m_threads; }
+
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
 
 private:
     mutable std::string m_errmessage;  // private storage of error message
+    int m_threads;    // Thread policy
     void append_error (const std::string& message) const; // add to m_errmessage
     static ImageInput *create (const std::string &filename, bool do_open,
                                const std::string &plugin_searchpath);
@@ -907,8 +917,8 @@ public:
     /// create() may be unusafe, but passing it to destroy() should be safe.
     static void destroy (ImageOutput *x);
 
-    ImageOutput () { }
-    virtual ~ImageOutput () { }
+    ImageOutput ();
+    virtual ~ImageOutput ();
 
     /// Return the name of the format implemented by this class.
     ///
@@ -1195,6 +1205,15 @@ public:
     TINYFORMAT_WRAP_FORMAT (void, error, const,
         std::ostringstream msg;, msg, append_error(msg.str());)
 
+    /// Set the current thread-spawning policy: the maximum number of
+    /// threads that may be spawned by ImageOutput internals. A value of 1
+    /// means all work will be done by the calling thread; 0 means to use
+    /// the global OIIO::attribute("threads") value.
+    void threads (int n) { m_threads = n; }
+
+    /// Retrieve the current thread-spawning policy.
+    int threads () const { return m_threads; }
+
 protected:
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -1257,6 +1276,7 @@ protected:
 private:
     void append_error (const std::string& message) const; // add to m_errmessage
     mutable std::string m_errmessage;   ///< private storage of error message
+    int m_threads;    // Thread policy
 };
 
 
