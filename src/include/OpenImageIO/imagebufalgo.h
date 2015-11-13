@@ -223,6 +223,11 @@ bool OIIO_API noise (ImageBuf &dst, string_view noisetype,
 /// shuffling both channel ordering and their names could result in no
 /// semantic change at all, if you catch the drift.
 ///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
 /// N.B. If you are merely interested in extending the number of channels
 /// or truncating channels at the end (but leaving the other channels
 /// intact), then you should call this as:
@@ -231,7 +236,7 @@ bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
                         const float *channelvalues=NULL,
                         const std::string *newchannelnames=NULL,
-                        bool shuffle_channel_names=false);
+                        bool shuffle_channel_names=false, int nthreads=0);
 
 
 /// Append the channels of A and B together into dst over the region of

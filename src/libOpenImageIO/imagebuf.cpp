@@ -1592,17 +1592,26 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 template<typename D, typename S>
 static bool
-get_pixels_ (const ImageBuf &buf, ROI roi, void *r_,
-             stride_t xstride, stride_t ystride, stride_t zstride)
+get_pixels_ (const ImageBuf &buf, ROI whole_roi, ROI roi, void *r_,
+             stride_t xstride, stride_t ystride, stride_t zstride,
+             int nthreads=0)
 {
+    if (nthreads != 1 && roi.npixels() >= 64*1024) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(get_pixels_<D,S>, boost::ref(buf),
+                        whole_roi,  _1 /*roi*/, r_,
+                        xstride, ystride, zstride, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
     D *r = (D *)r_;
-    int w = roi.width(), h = roi.height();
     int nchans = roi.nchannels();
-    ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D), nchans, w, h);
     for (ImageBuf::ConstIterator<S,D> p (buf, roi); !p.done(); ++p) {
-        imagesize_t offset = (p.z()-roi.zbegin)*zstride
-                           + (p.y()-roi.ybegin)*ystride
-                           + (p.x()-roi.xbegin)*xstride;
+        imagesize_t offset = (p.z()-whole_roi.zbegin)*zstride
+                           + (p.y()-whole_roi.ybegin)*ystride
+                           + (p.x()-whole_roi.xbegin)*xstride;
         D *rc = (D *)((char *)r + offset);
         for (int c = 0;  c < nchans;  ++c)
             rc[c] = p[c+roi.chbegin];
@@ -1620,15 +1629,18 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
     if (! roi.defined())
         roi = this->roi();
     roi.chend = std::min (roi.chend, nchannels());
+    ImageSpec::auto_stride (xstride, ystride, zstride, format.size(),
+                            roi.nchannels(), roi.width(), roi.height());
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "get_pixels", get_pixels_,
-                          format, spec().format, *this, roi,
-                          result, xstride, ystride, zstride);
+                          format, spec().format, *this, roi, roi,
+                          result, xstride, ystride, zstride, threads());
     return ok;
 }
 
 
 
+// DEPRECATED
 template<typename D>
 bool
 ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
@@ -1637,16 +1649,19 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               stride_t xstride, stride_t ystride,
                               stride_t zstride) const
 {
+    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend);
+    ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D),
+                            roi.nchannels(), roi.width(), roi.height());
     bool ok;
     OIIO_DISPATCH_TYPES2_HELP (ok, "get_pixel_channels", get_pixels_,
-                               D, spec().format, *this,
-                               ROI(xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend),
+                               D, spec().format, *this, roi, roi,
                                r, xstride, ystride, zstride);
     return ok;
 }
 
 
 
+// DEPRECATED
 bool
 ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, int chbegin, int chend,
@@ -1660,6 +1675,7 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
 
 
 
+// DEPRECATED
 bool
 ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
                       int zbegin, int zend, TypeDesc format, void *result,

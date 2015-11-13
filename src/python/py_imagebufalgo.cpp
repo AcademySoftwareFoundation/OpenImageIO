@@ -160,7 +160,7 @@ IBA_noise (ImageBuf &dst, std::string type, float A, float B, bool mono, int see
 bool
 IBA_channels (ImageBuf &dst, const ImageBuf &src,
               tuple channelorder_, tuple newchannelnames_,
-              bool shuffle_channel_names)
+              bool shuffle_channel_names, int nthreads)
 {
     size_t nchannels = (size_t) len(channelorder_);
     if (nchannels < 1) {
@@ -199,7 +199,7 @@ IBA_channels (ImageBuf &dst, const ImageBuf &src,
     return ImageBufAlgo::channels (dst, src, (int)nchannels, &channelorder[0],
                          channelvalues.size() ? &channelvalues[0] : NULL,
                          newchannelnames.size() ? &newchannelnames[0] : NULL,
-                         shuffle_channel_names);
+                         shuffle_channel_names, nthreads);
 }
 
 
@@ -1232,7 +1232,7 @@ void declare_imagebufalgo()
         .def("channels", &IBA_channels,
              (arg("dst"), arg("src"), arg("channelorder"),
               arg("newchannelnames")=tuple(),
-              arg("shuffle_channel_names")=false))
+              arg("shuffle_channel_names")=false, arg("nthreads")=0) )
         .staticmethod("channels")
 
         .def("channel_append", IBA_channel_append,

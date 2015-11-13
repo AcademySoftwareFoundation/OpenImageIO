@@ -273,8 +273,8 @@ identical on different platforms supported by \product.
 
 \apiitem{bool {\ce channels} (ImageBuf \&dst, const ImageBuf \&src, int nchannels, \\
         \bigspc  const int *channelorder,  const float *channelvalues=NULL, \\
-        \bigspc                 const std::string *newchannelnames=NULL, \\
-        \bigspc                 bool shuffle_channel_names=false)}
+        \bigspc  const std::string *newchannelnames=NULL, \\
+        \bigspc  bool shuffle_channel_names=false, int nthreads=0)}
 \index{ImageBufAlgo!channels} \indexapi{channels} \label{sec:iba:channels}
 
 Generic channel shuffling: copy {\cf src} to {\cf dst}, but with channels in

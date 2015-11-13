@@ -627,12 +627,45 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<typename DSTTYPE>
+static bool
+channels_ (ImageBuf &dst, const ImageBuf &src,
+           const int *channelorder, const float *channelvalues,
+           ROI roi, int nthreads=0)
+{
+    if (nthreads != 1 && roi.npixels() >= 64*1024) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            boost::bind(channels_<DSTTYPE>, boost::ref(dst),
+                        boost::cref(src), channelorder, channelvalues,
+                        _1 /*roi*/, 1 /*ntheads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    int nchannels = src.nchannels();
+    ImageBuf::ConstIterator<DSTTYPE> s (src, roi);
+    ImageBuf::Iterator<DSTTYPE> d (dst, roi);
+    for (  ;  ! s.done();  ++s, ++d) {
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            int cc = channelorder[c];
+            if (cc >= 0 && cc < nchannels)
+                d[c] = s[cc];
+            else if (channelvalues)
+                d[c] = channelvalues[c];
+        }
+    }
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         int nchannels, const int *channelorder,
                         const float *channelvalues,
                         const std::string *newchannelnames,
-                        bool shuffle_channel_names)
+                        bool shuffle_channel_names, int nthreads)
 {
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
@@ -745,34 +778,11 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     }
     // Below is the non-deep case
 
-    // Copy the channels individually
-    stride_t dstxstride = AutoStride, dstystride = AutoStride, dstzstride = AutoStride;
-    ImageSpec::auto_stride (dstxstride, dstystride, dstzstride,
-                            newspec.format.size(), newspec.nchannels,
-                            newspec.width, newspec.height);
-    int channelsize = newspec.format.size();
-    char *pixels = (char *) dst.pixeladdr (dst.xbegin(), dst.ybegin(),
-                                           dst.zbegin());
-    for (int c = 0;  c < nchannels;  ++c) {
-        // Copy shuffled channels
-        if (channelorder[c] >= 0 && channelorder[c] < src.spec().nchannels) {
-            int csrc = channelorder[c];
-            src.get_pixel_channels (src.xbegin(), src.xend(),
-                                    src.ybegin(), src.yend(),
-                                    src.zbegin(), src.zend(),
-                                    csrc, csrc+1, newspec.format, pixels,
-                                    dstxstride, dstystride, dstzstride);
-        }
-        // Set channels that are literals
-        if (channelorder[c] < 0 && channelvalues && channelvalues[c]) {
-            ROI roi = get_roi (dst.spec());
-            roi.chbegin = c;
-            roi.chend = c+1;
-            ImageBufAlgo::fill (dst, &channelvalues[0], roi);
-        }
-        pixels += channelsize;
-    }
-    return true;
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "channels", channels_,
+                         dst.spec().format, dst, src,
+                         channelorder, channelvalues, dst.roi(), nthreads);
+    return ok;
 }
 
 
