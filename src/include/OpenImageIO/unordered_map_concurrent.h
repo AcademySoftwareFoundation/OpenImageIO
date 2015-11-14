@@ -34,12 +34,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OPENIMAGEIO_UNORDERED_MAP_CONCURRENT_H
 #define OPENIMAGEIO_UNORDERED_MAP_CONCURRENT_H
 
-#include <boost/unordered_map.hpp>
-#include "thread.h"    // from OIIO
-#include "hash.h"      // from OIIO
-#include "dassert.h"   // from OIIO
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/hash.h>
+#include <OpenImageIO/dassert.h>
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+#  include <unordered_map>
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
+#  include <boost/unordered_map.hpp>
+#endif
 
 OIIO_NAMESPACE_BEGIN
+
+
+// Define OIIO::unordered_map as either std or boost.
+#if OIIO_CPLUSPLUS_VERSION >= 11
+using std::unordered_map;
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
+using boost::unordered_map;
+#endif
 
 
 /// unordered_map_concurrent provides an unordered_map replacement that
@@ -76,7 +89,7 @@ OIIO_NAMESPACE_BEGIN
 
 template<class KEY, class VALUE, class HASH=boost::hash<KEY>,
          class PRED=std::equal_to<KEY>, size_t BINS=16,
-         class BINMAP=boost::unordered_map<KEY,VALUE,HASH,PRED> >
+         class BINMAP=unordered_map<KEY,VALUE,HASH,PRED> >
 class unordered_map_concurrent {
 public:
     typedef BINMAP BinMap_t;

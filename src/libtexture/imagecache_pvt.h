@@ -36,7 +36,12 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
-#include <boost/unordered_map.hpp>
+#if OIIO_CPLUSPLUS_VERSION >= 11
+#  include <unordered_map>
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
+#  include <boost/unordered_map.hpp>
+#endif
+
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 
@@ -376,9 +381,12 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 
 /// Map file names to file references
-///
 typedef unordered_map_concurrent<ustring,ImageCacheFileRef,ustringHash,std::equal_to<ustring>, 8> FilenameMap;
+#if OIIO_CPLUSPLUS_VERSION >= 11
+typedef std::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
 typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
+#endif
 
 
 

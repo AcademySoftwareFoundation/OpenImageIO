@@ -285,7 +285,7 @@ int extract_from_list_string (std::vector<T> &vals,
 /// StringEqual, to build an efficient hash map for char*'s or
 /// std::string's is as follows:
 /// \code
-///    boost::unordered_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
+///    unordered_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
 /// \endcode
 class StringHash {
 public:
