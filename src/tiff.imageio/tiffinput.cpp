@@ -34,6 +34,7 @@
 #include <cmath>
 
 #include <boost/regex.hpp>
+#include <boost/thread/tss.hpp>
 
 #include <tiffio.h>
 
@@ -302,7 +303,7 @@ OIIO_PLUGIN_EXPORTS_END
 // Someplace to store an error message from the TIFF error handler
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static thread_specific_ptr<std::string> thread_error_msg;
+static boost::thread_specific_ptr<std::string> thread_error_msg;
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
 
