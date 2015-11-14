@@ -32,7 +32,8 @@
 #ifndef OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
 #define OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
 
-#include "imagebufalgo.h"
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/thread.h>
 
 
 OIIO_NAMESPACE_BEGIN

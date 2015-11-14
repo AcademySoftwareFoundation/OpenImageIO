@@ -42,7 +42,6 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "color.h"
-#include "thread.h"
 
 #include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
 

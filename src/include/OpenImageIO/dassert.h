@@ -121,7 +121,7 @@
 #elif (__cplusplus >= 201103L)
 #  define OIIO_STATIC_ASSERT(cond)         static_assert(cond,"")
 #  define OIIO_STATIC_ASSERT_MSG(cond,msg) static_assert(cond,msg)
-#else /* fall back on Boost static assert */
+#else /* FIXME(C++11): this case can go away when C++11 is our minimum */
 #  include <boost/static_assert.hpp>
 #  define OIIO_STATIC_ASSERT(cond)         BOOST_STATIC_ASSERT(cond)
 #  define OIIO_STATIC_ASSERT_MSG(cond,msg) BOOST_STATIC_ASSERT_MSG(cond,msg)

@@ -41,9 +41,6 @@
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 # include <initializer_list>
-// # include <type_traits>
-#else
-// # include <boost/type_traits.hpp>
 #endif
 
 OIIO_NAMESPACE_BEGIN

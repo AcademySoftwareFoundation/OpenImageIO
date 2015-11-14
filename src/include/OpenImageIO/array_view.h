@@ -35,24 +35,24 @@
 #include <stdexcept>
 #include <iostream>
 
+#if OIIO_CPLUSPLUS_VERSION >= 11
+# include <initializer_list>
+# include <type_traits>
+#else /* FIXME(C++11): this case can go away when C++11 is our minimum */
+# include <boost/type_traits.hpp>
+#endif
+
 #include "oiioversion.h"
 #include "platform.h"
 #include "dassert.h"
 #include "coordinate.h"
-
-#if OIIO_CPLUSPLUS_VERSION >= 11
-# include <initializer_list>
-# include <type_traits>
-#else
-# include <boost/type_traits.hpp>
-#endif
 
 OIIO_NAMESPACE_BEGIN
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 using std::remove_const;
 using std::is_array;
-#else
+#else /* FIXME(C++11): this case can go away when C++11 is our minimum */
 using boost::remove_const;
 using boost::is_array;
 #endif

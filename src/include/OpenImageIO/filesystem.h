@@ -31,9 +31,7 @@
 
 /// @file  filesystem.h
 ///
-/// @brief Utilities for dealing with file names and files.  We use
-/// boost::filesystem anywhere we can, but that doesn't cover everything
-/// we want to do.
+/// @brief Utilities for dealing with file names and files portably.
 ///
 /// Some helpful nomenclature:
 ///  -  "filename" - a file or directory name, relative or absolute
