@@ -94,6 +94,15 @@ OIIO_API int terminal_columns ();
 /// Return true if successful, false if it was unable to do so.
 OIIO_API bool put_in_background (int argc, char* argv[]);
 
+/// Number of virtual cores available on this platform (including
+/// hyperthreads).
+OIIO_API unsigned int hardware_concurrency ();
+
+/// Number of full hardware cores available on this platform (does not
+/// include hyperthreads). This is not always accurate and on some
+/// platforms will return the number of virtual cores.
+OIIO_API unsigned int physical_concurrency ();
+
 }  // namespace Sysutils
 
 OIIO_NAMESPACE_END

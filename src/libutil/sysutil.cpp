@@ -74,6 +74,10 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/sysutil.h"
 
+#include <boost/version.hpp>
+#include <boost/thread.hpp>
+
+
 OIIO_NAMESPACE_BEGIN
 
 using namespace Sysutil;
@@ -336,6 +340,26 @@ Sysutil::put_in_background (int, char* [])
 
     // Otherwise, we don't know what to do
     return false;
+}
+
+
+
+unsigned int
+Sysutil::hardware_concurrency ()
+{
+    return boost::thread::hardware_concurrency();
+}
+
+
+
+unsigned int
+Sysutil::physical_concurrency ()
+{
+#if BOOST_VERSION >= 105600
+    return boost::thread::physical_concurrency();
+#else
+    return boost::thread::hardware_concurrency();
+#endif
 }
 
 
