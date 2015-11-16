@@ -1144,13 +1144,13 @@ main (int argc, const char *argv[])
         const int iterations = iters>1 ? iters : 2000000;
         std::cout << "Workload: " << workload_names[threadtimes] << "\n";
         std::cout << "texture cache size = " << cachesize << " MB\n";
-        std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+        std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
         std::cout << "times are best of " << ntrials << " trials\n\n";
         std::cout << "threads  time (s) efficiency\n";
         std::cout << "-------- -------- ----------\n";
 
         if (nthreads == 0)
-            nthreads = boost::thread::hardware_concurrency();
+            nthreads = Sysutil::hardware_concurrency();
         static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 24, 32, 64, 128, 1024, 1<<30 };
         float single_thread_time = 0.0f;
         for (int i = 0; threadcounts[i] <= nthreads; ++i) {
