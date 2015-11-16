@@ -435,8 +435,8 @@ lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(lightprobe_to_envlatl, boost::ref(dst),
-                        boost::cref(src), y_is_up,
+            OIIO::bind(lightprobe_to_envlatl, OIIO::ref(dst),
+                        OIIO::cref(src), y_is_up,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -690,7 +690,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                                img->yend(), img->zbegin(), img->zend());
 
                 if (filtername == "box" && !orig_was_overscan && sharpen <= 0.0f) {
-                    ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*small), boost::cref(*img), _1, envlatlmode, allow_shift),
+                    ImageBufAlgo::parallel_image (OIIO::bind(resize_block, OIIO::ref(*small), OIIO::cref(*img), _1, envlatlmode, allow_shift),
                                                   OIIO::get_roi(small->spec()));
                 } else {
                     Filter2D *filter = setup_filter (small->spec(), img->spec(), filtername);
@@ -1219,7 +1219,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                      srcspec.format.basetype == TypeDesc::HALF ||
                      srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
-        ImageBufAlgo::parallel_image (boost::bind(check_nan_block, boost::ref(*src), _1, boost::ref(found_nonfinite)),
+        ImageBufAlgo::parallel_image (OIIO::bind(check_nan_block, OIIO::ref(*src), _1, OIIO::ref(found_nonfinite)),
                                       OIIO::get_roi(srcspec));
         if (found_nonfinite) {
             if (found_nonfinite > 3)
@@ -1354,7 +1354,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     } else  if (! do_resize) {
         // Need format conversion, but no resize -- just copy the pixels
         toplevel.reset (new ImageBuf (dstspec));
-        ImageBufAlgo::parallel_image (boost::bind(copy_block,boost::ref(*toplevel),boost::cref(*src),_1),
+        ImageBufAlgo::parallel_image (OIIO::bind(copy_block,OIIO::ref(*toplevel),OIIO::cref(*src),_1),
                                       OIIO::get_roi(dstspec));
     } else {
         // Resize
@@ -1367,7 +1367,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         toplevel.reset (new ImageBuf (dstspec));
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
-            ImageBufAlgo::parallel_image (boost::bind(resize_block, boost::ref(*toplevel), boost::cref(*src), _1, envlatlmode, allow_shift),
+            ImageBufAlgo::parallel_image (OIIO::bind(resize_block, OIIO::ref(*toplevel), OIIO::cref(*src), _1, envlatlmode, allow_shift),
                                           OIIO::get_roi(dstspec));
         } else {
             Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), resize_filter);

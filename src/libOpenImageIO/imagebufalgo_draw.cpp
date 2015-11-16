@@ -28,10 +28,6 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/regex.hpp>
-
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -57,12 +53,12 @@ OIIO_NAMESPACE_BEGIN
 
 template<typename T>
 static bool
-fill_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
+fill_const_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(fill_<T>, boost::ref(dst), values,
+            OIIO::bind(fill_const_<T>, OIIO::ref(dst), values,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -78,13 +74,13 @@ fill_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 
 template<typename T>
 static bool
-fill_ (ImageBuf &dst, const float *top, const float *bottom,
+fill_tb_ (ImageBuf &dst, const float *top, const float *bottom,
        ROI origroi, ROI roi=ROI(), int nthreads=1)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(fill_<T>, boost::ref(dst), top, bottom,
+            OIIO::bind(fill_tb_<T>, OIIO::ref(dst), top, bottom,
                         origroi, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -103,14 +99,14 @@ fill_ (ImageBuf &dst, const float *top, const float *bottom,
 
 template<typename T>
 static bool
-fill_ (ImageBuf &dst, const float *topleft, const float *topright,
+fill_corners_ (ImageBuf &dst, const float *topleft, const float *topright,
        const float *bottomleft, const float *bottomright,
        ROI origroi, ROI roi=ROI(), int nthreads=1)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(fill_<T>, boost::ref(dst), topleft, topright,
+            OIIO::bind(fill_corners_<T>, OIIO::ref(dst), topleft, topright,
                         bottomleft, bottomright,
                         origroi, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -138,7 +134,7 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_const_, dst.spec().format,
                          dst, pixel, roi, nthreads);
     return ok;
 }
@@ -152,7 +148,7 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *top, const float *bottom,
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_tb_, dst.spec().format,
                          dst, top, bottom, roi, roi, nthreads);
     return ok;
 }
@@ -168,7 +164,7 @@ ImageBufAlgo::fill (ImageBuf &dst, const float *topleft, const float *topright,
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "fill", fill_, dst.spec().format,
+    OIIO_DISPATCH_TYPES (ok, "fill", fill_corners_, dst.spec().format,
                          dst, topleft, topright, bottomleft, bottomright,
                          roi, roi, nthreads);
     return ok;
@@ -205,7 +201,7 @@ checker_ (ImageBuf &dst, Dim3 size,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(checker_<T>, boost::ref(dst),
+            OIIO::bind(checker_<T>, OIIO::ref(dst),
                         size, color1, color2, offset,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -288,7 +284,7 @@ noise_uniform_ (ImageBuf &dst, float min, float max, bool mono,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(noise_uniform_<T>, boost::ref(dst),
+            OIIO::bind(noise_uniform_<T>, OIIO::ref(dst),
                         min, max, mono, seed,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -318,7 +314,7 @@ noise_gaussian_ (ImageBuf &dst, float mean, float stddev, bool mono,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(noise_gaussian_<T>, boost::ref(dst),
+            OIIO::bind(noise_gaussian_<T>, OIIO::ref(dst),
                         mean, stddev, mono, seed,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -348,7 +344,7 @@ noise_salt_ (ImageBuf &dst, float saltval, float saltportion, bool mono,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(noise_salt_<T>, boost::ref(dst),
+            OIIO::bind(noise_salt_<T>, OIIO::ref(dst),
                         saltval, saltportion, mono, seed,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);

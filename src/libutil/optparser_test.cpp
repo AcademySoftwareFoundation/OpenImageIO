@@ -31,11 +31,10 @@
 
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <cstring>
 
-#include "OpenImageIO/thread.h"
-
-#include <boost/thread/thread.hpp>
-
+#include "OpenImageIO/platform.h"
 #include "OpenImageIO/optparser.h"
 #include "OpenImageIO/unittest.h"
 

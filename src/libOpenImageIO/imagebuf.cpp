@@ -1599,7 +1599,7 @@ get_pixels_ (const ImageBuf &buf, ROI whole_roi, ROI roi, void *r_,
     if (nthreads != 1 && roi.npixels() >= 64*1024) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(get_pixels_<D,S>, boost::ref(buf),
+            OIIO::bind(get_pixels_<D,S>, OIIO::ref(buf),
                         whole_roi,  _1 /*roi*/, r_,
                         xstride, ystride, zstride, 1 /*nthreads*/),
             roi, nthreads);

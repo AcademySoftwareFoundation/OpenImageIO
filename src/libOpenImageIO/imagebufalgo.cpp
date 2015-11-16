@@ -28,7 +28,6 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/regex.hpp>
 
@@ -287,8 +286,8 @@ convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(convolve_<DSTTYPE,SRCTYPE>, boost::ref(dst),
-                        boost::cref(src), boost::cref(kernel), normalize,
+            OIIO::bind(convolve_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), OIIO::cref(kernel), normalize,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -437,7 +436,7 @@ threshold_to_zero (ImageBuf &dst, float threshold,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(threshold_to_zero, boost::ref(dst), threshold,
+            OIIO::bind(threshold_to_zero, OIIO::ref(dst), threshold,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -516,8 +515,8 @@ median_filter_impl (ImageBuf &R, const ImageBuf &A, int width, int height,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(median_filter_impl<Rtype,Atype>,
-                        boost::ref(R), boost::cref(A),
+            OIIO::bind(median_filter_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A),
                         width, height, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -599,7 +598,7 @@ hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind (hfft_, boost::ref(dst), boost::cref(src),
+            OIIO::bind (hfft_, OIIO::ref(dst), OIIO::cref(src),
                          inverse, unitary,
                          _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -765,7 +764,7 @@ polar_to_complex_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(polar_to_complex_impl<Rtype,Atype>, boost::ref(R), boost::cref(A),
+            OIIO::bind(polar_to_complex_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -792,7 +791,7 @@ complex_to_polar_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(complex_to_polar_impl<Rtype,Atype>, boost::ref(R), boost::cref(A),
+            OIIO::bind(complex_to_polar_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -871,7 +870,7 @@ divide_by_alpha (ImageBuf &dst, ROI roi, int nthreads)
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(divide_by_alpha, boost::ref(dst),
+            OIIO::bind(divide_by_alpha, OIIO::ref(dst),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;

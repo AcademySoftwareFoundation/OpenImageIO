@@ -35,6 +35,7 @@
 #include <OpenEXR/ImathFun.h>
 
 #include <boost/scoped_array.hpp>
+#include <boost/thread.hpp>
 #include <boost/thread/tss.hpp>
 
 #include "OpenImageIO/dassert.h"

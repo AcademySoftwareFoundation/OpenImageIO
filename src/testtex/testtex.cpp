@@ -41,8 +41,6 @@
 #include <OpenEXR/ImathVec.h>
 #include <OpenEXR/half.h>
 
-#include <boost/bind.hpp>
-
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/ustring.h"
@@ -58,6 +56,10 @@
 #include "../libtexture/imagecache_pvt.h"
 
 OIIO_NAMESPACE_USING
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+using OIIO::_1;
+#endif
 
 static std::vector<ustring> filenames;
 static std::string output_filename = "out.exr";
@@ -567,7 +569,7 @@ test_plain_texture (Mapping2D mapping)
             std::cout << "iter " << iter << " file " << filename << "\n";
         }
 
-        ImageBufAlgo::parallel_image (boost::bind(plain_tex_region, boost::ref(image), filename, mapping,
+        ImageBufAlgo::parallel_image (OIIO::bind(plain_tex_region, OIIO::ref(image), filename, mapping,
                                                   test_derivs ? &image_ds : NULL,
                                                   test_derivs ? &image_dt : NULL, _1),
                                       get_roi(image.spec()), nthreads);
@@ -649,7 +651,7 @@ test_texture3d (ustring filename, Mapping3D mapping)
         if (iter && filenames.size() > 1)
             filename = filenames[1];
 
-        ImageBufAlgo::parallel_image (boost::bind(tex3d_region, boost::ref(image), filename, mapping, _1),
+        ImageBufAlgo::parallel_image (OIIO::bind(tex3d_region, OIIO::ref(image), filename, mapping, _1),
                                       get_roi(image.spec()), nthreads);
     }
     
@@ -952,9 +954,9 @@ void
 launch_tex_threads (int numthreads, int iterations)
 {
     texsys->invalidate_all (true);
-    boost::thread_group threads;
+    OIIO::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind(do_tex_thread_workout,iterations,i));
+        threads.create_thread (OIIO::bind(do_tex_thread_workout,iterations,i));
     }
     ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
@@ -1158,7 +1160,7 @@ main (int argc, const char *argv[])
             int nt = wedge ? threadcounts[i] : nthreads;
             int its = iters>1 ? (std::max (1, iters/nt)) : iterations; // / nt;
             double range;
-            double t = time_trial (boost::bind(launch_tex_threads,nt,its),
+            double t = time_trial (OIIO::bind(launch_tex_threads,nt,its),
                                    ntrials, &range);
             if (nt == 1)
                 single_thread_time = (float)t;

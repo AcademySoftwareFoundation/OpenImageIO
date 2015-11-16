@@ -105,7 +105,7 @@ private:
 // Adobe RGB (1998) with reference white D65 -> XYZ
 // matrix is from http://www.brucelindbloom.com/
 inline Color3f
-AdobeRGBToXYZ (const Color3f &rgb)
+AdobeRGBToXYZ_color (const Color3f &rgb)
 {
     return Color3f (rgb[0] * 0.576700f  + rgb[1] * 0.185556f  + rgb[2] * 0.188212f,
                     rgb[0] * 0.297361f  + rgb[1] * 0.627355f  + rgb[2] * 0.0752847f,
@@ -119,7 +119,7 @@ AdobeRGBToXYZ (ImageBuf &A, ROI roi, int nthreads)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (boost::bind(AdobeRGBToXYZ, boost::ref(A),
+        ImageBufAlgo::parallel_image (OIIO::bind(AdobeRGBToXYZ, OIIO::ref(A),
                                                   _1 /*roi*/, 1 /*nthreads*/),
                                       roi, nthreads);
         return true;
@@ -128,7 +128,7 @@ AdobeRGBToXYZ (ImageBuf &A, ROI roi, int nthreads)
     // Serial case
     for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
         Color3f rgb (a[0], a[1], a[2]);
-        Color3f XYZ = AdobeRGBToXYZ (rgb);
+        Color3f XYZ = AdobeRGBToXYZ_color (rgb);
         a[0] = XYZ[0];
         a[1] = XYZ[1];
         a[2] = XYZ[2];
@@ -141,7 +141,7 @@ AdobeRGBToXYZ (ImageBuf &A, ROI roi, int nthreads)
 /// Convert a color in XYZ space to LAB space.
 ///
 static Color3f
-XYZToLAB (const Color3f xyz)
+XYZToLAB_color (const Color3f xyz)
 {
     // Reference white point
     static const Color3f white (0.576700f + 0.185556f + 0.188212f,
@@ -170,7 +170,7 @@ XYZToLAB (ImageBuf &A, ROI roi, int nthreads)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (boost::bind(XYZToLAB, boost::ref(A),
+        ImageBufAlgo::parallel_image (OIIO::bind(XYZToLAB, OIIO::ref(A),
                                                   _1 /*roi*/, 1 /*nthreads*/),
                                       roi, nthreads);
         return true;
@@ -179,7 +179,7 @@ XYZToLAB (ImageBuf &A, ROI roi, int nthreads)
     // Serial case
     for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
         Color3f XYZ (a[0], a[1], a[2]);
-        Color3f LAB = XYZToLAB (XYZ);
+        Color3f LAB = XYZToLAB_color (XYZ);
         a[0] = LAB[0];
         a[1] = LAB[1];
         a[2] = LAB[2];

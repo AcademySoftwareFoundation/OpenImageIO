@@ -32,8 +32,6 @@
 /// Implementation of ImageBufAlgo algorithms that do math on 
 /// single pixels at a time.
 
-#include <boost/bind.hpp>
-
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -59,7 +57,7 @@ clamp_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(clamp_<D,S>, boost::ref(dst), boost::cref(src),
+            OIIO::bind(clamp_<D,S>, OIIO::ref(dst), OIIO::cref(src),
                         min, max, clampalpha01,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -127,8 +125,8 @@ add_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(add_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(add_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -154,8 +152,8 @@ add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(add_impl<Rtype,Atype>,
-                        boost::ref(R), boost::cref(A), b,
+            OIIO::bind(add_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A), b,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -228,8 +226,8 @@ sub_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(sub_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(sub_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -306,8 +304,8 @@ absdiff_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(absdiff_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(absdiff_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -332,8 +330,8 @@ absdiff_impl (ImageBuf &R, const ImageBuf &A, const float *b,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(absdiff_impl<Rtype,Atype>,
-                        boost::ref(R), boost::cref(A), b,
+            OIIO::bind(absdiff_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A), b,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -416,8 +414,8 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(mul_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(mul_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -458,7 +456,7 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const float *b,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(mul_impl<Rtype,Atype>, boost::ref(R), boost::cref(A), b,
+            OIIO::bind(mul_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A), b,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -513,8 +511,8 @@ div_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(div_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(div_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -594,8 +592,8 @@ mad_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, const ImageBuf &C,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(mad_impl<Rtype,ABCtype>, boost::ref(R),
-                        boost::cref(A), boost::cref(B), boost::cref(C),
+            OIIO::bind(mad_impl<Rtype,ABCtype>, OIIO::ref(R),
+                        OIIO::cref(A), OIIO::cref(B), OIIO::cref(C),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -622,8 +620,8 @@ mad_implf (ImageBuf &R, const ImageBuf &A, const float *b, const float *c,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(mad_implf<Rtype,Atype>, boost::ref(R),
-                        boost::cref(A), b, c,
+            OIIO::bind(mad_implf<Rtype,Atype>, OIIO::ref(R),
+                        OIIO::cref(A), b, c,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -738,7 +736,7 @@ pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(pow_impl<Rtype,Atype>, boost::ref(R), boost::cref(A), b,
+            OIIO::bind(pow_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A), b,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -794,7 +792,7 @@ channel_sum_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(channel_sum_<D,S>, boost::ref(dst), boost::cref(src),
+            OIIO::bind(channel_sum_<D,S>, OIIO::ref(dst), OIIO::cref(src),
                         weights, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -896,8 +894,8 @@ rangecompress_ (ImageBuf &R, const ImageBuf &A,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(rangecompress_<Rtype,Atype>, boost::ref(R),
-                        boost::cref(A), useluma,
+            OIIO::bind(rangecompress_<Rtype,Atype>, OIIO::ref(R),
+                        OIIO::cref(A), useluma,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -966,8 +964,8 @@ rangeexpand_ (ImageBuf &R, const ImageBuf &A,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(rangeexpand_<Rtype,Atype>, boost::ref(R), 
-                        boost::cref(A), useluma,
+            OIIO::bind(rangeexpand_<Rtype,Atype>, OIIO::ref(R), 
+                        OIIO::cref(A), useluma,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -1065,7 +1063,7 @@ unpremult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(unpremult_<Rtype,Atype>, boost::ref(R), boost::cref(A),
+            OIIO::bind(unpremult_<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -1131,7 +1129,7 @@ premult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(premult_<Rtype,Atype>, boost::ref(R), boost::cref(A),
+            OIIO::bind(premult_<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -1200,7 +1198,7 @@ bool fixNonFinite_ (ImageBuf &dst, ImageBufAlgo::NonFiniteFixMode mode,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(fixNonFinite_<T>, boost::ref(dst), mode, pixelsFixed,
+            OIIO::bind(fixNonFinite_<T>, OIIO::ref(dst), mode, pixelsFixed,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -1363,8 +1361,8 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(over_impl<Rtype,Atype,Btype>,
-                        boost::ref(R), boost::cref(A), boost::cref(B),
+            OIIO::bind(over_impl<Rtype,Atype,Btype>,
+                        OIIO::ref(R), OIIO::cref(A), OIIO::cref(B),
                         zcomp, z_zeroisinf, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;

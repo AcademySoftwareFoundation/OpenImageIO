@@ -32,14 +32,6 @@
 /// Implementation of ImageBufAlgo algorithms that analize or compare
 /// images.
 
-/* This header has to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "OpenImageIO/SHA1.h"
-
-#include <boost/bind.hpp>
-
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -50,6 +42,7 @@
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/dassert.h"
+#include "OpenImageIO/SHA1.h"
 
 #ifdef USE_OPENSSL
 #ifdef __APPLE__
@@ -506,7 +499,7 @@ color_count_ (const ImageBuf &src, atomic_ll *count,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(color_count_<T>, boost::ref(src),
+            OIIO::bind(color_count_<T>, OIIO::ref(src),
                         count, ncolors, color, eps,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -578,7 +571,7 @@ color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(color_range_check_<T>, boost::ref(src),
+            OIIO::bind(color_range_check_<T>, OIIO::ref(src),
                         lowcount, highcount, inrangecount, low, high,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -849,7 +842,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
         sha1_hasher (&src, roi, blocksize, &results[0], 0);
     } else {
         // parallel case
-        boost::thread_group threads;
+        OIIO::thread_group threads;
         int blocks_per_thread = (nblocks+nthreads-1) / nthreads;
         ROI broi = roi;
         for (int b = 0, t = 0;  b < nblocks;  b += blocks_per_thread, ++t) {
@@ -858,7 +851,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
                 break;
             broi.ybegin = y;
             broi.yend = std::min (y+blocksize*blocks_per_thread, roi.yend);
-            threads.add_thread (new boost::thread (sha1_hasher, &src, broi,
+            threads.add_thread (new OIIO::thread (sha1_hasher, &src, broi,
                                                    blocksize, &results[0], b));
         }
         threads.join_all ();

@@ -32,6 +32,7 @@
 #include <vector>
 #include <string>
 
+#include <boost/shared_ptr.hpp>
 #include <OpenEXR/half.h>
 
 #include "OpenImageIO/strutil.h"
@@ -783,8 +784,8 @@ colorconvert_impl (ImageBuf &R, const ImageBuf &A,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(colorconvert_impl<Rtype,Atype>,
-                        boost::ref(R), boost::cref(A), processor, unpremult,
+            OIIO::bind(colorconvert_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A), processor, unpremult,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;

@@ -32,7 +32,6 @@
 /// ImageBufAlgo functions for filtered transformations
 
 
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <OpenEXR/half.h>
@@ -190,8 +189,8 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(resize_<DSTTYPE,SRCTYPE>, boost::ref(dst),
-                        boost::cref(src), filter,
+            OIIO::bind(resize_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), filter,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -466,8 +465,8 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(resample_<DSTTYPE,SRCTYPE>, boost::ref(dst),
-                        boost::cref(src), interpolate,
+            OIIO::bind(resample_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), interpolate,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -553,8 +552,8 @@ affine_resample_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &Minv,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(affine_resample_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src), Minv,
+            OIIO::bind(affine_resample_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src), Minv,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -585,8 +584,8 @@ warp_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &M,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(warp_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src), M,
+            OIIO::bind(warp_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src), M,
                         filter, wrap, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;

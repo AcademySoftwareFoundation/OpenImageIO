@@ -33,8 +33,6 @@
 /// or channels between images without altering their values.
 
 
-#include <boost/bind.hpp>
-
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -113,7 +111,7 @@ crop_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(crop_<D,S>, boost::ref(dst), boost::cref(src),
+            OIIO::bind(crop_<D,S>, OIIO::ref(dst), OIIO::cref(src),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -529,8 +527,8 @@ transpose_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(transpose_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src),
+            OIIO::bind(transpose_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -585,8 +583,8 @@ circular_shift_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(circular_shift_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src),
+            OIIO::bind(circular_shift_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src),
                         xshift, yshift, zshift,
                         dstroi, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
@@ -636,8 +634,8 @@ channels_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 64*1024) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(channels_<DSTTYPE>, boost::ref(dst),
-                        boost::cref(src), channelorder, channelvalues,
+            OIIO::bind(channels_<DSTTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), channelorder, channelvalues,
                         _1 /*roi*/, 1 /*ntheads*/),
             roi, nthreads);
         return true;
@@ -811,8 +809,8 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     } else {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind (channel_append_impl<ABtype>, boost::ref(dst),
-                         boost::cref(A), boost::cref(B), _1, 1),
+            OIIO::bind (channel_append_impl<ABtype>, OIIO::ref(dst),
+                         OIIO::cref(A), OIIO::cref(B), _1, 1),
             roi, nthreads);
     }
     return true;
