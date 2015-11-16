@@ -33,6 +33,7 @@
 
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/ustring.h"
@@ -137,7 +138,7 @@ int main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
-    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
     std::cout << "reader:writer ratio = " << read_write_ratio << ":1\n";
     std::cout << "threads\ttime (best of " << ntrials << ")\n";
     std::cout << "-------\t----------\n";

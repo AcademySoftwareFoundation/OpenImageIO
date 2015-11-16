@@ -39,6 +39,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/strutil.h"
+#include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/hash.h"
@@ -50,8 +51,8 @@ OIIO_NAMESPACE_BEGIN
 // Global private data
 namespace pvt {
 recursive_mutex imageio_mutex;
-atomic_int oiio_threads (boost::thread::hardware_concurrency());
-atomic_int oiio_exr_threads (boost::thread::hardware_concurrency());
+atomic_int oiio_threads (Sysutil::physical_concurrency());
+atomic_int oiio_exr_threads (Sysutil::physical_concurrency());
 atomic_int oiio_read_chunk (256);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
@@ -143,7 +144,7 @@ attribute (string_view name, TypeDesc type, const void *val)
     if (name == "threads" && type == TypeDesc::TypeInt) {
         int ot = Imath::clamp (*(const int *)val, 0, maxthreads);
         if (ot == 0)
-            ot = boost::thread::hardware_concurrency();
+            ot = Sysutil::physical_concurrency();
         oiio_threads = ot;
         return true;
     }
