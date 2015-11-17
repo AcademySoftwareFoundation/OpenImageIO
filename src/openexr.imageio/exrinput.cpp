@@ -51,7 +51,6 @@
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
-#include <OpenEXR/ImfVecAttribute.h>
 #include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfTimeCodeAttribute.h>
@@ -69,6 +68,7 @@
 #include <OpenEXR/ImfDeepScanLineInputPart.h>
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
+#include <OpenEXR/ImfDoubleAttribute.h>
 #endif
 
 #ifdef __GNUC__
@@ -553,7 +553,8 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::IntAttribute *iattr;
         const Imf::FloatAttribute *fattr;
         const Imf::StringAttribute *sattr;
-        const Imf::M44fAttribute *mattr;
+        const Imf::M33fAttribute *m33fattr;
+        const Imf::M44fAttribute *m44fattr;
         const Imf::V3fAttribute *v3fattr;
         const Imf::V3iAttribute *v3iattr;
         const Imf::V2fAttribute *v2fattr;
@@ -564,6 +565,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::KeyCodeAttribute *kcattr;
 #ifdef USE_OPENEXR_VERSION2
         const Imf::StringVectorAttribute *svattr;
+        const Imf::DoubleAttribute *dattr;
+        const Imf::V2dAttribute *v2dattr;
+        const Imf::V3dAttribute *v3dattr;
+        const Imf::M33dAttribute *m33dattr;
+        const Imf::M44dAttribute *m44dattr;
 #endif
         const char *name = hit.name();
         std::string oname = exr_tag_to_oiio_std[name];
@@ -573,18 +579,21 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
 //            oname = std::string(format_name()) + "_" + oname;
         const Imf::Attribute &attrib = hit.attribute();
         std::string type = attrib.typeName();
-        if (type == "string" && 
+        if (type == "string" &&
             (sattr = header->findTypedAttribute<Imf::StringAttribute> (name)))
             spec.attribute (oname, sattr->value().c_str());
-        else if (type == "int" && 
+        else if (type == "int" &&
             (iattr = header->findTypedAttribute<Imf::IntAttribute> (name)))
             spec.attribute (oname, iattr->value());
-        else if (type == "float" && 
+        else if (type == "float" &&
             (fattr = header->findTypedAttribute<Imf::FloatAttribute> (name)))
             spec.attribute (oname, fattr->value());
-        else if (type == "m44f" && 
-            (mattr = header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeMatrix, &(mattr->value()));
+        else if (type == "m33f" &&
+            (m33fattr = header->findTypedAttribute<Imf::M33fAttribute> (name)))
+            spec.attribute (oname, TypeDesc::TypeMatrix33, &(m33fattr->value()));
+        else if (type == "m44f" &&
+            (m44fattr = header->findTypedAttribute<Imf::M44fAttribute> (name)))
+            spec.attribute (oname, TypeDesc::TypeMatrix44, &(m44fattr->value()));
         else if (type == "v3f" &&
                  (v3fattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
             spec.attribute (oname, TypeDesc::TypeVector, &(v3fattr->value()));
@@ -612,6 +621,31 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
                 ustrvec[i] = strvec[i];
             TypeDesc sv (TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
+        }
+        else if (type == "double" &&
+            (dattr = header->findTypedAttribute<Imf::DoubleAttribute> (name))) {
+            TypeDesc d (TypeDesc::DOUBLE);
+            spec.attribute (oname, d, &(dattr->value()));
+        }
+        else if (type == "v2d" &&
+                 (v2dattr = header->findTypedAttribute<Imf::V2dAttribute> (name))) {
+            TypeDesc v2 (TypeDesc::DOUBLE,TypeDesc::VEC2);
+            spec.attribute (oname, v2, &(v2dattr->value()));
+        }
+        else if (type == "v3d" &&
+                 (v3dattr = header->findTypedAttribute<Imf::V3dAttribute> (name))) {
+            TypeDesc v3 (TypeDesc::DOUBLE,TypeDesc::VEC3, TypeDesc::VECTOR);
+            spec.attribute (oname, v3, &(v3dattr->value()));
+        }
+        else if (type == "m33d" &&
+            (m33dattr = header->findTypedAttribute<Imf::M33dAttribute> (name))) {
+            TypeDesc m33 (TypeDesc::DOUBLE, TypeDesc::MATRIX33);
+            spec.attribute (oname, m33, &(m33dattr->value()));
+        }
+        else if (type == "m44d" &&
+            (m44dattr = header->findTypedAttribute<Imf::M44dAttribute> (name))) {
+            TypeDesc m44 (TypeDesc::DOUBLE, TypeDesc::MATRIX44);
+            spec.attribute (oname, m44, &(m44dattr->value()));
         }
 #endif
         else if (type == "box2i" &&
