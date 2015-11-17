@@ -29,7 +29,6 @@
 */
 
 #include <string>
-#include <boost/scoped_ptr.hpp>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"

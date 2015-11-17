@@ -32,13 +32,13 @@
 #include <vector>
 #include <string>
 
-#include <boost/shared_ptr.hpp>
 #include <OpenEXR/half.h>
 
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/color.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/refcnt.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
@@ -719,7 +719,7 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 // Image Processing Implementations
 
 
-static boost::shared_ptr<ColorConfig> default_colorconfig;  // default color config
+static OIIO::shared_ptr<ColorConfig> default_colorconfig;  // default color config
 static spin_mutex colorconfig_mutex;
 
 

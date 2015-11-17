@@ -39,18 +39,105 @@
 #ifndef OPENIMAGEIO_REFCNT_H
 #define OPENIMAGEIO_REFCNT_H
 
-#include "thread.h"
-#include "oiioversion.h"
+#include <OpenImageIO/thread.h>
 
-// Use Boost for shared pointers
-#include <boost/shared_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
+#if OIIO_CPLUSPLUS_VERSION >= 11
+# include <memory>
+#else
+# include <boost/shared_ptr.hpp>
+#endif
+
 
 
 OIIO_NAMESPACE_BEGIN
 
+#if OIIO_CPLUSPLUS_VERSION < 11
 using boost::shared_ptr;
-using boost::intrusive_ptr;
+#else
+using std::shared_ptr;
+#endif
+
+
+
+/// A simple intrusive pointer, modeled after std::shared_ptr and
+/// boost::intrusive_ptr.
+template<class T>
+class intrusive_ptr
+{
+public:
+    typedef T element_type;
+
+    /// Default ctr
+    intrusive_ptr () OIIO_NOEXCEPT : m_ptr(NULL) { }
+
+    /// Construct from a raw pointer (presumed to be just now allocated,
+    /// and now owned by us).
+    intrusive_ptr (T *ptr) : m_ptr(ptr) {
+        if (m_ptr) intrusive_ptr_add_ref(m_ptr);
+    }
+
+    /// Construct from another intrusive_ptr.
+    intrusive_ptr (const intrusive_ptr &r) : m_ptr(r.get()) {
+        if (m_ptr) intrusive_ptr_add_ref (m_ptr);
+    }
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    /// Move construct from another intrusive_ptr.
+    intrusive_ptr (intrusive_ptr &&r) OIIO_NOEXCEPT : m_ptr(r.get()) {
+        r.m_ptr = NULL;
+    }
+#endif
+
+    /// Destructor
+    ~intrusive_ptr () { if (m_ptr) intrusive_ptr_release (m_ptr); }
+
+    /// Assign from intrusive_ptr
+    intrusive_ptr & operator= (const intrusive_ptr &r) {
+        intrusive_ptr(r).swap (*this);
+        return *this;
+    }
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    /// Move assignment from intrusive_ptr
+    intrusive_ptr & operator= (intrusive_ptr&& r) OIIO_NOEXCEPT {
+        intrusive_ptr (static_cast<intrusive_ptr&&>(r)).swap(*this);
+        return *this;
+    }
+#endif
+
+    /// Reset to null reference
+    void reset () OIIO_NOEXCEPT {
+        if (m_ptr) { intrusive_ptr_release (m_ptr); m_ptr = NULL; }
+    }
+
+    /// Reset to point to a pointer
+    void reset (T *r) {
+        if (m_ptr) intrusive_ptr_release (m_ptr);
+        m_ptr = r;
+        if (m_ptr) intrusive_ptr_add_ref (m_ptr);
+    }
+
+    /// Swap intrusive pointers
+    void swap (intrusive_ptr &r) OIIO_NOEXCEPT {
+        T *tmp = m_ptr; m_ptr = r.m_ptr; r.m_ptr = tmp;
+    }
+
+    /// Dereference
+    T& operator*() const { DASSERT (m_ptr); return *m_ptr; }
+
+    /// Dereference
+    T* operator->() const { DASSERT (m_ptr); return m_ptr; }
+
+    /// Get raw pointer
+    T* get() const OIIO_NOEXCEPT { return m_ptr; }
+
+    /// Cast to bool to detect whether it points to anything
+    operator bool () const OIIO_NOEXCEPT { return m_ptr != NULL; }
+
+private:
+    T* m_ptr;   // the raw pointer
+};
+
 
 
 /// Mix-in class that adds a reference count, implemented as an atomic
@@ -90,7 +177,7 @@ private:
 
 
 /// Implementation of intrusive_ptr_add_ref, which is needed for
-/// any class that you use with Boost's intrusive_ptr.
+/// any class that you use with intrusive_ptr.
 template <class T>
 inline void intrusive_ptr_add_ref (T *x)
 {
@@ -98,7 +185,7 @@ inline void intrusive_ptr_add_ref (T *x)
 }
 
 /// Implementation of intrusive_ptr_release, which is needed for
-/// any class that you use with Boost's intrusive_ptr.
+/// any class that you use with intrusive_ptr.
 template <class T>
 inline void intrusive_ptr_release (T *x)
 {

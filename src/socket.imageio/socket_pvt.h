@@ -38,6 +38,7 @@
 #define OPENIMAGEIO_SOCKET_PVT_H
 
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/refcnt.h"
 
 #include <map>
 
@@ -50,7 +51,6 @@
 #endif
 
 #include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -104,7 +104,7 @@ class SocketInput : public ImageInput {
     int m_next_scanline;      // Which scanline is the next to read?
     io_service io;
     ip::tcp::socket socket;
-    boost::shared_ptr <ip::tcp::acceptor> acceptor;
+    OIIO::shared_ptr <ip::tcp::acceptor> acceptor;
     
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);

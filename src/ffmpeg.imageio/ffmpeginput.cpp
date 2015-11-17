@@ -41,7 +41,6 @@ extern "C" { // ffmpeg is a C api
 #define av_frame_free   avcodec_free_frame
 #endif
 
-#include <boost/shared_ptr.hpp>
 #include <boost/thread/once.hpp>
 
 #include "OpenImageIO/imageio.h"
