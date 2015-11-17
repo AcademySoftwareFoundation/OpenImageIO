@@ -99,6 +99,7 @@ void declare_typedesc() {
         .value("VEC2",      TypeDesc::VEC2)
         .value("VEC3",      TypeDesc::VEC3)
         .value("VEC4",      TypeDesc::VEC4)
+        .value("MATRIX33",  TypeDesc::MATRIX33)
         .value("MATRIX44",  TypeDesc::MATRIX44)
         .export_values()
     ;
@@ -168,6 +169,8 @@ void declare_typedesc() {
         .def_readonly("TypeVector",   &TypeDesc::TypeVector)
         .def_readonly("TypeNormal",   &TypeDesc::TypeNormal)
         .def_readonly("TypeMatrix",   &TypeDesc::TypeMatrix)
+        .def_readonly("TypeMatrix33", &TypeDesc::TypeMatrix33)
+        .def_readonly("TypeMatrix44", &TypeDesc::TypeMatrix44)
         .def_readonly("TypeTimeCode", &TypeDesc::TypeTimeCode)
         .def_readonly("TypeKeyCode",  &TypeDesc::TypeKeyCode)
         .def_readonly("TypeFloat4",   &TypeDesc::TypeFloat4)

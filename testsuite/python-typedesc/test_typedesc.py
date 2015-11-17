@@ -43,6 +43,7 @@ def aggregate_enum_test():
         oiio.VEC2
         oiio.VEC3
         oiio.VEC4
+        oiio.MATRIX33
         oiio.MATRIX44
         oiio.TIMECODE
         oiio.KEYCODE
@@ -135,6 +136,8 @@ try:
     breakdown_test (oiio.TypeDesc.TypeVector,   "TypeVector",   verbose=False)
     breakdown_test (oiio.TypeDesc.TypeNormal,   "TypeNormal",   verbose=False)
     breakdown_test (oiio.TypeDesc.TypeMatrix,   "TypeMatrix",   verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeMatrix33, "TypeMatrix33", verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeMatrix44, "TypeMatrix44", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeTimeCode, "TypeTimeCode", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeKeyCode,  "TypeKeyCode",  verbose=False)
     breakdown_test (oiio.TypeDesc.TypeFloat4,   "TypeFloat4",   verbose=False)
