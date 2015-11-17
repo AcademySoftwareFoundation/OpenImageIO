@@ -75,6 +75,7 @@
 #include <OpenEXR/ImfTiledOutputPart.h>
 #include <OpenEXR/ImfDeepScanLineOutputPart.h>
 #include <OpenEXR/ImfDeepTiledOutputPart.h>
+#include <OpenEXR/ImfDoubleAttribute.h>
 #endif
 
 #include "OpenImageIO/dassert.h"
@@ -1000,6 +1001,12 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 header.insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
                 return true;
             }
+#ifdef USE_OPENEXR_VERSION2
+            if (type == TypeDesc::DOUBLE) {
+                header.insert (xname.c_str(), Imf::DoubleAttribute (*(double*)data));
+                return true;
+            }
+#endif
         }
         // Single instance of aggregate type
         if (type.aggregate == TypeDesc::VEC2) {
@@ -1045,6 +1052,18 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     v.push_back(((const char **)data)[1]);
                     v.push_back(((const char **)data)[2]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
+                    return true;
+#endif
+            }
+        }
+        if (type.aggregate == TypeDesc::MATRIX33) {
+            switch (type.basetype) {
+                case TypeDesc::FLOAT:
+                    header.insert (xname.c_str(), Imf::M33fAttribute (*(Imath::M33f*)data));
+                    return true;
+#ifdef USE_OPENEXR_VERSION2
+                case TypeDesc::DOUBLE:
+                    header.insert (xname.c_str(), Imf::M33dAttribute (*(Imath::M33d*)data));
                     return true;
 #endif
             }
@@ -1132,6 +1151,18 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
             }
         }
         // Matrix
+        if (type.arraylen == 9 && type.aggregate == TypeDesc::SCALAR) {
+            switch (type.basetype) {
+                case TypeDesc::FLOAT:
+                    header.insert (xname.c_str(), Imf::M33fAttribute (*(Imath::M33f*)data));
+                    return true;
+#ifdef USE_OPENEXR_VERSION2
+                case TypeDesc::DOUBLE:
+                    header.insert (xname.c_str(), Imf::M33dAttribute (*(Imath::M33d*)data));
+                    return true;
+#endif
+            }
+        }
         if (type.arraylen == 16 && type.aggregate == TypeDesc::SCALAR) {
             switch (type.basetype) {
                 case TypeDesc::FLOAT:
