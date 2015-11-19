@@ -32,9 +32,6 @@
 /// ImageBufAlgo functions for filtered transformations
 
 
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathMatrix.h>
 #include <OpenEXR/ImathBox.h>
@@ -47,6 +44,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
+#include "OpenImageIO/refcnt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -190,8 +188,8 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(resize_<DSTTYPE,SRCTYPE>, boost::ref(dst),
-                        boost::cref(src), filter,
+            OIIO::bind(resize_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), filter,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -384,7 +382,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    boost::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    OIIO::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
         // If no filter was provided, punt and just linearly interpolate.
@@ -425,7 +423,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    OIIO::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
     std::string filtername = filtername_;
     if (filtername.empty()) {
         // No filter name supplied -- pick a good default
@@ -466,8 +464,8 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            boost::bind(resample_<DSTTYPE,SRCTYPE>, boost::ref(dst),
-                        boost::cref(src), interpolate,
+            OIIO::bind(resample_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
+                        OIIO::cref(src), interpolate,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -553,8 +551,8 @@ affine_resample_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &Minv,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(affine_resample_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src), Minv,
+            OIIO::bind(affine_resample_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src), Minv,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -585,8 +583,8 @@ warp_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &M,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(warp_<DSTTYPE,SRCTYPE>,
-                        boost::ref(dst), boost::cref(src), M,
+            OIIO::bind(warp_<DSTTYPE,SRCTYPE>,
+                        OIIO::ref(dst), OIIO::cref(src), M,
                         filter, wrap, _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -638,7 +636,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    boost::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    OIIO::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
     if (filter == NULL) {
         // If no filter was provided, punt and just linearly interpolate.
         filterptr.reset (Filter2D::create ("lanczos3", 6.0f, 6.0f));
@@ -663,7 +661,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
 {
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    boost::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    OIIO::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
     std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
     for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
         FilterDesc fd;

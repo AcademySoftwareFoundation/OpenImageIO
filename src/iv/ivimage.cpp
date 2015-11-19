@@ -32,7 +32,6 @@
 #include <iostream>
 
 #include <boost/foreach.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <OpenEXR/half.h>
 
 #include "imageviewer.h"

@@ -39,6 +39,8 @@
 #ifndef OPENIMAGEIO_THREAD_H
 #define OPENIMAGEIO_THREAD_H
 
+#include <vector>
+
 #include "oiioversion.h"
 #include "platform.h"
 
@@ -53,22 +55,27 @@
 #   define NOMINMAX
 # endif
 #endif
- 
-#include <boost/version.hpp>
-#if defined(__GNUC__) && (BOOST_VERSION == 104500)
-// gcc reports errors inside some of the boost headers with boost 1.45
-// See: https://svn.boost.org/trac/boost/ticket/4818
-#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+# include <thread>
+# include <mutex>
+# include <atomic>
+# define not_yet_OIIO_USE_STDATOMIC 1
+#else   /* prior to C++11... */
+  // Use Boost mutexes & guards when C++11 is not available
+# include <boost/version.hpp>
+# if defined(__GNUC__) && (BOOST_VERSION == 104500)
+   // gcc reports errors inside some of the boost headers with boost 1.45
+   // See: https://svn.boost.org/trac/boost/ticket/4818
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+# endif
+# include <boost/thread.hpp>
+# if defined(__GNUC__) && (BOOST_VERSION == 104500)
+   // can't restore via push/pop in all versions of gcc (warning push/pop implemented for 4.6+ only)
+#  pragma GCC diagnostic error "-Wunused-variable"
+# endif
 #endif
 
-#include <boost/thread.hpp>
-#include <boost/thread/tss.hpp>
-#include <boost/version.hpp>
-
-#if defined(__GNUC__) && (BOOST_VERSION == 104500)
-// can't restore via push/pop in all versions of gcc (warning push/pop implemented for 4.6+ only)
-#pragma GCC diagnostic error "-Wunused-variable"
-#endif
 
 #if defined(_MSC_VER)
 #  include <windows.h>
@@ -101,11 +108,6 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
     return Old;
 }
 #  endif
-#endif
-
-#if OIIO_CPLUSPLUS_VERSION >= 11
-#  include <atomic>
-#  define not_yet_OIIO_USE_STDATOMIC 1
 #endif
 
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
@@ -163,66 +165,24 @@ public:
 };
 
 
-// Null thread-specific ptr that just wraps a single ordinary pointer
-//
-template<typename T>
-class null_thread_specific_ptr {
-public:
-    typedef void (*destructor_t)(T *);
-    null_thread_specific_ptr (destructor_t dest=NULL)
-        : m_ptr(NULL), m_dest(dest) { }
-    ~null_thread_specific_ptr () { reset (NULL); }
-    T * get () { return m_ptr; }
-    void reset (T *newptr=NULL) {
-        if (m_ptr) {
-            if (m_dest)
-                (*m_dest) (m_ptr);
-            else
-                delete m_ptr;
-        }
-        m_ptr = newptr;
-    }
-private:
-    T *m_ptr;
-    destructor_t m_dest;
-};
-
 
 #ifdef NOTHREADS
 
 // Definitions that we use for debugging to turn off all mutexes, locks,
 // and atomics in order to test the performance hit of our thread safety.
 
-// Null thread-specific ptr that just wraps a single ordinary pointer
-//
-template<typename T>
-class thread_specific_ptr {
-public:
-    typedef void (*destructor_t)(T *);
-    thread_specific_ptr (destructor_t dest=NULL)
-        : m_ptr(NULL), m_dest(dest) { }
-    ~thread_specific_ptr () { reset (NULL); }
-    T * get () { return m_ptr; }
-    void reset (T *newptr=NULL) {
-        if (m_ptr) {
-            if (m_dest)
-                (*m_dest) (m_ptr);
-            else
-                delete m_ptr;
-        }
-        m_ptr = newptr;
-    }
-private:
-    T *m_ptr;
-    destructor_t m_dest;
-};
-
-
 typedef null_mutex mutex;
 typedef null_mutex recursive_mutex;
 typedef null_lock<mutex> lock_guard;
 typedef null_lock<recursive_mutex> recursive_lock_guard;
 
+#elif OIIO_CPLUSPLUS_VERSION >= 11
+
+typedef std::mutex mutex;
+typedef std::recursive_mutex recursive_mutex;
+typedef std::lock_guard< mutex > lock_guard;
+typedef std::lock_guard< recursive_mutex > recursive_lock_guard;
+typedef std::thread thread;
 
 #else
 
@@ -230,9 +190,9 @@ typedef null_lock<recursive_mutex> recursive_lock_guard;
 
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
-typedef boost::lock_guard< boost::mutex > lock_guard;
-typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
-using boost::thread_specific_ptr;
+typedef boost::lock_guard< mutex > lock_guard;
+typedef boost::lock_guard< recursive_mutex > recursive_lock_guard;
+typedef boost::thread thread;
 
 #endif
 
@@ -882,6 +842,46 @@ private:
 
 typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
 typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
+
+
+
+/// Simple thread group class. This is just as good as boost::thread_group,
+/// for the limited functionality that we use.
+class thread_group {
+public:
+    thread_group () {}
+    ~thread_group () {
+        for (size_t i = 0, e = m_threads.size(); i < e; ++i)
+            delete m_threads[i];
+    }
+    void add_thread (thread *t) {
+        if (t) {
+            lock_guard lock (m_mutex);
+            m_threads.push_back (t);
+        }
+    }
+    template<typename FUNC>
+    thread *create_thread (FUNC func) {
+        lock_guard lock (m_mutex);
+        thread *t = new thread (func);
+        m_threads.push_back (t);
+        return t;
+    }
+    void join_all () {
+        lock_guard lock (m_mutex);
+        for (size_t i = 0, e = m_threads.size(); i < e; ++i) {
+            if (m_threads[i]->joinable())
+                m_threads[i]->join();
+        }
+    }
+    size_t size () {
+        lock_guard lock (m_mutex);
+        return m_threads.size();
+    }
+private:
+    mutex m_mutex;
+    std::vector<thread *> m_threads;
+};
 
 
 OIIO_NAMESPACE_END

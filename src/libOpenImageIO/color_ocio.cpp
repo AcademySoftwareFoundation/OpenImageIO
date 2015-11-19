@@ -38,6 +38,7 @@
 #include "OpenImageIO/color.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/refcnt.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
@@ -718,7 +719,7 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 // Image Processing Implementations
 
 
-static boost::shared_ptr<ColorConfig> default_colorconfig;  // default color config
+static OIIO::shared_ptr<ColorConfig> default_colorconfig;  // default color config
 static spin_mutex colorconfig_mutex;
 
 
@@ -783,8 +784,8 @@ colorconvert_impl (ImageBuf &R, const ImageBuf &A,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(colorconvert_impl<Rtype,Atype>,
-                        boost::ref(R), boost::cref(A), processor, unpremult,
+            OIIO::bind(colorconvert_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A), processor, unpremult,
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;

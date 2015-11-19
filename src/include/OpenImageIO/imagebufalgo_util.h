@@ -32,12 +32,31 @@
 #ifndef OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
 #define OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
 
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/thread.h>
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+# include <functional>
+#else
+# include <boost/bind.hpp>
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
 
+#if OIIO_CPLUSPLUS_VERSION >= 11
+using std::bind;
+using std::ref;
+using std::cref;
+using namespace std::placeholders;
+using std::placeholders::_1;
+#else
+using boost::bind;
+using boost::ref;
+using boost::cref;
+using boost::this_thread::get_id;
+#endif
 
 
 
@@ -52,15 +71,15 @@ namespace ImageBufAlgo {
 /// Most image operations will require additional arguments, including
 /// additional input and output images or other parameters.  The
 /// parallel_image template can still be used by employing the
-/// boost::bind (or std::bind, for C++11).  For example, suppose you
+/// std::bind (or boost::bind, for C++ < 11).  For example, suppose you
 /// have an image operation defined as:
 ///     void my_image_op (ImageBuf &out, const ImageBuf &in,
 ///                       float scale, ROI roi);
 /// Then you can parallelize it as follows:
 ///     ImageBuf R /*result*/, A /*input*/;
 ///     ROI roi = get_roi (R.spec());
-///     parallel_image (boost::bind(my_image_op,boost::ref(R),
-///                                 boost::cref(A),3.14,_1), roi);
+///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1),
+///                     roi);
 ///
 template <class Func>
 void
@@ -75,7 +94,7 @@ parallel_image (Func f, ROI roi, int nthreads=0)
         f (roi);
     } else {
         // Spawn threads by dividing the region into y bands.
-        boost::thread_group threads;
+        OIIO::thread_group threads;
         int blocksize = std::max (1, (roi.height() + nthreads - 1) / nthreads);
         int roi_ybegin = roi.ybegin;
         int roi_yend = roi.yend;
@@ -84,7 +103,7 @@ parallel_image (Func f, ROI roi, int nthreads=0)
             roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
             if (roi.ybegin >= roi.yend)
                 break;   // no more work to dole out
-            threads.add_thread (new boost::thread (f, roi));
+            threads.add_thread (new OIIO::thread (f, roi));
         }
         threads.join_all ();
     }

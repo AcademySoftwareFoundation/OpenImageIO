@@ -41,6 +41,8 @@
 
 #include "OpenImageIO/unittest.h"
 
+#include <boost/thread.hpp>
+  
 
 OIIO_NAMESPACE_USING;
 

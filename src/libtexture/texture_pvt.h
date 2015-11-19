@@ -129,7 +129,7 @@ public:
 
     virtual TextureHandle *get_texture_handle (ustring filename,
                                                Perthread *thread) {
-        PerThreadInfo *thread_info = thread ? (PerThreadInfo *)thread
+        PerThreadInfo *thread_info = thread ? ((PerThreadInfo *)thread)
                                        : m_imagecache->get_perthread_info ();
         return (TextureHandle *) find_texturefile (filename, thread_info);
     }

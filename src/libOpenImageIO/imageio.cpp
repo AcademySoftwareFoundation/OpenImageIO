@@ -35,6 +35,8 @@
 #include <OpenEXR/ImathFun.h>
 
 #include <boost/scoped_array.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/tss.hpp>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
@@ -86,7 +88,7 @@ openimageio_version ()
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static thread_specific_ptr<std::string> thread_error_msg;
+static boost::thread_specific_ptr<std::string> thread_error_msg;
 
 // Return a reference to the string for this thread's error messages,
 // creating it if none exists for this thread thus far.
@@ -109,7 +111,6 @@ error_msg ()
 void
 pvt::seterror (const std::string& message)
 {
-    recursive_lock_guard lock (pvt::imageio_mutex);
     error_msg() = message;
 }
 
@@ -118,7 +119,6 @@ pvt::seterror (const std::string& message)
 std::string
 geterror ()
 {
-    recursive_lock_guard lock (pvt::imageio_mutex);
     std::string e = error_msg();
     error_msg().clear ();
     return e;

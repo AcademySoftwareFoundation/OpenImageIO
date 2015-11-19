@@ -29,7 +29,6 @@
 */
 
 
-#include <boost/bind.hpp>
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -87,7 +86,7 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            boost::bind(flatten_<DSTTYPE>, boost::ref(dst), boost::cref(src),
+            OIIO::bind(flatten_<DSTTYPE>, OIIO::ref(dst), OIIO::cref(src),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
