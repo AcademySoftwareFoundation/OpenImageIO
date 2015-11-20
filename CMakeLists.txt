@@ -475,29 +475,38 @@ if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
           DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
-# List all the individual testsuite tests here:
-oiio_add_tests (gpsread misnamed-file nonwhole-tiles
+# Basic tests that apply even to continuous integration tests:
+oiio_add_tests (
+                gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
-                oiiotool-pattern oiiotool-readerror oiiotool-text
-                perchannel dither
-                dpx ico iff png psd rla sgi
+                oiiotool-pattern oiiotool-readerror
+                dither
+                dpx ico iff png rla sgi
                 python-typedesc python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
                 maketx
                 texture-blurtube texture-crop texture-cropover
                 texture-derivs texture-fill texture-filtersize
-                texture-interp-bicubic
-                texture-interp-bilinear
+                texture-interp-bicubic texture-interp-bilinear
                 texture-interp-closest
                 texture-gray texture-uint8 texture-uint16 texture-half
                 texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat texture-wrapfill
+              )
+
+
+
+# Advanced tests that are done by hand and for releases:
+if (NOT DEFINED ENV{TRAVIS})
+oiio_add_tests (
+                oiiotool-text
+                psd
                 texture-icwrite
                )
-
+endif ()
 
 # List testsuites which need special external reference images from the web
 # here:
@@ -505,13 +514,11 @@ oiio_add_tests (bmp
     IMAGEDIR bmpsuite
     URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
 
-oiio_add_tests (tiff-suite tiff-depths
+oiio_add_tests (tiff-suite tiff-depths tiff-misc
     IMAGEDIR libtiffpic
     URL http://www.remotesensing.org/libtiff/images.html)
 
-oiio_add_tests (tiff-misc)
-
-oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
+oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2 perchannel
     IMAGEDIR openexr-images
     URL http://www.openexr.com/downloads.html)
 
@@ -542,11 +549,17 @@ oiio_add_tests (webp
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
 
+oiio_add_tests (ptex
+    FOUNDVAR USE_PTEX)
+
+
+if (NOT DEFINED ENV{TRAVIS})
+
 oiio_add_tests (field3d texture-field3d
     FOUNDVAR FIELD3D_FOUND)
 
-oiio_add_tests (ptex
-    FOUNDVAR USE_PTEX)
+endif ()
+
 
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi

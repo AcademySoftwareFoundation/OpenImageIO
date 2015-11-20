@@ -348,7 +348,7 @@ dist : cmakeinstall
 # 'make test' does a full build and then runs all tests
 test: cmake
 	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
-	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} -E broken )
+	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest --force-new-ctest-process ${TEST_FLAGS} )
 
 # 'make testall' does a full build and then runs all tests (even the ones
 # that are expected to fail on some platforms)

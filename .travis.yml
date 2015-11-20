@@ -1,0 +1,43 @@
+language: cpp
+sudo: false
+compiler: clang
+#    - clang
+#    - gcc
+
+os: osx
+#    - linux
+#    - osx
+
+cache:
+    ccache: true
+    directories:
+    - $HOME/.ccache
+    - $HOME/lgritz/oiio-images
+    - $HOME/lgritz/libtiffpic
+
+before_install:
+    - src/travis/before_install.bash
+
+install:
+    - src/travis/install.bash
+
+# before_script:
+
+script: make VERBOSE=1 cmakesetup && make -j 2 && make test
+
+# after_success:
+
+# after_failure:
+# FIXME: find failed logs, stash them or send them to lg?
+
+#branches:
+#  only:
+#    - master
+#    - /^v\d+\./
+
+notifications:
+    email:
+        recipients:
+            - lg@openimageio.org
+        on_success: change
+        on_failure: always

@@ -1,6 +1,9 @@
 README for OpenImageIO
 ======================
 
+Build Status:
+.. image:: https://travis-ci.org/OpenImageIO/oiio.svg?branch=master
+    :target: https://travis-ci.org/OpenImageIO/oiio
 
 Introduction
 ------------
@@ -122,3 +125,4 @@ Documentation
 The primary user and programmer documentation can be found in
 src/doc/openimageio.pdf (in a source distribution) or in the
 doc/openimageio.pdf file of an installed binary distribution.
+
