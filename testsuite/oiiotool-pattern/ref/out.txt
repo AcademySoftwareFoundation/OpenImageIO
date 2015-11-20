@@ -1,3 +1,14 @@
+black.tif            :  320 x  240, 3 channel, uint8 tiff
+    Stats Min: 0 0 0 (of 255)
+    Stats Max: 0 0 0 (of 255)
+    Stats Avg: 0.00 0.00 0.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 76800 76800 76800 
+    Constant: Yes
+    Constant Color: 0.00 0.00 0.00 (of 255)
+    Monochrome: Yes
 constant.tif         :  320 x  240, 4 channel, float tiff
     Stats Min: 0.100000 0.200000 0.300000 1.000000 (float)
     Stats Max: 0.100000 0.200000 0.300000 1.000000 (float)
@@ -22,4 +33,12 @@ PASS
 Comparing "noise-gauss.tif" and "ref/noise-gauss.tif"
 PASS
 Comparing "noise-salt.tif" and "ref/noise-salt.tif"
+PASS
+Comparing "filled.tif" and "ref/filled.tif"
+PASS
+Comparing "fillh.tif" and "ref/fillh.tif"
+PASS
+Comparing "fillv.tif" and "ref/fillv.tif"
+PASS
+Comparing "fill4.tif" and "ref/fill4.tif"
 PASS

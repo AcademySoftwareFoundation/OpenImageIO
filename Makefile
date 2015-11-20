@@ -350,13 +350,6 @@ test: cmake
 	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest --force-new-ctest-process ${TEST_FLAGS} )
 
-# 'make testall' does a full build and then runs all tests (even the ones
-# that are expected to fail on some platforms)
-testall: cmake
-	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
-	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} )
-
-#clean: testclean
 # 'make clean' clears out the build directory for this platform
 clean:
 	${CMAKE} -E remove_directory ${build_dir}
@@ -390,7 +383,6 @@ help:
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
 	@echo "  make test         Run tests"
-	@echo "  make testall      Run all tests, even broken ones"
 	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
@@ -409,7 +401,7 @@ help:
 	@echo "      SOVERSION=nn             Include the specifed major version number "
 	@echo "                                  in the shared object metadata"
 	@echo "      BUILDSTATIC=1            Build static library instead of shared"
-	@echo "      LINKSTATIC=1             Link with static external libraries when possible"
+	@echo "      LINKSTATIC=1             Link with static external libs when possible"
 	@echo "  Finding and Using Dependencies:"
 	@echo "      BOOST_HOME=path          Custom Boost installation"
 	@echo "      ILMBASE_HOME=path        Custom Ilmbase installation"
@@ -446,6 +438,9 @@ help:
 	@echo "      OIIO_BUILD_TESTS=0       Skip building the unit tests"
 	@echo "      BUILD_OIIOUTIL_ONLY=1    Build *only* libOpenImageIO_Util"
 	@echo "      USE_SIMD=arch            Build with SIMD support (choices: 0, sse2, sse3,"
-	@echo "                                    ssse3, sse4.1, sse4.2, f16c, comma-separated ok)"
+	@echo "                                  ssse3, sse4.1, sse4.2, f16c,"
+	@echo "                                  comma-separated ok)"
+	@echo "  make test, extra options:"
+	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""
 

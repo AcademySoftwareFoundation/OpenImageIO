@@ -1,21 +1,11 @@
 #!/usr/bin/env python 
 
-
-# test --create
+# Create some test images we need
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
-command += oiiotool ("--stats black.tif")
-
-# test --pattern constant
-command += oiiotool ("--pattern constant:color=.1,.2,.3,1 320x240 4 -o constant.tif")
-command += oiiotool ("--stats constant.tif")
 command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")
 command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 -d half -o grey64.exr")
-
-# test --fill
 command += oiiotool ("--create 256x256 3 --fill:color=1,.5,.5 256x256 --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif")
-command += oiiotool ("--create 64x64 3 --fill:top=0.1,0.1,0.1:bottom=0,0,0.5 64x64 -d uint8 -o fillv.tif")
-command += oiiotool ("--create 64x64 3 --fill:left=0.1,0.1,0.1:right=0,0.5,0 64x64 -d uint8 -o fillh.tif")
-command += oiiotool ("--create 64x64 3 --fill:topleft=0.1,0.1,0.1:topright=0,0.5,0:bottomleft=0.5,0,0:bottomright=0,0,0.5 64x64 -d uint8 -o fill4.tif")
+
 
 # test --autotrim
 command += oiiotool ("black.tif --fill:color=0,1,0 80x80+100+100 --autotrim -d uint8 -o autotrim.tif")
@@ -285,7 +275,7 @@ command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png
 
 # Outputs to check against references
 outputs = [ 
-            "filled.tif", "fillh.tif", "fillv.tif", "fill4.tif",
+            "filled.tif",
             "autotrim.tif",
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
