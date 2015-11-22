@@ -144,6 +144,9 @@ if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG))
         add_definitions ("-Wno-error=unused-local-typedefs")
         add_definitions ("-Wno-unused-local-typedefs")
     endif ()
+    if (NOT ${GCC_VERSION} VERSION_LESS 4.5)
+        add_definitions ("-Wno-unused-result")
+    endif ()
 endif ()
 
 # Try to detect if this is an OSX distro new enough that the system library
@@ -483,18 +486,10 @@ oiio_add_tests (
                 dither
                 dpx ico iff png rla sgi
                 python-typedesc python-imagespec python-roi python-deep
-                python-imageinput python-imageoutput
-                python-imagebuf python-imagebufalgo
-                maketx
-                texture-blurtube texture-crop texture-cropover
+                python-imagebufalgo
                 texture-derivs texture-fill texture-filtersize
-                texture-interp-bicubic texture-interp-bilinear
-                texture-interp-closest
-                texture-gray texture-uint8 texture-uint16 texture-half
-                texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
-                texture-missing texture-overscan
-                texture-pointsample texture-width0blur texture-res
-                texture-skinny texture-fat texture-wrapfill
+                texture-gray texture-res
+                maketx
               )
 
 
@@ -504,6 +499,16 @@ if (NOT DEFINED ENV{TRAVIS})
 oiio_add_tests (
                 oiiotool-text
                 psd
+                python-imageinput python-imageoutput
+                python-imagebuf
+                texture-blurtube texture-crop texture-cropover
+                texture-interp-bicubic texture-interp-bilinear
+                texture-interp-closest
+                texture-uint8 texture-uint16 texture-half
+                texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
+                texture-missing texture-overscan
+                texture-pointsample texture-width0blur
+                texture-skinny texture-fat texture-wrapfill
                 texture-icwrite
                )
 endif ()

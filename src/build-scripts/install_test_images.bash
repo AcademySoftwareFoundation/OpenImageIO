@@ -9,6 +9,6 @@ if [ ! -e ../libtiffpic ] ; then
     tar xf pics-3.8.0.tar.gz -C ..
 fi
 
-#echo "listing .."
-#ls ..
-
+if [ ! -e ../openexr-images ] ; then
+    git clone https://github.com/openexr/openexr-images.git ../openexr-images
+fi
