@@ -2,8 +2,8 @@ README for OpenImageIO
 ======================
 
 Build Status:
-.. image:: https://travis-ci.org/OpenImageIO/oiio.svg?branch=master
-    :target: https://travis-ci.org/OpenImageIO/oiio
+.. image:: https://travis-ci.org/lgritz/oiio.svg?branch=master
+    :target: https://travis-ci.org/lgritz/oiio
 
 Introduction
 ------------
