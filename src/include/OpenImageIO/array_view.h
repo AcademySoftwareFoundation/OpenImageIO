@@ -93,7 +93,7 @@ public:
     // using const_iterator  = bounds_iterator<Rank>;
     static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
     using offset_type     = offset<Rank>;
-    using bounds_type     = bounds<Rank>;
+    using bounds_type     = OIIO::bounds<Rank>;
     using stride_type     = offset<Rank>;
     using size_type       = size_t;
     using value_type      = T;
@@ -157,7 +157,7 @@ public:
     OIIO_CONSTEXPR bounds_type bounds() const OIIO_NOEXCEPT {
         return m_bounds;
     }
-    OIIO_CONSTEXPR size_type size() const OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 size_type size() const OIIO_NOEXCEPT {
         return m_bounds.size();
     }
     OIIO_CONSTEXPR14 offset_type stride() const OIIO_NOEXCEPT {
@@ -214,7 +214,7 @@ public:
 #if OIIO_CPLUSPLUS_VERSION >= 11
     static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
     using offset_type     = offset<Rank>;
-    using bounds_type     = bounds<Rank>;
+    using bounds_type     = OIIO::bounds<Rank>;
     using stride_type     = offset<Rank>;
     using size_type       = size_t;
     using value_type      = T;
