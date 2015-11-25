@@ -10,10 +10,15 @@ os:
 dist: trusty
 
 # Do a default build (C++03, sse2), an sse4.2 build, and a C++11 build.
+# Also try with both gcc 4.8 and 4.9 (on Linux; on OSX these will be
+# excluded).
 env:
-  - BUILD_FLAGS=""
-  - BUILD_FLAGS="USE_SIMD=sse4.2"
-  - BUILD_FLAGS="USE_CPP11=1"
+    matrix:
+      - WHICHGCC=4.8 BUILD_FLAGS=""
+      - WHICHGCC=4.8 BUILD_FLAGS="USE_SIMD=sse4.2"
+      - WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=1"
+      - WHICHGCC=4.9 BUILD_FLAGS=""
+      - WHICHGCC=4.9 BUILD_FLAGS="USE_CPP11=1"
 
 # Add-ons: specify apt packages for Linux
 addons:
@@ -24,9 +29,9 @@ addons:
    packages:
       - gcc-4.8
       - g++-4.8
+      - gcc-4.9
+      - g++-4.9
       - libboost1.55-all-dev
-      - libilmbase-dev
-      - libopenexr-dev
       - libgif-dev
       - libtiff4-dev
       - libopenjpeg-dev
@@ -46,10 +51,10 @@ before_install:
     - if [ $TRAVIS_OS_NAME == linux ] ; then cat /proc/cpuinfo ; fi
 
 install:
-    - if [ "$CXX" == "g++" ]; then export CXX="g++-4.8" ; fi
+    - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
     - if [ $TRAVIS_OS_NAME == osx ] ; then src/build-scripts/install_homebrew_deps.bash ; fi
-    - if [ $TRAVIS_OS_NAME == linux ] ; then src/build-scripts/travis_build_openexr.bash ; fi
-    - if [ $TRAVIS_OS_NAME == linux ] ; then export ILMBASE_HOME=${HOME}/openexr-install ; export OPENEXR_HOME=${HOME}/openexr-install ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then src/build-scripts/build_openexr.bash ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then export ILMBASE_HOME=${PWD}/openexr-install ; export OPENEXR_HOME=${PWD}/openexr-install ; fi
     - src/build-scripts/install_test_images.bash
 
 # before_script:
@@ -81,6 +86,15 @@ matrix:
         compiler: gcc
       - os: linux
         compiler: clang
+      - os: osx
+        compiler: clang
+        env: WHICHGCC=4.9
+      - os: osx
+        compiler: clang
+        env: WHICHGCC=4.9 BUILD_FLAGS=""
+      - os: osx
+        compiler: clang
+        env: WHICHGCC=4.9 BUILD_FLAGS="USE_CPP11=1"
 
 notifications:
     email:
