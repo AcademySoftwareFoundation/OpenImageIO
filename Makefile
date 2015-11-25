@@ -348,6 +348,12 @@ dist : cmakeinstall
 # 'make test' does a full build and then runs all tests
 test: cmake
 	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
+	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest --force-new-ctest-process ${TEST_FLAGS} -E broken )
+
+# 'make testall' does a full build and then runs all tests (even the ones
+# that are expected to fail on some platforms)
+testall: cmake
+	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
 	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest --force-new-ctest-process ${TEST_FLAGS} )
 
 # 'make clean' clears out the build directory for this platform
@@ -383,6 +389,7 @@ help:
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
 	@echo "  make test         Run tests"
+	@echo "  make testall      Run all tets, even broken ones"
 	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
