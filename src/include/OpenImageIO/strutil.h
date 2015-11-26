@@ -206,6 +206,8 @@ std::string OIIO_API join (const std::vector<string_view> &seq,
 std::string OIIO_API join (const std::vector<std::string> &seq,
                            string_view sep = string_view());
 
+/// Repeat a string formed by concatenating str n times.
+std::string OIIO_API repeat (string_view str, int n);
 
 
 // Helper template to test if a string is a generic type

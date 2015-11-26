@@ -490,6 +490,17 @@ Strutil::join (const std::vector<std::string> &seq, string_view str)
 
 
 
+std::string
+Strutil::repeat (string_view str, int n)
+{
+    std::ostringstream out;
+    while (n-- > 0)
+        out << str;
+    return out.str();
+}
+
+
+
 #ifdef _WIN32
 std::wstring
 Strutil::utf8_to_utf16 (string_view str)

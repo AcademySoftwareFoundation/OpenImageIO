@@ -286,6 +286,17 @@ void test_join ()
 
 
 
+void test_repeat ()
+{
+    std::cout << "Testing repeat\n";
+    OIIO_CHECK_EQUAL (Strutil::repeat("foo",3), "foofoofoo");
+    OIIO_CHECK_EQUAL (Strutil::repeat("foo",1), "foo");
+    OIIO_CHECK_EQUAL (Strutil::repeat("foo",0), "");
+    OIIO_CHECK_EQUAL (Strutil::repeat("foo",-1), "");
+}
+
+
+
 void test_conversion ()
 {
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("hi"), 0);
@@ -555,6 +566,7 @@ main (int argc, char *argv[])
     test_strip ();
     test_split ();
     test_join ();
+    test_repeat ();
     test_conversion ();
     test_extract ();
     test_safe_strcpy ();
