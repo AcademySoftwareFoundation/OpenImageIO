@@ -85,7 +85,7 @@ struct OIIO_API TypeDesc {
                     HALF, FLOAT, DOUBLE, STRING, PTR, LASTBASE };
     /// AGGREGATE describes whether our type is a simple scalar of
     /// one of the BASETYPE's, or one of several simple aggregates.
-    enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, MATRIX44=16 };
+    enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, MATRIX33=9, MATRIX44=16 };
     /// VECSEMANTICS gives hints about what the data represent (for
     /// example, if a spatial vector, whether it should transform as
     /// a point, direction vector, or surface normal).
@@ -295,6 +295,8 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeVector;
     static const TypeDesc TypeNormal;
     static const TypeDesc TypeMatrix;
+    static const TypeDesc TypeMatrix33;
+    static const TypeDesc TypeMatrix44;
     static const TypeDesc TypeTimeCode;
     static const TypeDesc TypeKeyCode;
     static const TypeDesc TypeFloat4;
