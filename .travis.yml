@@ -1,3 +1,5 @@
+# .travis.yml for OIIO
+
 language: cpp
 sudo: false
 compiler:
@@ -47,6 +49,9 @@ cache:
     - $HOME/lgritz/libtiffpic
 
 before_install:
+    - if [ $TRAVIS_OS_NAME == osx ] ; then export PLATFORM=macosx ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then export PLATFORM=linux64 ; fi
+    - echo "Build platform name is $PLATFORM"
     - if [ $TRAVIS_OS_NAME == osx ] ; then sysctl machdep.cpu.features ; fi
     - if [ $TRAVIS_OS_NAME == linux ] ; then cat /proc/cpuinfo ; fi
 
@@ -59,9 +64,6 @@ install:
 
 # before_script:
 
-# Strategy: make a full default build + test (default to sse2 and C++03)
-# Then just check that the build works fine for sse4.2.
-# And finally, do a build and test with C++11.
 script:
     - make VERBOSE=1 $BUILD_FLAGS cmakesetup
     - make -j2 $BUILD_FLAGS
@@ -70,9 +72,7 @@ script:
 
 # after_success:
 
-#after_failure:
-#    - echo "---------" ; echo "python-imageinput"
-#    - cat build/*/testsuite/python-imageinput/out.txt
+after_failure:
 # FIXME: find failed logs, stash them or send them to lg?
 
 #branches:
