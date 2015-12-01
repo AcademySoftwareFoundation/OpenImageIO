@@ -1,6 +1,6 @@
 Changes:
 
-Release 1.6 (in progress) -- compared to 1.5.x
+Release 1.6 (release expected Dec 2015?) -- compared to 1.5.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool functionality:
@@ -70,23 +70,24 @@ Major new features and improvements:
       image. #1130 (1.6.3)
     * ociofiletransform() implements OpenColorIO "file" transforms.
       #1213 (1.6.5)
-* Some open source fonts are now distributed with OIIO (DroidSans,
+ * Some open source fonts are now distributed with OIIO (DroidSans,
    DroidSans-Bold, DroidSerif, DroidSerif-Bold, DroidSerif-Italic,
    DroidSerif-BoldItalic, and DroidSansMono), and so those are always
    available to ImageBufAlgo::render_text() and oiiotool --text, on all
    platforms and even if you don't have any other installed fonts on
    your system. DroidSans is now the default font. #1132 (1.6.3)
-* GIF output support (including writing animated GIF images, just write it
-  as a multi-subimage file). For example, this works:
+ * GIF output support (including writing animated GIF images, just write it
+   as a multi-subimage file). For example, this works:
       oiiotool foo*.jpg -siappendall -attrib FramesPerSecond 10.0 -o anim.gif
-  #1193 (1.6.4)
+   #1193 (1.6.4)
 
 Public API changes:
  * TypeDesc:
-    * New helper methods: is_array(), is_unsized_array(),
-      is_sized_array(). #1136 (1.6.3)
+    * New helper methods: is_array(), is_unsized_array(), is_sized_array().
+      #1136 (1.6.3)
     * New constructor and fromstring of a string_view, in addition to
       the old versions that took char*. #1159 (1.6.4/1.5.16)
+    * New aggregate type: MATRIX33. #1265,#1267 (1.6.6)
  * ImageSpec:
     * ImageSpec::metadata_val() is now static, rather than simply const,
       since it doesn't need access to *this at all. #1063 (1.6.1)
@@ -119,6 +120,9 @@ Public API changes:
       rectangle.  #1193 (1.6.4)
     * ImageInput::read_image() variant that takes a channel range to
       read just a subset of the channels present. #1222 (1.6.5)
+    * ImageInput and ImageOutput now have new method threads(n) that sets
+      the thread "fan-out" for the ImageInput or ImageOutput individually,
+      overriding any global attribute("threads"). #1259 (1.6.6)
  * ImageBuf:
     * Add make_writeable(), which forces ImageCache-backed read-only
       ImageBuf to read into locally allocated pixels so they can be
@@ -129,6 +133,9 @@ Public API changes:
       rectancle of an ImageBuf from raw values. #1167 (1.6.4)
     * ImageBuf::get_pixels() now has a variety that takes an ROI to
       describe the rectangle of pixels being requested. #1167 (1.6.4)
+    * ImageBuf now has new method threads(n) that sets the thread
+      "fan-out" for the ImageInput or ImageOutput individually,
+      overriding any global attribute("threads"). #1259 (1.6.6)
  * ImageCache/TextureSystem:
     * Clarified in the docs that TextureSystem::get_texture_info and
       ImageCache::get_image_info "exists" queries should return true, and
@@ -153,6 +160,11 @@ Public API changes:
       channel ranges are in the cache, and thus be much more efficient
       with cache storage when only a few channels are needed from a file
       with many channels. #1226 (1.6.5)
+ * ImageBufAlgo:
+    * New ImageBufAlgo functions: abs, absdiff, div, fill, noise, mad,
+      invert, deepen, ociofiletransform.
+    * nchannels() now takes an 'nthreads' parameters, just like all the
+      other ImageBufAlgo functions. #1261 (1.6.6)
  * Python bindings:
     * Added previously-M.I.A. ImageSpec::erase_attribute(). #1063 (1.6.1)
     * ImageSpec.set_channel_formats() now works when the channel
@@ -226,8 +238,29 @@ Fixes, minor enhancements, and performance improvements:
     * oiiotool's full help message lists all supported formats. #1210 (1.6.5)
     * oiiotool --help prints a briefer help screen. Use --help -v for
       the full-detail help. #1214 (1.6.5)
-    * Bug fix in --fit when the image didn't need to be resized. #1227 (1.6.5)
-  * maketx & TextureSystem:
+    * Bug fix in --fit when the image didn't need to be resized.
+      #1227 (1.6.5/1.5.21)
+ * ImageBufAlgo:
+    * compare() (and therefore oiiotool -diff and idiff) did not notice
+      image differences when the pixels that differed had NaN or NaN or
+      Inf values! Now it is right. #1109 (1.6.3/1.5.13)
+    * channels() bugs were fixed when dealing with "deep" images. (1.6.3)
+    * colorconvert() has been parallelized, and thus on most systems will
+      now run much faster. (1.6.3)
+    * render_text() handles UTF-8 input. #1121 (1.6.3)
+    * colorconvert(), ociodisplay(), and ociolook() have new varities that
+      accept an optional ColorConfig, rather than having no choice but to
+      construct a new one internally. (1.6.3)
+    * nonempty_region() and crop() have been extended to handle "deep"
+      images. #1137 (1.6.3)
+    * Fix bug in fft() -- was not always zeroing out the imaginary channel.
+      #1171 (1.6.4/1.5.17)
+    * Fixed uninitialized variable bugs with rangecompress() and
+      rangeexpand() when using luma. #1180 (1.6.4)
+    * The lanczos3, radial-lanczos, and catrom filters have been change
+      from fixed-width to fully scalable. This fixes artifacts that
+      occur when using them as upsizing filters. #1228,#1232 (1.6.5/1.5.21)
+ * maketx, TextureSystem, and ImageCache:
     * TextureSystem/IC now directly stores uint16 and half pixel data in
       the cache rather than converting internally to float for tile storage,
       thus effectively doubling the cache capacity for files of those
@@ -257,36 +290,17 @@ Fixes, minor enhancements, and performance improvements:
     * Texture cache memory efficiency is much better for the special case
       of accessing just a few channels from a texture file with large
       numbers of channels. #1226 (1.6.5)
- * ImageBufAlgo:
-    * compare() (and therefore oiiotool -diff and idiff) did not notice
-      image differences when the pixels that differed had NaN or NaN or
-      Inf values! Now it is right. #1109 (1.6.3/1.5.13)
-    * channels() bugs were fixed when dealing with "deep" images. (1.6.3)
-    * colorconvert() has been parallelized, and thus on most systems will
-      now run much faster. (1.6.3)
-    * render_text() handles UTF-8 input. #1121 (1.6.3)
-    * colorconvert(), ociodisplay(), and ociolook() have new varities that
-      accept an optional ColorConfig, rather than having no choice but to
-      construct a new one internally. (1.6.3)
-    * nonempty_region() and crop() have been extended to handle "deep"
-      images. #1137 (1.6.3)
-    * Fix bug in fft() -- was not always zeroing out the imaginary channel.
-      #1171 (1.6.4/1.5.17)
-    * Fixed uninitialized variable bugs with rangecompress() and
-      rangeexpand() when using luma. #1180 (1.6.4)
-    * The lanczos3, radial-lanczos, and catrom filters have been change
-      from fixed-width to fully scalable. This fixes artifacts that
-      occur when using them as upsizing filters. #1228,#1232 (1.6.5)
-  * ImageCache / TextureSystem :
     * Eliminate spurious ImageCache invalidation just because the shared
       cache is requested again. #1157 (1.6.4/1.5.16)
     * Statistics output also shows all the option setting values. #1226 (1.6.5)
+    * Data copy error in ImageCache::get_pixels for partial-channel-set
+      copies. #1246 (1.6.5)
  * GIF:
     * Write support! #1193 (1.6.4)
     * On input, renamed "fps" metadata to "FramesPerSecond". #1193 (1.6.4)
  * IFF:
-   * Fix botched output of 16 bit uncompressed data. #1234 (1.6.5)
-   * Make "rle" compression the default. #1234 (1.6.5)
+    * Fix botched output of 16 bit uncompressed data. #1234 (1.6.5/1.5.21)
+    * Make "rle" compression the default. #1234 (1.6.5/1.5.21)
  * JPEG:
     * Now properly read/write xdensity and ydensity (what OIIO and TIFF
       call "XResolution" and "YResolution" and, therefore,
@@ -317,7 +331,12 @@ Fixes, minor enhancements, and performance improvements:
     * Fix bugs in reading deep OpenEXR images with mixed channel types.
       #1113 (1.6.3/1.5.13)
     * OpenEXR output supports("deepdata") now correctly returns 'true'.
-      #1238 (1.6.5)
+      #1238 (1.6.5/1.5.21)
+    * A separate global OIIO::attribute("exr_threads") sets the thread pool
+      size for OpenEXR's libIlmImf, independent of the OIIO thread fan-out
+      attribute OIIO::attribute("threads"). #1244 (1.6.5)
+    * Correctly read and write Matrix33 and double (scalar, 2d, 3d, m33, m44)
+      metadata. #1265,#1267 (1.6.6)
  * PNG:
     * Writing PNG files now honors the PixelAspectRatio metadata.
       #1142 (1.6.3)
@@ -352,7 +371,10 @@ Fixes, minor enhancements, and performance improvements:
     * CMYK is properly read and written. Upon read, CMYK is auto-converted
       to RGB (and the "tiff:ColorSpace" metadata is set to "CMYK"). For
       output, if "tiff:ColorSpace" metadata is set and nonzero, the RGB
-      passed in will be auto-converted to CMYK upon writing. #1233 (1.6.5)
+      passed in will be auto-converted to CMYK upon writing.
+      #1233 #1245 (1.6.5)
+    * Recognize Exif tags in the main directory, not only the special
+      Exif directory. #1250 (1.6.5)
  * ImageBuf iterator constructors with 0-size ranges or ROIs have been
    fixed to look like they are immediately done(). #1141 (1.6.3)
  * Fix bug in internal convert_image() that could corrupt certain image
@@ -410,9 +432,20 @@ Build/test system improvements:
  * Fix build break with certain new versions of libraw. #1204 (1.6.4/1.5.19)
  * Fix build warnings for new Apple tools release that upgrades the standard
    clang release. #1218 (1.6.5/1.5.20)
+ * When compiling in C++11 mode, std::unordered_map, mutex,
+   recursive_mutex, lock_guard, bind, ref, cref, thread, shared_ptr will
+   be used rather than boost equivalents, and our own thread_group and
+   intrusive_ptr are now used rather than the boost equivalents. We
+   believe that this completely removes all Boost headers and types from
+   the OIIO public APIs when in C++11 mode. (Though internals still use
+   Boost in some cases.) #1262 #1266 (1.6.6)
+ * We are now set up to use Travis-CI (https://travis-ci.org) for continuous
+   integration / automatic builds of all merges and pull requests.
+   #1268, #1269, #1273 (1.6.6)
 
 Developer goodies / internals:
- * Strutil additions: parse_until, parse_nested (1.6.1)
+ * Strutil additions: parse_until, parse_nested (1.6.1), repeat
+   (#1272/1.6.6/1.5.21).
  * Give Strutil::parse_string an option to not strip surrounding quotes.
    (1.6.4)
  * Made TypeDesc::equivalent accept comparisons of arrays of unspecified
@@ -446,7 +479,7 @@ Developer goodies / internals:
  * simd.h: float4 and int4 can now construct and load from unsigned short*,
    short*, unsigned char*, char*, and 'half'. (1.6.3)
  * Strutil::utf8_to_unicode (1.6.3)
- * Filesystem::current_path(). #1124 (1.6.3)
+ * Filesystem::current_path(). #1124 (1.6.3/1.5.21)
  * Filesystem enumerate_file_sequence and scan_for_matching_filenames
    have been modified to clear their result vectors rather than simply
    assume they are empty. #1124 (1.6.3)
@@ -459,7 +492,23 @@ Developer goodies / internals:
  * dassert.h: added OIIO_STATIC_ASSERT macros for static
    assertion. Doesn't affect existing OIIO apps since they are new
    additions, but feel free to use them! #1202 (1.6.4/1.5.19)
+ * New unit test for imagecache. #1246 (1.6.5)
+ * Sysutil::hardware_concurrency() and physical_concurrency(). #1263
+   (1.6.6/1.5.21)
 
+
+Release 1.5.21 (1 Dec 2015) -- compared to 1.5.20)
+---------------------------------------------------
+* Bug fix in --fit when the image didn't need to be resized. #1227
+* IFF: Fix botched output of 16 bit uncompressed data. #1234
+* IFF: Make "rle" compression the default for output. #1234
+* OpenEXR output supports("deepdata") now correctly returns 'true'. #1238
+* The lanczos3, radial-lanczos, and catrom filters have been changed
+  from fixed-width to fully scalable. This fixes artifacts that
+  occur when using them as upsizing filters. #1228,#1232
+* Filesystem::current_path(). #1124
+* Sysutil::hardware_concurrency() and physical_concurrency(). #1263
+* Strutil::repeat() #1272
 
 Release 1.5.20 (28 Sep 2015) -- compared to 1.5.19)
 ---------------------------------------------------
