@@ -1,5 +1,18 @@
 Changes:
 
+Release 1.5.21 (1 Dec 2015) -- compared to 1.5.20)
+---------------------------------------------------
+* Bug fix in oiiotool --fit when the image didn't need to be resized. #1227
+* IFF: Fix botched output of 16 bit uncompressed data. #1234
+* IFF: Make "rle" compression the default for output. #1234
+* OpenEXR output supports("deepdata") now correctly returns 'true'. #1238
+* The lanczos3, radial-lanczos, and catrom filters have been changed
+  from fixed-width to fully scalable. This fixes artifacts that
+  occur when using them as upsizing filters. #1228,#1232
+* Filesystem::current_path(). #1124
+* Sysutil::hardware_concurrency() and physical_concurrency(). #1263
+* Strutil::repeat() #1272
+
 Release 1.5.20 (28 Sep 2015) -- compared to 1.5.19)
 ---------------------------------------------------
 * Nuke plugin: don't crash with NULL Knob* in TxReaderFormat::setMipLabels.
