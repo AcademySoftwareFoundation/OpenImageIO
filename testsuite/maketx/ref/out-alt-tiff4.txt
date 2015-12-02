@@ -261,6 +261,7 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     planarconfig: "separate"
     tiff:Compression: 8
     compression: "zip"
+    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading nan.exr
