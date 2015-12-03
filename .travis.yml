@@ -63,7 +63,7 @@ install:
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           src/build-scripts/install_homebrew_deps.bash ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
-          src/build-scripts/build_openexr.bash ;
+          CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
           export ILMBASE_HOME=$PWD/openexr-install ;
           export OPENEXR_HOME=$PWD/openexr-install ;
       fi
