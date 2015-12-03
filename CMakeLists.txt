@@ -60,7 +60,7 @@ message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 
 # Figure out which compiler we're using
 if (CMAKE_COMPILER_IS_GNUCC)
-    execute_process (COMMAND ${CMAKE_C_COMPILER} -dumpversion
+    execute_process (COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
                      OUTPUT_VARIABLE GCC_VERSION
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
     if (VERBOSE)
