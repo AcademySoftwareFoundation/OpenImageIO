@@ -77,6 +77,7 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
     # Ensure this macro is set for stdint.h
     add_definitions ("-D__STDC_LIMIT_MACROS")
+    add_definitions ("-D__STDC_CONSTANT_MACROS")
     # this allows native instructions to be used for sqrtf instead of a function call
     add_definitions ("-fno-math-errno")
 endif ()
