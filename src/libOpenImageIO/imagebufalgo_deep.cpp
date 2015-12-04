@@ -51,14 +51,19 @@ OIIO_NAMESPACE_ENTER
 // deciphering deep images. Return true if appropriate alphas were found.
 static bool
 find_deep_channels (const ImageSpec &spec, int &alpha_channel,
-                    int &RA_channel, int &GA_channel, int &BA_channel,
+                    int &AR_channel, int &AG_channel, int &AB_channel,
                     int &R_channel, int &G_channel, int &B_channel,
                     int &Z_channel, int &Zback_channel)
 {
-    static const char *names[] = { "A", "RA", "GA", "BA",
-                                   "R", "G", "B", "Z", "Zback", NULL };
-    int *chans[] = { &alpha_channel, &RA_channel, &GA_channel, &BA_channel,
-                     &R_channel, &G_channel, &B_channel, 
+    static const char *names[] = { "A",
+                                   "RA", "GA", "BA", // old OpenEXR recommendation
+                                   "AR", "AG", "AB", // new OpenEXR recommendation
+                                   "R", "G", "B",
+                                   "Z", "Zback", NULL };
+    int *chans[] = { &alpha_channel,
+                     &AR_channel, &AG_channel, &AB_channel,
+                     &AR_channel, &AG_channel, &AB_channel,
+                     &R_channel, &G_channel, &B_channel,
                      &Z_channel, &Zback_channel };
     for (int i = 0;  names[i];  ++i)
         *chans[i] = -1;
@@ -73,7 +78,7 @@ find_deep_channels (const ImageSpec &spec, int &alpha_channel,
     if (Zback_channel < 0)
         Zback_channel = Z_channel;
     return (alpha_channel >= 0 ||
-            (RA_channel >= 0 && GA_channel >= 0 && BA_channel >= 0));
+            (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
 }
 
 
@@ -97,22 +102,22 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
     const ImageSpec &srcspec (src.spec());
     int nc = srcspec.nchannels;
 
-    int alpha_channel, RA_channel, GA_channel, BA_channel;
+    int alpha_channel, AR_channel, AG_channel, AB_channel;
     int R_channel, G_channel, B_channel;
     int Z_channel, Zback_channel;
     if (! find_deep_channels (srcspec, alpha_channel,
-                              RA_channel, GA_channel, BA_channel,
+                              AR_channel, AG_channel, AB_channel,
                               R_channel, G_channel, B_channel,
                               Z_channel, Zback_channel)) {
         dst.error ("No alpha channel could be identified");
         return false;
     }
     ASSERT (alpha_channel >= 0 ||
-            (RA_channel >= 0 && GA_channel >= 0 && BA_channel >= 0));
+            (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
     float *val = ALLOCA (float, nc);
-    float &RAval (RA_channel >= 0 ? val[RA_channel] : val[alpha_channel]);
-    float &GAval (GA_channel >= 0 ? val[GA_channel] : val[alpha_channel]);
-    float &BAval (BA_channel >= 0 ? val[BA_channel] : val[alpha_channel]);
+    float &ARval (AR_channel >= 0 ? val[AR_channel] : val[alpha_channel]);
+    float &AGval (AG_channel >= 0 ? val[AG_channel] : val[alpha_channel]);
+    float &ABval (AB_channel >= 0 ? val[AB_channel] : val[alpha_channel]);
 
     for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
         int x = r.x(), y = r.y(), z = r.z();
@@ -124,8 +129,8 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
         if (Zback_channel >= 0 && samps == 0)
             val[Zback_channel] = 1.0e30;
         for (int s = 0;  s < samps;  ++s) {
-            float RA = RAval, GA = GAval, BA = BAval;  // make copies
-            float alpha = (RA + GA + BA) / 3.0f;
+            float AR = ARval, AG = AGval, AB = ABval;  // make copies
+            float alpha = (AR + AG + AB) / 3.0f;
             if (alpha >= 1.0f)
                 break;
             for (int c = 0;  c < nc;  ++c) {
@@ -134,11 +139,11 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
                     val[c] *= alpha;  // because Z are not premultiplied
                 float a;
                 if (c == R_channel)
-                    a = RA;
+                    a = AR;
                 else if (c == G_channel)
-                    a = GA;
+                    a = AG;
                 else if (c == B_channel)
-                    a = BA;
+                    a = AB;
                 else
                     a = alpha;
                 val[c] += (1.0f - a) * v;
@@ -170,10 +175,10 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
     }
 
     const ImageSpec &srcspec (src.spec());
-    int alpha_channel, RA_channel, GA_channel, BA_channel;
+    int alpha_channel, AR_channel, AG_channel, AB_channel;
     int R_channel, G_channel, B_channel, Z_channel, Zback_channel;
     if (! find_deep_channels (srcspec, alpha_channel,
-                              RA_channel, GA_channel, BA_channel,
+                              AR_channel, AG_channel, AB_channel,
                               R_channel, G_channel, B_channel,
                               Z_channel, Zback_channel)) {
         dst.error ("No alpha channel could be identified");
