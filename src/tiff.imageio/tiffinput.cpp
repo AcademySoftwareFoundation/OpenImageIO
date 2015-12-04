@@ -1458,7 +1458,7 @@ bool TIFFInput::read_scanlines (int ybegin, int yend, int z,
         // read_native_blah.
         OIIO::premult (m_spec.nchannels, m_spec.width, yend-ybegin, 1,
                        chbegin, chend, format, data,
-                       xstride, AutoStride, AutoStride,
+                       xstride, ystride, AutoStride,
                        m_spec.alpha_channel, m_spec.z_channel);
     }
     return ok;
