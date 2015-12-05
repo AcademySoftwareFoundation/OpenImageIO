@@ -1522,7 +1522,7 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 
 namespace pvt {
 // For internal use - use debugmsg() below for a nicer interface.
-void debugmsg_ (string_view message);
+OIIO_API void debugmsg_ (string_view message);
 };
 
 /// debugmsg(format, ...) prints debugging message when attribute "debug" is
