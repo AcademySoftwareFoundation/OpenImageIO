@@ -158,7 +158,6 @@ resolution, data type, metadata, etc.).  Optionally, you may name the
 \apiend
 
 \apiitem{bool make_writeable (bool keep_cache_type = false)}
-\NEW % 1.6
 Force the \ImageBuf to be writeable. That means that if it was previously
 backed by an \ImageCache (storage was {\cf IMAGECACHE}), it will force a
 full read so that the whole image is in local memory.
@@ -440,7 +439,6 @@ CAUTION.
 \apiitem{void {\ce threads} (int n) \\
 int {\ce threads} () const}
 \index{threads}
-\NEW % 1.6
 Get or set the threading policy for this \ImageBuf, controlling the
 maximum amount of parallelizing thread ``fan-out'' that might occur during
 expensive operations. The default of 0 means that the global
@@ -481,7 +479,6 @@ Swaps the entire contents of {\cf other} and {\cf this}.
   \bigspc\bigspc                void *result, stride_t xstride=AutoStride,\\
   \bigspc\bigspc                stride_t ystride=AutoStride, \\
   \bigspc\bigspc                stride_t zstride=AutoStride) const}
-\NEW % 1.6
 Retrieve the rectangle of pixels specified by ROI, at the current subimage
 and MIP-map level, storing the pixel values beginning at the address
 specified by {\cf result} and with the given strides (by default, {\cf
@@ -536,7 +533,6 @@ return {\cf false}.
   \bigspc\bigspc                const void *result, stride_t xstride=AutoStride,\\
   \bigspc\bigspc                stride_t ystride=AutoStride, \\
   \bigspc\bigspc                stride_t zstride=AutoStride)}
-\NEW  % 1.6
 Copy the rectangle of data into the specified ROI of the ImageBuf. The data
 points to values specified by {\cf format}, with layout detailed by the
 stride values (in bytes, with {\cf AutoStride} indicating ``contiguous''

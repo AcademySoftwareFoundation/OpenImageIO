@@ -132,7 +132,6 @@ to the values in {\cf values[]}.  The {\cf
   values} array must point to at least {\cf chend} values, or the
 number of channels in the image, whichever is smaller.
 
-\NEW % 1.6
 Three varieties of {\cf fill()} exist: (a) a single set of channel values that
 will apply to the ROI, (b) two sets of values that will create a linearly
 interpolated gradient from top to bottom of the ROI, (c) four sets of values
@@ -186,7 +185,6 @@ image.
 \bigspc\bigspc float A = 0.0f, float B = 0.1f, bool mono = false, \\
 \bigspc\bigspc int seed = 0, ROI roi=ROI::All(), int nthreads=0)}
 \indexapi{noise}
-\NEW % 1.6
 
 Add pseudorandom noise to the specified region of {\cf dst}. For noise
 type \qkw{uniform}, the noise is uniformly distributed on the
@@ -794,7 +792,6 @@ bool {\ce absdiff} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
 bool {\ce absdiff} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!absdiff} \indexapi{absdiff}
-\NEW % 1.6
 
 For all pixels within the designated region, compute the absolute value of
 the difference between the corresponding pixels of {\cf A} from {\cf B},
@@ -817,7 +814,6 @@ floats (one per channel, for each channel of {\cf A}), or a single float
 \apiitem{bool {\ce abs} (ImageBuf \&dst, const ImageBuf \&A, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!abs} \indexapi{abs}
-\NEW % 1.6
 
 For all pixels within the designated region, compute the absolute value of
 the corresponding pixels of {\cf A}, putting the results into {\cf dst}.
@@ -870,8 +866,6 @@ bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
 bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!div} \indexapi{div}
-\NEW %1.6
-
 For all pixels within the designated region, divide the pixel values
 of image {\cf A} by {\cf B} (channel by channel), putting the result in
 {\cf dst}.  {\cf B} is either an image,
@@ -902,7 +896,6 @@ bool {\ce mad} (ImageBuf \&dst, const ImageBuf \&A, float B, \\
 bool {\ce mad} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
         \bigspc const float *C, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!mad} \indexapi{mad}
-\NEW % 1.6
 
 For all pixels within the designated region, compute {\cf dst = A * B + C}
 (pixel by pixel, channel by channel). {\cf A} must be an image. {\cf B} and
@@ -932,7 +925,6 @@ the same number of channels.
 \apiitem{bool {\ce invert} (ImageBuf \&dst, const ImageBuf \&A, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!invert} \indexapi{invert}
-\NEW % 1.6
 
 For all pixels and channels within the designated region, set {\cf dst}
 to be the color inverse of the corresponding pixels of {\cf A}, that is,
@@ -1934,7 +1926,6 @@ environment variable will be used instead.
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociofiletransform} \indexapi{ociofiletransform}
-\NEW % 1.6
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while applying an
 OpenColorIO ``file'' transform to the pixel values. If {\cf inverse} is {\cf
 true}, it will reverse the color transformation and look application. In-
@@ -2251,7 +2242,6 @@ not listed in this section should not be expected to work with deep images.
 \apiitem{bool {\ce deepen} (ImageBuf \&dst, const ImageBuf \&src, float zvalue, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
-\NEW % 1.6
 Copy pixels from regular (not ``deep'') image {\cf src} into deep {\cf dst}.
 
 If the {\cf src} image has a \qkw{Z} channel: if the source pixel's {\cf Z}

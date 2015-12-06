@@ -1302,7 +1302,6 @@ DSO/DLL's.
 \apiend
 
 \apiitem{void {\ce destroy} (ImageOutput *Output)}
-\NEW  % 1.6
 Destroy an \ImageOutput that was created by {\cf create()}.
 The {\cf destroy()} method is just a wrapper around operator {\cf delete},
 but by being implemented within the \product DLL, it can ensure that the
@@ -1648,7 +1647,6 @@ This is currently undefined and is reserved for future use.
 \apiitem{void {\ce threads} (int n) \\
 int {\ce threads} () const}
 \index{threads}
-\NEW % 1.6
 Get or set the threading policy for this \ImageOutput, controlling the
 maximum amount of parallelizing thread ``fan-out'' that might occur during
 large write operations. The default of 0 means that the global

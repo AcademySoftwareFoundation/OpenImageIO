@@ -580,7 +580,6 @@ def poor_mans_iinfo (filename) :
 
 \section{DeepData}
 \label{sec:pythondeepdata}
-\NEW % 1.6
 
 The \DeepData class describing ``deep'' image data (multiple depth
 sample per pixel), which is explained in deail in
@@ -829,7 +828,7 @@ a subset of channels.
 DeepData ImageInput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend,\\
 \bigspc\bigspc zbegin, zend, chbegin, chend) \\
 DeepData ImageInput.{\ce read_native_deep_image} (chbegin, chend)}
-\NEW % 1.6
+
 Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
 data. The begin/end coordinates are all integer values. The value returned
 will be a \DeepData if the read succeeds, or {\cf None} if the read fails.
@@ -1072,7 +1071,7 @@ Write one or many tiles to the currently open file.
 bool ImageOutput.{\ce write_deep_tiles} (xbegin, xend, ybegin, yend, \\
 \bigspc\bigspc\bigspc zbegin, zend, deepdata) \\
 bool ImageOutput.{\ce write_deep_image} (deepdata)}
-\NEW % 1.6
+
 Write a collection of scanlines, tiles, or an entire image of ``deep''
 pixel data. The begin/end coordinates are all integer values, and
 {\cf deepdata} should be a \DeepData.
@@ -1518,7 +1517,7 @@ the image and returns them as an array of values with type specified by
 \apiend
 
 \apiitem{ImageBuf.{\ce set_pixels} (roi, data)}
-\NEW % 1.6
+
 Sets the rectangle of pixels (and channels) specified by {\cf roi} with
 values in the {\cf data}, which may be either a tuple of floats or an array
 (if it's an array, the type of array --- float, unsigned char, etc. ---
@@ -1685,7 +1684,6 @@ tuples giving the values for each color channel.
 \apiitem{bool ImageBufAlgo.{\ce noise_uniform} (dst, min=0.0, max=1.0, \\
 \bigspc\bigspc seed=0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!noise_uniform} \indexapi{noise_uniform}
-\NEW % 1.6
 
 Add noise to {\cf dst} that is uniformly-distributed over the range
 {\cf [min,max)}.  Choosing different seed values will result in a different pattern.
@@ -1702,7 +1700,6 @@ Add noise to {\cf dst} that is uniformly-distributed over the range
 \apiitem{bool ImageBufAlgo.{\ce noise_gaussian} (dst, mean=0.0, stddev=0.1, \\
 \bigspc\bigspc  seed=0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!noise_gaussian} \indexapi{noise_gaussian}
-\NEW % 1.6
 
 Fill {\cf dst} with Gaussian noise (normal distribution) with given mean
 and standard deviation.
@@ -2086,7 +2083,6 @@ be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
 
 \apiitem{bool ImageBufAlgo.{\ce absdiff} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!absdiff} \indexapi{absdiff}
-\NEW % 1.6
 
 Compute {\cf dst = abs(A - B)}.  {\cf A} is an \ImageBuf, and {\cf B}  may
 be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
@@ -2103,7 +2099,6 @@ be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
 
 \apiitem{bool ImageBufAlgo.{\ce abs} (dst, A, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!abs} \indexapi{abs}
-\NEW % 1.6
 
 Compute {\cf dst = abs(A)}.  {\cf A} is an \ImageBuf.
 
@@ -2138,7 +2133,6 @@ all channels) or a tuple giving a {\cf float} for each color channel.
 
 \apiitem{bool ImageBufAlgo.{\ce div} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!div} \indexapi{div}
-\NEW % 1.6
 
 Compute {\cf dst} = {\cf A / B} (channel-by-channel division), where $x/0$
 is defined to be $0$.  {\cf A} is an \ImageBuf, and {\cf B}  may be an
@@ -2160,7 +2154,6 @@ float} for each color channel.
 
 \apiitem{bool ImageBufAlgo.{\ce mad} (dst, A, B, C, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!mad} \indexapi{mad}
-\NEW % 1.6
 
 Compute {\cf dst} = {\cf A * B + C} (channel-by-channel multiplication
 and addition). {\cf A}
@@ -2182,7 +2175,6 @@ each color channel.
 
 \apiitem{bool ImageBufAlgo.{\ce invert} (dst, A, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!invert} \indexapi{invert}
-\NEW % 1.6
 
 Compute {\cf dst = 1-A} (channel by channel color inverse).
 {\cf A} is an \ImageBuf.

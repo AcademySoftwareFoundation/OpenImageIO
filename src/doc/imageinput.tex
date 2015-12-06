@@ -806,7 +806,6 @@ creates the \ImageInput, it does not open the file.
 \apiend
 
 \apiitem{void {\ce destroy} (ImageInput *input)}
-\NEW  % 1.6
 
 Destroy an \ImageInput that was created by {\cf create()} or {\cf open()}.
 The {\cf destroy()} method is just a wrapper around operator {\cf delete},
@@ -1174,7 +1173,6 @@ This is currently undefined and is reserved for future use.
 \apiitem{void {\ce threads} (int n) \\
 int {\ce threads} () const}
 \index{threads}
-\NEW % 1.6
 Get or set the threading policy for this \ImageInput, controlling the
 maximum amount of parallelizing thread ``fan-out'' that might occur during
 large read operations. The default of 0 means that the global

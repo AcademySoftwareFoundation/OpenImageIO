@@ -180,7 +180,6 @@ For example,
 
 \subsubsection*{Expression evaluation and substitution}
 \label{oiiotoolexpr}
-\NEW % 1.6
 
 \oiiotool can perform \emph{expression evaluation and substitution} on
 command-line arguments. As command-line arguments are needed, they are
@@ -582,7 +581,6 @@ and naming it ``Z'' so it will be recognized as a depth channel:
 
 \subsection*{Creating an animated GIF from still images}
 \index{GIF} \index{animated GIF}
-\NEW
 
 \noindent Combine several separate JPEG images into an animated GIF with
 a frame rate of 8 frames per second:
@@ -636,7 +634,6 @@ Quet mode --- print out less information about what \oiiotool is doing
 \apiend
 
 \apiitem{\ce -n}
-\NEW % 1.6
 No saved output --- do not save any image files. This is helpful for certain
 kinds of tests, or in combination with {\cf --runstats} or {\cf --debug},
 for getting detailed information about what a command sequence will do and
@@ -644,7 +641,6 @@ what it costs, but without producing any saved output files.
 \apiend
 
 \apiitem{\ce --debug}
-\NEW % 1.6
 Debug mode --- print lots of information about what operations are being
 performed.
 \apiend
@@ -871,8 +867,6 @@ orientations.
 \apiend
 
 \apiitem{\ce --autocc}
-\NEW % 1.6
-
 Turns on automatic color conversion: Every input image file will be
 immediately converted to a scene-referred linear color space, and every file
 written will be first transformed to an appropriate output color space based
@@ -1225,7 +1219,6 @@ subimage to extract (comparing to the \qkw{oiio:subimagename} metadata).
 \apiend
 
 \apiitem{\ce --sisplit}
-\NEW % 1.6
 Remove the top image from the stack, split it into its constituent
 subimages, and push them all onto the stack (first to last).
 \apiend
@@ -1236,7 +1229,6 @@ of the subimages of both images appended together.
 \apiend
 
 \apiitem{\ce --siappendall}
-\NEW % 1.6
 Replace \emph{all} of the individual images on the stack with a single new
 image comprised of the subimages of all original images appended together.
 \apiend
@@ -1497,7 +1489,6 @@ pixel difference between the first and second images ({\cf --sub}), or
 subtract a constant color value from all pixels in the top image ({\cf
 --subc}).
 
-\NEW %1.6
 For {\cf --subc}, if a single constant value is given, it will be subtracted
 from all color channels. Alternatively, a series of comma-separated constant
 values (with no spaces!) may be used to specifiy a different value to
@@ -1528,7 +1519,6 @@ multiply with each channel in the image.
 \apiitem{{\ce --div} \\
 {\ce --divc} {\rm \emph{value}} \\
 {\ce --divc} {\rm \emph{value0,value1,value2...}}}
-\NEW %1.6
 Replace the \emph{two} top images with a new image that is the
 pixel-by-pixel, channel-by-channel result of the first image divided by
 the second image ({\cf --div}), or divide all
@@ -1542,7 +1532,6 @@ a different multiplier for each channel in the image, respectively.
 \apiend
 
 \apiitem{{\ce --mad}}
-\NEW % 1.6
 Replace the \emph{three} top images A, B, and C (C being the top of stack, B
 below it, and A below B), and compute A*B+C, placing the result on the
 stack. Note that \qkw{A B C --mad} is equivalent to \qkw{A B --mul C --add},
@@ -1559,7 +1548,6 @@ though using {\cf --mad} may be somewhat faster and preserve more precision.
 
 
 \apiitem{{\ce --invert}}
-\NEW % 1.6
 Replace the top images with its color inverse. It only inverts the first
 three channels, in order to preserve alpha.
 
@@ -1576,7 +1564,6 @@ three channels, in order to preserve alpha.
 \apiitem{{\ce --absdiff} \\
 {\ce --absdiffc} {\rm \emph{value}} \\
 {\ce --absdiffc} {\rm \emph{value0,value1,value2...}}}
-\NEW %1.6
 Replace the \emph{two} top images with a new image that is the absolute
 value of the difference between the first and second images ({\cf --absdiff}),
 or replace the top image by the absolute value of the difference between each
@@ -1598,7 +1585,6 @@ different exponent for each channel in the image, respectively.
 \apiend
 
 \apiitem{\ce --noise}
-\NEW % 1.6
 Alter the top image to introduce noise, with the option {\cf :type=}
 specifying the kind of noise: (1) {\cf gaussian} (default) for normal
 distribution noise with mean and standard deviation given by {\cf :mean=}
@@ -1851,7 +1837,6 @@ the full/display window.
 \apiend
 
 \apiitem{\ce --trim}
-\NEW   % 1.6.3
 Replace the current image with a new image that is cropped to contain the
 minimal rectangular ROI that contains all of the nonzero-valued pixels of
 the original image.
@@ -1972,7 +1957,6 @@ decreasing resolution. \\
 \apiend
 
 \apiitem{\ce --pixelaspect {\rm \emph{aspect}}}
-\NEW % 1.6
 Replace the current image with a new image that scales up the width or
 height in order to match the requested pixel aspect ratio.  If displayed
 in a manner that honors the PixelAspectRatio, it should look the same,
@@ -2388,7 +2372,6 @@ space those those pixels are in.
 \apiend
 
 \apiitem{\ce --colorconfig {\rm \emph{filename}}}
-\NEW % 1.6
 Instruct \oiiotool to read an OCIO configuration from a custom location.
 Without this, the default is to use the {\cf \$OCIO} environment variable
 as a guide for the location of the configuration file.
@@ -2471,7 +2454,6 @@ looks that \oiiotool knows about.
 \apiend
 
 \apiitem{\ce --ociofiletransform {\rm \emph{name}}}
-\NEW % 1.6
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO file transform.  Optional appended
 arguments include:
@@ -2520,7 +2502,6 @@ should not be expected to work with deep images.
 
 \apiitem{\ce --deepen}
 \index{deep images}
-\NEW  % 1.6
 If the top image is not deep, then turn it into the equivalent ``deep''
 image. Pixels with non-infinite $z$ or with any non-zero color channels will
 get a single depth sample in the resulting deep image. Pixels in the source

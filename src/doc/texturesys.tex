@@ -552,7 +552,6 @@ the ``fill'' color.
 \apiend
 
 \apiitem{int max_tile_channels}
-\NEW % 1.6
 Sets the maximum number of color channels in a texture file for which all
 channels will be loaded as cached tiles. Files with more than this number
 of color channels will have only the requested subset loaded, in order
@@ -585,7 +584,6 @@ Perthread * {\ce create_perthread_info} () \\
 void {\ce destroy_perthread_info} (Perthread *thread_info)}
 \indexapi{get_perthread_info}
 \indexapi{create_perthread_info} \indexapi{destroy_perthread_info}
-\NEW % 1.6
 
 The \TextureSystem implementation needs to maintain certain per-thread
 state, and some \TextureSystem methods take an opaque {\cf Perthread} pointer
@@ -624,7 +622,6 @@ horribly wrong.
 
 \apiitem{bool {\ce good} (TextureHandle *texture_handle)}
 \indexapi{good}
-\NEW % 1.6
 Return true if the texture handle (previously returned by
 {\cf get_texture_handle()}) is a valid image that can be subsequently read
 or sampled.
@@ -1231,7 +1228,7 @@ only rendered images will have this.
 
 \item[\rm \kw{averagecolor}] If available in the metadata (generally only
 for files that have been processed by {\cf maketx}), this will return the
-average color of the texture (into an array of floats).  \NEW
+average color of the texture (into an array of floats).
 
 \item[\rm \kw{averagealpha}] If available in the metadata (generally only
 for files that have been processed by {\cf maketx}), this will return the
@@ -1242,7 +1239,7 @@ have been processed by {\cf maketx}) indicates that the texture has the same
 values for all pixels in the texture, this will retrieve the constant color
 of the texture (into an array of floats). A non-constant image (or one that
 does not have the special metadata tag identifying it as a constant texture)
-will fail this query (return false). \NEW
+will fail this query (return false).
 
 \item[\rm \kw{constantalpha}] If the metadata indicates that the texture has
 the same values for all pixels in the texture, this will retrieve the

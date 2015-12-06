@@ -394,7 +394,6 @@ Perthread * {\ce create_perthread_info} () \\
 void {\ce destroy_perthread_info} (Perthread *thread_info)}
 \indexapi{get_perthread_info}
 \indexapi{create_perthread_info} \indexapi{destroy_perthread_info}
-\NEW % 1.6
 
 The \ImageCache implementation needs to maintain certain per-thread
 state, and some \ImageCache methods take an opaque {\cf Perthread} pointer
@@ -425,7 +424,6 @@ thread after the first is terminated, but still may not use the same
 \apiitem{ImageHandle * {\ce get_image_handle} (ustring filename,\\
 \bigspc\bigspc\spc\spc  Perthread *thread_info=NULL)}
 \indexapi{get_image_handle}
-\NEW % 1.6
 Retrieve an opaque handle for fast \ImageCache lookups.  The optional opaque
 pointer {\cf thread_info} is thread-specific information returned by
 {\cf get_perthread_info()}.  Return {\cf NULL} if something has gone
@@ -434,7 +432,6 @@ horribly wrong.
 
 \apiitem{bool {\ce good} (ImageHandle *file)}
 \indexapi{good}
-\NEW % 1.6
 Return true if the image handle (previously returned by
 {\cf get_image_handle()}) is a valid image that can be subsequently read.
 \apiend
