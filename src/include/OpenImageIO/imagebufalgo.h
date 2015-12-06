@@ -1847,7 +1847,8 @@ enum OIIO_API MakeTextureMode {
 ///    maketx:nomipmap (int)  If nonzero, only output the top MIP level (0).
 ///    maketx:updatemode (int) If nonzero, write new output only if the
 ///                              output file doesn't already exist, or is
-///                              older than the input file. (0)
+///                              older than the input file, or was created
+///                              with different command-line arguments. (0)
 ///    maketx:constant_color_detect (int)
 ///                           If nonzero, detect images that are entirely
 ///                             one color, and change them to be low
