@@ -94,9 +94,12 @@ several seconds for large input files if read over a network) and will
 be stamped with the current time.
 
 The {\cf -u} option enables \emph{update mode}: if the output file
-already exists and has the same time stamp as the input file, the
-texture will not be recreated.  If the output file does not exist or has
-a different time than the input file, then the texture will be created
+already exists, and has the same time stamp as the input file, and
+the command-lie arguments that created it are identical to the
+current ones, then the texture will be left alone and not be recreated.
+If the output file does not exist, or has
+a different time stamp than the input file, or was created using different
+command line arguments, then the texture will be created
 and given the time stamp of the input file.
 \apiend
 

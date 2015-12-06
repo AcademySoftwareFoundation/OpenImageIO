@@ -695,7 +695,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                 } else {
                     Filter2D *filter = setup_filter (small->spec(), img->spec(), filtername);
                     if (! filter) {
-                        outstream << "maketx ERROR: could not make filter '" << filtername << "\n";
+                        outstream << "maketx ERROR: could not make filter \"" << filtername << "\"\n";
                         return false;
                     }
                     if (verbose) {
@@ -868,15 +868,24 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // When was the input file last modified?
     // This is only used when we're reading from a filename
     std::time_t in_time;
-    time (&in_time);  // make it look initialized
-    bool updatemode = configspec.get_int_attribute ("maketx:updatemode") != 0;
-    if (from_filename) {
-        // When in update mode, skip making the texture if the output
-        // already exists and has the same file modification time as the
-        // input file.
+    if (from_filename)
         in_time = Filesystem::last_write_time (src->name());
-        if (updatemode && Filesystem::exists (outputfilename) &&
-            (in_time == Filesystem::last_write_time (outputfilename))) {
+    else
+        time (&in_time);  // make it look initialized
+
+    // When in update mode, skip making the texture if the output already
+    // exists and has the same file modification time as the input file and
+    // was created with identical command line arguments.
+    bool updatemode = configspec.get_int_attribute ("maketx:updatemode");
+    if (updatemode && from_filename && Filesystem::exists(outputfilename) &&
+        in_time == Filesystem::last_write_time (outputfilename)) {
+        std::string lastcmdline;
+        if (ImageInput *in = ImageInput::open (outputfilename)) {
+            lastcmdline = in->spec().get_string_attribute ("Software");
+            ImageInput::destroy (in);
+        }
+        std::string newcmdline = configspec.get_string_attribute("maketx:full_command_line");
+        if (lastcmdline.size() && lastcmdline == newcmdline) {
             outstream << "maketx: no update required for \"" 
                       << outputfilename << "\"\n";
             return true;
