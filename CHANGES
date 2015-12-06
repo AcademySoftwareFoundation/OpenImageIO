@@ -337,6 +337,8 @@ Fixes, minor enhancements, and performance improvements:
       attribute OIIO::attribute("threads"). #1244 (1.6.5)
     * Correctly read and write Matrix33 and double (scalar, 2d, 3d, m33, m44)
       metadata. #1265,#1267 (1.6.6)
+    * Recognize AR/AG/AB channel names in addition to the old RA/RG/RB
+      #1277 (1.6.6)
  * PNG:
     * Writing PNG files now honors the PixelAspectRatio metadata.
       #1142 (1.6.3)
@@ -375,6 +377,8 @@ Fixes, minor enhancements, and performance improvements:
       #1233 #1245 (1.6.5)
     * Recognize Exif tags in the main directory, not only the special
       Exif directory. #1250 (1.6.5)
+    * Fix bug in read_scanlines when reading TIFF files with UNassociated
+      alpha and unusual ystride values. #1278 (1.6.6)
  * ImageBuf iterator constructors with 0-size ranges or ROIs have been
    fixed to look like they are immediately done(). #1141 (1.6.3)
  * Fix bug in internal convert_image() that could corrupt certain image
@@ -442,6 +446,7 @@ Build/test system improvements:
  * We are now set up to use Travis-CI (https://travis-ci.org) for continuous
    integration / automatic builds of all merges and pull requests.
    #1268, #1269, #1273 (1.6.6)
+ * Don't install fonts if USE_FREETYPE is disabled. #1275 (1.6.6)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1), repeat
