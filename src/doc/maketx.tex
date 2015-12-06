@@ -88,16 +88,16 @@ Sets the compression method for the output image (the default is to try
 to use \qkw{zip} compression, if it is available).
 \apiend
 
-\apiitem{--update}
+\apiitem{-u}
 Ordinarily, textures are created unconditionally (which could take
 several seconds for large input files if read over a network) and will
 be stamped with the current time.
 
-The {\cf --update} option enables \emph{update mode}I if the output file
+The {\cf -u} option enables \emph{update mode}: if the output file
 already exists and has the same time stamp as the input file, the
 texture will not be recreated.  If the output file does not exist or has
 a different time than the input file, then the texture will be created
-be given the time stamp of the input file.
+and given the time stamp of the input file.
 \apiend
 
 \apiitem{--wrap {\rm \emph{wrapmode}} \\
