@@ -915,12 +915,31 @@ For example, the following are equivalent to the example above for the
 general (pointer) form of {\cf getattribute()}:
 
 \begin{code}
-      int maxfiles;
-      ts->getattribute ("max_open_files", &maxfiles);
-      const char *path;
-      ts->getattribute ("plugin_searchpath", &path);
+      int threads;
+      OIIO::getattribute ("threads", &threads);
+      std::string path;
+      OIIO::getattribute ("plugin_searchpath", &path);
 \end{code}
+\apiend
 
+\apiitem{int {\ce get_int_attribute} (string_view name, int defaultvalue=0) \\
+float {\ce get_float_attribute} (string_view name, float defaultvalue=0) \\
+string_view {\ce get_string_attribute} (string_view name, \\
+\bigspc\bigspc\bigspc  string_view defaultvalue="")}
+\indexapi{get_int_attribute} \indexapi{get_float_attribute}
+\indexapi{get_string_attribute}
+\NEW % 1.7
+Specialized versions of {\cf getattribute()} for common types, in which the
+data is returned directly, and a supplied default value is returned if the
+attribute was not found.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf getattribute()}:
+
+\begin{code}
+      int threads = OIIO::getattribute ("threads", 0);
+      string_view path = OIIO::getattribute ("plugin_searchpath");
+\end{code}
 \apiend
 
 

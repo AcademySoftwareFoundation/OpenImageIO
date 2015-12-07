@@ -1344,8 +1344,7 @@ inline bool attribute (string_view name, string_view val) {
 /// otherwise return false and do not modify the contents of *val.  It
 /// is up to the caller to ensure that val points to the right kind and
 /// size of storage for the given type.
-OIIO_API bool getattribute (string_view name, TypeDesc type,
-                             void *val);
+OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
 // Shortcuts for common types
 inline bool getattribute (string_view name, int &val) {
     return getattribute (name, TypeDesc::TypeInt, &val);
@@ -1362,6 +1361,19 @@ inline bool getattribute (string_view name, std::string &val) {
     if (ok)
         val = s.string();
     return ok;
+}
+inline int get_int_attribute (string_view name, int defaultval=0) {
+    int val;
+    return getattribute (name, TypeDesc::TypeInt, &val) ? val : defaultval;
+}
+inline float get_float_attribute (string_view name, float defaultval=0) {
+    float val;
+    return getattribute (name, TypeDesc::TypeFloat, &val) ? val : defaultval;
+}
+inline string_view get_string_attribute (string_view name,
+                                 string_view defaultval = string_view()) {
+    ustring val;
+    return getattribute (name, TypeDesc::TypeString, &val) ? string_view(val) : defaultval;
 }
 
 
