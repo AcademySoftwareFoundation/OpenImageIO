@@ -56,6 +56,7 @@ recursive_mutex imageio_mutex;
 atomic_int oiio_threads (Sysutil::physical_concurrency());
 atomic_int oiio_exr_threads (Sysutil::physical_concurrency());
 atomic_int oiio_read_chunk (256);
+int tiff_half (0);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
@@ -161,6 +162,10 @@ attribute (string_view name, TypeDesc type, const void *val)
         oiio_exr_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
         return true;
     }
+    if (name == "tiff:half" && type == TypeDesc::TypeInt) {
+        tiff_half = *(const int *)val;
+        return true;
+    }
     if (name == "debug" && type == TypeDesc::TypeInt) {
         print_debug = *(const int *)val;
         return true;
@@ -200,6 +205,10 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "exr_threads" && type == TypeDesc::TypeInt) {
         *(int *)val = oiio_exr_threads;
+        return true;
+    }
+    if (name == "tiff:half" && type == TypeDesc::TypeInt) {
+        *(int *)val = tiff_half;
         return true;
     }
     if (name == "debug" && type == TypeDesc::TypeInt) {

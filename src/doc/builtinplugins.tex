@@ -982,10 +982,10 @@ options are supported:
 
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
 Configuration attribute & Type & Meaning \\
 \hline
-\qkw{oiio:UnassociatedAlpha} & int & If nonzero, will leave alpha unassociated
+\qkws{oiio:UnassociatedAlpha} & int & If nonzero, will leave alpha unassociated
                                      (versus the default of premultiplying
                                      color channels by alpha if the alpha channel
                                      is unassociated). \\
@@ -998,23 +998,27 @@ aspects of the writing itself:
 
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
 Output attribute & Type & Meaning \\
 \hline
-\qkw{oiio:UnassociatedAlpha} & int & If nonzero, any alpha channel is
+\qkws{oiio:UnassociatedAlpha} & int & If nonzero, any alpha channel is
                                 understood do be unassociated, and the
                                 EXTRASAMPLES tag in the TIFF file will be
                                 set to reflect this). \\
 \qkw{tiff:write_exif} & int & If zero, will not write any Exif data to the
                             TIFF file. (The default is 1.) \\
-
+\qkw{tiff:half} & int & If nonzero, allow writing TIFF files with `half'
+                (16 bit float) pixels. The default of 0 will automatically
+                translate to float pixels, since most non-OIIO applications
+                will not properly read half TIFF files despite their
+                being legal. \\
 \qkws{tiff:ColorSpace} & string & Requests that the file be
                         saved with a non-RGB color spaces.
                         Choices are \qkw{RGB}, \qkw{CMYK}.
                         % , \qkw{YCbCr}, \qkw{CIELAB}, \qkw{ICCLAB}, \qkw{ITULAB}
 \end{tabular}
 
-
+\newpage
 \subsubsection*{TIFF compression modes}
 
 \noindent The full list of possible TIFF compression mode values are as

@@ -1326,6 +1326,11 @@ OIIO_API std::string geterror ();
 ///             The default is 0 for release builds, 1 for DEBUG builds,
 ///             but also may be overridden by the OPENIMAGEIO_DEBUG env
 ///             variable.
+///     int tiff:half
+///             When nonzero, allows TIFF to write 'half' pixel data.
+///             N.B. Most apps may not read these correctly, but OIIO will.
+///             That's why the default is not to support it.
+///
 OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
 // Shortcuts for common types
 inline bool attribute (string_view name, int val) {
