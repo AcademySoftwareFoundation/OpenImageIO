@@ -95,23 +95,12 @@ const float *convert_to_float (const void *src, float *dst, int nvals,
 const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 long long quant_min, long long quant_max,
                                 TypeDesc format);
-/// DEPRECATED (1.4)
-const void *convert_from_float (const float *src, void *dst, size_t nvals,
-                                long long quant_black, long long quant_white,
-                                long long quant_min, long long quant_max,
-                                TypeDesc format);
 
 /// A version of convert_from_float that will break up big jobs with
 /// multiple threads.
 const void *parallel_convert_from_float (const float *src, void *dst,
                                          size_t nvals,
                                          TypeDesc format, int nthreads=0);
-/// DEPRECATED (1.4)
-const void *parallel_convert_from_float (const float *src, void *dst,
-                                         size_t nvals,
-                                         long long quant_black, long long quant_white,
-                                         long long quant_min, long long quant_max,
-                                         TypeDesc format, int nthreads=0) ;
 
 }  // namespace pvt
 

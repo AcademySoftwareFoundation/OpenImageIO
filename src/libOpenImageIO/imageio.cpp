@@ -438,18 +438,6 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 }
 
 
-// DEPRECATED (1.4)
-const void *
-pvt::convert_from_float (const float *src, void *dst, size_t nvals,
-                         long long quant_black, long long quant_white,
-                         long long quant_min, long long quant_max,
-                         TypeDesc format)
-{
-    return convert_from_float (src, dst, nvals, quant_min, quant_max, format);
-}
-
-
-
 const void *
 pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
                                   TypeDesc format, int nthreads)
@@ -484,19 +472,6 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
     }
     threads.join_all ();
     return dst;
-}
-
-
-
-// DEPRECATED (1.4)
-const void *
-pvt::parallel_convert_from_float (const float *src, void *dst,
-                                  size_t nvals,
-                                  long long quant_black, long long quant_white,
-                                  long long quant_min, long long quant_max,
-                                  TypeDesc format, int nthreads)
-{
-    return parallel_convert_from_float (src, dst, nvals, format, nthreads);
 }
 
 
@@ -552,17 +527,6 @@ convert_types (TypeDesc src_type, const void *src,
 
 
 
-// Deprecated version -- keep for link compatibiity
-bool
-convert_types (TypeDesc src_type, const void *src, 
-               TypeDesc dst_type, void *dst, int n,
-               int alpha_channel, int z_channel)
-{
-    return convert_types (src_type, src, dst_type, dst, n);
-}
-
-
-
 bool
 convert_image (int nchannels, int width, int height, int depth,
                const void *src, TypeDesc src_type,
@@ -599,14 +563,12 @@ convert_image (int nchannels, int width, int height, int depth,
                 // unit.  (Note that within convert_types, a memcpy will
                 // be used if the formats are identical.)
                 result &= convert_types (src_type, f, dst_type, t,
-                                         nchannels*width,
-                                         alpha_channel, z_channel);
+                                         nchannels*width);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
                     result &= convert_types (src_type, f, dst_type, t,
-                                             nchannels,
-                                             alpha_channel, z_channel);
+                                             nchannels);
                     f += src_xstride;
                     t += dst_xstride;
                 }
