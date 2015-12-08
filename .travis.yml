@@ -60,10 +60,12 @@ before_install:
 
 install:
     - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
+    - export USE_CCACHE=1
+    - export CCACHE_CPP2=1
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           src/build-scripts/install_homebrew_deps.bash ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
-          CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
+          CXX="ccache $CXX" src/build-scripts/build_openexr.bash ;
           export ILMBASE_HOME=$PWD/openexr-install ;
           export OPENEXR_HOME=$PWD/openexr-install ;
       fi
