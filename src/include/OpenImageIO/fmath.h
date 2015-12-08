@@ -1428,11 +1428,5 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
 ////////////////////////////////////////////////////////////////////////////
 
 
-// DEPRECATED(1.5) - Some back-compatibility, will remove soon
-inline float safe_sqrtf (float x) { return safe_sqrt(x); }
-inline float safe_acosf (float x) { return safe_acos(x); }
-inline float fast_expf (float x) { return fast_exp(x); }
-
-
 
 OIIO_NAMESPACE_END

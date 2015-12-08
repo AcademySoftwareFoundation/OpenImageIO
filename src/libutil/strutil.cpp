@@ -648,14 +648,6 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
 
 
 bool
-Strutil::parse_string (string_view &str, string_view &val, bool eat)
-{
-    return parse_string (str, val, eat, DeleteQuotes);
-}
-
-
-
-bool
 Strutil::parse_string (string_view &str, string_view &val,
                        bool eat, QuoteBehavior keep_quotes)
 {

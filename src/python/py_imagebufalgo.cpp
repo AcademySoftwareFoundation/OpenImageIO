@@ -308,15 +308,6 @@ IBA_flop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
 
 bool
-IBA_flipflop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
-{
-    ScopedGILRelease gil;
-    return ImageBufAlgo::flipflop (dst, src, roi, nthreads);
-}
-
-
-
-bool
 IBA_reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1290,11 +1281,6 @@ void declare_imagebufalgo()
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flop")
-
-        .def("flipflop", IBA_rotate180,
-             (arg("dst"), arg("src"),
-              arg("roi")=ROI::All(), arg("nthreads")=0))
-        .staticmethod("flipflop")
 
         .def("reorient", IBA_reorient,
              (arg("dst"), arg("src"), arg("nthreads")=0))

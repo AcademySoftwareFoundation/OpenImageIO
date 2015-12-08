@@ -405,14 +405,6 @@ ImageBufAlgo::rotate180 (ImageBuf &dst, const ImageBuf &src,
 }
 
 
-bool
-ImageBufAlgo::flipflop (ImageBuf &dst, const ImageBuf &src,
-                        ROI roi, int nthreads)
-{
-    return rotate180 (dst, src, roi, nthreads);
-}
-
-
 
 template<class D, class S>
 static bool

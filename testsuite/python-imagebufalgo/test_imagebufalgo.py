@@ -139,11 +139,6 @@ try:
     ImageBufAlgo.flop (b, ImageBuf("../oiiotool/image.tif"))
     write (b, "flop.tif")
 
-    # flipflop
-    b = ImageBuf()
-    ImageBufAlgo.flipflop (b, ImageBuf("../oiiotool/image.tif"))
-    write (b, "flipflop.tif")
-
     # reorient
     b = ImageBuf()
     image_small = ImageBuf()

@@ -143,7 +143,7 @@ public:
     }
     static float gauss1d (float x) {
         x = fabsf(x);
-        return (x < 1.0f) ? fast_expf (-2.0f * (x*x)) : 0.0f;
+        return (x < 1.0f) ? fast_exp (-2.0f * (x*x)) : 0.0f;
     }
     string_view name (void) const { return "gaussian"; }
 private:
@@ -185,7 +185,7 @@ public:
     }
     static float gauss1d (float x) {
         x = fabsf(x);
-        return (x < 1.0f) ? fast_expf (-4.0f * (x*x)) : 0.0f;
+        return (x < 1.0f) ? fast_exp (-4.0f * (x*x)) : 0.0f;
     }
     string_view name (void) const { return "gaussian"; }
 private:

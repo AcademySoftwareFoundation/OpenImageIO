@@ -403,8 +403,8 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     Imath::V3f Rx = _R + _dRdx;  Rx.normalize();  // x axis of the ellipse
     Imath::V3f Ry = _R + _dRdy;  Ry.normalize();  // y axis of the ellipse
     // angles formed by the ellipse axes.
-    float xfilt_noblur = std::max (safe_acosf(R.dot(Rx)), 1e-8f);
-    float yfilt_noblur = std::max (safe_acosf(R.dot(Ry)), 1e-8f);
+    float xfilt_noblur = std::max (safe_acos(R.dot(Rx)), 1e-8f);
+    float yfilt_noblur = std::max (safe_acos(R.dot(Ry)), 1e-8f);
     int naturalres = int((float)M_PI / std::min (xfilt_noblur, yfilt_noblur));
     // FIXME -- figure naturalres sepearately for s and t
     // FIXME -- ick, why is it x and y at all, shouldn't it be s and t?

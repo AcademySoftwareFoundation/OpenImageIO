@@ -389,9 +389,6 @@ bool OIIO_API rotate90 (ImageBuf &dst, const ImageBuf &src,
 /// message set in dst).
 bool OIIO_API rotate180 (ImageBuf &dst, const ImageBuf &src,
                          ROI roi=ROI::All(), int nthreads=0);
-/// DEPRECATED(1.5) synonym for rotate180.
-bool OIIO_API flipflop (ImageBuf &dst, const ImageBuf &src,
-                        ROI roi=ROI::All(), int nthreads=0);
 
 /// Copy src to dst, but with the image pixels rotated 90 degrees
 /// clockwise. In other words,

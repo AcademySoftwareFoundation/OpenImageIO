@@ -1351,12 +1351,12 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     double Cprime = (A + C + root) * 0.5;
 #if 0
     double F = A*C - B*B*0.25;
-    majorlength = std::min(safe_sqrtf (F / Aprime), 1000.0f);
-    minorlength = std::min(safe_sqrtf (F / Cprime), 1000.0f);
+    majorlength = std::min(safe_sqrt (float(F / Aprime)), 1000.0f);
+    minorlength = std::min(safe_sqrt (float(F / Cprime)), 1000.0f);
 #else
     // Wolfram says that this is equivalent to:
-    majorlength = std::min (safe_sqrtf(Cprime), 1000.0f);
-    minorlength = std::min (safe_sqrtf(Aprime), 1000.0f);
+    majorlength = std::min (safe_sqrt(float(Cprime)), 1000.0f);
+    minorlength = std::min (safe_sqrt(float(Aprime)), 1000.0f);
 #endif
 #ifdef TEX_FAST_MATH
     theta = fast_atan2 (B, A-C) * 0.5f + float(M_PI_2);

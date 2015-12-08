@@ -410,10 +410,8 @@ enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// found at the beginning of str, return false and don't modify val or str.
 /// If keep_quotes is true, the surrounding double quotes (if present)
 /// will be kept in val.
-bool OIIO_API parse_string (string_view &str, string_view &val, bool eat/*=true*/,
-                            QuoteBehavior keep_quotes/*=DeleteQuotes*/);
-// DEPRECATED (1.5)
-bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true);
+bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true,
+                            QuoteBehavior keep_quotes=DeleteQuotes);
 
 /// Return the first "word" (set of contiguous alphabetical characters) in
 /// str, and additionally modify str to skip over the parsed word if eat is

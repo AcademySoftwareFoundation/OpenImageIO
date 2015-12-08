@@ -58,8 +58,6 @@ Comparing "flip.tif" and "../../../../testsuite/oiiotool/ref/flip.tif"
 PASS
 Comparing "flop.tif" and "../../../../testsuite/oiiotool/ref/flop.tif"
 PASS
-Comparing "flipflop.tif" and "../../../../testsuite/oiiotool/ref/flipflop.tif"
-PASS
 Comparing "reorient1.tif" and "../../../../testsuite/oiiotool/ref/reorient1.tif"
 PASS
 Comparing "transpose.tif" and "../../../../testsuite/oiiotool/ref/transpose.tif"
