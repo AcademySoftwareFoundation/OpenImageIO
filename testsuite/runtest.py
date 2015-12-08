@@ -259,6 +259,9 @@ def runtest (command, outputs, failureok=0) :
             err = 1
             print ("NO MATCH for " + out)
             print ("FAIL " + out)
+            if extension == ".txt" :
+                print ("-----" + out + "----->")
+                print (open(out,'r').read() + "<----------")
 
     return (err)
 
