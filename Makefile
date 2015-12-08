@@ -259,6 +259,10 @@ ifneq (${TEST},)
 TEST_FLAGS += -R ${TEST}
 endif
 
+ifneq (${USE_CCACHE},)
+MY_CMAKE_FLAGS += -DUSE_CCACHE:BOOL=${USE_CCACHE}
+endif
+
 ifeq (${USE_NINJA},1)
 MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
@@ -403,6 +407,7 @@ help:
 	@echo "      USE_LIBCPLUSPLUS=1       Use clang libc++"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
+	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "  Linking and libraries:"
 	@echo "      HIDE_SYMBOLS=1           Hide symbols not in the public API"
 	@echo "      SOVERSION=nn             Include the specifed major version number "

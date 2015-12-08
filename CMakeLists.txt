@@ -156,13 +156,6 @@ if (EXISTS "/usr/lib/libc++.dylib")
     set (OSL_SYSTEM_HAS_LIBCPP ON)
 endif ()
 
-# Use ccache if found
-find_program (CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-    set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif ()
-
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
@@ -209,6 +202,19 @@ set (OIIO_BUILD_CPP14 OFF CACHE BOOL "Compile in C++14 mode")
 set (OIIO_BUILD_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2)")
+set (USE_CCACHE ON CACHE BOOL "Use ccache if found")
+
+# Use ccache if found
+find_program (CCACHE_FOUND ccache)
+if (CCACHE_FOUND AND USE_CCACHE)
+    if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
+        message (STATUS "Ignoring ccache because clang + Qt + env CCACHE_CPP2 is not set")
+    else ()
+        set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+    endif ()
+endif ()
+
 
 if (BUILDSTATIC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # On Linux, the lack of -fPIC when building static libraries seems
