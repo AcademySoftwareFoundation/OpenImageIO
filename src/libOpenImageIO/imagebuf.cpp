@@ -1311,6 +1311,9 @@ ImageBuf::copy_pixels (const ImageBuf &src)
     if (this == &src)
         return true;
 
+    if (deep() || src.deep())
+        return false;   // This operation is not supported for deep images
+
     // compute overlap
     ROI myroi = get_roi(spec());
     ROI roi = roi_intersection (myroi, get_roi(src.spec()));
@@ -1337,7 +1340,12 @@ ImageBuf::copy (const ImageBuf &src, TypeDesc format)
         clear();
         return true;
     }
-    if (format.basetype == TypeDesc::UNKNOWN)
+    if (src.deep()) {
+        reset (src.name(), src.spec());
+        impl()->m_deepdata = src.impl()->m_deepdata;
+        return true;
+    }
+    if (format.basetype == TypeDesc::UNKNOWN || src.deep())
         reset (src.name(), src.spec());
     else {
         ImageSpec newspec (src.spec());
