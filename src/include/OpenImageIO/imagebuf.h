@@ -1245,12 +1245,6 @@ protected:
     ImageBufImpl * impl () { return m_impl; }
     const ImageBufImpl * impl () const { return m_impl; }
 
-    // Copy src's pixels into *this.  Pixels must already be local
-    // (either owned or wrapped) and the resolution and number of
-    // channels must match src.  Data type is allowed to be different,
-    // however, with automatic conversion upon copy.
-    void copy_from (const ImageBuf &src);
-
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile.
