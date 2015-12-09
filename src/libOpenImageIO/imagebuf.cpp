@@ -669,31 +669,6 @@ ImageBufImpl::alloc (const ImageSpec &spec)
 
 
 
-void
-ImageBuf::copy_from (const ImageBuf &src)
-{
-    if (this == &src)
-        return;
-    const ImageBufImpl *srcimpl (src.impl());
-    srcimpl->validate_pixels ();
-    const ImageSpec &srcspec (srcimpl->spec());
-    ImageBufImpl *impl (this->impl());
-    const ImageSpec &spec (impl->spec());
-    ASSERT (spec.width == srcspec.width &&
-            spec.height == srcspec.height &&
-            spec.depth == srcspec.depth &&
-            spec.nchannels == srcspec.nchannels);
-    impl->realloc ();
-    if (spec.deep)
-        impl->m_deepdata = srcimpl->m_deepdata;
-    else
-        src.get_pixels (src.xbegin(), src.xend(), src.ybegin(), src.yend(),
-                        src.zbegin(), src.zend(), spec.format,
-                        impl->m_localpixels);
-}
-
-
-
 bool
 ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
 {
