@@ -50,6 +50,12 @@ failthresh = 0.004
 hardfail = 0.01
 failpercent = 0.02
 
+if "TRAVIS" in os.environ and os.environ["TRAVIS"] :
+    failthresh *= 2.0
+    hardfail *= 2.0
+    failpercent *= 2.0
+
+
 #print ("srcdir = " + srcdir)
 #print ("tmpdir = " + tmpdir)
 #print ("path = " + path)
@@ -84,6 +90,10 @@ def text_diff (fromfile, tofile, diff_file=None):
     if diff_file:
         try:
             open (diff_file, 'w').writelines (diff_lines)
+
+            print ("Diff " + fromfile + " vs " + tofile + " was:\n-------")
+#            print (diff)
+            print ("".join(diff_lines))
         except:
             print ("Unexpected error:", sys.exc_info()[0])
     return 1
@@ -260,8 +270,16 @@ def runtest (command, outputs, failureok=0) :
             print ("NO MATCH for " + out)
             print ("FAIL " + out)
             if extension == ".txt" :
+                # If we failed to get a match for a text file, print the
+                # file and the diff, for easy debugging.
                 print ("-----" + out + "----->")
                 print (open(out,'r').read() + "<----------")
+                print ("Diff was:\n-------")
+                print (open (out+".diff", 'rU').read())
+            if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
+                # If we failed to get a match for an image, send the idiff
+                # results to the console
+                os.system (diff_command (out, os.path.join ("ref", out), silent=True))
 
     return (err)
 
