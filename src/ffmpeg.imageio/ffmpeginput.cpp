@@ -44,6 +44,7 @@ extern "C" { // ffmpeg is a C api
 #include <boost/thread/once.hpp>
 
 #include "OpenImageIO/imageio.h"
+#include  <iostream>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -84,7 +85,10 @@ private:
     int m_last_search_pos;
     int m_last_decoded_pos;
     bool m_offset_time;
+    bool m_codec_cap_delay;
     bool m_read_frame;
+    int64_t m_start_time;
+
     // init to initialize state
     void init (void) {
         m_filename.clear ();
@@ -102,6 +106,9 @@ private:
         m_last_decoded_pos = 0;
         m_offset_time = true;
         m_read_frame = false;
+        m_codec_cap_delay = false;
+        m_subimage = 0;
+        m_start_time=0;
     }
 };
 
@@ -206,29 +213,31 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         !strcmp (m_codec_context->codec->name, "dvvideo")) {
         m_offset_time = false;
     }
+
+    m_codec_cap_delay = m_codec_context->codec->capabilities & CODEC_CAP_DELAY ;
+
     AVStream *stream = m_format_context->streams[m_video_stream];
     if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
         m_frame_rate = stream->r_frame_rate;
     }
-    if (static_cast<int64_t>(m_format_context->duration) != int64_t(AV_NOPTS_VALUE)) {
-        m_frames = static_cast<uint64_t> ((fps() * static_cast<double>(m_format_context->duration) / 
-                                                   static_cast<uint64_t>(AV_TIME_BASE)));
-    } else {
-        m_frames = 1 << 29;
-    }
-    AVPacket pkt;
+
+    m_frames = stream->nb_frames;
+    m_start_time = stream->start_time;
+
     if (!m_frames) {
+
         seek (0);
+        AVPacket pkt;
         av_init_packet (&pkt);
         av_read_frame (m_format_context, &pkt);
-        uint64_t first_pts = pkt.pts;
-        uint64_t max_pts = first_pts;
+        int64_t first_pts = pkt.pts;
+        int64_t max_pts = 0 ;
         seek (1 << 29);
         av_init_packet (&pkt);
         while (stream && av_read_frame (m_format_context, &pkt) >= 0) {
-            uint64_t current_pts = static_cast<uint64_t> (av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
+            int64_t current_pts = static_cast<int64_t> (av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
             if (current_pts > max_pts) {
-                max_pts = current_pts;
+                max_pts = current_pts +1;
             }
         }
         m_frames = max_pts;
@@ -330,32 +339,33 @@ FFmpegInput::close (void)
 
 
 void
-FFmpegInput::read_frame(int pos)
+FFmpegInput::read_frame(int frame)
 {
-    if (m_last_decoded_pos + 1 != m_subimage) {
-        seek (0);
-        seek (m_subimage);
+    if (m_last_decoded_pos + 1 != frame ) {
+        seek (frame);
     }
     AVPacket pkt;
     int finished = 0;
-    while (av_read_frame (m_format_context, &pkt) >=0) {
+    int ret = 0;
+    while ((ret = av_read_frame (m_format_context, &pkt)) == 0 || m_codec_cap_delay ) {
         if (pkt.stream_index == m_video_stream) {
+            if (ret < 0 && m_codec_cap_delay) {
+                pkt.data = NULL;
+                pkt.size = 0;
+            }
+
+            avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
+
             double pts = 0;
-            if (static_cast<int64_t>(pkt.dts) != int64_t(AV_NOPTS_VALUE)) {
-                pts = av_q2d (m_format_context->streams[m_video_stream]->time_base) * pkt.dts;
+            if (static_cast<int64_t>(m_frame->pkt_pts) != int64_t(AV_NOPTS_VALUE)) {
+                pts = av_q2d (m_format_context->streams[m_video_stream]->time_base) *  m_frame->pkt_pts;
             }
-            int current_pos = int(pts * fps() + 0.5f);
-            if (current_pos == m_last_search_pos) {
-                current_pos = m_last_search_pos + 1;
-            }
-            m_last_search_pos = current_pos;
-            if (static_cast<int64_t>(m_format_context->start_time) != int64_t(AV_NOPTS_VALUE)) {
-                current_pos -= static_cast<int> (m_format_context->start_time * fps() / AV_TIME_BASE);
-            }
-            if (current_pos >= m_subimage) {
-                avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
-            }
-            if(finished)
+
+            int current_frame = int((pts-m_start_time) * fps() + 0.5f); //??? 
+            //current_frame =   m_frame->display_picture_number;
+            m_last_search_pos = current_frame;
+
+            if( current_frame == frame && finished)
             {
                 avpicture_fill
                 (
@@ -375,7 +385,7 @@ FFmpegInput::read_frame(int pos)
                     m_rgb_frame->data,
                     m_rgb_frame->linesize
                 );
-                m_last_decoded_pos = m_last_search_pos; 
+                m_last_decoded_pos = current_frame; 
                 av_free_packet (&pkt);
                 break;
             }
@@ -408,30 +418,23 @@ FFmpegInput::has_metadata (const char * key)
 
 
 bool
-FFmpegInput::seek (int pos)
+FFmpegInput::seek (int frame)
 {
-    int64_t offset = time_stamp (pos);
-    if (m_offset_time) {
-        offset -= AV_TIME_BASE;
-        if (offset < m_format_context->start_time) {
-            offset = 0;
-        }
-    }
+    int64_t offset = time_stamp (frame);
+    int flags = AVSEEK_FLAG_BACKWARD;
     avcodec_flush_buffers (m_codec_context);
-    if (av_seek_frame (m_format_context, -1, offset, AVSEEK_FLAG_BACKWARD) < 0) {
-        return false;
-    }
+    av_seek_frame (m_format_context, -1, offset, flags );
     return true;
 }
 
 
 
 int64_t
-FFmpegInput::time_stamp(int pos) const
+FFmpegInput::time_stamp(int frame) const
 {
-    int64_t timestamp = static_cast<int64_t>((static_cast<double> (pos) / fps()) * AV_TIME_BASE);
+    int64_t timestamp = static_cast<int64_t>((static_cast<double> (frame) / (fps() * av_q2d(m_format_context->streams[m_video_stream]->time_base))) );
     if (static_cast<int64_t>(m_format_context->start_time) != int64_t(AV_NOPTS_VALUE)) {
-        timestamp += m_format_context->start_time;
+        timestamp += static_cast<int64_t>(static_cast<double> (m_format_context->start_time)*AV_TIME_BASE/av_q2d(m_format_context->streams[m_video_stream]->time_base));
     }
     return timestamp;
 }
@@ -442,7 +445,7 @@ double
 FFmpegInput::fps() const
 {
     if (m_frame_rate.den) {
-        return m_frame_rate.num / static_cast<double> (m_frame_rate.den);
+        return av_q2d(m_frame_rate);
     }
     return 1.0f;
 }
