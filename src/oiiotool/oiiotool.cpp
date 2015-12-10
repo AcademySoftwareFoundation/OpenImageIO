@@ -1762,20 +1762,41 @@ action_select_subimage (int argc, const char *argv[])
     if (ot.postpone_callback (1, action_select_subimage, argc, argv))
         return 0;
     Timer timer (ot.enable_function_timing);
-    string_view command = ot.express (argv[0]);
-    int subimage = Strutil::from_string<int> (ot.express(argv[1]));
-
     ot.read ();
-    if (subimage < 0 || subimage >= ot.curimg->subimages()) {
-        ot.error (command,
-                 Strutil::format ("Invalid -subimage (%d): %s has %d subimage%s",
-                                  subimage, ot.curimg->name(), ot.curimg->subimages(),
-                                  ot.curimg->subimages() == 1 ? "" : "s"));
-        return 0;
+
+    string_view command = ot.express (argv[0]);
+    int subimage = 0;
+    std::string whichsubimage = ot.express(argv[1]);
+    string_view w (whichsubimage);
+    if (Strutil::parse_int (w, subimage) && w.empty()) {
+        // Subimage specification was an integer: treat as an index
+        if (subimage < 0 || subimage >= ot.curimg->subimages()) {
+            ot.error (command,
+                     Strutil::format ("Invalid -subimage (%d): %s has %d subimage%s",
+                                      subimage, ot.curimg->name(), ot.curimg->subimages(),
+                                      ot.curimg->subimages() == 1 ? "" : "s"));
+            return 0;
+        }
+    } else {
+        // The subimage specification wasn't an integer. Assume it's a name.
+        subimage = -1;
+        for (int i = 0, n = ot.curimg->subimages(); i < n; ++i) {
+            string_view siname = ot.curimg->spec(i)->get_string_attribute("oiio:subimagename");
+            if (siname == whichsubimage) {
+                subimage = i;
+                break;
+            }
+        }
+        if (subimage < 0) {
+            ot.error (command,
+                     Strutil::format ("Invalid -subimage (%s): named subimage not found",
+                                      whichsubimage));
+            return 0;
+        }
     }
 
-    if (ot.curimg->subimages() == 1)
-        return 0;    // --subimage on a single-image file is a no-op
+    if (ot.curimg->subimages() == 1 && subimage == 0)
+        return 0;    // asking for the only subimage is a no-op
     
     ImageRecRef A = ot.pop();
     ot.push (new ImageRec (*A, subimage));
@@ -4118,7 +4139,7 @@ getargs (int argc, char *argv[])
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
-                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
+                "--subimage %@ %s", action_select_subimage, NULL, "Select just one subimage (by index or name)",
                 "--sisplit %@", action_subimage_split, NULL,
                     "Split the top image's subimges into separate images",
                 "--siappend %@", action_subimage_append, NULL,
