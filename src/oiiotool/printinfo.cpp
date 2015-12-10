@@ -49,6 +49,7 @@
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/hash.h"
 #include "OpenImageIO/fmath.h"
+#include "OpenImageIO/array_view.h"
 #include "oiiotool.h"
 
 OIIO_NAMESPACE_USING;
@@ -72,8 +73,8 @@ print_sha1 (ImageInput *input)
             return;
         }
         // Hash both the sample counts and the data block
-        sha.appendvec (dd.nsamples);
-        sha.appendvec (dd.data);
+        sha.append (dd.all_nsamples());
+        sha.append (dd.all_data());
     } else {
         imagesize_t size = input->spec().image_bytes (true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
@@ -110,7 +111,7 @@ dump_data (ImageInput *input, const print_info_options &opt)
         for (int z = 0, pixel = 0;  z < spec.depth;  ++z) {
             for (int y = 0;  y < spec.height;  ++y) {
                 for (int x = 0;  x < spec.width;  ++x, ++pixel) {
-                    int nsamples = dd.nsamples[pixel];
+                    int nsamples = dd.samples(pixel);
                     if (nsamples == 0 && ! opt.dumpdata_showempty)
                         continue;
                     std::cout << "    Pixel (";
@@ -127,8 +128,8 @@ dump_data (ImageInput *input, const print_info_options &opt)
                             std::cout << " / ";
                         for (int c = 0;  c < nc;  ++c) {
                             std::cout << " " << spec.channelnames[c] << "=";
-                            if (dd.channeltypes[c] == TypeDesc::UINT)
-                                std::cout << ((uint32_t *)dd.pointers[pixel*dd.nchannels+c])[s];
+                            if (dd.channeltype(c) == TypeDesc::UINT)
+                                std::cout << dd.deep_value_uint(pixel, c, s);
                             else
                                 std::cout << dd.deep_value (pixel, c, s);
                         }
@@ -324,7 +325,7 @@ print_stats (Oiiotool &ot,
     
     if (input.deep()) {
         const DeepData *dd (input.deepdata());
-        size_t npixels = dd->nsamples.size();
+        size_t npixels = dd->pixels();
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
         size_t maxsamples_npixels = 0;

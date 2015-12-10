@@ -43,7 +43,7 @@ DeepData_init (DeepData &dd, int npix, int nchan, tuple p)
     std::vector<TypeDesc> chantypes;
     py_to_stdvector (chantypes, p);
     ScopedGILRelease gil;
-    dd.init (npix, nchan, &(*chantypes.begin()), &(*chantypes.end()));
+    dd.init (npix, nchan, chantypes);
 }
 
 
@@ -94,11 +94,10 @@ DeepData_set_deep_value_uint (DeepData &dd, int pixel,
 void declare_deepdata()
 {
     class_<DeepData>("DeepData")
-        .def_readonly ("npixels",      &DeepData::npixels)
-        .def_readonly ("nchannels",    &DeepData::nchannels)
-        .def_readwrite("nsamples",     &DeepData::nsamples)
-        .def_readonly ("pixels",       &DeepData::npixels)
-        .def_readonly ("channels",     &DeepData::nchannels)
+        .def_readonly ("npixels",    &DeepData::pixels)   //DEPRECATED(1.7)
+        .def_readonly ("nchannels",  &DeepData::channels) //DEPRECATED(1.7)
+        .def_readonly ("pixels",     &DeepData::pixels)
+        .def_readonly ("channels",   &DeepData::channels)
 
         .def("init",  &DeepData_init)
         .def("init",  &DeepData_init_spec)

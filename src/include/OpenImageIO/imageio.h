@@ -59,6 +59,7 @@
 #include "platform.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
+#include "array_view.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -395,17 +396,19 @@ public:
 /// Structure to hold "deep" data -- multiple samples per pixel.
 struct OIIO_API DeepData {
 public:
-    int npixels, nchannels;
-    std::vector<TypeDesc> channeltypes;  // for each channel [c]
-    std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
-    std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
-    std::vector<char> data;          // for each sample [z][y][x][c][s]
-
     /// Construct an empty DeepData.
-    DeepData () : npixels(0), nchannels(0) { }
+    DeepData ();
 
     /// Construct and init from an ImageSpec.
-    DeepData (const ImageSpec &spec) {init (spec); }
+    DeepData (const ImageSpec &spec);
+
+    /// Copy constructor
+    DeepData (const DeepData &d);
+
+    ~DeepData ();
+
+    /// Copy assignment
+    const DeepData& operator= (const DeepData &d);
 
     /// Clear the vectors and reset size to 0.
     void clear ();
@@ -414,9 +417,7 @@ public:
 
     /// Initialize size and allocate nsamples, pointers. It is important to
     /// completely fill in nsamples after init() but before alling alloc().
-    /// DEPRECATED
-    void init (int npix, int nchan,
-               const TypeDesc *chbegin, const TypeDesc *chend);
+    void init (int npix, int nchan, array_view<const TypeDesc> channeltypes);
 
     /// Initialize size and allocate nsamples, pointers based on the number
     /// of pixels, channels, and channel types in the ImageSpec. It is
@@ -425,11 +426,11 @@ public:
     void init (const ImageSpec &spec);
 
     /// Retrieve the total number of pixels.
-    int pixels () const { return npixels; }
+    int pixels () const;
     /// Retrieve the number of channels.
-    int channels () const { return nchannels; }
+    int channels () const;
     /// Retrieve the channel type of channel c.
-    TypeDesc channeltype (int c) const { return channeltypes[c]; }
+    TypeDesc channeltype (int c) const;
 
     /// Retrieve the number of samples for the given pixel index.
     int samples (int pixel) const;
@@ -459,6 +460,15 @@ public:
     /// Use with care.
     void *channel_ptr (int pixel, int channel);
     const void *channel_ptr (int pixel, int channel) const;
+
+    array_view<const unsigned int> all_nsamples () const;
+    array_view<const char> all_data () const;
+    void * const * all_pointers () const;  // Caution: expect deprecation
+
+private:
+    class Impl;
+    Impl *m_impl;  // holds all the nontrivial stuff
+    int m_npixels, m_nchannels;
 };
 
 

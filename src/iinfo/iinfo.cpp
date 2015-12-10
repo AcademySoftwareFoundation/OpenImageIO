@@ -79,8 +79,8 @@ print_sha1 (ImageInput *input)
             return;
         }
         // Hash both the sample counds and the data block
-        sha.appendvec (dd.nsamples);
-        sha.appendvec (dd.data);
+        sha.append (dd.all_nsamples());
+        sha.append (dd.all_data());
     } else {
         imagesize_t size = input->spec().image_bytes (true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
@@ -256,11 +256,11 @@ print_stats (const std::string &filename,
 
     if (input.deep()) {
         const DeepData *dd (input.deepdata());
-        size_t npixels = dd->nsamples.size();
+        size_t npixels = dd->pixels();
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
         for (size_t p = 0;  p < npixels;  ++p) {
-            size_t c = dd->nsamples[p];
+            size_t c = dd->samples(p);
             totalsamples += c;
             if (c > maxsamples)
                 maxsamples = c;

@@ -1176,11 +1176,11 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[chbegin],
-                       &channeltypes[chend]);
+        deepdata.init (npixels, nchans,
+                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
+                               (char *)(deepdata.all_nsamples().data()
                                         - m_spec.x
                                         - ybegin*m_spec.width),
                                sizeof(unsigned int),
@@ -1188,7 +1188,7 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         frameBuffer.insertSampleCountSlice (countslice);
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(&deepdata.pointers[c-chbegin]
+                                  (char *)(deepdata.all_pointers()+(c-chbegin)
                                            - m_spec.x * nchans
                                            - ybegin*m_spec.width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
@@ -1245,11 +1245,11 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[chbegin],
-                       &channeltypes[chend]);
+        deepdata.init (npixels, nchans,
+                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
+                               (char *)(deepdata.all_nsamples().data()
                                         - xbegin
                                         - ybegin*width),
                                sizeof(unsigned int),
@@ -1257,7 +1257,7 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         frameBuffer.insertSampleCountSlice (countslice);
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(&deepdata.pointers[c-chbegin]
+                                  (char *)(deepdata.all_pointers()+(c-chbegin)
                                            - xbegin*nchans
                                            - ybegin*width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array

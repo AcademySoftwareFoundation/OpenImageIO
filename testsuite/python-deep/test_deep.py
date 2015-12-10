@@ -14,28 +14,28 @@ print "test_chantypes ", str(test_chantypes[0]), str(test_chantypes[1]), str(tes
 def make_test_deep_image () :
     dd = oiio.DeepData()
     dd.init (test_xres*test_yres, test_nchannels, test_chantypes)
-    for p in range(dd.npixels) :
+    for p in range(dd.pixels) :
         if p&1 :
             dd.set_samples (p, p)
     dd.alloc()
-    for p in range(dd.npixels) :
+    for p in range(dd.pixels) :
         ns = dd.samples(p)
         for s in range(ns) :
-            for c in range(dd.nchannels) :
+            for c in range(dd.channels) :
                 dd.set_deep_value (p, c, s, c*10+s+p/10.0)
     return dd
 
 
 
 def print_deep_image (dd) :
-    print "After init, dd has", dd.npixels, "pixels,", dd.nchannels, "channels."
-    for p in range(dd.npixels) :
+    print "After init, dd has", dd.pixels, "pixels,", dd.channels, "channels."
+    for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 0 :
             print "  Nsamples[", p, "] =", ns, "samples:"
             for s in range(ns) :
                 print "  sample", s, ": ",
-                for c in range(dd.nchannels) :
+                for c in range(dd.channels) :
                     print "[%d] %.2f / " % (c, dd.deep_value (p, c, s)),
                 print
 

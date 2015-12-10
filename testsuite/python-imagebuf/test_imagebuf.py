@@ -147,7 +147,7 @@ try:
             print "Pixel", p/deepbufin_spec.width, p%deepbufin_spec.width, "had", ns, "samples"
             for s in range(ns) :
                 print "Sample", s
-                for c in range(dd.nchannels) :
+                for c in range(dd.channels) :
                     print "\tc", c, ":", dd.deep_value(p,c,s)
 
     print "\nDone."

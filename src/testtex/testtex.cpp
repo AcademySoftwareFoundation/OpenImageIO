@@ -95,7 +95,7 @@ static int interpmode = TextureOpt::InterpSmartBicubic;
 static float missing[4] = {-1, 0, 0, 1};
 static float fill = -1;  // -1 signifies unset
 static float scalefactor = 1.0f;
-static Imath::V3f offset (0,0,0);
+static Imath::V3f texoffset (0,0,0);
 static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
@@ -168,7 +168,7 @@ getargs (int argc, const char *argv[])
                   "--ctr", &test_construction, "Test TextureOpt construction time",
                   "--gettexels", &test_gettexels, "Test TextureSystem::get_texels",
                   "--getimagespec", &test_getimagespec, "Test TextureSystem::get_imagespec",
-                  "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
+                  "--offset %f %f %f", &texoffset[0], &texoffset[1], &texoffset[2], "Offset texture coordinates",
                   "--scalest %f %f", &sscale, &tscale, "Scale texture lookups (s, t)",
                   "--cachesize %f", &cachesize, "Set cache size, in MB",
                   "--nodedup %!", &dedup, "Turn off de-duplication",
@@ -344,7 +344,7 @@ warp_coord (float x, float y)
     Imath::V2f coord = warp (x/output_xres, y/output_yres, xform);
     coord.x *= sscale;
     coord.y *= tscale;
-    coord += Imath::V2f(offset.x, offset.y);
+    coord += Imath::V2f(texoffset.x, texoffset.y);
     return coord;
 }
 
@@ -355,8 +355,8 @@ static void
 map_default (int x, int y, float &s, float &t,
              float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
-    s = float(x+0.5f)/output_xres * sscale + offset[0];
-    t = float(y+0.5f)/output_yres * tscale + offset[1];
+    s = float(x+0.5f)/output_xres * sscale + texoffset[0];
+    t = float(y+0.5f)/output_yres * tscale + texoffset[1];
     dsdx = 1.0f/output_xres * sscale;
     dtdx = 0.0f;
     dsdy = 0.0f;
@@ -452,7 +452,7 @@ map_default_3D (int x, int y, Imath::V3f &P,
     P[0] = (float)(x+0.5f)/output_xres * sscale;
     P[1] = (float)(y+0.5f)/output_yres * tscale;
     P[2] = 0.5f * sscale;
-    P += offset;
+    P += texoffset;
     dPdx[0] = 1.0f/output_xres * sscale;
     dPdx[1] = 0;
     dPdx[2] = 0;
@@ -473,19 +473,19 @@ map_warp_3D (int x, int y, Imath::V3f &P,
                              0.5, xform);
     coord.x *= sscale;
     coord.y *= tscale;
-    coord += offset;
+    coord += texoffset;
     Imath::V3f coordx = warp ((float)(x+1)/output_xres,
                               (float)y/output_yres,
                               0.5, xform);
     coordx.x *= sscale;
     coordx.y *= tscale;
-    coordx += offset;
+    coordx += texoffset;
     Imath::V3f coordy = warp ((float)x/output_xres,
                               (float)(y+1)/output_yres,
                               0.5, xform);
     coordy.x *= sscale;
     coordy.y *= tscale;
-    coordy += offset;
+    coordy += texoffset;
     P = coord;
     dPdx = coordx - coord;
     dPdy = coordy - coord;
@@ -550,13 +550,13 @@ test_plain_texture (Mapping2D mapping)
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     adjust_spec (outspec, dataformatname);
     ImageBuf image (outspec);
-    ImageBufAlgo::zero (image);
+    OIIO::ImageBufAlgo::zero (image);
     ImageBuf image_ds, image_dt;
     if (test_derivs) {
         image_ds.reset (outspec);
-        ImageBufAlgo::zero (image_ds);
+        OIIO::ImageBufAlgo::zero (image_ds);
         image_dt.reset (outspec);
-        ImageBufAlgo::zero (image_dt);
+        OIIO::ImageBufAlgo::zero (image_dt);
     }
 
     ustring filename = filenames[0];
@@ -569,7 +569,7 @@ test_plain_texture (Mapping2D mapping)
             std::cout << "iter " << iter << " file " << filename << "\n";
         }
 
-        ImageBufAlgo::parallel_image (OIIO::bind(plain_tex_region, OIIO::ref(image), filename, mapping,
+        OIIO::ImageBufAlgo::parallel_image (OIIO::bind(plain_tex_region, OIIO::ref(image), filename, mapping,
                                                   test_derivs ? &image_ds : NULL,
                                                   test_derivs ? &image_dt : NULL, _1),
                                       get_roi(image.spec()), nthreads);
@@ -644,14 +644,14 @@ test_texture3d (ustring filename, Mapping3D mapping)
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     adjust_spec (outspec, dataformatname);
     ImageBuf image (outspec);
-    ImageBufAlgo::zero (image);
+    OIIO::ImageBufAlgo::zero (image);
 
     for (int iter = 0;  iter < iters;  ++iter) {
         // Trick: switch to second texture, if given, for second iteration
         if (iter && filenames.size() > 1)
             filename = filenames[1];
 
-        ImageBufAlgo::parallel_image (OIIO::bind(tex3d_region, OIIO::ref(image), filename, mapping, _1),
+        OIIO::ImageBufAlgo::parallel_image (OIIO::bind(tex3d_region, OIIO::ref(image), filename, mapping, _1),
                                       get_roi(image.spec()), nthreads);
     }
     
@@ -709,8 +709,8 @@ test_getimagespec_gettexels (ustring filename)
         std::cerr << texsys->geterror() << "\n";
     for (int y = 0;  y < h;  ++y)
         for (int x = 0;  x < w;  ++x) {
-            imagesize_t offset = (y*w + x) * spec.nchannels;
-            buf.setpixel (x, y, &tmp[offset]);
+            imagesize_t texoffset = (y*w + x) * spec.nchannels;
+            buf.setpixel (x, y, &tmp[texoffset]);
         }
     buf.write ("postage.exr");
 }

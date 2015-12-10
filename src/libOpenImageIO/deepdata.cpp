@@ -40,16 +40,114 @@
 OIIO_NAMESPACE_BEGIN
 
 
+
+class DeepData::Impl {  // holds all the nontrivial stuff
+public:
+    std::vector<TypeDesc> m_channeltypes;  // for each channel [c]
+    std::vector<unsigned int> m_nsamples;// for each pixel [z][y][x]
+    std::vector<void *> m_pointers;    // for each channel per pixel [z][y][x][c]
+    std::vector<char> m_data;          // for each sample [z][y][x][c][s]
+
+    void clear () {
+        m_channeltypes.clear();
+        m_nsamples.clear();
+        m_pointers.clear();
+        m_data.clear();
+    }
+};
+
+
+
+DeepData::DeepData () : m_impl(NULL), m_npixels(0), m_nchannels(0)
+{
+}
+
+
+
+DeepData::DeepData (const ImageSpec &spec) : m_impl(NULL)
+{
+    init (spec);
+}
+
+
+
+DeepData::~DeepData ()
+{
+    delete m_impl;
+}
+
+
+
+DeepData::DeepData (const DeepData &d) : m_impl(NULL)
+{
+    m_npixels = d.m_npixels;
+    m_nchannels = d.m_nchannels;
+    if (d.m_impl) {
+        m_impl = new Impl;
+        *m_impl = *(d.m_impl);
+    }
+}
+
+
+
+const DeepData&
+DeepData::operator= (const DeepData &d)
+{
+    if (this != &d) {
+        m_npixels = d.m_npixels;
+        m_nchannels = d.m_nchannels;
+        if (! m_impl)
+            m_impl = new Impl;
+        if (d.m_impl)
+            *m_impl = *(d.m_impl);
+        else
+            m_impl->clear ();
+    }
+    return *this;
+}
+
+
+
+int DeepData::pixels () const
+{
+    return m_npixels;
+}
+
+
+
+int DeepData::channels () const
+{
+    return m_nchannels;
+}
+
+
+
+TypeDesc DeepData::channeltype (int c) const
+{
+    ASSERT (m_impl);
+    return m_impl->m_channeltypes[c];
+}
+
+
+
 void
 DeepData::init (int npix, int nchan,
-                const TypeDesc *chbegin, const TypeDesc *chend)
+                array_view<const TypeDesc> channeltypes)
 {
     clear ();
-    npixels = npix;
-    nchannels = nchan;
-    channeltypes.assign (chbegin, chend);
-    nsamples.resize (npixels, 0);
-    pointers.resize (size_t(npixels)*size_t(nchannels), NULL);
+    m_npixels = npix;
+    m_nchannels = nchan;
+    ASSERT (channeltypes.size() == 1 || int(channeltypes.size()) == nchan);
+    if (! m_impl)
+        m_impl = new Impl;
+    if (channeltypes.size() == 1) {
+        m_impl->m_channeltypes.clear ();
+        m_impl->m_channeltypes.resize (m_nchannels, channeltypes[0]);
+    } else {
+        m_impl->m_channeltypes.assign (channeltypes.data(), channeltypes.data()+channeltypes.size());
+    }
+    m_impl->m_nsamples.resize (m_npixels, 0);
+    m_impl->m_pointers.resize (size_t(m_npixels)*size_t(m_nchannels), NULL);
 }
 
 
@@ -57,13 +155,10 @@ DeepData::init (int npix, int nchan,
 void
 DeepData::init (const ImageSpec &spec)
 {
-    clear ();
-    npixels = (int) spec.image_pixels();
-    nchannels = spec.nchannels;
-    channeltypes.reserve (nchannels);
-    spec.get_channelformats (channeltypes);
-    nsamples.resize (npixels, 0);
-    pointers.resize (size_t(npixels)*size_t(nchannels), NULL);
+    if (int(spec.channelformats.size()) == spec.nchannels)
+        init ((int) spec.image_pixels(), spec.nchannels, spec.channelformats);
+    else
+        init ((int) spec.image_pixels(), spec.nchannels, spec.format);
 }
 
 
@@ -71,28 +166,29 @@ DeepData::init (const ImageSpec &spec)
 void
 DeepData::alloc ()
 {
+    ASSERT (m_impl);
     // Calculate the total size we need, align each channel to 4 byte boundary
     size_t totalsamples = 0, totalbytes = 0;
-    for (int i = 0;  i < npixels;  ++i) {
-        if (int s = nsamples[i]) {
+    for (int i = 0;  i < m_npixels;  ++i) {
+        if (int s = m_impl->m_nsamples[i]) {
             totalsamples += s;
-            for (int c = 0;  c < nchannels;  ++c)
+            for (int c = 0;  c < m_nchannels;  ++c)
                 totalbytes += round_to_multiple (channeltype(c).size() * s, 4);
         }
     }
 
     // Allocate a minimum of 4 bytes so that we can tell if alloc() was
-    // called by whether data.size() > 0.
+    // called by whether m_impl->m_data.size() > 0.
     totalbytes = std::max (totalbytes, size_t(4));
 
     // Set all the data pointers to the right offsets within the
     // data block.  Leave the pointes NULL for pixels with no samples.
-    data.resize (totalbytes);
-    char *p = &data[0];
-    for (int i = 0;  i < npixels;  ++i) {
-        if (int s = nsamples[i]) {
-            for (int c = 0;  c < nchannels;  ++c) {
-                pointers[i*nchannels+c] = p;
+    m_impl->m_data.resize (totalbytes);
+    char *p = &m_impl->m_data[0];
+    for (int i = 0;  i < m_npixels;  ++i) {
+        if (int s = m_impl->m_nsamples[i]) {
+            for (int c = 0;  c < m_nchannels;  ++c) {
+                m_impl->m_pointers[i*m_nchannels+c] = p;
                 p += round_to_multiple (channeltype(c).size()*s, 4);
             }
         }
@@ -104,12 +200,10 @@ DeepData::alloc ()
 void
 DeepData::clear ()
 {
-    npixels = 0;
-    nchannels = 0;
-    channeltypes.clear();
-    nsamples.clear();
-    pointers.clear();
-    data.clear();
+    m_npixels = 0;
+    m_nchannels = 0;
+    if (m_impl)
+        m_impl->clear ();
 }
 
 
@@ -118,9 +212,8 @@ void
 DeepData::free ()
 {
     clear ();
-    std::vector<unsigned int>().swap (nsamples);
-    std::vector<void *>().swap (pointers);
-    std::vector<char>().swap (data);
+    delete m_impl;
+    m_impl = NULL;
 }
 
 
@@ -128,9 +221,10 @@ DeepData::free ()
 int
 DeepData::samples (int pixel) const
 {
-    if (pixel < 0 || pixel >= npixels || data.size() == 0)
+    if (pixel < 0 || pixel >= m_npixels)
         return 0;
-    return nsamples[pixel];
+    DASSERT (m_impl);
+    return m_impl->m_nsamples[pixel];
 }
 
 
@@ -138,9 +232,10 @@ DeepData::samples (int pixel) const
 void
 DeepData::set_samples (int pixel, int samps)
 {
-    ASSERT (pixel >= 0 && pixel < npixels && "invalid pixel index");
-    ASSERT (data.size() == 0 && "set_samples may not be called after alloc()");
-    nsamples[pixel] = samps;
+    ASSERT (pixel >= 0 && pixel < m_npixels && "invalid pixel index");
+    ASSERT (m_impl);
+    ASSERT (m_impl->m_data.size() == 0 && "set_samples may not be called after alloc()");
+    m_impl->m_nsamples[pixel] = samps;
 }
 
 
@@ -148,9 +243,10 @@ DeepData::set_samples (int pixel, int samps)
 void *
 DeepData::channel_ptr (int pixel, int channel)
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels ||
+          channel < 0 || channel >= m_nchannels || !m_impl)
         return NULL;
-    return pointers[pixel*nchannels + channel];
+    return m_impl->m_pointers[pixel*m_nchannels + channel];
 }
 
 
@@ -158,9 +254,10 @@ DeepData::channel_ptr (int pixel, int channel)
 const void *
 DeepData::channel_ptr (int pixel, int channel) const
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels ||
+            channel < 0 || channel >= m_nchannels || !m_impl)
         return NULL;
-    return pointers[pixel*nchannels + channel];
+    return m_impl->m_pointers[pixel*m_nchannels + channel];
 }
 
 
@@ -168,12 +265,13 @@ DeepData::channel_ptr (int pixel, int channel) const
 float
 DeepData::deep_value (int pixel, int channel, int sample) const
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels || channel < 0 ||
+            channel >= m_nchannels || !m_impl)
         return 0.0f;
-    int nsamps = nsamples[pixel];
+    int nsamps = m_impl->m_nsamples[pixel];
     if (nsamps == 0 || sample < 0 || sample >= nsamps)
         return 0.0f;
-    const void *ptr = pointers[pixel*nchannels + channel];
+    const void *ptr = m_impl->m_pointers[pixel*m_nchannels + channel];
     if (! ptr)
         return 0.0f;
     switch (channeltype(channel).basetype) {
@@ -208,12 +306,13 @@ DeepData::deep_value (int pixel, int channel, int sample) const
 uint32_t
 DeepData::deep_value_uint (int pixel, int channel, int sample) const
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels || channel < 0 ||
+            channel >= m_nchannels || !m_impl)
         return 0.0f;
-    int nsamps = nsamples[pixel];
+    int nsamps = m_impl->m_nsamples[pixel];
     if (nsamps == 0 || sample < 0 || sample >= nsamps)
         return 0.0f;
-    const void *ptr = pointers[pixel*nchannels + channel];
+    const void *ptr = m_impl->m_pointers[pixel*m_nchannels + channel];
     if (! ptr)
         return 0.0f;
     switch (channeltype(channel).basetype) {
@@ -248,14 +347,15 @@ DeepData::deep_value_uint (int pixel, int channel, int sample) const
 void
 DeepData::set_deep_value (int pixel, int channel, int sample, float value)
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels || channel < 0 ||
+            channel >= m_nchannels || !m_impl)
         return;
-    int nsamps = nsamples[pixel];
+    int nsamps = m_impl->m_nsamples[pixel];
     if (nsamps == 0 || sample < 0 || sample >= nsamps)
         return;
-    if (! data.size())
+    if (! m_impl->m_data.size())
         alloc();
-    void *ptr = pointers[pixel*nchannels + channel];
+    void *ptr = m_impl->m_pointers[pixel*m_nchannels + channel];
     if (! ptr)
         return;
     switch (channeltype(channel).basetype) {
@@ -289,14 +389,15 @@ DeepData::set_deep_value (int pixel, int channel, int sample, float value)
 void
 DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
 {
-    if (pixel < 0 || pixel >= npixels || channel < 0 || channel >= nchannels)
+    if (pixel < 0 || pixel >= m_npixels || channel < 0 ||
+            channel >= m_nchannels || !m_impl)
         return;
-    int nsamps = nsamples[pixel];
+    int nsamps = m_impl->m_nsamples[pixel];
     if (nsamps == 0 || sample < 0 || sample >= nsamps)
         return;
-    if (! data.size())
+    if (! m_impl->m_data.size())
         alloc();
-    void *ptr = pointers[pixel*nchannels + channel];
+    void *ptr = m_impl->m_pointers[pixel*m_nchannels + channel];
     if (! ptr)
         return;
     switch (channeltype(channel).basetype) {
@@ -325,6 +426,32 @@ DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
     }
 }
 
+
+
+array_view<const unsigned int>
+DeepData::all_nsamples () const
+{
+    ASSERT (m_impl);
+    return m_impl->m_nsamples;
+}
+
+
+
+void * const *
+DeepData::all_pointers () const
+{
+    ASSERT (m_impl);
+    return m_npixels ? &m_impl->m_pointers[0] : NULL;
+}
+
+
+
+array_view<const char>
+DeepData::all_data () const
+{
+    ASSERT (m_impl);
+    return m_impl->m_data;
+}
 
 
 OIIO_NAMESPACE_END
