@@ -233,3 +233,7 @@ Comparing "subimage1.exr" and "ref/subimage1.exr"
 PASS
 Comparing "subimage2.exr" and "ref/subimage2.exr"
 PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+PASS

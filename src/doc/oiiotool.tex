@@ -1218,8 +1218,10 @@ highest-resolution level).  Note that this is equivalent to
 \apiend
 
 \apiitem{\ce --subimage {\rm \emph{n}}}
-If the current image has multiple subimages, replace the current image
-with a new image consisting of only the given subimage.
+If the current image has multiple subimages, extract the specified subimage.
+The subimage specifier \emph{n} is either an integer giving the index
+of the subimage to extract (starting with 0), or the \emph{name} of the
+subimage to extract (comparing to the \qkw{oiio:subimagename} metadata).
 \apiend
 
 \apiitem{\ce --sisplit}
