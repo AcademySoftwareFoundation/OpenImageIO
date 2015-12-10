@@ -496,7 +496,7 @@ endif()
 oiio_add_tests (
                 gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
-                oiiotool-pattern oiiotool-readerror
+                oiiotool-pattern oiiotool-readerror oiiotool-text
                 dither
                 dpx ico iff png rla sgi
                 python-typedesc python-imagespec python-roi python-deep
@@ -511,7 +511,6 @@ oiio_add_tests (
 # Advanced tests that are done by hand and for releases:
 if (NOT DEFINED ENV{TRAVIS})
 oiio_add_tests (
-                oiiotool-text
                 psd
                 python-imageinput python-imageoutput
                 python-imagebuf

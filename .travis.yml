@@ -39,6 +39,7 @@ addons:
       - libopenjpeg-dev
       - libwebp-dev
       - ffmpeg
+      - freetype6-dev
 
 cache:
     ccache: true
@@ -76,6 +77,9 @@ install:
 script:
     - make VERBOSE=1 $BUILD_FLAGS cmakesetup
     - make -j2 $BUILD_FLAGS
+    - export OPENIMAGEIOHOME=$PWD/dist/$PLATFORM
+    - export DYLD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$DYLD_LIBRARY_PATH 
+    - export LD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$LD_LIBRARY_PATH
     - make $BUILD_FLAGS test
 
 
