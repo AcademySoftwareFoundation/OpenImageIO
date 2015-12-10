@@ -499,11 +499,18 @@ oiio_add_tests (
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text
                 dither
-                dpx ico iff png rla sgi
+                dpx ico iff png psd rla sgi
                 python-typedesc python-imagespec python-roi python-deep
-                python-imagebufalgo
+                python-imageinput python-imageoutput
+                python-imagebuf python-imagebufalgo
+                texture-interp-bicubic texture-blurtube
+                texture-crop texture-cropover
                 texture-derivs texture-fill texture-filtersize
-                texture-gray texture-res
+                texture-gray
+                texture-mip-nomip texture-mip-trilinear
+                texture-overscan texture-pointsample texture-width0blur
+                texture-fat texture-wrapfill
+                texture-missing texture-res
                 maketx
               )
 
@@ -512,17 +519,11 @@ oiio_add_tests (
 # Advanced tests that are done by hand and for releases:
 if (NOT DEFINED ENV{TRAVIS})
 oiio_add_tests (
-                psd
-                python-imageinput python-imageoutput
-                python-imagebuf
-                texture-blurtube texture-crop texture-cropover
-                texture-interp-bicubic texture-interp-bilinear
+                texture-interp-bilinear
                 texture-interp-closest
                 texture-uint8 texture-uint16 texture-half
-                texture-mip-nomip texture-mip-onelevel texture-mip-trilinear
-                texture-missing texture-overscan
-                texture-pointsample texture-width0blur
-                texture-skinny texture-fat texture-wrapfill
+                texture-mip-onelevel
+                texture-skinny
                 texture-icwrite
                )
 endif ()

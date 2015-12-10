@@ -43,7 +43,6 @@ def poor_mans_iinfo (filename) :
     if not input :
         print 'Could not open "' + filename + '"'
         print "\tError: ", oiio.geterror()
-        print
         return
     print 'Opened "' + filename + '" as a ' + input.format_name()
     sub = 0
