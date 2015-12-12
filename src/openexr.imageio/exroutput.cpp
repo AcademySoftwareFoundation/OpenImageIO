@@ -80,6 +80,7 @@
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"

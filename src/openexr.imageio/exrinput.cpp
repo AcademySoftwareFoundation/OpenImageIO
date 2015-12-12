@@ -84,6 +84,7 @@
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/deepdata.h"
 
 #include <boost/scoped_array.hpp>
 

@@ -34,8 +34,8 @@
 #include <OpenEXR/half.h>
 
 #include "OpenImageIO/dassert.h"
-#include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/deepdata.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -122,9 +122,10 @@ int DeepData::channels () const
 
 
 
-TypeDesc DeepData::channeltype (int c) const
+TypeDesc
+DeepData::channeltype (int c) const
 {
-    ASSERT (m_impl);
+    DASSERT (m_impl && c >= 0 && c < m_nchannels);
     return m_impl->m_channeltypes[c];
 }
 

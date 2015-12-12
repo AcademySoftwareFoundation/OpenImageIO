@@ -41,6 +41,7 @@
 #include <boost/scoped_array.hpp>
 
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"

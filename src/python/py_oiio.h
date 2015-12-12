@@ -39,6 +39,7 @@
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/imagecache.h"
 #include "OpenImageIO/imagebuf.h"
+#include "OpenImageIO/deepdata.h"
 
 
 #if PY_MAJOR_VERSION < 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)

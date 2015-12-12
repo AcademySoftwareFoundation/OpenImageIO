@@ -47,6 +47,7 @@
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
+#include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/hash.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/array_view.h"

@@ -63,6 +63,9 @@
 
 OIIO_NAMESPACE_BEGIN
 
+class DeepData;
+
+
 /// Type we use for stride lengths.  This is only used to designate
 /// pixel, scanline, tile, or image plane sizes in user-allocated memory,
 /// so it doesn't need to represent sizes larger than can be malloced,
@@ -389,86 +392,6 @@ public:
         if ((int)formats.size() < nchannels)
             formats.resize (nchannels, format);
     }
-};
-
-
-
-/// Structure to hold "deep" data -- multiple samples per pixel.
-struct OIIO_API DeepData {
-public:
-    /// Construct an empty DeepData.
-    DeepData ();
-
-    /// Construct and init from an ImageSpec.
-    DeepData (const ImageSpec &spec);
-
-    /// Copy constructor
-    DeepData (const DeepData &d);
-
-    ~DeepData ();
-
-    /// Copy assignment
-    const DeepData& operator= (const DeepData &d);
-
-    /// Clear the vectors and reset size to 0.
-    void clear ();
-    /// Deallocate all space in the vectors
-    void free ();
-
-    /// Initialize size and allocate nsamples, pointers. It is important to
-    /// completely fill in nsamples after init() but before alling alloc().
-    void init (int npix, int nchan, array_view<const TypeDesc> channeltypes);
-
-    /// Initialize size and allocate nsamples, pointers based on the number
-    /// of pixels, channels, and channel types in the ImageSpec. It is
-    /// important to completely fill in nsamples after init() but before
-    /// alling alloc().
-    void init (const ImageSpec &spec);
-
-    /// Retrieve the total number of pixels.
-    int pixels () const;
-    /// Retrieve the number of channels.
-    int channels () const;
-    /// Retrieve the channel type of channel c.
-    TypeDesc channeltype (int c) const;
-
-    /// Retrieve the number of samples for the given pixel index.
-    int samples (int pixel) const;
-
-    /// Set the number of samples for the given pixel. This must be called
-    /// after init(), but before alloc().
-    void set_samples (int pixel, int samps);
-
-    /// After set_samples() has been set for all pixels, call alloc() to
-    /// allocate enough scratch space for data and set up all the pointers.
-    void alloc ();
-
-    /// Retrieve deep sample value within a pixel, cast to a float.
-    float deep_value (int pixel, int channel, int sample) const;
-    /// Retrieve deep sample value within a pixel, as an untigned int.
-    uint32_t deep_value_uint (int pixel, int channel, int sample) const;
-
-    /// Set deep sample value within a pixel, as a float.
-    /// It will automatically call alloc() if it has not yet been called.
-    void set_deep_value (int pixel, int channel, int sample, float value);
-    /// Set deep sample value within a pixel, as a uint32.
-    /// It will automatically call alloc() if it has not yet been called.
-    void set_deep_value (int pixel, int channel, int sample, uint32_t value);
-
-    /// Retrieve the pointer to the first sample of the given pixel and
-    /// channel. Return NULL if there are no samples for that pixel.
-    /// Use with care.
-    void *channel_ptr (int pixel, int channel);
-    const void *channel_ptr (int pixel, int channel) const;
-
-    array_view<const unsigned int> all_nsamples () const;
-    array_view<const char> all_data () const;
-    void * const * all_pointers () const;  // Caution: expect deprecation
-
-private:
-    class Impl;
-    Impl *m_impl;  // holds all the nontrivial stuff
-    int m_npixels, m_nchannels;
 };
 
 
