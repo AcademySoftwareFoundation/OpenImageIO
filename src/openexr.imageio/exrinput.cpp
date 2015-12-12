@@ -1187,14 +1187,16 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
+        std::vector<void*> pointerbuf (npixels*nchans);
+
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(deepdata.all_pointers()+(c-chbegin)
+                                  (char *)(&pointerbuf[0]+(c-chbegin)
                                            - m_spec.x * nchans
                                            - ybegin*m_spec.width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*m_spec.width, // ystride of pointer array
-                                  part.chanbytes[c]); // stride of data sample
+                                  deepdata.samplesize()); // stride of data sample
             frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_input_part->setFrameBuffer (frameBuffer);
@@ -1202,10 +1204,11 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         // Get the sample counts for each pixel and compute the total
         // number of samples and resize the data area appropriately.
         m_deep_scanline_input_part->readPixelSampleCounts (ybegin, yend-1);
-        deepdata.alloc ();
+        deepdata.get_pointers (pointerbuf);
 
         // Read the pixels
         m_deep_scanline_input_part->readPixels (ybegin, yend-1);
+        // deepdata.import_chansamp (pointerbuf);
     } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
         return false;
@@ -1256,14 +1259,15 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice (countslice);
+        std::vector<void*> pointerbuf (npixels * nchans);
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
-                                  (char *)(deepdata.all_pointers()+(c-chbegin)
+                                  (char *)(&pointerbuf[0]+(c-chbegin)
                                            - xbegin*nchans
                                            - ybegin*width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*width, // ystride of pointer array
-                                  part.chanbytes[c]); // stride of data sample
+                                  deepdata.samplesize()); // stride of data sample
             frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_input_part->setFrameBuffer (frameBuffer);
@@ -1279,7 +1283,7 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         m_deep_tiled_input_part->readPixelSampleCounts (
                 firstxtile, firstxtile+xtiles-1,
                 firstytile, firstytile+ytiles-1);
-        deepdata.alloc ();
+        deepdata.get_pointers (pointerbuf);
 
         // Read the pixels
         m_deep_tiled_input_part->readTiles (

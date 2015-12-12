@@ -1731,7 +1731,7 @@ ImageBuf::deep_samples (int x, int y, int z) const
 
 
 const void *
-ImageBuf::deep_pixel_ptr (int x, int y, int z, int c) const
+ImageBuf::deep_pixel_ptr (int x, int y, int z, int c, int s) const
 {
     impl()->validate_pixels();
     if (! deep())
@@ -1744,7 +1744,7 @@ ImageBuf::deep_pixel_ptr (int x, int y, int z, int c) const
         c < 0 || c >= m_spec.nchannels)
         return NULL;
     int p = (z * m_spec.height + y) * m_spec.width  + x;
-    return deepdata()->samples(p) ? deepdata()->channel_ptr (p, c) : NULL;
+    return (s < deepdata()->samples(p)) ? deepdata()->data_ptr (p, c, s) : NULL;
 }
 
 
@@ -1791,6 +1791,34 @@ ImageBuf::set_deep_samples (int x, int y, int z, int samps)
 
 
 void
+ImageBuf::deep_insert_samples (int x, int y, int z,
+                               int samplepos, int nsamples)
+{
+    if (! deep())
+        return ;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    impl()->m_deepdata.insert_samples (p, samplepos, nsamples);
+}
+
+
+
+void
+ImageBuf::deep_erase_samples (int x, int y, int z,
+                              int samplepos, int nsamples)
+{
+    if (! deep())
+        return ;
+    const ImageSpec &m_spec (spec());
+    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+    int p = (z * m_spec.height + y) * m_spec.width + x;
+    impl()->m_deepdata.erase_samples (p, samplepos, nsamples);
+}
+
+
+
+void
 ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
 {
     impl()->validate_pixels();
@@ -1805,7 +1833,7 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
 
 
 void
-ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value)
+ImageBuf::set_deep_value (int x, int y, int z, int c, int s, uint32_t value)
 {
     impl()->validate_pixels();
     if (! deep())
@@ -1818,11 +1846,20 @@ ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value
 
 
 
+// DEPRECATED (1.7): old name
+void
+ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value)
+{
+    return set_deep_value (x, y, z, c, s, value);
+}
+
+
+
+// DEPRECATED (1.7)
 void
 ImageBuf::deep_alloc ()
 {
-    deepdata()->alloc ();
-    m_impl->m_storage = ImageBuf::LOCALBUFFER;
+    ASSERT (m_impl->m_storage == ImageBuf::LOCALBUFFER);
 }
 
 

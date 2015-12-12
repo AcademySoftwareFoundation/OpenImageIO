@@ -757,10 +757,6 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                     float val = channelvalues ? channelvalues[c] : 0.0f;
                     for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
                         dstdata.set_deep_value (p, c, s, val);
-                } else if (dstdata.channeltype(c) == srcdata.channeltype(csrc)) {
-                    // Same channel types -- copy all samples at once
-                    memcpy (dstdata.channel_ptr(p,c), srcdata.channel_ptr(p,csrc),
-                            dstdata.samples(p) * srcdata.channeltype(csrc).size());
                 } else {
                     if (dstdata.channeltype(c) == TypeDesc::UINT)
                         for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)

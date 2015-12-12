@@ -67,14 +67,11 @@ public:
     /// Deallocate all space in the vectors
     void free ();
 
-    /// Initialize size and allocate nsamples, pointers. It is important to
-    /// completely fill in nsamples after init() but before alling alloc().
+    /// Initialize size and allocate nsamples, pointers.
     void init (int npix, int nchan, array_view<const TypeDesc> channeltypes);
 
-    /// Initialize size and allocate nsamples, pointers based on the number
-    /// of pixels, channels, and channel types in the ImageSpec. It is
-    /// important to completely fill in nsamples after init() but before
-    /// alling alloc().
+    /// Initialize size and allocate nsamples based on the number
+    /// of pixels, channels, and channel types in the ImageSpec.
     void init (const ImageSpec &spec);
 
     /// Retrieve the total number of pixels.
@@ -83,17 +80,25 @@ public:
     int channels () const;
     /// Retrieve the channel type of channel c.
     TypeDesc channeltype (int c) const;
+    /// The size for each sample of channel c
+    size_t channelsize (int c) const;
+    /// The size for all channels of one sample.
+    size_t samplesize () const;
 
     /// Retrieve the number of samples for the given pixel index.
     int samples (int pixel) const;
 
     /// Set the number of samples for the given pixel. This must be called
-    /// after init(), but before alloc().
+    /// after init().
     void set_samples (int pixel, int samps);
 
-    /// After set_samples() has been set for all pixels, call alloc() to
-    /// allocate enough scratch space for data and set up all the pointers.
-    void alloc ();
+    /// Insert n samples at the given pixel, starting at the indexed
+    /// position.
+    void insert_samples (int pixel, int samplepos, int n=1);
+
+    /// Erase n samples at the given pixel, starting at the indexed
+    /// position.
+    void erase_samples (int pixel, int samplepos, int n=1);
 
     /// Retrieve deep sample value within a pixel, cast to a float.
     float deep_value (int pixel, int channel, int sample) const;
@@ -101,28 +106,31 @@ public:
     uint32_t deep_value_uint (int pixel, int channel, int sample) const;
 
     /// Set deep sample value within a pixel, as a float.
-    /// It will automatically call alloc() if it has not yet been called.
     void set_deep_value (int pixel, int channel, int sample, float value);
+
     /// Set deep sample value within a pixel, as a uint32.
-    /// It will automatically call alloc() if it has not yet been called.
     void set_deep_value (int pixel, int channel, int sample, uint32_t value);
 
-    /// Retrieve the pointer to the first sample of the given pixel and
-    /// channel. Return NULL if there are no samples for that pixel.
-    /// Use with care.
-    void *channel_ptr (int pixel, int channel);
-    const void *channel_ptr (int pixel, int channel) const;
+    /// Retrieve the pointer to a given pixel/channel/sample, or NULL if
+    /// there are no samples for that pixel. Use with care, and note that
+    /// calls to insert_samples and erase_samples can invalidate pointers
+    /// returend by prior calls to data_ptr.
+    void *data_ptr (int pixel, int channel, int sample);
+    const void *data_ptr (int pixel, int channel, int sample) const;
 
     array_view<const unsigned int> all_nsamples () const;
     array_view<const char> all_data () const;
-    void * const * all_pointers () const;  // Caution: expect deprecation
+
+    /// Fill in the vector with pointers to the start of the first
+    /// channel for each pixel.
+    void get_pointers (std::vector<void*> &pointers);
+    void get_pointers (std::vector<const void*> &pointers) const;
 
 private:
     class Impl;
     Impl *m_impl;  // holds all the nontrivial stuff
     int m_npixels, m_nchannels;
 };
-
 
 
 OIIO_NAMESPACE_END

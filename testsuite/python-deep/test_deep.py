@@ -17,7 +17,6 @@ def make_test_deep_image () :
     for p in range(dd.pixels) :
         if p&1 :
             dd.set_samples (p, p)
-    dd.alloc()
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         for s in range(ns) :

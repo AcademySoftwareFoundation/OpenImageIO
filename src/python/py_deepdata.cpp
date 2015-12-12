@@ -101,17 +101,26 @@ void declare_deepdata()
 
         .def("init",  &DeepData_init)
         .def("init",  &DeepData_init_spec)
-        .def("alloc", &DeepData::alloc)
         .def("clear", &DeepData::clear)
         .def("free",  &DeepData::free)
 
-        .def("samples",         &DeepData_get_samples)
-        .def("set_samples",     &DeepData::set_samples)
+        .def("samples",         &DeepData_get_samples,
+             (arg("pixel")))
+        .def("set_samples",     &DeepData::set_samples,
+             (arg("pixel"), arg("nsamples")))
+        .def("insert_samples",  &DeepData::insert_samples,
+             (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
+        .def("erase_samples",   &DeepData::erase_samples,
+             (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
         .def("channeltype",     &DeepData::channeltype)
-        .def("deep_value",      &DeepData::deep_value)
-        .def("deep_value_uint", &DeepData::deep_value_uint)
-        .def("set_deep_value",  &DeepData_set_deep_value_float)
-        .def("set_deep_value",  &DeepData_set_deep_value_uint)
+        .def("deep_value",      &DeepData::deep_value,
+             (arg("pixel"), arg("channel"), arg("sample")))
+        .def("deep_value_uint", &DeepData::deep_value_uint,
+             (arg("pixel"), arg("channel"), arg("sample")))
+        .def("set_deep_value",  &DeepData_set_deep_value_float,
+             (arg("pixel"), arg("channel"), arg("sample"), arg("value")))
+        .def("set_deep_value_uint", &DeepData_set_deep_value_uint,
+             (arg("pixel"), arg("channel"), arg("sample"), arg("value")))
     ;
 }
 
