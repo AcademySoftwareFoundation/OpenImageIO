@@ -92,12 +92,12 @@ try:
     print "get_string_attribute('foo_str_no') retrieves", s.get_string_attribute ("foo_str_no")
     print "get_string_attribute('foo_str_no','xx') retrieves", s.get_string_attribute ("foo_str_no", "xx")
     print
-    print "get_attribute('foo_int') retrieves", s.get_attribute("foo_int")
-    print "get_attribute('foo_float') retrieves", s.get_attribute("foo_float")
-    print "get_attribute('foo_str') retrieves", s.get_attribute("foo_str")
-    print "get_attribute('foo_vector') retrieves", s.get_attribute("foo_vector")
-    print "get_attribute('foo_matrix') retrieves", s.get_attribute("foo_matrix")
-    print "get_attribute('foo_no') retrieves", s.get_attribute("foo_no")
+    print "getattribute('foo_int') retrieves", s.getattribute("foo_int")
+    print "getattribute('foo_float') retrieves", s.getattribute("foo_float")
+    print "getattribute('foo_str') retrieves", s.getattribute("foo_str")
+    print "getattribute('foo_vector') retrieves", s.getattribute("foo_vector")
+    print "getattribute('foo_matrix') retrieves", s.getattribute("foo_matrix")
+    print "getattribute('foo_no') retrieves", s.getattribute("foo_no")
     print
 
     print "extra_attribs size is", len(s.extra_attribs)
@@ -105,6 +105,15 @@ try:
         print i, s.extra_attribs[i].name, s.extra_attribs[i].type, s.extra_attribs[i].value
         print s.metadata_val (s.extra_attribs[i], True)
     print
+
+    # Also test global OIIO functions here
+    print "\nTesting global attribute store/retrieve:"
+    oiio.attribute ("plugin_searchpath", "perfect")
+    print "get_string_attribute plugin_searchpath : ", oiio.get_string_attribute ("plugin_searchpath", "bad")
+    print "get_int_attribute plugin_searchpath : ", oiio.get_int_attribute ("plugin_searchpath", 0)
+    print "getattribute TypeString plugin_searchpath : ", oiio.getattribute ("plugin_searchpath", oiio.TypeDesc.TypeString)
+    print "getattribute TypeFloat plugin_searchpath : ", oiio.getattribute ("plugin_searchpath", oiio.TypeDesc.TypeFloat)
+    print "getattribute TypeString blahblah : ", oiio.getattribute ("blahblah", oiio.TypeDesc.TypeString)
 
     print "Done."
 except Exception as detail:
