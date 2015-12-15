@@ -130,11 +130,26 @@ try:
     deepbufout_spec.channelnames = ("R", "G", "B", "A", "Z")
     deepbufout_spec.deep = True
     deepbufout = oiio.ImageBuf(deepbufout_spec)
-    deepbufout.deepdata().set_samples (1, 2)
-    deepbufout.deepdata().set_deep_value (1, 0, 0, 0.42)
-    deepbufout.deepdata().set_deep_value (1, 4, 0, 42.0)
-    deepbufout.deepdata().set_deep_value (1, 0, 1, 0.47)
-    deepbufout.deepdata().set_deep_value (1, 4, 1, 43.0)
+    deepbufout.set_deep_samples (x=1, y=0, z=0, nsamples=2)
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=0, sample=0, value=0.42)
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=4, sample=0, value=42.0)
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=0, sample=1, value=0.47)
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=4, sample=1, value=43.0)
+    # Also insert some new samples
+    deepbufout.deep_insert_samples (x=1, y=0, z=0, samplepos=1, nsamples=2);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=0, sample=1, value=1.1);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=1, sample=1, value=2.2);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=2, sample=1, value=2.3);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=3, sample=1, value=1.0);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=3, sample=1, value=42.25);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=0, sample=2, value=0.1);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=1, sample=2, value=0.2);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=2, sample=2, value=0.3);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=3, sample=2, value=1.0);
+    deepbufout.set_deep_value (x=1, y=0, z=0, channel=3, sample=2, value=42.5);
+    # But delete the first one
+    deepbufout.deep_erase_samples (x=1, y=0, z=0, samplepos=1, nsamples=1);
+    # Save
     deepbufout.write ("deepbuf.exr")
     # And read it back
     print "\nReading back deep buffer:"
@@ -147,8 +162,8 @@ try:
             print "Pixel", p/deepbufin_spec.width, p%deepbufin_spec.width, "had", ns, "samples"
             for s in range(ns) :
                 print "Sample", s
-                for c in range(dd.nchannels) :
-                    print "\tc", c, ":", dd.deep_value(p,c,s)
+                for c in range(dd.channels) :
+                    print "\tc {0} : {1:.3f}".format(c, dd.deep_value(p,c,s))
 
     print "\nDone."
 except Exception as detail:

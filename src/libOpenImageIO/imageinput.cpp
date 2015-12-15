@@ -38,6 +38,7 @@
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/deepdata.h"
 #include "imageio_pvt.h"
 
 #include <boost/scoped_array.hpp>

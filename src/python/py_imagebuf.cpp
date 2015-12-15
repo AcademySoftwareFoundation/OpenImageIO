@@ -328,6 +328,23 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_bt_overloads,
                                 ImageBuf_get_pixels_bt, 2, 3)
 
 
+
+void
+ImageBuf_set_deep_value (ImageBuf &buf, int x, int y, int z,
+                         int c, int s, float value)
+{
+    buf.set_deep_value (x, y, z, c, s, value);
+}
+
+void
+ImageBuf_set_deep_value_uint (ImageBuf &buf, int x, int y, int z,
+                         int c, int s, uint32_t value)
+{
+    buf.set_deep_value (x, y, z, c, s, value);
+}
+
+
+
 bool
 ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, tuple data)
 {
@@ -489,12 +506,23 @@ void declare_imagebuf()
         .add_property("deep", &ImageBuf::deep)
         .def("deep_samples", &ImageBuf::deep_samples,
              (arg("x"), arg("y"), arg("z")=0))
-        .def("set_deep_samples", &ImageBuf::set_deep_samples)
-        .def("deep_value", &ImageBuf::deep_value)
-        .def("deep_value_uint", &ImageBuf::deep_value_uint)
-        .def("set_deep_value", &ImageBuf::set_deep_value)
-        .def("set_deep_value_uint", &ImageBuf::set_deep_value_uint)
-        .def("deep_alloc", &ImageBuf::deep_alloc)
+        .def("set_deep_samples", &ImageBuf::set_deep_samples,
+             (arg("x"), arg("y"), arg("z")=0, arg("nsamples")=1))
+        .def("deep_insert_samples", &ImageBuf::deep_insert_samples,
+             (arg("x"), arg("y"), arg("z")=0, arg("samplepos"), arg("nsamples")=1))
+        .def("deep_erase_samples", &ImageBuf::deep_erase_samples,
+             (arg("x"), arg("y"), arg("z")=0, arg("samplepos"), arg("nsamples")=1))
+        .def("deep_value", &ImageBuf::deep_value,
+             (arg("x"), arg("y"), arg("z")=0, arg("channel"), arg("sample")))
+        .def("deep_value_uint", &ImageBuf::deep_value_uint,
+             (arg("x"), arg("y"), arg("z")=0, arg("channel"), arg("sample")))
+        .def("set_deep_value", &ImageBuf_set_deep_value,
+             (arg("x"), arg("y"), arg("z")=0, arg("channel"),
+              arg("sample"), arg("value")=0.0f))
+        .def("set_deep_value_uint", &ImageBuf_set_deep_value_uint,
+             (arg("x"), arg("y"), arg("z")=0, arg("channel"),
+              arg("sample"), arg("value")=0))
+        .def("deep_alloc", &ImageBuf::deep_alloc)  // DEPRECATED(1.7)
         .def("deepdata", &ImageBuf_deepdataref,
              return_value_policy<reference_existing_object>())
 

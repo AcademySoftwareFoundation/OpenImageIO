@@ -80,6 +80,7 @@
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
@@ -1502,8 +1503,8 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
         error ("called OpenEXROutput::write_deep_scanlines without an open file");
         return false;
     }
-    if (m_spec.width*(yend-ybegin) != deepdata.npixels ||
-        m_spec.nchannels != deepdata.nchannels) {
+    if (m_spec.width*(yend-ybegin) != deepdata.pixels() ||
+        m_spec.nchannels != deepdata.channels()) {
         error ("called OpenEXROutput::write_deep_scanlines with non-matching DeepData size");
         return false;
     }
@@ -1514,21 +1515,22 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
+                               (char *)(deepdata.all_nsamples().data()
                                         - m_spec.x
                                         - ybegin*m_spec.width),
                                sizeof(unsigned int),
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
+        std::vector<const void*> pointerbuf;
+        deepdata.get_pointers (pointerbuf);
         for (int c = 0;  c < nchans;  ++c) {
-            size_t chanbytes = deepdata.channeltypes[c].size();
             Imf::DeepSlice slice (m_pixeltype[c],
-                                  (char *)(&deepdata.pointers[c]
+                                  (char *)(&pointerbuf[c]
                                            - m_spec.x * nchans
                                            - ybegin*m_spec.width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*m_spec.width, // ystride of pointer array
-                                  chanbytes); // stride of data sample
+                                  deepdata.samplesize()); // stride of data sample
             frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_output_part->setFrameBuffer (frameBuffer);
@@ -1562,8 +1564,8 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         error ("called OpenEXROutput::write_deep_tiles without an open file");
         return false;
     }
-    if ((xend-xbegin)*(yend-ybegin)*(zend-zbegin) != deepdata.npixels ||
-        m_spec.nchannels != deepdata.nchannels) {
+    if ((xend-xbegin)*(yend-ybegin)*(zend-zbegin) != deepdata.pixels() ||
+        m_spec.nchannels != deepdata.channels()) {
         error ("called OpenEXROutput::write_deep_tiles with non-matching DeepData size");
         return false;
     }
@@ -1576,21 +1578,22 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(&deepdata.nsamples[0]
+                               (char *)(deepdata.all_nsamples().data()
                                         - xbegin
                                         - ybegin*width),
                                sizeof(unsigned int),
                                sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice (countslice);
+        std::vector<const void*> pointerbuf;
+        deepdata.get_pointers (pointerbuf);
         for (int c = 0;  c < nchans;  ++c) {
-            size_t chanbytes = m_spec.channelformat(c).size();
             Imf::DeepSlice slice (m_pixeltype[c],
-                                  (char *)(&deepdata.pointers[c]
+                                  (char *)(&pointerbuf[c]
                                            - xbegin*nchans
                                            - ybegin*width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*width, // ystride of pointer array
-                                  chanbytes); // stride of data sample
+                                  deepdata.samplesize()); // stride of data sample
             frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_output_part->setFrameBuffer (frameBuffer);

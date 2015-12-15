@@ -48,7 +48,8 @@
 #include "export.h"
 #include "oiioversion.h"
 #include "fmath.h"   /* for endian */
-#include "string_view.h"   /* for endian */
+#include "string_view.h"
+#include "array_view.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -476,9 +477,13 @@ public:
 
     /// Append more data
     void append (const void *data, size_t size);
-    /// Append more data from a vector, without thinking about sizes.
-    template<class T> void appendvec (const std::vector<T> &v) {
-        append (&v[0], v.size()*sizeof(T));
+    /// Append more data from an array_view, without thinking about sizes.
+    template<class T> void append (array_view<T> v) {
+        append (v.data(), v.size()*sizeof(T));
+    }
+    // DEPRECATED(1.6): appendvec is the old name
+    template<class T> void appendvec (array_view<T> v) {
+        append (v.data(), v.size()*sizeof(T));
     }
 
     /// Type for storing the raw bits of the hash

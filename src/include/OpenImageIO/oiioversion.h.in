@@ -106,8 +106,9 @@ namespace OIIO = OIIO_NAMESPACE::OIIO_VERSION_NS;
 /// Version 17 changed to int supports(string_view) rather than
 ///     bool supports(const std::string&)). (OIIO 1.6)
 /// Version 18 changed to add an m_threads member to ImageInput/Output.
+/// Version 19 changed the definition of DeepData.
 
-#define OIIO_PLUGIN_VERSION 18
+#define OIIO_PLUGIN_VERSION 19
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END

@@ -1,0 +1,138 @@
+/*
+Copyright 2015 Larry Gritz and the other authors and contributors.
+All Rights Reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+* Neither the name of the software's owners nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+(This is the Modified BSD License)
+*/
+
+
+#pragma once 
+
+#ifndef OPENIMAGEIO_DEEPDATA_H
+#define OPENIMAGEIO_DEEPDATA_H
+
+#include "export.h"
+#include "oiioversion.h"
+#include "array_view.h"
+
+OIIO_NAMESPACE_BEGIN
+
+
+struct TypeDesc;
+class ImageSpec;
+
+
+
+/// Structure to hold "deep" data -- multiple samples per pixel.
+class OIIO_API DeepData {
+public:
+    /// Construct an empty DeepData.
+    DeepData ();
+
+    /// Construct and init from an ImageSpec.
+    DeepData (const ImageSpec &spec);
+
+    /// Copy constructor
+    DeepData (const DeepData &d);
+
+    ~DeepData ();
+
+    /// Copy assignment
+    const DeepData& operator= (const DeepData &d);
+
+    /// Clear the vectors and reset size to 0.
+    void clear ();
+    /// Deallocate all space in the vectors
+    void free ();
+
+    /// Initialize size and allocate nsamples, pointers.
+    void init (int npix, int nchan, array_view<const TypeDesc> channeltypes);
+
+    /// Initialize size and allocate nsamples based on the number
+    /// of pixels, channels, and channel types in the ImageSpec.
+    void init (const ImageSpec &spec);
+
+    /// Retrieve the total number of pixels.
+    int pixels () const;
+    /// Retrieve the number of channels.
+    int channels () const;
+    /// Retrieve the channel type of channel c.
+    TypeDesc channeltype (int c) const;
+    /// The size for each sample of channel c
+    size_t channelsize (int c) const;
+    /// The size for all channels of one sample.
+    size_t samplesize () const;
+
+    /// Retrieve the number of samples for the given pixel index.
+    int samples (int pixel) const;
+
+    /// Set the number of samples for the given pixel. This must be called
+    /// after init().
+    void set_samples (int pixel, int samps);
+
+    /// Insert n samples at the given pixel, starting at the indexed
+    /// position.
+    void insert_samples (int pixel, int samplepos, int n=1);
+
+    /// Erase n samples at the given pixel, starting at the indexed
+    /// position.
+    void erase_samples (int pixel, int samplepos, int n=1);
+
+    /// Retrieve deep sample value within a pixel, cast to a float.
+    float deep_value (int pixel, int channel, int sample) const;
+    /// Retrieve deep sample value within a pixel, as an untigned int.
+    uint32_t deep_value_uint (int pixel, int channel, int sample) const;
+
+    /// Set deep sample value within a pixel, as a float.
+    void set_deep_value (int pixel, int channel, int sample, float value);
+
+    /// Set deep sample value within a pixel, as a uint32.
+    void set_deep_value (int pixel, int channel, int sample, uint32_t value);
+
+    /// Retrieve the pointer to a given pixel/channel/sample, or NULL if
+    /// there are no samples for that pixel. Use with care, and note that
+    /// calls to insert_samples and erase_samples can invalidate pointers
+    /// returend by prior calls to data_ptr.
+    void *data_ptr (int pixel, int channel, int sample);
+    const void *data_ptr (int pixel, int channel, int sample) const;
+
+    array_view<const unsigned int> all_nsamples () const;
+    array_view<const char> all_data () const;
+
+    /// Fill in the vector with pointers to the start of the first
+    /// channel for each pixel.
+    void get_pointers (std::vector<void*> &pointers);
+    void get_pointers (std::vector<const void*> &pointers) const;
+
+private:
+    class Impl;
+    Impl *m_impl;  // holds all the nontrivial stuff
+    int m_npixels, m_nchannels;
+};
+
+
+OIIO_NAMESPACE_END
+
+#endif  // OPENIMAGEIO_DEEPDATA_H

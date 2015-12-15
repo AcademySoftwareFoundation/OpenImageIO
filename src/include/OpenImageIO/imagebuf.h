@@ -653,11 +653,11 @@ public:
     /// range or has no deep samples.
     int deep_samples (int x, int y, int z=0) const;
 
-    /// Return a pointer to the raw array of deep data samples for
-    /// channel c of pixel (x,y,z).  Return NULL if the pixel
-    /// coordinates or channel number are out of range, if the
-    /// pixel/channel has no deep samples, or if the image is not deep.
-    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
+    /// Return a pointer to the raw data of pixel (x,y,z), channel c, sample
+    /// s. Return NULL if the pixel coordinates or channel number are out of
+    /// range, if the pixel/channel has no deep samples, or if the image is
+    /// not deep.
+    const void *deep_pixel_ptr (int x, int y, int z, int c, int s=0) const;
 
     /// Return the value (as a float) of sample s of channel c of pixel
     /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
@@ -671,11 +671,21 @@ public:
     /// Set the number of deep samples for a particular pixel.
     void set_deep_samples (int x, int y, int z, int nsamples);
 
+    /// Set the number of deep samples for a particular pixel.
+    void deep_insert_samples (int x, int y, int z, int samplepos, int nsamples);
+
+    /// Set the number of deep samples for a particular pixel.
+    void deep_erase_samples (int x, int y, int z, int samplepos, int nsamples);
+
     /// Set deep sample value within a pixel, as a float.
     void set_deep_value (int x, int y, int z, int c, int s, float value);
     /// Set deep sample value within a pixel, as a uint32.
+    void set_deep_value (int x, int y, int z, int c, int s, uint32_t value);
+
+    // DEPRECATED (1.7): old name
     void set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value);
 
+    /// DEPRECATED (1.7): no longer necessary
     /// Allocate all the deep samples, called after deepdata()->nsamples
     /// is set.
     void deep_alloc ();
@@ -1141,6 +1151,9 @@ public:
         USERT deep_value (int c, int s) const {
             return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
         }
+        uint32_t deep_value_uint (int c, int s) const {
+            return m_ib->deep_value_uint (m_x, m_y, m_z, c, s);
+        }
 
         /// Set the deep data value of sample s of channel c. (Only use this
         /// if deep_alloc() has been called.)
@@ -1235,6 +1248,9 @@ public:
         /// Retrieve the deep data value of sample s of channel c.
         USERT deep_value (int c, int s) const {
             return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        }
+        uint32_t deep_value_uint (int c, int s) const {
+            return m_ib->deep_value_uint (m_x, m_y, m_z, c, s);
         }
     };
 

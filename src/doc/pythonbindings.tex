@@ -609,19 +609,22 @@ collection of deep data.
 This {\cf int} field constains the number of channels.
 \apiend
 
-\apiitem{DeepData.{\ce set_nsamples} (pixel, nsamples) \\
-int DeepData.{\ce get_nsamples} (pixel)}
+\apiitem{DeepData.{\ce set_samples} (pixel, nsamples) \\
+int DeepData.{\ce samples} (pixel)}
 Set or get the number of samples for a given pixel (specified by integer
 index).
 \apiend
 
-\apiitem{DeepData.{\ce alloc()}}
-After {\cf set_nsamples} has been called for each pixel, {\cf alloc()}
-is called to allocate the sample data.
+\apiitem{DeepData.{\ce insert_samples} (pixel, samplepos, n) \\
+int DeepData.{\ce erase_samples} (pixel, samplepos, n)}
+\NEW % 1.7
+Insert or erase \emph{n} samples starting at the given position of an
+indexed pixel.
 \apiend
 
-\apiitem{DeepData.{\ce set_deep_value} (pixel, channel, sample, value)}
-Set specific float value of a given pixel, channel, and
+\apiitem{DeepData.{\ce set_deep_value} (pixel, channel, sample, value) \\
+DeepData.{\ce set_deep_value_uint} (pixel, channel, sample, value)}
+Set specific float or unsigned int value of a given pixel, channel, and
 sample index.
 \apiend
 
@@ -1560,6 +1563,13 @@ Return the number of deep samples for pixel (x,y,z).
 Set the number of deep samples for pixel (x,y,z).
 \apiend
 
+\apiitem{ImageBuf.{\ce deep_insert_samples} (x, y, z, samplepos, nsamples) \\
+int ImageBuf.{\ce deep_erase_samples} (x, y, z, samplepos, nsamples)}
+\NEW % 1.7
+Insert or erase \emph{nsamples} samples starting at the given position of
+pixel {\cf (x,y,z)}.
+\apiend
+
 \apiitem{float ImageBuf.{\ce deep_value} (x, y, z, channel, sample) \\
 uint ImageBuf.{\ce deep_value_uint} (x, y, z, channel, sample)}
 Return the value of the given deep sample (particular pixel, channel, and
@@ -1576,11 +1586,6 @@ respectively.
 
 \apiitem{DeepData ImageBuf.{\ce deepdata}}
 Returns a reference to the underlying {\cf DeepData} of the image.
-\apiend
-
-\apiitem{ImageBuf.{\ce deep_alloc} ()}
-Allocate the space for all samples (assuming you have already properly
-called {\cf deepdata().init()}).
 \apiend
 
 

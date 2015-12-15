@@ -109,19 +109,25 @@ Saving file...
 Writing deep buffer...
 
 Reading back deep buffer:
-Pixel 0 1 had 2 samples
+Pixel 0 1 had 3 samples
 Sample 0
-	c 0 : 0.419999986887
-	c 1 : 0.0
-	c 2 : 0.0
-	c 3 : 0.0
-	c 4 : 42.0
+	c 0 : 0.420
+	c 1 : 0.000
+	c 2 : 0.000
+	c 3 : 0.000
+	c 4 : 42.000
 Sample 1
-	c 0 : 0.469999998808
-	c 1 : 0.0
-	c 2 : 0.0
-	c 3 : 0.0
-	c 4 : 43.0
+	c 0 : 0.100
+	c 1 : 0.200
+	c 2 : 0.300
+	c 3 : 42.500
+	c 4 : 0.000
+Sample 2
+	c 0 : 0.470
+	c 1 : 0.000
+	c 2 : 0.000
+	c 3 : 0.000
+	c 4 : 43.000
 
 Done.
 Comparing "out.tif" and "ref/out.tif"

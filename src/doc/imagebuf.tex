@@ -624,20 +624,53 @@ are no deep samples for that pixel (including if the pixel coordinates
 are outside the data area).  For non-deep images, it will always return 0.
 \apiend
 
-\apiitem{const void *{\ce deep_pixel_ptr} (int x, int y, int z, int c) const}
-Returns a pointer to the raw array of deep samples for channel {\cf c}
-of pixel {\cf (x,y,z)}.  This will return {\cf NULL} if the pixel
-coordinates or channel number are out of range, if the pixel/channel has
-no deep samples, or if the image is not deep.
+\apiitem{void {\ce set_deep_samples} (int x, int y, int z, int nsamples)}
+Set the number of samples for pixel {\cf (x,y,z)}. If data has already been
+allocated, this is equivalent to inserting or erasing samples.
 \apiend
 
+\apiitem{void {\ce deep_insert_samples} (int x, int y, int z, int samplepos, int nsamples)}
+\NEW % 1.7
+Insert {\cf nsamples} new samples, starting at position {\cf samplepos} of
+pixel {\cf (x,y,z)}.
+\apiend
 
-\apiitem{float {\ce deep_value} (int x, int y, int z, int c, int s) const}
-Return the value (as a {\cf float}) of sample {\cf s} of channel {\cf c}
-of pixel {\cf (x,y,z)}.  Return {\cf 0.0} if not a deep image or if the
+\apiitem{void {\ce deep_erase_samples} (int x, int y, int z, int samplepos, int nsamples)}
+\NEW % 1.7
+Remove {\cf nsamples} new samples, starting at position {\cf samplepos} of
+pixel {\cf (x,y,z)}.
+\apiend
+
+\apiitem{float {\ce deep_value} (int x, int y, int z, int c, int s) const \\
+uint32_t {\ce deep_value_uint} (int x, int y, int z, int c, int s) const}
+Return the value of sample {\cf s} of channel {\cf c}
+of pixel {\cf (x,y,z)}.  Return {\cf 0} if not a deep image or if the
 pixel coordinates, channel number, or sample number are out of range, or
-if it has no deep samples.
+if it has no deep samples.  You are expected to call the {\cf float} or
+{\cf uint32_t} version based on the data type of channel {\cf c}.
 \apiend
+
+\apiitem{void {\ce set_deep_value} (int x, int y, int z, int c, int s, float value) const \\
+void {\ce set_deep_value} (int x, int y, int z, int c, int s, uint32_t value) const}
+Set the value of sample {\cf s} of channel {\cf c}
+of pixel {\cf (x,y,z)}. It is expected that you choose the {\cf float}
+or {\cf uint32_t} variety of the call based on the data type of channel {\cf c}.
+\apiend
+
+\apiitem{const void *{\ce deep_pixel_ptr} (int x, int y, int z, int c, int s=0) const}
+Returns a pointer to the raw pixel data pixel {\cf (x,y,z)}, channel {\cf c},
+sample {\cf s}.  This will return {\cf NULL} if the pixel
+coordinates or channel number are out of range, if the pixel/channel has
+no deep samples, or if the image is not deep. Use with caution --- these
+pointers may be invalidated by calls that adjust the number of samples in
+any pixel.
+\apiend
+
+\apiitem{DeepData\& {\ce deepdata} () \\
+const DeepData\& {\ce deepdata} () const}
+Returns a reference to the underlying {\cf DeepData} for a deep image.
+\apiend
+
 
 \section{Miscellaneous}
 
@@ -799,7 +832,8 @@ samples for the current pixel. This only is useful if the \ImageBuf has
 not yet had the {\cf deep_alloc()} method called.
 \apiend
 
-\apiitem{USERT Iterator::deep_value (int c, int s) const}
+\apiitem{USERT Iterator::deep_value (int c, int s) const \\
+uint32_t Iterator::deep_value_int (int c, int s) const}
 For deep images only, returns the value of channel {\cf c}, sample
 number {\cf s}, at the current pixel.
 \apiend
