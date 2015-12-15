@@ -436,8 +436,10 @@ void declare_imagespec()
         .def("get_float_attribute", &ImageSpec_get_float_attribute_d)
         .def("get_string_attribute", &ImageSpec_get_string_attribute)
         .def("get_string_attribute", &ImageSpec_get_string_attribute_d)
-        .def("get_attribute", &ImageSpec_get_attribute_typed)
-        .def("get_attribute", &ImageSpec_get_attribute_untyped)
+        .def("getattribute",  &ImageSpec_get_attribute_typed)
+        .def("getattribute",  &ImageSpec_get_attribute_untyped)
+        .def("get_attribute", &ImageSpec_get_attribute_typed) // DEPRECATED(1.7)
+        .def("get_attribute", &ImageSpec_get_attribute_untyped) // DEPRECATED(1.7)
         .def("erase_attribute", &ImageSpec_erase_attribute,
              (arg("name")="", arg("type")=TypeDesc(TypeDesc::UNKNOWN),
               arg("casesensitive")=false))

@@ -433,17 +433,17 @@ data (for aggregate types or arrays, pass multiple values as a tuple).
 \end{code}
 \apiend
 
-\apiitem{ImageSpec.{\ce get_attribute} (name) \\
-ImageSpec.{\ce get_attribute} (name, typedesc)}
+\apiitem{ImageSpec.{\ce getattribute} (name) \\
+ImageSpec.{\ce getattribute} (name, typedesc)}
 Retrieves a named metadata value from {\cf extra_attribs}.  The generic
-{\cf get_attribute()} function returns it regardless of type, or {\cf None}
+{\cf getattribute()} function returns it regardless of type, or {\cf None}
 if the attribute does not exist.  The typed variety will only succeed
 if the attribute is actually of that type specified.
 
 \noindent Example:
 \begin{code}
-    foo = s.get_attribute ("foo")   # None if not found
-    foo = s.get_attribute ("foo", oiio.FLOAT)  # None if not found AND float
+    foo = s.getattribute ("foo")   # None if not found
+    foo = s.getattribute ("foo", oiio.FLOAT)  # None if not found AND float
 \end{code}
 \apiend
 
@@ -2724,6 +2724,20 @@ recognized attribute.
     oiio.attribute ("threads", 0)
 \end{code}
 \apiend
+
+\apiitem{{\ce getattribute} (name, typedesc)}
+\NEW % 1.7
+Retrieves an attribute value from the named set of global OIIO options. (See
+Section~\ref{sec:globalattribute}.) The {\cf getattribute()} function
+returns the value regardless of type, or {\cf None} if the attribute does
+not exist or does not have a type that matches {\cf typedesc}.
+
+\noindent Example:
+\begin{code}
+    formats = oiio.getattribute ("format_list", oiio.TypeDesc.TypeString)
+\end{code}
+\apiend
+
 
 
 \section{Python Recipes}
