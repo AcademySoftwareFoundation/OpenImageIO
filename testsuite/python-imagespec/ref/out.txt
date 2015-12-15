@@ -75,12 +75,12 @@ get_string_attribute('foo_str') retrieves blah
 get_string_attribute('foo_str_no') retrieves 
 get_string_attribute('foo_str_no','xx') retrieves xx
 
-get_attribute('foo_int') retrieves 14
-get_attribute('foo_float') retrieves 3.1400001049
-get_attribute('foo_str') retrieves blah
-get_attribute('foo_vector') retrieves (1.0, 0.0, 11.0)
-get_attribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
-get_attribute('foo_no') retrieves None
+getattribute('foo_int') retrieves 14
+getattribute('foo_float') retrieves 3.1400001049
+getattribute('foo_str') retrieves blah
+getattribute('foo_vector') retrieves (1.0, 0.0, 11.0)
+getattribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
+getattribute('foo_no') retrieves None
 
 extra_attribs size is 5
 0 foo_str string blah
@@ -94,4 +94,11 @@ extra_attribs size is 5
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
 
+
+Testing global attribute store/retrieve:
+get_string_attribute plugin_searchpath :  perfect
+get_int_attribute plugin_searchpath :  0
+getattribute TypeString plugin_searchpath :  perfect
+getattribute TypeFloat plugin_searchpath :  None
+getattribute TypeString blahblah :  None
 Done.

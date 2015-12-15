@@ -230,6 +230,80 @@ oiio_attribute_tuple_typed (const std::string &name,
 
 
 
+static object
+oiio_getattribute_typed (const std::string &name, TypeDesc type)
+{
+    if (type == TypeDesc::UNKNOWN)
+        return object();
+    char *data = OIIO_ALLOCA(char, type.size());
+    if (OIIO::getattribute (name, type, data)) {
+        if (type.basetype == TypeDesc::INT) {
+#if PY_MAJOR_VERSION >= 3
+            return C_to_val_or_tuple ((const int *)data, type, PyLong_FromLong);
+#else
+            return C_to_val_or_tuple ((const int *)data, type, PyInt_FromLong);
+#endif
+        }
+        if (type.basetype == TypeDesc::FLOAT) {
+            return C_to_val_or_tuple ((const float *)data, type, PyFloat_FromDouble);
+        }
+        if (type.basetype == TypeDesc::STRING) {
+#if PY_MAJOR_VERSION >= 3
+            return C_to_val_or_tuple ((const char **)data, type, PyUnicode_FromString);
+#else
+            return C_to_val_or_tuple ((const char **)data, type, PyString_FromString);
+#endif
+        }
+    }
+    return object();
+}
+
+
+static int
+oiio_get_int_attribute (const char *name)
+{
+    return OIIO::get_int_attribute (name);
+}
+
+
+static int
+oiio_get_int_attribute_d (const char *name, int defaultval)
+{
+    return OIIO::get_int_attribute (name, defaultval);
+}
+
+
+static float
+oiio_get_float_attribute (const char *name)
+{
+    return OIIO::get_float_attribute (name);
+}
+
+
+static float
+oiio_get_float_attribute_d (const char *name, float defaultval)
+{
+    return OIIO::get_float_attribute (name, defaultval);
+}
+
+
+static std::string
+oiio_get_string_attribute (const char *name)
+{
+    return OIIO::get_string_attribute (name);
+}
+
+
+static std::string
+oiio_get_string_attribute_d (const char *name, const char *defaultval)
+{
+    return OIIO::get_string_attribute (name, defaultval);
+}
+
+
+
+
+
 const void *
 python_array_address (numeric::array &data, TypeDesc &elementtype,
                       size_t &numelements)
@@ -291,12 +365,19 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     declare_imagebufalgo();
     
     // Global (OpenImageIO scope) functiona and symbols
+    def("geterror",     &OIIO::geterror);
     def("attribute",    &oiio_attribute_float);
     def("attribute",    &oiio_attribute_int);
     def("attribute",    &oiio_attribute_string);
     def("attribute",    &oiio_attribute_typed);
     def("attribute",    &oiio_attribute_tuple_typed);
-    def("geterror",     &OIIO::geterror);
+    def("get_int_attribute",    &oiio_get_int_attribute);
+    def("get_int_attribute",    &oiio_get_int_attribute_d);
+    def("get_float_attribute",  &oiio_get_float_attribute);
+    def("get_float_attribute",  &oiio_get_float_attribute_d);
+    def("get_string_attribute", &oiio_get_string_attribute);
+    def("get_string_attribute", &oiio_get_string_attribute_d);
+    def("getattribute",         &oiio_getattribute_typed);
     scope().attr("AutoStride") = AutoStride;
     scope().attr("openimageio_version") = OIIO_VERSION;
     scope().attr("VERSION") = OIIO_VERSION;
