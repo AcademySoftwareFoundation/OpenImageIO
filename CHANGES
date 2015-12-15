@@ -200,6 +200,9 @@ Public API changes:
    This also adds coordinate.h to give definitions for the offset<>,
    bounds<>, and bounds_iterator<> templates used by array_view. #1205
    (1.6.4)
+ * Add top-level OIIO::get_int_attribute(), get_float_attribute(), and
+   get_string_attribute() helpers, similar to how they work in many
+   of the classes. #1283 (1.6.7)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -240,6 +243,8 @@ Fixes, minor enhancements, and performance improvements:
       the full-detail help. #1214 (1.6.5)
     * Bug fix in --fit when the image didn't need to be resized.
       #1227 (1.6.5/1.5.21)
+    * Bug fix in --ch for "deep" files when the channel reordering is
+      the same as it already was. #1286 (1.6.7)
  * ImageBufAlgo:
     * compare() (and therefore oiiotool -diff and idiff) did not notice
       image differences when the pixels that differed had NaN or NaN or
@@ -447,6 +452,11 @@ Build/test system improvements:
    integration / automatic builds of all merges and pull requests.
    #1268, #1269, #1273 (1.6.6)
  * Don't install fonts if USE_FREETYPE is disabled. #1275 (1.6.6)
+ * Use ccache for builds when detected and safe (unless USE_CCACHE=0).
+   #1274,#1285 (1.6.7)
+ * Failed tests now print their non-matching text output to the console
+   when doing 'make test'. This makes it much easier to spot most errors.
+   #1284 (1.6.7)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1), repeat
