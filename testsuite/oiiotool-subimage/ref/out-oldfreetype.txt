@@ -1,0 +1,87 @@
+Comparing "subimages-2.exr" and "ref/subimages-2.exr"
+PASS
+Comparing "subimages-4.exr" and "ref/subimages-4.exr"
+Subimage 0 : 64 x 64, 3 channel
+  Mean error = 0.00193232
+  RMS error = 0.0210741
+  Peak SNR = 33.525
+  Max error  = 0.48999 @ (40, 31, G)
+  63 pixels (1.54%) over 0.008
+  64 pixels (1.56%) over 0.004
+Subimage 1 : 64 x 64, 3 channel
+  Mean error = 0.00369091
+  RMS error = 0.0395986
+  Peak SNR = 28.0464
+  Max error  = 0.670654 @ (33, 20, R)
+  75 pixels (1.83%) over 0.008
+  75 pixels (1.83%) over 0.004
+Subimage 2 : 64 x 64, 3 channel
+  Mean error = 0.00266418
+  RMS error = 0.0307123
+  Peak SNR = 30.2537
+  Max error  = 0.674561 @ (32, 25, R)
+  54 pixels (1.32%) over 0.008
+  56 pixels (1.37%) over 0.004
+Subimage 3 : 64 x 64, 3 channel
+  Mean error = 0.00319004
+  RMS error = 0.0335558
+  Peak SNR = 29.4846
+  Max error  = 0.670654 @ (33, 20, B)
+  72 pixels (1.76%) over 0.008
+  75 pixels (1.83%) over 0.004
+FAILURE
+Comparing "subimages-4.exr" and "ref/subimageB1-oldfreetype.exr"
+Subimage 0 : 64 x 64, 3 channel
+  Mean error = 0.337
+  RMS error = 0.412972
+  Peak SNR = 7.68159
+  Max error  = 1 @ (34, 20, G)
+  4095 pixels (100%) over 0.008
+  4095 pixels (100%) over 0.004
+FAILURE
+Comparing "subimages-4.exr" and "ref/subimageD3-oldfreetype.exr"
+Subimage 0 : 64 x 64, 3 channel
+  Mean error = 0.173686
+  RMS error = 0.297406
+  Peak SNR = 10.533
+  Max error  = 1 @ (34, 20, G)
+  4095 pixels (100%) over 0.008
+  4095 pixels (100%) over 0.004
+FAILURE
+Comparing "subimages-4.exr" and "ref/subimages-4-oldfreetype.exr"
+PASS
+Comparing "subimage1.exr" and "ref/subimage1.exr"
+PASS
+Comparing "subimage2.exr" and "ref/subimage2.exr"
+PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+64 x 64, 3 channel
+  Mean error = 0.00319004
+  RMS error = 0.0335558
+  Peak SNR = 29.4846
+  Max error  = 0.670654 @ (33, 20, B)
+  72 pixels (1.76%) over 0.008
+  75 pixels (1.83%) over 0.004
+FAILURE
+Comparing "subimageD3.exr" and "ref/subimageB1-oldfreetype.exr"
+64 x 64, 3 channel
+  Mean error = 0.16731
+  RMS error = 0.289494
+  Peak SNR = 10.7672
+  Max error  = 1 @ (36, 25, B)
+  4079 pixels (99.6%) over 0.008
+  4079 pixels (99.6%) over 0.004
+FAILURE
+Comparing "subimageD3.exr" and "ref/subimageD3-oldfreetype.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+64 x 64, 3 channel
+  Mean error = 0.00369091
+  RMS error = 0.0395986
+  Peak SNR = 28.0464
+  Max error  = 0.670654 @ (33, 20, R)
+  75 pixels (1.83%) over 0.008
+  75 pixels (1.83%) over 0.004
+FAILURE
+Comparing "subimageB1.exr" and "ref/subimageB1-oldfreetype.exr"
+PASS

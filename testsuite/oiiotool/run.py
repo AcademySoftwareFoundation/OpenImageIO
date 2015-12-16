@@ -319,9 +319,6 @@ outputs = [
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "rgbfromtga.png",
-            "subimages-2.exr", "subimages-4.exr",
-            "subimage1.exr", "subimage2.exr",
-            "subimageD3.exr", "subimageB1.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
