@@ -562,6 +562,8 @@ static const TIFF_tag_info tiff_tag_table[] = {
     { TIFFTAG_PIXAR_TEXTUREFORMAT, "textureformat", TIFF_ASCII },
     { TIFFTAG_PIXAR_WRAPMODES,  "wrapmodes",    TIFF_ASCII },
     { TIFFTAG_PIXAR_FOVCOT,     "fovcot",       TIFF_FLOAT },
+    { TIFFTAG_JPEGQUALITY,  "CompressionQuality", TIFF_LONG },
+    { TIFFTAG_ZIPQUALITY,   "tiff:zipquality",    TIFF_LONG },
     { 0, NULL, TIFF_NOTYPE }
 };
 

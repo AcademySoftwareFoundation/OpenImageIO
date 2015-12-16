@@ -398,6 +398,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
             // predictors not supported for unusual bit depths (e.g. 10)
             TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
         }
+        if (m_compression == COMPRESSION_ADOBE_DEFLATE) {
+            int q = m_spec.get_int_attribute ("tiff:zipquality", -1);
+            if (q >= 0)
+                TIFFSetField (m_tif, TIFFTAG_ZIPQUALITY, OIIO::clamp(q, 1, 9));
+        }
     } else if (m_compression == COMPRESSION_JPEG) {
         TIFFSetField (m_tif, TIFFTAG_JPEGQUALITY,
                       m_spec.get_int_attribute("CompressionQuality", 95));
