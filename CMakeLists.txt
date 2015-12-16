@@ -496,7 +496,8 @@ endif()
 oiio_add_tests (
                 gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
-                oiiotool-pattern oiiotool-readerror oiiotool-text
+                oiiotool-pattern oiiotool-readerror
+                oiiotool-subimage oiiotool-text
                 dither
                 dpx ico iff png rla sgi
                 python-typedesc python-imagespec python-roi python-deep

@@ -225,15 +225,3 @@ Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
 PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS
-Comparing "subimages-2.exr" and "ref/subimages-2.exr"
-PASS
-Comparing "subimages-4.exr" and "ref/subimages-4.exr"
-PASS
-Comparing "subimage1.exr" and "ref/subimage1.exr"
-PASS
-Comparing "subimage2.exr" and "ref/subimage2.exr"
-PASS
-Comparing "subimageD3.exr" and "ref/subimageD3.exr"
-PASS
-Comparing "subimageB1.exr" and "ref/subimageB1.exr"
-PASS
