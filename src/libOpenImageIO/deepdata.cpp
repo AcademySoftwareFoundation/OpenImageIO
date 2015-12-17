@@ -81,7 +81,7 @@ public:
     }
 
     size_t data_offset (int pixel, int channel, int sample) {
-        DASSERT (m_cumsamples.size() > pixel);
+        DASSERT (int(m_cumsamples.size()) > pixel);
         return (m_cumsamples[pixel] + sample) * m_samplesize
              + m_channeloffsets[channel];
     }
