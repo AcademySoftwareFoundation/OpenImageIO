@@ -501,30 +501,17 @@ DeepData::all_data () const
 
 
 void
-DeepData::get_pointers (std::vector<void*> &pointers)
+DeepData::get_pointers (std::vector<void*> &pointers) const
 {
     ASSERT (m_impl);
     m_impl->alloc (m_npixels);
     pointers.resize (pixels()*channels());
     for (int i = 0;  i < m_npixels;  ++i) {
         for (int c = 0;  c < m_nchannels;  ++c)
-            pointers[i*m_nchannels+c] = m_impl->data_ptr (i, c, 0);
+            pointers[i*m_nchannels+c] = (void *)m_impl->data_ptr (i, c, 0);
     }
 }
 
-
-
-void
-DeepData::get_pointers (std::vector<const void*> &pointers) const
-{
-    ASSERT (m_impl);
-    m_impl->alloc (m_npixels);
-    pointers.resize (pixels()*channels());
-    for (int i = 0;  i < m_npixels;  ++i) {
-        for (int c = 0;  c < m_nchannels;  ++c)
-            pointers[i*m_nchannels+c] = m_impl->data_ptr (i, c, 0);
-    }
-}
 
 
 OIIO_NAMESPACE_END

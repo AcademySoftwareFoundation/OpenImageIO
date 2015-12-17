@@ -1521,7 +1521,7 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
-        std::vector<const void*> pointerbuf;
+        std::vector<void*> pointerbuf;
         deepdata.get_pointers (pointerbuf);
         for (int c = 0;  c < nchans;  ++c) {
             Imf::DeepSlice slice (m_pixeltype[c],
@@ -1584,7 +1584,7 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice (countslice);
-        std::vector<const void*> pointerbuf;
+        std::vector<void*> pointerbuf;
         deepdata.get_pointers (pointerbuf);
         for (int c = 0;  c < nchans;  ++c) {
             Imf::DeepSlice slice (m_pixeltype[c],

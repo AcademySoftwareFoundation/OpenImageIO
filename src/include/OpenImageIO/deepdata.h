@@ -123,8 +123,7 @@ public:
 
     /// Fill in the vector with pointers to the start of the first
     /// channel for each pixel.
-    void get_pointers (std::vector<void*> &pointers);
-    void get_pointers (std::vector<const void*> &pointers) const;
+    void get_pointers (std::vector<void*> &pointers) const;
 
 private:
     class Impl;
