@@ -1000,9 +1000,17 @@ TIFFInput::readspec (bool read_meta)
     }
 #endif
 
+    // If Software and IPTC:OriginatingProgram are identical, kill the latter
+    if (m_spec.get_string_attribute("Software") == m_spec.get_string_attribute("IPTC:OriginatingProgram"))
+        m_spec.erase_attribute ("IPTC:OriginatingProgram");
+
+    std::string desc = m_spec.get_string_attribute ("ImageDescription");
+    // If ImageDescription and IPTC:Caption are identical, kill the latter
+    if (desc == m_spec.get_string_attribute("IPTC:Caption"))
+        m_spec.erase_attribute ("IPTC:Caption");
+
     // Because TIFF doesn't support arbitrary metadata, we look for certain
     // hints in the ImageDescription and turn them into metadata.
-    std::string desc = m_spec.get_string_attribute ("ImageDescription");
     bool updatedDesc = false;
     static const char *fp_number_pattern =
             "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
