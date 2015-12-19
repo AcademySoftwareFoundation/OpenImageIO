@@ -91,7 +91,8 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
                 zbegin, zbegin+srcroi.depth(),
                 chbegin, chbegin+srcroi.nchannels());
     ROI dstroi_save = dstroi;  // save the original
-    IBAprep (dstroi, &dst);
+    if (! IBAprep (dstroi, &dst))
+        return false;
 
     // do the actual copying
     bool ok;
@@ -151,7 +152,8 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 {
     dst.clear ();
     roi.chend = std::min (roi.chend, src.nchannels());
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src, IBAprep_SUPPORT_DEEP))
+        return false;
 
     if (dst.deep()) {
         // If it's deep, figure out the sample allocations first
@@ -229,7 +231,8 @@ ImageBufAlgo::flip(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    IBAprep (dst_roi, &dst, &src);
+    if (! IBAprep (dst_roi, &dst, &src))
+        return false;
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "flip", flip_,
                           dst.spec().format, src.spec().format,
@@ -279,7 +282,8 @@ ImageBufAlgo::flop(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    IBAprep (dst_roi, &dst, &src);
+    if (! IBAprep (dst_roi, &dst, &src))
+        return false;
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "flop", flop_,
                           dst.spec().format, src.spec().format,
@@ -336,7 +340,8 @@ ImageBufAlgo::rotate90 (ImageBuf &dst, const ImageBuf &src,
             dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
-    IBAprep (dst_roi, &dst, &src);
+    if (! IBAprep (dst_roi, &dst, &src))
+        return false;
     if (! dst_initialized)
         dst.set_roi_full (dst_roi_full);
 
@@ -395,7 +400,8 @@ ImageBufAlgo::rotate180 (ImageBuf &dst, const ImageBuf &src,
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    IBAprep (dst_roi, &dst, &src);
+    if (! IBAprep (dst_roi, &dst, &src))
+        return false;
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "rotate180", rotate180_,
                           dst.spec().format, src.spec().format,
@@ -461,7 +467,8 @@ ImageBufAlgo::rotate270 (ImageBuf &dst, const ImageBuf &src,
             dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
-    IBAprep (dst_roi, &dst, &src);
+    if (! IBAprep (dst_roi, &dst, &src))
+        return false;
     if (! dst_initialized)
         dst.set_roi_full (dst_roi_full);
 
@@ -559,7 +566,8 @@ ImageBufAlgo::transpose (ImageBuf &dst, const ImageBuf &src,
     ROI dst_roi (roi.ybegin, roi.yend, roi.xbegin, roi.xend,
                  roi.zbegin, roi.zend, roi.chbegin, roi.chend);
     bool dst_initialized = dst.initialized();
-    IBAprep (dst_roi, &dst);
+    if (! IBAprep (dst_roi, &dst))
+        return false;
     if (! dst_initialized) {
         ROI r = src.roi_full();
         ROI dst_roi_full (r.ybegin, r.yend, r.xbegin, r.xend,
@@ -615,7 +623,8 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
                               int xshift, int yshift, int zshift,
                               ROI roi, int nthreads)
 {
-    IBAprep (roi, &dst, &src);
+    if (! IBAprep (roi, &dst, &src))
+        return false;
     bool ok;
     OIIO_DISPATCH_TYPES2 (ok, "circular_shift", circular_shift_,
                           dst.spec().format, src.spec().format, dst, src,
