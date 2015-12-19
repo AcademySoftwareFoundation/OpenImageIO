@@ -37,6 +37,7 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/deepdata.h"
+#include "OpenImageIO/thread.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -52,6 +53,7 @@ public:
     std::vector<char> m_data;              // for each sample [p][s][c]
     size_t m_samplesize;
     bool m_allocated;
+    spin_mutex m_mutex;
 
     Impl () : m_allocated(false) {}
 
@@ -69,14 +71,17 @@ public:
     // If not already done, allocate data and cumsamples
     void alloc (size_t npixels) {
         if (! m_allocated) {
-            m_cumsamples.resize (npixels);
-            size_t totalsamples = 0;
-            for (size_t i = 0; i < npixels; ++i) {
-                m_cumsamples[i] = totalsamples;
-                totalsamples += m_nsamples[i];
+            spin_lock lock (m_mutex);
+            if (! m_allocated) {
+                m_cumsamples.resize (npixels);
+                size_t totalsamples = 0;
+                for (size_t i = 0; i < npixels; ++i) {
+                    m_cumsamples[i] = totalsamples;
+                    totalsamples += m_nsamples[i];
+                }
+                m_data.resize (totalsamples * m_samplesize);
+                m_allocated = true;
             }
-            m_data.resize (totalsamples * m_samplesize);
-            m_allocated = true;
         }
     }
 
