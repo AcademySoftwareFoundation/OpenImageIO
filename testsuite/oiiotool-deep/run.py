@@ -18,6 +18,16 @@ command += oiiotool("deepen.exr -crop 5x5+1+1 -o crop2.exr")
 command += oiiotool("crop2.exr -trim -o trim1.exr")
 command += oiiotool("-autotrim crop2.exr -o trim2.exr")
 
+# --addc
+command += oiiotool("src/deepalpha.exr -addc 0,10 -crop 160x100 -o deep_addc.exr")
+# --subc
+command += oiiotool("src/deepalpha.exr -subc 0,-1 -crop 160x105 -o deep_subc.exr")
+# --mulc
+command += oiiotool("src/deepalpha.exr -mulc 1,10 -crop 160x110 -o deep_mulc.exr")
+# --divc
+command += oiiotool("src/deepalpha.exr -divc 1,2 -crop 160x115 -o deep_divc.exr")
+
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
@@ -29,6 +39,10 @@ outputs = [ "flat.exr",
             "deepen.exr",
             "crop1.exr", "crop2.exr",
             "trim1.exr", "trim2.exr",
+            "deep_addc.exr",
+            "deep_subc.exr",
+            "deep_mulc.exr",
+            "deep_divc.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
