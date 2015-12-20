@@ -171,7 +171,8 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
     force_spec.deep = false;
     force_spec.channelformats.clear();
 
-    if (! IBAprep (roi, &dst, &src, NULL, &force_spec, IBAprep_SUPPORT_DEEP))
+    if (! IBAprep (roi, &dst, &src, NULL, &force_spec,
+                   IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED))
         return false;
     if (dst.spec().deep) {
         dst.error ("Cannot flatten to a deep image");
@@ -231,7 +232,8 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
         force_spec.channelnames.push_back ("Z");
     }
 
-    if (! IBAprep (roi, &dst, &src, NULL, &force_spec, IBAprep_SUPPORT_DEEP))
+    if (! IBAprep (roi, &dst, &src, NULL, &force_spec,
+                   IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED))
         return false;
     if (! dst.deep()) {
         dst.error ("Cannot deepen to a flat image");

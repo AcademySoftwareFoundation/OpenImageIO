@@ -2331,6 +2331,21 @@ all pixels that contain depth samples, and excludes the border pixels
 that contain no depth samples at all.
 \apiend
 
+\apiitem{bool {\ce add} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce sub} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce mul} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce div} (ImageBuf \&dst, const ImageBuf \&A, const float *B, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!add} \indexapi{add}
+\index{ImageBufAlgo!sub} \indexapi{sub}
+\index{ImageBufAlgo!mul} \indexapi{mul}
+\index{ImageBufAlgo!div} \indexapi{div}
+Add, subtract, multiply, or divide a deep image {\cf A} by per-channel
+values {\cf B[]}, storing the result in deep image {\cf dst}.
+\apiend
 
 
 

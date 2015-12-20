@@ -1236,6 +1236,9 @@ public:
         USERT deep_value (int c, int s) const {
             return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
         }
+        uint32_t deep_value_uint (int c, int s) const {
+            return m_ib->deep_value_uint (m_x, m_y, m_z, c, s);
+        }
     };
 
 

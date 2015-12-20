@@ -41,6 +41,8 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+// #include "OpenImageIO/deepdata.h"
+#include "OpenImageIO/array_view.h"
 #include "OpenImageIO/dassert.h"
 
 
@@ -158,8 +160,26 @@ add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
             roi, nthreads);
         return true;
     }
+    // Serial case:
 
-    // Serial case
+    if (R.deep()) {
+        // Deep case
+        array_view<const TypeDesc> channeltypes (R.deepdata()->channeltypes);
+        ImageBuf::Iterator<Rtype> r (R, roi);
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for ( ;  !r.done();  ++r, ++a) {
+            for (int samp = 0, samples = r.deep_samples(); samp < samples; ++samp) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                    if (channeltypes[c].basetype == TypeDesc::UINT32)
+                        r.set_deep_value (c, samp, a.deep_value_uint(c, samp));
+                    else
+                        r.set_deep_value (c, samp, a.deep_value(c, samp) + b[c]);
+                }
+            }
+        }
+        return true;
+    }
+
     ImageBuf::Iterator<Rtype> r (R, roi);
     ImageBuf::ConstIterator<Atype> a (A, roi);
     for ( ;  !r.done();  ++r, ++a)
@@ -189,8 +209,16 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A,
+                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
+
+    if (dst.deep()) {
+        // While still serial, set up all the sample counts
+        dst.deepdata()->nsamples = A.deepdata()->nsamples;
+        dst.deep_alloc ();
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "add", add_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
@@ -264,8 +292,16 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A,
+                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
+
+    if (dst.deep()) {
+        // While still serial, set up all the sample counts
+        dst.deepdata()->nsamples = A.deepdata()->nsamples;
+        dst.deep_alloc ();
+    }
+
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
@@ -461,6 +497,25 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const float *b,
             roi, nthreads);
         return true;
     }
+    // Serial case:
+
+    if (R.deep()) {
+        // Deep case
+        array_view<const TypeDesc> channeltypes (R.deepdata()->channeltypes);
+        ImageBuf::Iterator<Rtype> r (R, roi);
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for ( ;  !r.done();  ++r, ++a) {
+            for (int samp = 0, samples = r.deep_samples(); samp < samples; ++samp) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                    if (channeltypes[c].basetype == TypeDesc::UINT32)
+                        r.set_deep_value (c, samp, a.deep_value_uint(c, samp));
+                    else
+                        r.set_deep_value (c, samp, a.deep_value(c, samp) * b[c]);
+                }
+            }
+        }
+        return true;
+    }
 
     ImageBuf::ConstIterator<Atype> a (A, roi);
     for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a)
@@ -474,8 +529,16 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A,
+                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
+
+    if (dst.deep()) {
+        // While still serial, set up all the sample counts
+        dst.deepdata()->nsamples = A.deepdata()->nsamples;
+        dst.deep_alloc ();
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
@@ -551,8 +614,16 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A,
+                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
+
+    if (dst.deep()) {
+        // While still serial, set up all the sample counts
+        dst.deepdata()->nsamples = A.deepdata()->nsamples;
+        dst.deep_alloc ();
+    }
+
     int nc = dst.nchannels();
     float *binv = OIIO_ALLOCA (float, nc);
     for (int c = 0; c < nc; ++c)
