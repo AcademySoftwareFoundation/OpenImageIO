@@ -286,6 +286,24 @@ DeepData::set_samples (int pixel, int samps)
 
 
 void
+DeepData::set_all_samples (array_view<const unsigned int> samples)
+{
+    if (samples.size() != size_t(m_npixels))
+        return;
+    ASSERT (m_impl);
+    if (m_impl->m_allocated) {
+        // Data already allocated: set pixels individually
+        for (int p = 0; p < m_npixels; ++p)
+            set_samples (p, int(samples[p]));
+    } else {
+        // Data not yet allocated: copy in one shot
+        m_impl->m_nsamples.assign (&samples[0], &samples[m_npixels]);
+    }
+}
+
+
+
+void
 DeepData::insert_samples (int pixel, int samplepos, int n)
 {
     if (m_impl->m_allocated) {
@@ -486,8 +504,17 @@ DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
 
 
 
+array_view<const TypeDesc>
+DeepData::all_channeltypes () const
+{
+    ASSERT (m_impl);
+    return m_impl->m_channeltypes;
+}
+
+
+
 array_view<const unsigned int>
-DeepData::all_nsamples () const
+DeepData::all_samples () const
 {
     ASSERT (m_impl);
     return m_impl->m_nsamples;

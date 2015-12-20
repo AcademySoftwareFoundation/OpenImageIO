@@ -92,6 +92,10 @@ public:
     /// after init().
     void set_samples (int pixel, int samps);
 
+    /// Set the number of samples for all pixels. The samples.size() is
+    /// required to match pixels().
+    void set_all_samples (array_view<const unsigned int> samples);
+
     /// Insert n samples at the given pixel, starting at the indexed
     /// position.
     void insert_samples (int pixel, int samplepos, int n=1);
@@ -118,7 +122,8 @@ public:
     void *data_ptr (int pixel, int channel, int sample);
     const void *data_ptr (int pixel, int channel, int sample) const;
 
-    array_view<const unsigned int> all_nsamples () const;
+    array_view<const TypeDesc> all_channeltypes () const;
+    array_view<const unsigned int> all_samples () const;
     array_view<const char> all_data () const;
 
     /// Fill in the vector with pointers to the start of the first
