@@ -146,7 +146,8 @@ enum IBAprep_flags {
     IBAprep_NO_COPY_METADATA = 256,     // N.B. default copies all metadata
     IBAprep_COPY_ALL_METADATA = 512,    // Even unsafe things
     IBAprep_CLAMP_MUTUAL_NCHANNELS = 1<<10, // Clamp roi.chend to max of inputs
-    IBAprep_SUPPORT_DEEP = 1<<11,
+    IBAprep_SUPPORT_DEEP = 1<<11,       // Operation allows deep images
+    IBAprep_DEEP_MIXED = 1<<12,         // Allow deep & non-deep combinations
 };
 
 
