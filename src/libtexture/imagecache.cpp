@@ -1922,7 +1922,7 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
 
 bool
 ImageCacheImpl::getattribute (string_view name, TypeDesc type,
-                              void *val)
+                              void *val) const
 {
 #define ATTR_DECODE(_name,_ctype,_src)                                  \
     if (name == _name && type == BaseTypeFromC<_ctype>::value) {        \

@@ -345,13 +345,14 @@ public:
     virtual bool attribute (string_view name, string_view val) = 0;
 
     /// Get the named attribute, store it in value.
-    virtual bool getattribute (string_view name, TypeDesc type, void *val) = 0;
+    virtual bool getattribute (string_view name,
+                               TypeDesc type, void *val) const = 0;
     // Shortcuts for common types
-    virtual bool getattribute (string_view name, int &val) = 0;
-    virtual bool getattribute (string_view name, float &val) = 0;
-    virtual bool getattribute (string_view name, double &val) = 0;
-    virtual bool getattribute (string_view name, char **val) = 0;
-    virtual bool getattribute (string_view name, std::string &val) = 0;
+    virtual bool getattribute (string_view name, int &val) const = 0;
+    virtual bool getattribute (string_view name, float &val) const = 0;
+    virtual bool getattribute (string_view name, double &val) const = 0;
+    virtual bool getattribute (string_view name, char **val) const = 0;
+    virtual bool getattribute (string_view name, std::string &val) const = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to certain per-thread information that the TextureSystem maintains.
