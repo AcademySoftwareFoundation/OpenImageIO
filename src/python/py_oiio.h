@@ -148,6 +148,107 @@ object C_to_val_or_tuple (const T *vals, TypeDesc type, FUNC f)
 
 
 
+template<typename T>
+void
+attribute_typed (T &myobj, string_view name, TypeDesc type, object &dataobj)
+{
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            myobj.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            myobj.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate) {
+            std::vector<ustring> u;
+            for (size_t i = 0, e = vals.size(); i < e; ++i)
+                u.push_back (ustring(vals[i]));
+            myobj.attribute (name, type, &u[0]);
+        }
+        return;
+    }
+}
+
+
+
+
+template<typename T>
+void
+attribute_tuple_typed (T &myobj, string_view name,
+                       TypeDesc type, tuple &dataobj)
+{
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            myobj.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate)
+            myobj.attribute (name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        py_to_stdvector (vals, dataobj);
+        if (vals.size() == type.numelements()*type.aggregate) {
+            std::vector<ustring> u;
+            for (size_t i = 0, e = vals.size(); i < e; ++i)
+                u.push_back (ustring(vals[i]));
+            myobj.attribute (name, type, &u[0]);
+        }
+        return;
+    }
+}
+
+
+
+template<typename T>
+object
+getattribute_typed (const T& obj, string_view name, TypeDesc type)
+{
+    if (type == TypeDesc::UNKNOWN)
+        return object();   // require a type
+    char *data = OIIO_ALLOCA (char, type.size());
+    bool ok = obj.getattribute (name, type, data);
+    if (! ok)
+        return object();   // None
+    if (type.basetype == TypeDesc::INT) {
+#if PY_MAJOR_VERSION >= 3
+        return C_to_val_or_tuple ((const int *)data, type, PyLong_FromLong);
+#else
+        return C_to_val_or_tuple ((const int *)data, type, PyInt_FromLong);
+#endif
+    }
+    if (type.basetype == TypeDesc::FLOAT) {
+        return C_to_val_or_tuple ((const float *)data, type, PyFloat_FromDouble);
+    }
+    if (type.basetype == TypeDesc::STRING) {
+#if PY_MAJOR_VERSION >= 3
+        return C_to_val_or_tuple ((const char **)data, type, PyUnicode_FromString);
+#else
+        return C_to_val_or_tuple ((const char **)data, type, PyString_FromString);
+#endif
+    }
+    return object();
+}
+
+
+
+
 // Helper class to release the GIL, allowing other Python threads to
 // proceed, then re-acquire it again when the scope ends.
 class ScopedGILRelease {
@@ -199,7 +300,6 @@ public:
 
 class ImageOutputWrap {
 private:
-    friend class ImageBufWrap;
     ImageOutput *m_output;
     const void *make_read_buffer (object &buffer, imagesize_t size);
 public:
@@ -260,30 +360,27 @@ public:
 
 class ImageCacheWrap {
 private:
-    friend class ImageBufWrap;
     ImageCache *m_cache;
 public:
     static ImageCacheWrap *create (bool);
     static void destroy (ImageCacheWrap*);
     void clear ();     
-    bool attribute (const std::string&, TypeDesc, const void*);    
-    bool attribute_int    (const std::string&, int );
-    bool attribute_float  (const std::string&, float);
-    bool attribute_double (const std::string&, double);
-    bool attribute_char   (const std::string&, const char*);
-    bool attribute_string (const std::string&, const std::string&);
-    bool getattribute(const std::string&, TypeDesc, void*);
-    bool getattribute_int (const std::string&, int&);
-    bool getattribute_float(const std::string&, float&);
-    bool getattribute_double(const std::string&, double&);
-    bool getattribute_char(const std::string&, char**);    
-    bool getattribute_string(const std::string&, std::string&);
-    std::string resolve_filename (const std::string&);
-    bool get_image_info_old (ustring, ustring, TypeDesc, void*);
-    bool get_image_info (ustring, int, int, ustring, TypeDesc, void*);
-    bool get_imagespec(ustring, ImageSpec&, int);
-    bool get_pixels (ustring, int, int, int, int, int, int, 
-                     int, int, TypeDesc, void*);
+    void attribute_int    (const std::string&, int );
+    void attribute_float  (const std::string&, float);
+    void attribute_string (const std::string&, const std::string&);
+    void attribute_typed  (const std::string&, TypeDesc, object &obj);
+    void attribute_tuple_typed (const std::string&, TypeDesc, tuple &obj);
+    object getattribute_typed (const std::string&, TypeDesc);
+    std::string resolve_filename (const std::string& filename);
+    // object get_image_info (const std::string &filename, int subimage,
+    //                        int miplevel, const std::string &dataname,
+    //                        TypeDesc datatype);
+    // object get_imagespec (const std::string &filename, int subimage=0,
+    //                       int miplevel=0, bool native=false);
+    object get_pixels (const std::string &filename,
+                       int subimage, int miplevel, int xbegin, int xend,
+                       int ybegin, int yend, int zbegin, int zend,
+                       TypeDesc datatype);
 
     //First needs to be exposed to python in imagecache.cpp
     /*

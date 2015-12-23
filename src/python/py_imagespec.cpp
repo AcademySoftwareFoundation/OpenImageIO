@@ -214,31 +214,7 @@ static void
 ImageSpec_attribute_typed (ImageSpec& spec, const std::string &name,
                            TypeDesc type, object &obj)
 {
-    if (type.basetype == TypeDesc::INT) {
-        std::vector<int> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            spec.attribute (name, type, &vals[0]);
-        return;
-    }
-    if (type.basetype == TypeDesc::FLOAT) {
-        std::vector<float> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            spec.attribute (name, type, &vals[0]);
-        return;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        std::vector<std::string> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate) {
-            std::vector<ustring> u;
-            for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.push_back (ustring(vals[i]));
-            spec.attribute (name, type, &u[0]);
-        }
-        return;
-    }
+    attribute_typed (spec, name, type, obj);
 }
 
 
@@ -247,31 +223,7 @@ static void
 ImageSpec_attribute_tuple_typed (ImageSpec& spec, const std::string &name,
                            TypeDesc type, tuple &obj)
 {
-    if (type.basetype == TypeDesc::INT) {
-        std::vector<int> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            spec.attribute (name, type, &vals[0]);
-        return;
-    }
-    if (type.basetype == TypeDesc::FLOAT) {
-        std::vector<float> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            spec.attribute (name, type, &vals[0]);
-        return;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        std::vector<std::string> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate) {
-            std::vector<ustring> u;
-            for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.push_back (ustring(vals[i]));
-            spec.attribute (name, type, &u[0]);
-        }
-        return;
-    }
+    attribute_tuple_typed (spec, name, type, obj);
 }
 
 
