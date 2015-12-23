@@ -703,24 +703,24 @@ public:
         return attribute (name, TypeDesc::STRING, &s);
     }
 
-    virtual bool getattribute (string_view name, TypeDesc type, void *val);
-    virtual bool getattribute (string_view name, int &val) {
+    virtual bool getattribute (string_view name, TypeDesc type, void *val) const;
+    virtual bool getattribute (string_view name, int &val) const {
         return getattribute (name, TypeDesc::INT, &val);
     }
-    virtual bool getattribute (string_view name, float &val) {
+    virtual bool getattribute (string_view name, float &val) const {
         return getattribute (name, TypeDesc::FLOAT, &val);
     }
-    virtual bool getattribute (string_view name, double &val) {
+    virtual bool getattribute (string_view name, double &val) const {
         float f;
         bool ok = getattribute (name, TypeDesc::FLOAT, &f);
         if (ok)
             val = f;
         return ok;
     }
-    virtual bool getattribute (string_view name, char **val) {
+    virtual bool getattribute (string_view name, char **val) const {
         return getattribute (name, TypeDesc::STRING, val);
     }
-    virtual bool getattribute (string_view name, std::string &val) {
+    virtual bool getattribute (string_view name, std::string &val) const {
         ustring s;
         bool ok = getattribute (name, TypeDesc::STRING, &s);
         if (ok)

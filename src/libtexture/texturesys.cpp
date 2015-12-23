@@ -484,7 +484,7 @@ TextureSystemImpl::attribute (string_view name, TypeDesc type,
 
 bool
 TextureSystemImpl::getattribute (string_view name, TypeDesc type,
-                                 void *val)
+                                 void *val) const
 {
     if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
