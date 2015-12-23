@@ -28,6 +28,8 @@
   (This is the Modified BSD License)
 */
 
+#include <boost/scoped_array.hpp>
+
 #include "py_oiio.h"
 #include "OpenImageIO/ustring.h"
 
@@ -52,117 +54,66 @@ void ImageCacheWrap::clear ()
     m_cache->clear();
 }
 
-bool ImageCacheWrap::attribute (const std::string &name, TypeDesc type,
-                const void *val)
-{
-    return m_cache->attribute(name, type, val);
-}
 
-//Shortcuts for common types
-bool ImageCacheWrap::attribute_int (const std::string &name, int val)
+std::string ImageCacheWrap::resolve_filename (const std::string &val)
 {
-    return m_cache->attribute(name, val);
-}
-
-bool ImageCacheWrap::attribute_float (const std::string &name, float val)
-{
-    return m_cache->attribute(name, val);
-}
-
-bool ImageCacheWrap::attribute_double (const std::string &name, double val)
-{
-    return m_cache->attribute(name, val);
-}
-
-bool ImageCacheWrap::attribute_char (const std::string &name, const char *val)
-{
-    return m_cache->attribute(name, val);
-}
-
-bool ImageCacheWrap::attribute_string (const std::string &name, const std::string &val)
-{
-    return m_cache->attribute(name, val);
-}
-
-bool ImageCacheWrap::getattribute(const std::string &name, TypeDesc type,
-                    void *val)
-{
-    return m_cache->getattribute(name, type, val);
-}
-
-//Shortcuts for common types
-bool ImageCacheWrap::getattribute_int(const std::string &name, int &val)
-{
-    return m_cache->getattribute(name, val);
-}
-
-bool ImageCacheWrap::getattribute_float(const std::string &name, float &val)
-{
-    return m_cache->getattribute(name, val);
-}
-
-bool ImageCacheWrap::getattribute_double(const std::string &name, double &val)
-{
-    return m_cache->getattribute(name, val);
-}
-
-bool ImageCacheWrap::getattribute_char(const std::string &name, char **val)
-{
-    return m_cache->getattribute(name, val);
-}
-
-bool ImageCacheWrap::getattribute_string(const std::string &name, std::string &val)
-{
-    return m_cache->getattribute(name, val);
-}
-
-std::string ImageCacheWrap::resolve_filename (const std::string &val) {
     ScopedGILRelease gil;
     return m_cache->resolve_filename(val);
 }
 
-bool ImageCacheWrap::get_image_info (ustring filename, int subimage,
-                                     int miplevel, ustring dataname,
-                                     TypeDesc datatype, void *data)
+
+#if 0
+object ImageCacheWrap::get_image_info (ustring filename, int subimage,
+                                       int miplevel, ustring dataname,
+                                       TypeDesc datatype)
 {
     ScopedGILRelease gil;
     return m_cache->get_image_info(filename, subimage, miplevel,
                                    dataname, datatype, data);
 }
 
-bool ImageCacheWrap::get_image_info_old (ustring filename, ustring dataname,
-                        TypeDesc datatype, void *data)
-{
-    ScopedGILRelease gil;
-    return m_cache->get_image_info(filename, 0, 0, dataname, datatype, data);
-}   
-
-bool ImageCacheWrap::get_imagespec(ustring filename, ImageSpec &spec, int subimage=0)
+object ImageCacheWrap::get_imagespec(ustring filename, int subimage=0)
 {
     ScopedGILRelease gil;
     return m_cache->get_imagespec(filename, spec, subimage);
 }    
+#endif
 
-bool ImageCacheWrap::get_pixels (ustring filename, int subimage, int miplevel,
-                int xbegin, int xend, int ybegin, int yend, int zbegin, 
-                int zend, TypeDesc format, void *result)
+
+object ImageCacheWrap::get_pixels (const std::string &filename_,
+                       int subimage, int miplevel, int xbegin, int xend,
+                       int ybegin, int yend, int zbegin, int zend,
+                       TypeDesc datatype)
 { 
     ScopedGILRelease gil;
-    return m_cache->get_pixels(filename, subimage, miplevel, xbegin, xend,
-                               ybegin, yend, zbegin, zend, format, result);
+    ustring filename (filename_);
+    int chbegin = 0, chend = 0;
+    if (! m_cache->get_image_info (filename, subimage, miplevel,
+                                   ustring("channels"), TypeDesc::INT, &chend))
+        return object(handle<>(Py_None));  // couldn't open file
+
+    size_t size = size_t ((xend-xbegin) * (yend-ybegin) * (zend-zbegin) *
+                          (chend-chbegin) * datatype.size());
+    boost::scoped_array<char> data (new char [size]);
+    if (! m_cache->get_pixels (filename, subimage, miplevel, xbegin, xend,
+                               ybegin, yend, zbegin, zend, datatype, &data[0]))
+        return object(handle<>(Py_None));   // get_pixels failed;
+
+    return C_array_to_Python_array (data.get(), datatype, size);
 }
+
 
 //Not sure how to expose this to Python. 
 /*
-Tile *get_tile (ustring filename, int subimage,
+Tile *get_tile (ImageCache &ic, ustring filename, int subimage,
                 int x, int y, int z) {
-    return m_cache->get_tile(filename, subimage, x, y, z);
+    return ic.get_tile(filename, subimage, x, y, z);
 }
-void release_tile (Tile *tile) const {
-    m_cache->release-tile(tile);
+void release_tile (ImageCache &ic, Tile *tile) const {
+    ic.release-tile(tile);
 }
-const void *tile_pixels (Tile *tile, TypeDesc &format) const {
-    m_cache->tile_pixels(tile, format);
+const void *tile_pixels (ImageCache &ic, Tile *tile, TypeDesc &format) const {
+    ic.tile_pixels(tile, format);
 }        
 */
 
@@ -189,32 +140,78 @@ void ImageCacheWrap::invalidate_all (bool force=false)
     return m_cache->invalidate_all(force);
 }           
 
+
+
+void
+ImageCacheWrap::attribute_int (const std::string &name, int val)
+{
+    m_cache->attribute (name, val);
+}
+
+
+void
+ImageCacheWrap::attribute_float (const std::string &name, float val)
+{
+    m_cache->attribute (name, val);
+}
+
+
+void
+ImageCacheWrap::attribute_string (const std::string &name,
+                                  const std::string &val)
+{
+    m_cache->attribute (name, val);
+}
+
+
+void
+ImageCacheWrap::attribute_typed (const std::string &name,
+                                 TypeDesc type, object &obj)
+{
+    ::PyOpenImageIO::attribute_typed (*m_cache, name, type, obj);
+}
+
+
+void
+ImageCacheWrap::attribute_tuple_typed (const std::string &name,
+                                       TypeDesc type, tuple &obj)
+{
+    ::PyOpenImageIO::attribute_tuple_typed (*m_cache, name, type, obj);
+}
+
+
+
+object
+ImageCacheWrap::getattribute_typed (const std::string &name, TypeDesc type)
+{
+    return ::PyOpenImageIO::getattribute_typed (*m_cache, name, type);
+}
+
+
+
+
 void declare_imagecache()
 {
     class_<ImageCacheWrap, boost::noncopyable>("ImageCache", no_init)
         .def("create", &ImageCacheWrap::create,
-                 (arg("shared")),         
+                 (arg("shared")),
                  return_value_policy<manage_new_object>())
         .staticmethod("create")
         .def("destroy", &ImageCacheWrap::destroy)
         .staticmethod("destroy")
         .def("clear", &ImageCacheWrap::clear)
-        .def("attribute", &ImageCacheWrap::attribute)
-        .def("attribute", &ImageCacheWrap::attribute_int)
         .def("attribute", &ImageCacheWrap::attribute_float)
-        .def("attribute", &ImageCacheWrap::attribute_double)
-        .def("attribute", &ImageCacheWrap::attribute_char)
+        .def("attribute", &ImageCacheWrap::attribute_int)
         .def("attribute", &ImageCacheWrap::attribute_string)
-        .def("getattribute", &ImageCacheWrap::attribute)
-        .def("getattribute", &ImageCacheWrap::getattribute_int)
-        .def("getattribute", &ImageCacheWrap::getattribute_float)
-        .def("getattribute", &ImageCacheWrap::getattribute_double)
-        .def("getattribute", &ImageCacheWrap::getattribute_char)
-        .def("getattribute", &ImageCacheWrap::getattribute_string)
+        .def("attribute", &ImageCacheWrap::attribute_typed)
+        .def("attribute", &ImageCacheWrap::attribute_tuple_typed)
+        .def("getattribute",  &ImageCacheWrap::getattribute_typed)
+        // .def("getattribute",  &ImageCacheWrap::get_attribute_untyped)
+
         .def("resolve_filename", &ImageCacheWrap::resolve_filename)
-        .def("get_image_info", &ImageCacheWrap::get_image_info)
-        .def("get_image_info", &ImageCacheWrap::get_image_info_old)
-        .def("get_imagespec", &ImageCacheWrap::get_imagespec)
+        // .def("get_image_info", &ImageCacheWrap::get_image_info)
+        // .def("get_imagespec", &ImageCacheWrap::get_imagespec,
+        //      (arg("subimage")=0)),
         .def("get_pixels", &ImageCacheWrap::get_pixels)
 //      .def("get_tile", &ImageCacheWrap::get_tile)
 //      .def("release_tile", &ImageCacheWrap::release_tile)
