@@ -69,7 +69,7 @@ OIIO_API std::string filename (const std::string &filepath);
 /// Return the file extension (including the last '.' if
 /// include_dot=true) of a filename or filepath.
 OIIO_API std::string extension (const std::string &filepath,
-                                 bool include_dot=true);
+                                bool include_dot=true);
 
 /// Return all but the last part of the path, for example,
 /// parent_path("foo/bar") returns "foo", and parent_path("foo")
@@ -80,7 +80,7 @@ OIIO_API std::string parent_path (const std::string &filepath);
 /// filepath, just returns a new string.  Note that the new_extension
 /// should contain a leading '.' dot.
 OIIO_API std::string replace_extension (const std::string &filepath, 
-                                         const std::string &new_extension);
+                                        const std::string &new_extension);
 
 /// Turn a searchpath (multiple directory paths separated by ':' or ';')
 /// into a vector<string> containing each individual directory.  If
@@ -88,8 +88,8 @@ OIIO_API std::string replace_extension (const std::string &filepath,
 /// up in the list.  N.B., the directory names will not have trailing
 /// slashes.
 OIIO_API void searchpath_split (const std::string &searchpath,
-                                 std::vector<std::string> &dirs,
-                                 bool validonly = false);
+                                std::vector<std::string> &dirs,
+                                bool validonly = false);
 
 /// Find the first instance of a filename existing in a vector of
 /// directories, returning the full path as a string.  If the file is
@@ -101,9 +101,9 @@ OIIO_API void searchpath_split (const std::string &searchpath,
 /// finding a matching file in any subdirectory of the directories
 /// listed in dirs; otherwise.
 OIIO_API std::string searchpath_find (const std::string &filename,
-                                       const std::vector<std::string> &dirs,
-                                       bool testcwd = true,
-                                       bool recursive = false);
+                                      const std::vector<std::string> &dirs,
+                                      bool testcwd = true,
+                                      bool recursive = false);
 
 /// Fill a vector-of-strings with the names of all files contained by
 /// directory dirname.  If recursive is true, it will return all files
@@ -120,7 +120,7 @@ OIIO_API bool get_directory_entries (const std::string &dirname,
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.
 OIIO_API bool path_is_absolute (const std::string &path,
-                                 bool dot_is_absolute=false);
+                                bool dot_is_absolute=false);
 
 /// Return true if the file exists.
 ///

@@ -44,21 +44,31 @@
 OIIO_NAMESPACE_USING;
 
 
+// This will be run via testsuite/unit_filesystem, from the
+// build/ARCH/src/libOpenImageIO directory.  Two levels up will be
+// build/ARCH.
+
+
+
 void test_filename_decomposition ()
 {
-    std::cout << "filename(\"/directory/filename.ext\") = "
-              << Filesystem::filename("/directory/filename.ext") << "\n";
-    OIIO_CHECK_EQUAL (Filesystem::filename("/directory/filename.ext"),
-                      "filename.ext");
+    std::string test ("/directoryA/directory/filename.ext");
 
-    std::cout << "extension(\"/directory/filename.ext\") = "
-              << Filesystem::extension("/directory/filename.ext") << "\n";
-    OIIO_CHECK_EQUAL (Filesystem::extension("/directory/filename.ext"),
-                      ".ext");
-    OIIO_CHECK_EQUAL (Filesystem::extension("/directory/filename"),
-                      "");
-    OIIO_CHECK_EQUAL (Filesystem::extension("/directory/filename."),
-                      ".");
+    std::cout << "Testing filename, extension, parent_path\n";
+    OIIO_CHECK_EQUAL (Filesystem::filename(test), "filename.ext");
+    OIIO_CHECK_EQUAL (Filesystem::extension(test), ".ext");
+    OIIO_CHECK_EQUAL (Filesystem::extension("/directory/filename"), "");
+    OIIO_CHECK_EQUAL (Filesystem::extension("/directory/filename."), ".");
+    OIIO_CHECK_EQUAL (Filesystem::parent_path(test), "/directoryA/directory");
+
+    std::cout << "Testing path_is_absolute\n";
+    OIIO_CHECK_EQUAL (Filesystem::path_is_absolute ("/foo/bar"), true);
+    OIIO_CHECK_EQUAL (Filesystem::path_is_absolute ("foo/bar"), false);
+    OIIO_CHECK_EQUAL (Filesystem::path_is_absolute ("../foo/bar"), false);
+
+    std::cout << "Testing replace_extension\n";
+    OIIO_CHECK_EQUAL (Filesystem::replace_extension(test,"foo"),
+                      "/directoryA/directory/filename.foo");
 }
 
 
@@ -66,30 +76,97 @@ void test_filename_decomposition ()
 void test_filename_searchpath_find ()
 {
 #if _WIN32
-# define SEPARATOR "\\"
+# define DIRSEP "\\"
 #else
-# define SEPARATOR "/"
+# define DIRSEP "/"
 #endif
+#define  PATHSEP ":"
+    std::string pathlist (".." DIRSEP ".."                     PATHSEP
+                          ".." DIRSEP ".." DIRSEP "cpack"      PATHSEP
+                          "foo/bar/baz");
 
-    // This will be run via testsuite/unit_filesystem, from the
-    // build/ARCH/src/libOpenImageIO directory.  Two levels up will be
-    // build/ARCH.
+    std::cout << "Testing searchpath_split\n";
     std::vector<std::string> dirs;
-    dirs.push_back (".." SEPARATOR "..");
-    dirs.push_back (".." SEPARATOR ".." SEPARATOR "cpack");
-    std::string s;
+    Filesystem::searchpath_split (pathlist, dirs);
+    OIIO_CHECK_EQUAL (dirs.size(), 3);
+    OIIO_CHECK_EQUAL (dirs[0], ".." DIRSEP "..");
+    OIIO_CHECK_EQUAL (dirs[1], ".." DIRSEP ".." DIRSEP "cpack");
+    OIIO_CHECK_EQUAL (dirs[2], "foo/bar/baz");
+
+    std::cout << "Testing searchpath_find\n";
 
     // non-recursive search success
-    s = Filesystem::searchpath_find ("License.txt", dirs, false, false);
-    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "cpack" SEPARATOR "License.txt");
+    OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("License.txt", dirs, false, false),
+                      ".." DIRSEP ".." DIRSEP "cpack" DIRSEP "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
-    s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, false);
-    OIIO_CHECK_EQUAL (s, "");
+    OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("oiioversion.h", dirs, false, false),
+                      "");
 
     // recursive search success (file is in a subdirectory)
-    s = Filesystem::searchpath_find ("oiioversion.h", dirs, false, true);
-    OIIO_CHECK_EQUAL (s, ".." SEPARATOR ".." SEPARATOR "include" SEPARATOR "OpenImageIO" SEPARATOR "oiioversion.h");
+    OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("oiioversion.h", dirs, false, true),
+                      ".." DIRSEP ".." DIRSEP "include" DIRSEP "OpenImageIO" DIRSEP "oiioversion.h");
+}
+
+
+
+inline std::string
+my_read_text_file (string_view filename)
+{
+    std::string err;
+    std::string contents;
+    bool ok = Filesystem::read_text_file (filename, contents);
+    OIIO_CHECK_ASSERT (ok);
+    return contents;
+}
+
+
+
+static void
+test_file_status ()
+{
+    // Make test file, test Filesystem::fopen in the process.
+    FILE *file = Filesystem::fopen ("testfile", "w");
+    OIIO_CHECK_ASSERT (file != NULL);
+    const char testtext[] = "test\nfoo\nbar\n";
+    fputs (testtext, file);
+    fclose (file);
+
+    std::cout << "Testing read_text_file\n";
+    OIIO_CHECK_EQUAL (my_read_text_file("testfile"), testtext);
+
+    std::cout << "Testing create_directory\n";
+    Filesystem::create_directory ("testdir");
+
+    std::cout << "Testing exists\n";
+    OIIO_CHECK_ASSERT (Filesystem::exists("testfile"));
+    OIIO_CHECK_ASSERT (Filesystem::exists("testdir"));
+    OIIO_CHECK_ASSERT (! Filesystem::exists("noexist"));
+    std::cout << "Testing is_directory, is_regular\n";
+    OIIO_CHECK_ASSERT (Filesystem::is_regular("testfile"));
+    OIIO_CHECK_ASSERT (! Filesystem::is_directory("testfile"));
+    OIIO_CHECK_ASSERT (! Filesystem::is_regular("testdir"));
+    OIIO_CHECK_ASSERT (Filesystem::is_directory("testdir"));
+    OIIO_CHECK_ASSERT (! Filesystem::is_regular("noexist"));
+    OIIO_CHECK_ASSERT (! Filesystem::is_directory("noexist"));
+
+    std::cout << "Testing copy, rename, remove\n";
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile2"));
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile3"));
+    Filesystem::copy ("testfile", "testfile2");
+    OIIO_CHECK_ASSERT (Filesystem::exists("testfile2"));
+    OIIO_CHECK_EQUAL (my_read_text_file("testfile2"), testtext);
+    Filesystem::rename ("testfile2", "testfile3");
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile2"));
+    OIIO_CHECK_ASSERT (Filesystem::exists("testfile3"));
+    OIIO_CHECK_EQUAL (my_read_text_file("testfile3"), testtext);
+    Filesystem::remove ("testfile");
+    Filesystem::remove ("testfile3");
+    Filesystem::remove ("testdir");
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile"));
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile2"));
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testfile3"));
+    OIIO_CHECK_ASSERT (! Filesystem::exists("testdir"));
 }
 
 
@@ -311,13 +388,8 @@ void test_scan_sequences ()
 
     filenames.clear();
 
-#ifdef _WIN32
-    CreateDirectory("left", NULL);
-    CreateDirectory("left/l", NULL);
-#else
-    mkdir("left", 0777);
-    mkdir("left/l", 0777);
-#endif
+    Filesystem::create_directory ("left");
+    Filesystem::create_directory ("left/l");
 
     for (size_t i = 1; i <= 5; i++) {
         std::string fn = Strutil::format ("left/l/foo_left_l.%04d.exr", i);
@@ -335,13 +407,8 @@ void test_scan_sequences ()
 
     filenames.clear();
 
-#ifdef _WIN32
-    CreateDirectory("right", NULL);
-    CreateDirectory("right/r", NULL);
-#else
-    mkdir("right", 0777);
-    mkdir("right/r", 0777);
-#endif
+    Filesystem::create_directory ("right");
+    Filesystem::create_directory ("right/r");
 
     std::string fn;
 
@@ -368,6 +435,7 @@ int main (int argc, char *argv[])
 {
     test_filename_decomposition ();
     test_filename_searchpath_find ();
+    test_file_status ();
     test_frame_sequences ();
     test_scan_sequences ();
 
