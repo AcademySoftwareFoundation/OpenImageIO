@@ -4378,7 +4378,7 @@ main (int argc, char *argv[])
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
-    ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
+    ot.imagecache->attribute ("max_memory_MB", 4096.0);
 //    ot.imagecache->attribute ("autotile", 1024);
 
     Filesystem::convert_native_arguments (argc, (const char **)argv);
