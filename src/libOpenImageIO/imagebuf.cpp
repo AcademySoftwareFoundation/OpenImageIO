@@ -2075,6 +2075,19 @@ ImageBuf::set_roi_full (const ROI &newroi)
 
 
 
+bool
+ImageBuf::contains_roi (ROI roi) const
+{
+    ROI myroi = roi;
+    return (roi.defined() && myroi.defined() &&
+            roi.xbegin >= myroi.xbegin && roi.xend <= myroi.xend &&
+            roi.ybegin >= myroi.ybegin && roi.yend <= myroi.yend &&
+            roi.zbegin >= myroi.zbegin && roi.zend <= myroi.zend &&
+            roi.chbegin >= myroi.chbegin && roi.chend <= myroi.chend);
+}
+
+
+
 const void *
 ImageBufImpl::pixeladdr (int x, int y, int z) const
 {

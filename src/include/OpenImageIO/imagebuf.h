@@ -614,6 +614,10 @@ public:
     /// Does NOT change the channels of the spec, regardless of newroi.
     void set_roi_full (const ROI &newroi);
 
+    /// Is the specified roi completely contained in the data window of
+    /// this ImageBuf?
+    bool contains_roi (ROI roi) const;
+
     bool pixels_valid (void) const;
 
     TypeDesc pixeltype () const;
