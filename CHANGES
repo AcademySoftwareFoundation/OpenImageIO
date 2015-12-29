@@ -1,6 +1,22 @@
 Changes:
 
-Release 1.6 (release expected Dec 21, 2015) -- compared to 1.5.x
+Release 1.6.9 (released 5 Jan 2016 -- compared to 1.6.8)
+------------------------------------------------
+* Several varieties of ImageCache and TextureSystem getattribute methods
+  were noticed to not be properly declared 'const'. This was fixed.
+  #1300 (1.6.9)
+* Fix build break against Boost 1.60. #1299,#1300 (1.6.9/1.5.23)
+* The Python bindings for ImageCache was overhauled after several
+  of the methods were found to be horribly broken. #1300 (1.6.9)
+* oiiotool --subimage now allows a subimage name as argument, as well
+  as the numeric index. #1271,#1287 (1.6.9)
+* TIFF input: erase redundant IPTC:Caption and IPTC:OriginatingProgram
+  if they are identical to existing ImageDescription and Software metadata,
+  respectively. (1.6.9)
+* Fix oiiotool image cache smaller than intended because of typo. (1.6.9)
+
+
+Release 1.6 (1.6.8 released Dec 21, 2015 -- compared to 1.5.x)
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool functionality:
@@ -517,6 +533,10 @@ Developer goodies / internals:
    (1.6.6/1.5.21)
 
 
+
+Release 1.5.23 (28 Dec 2015) -- compared to 1.5.22)
+---------------------------------------------------
+* Fix build break against Boost 1.60. #1299,#1300
 
 Release 1.5.22 (16 Dec 2015) -- compared to 1.5.21)
 ---------------------------------------------------
