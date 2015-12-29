@@ -1181,7 +1181,7 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
                        array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_nsamples().data()
+                               (char *)(deepdata.all_samples().data()
                                         - m_spec.x
                                         - ybegin*m_spec.width),
                                sizeof(unsigned int),
@@ -1253,7 +1253,7 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
                        array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_nsamples().data()
+                               (char *)(deepdata.all_samples().data()
                                         - xbegin
                                         - ybegin*width),
                                sizeof(unsigned int),

@@ -12,3 +12,11 @@ Comparing "trim1.exr" and "ref/trim1.exr"
 PASS
 Comparing "trim2.exr" and "ref/trim2.exr"
 PASS
+Comparing "deep_addc.exr" and "ref/deep_addc.exr"
+PASS
+Comparing "deep_subc.exr" and "ref/deep_subc.exr"
+PASS
+Comparing "deep_mulc.exr" and "ref/deep_mulc.exr"
+PASS
+Comparing "deep_divc.exr" and "ref/deep_divc.exr"
+PASS

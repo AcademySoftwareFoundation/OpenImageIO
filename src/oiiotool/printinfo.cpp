@@ -74,7 +74,7 @@ print_sha1 (ImageInput *input)
             return;
         }
         // Hash both the sample counts and the data block
-        sha.append (dd.all_nsamples());
+        sha.append (dd.all_samples());
         sha.append (dd.all_data());
     } else {
         imagesize_t size = input->spec().image_bytes (true /*native*/);

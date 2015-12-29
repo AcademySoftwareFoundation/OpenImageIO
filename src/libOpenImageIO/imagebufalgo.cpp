@@ -230,11 +230,22 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             return false;
         }
     }
-    if (! (prepflags & IBAprep_SUPPORT_DEEP) &&
-        ((dst && dst->deep()) || (A && A->deep()) ||
-         (B && B->deep()) || (C && C->deep()))) {
-        dst->error ("deep data not supported");
-        return false;
+    if ((dst && dst->deep()) || (A && A->deep()) ||
+        (B && B->deep()) || (C && C->deep())) {
+        // At least one image is deep
+        if (! (prepflags & IBAprep_SUPPORT_DEEP)) {
+            // Error if the operation doesn't support deep images
+            dst->error ("deep images not supported");
+            return false;
+        }
+        if (! (prepflags & IBAprep_DEEP_MIXED)) {
+            // Error if not all images are deep
+            if ((dst && !dst->deep()) || (A && !A->deep()) ||
+                (B && !B->deep()) || (C && !C->deep())) {
+                dst->error ("mixed deep & flat images not supported");
+                return false;
+            }
+        }
     }
     return true;
 }

@@ -1515,7 +1515,7 @@ OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_nsamples().data()
+                               (char *)(deepdata.all_samples().data()
                                         - m_spec.x
                                         - ybegin*m_spec.width),
                                sizeof(unsigned int),
@@ -1578,7 +1578,7 @@ OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_nsamples().data()
+                               (char *)(deepdata.all_samples().data()
                                         - xbegin
                                         - ybegin*width),
                                sizeof(unsigned int),
