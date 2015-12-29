@@ -3,13 +3,83 @@ Changes:
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
+
 Public API changes:
+ * DeepData internals and API overhaul: struct internals hidden, now you
+   must use the API; DeepData declaration is now in deepdata.h, not in
+   imageio.h; DD methods now allow insertion and erasure of individual
+   samples. #1289 (1.7.0)
+ * imageio.h: Removed items deprecated since 1.4: a version of convert_types()
+   that took alpha and z channel indices (but never used them). #1291
+ * fmath.h: Removed safe_sqrtf, safe_acosf, fast_expf, which have been
+   deprecated since 1.5. (1.7.0) #1291
+ * Removed ImageBufAlgo::flipflop(), which was deprecated since 1.5 and
+   is now called rotate180. #1291 (1.7.0)
+ * Several varieties of ImageCache and TextureSystem getattribute methods
+   were noticed to not be properly declared 'const'. This was fixed.
+   #1300 (1.7.0/1.6.9)
+
 Fixes, minor enhancements, and performance improvements:
+ * oiiotool:
+    * oiiotool --subimage now takes as an argument either the subimage
+      numeric index, or a subimage name. #1287 (1.7.0)
+    * oiiotool's image cache was smaller than intended because of typo.
+      (1.7.0/1.6.9)
+ * ImageBufAlgo:
+    * The varieties of add(), sub(), mul(), and div() that take an
+      image operand and a per-channel constant operand have all been
+      modified to work properly for "deep" images. #1297 (1.7.0)
+ * maketx:
+    * maketx -u now remakes the file if command line arguments or OIIO
+      version changes, even if the files' dates appear to match.
+      #1281 (1.7.0)
+ * TIFF:
+    * When outputting a TIFF file, a special attribute "tiff:half", if
+      set to nonzero, will enable writing of 16-bit float pixel data
+      (obviously, only if the spec.format is HALF). #1283 (1.7.0)
+    * TIFF input: erase redundant IPTC:Caption and IPTC:OriginatingProgram
+      if they are identical to existing ImageDescription and Software
+      metadata, respectively. (1.7.0/1.6.9)
+ * Video formats:
+    * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
+
 Build/test system improvements:
+ * Fix build break against Boost 1.60. #1299,#1300 (1.7.0/1.6.9/1.5.23)
+ * filesystem_test now much more comprehensively tests the contents of
+   Filesystem. #1302 (1.7.0)
+ * fmath_test adds benchmarks for various data conversions. #1305 (1.7.0)
+
 Developer goodies / internals:
+ * parallel_image has been improved in several ways: can choose split
+   direction; raised minimum chunk size to prevent thread fan-out for
+   images too small to benefit; uses the calling thread as part of the
+   pool. #1303 (1.7.0)
+ * timer.h: DoNotOptimize() and clobber() help to disable certain
+   optimizations that would interfere with micro-benchmarks. #1305 (1.7.0)
+ * simd.h improvements: select(); round(); float4::store(half*),
+   int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
+ * fmath.h: convert_types has new special cases that vastly speed up
+   float <-> uint16, uint8, and half buffer conversions. #1305 (1.7.0)
 
 
-Release 1.6 (release expected Dec 2015?) -- compared to 1.5.x
+
+Release 1.6.9 (released 5 Jan 2016 -- compared to 1.6.8)
+------------------------------------------------
+* Several varieties of ImageCache and TextureSystem getattribute methods
+  were noticed to not be properly declared 'const'. This was fixed.
+  #1300 (1.6.9)
+* Fix build break against Boost 1.60. #1299,#1300 (1.6.9/1.5.23)
+* The Python bindings for ImageCache was overhauled after several
+  of the methods were found to be horribly broken. #1300 (1.6.9)
+* oiiotool --subimage now allows a subimage name as argument, as well
+  as the numeric index. #1271,#1287 (1.6.9)
+* TIFF input: erase redundant IPTC:Caption and IPTC:OriginatingProgram
+  if they are identical to existing ImageDescription and Software metadata,
+  respectively. (1.6.9)
+* Fix oiiotool image cache smaller than intended because of typo. (1.6.9)
+
+
+Release 1.6 (1.6.8 released Dec 21, 2015 -- compared to 1.5.x)
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool functionality:
@@ -189,6 +259,8 @@ Public API changes:
       which weren't useful in a Python context. #1184 (1.6.4)
     * ImageBufAlgo colorconvert, ociolook, and ociodisplay now take an
       optional string colorconfig argument. #1187 (1.6.4)
+    * Fix missing Python bindings for global OIIO::getattribute(). #1290
+      (1.6.8)
  * The ColorConfig wrapper for OCIO functionality has been extended to
    parse color names from filename strings, and to report the recommended
    pixel data type for a color space. #1129 (1.6.3)
@@ -209,6 +281,9 @@ Public API changes:
    This also adds coordinate.h to give definitions for the offset<>,
    bounds<>, and bounds_iterator<> templates used by array_view. #1205
    (1.6.4)
+ * Add top-level OIIO::get_int_attribute(), get_float_attribute(), and
+   get_string_attribute() helpers, similar to how they work in many
+   of the classes. #1283 (1.6.7)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool
@@ -249,6 +324,8 @@ Fixes, minor enhancements, and performance improvements:
       the full-detail help. #1214 (1.6.5)
     * Bug fix in --fit when the image didn't need to be resized.
       #1227 (1.6.5/1.5.21)
+    * Bug fix in --ch for "deep" files when the channel reordering is
+      the same as it already was. #1286 (1.6.7)
  * ImageBufAlgo:
     * compare() (and therefore oiiotool -diff and idiff) did not notice
       image differences when the pixels that differed had NaN or NaN or
@@ -304,6 +381,9 @@ Fixes, minor enhancements, and performance improvements:
     * Statistics output also shows all the option setting values. #1226 (1.6.5)
     * Data copy error in ImageCache::get_pixels for partial-channel-set
       copies. #1246 (1.6.5)
+    * maketx -u now remakes the file if command line arguments or OIIO
+      version changes, even if the files' dates appear to match.
+      #1281 (1.6.8)
  * GIF:
     * Write support! #1193 (1.6.4)
     * On input, renamed "fps" metadata to "FramesPerSecond". #1193 (1.6.4)
@@ -456,6 +536,11 @@ Build/test system improvements:
    integration / automatic builds of all merges and pull requests.
    #1268, #1269, #1273 (1.6.6)
  * Don't install fonts if USE_FREETYPE is disabled. #1275 (1.6.6)
+ * Use ccache for builds when detected and safe (unless USE_CCACHE=0).
+   #1274,#1285 (1.6.7)
+ * Failed tests now print their non-matching text output to the console
+   when doing 'make test'. This makes it much easier to spot most errors.
+   #1284 (1.6.7)
 
 Developer goodies / internals:
  * Strutil additions: parse_until, parse_nested (1.6.1), repeat
@@ -510,6 +595,20 @@ Developer goodies / internals:
  * Sysutil::hardware_concurrency() and physical_concurrency(). #1263
    (1.6.6/1.5.21)
 
+
+
+Release 1.5.23 (28 Dec 2015) -- compared to 1.5.22)
+---------------------------------------------------
+* Fix build break against Boost 1.60. #1299,#1300
+
+Release 1.5.22 (16 Dec 2015) -- compared to 1.5.21)
+---------------------------------------------------
+* Deep OpenEXR: recognize the newer AR/AG/AB channel name convention. #1277
+* Fix ffmpeg plugin compilation in some configurations. #1288
+* Bug fix: TIFF read_scanlines of files with unassociated alpha didn't
+  honor the 'ystride' parameter and could run off the end of the buffer
+  for nonstandard stride arranagements. #1278
+* Fix missing Python bindings for global OIIO::getattribute(). #1290
 
 Release 1.5.21 (1 Dec 2015) -- compared to 1.5.20)
 ---------------------------------------------------
