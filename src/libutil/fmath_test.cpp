@@ -28,8 +28,16 @@
   (This is the Modified BSD License)
 */
 
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/unittest.h"
+#include <vector>
+
+#include <OpenEXR/half.h>
+
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/unittest.h>
+#include <OpenImageIO/imagebufalgo_util.h>
 
 OIIO_NAMESPACE_USING;
 
@@ -127,6 +135,36 @@ void test_convert_type (double tolerance = 1e-6)
 }
 
 
+
+template<typename S, typename D>
+void do_convert_type (const std::vector<S> &svec, std::vector<D> &dvec)
+{
+    convert_type (&svec[0], &dvec[0], svec.size());
+    DoNotOptimize (dvec[0]);  // Be sure nothing is optimized away
+}
+
+
+template<typename S, typename D>
+void benchmark_convert_type ()
+{
+    const int ntrials = 5;
+    const int iterations = 10;
+    const size_t size = 10000000;
+    const S testval(1.0);
+    std::vector<S> svec (size, testval);
+    std::vector<D> dvec (size);
+    std::cout << Strutil::format("Benchmark conversion of %6s -> %6s : ",
+                                 TypeDesc(BaseTypeFromC<S>::value),
+                                 TypeDesc(BaseTypeFromC<D>::value));
+    float time = time_trial (bind (do_convert_type<S,D>, OIIO::cref(svec), OIIO::ref(dvec)),
+                             ntrials, iterations) / iterations;
+    std::cout << Strutil::format ("%7.1f Mvals/sec", (size/1.0e6)/time) << std::endl;
+    D r = convert_type<S,D>(testval);
+    OIIO_CHECK_EQUAL (dvec[size-1], r);
+}
+
+
+
 void test_bit_range_convert ()
 {
     OIIO_CHECK_EQUAL ((bit_range_convert<10,16>(1023)), 65535);
@@ -171,6 +209,13 @@ int main (int argc, char *argv[])
     std::cout << "round trip convert float/unsigned int/float\n";
     test_convert_type<float, unsigned int> ();
 
+    benchmark_convert_type<unsigned char, float> ();
+    benchmark_convert_type<float, unsigned char> ();
+    benchmark_convert_type<unsigned short, float> ();
+    benchmark_convert_type<float, unsigned short> ();
+    benchmark_convert_type<half, float> ();
+    benchmark_convert_type<float, half> ();
+    benchmark_convert_type<float, float> ();
 // convertion to a type smaller in bytes causes error
 //    std::cout << "round trip convert float/short/float\n";
 //    test_convert_type<float,short> ();
