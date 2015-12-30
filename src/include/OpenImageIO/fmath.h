@@ -61,6 +61,7 @@
 #include "platform.h"
 #include "dassert.h"
 #include "missing_math.h"
+#include "simd.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -211,6 +212,15 @@ inline T
 clamp (T a, T low, T high)
 {
     return (a < low) ? low : ((a > high) ? high : a);
+}
+
+
+// Specialization of clamp for float4 (the ?: doesn't work quite the same)
+template<>
+inline simd::float4
+clamp (simd::float4 a, simd::float4 low, simd::float4 high)
+{
+    return simd::select (a < low, low, simd::select (a > high, high, a));
 }
 
 
@@ -501,6 +511,16 @@ swap_endian (T *f, int len=1)
 
 
 
+// big_enough_float<T>::float_t is a floating-point type big enough to
+// handle the range and precision of a <T>. It's a float, unless T is big.
+template <typename T> struct big_enough_float    { typedef float float_t; };
+template<> struct big_enough_float<int>          { typedef double float_t; };
+template<> struct big_enough_float<unsigned int> { typedef double float_t; };
+template<> struct big_enough_float<int64_t>      { typedef double float_t; };
+template<> struct big_enough_float<uint64_t>     { typedef double float_t; };
+template<> struct big_enough_float<double>       { typedef double float_t; };
+
+
 /// Multiply src by scale, clamp to [min,max], and round to the nearest D
 /// (presumed to be integer).  This is just a helper for the convert_type
 /// templates, it probably has no other use.
@@ -538,7 +558,7 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
         memcpy (dst, src, n*sizeof(D));
         return;
     }
-    typedef double F;
+    typedef typename big_enough_float<D>::float_t F;
     F scale = std::numeric_limits<S>::is_integer ?
         ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
     if (std::numeric_limits<D>::is_integer) {
@@ -593,6 +613,124 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
             *dst++ = (D)((*src++) * scale);
     }
 }
+
+
+
+template<>
+inline void convert_type<uint8_t,float> (const uint8_t *src,
+                                         float *dst, size_t n,
+                                         float _zero, float _one,
+                                         float _min, float _max)
+{
+    float scale (1.0f/std::numeric_limits<uint8_t>::max());
+    simd::float4 scale_simd (scale);
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 s_simd (src);
+        simd::float4 d_simd = s_simd * scale_simd;
+        d_simd.store (dst);
+    }
+    while (n--)
+        *dst++ = (*src++) * scale;
+}
+
+
+
+template<>
+inline void convert_type<uint16_t,float> (const uint16_t *src,
+                                          float *dst, size_t n,
+                                          float _zero, float _one,
+                                          float _min, float _max)
+{
+    float scale (1.0f/std::numeric_limits<uint16_t>::max());
+    simd::float4 scale_simd (scale);
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 s_simd (src);
+        simd::float4 d_simd = s_simd * scale_simd;
+        d_simd.store (dst);
+    }
+    while (n--)
+        *dst++ = (*src++) * scale;
+}
+
+
+#ifdef _HALF_H_
+template<>
+inline void convert_type<half,float> (const half *src,
+                                      float *dst, size_t n,
+                                      float _zero, float _one,
+                                      float _min, float _max)
+{
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 s_simd (src);
+        s_simd.store (dst);
+    }
+    while (n--)
+        *dst++ = (*src++);
+}
+#endif
+
+
+
+template<>
+inline void
+convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
+                              uint16_t _zero, uint16_t _one,
+                              uint16_t _min, uint16_t _max)
+{
+    float min = std::numeric_limits<uint16_t>::min();
+    float max = std::numeric_limits<uint16_t>::max();
+    float scale = max;
+    simd::float4 max_simd (max);
+    simd::float4 one_half_simd (0.5f);
+    simd::float4 zero_simd (0.0f);
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 scaled = simd::round (simd::float4(src) * max_simd);
+        simd::float4 clamped = clamp (scaled, zero_simd, max_simd);
+        simd::int4 i (clamped);
+        i.store (dst);
+    }
+    while (n--)
+        *dst++ = scaled_conversion<float,uint16_t,float> (*src++, scale, min, max);
+}
+
+
+template<>
+inline void
+convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
+                             uint8_t _zero, uint8_t _one,
+                             uint8_t _min, uint8_t _max)
+{
+    float min = std::numeric_limits<uint8_t>::min();
+    float max = std::numeric_limits<uint8_t>::max();
+    float scale = max;
+    simd::float4 max_simd (max);
+    simd::float4 one_half_simd (0.5f);
+    simd::float4 zero_simd (0.0f);
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 scaled = simd::round (simd::float4(src) * max_simd);
+        simd::float4 clamped = clamp (scaled, zero_simd, max_simd);
+        simd::int4 i (clamped);
+        i.store (dst);
+    }
+    while (n--)
+        *dst++ = scaled_conversion<float,uint8_t,float> (*src++, scale, min, max);
+}
+
+
+#ifdef _HALF_H_
+template<>
+inline void
+convert_type<float,half> (const float *src, half *dst, size_t n,
+                          half _zero, half _one, half _min, half _max)
+{
+    for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
+        simd::float4 s (src);
+        s.store (dst);
+    }
+    while (n--)
+        *dst++ = *src++;
+}
+#endif
 
 
 
