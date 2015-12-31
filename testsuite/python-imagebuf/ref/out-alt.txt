@@ -56,8 +56,6 @@ Printing the whole spec to be sure:
   tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
-  IPTC:OriginatingProgram = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
-  IPTC:Caption = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 
@@ -86,8 +84,6 @@ Resetting to a different MIP level:
   tiff:Compression = 8
   compression = "zip"
   PixelAspectRatio = 1.0
-  IPTC:OriginatingProgram = "OpenImageIO 1.5.7dev : maketx -filter lanczos3 --resize grid.tif -o grid.tx"
-  IPTC:Caption = "oiio:SHA-1=233A1D3412A54A5F49814AB7BFFD04F56F46D3D7 oiio:AverageColor=0.608983,0.608434,0.608728,1"
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 
