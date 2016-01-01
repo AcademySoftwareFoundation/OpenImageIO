@@ -107,6 +107,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef OIIO_SIMD
+   // No SIMD available
 #  define OIIO_SIMD 0
 #  define OIIO_SIMD_ALIGN
 #  define OIIO_SIMD4_ALIGN
@@ -204,6 +205,8 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
+#else
+    typedef int      simd_t[elements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -223,10 +226,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
     }
 
@@ -265,10 +266,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
         return *this;
     }
@@ -298,10 +297,8 @@ public:
         m_vec = _mm_castsi128_ps(_mm_set1_epi32(a ? -1 : 0));
 #else
         int val = a ? -1 : 0;
-        m_val[0] = val;
-        m_val[1] = val;
-        m_val[2] = val;
-        m_val[3] = val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = val;
 #endif
     }
 
@@ -327,16 +324,14 @@ public:
 #if 0 && defined(OIIO_SIMD_SSE)
         // FIXME: is there a more efficient way to do this?
 #else
-        values[0] = m_val[0] ? true : false;
-        values[1] = m_val[1] ? true : false;
-        values[2] = m_val[2] ? true : false;
-        values[3] = m_val[3] ? true : false;
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i] ? true : false;
 #endif
     }
 
     /// Store the first n values into memory.
     OIIO_FORCEINLINE void store (bool *values, int n) const {
-        DASSERT (n >= 0 && n <= 4);
+        DASSERT (n >= 0 && n <= elements);
         for (int i = 0; i < n; ++i)
             values[i] = m_val[i] ? true : false;
     }
@@ -417,7 +412,7 @@ private:
 #if OIIO_SIMD
         simd_t m_vec;
 #endif
-        int m_val[4];
+        int m_val[elements];
     };
 };
 
@@ -492,6 +487,8 @@ public:
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128i simd_t;
+#else
+    typedef int4    simd_t[elements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -529,10 +526,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
     }
 
@@ -583,23 +578,21 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
         return *this;
     }
 
     /// Component access (set)
     OIIO_FORCEINLINE int& operator[] (int i) {
-        DASSERT(i<4);
+        DASSERT(i<elements);
         return m_val[i];
     }
 
     /// Component access (get)
     OIIO_FORCEINLINE int operator[] (int i) const {
-        DASSERT(i<4);
+        DASSERT(i<elements);
         return m_val[i];
     }
 
@@ -608,10 +601,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_set1_epi32 (a);
 #else
-        m_val[0] = a;
-        m_val[1] = a;
-        m_val[2] = a;
-        m_val[3] = a;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = a;
 #endif
     }
 
@@ -632,10 +623,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_loadu_si128 ((const simd_t *)values);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -665,7 +654,7 @@ public:
 #endif
         for (int i = 0; i < n; ++i)
             m_val[i] = values[i];
-        for (int i = n; i < 4; ++i)
+        for (int i = n; i < elements; ++i)
             m_val[i] = 0;
     }
 
@@ -676,10 +665,8 @@ public:
         simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
         m_vec = _mm_cvtepu16_epi32 (a);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -690,10 +677,8 @@ public:
         simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
         m_vec = _mm_cvtepi16_epi32 (a);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -704,10 +689,8 @@ public:
         simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
         m_vec = _mm_cvtepu8_epi32 (a);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -718,10 +701,8 @@ public:
         simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
         m_vec = _mm_cvtepi8_epi32 (a);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -733,19 +714,17 @@ public:
         // the headache of using stores that require alignment.
         _mm_storeu_si128 ((simd_t *)values, m_vec);
 #else
-        values[0] = m_val[0];
-        values[1] = m_val[1];
-        values[2] = m_val[2];
-        values[3] = m_val[3];
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i];
 #endif
     }
 
     /// Store the first n values into memory
     OIIO_FORCEINLINE void store (int *values, int n) const {
-        DASSERT (n >= 0 && n <= 4);
-#if defined(OIIO_SIMD_SSE)
-        // For SSE, there is a speed advantage to storing all 4 components.
-        if (n == 4)
+        DASSERT (n >= 0 && n <= elements);
+#if defined(OIIO_SIMD)
+        // For full SIMD, there is a speed advantage to storing all components.
+        if (n == elements)
             store (values);
         else
 #endif
@@ -769,10 +748,8 @@ public:
         _mm_storel_pd ((double *)values, _mm_castsi128_pd(result));
         // At this point, values[] should hold A,B,C,D
 #else
-        values[0] = m_val[0];
-        values[1] = m_val[1];
-        values[2] = m_val[2];
-        values[3] = m_val[3];
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i];
 #endif
     }
 
@@ -792,10 +769,8 @@ public:
         *(int*)values = result[0]; //extract<0>(result);
         // At this point, values[] should hold A,B,C,D
 #else
-        values[0] = m_val[0];
-        values[1] = m_val[1];
-        values[2] = m_val[2];
-        values[3] = m_val[3];
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i];
 #endif
     }
 
@@ -814,10 +789,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_add_epi32 (m_vec, a.m_vec);
 #else
-        m_val[0] += a.m_val[0];
-        m_val[1] += a.m_val[1];
-        m_val[2] += a.m_val[2];
-        m_val[3] += a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] += a.m_val[i];
 #endif
         return *this;
     }
@@ -845,10 +818,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_sub_epi32 (m_vec, a.m_vec);
 #else
-        m_val[0] -= a.m_val[0];
-        m_val[1] -= a.m_val[1];
-        m_val[2] -= a.m_val[2];
-        m_val[3] -= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] -= a.m_val[i];
 #endif
         return *this;
     }
@@ -868,10 +839,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = mm_mul_epi32 (m_vec, a.m_vec);
 #else
-        m_val[0] *= a.m_val[0];
-        m_val[1] *= a.m_val[1];
-        m_val[2] *= a.m_val[2];
-        m_val[3] *= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] *= a.m_val[i];
 #endif
         return *this;
     }
@@ -880,10 +849,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = mm_mul_epi32 (m_vec, _mm_set1_epi32(val));
 #else
-        m_val[0] *= val;
-        m_val[1] *= val;
-        m_val[2] *= val;
-        m_val[3] *= val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] *= val;
 #endif
         return *this;
     }
@@ -898,19 +865,15 @@ public:
 
     OIIO_FORCEINLINE const int4 & operator/= (const int4& a) {
         // NO INTEGER DIVISION IN SSE!
-        m_val[0] /= a.m_val[0];
-        m_val[1] /= a.m_val[1];
-        m_val[2] /= a.m_val[2];
-        m_val[3] /= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] /= a.m_val[i];
         return *this;
     }
 
     OIIO_FORCEINLINE const int4 & operator/= (int val) {
         // NO INTEGER DIVISION IN SSE!
-        m_val[0] /= val;
-        m_val[1] /= val;
-        m_val[2] /= val;
-        m_val[3] /= val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] /= val;
         return *this;
     }
 
@@ -923,10 +886,8 @@ public:
     }
     OIIO_FORCEINLINE const int4 & operator%= (const int4& a) {
         // NO INTEGER MODULUS in SSE!
-        m_val[0] %= a.m_val[0];
-        m_val[1] %= a.m_val[1];
-        m_val[2] %= a.m_val[2];
-        m_val[3] %= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] %= a.m_val[i];
         return *this;
     }
     friend OIIO_FORCEINLINE int4 operator% (const int4& a, int w) {
@@ -938,10 +899,8 @@ public:
     }
     OIIO_FORCEINLINE const int4 & operator%= (int a) {
         // NO INTEGER MODULUS IN SSE!
-        m_val[0] %= a;
-        m_val[1] %= a;
-        m_val[2] %= a;
-        m_val[3] %= a;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] %= a;
         return *this;
     }
     friend OIIO_FORCEINLINE int4 operator% (int a, const int4& b) {
@@ -1314,6 +1273,7 @@ class float4 {
 public:
     static const char* type_name() { return "float4"; }
     typedef float value_t;    ///< Underlying equivalent scalar value type
+    typedef mask4 mask_t;     ///< SIMD mask type
     enum { elements = 4 };    ///< Number of scalar elements
     enum { bits = 128 };      ///< Total number of bits
     /// simd_t is the native SIMD type used
@@ -1322,7 +1282,7 @@ public:
 #elif defined(OIIO_SIMD_NEON)
     typedef float32x4_t simd_t;
 #else
-    typedef float    simd_t[4];
+    typedef float    simd_t[elements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -1345,22 +1305,18 @@ public:
 #if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
     }
 
     /// Construct from an int4 (promoting all components to float)
-    OIIO_FORCEINLINE explicit float4 (const int4& i) {
+    OIIO_FORCEINLINE explicit float4 (const int4& ival) {
 #if defined(OIIO_SIMD_SSE)
-        m_vec = _mm_cvtepi32_ps (i.simd());
+        m_vec = _mm_cvtepi32_ps (ival.simd());
 #else
-        m_val[0] = float(i[0]);
-        m_val[1] = float(i[1]);
-        m_val[2] = float(i[2]);
-        m_val[3] = float(i[3]);
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = float(ival[i]);
 #endif
     }
 
@@ -1414,10 +1370,8 @@ public:
 #if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
         m_vec = other.m_vec;
 #else
-        m_val[0] = other.m_val[0];
-        m_val[1] = other.m_val[1];
-        m_val[2] = other.m_val[2];
-        m_val[3] = other.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
 #endif
         return *this;
     }
@@ -1465,12 +1419,12 @@ public:
 
     /// Component access (set)
     OIIO_FORCEINLINE float& operator[] (int i) {
-        DASSERT(i<4);
+        DASSERT(i<elements);
         return m_val[i];
     }
     /// Component access (get)
     OIIO_FORCEINLINE float operator[] (int i) const {
-        DASSERT(i<4);
+        DASSERT(i<elements);
         return m_val[i];
     }
 
@@ -1481,10 +1435,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vdupq_n_f32 (val);
 #else
-        m_val[0] = val;
-        m_val[1] = val;
-        m_val[2] = val;
-        m_val[3] = val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = val;
 #endif
     }
 
@@ -1510,10 +1462,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vld1q_f32 (values);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -1556,7 +1506,7 @@ public:
 #else
         for (int i = 0; i < n; ++i)
             m_val[i] = values[i];
-        for (int i = n; i < 4; ++i)
+        for (int i = n; i < elements; ++i)
             m_val[i] = 0;
 #endif
     }
@@ -1568,10 +1518,8 @@ public:
         // You might guess that the following is faster, but it's NOT:
         //   NO!  m_vec = _mm_cvtpu16_ps (*(__m64*)values);
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -1580,10 +1528,8 @@ public:
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
         m_vec = _mm_cvtepi32_ps (int4(values).simd());
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -1592,10 +1538,8 @@ public:
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
         m_vec = _mm_cvtepi32_ps (int4(values).simd());
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -1604,10 +1548,8 @@ public:
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
         m_vec = _mm_cvtepi32_ps (int4(values).simd());
 #else
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 
@@ -1645,10 +1587,8 @@ public:
 # undef CONST
 # undef CONSTF
 #else /* No SIMD defined: */
-        m_val[0] = values[0];
-        m_val[1] = values[1];
-        m_val[2] = values[2];
-        m_val[3] = values[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = values[i];
 #endif
     }
 #endif /* _HALF_H_ */
@@ -1662,10 +1602,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         vst1q_f32 (values, m_vec);
 #else
-        values[0] = m_val[0];
-        values[1] = m_val[1];
-        values[2] = m_val[2];
-        values[3] = m_val[3];
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i];
 #endif
     }
 
@@ -1728,10 +1666,8 @@ public:
         __m128i h = _mm_cvtps_ph (m_vec, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
         _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
 #else
-        values[0] = m_val[0];
-        values[1] = m_val[1];
-        values[2] = m_val[2];
-        values[3] = m_val[3];
+        for (int i = 0; i < elements; ++i)
+            values[i] = m_val[i];
 #endif
     }
 #endif
@@ -1755,10 +1691,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vaddq_f32 (m_vec, a.m_vec);
 #else
-        m_val[0] += a.m_val[0];
-        m_val[1] += a.m_val[1];
-        m_val[2] += a.m_val[2];
-        m_val[3] += a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] += a.m_val[i];
 #endif
         return *this;
     }
@@ -1792,10 +1726,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vsubq_f32 (m_vec, a.m_vec);
 #else
-        m_val[0] -= a.m_val[0];
-        m_val[1] -= a.m_val[1];
-        m_val[2] -= a.m_val[2];
-        m_val[3] -= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] -= a.m_val[i];
 #endif
         return *this;
     }
@@ -1819,10 +1751,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vmulq_f32 (m_vec, a.m_vec);
 #else
-        m_val[0] *= a.m_val[0];
-        m_val[1] *= a.m_val[1];
-        m_val[2] *= a.m_val[2];
-        m_val[3] *= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] *= a.m_val[i];
 #endif
         return *this;
     }
@@ -1832,10 +1762,8 @@ public:
 #elif defined(OIIO_SIMD_NEON)
         m_vec = vmulq_f32 (m_vec, vdupq_n_f32(val));
 #else
-        m_val[0] *= val;
-        m_val[1] *= val;
-        m_val[2] *= val;
-        m_val[3] *= val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] *= val;
 #endif
         return *this;
     }
@@ -1854,10 +1782,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_div_ps (m_vec, a.m_vec);
 #else
-        m_val[0] /= a.m_val[0];
-        m_val[1] /= a.m_val[1];
-        m_val[2] /= a.m_val[2];
-        m_val[3] /= a.m_val[3];
+        for (int i = 0; i < elements; ++i)
+            m_val[i] /= a.m_val[i];
 #endif
         return *this;
     }
@@ -1865,60 +1791,58 @@ public:
 #if defined(OIIO_SIMD_SSE)
         m_vec = _mm_div_ps (m_vec, _mm_set1_ps(val));
 #else
-        m_val[0] /= val;
-        m_val[1] /= val;
-        m_val[2] /= val;
-        m_val[3] /= val;
+        for (int i = 0; i < elements; ++i)
+            m_val[i] /= val;
 #endif
         return *this;
     }
 
 
-    friend OIIO_FORCEINLINE mask4 operator== (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator== (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpeq_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] == b[0], a[1] == b[1], a[2] == b[2], a[3] == b[3]);
+        return mask_t (a[0] == b[0], a[1] == b[1], a[2] == b[2], a[3] == b[3]);
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator!= (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator!= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpneq_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] != b[0], a[1] != b[1], a[2] != b[2], a[3] != b[3]);
+        return mask_t (a[0] != b[0], a[1] != b[1], a[2] != b[2], a[3] != b[3]);
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator< (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator< (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmplt_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] < b[0], a[1] < b[1], a[2] < b[2], a[3] < b[3]);
+        return mask_t (a[0] < b[0], a[1] < b[1], a[2] < b[2], a[3] < b[3]);
 #endif
     }
   
-    friend OIIO_FORCEINLINE mask4 operator>  (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator>  (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpgt_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] > b[0], a[1] > b[1], a[2] > b[2], a[3] > b[3]);
+        return mask_t (a[0] > b[0], a[1] > b[1], a[2] > b[2], a[3] > b[3]);
 #endif
     }
 
-    friend OIIO_FORCEINLINE mask4 operator>= (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator>= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpge_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] >= b[0], a[1] >= b[1], a[2] >= b[2], a[3] >= b[3]);
+        return mask_t (a[0] >= b[0], a[1] >= b[1], a[2] >= b[2], a[3] >= b[3]);
 #endif
     }
 
-    friend OIIO_FORCEINLINE mask4 operator<= (const float4& a, const float4& b) {
+    friend OIIO_FORCEINLINE mask_t operator<= (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmple_ps (a.m_vec, b.m_vec);
 #else
-        return mask4 (a[0] <= b[0], a[1] <= b[1], a[2] <= b[2], a[3] <= b[3]);
+        return mask_t (a[0] <= b[0], a[1] <= b[1], a[2] <= b[2], a[3] <= b[3]);
 #endif
     }
 
@@ -1968,7 +1892,7 @@ private:
 #if OIIO_SIMD
         simd_t  m_vec;
 #endif
-        value_t m_val[4];
+        value_t m_val[elements];
     };
 };
 
@@ -1976,15 +1900,13 @@ private:
 
 
 // Implementation had to be after the definition of int4.
-OIIO_FORCEINLINE mask4::mask4 (const int4& i)
+OIIO_FORCEINLINE mask4::mask4 (const int4& ival)
 {
 #if defined(OIIO_SIMD_SSE)
-    m_vec = (i != int4::Zero());
+    m_vec = (ival != int4::Zero());
 #else
-    m_val[0] = i[0] ? -1 : 0;
-    m_val[1] = i[1] ? -1 : 0;
-    m_val[2] = i[2] ? -1 : 0;
-    m_val[3] = i[3] ? -1 : 0;
+    for (int i = 0; i < elements; ++i)
+        m_val[i] = ival[i] ? -1 : 0;
 #endif
 }
 
@@ -1995,10 +1917,8 @@ OIIO_FORCEINLINE int4::int4 (const float4& f)
 #if defined(OIIO_SIMD_SSE)
     m_vec = _mm_cvttps_epi32(f.simd());
 #else
-    m_val[0] = (int) f[0];
-    m_val[1] = (int) f[1];
-    m_val[2] = (int) f[2];
-    m_val[3] = (int) f[3];
+    for (int i = 0; i < elements; ++i)
+        m_val[i] = (int) f[i];
 #endif
 }
 
