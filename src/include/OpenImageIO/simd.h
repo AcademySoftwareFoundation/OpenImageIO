@@ -140,6 +140,20 @@ class float4;
 class mask4;
 
 
+# define OIIO_SIMD_FLOAT4_CONST(name,val) \
+    static const OIIO_SIMD4_ALIGN float name[4] = { (val), (val), (val), (val) }
+# define OIIO_SIMD_FLOAT4_CONST4(name,v0,v1,v2,v3) \
+    static const OIIO_SIMD4_ALIGN float name[4] = { (v0), (v1), (v2), (v3) }
+# define OIIO_SIMD_INT4_CONST(name,val) \
+    static const OIIO_SIMD4_ALIGN int name[4] = { (val), (val), (val), (val) }
+# define OIIO_SIMD_INT4_CONST4(name,v0,v1,v2,v3) \
+    static const OIIO_SIMD4_ALIGN int name[4] = { (v0), (v1), (v2), (v3) }
+# define OIIO_SIMD_UINT4_CONST(name,val) \
+    static const OIIO_SIMD4_ALIGN uint32_t name[4] = { (val), (val), (val), (val) }
+# define OIIO_SIMD_UINT4_CONST4(name,v0,v1,v2,v3) \
+    static const OIIO_SIMD4_ALIGN uint32_t name[4] = { (v0), (v1), (v2), (v3) }
+
+
 //
 // Additional private intrinsic wrappers
 //
@@ -1577,13 +1591,12 @@ public:
         // SSE half-to-float by Fabian "ryg" Giesen. Public domain.
         // https://gist.github.com/rygorous/2144712
         int4 h ((const unsigned short *)values);
-# define SSE_CONST4(name, val) static const OIIO_SIMD_ALIGN uint32_t name[4] = { (val), (val), (val), (val) }
 # define CONST(name) *(const __m128i *)&name
 # define CONSTF(name) *(const __m128 *)&name
-        SSE_CONST4(mask_nosign,         0x7fff);
-        SSE_CONST4(magic,               (254 - 15) << 23);
-        SSE_CONST4(was_infnan,          0x7bff);
-        SSE_CONST4(exp_infnan,          255 << 23);
+        OIIO_SIMD_UINT4_CONST(mask_nosign, 0x7fff);
+        OIIO_SIMD_UINT4_CONST(magic,       (254 - 15) << 23);
+        OIIO_SIMD_UINT4_CONST(was_infnan,  0x7bff);
+        OIIO_SIMD_UINT4_CONST(exp_infnan,  255 << 23);
         __m128i mnosign     = CONST(mask_nosign);
         __m128i expmant     = _mm_and_si128(mnosign, h);
         __m128i justsign    = _mm_xor_si128(h, expmant);
@@ -1597,7 +1610,6 @@ public:
         __m128  final       = _mm_or_ps(scaled, sign_inf);
         // ~11 SSE2 ops.
         m_vec = final;
-# undef SSE_CONST4
 # undef CONST
 # undef CONSTF
 #else /* No SIMD defined: */
