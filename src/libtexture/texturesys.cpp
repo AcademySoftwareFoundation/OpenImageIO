@@ -2145,10 +2145,10 @@ inline float4 evalBSplineWeights (const float4& fraction)
     return w;
 #else
     // Not as clear, but fastest version I've been able to achieve:
-    static const OIIO_SIMD_ALIGN float A[4] = {0.0f, 2.0f/3.0f, 2.0f/3.0f, 0.0f};
-    static const OIIO_SIMD_ALIGN float B[4] = {1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f};
-    static const OIIO_SIMD_ALIGN float om1m1o[4] = { 1.0f, -1.0f, -1.0f, 1.0f };
-    static const OIIO_SIMD_ALIGN float z22z[4] = { 0.0f, 2.0f, 2.0f, 0.0f };
+    OIIO_SIMD_FLOAT4_CONST4 (A, 0.0f, 2.0f/3.0f, 2.0f/3.0f, 0.0f);
+    OIIO_SIMD_FLOAT4_CONST4 (B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
+    OIIO_SIMD_FLOAT4_CONST4 (om1m1o, 1.0f, -1.0f, -1.0f, 1.0f);
+    OIIO_SIMD_FLOAT4_CONST4 (z22z, 0.0f, 2.0f, 2.0f, 0.0f);
     simd::float4 one_frac = float4::One() - fraction;
     simd::float4 ofof = AxBxAyBy (one_frac, fraction); // 1-frac, frac, 1-frac, frac
     simd::float4 C = (*(float4*)&om1m1o) * ofof + (*(float4*)&z22z);
@@ -2176,8 +2176,8 @@ inline void evalBSplineWeights_and_derivs (simd::float4 *w, float fraction,
     }
 #else
     // Not as clear, but fastest version I've been able to achieve:
-    static const OIIO_SIMD_ALIGN float A[4] = {0.0f, 2.0f/3.0f, 2.0f/3.0f, 0.0f};
-    static const OIIO_SIMD_ALIGN float B[4] = {1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f};
+    OIIO_SIMD_FLOAT4_CONST4 (A, 0.0f, 2.0f/3.0f, 2.0f/3.0f, 0.0f);
+    OIIO_SIMD_FLOAT4_CONST4 (B, 1.0f / 6.0f, -0.5f, -0.5f, 1.0f / 6.0f);
     float one_frac = 1.0f - fraction;
     simd::float4 ofof (one_frac, fraction, one_frac, fraction);
     simd::float4 C (one_frac, 2.0f-fraction, 2.0f-one_frac, fraction);
