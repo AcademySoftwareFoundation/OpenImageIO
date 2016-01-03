@@ -865,7 +865,7 @@ public:
 
         /// Increment to the next pixel in the region.
         ///
-        void operator++ () {
+        OIIO_FORCEINLINE void operator++ () {
             if (++m_x <  m_rng_xend) {
                 // Special case: we only incremented x, didn't change y
                 // or z, and the previous position was within the data
@@ -969,15 +969,13 @@ public:
         // Helper called by pos(), but ONLY for the case where we are
         // moving from an existing pixel to the next spot in +x.
         // Note: called *after* m_x was incremented!
-        void pos_xincr () {
+        OIIO_FORCEINLINE void pos_xincr () {
             DASSERT (m_exists && m_valid);   // precondition
             DASSERT (valid(m_x,m_y,m_z));    // should be true by definition
-            bool e = (m_x < m_img_xend);
+            m_proxydata += m_pixel_bytes;
             if (m_localpixels) {
-                if (e)
-                    // Haven't run off the end, just increment
-                    m_proxydata += m_pixel_bytes;
-                else {
+                if (OIIO_UNLIKELY(m_x >= m_img_xend)) {
+                    // Ran off the end of the row
                     m_exists = false;
                     if (m_wrap == WrapBlack) {
                         m_proxydata = (char *)m_ib->blackpixel();
@@ -993,10 +991,9 @@ public:
                 m_proxydata = NULL;
             } else {
                 // Cached image
-                if (e && m_x < m_tilexend && m_tile)
-                    // Haven't crossed a tile boundary, don't retile!
-                    m_proxydata += m_pixel_bytes;
-                else {
+                bool e = m_x < m_img_xend;
+                if (OIIO_UNLIKELY( !(e && m_x < m_tilexend && m_tile))) {
+                    // Crossed a tile boundary
                     m_proxydata = (char *)m_ib->retile (m_x, m_y, m_z, m_tile,
                                     m_tilexbegin, m_tileybegin, m_tilezbegin,
                                     m_tilexend, e, m_wrap);
