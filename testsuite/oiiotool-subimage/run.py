@@ -19,7 +19,7 @@ command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
 outputs = [ 
             "subimages-2.exr", "subimages-4.exr",
             "subimage1.exr", "subimage2.exr",
-            "subimageD3.exr", "subimageB1.exr",
-            "out.txt" ]
+            "subimageD3.exr", "subimageB1.exr"
+          ]
 
 #print "Running this command:\n" + command + "\n"

@@ -252,7 +252,7 @@ def runtest (command, outputs, failureok=0) :
             # print ("comparing " + out + " to " + testfile)
             if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
                 # images -- use idiff
-                cmpcommand = diff_command (out, testfile, concat=False)
+                cmpcommand = diff_command (out, testfile, concat=False, silent=True)
                 # print ("cmpcommand = " + cmpcommand)
                 cmpresult = os.system (cmpcommand)
             elif extension == ".txt" :
@@ -261,11 +261,15 @@ def runtest (command, outputs, failureok=0) :
                 # anything else
                 cmpresult = 0 if filecmp.cmp (out, testfile) else 1
             if cmpresult == 0 :
-                print ("PASS: " + out + " matches " + testfile)
                 ok = 1
                 break      # we're done
 
-        if ok == 0:
+        if ok :
+            if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
+                # If we got a match for an image, save the idiff results
+                os.system (diff_command (out, testfile, silent=False))
+            print ("PASS: " + out + " matches " + testfile)
+        else :
             err = 1
             print ("NO MATCH for " + out)
             print ("FAIL " + out)
@@ -279,7 +283,7 @@ def runtest (command, outputs, failureok=0) :
             if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
-                os.system (diff_command (out, os.path.join ("ref", out), silent=True))
+                os.system (diff_command (out, os.path.join ("ref", out), silent=False))
 
     return (err)
 
