@@ -106,6 +106,34 @@ void test_loadstore ()
 
 
 
+void
+test_int4_to_uint16s ()
+{
+    int4 i (0xffff0001, 0xffff0002, 0xffff0003, 0xffff0004);
+    unsigned short s[4];
+    i.store (s);
+    OIIO_CHECK_EQUAL (s[0], 1);
+    OIIO_CHECK_EQUAL (s[1], 2);
+    OIIO_CHECK_EQUAL (s[2], 3);
+    OIIO_CHECK_EQUAL (s[3], 4);
+}
+
+
+
+void
+test_int4_to_uint8s ()
+{
+    int4 i (0xffffff01, 0xffffff02, 0xffffff03, 0xffffff04);
+    unsigned char c[4];
+    i.store (c);
+    OIIO_CHECK_EQUAL (int(c[0]), 1);
+    OIIO_CHECK_EQUAL (int(c[1]), 2);
+    OIIO_CHECK_EQUAL (int(c[2]), 3);
+    OIIO_CHECK_EQUAL (int(c[3]), 4);
+}
+
+
+
 template<typename VEC>
 void test_component_access ()
 {
@@ -337,6 +365,8 @@ main (int argc, char *argv[])
 
     std::cout << "\n";
     test_loadstore<float4> ();
+    test_int4_to_uint16s ();
+    test_int4_to_uint8s ();
     test_component_access<float4> ();
     test_arithmetic<float4> ();
     test_comparisons<float4> ();

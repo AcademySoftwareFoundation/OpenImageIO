@@ -767,6 +767,52 @@ public:
             values[i] = m_val[i];
     }
 
+    /// Store the least significant 16 bits of each element into adjacent
+    /// unsigned shorts.
+    OIIO_FORCEINLINE void store (unsigned short *values) const {
+#if defined(OIIO_SIMD_SSE)
+        // Expressed as half-words and considering little endianness, we
+        // currently have xAxBxCxD (the 'x' means don't care).
+        int4 clamped = m_val & int4(0xffff);   // A0B0C0D0
+        int4 low = _mm_shufflelo_epi16 (clamped, (0<<0) | (2<<2) | (1<<4) | (1<<6));
+                    // low = AB00xxxx
+        int4 high = _mm_shufflehi_epi16 (clamped, (1<<0) | (1<<2) | (0<<4) | (2<<6));
+                    // high = xxxx00CD
+        int4 highswapped = shuffle_sse<2,3,0,1>(high);  // 00CDxxxx
+        int4 result = low | highswapped;   // ABCDxxxx
+        _mm_storel_pd ((double *)values, _mm_castsi128_pd(result));
+        // At this point, values[] should hold A,B,C,D
+#else
+        values[0] = m_val[0];
+        values[1] = m_val[1];
+        values[2] = m_val[2];
+        values[3] = m_val[3];
+#endif
+    }
+
+    /// Store the least significant 8 bits of each element into adjacent
+    /// unsigned chars.
+    OIIO_FORCEINLINE void store (unsigned char *values) const {
+#if defined(OIIO_SIMD_SSE)
+        // Expressed as bytes and considering little endianness, we
+        // currently have xAxBxCxD (the 'x' means don't care).
+        int4 clamped = m_val & int4(0xff);            // A000 B000 C000 D000
+        int4 swapped = shuffle_sse<1,0,3,2>(clamped); // B000 A000 D000 C000
+        int4 shifted = swapped << 8;                  // 0B00 0A00 0D00 0C00
+        int4 merged = clamped | shifted;              // AB00 xxxx CD00 xxxx
+        int4 merged2 = shuffle_sse<2,2,2,2>(merged);  // CD00 ...
+        int4 shifted2 = merged2 << 16;                // 00CD ...
+        int4 result = merged | shifted2;              // ABCD ...
+        *(int*)values = result[0]; //extract<0>(result);
+        // At this point, values[] should hold A,B,C,D
+#else
+        values[0] = m_val[0];
+        values[1] = m_val[1];
+        values[2] = m_val[2];
+        values[3] = m_val[3];
+#endif
+    }
+
     friend OIIO_FORCEINLINE int4 operator+ (const int4& a, const int4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_add_epi32 (a.m_vec, b.m_vec);
@@ -1220,6 +1266,16 @@ OIIO_FORCEINLINE int4 blend0not (const int4& a, const mask4& mask)
 
 
 
+/// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
+/// synonym for blend with arguments rearranged, but this is more clear
+/// because the arguments are symmetric to scalar (cond ? a : b).
+OIIO_FORCEINLINE int4 select (const mask4& mask, const int4& a, const int4& b)
+{
+    return blend (b, a, mask);
+}
+
+
+
 /// Per-element absolute value.
 OIIO_FORCEINLINE int4 abs (const int4& a)
 {
@@ -1506,6 +1562,8 @@ public:
     OIIO_FORCEINLINE void load (const unsigned short *values) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
         m_vec = _mm_cvtepi32_ps (int4(values).simd());
+        // You might guess that the following is faster, but it's NOT:
+        //   NO!  m_vec = _mm_cvtpu16_ps (*(__m64*)values);
 #else
         m_val[0] = values[0];
         m_val[1] = values[1];
@@ -1639,6 +1697,20 @@ public:
             values[i] = m_val[i];
 #endif
     }
+
+#ifdef _HALF_H_
+    OIIO_FORCEINLINE void store (half *values) const {
+#if __F16C__
+        __m128i h = _mm_cvtps_ph (m_vec, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+        _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
+#else
+        values[0] = m_val[0];
+        values[1] = m_val[1];
+        values[2] = m_val[2];
+        values[3] = m_val[3];
+#endif
+    }
+#endif
 
     friend OIIO_FORCEINLINE float4 operator+ (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
@@ -2082,6 +2154,16 @@ OIIO_FORCEINLINE float4 blend0not (const float4& a, const mask4& mask)
 
 
 
+/// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
+/// synonym for blend with arguments rearranged, but this is more clear
+/// because the arguments are symmetric to scalar (cond ? a : b).
+OIIO_FORCEINLINE float4 select (const mask4& mask, const float4& a, const float4& b)
+{
+    return blend (b, a, mask);
+}
+
+
+
 /// Per-element absolute value.
 OIIO_FORCEINLINE float4 abs (const float4& a)
 {
@@ -2110,6 +2192,17 @@ OIIO_FORCEINLINE float4 floor (const float4& a)
     return _mm_floor_ps (a);
 #else
     return float4 (floorf(a[0]), floorf(a[1]), floorf(a[2]), floorf(a[3]));
+#endif
+}
+
+/// Per-element round to nearest integer (rounding away from 0 in cases
+/// that are exactly half way).
+OIIO_FORCEINLINE float4 round (const float4& a)
+{
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
+    return _mm_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+#else
+    return float4 (roundf(a[0]), roundf(a[1]), roundf(a[2]), roundf(a[3]));
 #endif
 }
 
