@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.10 (released ?? 2016 -- compared to 1.6.9)
+------------------------------------------------
+
 Release 1.6.9 (released 5 Jan 2016 -- compared to 1.6.8)
 ------------------------------------------------
 * Several varieties of ImageCache and TextureSystem getattribute methods
