@@ -2038,7 +2038,7 @@ TextureSystemImpl::sample_bilinear (int nsamples, const float *s_,
                     int pixelsize = tile->pixelsize();
                     int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                     offset += (firstchannel - id.chbegin()) * channelsize;
-                    DASSERT ((size_t)offset < spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize);
+                    DASSERT (offset < spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize);
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4 ((const unsigned char *)(tile->bytedata() + offset));
                     else if (pixeltype == TypeDesc::UINT16)
