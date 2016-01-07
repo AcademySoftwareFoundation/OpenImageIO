@@ -161,10 +161,10 @@ public:
         return m_bounds.size();
     }
     OIIO_CONSTEXPR14 offset_type stride() const OIIO_NOEXCEPT {
-        offset_type offset(1);
-        if (Rank == 1)
-            return offset;
-        else {
+        if (Rank == 1) {
+            return offset_type(1);
+        } else {
+            offset_type offset;
             offset[Rank-1] = 1;
             for (int i = int(Rank)-2; i >= 0; --i)
                 offset[i] = offset[i+1] * m_bounds[i+1];
