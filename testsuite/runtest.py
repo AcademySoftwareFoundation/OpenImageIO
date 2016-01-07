@@ -50,7 +50,10 @@ failthresh = 0.004
 hardfail = 0.01
 failpercent = 0.02
 
-if "TRAVIS" in os.environ and os.environ["TRAVIS"] :
+# Allow a little more slop for slight pixel differences when in DEBUG
+# mode or when running on remote Travis-CI machines.
+if (("TRAVIS" in os.environ and os.environ["TRAVIS"]) or
+    ("DEBUG" in os.environ and os.environ["DEBUG"])) :
     failthresh *= 2.0
     hardfail *= 2.0
     failpercent *= 2.0
