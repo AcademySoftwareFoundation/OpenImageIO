@@ -371,4 +371,10 @@ if (OIIO_BUILD_TESTS)
     link_ilmbase (imagespeed_test)
     #add_test (imagespeed_test imagespeed_test)
 
+    add_executable (compute_test compute_test.cpp)
+    set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (compute_test OpenImageIO ${Boost_LIBRARIES}
+                           ${CMAKE_DL_LIBS})
+    add_test (unit_compute compute_test)
+
 endif (OIIO_BUILD_TESTS)
