@@ -813,13 +813,13 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixels_valid = true;
         m_storage = ImageBuf::IMAGECACHE;
 #ifndef NDEBUG
-        std::cerr << "read was not necessary -- using cache\n";
+        // std::cerr << "read was not necessary -- using cache\n";
 #endif
         return true;
     } else {
 #ifndef NDEBUG
-        std::cerr << "going to have to read " << m_name << ": "
-                  << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
+        // std::cerr << "going to have to read " << m_name << ": "
+        //           << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
 #endif
         // FIXME/N.B. - is it really best to go through the ImageCache
         // for forced IB reads?  Are there circumstances in which we
