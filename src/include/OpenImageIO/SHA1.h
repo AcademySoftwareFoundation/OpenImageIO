@@ -74,6 +74,8 @@
 #ifndef ___SHA1_HDR___
 #define ___SHA1_HDR___
 
+#include <climits>
+
 #include "export.h"
 #include "oiioversion.h"
 
