@@ -47,16 +47,8 @@ command = ""
 outputs = [ "out.txt" ]    # default
 failureok = 0
 failthresh = 0.004
-hardfail = 0.01
+hardfail = 0.012
 failpercent = 0.02
-
-# Allow a little more slop for slight pixel differences when in DEBUG
-# mode or when running on remote Travis-CI machines.
-if (("TRAVIS" in os.environ and os.environ["TRAVIS"]) or
-    ("DEBUG" in os.environ and os.environ["DEBUG"])) :
-    failthresh *= 2.0
-    hardfail *= 2.0
-    failpercent *= 2.0
 
 
 #print ("srcdir = " + srcdir)
@@ -140,6 +132,7 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
+               + " -warnpercent " + str(failpercent)
                + " " + extraargs + " " + oiio_relpath(fileA,tmpdir) 
                + " " + oiio_relpath(fileB,tmpdir))
     if not silent :
@@ -302,6 +295,15 @@ def runtest (command, outputs, failureok=0) :
 with open("run.py") as f:
     code = compile(f.read(), "run.py", 'exec')
     exec (code)
+
+# Allow a little more slop for slight pixel differences when in DEBUG
+# mode or when running on remote Travis-CI machines.
+if (("TRAVIS" in os.environ and os.environ["TRAVIS"]) or
+    ("DEBUG" in os.environ and os.environ["DEBUG"])) :
+    failthresh *= 2.0
+    hardfail *= 2.0
+    failpercent *= 2.0
+
 
 # Run the test and check the outputs
 ret = runtest (command, outputs, failureok=failureok)
