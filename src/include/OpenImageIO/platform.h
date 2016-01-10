@@ -282,6 +282,18 @@
 #endif
 
 
+#if OIIO_CPLUSPLUS_VERSION >= 14 || (OIIO_CPLUSPLUS_VERSION >= 11 && __has_attribute(deprecated))
+#  define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
+#elif defined(__GNUC__) && OIIO_GNUC_VERSION >= 40600
+#  define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#elif defined(__GNUC__) /* older gcc -- only the one with no message */
+#  define OIIO_DEPRECATED(msg) __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define OIIO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#  define OIIO_DEPRECATED(msg)
+#endif
+
 
 // Try to deduce endianness
 #if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
