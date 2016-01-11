@@ -734,7 +734,8 @@ public:
     }
 };
 
-typedef ustringPtrIsLess ustringHashIsLess;   // DEPRECATED
+OIIO_DEPRECATED("Use ustringPtrIsLess [1.6]")
+typedef ustringPtrIsLess ustringHashIsLess;
 
 
 

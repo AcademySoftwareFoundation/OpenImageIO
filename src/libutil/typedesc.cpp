@@ -52,15 +52,6 @@ TypeDesc::TypeDesc (string_view typestring)
 
 
 
-TypeDesc::TypeDesc (const char *typestring)
-    : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
-      reserved(0), arraylen(0)
-{
-    fromstring (typestring);
-}
-
-
-
 namespace {
 
 static int basetype_size[] = {
@@ -240,14 +231,6 @@ copy_until (const char *src, const char *delim, char *dst, size_t maxlen)
     }
     dst[i] = 0;
     return i;
-}
-
-
-
-size_t
-TypeDesc::fromstring (const char *typestring)
-{
-    return fromstring (string_view(typestring));
 }
 
 

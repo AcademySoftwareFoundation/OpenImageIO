@@ -587,7 +587,8 @@ public:
     virtual bool get_texture_info (TextureHandle *texture_handle,
                           Perthread *thread_info, int subimage,
                           ustring dataname, TypeDesc datatype, void *data) = 0;
-    /// DEPRECATED (1.6.2)
+
+    OIIO_DEPRECATED("Use get_texture_info variety that is passed a Perthread*. [1.6.2]")
     virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
                           ustring dataname, TypeDesc datatype, void *data) = 0;
 

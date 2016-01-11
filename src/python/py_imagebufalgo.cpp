@@ -917,8 +917,8 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ScopedGILRelease gil;
-    return ImageBufAlgo::colorconvert (dst, src, from.c_str(), to.c_str(),
-                                       unpremult, roi, nthreads);
+    return ImageBufAlgo::colorconvert (dst, src, from, to,
+                                       unpremult, NULL, roi, nthreads);
 }
 
 
@@ -931,8 +931,8 @@ IBA_colorconvert_colorconfig (ImageBuf &dst, const ImageBuf &src,
 {
     ColorConfig config (colorconfig);
     ScopedGILRelease gil;
-    return ImageBufAlgo::colorconvert (dst, src, from.c_str(), to.c_str(),
-                                       unpremult, &config, roi, nthreads);
+    return ImageBufAlgo::colorconvert (dst, src, from, to, unpremult,
+                                       &config, roi, nthreads);
 }
 
 
@@ -945,10 +945,9 @@ IBA_ociolook (ImageBuf &dst, const ImageBuf &src, const std::string &looks,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     ScopedGILRelease gil;
-    return ImageBufAlgo::ociolook (dst, src, looks.c_str(),
-                                   from.c_str(), to.c_str(),
+    return ImageBufAlgo::ociolook (dst, src, looks, from, to,
                                    inverse, unpremult,
-                                   context_key.c_str(), context_value.c_str(),
+                                   context_key, context_value, NULL,
                                    roi, nthreads);
 }
 
@@ -964,10 +963,9 @@ IBA_ociolook_colorconfig (ImageBuf &dst, const ImageBuf &src, const std::string 
 {
     ColorConfig config (colorconfig);
     ScopedGILRelease gil;
-    return ImageBufAlgo::ociolook (dst, src, looks.c_str(),
-                                   from.c_str(), to.c_str(),
+    return ImageBufAlgo::ociolook (dst, src, looks, from, to,
                                    inverse, unpremult,
-                                   context_key.c_str(), context_value.c_str(),
+                                   context_key, context_value,
                                    &config, roi, nthreads);
 }
 
@@ -991,7 +989,7 @@ IBA_ociodisplay (ImageBuf &dst, const ImageBuf &src,
                                       from == object() ? NULL : from_str.c_str(),
                                       looks == object() ? NULL : looks_str.c_str(),
                                       unpremult,
-                                      context_key.c_str(), context_value.c_str(),
+                                      context_key, context_value, NULL,
                                       roi, nthreads);
 }
 
@@ -1016,8 +1014,7 @@ IBA_ociodisplay_colorconfig (ImageBuf &dst, const ImageBuf &src,
     return ImageBufAlgo::ociodisplay (dst, src, display.c_str(), view.c_str(),
                                       from == object() ? NULL : from_str.c_str(),
                                       looks == object() ? NULL : looks_str.c_str(),
-                                      unpremult,
-                                      context_key.c_str(), context_value.c_str(),
+                                      unpremult, context_key, context_value,
                                       &config, roi, nthreads);
 }
 

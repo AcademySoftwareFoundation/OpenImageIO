@@ -345,7 +345,8 @@ public:
                      TypeDesc format, const void *buffer,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride) = 0;
-    // DEPRECATED(1.6) -- add a tile with all channels.
+
+    OIIO_DEPRECATED("Use the version of add_tile with channel range. [1.6]")
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                      int x, int y, int z, TypeDesc format, const void *buffer,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,

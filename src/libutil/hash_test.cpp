@@ -113,17 +113,6 @@ test_bjhash_big_words ()
 
 
 size_t
-test_xxhash_fast32 (const void *ptr, size_t len)
-{
-    size_t a = 0;
-    for (int i = 0, e = iterations/len;  i < e;  ++i)
-        a += xxhash::XXH_fast32 (ptr, len);
-    return a;
-}
-
-
-
-size_t
 test_xxhash (const void *ptr, size_t len)
 {
     size_t a = 0;
@@ -260,16 +249,6 @@ int main (int argc, char *argv[])
               << Strutil::timeintervalformat(t, 2) << "\n";
     t = time_trial (boost::bind(test_farmhashchar, longstring.c_str()), ntrials);
     std::cout << "farmhash of long char*: "
-              << Strutil::timeintervalformat(t, 2) << "\n";
-
-    t = time_trial (boost::bind(test_xxhash_fast32, shortstring.c_str(), shortstring.length()), ntrials);
-    std::cout << "xxhash fast32 of short string: "
-              << Strutil::timeintervalformat(t, 2) << "\n";
-    t = time_trial (boost::bind(test_xxhash_fast32, medstring.c_str(), medstring.length()), ntrials);
-    std::cout << "xxhash fast32 of medium string: "
-              << Strutil::timeintervalformat(t, 2) << "\n";
-    t = time_trial (boost::bind(test_xxhash_fast32, longstring.c_str(), longstring.length()), ntrials);
-    std::cout << "xxhash fast32 of long string: "
               << Strutil::timeintervalformat(t, 2) << "\n";
 
     t = time_trial (boost::bind(test_xxhash, shortstring.c_str(), shortstring.length()), ntrials);

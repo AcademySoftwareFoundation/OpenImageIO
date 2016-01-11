@@ -931,7 +931,7 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             bool unpremult=false,
                             ColorConfig *colorconfig=NULL,
                             ROI roi=ROI::All(), int nthreads=0);
-// DEPRECATED (1.6)
+OIIO_DEPRECATED("Use the version that takes a ColorConfig*. [1.6]")
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
                             bool unpremult, ROI roi, int nthreads=0);
@@ -985,7 +985,7 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view key="", string_view value="",
                         ColorConfig *colorconfig=NULL,
                         ROI roi=ROI::All(), int nthreads=0);
-// DEPRECATED (1.6)
+OIIO_DEPRECATED("Use the version that takes a ColorConfig*. [1.6]")
 bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view looks, string_view from, string_view to,
                         bool unpremult, bool inverse,
@@ -1016,7 +1016,7 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                         string_view key="", string_view value="",
                         ColorConfig *colorconfig=NULL,
                         ROI roi=ROI::All(), int nthreads=0);
-// DEPRECATED (1.6)
+OIIO_DEPRECATED("Use the version that takes a ColorConfig*. [1.6]")
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                         string_view display, string_view view,
                         string_view from, string_view looks,

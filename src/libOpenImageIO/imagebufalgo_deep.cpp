@@ -265,8 +265,6 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
             dst.set_deep_samples (x, y, z, 1);
     }
 
-    dst.deep_alloc ();
-
     // Now actually set the values
     for (int z = roi.zbegin; z < roi.zend; ++z)
     for (int y = roi.ybegin; y < roi.yend; ++y)

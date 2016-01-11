@@ -59,11 +59,11 @@ namespace xxhash {
 // xxhash:  http://code.google.com/p/xxhash/
 // It's BSD licensed.
 
-// DEPRECATED
+OIIO_DEPRECATED("Use XXH32(). (Deprecated since 1.6.")
 unsigned int OIIO_API XXH_fast32 (const void* input, int len,
                                   unsigned int seed=1771);
 
-// DEPRECATED
+OIIO_DEPRECATED("Use XXH32(). (Deprecated since 1.6.")
 unsigned int OIIO_API XXH_strong32 (const void* input, int len,
                                     unsigned int seed=1771);
 
@@ -481,8 +481,9 @@ public:
     template<class T> void append (array_view<T> v) {
         append (v.data(), v.size()*sizeof(T));
     }
-    // DEPRECATED(1.6): appendvec is the old name
-    template<class T> void appendvec (array_view<T> v) {
+
+    template<class T> OIIO_DEPRECATED("Use append(). [1.6]")
+    void appendvec (array_view<T> v) {
         append (v.data(), v.size()*sizeof(T));
     }
 

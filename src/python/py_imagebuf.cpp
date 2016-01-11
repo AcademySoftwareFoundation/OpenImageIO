@@ -393,6 +393,13 @@ ImageBuf_deepdataref (ImageBuf *ib)
 
 
 
+static void
+ImageBuf_deep_alloc_dummy ()
+{
+}
+
+
+
 void declare_imagebuf()
 {
     enum_<ImageBuf::WrapMode>("WrapMode")
@@ -522,7 +529,7 @@ void declare_imagebuf()
         .def("set_deep_value_uint", &ImageBuf_set_deep_value_uint,
              (arg("x"), arg("y"), arg("z")=0, arg("channel"),
               arg("sample"), arg("value")=0))
-        .def("deep_alloc", &ImageBuf::deep_alloc)  // DEPRECATED(1.7)
+        .def("deep_alloc", &ImageBuf_deep_alloc_dummy)  // DEPRECATED(1.7)
         .def("deepdata", &ImageBuf_deepdataref,
              return_value_policy<reference_existing_object>())
 

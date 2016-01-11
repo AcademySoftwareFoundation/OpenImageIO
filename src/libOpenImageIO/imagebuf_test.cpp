@@ -319,7 +319,7 @@ test_set_get_pixels ()
     std::cout << " After set:\n";
     print (A);
     float retrieved[2*2*nchans] = { 9,9,9, 9,9,9, 9,9,9, 9,9,9 };
-    A.get_pixels (1, 3, 1, 3, 0, 1, TypeDesc::FLOAT, retrieved);
+    A.get_pixels (ROI(1, 3, 1, 3, 0, 1), TypeDesc::FLOAT, retrieved);
     OIIO_CHECK_ASSERT (0 == memcmp (retrieved, newdata, 2*2*nchans));
 }
 

@@ -118,8 +118,8 @@ main (int argc, char **argv)
 #endif
 
     // Verify that Timer(false) doesn't start
-    Timer all(true);
-    Timer selective(false);
+    Timer all (Timer::StartNow);
+    Timer selective (Timer::DontStartNow);
     Sysutil::usleep (interval);
     OIIO_CHECK_EQUAL_THRESH (selective(), 0.0, eps);
     OIIO_CHECK_EQUAL_THRESH (all(),       0.1, eps);

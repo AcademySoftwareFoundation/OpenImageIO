@@ -817,7 +817,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.get_pixels (0, tw, 0, th, 0, 1, format, data);
+    lores.get_pixels (ROI (0, tw, 0, th, 0, 1, chbegin, chend), format, data);
 
     // Restore the microcache to the way it was before.
     thread_info->tile = oldtile;

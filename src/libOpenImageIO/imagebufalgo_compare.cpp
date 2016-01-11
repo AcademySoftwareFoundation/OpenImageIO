@@ -748,7 +748,7 @@ simplePixelHashSHA1 (const ImageBuf &src,
                 SHA1_Update (&sha, src.pixeladdr (roi.xbegin, y, z),
                             (unsigned int) scanline_bytes*(y1-y));
             } else {
-                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
+                src.get_pixels (ROI (roi.xbegin, roi.xend, y, y1, z, z+1),
                                 src.spec().format, &tmp[0]);
                 SHA1_Update (&sha, &tmp[0], (unsigned int) scanline_bytes*(y1-y));
             }
@@ -779,7 +779,7 @@ simplePixelHashSHA1 (const ImageBuf &src,
                 sha.Update ((const unsigned char *)src.pixeladdr (roi.xbegin, y, z),
                             (unsigned int) scanline_bytes*(y1-y));
             } else {
-                src.get_pixels (roi.xbegin, roi.xend, y, y1, z, z+1,
+                src.get_pixels (ROI (roi.xbegin, roi.xend, y, y1, z, z+1),
                                 src.spec().format, &tmp[0]);
                 sha.Update (&tmp[0], (unsigned int) scanline_bytes*(y1-y));
             }

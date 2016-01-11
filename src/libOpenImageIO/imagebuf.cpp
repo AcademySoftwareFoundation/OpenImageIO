@@ -941,8 +941,7 @@ ImageBuf::write (ImageOutput *out,
     } else {
         // Backed by ImageCache
         boost::scoped_array<char> tmp (new char [m_spec.image_bytes()]);
-        ok = get_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
-                         m_spec.format, &tmp[0]);
+        ok = get_pixels (roi(), m_spec.format, &tmp[0]);
         ok &= out->write_image (m_spec.format, &tmp[0], as, as, as,
                                 progress_callback, progress_callback_data);
         // FIXME -- not good for huge images.  Instead, we should read

@@ -161,7 +161,6 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
         ImageBuf::ConstIterator<float> s (src, roi);
         for (ImageBuf::Iterator<float> d (dst, roi);  !d.done();  ++d, ++s)
             d.set_deep_samples (s.deep_samples());
-        dst.deep_alloc ();
     }
 
     bool ok;
@@ -747,7 +746,6 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
         // The earlier dst.alloc() already called dstdata.init()
         for (int p = 0, npels = (int)newspec.image_pixels(); p < npels; ++p)
             dstdata.set_samples (p, srcdata.samples(p));
-        dst.deep_alloc ();
         for (int p = 0, npels = (int)newspec.image_pixels(); p < npels; ++p) {
             if (! dstdata.samples(p))
                 continue;   // no samples for this pixel

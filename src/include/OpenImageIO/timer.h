@@ -99,8 +99,8 @@ public:
             start();
     }
 
-    /// DEPRECATED Constructor -- reset at zero, and start timing unless
-    /// optional 'startnow' argument is false.
+    /// Constructor -- reset at zero, and start timing unless optional
+    /// 'startnow' argument is false.
     Timer (bool startnow)
         : m_ticking(false), m_printdtr(DontPrintDtr),
           m_starttime(0), m_elapsed_ticks(0),

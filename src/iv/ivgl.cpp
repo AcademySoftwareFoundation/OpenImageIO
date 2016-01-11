@@ -827,14 +827,15 @@ IvGL::paint_pixelview ()
 
         void *zoombuffer = alloca ((xend-xbegin)*(yend-ybegin)*nchannels*spec.channel_bytes());
         if (! m_use_shaders) {
-            img->get_pixels (spec.x + xbegin, spec.x + xend,
-                             spec.y + ybegin, spec.y + yend,
+            img->get_pixels (ROI (spec.x + xbegin, spec.x + xend,
+                                  spec.y + ybegin, spec.y + yend),
                              spec.format, zoombuffer);
         } else {
-            img->get_pixel_channels (spec.x + xbegin, spec.x + xend,
-                    spec.y + ybegin, spec.y + yend, 0, 1,
-                    m_viewer.current_channel(), m_viewer.current_channel()+nchannels,
-                    spec.format, zoombuffer);
+            ROI roi (spec.x + xbegin, spec.x + xend,
+                     spec.y + ybegin, spec.y + yend,
+                     0, 1,
+                     m_viewer.current_channel(), m_viewer.current_channel()+nchannels);
+            img->get_pixels (roi, spec.format, zoombuffer);
         }
 
         GLenum glformat, gltype, glinternalformat;
@@ -1598,13 +1599,13 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     // it safely since ImageBuf has a cache underneath and the whole image
     // may not be resident at once.
     if (! m_use_shaders) {
-        m_current_image->get_pixels (x, x + width, y, y + height,
+        m_current_image->get_pixels (ROI (x, x + width, y, y + height),
                                      spec.format, &m_tex_buffer[0]);
     } else {
-        m_current_image->get_pixel_channels (x, x+width, y, y+height, 0, 1,
-                                             m_viewer.current_channel(),
-                                             m_viewer.current_channel() + nchannels,
-                                             spec.format, &m_tex_buffer[0]);
+        m_current_image->get_pixels (ROI (x, x+width, y, y+height, 0, 1,
+                                          m_viewer.current_channel(),
+                                          m_viewer.current_channel() + nchannels),
+                                     spec.format, &m_tex_buffer[0]);
     }
     if (m_use_pbo) {
         glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 

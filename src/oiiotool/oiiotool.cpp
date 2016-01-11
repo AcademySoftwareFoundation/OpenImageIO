@@ -118,8 +118,8 @@ static Oiiotool ot;
 Oiiotool::Oiiotool ()
     : imagecache(NULL),
       return_value (EXIT_SUCCESS),
-      total_readtime (false /*don't start timer*/),
-      total_writetime (false /*don't start timer*/),
+      total_readtime (Timer::DontStartNow),
+      total_writetime (Timer::DontStartNow),
       total_imagecache_readtime (0.0),
       enable_function_timing(true)
 {

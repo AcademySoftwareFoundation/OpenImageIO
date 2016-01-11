@@ -1058,7 +1058,8 @@ test_icwrite (int testicwrite)
                         tile[index+1] = float(yy)/spec.height;
                         tile[index+2] = (!(xx%10) || !(yy%10)) ? 1.0f : 0.0f;
                     }
-                bool ok = ic->add_tile (filename, 0, 0, tx, ty, 0, TypeDesc::FLOAT, &tile[0]);
+                bool ok = ic->add_tile (filename, 0, 0, tx, ty, 0, 0, -1,
+                                        TypeDesc::FLOAT, &tile[0]);
                 if (! ok)
                     std::cout << "ic->add_tile error: " << ic->geterror() << "\n";
                 ASSERT (ok);
