@@ -50,18 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenEXR/ImathVec.h>
 
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
-#  include <xmmintrin.h>
-#  include <emmintrin.h>
-#  if defined(__SSE3__)
-#    include <pmmintrin.h>
-#  endif
-#  if defined(__SSSE3__)
-#    include <tmmintrin.h>
-#  endif
-#  if (defined(__SSE4_1__) || defined(__SSE4_2__))
-#    include <smmintrin.h>
-#  endif
-#  if defined(__GNUC__)
+#  include <immintrin.h>
+#  if (defined(__i386__) || defined(__x86_64__)) && (OIIO_GNUC_VERSION > 40400 || __clang__)
 #    include <x86intrin.h>
 #  endif
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
@@ -94,7 +84,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // FIXME Future: support AVX
 #if defined(__AVX__) && !defined(OIIO_NO_AVX)
    // N.B. Any machine with AVX will also have SSE
-#  include <immintrin.h>
 #  define OIIO_SIMD_AVX 1
 // #  define OIIO_SIMD_MASK_BYTE_WIDTH 4
 // #  undef OIIO_SIMD_MAX_SIZE_BYTES
@@ -123,9 +112,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define OIIO_SIMD4_ALIGN
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #endif
-
-#include "platform.h"
-#include "oiioversion.h"
 
 #include <algorithm>
 
