@@ -84,7 +84,7 @@ Comparing "input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
 PASS
 Reading stereo.dpx
 stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
-    2 subimages: 80x60 80x60 
+    2 subimages: 80x60 [u10,u10,u10], 80x60 [u10,u10,u10]
  subimage  0:   80 x   60, 3 channel, uint10 dpx
     channel list: R, G, B
     oiio:BitsPerSample: 10

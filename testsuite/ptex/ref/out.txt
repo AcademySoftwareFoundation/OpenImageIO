@@ -1,6 +1,6 @@
 Reading src/triangle.ptx
 src/triangle.ptx     :    4 x    4, 3 channel, float ptex
-    9 subimages: 4x4 4x4 4x4 4x4 4x4 4x4 4x4 4x4 4x4 
+    9 subimages: 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f], 4x4 [f,f,f]
  subimage  0:    4 x    4, 3 channel, float ptex
     MIP-map levels: 4x4 2x2 1x1
     SHA-1: 7BC2F942597DAEB92D3E51C8C72EA9C957F5A891

@@ -1,6 +1,6 @@
 Reading ../../../../../oiio-images/oiio.ico
 ../../../../../oiio-images/oiio.ico :   16 x   16, 4 channel, uint1 ico
-    10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
+    10 subimages: 16x16 [u1,u1,u1,u1], 32x32 [u2,u2,u2,u2], 16x16 [u2,u2,u2,u2], 48x48 [u3,u3,u3,u3], 32x32 [u3,u3,u3,u3], 16x16 [u3,u3,u3,u3], 256x256 [u2,u2,u2,u2], 48x48 [u8,u8,u8,u8], 32x32 [u8,u8,u8,u8], 16x16 [u8,u8,u8,u8]
  subimage  0:   16 x   16, 4 channel, uint1 ico
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
     channel list: R, G, B, A

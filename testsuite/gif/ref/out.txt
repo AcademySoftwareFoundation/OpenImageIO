@@ -1,6 +1,6 @@
 Reading ../../../../../oiio-images/gif_animation.gif
 ../../../../../oiio-images/gif_animation.gif :   30 x   30, 4 channel, uint8 gif
-    3 subimages: 30x30 
+    3 subimages: 30x30 [u8,u8,u8,u8]
  subimage  0:   30 x   30, 4 channel, uint8 gif
     SHA-1: DDECBD8686D4C2BCB43C2AA05F75C5BDB1CAF54B
     channel list: R, G, B, A
@@ -61,7 +61,7 @@ Reading ../../../../../oiio-images/gif_triangle_interlaced.gif
     gif:Interlacing: 1
 Reading ../../../../../oiio-images/gif_test_disposal_method.gif
 ../../../../../oiio-images/gif_test_disposal_method.gif :   50 x   50, 4 channel, uint8 gif
-    4 subimages: 50x50 50x50 50x50 50x50 
+    4 subimages: 50x50 [u8,u8,u8,u8], 50x50 [u8,u8,u8,u8], 50x50 [u8,u8,u8,u8], 50x50 [u8,u8,u8,u8]
  subimage  0:   50 x   50, 4 channel, uint8 gif
     SHA-1: 30839F361083DA6893F6A29B4F4628DCFBF9F1B5
     channel list: R, G, B, A

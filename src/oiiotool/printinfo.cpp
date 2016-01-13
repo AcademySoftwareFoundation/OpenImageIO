@@ -567,6 +567,27 @@ extended_format_name (TypeDesc type, int bits)
 
 
 
+static const char *
+brief_format_name (TypeDesc type, int bits=0)
+{
+    if (! bits)
+        bits = (int)type.size()*8;
+    if (type.is_floating_point()) {
+        if (type.basetype == TypeDesc::FLOAT)
+            return "f";
+        if (type.basetype == TypeDesc::HALF)
+            return "h";
+        return ustring::format("f%d", bits).c_str();
+    } else if (type.is_signed()) {
+        return ustring::format("i%d", bits).c_str();
+    } else {
+        return ustring::format("u%d", bits).c_str();
+    }
+    return type.c_str();  // use the name implied by type
+}
+
+
+
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
@@ -761,10 +782,19 @@ OiioTool::print_info (Oiiotool &ot,
         printf ("    %d subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
             input->seek_subimage (i, 0, spec);
+            int bits = spec.get_int_attribute ("oiio:BitsPerSample",
+                                               spec.format.size()*8);
+            if (i)
+                printf (", ");
             if (spec.depth > 1)
                 printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
             else
                 printf ("%dx%d ", spec.width, spec.height);
+            // printf ("[");
+            for (int c = 0; c < spec.nchannels; ++c)
+                printf ("%c%s", c ? ',' : '[',
+                        brief_format_name(spec.channelformat(c), bits));
+            printf ("]");
             if (movie)
                 break;
         }

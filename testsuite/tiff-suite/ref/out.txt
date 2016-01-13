@@ -33,7 +33,7 @@ Comparing "../../../../../libtiffpic/cramps-tile.tif" and "../../../../../libtif
 PASS
 Reading ../../../../../libtiffpic/dscf0013.tif
 ../../../../../libtiffpic/dscf0013.tif :  640 x  480, 3 channel, uint8 tiff
-    2 subimages: 640x480 160x120 
+    2 subimages: 640x480 [u8,u8,u8], 160x120 [u8,u8,u8]
  subimage  0:  640 x  480, 3 channel, uint8 tiff
     SHA-1: 5A28EA8AB0FD8E03EA11BF008E842CFEB42A9716
     channel list: R, G, B

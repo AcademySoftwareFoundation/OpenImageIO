@@ -1,6 +1,6 @@
 Reading ../../../../../oiio-images/psd_123.psd
 ../../../../../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
-    4 subimages: 257x126 33x98 63x100 61x102 
+    4 subimages: 257x126 [u8,u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 4 channel, uint8 psd
     SHA-1: F7A1BCAC9115D886FC6D6C23639529955D74DD58
     channel list: R, G, B, A
@@ -119,7 +119,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     PixelAspectRatio: 1
 Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
 ../../../../../oiio-images/psd_123_nomaxcompat.psd :  257 x  126, 3 channel, uint8 psd
-    4 subimages: 257x126 33x98 63x100 61x102 
+    4 subimages: 257x126 [u8,u8,u8], 33x98 [u8,u8,u8,u8], 63x100 [u8,u8,u8,u8], 61x102 [u8,u8,u8,u8]
  subimage  0:  257 x  126, 3 channel, uint8 psd
     SHA-1: 5A7BDC7A11A9E4BDCBEC968375EE466DE74D0481
     channel list: R, G, B
@@ -604,7 +604,7 @@ Reading ../../../../../oiio-images/psd_rgb_32.psd
     PixelAspectRatio: 1
 Reading ../../../../../oiio-images/psd_rgba_8.psd
 ../../../../../oiio-images/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
-    2 subimages: 320x240 320x240 
+    2 subimages: 320x240 [u8,u8,u8,u8], 320x240 [u8,u8,u8,u8]
  subimage  0:  320 x  240, 4 channel, uint8 psd
     SHA-1: 9519DFB5CDF4D8BAC10A20EAE6433A9216885F9D
     channel list: R, G, B, A
