@@ -181,7 +181,8 @@ private:
     int m_nsubimages;                     ///< How many subimages are there?
     int m_miplevel;                       ///< What miplevel we're writing now
     int m_nmiplevels;                     ///< How many mip levels are there?
-    std::vector<Imf::PixelType> m_pixeltype; ///< Imf pixel type for each chan
+    std::vector<Imf::PixelType> m_pixeltype; ///< Imf pixel type for each
+                                             ///<   channel of current subimage
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
     std::vector<ImageSpec> m_subimagespecs; ///< Saved subimage specs
     std::vector<Imf::Header> m_headers;
@@ -205,6 +206,9 @@ private:
     // Set up the header based on the given spec.  Also may doctor the 
     // spec a bit.
     bool spec_to_header (ImageSpec &spec, int subimage, Imf::Header &header);
+
+    // Fill in m_pixeltype based on the spec
+    void compute_pixeltypes (const ImageSpec &spec);
 
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
@@ -417,6 +421,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             return false;
         }
         m_spec = m_subimagespecs[m_subimage];
+        compute_pixeltypes(m_spec);
         return true;
 #else
         // OpenEXR 1.x does not support subimages (multi-part)
@@ -501,6 +506,7 @@ OpenEXROutput::open (const std::string &name, int subimages,
     }
 
     m_spec = m_subimagespecs[0];
+    compute_pixeltypes(m_spec);
 
     // Create an ImfMultiPartOutputFile
     try {
@@ -572,6 +578,34 @@ OpenEXROutput::open (const std::string &name, int subimages,
 
 
 
+void
+OpenEXROutput::compute_pixeltypes (const ImageSpec &spec)
+{
+    m_pixeltype.clear ();
+    m_pixeltype.reserve (spec.nchannels);
+    for (int c = 0;  c < spec.nchannels;  ++c) {
+        TypeDesc format = spec.channelformat(c);
+        Imf::PixelType ptype;
+        switch (format.basetype) {
+        case TypeDesc::UINT:
+            ptype = Imf::UINT;
+            break;
+        case TypeDesc::FLOAT:
+        case TypeDesc::DOUBLE:
+            ptype = Imf::FLOAT;
+            break;
+        default:
+            // Everything else defaults to half
+            ptype = Imf::HALF;
+            break;
+        }
+        m_pixeltype.push_back (ptype);
+    }
+    ASSERT (m_pixeltype.size() == size_t(spec.nchannels));
+}
+
+
+
 bool
 OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &header)
 {
@@ -616,56 +650,36 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
 
     // Insert channels into the header.  Also give the channels names if
     // the user botched it.
-    m_pixeltype.clear ();
+    compute_pixeltypes (spec);
     static const char *default_chan_names[] = { "R", "G", "B", "A" };
     spec.channelnames.resize (spec.nchannels);
     for (int c = 0;  c < spec.nchannels;  ++c) {
         if (spec.channelnames[c].empty())
             spec.channelnames[c] = (c<4) ? default_chan_names[c]
                                            : Strutil::format ("unknown %d", c);
-        TypeDesc format = spec.channelformat(c);
-        Imf::PixelType ptype;
-        switch (format.basetype) {
-        case TypeDesc::UINT:
-            ptype = Imf::UINT;
-            format = TypeDesc::UINT;
-            break;
-        case TypeDesc::FLOAT:
-        case TypeDesc::DOUBLE:
-            ptype = Imf::FLOAT;
-            format = TypeDesc::FLOAT;
-            break;
-        default:
-            // Everything else defaults to half
-            ptype = Imf::HALF;
-            format = TypeDesc::HALF;
-        }
-        
 #ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
         // Hint to lossy compression methods that indicates whether
         // human perception of the quantity represented by this channel
         // is closer to linear or closer to logarithmic.  Compression
         // methods may optimize image quality by adjusting pixel data
-        // quantization acording to this hint.
+        // quantization according to this hint.
         // Note: This is not the same as data having come from a linear
         // colorspace.  It is meant for data that is percieved by humans
         // in a linear fashion.
         // e.g Cb & Cr components in YCbCr images
         //     a* & b* components in L*a*b* images
         //     H & S components in HLS images
+        // We ignore this for now, but we shoudl fix it if we ever commonly
+        // work with non-perceptual/non-color image data.
         bool pLinear = false;
-#endif
-        m_pixeltype.push_back (ptype);
-        if (spec.channelformats.size())
-            spec.channelformats[c] = format;
         header.channels().insert (spec.channelnames[c].c_str(),
-                                     Imf::Channel(ptype, 1, 1
-#ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
-                                     , pLinear
+                                  Imf::Channel(m_pixeltype[c], 1, 1, pLinear));
+#else
+        // Prior to OpenEXR 1.6, it didn't know about the pLinear parameter
+        header.channels().insert (spec.channelnames[c].c_str(),
+                                  Imf::Channel(m_pixeltype[c], 1, 1));
 #endif
-                                     ));
     }
-    ASSERT (m_pixeltype.size() == (size_t)spec.nchannels);
 
     // Default to ZIP compression if no request came with the user spec.
     if (! spec.find_attribute("compression"))
