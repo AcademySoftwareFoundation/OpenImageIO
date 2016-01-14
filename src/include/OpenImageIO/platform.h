@@ -282,9 +282,9 @@
 #endif
 
 
-#if OIIO_CPLUSPLUS_VERSION >= 14 || (OIIO_CPLUSPLUS_VERSION >= 11 && __has_attribute(deprecated))
+#if OIIO_CPLUSPLUS_VERSION >= 14 && __has_attribute(deprecated)
 #  define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
-#elif defined(__GNUC__) && OIIO_GNUC_VERSION >= 40600
+#elif (defined(__GNUC__) && OIIO_GNUC_VERSION >= 40600) || defined(__clang__)
 #  define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
 #elif defined(__GNUC__) /* older gcc -- only the one with no message */
 #  define OIIO_DEPRECATED(msg) __attribute__((deprecated))
