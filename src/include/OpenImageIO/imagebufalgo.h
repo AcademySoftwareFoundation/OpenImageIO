@@ -1747,6 +1747,35 @@ bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+/// Render a single point at (x,y) of the given color "over" the existing
+/// image dst. If there is no alpha channel, the color will be written
+/// unconditionally (as if the alpha is 1.0). The color array view must
+/// contain at least as many values as channels in the image.
+bool OIIO_API render_point (ImageBuf &dst, int x, int y,
+                            array_view<const float> color,
+                            ROI roi = ROI::All(), int nthreads = 0);
+
+/// Render a line from (x1,y1) to (x2,y2) of the given color "over" the
+/// existing image dst. If there is no alpha channel, the color will be
+/// written unconditionally (as if the alpha is 1.0). The color array view
+/// must contain at least as many values as channels in the image.
+/// If skip_first_point is true, the very first point (x1,y1) will not
+/// be rendered; this can be useful for rendering segments of poly-lines
+/// to avoid double-rendering the vertex positions.
+bool OIIO_API render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
+                           array_view<const float> color,
+                           bool skip_first_point = false,
+                           ROI roi = ROI::All(), int nthreads = 0);
+
+/// Render an a filled or unfilled box with corners (x1,y1) and (x2,y2) of
+/// the given color "over" the existing image dst. If there is no alpha
+/// channel, the color will be written unconditionally (as if the alpha is
+/// 1.0). The color array view must contain at least as many values as
+/// channels in the image.
+bool OIIO_API render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
+                          array_view<const float> color, bool fill = false,
+                          ROI roi = ROI::All(), int nthreads = 0);
+
 /// Render a text string (encoded as UTF-8) into image dst, essentially
 /// doing an "over" of the character into the existing pixel data.  The
 /// baseline of the first character will start at position (x,y).  The font
@@ -1760,6 +1789,7 @@ bool OIIO_API render_text (ImageBuf &dst, int x, int y,
                            string_view text,
                            int fontsize=16, string_view fontname="",
                            const float *textcolor = NULL);
+
 
 
 /// ImageBufAlgo::histogram --------------------------------------------------

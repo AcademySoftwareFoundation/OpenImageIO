@@ -158,6 +158,9 @@ public:
 
     ImageRecRef top () { return curimg; }
 
+    // Parse geom in the form of "x,y" to retrieve a 2D integer position.
+    bool get_position (string_view command, string_view geom, int &x, int &y);
+
     // Modify the resolution and/or offset according to what's in geom.
     // Valid geometries are WxH (resolution), +X+Y (offsets), WxH+X+Y
     // (resolution and offset).  If 'allow_scaling' is true, geometries of

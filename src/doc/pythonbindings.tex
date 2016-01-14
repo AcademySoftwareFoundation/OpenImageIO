@@ -1714,6 +1714,58 @@ Choosing different seed values will result in a different pattern.
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce render_point} (dst, x, y, color=(1,1,1,1))}
+\index{ImageBufAlgo!render_point} \indexapi{render_point}
+\NEW % 1.7
+
+Render a point at pixel $(x,y)$ of {\cf dst}.  The {\cf color} (if supplied)
+is a tuple giving the per-channel colors.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
+    ImageBufAlgo.render_point (buf, 10, 20, (1,0,0,1))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce render_line} (dst, x1, y1, x2, y2, \\
+\bigspc\bigspc color=(1,1,1,1), skip_first_point=False)}
+\index{ImageBufAlgo!render_line} \indexapi{render_line}
+\NEW % 1.7
+
+Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}.  The
+{\cf color} (if supplied) is a tuple giving the per-channel colors.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
+    ImageBufAlgo.render_line (buf, 10, 10, 500, 20, (1,0,0,1))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce render_box} (dst, x1, y1, x2, y2, \\
+\bigspc\bigspc color=(1,1,1,1), filled=False)}
+\index{ImageBufAlgo!render_box} \indexapi{render_box}
+\NEW % 1.7
+
+Render a filled or unfilled box with corners at pixels $(x_1,y_1)$ and
+$(x_2,y_2)$ into {\cf dst}.  The {\cf color} (if supplied) is a tuple giving
+the per-channel colors.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
+    ImageBufAlgo.render_box (buf, 150, 100, 240, 180, (0,1,1,1))
+    ImageBufAlgo.render_box (buf, 100, 50, 180, 140, (0.5, 0.5, 0, 0.5), True)
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce render_text} (dst, x, y, text, fontsize=16, \\
   \bigspc\bigspc  fontname="", textcolor=(1,1,1,1))}
 \index{ImageBufAlgo!render_text} \indexapi{render_text}
@@ -1729,7 +1781,7 @@ is a tuple giving the per-channel colors.
     ImageBufAlgo.render_text (buf, 100, 200, "Go Big Red!",
                                60, "Arial Bold", (1,0,0,1))
 \end{code}
-\spc \includegraphics[width=2.5in]{figures/text.jpg}
+% \spc \includegraphics[width=2.5in]{figures/text.jpg}
 \apiend
 
 

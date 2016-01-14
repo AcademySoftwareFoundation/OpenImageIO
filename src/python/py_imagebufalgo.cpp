@@ -1107,6 +1107,42 @@ IBA_fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
+IBA_render_point (ImageBuf &dst, int x, int y, tuple color_ = tuple())
+{
+    std::vector<float> color;
+    py_to_stdvector (color, color_);
+    color.resize (dst.nchannels(), 1.0f);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::render_point (dst, x, y, color);
+}
+
+
+bool
+IBA_render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
+                 tuple color_ = tuple(), bool skip_first_point=false)
+{
+    std::vector<float> color;
+    py_to_stdvector (color, color_);
+    color.resize (dst.nchannels(), 1.0f);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::render_line (dst, x1, y1, x2, y2,
+                                      color, skip_first_point);
+}
+
+
+bool
+IBA_render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
+                 tuple color_ = tuple(), bool fill=false)
+{
+    std::vector<float> color;
+    py_to_stdvector (color, color_);
+    color.resize (dst.nchannels(), 1.0f);
+    ScopedGILRelease gil;
+    return ImageBufAlgo::render_box (dst, x1, y1, x2, y2, color, fill);
+}
+
+
+bool
 IBA_render_text (ImageBuf &dst, int x, int y,
                  const std::string &text,
                  int fontsize=16, const std::string &fontname="",
@@ -1609,6 +1645,20 @@ void declare_imagebufalgo()
              (arg("dst"), arg("A"), arg("B"), arg("z_zeroisinf")=false,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("zover")
+
+        .def("render_point", &IBA_render_point,
+             (arg("dst"), arg("x"), arg("y"), arg("color")=tuple()))
+        .staticmethod("render_point")
+
+        .def("render_line", &IBA_render_line,
+             (arg("dst"), arg("x1"), arg("y1"), arg("x2"), arg("y2"),
+              arg("color")=tuple(), arg("skip_first_point")=false))
+        .staticmethod("render_line")
+
+        .def("render_box", &IBA_render_box,
+             (arg("dst"), arg("x1"), arg("y1"), arg("x2"), arg("y2"),
+              arg("color")=tuple(), arg("fill")=false))
+        .staticmethod("render_box")
 
         .def("render_text", &IBA_render_text,
              (arg("dst"), arg("x"), arg("y"), arg("text"),

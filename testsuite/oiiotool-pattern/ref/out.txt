@@ -42,3 +42,7 @@ Comparing "fillv.tif" and "ref/fillv.tif"
 PASS
 Comparing "fill4.tif" and "ref/fill4.tif"
 PASS
+Comparing "lines.tif" and "ref/lines.tif"
+PASS
+Comparing "box.tif" and "ref/box.tif"
+PASS

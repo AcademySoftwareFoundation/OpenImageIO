@@ -230,6 +230,82 @@ error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
 \apiend
 
 
+\apiitem{bool {\ce render_point} (ImageBuf \&dst, int x, int y, \\
+  \bigspc\spc\spc array_view<const float> color, \\
+  \bigspc\spc\spc oi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!render_point} \indexapi{render_point}
+\NEW % 1.7
+Render a point into the destination image,  doing an ``over'' of color (if
+it includes an alpha channel). The {\cf color} value should have at least as
+many entires as the ROI (which will default to being the entirety of
+{\cf dst}). No pixels or channels outside the ROI will be modified.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
+    float red[4] = { 1, 0, 0, 1 };
+    ImageBufAlgo::render_point (A, 50, 100, red);
+\end{code}
+\apiend
+
+
+\apiitem{bool {\ce render_line} (ImageBuf \&dst, int x1, int y1, int x2, int y2, \\
+  \bigspc\spc\spc array_view<const float> color, \\
+  \bigspc\spc\spc bool skip_first_point=false,\\
+  \bigspc\spc\spc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!render_line} \indexapi{render_line}
+\NEW % 1.7
+Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}, doing an
+``over'' of the color (if it includes an alpha channel) onto the existing
+data in {\cf dst}. The {\cf color} must include as many values as {\cf
+roi.chend-1}. The ROI can be used to limit the pixel area or channels that
+are modified, and default to the entirety of {\cf dst}. If {\cf skip_first_point}
+is {\cf true}, the first point {\cf (x1, y1)} will not be drawn (this can
+be helpful when drawing poly-lines, to avoid double-rendering of the
+vertex positions).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
+    float red[4] = { 1, 0, 0, 1 };
+    ImageBufAlgo::render_line (A, 10, 60, 250, 20, red);
+    ImageBufAlgo::render_line (A, 250, 20, 100, 190, red, true);
+\end{code}
+
+\spc \includegraphics[width=2in]{figures/lines.png}  \\
+\apiend
+
+
+\apiitem{bool {\ce render_box} (ImageBuf \&dst, int x1, int y1, int x2, int y2, \\
+  \bigspc\spc\spc array_view<const float> color, bool fill=false,\\
+  \bigspc\spc\spc oi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!render_box} \indexapi{render_box}
+\NEW % 1.7
+
+Render a filled or unfilled box with corners at pixels $(x_1,y_1)$ and
+$(x_2,y_2)$ into {\cf dst}, doing an ``over'' of the color (if it includes
+an alpha channel) onto the existing data in {\cf dst}. The {\cf color} must
+include as many values as {\cf roi.chend-1}. The ROI can be used to limit
+the pixel area or channels that are modified, and default to the entirety of
+{\cf dst}. If {\cf fill} is {\cf true}, the box will be completely filled in,
+otherwise only its outlien will be drawn.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
+    float cyan[4] = { 1, 0, 0, 1 };
+    ImageBufAlgo::render_box (A, 150, 100, 240, 180, cyan);
+    float yellow_transparent[4] = { 0.5, 0.5, 0, 0.5 };
+    ImageBufAlgo::render_box (A, 100, 50, 180, 140, yellow_transparent, true);
+\end{code}
+
+\spc \includegraphics[width=2in]{figures/box.png}  \\
+\apiend
+
+
 \apiitem{bool {\ce render_text} (ImageBuf \&dst, int x, int y, string_view text,\\
   \bigspc\spc\spc int fontsize=16, string_view fontname="", \\
   \bigspc\spc\spc  const float *textcolor = NULL)}

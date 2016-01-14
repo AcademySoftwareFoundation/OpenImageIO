@@ -47,5 +47,11 @@ ${OIIOTOOL} -create 320x240 4 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 -o pr
             -trim -ch R,G,B,A=1.0 -create 320x240 4 -fill:color=0.75,0.75,0.75,1 320x240 \
             -fill:color=1,1,1,1 318x238+1+1 -over -tocolorspace sRGB -o trim.jpg
 ${OIIOTOOL} --autocc tahoe-small.jpg --invert -o invert.jpg
+${OIIOTOOL} --pattern checker:color1=.1,.2,.1:color2=.2,.2,.2 320x240 3 \
+            --line:color=1,0,0 10,60,250,20,100,190 -d uint8 -o lines.png
+${OIIOTOOL} --pattern checker:color1=.1,.2,.1:color2=.2,.2,.2 320x240 3 \
+            --box:color=0,1,1,1 150,100,240,180 \
+            --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 \
+            --colorconvert linear sRGB -d uint8 -o box.png
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif
 

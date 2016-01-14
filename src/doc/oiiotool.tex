@@ -2256,6 +2256,49 @@ image out.
 \apiend
 
 
+\apiitem{\ce --line {\rm \emph{x1,y1,x2,y2,...}}}
+\NEW % 1.7
+Draw (rasterize) an open polyline connecting the list of pixel positions, as
+a comma-separated list of alternating $x$ and $y$ values. Additional
+optional arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf color=}\emph{r,g,b,...} & specify the color of the line \\
+\end{tabular}
+
+The default color, if not supplied, is opaque white.
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool checker.exr --line:color=1,0,0 10,60,250,20,100,190 -o out.exr
+\end{code}
+\spc \includegraphics[width=2.5in]{figures/lines.png}  \\
+\apiend
+
+
+\apiitem{\ce --box {\rm \emph{x1,y1,x2,y2}}}
+\NEW % 1.7
+Draw (rasterize) a filled or unfilled a box with opposite corners {\cf (x1,y1)}
+and {\cf (x2,y2)}. Additional optional arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf color=}\emph{r,g,b,...} & specify the color of the lines \\
+ & {\cf fill=}\emph{bool} & if nonzero, fill in the box \\
+\end{tabular}
+
+The default color, if not supplied, is opaque white.
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool checker.exr --box:color=0,1,1,1 150,100,240,180 \
+                 --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 -o out.exr
+\end{code}
+\spc \includegraphics[width=2.5in]{figures/box.png}  \\
+\apiend
+
+
 \apiitem{\ce --fill {\rm \emph{size}}}
 Alter the top image by filling the ROI specified by \emph{size}.
 The fill can be a constant color, vertical gradient, horizontal gradient,

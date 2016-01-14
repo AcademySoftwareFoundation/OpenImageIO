@@ -654,6 +654,21 @@ do_set_any_attribute (ImageSpec &spec, const std::pair<std::string,T> &x)
 
 
 bool
+Oiiotool::get_position (string_view command, string_view geom,
+                        int &x, int &y)
+{
+    string_view orig_geom (geom);
+    bool ok = Strutil::parse_int (geom, x)
+           && Strutil::parse_char (geom, ',')
+           && Strutil::parse_int (geom, y);
+    if (! ok)
+        error (command, Strutil::format ("Unrecognized position \"%s\"", orig_geom));
+    return ok;
+}
+
+
+
+bool
 Oiiotool::adjust_geometry (string_view command,
                            int &w, int &h, int &x, int &y, const char *geom,
                            bool allow_scaling)
@@ -3377,6 +3392,59 @@ OP_CUSTOMCLASS (rangeexpand, OpRangeExpand, 1);
 
 
 
+class OpBox : public OiiotoolOp {
+public:
+    OpBox (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual int impl (ImageBuf **img) {
+        img[0]->copy (*img[1]);
+        const ImageSpec &Rspec (img[0]->spec());
+        int x1, y1, x2, y2;
+        string_view s (args[1]);
+        if (Strutil::parse_int (s, x1) && Strutil::parse_char (s, ',') &&
+            Strutil::parse_int (s, y1) && Strutil::parse_char (s, ',') &&
+            Strutil::parse_int (s, x2) && Strutil::parse_char (s, ',') &&
+            Strutil::parse_int (s, y2)) {
+            std::vector<float> color (Rspec.nchannels+1, 1.0f);
+            Strutil::extract_from_list_string (color, options["color"]);
+            bool fill = Strutil::from_string<int>(options["fill"]);
+            return ImageBufAlgo::render_box (*img[0], x1, y1, x2, y2,
+                                             color, fill);
+        }
+        return false;
+    }
+};
+
+OP_CUSTOMCLASS (box, OpBox, 1);
+
+
+
+class OpLine : public OiiotoolOp {
+public:
+    OpLine (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual int impl (ImageBuf **img) {
+        img[0]->copy (*img[1]);
+        const ImageSpec &Rspec (img[0]->spec());
+        std::vector<int> points;
+        Strutil::extract_from_list_string (points, args[1]);
+        std::vector<float> color (Rspec.nchannels+1, 1.0f);
+        Strutil::extract_from_list_string (color, options["color"]);
+        bool closed = (points.size() > 4 &&
+                       points[0] == points[points.size()-2] &&
+                       points[1] == points[points.size()-1]);
+        for (size_t i = 0, e = points.size()-2; i < e; i += 2)
+            ImageBufAlgo::render_line (*img[0], points[i+0], points[i+1],
+                                       points[i+2], points[i+3], color,
+                                       closed || i>0 /*skip_first_point*/);
+        return true;
+    }
+};
+
+OP_CUSTOMCLASS (line, OpLine, 1);
+
+
+
 class OpText : public OiiotoolOp {
 public:
     OpText (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -3388,7 +3456,7 @@ public:
         int y = options["y"].size() ? Strutil::from_string<int>(options["y"]) : (Rspec.y + Rspec.height/2);
         int fontsize = options["size"].size() ? Strutil::from_string<int>(options["size"]) : 16;
         std::string font = options["font"];
-        std::vector<float> textcolor (Rspec.nchannels, 1.0f);
+        std::vector<float> textcolor (Rspec.nchannels+1, 1.0f);
         Strutil::extract_from_list_string (textcolor, options["color"]);
         return ImageBufAlgo::render_text (*img[0], x, y, args[1],
                                           fontsize, font, &textcolor[0]);
@@ -4125,6 +4193,10 @@ getargs (int argc, char *argv[])
                     "Compress the range of pixel values with a log scale (options: luma=0|1)",
                 "--rangeexpand %@", action_rangeexpand, NULL,
                     "Un-rangecompress pixel values back to a linear scale (options: luma=0|1)",
+                "--line %@ %s", action_line, NULL,
+                    "Render a poly-line (args: x1,y1,x2,y2... ; options: color=)",
+                "--box %@ %s", action_box, NULL,
+                    "Render a box (args: x1,y1,x2,y2 ; options: color=)",
                 "--fill %@ %s", action_fill, NULL, "Fill a region (options: color=)",
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
