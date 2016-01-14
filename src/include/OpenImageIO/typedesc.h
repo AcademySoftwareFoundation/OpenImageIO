@@ -218,6 +218,9 @@ struct OIIO_API TypeDesc {
     /// integral type or something else like a string).
     bool is_floating_point () const;
 
+    /// True if it's a signed type that allows for negative values.
+    bool is_signed () const;
+
     /// Set *this to the type described in the string.  Return the
     /// length of the part of the string that describes the type.  If
     /// no valid type could be assembled, return 0 and do not modify

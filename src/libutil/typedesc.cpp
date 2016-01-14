@@ -120,6 +120,33 @@ TypeDesc::is_floating_point () const
 
 
 
+bool
+TypeDesc::is_signed () const
+{
+    static bool issigned[] = {
+        0, // UNKNOWN
+        0, // VOID
+        0, // UCHAR
+        1, // CHAR
+        0, // USHORT
+        1, // SHORT
+        0, // UINT
+        1, // INT
+        0, // ULONGLONG
+        1, // LONGLONG
+        1, // HALF
+        1, // FLOAT
+        1, // DOUBLE
+        0, // STRING
+        0  // PTR
+    };
+    DASSERT (sizeof(issigned)/sizeof(issigned[0]) == TypeDesc::LASTBASE);
+    DASSERT (basetype < TypeDesc::LASTBASE);
+    return issigned[basetype];
+}
+
+
+
 namespace {
 
 static const char * basetype_name[] = {
