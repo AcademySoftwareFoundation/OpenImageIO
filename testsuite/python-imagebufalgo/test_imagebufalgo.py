@@ -407,7 +407,12 @@ try:
 
     # FIXME - no test for zover (not in oiio-composite either)
 
-    # FIXME - no test for render_text
+    b = make_constimage (320, 240, 3, oiio.FLOAT)
+    ImageBufAlgo.render_text (b, 25, 50, "Hello, world",
+                              16, "DroidSerif", (1,1,1))
+    ImageBufAlgo.render_text (b, 50, 120, "Go Big Red!",
+                              42, "", (1,0,0))
+    write (b, "text.tif", oiio.UINT8)
 
     # histogram, histogram_draw,
 

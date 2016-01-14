@@ -1723,9 +1723,11 @@ is a tuple giving the per-channel colors.
 \noindent Examples:
 \begin{code}
     buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
+    ImageBufAlgo.render_text (buf, 50, 100, "Hello, world")
     ImageBufAlgo.render_text (buf, 100, 200, "Go Big Red!",
                                60, "Arial Bold", (1,0,0,1))
 \end{code}
+\spc \includegraphics[width=2.5in]{figures/text.jpg}
 \apiend
 
 

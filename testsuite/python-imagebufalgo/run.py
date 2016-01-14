@@ -8,6 +8,7 @@ refdir3 = "../../../../testsuite/oiiotool-composite/ref/"
 refdir4 = "../../../../testsuite/oiiotool-fixnan/ref/"
 refdir5 = "../../../../testsuite/oiiotool-deep/ref/"
 refdir6 = "../../../../testsuite/oiiotool-pattern/ref/"
+refdir7 = "../../../../testsuite/oiiotool-text/ref/"
 
 
 def checkref (name) :
@@ -21,6 +22,8 @@ def checkref (name) :
         return diff_command (name, refdir5+name)
     elif os.path.isfile(refdir6+name) :
         return diff_command (name, refdir6+name)
+    elif os.path.isfile(refdir7+name) :
+        return diff_command (name, refdir7+name)
     else :
         return diff_command (name, refdir+name)
 
@@ -57,6 +60,7 @@ for f in [ "black.tif", "filled.tif", "checker.tif",
            "box3.exr",
            "a_over_b.exr",
            "tahoe-small.tx",
+           "text.tif",
          ] :
     command += checkref (f)
 
