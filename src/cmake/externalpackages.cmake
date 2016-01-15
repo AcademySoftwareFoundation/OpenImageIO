@@ -66,7 +66,9 @@ endif ()
 ###########################################################################
 # IlmBase setup
 
-find_package (IlmBase REQUIRED)
+if (NOT ILMBASE_INCLUDE_DIR)
+    find_package (IlmBase REQUIRED)
+endif ()
 
 include_directories ("${ILMBASE_INCLUDE_DIR}")
 include_directories ("${ILMBASE_INCLUDE_DIR}/OpenEXR")
@@ -82,7 +84,9 @@ endmacro ()
 ###########################################################################
 # OpenEXR setup
 
-find_package (OpenEXR REQUIRED)
+if (NOT OPENEXR_INCLUDE_DIR)
+    find_package (OpenEXR REQUIRED)
+endif ()
 
 if (EXISTS "${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h")
     add_definitions (-DUSE_OPENEXR_VERSION2=1)
@@ -101,6 +105,11 @@ mark_as_advanced (OPENEXR_VERSION)
 include_directories ("${OPENEXR_INCLUDE_DIR}")
 # OpenEXR 1.x had weird #include dirctives, this is also necessary:
 include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
+
+if (NOT OpenEXR_FIND_QUIETLY)
+    message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
+    message (STATUS "OPENEXR_LIBRARIES = ${OPENEXR_LIBRARIES}")
+endif ()
 
 macro (LINK_OPENEXR target)
     target_link_libraries (${target} ${OPENEXR_LIBRARIES})
@@ -418,16 +427,16 @@ if (USE_LIBRAW)
     else ()
     	find_package (LibRaw)
     endif ()
-	if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
-		set (LIBRAW_FOUND TRUE)
-		include_directories (${LibRaw_INCLUDE_DIR})
+    if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
+        set (LIBRAW_FOUND TRUE)
+        include_directories (${LibRaw_INCLUDE_DIR})
         if (NOT LibRaw_FIND_QUIETLY)
             message (STATUS "Found LibRaw, include ${LibRaw_INCLUDE_DIR}")
         endif ()
-	else ()
-		set (LIBRAW_FOUND FALSE)
+    else ()
+        set (LIBRAW_FOUND FALSE)
         message (STATUS "LibRaw not found!")
-	endif()
+    endif()
 else ()
     message (STATUS "Not using LibRaw")
 endif()
