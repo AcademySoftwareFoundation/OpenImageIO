@@ -13,12 +13,15 @@ fi
 # Clone OpenEXR project (including IlmBase) from GitHub and build
 if [ ! -e ./openexr ] ; then
     git clone -b v${EXRVERSION} https://github.com/openexr/openexr.git ./openexr
-    pushd ./openexr/IlmBase
-    ./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make && make install
-    cd ../OpenEXR
-    ./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make && make install
-    popd
 fi
+
+pushd ./openexr
+git checkout v${EXRVERSION} --force
+cd IlmBase
+./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make -j 4 && make install
+cd ../OpenEXR
+./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make -j 4 && make install
+popd
 
 ls -R ${EXRINSTALLDIR}
 
