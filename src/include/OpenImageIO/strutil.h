@@ -246,13 +246,14 @@ template<> inline float from_string<float> (string_view s) {
 
 
 
-/// Given a string containing float values separated by a comma (or
-/// optionally another separator), extract the individual values,
-/// placing them into vals[] which is presumed to already contain
-/// defaults.  If only a single value was in the list, replace all
-/// elements of vals[] with the value. Otherwise, replace them in the
-/// same order.  A missing value will simply not be replaced. Return the
-/// number of values found in the list (including blank or malformed ones).
+/// Given a string containing values separated by a comma (or optionally
+/// another separator), extract the individual values, placing them into
+/// vals[] which is presumed to already contain defaults.  If only a single
+/// value was in the list, replace all elements of vals[] with the value.
+/// Otherwise, replace them in the same order.  A missing value will simply
+/// not be replaced. Return the number of values found in the list
+/// (including blank or malformed ones). If the vals vector was empty
+/// initially, grow it as necessary.
 ///
 /// For example, if T=float, suppose initially, vals[] = {0, 1, 2}, then
 ///   "3.14"       results in vals[] = {3.14, 3.14, 3.14}
@@ -262,17 +263,21 @@ template<> inline float from_string<float> (string_view s) {
 /// an explicit constructor from a std::string.
 template<class T>
 int extract_from_list_string (std::vector<T> &vals,
-                               string_view list,
-                               string_view sep = string_view(",",1))
+                              string_view list,
+                              string_view sep = string_view(",",1))
 {
     size_t nvals = vals.size();
     std::vector<string_view> valuestrings;
     Strutil::split (list, valuestrings, sep);
     for (size_t i = 0, e = valuestrings.size(); i < e; ++i) {
-        if (valuestrings[i].size())
+        T v = from_string<T> (valuestrings[i]);
+        if (nvals == 0)
+            vals.push_back (v);
+        else if (valuestrings[i].size())
             vals[i] = from_string<T> (valuestrings[i]);
+        /* Otherwise, empty space between commas, so leave default alone */
     }
-    if (valuestrings.size() == 1) {
+    if (valuestrings.size() == 1 && nvals > 0) {
         vals.resize (1);
         vals.resize (nvals, vals[0]);
     }
