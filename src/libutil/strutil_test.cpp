@@ -360,6 +360,14 @@ void test_extract ()
     OIIO_CHECK_EQUAL (vals[1], -1);
     OIIO_CHECK_EQUAL (vals[2], -1);
     OIIO_CHECK_EQUAL (n, 0);
+
+    vals.clear();
+    n = Strutil::extract_from_list_string (vals, "1,3,5");
+    OIIO_CHECK_EQUAL (vals.size(), 3);
+    OIIO_CHECK_EQUAL (vals[0], 1);
+    OIIO_CHECK_EQUAL (vals[1], 3);
+    OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (n, 3);
 }
 
 
