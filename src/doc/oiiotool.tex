@@ -2525,6 +2525,12 @@ samples in each pixel.
 
 \subsection{General commands that also work for deep images}
 
+\apiitem{\ce --addc \\ --subc \\ --mulc \\ --divc}
+Adding, subtracting, multiplying, or dividing a per-channel constant will
+work for deep images, performing the operation for every sample in the
+image.
+\apiend
+
 \apiitem{\ce --autotrim}
 For subsequent outputs, automatically {\cf --trim} before writing the file.
 \apiend
