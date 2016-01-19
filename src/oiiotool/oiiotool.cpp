@@ -808,7 +808,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
             result = orig;
             return false;
         }
-        string_view metadata = Strutil::parse_identifier (s);
+        string_view metadata = Strutil::parse_identifier (s, ":", true);
         if (metadata.size()) {
             read (img);
             ImageIOParameter tmpparam;
