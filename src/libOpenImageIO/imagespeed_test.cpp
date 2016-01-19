@@ -52,6 +52,9 @@ static int ntrials = 1;
 static int numthreads = 0;
 static int autotile_size = 64;
 static bool iter_only = false;
+static bool no_iter = false;
+static std::string conversionname;
+static TypeDesc conversion = TypeDesc::UNKNOWN; // native by default
 static std::vector<ustring> input_filename;
 static std::string output_filename;
 static std::string output_format;
@@ -59,6 +62,7 @@ static std::vector<char> buffer;
 static ImageSpec bufspec, outspec;
 static ImageCache *imagecache = NULL;
 static imagesize_t total_image_pixels = 0;
+static float cache_size = 0;
 
 
 
@@ -89,7 +93,10 @@ getargs (int argc, char *argv[])
                 "--trials %d", &ntrials, "Number of trials",
                 "--autotile %d", &autotile_size, 
                     ustring::format("Autotile size (when used; default: %d)", autotile_size).c_str(),
-                "--iteronly", &iter_only, "Run iteration tests only (not read tests)",
+                "--iteronly", &iter_only, "Run ImageBuf iteration tests only (not read tests)",
+                "--noiter", &no_iter, "Don't run ImageBuf iteration tests",
+                "--convert %s", &conversionname, "Convert to named type upon read (default: native)",
+                "--cache %f", &cache_size, "Specify ImageCache size, in MB",
                 "-o %s", &output_filename, "Test output by writing to this file",
                 "-od %s", &output_format, "Requested output format",
                 NULL);
@@ -112,7 +119,7 @@ time_read_image ()
     BOOST_FOREACH (ustring filename, input_filename) {
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
-        in->read_image (TypeDesc::TypeFloat, &buffer[0]);
+        in->read_image (conversion, &buffer[0]);
         in->close ();
         delete in;
     }
@@ -127,10 +134,12 @@ time_read_scanline_at_a_time ()
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
-        size_t pixelsize = spec.nchannels * sizeof(float);
+        size_t pixelsize = spec.nchannels * conversion.size();
+        if (! pixelsize)
+            pixelsize = spec.pixel_bytes (true);  // UNKNOWN -> native
         imagesize_t scanlinesize = spec.width * pixelsize;
         for (int y = 0; y < spec.height;  ++y) {
-            in->read_scanline (y+spec.y, 0, TypeDesc::TypeFloat,
+            in->read_scanline (y+spec.y, 0, conversion,
                                &buffer[scanlinesize*y]);
         }
         in->close ();
@@ -147,11 +156,13 @@ time_read_64_scanlines_at_a_time ()
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
-        size_t pixelsize = spec.nchannels * sizeof(float);
+        size_t pixelsize = spec.nchannels * conversion.size();
+        if (! pixelsize)
+            pixelsize = spec.pixel_bytes (true);  // UNKNOWN -> native
         imagesize_t scanlinesize = spec.width * pixelsize;
         for (int y = 0; y < spec.height;  y += 64) {
             in->read_scanlines (y+spec.y, std::min(y+spec.y+64, spec.y+spec.height),
-                                0, TypeDesc::TypeFloat, &buffer[scanlinesize*y]);
+                                0, conversion, &buffer[scanlinesize*y]);
         }
         in->close ();
         delete in;
@@ -166,7 +177,7 @@ time_read_imagebuf ()
     imagecache->invalidate_all (true);
     BOOST_FOREACH (ustring filename, input_filename) {
         ImageBuf ib (filename.string(), imagecache);
-        ib.read (0, 0, true, TypeDesc::TypeFloat);
+        ib.read (0, 0, true, conversion);
     }
 }
 
@@ -181,7 +192,7 @@ time_ic_get_pixels ()
         imagecache->get_pixels (filename, 0, 0, spec.x, spec.x+spec.width,
                                 spec.y, spec.y+spec.height,
                                 spec.z, spec.z+spec.depth,
-                                TypeDesc::TypeFloat, &buffer[0]);
+                                conversion, &buffer[0]);
     }
 }
 
@@ -198,7 +209,8 @@ test_read (const std::string &explanation,
     double rate = double(total_image_pixels) / t;
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t,2) 
-              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s"
+              << std::endl;
 }
 
 
@@ -338,7 +350,8 @@ test_write (const std::string &explanation,
     double rate = double(total_image_pixels) / t;
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t,2) 
-              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s"
+              << std::endl;
 }
 
 
@@ -486,7 +499,8 @@ test_pixel_iteration (const std::string &explanation,
     double rate = double(ib.spec().image_pixels()) / (t/iters);
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t/iters,3) 
-              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s\n";
+              << " = " << Strutil::format("%5.1f",rate/1.0e6) << " Mpel/s"
+              << std::endl;
 }
 
 
@@ -523,8 +537,12 @@ main (int argc, char **argv)
     }
 
     OIIO::attribute ("threads", numthreads);
+    OIIO::attribute ("exr_threads", numthreads);
+    conversion.fromstring (conversionname);
 
     imagecache = ImageCache::create ();
+    if (cache_size)
+        imagecache->attribute ("max_memory_MB", cache_size);
     imagecache->attribute ("forcefloat", 1);
 
     // Allocate a buffer big enough (for floats)
@@ -545,6 +563,10 @@ main (int argc, char **argv)
 
     if (! iter_only) {
         std::cout << "Timing various ways of reading images:\n";
+        if (conversion == TypeDesc::UNKNOWN)
+            std::cout << "    ImageInput reads will keep data in native format.\n";
+        else
+            std::cout << "    ImageInput reads will convert data to " << conversion << "\n";
         buffer.resize (maxpelchans*sizeof(float), 0);
         test_read ("read_image                                   ",
                    time_read_image, 0, 0);
@@ -570,19 +592,26 @@ main (int argc, char **argv)
         }
         if (verbose)
             std::cout << "\n" << imagecache->getstats(2) << "\n";
-        std::cout << "\n";
+        std::cout << std::endl;
     }
 
     if (output_filename.size()) {
+        // Use the first image
+        ImageInput *in = ImageInput::open (input_filename[0].c_str());
+        ASSERT (in);
+        bufspec = in->spec ();
+        in->read_image (conversion, &buffer[0]);
+        in->close ();
+        delete in;
         std::cout << "Timing ways of writing images:\n";
-        imagecache->get_imagespec (input_filename[0], bufspec, 0, 0, true);
+        // imagecache->get_imagespec (input_filename[0], bufspec, 0, 0, true);
         ImageOutput *out = ImageOutput::create (output_filename);
         ASSERT (out);
         bool supports_tiles = out->supports("tiles");
         delete out;
         outspec = bufspec;
-        bufspec.format = TypeDesc::FLOAT;
         set_dataformat (output_format, outspec);
+        std::cout << "    writing as format " << outspec.format << "\n";
 
         test_write ("write_image (scanline)                       ",
                     time_write_image, 0);
@@ -604,33 +633,33 @@ main (int argc, char **argv)
         if (supports_tiles)
             test_write ("ImageBuf::write (tiled)                      ",
                         time_write_imagebuf, 64);
-        std::cout << "\n";
+        std::cout << std::endl;
     }
 
-    const int iters = 64;
-    std::cout << "Timing ways of iterating over an image:\n";
-
-    test_pixel_iteration ("Loop pointers on loaded image (\"1D\")    ",
-                          time_loop_pixels_1D, true, iters);
-    test_pixel_iteration ("Loop pointers on loaded image (\"3D\")    ",
-                          time_loop_pixels_3D, true, iters);
-    test_pixel_iteration ("Loop + getchannel on loaded image (\"3D\")",
-                          time_loop_pixels_3D_getchannel, true, iters/32);
-    test_pixel_iteration ("Loop + getchannel on cached image (\"3D\")",
-                          time_loop_pixels_3D_getchannel, false, iters/32);
-    test_pixel_iteration ("Iterate over a loaded image             ",
-                          time_iterate_pixels, true, iters);
-    test_pixel_iteration ("Iterate over a cache image              ",
-                          time_iterate_pixels, false, iters);
-    test_pixel_iteration ("Iterate over a loaded image (pos slave) ",
-                          time_iterate_pixels_slave_pos, true, iters);
-    test_pixel_iteration ("Iterate over a cache image (pos slave)  ",
-                          time_iterate_pixels_slave_pos, false, iters);
-    test_pixel_iteration ("Iterate over a loaded image (incr slave)",
-                          time_iterate_pixels_slave_incr, true, iters);
-    test_pixel_iteration ("Iterate over a cache image (incr slave) ",
-                          time_iterate_pixels_slave_incr, false, iters);
-
+    if (! no_iter) {
+        const int iters = 64;
+        std::cout << "Timing ways of iterating over an image:\n";
+        test_pixel_iteration ("Loop pointers on loaded image (\"1D\")    ",
+                              time_loop_pixels_1D, true, iters);
+        test_pixel_iteration ("Loop pointers on loaded image (\"3D\")    ",
+                              time_loop_pixels_3D, true, iters);
+        test_pixel_iteration ("Loop + getchannel on loaded image (\"3D\")",
+                              time_loop_pixels_3D_getchannel, true, iters/32);
+        test_pixel_iteration ("Loop + getchannel on cached image (\"3D\")",
+                              time_loop_pixels_3D_getchannel, false, iters/32);
+        test_pixel_iteration ("Iterate over a loaded image             ",
+                              time_iterate_pixels, true, iters);
+        test_pixel_iteration ("Iterate over a cache image              ",
+                              time_iterate_pixels, false, iters);
+        test_pixel_iteration ("Iterate over a loaded image (pos slave) ",
+                              time_iterate_pixels_slave_pos, true, iters);
+        test_pixel_iteration ("Iterate over a cache image (pos slave)  ",
+                              time_iterate_pixels_slave_pos, false, iters);
+        test_pixel_iteration ("Iterate over a loaded image (incr slave)",
+                              time_iterate_pixels_slave_incr, true, iters);
+        test_pixel_iteration ("Iterate over a cache image (incr slave) ",
+                              time_iterate_pixels_slave_incr, false, iters);
+    }
     if (verbose)
         std::cout << "\n" << imagecache->getstats(2) << "\n";
 
