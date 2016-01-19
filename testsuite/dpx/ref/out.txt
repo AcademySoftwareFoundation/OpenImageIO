@@ -80,7 +80,7 @@ Reading ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx
     dpx:Signal: "Undefined"
 Comparing "../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 PASS
-Comparing "input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
+Comparing "src/input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
 PASS
 Reading stereo.dpx
 stereo.dpx           :   80 x   60, 3 channel, uint10 dpx

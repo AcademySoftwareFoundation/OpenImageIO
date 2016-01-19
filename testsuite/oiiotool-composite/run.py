@@ -5,7 +5,7 @@
 
 
 # test over
-command += oiiotool ("a.exr --over b.exr -o a_over_b.exr")
+command += oiiotool ("src/a.exr --over src/b.exr -o a_over_b.exr")
 
 # FIXME: no test for zover
 

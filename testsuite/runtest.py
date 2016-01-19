@@ -7,6 +7,7 @@ import platform
 import subprocess
 import difflib
 import filecmp
+import shutil
 
 from optparse import OptionParser
 
@@ -42,6 +43,7 @@ tmpdir = os.path.abspath (tmpdir)
 
 refdir = "ref/"
 parent = "../../../../../"
+test_source_dir = "../../../../testsuite/" + os.path.basename(os.path.abspath(srcdir))
 
 command = ""
 outputs = [ "out.txt" ]    # default
@@ -51,10 +53,18 @@ hardfail = 0.012
 failpercent = 0.02
 
 
-#print ("srcdir = " + srcdir)
-#print ("tmpdir = " + tmpdir)
-#print ("path = " + path)
-#print ("refdir = " + refdir)
+# print ("srcdir = " + srcdir)
+# print ("tmpdir = " + tmpdir)
+# print ("path = " + path)
+# print ("refdir = " + refdir)
+# print ("test source dir = " + test_source_dir)
+
+if not os.path.exists("./ref") :
+    os.symlink (os.path.join (test_source_dir, "ref"), "./ref")
+if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
+    os.symlink (os.path.join (test_source_dir, "src"), "./src")
+if not os.path.exists("../common") :
+    os.symlink ("../../../testsuite/common", "../common")
 
 ###########################################################################
 
@@ -244,7 +254,7 @@ def runtest (command, outputs, failureok=0) :
         # will compare it to everything else with the same extension in
         # the ref directory.  That allows us to have multiple matching
         # variants for different platforms, etc.
-        for testfile in (["ref/"+out] + glob.glob (os.path.join ("ref", "*"+extension))) :
+        for testfile in ([os.path.join(refdir,out)] + glob.glob (os.path.join (refdir, "*"+extension))) :
             # print ("comparing " + out + " to " + testfile)
             if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
                 # images -- use idiff
@@ -279,7 +289,7 @@ def runtest (command, outputs, failureok=0) :
             if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
-                os.system (diff_command (out, os.path.join ("ref", out), silent=False))
+                os.system (diff_command (out, os.path.join (refdir, out), silent=False))
 
     return (err)
 
@@ -292,7 +302,7 @@ def runtest (command, outputs, failureok=0) :
 # Read the individual run.py file for this test, which will define 
 # command and outputs.
 #
-with open("run.py") as f:
+with open(os.path.join(test_source_dir,"run.py")) as f:
     code = compile(f.read(), "run.py", 'exec')
     exec (code)
 

@@ -1,4 +1,4 @@
 #!/usr/bin/env python 
 
-command += "python test_roi.py > out.txt"
+command += "python src/test_roi.py > out.txt"
 

@@ -1,5 +1,5 @@
-Reading bad.exr
-bad.exr              :   64 x   64, 3 channel, half openexr
+Reading src/bad.exr
+src/bad.exr          :   64 x   64, 3 channel, half openexr
     SHA-1: BDEA744AE77E178C4F9C3462110F57923AB496CE
     channel list: R, G, B
     oiio:ColorSpace: "Linear"

@@ -34,7 +34,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   GPS:MapDatum = "WGS-84"
   GPS:DateStamp = "1915:08:08"
 
-Opened "../common/textures/grid.tx" as a tiff
+Opened "grid.tx" as a tiff
   resolution 1024x1024+0+0
   tile size  64x64x1
   4 channels: ('R', 'G', 'B', 'A')
@@ -114,7 +114,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (0, 1535) = array('B', [82, 94, 136])
 
 Testing read_tile:
-Opened "../common/textures/grid.tx" as a tiff
+Opened "grid.tx" as a tiff
 @ (32, 32) = array('B', [1, 1, 1, 255])
 @ (160, 160) = array('B', [255, 127, 127, 255])
 
@@ -125,7 +125,7 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
 @ (1024, 768) = array('B', [137, 183, 233])
 
 Testing read_tiles:
-Opened "../common/textures/grid.tx" as a tiff
+Opened "grid.tx" as a tiff
 @ (0, 0) = array('B', [0, 0, 0, 255])
 @ (1023, 1023) = array('B', [0, 0, 0, 255])
 @ (512, 512) = array('B', [0, 0, 0, 255])

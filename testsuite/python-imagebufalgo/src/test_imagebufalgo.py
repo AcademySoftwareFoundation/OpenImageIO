@@ -116,33 +116,33 @@ try:
 
     # rotate90
     b = ImageBuf()
-    ImageBufAlgo.rotate90 (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.rotate90 (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "rotate90.tif")
 
     # rotate180
     b = ImageBuf()
-    ImageBufAlgo.rotate180 (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.rotate180 (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "rotate180.tif")
 
     # rotate270
     b = ImageBuf()
-    ImageBufAlgo.rotate270 (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.rotate270 (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "rotate270.tif")
 
     # flip
     b = ImageBuf()
-    ImageBufAlgo.flip (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.flip (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "flip.tif")
 
     # flop
     b = ImageBuf()
-    ImageBufAlgo.flop (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.flop (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "flop.tif")
 
     # reorient
     b = ImageBuf()
     image_small = ImageBuf()
-    ImageBufAlgo.resample (image_small, ImageBuf("../oiiotool/image.tif"),  roi=oiio.ROI(0,160,0,120))
+    ImageBufAlgo.resample (image_small, ImageBuf("../oiiotool/src/image.tif"),  roi=oiio.ROI(0,160,0,120))
     ImageBufAlgo.rotate90 (image_small, image_small)
     image_small.specmod().attribute ("Orientation", 8)
     ImageBufAlgo.reorient (b, image_small)
@@ -151,12 +151,12 @@ try:
 
     # transpose
     b = ImageBuf()
-    ImageBufAlgo.transpose (b, ImageBuf("../oiiotool/image.tif"))
+    ImageBufAlgo.transpose (b, ImageBuf("../oiiotool/src/image.tif"))
     write (b, "transpose.tif")
 
     # circular_shift
     b = ImageBuf()
-    ImageBufAlgo.circular_shift (b, ImageBuf("../oiiotool/image.tif"),
+    ImageBufAlgo.circular_shift (b, ImageBuf("../oiiotool/src/image.tif"),
                                  100, 50)
     write (b, "cshift.tif")
 
@@ -228,7 +228,7 @@ try:
     write (b, "divc2.exr", oiio.HALF)
 
     # invert
-    a = ImageBuf ("../oiiotool/tahoe-small.tif")
+    a = ImageBuf ("../oiiotool/src/tahoe-small.tif")
     b = ImageBuf()
     ImageBufAlgo.invert (b, a)
     write (b, "invert.tif", oiio.UINT8)
@@ -243,7 +243,7 @@ try:
 
     # channel_sum
     b = ImageBuf()
-    ImageBufAlgo.channel_sum (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.channel_sum (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),
                               (.2126,.7152,.0722))
     write (b, "chsum.tif", oiio.UINT8)
 
@@ -255,7 +255,7 @@ try:
     ImageBufAlgo.premult (b, b)
     write (b, "premult.tif")
 
-    b = ImageBuf ("../oiiotool/tahoe-small.tif")
+    b = ImageBuf ("../oiiotool/src/tahoe-small.tif")
     ImageBufAlgo.rangecompress (b, b)
     write (b, "rangecompress.tif", oiio.UINT8)
     ImageBufAlgo.rangeexpand (b, b)
@@ -331,25 +331,25 @@ try:
 
     # convolve -- test with bspline blur
     b = ImageBuf()
-    ImageBufAlgo.convolve (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.convolve (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),
                            bsplinekernel)
     write (b, "bspline-blur.tif", oiio.UINT8)
 
     # median filter
     b = ImageBuf()
-    ImageBufAlgo.median_filter (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.median_filter (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),
                                 5, 5)
     write (b, "tahoe-median.tif", oiio.UINT8)
 
     # unsharp_mask
     b = ImageBuf()
-    ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),
                                "gaussian", 3.0, 1.0, 0.0)
     write (b, "unsharp.tif", oiio.UINT8)
 
     # unsharp_mark with median filter
     b = ImageBuf()
-    ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/tahoe-small.tif"),
+    ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),
                                "median", 3.0, 1.0, 0.0)
     write (b, "unsharp-median.tif", oiio.UINT8)
 
@@ -360,7 +360,7 @@ try:
     # fft, ifft
     fft = ImageBuf()
     blue = ImageBuf()
-    ImageBufAlgo.channels (blue, ImageBuf("../oiiotool/tahoe-tiny.tif"),
+    ImageBufAlgo.channels (blue, ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
                            (2,))
     ImageBufAlgo.fft (fft, blue)
     write (fft, "fft.exr", oiio.FLOAT)
@@ -383,7 +383,7 @@ try:
     polar.clear()
 
     # fixNonFinite
-    bad = ImageBuf ("../oiiotool-fixnan/bad.exr")
+    bad = ImageBuf ("../oiiotool-fixnan/src/bad.exr")
     b = ImageBuf()
     ImageBufAlgo.fixNonFinite (b, bad, oiio.NONFINITE_BOX3)
     write (b, "box3.exr")
@@ -396,8 +396,8 @@ try:
 
     # over
     b = ImageBuf()
-    ImageBufAlgo.over (b, ImageBuf("../oiiotool-composite/a.exr"),
-                       ImageBuf("../oiiotool-composite/b.exr"))
+    ImageBufAlgo.over (b, ImageBuf("../oiiotool-composite/src/a.exr"),
+                       ImageBuf("../oiiotool-composite/src/b.exr"))
     write (b, "a_over_b.exr")
 
     # FIXME - no test for zover (not in oiio-composite either)
@@ -413,7 +413,7 @@ try:
 
     # make_texture
     ImageBufAlgo.make_texture (oiio.MakeTxTexture,
-                               ImageBuf("../oiiotool/tahoe-small.tif"),
+                               ImageBuf("../oiiotool/src/tahoe-small.tif"),
                                "tahoe-small.tx")
 
     # capture_image - no test

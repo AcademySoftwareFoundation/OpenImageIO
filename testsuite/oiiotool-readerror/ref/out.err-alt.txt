@@ -1,1 +1,1 @@
-oiiotool ERROR: read incomplete.exr : Failed OpenEXR read: Error reading pixel data from image file "incomplete.exr". Unexpected end of file.
+oiiotool ERROR: read src/incomplete.exr : Failed OpenEXR read: Error reading pixel data from image file "src/incomplete.exr". Unexpected end of file.

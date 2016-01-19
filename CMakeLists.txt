@@ -486,11 +486,15 @@ add_subdirectory (src/nuke)
 #                    for "make testall", but not "make test".
 #
 
-# Make a copy of the testsuite into the build area
-if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
-    file (COPY "${PROJECT_SOURCE_DIR}/testsuite"
-          DESTINATION "${CMAKE_BINARY_DIR}")
-endif()
+# Make a build/platform/testsuite directory, and copy the master runtest.py
+# there. The rest is up to the tests themselves.
+file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/testsuite")
+add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${CMAKE_SOURCE_DIR}/testsuite/runtest.py"
+                        "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
+                    MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/testsuite/runtest.py")
+add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest.py" )
 
 # Basic tests that apply even to continuous integration tests:
 oiio_add_tests (
@@ -575,7 +579,7 @@ oiio_add_tests (ptex
 
 if (NOT DEFINED ENV{TRAVIS})
 
-oiio_add_tests (field3d texture-field3d
+oiio_add_tests (texture-field3d field3d
     FOUNDVAR FIELD3D_FOUND)
 
 endif ()

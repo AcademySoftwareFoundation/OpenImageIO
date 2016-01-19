@@ -15,7 +15,7 @@ Resetting to be a writeable 640x480,3 Float:
   z channel =  -1
   deep =  False
 
-Testing read of grid.tx:
+Testing read of ../common/textures/grid.tx:
 subimage: 0  /  1
 miplevel: 0  /  11
 channels: 4

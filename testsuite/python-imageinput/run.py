@@ -1,4 +1,6 @@
 #!/usr/bin/env python 
 
-command += "python test_imageinput.py > out.txt"
+shutil.copyfile ("../common/textures/grid.tx", "grid.tx")
+
+command += "python src/test_imageinput.py > out.txt"
 

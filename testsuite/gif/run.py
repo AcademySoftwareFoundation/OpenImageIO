@@ -10,5 +10,5 @@ for f in files:
     command += info_command (imagedir + "/" + f)
 
 # Test write / conversion to GIF
-command += oiiotool ("../oiiotool/tahoe-tiny.tif -o tahoe-tiny.gif")
+command += oiiotool ("../oiiotool/src/tahoe-tiny.tif -o tahoe-tiny.gif")
 command += info_command ("tahoe-tiny.gif")

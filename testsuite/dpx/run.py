@@ -8,8 +8,8 @@ for f in files:
 
 # Additionally, test for regressions for endian issues with 16 bit DPX output
 # (related to issue #354)
-command += oiio_app("oiiotool") + " input_rgb_mattes.tif -o output_rgb_mattes.dpx >> out.txt;"
-command += oiio_app("idiff") + " input_rgb_mattes.tif output_rgb_mattes.dpx >> out.txt;"
+command += oiio_app("oiiotool") + " src/input_rgb_mattes.tif -o output_rgb_mattes.dpx >> out.txt;"
+command += oiio_app("idiff") + " src/input_rgb_mattes.tif output_rgb_mattes.dpx >> out.txt;"
 
 # Test reading and writing of stereo DPX (multi-image)
 #command += (oiio_app("oiiotool") + "--create 80x60 3 --text:x=10 Left "

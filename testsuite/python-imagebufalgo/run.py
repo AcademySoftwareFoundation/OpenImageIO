@@ -29,7 +29,7 @@ def checkref (name) :
 
 
 # Run the script 
-command += "python test_imagebufalgo.py > out.txt ;"
+command += "python src/test_imagebufalgo.py > out.txt ;"
 
 # Checkout outputs -- some of the refs are in the oiiotool test dir
 for f in [ "black.tif", "filled.tif", "checker.tif",

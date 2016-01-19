@@ -68,6 +68,7 @@ macro (oiio_add_tests)
             set (_has_generator_expr TRUE)
         endif ()
         foreach (_testname ${_ats_DEFAULT_ARGS})
+            set (_testsrcdir "${CMAKE_SOURCE_DIR}/testsuite/${_testname}")
             set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
             if (_ats_LABEL MATCHES "broken")
                 set (_testname "${_testname}-broken")
@@ -90,8 +91,10 @@ macro (oiio_add_tests)
             if (VERBOSE)
                 message (STATUS "TEST ${_testname}: ${CMAKE_BINARY_DIR}/testsuite/runtest.py ${_testdir} ${_extra_test_args}")
             endif ()
+            # Make the build test directory and copy
+            file (MAKE_DIRECTORY "${_testdir}")
             add_test (${_add_test_args}
-                      "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
+                      "${CMAKE_SOURCE_DIR}/testsuite/runtest.py"
                       ${_testdir}
                       ${_extra_test_args})
         endforeach ()

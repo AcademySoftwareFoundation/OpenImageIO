@@ -61,7 +61,7 @@ try:
     print ""
 
     # Test reading from disk
-    print "Testing read of grid.tx:"
+    print "Testing read of ../common/textures/grid.tx:"
     b = oiio.ImageBuf ("../common/textures/grid.tx")
     print "subimage:", b.subimage, " / ", b.nsubimages
     print "miplevel:", b.miplevel, " / ", b.nmiplevels

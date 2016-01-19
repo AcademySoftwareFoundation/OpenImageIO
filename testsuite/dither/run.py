@@ -1,7 +1,7 @@
 #!/usr/bin/env python 
 
 # Run the script 
-command += "python make_ramp.py > out.txt ;"
+command += "python src/make_ramp.py > out.txt ;"
 
 # compare the outputs
 files = [ "ramp.tif" ]

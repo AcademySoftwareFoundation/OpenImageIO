@@ -17,9 +17,9 @@ command += oiiotool ("filled.tif --colorcount:eps=.1,.1,.1 0,0,0:1,.5,.5:0,1,0")
 command += oiiotool ("filled.tif --rangecheck 0,0,0 1,0.9,1")
 
 # test --rangecompress & --rangeexpand
-command += oiiotool ("tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
+command += oiiotool ("src/tahoe-small.tif --rangecompress -d uint8 -o rangecompress.tif")
 command += oiiotool ("rangecompress.tif --rangeexpand -d uint8 -o rangeexpand.tif")
-command += oiiotool ("tahoe-small.tif --rangecompress:luma=1 -d uint8 -o rangecompress-luma.tif")
+command += oiiotool ("src/tahoe-small.tif --rangecompress:luma=1 -d uint8 -o rangecompress-luma.tif")
 command += oiiotool ("rangecompress-luma.tif --rangeexpand:luma=1 -d uint8 -o rangeexpand-luma.tif")
 
 # test resample
@@ -37,10 +37,10 @@ command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
 # regression test: --fit without needing resize used to be problematic
-command += oiiotool ("tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
+command += oiiotool ("src/tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 
 # test --pixelaspect
-command += oiiotool ("tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
+command += oiiotool ("src/tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
 
 # test rotate
 command += oiiotool ("resize.tif --rotate 45 -o rotated.tif")
@@ -86,7 +86,7 @@ command += oiiotool ("grey64.exr -pattern constant:color=1.5,1,0.5 64x64 3 "
                    + "-pattern constant:color=.1,.1,.1 64x64 3 --mad -o mad.exr")
 
 # test --invert
-command += oiiotool ("tahoe-small.tif --invert -o invert.tif")
+command += oiiotool ("src/tahoe-small.tif --invert -o invert.tif")
 
 # Test --powc val (raise all channels by the same power)
 command += oiiotool ("grey128.exr --powc 2 -o cpow1.exr")
@@ -104,7 +104,7 @@ command += oiiotool ("negpos.exr -pattern constant:color=0.2,0.2,0.2 128x128 3 "
 command += oiiotool ("negpos.exr -absdiffc 0.2,0.2,0.2 -d half -o absdiffc.exr")
 
 # test --chsum
-command += oiiotool ("tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
+command += oiiotool ("src/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
             + "-d uint8 -o chsum.tif")
 
 # test histogram generation
@@ -135,38 +135,38 @@ command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
 
 # test flip
-command += oiiotool ("image.tif --flip -o flip.tif")
-command += oiiotool ("image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
+command += oiiotool ("src/image.tif --flip -o flip.tif")
+command += oiiotool ("src/image.tif --crop 180x140+30+30 --flip -o flip-crop.tif")
 
 # test flop
-command += oiiotool ("image.tif --flop -o flop.tif")
-command += oiiotool ("image.tif --crop 180x140+30+30 --flop -o flop-crop.tif")
+command += oiiotool ("src/image.tif --flop -o flop.tif")
+command += oiiotool ("src/image.tif --crop 180x140+30+30 --flop -o flop-crop.tif")
 
 # test rotate90
-command += oiiotool ("image.tif --rotate90 -o rotate90.tif")
-command += oiiotool ("image.tif --crop 180x140+30+30 --rotate90 -o rotate90-crop.tif")
+command += oiiotool ("src/image.tif --rotate90 -o rotate90.tif")
+command += oiiotool ("src/image.tif --crop 180x140+30+30 --rotate90 -o rotate90-crop.tif")
 
 # test rotate270
-command += oiiotool ("image.tif --rotate270 -o rotate270.tif")
-command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-crop.tif")
+command += oiiotool ("src/image.tif --rotate270 -o rotate270.tif")
+command += oiiotool ("src/image.tif --crop 180x140+30+30 --rotate270 -o rotate270-crop.tif")
 
 # test rotate180
-command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
-command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
+command += oiiotool ("src/image.tif --rotate180 -o flipflop.tif")
+command += oiiotool ("src/image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
 
 # Tricky: make image, rotate, set Orientation, and then re-orient.
 # Make it half size so it can't accidentally match to another test image
 # for the rotation tests.
-command += oiiotool ("image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
+command += oiiotool ("src/image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
+command += oiiotool ("src/image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
+command += oiiotool ("src/image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
 
 # test transpose
-command += oiiotool ("image.tif --transpose -o transpose.tif")
-command += oiiotool ("image.tif --crop 160x120+30+30 --transpose -o transpose-crop.tif")
+command += oiiotool ("src/image.tif --transpose -o transpose.tif")
+command += oiiotool ("src/image.tif --crop 160x120+30+30 --transpose -o transpose-crop.tif")
 
 # test cshift
-command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
+command += oiiotool ("src/image.tif --cshift +100+50 -o cshift.tif")
 
 # test channel shuffling
 command += oiiotool (parent + "/oiio-images/grid.tif"
@@ -210,23 +210,23 @@ command += oiiotool ("unpremult.exr --premult -o premult.exr")
 command += oiiotool ("--kernel bspline 15x15 -o bsplinekernel.exr")
 
 # test convolve
-command += oiiotool ("tahoe-small.tif --kernel bspline 15x15 --convolve "
+command += oiiotool ("src/tahoe-small.tif --kernel bspline 15x15 --convolve "
             + "-d uint8 -o bspline-blur.tif")
 
 # test blur
-command += oiiotool ("tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.tif")
+command += oiiotool ("src/tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.tif")
 
 # test median filter
-command += oiiotool ("tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
+command += oiiotool ("src/tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
 
 # test unsharp mask
-command += oiiotool ("tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
+command += oiiotool ("src/tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
 
 # test unsharp mask with median filter
-command += oiiotool ("tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
+command += oiiotool ("src/tahoe-small.tif --unsharp:kernel=median -d uint8 -o unsharp-median.tif")
 
 # test fft, ifft
-command += oiiotool ("tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
+command += oiiotool ("src/tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
 command += oiiotool ("fft.exr --ifft --ch 0,0,0 -d float -o ifft.exr")
 
 # test --polar, --unpolar
@@ -262,10 +262,10 @@ command += oiiotool ("fit.tif -o copyA.1-10#.jpg");
 command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
 
 # test expression substitution
-command += oiiotool ("tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,1,1 " +
+command += oiiotool ("src/tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,1,1 " +
                      "{TOP.geom} {TOP.nchannels} -d uint8 -o exprgradient.tif")
-command += oiiotool ("tahoe-small.tif -cut '{TOP.width-20* 2}x{TOP.height-40+(4*2- 2 ) /6-1}+{TOP.x+100.5-80.5 }+{TOP.y+20}' -d uint8 -o exprcropped.tif")
-command += oiiotool ("tahoe-small.tif -o exprstrcat{TOP.compression}.tif")
+command += oiiotool ("src/tahoe-small.tif -cut '{TOP.width-20* 2}x{TOP.height-40+(4*2- 2 ) /6-1}+{TOP.x+100.5-80.5 }+{TOP.y+20}' -d uint8 -o exprcropped.tif")
+command += oiiotool ("src/tahoe-small.tif -o exprstrcat{TOP.compression}.tif")
 
 # test --no-autopremult on a TGA file thet needs it.
 command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
