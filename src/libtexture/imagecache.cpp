@@ -1800,7 +1800,8 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
 #else
         size = std::max (size, 1.0f);   // But let developers debugging do it
 #endif
-        m_max_memory_bytes = size_t(size * 1024 * 1024);
+        m_max_memory_bytes = (long long)size * (long long)(1024*1024);
+        ASSERT (m_max_memory_bytes >= (1024*1024));
     }
     else if (name == "max_memory_MB" && type == TypeDesc::INT) {
         float size = *(const int *)val;
@@ -1809,7 +1810,8 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
 #else
         size = std::max (size, 1.0f);   // But let developers debugging do it
 #endif
-        m_max_memory_bytes = size_t(size) * 1024 * 1024;
+        m_max_memory_bytes = (long long)size * (long long)(1024*1024);
+        ASSERT (m_max_memory_bytes >= (1024*1024));
     }
     else if (name == "searchpath" && type == TypeDesc::STRING) {
         std::string s = std::string (*(const char **)val);
