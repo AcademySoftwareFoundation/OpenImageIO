@@ -222,13 +222,13 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // frame and window coordinates
     m_rla.WindowLeft = m_spec.full_x;
     m_rla.WindowRight = m_spec.full_x + m_spec.full_width - 1;
-    m_rla.WindowBottom = -m_spec.full_y;
-    m_rla.WindowTop = m_spec.full_height - m_spec.full_y - 1;
+    m_rla.WindowTop = m_spec.full_height-1 - m_spec.full_y;
+    m_rla.WindowBottom = m_rla.WindowTop - m_spec.full_height + 1;
     
     m_rla.ActiveLeft = m_spec.x;
     m_rla.ActiveRight = m_spec.x + m_spec.width - 1;
-    m_rla.ActiveBottom = -m_spec.y;
-    m_rla.ActiveTop = m_spec.height - m_spec.y - 1;
+    m_rla.ActiveTop = m_spec.height-1 - m_spec.y;
+    m_rla.ActiveBottom = m_rla.ActiveTop - m_spec.height + 1;
 
     m_rla.FrameNumber = m_spec.get_int_attribute ("rla:FrameNumber", 0);
 
@@ -435,7 +435,7 @@ RLAOutput::close ()
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    // Now that all scanlines ahve been output, return to write the
+    // Now that all scanlines have been output, return to write the
     // correct scanline offset table to file and close the stream.
     fseek (m_file, sizeof(RLAHeader), SEEK_SET);
     write (&m_sot[0], m_sot.size());
@@ -566,7 +566,7 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
     
     // store the offset to the scanline.  We'll swap_endian if necessary
     // when we go to actually write it.
-    m_sot[m_spec.height - y - 1] = (uint32_t)ftell (m_file);
+    m_sot[m_spec.height-1 - (y-m_spec.y)] = (uint32_t)ftell (m_file);
 
     size_t pixelsize = m_spec.pixel_bytes (true /*native*/);
     int offset = 0;

@@ -52,6 +52,7 @@ failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
 
+image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -256,7 +257,8 @@ def runtest (command, outputs, failureok=0) :
         # variants for different platforms, etc.
         for testfile in ([os.path.join(refdir,out)] + glob.glob (os.path.join (refdir, "*"+extension))) :
             # print ("comparing " + out + " to " + testfile)
-            if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
+            if extension in image_extensions :
+                print ("Testing " + testfile)
                 # images -- use idiff
                 cmpcommand = diff_command (out, testfile, concat=False, silent=True)
                 # print ("cmpcommand = " + cmpcommand)
@@ -271,7 +273,7 @@ def runtest (command, outputs, failureok=0) :
                 break      # we're done
 
         if ok :
-            if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
+            if extension in image_extensions :
                 # If we got a match for an image, save the idiff results
                 os.system (diff_command (out, testfile, silent=False))
             print ("PASS: " + out + " matches " + testfile)
@@ -286,7 +288,7 @@ def runtest (command, outputs, failureok=0) :
                 print (open(out,'r').read() + "<----------")
                 print ("Diff was:\n-------")
                 print (open (out+".diff", 'rU').read())
-            if extension == ".tif" or extension == ".exr" or extension == ".jpg" or extension == ".png":
+            if extension in image_extensions :
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
                 os.system (diff_command (out, os.path.join (refdir, out), silent=False))
