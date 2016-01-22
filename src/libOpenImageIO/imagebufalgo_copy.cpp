@@ -698,8 +698,12 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
 
     // If this is the identity transformation, just do a simple copy
     bool inorder = true;
-    for (int c = 0;  c < nchannels;   ++c)
+    for (int c = 0;  c < nchannels;  ++c) {
         inorder &= (channelorder[c] == c);
+        if (newchannelnames && newchannelnames[c].size() &&
+                c < int(src.spec().channelnames.size()))
+            inorder &= (newchannelnames[c] == src.spec().channelnames[c]);
+    }
     if (nchannels == src.spec().nchannels && inorder) {
         return dst.copy (src);
     }
