@@ -25,6 +25,7 @@
 # Other standarnd issue macros
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
+include (SelectLibraryConfigurations)
 
 if( OPENEXR_USE_STATIC_LIBS )
   set( _openexr_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
