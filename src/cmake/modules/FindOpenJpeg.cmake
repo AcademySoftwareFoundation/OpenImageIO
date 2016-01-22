@@ -10,6 +10,7 @@
 # OPENJPEG_FOUND       - True if OpenJpeg was found.
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
+include (SelectLibraryConfigurations)
 
 macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   string (TOUPPER ${prefix}_INCLUDE_DIR tmp_varname)
