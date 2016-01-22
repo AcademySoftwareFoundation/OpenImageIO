@@ -18,9 +18,9 @@ fi
 pushd ./openexr
 git checkout v${EXRVERSION} --force
 cd IlmBase
-./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make -j 4 && make install
+./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make clean && make -j 4 && make install
 cd ../OpenEXR
-./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make -j 4 && make install
+./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make clean && make -j 4 && make install
 popd
 
 ls -R ${EXRINSTALLDIR}
