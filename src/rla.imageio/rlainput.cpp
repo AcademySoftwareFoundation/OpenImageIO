@@ -288,12 +288,12 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     
     // set window dimensions etc.
     m_spec.x = m_rla.ActiveLeft;
-    m_spec.y = m_spec.height - m_rla.ActiveTop - 1;
+    m_spec.y = m_spec.height-1 - m_rla.ActiveTop;
     m_spec.full_width = m_rla.WindowRight - m_rla.WindowLeft + 1;
     m_spec.full_height = m_rla.WindowTop - m_rla.WindowBottom + 1;
     m_spec.full_depth = 1;
     m_spec.full_x = m_rla.WindowLeft;
-    m_spec.full_y = m_spec.full_height - m_rla.WindowTop - 1;
+    m_spec.full_y = m_spec.full_height-1 - m_rla.WindowTop;
 
     // set channel formats and stride
     int z_channel = -1;
@@ -600,7 +600,7 @@ bool
 RLAInput::read_native_scanline (int y, int z, void *data)
 {
     // By convention, RLA images store their images bottom-to-top.
-    y = m_spec.height - y - 1;
+    y = m_spec.height - (y - m_spec.y) - 1;
 
     // Seek to scanline start, based on the scanline offset table
     fseek (m_file, m_sot[y], SEEK_SET);
