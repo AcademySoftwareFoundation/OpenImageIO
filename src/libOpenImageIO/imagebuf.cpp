@@ -250,6 +250,12 @@ public:
     void threads (int n) { m_threads = n; }
     int threads () const { return m_threads; }
 
+    // Allocate m_configspec if no already done
+    void add_configspec (const ImageSpec *config=NULL) {
+        if (! m_configspec)
+            m_configspec.reset (config ? new ImageSpec (*config) : new ImageSpec);
+   }
+
 private:
     ImageBuf::IBStorage m_storage; ///< Pixel storage class
     ustring m_name;              ///< Filename of the image
@@ -816,16 +822,6 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         // std::cerr << "read was not necessary -- using cache\n";
 #endif
         return true;
-    } else {
-#ifndef NDEBUG
-        // std::cerr << "going to have to read " << m_name << ": "
-        //           << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
-#endif
-        // FIXME/N.B. - is it really best to go through the ImageCache
-        // for forced IB reads?  Are there circumstances in which we
-        // should just to a straight read_image() to avoid the extra
-        // copies or the memory use of having bytes both in the cache
-        // and in the IB?
     }
 
     if (convert != TypeDesc::UNKNOWN)
@@ -841,15 +837,23 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
     m_spec.tile_height = m_nativespec.tile_height;
     m_spec.tile_depth = m_nativespec.tile_depth;
 
-    if (convert != TypeDesc::UNKNOWN &&
-        convert != m_cachedpixeltype &&
-        convert.size() >= m_cachedpixeltype.size() &&
-        convert.size() >= m_nativespec.format.size()) {
+    if (force || (convert != TypeDesc::UNKNOWN &&
+                  convert != m_cachedpixeltype &&
+                  convert.size() >= m_cachedpixeltype.size() &&
+                  convert.size() >= m_nativespec.format.size())) {
         // A specific conversion type was requested which is not the cached
         // type and whose bit depth is as much or more than the cached type.
         // Bypass the cache and read directly so that there is no possible
         // loss of range or precision resulting from going through the
         // cache.
+        int unassoc = 0;
+        if (m_imagecache->getattribute ("unassociatedalpha", unassoc)) {
+            // Since IB needs to act as if it's backed by an ImageCache,
+            // even though in this case we're bypassing the IC, we need to
+            // honor the IC's "unassociatedalpha" flag.
+            add_configspec ();
+            m_configspec->attribute ("oiio:UnassociatedAlpha", unassoc);
+        }
         ImageInput *in = ImageInput::open (m_name.string(), m_configspec.get());
         bool ok = true;
         if (in) {
