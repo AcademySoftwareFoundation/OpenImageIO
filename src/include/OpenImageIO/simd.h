@@ -451,10 +451,27 @@ template<int i> OIIO_FORCEINLINE mask4 shuffle (const mask4& a) { return shuffle
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
 template<int i>
-OIIO_FORCEINLINE bool extract (const mask4& v) {
-    // No efficient way to do this in SSE?
-    return v[i];
+OIIO_FORCEINLINE bool extract (const mask4& a) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+    return _mm_extract_epi32(_mm_castps_si128(a.simd()), i);  // SSE4.1 only
+#else
+    return a[i];
+#endif
 }
+
+/// Helper: substitute val for a[i]
+template<int i>
+OIIO_FORCEINLINE mask4 insert (const mask4& a, bool val) {
+#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+    int ival = val ? -1 : 0;
+    return _mm_castsi128_ps (_mm_insert_epi32 (_mm_castps_si128(a), ival, i));
+#else
+    mask4 tmp = a;
+    tmp[i] = val ? -1 : 0;
+    return tmp;
+#endif
+}
+
 
 /// Logical "and" reduction, i.e., 'and' all components together, resulting
 /// in a single bool.
