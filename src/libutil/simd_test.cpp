@@ -168,6 +168,30 @@ void test_component_access ()
 
 
 
+template<>
+void test_component_access<mask4> ()
+{
+    typedef mask4 VEC;
+    typedef typename VEC::value_t ELEM;
+    std::cout << "test_component_access " << VEC::type_name() << "\n";
+
+    VEC a (false, true, true, true);
+    OIIO_CHECK_EQUAL (bool(a[0]), false);
+    OIIO_CHECK_EQUAL (bool(a[1]), true);
+    OIIO_CHECK_EQUAL (bool(a[2]), true);
+    OIIO_CHECK_EQUAL (bool(a[3]), true);
+    OIIO_CHECK_EQUAL (extract<0>(a), false);
+    OIIO_CHECK_EQUAL (extract<1>(a), true);
+    OIIO_CHECK_EQUAL (extract<2>(a), true);
+    OIIO_CHECK_EQUAL (extract<3>(a), true);
+    OIIO_CHECK_SIMD_EQUAL (insert<0>(a, ELEM(true)), VEC(true,true,true,true));
+    OIIO_CHECK_SIMD_EQUAL (insert<1>(a, ELEM(false)), VEC(false,false,true,true));
+    OIIO_CHECK_SIMD_EQUAL (insert<2>(a, ELEM(false)), VEC(false,true,false,true));
+    OIIO_CHECK_SIMD_EQUAL (insert<3>(a, ELEM(false)), VEC(false,true,true,false));
+}
+
+
+
 template<typename VEC>
 void test_arithmetic ()
 {
@@ -389,6 +413,7 @@ main (int argc, char *argv[])
 
     std::cout << "\n";
     test_shuffle<mask4> ();
+    test_component_access<mask4> ();
 
     test_special();
 
