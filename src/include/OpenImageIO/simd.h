@@ -281,10 +281,29 @@ public:
     }
 
     /// Return a mask4 the is 'false' for all values
-    static OIIO_FORCEINLINE const mask4 False () { return mask4(false); }
+    static OIIO_FORCEINLINE const mask4 False () {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_setzero_ps();
+#else
+        return mask4(false);
+#endif
+    }
 
     /// Return a mask4 the is 'true' for all values
-    static OIIO_FORCEINLINE const mask4 True () { return mask4(true); }
+    static OIIO_FORCEINLINE const mask4 True () {
+#if defined(OIIO_SIMD_SSE)
+        // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
+        // any value to itself.
+# if defined(OIIO_SIMD_AVX)
+        __m128i anyval = _mm_castps_si128 (_mm_undefined_si128());
+# else
+        __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
+# endif
+        return _mm_castsi128_ps (_mm_cmpeq_epi8 (anyval, anyval));
+#else
+        return mask4(true);
+#endif
+    }
 
     /// Assign one value to all components
     OIIO_FORCEINLINE const mask4 & operator= (bool a) { load(a); return *this; }
@@ -403,6 +422,40 @@ public:
     }
     OIIO_FORCEINLINE const mask4& operator|= (const mask4 & a) {
         return *this = *this | a;
+    }
+
+    friend OIIO_FORCEINLINE mask4 operator^ (const mask4& a, const mask4& b) {
+#if defined(OIIO_SIMD_SSE)
+        return _mm_xor_ps (a.m_vec, b.m_vec);
+#else
+        return mask4 (a.m_val[0] ^ b.m_val[0],
+                      a.m_val[1] ^ b.m_val[1],
+                      a.m_val[2] ^ b.m_val[2],
+                      a.m_val[3] ^ b.m_val[3]);
+#endif
+    }
+    OIIO_FORCEINLINE const mask4 & operator^= (const mask4& a) {
+        return *this = *this ^ a;
+    }
+
+    OIIO_FORCEINLINE mask4 operator~ () {
+#if defined(OIIO_SIMD_SSE)
+        // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
+        // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
+        // any value to itself.
+# if defined(OIIO_SIMD_AVX)
+        __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
+# else
+        __m128i anyval = _mm_castps_si128 (m_vec);
+# endif
+        __m128 all_one_bits = _mm_castsi128_ps (_mm_cmpeq_epi8 (anyval, anyval));
+        return _mm_xor_ps (m_vec, all_one_bits);
+#else
+        return mask4 (~(m_val[0]),
+                      ~(m_val[1]),
+                      ~(m_val[2]),
+                      ~(m_val[3]));
+#endif
     }
 
     /// Equality comparison, component by component
@@ -608,6 +661,22 @@ public:
 
     /// Return an int4 with all components set to 1
     static OIIO_FORCEINLINE const int4 One () { return int4(1); }
+
+    /// Return an int4 with all components set to -1 (aka 0xffffffff)
+    static OIIO_FORCEINLINE const int4 NegOne () {
+#if defined(OIIO_SIMD_SSE)
+        // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
+        // any value to itself.
+# if defined(OIIO_SIMD_AVX)
+        __m128i anyval = _mm_castps_si128 (_mm_undefined_si128());
+# else
+        __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
+# endif
+        return _mm_cmpeq_epi8 (anyval, anyval);
+#else
+        return int4(-1);
+#endif
+    }
 
     /// Return an int4 with incremented components (e.g., 0,1,2,3).
     /// Optional argument can give a non-zero starting point.
@@ -998,6 +1067,26 @@ public:
     }
     OIIO_FORCEINLINE const int4 & operator^= (const int4& a) {
         return *this = *this ^ a;
+    }
+
+    OIIO_FORCEINLINE int4 operator~ () {
+#if defined(OIIO_SIMD_SSE)
+        // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
+        // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
+        // any value to itself.
+# if defined(OIIO_SIMD_AVX)
+        __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
+        __m128i all_one_bits = _mm_cmpeq_epi8 (anyval, anyval);
+# else
+        __m128i all_one_bits = _mm_cmpeq_epi8 (m_vec, m_vec);
+# endif
+        return _mm_xor_si128 (m_vec, all_one_bits);
+#else
+        return int4 (~(m_val[0]),
+                     ~(m_val[1]),
+                     ~(m_val[2]),
+                     ~(m_val[3]));
+#endif
     }
 
     OIIO_FORCEINLINE int4 operator<< (const unsigned int bits) const {
