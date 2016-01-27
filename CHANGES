@@ -3,6 +3,9 @@ Changes:
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
+ * New oiiotool commands: --box, --line  #1319 (1.7.1)
+ * New ImageBufAlgo functions: render_point(), render_line(), render_box().
+   #1319 (1.7.1)
 
 Public API changes:
  * DeepData internals and API overhaul: struct internals hidden, now you
@@ -18,6 +21,14 @@ Public API changes:
  * Several varieties of ImageCache and TextureSystem getattribute methods
    were noticed to not be properly declared 'const'. This was fixed.
    #1300 (1.7.0/1.6.9)
+ * For API calls that are deprecated but not yet removed, we now mark
+   them with deprecated attributes for compilers that support it,
+   meaning that you will get compile warnings and explanations when you
+   use deprecated OIIO API functions. #1313,#1318 (1.7.1)
+ * ImageBuf::contains_roi() reveals whether an ROI is completely contained
+   in the data region of the IB. #1310 (1.7.1)
+ * TypeDesc::is_signed() return true of the TypeDesc returns a type that
+   can represent negative values. #1320
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -25,14 +36,33 @@ Fixes, minor enhancements, and performance improvements:
       numeric index, or a subimage name. #1287 (1.7.0)
     * oiiotool's image cache was smaller than intended because of typo.
       (1.7.0/1.6.9)
+    * Allow command-line expression metadata names to contain ':'. #1321
+      (1.7.1/1.6.10)
+    * --info more clearly prints info about subimage formats. #1320 (1.7.1)
+    * --line can draw polylines into an image. #1319 (1.7.1)
+    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
+    * --ch: when the channels were only renamed, not reordered, the
+      renaming didn't happen properly. #1326 (1.7.1/1.6.10)
+ * ImageBuf:
+    * ImageBuf::iterator performance is improved -- roughly cutting in half
+      the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
+    * ImageBuf reads from disk have been improved substantially (in some
+      cases cutting read time in half) in many cases. #1328 (1.7.1)
  * ImageBufAlgo:
     * The varieties of add(), sub(), mul(), and div() that take an
       image operand and a per-channel constant operand have all been
-      modified to work properly for "deep" images. #1297 (1.7.0)
+      modified to work properly for "deep" images. #1297 (1.7.0/1.6.10)
+    * mad() is sped up significantly (10x) for the common case of float
+      images already stored in memory (not cached). #1310 (1.6.1)
+    * render_point(), render_line(), render_box() can be used to render
+      points, lines, and boxes into an image. #1319 (1.7.1)
+    * channels(): when the channels were only renamed, not reordered,
+      the renaming didn't happen properly. #1326 (1.7.1/1.6.10)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
+ * iinfo more clearly prints info about subimage formats. #1320 (1.7.1)
  * TIFF:
     * When outputting a TIFF file, a special attribute "tiff:half", if
       set to nonzero, will enable writing of 16-bit float pixel data
@@ -40,6 +70,15 @@ Fixes, minor enhancements, and performance improvements:
     * TIFF input: erase redundant IPTC:Caption and IPTC:OriginatingProgram
       if they are identical to existing ImageDescription and Software
       metadata, respectively. (1.7.0/1.6.9)
+    * Output: "tiff:zipquality" attribute controls time-vs-quality for
+      ZIP compression (1-9, defualt 6, higher means more compression).
+      #1295 (1.7.1)
+ * OpenEXR:
+    * Fix broken multipart output when parts had different pixel data
+      types. #1306,#1316 (1.7.1/1.6.10)
+ * RLA:
+    * Fixes for both reading and writing of RLA images that are cropped
+      (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
 
@@ -48,6 +87,16 @@ Build/test system improvements:
  * filesystem_test now much more comprehensively tests the contents of
    Filesystem. #1302 (1.7.0)
  * fmath_test adds benchmarks for various data conversions. #1305 (1.7.0)
+ * Travis: add DEBUG builds to the matrix to fix any warnings or failures
+   that only show up for DEBUG builds. #1309 (1.7.1/1.6.10)
+ * Fix build issues on some platforms for SHA1.h, by adding proper include
+   of <climits>. #1298,#1311,#1312 (1.7.1/1.6.10)
+ * Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
+   #1314 (1.7.1/1.6.10)
+ * Fix build breaks for certain 32 bit platforms. #1315,#1322 (1.7.1/1.6.10)
+ * imagespeed_test can not specify the data conversion type for reads,
+   can optionally allow skipping the IB iteration tests, and can set the
+   IC tile cache size. #1323 (1.7.1)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -60,7 +109,11 @@ Developer goodies / internals:
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions. #1305 (1.7.0)
-
+ * compute_test: new unit test can be used to benchmark computation
+   times. #1310 (1.7.1)
+ * Strutil::extract_from_list_string is more flixible by allowing the vals
+   list to start empty, in which case it will add as many values as it finds
+   rather than only replacing existing values. #1319 (1.7.1)
 
 
 Release 1.6.9 (released 5 Jan 2016 -- compared to 1.6.8)
