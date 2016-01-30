@@ -307,6 +307,11 @@ convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
 
     // Serial case
 
+    ASSERT (kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels() &&
+            "kernel should be float and in local memory");
+    ROI kroi = kernel.roi();
+    int kchans = kernel.nchannels();
+
     float scale = 1.0f;
     if (normalize) {
         scale = 0.0f;
@@ -314,23 +319,23 @@ convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
             scale += k[0];
         scale = 1.0f / scale;
     }
-
     float *sum = ALLOCA (float, roi.chend);
-    ROI kroi = get_roi (kernel.spec());
+
+    // Final case: handle full generality
     ImageBuf::Iterator<DSTTYPE> d (dst, roi);
     ImageBuf::ConstIterator<SRCTYPE> s (src, roi, ImageBuf::WrapClamp);
     for ( ; ! d.done();  ++d) {
-
         for (int c = roi.chbegin; c < roi.chend; ++c)
             sum[c] = 0.0f;
-
-        for (ImageBuf::ConstIterator<float> k (kernel, kroi); !k.done(); ++k) {
-            float kval = k[0];
-            s.pos (d.x() + k.x(), d.y() + k.y(), d.z() + k.z());
+        const float *k = (const float *)kernel.localpixels();
+        s.rerange (d.x() + kroi.xbegin, d.x() + kroi.xend,
+                   d.y() + kroi.ybegin, d.y() + kroi.yend,
+                   d.z() + kroi.zbegin, d.z() + kroi.zend,
+                   ImageBuf::WrapClamp);
+        for ( ; ! s.done(); ++s, k += kchans) {
             for (int c = roi.chbegin; c < roi.chend; ++c)
-                sum[c] += kval * s[c];
+                sum[c] += k[0] * s[c];
         }
-        
         for (int c = roi.chbegin; c < roi.chend; ++c)
             d[c] = scale * sum[c];
     }
@@ -348,9 +353,10 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
     if (! IBAprep (roi, &dst, &src, IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
     bool ok;
+    // Ensure that the kernel is float and in local memory
     const ImageBuf *K = &kernel;
     ImageBuf Ktmp;
-    if (kernel.spec().format != TypeDesc::FLOAT) {
+    if (kernel.spec().format != TypeDesc::FLOAT || ! kernel.localpixels()) {
         Ktmp.copy (kernel, TypeDesc::FLOAT);
         K = &Ktmp;
     }
