@@ -418,20 +418,28 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
                 dfilter[i] = binomial (depth-1, i);
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = wfilter[p.x()-spec.x] * hfilter[p.y()-spec.y] * dfilter[p.z()-spec.z];
+    } else if (Strutil::iequals (name, "laplacian") && w == 3 && h == 3 && d == 1) {
+        const float vals[9] = { 0,  1,  0,
+                                1, -4,  1,
+                                0,  1,  0 };
+        dst.set_pixels (dst.roi(), TypeDesc::FLOAT, vals,
+                        sizeof(float), h*sizeof(float));
+        normalize = false; // sums to zero, so don't normalize it */
     } else {
         // No filter -- make a box
         float val = normalize ? 1.0f / ((w*h*d)) : 1.0f;
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = val;
-        dst.error ("Unknown kernel \"%s\"", name);
+        dst.error ("Unknown kernel \"%s\" %gx%g", name, width, height);
         return false;
     }
     if (normalize) {
         float sum = 0;
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             sum += p[0];
-        for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
-            p[0] = p[0] / sum;
+        if (sum != 0.0f)  /* don't normalize a 0-sum kernel */
+            for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
+                p[0] = p[0] / sum;
     }
     return true;
 }
@@ -514,6 +522,26 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
     // Add the scaled difference to the original, to get the final answer
     ok = add (dst, src, Diff, roi, nthreads);
 
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::laplacian (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    ImageBuf K;
+    if (! make_kernel (K, "laplacian", 3, 3)) {
+        dst.error ("%s", K.geterror());
+        return false;
+    }
+    // K.write ("K.exr");
+    bool ok = convolve (dst, src, K, false, roi, nthreads);
     return ok;
 }
 

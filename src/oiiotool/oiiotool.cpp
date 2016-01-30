@@ -3007,6 +3007,19 @@ public:
 OP_CUSTOMCLASS (unsharp, OpUnsharp, 1);
 
 
+class OpLaplacian : public OiiotoolOp {
+public:
+    OpLaplacian (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual int impl (ImageBuf **img) {
+        return ImageBufAlgo::laplacian (*img[0], *img[1]);
+    }
+};
+
+OP_CUSTOMCLASS (laplacian, OpLaplacian, 1);
+
+
+
 
 UNARY_IMAGE_OP (fft, ImageBufAlgo::fft);
 UNARY_IMAGE_OP (ifft, ImageBufAlgo::ifft);
@@ -4177,6 +4190,8 @@ getargs (int argc, char *argv[])
                     "Median filter the image (arg: WxH)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
+                "--laplacian %@", action_laplacian, NULL,
+                    "Laplacian filter the image",
                 "--fft %@", action_fft, NULL,
                     "Take the FFT of the image",
                 "--ifft %@", action_ifft, NULL,

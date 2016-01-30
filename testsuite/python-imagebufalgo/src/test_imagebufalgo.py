@@ -353,6 +353,11 @@ try:
                                "median", 3.0, 1.0, 0.0)
     write (b, "unsharp-median.tif", oiio.UINT8)
 
+    # laplacian
+    b = ImageBuf()
+    ImageBufAlgo.laplacian (b, ImageBuf("../oiiotool/src/tahoe-tiny.tif"))
+    write (b, "tahoe-laplacian.tif", oiio.UINT8)
+
     # computePixelHashSHA1
     print ("SHA-1 of bsplinekernel.exr is: " + 
            ImageBufAlgo.computePixelHashSHA1(bsplinekernel))

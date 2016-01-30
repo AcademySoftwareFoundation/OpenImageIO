@@ -1471,7 +1471,7 @@ bool OIIO_API convolve (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Kernel names can be: "gaussian", "sharp-gaussian", "box",
 /// "triangle", "blackman-harris", "mitchell", "b-spline", "catmull-rom",
-/// "lanczos3", "disk", "binomial."
+/// "lanczos3", "disk", "binomial", "laplacian".
 /// 
 /// Note that "catmull-rom" and "lanczos3" are fixed-size kernels that
 /// don't scale with the width, and are therefore probably less useful
@@ -1511,6 +1511,28 @@ bool OIIO_API unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             string_view kernel="gaussian", float width = 3.0f,
                             float contrast = 1.0f, float threshold = 0.0f,
                             ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Replace the given ROI of dst with the Laplacian of the corresponding
+/// region of src. This is approximated by convolving src with the discrete
+/// 3x3 Laplacian kernel,
+///                     [ 0  1  0 ]
+///                     [ 1 -4  1 ]
+///                     [ 0  1  0 ]
+///
+/// If roi is not defined, it defaults to the full size of dst (or src,
+/// if dst was undefined).  If dst is uninitialized, it will be
+/// allocated to be the size specified by roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API laplacian (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi = ROI::All(), int nthreads = 0);
 
 
 /// Replace the given ROI of dst with a median-filtered version of the

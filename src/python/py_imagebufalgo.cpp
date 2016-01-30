@@ -845,6 +845,15 @@ IBA_median_filter (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
+IBA_laplacian (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::laplacian (dst, src, roi, nthreads);
+}
+
+
+
+bool
 IBA_fft (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1599,6 +1608,11 @@ void declare_imagebufalgo()
               arg("width")=3, arg("height")=-1,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("median_filter")
+
+        .def("laplacian", &IBA_laplacian,
+             (arg("dst"), arg("src"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("laplacian")
 
         .def("fft", &IBA_fft,
              (arg("dst"), arg("src"),

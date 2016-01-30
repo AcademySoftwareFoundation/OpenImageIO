@@ -223,7 +223,8 @@ error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
                          true /*mono*/, 1 /*seed*/);
 \end{code}
 
-\spc \includegraphics[width=1.25in]{figures/unifnoise1.jpg}
+\noindent
+\includegraphics[width=1.25in]{figures/unifnoise1.jpg}
 \spc \includegraphics[width=1.65in]{figures/tahoe-gauss.jpg} 
 \spc \includegraphics[width=1.65in]{figures/tahoe-pepper.jpg}
 
@@ -274,7 +275,7 @@ vertex positions).
     ImageBufAlgo::render_line (A, 250, 20, 100, 190, red, true);
 \end{code}
 
-\spc \includegraphics[width=2in]{figures/lines.png}  \\
+\spc \includegraphics[width=1.65in]{figures/lines.png}  \\
 \apiend
 
 
@@ -302,7 +303,7 @@ otherwise only its outlien will be drawn.
     ImageBufAlgo::render_box (A, 100, 50, 180, 140, yellow_transparent, true);
 \end{code}
 
-\spc \includegraphics[width=2in]{figures/box.png}  \\
+\spc \includegraphics[width=1.65in]{figures/box.png}  \\
 \apiend
 
 
@@ -1611,7 +1612,7 @@ caution!
 Kernel names can be: \qkw{gaussian}, \qkw{sharp-gaussian}, \qkw{box},
 \qkw{triangle}, \qkw{mitchell}, \qkw{blackman-harris}, \qkw{b-spline},
 \qkw{catmull-rom}, \qkw{lanczos3}, \qkw{cubic}, \qkw{keys}, \qkw{simon},
-\qkw{rifman}, \qkw{disk}, \qkw{binomial}. Note that
+\qkw{rifman}, \qkw{disk}, \qkw{binomial}, \qkw{laplacian}. Note that
 \qkw{catmull-rom} and \qkw{lanczos3} are fixed-size kernels that don't
 scale with the width, and are therefore probably less useful in most
 cases.
@@ -1652,6 +1653,38 @@ convolution, otherwise the original values will be used.
 \includegraphics[width=1.5in]{figures/tahoe-blur.jpg} \\
 original & blurred \\
 \end{tabular}
+\apiend
+
+\apiitem{bool {\ce laplacian} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!laplacian} \indexapi{laplacian}
+\NEW % 1.7
+Replace the given ROI of {\cf dst} with the Laplacian of the corresponding
+region of {\cf src}. The Laplacian is the generalized second derivative
+of the image,
+$$\frac{\partial^2 s}{\partial x^2} + \frac{\partial^2 s}{\partial y^2}$$
+which is approximated by convolving the image with a discrete $3 \times 3$
+Laplacian kernel,
+
+\[ \left( \begin{array}{ccc}
+0 &  1 & 0 \\
+1 & -4 & 1 \\
+0 &  1 & 0 \end{array} \right)\]
+
+\smallskip
+\noindent Example:
+\begin{code}
+    ImageBuf src ("tahoe.exr");
+    ImageBuf dst;
+    ImageBufAlgo::laplacian (dst, src);
+\end{code}
+
+\spc \begin{tabular}{ll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-laplacian.jpg} \\
+original & Laplacian image \\
+\end{tabular}
+
 \apiend
 
 \apiitem{bool {\ce fft} (ImageBuf \&dst, const ImageBuf \&src, \\

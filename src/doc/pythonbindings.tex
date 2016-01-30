@@ -2648,7 +2648,7 @@ caution!
 Kernel names can be: \qkw{gaussian}, \qkw{sharp-gaussian}, \qkw{box},
 \qkw{triangle}, \qkw{mitchell}, \qkw{blackman-harris}, \qkw{b-spline},
 \qkw{catmull-rom}, \qkw{lanczos3}, \qkw{cubic}, \qkw{keys}, \qkw{simon},
-\qkw{rifman}, \qkw{disk}, \qkw{binomial}. Note that
+\qkw{rifman}, \qkw{disk}, \qkw{binomial}, \qkw{laplacian}. Note that
 \qkw{catmull-rom} and \qkw{lanczos3} are fixed-size kernels that don't
 scale with the width, and are therefore probably less useful in most
 cases.
@@ -2677,6 +2677,22 @@ a kernel (also an \ImageBuf).
     ImageBufAlgo.make_kernel (K, "gaussian", 5.0, 5.0)
     Blurred = ImageBuf ()
     ImageBufAlgo.convolve (Blurred, Src, K)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce laplacian} (dst, src, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!laplacian} \indexapi{laplacian}
+\NEW % 1.7
+Replace the given ROI of {\cf dst} with the Laplacian of the corresponding
+part of {\cf src}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Src = ImageBuf ("tahoe.exr")
+    L = ImageBuf ()
+    ImageBufAlgo.laplacian (L, Src)
 \end{code}
 \apiend
 

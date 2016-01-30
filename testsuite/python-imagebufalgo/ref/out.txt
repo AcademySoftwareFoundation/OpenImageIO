@@ -118,6 +118,8 @@ Comparing "unsharp.tif" and "../../../../testsuite/oiiotool/ref/unsharp.tif"
 PASS
 Comparing "unsharp-median.tif" and "../../../../testsuite/oiiotool/ref/unsharp-median.tif"
 PASS
+Comparing "tahoe-laplacian.tif" and "../../../../testsuite/oiiotool/ref/tahoe-laplacian.tif"
+PASS
 Comparing "fft.exr" and "../../../../testsuite/oiiotool/ref/fft.exr"
 PASS
 Comparing "ifft.exr" and "../../../../testsuite/oiiotool/ref/ifft.exr"

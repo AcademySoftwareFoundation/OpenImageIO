@@ -2095,6 +2095,22 @@ original & with dropouts & median filtered \\
 \apiend
 
 
+\apiitem{\ce --laplacian}
+Calculates the Laplacian of the top image.
+
+\noindent Examples:
+\begin{code}
+    oiiotool tahoe.jpg --laplacian tahoe-laplacian.exr
+\end{code}
+
+\spc \begin{tabular}{ll}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-laplacian.jpg} \\
+original & Laplacian image \\
+\end{tabular}
+\apiend
+
+
 \apiitem{\ce --unsharp}
 Unblur the top image using an ``unsharp mask.'' 
 
@@ -2273,7 +2289,7 @@ The default color, if not supplied, is opaque white.
 \begin{code}
     oiiotool checker.exr --line:color=1,0,0 10,60,250,20,100,190 -o out.exr
 \end{code}
-\spc \includegraphics[width=2.5in]{figures/lines.png}  \\
+\spc \includegraphics[width=2in]{figures/lines.png}  \\
 \apiend
 
 
@@ -2295,7 +2311,7 @@ The default color, if not supplied, is opaque white.
     oiiotool checker.exr --box:color=0,1,1,1 150,100,240,180 \
                  --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 -o out.exr
 \end{code}
-\spc \includegraphics[width=2.5in]{figures/box.png}  \\
+\spc \includegraphics[width=2in]{figures/box.png}  \\
 \apiend
 
 
