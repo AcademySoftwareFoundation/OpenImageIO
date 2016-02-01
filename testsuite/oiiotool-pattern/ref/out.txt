@@ -13,7 +13,7 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Stats Min: 0.100000 0.200000 0.300000 1.000000 (float)
     Stats Max: 0.100000 0.200000 0.300000 1.000000 (float)
     Stats Avg: 0.100000 0.200000 0.300000 1.000000 (float)
-    Stats StdDev: 0.000020 0.000040 nan 0.000000 (float)
+    Stats StdDev: 0.000020 0.000040 0.000000 0.000000 (float)
     Stats NanCount: 0 0 0 0 
     Stats InfCount: 0 0 0 0 
     Stats FiniteCount: 76800 76800 76800 76800 
