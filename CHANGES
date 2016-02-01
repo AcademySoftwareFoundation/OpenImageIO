@@ -1,24 +1,28 @@
 Changes:
 
+Release 1.6.11 (released ?? 2016 -- compared to 1.6.10)
+------------------------------------------------
+
+
 Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 ------------------------------------------------
-* Fix build issues on some platforms for SHA1.h, by adding proper include
-  of <climits>. #1298,#1311,#1312
-* Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
-  #1314
-* OpenEXR: Fix broken multipart output when parts had different pixel
-  data types. #1306,#1316
 * ImageBufAlgo add, sub, mul, and div, for the varieties that combine
   an image with a (per-channel) constant, now work for "deep" images.
   #1257
-* Fix build breaks for certain 32 bit platforms. #1315,#1322
-* Allow oiiotool command-line expression metadata names to contain ':'.
 * ImageBuf::iterator performance is improved -- roughly cutting in half
   the overhead of iterating over pixels. #1308
+* OpenEXR: Fix broken multipart output when parts had different pixel
+  data types. #1306,#1316
+* Allow oiiotool command-line expression metadata names to contain ':'.
 * Fix oiiotool --ch (or IBA::channels) when the channels were only renamed,
   not reordered, the renaming didn't happen properly. #1326
 * Fixes for both reading and writing of RLA images that are cropped
   (i.e., data window is a subset of display window). #1224
+* Fix build issues on some platforms for SHA1.h, by adding proper include
+  of <climits>. #1298,#1311,#1312
+* Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
+  #1314
+* Fix build breaks for certain 32 bit platforms. #1315,#1322
 
 Release 1.6.9 (released 5 Jan 2016 -- compared to 1.6.8)
 ------------------------------------------------
