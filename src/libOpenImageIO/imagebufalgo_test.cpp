@@ -507,6 +507,31 @@ void test_isMonochrome ()
 
 
 
+// Tests ImageBufAlgo::computePixelStats()
+void test_computePixelStats ()
+{
+    std::cout << "test computePixelStats\n";
+    ImageBuf img (ImageSpec(2,2,3,TypeDesc::FLOAT));
+    float black[3] = { 0, 0, 0 }, white[3] = { 1, 1, 1 };
+    img.setpixel (0, 0, black);
+    img.setpixel (1, 0, white);
+    img.setpixel (0, 1, black);
+    img.setpixel (1, 1, white);
+    ImageBufAlgo::PixelStats stats;
+    ImageBufAlgo::computePixelStats (stats, img);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL (stats.min[c], 0.0f);
+        OIIO_CHECK_EQUAL (stats.max[c], 1.0f);
+        OIIO_CHECK_EQUAL (stats.avg[c], 0.5f);
+        OIIO_CHECK_EQUAL (stats.stddev[c], 0.5f);
+        OIIO_CHECK_EQUAL (stats.nancount[c], 0);
+        OIIO_CHECK_EQUAL (stats.infcount[c], 0);
+        OIIO_CHECK_EQUAL (stats.finitecount[c], 4);
+    }
+}
+
+
+
 // Test ability to do a maketx directly from an ImageBuf
 void
 test_maketx_from_imagebuf()
@@ -555,6 +580,7 @@ main (int argc, char **argv)
     test_isConstantColor ();
     test_isConstantChannel ();
     test_isMonochrome ();
+    test_computePixelStats ();
     test_maketx_from_imagebuf ();
     
     return unit_test_failures;

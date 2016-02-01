@@ -123,7 +123,7 @@ finalize (ImageBufAlgo::PixelStats &p)
             double Count = static_cast<double>(p.finitecount[c]);
             double davg = p.sum[c] / Count;
             p.avg[c] = static_cast<float>(davg);
-            p.stddev[c] = static_cast<float>(sqrt(p.sum2[c]/Count - davg*davg));
+            p.stddev[c] = static_cast<float>(safe_sqrt(p.sum2[c]/Count - davg*davg));
         }
     }
 }
