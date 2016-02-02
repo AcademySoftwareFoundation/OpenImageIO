@@ -384,8 +384,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             (void) m_input->geterror ();  // Eat the errors
             break;
         }
-        // We failed.  Wait a bit and try again.
-        Sysutil::usleep (1000 * 100);  // 100 ms
+        if (tries < imagecache().failure_retries()) {
+            // We failed, but will wait a bit and try again.
+            Sysutil::usleep (1000 * 100);  // 100 ms
+        }
     }
     if (! ok) {
         imagecache().error ("%s", m_input->geterror().c_str());
@@ -716,9 +718,11 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
                 (void) m_input->geterror ();  // Eat the errors
                 break;
             }
-            // We failed.  Wait a bit and try again.
-            Sysutil::usleep (1000 * 100);  // 100 ms
-            // TODO: should we attempt to close and re-open the file?
+            if (tries < imagecache().failure_retries()) {
+                // We failed, but will wait a bit and try again.
+                Sysutil::usleep (1000 * 100);  // 100 ms
+                // TODO: should we attempt to close and re-open the file?
+            }
         }
         if (! ok)
             imagecache().error ("%s", m_input->geterror().c_str());
