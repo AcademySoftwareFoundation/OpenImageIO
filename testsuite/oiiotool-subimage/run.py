@@ -1,5 +1,9 @@
 #!/usr/bin/env python 
 
+# Slightly bump allowable failures, for slightly shifting font rendering
+# with changed freetype versions.
+failpercent *= 2.0
+
 # test subimages
 command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 " +
                      "--pattern constant:color=0.0,0.5,0.0 64x64 3 " +
