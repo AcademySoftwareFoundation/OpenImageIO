@@ -200,7 +200,7 @@ set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
 set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
 set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
 set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO_Util")
-set (OIIO_BUILD_CPP11 OFF CACHE BOOL "Compile in C++11 mode")
+set (OIIO_BUILD_CPP11 ON CACHE BOOL "Compile in C++11 mode")
 set (OIIO_BUILD_CPP14 OFF CACHE BOOL "Compile in C++14 mode")
 set (OIIO_BUILD_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")

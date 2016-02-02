@@ -129,6 +129,7 @@ ifeq ($(SP_OS), rhel7)
 
 ## Spinux (current)
 else ifeq ($(SP_OS), spinux1)
+    USE_CPP11 ?= 0
     USE_SIMD = sse4.1
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
@@ -230,6 +231,7 @@ else ifeq ($(SP_OS), spinux1)
 
 ## Official OS X build machines with special conventions
 else ifeq ($(SP_OS), lion)
+    USE_CPP11 ?= 0
     USE_SIMD = sse4.2
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"

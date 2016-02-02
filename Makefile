@@ -404,7 +404,7 @@ help:
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
 	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      USE_CPP11=1              Compile in C++11 mode"
+	@echo "      USE_CPP11=0              Compile in C++11 mode (=0 means use CPP03!)"
 	@echo "      USE_CPP14=1              Compile in C++14 mode"
 	@echo "      USE_LIBCPLUSPLUS=1       Use clang libc++"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
