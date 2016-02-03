@@ -263,10 +263,11 @@ print_stats (Oiiotool &ot,
         ot.error ("stats", input.geterror());
         return;
     }
-    
     PixelStats stats;
     if (! computePixelStats (stats, input)) {
-        ot.error ("stats", "unable to compute");
+        std::string err = input.geterror();
+        ot.error ("stats", Strutil::format ("unable to compute: %s",
+                                            err.empty() ? "unspecified error" : err.c_str()));
         return;
     }
     

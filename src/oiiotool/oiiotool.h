@@ -544,6 +544,12 @@ public:
             ir[0]->update_spec_from_imagebuf (s);
         }
 
+        // Make sure to forward any errors missed by the impl
+        for (int i = 0; i < nimages(); ++i) {
+            if (img[i]->has_error())
+                ot.error (opname(), img[i]->geterror());
+        }
+
         // Optional cleanup after processing all the subimages
         cleanup ();
 
