@@ -178,9 +178,17 @@ read_input (const std::string &filename, ImageBuf &img,
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
-    if (img.init_spec (filename, subimage, miplevel) && 
-        img.read (subimage, miplevel, false, TypeDesc::FLOAT))
-        return true;
+    if (img.init_spec (filename, subimage, miplevel)) {
+        // Force a read now for reasonable-sized first images in the
+        // file. This can greatly speed up the multithread case for
+        // tiled images by not having multiple threads working on the
+        // same image lock against each other on the file handle.
+        // We guess that "reasonable size" is 200 MB, that's enough to
+        // hold a 4k RGBA float image.  Larger things will 
+        // simply fall back on ImageCache.
+        bool forceread = (img.spec().image_bytes() < 200*1024*1024);
+        return img.read (subimage, miplevel, forceread, TypeDesc::FLOAT);
+    }
 
     return false;
 }
