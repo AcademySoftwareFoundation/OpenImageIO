@@ -94,48 +94,39 @@ ifeq ($(SP_OS), rhel7)
     ## (may be changed as new versions are rolled out to the facility)
     LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
 
-    # default compiler is clang, taken from the LLVM directory
-    ifeq (${COMPILER},)
-        MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
-           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-    endif
-
-    # requesting 'clang' or 'gcc' (no version) means the first clang or
-    # gcc in your path
-    ifeq (${COMPILER},clang)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-    endif
-    ifeq (${COMPILER},gcc)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-    endif
-
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
     ifeq (${COMPILER}, clang342)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    endif
-    ifeq (${COMPILER}, gcc472)
+    else ifeq (${COMPILER}, gcc472)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc490)
+    else ifeq (${COMPILER}, gcc490)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
     MY_CMAKE_FLAGS += \
-        -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-        -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-        -DOCIO_PATH=${OCIO_PATH} \
-        -DFIELD3D_HOME=${FIELD3D_HOME} \
-        -DHDF5_CUSTOM=1 \
-        -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-        -DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
+	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	-DOCIO_PATH=${OCIO_PATH} \
+	-DFIELD3D_HOME=${FIELD3D_HOME} \
+	-DHDF5_CUSTOM=1 \
+	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
+	-DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
@@ -174,63 +165,52 @@ else ifeq ($(SP_OS), spinux1)
     ## (may be changed as new versions are rolled out to the facility)
     LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
 
-    # default compiler is clang, taken from the LLVM directory
-    ifeq (${COMPILER},)
-        MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
-           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-    endif
-
-    # requesting 'clang' or 'gcc' (no version) means the first clang or
-    # gcc in your path
-    ifeq (${COMPILER},clang)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-    endif
-    ifeq (${COMPILER},gcc)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-    endif
-
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
     ifeq (${COMPILER}, clang341)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang++
-    endif
-    ifeq (${COMPILER}, clang342)
+    else ifeq (${COMPILER}, clang342)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    endif
-    ifeq (${COMPILER}, gcc463)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc470)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc472)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc490)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
+    else ifeq (${COMPILER}, gcc463)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
+    else ifeq (${COMPILER}, gcc470)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
+    else ifeq (${COMPILER}, gcc472)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
+    else ifeq (${COMPILER}, gcc490)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/  gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
     MY_CMAKE_FLAGS += \
-	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-	  -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	  -DOCIO_PATH=${OCIO_PATH} \
-	  -DFIELD3D_HOME=${FIELD3D_HOME} \
-          -DHDF5_CUSTOM=1 \
-	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	  -DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
+	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+	-DOCIO_PATH=${OCIO_PATH} \
+	-DFIELD3D_HOME=${FIELD3D_HOME} \
+	-DHDF5_CUSTOM=1 \
+	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
+	-DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
+
     ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
 	BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
 	MY_CMAKE_FLAGS += \
@@ -250,8 +230,8 @@ else ifeq ($(SP_OS), lion)
     USE_CPP11 ?= 0
     USE_SIMD = sse4.2
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
-    OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
-    FIELD3D_HOME ?= ${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306
+    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
+    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
     # CMAKE_CXX_COMPILER:
     #   otherwise g++ is used and SPI standardized on clang.
     # CMAKE_INSTALL_NAME_DIR:
@@ -301,6 +281,25 @@ else ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
     # don't need this? -DBUILD_WITH_INSTALL_RPATH=1
+
+    # A variety of tags can be used to try specific versions of gcc or
+    # clang from the site-specific places we have installed them.
+    ifeq (${COMPILER}, gcc5)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-5 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-5
+    else ifeq (${COMPILER}, gcc6)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-6 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-6
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+    endif
 
     # end generic OSX
 

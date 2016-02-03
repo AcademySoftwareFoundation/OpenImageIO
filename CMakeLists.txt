@@ -155,7 +155,8 @@ endif ()
 
 # Try to detect if this is an OSX distro new enough that the system library
 # is libc++.
-if (EXISTS "/usr/lib/libc++.dylib")
+if ((CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
+    AND EXISTS "/usr/lib/libc++.dylib")
     set (OSL_SYSTEM_HAS_LIBCPP ON)
 endif ()
 
