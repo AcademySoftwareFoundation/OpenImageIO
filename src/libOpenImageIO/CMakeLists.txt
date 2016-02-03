@@ -13,6 +13,10 @@ if (NOT USE_EXTERNAL_PUGIXML)
           ../include/OpenImageIO/pugixml.hpp
           ../include/OpenImageIO/pugixml.cpp
     )
+    if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 6.0)
+        set_source_files_properties (formatspec.cpp xmp.cpp
+                                     PROPERTIES COMPILE_FLAGS -Wno-error=placement-new)
+    endif ()
 endif()
 
 set (libOpenImageIO_srcs deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
