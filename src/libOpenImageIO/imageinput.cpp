@@ -476,6 +476,8 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                     // per-tile data format conversion.
                     ok &= read_tile (x, y, z, format, tilestart,
                                      xstride, ystride, zstride);
+                    if (! ok)
+                        return false;
                 } else {
                     buf.resize (full_tilebytes);
                     ok &= read_tile (x, y, z, 
