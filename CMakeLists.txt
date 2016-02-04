@@ -139,7 +139,7 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
 endif ()
 
 # gcc specific options
-if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG))
+if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
     if (NOT ${GCC_VERSION} VERSION_LESS 4.8)
         # suppress a warning that Boost::Python hits in g++ 4.8
         add_definitions ("-Wno-error=unused-local-typedefs")
@@ -147,6 +147,9 @@ if (CMAKE_COMPILER_IS_GNUCC AND (NOT CMAKE_COMPILER_IS_CLANG))
     endif ()
     if (NOT ${GCC_VERSION} VERSION_LESS 4.5)
         add_definitions ("-Wno-unused-result")
+    endif ()
+    if (NOT ${GCC_VERSION} VERSION_LESS 6.0)
+        add_definitions ("-Wno-error=misleading-indentation")
     endif ()
 endif ()
 
