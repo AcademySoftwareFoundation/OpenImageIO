@@ -15,7 +15,7 @@ target_link_libraries (OpenImageIO_Util
 if (WIN32)
     target_link_libraries (OpenImageIO_Util psapi.lib)
 endif ()
-link_ilmbase (OpenImageIO_Util)
+target_link_libraries (OpenImageIO_Util ${ILMBASE_LIBRARIES})
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")
