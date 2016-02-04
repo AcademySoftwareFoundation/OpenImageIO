@@ -64,56 +64,27 @@ endif ()
 
 
 ###########################################################################
-# IlmBase setup
+# IlmBase & OpenEXR setup
 
-if (NOT ILMBASE_INCLUDE_DIR)
-    find_package (IlmBase REQUIRED)
-endif ()
-
-include_directories ("${ILMBASE_INCLUDE_DIR}")
-include_directories ("${ILMBASE_INCLUDE_DIR}/OpenEXR")
-
-macro (LINK_ILMBASE target)
-    target_link_libraries (${target} ${ILMBASE_LIBRARIES})
-endmacro ()
-
-# end IlmBase setup
-###########################################################################
-
-
-###########################################################################
-# OpenEXR setup
-
-if (NOT OPENEXR_INCLUDE_DIR)
+if (NOT OPENEXR_FOUND)
     find_package (OpenEXR REQUIRED)
 endif ()
 
-if (EXISTS "${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h")
-    add_definitions (-DUSE_OPENEXR_VERSION2=1)
-    setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
-    if (NOT OpenEXR_FIND_QUIETLY)
-        message (STATUS "OpenEXR version 2.x")
-    endif ()
-else ()
-    setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
-    if (NOT OpenEXR_FIND_QUIETLY)
-        message (STATUS "OpenEXR version 1.x")
-    endif ()
-endif ()
-mark_as_advanced (OPENEXR_VERSION)
-
 include_directories ("${OPENEXR_INCLUDE_DIR}")
-# OpenEXR 1.x had weird #include dirctives, this is also necessary:
-include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
+
+if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
+    # OpenEXR 1.x had weird #include dirctives, this is also necessary:
+    include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
+else ()
+    add_definitions (-DUSE_OPENEXR_VERSION2=1)
+endif ()
+
 
 if (NOT OpenEXR_FIND_QUIETLY)
     message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
     message (STATUS "OPENEXR_LIBRARIES = ${OPENEXR_LIBRARIES}")
 endif ()
 
-macro (LINK_OPENEXR target)
-    target_link_libraries (${target} ${OPENEXR_LIBRARIES})
-endmacro ()
 
 # OpenEXR setup
 ###########################################################################

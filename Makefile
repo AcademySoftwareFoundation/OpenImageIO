@@ -161,9 +161,6 @@ ifneq (${USE_EXTERNAL_PUGIXML},)
 MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
 endif
 
-ifneq (${ILMBASE_HOME},)
-MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
-endif
 ifneq (${OPENEXR_HOME},)
 MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
 endif
@@ -418,7 +415,6 @@ help:
 	@echo "      LINKSTATIC=1             Link with static external libs when possible"
 	@echo "  Finding and Using Dependencies:"
 	@echo "      BOOST_HOME=path          Custom Boost installation"
-	@echo "      ILMBASE_HOME=path        Custom Ilmbase installation"
 	@echo "      OPENEXR_HOME=path        Custom OpenEXR installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"

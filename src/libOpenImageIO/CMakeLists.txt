@@ -287,12 +287,12 @@ if (EMBEDPLUGINS)
                                ${JPEG_LIBRARIES}
                                ${FIELD3D_LIBRARY}
                                ${HDF5_LIBRARIES}
+                               ${OPENEXR_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
                                ${PTEX_LIBRARY}
                                ${WEBP_LIBRARY}
                                ${ZLIB_LIBRARIES}
                           )
-    link_openexr (OpenImageIO)
     if (USE_GIF AND GIF_FOUND)
         target_link_libraries (OpenImageIO ${GIF_LIBRARY})
     endif ()
@@ -302,7 +302,7 @@ if (EMBEDPLUGINS)
     endif ()
 endif ()
 
-link_ilmbase (OpenImageIO)
+target_link_libraries (OpenImageIO ${ILMBASE_LIBRARIES})
 
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
@@ -349,19 +349,16 @@ if (OIIO_BUILD_TESTS)
     add_executable (imagebuf_test imagebuf_test.cpp)
     set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagebuf_test)
     add_test (unit_imagebuf imagebuf_test)
 
     add_executable (imagecache_test imagecache_test.cpp)
     set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagecache_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagecache_test)
     add_test (unit_imagecache imagecache_test)
 
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
     set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagebufalgo_test)
     add_test (unit_imagebufalgo imagebufalgo_test)
 
     add_executable (imagespec_test imagespec_test.cpp)
@@ -372,7 +369,6 @@ if (OIIO_BUILD_TESTS)
     add_executable (imagespeed_test imagespeed_test.cpp)
     set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-    link_ilmbase (imagespeed_test)
     #add_test (imagespeed_test imagespeed_test)
 
 endif (OIIO_BUILD_TESTS)

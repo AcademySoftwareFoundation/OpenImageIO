@@ -1,8 +1,6 @@
-# FIXME to use OPENEXR_FOUND, OPENEXR_INCLUDE_DIR, OPENEXR_LIBRARIES when
-# these are defined.
+find_package (OpenEXR REQUIRED)
 
 add_oiio_plugin (exrinput.cpp exroutput.cpp)
 
-link_openexr (openexr.imageio)
-link_ilmbase (openexr.imageio)
+target_link_libraries (openexr.imageio ${OPENEXR_LIBRARIES})
 

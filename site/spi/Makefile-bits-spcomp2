@@ -129,19 +129,13 @@ ifeq ($(SP_OS), rhel7)
     endif
 
     MY_CMAKE_FLAGS += \
-	-DILMBASE_CUSTOM=1 \
-	-DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-	-DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	-DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
-	-DOPENEXR_CUSTOM=1 \
-	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	-DOPENEXR_CUSTOM_LIBRARY="IlmImf"\
-	-DOCIO_PATH=${OCIO_PATH} \
-	-DFIELD3D_HOME=${FIELD3D_HOME} \
+        -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+        -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
+        -DOCIO_PATH=${OCIO_PATH} \
+        -DFIELD3D_HOME=${FIELD3D_HOME} \
         -DHDF5_CUSTOM=1 \
-	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	-DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
+        -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
+        -DNuke_ROOT=/net/apps/$(SP_OS)/foundry/nuke${NUKE_VERSION}
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
@@ -229,14 +223,8 @@ else ifeq ($(SP_OS), spinux1)
     endif
 
     MY_CMAKE_FLAGS += \
-	  -DILMBASE_CUSTOM=1 \
-	  -DILMBASE_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-          -DILMBASE_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	  -DILMBASE_CUSTOM_LIBRARIES="Imath Half IlmThread Iex" \
-	  -DOPENEXR_CUSTOM=1 \
 	  -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-          -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
-	  -DOPENEXR_CUSTOM_LIBRARY="IlmImf" \
+	  -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
 	  -DOCIO_PATH=${OCIO_PATH} \
 	  -DFIELD3D_HOME=${FIELD3D_HOME} \
           -DHDF5_CUSTOM=1 \
