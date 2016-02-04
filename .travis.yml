@@ -113,6 +113,13 @@ matrix:
       - os: osx
         compiler: clang
         env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1"
+    include:
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=avx,f16c"
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0"
 
 notifications:
     email:

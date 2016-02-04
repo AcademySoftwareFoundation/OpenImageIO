@@ -294,8 +294,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
         // any value to itself.
-# if defined(OIIO_SIMD_AVX)
-        __m128i anyval = _mm_castps_si128 (_mm_undefined_si128());
+# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
+        __m128i anyval = _mm_undefined_si128();
 # else
         __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
 # endif
@@ -443,7 +443,7 @@ public:
         // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
         // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
         // any value to itself.
-# if defined(OIIO_SIMD_AVX)
+# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
         __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
 # else
         __m128i anyval = _mm_castps_si128 (m_vec);
@@ -667,8 +667,8 @@ public:
 #if defined(OIIO_SIMD_SSE)
         // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
         // any value to itself.
-# if defined(OIIO_SIMD_AVX)
-        __m128i anyval = _mm_castps_si128 (_mm_undefined_si128());
+# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
+        __m128i anyval = _mm_undefined_si128();
 # else
         __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
 # endif
@@ -1074,7 +1074,7 @@ public:
         // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
         // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
         // any value to itself.
-# if defined(OIIO_SIMD_AVX)
+# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
         __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
         __m128i all_one_bits = _mm_cmpeq_epi8 (anyval, anyval);
 # else
@@ -1690,7 +1690,8 @@ public:
 #ifdef _HALF_H_
     /// Load from an array of 4 half values, convert to float
     OIIO_FORCEINLINE void load (const half *values) {
-#ifdef __F16C__ /* Enabled 16 bit float instructions! */
+#if defined(__F16C__) && defined(OIIO_SIMD_SSE)
+        /* Enabled 16 bit float instructions! */
         __m128i a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
         m_vec = _mm_cvtph_ps (a);
 #elif defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
@@ -1794,7 +1795,7 @@ public:
 
 #ifdef _HALF_H_
     OIIO_FORCEINLINE void store (half *values) const {
-#if __F16C__
+#if defined(__F16C__) && defined(OIIO_SIMD_SSE)
         __m128i h = _mm_cvtps_ph (m_vec, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
         _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
 #else
