@@ -1062,16 +1062,30 @@ subimage of the current top image.
 Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}.
 
-It will try to infer the type of the metadata from the value: if the
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf type=}\emph{typename} & Specify the metadata type.
+\end{tabular}
+
+If the optional {\cf type=} specifier is used, that provides an
+explicit type for the metadata. If not provided,
+it will try to infer the type of the metadata from the value: if the
 value contains only numerals (with optional leading minus sign), it will
 be saved as {\cf int} metadata; if it also contains a decimal point, it
 will be saved as {\cf float} metadata; otherwise, it will be saved as
 a {\cf string} metadata.
 
-For example, you could explicitly set the IPTC location metadata fields
-with:
+
+\noindent Examples:
+
 \begin{code}
-        oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
+    oiiotool in.jpg --attrib "IPTC:City" "Berkeley" out.jpg
+
+    oiiotool in.jpg --attrib:type=string "Name" "0" out.jpg
+
+    oiiotool in.exr --attrib:type=matrix worldtocam \
+            "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
 \end{code}
 \apiend
 
@@ -1080,6 +1094,8 @@ Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}, forcing it to be interpreted as a {\cf string}.
 This is helpful if you want to set a {\cf string} metadata to a value
 that the {\cf --attrib} command would normally interpret as a number.
+
+\noindent Note also that {\cf --sattrib} is equivalent to {\cf --attrib:type=string}.
 \apiend
 
 \apiitem{\ce --caption {\rm \emph{text}}}

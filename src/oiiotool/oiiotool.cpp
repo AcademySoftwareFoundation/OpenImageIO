@@ -628,7 +628,12 @@ set_any_attribute (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    set_attribute (ot.curimg, argv[1], TypeDesc(TypeDesc::UNKNOWN), argv[2]);
+
+    std::map<std::string,std::string> options;
+    ot.extract_options (options, argv[0]);
+    TypeDesc type (options["type"]);
+
+    set_attribute (ot.curimg, argv[1], type, argv[2]);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -1044,6 +1049,77 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         // If the value is the empty string, clear the attribute
         return apply_spec_mod (*img, do_erase_attribute,
                                attribname, ot.allsubimages);
+    }
+
+    // First, handle the cases where we're told what to expect
+    if (type.basetype == TypeDesc::FLOAT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<float> vals (n, 0.0f);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_float (value, vals[i]);
+            Strutil::parse_char (value, ',');
+        }
+        img->read ();
+        img->metadata_modified (true);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
+                img->update_spec_from_imagebuf (s, m);
+                if (! ot.allsubimages)
+                    break;
+            }
+            if (! ot.allsubimages)
+                break;
+        }
+        return true;
+    }
+    if (type.basetype == TypeDesc::INT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<int> vals (n, 0);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_int (value, vals[i]);
+            Strutil::parse_char (value, ',');
+        }
+        img->read ();
+        img->metadata_modified (true);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
+                img->update_spec_from_imagebuf (s, m);
+                if (! ot.allsubimages)
+                    break;
+            }
+            if (! ot.allsubimages)
+                break;
+        }
+        return true;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<ustring> vals (n, ustring());
+        if (n == 1)
+            vals[0] = ustring(value);
+        else {
+            for (size_t i = 0; i < n && value.size(); ++i) {
+                string_view s;
+                Strutil::parse_string (value, s);
+                vals[i] = ustring(s);
+                Strutil::parse_char (value, ',');
+            }
+        }
+        img->read ();
+        img->metadata_modified (true);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
+                img->update_spec_from_imagebuf (s, m);
+                if (! ot.allsubimages)
+                    break;
+            }
+            if (! ot.allsubimages)
+                break;
+        }
+        return true;
     }
 
     // Does it seem to be an int, or did the caller explicitly request
@@ -4098,7 +4174,7 @@ getargs (int argc, char *argv[])
                 "--autotrim", &ot.output_autotrim, 
                     "Automatically trim black borders upon output to file formats that support separate pixel data and full/display windows",
                 "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
-                "--attrib %@ %s %s", set_any_attribute, NULL, NULL, "Sets metadata attribute (name, value)",
+                "--attrib %@ %s %s", set_any_attribute, NULL, NULL, "Sets metadata attribute (name, value) (options: type=...)",
                 "--sattrib %@ %s %s", set_string_attribute, NULL, NULL, "Sets string metadata attribute (name, value)",
                 "--caption %@ %s", set_caption, NULL, "Sets caption (ImageDescription metadata)",
                 "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
