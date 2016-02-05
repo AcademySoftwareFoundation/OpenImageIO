@@ -617,7 +617,7 @@ without requiring you to know the resolution.
 
 
 \newpage
-\section{\oiiotool commands: general}
+\section{\oiiotool commands: general and image information}
 
 \apiitem{\ce --help}
 Prints usage information to the terminal.
@@ -844,6 +844,8 @@ vacation'' to all JPEG files in the current directory:
 The commands described in this section read images, write images,
 or control the way that subsequent images will be written upon output.
 
+\subsection*{Reading images}
+
 \apiitem{\ce \rm \emph{filename}}
 If a command-line option is the name of an image file, that file will
 be read and will become the new \emph{current image}, with the previous
@@ -929,9 +931,33 @@ native format (if it's not a format that can use the ImageCache without a
 loss of precision).
 \apiend
 
+\newpage
+\subsection*{Writing images}
+
 \apiitem{\ce -o \rm \emph{filename}}
 Outputs the current image to the named file.  This does not remove the
-current image, it merely saves a copy of it.
+current image from the image stack, it merely saves a copy of it.
+
+\noindent Optional appended arguments include:
+
+\noindent \begin{tabular}{p{1.25in} p{3.75in}}
+{\cf datatype=}\emph{typename} & Set the pixel data type (like {\cf -d})
+     for this output image. \\
+{\cf bits=}\emph{int} & Set the bits per pixel (if nonstandard for the
+     datatype) for this output image. \\
+{\cf dither=}{\verb&0|1&} & Turn dither on or off for this output. \\[0.5ex]
+
+{\cf autocc=}{\verb&0|1&} & Enable or disable {\cf --autocc} for
+     this output image. \\
+{\cf autocrop=}{\verb&0|1&} & Enable or disable autocrop for
+     this output image. \\
+{\cf autotrim=}{\verb&0|1&} & Enable or disable {\cf --autotrim} for
+     this output image. \index{autotrim} \\
+{\cf separate=}{\verb&0|1&} & \\
+{\cf contig=}{\verb&0|1&} & Set separate or contiguous planar configuration
+    for this output. \\
+\end{tabular}
+
 \apiend
 
 \apiitem{\ce -d {\rm \emph{datatype}} \\
@@ -1038,6 +1064,7 @@ non-issue for file formats that support these concepts, such as OpenEXR.
 \apiend
 
 \apiitem{\ce --autotrim}
+\index{autotrim}
 For subsequent outputs, if the output format supports separate pixel
 data and full/display windows, automatically trim the output so that
 it writes the minimal data window that contains all the non-zero valued

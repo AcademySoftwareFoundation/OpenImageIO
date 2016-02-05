@@ -411,14 +411,45 @@ string_to_dataformat (const std::string &s, TypeDesc &dataformat, int &bits)
 
 
 
+
+inline int
+get_value_override (string_view localoption, int defaultval=0)
+{
+    return localoption.size() ? Strutil::from_string<int>(localoption)
+                              : defaultval;
+}
+
+
+inline float
+get_value_override (string_view localoption, float defaultval)
+{
+    return localoption.size() ? Strutil::from_string<float>(localoption)
+                              : defaultval;
+}
+
+
+inline string_view
+get_value_override (string_view localoption, string_view defaultval)
+{
+    return localoption.size() ? localoption : defaultval;
+}
+
+
+
 static void
 adjust_output_options (string_view filename,
                        ImageSpec &spec, const Oiiotool &ot,
-                       bool format_supports_tiles)
+                       bool format_supports_tiles,
+                       std::map<std::string,std::string> &fileoptions)
 {
     if (ot.output_dataformat != TypeDesc::UNKNOWN) {
-        spec.set_format (ot.output_dataformat);
-        if (ot.output_bitspersample != 0)
+        TypeDesc type (fileoptions["datatype"]);
+        if (type == TypeDesc::UNKNOWN)
+            type = ot.output_dataformat;
+        if (type != TypeDesc::UNKNOWN)
+            spec.set_format (ot.output_dataformat);
+        int bits = get_value_override (fileoptions["bits"], ot.output_bitspersample);
+        if (bits)
             spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
         else
             spec.erase_attribute ("oiio:BitsPerSample");
@@ -461,8 +492,12 @@ adjust_output_options (string_view filename,
         spec.attribute ("compression", ot.output_compression);
     if (ot.output_quality > 0)
         spec.attribute ("CompressionQuality", ot.output_quality);
-            
-    if (ot.output_planarconfig == "contig" ||
+
+    if (get_value_override (fileoptions["separate"]))
+        spec.attribute ("planarconfig", "separate");
+    else if (get_value_override (fileoptions["contig"]))
+        spec.attribute ("planarconfig", "contig");
+    else if (ot.output_planarconfig == "contig" ||
         ot.output_planarconfig == "separate")
         spec.attribute ("planarconfig", ot.output_planarconfig);
 
@@ -483,7 +518,8 @@ adjust_output_options (string_view filename,
         spec.attribute ("Software", software);
     }
 
-    if (ot.output_dither) {
+    int dither = get_value_override (fileoptions["dither"], ot.output_dither);
+    if (dither) {
         int h = (int) Strutil::strhash(filename);
         if (!h)
             h = 1;
@@ -3748,6 +3784,9 @@ output_file (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
     string_view filename = ot.express (argv[1]);
 
+    std::map<std::string,std::string> fileoptions;
+    ot.extract_options (fileoptions, command);
+
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
     if (! ot.curimg.get()) {
@@ -3793,7 +3832,8 @@ output_file (int argc, const char *argv[])
     }
 
     // Handle --autotrim
-    if (supports_displaywindow && ot.output_autotrim) {
+    int autotrim = get_value_override (fileoptions["autotrim"], ot.output_autotrim);
+    if (supports_displaywindow && autotrim) {
         ROI origroi = get_roi(*ir->spec(0,0));
         ROI roi = ImageBufAlgo::nonzero_region ((*ir)(0,0), origroi);
         if (roi.npixels() == 0) {
@@ -3816,7 +3856,8 @@ output_file (int argc, const char *argv[])
 
     // Automatically crop/pad if outputting to a format that doesn't
     // support display windows, unless autocrop is disabled.
-    if (! supports_displaywindow && ot.output_autocrop &&
+    int autocrop = get_value_override (fileoptions["autocrop"], ot.output_autocrop);
+    if (! supports_displaywindow && autocrop &&
         (ir->spec()->x != ir->spec()->full_x ||
          ir->spec()->y != ir->spec()->full_y ||
          ir->spec()->width != ir->spec()->full_width ||
@@ -3831,8 +3872,9 @@ output_file (int argc, const char *argv[])
     // Automatically color convert if --autocc is used and the current
     // color space doesn't match that implied by the filename, and
     // automatically set -d based on the name if --autod is used.
+    int autocc = get_value_override (fileoptions["autocc"], ot.autocc);
     string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(filename);
-    if (ot.autocc && outcolorspace.size()) {
+    if (autocc && outcolorspace.size()) {
         TypeDesc type;
         int bits;
         type = ot.colorconfig.getColorSpaceDataType(outcolorspace,&bits);
@@ -3844,7 +3886,7 @@ output_file (int argc, const char *argv[])
                           << "bits) for output to " << filename << "\n";
         }
     }
-    if (ot.autocc) {
+    if (autocc) {
         string_view linearspace = ot.colorconfig.getColorSpaceNameByRole("linear");
         if (linearspace.empty())
             linearspace = string_view("Linear");
@@ -3867,7 +3909,7 @@ output_file (int argc, const char *argv[])
 
     // Automatically crop out the negative areas if outputting to a format
     // that doesn't support negative origins.
-    if (! supports_negativeorigin && ot.output_autocrop &&
+    if (! supports_negativeorigin && autocrop &&
         (ir->spec()->x < 0 || ir->spec()->y < 0 || ir->spec()->z < 0)) {
         ROI roi = get_roi (*ir->spec(0,0));
         roi.xbegin = std::max (0, roi.xbegin);
@@ -3901,7 +3943,7 @@ output_file (int argc, const char *argv[])
     std::vector<ImageSpec> subimagespecs (ir->subimages());
     for (int s = 0;  s < ir->subimages();  ++s) {
         ImageSpec spec = *ir->spec(s,0);
-        adjust_output_options (filename, spec, ot, supports_tiles);
+        adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
         // For deep files, must copy the native deep channelformats
         if (spec.deep)
             spec.channelformats = (*ir)(s,0).nativespec().channelformats;
@@ -3931,7 +3973,7 @@ output_file (int argc, const char *argv[])
     for (int s = 0, send = ir->subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
             ImageSpec spec = *ir->spec(s,m);
-            adjust_output_options (filename, spec, ot, supports_tiles);
+            adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
             if (s > 0 || m > 0) {  // already opened first subimage/level
                 if (! out->open (filename, spec, mode)) {
                     std::string err = out->geterror();
