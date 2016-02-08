@@ -396,6 +396,10 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     newspec.width = m_gif_file->SWidth;
     newspec.height = m_gif_file->SHeight;
+    newspec.depth = 1;
+    newspec.full_height = newspec.height;
+    newspec.full_width = newspec.width;
+    newspec.full_depth = newspec.depth;
 
     m_spec = newspec;
     m_subimage = subimage;
