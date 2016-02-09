@@ -1257,21 +1257,48 @@ namespace {
 // Pixel-by-pixel copy fully templated by both data types.
 // The roi is guaranteed to exist in both images.
 template<class D, class S>
-bool copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, const ROI &roi)
+static bool
+copy_pixels_impl (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads=0)
 {
+    if (nthreads != 1 && roi.npixels() >= 16384) {
+        // Lots of pixels and request for multi threads? Parallelize.
+        ImageBufAlgo::parallel_image (
+            OIIO::bind(copy_pixels_impl<D,S>, OIIO::ref(dst), OIIO::cref(src),
+                       _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+    // Serial case:
+
     int nchannels = roi.nchannels();
     if (is_same<D,S>::value) {
         // If both bufs are the same type, just directly copy the values
-        ImageBuf::Iterator<D,D> d (dst, roi);
-        ImageBuf::ConstIterator<D,D> s (src, roi);
-        for ( ; ! d.done();  ++d, ++s) {
-            for (int c = 0;  c < nchannels;  ++c)
-                d[c] = s[c];
+        if (src.localpixels() && roi.chbegin == 0 &&
+            roi.chend == dst.nchannels() && roi.chend == src.nchannels()) {
+            // Extra shortcut -- totally local pixels for src, copying all
+            // channels, so we can copy memory around line by line, rather
+            // than value by value.
+            int nxvalues = roi.width() * dst.nchannels();
+            for (int z = roi.zbegin; z < roi.zend; ++z)
+                for (int y = roi.ybegin; y < roi.yend; ++y) {
+                    D *draw = (D *) dst.pixeladdr (roi.xbegin, y, z);
+                    const S *sraw = (const S *) src.pixeladdr (roi.xbegin, y, z);
+                    DASSERT (draw && sraw);
+                    for (int x = 0; x < nxvalues; ++x)
+                        draw[x] = sraw[x];
+                }
+        } else {
+            ImageBuf::Iterator<D,D> d (dst, roi);
+            ImageBuf::ConstIterator<D,D> s (src, roi);
+            for ( ; ! d.done();  ++d, ++s) {
+                for (int c = 0;  c < nchannels;  ++c)
+                    d[c] = s[c];
+            }
         }
     } else {
         // If the two bufs are different types, convert through float
-        ImageBuf::Iterator<D,float> d (dst, roi);
-        ImageBuf::ConstIterator<S,float> s (src, roi);
+        ImageBuf::Iterator<D> d (dst, roi);
+        ImageBuf::ConstIterator<S> s (src, roi);
         for ( ; ! d.done();  ++d, ++s) {
             for (int c = 0;  c < nchannels;  ++c)
                 d[c] = s[c];
@@ -1302,7 +1329,7 @@ ImageBuf::copy_pixels (const ImageBuf &src)
         ImageBufAlgo::zero (*this);
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "copy_pixels", copy_pixels_2,
+    OIIO_DISPATCH_TYPES2 (ok, "copy_pixels", copy_pixels_impl,
                           spec().format, src.spec().format, *this, src, roi);
     return ok;
 }

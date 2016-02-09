@@ -163,40 +163,6 @@ datestring (time_t t)
 
 
 
-// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
-template<typename SRCTYPE>
-static bool
-copy_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI())
-{
-    int nchannels = dst.spec().nchannels;
-    ASSERT (src.spec().nchannels == nchannels);
-    ROI image_roi = get_roi (dst.spec());
-    if (roi.defined())
-        image_roi = roi_intersection (image_roi, roi);
-    ImageBuf::Iterator<float> d (dst, image_roi);
-    ImageBuf::ConstIterator<SRCTYPE> s (src, image_roi, ImageBuf::WrapBlack);
-    for (  ; ! d.done();  ++d, ++s) {
-        for (int c = 0;  c < nchannels;  ++c)
-            d[c] = s[c];
-    }
-    return true;
-}
-
-
-
-// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
-static bool
-copy_block (ImageBuf &dst, const ImageBuf &src, ROI roi)
-{
-    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
-    bool ok;
-    OIIO_DISPATCH_TYPES (ok, "copy_block", copy_block_, src.spec().format,
-                         dst, src, roi);
-    return ok;
-}
-
-
-
 template<class SRCTYPE>
 static void
 interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel,
@@ -1363,8 +1329,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     } else  if (! do_resize) {
         // Need format conversion, but no resize -- just copy the pixels
         toplevel.reset (new ImageBuf (dstspec));
-        ImageBufAlgo::parallel_image (OIIO::bind(copy_block,OIIO::ref(*toplevel),OIIO::cref(*src),_1),
-                                      OIIO::get_roi(dstspec));
+        toplevel->copy_pixels (*src);
     } else {
         // Resize
         if (verbose)
