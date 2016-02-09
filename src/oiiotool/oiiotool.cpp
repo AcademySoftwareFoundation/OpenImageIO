@@ -3775,10 +3775,72 @@ input_file (int argc, const char *argv[])
 
 
 
+static void
+prep_texture_config (ImageSpec &configspec,
+                     std::map<std::string,std::string> &fileoptions)
+{
+    configspec.tile_width  = ot.output_tilewidth  ? ot.output_tilewidth  : 64;
+    configspec.tile_height = ot.output_tileheight ? ot.output_tileheight : 64;
+    configspec.tile_depth  = 1;
+    string_view wrap = get_value_override (fileoptions["wrap"], "black");
+    string_view swrap = get_value_override (fileoptions["swrap"], wrap);
+    string_view twrap = get_value_override (fileoptions["twrap"], wrap);
+    configspec.attribute ("wrapmodes", Strutil::format("%s,%s", swrap, twrap));
+    configspec.attribute ("maketx:verbose", ot.verbose);
+    configspec.attribute ("maketx:runstats", ot.runstats);
+    configspec.attribute ("maketx:resize",
+                          get_value_override(fileoptions["resize"], 0));
+    configspec.attribute ("maketx:nomipmap",
+                          get_value_override(fileoptions["nomipmap"], 0));
+    configspec.attribute ("maketx:updatemode",
+                          get_value_override(fileoptions["updatemode"], 0));
+    configspec.attribute ("maketx:constant_color_detect",
+                          get_value_override(fileoptions["constant_color_detect"], 0));
+    configspec.attribute ("maketx:monochrome_detect",
+                          get_value_override(fileoptions["monochrome_detect"], 0));
+    configspec.attribute ("maketx:opaque_detect",
+                          get_value_override(fileoptions["opaque_detect"], 0));
+    configspec.attribute ("maketx:compute_average",
+                          get_value_override(fileoptions["compute_average"], 1));
+    configspec.attribute ("maketx:unpremult",
+                          get_value_override(fileoptions["unpremult"], 0));
+    configspec.attribute ("maketx:incolorspace",
+                          get_value_override(fileoptions["incolorspace"], ""));
+    configspec.attribute ("maketx:outcolorspace",
+                          get_value_override(fileoptions["outcolorspace"], ""));
+    configspec.attribute ("maketx:highlightcomp",
+                          get_value_override(fileoptions["hilightcomp"], 
+                              get_value_override(fileoptions["hicomp"], 0)));
+    configspec.attribute ("maketx:sharpen",
+                          get_value_override(fileoptions["sharpen"], 0.0f));
+    if (fileoptions["filter"].size() || fileoptions["filtername"].size())
+        configspec.attribute ("maketx:filtername",
+                              get_value_override(fileoptions["filtername"],
+                                                 get_value_override(fileoptions["filter"], "")));
+    if (fileoptions["fileformatname"].size())
+        configspec.attribute ("maketx:fileformatname",
+                              get_value_override(fileoptions["fileformatname"], ""));
+    configspec.attribute ("maketx:prman_metadata",
+                          get_value_override(fileoptions["prman_metadata"], 0));
+    configspec.attribute ("maketx:oiio_options",
+                          get_value_override(fileoptions["oiio_options"],
+                                             get_value_override(fileoptions["oiio"])));
+    configspec.attribute ("maketx:prman_options",
+                          get_value_override(fileoptions["prman_options"],
+                                             get_value_override(fileoptions["prman"])));
+    // if (mipimages.size())
+    //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
+
+    std::string software = configspec.get_string_attribute ("Software");
+    if (software.size())
+        configspec.attribute ("maketx:full_command_line", software);
+}
+
+
+
 static int
 output_file (int argc, const char *argv[])
 {
-    ASSERT (argc == 2 && !strcmp(argv[0],"-o"));
     Timer timer (ot.enable_function_timing);
     ot.total_writetime.start();
     string_view command = ot.express (argv[0]);
@@ -3786,6 +3848,14 @@ output_file (int argc, const char *argv[])
 
     std::map<std::string,std::string> fileoptions;
     ot.extract_options (fileoptions, command);
+
+    string_view stripped_command = command;
+    Strutil::parse_char (stripped_command, '-');
+    Strutil::parse_char (stripped_command, '-');
+    bool do_tex = Strutil::starts_with (stripped_command, "otex");
+    bool do_latlong = Strutil::starts_with (stripped_command, "oenv") ||
+                      Strutil::starts_with (stripped_command, "olatlong");
+    bool do_shad = Strutil::starts_with (stripped_command, "oshad");
 
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
@@ -3797,7 +3867,10 @@ output_file (int argc, const char *argv[])
         ot.warning (command, Strutil::format("%s already exists, not overwriting.", filename));
         return 0;
     }
-    ImageOutput *out = ImageOutput::create (filename.c_str());
+    string_view formatname = fileoptions["fileformatname"];
+    if (formatname.empty())
+        formatname = filename;
+    ImageOutput *out = ImageOutput::create (formatname);
     if (! out) {
         std::string err = OIIO::geterror();
         ot.error (command, err.size() ? err.c_str() : "unknown error creating an ImageOutput");
@@ -3940,72 +4013,93 @@ output_file (int argc, const char *argv[])
     // FIXME -- the various automatic transformations above neglect to handle
     // MIPmaps or subimages with full generality.
 
-    std::vector<ImageSpec> subimagespecs (ir->subimages());
-    for (int s = 0;  s < ir->subimages();  ++s) {
-        ImageSpec spec = *ir->spec(s,0);
-        adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
-        // For deep files, must copy the native deep channelformats
-        if (spec.deep)
-            spec.channelformats = (*ir)(s,0).nativespec().channelformats;
-        // If it's not tiled and MIP-mapped, remove any "textureformat"
-        if (! spec.tile_pixels() || ir->miplevels(s) <= 1)
-            spec.erase_attribute ("textureformat");
-        subimagespecs[s] = spec;
-    }
+    if (do_tex || do_latlong) {
+        ImageSpec configspec;
+        adjust_output_options (filename, configspec, ot, supports_tiles, fileoptions);
+        prep_texture_config (configspec, fileoptions);
+        ImageBufAlgo::MakeTextureMode mode = ImageBufAlgo::MakeTxTexture;
+        if (do_shad)
+            mode = ImageBufAlgo::MakeTxShadow;
+        if (do_latlong)
+            mode = ImageBufAlgo::MakeTxEnvLatl;
+        // if (lightprobemode)
+        //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
+        bool ok = ImageBufAlgo::make_texture (mode, (*ir)(0,0),
+                                              filename, configspec,
+                                              &std::cout);
+        if (!ok)
+            ot.error (command, "Could not make texture");
 
-    // Do the initial open
-    ImageOutput::OpenMode mode = ImageOutput::Create;
-    if (ir->subimages() > 1 && out->supports("multiimage")) {
-        if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
-            std::string err = out->geterror();
-            ot.error (command, err.size() ? err.c_str() : "unknown error");
-            return 0;
-        }
     } else {
-        if (! out->open (filename, subimagespecs[0], mode)) {
-            std::string err = out->geterror();
-            ot.error (command, err.size() ? err.c_str() : "unknown error");
-            return 0;
-        }
-    }
-
-    // Output all the subimages and MIP levels
-    for (int s = 0, send = ir->subimages();  s < send;  ++s) {
-        for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
-            ImageSpec spec = *ir->spec(s,m);
+        // Non-texture case
+        std::vector<ImageSpec> subimagespecs (ir->subimages());
+        for (int s = 0;  s < ir->subimages();  ++s) {
+            ImageSpec spec = *ir->spec(s,0);
             adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
-            if (s > 0 || m > 0) {  // already opened first subimage/level
-                if (! out->open (filename, spec, mode)) {
-                    std::string err = out->geterror();
-                    ot.error (command, err.size() ? err.c_str() : "unknown error");
-                    return 0;
-                }
-            }
-            if (! (*ir)(s,m).write (out)) {
-                ot.error (command, (*ir)(s,m).geterror());
+            // For deep files, must copy the native deep channelformats
+            if (spec.deep)
+                spec.channelformats = (*ir)(s,0).nativespec().channelformats;
+            // If it's not tiled and MIP-mapped, remove any "textureformat"
+            if (! spec.tile_pixels() || ir->miplevels(s) <= 1)
+                spec.erase_attribute ("textureformat");
+            subimagespecs[s] = spec;
+        }
+
+        // Do the initial open
+        ImageOutput::OpenMode mode = ImageOutput::Create;
+        if (ir->subimages() > 1 && out->supports("multiimage")) {
+            if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
+                std::string err = out->geterror();
+                ot.error (command, err.size() ? err.c_str() : "unknown error");
                 return 0;
             }
-            if (mend > 1) {
-                if (out->supports("mipmap")) {
-                    mode = ImageOutput::AppendMIPLevel;  // for next level
-                } else if (out->supports("multiimage")) {
-                    mode = ImageOutput::AppendSubimage;
-                } else {
-                    ot.warning (command, Strutil::format ("%s does not support MIP-maps for %s",
-                                                           out->format_name(), filename));
-                    break;
-                }
+        } else {
+            if (! out->open (filename, subimagespecs[0], mode)) {
+                std::string err = out->geterror();
+                ot.error (command, err.size() ? err.c_str() : "unknown error");
+                return 0;
             }
         }
-        mode = ImageOutput::AppendSubimage;  // for next subimage
-        if (send > 1 && ! out->supports("multiimage")) {
-            ot.warning (command, Strutil::format ("%s does not support multiple subimages for %s",
-                                                   out->format_name(), filename));
-            break;
+
+        // Output all the subimages and MIP levels
+        for (int s = 0, send = ir->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
+                ImageSpec spec = *ir->spec(s,m);
+                adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
+                if (s > 0 || m > 0) {  // already opened first subimage/level
+                    if (! out->open (filename, spec, mode)) {
+                        std::string err = out->geterror();
+                        ot.error (command, err.size() ? err.c_str() : "unknown error");
+                        return 0;
+                    }
+                }
+                if (! (*ir)(s,m).write (out)) {
+                    ot.error (command, (*ir)(s,m).geterror());
+                    return 0;
+                }
+                if (mend > 1) {
+                    if (out->supports("mipmap")) {
+                        mode = ImageOutput::AppendMIPLevel;  // for next level
+                    } else if (out->supports("multiimage")) {
+                        mode = ImageOutput::AppendSubimage;
+                    } else {
+                        ot.warning (command, Strutil::format ("%s does not support MIP-maps for %s",
+                                                               out->format_name(), filename));
+                        break;
+                    }
+                }
+            }
+            mode = ImageOutput::AppendSubimage;  // for next subimage
+            if (send > 1 && ! out->supports("multiimage")) {
+                ot.warning (command, Strutil::format ("%s does not support multiple subimages for %s",
+                                                       out->format_name(), filename));
+                break;
+            }
         }
+
+        out->close ();
     }
 
-    out->close ();
     delete out;
 
     if (ot.output_adjust_time) {
@@ -4197,6 +4291,8 @@ getargs (int argc, char *argv[])
                 "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
+                "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
+                "-oenv %@ %s", output_file, NULL, "Output the current image as a latlong env map",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
                 "-d %@ %s", set_dataformat, NULL,
                     "'-d TYPE' sets the output data format of all channels, "

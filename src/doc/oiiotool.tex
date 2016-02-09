@@ -57,6 +57,7 @@ image, and then... exiting. Thus, the resized image is never saved, and
 \qkw{out.tif} will be an unaltered copy of \qkw{in.tif}.
 
 \subsubsection*{Optional arguments}
+\label{sec:oiiotooloptionalargs}
 
 Some commands stand completely on their own (like {\cf --flip}), others
 take one or more arguments (like {\cf --resize} or {\cf -o}):
@@ -935,28 +936,94 @@ loss of precision).
 \subsection*{Writing images}
 
 \apiitem{\ce -o \rm \emph{filename}}
+\label{sec:oiiotool:o}
 Outputs the current image to the named file.  This does not remove the
 current image from the image stack, it merely saves a copy of it.
 
 \noindent Optional appended arguments include:
 
 \noindent \begin{tabular}{p{1.25in} p{3.75in}}
-{\cf datatype=}\emph{typename} & Set the pixel data type (like {\cf -d})
-     for this output image. \\
+{\cf datatype=}\emph{name} & Set the pixel data type (like {\cf -d})
+     for this output image (e.g., {\cf uint8, uint16, half, float}, etc.). \\
 {\cf bits=}\emph{int} & Set the bits per pixel (if nonstandard for the
      datatype) for this output image. \\
-{\cf dither=}{\verb&0|1&} & Turn dither on or off for this output. \\[0.5ex]
+{\cf dither=}\emph{int} & Turn dither on or off for this output. (default: 0) \\[0.5ex]
 
-{\cf autocc=}{\verb&0|1&} & Enable or disable {\cf --autocc} for
+{\cf autocc=}\emph{int} & Enable or disable {\cf --autocc} for
      this output image. \\
-{\cf autocrop=}{\verb&0|1&} & Enable or disable autocrop for
+{\cf autocrop=}\emph{int} & Enable or disable autocrop for
      this output image. \\
-{\cf autotrim=}{\verb&0|1&} & Enable or disable {\cf --autotrim} for
+{\cf autotrim=}\emph{int} & Enable or disable {\cf --autotrim} for
      this output image. \index{autotrim} \\
-{\cf separate=}{\verb&0|1&} & \\
-{\cf contig=}{\verb&0|1&} & Set separate or contiguous planar configuration
+{\cf separate=}\emph{int} & \\
+{\cf contig=}\emph{int} & Set separate or contiguous planar configuration
     for this output. \\
+& {\cf\small fileformatname=}\emph{string} & Specify the desired output file
+  format, overriding any guess based on file name extension. \\
 \end{tabular}
+
+\apiend
+
+\apiitem{\ce -otex \rm \emph{filename} \\
+\ce -oenv \rm \emph{filename} }
+\index{Texture System!making textures with oiiotool}
+\label{sec:oiiotool:otex}
+
+Outputs the current image to the named file, as a MIP-mapped texture or
+environment map, identical to that which would be output by \maketx
+(Chapter~\ref{chap:maketx}). The advantage of using \oiiotool rather than
+\maketx is simply that you can have a complex \oiiotool command line
+sequence of image operations, culminating in a direct saving of the results
+as a texture map, rather than saving to a temporary file and then separately
+invoking \maketx.
+
+\noindent In addition to all the optional arguments of {cf -o}, optional
+appended arguments for {\cf -otex} and {\cf -oenv} also include:
+
+\smallskip
+
+\noindent \begin{longtable}{p{10pt} p{1.5in} p{3.75in}}
+& {\cf wrap=}\emph{string} & Set the default $s$ and $t$ wrap modes of the texture,
+  to one of: {\cf black, clamp, periodic, mirror}. \\
+& {\cf swrap=}\emph{string} & Set the default $s$ wrap mode of the texture. \\
+& {\cf twrap=}\emph{string} & Set the default $t$ wrap mode of the texture. \\[.5ex]
+& {\cf resize=}\emph{int} & If nonzero, resize to a power of 2 before starting
+    to create the MIPpmap levels. (default: 0) \\
+& {\cf nomipmap=}\emph{int} & If nonzero, do not create MIP-map levels at all. (default: 0) \\
+& {\cf updatemode=}\emph{int} & If nonzero, do not create and overwrite the
+  existing texture if it appears to already match the source pixels. (default: 0) \\
+& {\cf\small monochrome_detect=}\emph{int} & Detect monochrome (R=G=B) images and turn
+  them into 1-channel textures. (default: 0) \\
+& {\cf\small opaque_detect=}\emph{int} & Detect opaque (A=1) images and drop the 
+  alpha channel from the texture. (default: 0) \\
+& {\cf unpremult=}\emph{int} & Unpremultiply colors before any per-MIP-level
+    color conversions, and re-premultiply after. (default: 0) \\[0.5ex]
+& {\cf\small incolorspace=}\emph{string} & Specify color space conversion. \\
+& {\cf\small outcolorspace=}\emph{string} & ... \\[0.5ex]
+& {\cf hilightcomp=}\emph{int} & Use highlight compensation for HDR images when
+    resizing for MIP-map levels. (default: 0) \\
+& {\cf sharpen=}\emph{float} & Additional sharpening factor when resizing for
+    MIP-map levels. (default: 0.0) \\
+& {\cf filter=}\emph{string} & Specify the filter for MIP-map level resizing.
+    (default: box) \\
+%& {\cf oiio_options=}\emph{int} &  {\cf --oiio} (default: 0) \\
+& {\cf\small prman_metadata=}\emph{int} & Turn all all options required to
+  make the resulting texture file compatible with PRMan (particular tile
+  sizes, formats, options, and metadata). (default: 0) \\
+& {\cf\small prman_options=}\emph{int} & Include the metadata that PRMan's
+  texture system wants. (default: 0) \\
+\end{longtable}
+
+\noindent Examples:
+\begin{smallcode}
+    oiiotool in.tif -otex out.tx
+
+    oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
+
+    oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
+
+    oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
+\end{smallcode}
 
 \apiend
 

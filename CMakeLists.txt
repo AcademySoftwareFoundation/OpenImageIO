@@ -505,6 +505,7 @@ oiio_add_tests (
                 oiiotool oiiotool-composite oiiotool-deep oiiotool-fixnan
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text
+                maketx oiiotool-maketx
                 dither
                 dpx ico iff png psd rla sgi
                 python-typedesc python-imagespec python-roi python-deep
@@ -521,7 +522,6 @@ oiio_add_tests (
                 texture-width0blur
                 texture-fat texture-skinny texture-wrapfill
                 texture-missing texture-res
-                maketx
               )
 
 
