@@ -20,7 +20,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     compression: "zip"
     PixelAspectRatio: 1
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
-    oiio:SHA-1: "9CA964417213269190944948273FB1F00A4A8393"
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -43,7 +43,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     compression: "zip"
     PixelAspectRatio: 1
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
-    oiio:SHA-1: "C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
+    oiio:SHA-1: "2E23E9B4C6E707427A73B5433B23104D4183724E"
 Reading checker-uint16.tx
 checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -244,7 +244,7 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     compression: "zip"
     oiio:ConstantColor: "0.25098,0.2,0.14902"
     oiio:AverageColor: "0.25098,0.2,0.14902"
-    oiio:SHA-1: "D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
+    oiio:SHA-1: "41B1A0D1C1EBB4CEEBC7BCEE2CAB2AAAB4139724"
 Reading checker-prman.tx
 checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1

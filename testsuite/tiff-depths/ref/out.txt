@@ -566,7 +566,7 @@ Comparing "../../../../../libtiffpic/depth/flower-separated-contig-08.tif" and "
 PASS
 Reading ../../../../../libtiffpic/depth/flower-separated-contig-16.tif
 ../../../../../libtiffpic/depth/flower-separated-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
-    SHA-1: 11EDBB53957F64BDDD05F0BF4121505763956CA9
+    SHA-1: A5C53C7628B01F12DCAE09A42D8B15433644C54C
     channel list: R, G, B
     oiio:BitsPerSample: 16
     Orientation: 1 (normal)
@@ -608,7 +608,7 @@ Comparing "../../../../../libtiffpic/depth/flower-separated-planar-08.tif" and "
 PASS
 Reading ../../../../../libtiffpic/depth/flower-separated-planar-16.tif
 ../../../../../libtiffpic/depth/flower-separated-planar-16.tif :   73 x   43, 3 channel, uint16 tiff
-    SHA-1: 11EDBB53957F64BDDD05F0BF4121505763956CA9
+    SHA-1: A5C53C7628B01F12DCAE09A42D8B15433644C54C
     channel list: R, G, B
     oiio:BitsPerSample: 16
     Orientation: 1 (normal)

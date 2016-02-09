@@ -1,11 +1,11 @@
 Comparison: of flip.tif and flop.tif
-  mean = 0.00687588584816
-  rms  = 0.0511750114577
-  PSNR = 25.8188410286
-  max  = 0.450980424881
+  mean = 0.0068759
+  rms  = 0.051175
+  PSNR = 25.819
+  max  = 0.45098
   max @ (214, 88, 0, 0)
   warns 2034 fails 2034
-isConstantColor on pink image is (1.0, 0.501960813999176, 0.501960813999176)
+isConstantColor on pink image is (1 0.50196 0.50196)
 isConstantColor on checker is  None
 Is cmul1.exr monochrome?  True
 Is cmul2.exr monochrome?  False

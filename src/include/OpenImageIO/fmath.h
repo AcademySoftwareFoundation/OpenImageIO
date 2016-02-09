@@ -747,12 +747,11 @@ convert_type (const S &src)
         // They must be the same type.  Just return it.
         return (D)src;
     }
-    typedef double F;
+    typedef typename big_enough_float<D>::float_t F;
     F scale = std::numeric_limits<S>::is_integer ?
         ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
     if (std::numeric_limits<D>::is_integer) {
         // Converting to an integer-like type.
-        typedef double F;
         F min = (F) std::numeric_limits<D>::min();
         F max = (F) std::numeric_limits<D>::max();
         scale *= max;

@@ -269,10 +269,10 @@ try:
     ImageBufAlgo.compare (ImageBuf("flip.tif"), ImageBuf("flop.tif"),
                           1.0e-6, 1.0e-6, compresults)
     print "Comparison: of flip.tif and flop.tif"
-    print "  mean =", compresults.meanerror
-    print "  rms  =", compresults.rms_error
-    print "  PSNR =", compresults.PSNR
-    print "  max  =", compresults.maxerror
+    print "  mean = %.5g" % compresults.meanerror
+    print "  rms  = %.5g" % compresults.rms_error
+    print "  PSNR = %.5g" % compresults.PSNR
+    print "  max  = %.5g" % compresults.maxerror
     print "  max @", (compresults.maxx, compresults.maxy, compresults.maxz, compresults.maxc)
     print "  warns", compresults.nwarn, "fails", compresults.nfail
 
@@ -282,7 +282,7 @@ try:
     b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8));
     ImageBufAlgo.fill (b, (1,0.5,0.5))
     r = ImageBufAlgo.isConstantColor (b)
-    print "isConstantColor on pink image is", r
+    print "isConstantColor on pink image is (%.5g %.5g %.5g)" % r
     r = ImageBufAlgo.isConstantColor (checker)
     print "isConstantColor on checker is ", r
 
