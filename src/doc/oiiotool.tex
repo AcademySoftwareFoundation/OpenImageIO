@@ -2207,6 +2207,9 @@ Replace the top image with a copy in which any pixels that contained
 nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
 {\cf box3}, nonfinite values will be replaced by the average of all the
 finite values within a $3 \times 3$ region surrounding the pixel.
+If \emph{strategy} is
+{\cf error}, nonfinite values will be left alone, but it will result in an
+error that will terminate \oiiotool.
 \apiend
 
 \apiitem{\ce --clamp}

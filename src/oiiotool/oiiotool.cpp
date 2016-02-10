@@ -3118,8 +3118,10 @@ action_fixnan (int argc, const char *argv[])
         mode = NONFINITE_BLACK;
     else if (modename == "box3")
         mode = NONFINITE_BOX3;
+    else if (modename == "error")
+        mode = NONFINITE_ERROR;
     else {
-        ot.warning (argv[0], Strutil::format ("\"%s\" not recognized. Valid choices: black, box3.", modename));
+        ot.warning (argv[0], Strutil::format ("\"%s\" not recognized. Valid choices: black, box3, error", modename));
     }
     ot.read ();
     ImageRecRef A = ot.pop();
@@ -4276,7 +4278,7 @@ getargs (int argc, char *argv[])
                     "Convert complex (real,imag) to polar (amplitude,phase)",
                 "--unpolar %@", action_unpolar, NULL,
                     "Convert polar (amplitude,phase) to complex (real,imag)",
-                "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
+                "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3, error)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
                 "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",

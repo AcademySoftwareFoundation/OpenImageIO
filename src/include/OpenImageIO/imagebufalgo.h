@@ -1646,6 +1646,7 @@ enum OIIO_API NonFiniteFixMode
     NONFINITE_NONE = 0,     ///< Do nothing
     NONFINITE_BLACK = 1,    ///< Replace nonfinite pixels with black
     NONFINITE_BOX3 = 2,     ///< Replace nonfinite pixels with 3x3 finite average
+    NONFINITE_ERROR = 100,  ///< Error if any nonfinite pixels are found
 };
 
 /// Copy the values of src (within the ROI) to dst, while repairing  any
@@ -1660,6 +1661,8 @@ enum OIIO_API NonFiniteFixMode
 ///   NONFINITE_BLACK  change non-finite values to 0.
 ///   NONFINITE_BOX3   replace non-finite values by the average of any
 ///                       finite pixels within a 3x3 window.
+///   NONFINITE_ERROR  return false (error), but don't change any values,
+///                       if any nonfinite values are found.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
 /// be used, but it's not a guarantee.  If nthreads == 0, it will use

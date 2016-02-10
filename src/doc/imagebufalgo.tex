@@ -1787,6 +1787,9 @@ following modes:
 \item[\rm \kw{NONFINITE_BLACK}]  change non-finite values to 0.
 \item[\rm \kw{NONFINITE_BOX3}]   replace non-finite values by the average of any
                      finite pixels within a 3x3 window.
+\item[\rm \kw{NONFINITE_ERROR}]  do not alter non-finite values when copying,
+                     but return {\cf false} and set an error if any non-finite
+                     values are found.
 \end{description}
 
 This works on all pixel data types, though it's just a copy for images with
