@@ -551,6 +551,7 @@ ios_open_mode_to_oflag(std::ios_base::openmode mode)
     } else {
         f |= _O_TEXT;
     }
+    return f;
 }
 
 static std::istream*
@@ -674,7 +675,7 @@ Filesystem::open (std::istream** stream,
     }
     *stream = open_ifstream_impl(path, mode | std::ios_base::in);
     if (mode & std::ios_base::ate) {
-        (*stream)->seekg (0, (*stream)->end);
+        (*stream)->seekg (0, std::ios_base::end);
     } else {
         (*stream)->seekg (0, std::ios_base::beg); // force seek, otherwise broken
     }
@@ -692,6 +693,9 @@ Filesystem::open (std::ostream** stream,
         return;
     }
     *stream = open_ofstream_impl(path, mode | std::ios_base::out);
+    if ((mode & std::ios_base::app) == 0) {
+        (*stream)->seekp (0, std::ios_base::end);  // force seek, otherwise broken
+    }
 }
 
 
