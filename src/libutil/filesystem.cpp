@@ -533,23 +533,23 @@ static int
 ios_open_mode_to_oflag(std::ios_base::openmode mode)
 {
     int f = 0;
-    if ((mode & std::ios_base::in) == std::ios_base::in) {
+    if (mode & std::ios_base::in) {
         f |= _O_RDONLY;
     }
-    if ((mode & std::ios_base::out) == std::ios_base::out) {
+    if (mode & std::ios_base::out) {
         f |= _O_WRONLY;
         f |= _O_CREAT;
+        if (mode & std::ios_base::app) {
+            f |= _O_APPEND;
+        }
+        if (mode & std::ios_base::trunc) {
+            f |= _O_TRUNC;
+        }
     }
-    if ((mode & std::ios_base::binary) == std::ios_base::binary) {
+    if (mode & std::ios_base::binary) {
         f |= _O_BINARY;
     } else {
         f |= _O_TEXT;
-    }
-    if (((mode & std::ios_base::ate) == std::ios_base::ate) || ((mode & std::ios_base::app) == std::ios_base::app)) {
-        f |= _O_APPEND;
-    }
-    if (mode & std::ios_base::trunc) {
-        f |= _O_TRUNC;
     }
 }
 
@@ -673,6 +673,11 @@ Filesystem::open (std::istream** stream,
         return;
     }
     *stream = open_ifstream_impl(path, mode | std::ios_base::in);
+    if (mode & std::ios_base::ate) {
+        (*stream)->seekg (0, (*stream)->end);
+    } else {
+        (*stream)->seekg (0, std::ios_base::beg); // force seek, otherwise broken
+    }
 }
 
 
