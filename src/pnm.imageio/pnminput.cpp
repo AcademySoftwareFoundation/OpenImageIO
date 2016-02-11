@@ -295,12 +295,15 @@ PNMInput::read_file_scanline (void * data, int y)
             break;
         case P5:
         case P6:
-            if (m_max_val > std::numeric_limits<unsigned char>::max())
+            if (m_max_val > std::numeric_limits<unsigned char>::max()) {
+                if (littleendian())
+                    swap_endian ((unsigned short *)&buf[0], nsamples);
                 raw_to_raw ((unsigned short *)&buf[0], (unsigned short *) data, 
                             nsamples, (unsigned short)m_max_val);
-            else 
+            } else {
                 raw_to_raw ((unsigned char *)&buf[0], (unsigned char *) data, 
                             nsamples, (unsigned char)m_max_val);
+            }
             break;
         //Floating point
         case Pf:
