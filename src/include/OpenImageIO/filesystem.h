@@ -193,15 +193,55 @@ OIIO_API FILE *fopen (string_view path, string_view mode);
 ///
 OIIO_API std::string current_path ();
 
+/// Deprecated: Will not work correctly on GCC with MingW, prefer
+/// the version below taking a ofstream**
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
 OIIO_API void open (std::ifstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
+/// Deprecated: Will not work correctly on GCC with MingW, prefer
+/// the version below taking a ofstream**
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
 OIIO_API void open (std::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
+    
+    
+/// Version of std::ifstream.open that can handle UTF-8 paths
+/// Open the file for reading with the given mode and set the stream
+/// accordingly. Upon failure, stream is set to NULL.
+/// Caller is responsible for calling delete on the returned stream
+/// when done.
+/// Usage:
+/// std::ifstream* stream;
+/// Filesystem::open(&stream, path);
+/// if (stream) ...
+/// delete stream;
+///
+/// To avoid memory leaks, the returned stream should be enclosed
+/// as soon as possible in a RAII style structure, such as a smart ptr.
+///
+OIIO_API void open(std::istream** stream, string_view path,
+                       std::ios_base::openmode mode  = std::ios_base::in);
+    
+/// Version of std::ofstream.open that can handle UTF-8 paths
+/// Open the file for reading with the given mode and set the stream
+/// accordingly. Upon failure, stream is set to NULL.
+/// Caller is responsible for calling delete on the returned stream
+/// when done.
+/// Usage:
+/// std::ofstream* stream;
+/// Filesystem::open(&stream, path);
+/// if (stream) ...
+/// delete stream;
+///
+/// To avoid memory leaks, the returned stream should be enclosed
+/// as soon as possible in a RAII style structure, such as a smart ptr.
+///
+OIIO_API void open(std::ostream** stream, string_view path,
+                       std::ios_base::openmode mode  = std::ios_base::out);
+
 
 /// Read the entire contents of the named text file and place it in str,
 /// returning true on success, false on failure.

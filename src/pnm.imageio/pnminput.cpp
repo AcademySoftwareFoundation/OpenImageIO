@@ -32,6 +32,8 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <boost/scoped_ptr.hpp>
+
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/imageio.h"
@@ -53,7 +55,7 @@ private:
       P1, P2, P3, P4, P5, P6, Pf, PF
     };
 
-    std::ifstream m_file;
+    boost::scoped_ptr<std::istream> m_file;
     std::streampos m_header_end_pos; // file position after the header
     std::string m_current_line; ///< Buffer the image pixels
     const char * m_pos;
@@ -82,7 +84,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 inline bool
-nextLine (std::ifstream &file, std::string &current_line, const char * &pos) 
+nextLine (std::istream &file, std::string &current_line, const char * &pos)
 {   
     if (!file.good())
         return false;
@@ -96,7 +98,7 @@ nextLine (std::ifstream &file, std::string &current_line, const char * &pos)
 
 
 inline const char * 
-nextToken (std::ifstream &file, std::string &current_line, const char * &pos)
+nextToken (std::istream &file, std::string &current_line, const char * &pos)
 {		
     while (1) {
         while (isspace (*pos)) 
@@ -112,7 +114,7 @@ nextToken (std::ifstream &file, std::string &current_line, const char * &pos)
 
 
 inline const char *
-skipComments (std::ifstream &file, std::string &current_line, 
+skipComments (std::istream &file, std::string &current_line,
               const char * & pos, char comment = '#')
 {		
     while (1) {
@@ -128,7 +130,7 @@ skipComments (std::ifstream &file, std::string &current_line,
 
 
 inline bool
-nextVal (std::ifstream & file, std::string &current_line,
+nextVal (std::istream & file, std::string &current_line,
          const char * &pos, int &val, char comment = '#')
 {
     skipComments (file, current_line, pos, comment);
@@ -152,7 +154,7 @@ invert (const T *read, T *write, imagesize_t nvals)
 
 template <class T> 
 inline bool 
-ascii_to_raw (std::ifstream &file, std::string &current_line, const char * &pos,
+ascii_to_raw (std::istream &file, std::string &current_line, const char * &pos,
               T *write, imagesize_t nvals, T max)
 {
     if (max)
@@ -248,7 +250,7 @@ PNMInput::read_file_scanline (void * data, int y)
 
     std::vector<unsigned char> buf;
     bool good = true;
-    if (!m_file.is_open())
+    if (!m_file)
         return false;
     int nsamples = m_spec.width * m_spec.nchannels;
 
@@ -256,7 +258,7 @@ PNMInput::read_file_scanline (void * data, int y)
     if (m_pnm_type == PF || m_pnm_type == Pf) {
         int file_scanline = m_spec.height - 1 - (y-m_spec.y);
         std::streampos offset = file_scanline * m_spec.scanline_bytes();
-        m_file.seekg (m_header_end_pos + offset, std::ios_base::beg);
+        m_file->seekg (m_header_end_pos + offset, std::ios_base::beg);
     }
 
     if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF || m_pnm_type == Pf){
@@ -268,25 +270,25 @@ PNMInput::read_file_scanline (void * data, int y)
         else
             numbytes = m_spec.scanline_bytes();
         buf.resize (numbytes);
-        m_file.read ((char*)&buf[0], numbytes);
-        if (!m_file.good())
+        m_file->read ((char*)&buf[0], numbytes);
+        if (!m_file->good())
             return false;
     }
 
     switch (m_pnm_type) {
         //Ascii 
         case P1:
-            good &= ascii_to_raw (m_file, m_current_line, m_pos, (unsigned char *) data, 
+            good &= ascii_to_raw (*m_file, m_current_line, m_pos, (unsigned char *) data,
                                   nsamples, (unsigned char)m_max_val);
             invert ((unsigned char *)data, (unsigned char *)data, nsamples); 
             break;
         case P2:
         case P3:
             if (m_max_val > std::numeric_limits<unsigned char>::max())
-                good &= ascii_to_raw (m_file, m_current_line, m_pos, (unsigned short *) data, 
+                good &= ascii_to_raw (*m_file, m_current_line, m_pos, (unsigned short *) data,
                                       nsamples, (unsigned short)m_max_val);
             else 
-                good &= ascii_to_raw (m_file, m_current_line, m_pos, (unsigned char *) data, 
+                good &= ascii_to_raw (*m_file, m_current_line, m_pos, (unsigned char *) data,
                                       nsamples, (unsigned char)m_max_val);
             break;
         //Raw
@@ -328,15 +330,15 @@ PNMInput::read_file_header ()
 
     unsigned int width, height;
     char c;
-    if (!m_file.is_open())
+    if (!m_file)
         return false;
   
     //MagicNumber
-    m_file >> c;
+    *m_file >> c;
     if (c != 'P')
         return false;
     
-    m_file >> c;
+    *m_file >> c;
     switch(c) {
       case '1':
         m_pnm_type = P1;
@@ -367,23 +369,23 @@ PNMInput::read_file_header ()
     }
     
     //Size
-    if (!read_int (m_file, width))
+    if (!read_int (*m_file, width))
         return false; 
-    if (!read_int (m_file, height))
+    if (!read_int (*m_file, height))
         return false; 
 
     if(m_pnm_type != PF && m_pnm_type != Pf) {
         //Max Val
         if (m_pnm_type != P1 && m_pnm_type != P4) {
-            if (!read_int (m_file, m_max_val))
+            if (!read_int (*m_file, m_max_val))
                 return false;
         } else
             m_max_val = 1;
         
         //Space before content
-        if (!(isspace (m_file.get()) && m_file.good()))
+        if (!(isspace (m_file->get()) && m_file->good()))
             return false;
-        m_header_end_pos = m_file.tellg ();   // remember file pos
+        m_header_end_pos = m_file->tellg ();   // remember file pos
 
         if (m_pnm_type == P3 || m_pnm_type == P6)
             m_spec =  ImageSpec (width, height, 3, 
@@ -406,14 +408,14 @@ PNMInput::read_file_header ()
         return true;
     } else {
         //Read scaling factor
-        if(!read_int(m_file, m_scaling_factor)) {
+        if(!read_int(*m_file, m_scaling_factor)) {
             return false;
         }
         
         //Space before content
-        if (!(isspace (m_file.get()) && m_file.good()))
+        if (!(isspace (m_file->get()) && m_file->good()))
             return false;
-        m_header_end_pos = m_file.tellg ();   // remember file pos
+        m_header_end_pos = m_file->tellg ();   // remember file pos
 
         if(m_pnm_type == PF) {
             m_spec = ImageSpec(width, height, 3, TypeDesc::FLOAT);
@@ -444,9 +446,14 @@ bool
 PNMInput::open (const std::string &name, ImageSpec &newspec)
 {
     close(); //close previously opened file
-
-    Filesystem::open (m_file, name, std::ios::in|std::ios::binary);
-
+    
+    std::istream* rawfile;
+    Filesystem::open (&rawfile, name, std::ios::in|std::ios::binary);
+    if (rawfile) {
+        m_file.reset(rawfile);
+    }
+    
+    
     m_current_line = "";
     m_pos = m_current_line.c_str();
 
@@ -462,8 +469,8 @@ PNMInput::open (const std::string &name, ImageSpec &newspec)
 bool
 PNMInput::close ()
 {
-    if (m_file.is_open())
-        m_file.close();
+    if (m_file)
+        m_file.reset();
     return true;
 }
 

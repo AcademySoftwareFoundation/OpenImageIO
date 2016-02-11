@@ -30,6 +30,8 @@
 
 #include <fstream>
 
+#include <boost/scoped_ptr.hpp>
+
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imageio.h"
 
@@ -51,7 +53,7 @@ public:
 
 private:
     std::string m_filename;           ///< Stash the filename
-    std::ofstream m_file;
+    boost::scoped_ptr<std::ostream> m_file;
     unsigned int m_max_val, m_pnm_type;
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
@@ -186,27 +188,39 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     if (!m_spec.get_int_attribute ("pnm:binary", 1)) 
     {
         m_pnm_type -= 3;
-        Filesystem::open (m_file, name);
+        {
+            std::ostream* raw;
+            Filesystem::open (&raw, name);
+            if (raw) {
+                m_file.reset(raw);
+            }
+        }
     }
-    else
-        Filesystem::open (m_file, name, std::ios::out|std::ios::binary);
-
-    if (!m_file.is_open())
-       return false;
+    else {
+        std::ostream* raw;
+        Filesystem::open (&raw, name, std::ios::out|std::ios::binary);
+        if (raw) {
+            m_file.reset(raw);
+        }
+        
+    }
+    
+    if (!m_file)
+        return false;
 
     m_max_val = (1 << bits_per_sample) - 1;
     // Write header
-    m_file << "P" << m_pnm_type << std::endl;
-    m_file << m_spec.width << " " << m_spec.height << std::endl;
+    *m_file << "P" << m_pnm_type << std::endl;
+    *m_file << m_spec.width << " " << m_spec.height << std::endl;
     if (m_pnm_type != 1 && m_pnm_type != 4)  // only non-monochrome 
-        m_file << m_max_val << std::endl;
+        *m_file << m_max_val << std::endl;
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
     if (m_spec.tile_width && m_spec.tile_height)
         m_tilebuffer.resize (m_spec.image_bytes());
 
-    return m_file.good();
+    return m_file->good();
 }
 
 
@@ -214,7 +228,7 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNMOutput::close ()
 {
-    if (! m_file.is_open()) {   // already closed
+    if (!m_file) {   // already closed
         return true;
     }
 
@@ -227,7 +241,7 @@ PNMOutput::close ()
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    m_file.close();
+    m_file.reset();
     return true;  
 }
 
@@ -237,7 +251,7 @@ bool
 PNMOutput::write_scanline (int y, int z, TypeDesc format,
         const void *data, stride_t xstride)
 {
-    if (!m_file.is_open())
+    if (!m_file)
         return false;
     if (z)
         return false;
@@ -251,30 +265,30 @@ PNMOutput::write_scanline (int y, int z, TypeDesc format,
 
     switch (m_pnm_type){
         case 1:
-            write_ascii_binary (m_file, (unsigned char *) data, xstride, m_spec);
+            write_ascii_binary (*m_file, (unsigned char *) data, xstride, m_spec);
             break;
         case 2:
         case 3:
             if (m_max_val > std::numeric_limits<unsigned char>::max())
-                write_ascii (m_file, (unsigned short *) data, xstride, m_spec, m_max_val);
+                write_ascii (*m_file, (unsigned short *) data, xstride, m_spec, m_max_val);
             else 
-                write_ascii (m_file, (unsigned char *) data, xstride, m_spec, m_max_val);
+                write_ascii (*m_file, (unsigned char *) data, xstride, m_spec, m_max_val);
             break;
         case 4:
-            write_raw_binary (m_file, (unsigned char *) data, xstride, m_spec);
+            write_raw_binary (*m_file, (unsigned char *) data, xstride, m_spec);
             break;
         case 5:
         case 6:
             if (m_max_val > std::numeric_limits<unsigned char>::max())
-                write_raw (m_file, (unsigned short *) data, xstride, m_spec, m_max_val);
+                write_raw (*m_file, (unsigned short *) data, xstride, m_spec, m_max_val);
             else 
-                write_raw (m_file, (unsigned char *) data, xstride, m_spec, m_max_val);
+                write_raw (*m_file, (unsigned char *) data, xstride, m_spec, m_max_val);
             break;
         default:
             return false;
     } 
 
-    return m_file.good();
+    return m_file->good();
 }
 
 
