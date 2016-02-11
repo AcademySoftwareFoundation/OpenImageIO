@@ -140,7 +140,7 @@ dump_data (ImageInput *input, const print_info_options &opt)
 
     } else {
         std::vector<float> buf(spec.image_pixels() * spec.nchannels);
-        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+        if (! input->read_image (TypeDesc::FLOAT, &buf[0])) {
             printf ("    dump data: could not read image\n");
             return;
         }
