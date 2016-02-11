@@ -2615,7 +2615,10 @@ Print to the console detailed information about the values in every pixel.
 
 \begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
   & {\cf empty=}{\verb&0|1&} & If 0, will cause deep images to skip printing
-                            of information about pixels with no samples.
+                            of information about pixels with no samples, and
+                            cause non-deep images to skip printing information
+                            about pixels that are entirely 0.0 value in all
+                            channels.
 \end{tabular}
 \apiend
 

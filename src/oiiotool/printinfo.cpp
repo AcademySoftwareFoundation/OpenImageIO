@@ -150,6 +150,15 @@ dump_data (ImageInput *input, const print_info_options &opt)
         for (int z = 0;  z < spec.depth;  ++z) {
             for (int y = 0;  y < spec.height;  ++y) {
                 for (int x = 0;  x < spec.width;  ++x) {
+                    if (! opt.dumpdata_showempty) {
+                        bool allzero = true;
+                        for (int c = 0; c < spec.nchannels && allzero; ++c)
+                            allzero &= (ptr[c] == 0.0f);
+                        if (allzero) {
+                            ptr += spec.nchannels;
+                            continue;
+                        }
+                    }
                     if (spec.depth > 1 || spec.z != 0)
                         std::cout << Strutil::format("    Pixel (%d, %d, %d):",
                                              x+spec.x, y+spec.y, z+spec.z);
