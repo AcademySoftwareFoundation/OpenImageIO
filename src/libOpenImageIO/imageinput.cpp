@@ -481,8 +481,7 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                         return false;
                 } else {
                     buf.resize (full_tilebytes);
-                    ok &= read_tile (x, y, z, 
-                                     perchanfile ? TypeDesc::UNKNOWN : format,
+                    ok &= read_tile (x, y, z, format,
                                      &buf[0], full_pixelsize,
                                      full_tilewidthbytes, full_tilewhbytes);
                     if (ok)
