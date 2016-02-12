@@ -7,6 +7,13 @@
 #   ILMBASE_LIBRARIES      libraries just IlmBase
 #   OPENEXR_VERSION        OpenEXR version (accurate for >= 2.0.0,
 #                              otherwise will just guess 1.6.1)
+#
+# Special inputs:
+#   OPENEXR_CUSTOM_INCLUDE_DIR - custom location of headers
+#   OPENEXR_CUSTOM_LIB_DIR - custom location of libraries
+#   OPENEXR_CUSTOM_LIB_PREFIX - special snowflake library prefix
+#   OPENEXR_CUSTOM_LIB_SUFFIX - special snowflake library suffix
+#
 
 # Other standarnd issue macros
 include (FindPackageHandleStandardArgs)
@@ -65,9 +72,10 @@ endif ()
 set (_openexr_components IlmThread IlmImf Imath Iex Half)
 foreach (COMPONENT ${_openexr_components})
     string (TOUPPER ${COMPONENT} UPPERCOMPONENT)
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${COMPONENT}
+    set (FULL_COMPONENT_NAME ${OPENEXR_CUSTOM_LIB_PREFIX}${COMPONENT}${OPENEXR_CUSTOM_LIB_SUFFIX})
+    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME}
                   PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${COMPONENT})
+    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
 endforeach ()
 
 # Set the FOUND, INCLUDE_DIR, and LIBRARIES variables.
