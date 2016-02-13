@@ -54,7 +54,7 @@ before_install:
           export PLATFORM=linux64 ;
           cat /proc/cpuinfo ;
       fi
-    - if [ $DEBUG == 1 ] ; then export PLATFORM=${PLATFORM}.debug ; fi
+    - if [ "$DEBUG" == 1 ] ; then export PLATFORM=${PLATFORM}.debug ; fi
     - echo "Build platform name is $PLATFORM"
 
 install:
@@ -81,7 +81,8 @@ script:
     - make $BUILD_FLAGS test
 
 
-# after_success:
+after_success:
+    - if [ "$CODECOV" == 1 ]; then bash <(curl -s https://codecov.io/bash) ; fi
 
 after_failure:
 # FIXME: find failed logs, stash them or send them to lg?
@@ -109,6 +110,9 @@ matrix:
       - os: linux
         compiler: gcc
         env: BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0"
+#      - os: linux
+#        compiler: gcc
+#        env: BUILD_FLAGS="USE_CPP11=1 CODECOV=1"
 
 notifications:
     email:

@@ -265,6 +265,10 @@ MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
 endif
 
+ifneq (${CODECOV},)
+MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug -DCODECOV:BOOL=${CODECOV}
+endif
+
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
 
@@ -350,8 +354,15 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 
 # 'make test' does a full build and then runs all tests
 test: cmake
-	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
-	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest  ${TEST_FLAGS} -E broken )
+	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
+	@ # if [ "${CODECOV}" == "1" ] ; then lcov -b ${build_dir} -d ${build_dir} -z ; rm -rf ${build_dir}/cov ; fi
+	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest  ${TEST_FLAGS} -E broken )
+	@ ( if [ "${CODECOV}" == "1" ] ; then \
+	      cd ${build_dir} ; \
+	      lcov -b . -d . -c -o cov.info ; \
+	      lcov --remove cov.info "/usr*" -o cov.info ; \
+	      genhtml -o ./cov -t "OIIO test coverage" --num-spaces 4 cov.info ; \
+	  fi )
 
 # 'make testall' does a full build and then runs all tests (even the ones
 # that are expected to fail on some platforms)
@@ -407,6 +418,7 @@ help:
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
+	@echo "      CODECOV=1                Enable code coverage tests"
 	@echo "  Linking and libraries:"
 	@echo "      HIDE_SYMBOLS=1           Hide symbols not in the public API"
 	@echo "      SOVERSION=nn             Include the specifed major version number "
