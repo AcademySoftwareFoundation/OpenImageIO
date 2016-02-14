@@ -195,6 +195,14 @@ getargs (int argc, char *argv[])
 
 int main (int argc, char *argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_TRAVIS) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
     getargs (argc, argv);
 
     double t;

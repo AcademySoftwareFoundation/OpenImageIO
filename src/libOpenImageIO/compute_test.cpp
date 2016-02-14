@@ -279,9 +279,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("atomic_test\n"
+    ap.options ("compute_test\n"
                 OIIO_INTRO_STRING "\n"
-                "Usage:  atomic_test [options]",
+                "Usage:  compute_test [options]",
                 // "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose mode",
@@ -308,6 +308,14 @@ getargs (int argc, char *argv[])
 
 int main (int argc, char *argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_TRAVIS) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
     getargs (argc, argv);
 
     // Initialize

@@ -38,8 +38,43 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/argparse.h>
 
 OIIO_NAMESPACE_USING;
+
+static int iterations = 10;
+static int ntrials = 5;
+static bool verbose = false;
+
+
+
+static void
+getargs (int argc, char *argv[])
+{
+    bool help = false;
+    ArgParse ap;
+    ap.options ("fmath_test\n"
+                OIIO_INTRO_STRING "\n"
+                "Usage:  fmath_test [options]",
+                // "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose mode",
+                // "--threads %d", &numthreads,
+                //     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+                "--iterations %d", &iterations,
+                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
+        std::cerr << ap.geterror() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+}
 
 
 
@@ -147,8 +182,6 @@ void do_convert_type (const std::vector<S> &svec, std::vector<D> &dvec)
 template<typename S, typename D>
 void benchmark_convert_type ()
 {
-    const int ntrials = 5;
-    const int iterations = 10;
     const size_t size = 10000000;
     const S testval(1.0);
     std::vector<S> svec (size, testval);
@@ -188,6 +221,16 @@ void test_bit_range_convert ()
 
 int main (int argc, char *argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_TRAVIS) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs (argc, argv);
+
     test_int_helpers ();
 
     std::cout << "\nround trip convert char/float/char\n";
