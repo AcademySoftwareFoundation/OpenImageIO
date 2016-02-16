@@ -3,6 +3,6 @@ branches/
 build/
 dist/
 testsuite/runtest.pyc
-
+src/doc/figures/
 .cproject
 .project
