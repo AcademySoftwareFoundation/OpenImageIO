@@ -1,22 +1,45 @@
-\chapter{Making Tiled MIP-Map Texture Files With {\cf maketx}}
+\chapter{Making Tiled MIP-Map Texture Files With \maketx or \oiiotool}
 \label{chap:maketx}
 \indexapi{maketx}
+\index{Texture System!making textures with maketx}
 
 \section{Overview}
 
-The \maketx program will read an image (from any file format for
-which an \ImageInput plugin can be found) and then write it in a form
-in which it will have high performance when used by \TextureSystem
-(Chapter~\ref{chap:texturesystem}).  This involves converting it to
-tiled (versus scanline) orientation, writing multiple subimages at
-different resolutions (MIP-map), and setting a variety of header or
-metadata fields appropriately for texture maps.
+The \TextureSystem (Chapter~\ref{chap:texturesystem}) will exhibit much
+higher performance if the image files it uses as textures are tiled (versus
+scanline) orientation, have multiple subimages at different resolutions
+(MIP-mapped), and include a variety of header or metadata fields
+appropriately set for texture maps. Any image that you intend to use as
+input to \TextureSystem, therefore, should first be converted to have these
+properties. An ordinary image will work as a texture, but without this
+additional step, it will be drastically less efficient in terms of memory,
+disk or network I/O, and time.
 
-The \maketx utility is invoked as follows:
+This can be accomplished programmatically using the \ImageBufAlgo\ {\cf
+make_texture()} function (see Section~\ref{sec:iba:importexport} for C++ and
+Section~\ref{sec:iba:py:importexport} for Python).
+
+\product includes two command-line utilities capable of converting
+ordinary images into texture files: \maketx and \oiiotool.\footnote{Why
+are there two programs? Historical artifact -- \maketx existed first,
+and much later \oiiotool was extended to be capable of directly writing
+texture files. If you are simply converting an image into
+a texture, \maketx is more straightforward and foolproof, in that you
+can't accidentally forget to turn it into a texture, as you might do
+with \oiiotool. On the other hand, \oiiotool is the way to go if you have
+a complex series of image processing operations and want the end result
+to be a texture, without having to write an intermediate file to feed
+separately to \maketx.}
+
+\section{\maketx}
+\label{sec:maketx}
+
+The \maketx program will convert ordinary images to efficient
+textures. The \maketx utility is invoked as follows:
 
 \medskip
 
-\hspace{0.25in} {\cf maketx} [\emph{options}] \emph{input}... -o \emph{output}
+\hspace{0.25in} {\cf maketx} [\emph{options}] \emph{input}... {\cf -o} \emph{output}
 
 \medskip
 
@@ -26,8 +49,10 @@ output filename.  The input files may be of any image format recognized by
 format of the output image will be inferred from the file extension of
 the output filename (e.g., \qkw{foo.tif} will write a TIFF file).
 
+\medskip
+\newpage
 
-\section{{\cf maketx} command-line options}
+\noindent Command-line arguments are:
 
 \apiitem{--help}
 Prints usage information to the terminal.
@@ -347,7 +372,7 @@ optimal values for \OpenImageIO's \TextureSystem, overriding any
 contradictory settings on the command line or in the input texture.
 
 Specifically, this is the equivalent to using \\
- {\cf --separate --tile 64 64 --hash}.
+ {\cf --separate --tile 64 64}.
 \apiend
 
 \apiitem{--colorconvert {\rm \emph{inspace outspace}}}
@@ -359,7 +384,7 @@ least be able to convert among linear, sRGB, and Rec709.
 \apiend
 
 \apiitem{--unpremult}
-When undergoing color some conversions, it is helpful to
+When undergoing some color conversions, it is helpful to
 ``un-premultiply'' the alpha before converting color channels, and then
 re-multiplying by alpha.  Caveat emptor -- if you don't know exactly
 when to use this, you probably shouldn't be using it at all.
@@ -400,7 +425,7 @@ of the geometric layout.}.
 
 \begin{comment}
 
-\section{{\cf maketx} Recipes}
+\subsection{{\cf maketx} Recipes}
 
 % FIXME
 
@@ -418,3 +443,173 @@ file extension. The following example converts a PNG image to JPEG:
 \end{code}
 
 \end{comment}
+
+
+\section{\oiiotool}
+\label{sec:oiiotooltex}
+
+The \oiiotool utility (Chapter~\ref{chap:oiiotool}) is capable of writing
+textures using the {\cf -otex} option, and lat-long environment maps using
+the {\cf -oenv} option. Roughly speaking,
+
+\medskip
+
+\hspace{0.25in} {\cf maketx} [\emph{maketx-options}] \emph{input} {\cf -o} \emph{output}
+
+\medskip
+
+\noindent is equivalent to
+
+\medskip
+
+\hspace{0.25in} {\cf oiiotool} \emph{input} [\emph{oiiotool-options}] {\cf -otex} \emph{output}
+
+\medskip
+
+\noindent and
+
+\medskip
+
+\hspace{0.25in} {\cf maketx -envlatl} [\emph{maketx-options}] \emph{input} {\cf -o} \emph{output}
+
+\medskip
+
+\noindent is equivalent to
+
+\medskip
+
+\hspace{0.25in} {\cf oiiotool} \emph{input} [\emph{oiiotool-options}] {\cf -oenv} \emph{output}
+
+\medskip
+
+\noindent However, the notation for the various options are not identical
+between the two programs, as will be explained by the remainder of this
+section.
+
+The most important difference between \oiiotool and \maketx is that
+\oiiotool can do so much more than convert an existing input image to a
+texture -- literally any image creation or manipulation you can do via
+\oiiotool may be output directly as a full texture file using {\cf -otex}
+(or as a lat-long environment map using {\cf -oenv}).
+
+Note that it is vitally important that you use one of the texture output
+commands ({\cf -otex} or {\cf -oenv}) when creating textures with \oiiotool
+--- if you inadvertently forget and use an ordinary {\cf -o}, you will end
+up with an output image that is much less efficient to use as a texture.
+
+\subsubsection*{Command line arguments useful when creating textures}
+
+As with any use of \oiiotool, you may use the following to control the
+run generally:
+
+\apiitem{{--help \\
+-v \\
+--runstats \\
+--threads} \emph{n}}
+\apiend
+
+\noindent and as with any use of \oiiotool, you may use the following
+command-line options to control aspects of the any output files (including
+those from {\cf -otex} and {\cf -oenv}, as well as {\cf -o}). Only brief
+descriptions are given below, please consult Chapter~\ref{chap:oiiotool} for
+detailed explanations.
+
+\apiitem{{-d} {\rm \emph{datatype}}}
+Specify the pixel data type ({\cf uint8}, {\cf uint16}, {\cf half}, {\cf float},
+etc.) if you wish to override the default of writing the same data type as
+the first input file read.
+\apiend
+
+\apiitem{{--tile} {\rm \emph{x}} {\rm \emph{y}}}
+Explicitly override the tile size (though you are strongly urged to use
+the default, and not use this command).
+\apiend
+
+\apiitem{{--compression} {\rm \emph{method}}}
+Explicitly override the default compression methods when writing
+the texture file.
+\apiend
+
+\apiitem{--ch {\rm \emph{channellist}}}
+Shuffle, add, delete, or rename channels (see \ref{sec:oiiotool:ch}).
+\apiend
+
+\apiitem{--chnames {\rm \emph{a,b,...}}}
+Renames the channels of the output image.
+\apiend
+
+\apiitem{--fixnan {\rm \emph{stretegy}}}
+Repairs any pixels in the input image that contained {\cf NaN} or 
+{\cf Inf} values (if the \emph{strategy} is {\cf box3} or {\cf black}),
+or to simply abort with an error message (if the \emph{strategy} is {\cf error}).
+\apiend
+
+\apiitem{--fullpixels}
+Resets the ``full'' (or ``display'') pixel range to be the ``data'' range.
+\apiend
+
+\apiitem{--planarconfig separate}
+Forces ``separate'' (e.g., RRR...GGG...BBB) packing of channels in the
+output texture.  This is almost always a bad choice, unless you know that
+the texture file must be readable by PRMan, in which case it is required.
+\apiend
+
+\apiitem{--attrib {\rm \emph{name ~ value}}}
+\oiiotool's {\cf --attrib} command may be used to set attributes
+in the metadata of the output texture.
+\apiend
+
+\apiitem{--attrib:type=matrix worldtocam {\rm \emph{...16 comma-separated floats...}} \\
+--attrib:type=matrix screentocam {\rm \emph{...16 comma-separated floats...}}}
+Set/override the camera and screen matrices.
+\apiend
+
+\subsubsection*{Optional arguments to {\cf -otex} and {\cf -oenv}}
+
+As with many \oiiotool commands, the {\cf -otex} and {\cf -oenv} may
+have various optional arguments appended, in the form {\cf :name=value}
+(see Section~\ref{sec:oiiotooloptionalargs}).
+
+Optional arguments supported by {\cf -otex} and {\cf -oenv} include all
+the same options as {\cf -o} (Section~\ref{sec:oiiotool:o}) and also the
+following (explanations are brief, please consult Section~\ref{sec:maketx}
+for more detailed explanations of each, for the corresponding \maketx
+option):
+
+\medskip
+
+\noindent \begin{tabular}{p{2in} p{3in}}
+Appended Option & \maketx equivalent \\ \hline
+{\cf wrap=}\emph{string} & {\cf --wrap} \\
+{\cf swrap=}\emph{string} & {\cf --swrap} \\
+{\cf twrap=}\emph{string} & {\cf --twrap} \\[.5ex]
+{\cf resize=1} & {\cf --resize} \\
+{\cf nomipmap=1} & {\cf --nomipmap} \\
+{\cf updatemode=1} & {\cf -u} \\
+{\cf monochrome_detect=1} & {\cf --monochrome-detect} \\
+{\cf opaque_detect=1} & {\cf --opaque-detect} \\
+{\cf unpremult=1} & {\cf --unpremult} \\
+{\cf incolorspace=}\emph{name} & {\cf --incolorspace} \\
+{\cf outcolorspace=}\emph{name} & {\cf --outcolorspace} \\
+{\cf hilightcomp=1} & {\cf --hicomp} \\
+{\cf sharpen=}\emph{float} & {\cf --sharpen} \\
+{\cf filter=}\emph{string} & {\cf --filter} \\
+%{\cf oiio_options=1} &  {\cf --oiio} \\
+{\cf prman_metadata=1} & {\cf --prman} \\
+{\cf prman_options=1} & {\cf --prman-metadata} \\
+\end{tabular}
+
+
+\subsubsection*{Examples}
+
+\begin{code}
+oiiotool in.tif -otex out.tx
+
+oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
+
+oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
+
+oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
+\end{code}
+
+

@@ -611,7 +611,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
     bool verbose = configspec.get_int_attribute ("maketx:verbose") != 0;
     if (verbose) {
         outstream << "  Writing file: " << outputfilename << std::endl;
-        outstream << "  Filter \"" << filtername << "\n";
+        outstream << "  Filter \"" << filtername << "\"\n";
         outstream << "  Top level is " << formatres(outspec) << std::endl;
     }
 

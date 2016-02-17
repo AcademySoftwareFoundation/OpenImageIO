@@ -237,11 +237,11 @@ inline T from_string (string_view s) {
 }
 // Special case for int
 template<> inline int from_string<int> (string_view s) {
-    return strtol (s.c_str(), NULL, 10);
+    return s.size() ? strtol (s.c_str(), NULL, 10) : 0;
 }
 // Special case for float
 template<> inline float from_string<float> (string_view s) {
-    return (float)strtod (s.c_str(), NULL);
+    return s.size() ? (float)strtod (s.c_str(), NULL) : 0.0f;
 }
 
 

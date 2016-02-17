@@ -1316,7 +1316,8 @@ bool fixNonFinite_ (ImageBuf &dst, ImageBufAlgo::NonFiniteFixMode mode,
     ROI dstroi = get_roi (dst.spec());
     int count = 0;   // Number of pixels with nonfinite values
 
-    if (mode == ImageBufAlgo::NONFINITE_NONE) {
+    if (mode == ImageBufAlgo::NONFINITE_NONE ||
+        mode == ImageBufAlgo::NONFINITE_ERROR) {
         // Just count the number of pixels with non-finite values
         for (ImageBuf::Iterator<T,T> pixel (dst);  ! pixel.done();  ++pixel) {
             for (int c = roi.chbegin;  c < roi.chend;  ++c) {
@@ -1392,7 +1393,8 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 {
     if (mode != ImageBufAlgo::NONFINITE_NONE &&
         mode != ImageBufAlgo::NONFINITE_BLACK &&
-        mode != ImageBufAlgo::NONFINITE_BOX3) {
+        mode != ImageBufAlgo::NONFINITE_BOX3 &&
+        mode != ImageBufAlgo::NONFINITE_ERROR) {
         // Something went wrong
         dst.error ("fixNonFinite: unknown repair mode");
         return false;
@@ -1402,26 +1404,37 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
         return false;
 
     // Initialize
-    if (pixelsFixed)
-        *pixelsFixed = 0;
+    int pixelsFixed_local;
+    if (! pixelsFixed)
+        pixelsFixed = &pixelsFixed_local;
+    *pixelsFixed = 0;
 
     // Start by copying dst to src, if they aren't the same image
     if (&dst != &src)
         ImageBufAlgo::paste (dst, roi.xbegin, roi.ybegin, roi.zbegin, 0,
                              src, roi, nthreads);
 
+    bool ok = true;
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :
-        return fixNonFinite_<float> (dst, mode, pixelsFixed, roi, nthreads);
+        ok = fixNonFinite_<float> (dst, mode, pixelsFixed, roi, nthreads);
+        break;
     case TypeDesc::HALF  :
-        return fixNonFinite_<half> (dst, mode, pixelsFixed, roi, nthreads);
+        ok = fixNonFinite_<half> (dst, mode, pixelsFixed, roi, nthreads);
+        break;
     case TypeDesc::DOUBLE:
-        return fixNonFinite_<double> (dst, mode, pixelsFixed, roi, nthreads);
+        ok = fixNonFinite_<double> (dst, mode, pixelsFixed, roi, nthreads);
+        break;
     default:
         // All other format types aren't capable of having nonfinite
         // pixel values, so the copy was enough.
-        return true;
+        break;
     }
+    if (mode == ImageBufAlgo::NONFINITE_ERROR && *pixelsFixed) {
+        dst.error ("Nonfinite pixel values found");
+        ok = false;
+    }
+    return ok;
 }
 
 
