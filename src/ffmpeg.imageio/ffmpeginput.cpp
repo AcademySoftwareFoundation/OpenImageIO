@@ -37,8 +37,33 @@ extern "C" { // ffmpeg is a C api
 
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,28,1)
-#define av_frame_alloc  avcodec_alloc_frame
-#define av_frame_free   avcodec_free_frame
+#  define av_frame_alloc  avcodec_alloc_frame
+//Ancient versions used av_freep
+#  if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54,59,100)
+#    define av_frame_free   av_freep
+#  else
+#    define av_frame_free   avcodec_free_frame
+#  endif
+#endif
+
+// PIX_FMT was renamed to AV_PIX_FMT on this version
+#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51,74,100)
+#  define AVPixelFormat PixelFormat
+#  define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+#  define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
+#  define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
+#  define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
+#  define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
+#  define AV_PIX_FMT_YUV420P  PIX_FMT_YUV420P
+#  define AV_PIX_FMT_YUV422P  PIX_FMT_YUV422P
+#  define AV_PIX_FMT_YUV440P  PIX_FMT_YUV440P
+#  define AV_PIX_FMT_YUV444P  PIX_FMT_YUV444P
+#endif
+
+// r_frame_rate deprecated in ffmpeg
+// see ffmpeg commit #aba232c for details
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52,42,0)
+#  define r_frame_rate avg_frame_rate
 #endif
 
 #include <boost/thread/once.hpp>
@@ -213,7 +238,6 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         !strcmp (m_codec_context->codec->name, "dvvideo")) {
         m_offset_time = false;
     }
-
     m_codec_cap_delay = m_codec_context->codec->capabilities & CODEC_CAP_DELAY ;
 
     AVStream *stream = m_format_context->streams[m_video_stream];
@@ -223,29 +247,29 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
 
     m_frames = stream->nb_frames;
     m_start_time = stream->start_time;
-
     if (!m_frames) {
-
         seek (0);
         AVPacket pkt;
         av_init_packet (&pkt);
         av_read_frame (m_format_context, &pkt);
         int64_t first_pts = pkt.pts;
         int64_t max_pts = 0 ;
+        av_free_packet (&pkt); //because seek(int) uses m_format_context
         seek (1 << 29);
-        av_init_packet (&pkt);
+        av_init_packet (&pkt); //Is this needed?
         while (stream && av_read_frame (m_format_context, &pkt) >= 0) {
             int64_t current_pts = static_cast<int64_t> (av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
             if (current_pts > max_pts) {
                 max_pts = current_pts +1;
             }
+            av_free_packet (&pkt); //Always free before format_context usage
         }
         m_frames = max_pts;
     }
     m_frame = av_frame_alloc();
     m_rgb_frame = av_frame_alloc();
     m_rgb_buffer.resize(
-        avpicture_get_size (PIX_FMT_RGB24,
+        avpicture_get_size (AV_PIX_FMT_RGB24,
         m_codec_context->width,
         m_codec_context->height),
         0
@@ -273,7 +297,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         pixFormat,
         m_codec_context->width,
         m_codec_context->height,
-        PIX_FMT_RGB24,
+        AV_PIX_FMT_RGB24,
         SWS_AREA,
         NULL,
         NULL,
@@ -326,8 +350,10 @@ FFmpegInput::read_native_scanline (int y, int z, void *data)
 bool
 FFmpegInput::close (void)
 {
-    avcodec_close (m_codec_context);
-    avformat_close_input (&m_format_context);
+    if (m_codec_context)
+        avcodec_close (m_codec_context);
+    if (m_format_context)
+        avformat_close_input (&m_format_context);
     av_free (m_format_context); // will free m_codec and m_codec_context
     av_frame_free (&m_frame); // free after close input
     av_frame_free (&m_rgb_frame);
@@ -371,7 +397,7 @@ FFmpegInput::read_frame(int frame)
                 (
                     reinterpret_cast<AVPicture*>(m_rgb_frame),
                     &m_rgb_buffer[0],
-                    PIX_FMT_RGB24,
+                    AV_PIX_FMT_RGB24,
                     m_codec_context->width,
                     m_codec_context->height
                 );
