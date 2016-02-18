@@ -23,9 +23,12 @@ find_package (ZLIB REQUIRED)
 
 # List of likely places to find the headers -- note priority override of
 # OPENEXR_CUSTOM_INCLUDE_DIR and ${OPENEXR_HOME}/include.
-set (GENERIC_INCLUDE_PATHS 
+# ILMBASE is needed in case ilmbase an openexr are installed in separate
+# directories, like NixOS does
+set (GENERIC_INCLUDE_PATHS
     ${OPENEXR_CUSTOM_INCLUDE_DIR}
     ${OPENEXR_HOME}/include
+    ${ILMBASE_HOME}/include
     /usr/include
     /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
     /usr/local/include
@@ -37,6 +40,7 @@ set (GENERIC_INCLUDE_PATHS
 set (GENERIC_LIBRARY_PATHS 
     ${OPENEXR_CUSTOM_LIB_DIR}
     ${OPENEXR_HOME}/lib
+    ${ILMBASE_HOME}/lib
     /usr/lib
     /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
     /usr/local/lib
@@ -77,6 +81,12 @@ foreach (COMPONENT ${_openexr_components})
                   PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
 endforeach ()
+
+#Half usually has no suffix
+find_library (OPENEXR_HALF_LIBRARY ${OPENEXR_CUSTOM_LIB_PREFIX}Half
+              PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
+find_library (OPENEXR_HALF_LIBRARY ${OPENEXR_CUSTOM_LIB_PREFIX}Half)
+
 
 # Set the FOUND, INCLUDE_DIR, and LIBRARIES variables.
 if (ILMBASE_INCLUDE_PATH AND OPENEXR_INCLUDE_PATH AND
