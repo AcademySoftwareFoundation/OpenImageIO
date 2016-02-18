@@ -725,15 +725,15 @@ specified subimage or MIP level).
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.UNKNOWN) \\
-array ImageInput.{\ce read_image} (chbegin, chend, type=OpenImageIO.UNKNOWN)}
+\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.FLOAT) \\
+array ImageInput.{\ce read_image} (chbegin, chend, type=OpenImageIO.FLOAT)}
 Read the entire image and return the pixels as an array of
 $\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
-values (or {\cf None} if an error occurred).  The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or  if the
-argument is missing or is {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
-appropriate data type that is the ``smallest'' type that can hold the actual
-types in the file. The call may optionally specify a subset of channels.
+values (or {\cf None} if an error occurred). The array will be of the type
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
+{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
+array of {\cf unsigned char} will be returned containing the raw data in
+its native format. The call may optionally specify a subset of channels.
 
 \noindent Example:
 \begin{code}
@@ -746,13 +746,14 @@ types in the file. The call may optionally specify a subset of channels.
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_scanline} (y, z, type=OpenImageIO.UNKNOWN)}
+\apiitem{array ImageInput.{\ce read_scanline} (y, z, type=OpenImageIO.FLOAT)}
 Read scanline number {\cf y} from depth plane {\cf z} from the open file,
 returning it as an array of $\mathit{width} \times \mathit{nchannels}$
 values (or {\cf None} if an error occurred). The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or if the
-argument is missing or is {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
-appropriate data type.
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
+{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
+array of {\cf unsigned char} will be returned containing the raw data in
+its native format.
 
 \noindent Example:
 \begin{code}
@@ -768,14 +769,15 @@ appropriate data type.
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_tile} (x, y, z, type=OpenImageIO.UNKNOWN)}
+\apiitem{array ImageInput.{\ce read_tile} (x, y, z, type=OpenImageIO.FLOAT)}
 Read the tile whose upper left corner is pixel {\cf (x,y,z)} from the open
 file, returning it as an array of
 $\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
 values (or {\cf None} if an error occurred). The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument, or if the
-argument is missing or {\cf TypeDesc(oiio.UNKNOWN)}, it will choose an
-appropriate data type.
+specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
+{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
+array of {\cf unsigned char} will be returned containing the raw data in
+its native format.
 
 \noindent Example:
 \begin{code}
@@ -794,9 +796,9 @@ appropriate data type.
 \apiend
 
 \apiitem{array ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
-\bigspc\bigspc\spc type=OpenImageIO.UNKNOWN) \\
+\bigspc\bigspc\spc type=OpenImageIO.FLOAT) \\
 array ImageInput.{\ce read_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
-    \bigspc\bigspc\spc chbegin, chend, type=OpenImageIO.UNKNOWN)}
+    \bigspc\bigspc\spc chbegin, chend, type=OpenImageIO.FLOAT)}
 Similar to the C++ routines, these functions read multiple scanlines or 
 tiles at once, which in some cases may be more efficient than reading
 each scanline or tile separately.  Additionally, they allow you to read only

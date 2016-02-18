@@ -48,7 +48,11 @@ python_array_code (TypeDesc format)
     case TypeDesc::INT32 :  return "i";
     case TypeDesc::FLOAT :  return "f";
     case TypeDesc::DOUBLE : return "d";
-    default :               return "f";   // Punt -- return float
+    case TypeDesc::HALF :   return "H";  // Return half in uint16
+    default :
+        // For any other type, including UNKNOWN, pack it into an
+        // unsigned byte array.
+        return "B";
     }
 }
 
@@ -78,15 +82,19 @@ typedesc_from_python_array_code (char code)
 object
 C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
 {
-    // Construct a Python array, convert the buffer we read into a string
-    // and then into the array.
+    // Figure out what kind of array to return and create it
     object arr_module(handle<>(PyImport_ImportModule("array")));
     object array = arr_module.attr("array")(python_array_code(type));
+
+    // Create a Python byte array (or string for Python2) to hold the
+    // data.
 #if PY_MAJOR_VERSION >= 3
     object string_py(handle<>(PyBytes_FromStringAndSize(data, size)));
 #else
     object string_py(handle<>(PyString_FromStringAndSize(data, size)));
 #endif
+
+    // Copy the data from the string to the array, then return the array.
 #if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
     array.attr("fromstring")(string_py);
 #else

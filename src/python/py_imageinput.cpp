@@ -156,13 +156,14 @@ ImageInputWrap::read_image (int chbegin, int chend, TypeDesc format)
     // Allocate our own temp buffer and try to read the image into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
+    bool native = (format.basetype == TypeDesc::UNKNOWN);
     if (chend < 0)
         chend = spec.nchannels;
     chend = clamp (chend, chbegin+1, spec.nchannels);
-    int nchans = chend - chbegin;
-    size_t size = (size_t) spec.image_pixels() * nchans * format.size();
+    size_t nchans = size_t(chend - chbegin);
+    size_t pixelsize = native ? spec.pixel_bytes(chbegin, chend, native)
+                              : size_t(nchans * format.size());
+    size_t size = size_t(spec.image_pixels()) * pixelsize;
     char *data = new char[size];
     bool ok;
     {
@@ -173,7 +174,6 @@ ImageInputWrap::read_image (int chbegin, int chend, TypeDesc format)
         delete [] data;  // never mind
         return object(handle<>(Py_None));
     }
-
     object array = C_array_to_Python_array (data, format, size);
 
     // clean up and return the array handle
@@ -200,7 +200,7 @@ ImageInputWrap_read_image_bt_chans (ImageInputWrap& in, int chbegin, int chend,
 object
 ImageInputWrap_read_image_default (ImageInputWrap& in)
 {
-    return in.read_image (0, -1, TypeDesc::UNKNOWN);
+    return in.read_image (0, -1, TypeDesc::FLOAT);
 }
 
 
@@ -209,7 +209,7 @@ object
 ImageInputWrap_read_image_default_chans (ImageInputWrap& in,
                                          int chbegin, int chend)
 {
-    return in.read_image (chbegin, chend, TypeDesc::UNKNOWN);
+    return in.read_image (chbegin, chend, TypeDesc::FLOAT);
 }
 
 
@@ -217,28 +217,8 @@ ImageInputWrap_read_image_default_chans (ImageInputWrap& in,
 object
 ImageInputWrap::read_scanline (int y, int z, TypeDesc format)
 {
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    size_t size = (size_t) spec.width * spec.nchannels * format.size();
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_scanline (y, z, format, data);
-    }
-    if (!ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
+    return read_scanlines (y, y+1, z, 0, spec.nchannels, format);
 }
 
 
@@ -253,7 +233,7 @@ ImageInputWrap_read_scanline_bt (ImageInputWrap& in, int y, int z,
 object
 ImageInputWrap_read_scanline_default (ImageInputWrap& in, int y, int z)
 {
-    return in.read_scanline (y, z, TypeDesc::UNKNOWN);
+    return in.read_scanline (y, z, TypeDesc::FLOAT);
 }
 
 
@@ -266,11 +246,12 @@ ImageInputWrap::read_scanlines (int ybegin, int yend, int z,
     // If the read fails, return None.
     ASSERT (m_input);
     const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
+    bool native = (format.basetype == TypeDesc::UNKNOWN);
     chend = clamp (chend, chbegin+1, spec.nchannels);
-    int nchans = chend - chbegin;
-    size_t size = (size_t) spec.width * (yend-ybegin) * nchans * format.size();
+    size_t nchans = size_t(chend - chbegin);
+    size_t pixelsize = native ? spec.pixel_bytes(chbegin, chend, native)
+                              : size_t(nchans * format.size());
+    size_t size = size_t((yend-ybegin) * spec.width) * pixelsize;
     char *data = new char[size];
     bool ok;
     {
@@ -303,7 +284,7 @@ object
 ImageInputWrap_read_scanlines_default (ImageInputWrap& in, int ybegin, int yend,
                                        int z, int chbegin, int chend)
 {
-    return in.read_scanlines (ybegin, yend, z, chbegin, chend, TypeDesc::UNKNOWN);
+    return in.read_scanlines (ybegin, yend, z, chbegin, chend, TypeDesc::FLOAT);
 }
 
 
@@ -311,28 +292,9 @@ ImageInputWrap_read_scanlines_default (ImageInputWrap& in, int ybegin, int yend,
 object
 ImageInputWrap::read_tile (int x, int y, int z, TypeDesc format)
 {
-    // Allocate our own temp buffer and try to read the scanline into it.
-    // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
-    size_t size = (size_t) spec.tile_pixels() * spec.nchannels * format.size();
-    char *data = new char[size];
-    bool ok;
-    {
-        ScopedGILRelease gil;
-        ok = m_input->read_tile (x, y, z, format, data);
-    }
-    if (! ok) {
-        delete [] data;  // never mind
-        return object(handle<>(Py_None));
-    }
-
-    object array = C_array_to_Python_array (data, format, size);
-
-    // clean up and return the array handle
-    delete [] data;
-    return array;
+    return read_tiles (x, x+spec.tile_width, y, y+spec.tile_height,
+                       z, z+spec.tile_depth, 0, spec.nchannels, format);
 }
 
 
@@ -348,7 +310,7 @@ object
 ImageInputWrap_read_tile_default (ImageInputWrap& in,
                                   int x, int y, int z)
 {
-    return in.read_tile (x, y, z, TypeDesc::UNKNOWN);
+    return in.read_tile (x, y, z, TypeDesc::FLOAT);
 }
 
 
@@ -361,12 +323,14 @@ ImageInputWrap::read_tiles (int xbegin, int xend, int ybegin, int yend,
     // Allocate our own temp buffer and try to read the scanline into it.
     // If the read fails, return None.
     const ImageSpec &spec = m_input->spec();
-    if (format.basetype == TypeDesc::UNKNOWN)
-        format = spec.format;
+    bool native = (format.basetype == TypeDesc::UNKNOWN);
+    if (chend < 0)
+        chend = spec.nchannels;
     chend = clamp (chend, chbegin+1, spec.nchannels);
-    int nchans = chend - chbegin;
-    size_t size = (size_t) ((xend-xbegin) * (yend-ybegin) * 
-                            (zend-zbegin) * nchans * format.size());
+    size_t nchans = size_t(chend - chbegin);
+    size_t pixelsize = native ? spec.pixel_bytes(chbegin, chend, native)
+                              : size_t(nchans * format.size());
+    size_t size = size_t((xend-xbegin) * (yend-ybegin) * (zend-zbegin)) * pixelsize;
     char *data = new char[size];
     bool ok;
     {
@@ -404,7 +368,7 @@ ImageInputWrap_read_tiles_default (ImageInputWrap& in,
                                    int zbegin, int zend, int chbegin, int chend)
 {
     return in.read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                          chbegin, chend, TypeDesc::UNKNOWN);
+                          chbegin, chend, TypeDesc::FLOAT);
 }
 
 

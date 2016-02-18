@@ -71,7 +71,8 @@ def poor_mans_iinfo (filename) :
 # channels, if nonzero, otherwise read the full channel range in the
 # file.
 def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
-                    method="image", nchannels=0) :
+                    method="image", nchannels=0,
+                    print_pixels = True, keep_unknown=False) :
     input = oiio.ImageInput.open (filename)
     if not input :
         print 'Could not open "' + filename + '"'
@@ -83,7 +84,7 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
     spec = input.spec ()
     if nchannels == 0 or method == "image" :
         nchannels = spec.nchannels
-    if type == oiio.UNKNOWN :
+    if type == oiio.UNKNOWN and not keep_unknown :
         type = spec.format.basetype
     if method == "image" :
         data = input.read_image (type)
@@ -101,16 +102,19 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
     if data == None :
         print "read returned None"
         return
-    # print the first, last, and middle pixel values
-    (x,y) = (spec.x, spec.y)
-    i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-    print "@", (x,y), "=", data[i:i+nchannels]
-    (x,y) = (spec.x+spec.width-1, spec.y+spec.height-1)
-    i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-    print "@", (x,y), "=", data[i:i+nchannels]
-    (x,y) = (spec.x+spec.width/2, spec.y+spec.height/2)
-    i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-    print "@", (x,y), "=", data[i:i+nchannels]
+    if print_pixels :
+        # print the first, last, and middle pixel values
+        (x,y) = (spec.x, spec.y)
+        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
+        print "@", (x,y), "=", data[i:i+nchannels]
+        (x,y) = (spec.x+spec.width-1, spec.y+spec.height-1)
+        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
+        print "@", (x,y), "=", data[i:i+nchannels]
+        (x,y) = (spec.x+spec.width/2, spec.y+spec.height/2)
+        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
+        print "@", (x,y), "=", data[i:i+nchannels]
+    else :
+        print "Read array typecode", data.typecode, " [", len(data), "]"
     input.close ()
     print
 
@@ -182,6 +186,13 @@ def test_readtile (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
     print
 
 
+def write (image, filename, format=oiio.UNKNOWN) :
+    if not image.has_error :
+        image.set_write_format (format)
+        image.write (filename)
+    if image.has_error :
+        print "Error writing", filename, ":", image.geterror()
+
 
 ######################################################################
 # main test starts here
@@ -219,6 +230,29 @@ try:
     print "Testing read_tiles:"
     test_readimage ("../common/textures/grid.tx",
                     method="tiles")
+
+    # test reading a raw buffer in native format, we should get back
+    # an unsigned byte array.
+    b = oiio.ImageBuf (oiio.ImageSpec(64, 64, 3, oiio.UINT16))
+    oiio.ImageBufAlgo.fill (b, (1,0,0), (0,1,0), (0,0,1), (1,1,1))
+    write (b, "testu16.tif", oiio.UINT16)
+    b.set_write_tiles (32, 32)
+    write (b, "testf16.exr", oiio.HALF)
+    print "Test read_image native u16:"
+    test_readimage ("testu16.tif", method="image", type=oiio.UNKNOWN,
+                    keep_unknown=True, print_pixels=False)
+    print "Test read_scanlines native u16:"
+    test_readimage ("testu16.tif", method="scanlines", type=oiio.UNKNOWN,
+                    keep_unknown=True, print_pixels=False)
+    print "Test read_tiles native half:"
+    test_readimage ("testf16.exr", method="tiles", type=oiio.UNKNOWN,
+                    keep_unknown=True, print_pixels=False)
+    print "Test read_image into half:"
+    test_readimage ("testu16.tif", method="image", type=oiio.HALF,
+                    keep_unknown=True, print_pixels=False)
+    print "Test read_image into FLOAT:"
+    test_readimage ("testu16.tif", method="image", type=oiio.FLOAT,
+                    keep_unknown=True, print_pixels=False)
 
     print "Done."
 except Exception as detail:
