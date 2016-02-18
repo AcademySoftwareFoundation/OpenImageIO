@@ -70,7 +70,11 @@ if (NOT OPENEXR_FOUND)
     find_package (OpenEXR REQUIRED)
 endif ()
 
-include_directories ("${OPENEXR_INCLUDE_DIR}")
+#OpenEXR 2.2 still has problems with importing ImathInt64.h unqualified
+#thus need for ilmbase/OpenEXR
+include_directories ("${OPENEXR_INCLUDE_DIR}"
+                     "${ILMBASE_INCLUDE_DIR}"
+                     "${ILMBASE_INCLUDE_DIR}/OpenEXR")
 
 if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
     # OpenEXR 1.x had weird #include dirctives, this is also necessary:

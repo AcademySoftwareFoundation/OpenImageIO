@@ -165,6 +165,10 @@ ifneq (${OPENEXR_HOME},)
 MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
 endif
 
+ifneq (${ILMBASE_HOME},)
+MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
+endif
+
 ifneq (${OCIO_HOME},)
 MY_CMAKE_FLAGS += -DOCIO_PATH:STRING=${OCIO_HOME}
 endif
@@ -416,6 +420,7 @@ help:
 	@echo "  Finding and Using Dependencies:"
 	@echo "      BOOST_HOME=path          Custom Boost installation"
 	@echo "      OPENEXR_HOME=path        Custom OpenEXR installation"
+	@echo "      ILMBASE_HOME=path        Custom IlmBase installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_OPENGL=0             Skip anything that needs OpenGL"
