@@ -130,4 +130,24 @@ Opened "grid.tx" as a tiff
 @ (1023, 1023) = array('B', [0, 0, 0, 255])
 @ (512, 512) = array('B', [0, 0, 0, 255])
 
+Test read_image native u16:
+Opened "testu16.tif" as a tiff
+Read array typecode B  [ 24576 ]
+
+Test read_scanlines native u16:
+Opened "testu16.tif" as a tiff
+Read array typecode B  [ 24576 ]
+
+Test read_tiles native half:
+Opened "testf16.exr" as a openexr
+Read array typecode B  [ 24576 ]
+
+Test read_image into half:
+Opened "testu16.tif" as a tiff
+Read array typecode H  [ 12288 ]
+
+Test read_image into FLOAT:
+Opened "testu16.tif" as a tiff
+Read array typecode f  [ 12288 ]
+
 Done.
