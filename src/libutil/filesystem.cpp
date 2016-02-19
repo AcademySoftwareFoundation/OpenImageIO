@@ -39,11 +39,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
-#include <boost/shared_ptr.hpp>
+
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/ustring.h"
 #include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/refcnt.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -611,13 +612,11 @@ open_ifstream_impl(string_view path,
         return 0;
     }
     try {
-        ret->open(
 #ifdef _WIN32
-                  wpath.c_str(),
+        ret->open(wpath.c_str(),mode);
 #else
-                  path.c_str(),
+        ret->open(path.c_str(),mode);
 #endif
-                  mode);
     } catch (const std::exception & e) {
         delete ret;
         return 0;
@@ -643,13 +642,11 @@ open_ofstream_impl(string_view path,
         return 0;
     }
     try {
-        ret->open(
 #ifdef _WIN32
-                  wpath.c_str(),
+        ret->open(wpath.c_str(),mode);
 #else
-                  path.c_str(),
+        ret->open(path.c_str(),mode);
 #endif
-                  mode);
     } catch (const std::exception & e) {
         delete ret;
         return 0;
@@ -674,6 +671,14 @@ Filesystem::open (std::istream** stream,
         return;
     }
     *stream = open_ifstream_impl(path, mode | std::ios_base::in);
+    if (!*stream) {
+        return;
+    }
+    if ((*stream)->fail()) {
+        delete *stream;
+        *stream = 0;
+        return;
+    }
     if (mode & std::ios_base::ate) {
         (*stream)->seekg (0, std::ios_base::end);
     } else {
@@ -693,6 +698,14 @@ Filesystem::open (std::ostream** stream,
         return;
     }
     *stream = open_ofstream_impl(path, mode | std::ios_base::out);
+    if (!*stream) {
+        return;
+    }
+    if ((*stream)->fail()) {
+        delete *stream;
+        *stream = 0;
+        return;
+    }
     if ((mode & std::ios_base::app) == 0) {
         (*stream)->seekp (0, std::ios_base::end);  // force seek, otherwise broken
     }
@@ -708,14 +721,9 @@ Filesystem::read_text_file (string_view filename, std::string &str)
 {
     // For info on why this is the fastest method:
     // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
-    boost::shared_ptr<std::istream> in;
-    {
-        std::istream* inraw;
-        Filesystem::open (&inraw, filename);
-        if (inraw) {
-            in.reset(inraw);
-        }
-    }
+    std::istream* inraw;
+    Filesystem::open (&inraw, filename);
+    shared_ptr<std::istream> in(inraw);
 
     // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
     if (in) {
