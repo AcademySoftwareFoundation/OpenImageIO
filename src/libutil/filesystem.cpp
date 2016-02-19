@@ -674,15 +674,14 @@ Filesystem::open (std::istream** stream,
     if (!*stream) {
         return;
     }
-    if ((*stream)->fail()) {
-        delete *stream;
-        *stream = 0;
-        return;
-    }
     if (mode & std::ios_base::ate) {
         (*stream)->seekg (0, std::ios_base::end);
     } else {
         (*stream)->seekg (0, std::ios_base::beg); // force seek, otherwise broken
+    }
+    if ((*stream)->fail()) {
+        delete *stream;
+        *stream = 0;
     }
 }
 
@@ -701,13 +700,12 @@ Filesystem::open (std::ostream** stream,
     if (!*stream) {
         return;
     }
+    if ((mode & std::ios_base::app) == 0) {
+        (*stream)->seekp (0, std::ios_base::end);  // force seek, otherwise broken
+    }
     if ((*stream)->fail()) {
         delete *stream;
         *stream = 0;
-        return;
-    }
-    if ((mode & std::ios_base::app) == 0) {
-        (*stream)->seekp (0, std::ios_base::end);  // force seek, otherwise broken
     }
 }
 
