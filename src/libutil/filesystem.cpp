@@ -40,14 +40,22 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
+
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/ustring.h"
 #include "OpenImageIO/filesystem.h"
+#include "OpenImageIO/refcnt.h"
 
 #ifdef _WIN32
 #include <windows.h>
 #include <shellapi.h>
 #include <direct.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <Share.h>
+#ifdef __GLIBCXX__
+#include <ext/stdio_filebuf.h> // __gnu_cxx::stdio_filebuf
+#endif
 #else
 #include <unistd.h>
 #endif
@@ -490,6 +498,7 @@ Filesystem::open (std::ifstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
+    // This will not work correctly on GCC with MingW
     // Windows std::ifstream accepts non-standard wchar_t* 
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     stream.open (wpath.c_str(), mode);
@@ -506,6 +515,7 @@ Filesystem::open (std::ofstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
+    // This will not work correctly on GCC with MingW
     // Windows std::ofstream accepts non-standard wchar_t*
     std::wstring wpath = Strutil::utf8_to_utf16 (path);
     stream.open (wpath.c_str(), mode);
@@ -513,6 +523,192 @@ Filesystem::open (std::ofstream &stream, string_view path,
     stream.open (path.c_str(), mode);
 #endif
 }
+
+#if defined(_WIN32) && defined(__GLIBCXX__)
+// MingW uses GCC to build, but does not support having a wchar_t* passed as argument
+// of ifstream::open or ofstream::open. To properly support UTF-8 encoding on MingW we must
+// use the __gnu_cxx::stdio_filebuf GNU extension that can be used with _wfsopen and returned
+// into a istream which share the same API as ifsteam. The same reasoning holds for ofstream.
+
+static int
+ios_open_mode_to_oflag(std::ios_base::openmode mode)
+{
+    int f = 0;
+    if (mode & std::ios_base::in) {
+        f |= _O_RDONLY;
+    }
+    if (mode & std::ios_base::out) {
+        f |= _O_WRONLY;
+        f |= _O_CREAT;
+        if (mode & std::ios_base::app) {
+            f |= _O_APPEND;
+        }
+        if (mode & std::ios_base::trunc) {
+            f |= _O_TRUNC;
+        }
+    }
+    if (mode & std::ios_base::binary) {
+        f |= _O_BINARY;
+    } else {
+        f |= _O_TEXT;
+    }
+    return f;
+}
+
+static std::istream*
+open_ifstream_impl(string_view path,
+                   std::ios_base::openmode mode)
+{
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    int fd;
+    int oflag = ios_open_mode_to_oflag(mode);
+    errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    if (errcode != 0) {
+        return 0;
+    }
+    __gnu_cxx::stdio_filebuf<char>* buffer = new __gnu_cxx::stdio_filebuf<char>(fd, mode, 1);
+    if (!buffer) {
+        return 0;
+    }
+    return new std::istream(buffer);
+}
+
+static std::ostream*
+open_ofstream_impl(string_view path,
+                   std::ios_base::openmode mode)
+{
+    
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    int fd;
+    int oflag = ios_open_mode_to_oflag(mode);
+    errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    if (errcode != 0) {
+        return 0;
+    }
+    __gnu_cxx::stdio_filebuf<char>* buffer = new __gnu_cxx::stdio_filebuf<char>(fd, mode, 1);
+    if (!buffer) {
+        return 0;
+    }
+    return new std::ostream(buffer);
+}
+#else // MSVC or Unix
+
+#ifdef _WIN32
+#ifndef _MSC_VER_
+#error "open_ifstream_impl only supports GCC or MSVC"
+#endif
+#endif
+
+static std::ifstream*
+open_ifstream_impl(string_view path,
+                   std::ios_base::openmode mode)
+{
+    
+#ifdef _WIN32
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+#endif
+    std::ifstream *ret = new std::ifstream();
+    if (!ret) {
+        return 0;
+    }
+    try {
+#ifdef _WIN32
+        ret->open(wpath.c_str(),mode);
+#else
+        ret->open(path.c_str(),mode);
+#endif
+    } catch (const std::exception & e) {
+        delete ret;
+        return 0;
+    }
+    
+    if (!*ret) {
+        delete ret;
+        return 0;
+    }
+    
+    return ret;
+} // open_ifstream_impl
+
+static std::ofstream*
+open_ofstream_impl(string_view path,
+                   std::ios_base::openmode mode)
+{
+#ifdef _WIN32
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+#endif
+    std::ofstream *ret = new std::ofstream();
+    if (!ret) {
+        return 0;
+    }
+    try {
+#ifdef _WIN32
+        ret->open(wpath.c_str(),mode);
+#else
+        ret->open(path.c_str(),mode);
+#endif
+    } catch (const std::exception & e) {
+        delete ret;
+        return 0;
+    }
+    
+    if (!*ret) {
+        delete ret;
+        return 0;
+    }
+    
+    return ret;
+}
+#endif //#if defined(_WIN32) &&  defined(__GLIBCXX__)
+
+
+void
+Filesystem::open (std::istream** stream,
+                  string_view path,
+                  std::ios_base::openmode mode)
+{
+    if (!stream) {
+        return;
+    }
+    *stream = open_ifstream_impl(path, mode | std::ios_base::in);
+    if (!*stream) {
+        return;
+    }
+    if (mode & std::ios_base::ate) {
+        (*stream)->seekg (0, std::ios_base::end);
+    } else {
+        (*stream)->seekg (0, std::ios_base::beg); // force seek, otherwise broken
+    }
+    if ((*stream)->fail()) {
+        delete *stream;
+        *stream = 0;
+    }
+}
+
+
+
+void
+Filesystem::open (std::ostream** stream,
+                  string_view path,
+                  std::ios_base::openmode mode)
+{
+    
+    if (!stream) {
+        return;
+    }
+    *stream = open_ofstream_impl(path, mode | std::ios_base::out);
+    if (!*stream) {
+        return;
+    }
+    if ((mode & std::ios_base::app) == 0) {
+        (*stream)->seekp (0, std::ios_base::end);  // force seek, otherwise broken
+    }
+    if ((*stream)->fail()) {
+        delete *stream;
+        *stream = 0;
+    }
+}
+
 
 
 
@@ -523,13 +719,14 @@ Filesystem::read_text_file (string_view filename, std::string &str)
 {
     // For info on why this is the fastest method:
     // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
-    std::ifstream in;
-    Filesystem::open (in, filename);
+    std::istream* inraw;
+    Filesystem::open (&inraw, filename);
+    shared_ptr<std::istream> in(inraw);
+
     // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
     if (in) {
         std::ostringstream contents;
-        contents << in.rdbuf();
-        in.close ();
+        contents << in->rdbuf();
         str = contents.str();
         return true;
     }
