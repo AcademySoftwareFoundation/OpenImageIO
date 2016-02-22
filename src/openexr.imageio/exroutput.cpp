@@ -87,8 +87,6 @@
 #include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/fmath.h"
 
-#include <boost/scoped_ptr.hpp>
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -102,13 +100,7 @@ public:
     OpenEXROutputStream (const char *filename) : Imf::OStream(filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-        {
-            std::ostream* rawhandle;
-            Filesystem::open (&rawhandle, filename, std::ios_base::binary);
-            if (rawhandle) {
-                ofs.reset(rawhandle);
-            }
-        }
+        Filesystem::open (&ofs, filename, std::ios_base::binary);
         if (!ofs)
             Iex::throwErrnoExc ();
     }
@@ -139,7 +131,7 @@ private:
             throw Iex::ErrnoExc ("File output failed.");
         }
     }
-    boost::scoped_ptr<std::ostream> ofs;
+    Filesystem::OStreamWrapper ofs;
 };
 
 

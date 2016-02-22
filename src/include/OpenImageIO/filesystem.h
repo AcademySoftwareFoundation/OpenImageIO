@@ -45,6 +45,7 @@
 #include <cstdio>
 #include <ctime>
 #include <fstream>
+#include <cassert>
 #include <string>
 #include <vector>
 
@@ -52,8 +53,18 @@
 #include "oiioversion.h"
 #include "string_view.h"
 
+#if defined(_WIN32) && defined(__GLIBCXX__)
+#define FILESYSTEM_USE_STDIO_FILEBUF 1
+#include <ext/stdio_filebuf.h> // __gnu_cxx::stdio_filebuf
+#endif
 
 OIIO_NAMESPACE_BEGIN
+
+#if FILESYSTEM_USE_STDIO_FILEBUF
+typedef __gnu__cxx::stdio_filebuf<char> stdio_filebuf;
+#else
+typedef std::basic_filebuf<char> stdio_filebuf;
+#endif
 
 /// @namespace Filesystem
 ///
@@ -208,37 +219,101 @@ OIIO_API void open (std::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
     
     
+    /// To avoid memory leaks, the open functions below
+    /// return this wrapper which ensure memory freeing in a RAII style.
+template <typename STREAM>
+class IOStreamWrapperTemplated
+{
+        
+public:
+    
+    IOStreamWrapperTemplated()
+    : _stream(0)
+    , _buffer(0)
+    {
+        
+    }
+    
+    IOStreamWrapperTemplated(STREAM* stream,
+                             stdio_filebuf* buffer = 0)
+    : _stream(stream)
+    , _buffer(buffer)
+    {
+        
+    }
+    
+    operator bool() const
+    {
+        return _stream ? (bool)(*_stream) : false;
+    }
+    
+    STREAM& operator*() const
+    {
+        assert(_stream);
+        return *_stream;
+    }
+    
+    //For convenience add this operator to access the stream
+    STREAM* operator->() const
+    {
+        assert(_stream);
+        return _stream;
+    }
+    
+    void setBuffers(STREAM* stream, stdio_filebuf* buffer = 0)
+    {
+        _stream = stream;
+        _buffer = buffer;
+    }
+    
+    ~IOStreamWrapperTemplated()
+    {
+        reset();
+    }
+    
+    void reset()
+    {
+        delete _stream;
+        
+        //According to istream/ostream documentation, the destructor does not
+        //delete the internal buffer. If we want the file to be closed, we need
+        //to delete it ourselves
+        delete _buffer;
+    }
+    
+private:
+    
+    STREAM* _stream;
+    stdio_filebuf* _buffer;
+    
+};
+    
+typedef IOStreamWrapperTemplated<std::istream> IStreamWrapper;
+typedef IOStreamWrapperTemplated<std::ostream> OStreamWrapper;
+    
 /// Version of std::ifstream.open that can handle UTF-8 paths
 /// Open the file for reading with the given mode and set the stream
-/// accordingly. Upon failure, stream is set to NULL.
-/// Caller is responsible for calling delete on the returned stream
-/// when done.
+/// accordingly.
 /// Usage:
-///     std::ifstream* stream;
-///     Filesystem::open(&stream, path);
-///     if (stream) ...
-///     delete stream;
-/// To avoid memory leaks, the returned stream should be enclosed
-/// as soon as possible in a RAII style structure, such as a smart ptr.
+/// IStreamWrapper stream;
+/// Filesystem::open(&stream, path);
+/// if (!stream)
+///    // error
 ///
-OIIO_API void open (std::istream** stream, string_view path,
-                    std::ios_base::openmode mode  = std::ios_base::in);
+OIIO_API void open(IStreamWrapper* stream, string_view path,
+                   std::ios_base::openmode mode  = std::ios_base::in);
     
 /// Version of std::ofstream.open that can handle UTF-8 paths
 /// Open the file for reading with the given mode and set the stream
-/// accordingly. Upon failure, stream is set to NULL.
-/// Caller is responsible for calling delete on the returned stream
-/// when done.
+/// accordingly.
 /// Usage:
-///     std::ofstream* stream;
-///     Filesystem::open(&stream, path);
-///     if (stream) ...
-///     delete stream;
-/// To avoid memory leaks, the returned stream should be enclosed
-/// as soon as possible in a RAII style structure, such as a smart ptr.
+/// OStreamWrapper stream;
+/// Filesystem::open(&stream, path);
+/// if (!stream)
+///    // error
 ///
-OIIO_API void open (std::ostream** stream, string_view path,
-                    std::ios_base::openmode mode  = std::ios_base::out);
+OIIO_API void open(OStreamWrapper* stream, string_view path,
+                   std::ios_base::openmode mode  = std::ios_base::out);
 
 
 /// Read the entire contents of the named text file and place it in str,

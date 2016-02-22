@@ -36,7 +36,6 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/foreach.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "psd_pvt.h"
 #include "jpeg_memory_src.h"
@@ -197,7 +196,7 @@ private:
     };
 
     std::string m_filename;
-    boost::scoped_ptr<std::istream> m_file;
+    Filesystem::IStreamWrapper m_file;
     //Current subimage
     int m_subimage;
     //Subimage count (1 + layer count)
@@ -544,13 +543,9 @@ bool
 PSDInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
-    {
-        std::istream* raw;
-        Filesystem::open (&raw, name, std::ios::binary);
-        if (raw) {
-            m_file.reset(raw);
-        }
-    }
+
+    Filesystem::open (&m_file, name, std::ios::binary);
+  
     if (!m_file) {
         error ("\"%s\": failed to open file", name.c_str());
         return false;

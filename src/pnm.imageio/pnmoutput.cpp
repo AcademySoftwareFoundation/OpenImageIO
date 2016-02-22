@@ -30,8 +30,6 @@
 
 #include <fstream>
 
-#include <boost/scoped_ptr.hpp>
-
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imageio.h"
 
@@ -53,7 +51,7 @@ public:
 
 private:
     std::string m_filename;           ///< Stash the filename
-    boost::scoped_ptr<std::ostream> m_file;
+    Filesystem::OStreamWrapper m_file;
     unsigned int m_max_val, m_pnm_type;
     unsigned int m_dither;
     std::vector<unsigned char> m_scratch;
@@ -188,21 +186,12 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     if (!m_spec.get_int_attribute ("pnm:binary", 1)) 
     {
         m_pnm_type -= 3;
-        {
-            std::ostream* raw;
-            Filesystem::open (&raw, name);
-            if (raw) {
-                m_file.reset(raw);
-            }
-        }
+        Filesystem::open (&m_file, name);
+        
     }
     else {
-        std::ostream* raw;
-        Filesystem::open (&raw, name, std::ios::out|std::ios::binary);
-        if (raw) {
-            m_file.reset(raw);
-        }
-        
+        Filesystem::open (&m_file, name, std::ios::out|std::ios::binary);
+ 
     }
     
     if (!m_file)

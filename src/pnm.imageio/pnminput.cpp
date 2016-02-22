@@ -32,8 +32,6 @@
 #include <fstream>
 #include <cstdlib>
 
-#include <boost/scoped_ptr.hpp>
-
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/imageio.h"
@@ -55,7 +53,7 @@ private:
       P1, P2, P3, P4, P5, P6, Pf, PF
     };
 
-    boost::scoped_ptr<std::istream> m_file;
+    Filesystem::IStreamWrapper m_file;
     std::streampos m_header_end_pos; // file position after the header
     std::string m_current_line; ///< Buffer the image pixels
     const char * m_pos;
@@ -450,13 +448,8 @@ PNMInput::open (const std::string &name, ImageSpec &newspec)
 {
     close(); //close previously opened file
     
-    std::istream* rawfile;
-    Filesystem::open (&rawfile, name, std::ios::in|std::ios::binary);
-    if (rawfile) {
-        m_file.reset(rawfile);
-    }
-    
-    
+    Filesystem::open (&m_file, name, std::ios::in|std::ios::binary);
+ 
     m_current_line = "";
     m_pos = m_current_line.c_str();
 
