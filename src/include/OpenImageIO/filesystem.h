@@ -61,7 +61,7 @@
 OIIO_NAMESPACE_BEGIN
 
 #if FILESYSTEM_USE_STDIO_FILEBUF
-typedef __gnu__cxx::stdio_filebuf<char> stdio_filebuf;
+typedef __gnu_cxx::stdio_filebuf<char> stdio_filebuf;
 #else
 typedef std::basic_filebuf<char> stdio_filebuf;
 #endif
