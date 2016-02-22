@@ -1,0 +1,1 @@
+oiiotool ERROR: read src/incomplete.exr : Failed OpenEXR read: Error reading pixel data from image file "src/incomplete.exr". Unexpected data block y coordinate.
