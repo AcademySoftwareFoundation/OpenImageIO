@@ -281,7 +281,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
         else if (m->marker == JPEG_COM) {
             if (! m_spec.find_attribute ("ImageDescription", TypeDesc::STRING))
                 m_spec.attribute ("ImageDescription",
-                                  std::string ((const char *)m->data));
+                                  std::string ((const char *)m->data, m->data_length));
         }
     }
 
