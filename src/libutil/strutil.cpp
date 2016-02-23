@@ -507,8 +507,8 @@ Strutil::utf8_to_utf16 (string_view str)
 {
     std::wstring native;
     
-    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], (int)native.size());
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0) - 1);
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), str.size(), &native[0], (int)native.size());
 
     return native;
 }
