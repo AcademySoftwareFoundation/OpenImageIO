@@ -79,11 +79,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 // missing functions on Windows
 #ifdef WINDOWS
+#if !defined(__GNUC__)
 #define snprintf sprintf_s
 #define strtok_r strtok_s
+#endif
 typedef __int64 FilePos;
+#if !defined(__GNUC__)
 #define fseeko _fseeki64
 #define ftello _ftelli64
+#else
+#define fseeko fseek
+#define ftello ftell
+#endif
 
 inline double log2(double x) {
     return log(x) * 1.4426950408889634; 

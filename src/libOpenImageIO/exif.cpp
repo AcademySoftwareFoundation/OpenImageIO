@@ -36,6 +36,7 @@
 #include <map>
 #include <set>
 #include <algorithm>
+#include <malloc.h>
 
 #include <boost/foreach.hpp>
 

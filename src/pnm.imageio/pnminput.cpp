@@ -53,7 +53,7 @@ private:
       P1, P2, P3, P4, P5, P6, Pf, PF
     };
 
-    std::ifstream m_file;
+    OIIO_NAMESPACE::ifstream m_file;
     std::streampos m_header_end_pos; // file position after the header
     std::string m_current_line; ///< Buffer the image pixels
     const char * m_pos;

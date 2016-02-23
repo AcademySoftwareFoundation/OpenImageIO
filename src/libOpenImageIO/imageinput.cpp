@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <vector>
+#include <malloc.h>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"

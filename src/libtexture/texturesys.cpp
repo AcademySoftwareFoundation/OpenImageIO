@@ -30,6 +30,7 @@
 
 
 #include <math.h>
+#include <malloc.h>
 #include <string>
 #include <sstream>
 #include <cstring>

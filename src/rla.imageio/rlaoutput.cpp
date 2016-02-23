@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
+#include <malloc.h>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"

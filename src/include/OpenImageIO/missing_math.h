@@ -106,7 +106,7 @@
 
 OIIO_NAMESPACE_BEGIN
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__GNUC__)
 // Windows doesn't define these functions from math.h
 #define hypotf _hypotf
 #define copysign(x,y) _copysign(x,y)

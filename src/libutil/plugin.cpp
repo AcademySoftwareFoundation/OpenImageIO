@@ -91,7 +91,7 @@ dlclose (Handle plugin_handle)
 void *
 dlsym (Handle plugin_handle, const char *symbol_name)
 {
-    return GetProcAddress ((HMODULE)plugin_handle, symbol_name);
+    return (void *)GetProcAddress ((HMODULE)plugin_handle, symbol_name);
 }
 
 

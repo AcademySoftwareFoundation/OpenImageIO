@@ -65,8 +65,8 @@ OIIO_NAMESPACE_BEGIN
 // of ifstream::open or ofstream::open. To properly support UTF-8 encoding on MingW we must
 // use the __gnu_cxx::stdio_filebuf GNU extension that can be used with _wfsopen and returned
 // into a istream which share the same API as ifsteam. The same reasoning holds for ofstream.
-typedef OIIO_NAMESPACE::basic_ifstream<char> ifstream;
-typedef OIIO_NAMESPACE::basic_ofstream<char> ofstream;
+typedef basic_ifstream<char> ifstream;
+typedef basic_ofstream<char> ofstream;
 #else
 typedef std::ifstream ifstream;
 typedef std::ofstream ofstream;

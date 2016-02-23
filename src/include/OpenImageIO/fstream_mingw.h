@@ -44,6 +44,9 @@
 
 #if defined(_WIN32) && defined(__GLIBCXX__)
 #include <ext/stdio_filebuf.h> // __gnu_cxx::stdio_filebuf
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <Share.h>
 
 #include "string_view.h"
 #include "strutil.h"
@@ -51,9 +54,9 @@
 OIIO_NAMESPACE_BEGIN
 
 
-template <class _CharT, class _Traits>
+template <class _CharT, class _Traits = std::char_traits<_CharT> >
 class basic_ifstream
-: public basic_istream<_CharT, _Traits>
+: public std::basic_istream<_CharT, _Traits>
 {
 public:
     typedef _CharT                         char_type;
@@ -66,18 +69,18 @@ public:
 
     
     basic_ifstream();
-    explicit basic_ifstream(string_view path, ios_base::openmode __mode = ios_base::in);
+    explicit basic_ifstream(string_view path, std::ios_base::openmode __mode = std::ios_base::in);
     
     virtual ~basic_ifstream();
     
     stdio_filebuf* rdbuf() const;
     bool is_open() const;
-    void open(string_view path, ios_base::openmode __mode = ios_base::in);
+    void open(string_view path, std::ios_base::openmode __mode = std::ios_base::in);
     void close();
     
 private:
     
-    void open_internal(string_view path, ios_base::openmode mode);
+    void open_internal(string_view path, std::ios_base::openmode mode);
     
     stdio_filebuf* __sb_;
 };
@@ -85,7 +88,7 @@ private:
 template <class _CharT, class _Traits>
 inline
 basic_ifstream<_CharT, _Traits>::basic_ifstream()
-: basic_istream<char_type, traits_type>(0)
+: std::basic_istream<char_type, traits_type>(0)
 , __sb_(0)
 {
 }
@@ -93,14 +96,16 @@ basic_ifstream<_CharT, _Traits>::basic_ifstream()
 
 template <class _CharT, class _Traits>
 inline
-basic_ifstream<_CharT, _Traits>::basic_ifstream(const string& __s, ios_base::openmode __mode)
-: basic_istream<char_type, traits_type>(0)
+basic_ifstream<_CharT, _Traits>::basic_ifstream(string_view path, std::ios_base::openmode __mode)
+: std::basic_istream<char_type, traits_type>(0)
 , __sb_(0)
 {
-    open_internal(string_view(s), __mode);
+    open_internal(path, __mode);
 }
 
-basic_ifstream::~basic_ifstream()
+template <class _CharT, class _Traits>
+inline
+basic_ifstream<_CharT, _Traits>::~basic_ifstream()
 {
     delete __sb_;
 }
@@ -134,19 +139,19 @@ ios_open_mode_to_oflag(std::ios_base::openmode mode)
 template <class _CharT, class _Traits>
 inline
 void
-basic_ifstream<_CharT, _Traits>::open_internal(string_view path, ios_base::openmode mode)
+basic_ifstream<_CharT, _Traits>::open_internal(string_view path, std::ios_base::openmode mode)
 {
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     int fd;
     int oflag = ios_open_mode_to_oflag(mode);
     errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
         return;
     }
     __sb_ = new stdio_filebuf(fd, mode, 1);
     if (__sb_ == 0) {
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
         return;
     }
     this->init(__sb_);
@@ -155,7 +160,7 @@ basic_ifstream<_CharT, _Traits>::open_internal(string_view path, ios_base::openm
 
 template <class _CharT, class _Traits>
 inline
-stdio_filebuf*
+typename basic_ifstream<_CharT, _Traits>::stdio_filebuf*
 basic_ifstream<_CharT, _Traits>::rdbuf() const
 {
     return const_cast<stdio_filebuf*>(__sb_);
@@ -173,9 +178,9 @@ basic_ifstream<_CharT, _Traits>::is_open() const
 
 template <class _CharT, class _Traits>
 void
-basic_ifstream<_CharT, _Traits>::open(const string& __s, ios_base::openmode __mode)
+basic_ifstream<_CharT, _Traits>::open(string_view path, std::ios_base::openmode __mode)
 {
-    open_internal(string_view(s), __mode);
+    open_internal(path, __mode);
 }
 
 template <class _CharT, class _Traits>
@@ -187,16 +192,16 @@ basic_ifstream<_CharT, _Traits>::close()
         return;
     }
     if (__sb_->close() == 0)
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
     
     delete __sb_;
 }
 
 
 
-template <class _CharT, class _Traits>
+template <class _CharT, class _Traits = std::char_traits<_CharT> >
 class basic_ofstream
-: public basic_ofstream<_CharT, _Traits>
+: public std::basic_ostream<_CharT, _Traits>
 {
 public:
     typedef _CharT                         char_type;
@@ -208,19 +213,19 @@ public:
     typedef typename __gnu_cxx::stdio_filebuf<char_type, traits_type> stdio_filebuf;
     
     
-    basic_ifstream();
-    explicit basic_ofstream(string_view path, ios_base::openmode __mode = ios_base::out);
+    basic_ofstream();
+    explicit basic_ofstream(string_view path, std::ios_base::openmode __mode = std::ios_base::out);
     
     virtual ~basic_ofstream();
     
     stdio_filebuf* rdbuf() const;
     bool is_open() const;
-    void open(string_view path, ios_base::openmode __mode = ios_base::out);
+    void open(string_view path, std::ios_base::openmode __mode = std::ios_base::out);
     void close();
     
 private:
     
-    void open_internal(string_view path, ios_base::openmode mode);
+    void open_internal(string_view path, std::ios_base::openmode mode);
     
     stdio_filebuf* __sb_;
 };
@@ -228,7 +233,7 @@ private:
 template <class _CharT, class _Traits>
 inline
 basic_ofstream<_CharT, _Traits>::basic_ofstream()
-: basic_ostream<char_type, traits_type>(0)
+: std::basic_ostream<char_type, traits_type>(0)
 , __sb_(0)
 {
 }
@@ -236,14 +241,16 @@ basic_ofstream<_CharT, _Traits>::basic_ofstream()
 
 template <class _CharT, class _Traits>
 inline
-basic_ofstream<_CharT, _Traits>::basic_ofstream(const string& __s, ios_base::openmode __mode)
-: basic_ostream<char_type, traits_type>(0)
+basic_ofstream<_CharT, _Traits>::basic_ofstream(string_view path, std::ios_base::openmode __mode)
+: std::basic_ostream<char_type, traits_type>(0)
 , __sb_(0)
 {
-    open_internal(string_view(s), __mode);
+    open_internal(path, __mode);
 }
 
-basic_ofstream::~basic_ofstream()
+template <class _CharT, class _Traits>
+inline
+basic_ofstream<_CharT, _Traits>::~basic_ofstream()
 {
     delete __sb_;
 }
@@ -252,19 +259,19 @@ basic_ofstream::~basic_ofstream()
 template <class _CharT, class _Traits>
 inline
 void
-basic_ofstream<_CharT, _Traits>::open_internal(string_view path, ios_base::openmode mode)
+basic_ofstream<_CharT, _Traits>::open_internal(string_view path, std::ios_base::openmode mode)
 {
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     int fd;
     int oflag = ios_open_mode_to_oflag(mode);
     errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
         return;
     }
     __sb_ = new stdio_filebuf(fd, mode, 1);
     if (__sb_ == 0) {
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
         return;
     }
     this->init(__sb_);
@@ -274,7 +281,7 @@ basic_ofstream<_CharT, _Traits>::open_internal(string_view path, ios_base::openm
 
 template <class _CharT, class _Traits>
 inline
-stdio_filebuf*
+typename basic_ofstream<_CharT, _Traits>::stdio_filebuf*
 basic_ofstream<_CharT, _Traits>::rdbuf() const
 {
     return const_cast<stdio_filebuf*>(__sb_);
@@ -293,9 +300,9 @@ basic_ofstream<_CharT, _Traits>::is_open() const
 
 template <class _CharT, class _Traits>
 void
-basic_ofstream<_CharT, _Traits>::open(const string& __s, ios_base::openmode __mode)
+basic_ofstream<_CharT, _Traits>::open(string_view path, std::ios_base::openmode __mode)
 {
-    open_internal(string_view(s), __mode);
+    open_internal(path, __mode);
 }
 
 template <class _CharT, class _Traits>
@@ -307,12 +314,16 @@ basic_ofstream<_CharT, _Traits>::close()
         return;
     }
     if (__sb_->close() == 0)
-        this->setstate(ios_base::failbit);
+        this->setstate(std::ios_base::failbit);
     
     delete __sb_;
 }
 // basic_fstream
 
+OIIO_NAMESPACE_END
+
+
 #endif // #if defined(_WIN32) && defined(__GLIBCXX__)
+
 
 #endif // OPENIMAGEIO_FSTREAM_MINGW_H
