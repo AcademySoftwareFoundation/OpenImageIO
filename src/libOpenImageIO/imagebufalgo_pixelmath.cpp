@@ -164,7 +164,7 @@ add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
     if (R.deep()) {
         // Deep case
-        array_view<const TypeDesc> channeltypes (R.deepdata()->channeltypes);
+        array_view<TypeDesc> channeltypes (R.deepdata()->channeltypes);
         ImageBuf::Iterator<Rtype> r (R, roi);
         ImageBuf::ConstIterator<Atype> a (A, roi);
         for ( ;  !r.done();  ++r, ++a) {
@@ -501,7 +501,7 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
     if (R.deep()) {
         // Deep case
-        array_view<const TypeDesc> channeltypes (R.deepdata()->channeltypes);
+        array_view<TypeDesc> channeltypes (R.deepdata()->channeltypes);
         ImageBuf::Iterator<Rtype> r (R, roi);
         ImageBuf::ConstIterator<Atype> a (A, roi);
         for ( ;  !r.done();  ++r, ++a) {
