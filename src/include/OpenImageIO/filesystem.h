@@ -55,15 +55,21 @@
 
 #if defined(_WIN32) && defined(__GLIBCXX__)
 #define FILESYSTEM_USE_STDIO_FILEBUF 1
-#include <ext/stdio_filebuf.h> // __gnu_cxx::stdio_filebuf
+#include "fstream_mingw.h"
 #endif
 
 OIIO_NAMESPACE_BEGIN
 
 #if FILESYSTEM_USE_STDIO_FILEBUF
-typedef __gnu__cxx::stdio_filebuf<char> stdio_filebuf;
+// MingW uses GCC to build, but does not support having a wchar_t* passed as argument
+// of ifstream::open or ofstream::open. To properly support UTF-8 encoding on MingW we must
+// use the __gnu_cxx::stdio_filebuf GNU extension that can be used with _wfsopen and returned
+// into a istream which share the same API as ifsteam. The same reasoning holds for ofstream.
+typedef OIIO_NAMESPACE::basic_ifstream<char> ifstream;
+typedef OIIO_NAMESPACE::basic_ofstream<char> ofstream;
 #else
-typedef std::basic_filebuf<char> stdio_filebuf;
+typedef std::ifstream ifstream;
+typedef std::ofstream ofstream;
 #endif
 
 /// @namespace Filesystem
@@ -204,116 +210,16 @@ OIIO_API FILE *fopen (string_view path, string_view mode);
 ///
 OIIO_API std::string current_path ();
 
-/// Deprecated: Will not work correctly on GCC with MingW, prefer
-/// the version below taking a ofstream**
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ifstream &stream, string_view path,
+OIIO_API void open (OIIO_NAMESPACE::ifstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
-/// Deprecated: Will not work correctly on GCC with MingW, prefer
-/// the version below taking a ofstream**
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (std::ofstream &stream, string_view path,
+OIIO_API void open (OIIO_NAMESPACE::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
     
-    
-    /// To avoid memory leaks, the open functions below
-    /// return this wrapper which ensure memory freeing in a RAII style.
-template <typename STREAM>
-class IOStreamWrapperTemplated
-{
-        
-public:
-    
-    IOStreamWrapperTemplated()
-    : _stream(0)
-    , _buffer(0)
-    {
-        
-    }
-    
-    IOStreamWrapperTemplated(STREAM* stream,
-                             stdio_filebuf* buffer = 0)
-    : _stream(stream)
-    , _buffer(buffer)
-    {
-        
-    }
-    
-    operator bool() const
-    {
-        return _stream ? (bool)(*_stream) : false;
-    }
-    
-    STREAM& operator*() const
-    {
-        assert(_stream);
-        return *_stream;
-    }
-    
-    //For convenience add this operator to access the stream
-    STREAM* operator->() const
-    {
-        assert(_stream);
-        return _stream;
-    }
-    
-    void setBuffers(STREAM* stream, stdio_filebuf* buffer = 0)
-    {
-        _stream = stream;
-        _buffer = buffer;
-    }
-    
-    ~IOStreamWrapperTemplated()
-    {
-        reset();
-    }
-    
-    void reset()
-    {
-        delete _stream;
-        
-        //According to istream/ostream documentation, the destructor does not
-        //delete the internal buffer. If we want the file to be closed, we need
-        //to delete it ourselves
-        delete _buffer;
-    }
-    
-private:
-    
-    STREAM* _stream;
-    stdio_filebuf* _buffer;
-    
-};
-    
-typedef IOStreamWrapperTemplated<std::istream> IStreamWrapper;
-typedef IOStreamWrapperTemplated<std::ostream> OStreamWrapper;
-    
-/// Version of std::ifstream.open that can handle UTF-8 paths
-/// Open the file for reading with the given mode and set the stream
-/// accordingly.
-/// Usage:
-/// IStreamWrapper stream;
-/// Filesystem::open(&stream, path);
-/// if (!stream)
-///    // error
-///
-OIIO_API void open(IStreamWrapper* stream, string_view path,
-                   std::ios_base::openmode mode  = std::ios_base::in);
-    
-/// Version of std::ofstream.open that can handle UTF-8 paths
-/// Open the file for reading with the given mode and set the stream
-/// accordingly.
-/// Usage:
-/// OStreamWrapper stream;
-/// Filesystem::open(&stream, path);
-/// if (!stream)
-///    // error
-///
-OIIO_API void open(OStreamWrapper* stream, string_view path,
-                   std::ios_base::openmode mode  = std::ios_base::out);
 
 
 /// Read the entire contents of the named text file and place it in str,

@@ -100,26 +100,20 @@ public:
     OpenEXROutputStream (const char *filename) : Imf::OStream(filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-        Filesystem::open (&ofs, filename, std::ios_base::binary);
+        Filesystem::open (ofs, filename, std::ios_base::binary);
         if (!ofs)
             Iex::throwErrnoExc ();
     }
     virtual void write (const char c[], int n) {
-        if (!ofs) {
-            Iex::throwErrnoExc ();
-        }
         errno = 0;
-        ofs->write (c, n);
+        ofs.write (c, n);
         check_error ();
     }
     virtual Imath::Int64 tellp () {
-        return ofs ? std::streamoff (ofs->tellp ()) : 0;
+        return std::streamoff (ofs.tellp ());
     }
     virtual void seekp (Imath::Int64 pos) {
-        if (!ofs) {
-            Iex::throwErrnoExc ();
-        }
-        ofs->seekp (pos);
+        ofs.seekp (pos);
         check_error ();
     }
 
@@ -131,7 +125,7 @@ private:
             throw Iex::ErrnoExc ("File output failed.");
         }
     }
-    Filesystem::OStreamWrapper ofs;
+    OIIO_NAMESPACE::ofstream ofs;
 };
 
 

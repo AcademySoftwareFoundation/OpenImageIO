@@ -196,7 +196,7 @@ private:
     };
 
     std::string m_filename;
-    Filesystem::IStreamWrapper m_file;
+    OIIO_NAMESPACE::ifstream m_file;
     //Current subimage
     int m_subimage;
     //Subimage count (1 + layer count)
@@ -386,14 +386,14 @@ private:
     bool read_bige (TVariable &value)
     {
         TStorage buffer;
-        m_file->read ((char *)&buffer, sizeof(buffer));
+        m_file.read ((char *)&buffer, sizeof(buffer));
         if (!bigendian ())
             swap_endian (&buffer);
 
         // For debugging, numeric_cast will throw if precision is lost:
         // value = boost::numeric_cast<TVariable>(buffer);
         value = buffer;
-        return m_file->good();
+        return m_file.good();
     }
 
     int read_pascal_string (std::string &s, uint16_t mod_padding);
@@ -544,7 +544,7 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
 
-    Filesystem::open (&m_file, name, std::ios::binary);
+    Filesystem::open (m_file, name, std::ios::binary);
   
     if (!m_file) {
         error ("\"%s\": failed to open file", name.c_str());
@@ -761,7 +761,7 @@ void
 PSDInput::init ()
 {
     m_filename.clear ();
-    m_file.reset();
+    m_file.close();
     m_subimage = -1;
     m_subimage_count = 0;
     m_specs.clear ();
@@ -797,9 +797,9 @@ PSDInput::load_header ()
 bool
 PSDInput::read_header ()
 {
-    m_file->read (m_header.signature, 4);
+    m_file.read (m_header.signature, 4);
     read_bige<uint16_t> (m_header.version);
-    m_file->seekg(6, std::ios::cur);
+    m_file.seekg(6, std::ios::cur);
     read_bige<uint16_t> (m_header.channel_count);
     read_bige<uint32_t> (m_header.height);
     read_bige<uint32_t> (m_header.width);
@@ -894,7 +894,7 @@ PSDInput::load_color_data ()
 
     if (m_color_data.length) {
         m_color_data.data.resize (m_color_data.length);
-        m_file->read (&m_color_data.data[0], m_color_data.length);
+        m_file.read (&m_color_data.data[0], m_color_data.length);
     }
     return check_io ();
 }
@@ -928,9 +928,9 @@ PSDInput::load_resources ()
 
     ImageResourceBlock block;
     ImageResourceMap resources;
-    std::streampos begin = m_file->tellg ();
+    std::streampos begin = m_file.tellg ();
     std::streampos end = begin + (std::streampos)length;
-    while (m_file && m_file->tellg () < end) {
+    while (m_file && m_file.tellg () < end) {
         if (!read_resource (block) || !validate_resource (block))
             return false;
 
@@ -942,7 +942,7 @@ PSDInput::load_resources ()
     if (!handle_resources (resources))
         return false;
 
-    m_file->seekg (end);
+    m_file.seekg (end);
     return check_io ();
 }
 
@@ -951,18 +951,18 @@ PSDInput::load_resources ()
 bool
 PSDInput::read_resource (ImageResourceBlock &block)
 {
-    m_file->read (block.signature, 4);
+    m_file.read (block.signature, 4);
     read_bige<uint16_t> (block.id);
     read_pascal_string (block.name, 2);
     read_bige<uint32_t> (block.length);
     // Save the file position of the image resource data
-    block.pos = m_file->tellg();
+    block.pos = m_file.tellg();
     // Skip the image resource data
-    m_file->seekg (block.length, std::ios::cur);
+    m_file.seekg (block.length, std::ios::cur);
     // Image resource blocks are supposed to be padded to an even size.
     // I'm not sure if the padding is included in the length field
     if (block.length % 2 != 0)
-        m_file->seekg(1, std::ios::cur);
+        m_file.seekg(1, std::ios::cur);
 
     return check_io ();
 }
@@ -990,7 +990,7 @@ PSDInput::handle_resources (ImageResourceMap &resources)
         ImageResourceMap::const_iterator it (resources.find (loader.resource_id));
         // If a resource with that ID exists in the file, call the loader
         if (it != end) {
-            m_file->seekg (it->second.pos);
+            m_file.seekg (it->second.pos);
             if (!check_io ())
                 return false;
 
@@ -1117,7 +1117,7 @@ bool
 PSDInput::load_resource_1058 (uint32_t length)
 {
     std::string data (length, 0);
-    if (!m_file->read (&data[0], length))
+    if (!m_file.read (&data[0], length))
         return false;
 
     if (!decode_exif (&data[0], length, m_composite_attribs) ||
@@ -1143,7 +1143,7 @@ bool
 PSDInput::load_resource_1060 (uint32_t length)
 {
     std::string data (length, 0);
-    if (!m_file->read (&data[0], length))
+    if (!m_file.read (&data[0], length))
         return false;
 
     // Store the XMP data for the composite and all other subimages
@@ -1225,7 +1225,7 @@ PSDInput::load_resource_thumbnail (uint32_t length, bool isBGR)
         return false;
     }
     std::string jpeg_data (jpeg_length, '\0');
-    if (!m_file->read (&jpeg_data[0], jpeg_length))
+    if (!m_file.read (&jpeg_data[0], jpeg_length))
         return false;
 
     jpeg_create_decompress (&cinfo);
@@ -1284,7 +1284,7 @@ PSDInput::load_layers ()
     else
         read_bige<uint64_t> (m_layer_mask_info.length);
 
-    m_layer_mask_info.begin = m_file->tellg ();
+    m_layer_mask_info.begin = m_file.tellg ();
     m_layer_mask_info.end = m_layer_mask_info.begin
                           + (std::streampos)m_layer_mask_info.length;
     if (!check_io ())
@@ -1299,7 +1299,7 @@ PSDInput::load_layers ()
     else
         read_bige<uint64_t> (layer_info.length);
 
-    layer_info.begin = m_file->tellg ();
+    layer_info.begin = m_file.tellg ();
     layer_info.end = layer_info.begin + (std::streampos)layer_info.length;
     if (!check_io ())
         return false;
@@ -1353,7 +1353,7 @@ PSDInput::load_layer (Layer &layer)
         layer.channel_id_map[channel_info.channel_id] = &channel_info;
     }
     char bm_signature[4];
-    m_file->read (bm_signature, 4);
+    m_file.read (bm_signature, 4);
     if (!check_io ())
         return false;
 
@@ -1361,12 +1361,12 @@ PSDInput::load_layer (Layer &layer)
         error ("[Layer Record] Invalid blend mode signature");
         return false;
     }
-    m_file->read (layer.bm_key, 4);
+    m_file.read (layer.bm_key, 4);
     read_bige<uint8_t> (layer.opacity);
     read_bige<uint8_t> (layer.clipping);
     read_bige<uint8_t> (layer.flags);
     // skip filler
-    m_file->seekg(1, std::ios::cur);
+    m_file.seekg(1, std::ios::cur);
     read_bige<uint32_t> (layer.extra_length);
     uint32_t extra_remaining = layer.extra_length;
     // layer mask data length
@@ -1386,12 +1386,12 @@ PSDInput::load_layer (Layer &layer)
             read_bige<uint8_t> (layer.mask_data.default_color);
             read_bige<uint8_t> (layer.mask_data.flags);
             // skip padding
-            m_file->seekg(2, std::ios::cur);
+            m_file.seekg(2, std::ios::cur);
             break;
         case 36:
             // In this case, we skip the above (lmd_length == 20) fields
             // to read the "real" fields.
-            m_file->seekg (18, std::ios::cur);
+            m_file.seekg (18, std::ios::cur);
             read_bige<uint8_t> (layer.mask_data.flags);
             read_bige<uint8_t> (layer.mask_data.default_color);
             read_bige<uint32_t> (layer.mask_data.top);
@@ -1411,7 +1411,7 @@ PSDInput::load_layer (Layer &layer)
     uint32_t lbr_length;
     read_bige<uint32_t> (lbr_length);
     // skip block
-    m_file->seekg (lbr_length, std::ios::cur);
+    m_file.seekg (lbr_length, std::ios::cur);
     extra_remaining -= (lbr_length + 4);
     if (!check_io ())
         return false;
@@ -1422,8 +1422,8 @@ PSDInput::load_layer (Layer &layer)
         Layer::AdditionalInfo &info = layer.additional_info.back();
 
         char signature[4];
-        m_file->read (signature, 4);
-        m_file->read (info.key, 4);
+        m_file.read (signature, 4);
+        m_file.read (info.key, 4);
         if (std::memcmp (signature, "8BIM", 4) != 0
               && std::memcmp (signature, "8B64", 4) != 0) {
             error ("[Additional Layer Info] invalid signature");
@@ -1437,7 +1437,7 @@ PSDInput::load_layer (Layer &layer)
             read_bige<uint32_t> (info.length);
             extra_remaining -= 4;
         }
-        m_file->seekg (info.length, std::ios::cur);
+        m_file.seekg (info.length, std::ios::cur);
         extra_remaining -= info.length;
     }
     return check_io ();
@@ -1461,7 +1461,7 @@ PSDInput::load_layer_channels (Layer &layer)
 bool
 PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
 {
-    std::streampos start_pos = m_file->tellg ();
+    std::streampos start_pos = m_file.tellg ();
     if (channel_info.data_length >= 2) {
         read_bige<uint16_t> (channel_info.compression);
         if (!check_io ())
@@ -1471,7 +1471,7 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
     if (channel_info.data_length <= 2)
         return true;
 
-    channel_info.data_pos = m_file->tellg ();
+    channel_info.data_pos = m_file.tellg ();
     channel_info.row_pos.resize (layer.height);
     channel_info.row_length = (layer.width * m_header.depth + 7) / 8;
     switch (channel_info.compression) {
@@ -1489,7 +1489,7 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
                 return false;
 
             // channel data is located after the RLE lengths
-            channel_info.data_pos = m_file->tellg ();
+            channel_info.data_pos = m_file.tellg ();
             // subtract the RLE lengths read above
             channel_info.data_length = channel_info.data_length - (channel_info.data_pos - start_pos);
             if (layer.height) {
@@ -1509,7 +1509,7 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
             return false;
 ;
     }
-    m_file->seekg (channel_info.data_length, std::ios::cur);
+    m_file.seekg (channel_info.data_length, std::ios::cur);
     return check_io ();
 
 }
@@ -1537,19 +1537,19 @@ PSDInput::load_global_mask_info ()
     if (!m_layer_mask_info.length)
         return true;
 
-    m_file->seekg (m_layer_mask_info.layer_info.end);
-    uint64_t remaining = m_layer_mask_info.end - m_file->tellg();
+    m_file.seekg (m_layer_mask_info.layer_info.end);
+    uint64_t remaining = m_layer_mask_info.end - m_file.tellg();
     uint32_t length;
 
     // This section should be at least 17 bytes, but some files lack
     // global mask info and additional layer info, not convered in the spec
     if (remaining < 17) {
-        m_file->seekg(m_layer_mask_info.end);
+        m_file.seekg(m_layer_mask_info.end);
         return true;
     }
 
     read_bige<uint32_t> (length);
-    std::streampos start = m_file->tellg ();
+    std::streampos start = m_file.tellg ();
     std::streampos end = start + (std::streampos)length;
     if (!check_io ())
         return false;
@@ -1564,7 +1564,7 @@ PSDInput::load_global_mask_info ()
 
     read_bige<uint16_t> (m_global_mask_info.opacity);
     read_bige<int16_t> (m_global_mask_info.kind);
-    m_file->seekg (end);
+    m_file.seekg (end);
     return check_io ();
 }
 
@@ -1579,9 +1579,9 @@ PSDInput::load_global_additional ()
     char signature[4];
     char key[4];
     uint64_t length;
-    uint64_t remaining = m_layer_mask_info.length - (m_file->tellg() - m_layer_mask_info.begin);
+    uint64_t remaining = m_layer_mask_info.length - (m_file.tellg() - m_layer_mask_info.begin);
     while (m_file && remaining >= 12) {
-        m_file->read (signature, 4);
+        m_file.read (signature, 4);
         if (!check_io ())
             return false;
 
@@ -1590,7 +1590,7 @@ PSDInput::load_global_additional ()
             error ("[Global Additional Layer Info] invalid signature");
             return false;
         }
-        m_file->read (key, 4);
+        m_file.read (key, 4);
         if (!check_io ())
             return false;
 
@@ -1609,10 +1609,10 @@ PSDInput::load_global_additional ()
         length = (length + 3) & ~3;
         remaining -= length;
         // skip it for now
-        m_file->seekg (length, std::ios::cur);
+        m_file.seekg (length, std::ios::cur);
     }
     // finished with the layer and mask information section, seek to the end
-    m_file->seekg (m_layer_mask_info.end);
+    m_file.seekg (m_layer_mask_info.end);
     return check_io ();
 }
 
@@ -1646,7 +1646,7 @@ PSDInput::load_image_data ()
     }
     BOOST_FOREACH (ChannelInfo &channel_info, m_image_data.channel_info) {
         channel_info.row_pos.resize (m_header.height);
-        channel_info.data_pos = m_file->tellg ();
+        channel_info.data_pos = m_file.tellg ();
         channel_info.row_length = (m_header.width * m_header.depth + 7) / 8;
         switch (compression) {
             case Compression_Raw:
@@ -1654,14 +1654,14 @@ PSDInput::load_image_data ()
                 for (uint32_t i = 1; i < m_header.height; ++i)
                     channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)row_length;
 
-                m_file->seekg (channel_info.row_pos.back () + (std::streampos)row_length);
+                m_file.seekg (channel_info.row_pos.back () + (std::streampos)row_length);
                 break;
             case Compression_RLE:
                 channel_info.row_pos[0] = channel_info.data_pos;
                 for (uint32_t i = 1; i < m_header.height; ++i)
                     channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
 
-                m_file->seekg (channel_info.row_pos.back () + (std::streampos)channel_info.rle_lengths.back ());
+                m_file.seekg (channel_info.row_pos.back () + (std::streampos)channel_info.rle_lengths.back ());
                 break;
         }
     }
@@ -1750,17 +1750,17 @@ PSDInput::read_channel_row (const ChannelInfo &channel_info, uint32_t row, char 
 
     uint32_t rle_length;
     channel_info.row_pos[row];
-    m_file->seekg (channel_info.row_pos[row]);
+    m_file.seekg (channel_info.row_pos[row]);
     switch (channel_info.compression) {
         case Compression_Raw:
-            m_file->read (data, channel_info.row_length);
+            m_file.read (data, channel_info.row_length);
             break;
         case Compression_RLE:
             rle_length = channel_info.rle_lengths[row];
             if (m_rle_buffer.size () < rle_length)
                 m_rle_buffer.resize (rle_length);
 
-            m_file->read (&m_rle_buffer[0], rle_length);
+            m_file.read (&m_rle_buffer[0], rle_length);
             if (!check_io ())
                 return false;
 
@@ -1909,18 +1909,18 @@ PSDInput::read_pascal_string (std::string &s, uint16_t mod_padding)
     s.clear();
     uint8_t length;
     int bytes = 0;
-    if (m_file->read ((char *)&length, 1)) {
+    if (m_file.read ((char *)&length, 1)) {
         bytes = 1;
         if (length == 0) {
-            if (m_file->seekg (mod_padding - 1, std::ios::cur))
+            if (m_file.seekg (mod_padding - 1, std::ios::cur))
                 bytes += mod_padding - 1;
         } else {
             s.resize (length);
-            if (m_file->read (&s[0], length)) {
+            if (m_file.read (&s[0], length)) {
                 bytes += length;
                 if (mod_padding > 0) {
                     for (int padded_length = length + 1; padded_length % mod_padding != 0; padded_length++) {
-                        if (!m_file->seekg(1, std::ios::cur))
+                        if (!m_file.seekg(1, std::ios::cur))
                             break;
 
                         bytes++;

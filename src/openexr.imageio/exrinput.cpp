@@ -101,7 +101,7 @@ public:
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
 
-        Filesystem::open (&ifs, filename, std::ios_base::binary);
+        Filesystem::open (ifs, filename, std::ios_base::binary);
         
         if (!ifs)
             Iex::throwErrnoExc ();
@@ -110,23 +110,18 @@ public:
         if (!ifs)
             throw Iex::InputExc ("Unexpected end of file.");
         errno = 0;
-        ifs->read (c, n);
+        ifs.read (c, n);
         return check_error ();
     }
     virtual Imath::Int64 tellg () {
-        return ifs ? std::streamoff (ifs->tellg ()) : 0;
+        return ifs.tellg ();
     }
     virtual void seekg (Imath::Int64 pos) {
-        if (!ifs) {
-            Iex::throwErrnoExc ();
-        }
-        ifs->seekg (pos);
+        ifs.seekg (pos);
         check_error ();
     }
     virtual void clear () {
-        if (ifs) {
-            ifs->clear ();
-        }
+        ifs.clear ();
     }
 
 private:
@@ -138,7 +133,7 @@ private:
         }
         return true;
     }
-    Filesystem::IStreamWrapper ifs;
+    OIIO_NAMESPACE::ifstream ifs;
 };
 
 
