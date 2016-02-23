@@ -303,14 +303,14 @@ template <class T> inline void DoNotOptimize (T const &val) { }
 #if (defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Special trick for x86/x86_64 and gcc-like compilers
-inline void clobber() {
+inline void clobber_all_memory() {
     asm volatile ("" : : : "memory");
 }
 
 #else
 
 // No fallback for other CPUs or compilers. Suggestions?
-inline void clobber() { }
+inline void clobber_all_memory() { }
 
 #endif
 
@@ -329,7 +329,7 @@ time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
         Timer timer;
         for (int i = 0; i < nrepeats; ++i) {
             // Be sure that the repeated calls to func aren't optimzed away:
-            clobber ();
+            clobber_all_memory();
             func ();
         }
         double t = timer();

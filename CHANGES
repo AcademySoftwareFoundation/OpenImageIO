@@ -159,7 +159,7 @@ Developer goodies / internals:
    direction; raised minimum chunk size to prevent thread fan-out for
    images too small to benefit; uses the calling thread as part of the
    pool. #1303 (1.7.0)
- * timer.h: DoNotOptimize() and clobber() help to disable certain
+ * timer.h: DoNotOptimize() and clobber_all_memory() help to disable certain
    optimizations that would interfere with micro-benchmarks. #1305 (1.7.0)
  * simd.h improvements: select(); round(); float4::store(half*),
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
