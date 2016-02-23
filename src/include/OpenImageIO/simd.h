@@ -50,7 +50,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenEXR/ImathVec.h>
 
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
+#if OIIO_GNUC_VERSION >= 40400 || __clang__
 #  include <immintrin.h>
+#else /* this clause can go away when GCC 4.8 is the minimum: */
+#  include <xmmintrin.h>
+#  include <emmintrin.h>
+#  if defined(__SSE3__)
+#    include <pmmintrin.h>
+#  endif
+#  if defined(__SSSE3__)
+#    include <tmmintrin.h>
+#  endif
+#  if (defined(__SSE4_1__) || defined(__SSE4_2__))
+#    include <smmintrin.h>
+#  endif
+#endif
 #  if (defined(__i386__) || defined(__x86_64__)) && (OIIO_GNUC_VERSION > 40400 || __clang__)
 #    include <x86intrin.h>
 #  endif
