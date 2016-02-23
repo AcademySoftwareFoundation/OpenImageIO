@@ -3,9 +3,12 @@ Changes:
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
- * New oiiotool commands: --box, --line  #1319 (1.7.1)
- * New ImageBufAlgo functions: render_point(), render_line(), render_box().
-   #1319 (1.7.1)
+ * New oiiotool commands: --box, --line #1319 (1.7.1); --laplacian #1332
+   (1.7.2)
+ * oiiotool -otex and -oenv allow oiiotool to directly output proper texture
+   maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+ * New ImageBufAlgo functions: render_point(), render_line(), render_box()
+   #1319 (1.7.1); laplacian() #1332 (1.7.2).
 
 Public API changes:
  * DeepData internals and API overhaul: struct internals hidden, now you
@@ -43,11 +46,30 @@ Fixes, minor enhancements, and performance improvements:
     * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
     * --ch: when the channels were only renamed, not reordered, the
       renaming didn't happen properly. #1326 (1.7.1/1.6.10)
+    * --laplacian computes the Laplacian. #1332 (1.7.1)
+    * Improved error message propagation from the underlying IBA functions
+      and from errors encounered during --stats. #1338 (1.7.2)
+    * --dumpdata:empty=0 now does something for non-deep files: skips
+      reporting of pixels where all channels are black. Also fixed errors
+      for dumpdata of deep, but non-float, fles. #1355 (1.7.2)
+    * '--attrib:type=t name value' lets you explicitly name the top of
+      the attribute you're seting. This helps for ambiguous cases, and also
+      lets you create aggregate types (such as 'matrix' or 'int[2]' --
+      the value can be a comma-separated list in those cases). #1351 (1.7.2)
+    * --fixnan can now take option "error", meaning that upon finding a
+      NaN, the program considers it an error (rather than fixing).
+      #1351 (1.7.2)
+    * -o now takes optional arguments that control the output of just that
+      one file, including :datatype=, :bits=, :dither=, :autocc=,
+      :autocrop=, :autotrim=, :separate=, :contig=.  #1351 (1.7.2)
+    * -otex and -oenv allow oiiotool to directly output proper texture
+      maps, and it can now do everything that maketx can do. #1351 (1.7.2)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
     * ImageBuf reads from disk have been improved substantially (in some
       cases cutting read time in half) in many cases. #1328 (1.7.1)
+    * ImageBuf::copy_pixels() has been sped up. #1358 (1.7.2)
  * ImageBufAlgo:
     * The varieties of add(), sub(), mul(), and div() that take an
       image operand and a per-channel constant operand have all been
@@ -58,10 +80,22 @@ Fixes, minor enhancements, and performance improvements:
       points, lines, and boxes into an image. #1319 (1.7.1)
     * channels(): when the channels were only renamed, not reordered,
       the renaming didn't happen properly. #1326 (1.7.1/1.6.10)
+    * computePixelStats: Improved numerical accuracy to avoid getting
+      NaN values from imprecision. #1333 (1.7.2)
+    * laplacian() computes the laplacian of an image. #1332 (1.7.2)
+    * fixNonFinite() takes a new option: NONFINITE_ERROR, which will
+      return an error if nonfinite values are encountered. #1351 (1.7.2)
+    * convolve() and unsharp_mask() have been sped up by about 35% for
+      common cases. #1357 (1.7.2)
+ * ImageCache / TextureSystem:
+    * Less unnecessary pausing after read errors when falure_retries == 0.
+      #1336 (1.7.2)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
+    * Remove long-obsolete and non-functional command line options: --new,
+      --old, --hash. #1351 (1.7.2)
  * iinfo more clearly prints info about subimage formats. #1320 (1.7.1)
  * TIFF:
     * When outputting a TIFF file, a special attribute "tiff:half", if
@@ -76,13 +110,26 @@ Fixes, minor enhancements, and performance improvements:
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
+    * Improved error reporting for bad tile reads. #1338 (1.7.2)
+    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
+ * GIF:
+    * GIF reader failed to set spec full_width, full_height. #1348 (1.7.2)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
+ * PNM:
+    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2)
+ * JPEG:
+    * Fix bad memory access crash when reading specific JPEG files that were
+      written without their comment field including a null character to
+      end the string. #1365 (1.7.2)
 
 Build/test system improvements:
+ * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
+   for C++03 using 'make USE_CPP11=0' or 'cmake -DOIIO_BUID_CPP11=0', but
+   some time soon we will be C++11 minimum.
  * Fix build break against Boost 1.60. #1299,#1300 (1.7.0/1.6.9/1.5.23)
  * filesystem_test now much more comprehensively tests the contents of
    Filesystem. #1302 (1.7.0)
@@ -97,6 +144,15 @@ Build/test system improvements:
  * imagespeed_test can not specify the data conversion type for reads,
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
+ * Fix build breaks for gcc 6. #1339 (1.7.2)
+ * Fix errors in finding the correct locaiton of pugixml.hpp when using
+   USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2)
+ * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
+   No more FindIlmbase.cmake at all. #1346 (1.7.2)
+ * 'make CODECOV=1; make CODECOV=1 test' can build and test in a way that
+   provides a code coverage report. #1356 (1.7.2)
+ * Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353 (1.7.2)
+ * Allow build against a wider range of ffmpeg versions. #1359 (1.7.2)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -107,6 +163,8 @@ Developer goodies / internals:
    optimizations that would interfere with micro-benchmarks. #1305 (1.7.0)
  * simd.h improvements: select(); round(); float4::store(half*),
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
+   Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
+   and add ~ for int4. #1331 (1.7.2)
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions. #1305 (1.7.0)
  * compute_test: new unit test can be used to benchmark computation
@@ -114,6 +172,10 @@ Developer goodies / internals:
  * Strutil::extract_from_list_string is more flixible by allowing the vals
    list to start empty, in which case it will add as many values as it finds
    rather than only replacing existing values. #1319 (1.7.1)
+ * Fix pesky precision discrepancy in internal convert_type<> that used
+   slightly different math when converting one value at a time, versus
+   converting whole arrays. #1350 (1.7.2)
+
 
 
 Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
