@@ -32,7 +32,9 @@
 /// @file  fstream_mingw.h
 ///
 /// @brief Utilities for dealing with fstream on MingW.
-
+/// Basically accepting wchar_t* filenames in the std::ifstream::open function
+/// is a Windows MSVC extension and does not work on MingW. This file implements
+/// ifstream and ofstream so that they work with UTF-16 filenames.
 
 
 #ifndef OPENIMAGEIO_FSTREAM_MINGW_H
@@ -48,8 +50,6 @@
 #include <sys/stat.h>
 #include <Share.h>
 
-#include "string_view.h"
-#include "strutil.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -69,18 +69,18 @@ public:
 
     
     basic_ifstream();
-    explicit basic_ifstream(string_view path, std::ios_base::openmode __mode = std::ios_base::in);
+    explicit basic_ifstream(const std::wstring& path, std::ios_base::openmode __mode = std::ios_base::in);
     
     virtual ~basic_ifstream();
     
     stdio_filebuf* rdbuf() const;
     bool is_open() const;
-    void open(string_view path, std::ios_base::openmode __mode = std::ios_base::in);
+    void open(const std::wstring& path, std::ios_base::openmode __mode = std::ios_base::in);
     void close();
     
 private:
     
-    void open_internal(string_view path, std::ios_base::openmode mode);
+    void open_internal(const std::wstring& path, std::ios_base::openmode mode);
     
     stdio_filebuf* __sb_;
 };
@@ -96,7 +96,7 @@ basic_ifstream<_CharT, _Traits>::basic_ifstream()
 
 template <class _CharT, class _Traits>
 inline
-basic_ifstream<_CharT, _Traits>::basic_ifstream(string_view path, std::ios_base::openmode __mode)
+basic_ifstream<_CharT, _Traits>::basic_ifstream(const std::wstring& path, std::ios_base::openmode __mode)
 : std::basic_istream<char_type, traits_type>(0)
 , __sb_(0)
 {
@@ -139,12 +139,16 @@ ios_open_mode_to_oflag(std::ios_base::openmode mode)
 template <class _CharT, class _Traits>
 inline
 void
-basic_ifstream<_CharT, _Traits>::open_internal(string_view path, std::ios_base::openmode mode)
+basic_ifstream<_CharT, _Traits>::open_internal(const std::wstring& path, std::ios_base::openmode mode)
 {
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
+	if (is_open()) {
+		// if the stream is already associated with a file (i.e., it is already open), calling this function fails.
+		this->setstate(std::ios_base::failbit);
+        return;
+	}
     int fd;
     int oflag = ios_open_mode_to_oflag(mode);
-    errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    errno_t errcode = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
         this->setstate(std::ios_base::failbit);
         return;
@@ -154,8 +158,10 @@ basic_ifstream<_CharT, _Traits>::open_internal(string_view path, std::ios_base::
         this->setstate(std::ios_base::failbit);
         return;
     }
-    this->init(__sb_);
+	// 409. Closing an fstream should clear error state
     this->clear();
+    this->init(__sb_);
+	 
 }
 
 template <class _CharT, class _Traits>
@@ -178,7 +184,7 @@ basic_ifstream<_CharT, _Traits>::is_open() const
 
 template <class _CharT, class _Traits>
 void
-basic_ifstream<_CharT, _Traits>::open(string_view path, std::ios_base::openmode __mode)
+basic_ifstream<_CharT, _Traits>::open(const std::wstring& path, std::ios_base::openmode __mode)
 {
     open_internal(path, __mode);
 }
@@ -195,6 +201,8 @@ basic_ifstream<_CharT, _Traits>::close()
         this->setstate(std::ios_base::failbit);
     
     delete __sb_;
+	__sb_= 0;
+
 }
 
 
@@ -214,18 +222,18 @@ public:
     
     
     basic_ofstream();
-    explicit basic_ofstream(string_view path, std::ios_base::openmode __mode = std::ios_base::out);
+    explicit basic_ofstream(const std::wstring& path, std::ios_base::openmode __mode = std::ios_base::out);
     
     virtual ~basic_ofstream();
     
     stdio_filebuf* rdbuf() const;
     bool is_open() const;
-    void open(string_view path, std::ios_base::openmode __mode = std::ios_base::out);
+    void open(const std::wstring& path, std::ios_base::openmode __mode = std::ios_base::out);
     void close();
     
 private:
     
-    void open_internal(string_view path, std::ios_base::openmode mode);
+    void open_internal(const std::wstring& path, std::ios_base::openmode mode);
     
     stdio_filebuf* __sb_;
 };
@@ -241,7 +249,7 @@ basic_ofstream<_CharT, _Traits>::basic_ofstream()
 
 template <class _CharT, class _Traits>
 inline
-basic_ofstream<_CharT, _Traits>::basic_ofstream(string_view path, std::ios_base::openmode __mode)
+basic_ofstream<_CharT, _Traits>::basic_ofstream(const std::wstring& path, std::ios_base::openmode __mode)
 : std::basic_ostream<char_type, traits_type>(0)
 , __sb_(0)
 {
@@ -259,12 +267,16 @@ basic_ofstream<_CharT, _Traits>::~basic_ofstream()
 template <class _CharT, class _Traits>
 inline
 void
-basic_ofstream<_CharT, _Traits>::open_internal(string_view path, std::ios_base::openmode mode)
+basic_ofstream<_CharT, _Traits>::open_internal(const std::wstring& path, std::ios_base::openmode mode)
 {
-    std::wstring wpath = Strutil::utf8_to_utf16(path);
+	if (is_open()) {
+		// if the stream is already associated with a file (i.e., it is already open), calling this function fails.
+		this->setstate(std::ios_base::failbit);
+        return;
+	}
     int fd;
     int oflag = ios_open_mode_to_oflag(mode);
-    errno_t errcode = _wsopen_s(&fd, wpath.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    errno_t errcode = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
         this->setstate(std::ios_base::failbit);
         return;
@@ -300,7 +312,7 @@ basic_ofstream<_CharT, _Traits>::is_open() const
 
 template <class _CharT, class _Traits>
 void
-basic_ofstream<_CharT, _Traits>::open(string_view path, std::ios_base::openmode __mode)
+basic_ofstream<_CharT, _Traits>::open(const std::wstring& path, std::ios_base::openmode __mode)
 {
     open_internal(path, __mode);
 }
@@ -317,6 +329,7 @@ basic_ofstream<_CharT, _Traits>::close()
         this->setstate(std::ios_base::failbit);
     
     delete __sb_;
+	__sb_= 0;
 }
 // basic_fstream
 

@@ -490,9 +490,9 @@ void
 Filesystem::open (OIIO_NAMESPACE::ifstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
-#if defined(_WIN32) && !defined(__GNUC__)
-    // This will not work correctly on GCC with MingW
+#ifdef _WIN32
     // Windows std::ifstream accepts non-standard wchar_t* 
+	// On MingW, we use our own OIIO_NAMESPACE::ifstream
     std::wstring wpath = Strutil::utf8_to_utf16(path);
     stream.open (wpath.c_str(), mode);
     stream.seekg (0, std::ios_base::beg); // force seek, otherwise broken
@@ -507,9 +507,9 @@ void
 Filesystem::open (OIIO_NAMESPACE::ofstream &stream, string_view path,
                   std::ios_base::openmode mode)
 {
-#if defined(_WIN32) && !defined(__GNUC__)
-    // This will not work correctly on GCC with MingW
+#ifdef _WIN32 
     // Windows std::ofstream accepts non-standard wchar_t*
+	// On MingW, we use our own OIIO_NAMESPACE::ofstream
     std::wstring wpath = Strutil::utf8_to_utf16 (path);
     stream.open (wpath.c_str(), mode);
 #else
