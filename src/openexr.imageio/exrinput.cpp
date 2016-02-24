@@ -87,7 +87,6 @@
 #include "OpenImageIO/deepdata.h"
 
 #include <boost/scoped_array.hpp>
-#include <boost/scoped_ptr.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -101,13 +100,9 @@ public:
     OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-        {
-            std::istream* ifsraw;
-            Filesystem::open (&ifsraw, filename, std::ios_base::binary);
-            if (ifsraw) {
-                ifs.reset(ifsraw);
-            }
-        }
+
+        Filesystem::open (&ifs, filename, std::ios_base::binary);
+        
         if (!ifs)
             Iex::throwErrnoExc ();
     }
@@ -143,7 +138,7 @@ private:
         }
         return true;
     }
-    boost::scoped_ptr<std::istream> ifs;
+    Filesystem::IStreamWrapper ifs;
 };
 
 
