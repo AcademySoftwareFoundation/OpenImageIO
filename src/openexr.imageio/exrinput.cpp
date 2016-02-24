@@ -100,21 +100,20 @@ public:
     OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-
         Filesystem::open (ifs, filename, std::ios_base::binary);
-        
-        if (!ifs)
+        if (!ifs) 
             Iex::throwErrnoExc ();
     }
     virtual bool read (char c[], int n) {
-        if (!ifs)
+        if (!ifs) 
             throw Iex::InputExc ("Unexpected end of file.");
+		
         errno = 0;
         ifs.read (c, n);
         return check_error ();
     }
     virtual Imath::Int64 tellg () {
-        return ifs.tellg ();
+        return std::streamoff (ifs.tellg ());
     }
     virtual void seekg (Imath::Int64 pos) {
         ifs.seekg (pos);
@@ -127,8 +126,9 @@ public:
 private:
     bool check_error () {
         if (!ifs) {
-            if (errno)
+            if (errno) 
                 Iex::throwErrnoExc ();
+			
             return false;
         }
         return true;

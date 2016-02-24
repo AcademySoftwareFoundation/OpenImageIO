@@ -256,7 +256,16 @@ Filesystem::exists (const std::string &path)
 {
     bool r = false;
     try {
+#if defined(_WIN32)
+		// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+		// to convert char* to wchar_t* because they do not know the encoding
+		// See boost::filesystem::path.hpp 
+		// The only correct way to do this is to do the conversion ourselves
+		std::wstring wpath = Strutil::utf8_to_utf16(path);
+		r = boost::filesystem::exists (wpath);
+#else
         r = boost::filesystem::exists (path);
+#endif
     } catch (...) {
         r = false;
     }
@@ -270,7 +279,16 @@ Filesystem::is_directory (const std::string &path)
 {
     bool r = false;
     try {
-        r = boost::filesystem::is_directory (path);
+#if defined(_WIN32)
+		// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+		// to convert char* to wchar_t* because they do not know the encoding
+		// See boost::filesystem::path.hpp 
+		// The only correct way to do this is to do the conversion ourselves
+		std::wstring wpath = Strutil::utf8_to_utf16(path);
+        r = boost::filesystem::is_directory (wpath);
+#else
+		r = boost::filesystem::is_directory (path);
+#endif
     } catch (...) {
         r = false;
     }
@@ -284,7 +302,16 @@ Filesystem::is_regular (const std::string &path)
 {
     bool r = false;
     try {
+#if defined(_WIN32)
+		// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+		// to convert char* to wchar_t* because they do not know the encoding
+		// See boost::filesystem::path.hpp 
+		// The only correct way to do this is to do the conversion ourselves
+		std::wstring wpath = Strutil::utf8_to_utf16(path);
+		r = boost::filesystem::is_regular_file (wpath);
+#else
         r = boost::filesystem::is_regular_file (path);
+#endif
     } catch (...) {
         r = false;
     }
@@ -296,16 +323,27 @@ Filesystem::is_regular (const std::string &path)
 bool
 Filesystem::create_directory (string_view path, std::string &err)
 {
+
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring pathStr = Strutil::utf8_to_utf16(path);
+#else
+	std::string pathStr = path.str();
+#endif
+
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    bool ok = boost::filesystem::create_directory (path.str(), ec);
+	bool ok = boost::filesystem::create_directory (pathStr, ec);
     if (ok)
         err.clear();
     else
         err = ec.message();
     return ok;
 #else
-    bool ok = boost::filesystem::create_directory (path.str());
+    bool ok = boost::filesystem::create_directory (pathStr);
     if (ok)
         err.clear();
     else
@@ -318,12 +356,24 @@ Filesystem::create_directory (string_view path, std::string &err)
 bool
 Filesystem::copy (string_view from, string_view to, std::string &err)
 {
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring fromStr = Strutil::utf8_to_utf16(from);
+	std::wstring toStr = Strutil::utf8_to_utf16(to);
+#else
+	std::string fromStr = from.str();
+	std::string toStr = to.str();
+#endif
+
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
 # if BOOST_VERSION < 105000
-    boost::filesystem3::copy (from.str(), to.str(), ec);
+    boost::filesystem3::copy (fromStr, toStr, ec);
 # else
-    boost::filesystem::copy (from.str(), to.str(), ec);
+    boost::filesystem::copy (fromStr, toStr, ec);
 # endif
     if (! ec) {
         err.clear();
@@ -342,12 +392,23 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 bool
 Filesystem::rename (string_view from, string_view to, std::string &err)
 {
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring fromStr = Strutil::utf8_to_utf16(from);
+	std::wstring toStr = Strutil::utf8_to_utf16(to);
+#else
+	std::string fromStr = from.str();
+	std::string toStr = to.str();
+#endif
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
 # if BOOST_VERSION < 105000
-    boost::filesystem3::rename (from.str(), to.str(), ec);
+    boost::filesystem3::rename (fromStr, toStr, ec);
 # else
-    boost::filesystem::rename (from.str(), to.str(), ec);
+    boost::filesystem::rename (fromStr, toStr, ec);
 # endif
     if (! ec) {
         err.clear();
@@ -366,16 +427,25 @@ Filesystem::rename (string_view from, string_view to, std::string &err)
 bool
 Filesystem::remove (string_view path, std::string &err)
 {
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring pathStr = Strutil::utf8_to_utf16(path);
+#else
+	std::string pathStr = path.str();
+#endif
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    bool ok = boost::filesystem::remove (path.str(), ec);
+    bool ok = boost::filesystem::remove (pathStr, ec);
     if (ok)
         err.clear();
     else
         err = ec.message();
     return ok;
 #else
-    bool ok = boost::filesystem::remove (path.str());
+    bool ok = boost::filesystem::remove (pathStr);
     if (ok)
         err.clear();
     else
@@ -389,16 +459,25 @@ Filesystem::remove (string_view path, std::string &err)
 unsigned long long
 Filesystem::remove_all (string_view path, std::string &err)
 {
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring pathStr = Strutil::utf8_to_utf16(path);
+#else
+	std::string pathStr = path.str();
+#endif
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    unsigned long long n = boost::filesystem::remove_all (path.str(), ec);
+    unsigned long long n = boost::filesystem::remove_all (pathStr, ec);
     if (!ec)
         err.clear();
     else
         err = ec.message();
     return n;
 #else
-    unsigned long long n = boost::filesystem::remove_all (path.str());
+    unsigned long long n = boost::filesystem::remove_all (pathStr);
     err.clear();
     return n;
 #endif
@@ -431,9 +510,18 @@ Filesystem::temp_directory_path()
 std::string
 Filesystem::unique_path (string_view model)
 {
+#if defined(_WIN32)
+	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+	// to convert char* to wchar_t* because they do not know the encoding
+	// See boost::filesystem::path.hpp 
+	// The only correct way to do this is to do the conversion ourselves
+	std::wstring modelStr = Strutil::utf8_to_utf16(model);
+#else
+	std::string modelStr = model.str();
+#endif
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
-    boost::filesystem::path p = boost::filesystem::unique_path (model.str(), ec);
+    boost::filesystem::path p = boost::filesystem::unique_path (modelStr, ec);
     return ec ? std::string() : p.string();
 #elif _MSC_VER
     char buf[TMP_MAX];

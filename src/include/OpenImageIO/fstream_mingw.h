@@ -100,7 +100,7 @@ basic_ifstream<_CharT, _Traits>::basic_ifstream(const std::wstring& path, std::i
 : std::basic_istream<char_type, traits_type>(0)
 , __sb_(0)
 {
-    open_internal(path, __mode);
+    open_internal(path, __mode | std::ios_base::in);
 }
 
 template <class _CharT, class _Traits>
@@ -160,8 +160,12 @@ basic_ifstream<_CharT, _Traits>::open_internal(const std::wstring& path, std::io
     }
 	// 409. Closing an fstream should clear error state
     this->clear();
+	assert(__sb_);
+	
+	// In init() the rdstate() is set to badbit if __sb_ is NULL and
+	// goodbit otherwise. The assert afterwards ensures this.
     this->init(__sb_);
-	 
+	assert(this->good() && !this->fail());
 }
 
 template <class _CharT, class _Traits>
@@ -186,7 +190,7 @@ template <class _CharT, class _Traits>
 void
 basic_ifstream<_CharT, _Traits>::open(const std::wstring& path, std::ios_base::openmode __mode)
 {
-    open_internal(path, __mode);
+    open_internal(path, __mode | std::ios_base::in);
 }
 
 template <class _CharT, class _Traits>
@@ -253,7 +257,7 @@ basic_ofstream<_CharT, _Traits>::basic_ofstream(const std::wstring& path, std::i
 : std::basic_ostream<char_type, traits_type>(0)
 , __sb_(0)
 {
-    open_internal(path, __mode);
+    open_internal(path, __mode  | std::ios_base::out);
 }
 
 template <class _CharT, class _Traits>
@@ -286,8 +290,14 @@ basic_ofstream<_CharT, _Traits>::open_internal(const std::wstring& path, std::io
         this->setstate(std::ios_base::failbit);
         return;
     }
-    this->init(__sb_);
+	// 409. Closing an fstream should clear error state
     this->clear();
+	assert(__sb_);
+	
+	// In init() the rdstate() is set to badbit if __sb_ is NULL and
+	// goodbit otherwise. The assert afterwards ensures this.
+    this->init(__sb_);
+	assert(this->good() && !this->fail());
 }
 
 
@@ -314,7 +324,7 @@ template <class _CharT, class _Traits>
 void
 basic_ofstream<_CharT, _Traits>::open(const std::wstring& path, std::ios_base::openmode __mode)
 {
-    open_internal(path, __mode);
+    open_internal(path, __mode | std::ios_base::out);
 }
 
 template <class _CharT, class _Traits>
