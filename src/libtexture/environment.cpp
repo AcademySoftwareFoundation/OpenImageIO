@@ -498,7 +498,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
             if (filtwidth_ras <= 1) {
                 miplevel[0] = m-1;
                 miplevel[1] = m;
-                levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
+                levelblend = Imath::clamp (2.0f*filtwidth_ras - 1.0f, 0.0f, 1.0f);
                 break;
             }
         }
