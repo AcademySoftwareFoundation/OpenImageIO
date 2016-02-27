@@ -32,6 +32,10 @@ Public API changes:
    in the data region of the IB. #1310 (1.7.1)
  * TypeDesc::is_signed() return true of the TypeDesc returns a type that
    can represent negative values. #1320
+ * Python: improve: reading with request for type UNKNOWN returns native
+   data in an unsigned char array. Also, requesting HALF returns the half
+   bits in an unsigned short array (since there is no 'half' type in Python).
+   #1362 (1.7.2/1.6.11)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -51,7 +55,7 @@ Fixes, minor enhancements, and performance improvements:
       and from errors encounered during --stats. #1338 (1.7.2)
     * --dumpdata:empty=0 now does something for non-deep files: skips
       reporting of pixels where all channels are black. Also fixed errors
-      for dumpdata of deep, but non-float, fles. #1355 (1.7.2)
+      for dumpdata of deep, but non-float, files. #1355 (1.7.2/1.6.11)
     * '--attrib:type=t name value' lets you explicitly name the top of
       the attribute you're seting. This helps for ambiguous cases, and also
       lets you create aggregate types (such as 'matrix' or 'int[2]' --
@@ -81,7 +85,7 @@ Fixes, minor enhancements, and performance improvements:
     * channels(): when the channels were only renamed, not reordered,
       the renaming didn't happen properly. #1326 (1.7.1/1.6.10)
     * computePixelStats: Improved numerical accuracy to avoid getting
-      NaN values from imprecision. #1333 (1.7.2)
+      NaN values from imprecision. #1333 (1.7.2/1.6.11)
     * laplacian() computes the laplacian of an image. #1332 (1.7.2)
     * fixNonFinite() takes a new option: NONFINITE_ERROR, which will
       return an error if nonfinite values are encountered. #1351 (1.7.2)
@@ -89,7 +93,8 @@ Fixes, minor enhancements, and performance improvements:
       common cases. #1357 (1.7.2)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
-      #1336 (1.7.2)
+      #1336 (1.7.2/1.6.11)
+    * Texture: slight improvement in texture sharpness. #1369 (1.7.2/1.6.11)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
@@ -110,21 +115,22 @@ Fixes, minor enhancements, and performance improvements:
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
-    * Improved error reporting for bad tile reads. #1338 (1.7.2)
-    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2)
+    * Improved error reporting for bad tile reads. #1338 (1.7.2/1.6.11)
+    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2/1.6.11)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
  * GIF:
-    * GIF reader failed to set spec full_width, full_height. #1348 (1.7.2)
+    * GIF reader failed to set spec full_width, full_height. #1348
+      (1.7.2/1.6.11)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
  * PNM:
-    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2)
+    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
  * JPEG:
     * Fix bad memory access crash when reading specific JPEG files that were
       written without their comment field including a null character to
-      end the string. #1365 (1.7.2)
+      end the string. #1365 (1.7.2/1.6.11)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
@@ -144,11 +150,11 @@ Build/test system improvements:
  * imagespeed_test can not specify the data conversion type for reads,
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
- * Fix build breaks for gcc 6. #1339 (1.7.2)
+ * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11)
  * Fix errors in finding the correct locaiton of pugixml.hpp when using
-   USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2)
+   USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2/1.6.11)
  * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
-   No more FindIlmbase.cmake at all. #1346 (1.7.2)
+   No more FindIlmbase.cmake at all. #1346 (1.7.2/1.6.11)
  * 'make CODECOV=1; make CODECOV=1 test' can build and test in a way that
    provides a code coverage report. #1356 (1.7.2)
  * Fix Filesystem::open() issues with UTF-8 filenames on MinGW.
@@ -178,6 +184,36 @@ Developer goodies / internals:
    converting whole arrays. #1350 (1.7.2)
 
 
+Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
+------------------------------------------------
+* Fix potential of IBA::computePixelStats (including oiiotool --stats)
+  to end up with NaNs due to numerical imprecision. #1333
+* Less unnecessary pausing after read errors when falure_retries == 0.
+  #1336
+* Fix errors in finding the correct locaiton of pugixml.hpp when using
+  USE_EXTERNAL_PUGIXML=1. #1339
+* Fix build breaks for gcc 6. #1339
+* GIF reader failed to set spec full_width, full_height. #1348
+* PNM: Fixed byte swapping when reading 16 but PNM files. #1352
+* OpenEXR: Improved error reporting for bad tile reads. #1338
+* OpenEXR: Fix errors reading tiles for mixed-format EXR files. #1352
+* oiiotool --dumpdata:empty=0 now does something for non-deep files: skips
+  reporting of pixels where all channels are black. Also fixed errors
+  for dumpdata of deep, but non-float, files. #1355
+* Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353
+* Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
+  No more FindIlmbase.cmake at all. #1346
+* Fix build break for older gcc < 4.4 that didn't have immintrin.h.
+* Fix bad memory access crash when reading specific JPEG files that were
+  written without their comment field including a null character to
+  end the string. #1365
+* The ffmpeg-based reader had a variety of fixes. #1288
+* Python: improve: reading with request for type UNKNOWN returns native
+  data in an unsigned char array. Also, requesting HALF returns the half
+  bits in an unsigned short array (since there is no 'half' type in Python).
+  #1362
+* Texture: slight improvement in texture sharpness. #1369
+* Update webp testsuite references for new webp version.
 
 Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 ------------------------------------------------
@@ -732,6 +768,12 @@ Developer goodies / internals:
    (1.6.6/1.5.21)
 
 
+
+Release 1.5.24 (1 Mar 2016) -- compared to 1.5.23)
+---------------------------------------------------
+* Fix oiiotool --dumpdata, didn't work properly for non-float files.
+* Fix broken OpenEXR multi-part output when parts have different pixel types.
+* Update webp testsuite references for new webp version.
 
 Release 1.5.23 (28 Dec 2015) -- compared to 1.5.22)
 ---------------------------------------------------
