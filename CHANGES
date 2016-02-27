@@ -1,8 +1,35 @@
 Changes:
 
-Release 1.6.11 (released ?? 2016 -- compared to 1.6.10)
+Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
 ------------------------------------------------
-
+* Fix potential of IBA::computePixelStats (including oiiotool --stats)
+  to end up with NaNs due to numerical imprecision. #1333
+* Less unnecessary pausing after read errors when falure_retries == 0.
+  #1336
+* Fix errors in finding the correct locaiton of pugixml.hpp when using
+  USE_EXTERNAL_PUGIXML=1. #1339
+* Fix build breaks for gcc 6. #1339
+* GIF reader failed to set spec full_width, full_height. #1348
+* PNM: Fixed byte swapping when reading 16 but PNM files. #1352
+* OpenEXR: Improved error reporting for bad tile reads. #1338
+* OpenEXR: Fix errors reading tiles for mixed-format EXR files. #1352
+* oiiotool --dumpdata:empty=0 now does something for non-deep files: skips
+  reporting of pixels where all channels are black. Also fixed errors
+  for dumpdata of deep, but non-float, files. #1355
+* Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353,1373
+* Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
+  No more FindIlmbase.cmake at all. #1346
+* Fix build break for older gcc < 4.4 that didn't have immintrin.h.
+* Fix bad memory access crash when reading specific JPEG files that were
+  written without their comment field including a null character to
+  end the string. #1365
+* The ffmpeg-based reader had a variety of fixes. #1288
+* Python: improve: reading with request for type UNKNOWN returns native
+  data in an unsigned char array. Also, requesting HALF returns the half
+  bits in an unsigned short array (since there is no 'half' type in Python).
+  #1362
+* Texture: slight improvement in texture sharpness. #1369
+* Update webp testsuite references for new webp version.
 
 Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 ------------------------------------------------
@@ -557,6 +584,12 @@ Developer goodies / internals:
    (1.6.6/1.5.21)
 
 
+
+Release 1.5.24 (1 Mar 2016) -- compared to 1.5.23)
+---------------------------------------------------
+* Fix oiiotool --dumpdata, didn't work properly for non-float files.
+* Fix broken OpenEXR multi-part output when parts have different pixel types.
+* Update webp testsuite references for new webp version.
 
 Release 1.5.23 (28 Dec 2015) -- compared to 1.5.22)
 ---------------------------------------------------
