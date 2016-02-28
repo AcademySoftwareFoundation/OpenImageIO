@@ -67,6 +67,13 @@
 OIIO_NAMESPACE_BEGIN
 
 
+/// Helper template to let us tell if two types are the same.
+template<typename T, typename U> struct is_same { static const bool value = false; };
+template<typename T> struct is_same<T,T> { static const bool value = true; };
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 //
@@ -225,14 +232,98 @@ clamp (simd::float4 a, simd::float4 low, simd::float4 high)
 
 
 
-/// Multiply and add: (a * b) + c
+/// Fused multiply and add: (a*b + c)
 template <typename T>
 inline T madd (const T& a, const T& b, const T& c) {
-    // NOTE:  in the future we may want to explicitly ask for a fused
-    // multiply-add in a specialized version for float.
-    // NOTE2: GCC/ICC will turn this (for float) into a FMA unless
-    // explicitly asked not to, clang seems to leave the code alone.
+#if OIIO_FMA_ENABLED && (OIIO_CPLUSPLUS_VERSION >= 11)
+    // C++11 defines std::fma, which we assume is implemented using an
+    // intrinsic.
+    if (is_same<T,float>::value || is_same<T,double>::value)
+        return std::fma (a, b, c);
+#endif
+    // NOTE: GCC/ICC will turn this (for float) into a FMA unless
+    // explicitly asked not to, clang will do so if -ffp-contract=fast.
     return a * b + c;
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float madd (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fmadd_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 madd (const simd::float4& a, const simd::float4& b,
+                          const simd::float4& c) {
+    // Implement float4 madd in terms of the one defined in simd.h.
+    return simd::madd (a, b, c);
+}
+
+
+
+/// Fused multiply and subtract: -(a*b - c)
+template <typename T>
+inline T msub (const T& a, const T& b, const T& c) {
+    return a * b - c; // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float msub (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fmsub_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 msub (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 msub in terms of the one defined in simd.h.
+    return simd::msub (a, b, c);
+}
+
+
+
+/// Fused negative multiply and add: -(a*b) + c
+template <typename T>
+inline T nmadd (const T& a, const T& b, const T& c) {
+    return c - (a * b); // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float nmadd (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fnmadd_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 nmadd (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 nmadd in terms of the one defined in simd.h.
+    return simd::nmadd (a, b, c);
+}
+
+
+
+/// Negative fused multiply and subtract: -(a*b) - c
+template <typename T>
+inline T nmsub (const T& a, const T& b, const T& c) {
+    return -(a * b) - c; // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float nmsub (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fnmsub_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 nmsub (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 nmsub in terms of the one defined in simd.h.
+    return simd::nmsub (a, b, c);
 }
 
 
@@ -477,12 +568,6 @@ sincos (double x, double* sine, double* cosine)
 // CONVERSION
 //
 // Type and range conversion helper functions and classes.
-
-
-/// Helper template to let us tell if two types are the same.
-template<typename T, typename U> struct is_same { static const bool value = false; };
-template<typename T> struct is_same<T,T> { static const bool value = true; };
-
 
 
 template <typename IN_TYPE, typename OUT_TYPE>
@@ -1078,6 +1163,10 @@ inline int fast_rint (float x) {
     // emulate rounding by adding/substracting 0.5
     return static_cast<int>(x + copysignf(0.5f, x));
 #endif
+}
+
+inline simd::int4 fast_rint (const simd::float4& x) {
+    return simd::rint (x);
 }
 
 

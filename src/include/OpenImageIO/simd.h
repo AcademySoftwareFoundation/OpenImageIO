@@ -93,6 +93,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
 #endif
 
+#if defined(__FMA__) || defined(__AVX2__)
+#  define OIIO_FMA_ENABLED 1
+#endif
+
 // FIXME Future: support ARM Neon
 // Uncomment this when somebody with Neon can verify it works
 #if 0 && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
@@ -1386,6 +1390,20 @@ OIIO_FORCEINLINE int4 rotl32 (const int4& x, const unsigned int k)
 
 
 
+/// andnot(a,b) returns ((~a) & b)
+OIIO_FORCEINLINE int4 andnot (const int4& a, const int4& b) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_si128 (a.simd(), b.simd());
+#else
+    return int4 (~(a[0]) & b[0],
+                 ~(a[1]) & b[1],
+                 ~(a[2]) & b[2],
+                 ~(a[3]) & b[3]);
+#endif
+}
+
+
+
 
 /// Floating point 4-vector, accelerated by SIMD instructions when
 /// available.
@@ -2319,6 +2337,15 @@ OIIO_FORCEINLINE int4 floori (const float4& a)
 #endif
 }
 
+/// Per-element round to nearest integer (rounding away from 0 in cases
+/// that are exactly half way).
+OIIO_FORCEINLINE int4 rint (const float4& a)
+{
+    return int4 (round(a));
+}
+
+
+
 /// Per-element min
 OIIO_FORCEINLINE float4 min (const float4& a, const float4& b)
 {
@@ -2342,6 +2369,101 @@ OIIO_FORCEINLINE float4 max (const float4& a, const float4& b)
                    std::max (a[1], b[1]),
                    std::max (a[2], b[2]),
                    std::max (a[3], b[3]));
+#endif
+}
+
+
+
+/// andnot(a,b) returns ((~a) & b)
+OIIO_FORCEINLINE float4 andnot (const float4& a, const float4& b) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_ps (a.simd(), b.simd());
+#else
+    const int *ai = (const int *)&a;
+    const int *bi = (const int *)&b;
+    return bitcast_to_float4 (int4(~(ai[0]) & bi[0],
+                                   ~(ai[1]) & bi[1],
+                                   ~(ai[2]) & bi[2],
+                                   ~(ai[3]) & bi[3]));
+#endif
+}
+
+
+
+/// Fused multiply and add: (a*b + c)
+OIIO_FORCEINLINE float4 madd (const simd::float4& a, const simd::float4& b,
+                              const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fmadd_ps intrinsic is available, use it.
+    return _mm_fmadd_ps (a, b, c);
+#elif OIIO_SIMD_SSE
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return a.simd() * b.simd() + c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b + c;
+#endif
+}
+
+
+/// Fused multiply and subtract: (a*b - c)
+OIIO_FORCEINLINE float4 msub (const simd::float4& a, const simd::float4& b,
+                              const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
+    return _mm_fmsub_ps (a, b, c);
+#elif OIIO_SIMD_SSE
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return a.simd() * b.simd() - c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b - c;
+#endif
+}
+
+
+
+/// Fused negative multiply and add: -(a*b) + c
+OIIO_FORCEINLINE float4 nmadd (const simd::float4& a, const simd::float4& b,
+                               const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmadd_ps intrinsic is available, use it.
+    return _mm_fnmadd_ps (a, b, c);
+#elif OIIO_SIMD_SSE
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return c.simd() - a.simd() * b.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return c - a * b;
+#endif
+}
+
+
+
+/// Fused negative multiply and subtract: -(a*b) - c
+OIIO_FORCEINLINE float4 nmsub (const simd::float4& a, const simd::float4& b,
+                               const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
+    return _mm_fnmsub_ps (a, b, c);
+#elif OIIO_SIMD_SSE
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return -(a.simd() * b.simd()) - c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return -(a * b) - c;
 #endif
 }
 
@@ -2470,6 +2592,13 @@ template<typename T,int elements> struct VecType {};
 template<> struct VecType<int,4>   { typedef int4 type; };
 template<> struct VecType<float,4> { typedef float4 type; };
 template<> struct VecType<bool,4>  { typedef mask4 type; };
+
+/// Template to retrieve the SIMD size of a SIMD type. Rigged to be 1 for
+/// anything but our SIMD types.
+template<typename T> struct SimdSize { static const int size = 1; };
+template<> struct SimdSize<int4>     { static const int size = 4; };
+template<> struct SimdSize<float4>   { static const int size = 4; };
+template<> struct SimdSize<mask4>    { static const int size = 4; };
 
 
 } // end namespace

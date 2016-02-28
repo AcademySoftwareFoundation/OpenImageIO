@@ -210,6 +210,23 @@ void test_arithmetic ()
 
 
 
+void test_fused ()
+{
+    typedef float4 VEC;
+    typedef VEC::value_t ELEM;
+    std::cout << "test_fused " << VEC::type_name() << "\n";
+
+    VEC a (10, 11, 12, 13);
+    VEC b (1, 2, 3, 4);
+    VEC c (0.5, 1.5, 2.5, 3.5);
+    OIIO_CHECK_SIMD_EQUAL (madd (a, b, c), a*b+c);
+    OIIO_CHECK_SIMD_EQUAL (msub (a, b, c), a*b-c);
+    OIIO_CHECK_SIMD_EQUAL (nmadd (a, b, c), -(a*b)+c);
+    OIIO_CHECK_SIMD_EQUAL (nmsub (a, b, c), -(a*b)-c);
+}
+
+
+
 void test_bitwise_int4 ()
 {
     typedef int4 VEC;
@@ -220,6 +237,9 @@ void test_bitwise_int4 ()
     OIIO_CHECK_SIMD_EQUAL (VEC(0x12341234) | VEC(0x11111111), VEC(0x13351335));
     OIIO_CHECK_SIMD_EQUAL (VEC(0x12341234) ^ VEC(0x11111111), VEC(0x03250325));
     OIIO_CHECK_SIMD_EQUAL (~(VEC(0x12341234)), VEC(0xedcbedcb));
+    OIIO_CHECK_SIMD_EQUAL (andnot (VEC(0x11111111), VEC(0x12341234)),
+                           (~(VEC(0x11111111))) & VEC(0x12341234));
+    OIIO_CHECK_SIMD_EQUAL (andnot (VEC(0x11111111), VEC(0x12341234)), VEC(0x02240224));
 }
 
 
@@ -404,6 +424,7 @@ void test_constants ()
 // Miscellaneous one-off stuff not caught by other tests
 void test_special ()
 {
+    std::cout << "test_special\n";
     {
         // Make sure a float4 constructed from saturated unsigned short,
         // short, unsigned char, or char values, then divided by the float
@@ -421,6 +442,18 @@ void test_special ()
         OIIO_CHECK_SIMD_EQUAL (float4(c127)/float4(127.0), float4(1.0f));
         OIIO_CHECK_SIMD_EQUAL (float4(c127)*float4(1.0f/127.0), float4(1.0f));
     }
+}
+
+
+
+void test_metaprogramming ()
+{
+    std::cout << "test_metaprogramming\n";
+    OIIO_CHECK_EQUAL (SimdSize<float4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<int4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<mask4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<float>::size, 1);
+    OIIO_CHECK_EQUAL (SimdSize<int>::size, 1);
 }
 
 
@@ -447,6 +480,7 @@ main (int argc, char *argv[])
     test_blend<float4> ();
     test_transpose<float4> ();
     test_vectorops<float4> ();
+    test_fused ();
 
     std::cout << "\n";
     test_loadstore<int4> ();
@@ -467,6 +501,7 @@ main (int argc, char *argv[])
 
     test_constants();
     test_special();
+    test_metaprogramming();
 
     return unit_test_failures;
 }

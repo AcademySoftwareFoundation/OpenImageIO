@@ -271,6 +271,22 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     std::cerr << "separable filter\n";
 #endif
 
+#define USE_SPECIAL 0
+#if USE_SPECIAL
+    // Special case: src and dst are local memory, float buffers, and we're
+    // operating on all channels, <= 4.
+    bool special = 
+       (   (is_same<DSTTYPE,float>::value || is_same<DSTTYPE,half>::value)
+        && (is_same<SRCTYPE,float>::value || is_same<SRCTYPE,half>::value)
+        // && dst.localpixels() // has to be, because it's writeable
+        && src.localpixels()
+        // && R.contains_roi(roi)  // has to be, because IBAPrep
+        && src.contains_roi(roi)
+        && roi.chbegin == 0 && roi.chend == dst.nchannels()
+        && roi.chend == src.nchannels() && roi.chend <= 4
+        && separable);
+#endif
+
     // We're going to loop over all output pixels we're interested in.
     //
     // (s,t) = NDC space coordinates of the output sample we are computing.

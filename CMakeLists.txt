@@ -290,6 +290,13 @@ if (NOT USE_SIMD STREQUAL "")
             else ()
                 add_definitions ("-m${feature}")
             endif ()
+            if (feature STREQUAL "fma" AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
+                # If fma is requested, for numerical accuracy sake, turn it
+                # off by default except when we explicitly use madd. At some
+                # future time, we should look at this again carefully and
+                # see if we want to use it more widely by ffp-contract=fast.
+                add_definitions ("-ffp-contract=off")
+            endif ()
         endforeach()
     endif ()
 endif ()
