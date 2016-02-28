@@ -623,7 +623,7 @@ ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const float *b,
     int nc = dst.nchannels();
     float *binv = OIIO_ALLOCA (float, nc);
     for (int c = 0; c < nc; ++c)
-        binv[c] = (b[c] == 0.0f) ? 1.0f : 1.0f/b[c];
+        binv[c] = (b[c] == 0.0f) ? 0.0f : 1.0f/b[c];
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "div", mul_impl, dst.spec().format,
                           A.spec().format, dst, A, binv, roi, nthreads);
