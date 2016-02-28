@@ -1,5 +1,9 @@
 Changes:
 
+Release 1.6.12 (in development -- compared to 1.6.11)
+------------------------------------------------
+
+
 Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
 ------------------------------------------------
 * Fix potential of IBA::computePixelStats (including oiiotool --stats)
