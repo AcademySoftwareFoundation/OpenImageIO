@@ -408,6 +408,17 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 
 
 
+/// Return floor(x) as an int, as efficiently as possible.
+inline int
+ifloor (float x)
+{
+    // Find the greatest whole number <= x.  This cast is faster than
+    // calling floorf.
+    return (int) x - (x < 0.0f ? 1 : 0);
+}
+
+
+
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
@@ -415,9 +426,7 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 inline float
 floorfrac (float x, int *xint)
 {
-    // Find the greatest whole number <= x.  This cast is faster than
-    // calling floorf.
-    int i = (int) x - (x < 0.0f ? 1 : 0);
+    int i = ifloor(x);
     *xint = i;
     return x - static_cast<float>(i);   // Return the fraction left over
 }
