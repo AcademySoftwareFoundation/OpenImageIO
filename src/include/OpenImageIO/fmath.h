@@ -1280,6 +1280,7 @@ inline float fast_tan (float x) {
 
 /// Fast, approximate sin(x*M_PI) with maximum absolute error of 0.000918954611.
 /// Adapted from http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
+/// Note that this is MUCH faster, but much less accurate than fast_sin.
 inline float fast_sinpi (float x)
 {
 	// Fast trick to strip the integral part off, so our domain is [-1,1]
@@ -1313,6 +1314,7 @@ inline float fast_sinpi (float x)
 }
 
 /// Fast approximate cos(x*M_PI) with ~0.1% absolute error.
+/// Note that this is MUCH faster, but much less accurate than fast_cos.
 inline float fast_cospi (float x)
 {
     return fast_sinpi (x+0.5f);
