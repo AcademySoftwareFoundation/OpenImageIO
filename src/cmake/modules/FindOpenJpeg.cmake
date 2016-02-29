@@ -80,7 +80,9 @@ if (OPENJPEG_HOME)
        ${OPENJPEG_HOME}/lib64)
   set (OpenJpeg_include_paths
        ${OpenJpeg_include_paths}
-       ${OPENJPEG_HOME}/include)
+       ${OPENJPEG_HOME}/include
+       ${OPENJPEG_HOME}/include/openjpeg
+       ${OPENJPEG_HOME}/include/openjpeg-1.5)
 endif()
 
 

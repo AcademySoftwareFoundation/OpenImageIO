@@ -277,7 +277,7 @@ endif ()
 
 
 if (WIN32)
-    target_link_libraries (OpenImageIO psapi.lib)
+    target_link_libraries (OpenImageIO psapi ws2_32)
 endif ()
 
 add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")

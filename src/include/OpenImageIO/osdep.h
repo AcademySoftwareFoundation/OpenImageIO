@@ -33,7 +33,9 @@
 #ifdef _WIN32
 # define WIN32_LEAN_AND_MEAN
 # define VC_EXTRALEAN
+# ifndef __MINGW32__
 # define NOMINMAX
+# endif
 # include <windows.h>
 #endif
 

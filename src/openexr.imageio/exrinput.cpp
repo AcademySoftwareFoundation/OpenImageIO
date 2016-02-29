@@ -87,7 +87,6 @@
 #include "OpenImageIO/deepdata.h"
 
 #include <boost/scoped_array.hpp>
-#include <boost/scoped_ptr.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -101,49 +100,40 @@ public:
     OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-        {
-            std::istream* ifsraw;
-            Filesystem::open (&ifsraw, filename, std::ios_base::binary);
-            if (ifsraw) {
-                ifs.reset(ifsraw);
-            }
-        }
-        if (!ifs)
+        Filesystem::open (ifs, filename, std::ios_base::binary);
+        if (!ifs) 
             Iex::throwErrnoExc ();
     }
     virtual bool read (char c[], int n) {
-        if (!ifs)
+        if (!ifs) 
             throw Iex::InputExc ("Unexpected end of file.");
+		
         errno = 0;
-        ifs->read (c, n);
+        ifs.read (c, n);
         return check_error ();
     }
     virtual Imath::Int64 tellg () {
-        return ifs ? std::streamoff (ifs->tellg ()) : 0;
+        return std::streamoff (ifs.tellg ());
     }
     virtual void seekg (Imath::Int64 pos) {
-        if (!ifs) {
-            Iex::throwErrnoExc ();
-        }
-        ifs->seekg (pos);
+        ifs.seekg (pos);
         check_error ();
     }
     virtual void clear () {
-        if (ifs) {
-            ifs->clear ();
-        }
+        ifs.clear ();
     }
 
 private:
     bool check_error () {
         if (!ifs) {
-            if (errno)
+            if (errno) 
                 Iex::throwErrnoExc ();
+			
             return false;
         }
         return true;
     }
-    boost::scoped_ptr<std::istream> ifs;
+    OIIO_NAMESPACE::ifstream ifs;
 };
 
 

@@ -29,6 +29,7 @@
 */
 
 #include <string>
+#include <malloc.h>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"

@@ -100,6 +100,7 @@ InterlockedExchange64 (volatile long long *Target, long long Value)
 #endif
 
 #if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
+#include <sched.h>
 #  define USE_GCC_ATOMICS
 #  if !defined(__clang__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 408)
 #    define OIIO_USE_GCC_NEW_ATOMICS

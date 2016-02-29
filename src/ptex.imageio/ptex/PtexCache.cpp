@@ -224,12 +224,21 @@ public:
 	// split into dirs
 	_searchdirs.clear();
 	char* buff = strdup(path);
-	char* pos = 0;
-	char* token = strtok_r(buff, ":", &pos);
-	while (token) {
-	    if (token[0]) _searchdirs.push_back(token);
-	    token = strtok_r(0, ":", &pos);
-	}
+	char* pos = buff;
+
+	do {
+		char *token = pos;
+		pos = strstr(pos, ":");
+
+		if (pos) {
+			pos[0] = '\0';
+			pos++;
+		}
+
+		if (token[0]) _searchdirs.push_back(token);
+
+	} while(pos);
+
 	free(buff);
     }
 

@@ -91,6 +91,9 @@
 #endif
 #endif
 
+#ifdef WIN32
+#include <windef.h>
+#endif
 #include <memory.h>
 
 #ifdef SHA1_UTILITY_FUNCTIONS

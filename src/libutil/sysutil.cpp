@@ -212,7 +212,7 @@ Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
 #ifdef _MSC_VER
     localtime_s (converted_time, time);
 #else
-    localtime_r (time, converted_time);
+    *converted_time = *localtime(time);
 #endif
 }
 

@@ -39,6 +39,7 @@
 #include <iterator>
 #include <string>
 #include <sstream>
+#include <malloc.h>
 
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/sysutil.h"
