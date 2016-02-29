@@ -151,7 +151,8 @@ Build/test system improvements:
    No more FindIlmbase.cmake at all. #1346 (1.7.2)
  * 'make CODECOV=1; make CODECOV=1 test' can build and test in a way that
    provides a code coverage report. #1356 (1.7.2)
- * Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353 (1.7.2)
+ * Fix Filesystem::open() issues with UTF-8 filenames on MinGW.
+   #1353,#1357 (1.7.2/1.6.11)
  * Allow build against a wider range of ffmpeg versions. #1359 (1.7.2)
 
 Developer goodies / internals:
