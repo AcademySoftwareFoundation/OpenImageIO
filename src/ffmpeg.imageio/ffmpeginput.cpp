@@ -33,6 +33,9 @@ extern "C" { // ffmpeg is a C api
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0)
+# include <libavutil/imgutils.h>
+#endif
 }
 
 
@@ -65,6 +68,21 @@ extern "C" { // ffmpeg is a C api
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52,42,0)
 #  define r_frame_rate avg_frame_rate
 #endif
+
+// Changes for ffmpeg 3.0
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0)
+#  define av_free_packet av_packet_unref
+#  define avpicture_get_size(fmt,w,h) av_image_get_buffer_size(fmt,w,h,1)
+
+inline int avpicture_fill(AVPicture *picture, uint8_t *ptr,
+                          enum AVPixelFormat pix_fmt, int width, int height)
+{
+    AVFrame *frame = reinterpret_cast<AVFrame *>(picture);
+    return av_image_fill_arrays(frame->data, frame->linesize,
+                                ptr, pix_fmt, width, height, 1);
+}
+#endif
+
 
 #include <boost/thread/once.hpp>
 
