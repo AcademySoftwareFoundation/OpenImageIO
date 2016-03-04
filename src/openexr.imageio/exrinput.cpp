@@ -85,6 +85,7 @@
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/deepdata.h"
+#include "OpenImageIO/sysutil.h"
 
 #include <boost/scoped_array.hpp>
 
@@ -319,7 +320,9 @@ void set_exr_threads ()
 
     int oiio_threads = 1;
     OIIO::getattribute ("exr_threads", oiio_threads);
-
+    if (oiio_threads == 0) {
+        oiio_threads = Sysutil::hardware_concurrency();
+    }
     spin_lock lock (exr_threads_mutex);
     if (exr_threads != oiio_threads) {
         exr_threads = oiio_threads;
