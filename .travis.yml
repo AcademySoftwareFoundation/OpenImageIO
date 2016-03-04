@@ -41,9 +41,9 @@ cache:
     ccache: true
     apt: true
     directories:
-    - $HOME/.ccache
-    - $HOME/lgritz/oiio-images
-    - $HOME/lgritz/libtiffpic
+      - $HOME/.ccache
+      - $HOME/lgritz/oiio-images
+      - $HOME/lgritz/libtiffpic
 
 before_install:
     - if [ "$WHICHGCC" == "" ]; then export WHICHGCC="4.8" ; fi
@@ -64,7 +64,8 @@ install:
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           src/build-scripts/install_homebrew_deps.bash ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
-          CXX="ccache $CXX" src/build-scripts/build_openexr.bash ;
+          CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
+          export ILMBASE_HOME=$PWD/openexr-install ;
           export OPENEXR_HOME=$PWD/openexr-install ;
       fi
     - src/build-scripts/install_test_images.bash
@@ -103,16 +104,12 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1"
-    include:
       - os: linux
         compiler: gcc
         env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=avx,f16c"
       - os: linux
         compiler: gcc
         env: BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0"
-#      - os: linux
-#        compiler: gcc
-#        env: BUILD_FLAGS="USE_CPP11=1 CODECOV=1"
 
 notifications:
     email:

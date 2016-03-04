@@ -372,7 +372,7 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
 
     declare_imagebufalgo();
     
-    // Global (OpenImageIO scope) functiona and symbols
+    // Global (OpenImageIO scope) functions and symbols
     def("geterror",     &OIIO::geterror);
     def("attribute",    &oiio_attribute_float);
     def("attribute",    &oiio_attribute_int);
