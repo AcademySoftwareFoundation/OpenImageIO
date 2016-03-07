@@ -53,8 +53,8 @@ OIIO_NAMESPACE_BEGIN
 // Global private data
 namespace pvt {
 recursive_mutex imageio_mutex;
-atomic_int oiio_threads (Sysutil::physical_concurrency());
-atomic_int oiio_exr_threads (Sysutil::physical_concurrency());
+atomic_int oiio_threads (Sysutil::hardware_concurrency());
+atomic_int oiio_exr_threads (Sysutil::hardware_concurrency());
 atomic_int oiio_read_chunk (256);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
@@ -144,7 +144,7 @@ attribute (string_view name, TypeDesc type, const void *val)
     if (name == "threads" && type == TypeDesc::TypeInt) {
         int ot = Imath::clamp (*(const int *)val, 0, maxthreads);
         if (ot == 0)
-            ot = Sysutil::physical_concurrency();
+            ot = Sysutil::hardware_concurrency();
         oiio_threads = ot;
         return true;
     }
