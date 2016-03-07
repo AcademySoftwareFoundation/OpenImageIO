@@ -399,11 +399,23 @@ public:
     {
         if (channels > 3)
             channels = 3;
-        for (int y = 0;  y < height;  ++y) {
-            char *d = (char *)data + y*ystride;
-            for (int x = 0;  x < width;  ++x, d += xstride)
-                for (int c = 0;  c < channels;  ++c)
-                    ((float *)d)[c] = sRGB_to_linear (((float *)d)[c]);
+        if (channels == 3) {
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride) {
+                    simd::float4 r;
+                    r.load ((float *)d, 3);
+                    r = sRGB_to_linear (simd::float4((float *)d));
+                    r.store ((float *)d, 3);
+                }
+            }
+        } else {
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride)
+                    for (int c = 0;  c < channels;  ++c)
+                        ((float *)d)[c] = sRGB_to_linear (((float *)d)[c]);
+            }
         }
     }
 };
@@ -421,11 +433,23 @@ public:
     {
         if (channels > 3)
             channels = 3;
-        for (int y = 0;  y < height;  ++y) {
-            char *d = (char *)data + y*ystride;
-            for (int x = 0;  x < width;  ++x, d += xstride)
-                for (int c = 0;  c < channels;  ++c)
-                    ((float *)d)[c] = linear_to_sRGB (((float *)d)[c]);
+        if (channels == 3) {
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride) {
+                    simd::float4 r;
+                    r.load ((float *)d, 3);
+                    r = linear_to_sRGB (simd::float4((float *)d));
+                    r.store ((float *)d, 3);
+                }
+            }
+        } else {
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride)
+                    for (int c = 0;  c < channels;  ++c)
+                        ((float *)d)[c] = linear_to_sRGB (((float *)d)[c]);
+            }
         }
     }
 };
