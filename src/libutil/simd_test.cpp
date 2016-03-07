@@ -29,16 +29,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sstream>
 
-#include "OpenImageIO/simd.h"
-#include "OpenImageIO/unittest.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/simd.h>
+#include <OpenImageIO/unittest.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/fmath.h>
 
 
 
 OIIO_NAMESPACE_USING;
 
 using namespace OIIO::simd;
+
+
+static int iterations = 10;
+static int ntrials = 5;
+static bool verbose = false;
+
+
+static void
+getargs (int argc, char *argv[])
+{
+    bool help = false;
+    ArgParse ap;
+    ap.options ("simd_test\n"
+                OIIO_INTRO_STRING "\n"
+                "Usage:  simd_test [options]",
+                // "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose mode",
+                "--iterations %d", &iterations,
+                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
+        std::cerr << ap.geterror() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+}
+
+
 
 
 template<typename X, typename Y>
@@ -64,6 +102,15 @@ OIIO_CHECK_SIMD_EQUAL_impl (const X& x, const Y& y,
              << "FAILED: " << #x << " == " << #y << "\n"                \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
+
+
+#define OIIO_CHECK_SIMD_EQUAL_THRESH(x,y,eps)                           \
+    (all (abs((x)-(y)) < (eps)) ? ((void)0)                             \
+         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
+             << "FAILED: " << #x << " == " << #y << "\n"                \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
+            (void)++unit_test_failures))
+
 
 
 
@@ -446,6 +493,80 @@ void test_special ()
 
 
 
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+
+template <typename FUNC, typename T>
+void benchmark_function (string_view funcname, size_t n, FUNC func, T x)
+{
+    auto repeat_func = [&](){
+        for (size_t i = 0; i < n; i += SimdSize<T>::size) {
+            T r = func(x);
+            DoNotOptimize (r);
+        }
+    };
+    float time = time_trial (repeat_func, ntrials, iterations) / iterations;
+    std::cout << Strutil::format (" %s: %7.1f Mvals/sec\n", funcname, (n/1.0e6)/time);
+}
+
+
+template <typename FUNC, typename T>
+void benchmark_function (string_view funcname, size_t n, FUNC func, T x, T y)
+{
+    auto repeat_func = [&](){
+        for (size_t i = 0; i < n; i += SimdSize<T>::size) {
+            T r = func(x, y);
+            DoNotOptimize (r);
+        }
+    };
+    float time = time_trial (repeat_func, ntrials, iterations) / iterations;
+    std::cout << Strutil::format (" %s: %7.1f Mvals/sec\n", funcname, (n/1.0e6)/time);
+}
+
+
+// Wrappers to resolve the return type ambiguity
+inline float fast_exp_float (float x) { return fast_exp(x); }
+inline float4 fast_exp_float4 (const float4& x) { return fast_exp(x); }
+inline float fast_log_float (float x) { return fast_log(x); }
+inline float4 fast_log_float4 (const float4& x) { return fast_log(x); }
+
+#endif
+
+
+
+void test_transcendental ()
+{
+    std::cout << "test_transcendental\n";
+    float4 A (-1.0f, 0.0f, 1.0f, 4.5f);
+    float4 expA (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
+    OIIO_CHECK_SIMD_EQUAL (exp(A), expA);
+    OIIO_CHECK_SIMD_EQUAL_THRESH (log(expA), A, 1e-6f);
+    OIIO_CHECK_SIMD_EQUAL (fast_exp(A),
+                float4(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
+    OIIO_CHECK_SIMD_EQUAL (fast_log(expA),
+                float4(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(float4(2.0f), A),
+                           float4(0.5f, 1.0f, 2.0f, 22.62741699796952f), 0.0001f);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    const size_t size = 2000000;
+
+    benchmark_function ("expf", size, expf, 0.67f);
+    benchmark_function ("fast_exp", size, fast_exp_float, 0.67f);
+    benchmark_function ("simd::exp", size, simd::exp, float4(0.67f));
+    benchmark_function ("simd::fast_exp", size, fast_exp_float4, float4(0.67f));
+
+    benchmark_function ("logf", size, logf, 0.67f);
+    benchmark_function ("fast_log", size, fast_log_float, 0.67f);
+    benchmark_function ("simd::log", size, simd::log, float4(0.67f));
+    benchmark_function ("simd::fast_log", size, fast_log_float4, float4(0.67f));
+
+    benchmark_function ("powf", size, powf, 0.67f, 0.67f);
+    benchmark_function ("simd fast_pow_pos", size, fast_pow_pos, float4(0.67f), float4(0.67f));
+#endif
+}
+
+
+
 void test_metaprogramming ()
 {
     std::cout << "test_metaprogramming\n";
@@ -462,6 +583,16 @@ void test_metaprogramming ()
 int
 main (int argc, char *argv[])
 {
+#if !defined(NDEBUG) || defined(OIIO_TRAVIS) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs (argc, argv);
+
 #ifdef OIIO_SIMD_SSE
     std::cout << "SIMD is " << OIIO_SIMD_SSE << "\n";
 #else
@@ -501,6 +632,7 @@ main (int argc, char *argv[])
 
     test_constants();
     test_special();
+    test_transcendental();
     test_metaprogramming();
 
     return unit_test_failures;

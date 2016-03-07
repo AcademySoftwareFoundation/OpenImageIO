@@ -2288,6 +2288,17 @@ OIIO_FORCEINLINE float4 abs (const float4& a)
 #endif
 }
 
+
+
+/// Return 1.0 for each component >= 0, -1.0 for each negative component.
+OIIO_FORCEINLINE float4 sign (const float4& a)
+{
+    float4 one(1.0f);
+    return blend (one, -one, a < float4::Zero());
+}
+
+
+
 /// Per-element ceil.
 OIIO_FORCEINLINE float4 ceil (const float4& a)
 {
@@ -2464,6 +2475,125 @@ OIIO_FORCEINLINE float4 nmsub (const simd::float4& a, const simd::float4& b,
 #else
     // Fallback: just use regular math and hope for the best.
     return -(a * b) - c;
+#endif
+}
+
+
+
+// Full precision exp() of all components of a SIMD vector.
+OIIO_FORCEINLINE float4 exp (const float4& v)
+{
+#if OIIO_SIMD_SSE
+    // Implementation inspired by:
+    // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
+    // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
+    // under the zlib license.
+    float4 x = v;
+    OIIO_SIMD_FLOAT4_CONST (exp_hi,  88.3762626647949f);
+    OIIO_SIMD_FLOAT4_CONST (exp_lo,  -88.3762626647949f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_LOG2EF, 1.44269504088896341f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C1, 0.693359375f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C2, -2.12194440e-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p0, 1.9875691500E-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p1, 1.3981999507E-3f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p2, 8.3334519073E-3f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p3, 4.1665795894E-2f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p4, 1.6666665459E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p5, 5.0000001201E-1f);
+    float4 tmp (0.0f);
+    float4 one (1.0f);
+    x = min (x, float4(exp_hi));
+    x = max (x, float4(exp_lo));
+    float4 fx = madd (x, float4(cephes_LOG2EF), float4(0.5f));
+    int4 emm0 = int4(fx);
+    tmp = float4(emm0);
+    float4 mask = bitcast_to_float4 (bitcast_to_int4(tmp > fx) & bitcast_to_int4(one));
+    fx = tmp - mask;
+    tmp = fx * float4(cephes_exp_C1);
+    float4 z = fx * float4(cephes_exp_C2);
+    x = x - tmp;
+    x = x - z;
+    z = x * x;
+    float4 y = float4(cephes_exp_p0);
+    y = madd (y, x, float4(cephes_exp_p1));
+    y = madd (y, x, float4(cephes_exp_p2));
+    y = madd (y, x, float4(cephes_exp_p3));
+    y = madd (y, x, float4(cephes_exp_p4));
+    y = madd (y, x, float4(cephes_exp_p5));
+    y = madd (y, z, x);
+    y = y + one;
+    emm0 = (int4(fx) + int4(0x7f)) << 23;
+    float4 pow2n = bitcast_to_float4(emm0);
+    y = y * pow2n;
+    return y;
+
+#else
+    return float4 (expf(v[0]), expf(v[1]), expf(v[2]), expf(v[3]));
+#endif
+}
+
+
+
+// Full precision log() of all components of a SIMD vector.
+OIIO_FORCEINLINE float4 log (const float4& v)
+{
+#if OIIO_SIMD_SSE
+    // Implementation inspired by:
+    // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
+    // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
+    // under the zlib license.
+    float4 x = v;
+    int4 emm0;
+    float4 zero (float4::Zero());
+    float4 one (1.0f);
+    mask4 invalid_mask = (x <= zero);
+    OIIO_SIMD_INT4_CONST (min_norm_pos, (int)0x00800000);
+    OIIO_SIMD_INT4_CONST (inv_mant_mask, (int)~0x7f800000);
+    x = max(x, bitcast_to_float4(int4(min_norm_pos)));  /* cut off denormalized stuff */
+    emm0 = srl (bitcast_to_int4(x), 23);
+    /* keep only the fractional part */
+    x = bitcast_to_float4 (bitcast_to_int4(x) & int4(inv_mant_mask));
+    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(float4(0.5f)));
+    emm0 = emm0 - int4(0x7f);
+    float4 e (emm0);
+    e = e + one;
+    OIIO_SIMD_FLOAT4_CONST (cephes_SQRTHF, 0.707106781186547524f);
+    mask4 mask = (x < float4(cephes_SQRTHF));
+    float4 tmp = bitcast_to_float4 (bitcast_to_int4(x) & bitcast_to_int4(mask));
+    x = x - one;
+    e = e - bitcast_to_float4 (bitcast_to_int4(one) & bitcast_to_int4(mask));
+    x = x + tmp;
+    float4 z = x * x;
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p0, 7.0376836292E-2f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p1, - 1.1514610310E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p2, 1.1676998740E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p3, - 1.2420140846E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p4, + 1.4249322787E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p5, - 1.6668057665E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p6, + 2.0000714765E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p7, - 2.4999993993E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p8, + 3.3333331174E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_q1, -2.12194440e-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_q2, 0.693359375f);
+    float4 y = *(float4*)cephes_log_p0;
+    y = madd (y, x, float4(cephes_log_p1));
+    y = madd (y, x, float4(cephes_log_p2));
+    y = madd (y, x, float4(cephes_log_p3));
+    y = madd (y, x, float4(cephes_log_p4));
+    y = madd (y, x, float4(cephes_log_p5));
+    y = madd (y, x, float4(cephes_log_p6));
+    y = madd (y, x, float4(cephes_log_p7));
+    y = madd (y, x, float4(cephes_log_p8));
+    y = y * x;
+    y = y * z;
+    y = madd(e, float4(cephes_log_q1), y);
+    y = nmadd (z, 0.5f, y);
+    x = x + y;
+    x = madd (e, float4(cephes_log_q2), x);
+    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(invalid_mask)); // negative arg will be NAN
+    return x;
+#else
+    return float4 (logf(v[0]), logf(v[1]), logf(v[2]), logf(v[3]));
 #endif
 }
 

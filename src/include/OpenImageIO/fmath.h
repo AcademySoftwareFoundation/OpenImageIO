@@ -222,12 +222,12 @@ clamp (T a, T low, T high)
 }
 
 
-// Specialization of clamp for float4 (the ?: doesn't work quite the same)
+// Specialization of clamp for float4
 template<>
 inline simd::float4
 clamp (simd::float4 a, simd::float4 low, simd::float4 high)
 {
-    return simd::select (a < low, low, simd::select (a > high, high, a));
+    return simd::min (high, simd::max (low, a));
 }
 
 
@@ -1396,8 +1396,36 @@ static inline float fast_log2 (float x) {
     return ((f4 * hi) + (f * lo)) + exponent;
 }
 
+inline simd::float4 fast_log2 (const simd::float4& xval) {
+    using namespace simd;
+#if OIIO_SIMD_SSE
+    // See float fast_log2 for explanations
+    OIIO_SIMD_FLOAT4_CONST (log2_hi, std::numeric_limits<float>::max());
+    OIIO_SIMD_FLOAT4_CONST (log2_lo, std::numeric_limits<float>::min());
+    float4 x = clamp (xval, float4(log2_lo), float4(log2_hi));
+    int4 bits = bitcast_to_int4(x);
+    int4 exponent = srl (bits, 23) - int4(127);
+    float4 f = bitcast_to_float4 ((bits & int4(0x007FFFFF)) | int4(0x3f800000)) - float4(1.0f);
+    float4 f2 = f * f;
+    float4 f4 = f2 * f2;
+    float4 hi = madd(f, float4(-0.00931049621349f), float4( 0.05206469089414f));
+    float4 lo = madd(f, float4( 0.47868480909345f), float4(-0.72116591947498f));
+    hi = madd(f, hi, float4(-0.13753123777116f));
+    hi = madd(f, hi, float4( 0.24187369696082f));
+    hi = madd(f, hi, float4(-0.34730547155299f));
+    lo = madd(f, lo, float4( 1.442689881667200f));
+    return ((f4 * hi) + (f * lo)) + float4(exponent);
+#else
+    return float4 (fast_log2(xval[0]), fast_log2(xval[1]), fast_log2(xval[2]), fast_log2(xval[3]));
+#endif
+}
+
 inline float fast_log (float x) {
     // Examined 2130706432 values of logf on [1.17549435e-38,3.40282347e+38]: 0.313865375 avg ulp diff, 5148137 max ulp, 7.62939e-06 max error
+    return fast_log2(x) * float(M_LN2);
+}
+
+inline simd::float4 fast_log (const simd::float4& x) {
     return fast_log2(x) * float(M_LN2);
 }
 
@@ -1438,8 +1466,40 @@ inline float fast_exp2 (float x) {
     return bit_cast<unsigned, float>(bit_cast<float, unsigned>(r) + (unsigned(m) << 23));
 }
 
+inline simd::float4 fast_exp2 (const simd::float4& xval) {
+    using namespace simd;
+#if OIIO_SIMD_SSE
+    // See float fast_exp2 for explanations
+    OIIO_SIMD_FLOAT4_CONST (exp_hi,  126.0f);
+    OIIO_SIMD_FLOAT4_CONST (exp_lo, -126.0f);
+    float4 x = clamp (xval, float4(exp_lo), float4(exp_hi));
+    int4 m (x); x -= float4(m);
+    OIIO_SIMD_FLOAT4_CONST (kone, 1.0f);
+    float4 one (kone);
+    x = one - (one - x); // crush denormals (does not affect max ulps!)
+    OIIO_SIMD_FLOAT4_CONST (kA, 1.33336498402e-3f);
+    OIIO_SIMD_FLOAT4_CONST (kB, 9.810352697968e-3f);
+    OIIO_SIMD_FLOAT4_CONST (kC, 5.551834031939e-2f);
+    OIIO_SIMD_FLOAT4_CONST (kD, 0.2401793301105f);
+    OIIO_SIMD_FLOAT4_CONST (kE, 0.693144857883f);
+    float4 r (kA);
+    r = madd(x, r, float4(kB));
+    r = madd(x, r, float4(kC));
+    r = madd(x, r, float4(kD));
+    r = madd(x, r, float4(kE));
+    r = madd(x, r, one);
+    return bitcast_to_float4 (bitcast_to_int4(r) + (m << 23));
+#else
+    return float4 (fast_exp2(xval[0]), fast_exp2(xval[1]), fast_exp2(xval[2]), fast_exp2(xval[3]));
+#endif
+}
+
 inline float fast_exp (float x) {
     // Examined 2237485550 values of exp on [-87.3300018,87.3300018]: 2.6666452 avg ulp diff, 230 max ulp
+    return fast_exp2(x * float(1 / M_LN2));
+}
+
+inline simd::float4 fast_exp (const simd::float4& x) {
     return fast_exp2(x * float(1 / M_LN2));
 }
 
@@ -1531,6 +1591,13 @@ inline float fast_safe_pow (float x, float y) {
     }
     return sign * fast_exp2(y * fast_log2(fabsf(x)));
 }
+
+
+// Fast simd pow that only needs to work for positive x
+inline simd::float4 fast_pow_pos (const simd::float4& x, const simd::float4& y) {
+    return fast_exp2(y * fast_log2(x));
+}
+
 
 inline float fast_erf (float x)
 {
