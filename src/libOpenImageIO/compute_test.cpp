@@ -53,7 +53,7 @@
 OIIO_NAMESPACE_USING;
 
 static int iterations = 100;
-static int numthreads = Sysutil::physical_concurrency();
+static int numthreads = Sysutil::hardware_concurrency();
 static int ntrials = 5;
 static bool verbose = false;
 static bool wedge = false;
