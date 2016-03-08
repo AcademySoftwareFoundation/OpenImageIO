@@ -319,8 +319,13 @@ void set_exr_threads ()
 
     int oiio_threads = 1;
     OIIO::getattribute ("exr_threads", oiio_threads);
+    
+    // 0 means all threads in OIIO, but single-threaded in OpenEXR
+    // -1 means single-threaded in OIIO
     if (oiio_threads == 0) {
         oiio_threads = Sysutil::hardware_concurrency();
+    } else if (oiio_threads == -1) {
+        oiio_threads = 0;
     }
     spin_lock lock (exr_threads_mutex);
     if (exr_threads != oiio_threads) {

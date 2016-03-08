@@ -1306,6 +1306,9 @@ OIIO_API std::string geterror ();
 ///     int exr_threads
 ///             The size of the internal OpenEXR thread pool. The default
 ///             is to use the full available hardware concurrency detected.
+///             Default is 0 meaning to use full available hardware
+///             concurrency detected, -1 means to disable usage of the OpenEXR
+///             thread pool and execute everything in the caller thread.
 ///     string plugin_searchpath
 ///             Colon-separated list of directories to search for 
 ///             dynamically-loaded format plugins.
