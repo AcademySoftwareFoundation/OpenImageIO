@@ -149,11 +149,29 @@
 
 
 // Define OIIO_GNUC_VERSION to hold an encoded gcc version (e.g. 40802 for
-// 4.8.2), or 0 if not a GCC release.
-#ifdef __GNUC__
+// 4.8.2), or 0 if not a GCC release. N.B.: This will be 0 for clang.
+#if defined(__GNUC__) && !defined(__clang__)
 #  define OIIO_GNUC_VERSION (10000*__GNUC__ + 100*__GNUC_MINOR__ + __GNUC_PATCHLEVEL__)
 #else
 #  define OIIO_GNUC_VERSION 0
+#endif
+
+// Define OIIO_CLANG_VERSION to hold an encoded generic Clang version (e.g.
+// 30402 for clang 3.4.2), or 0 if not a generic Clang release.
+// N.B. This will be 0 for the clang Apple distributes (which has different
+// version numbers entirely).
+#if defined(__clang__) && !defined(__apple_build_version__)
+#  define OIIO_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
+#else
+#  define OIIO_CLANG_VERSION 0
+#endif
+
+// Define OIIO_APPLE_CLANG_VERSION to hold an encoded Apple Clang version
+// (e.g. 70002 for clang 7.0.2), or 0 if not an Apple Clang release.
+#if defined(__clang__) && defined(__apple_build_version__)
+#  define OIIO_APPLE_CLANG_VERSION (10000*__clang_major__ + 100*__clang_minor__ + __clang_patchlevel__)
+#else
+#  define OIIO_APPLE_CLANG_VERSION 0
 #endif
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
@@ -284,7 +302,7 @@
 
 #if OIIO_CPLUSPLUS_VERSION >= 14 && __has_attribute(deprecated)
 #  define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
-#elif (defined(__GNUC__) && OIIO_GNUC_VERSION >= 40600) || defined(__clang__)
+#elif OIIO_GNUC_VERSION >= 40600 || defined(__clang__)
 #  define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
 #elif defined(__GNUC__) /* older gcc -- only the one with no message */
 #  define OIIO_DEPRECATED(msg) __attribute__((deprecated))
