@@ -272,7 +272,7 @@ template <class T>
 inline void __attribute__((__optnone__))
 DoNotOptimize (T const &val) { }
 
-#elif (defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#elif (OIIO_GNUC_VERSION || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 60000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Major non-MS compilers on x86/x86_64: use asm trick to indicate that
 // the value is needed.
