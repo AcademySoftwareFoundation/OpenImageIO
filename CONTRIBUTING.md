@@ -52,25 +52,29 @@ bug fix, etc.) may be accepted without a CLA, at the sole discretion of the
 project leader, but anything complex needs a CLA. This is for your own
 safety.
 
-Download our [Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-INDIVIDUAL)
-(or find it in the `src/doc/CLA-INDIVIDUAL` file in the oiio code
-distribution); print, sign, and rescan it (or just add a digital signature
-directly), and email it back to us (info@openimageio.org).
+* If you are an individual writing the code on your own time and you're SURE
+you are the sole owner of any intellectual property you contribute, use the
+[Individual CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-INDIVIDUAL).
 
-If you are contributing to OpenImageIO while "on the job" working for a
-company, or even on your own time if you work for a company that does not
-explicitly give you permission to contribute to open source projects on your
-own time, you also need your employers to send us a signed [Corporate
-CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-CORPORATE)
-(also found in `src/doc/CLA-CORPORATE`).
+* If you are writing the code as part of your job, or if there is any
+possibility that your employers might think they own any intellectual
+property you create, then you should use the [Corporate
+CLA](https://github.com/OpenImageIO/oiio/blob/master/src/doc/CLA-CORPORATE).
 
-Our CLA's are identical to those used by Apache and many other open source projects.
+Download the appropriate CLA from the links above (or find them in the
+src/doc directory of the software distribution), print, sign, and rescan it
+(or just add a digital signature directly), and email it back to us
+(info@openimageio.org).
+
+Our CLA's are identical to those used by Apache and many other open source
+projects.
 
 
 Pull Requests and Code Review
 -----------------------------
 
-The best way to submit changes is via GitHub Pull Request.
+The best way to submit changes is via GitHub Pull Request. GitHub has a
+[Pull Request Howto](https://help.github.com/articles/using-pull-requests/).
 
 All code must be formally reviewed before being merged into the official repository. The protocol is like this:
 
