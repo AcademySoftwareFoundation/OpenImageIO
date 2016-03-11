@@ -598,7 +598,7 @@ open_ofstream_impl (string_view path,
 #else // MSVC or Unix
 
 #ifdef _WIN32
-#  ifndef _MSC_VER_
+#  ifndef _MSC_VER
 #    error "open_ifstream_impl only supports GCC or MSVC"
 #  endif
 #endif
