@@ -272,7 +272,7 @@ template <class T>
 inline void __attribute__((__optnone__))
 DoNotOptimize (T const &val) { }
 
-#elif (OIIO_GNUC_VERSION || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 60000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#elif ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Major non-MS compilers on x86/x86_64: use asm trick to indicate that
 // the value is needed.
@@ -300,7 +300,7 @@ template <class T> inline void DoNotOptimize (T const &val) { }
 /// fools the compiler into thinking that potentially any part of memory
 /// has been modified, and thus serves as a barrier where the optimizer
 /// won't assume anything about the state of memory preceding it.
-#if (defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Special trick for x86/x86_64 and gcc-like compilers
 inline void clobber_all_memory() {
