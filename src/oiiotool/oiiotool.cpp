@@ -50,6 +50,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/strutil.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/color.h"
@@ -121,7 +122,8 @@ Oiiotool::Oiiotool ()
       total_readtime (Timer::DontStartNow),
       total_writetime (Timer::DontStartNow),
       total_imagecache_readtime (0.0),
-      enable_function_timing(true)
+      enable_function_timing(true),
+      peak_memory(0)
 {
     clear_options ();
 }
@@ -3770,6 +3772,7 @@ input_file (int argc, const char *argv[])
 
         ot.process_pending ();
     }
+    ot.check_peak_memory ();
     return 0;
 }
 
@@ -4077,6 +4080,7 @@ output_file (int argc, const char *argv[])
                     ot.error (command, (*ir)(s,m).geterror());
                     return 0;
                 }
+                ot.check_peak_memory();
                 if (mend > 1) {
                     if (out->supports("mipmap")) {
                         mode = ImageOutput::AppendMIPLevel;  // for next level
@@ -4110,6 +4114,7 @@ output_file (int argc, const char *argv[])
         Filesystem::last_write_time (filename, in_time);
     }
 
+    ot.check_peak_memory();
     ot.curimg = saveimg;
     ot.output_dataformat = saved_output_dataformat;
     ot.output_bitspersample = saved_bitspersample;
@@ -4713,7 +4718,10 @@ main (int argc, char *argv[])
             unaccounted -= t;
         }
         std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted, 0.0));
-        std::cout << ot.imagecache->getstats() << "\n";
+        ot.check_peak_memory ();
+        std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory) << "\n";
+        std::cout << "  Current memory: " << Strutil::memformat(Sysutil::memory_used()) << "\n";
+        std::cout << "\n" << ot.imagecache->getstats() << "\n";
     }
 
     return ot.return_value;
