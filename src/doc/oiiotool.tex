@@ -932,6 +932,19 @@ native format (if it's not a format that can use the ImageCache without a
 loss of precision).
 \apiend
 
+\apiitem{\ce --cache {\rm \emph{size}}}
+\NEW % 1.7
+Set the underlying \ImageCache size (in MB). See Section~\ref{imagecacheattr:autotile}.
+\apiend
+
+\apiitem{\ce --autotile {\rm \emph{tilesize}}}
+\NEW % 1.7
+For the underlying \ImageCache, turn on auto-tiling with the given tile
+size. Setting \emph{tilesize} to 0 turns off auto-tiling. If auto-tile
+is turned on, The \ImageCache \qkw{autoscanline} feature will also be enabled.
+See Section~\ref{imagecacheattr:autotile} for details.
+\apiend
+
 \newpage
 \subsection*{Writing images}
 

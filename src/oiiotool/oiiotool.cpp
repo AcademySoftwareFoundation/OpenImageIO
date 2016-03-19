@@ -148,6 +148,8 @@ Oiiotool::clear_options ()
     autoorient = false;
     autocc = false;
     nativeread = false;
+    cachesize = 4096;
+    autotile = 4096;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
@@ -333,6 +335,30 @@ set_threads (int argc, const char *argv[])
     int nthreads = atoi(argv[1]);
     OIIO::attribute ("threads", nthreads);
     OIIO::attribute ("exr_threads", nthreads);
+    return 0;
+}
+
+
+
+static int
+set_cachesize (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.cachesize = atoi(argv[1]);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    return 0;
+}
+
+
+
+static int
+set_autotile (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.autotile = atoi(argv[1]);
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
     return 0;
 }
 
@@ -4294,6 +4320,8 @@ getargs (int argc, char *argv[])
                 "--autocc", &ot.autocc, "Automatically color convert based on filename",
                 "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
                 "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
+                "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
+                "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
@@ -4686,8 +4714,10 @@ main (int argc, char *argv[])
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
-    ot.imagecache->attribute ("max_memory_MB", 4096.0);
-//    ot.imagecache->attribute ("autotile", 1024);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
 
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {

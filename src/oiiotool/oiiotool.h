@@ -65,6 +65,8 @@ public:
     bool autoorient;
     bool autocc;                      // automatically color correct
     bool nativeread;                  // force native data type reads
+    int cachesize;
+    int autotile;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
