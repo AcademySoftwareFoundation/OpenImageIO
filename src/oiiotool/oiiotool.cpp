@@ -365,6 +365,17 @@ set_autotile (int argc, const char *argv[])
 
 
 static int
+set_native (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.nativeread = true;
+    ot.imagecache->attribute ("forcefloat", 0);
+    return 0;
+}
+
+
+
+static int
 set_dumpdata (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
@@ -4319,7 +4330,7 @@ getargs (int argc, char *argv[])
                 "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
                 "--autocc", &ot.autocc, "Automatically color convert based on filename",
                 "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
-                "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
+                "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that write images:",
@@ -4751,7 +4762,7 @@ main (int argc, char *argv[])
         ot.check_peak_memory ();
         std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory) << "\n";
         std::cout << "  Current memory: " << Strutil::memformat(Sysutil::memory_used()) << "\n";
-        std::cout << "\n" << ot.imagecache->getstats() << "\n";
+        std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
     }
 
     return ot.return_value;
