@@ -254,7 +254,18 @@ public:
     void add_configspec (const ImageSpec *config=NULL) {
         if (! m_configspec)
             m_configspec.reset (config ? new ImageSpec (*config) : new ImageSpec);
-   }
+    }
+
+    // Return the index of pixel (x,y,z). If check_range is true, return
+    // -1 for an invalid coordinate that is not within the data window.
+    int pixelindex (int x, int y, int z, bool check_range=false) const {
+        x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+        if (check_range && (x < 0 || x >= m_spec.width ||
+                            y < 0 || y >= m_spec.height ||
+                            z < 0 || z >= m_spec.depth))
+            return -1;
+        return (z * m_spec.height + y) * m_spec.width + x;
+    }
 
 private:
     ImageBuf::IBStorage m_storage; ///< Pixel storage class
@@ -1748,14 +1759,8 @@ ImageBuf::deep_samples (int x, int y, int z) const
     impl()->validate_pixels();
     if (! deep())
         return 0;
-    const ImageSpec &m_spec (spec());
-    if (x < m_spec.x || y < m_spec.y || z < m_spec.z)
-        return 0;
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth)
-        return 0;
-    int p = (z * m_spec.height + y) * m_spec.width  + x;
-    return deepdata()->samples(p);
+    int p = impl()->pixelindex (x, y, z, true);
+    return p >= 0 ? deepdata()->samples(p) : 0;
 }
 
 
@@ -1767,13 +1772,9 @@ ImageBuf::deep_pixel_ptr (int x, int y, int z, int c, int s) const
     if (! deep())
         return NULL;
     const ImageSpec &m_spec (spec());
-    if (x < m_spec.x || y < m_spec.y || z < m_spec.z)
+    int p = impl()->pixelindex (x, y, z, true);
+    if (p < 0 || c < 0 || c >= m_spec.nchannels)
         return NULL;
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth ||
-        c < 0 || c >= m_spec.nchannels)
-        return NULL;
-    int p = (z * m_spec.height + y) * m_spec.width  + x;
     return (s < deepdata()->samples(p)) ? deepdata()->data_ptr (p, c, s) : NULL;
 }
 
@@ -1785,9 +1786,7 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     impl()->validate_pixels();
     if (! deep())
         return 0.0f;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.deep_value (p, c, s);
 }
 
@@ -1799,9 +1798,7 @@ ImageBuf::deep_value_uint (int x, int y, int z, int c, int s) const
     impl()->validate_pixels();
     if (! deep())
         return 0;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.deep_value_uint (p, c, s);
 }
 
@@ -1812,9 +1809,7 @@ ImageBuf::set_deep_samples (int x, int y, int z, int samps)
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.set_samples (p, samps);
 }
 
@@ -1826,9 +1821,7 @@ ImageBuf::deep_insert_samples (int x, int y, int z,
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.insert_samples (p, samplepos, nsamples);
 }
 
@@ -1840,9 +1833,7 @@ ImageBuf::deep_erase_samples (int x, int y, int z,
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.erase_samples (p, samplepos, nsamples);
 }
 
@@ -1854,9 +1845,7 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
     impl()->validate_pixels();
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.set_deep_value (p, c, s, value);
 }
 
@@ -1868,9 +1857,7 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, uint32_t value)
     impl()->validate_pixels();
     if (! deep())
         return;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.set_deep_value (p, c, s, value);
 }
 
@@ -2163,6 +2150,14 @@ void *
 ImageBuf::pixeladdr (int x, int y, int z)
 {
     return impl()->pixeladdr (x, y, z);
+}
+
+
+
+int
+ImageBuf::pixelindex (int x, int y, int z, bool check_range) const
+{
+    return impl()->pixelindex (x, y, z, check_range);
 }
 
 

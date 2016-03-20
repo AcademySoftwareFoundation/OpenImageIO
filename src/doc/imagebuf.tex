@@ -700,6 +700,12 @@ Use with extreme caution!  Will return NULL if the pixel values
 aren't local (for example, if backed by an \ImageCache).
 \apiend
 
+\apiitem{int {\ce pixelindex} (int x, int y, int z, bool check_range=false) const}
+\NEW %1.7
+Return the index of pixel (x,y,z). If {\cf check_range} is {\cf true},
+return -1 for an invalid coordinate that is not within the data window.
+\apiend
+
 
 
 \section{Iterators -- the fast way of accessing individual pixels}

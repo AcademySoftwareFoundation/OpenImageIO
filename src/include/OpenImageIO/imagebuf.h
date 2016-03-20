@@ -649,6 +649,10 @@ public:
     /// aren't local.
     void *pixeladdr (int x, int y, int z);
 
+    /// Return the index of pixel (x,y,z). If check_range is true, return
+    /// -1 for an invalid coordinate that is not within the data window.
+    int pixelindex (int x, int y, int z, bool check_range=false) const;
+
     /// Does this ImageBuf store deep data?
     bool deep () const;
 

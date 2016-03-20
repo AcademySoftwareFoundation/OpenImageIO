@@ -1551,6 +1551,11 @@ retrieve the error message (and clear it afterwards).
 \end{code}
 \apiend
 
+\apiitem(int ImageBuf.{\ce pixelindex} (x, y, z, check_range=False))
+\NEW %1.7
+Return the index of pixel (x,y,z).
+\apiend
+
 \apiitem{bool ImageBuf.{\ce deep}}
 Will be {\cf True} if the file contains ``deep'' pixel data, or {\cf False}
 for an ordinary images.
