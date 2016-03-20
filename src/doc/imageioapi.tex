@@ -697,6 +697,13 @@ number and types of channels. At this stage, all pixels are assumed to
 have 0 samples, and no sample data is allocated.
 \apiend
 
+\apiitem {void {\ce init} (int npix, int nchan,\\
+    \bigspc array_view<const TypeDesc> channeltypes),\\
+    \bigspc array_view<const std::string> channelnames)}
+Initialize the \DeepData with a number of pixels, channels, channel
+types, and channel names.
+\apiend
+
 \apiitem{void {\ce clear} ()}
 Reset the \DeepData to be equivalent to its empty initial state.
 \apiend
@@ -714,8 +721,21 @@ Retrieve the total number of pixels.
 Retrieve the number of channels.
 \apiend
 
+\apiitem{string_view {\ce channelname} (int c) const}
+\NEW % 1.7
+Retrieve the name of channel {\cf c}.
+\apiend
+
 \apiitem{TypeDesc {\ce channeltype} (int c) const}
 Retrieve the data type of channel {\cf c}.
+\apiend
+
+\apiitem{size_t {\ce channelsize} (int c) const}
+Retrieve the size (in bytes) of one datum of channel {\cf c}.
+\apiend
+
+\apiitem{size_t {\ce samplesize} () const}
+Retrieve the packed size (in bytes) of all channels of one sample.
 \apiend
 
 \apiitem{int {\ce samples} (int pixel) const}
@@ -749,6 +769,52 @@ floating point or unsigned integer channel types, respectively.
 void {\ce set_deep_value} (int pixel, int channel, int sample, uint32_t value)}
 Set the value of the given pixel, channel, and sample indices, for
 floating point or unsigned integer channel types, respectively.
+\apiend
+
+\apiitem{bool {\ce copy_deep_sample} (int pixel, int sample, \\
+    \bigspace const DeepData &src, int srcpixel, int srcsample)}
+\NEW % 1.7
+Copy a deep sample from {\cf src} to this \DeepData. They must have the same
+channel layout. Return {\cf true} if ok, {\cf false} if the operation could
+not be performed.
+\apiend
+
+\apiitem{bool {\ce copy_deep_pixel} (int pixel, const DeepData &src, int srcpixel)}
+\NEW % 1.7
+Copy an entire deep pixel from {\cf src} to this \DeepData, completely
+replacing any pixel data for that pixel. They must have the same channel
+layout. Return {\cf true} if ok, {\cf false} if the operation could not be
+performed.
+\apiend
+
+\apiitem{void {\ce split} (int pixel, float depth)}
+\NEW % 1.7
+Split any samples of the pixel that cross {\cf depth}.
+\apiend
+
+\apiitem{void {\ce sort} (int pixel)}
+\NEW % 1.7
+Sort the samples of the pixel by their Z depth.
+\apiend
+
+\apiitem{void {\ce merge_overlaps} (int pixel)}
+\NEW % 1.7
+Merge any adjacent samples in the pixel that exactly overlap in $z$
+range. This is only useful if the pixel has previously been split at
+all sample starts and ends, and sorted by depth. Note that this may change
+the number of samples in the pixel.
+\apiend
+
+\apiitem{bool {\ce merge_deep_pixels} (int pixel, const DeepData &src, int srcpixel)}
+\NEW % 1.7
+Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
+Return {\cf true} if ok, {\cf false} if the operation could not be
+performed.
+\apiend
+
+\apiitem{bool {\ce occlusion_cull} (int pixel)}
+\NEW % 1.7
+Eliminate any samples beyond an opaque sample.
 \apiend
 
 

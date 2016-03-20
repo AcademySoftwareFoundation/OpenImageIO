@@ -68,7 +68,8 @@ public:
     void free ();
 
     /// Initialize size and allocate nsamples, pointers.
-    void init (int npix, int nchan, array_view<const TypeDesc> channeltypes);
+    void init (int npix, int nchan, array_view<const TypeDesc> channeltypes,
+               array_view<const std::string> channelnames);
 
     /// Initialize size and allocate nsamples based on the number
     /// of pixels, channels, and channel types in the ImageSpec.
@@ -78,6 +79,10 @@ public:
     int pixels () const;
     /// Retrieve the number of channels.
     int channels () const;
+
+    /// The name of channel c.
+    string_view channelname (int c) const;
+
     /// Retrieve the channel type of channel c.
     TypeDesc channeltype (int c) const;
     /// The size for each sample of channel c
@@ -129,6 +134,39 @@ public:
     /// Fill in the vector with pointers to the start of the first
     /// channel for each pixel.
     void get_pointers (std::vector<void*> &pointers) const;
+
+    /// Copy the designated sample from a source DeepData into this
+    /// DeepData. The two DeepData structures need to have the same channel
+    /// layout.
+    bool copy_deep_sample (int pixel, int sample,
+                           const DeepData &src, int srcpixel, int srcsample);
+
+    /// Copy the designated pixel from a source DeepData into this DeepData.
+    /// The two DeepData structures need to have the same channel layout.
+    bool copy_deep_pixel (int pixel, const DeepData &src, int srcpixel);
+
+    /// Split all samples of that pixel at the given depth zsplit. Samples
+    /// that span z (i.e. z < zsplit < zback) will be split into two samples
+    /// with depth ranges [z,zsplit] and [zsplit,zback] with appropriate
+    /// changes to their color and alpha values. Samples not spanning zsplit
+    /// will remain intact. This operation will have no effect if there are
+    /// not Z and Zback channels present.
+    void split (int pixel, float depth);
+
+    /// Sort the samples of a pixel by Z.
+    void sort (int pixel);
+
+    /// Merge any adjacent samples in the pixel that exactly overlap in z
+    /// range. This is only useful if the pixel has previously been split at
+    /// all sample starts and ends, and sorted by Z.  Note that this may
+    /// change the number of samples in the pixel.
+    void merge_overlaps (int pixel);
+
+    /// Merge src's samples into dst's samples
+    void merge_deep_pixels (int pixel, const DeepData &src, int srcpixel);
+
+    /// Occlusion cull samples hidden behind opaque samples.
+    void occlusion_cull (int pixel);
 
 private:
     class Impl;

@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <numeric>
+#include <algorithm>
 
 #include <OpenEXR/half.h>
 
@@ -38,12 +39,14 @@
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/thread.h"
+#include "OpenImageIO/strutil.h"
 
 OIIO_NAMESPACE_BEGIN
 
 
 
 class DeepData::Impl {  // holds all the nontrivial stuff
+    friend class DeepData;
 public:
     std::vector<TypeDesc> m_channeltypes;  // for each channel [c]
     std::vector<size_t> m_channelsizes;    // for each channel [c]
@@ -51,11 +54,18 @@ public:
     std::vector<unsigned int> m_nsamples;  // for each pixel [p]
     std::vector<size_t> m_cumsamples;      // cumulative samples before pixel [p]
     std::vector<char> m_data;              // for each sample [p][s][c]
+    std::vector<std::string> m_channelnames; // For each channel[c]
+    std::vector<int> m_myalphachannel;     // For each channel[c], its alpha
+      // myalphachannel[c] gives the alpha channel corresponding to channel
+      // c, or c if it is itself an alpha, or -1 if it doesn't appear to
+      // be a color channel at all.
     size_t m_samplesize;
+    int m_z_channel, m_zback_channel;
+    int m_alpha_channel;
     bool m_allocated;
     spin_mutex m_mutex;
 
-    Impl () : m_allocated(false) {}
+    Impl () : m_allocated(false) { clear(); }
 
     void clear () {
         m_channeltypes.clear();
@@ -64,7 +74,12 @@ public:
         m_nsamples.clear();
         m_cumsamples.clear();
         m_data.clear();
+        m_channelnames.clear ();
+        m_myalphachannel.clear ();
         m_samplesize = 0;
+        m_z_channel = -1;
+        m_zback_channel = -1;
+        m_alpha_channel = -1;
         m_allocated = false;
     }
 
@@ -165,11 +180,23 @@ int DeepData::channels () const
 
 
 
+string_view
+DeepData::channelname (int c) const
+{
+    DASSERT (m_impl);
+    // std::cout << "channelname(" << c << ")\n";
+    return (c >= 0 && c < m_nchannels) ? string_view(m_impl->m_channelnames[c])
+                                       : string_view();
+}
+
+
+
 TypeDesc
 DeepData::channeltype (int c) const
 {
-    DASSERT (m_impl && c >= 0 && c < m_nchannels);
-    return m_impl->m_channeltypes[c];
+    DASSERT (m_impl);
+    return (c >= 0 && c < m_nchannels) ? m_impl->m_channeltypes[c]
+                                       : TypeDesc();
 }
 
 
@@ -177,8 +204,8 @@ DeepData::channeltype (int c) const
 size_t
 DeepData::channelsize (int c) const
 {
-    DASSERT (m_impl && c >= 0 && c < m_nchannels);
-    return m_impl->m_channelsizes[c];
+    DASSERT (m_impl);
+    return (c >= 0 && c < m_nchannels) ? m_impl->m_channelsizes[c] : 0;
 }
 
 
@@ -191,9 +218,22 @@ DeepData::samplesize () const
 
 
 
+// Is name the same as suffix, or does it end in ".suffix"?
+inline bool
+is_or_endswithdot (string_view name, string_view suffix)
+{
+    return (Strutil::iequals (name, suffix) ||
+            (name.size() > suffix.size() &&
+             Strutil::iends_with (name, suffix) &&
+             name[name.size()-suffix.size()-1] == '.'));
+}
+
+
+
 void
 DeepData::init (int npix, int nchan,
-                array_view<const TypeDesc> channeltypes)
+                array_view<const TypeDesc> channeltypes,
+                array_view<const std::string> channelnames)
 {
     clear ();
     m_npixels = npix;
@@ -209,14 +249,58 @@ DeepData::init (int npix, int nchan,
     }
     m_impl->m_channelsizes.resize (m_nchannels);
     m_impl->m_channeloffsets.resize (m_nchannels);
+    m_impl->m_channelnames.resize (m_nchannels);
+    m_impl->m_myalphachannel.resize (m_nchannels, -1);
     m_impl->m_samplesize = 0;
-    for (int i = 0; i < m_nchannels; ++i) {
-        size_t size = m_impl->m_channeltypes[i].size();
-        m_impl->m_channelsizes[i] = size;
-        m_impl->m_channeloffsets[i] = m_impl->m_samplesize;
-        m_impl->m_samplesize += size;
-    }
     m_impl->m_nsamples.resize (m_npixels, 0);
+
+    // Channel name hunt
+    // First, find Z, Zback, A
+    for (int c = 0; c < m_nchannels; ++c) {
+        size_t size = m_impl->m_channeltypes[c].size();
+        m_impl->m_channelsizes[c] = size;
+        m_impl->m_channeloffsets[c] = m_impl->m_samplesize;
+        m_impl->m_samplesize += size;
+        m_impl->m_channelnames[c] = channelnames[c];
+        if (m_impl->m_z_channel < 0 && is_or_endswithdot (channelnames[c], "Z"))
+            m_impl->m_z_channel = c;
+        else if (m_impl->m_zback_channel < 0 && is_or_endswithdot (channelnames[c], "Zback"))
+            m_impl->m_zback_channel = c;
+        else if (m_impl->m_alpha_channel < 0 && is_or_endswithdot (channelnames[c], "A"))
+            m_impl->m_alpha_channel = c;
+    }
+    // Now try to find which alpha corresponds to each channel
+    for (int c = 0; c < m_nchannels; ++c) {
+        // Skip non-color channels
+        if (c == m_impl->m_z_channel || c == m_impl->m_zback_channel ||
+            m_impl->m_channeltypes[c] == TypeDesc::UINT32)
+            continue;
+        string_view name (channelnames[c]);
+        // Alpha channels are their own alpha
+        if (is_or_endswithdot (name, "A")  || is_or_endswithdot (name, "RA") ||
+            is_or_endswithdot (name, "GA") || is_or_endswithdot (name, "BA")) {
+            m_impl->m_myalphachannel[c] = c;
+            continue;
+        }
+        // For anything else, try to find its channel
+        string_view prefix = name, suffix = name;
+        size_t dot = name.find_last_of ('.');
+        if (dot == string_view::npos) { // No dot
+            prefix.clear ();
+        } else { // dot
+            prefix = prefix.substr (0, dot+1);
+            suffix = suffix.substr (dot+1);
+        }
+        std::string targetalpha = std::string(prefix) + std::string(suffix) + "A";
+        for (int i = 0; i < m_nchannels; ++i) {
+            if (Strutil::iequals (m_impl->m_channelnames[i], targetalpha)) {
+                m_impl->m_myalphachannel[c] = i;
+                break;
+            }
+        }
+        if (m_impl->m_myalphachannel[c] < 0)
+            m_impl->m_myalphachannel[c] = m_impl->m_alpha_channel;
+    }
 }
 
 
@@ -225,9 +309,11 @@ void
 DeepData::init (const ImageSpec &spec)
 {
     if (int(spec.channelformats.size()) == spec.nchannels)
-        init ((int) spec.image_pixels(), spec.nchannels, spec.channelformats);
+        init ((int) spec.image_pixels(), spec.nchannels, spec.channelformats,
+              spec.channelnames);
     else
-        init ((int) spec.image_pixels(), spec.nchannels, spec.format);
+        init ((int) spec.image_pixels(), spec.nchannels, spec.format,
+              spec.channelnames);
 }
 
 
@@ -305,11 +391,16 @@ DeepData::set_all_samples (array_view<const unsigned int> samples)
 void
 DeepData::insert_samples (int pixel, int samplepos, int n)
 {
+    spin_lock lock (m_impl->m_mutex);
     if (m_impl->m_allocated) {
         // Move the data
-        size_t offset = m_impl->data_offset (pixel, 0, samplepos);
-        m_impl->m_data.insert (m_impl->m_data.begin() + offset,
-                               n*samplesize(), 0);
+        if (m_impl->m_data.empty()) {
+            m_impl->m_data.resize (n*samplesize());
+        } else {
+            size_t offset = m_impl->data_offset (pixel, 0, samplepos);
+            m_impl->m_data.insert (m_impl->m_data.begin() + offset,
+                                   n*samplesize(), 0);
+        }
         // Adjust the cumulative prefix sum of samples for subsequent pixels
         for (int p = pixel+1; p < m_npixels; ++p)
             m_impl->m_cumsamples[p] += size_t(n);
@@ -323,6 +414,7 @@ DeepData::insert_samples (int pixel, int samplepos, int n)
 void
 DeepData::erase_samples (int pixel, int samplepos, int n)
 {
+    spin_lock lock (m_impl->m_mutex);
     n = std::min (n, int(m_impl->m_nsamples[pixel]));
     if (m_impl->m_allocated) {
         // Move the data
@@ -547,6 +639,345 @@ DeepData::get_pointers (std::vector<void*> &pointers) const
     }
 }
 
+
+
+bool
+DeepData::copy_deep_sample (int pixel, int sample,
+                            const DeepData &src, int srcpixel, int srcsample)
+{
+    const void *srcdata = src.data_ptr (srcpixel, 0, srcsample);
+    int nchans = channels();
+    if (! srcdata || nchans != src.channels())
+        return false;
+    int nsamples = src.samples(srcpixel);
+    set_samples (pixel, std::max (samples(pixel), nsamples));
+    for (int c = 0; c < m_nchannels; ++c) {
+        if (channeltype(c) == TypeDesc::UINT32 && src.channeltype(c) == TypeDesc::UINT32)
+            set_deep_value (pixel, c, sample,
+                            src.deep_value_uint (srcpixel, c, srcsample));
+        else
+            set_deep_value (pixel, c, sample,
+                            src.deep_value (srcpixel, c, srcsample));
+    }
+    return true;
+}
+
+
+
+bool
+DeepData::copy_deep_pixel (int pixel, const DeepData &src, int srcpixel)
+{
+    if (pixel < 0 || pixel >= pixels()) {
+        // std::cout << "dst pixel was " << pixel << "\n";
+        ASSERT(0);
+        return false;
+    }
+    if (srcpixel < 0 || srcpixel >= src.pixels()) {
+        // Copying empty pixel -- set samples to 0 and we're done
+        // std::cout << "Source pixel was " << srcpixel << "\n";
+        set_samples (pixel, 0);
+        return true;
+    }
+    int nchans = channels();
+    if (nchans != src.channels()) {
+        ASSERT(0);
+        return false;
+    }
+    int nsamples = src.samples(srcpixel);
+    set_samples (pixel, nsamples);
+    if (nsamples == 0)
+        return true;
+    bool sametypes = samplesize() == src.samplesize();
+    if (sametypes)
+        for (int c = 0; c < nchans; ++c)
+            sametypes &= (channeltype(c) == src.channeltype(c));
+    if (sametypes)
+        memcpy (data_ptr (pixel, 0, 0), src.data_ptr (srcpixel, 0, 0),
+                samplesize()*nsamples);
+    else {
+        for (int c = 0; c < nchans; ++c) {
+            if (channeltype(c) == TypeDesc::UINT32 && src.channeltype(c) == TypeDesc::UINT32)
+                for (int s = 0; s < nsamples; ++s)
+                    set_deep_value (pixel, c, s,
+                                    src.deep_value_uint (srcpixel, c, s));
+            else
+                for (int s = 0; s < nsamples; ++s)
+                    set_deep_value (pixel, c, s,
+                                    src.deep_value (srcpixel, c, s));
+        }
+    }
+    return true;
+}
+
+
+
+void
+DeepData::split (int pixel, float depth)
+{
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    using std::log1p;
+    using std::expm1;
+#endif
+    int zchan = m_impl->m_z_channel;
+    int zbackchan = m_impl->m_zback_channel;
+    if (zchan < 0)
+        return;   // No channel labeled Z -- we don't know what to do
+    if (zbackchan < 0)
+        return;   // The samples are not extended -- nothing to split
+    int nchans = channels();
+    for (int s = 0; s < samples(pixel); ++s) {
+        float zf = deep_value (pixel, zchan, s);     // z front
+        float zb = deep_value (pixel, zbackchan, s); // z back
+        if (zf < depth && zb > depth) {
+            // The sample spans depth, so split it.
+            // See http://www.openexr.com/InterpretingDeepPixels.pdf
+            insert_samples (pixel, s+1);
+            copy_deep_sample (pixel, s+1, *this, pixel, s);
+            set_deep_value (pixel, zbackchan, s,   depth);
+            set_deep_value (pixel, zchan,     s+1, depth);
+            // We have to proceed in two passes, since we may reuse the
+            // alpha values, we can't overwrite them yet.
+            for (int c = 0; c < nchans; ++c) {
+                int alphachan = m_impl->m_myalphachannel[c];
+                if (alphachan < 0   // No alpha
+                      || alphachan == c)  // This is an alpha!
+                    continue;
+                float a = clamp (deep_value (pixel, alphachan, s), 0.0f, 1.0f);
+                if (a == 1.0f) // Opaque or channels without alpha, we're done.
+                    continue;
+                float xf = (depth - zf) / (zb - zf);
+                float xb = (zb - depth) / (zb - zf);
+                if (a > std::numeric_limits<float>::min()) {
+                    float af = -expm1 (xf * log1p (-a));
+                    float ab = -expm1 (xb * log1p (-a));
+                    float val = deep_value (pixel, c, s);
+                    set_deep_value (pixel, c, s,   (af/a) * val);
+                    set_deep_value (pixel, c, s+1, (ab/a) * val);
+                } else {
+                    float val = deep_value (pixel, c, s);
+                    set_deep_value (pixel, c, s,   val * xf);
+                    set_deep_value (pixel, c, s+1, val * xb);
+                }
+            }
+            // Now that we've adjusted the colors, do the alphas
+            for (int c = 0; c < nchans; ++c) {
+                int alphachan = m_impl->m_myalphachannel[c];
+                if (alphachan != c)
+                    continue;  // skip if not an alpha
+                float a = clamp (deep_value (pixel, alphachan, s), 0.0f, 1.0f);
+                if (a == 1.0f) // Opaque or channels without alpha, we're done.
+                    continue;
+                float xf = (depth - zf) / (zb - zf);
+                float xb = (zb - depth) / (zb - zf);
+                if (a > std::numeric_limits<float>::min()) {
+                    float af = -expm1 (xf * log1p (-a));
+                    float ab = -expm1 (xb * log1p (-a));
+                    set_deep_value (pixel, c, s,   af);
+                    set_deep_value (pixel, c, s+1, ab);
+                } else {
+                    set_deep_value (pixel, c, s,   a * xf);
+                    set_deep_value (pixel, c, s+1, a * xb);
+                }
+            }
+        }
+    }
+}
+
+
+
+namespace {
+
+// Comparitor functor for depth sorting sample indices of a deep pixel.
+class SampleComparator {
+public:
+    SampleComparator (const DeepData &dd, int pixel, int zchan, int zbackchan)
+        : deepdata(dd), pixel(pixel), zchan(zchan), zbackchan(zbackchan) { }
+    bool operator() (int i, int j) const {
+        // If either has a lower z, that's the lower
+        float iz = deepdata.deep_value (pixel, zchan, i);
+        float jz = deepdata.deep_value (pixel, zchan, j);
+        if (iz < jz)
+            return true;
+        if (iz > jz)
+            return false;
+        // If both z's are equal, sort based on zback
+        float izb = deepdata.deep_value (pixel, zbackchan, i);
+        float jzb = deepdata.deep_value (pixel, zbackchan, j);
+        return izb < jzb;
+    }
+private:
+    const DeepData &deepdata;
+    int pixel;
+    int zchan, zbackchan;
+};
+
+}
+
+
+
+void
+DeepData::sort (int pixel)
+{
+    int zchan = m_impl->m_z_channel;
+    if (zchan < 0)
+        return;   // No channel labeled Z -- we don't know what to do
+    int zbackchan = m_impl->m_z_channel;
+    if (zbackchan < 0)
+        zbackchan = zchan;
+    int nsamples = samples(pixel);
+    if (nsamples < 2)
+        return;   // 0 or 1 samples -- no sort necessary
+
+    // Ick, std::sort and friends take a custom comparator, but not a custom
+    // swapper, so there's no way to std::sort a data type whose size is not
+    // known at compile time. So we just sort the indices!
+    int *sample_indices = OIIO_ALLOCA (int, nsamples);
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    std::iota (sample_indices, sample_indices+nsamples, 0);
+#else
+    for (int i = 0; i < nsamples; ++i)
+        sample_indices[i] = i;
+#endif
+    std::stable_sort (sample_indices, sample_indices+nsamples,
+                      SampleComparator(*this, pixel, zchan, zbackchan));
+
+    // Now copy around using a temp buffer
+    size_t samplebytes = samplesize();
+    char *tmppixel = OIIO_ALLOCA (char, samplebytes*nsamples);
+    memcpy (tmppixel, data_ptr (pixel, 0, 0), samplebytes*nsamples);
+    for (int i = 0; i < nsamples; ++i)
+        memcpy (data_ptr (pixel, 0, i),
+                tmppixel+samplebytes*sample_indices[i], samplebytes);
+}
+
+
+
+void
+DeepData::merge_overlaps (int pixel)
+{
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    using std::log1p;
+#endif
+    int zchan = m_impl->m_z_channel;
+    int zbackchan = m_impl->m_zback_channel;
+    if (zchan < 0)
+        return;   // No channel labeled Z -- we don't know what to do
+    if (zbackchan < 0)
+        zbackchan = zchan;  // Missing Zback -- use Z
+    int nchans = channels();
+    for (int s = 1 /* YES, 1 */; s < samples(pixel); ++s) {
+        float zf = deep_value (pixel, zchan, s);     // z front
+        float zb = deep_value (pixel, zbackchan, s); // z back
+        if (zf == deep_value (pixel, zchan, s-1) &&
+            zb == deep_value (pixel, zbackchan, s-1)) {
+            // The samples overlap exactly, merge them per
+            // See http://www.openexr.com/InterpretingDeepPixels.pdf
+            for (int c = 0; c < nchans; ++c) {  // set the colors
+                int alphachan = m_impl->m_myalphachannel[c];
+                if (alphachan < 0)
+                    continue;    // Not color or alpha
+                if (alphachan == c)
+                    continue;  // Adjust the alphas in a second pass below
+                float a1 = (alphachan < 0) ? 1.0f :
+                           clamp (deep_value (pixel, alphachan, s-1), 0.0f, 1.0f);
+                float a2 = (alphachan < 0) ? 1.0f :
+                           clamp (deep_value (pixel, alphachan, s), 0.0f, 1.0f);
+                float c1 = deep_value (pixel, c, s-1);
+                float c2 = deep_value (pixel, c, s);
+                float am = a1 + a2 - a1 * a2;
+                float cm;
+                if (a1 == 1.0f && a2 == 1.0f)
+                    cm = (c1 + c2) / 2.0f;
+                else if (a1 == 1.0f)
+                    cm = c1;
+                else if (a2 == 1.0f)
+                    cm = c2;
+                else {
+                    static const float MAX = std::numeric_limits<float>::max();
+                    float u1 = -log1p (-a1);
+                    float v1 = (u1 < a1 * MAX)? u1 / a1: 1.0f;
+                    float u2 = -log1p (-a2);
+                    float v2 = (u2 < a2 * MAX)? u2 / a2: 1.0f;
+                    float u = u1 + u2;
+                    float w = (u > 1.0f || am < u * MAX)? am / u: 1.0f;
+                    cm = (c1 * v1 + c2 * v2) * w;
+                }
+                set_deep_value (pixel, c, s-1, cm); // setting color
+            }
+            for (int c = 0; c < nchans; ++c) {  // set the alphas
+                int alphachan = m_impl->m_myalphachannel[c];
+                if (alphachan != c)
+                    continue;    // This pass is only for alphas
+                float a1 = (alphachan < 0) ? 1.0f :
+                           clamp (deep_value (pixel, alphachan, s-1), 0.0f, 1.0f);
+                float a2 = (alphachan < 0) ? 1.0f :
+                           clamp (deep_value (pixel, alphachan, s), 0.0f, 1.0f);
+                float am = a1 + a2 - a1 * a2;
+                set_deep_value (pixel, c, s-1, am); // setting alpha
+            }
+            // Now eliminate sample s and revisit again
+            erase_samples (pixel, s, 1);
+            --s;
+        }
+    }
+}
+
+
+
+void
+DeepData::merge_deep_pixels (int pixel, const DeepData &src, int srcpixel)
+{
+    int srcsamples = src.samples(srcpixel);
+    if (srcsamples == 0)
+        return;   // No samples to merge
+    int dstsamples = samples(pixel);
+    if (dstsamples == 0) {
+        // Nothing in our pixel yet, so just copy src's pixel
+        copy_deep_pixel (pixel, src, srcpixel);
+        return;
+    }
+
+    // Need to merge the pixels
+
+    // First, merge all of src's samples into our pixel
+    set_samples (pixel, dstsamples+srcsamples);
+    for (int i = 0; i < srcsamples; ++i)
+        copy_deep_sample (pixel, dstsamples+i, src, srcpixel, i);
+
+    // Now ALL the samples from both images are in our pixel.
+    // Mutually split the samples against each other.
+    sort (pixel);  // sort first so we only loop once
+    int zchan = m_impl->m_z_channel;
+    int zbackchan = m_impl->m_zback_channel;
+    for (int s = 0; s < samples(pixel); ++s) {
+        float z = deep_value (pixel, zchan, s);
+        float zback = deep_value (pixel, zbackchan, s);
+        split (pixel, z);
+        split (pixel, zback);
+    }
+    sort (pixel);
+
+    // Now merge the overlaps
+    merge_overlaps (pixel);
+}
+
+
+
+void
+DeepData::occlusion_cull (int pixel)
+{
+    int alpha_channel = m_impl->m_alpha_channel;
+    if (alpha_channel < 0)
+        return;   // If there isn't a definitive alpha channel, never mind
+    int nsamples = samples(pixel);
+    for (int s = 0; s < nsamples; ++s) {
+        if (deep_value (pixel, alpha_channel, s) >= 1.0f) {
+            // We hit an opaque sample. Cull everything farther.
+            set_samples (pixel, s+1);
+            break;
+        }
+    }
+}
 
 
 OIIO_NAMESPACE_END
