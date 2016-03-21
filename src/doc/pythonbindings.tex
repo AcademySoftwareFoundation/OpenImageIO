@@ -1946,6 +1946,24 @@ src} and store the single  resulting value per pixel in ``flat'' \ImageBuf
 \apiend
 
 
+\apiitem{bool ImageBufAlgo.{\ce copy} (dst, src, convert=TypeDesc.UNKNOWN, \\
+        \bigspc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!copy} \indexapi{copy}
+Copy the specified region of pixels of {\cf src} into {\cf dst} at the same
+locations, without changing any existing pixels of {\cf dst} outside the
+region.  If {\cf dst} is not already initialized, it will be set to the same
+size as {\cf roi} (defaulting to all of {\cf src}), optionally with the pixel
+type overridden by {\cf convert} (if it is not {\cf UNKNOWN}).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Copy A's upper left 200x100 region into B
+    ImageBufAlgo.copy (B, A, ROI(0,200,0,100))
+\end{code}
+\apiend
+
+
 \apiitem{bool ImageBufAlgo.{\ce crop} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.

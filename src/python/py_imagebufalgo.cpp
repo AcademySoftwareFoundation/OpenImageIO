@@ -234,6 +234,16 @@ IBA_flatten (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
 
 bool
+IBA_copy (ImageBuf &dst, const ImageBuf &src, TypeDesc::BASETYPE convert,
+          ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::copy (dst, src, convert, roi, nthreads);
+}
+
+
+
+bool
 IBA_crop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1282,6 +1292,11 @@ void declare_imagebufalgo()
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flatten")
+
+        .def("copy", IBA_copy,
+             (arg("dst"), arg("src"), arg("convert")=TypeDesc::UNKNOWN,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("copy")
 
         .def("crop", IBA_crop,
              (arg("dst"), arg("src"),

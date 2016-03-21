@@ -299,6 +299,26 @@ bool OIIO_API flatten (ImageBuf &dst, const ImageBuf &src,
                        ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Copy the specified region of pixels of src into dst at the same
+/// locations, without changing any existing pixels of dst outside the
+/// region.  If dst is not already initialized, it will be set to the same
+/// size as roi (defaulting to all of src), optionally with the pixel type
+/// overridden by convert (if it is not UNKNOWN).
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Works on all pixel data types.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API copy (ImageBuf &dst, const ImageBuf &src,
+                    TypeDesc convert=TypeDesc::UNKNOWN,
+                    ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Reset dst to be the specified region of src.
 ///
 /// The nthreads parameter specifies how many threads (potentially) may
