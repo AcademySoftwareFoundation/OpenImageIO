@@ -52,7 +52,7 @@ failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
 
-image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla" ]
+image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla", ".dpx" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
