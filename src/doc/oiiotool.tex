@@ -916,20 +916,41 @@ names and use automatic conversion:
 \apiend
 
 \apiitem{\ce --native}
-Normally, all image reads into an \ImageBuf will be performed via an
-underlying \ImageCache. But since an \ImageCache does not support all
-possible data formats, some lesser-used formats may be auto-converted upon
-being read into the cache, and therefore lose precision or range compared to
-what the equivalent {\cf ImageInput::read_image} is capable of. (An example
-would be a rare file of {\cf uint32} or {\cf double} pixels, which would
-lose data when read into an \ImageCache whose ``biggest'' data type is
-{\cf float}.)
+Normally, all images read by \oiiotool are read into an \ImageBuf backed by
+an underlying \ImageCache, and are automatically converted to {\cf float}
+pixels for internal storage (because any subsequent image processing is
+usually much faster and more accurate when done on floating-point values).
 
-The {\cf --native} option is used for the small set of cases where this is
-problematic in practice. It causes subsequent image loads to bypass the
-\ImageCache and instead do an immediate read of the file that preserves its
-native format (if it's not a format that can use the ImageCache without a
-loss of precision).
+This option causes (1) input images to be stored internally in their native
+pixel data type rather than converted to float, and (2) to bypass the
+\ImageCache (reading directly into an \ImageBuf) if the pixel data type is
+not one of the types that is supported internally to \ImageCache ({\cf uint8},
+{\cf uint16}, {\cf half}, and {\cf float}).
+
+images whose pixels are comprised of data types that
+are not natively representable exactly in the \ImageCache to bypass the
+\ImageCache and be read directly into an \ImageBuf.
+
+The typical use case for this is when you know you are dealing with unusual
+pixel data types that might lose precision if converted to {\cf float} (for
+example, if you have images with {\cf uint32} or {\cf double} pixels).
+Another use case is if you are using \oiiotool merely for file format or
+data format conversion, with no actual image processing math performed on
+the pixel values -- in that case, you might save time and memory by
+bypassing the conversion to {\cf float}.
+\apiend
+
+\apiitem{\ce --cache {\rm \emph{size}}}
+\NEW % 1.7
+Set the underlying \ImageCache size (in MB). See Section~\ref{imagecacheattr:autotile}.
+\apiend
+
+\apiitem{\ce --autotile {\rm \emph{tilesize}}}
+\NEW % 1.7
+For the underlying \ImageCache, turn on auto-tiling with the given tile
+size. Setting \emph{tilesize} to 0 turns off auto-tiling. If auto-tile
+is turned on, The \ImageCache \qkw{autoscanline} feature will also be enabled.
+See Section~\ref{imagecacheattr:autotile} for details.
 \apiend
 
 \newpage

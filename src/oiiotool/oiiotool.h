@@ -34,6 +34,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/refcnt.h"
 #include "OpenImageIO/timer.h"
+#include "OpenImageIO/sysutil.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -64,6 +65,8 @@ public:
     bool autoorient;
     bool autocc;                      // automatically color correct
     bool nativeread;                  // force native data type reads
+    int cachesize;
+    int autotile;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
@@ -105,6 +108,7 @@ public:
     typedef std::map<std::string, double> TimingMap;
     TimingMap function_times;
     bool enable_function_timing;
+    size_t peak_memory;
 
     Oiiotool ();
 
@@ -188,6 +192,12 @@ public:
 
     void error (string_view command, string_view explanation="");
     void warning (string_view command, string_view explanation="");
+
+    size_t check_peak_memory () {
+        size_t mem = Sysutil::memory_used();
+        peak_memory = std::max (peak_memory, mem);
+        return mem;
+    }
 
 private:
     CallbackFunction m_pending_callback;
@@ -549,6 +559,9 @@ public:
             if (img[i]->has_error())
                 ot.error (opname(), img[i]->geterror());
         }
+
+        if (ot.debug || ot.runstats)
+            ot.check_peak_memory();
 
         // Optional cleanup after processing all the subimages
         cleanup ();

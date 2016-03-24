@@ -50,6 +50,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/strutil.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/color.h"
@@ -121,7 +122,8 @@ Oiiotool::Oiiotool ()
       total_readtime (Timer::DontStartNow),
       total_writetime (Timer::DontStartNow),
       total_imagecache_readtime (0.0),
-      enable_function_timing(true)
+      enable_function_timing(true),
+      peak_memory(0)
 {
     clear_options ();
 }
@@ -146,6 +148,8 @@ Oiiotool::clear_options ()
     autoorient = false;
     autocc = false;
     nativeread = false;
+    cachesize = 4096;
+    autotile = 4096;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
@@ -331,6 +335,41 @@ set_threads (int argc, const char *argv[])
     int nthreads = atoi(argv[1]);
     OIIO::attribute ("threads", nthreads);
     OIIO::attribute ("exr_threads", nthreads);
+    return 0;
+}
+
+
+
+static int
+set_cachesize (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.cachesize = atoi(argv[1]);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    return 0;
+}
+
+
+
+static int
+set_autotile (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.autotile = atoi(argv[1]);
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
+    return 0;
+}
+
+
+
+static int
+set_native (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.nativeread = true;
+    ot.imagecache->attribute ("forcefloat", 0);
     return 0;
 }
 
@@ -3770,6 +3809,7 @@ input_file (int argc, const char *argv[])
 
         ot.process_pending ();
     }
+    ot.check_peak_memory ();
     return 0;
 }
 
@@ -4077,6 +4117,7 @@ output_file (int argc, const char *argv[])
                     ot.error (command, (*ir)(s,m).geterror());
                     return 0;
                 }
+                ot.check_peak_memory();
                 if (mend > 1) {
                     if (out->supports("mipmap")) {
                         mode = ImageOutput::AppendMIPLevel;  // for next level
@@ -4110,6 +4151,7 @@ output_file (int argc, const char *argv[])
         Filesystem::last_write_time (filename, in_time);
     }
 
+    ot.check_peak_memory();
     ot.curimg = saveimg;
     ot.output_dataformat = saved_output_dataformat;
     ot.output_bitspersample = saved_bitspersample;
@@ -4288,7 +4330,9 @@ getargs (int argc, char *argv[])
                 "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
                 "--autocc", &ot.autocc, "Automatically color convert based on filename",
                 "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
-                "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
+                "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
+                "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
+                "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
@@ -4681,8 +4725,10 @@ main (int argc, char *argv[])
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
-    ot.imagecache->attribute ("max_memory_MB", 4096.0);
-//    ot.imagecache->attribute ("autotile", 1024);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
 
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {
@@ -4713,7 +4759,10 @@ main (int argc, char *argv[])
             unaccounted -= t;
         }
         std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted, 0.0));
-        std::cout << ot.imagecache->getstats() << "\n";
+        ot.check_peak_memory ();
+        std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory) << "\n";
+        std::cout << "  Current memory: " << Strutil::memformat(Sysutil::memory_used()) << "\n";
+        std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
     }
 
     return ot.return_value;
