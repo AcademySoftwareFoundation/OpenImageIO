@@ -1,8 +1,18 @@
 Changes:
 
-Release 1.6.12 (in development -- compared to 1.6.11)
+Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 ------------------------------------------------
-
+* Build correctly against FFMPEG 3.0. #1374
+* The global OIIO::attribute("exr_threads") has been modified so that 0
+  means to use full available hardware, -1 disables the OpenEXR thread
+  pool and execute in the caller thread. #1381
+* Thread-pool counts initialized to hardware_concurrency, not
+  physical_concurrency (i.e., they will include hyperthread cores by
+  default). #1378
+* oiiotool --autocc bug fixed.
+* Miscellaneous improvements to simd.h ported from master.
+* Fix typo that made TIFF files incorrectly name color space metadata
+  "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394)
 
 Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
 ------------------------------------------------
