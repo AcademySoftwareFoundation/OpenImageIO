@@ -3731,6 +3731,20 @@ action_histogram (int argc, const char *argv[])
 static int
 input_file (int argc, const char *argv[])
 {
+    ot.total_readtime.start();
+    string_view command = ot.express (argv[0]);
+    if (argc > 1 && Strutil::starts_with(command, "-i")) {
+        --argc;
+        ++argv;
+    } else {
+        command = "-i";
+    }
+    std::map<std::string,std::string> fileoptions;
+    ot.extract_options (fileoptions, command);
+    int printinfo = get_value_override (fileoptions["info"], int(ot.printinfo));
+    bool readnow = get_value_override (fileoptions["now"], int(0));
+    bool autocc = get_value_override (fileoptions["autocc"], int(ot.autocc));
+
     for (int i = 0;  i < argc;  i++) {
         string_view filename = ot.express(argv[i]);
         std::map<std::string,ImageRecRef>::const_iterator found;
@@ -3771,9 +3785,12 @@ input_file (int argc, const char *argv[])
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
-        if (ot.printinfo || ot.printstats || ot.dumpdata || ot.hash) {
+        if (readnow) {
+            ot.curimg->read ();
+        }
+        if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
-            pio.verbose = ot.verbose;
+            pio.verbose = ot.verbose || printinfo > 1;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
@@ -3794,7 +3811,7 @@ input_file (int argc, const char *argv[])
             action_reorient (1, argv);
         }
 
-        if (ot.autocc) {
+        if (autocc) {
             // Try to deduce the color space it's in
             string_view colorspace (ot.colorconfig.parseColorSpaceFromString(filename));
             if (colorspace.size() && ot.debug)
@@ -3822,7 +3839,9 @@ input_file (int argc, const char *argv[])
 
         ot.process_pending ();
     }
+
     ot.check_peak_memory ();
+    ot.total_readtime.stop();
     return 0;
 }
 
@@ -4346,6 +4365,8 @@ getargs (int argc, char *argv[])
                 "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
+                "<SEPARATOR>", "Commands that read images:",
+                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=0:printinfo=0:autocc=0)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",

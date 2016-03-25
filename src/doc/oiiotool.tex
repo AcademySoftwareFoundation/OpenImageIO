@@ -847,10 +847,26 @@ or control the way that subsequent images will be written upon output.
 
 \subsection*{Reading images}
 
-\apiitem{\ce \rm \emph{filename}}
+\apiitem{\ce \rm \emph{filename} \\
+\ce -i \rm \emph{filename}}
+\label{sec:oiiotool:i}
 If a command-line option is the name of an image file, that file will
 be read and will become the new \emph{current image}, with the previous
 current image pushed onto the image stack.
+
+The {\cf -i} command may be used, which allows additional
+options that control the reading of just that one file.
+\noindent Optional appended arguments include:
+
+\noindent \begin{tabular}{p{1.25in} p{3.75in}}
+{\cf now=}\emph{int} & If 1, read the image now, before proceding to the
+     next command. \\
+{\cf autocc=}\emph{int} & Enable or disable {\cf --autocc} for
+     this input image. \\
+{\cf info=}\emph{int} & Print info about this file (even if the global
+     {\cf --info} was not used) if nonzero. If the value is 2, print full
+     verbose info (like {\cf --info -v}). \\
+\end{tabular}
 \apiend
 
 \apiitem{\ce --no-autopremult \\
@@ -979,7 +995,7 @@ current image from the image stack, it merely saves a copy of it.
 {\cf separate=}\emph{int} & \\
 {\cf contig=}\emph{int} & Set separate or contiguous planar configuration
     for this output. \\
-& {\cf\small fileformatname=}\emph{string} & Specify the desired output file
+{\cf\small fileformatname=}\emph{string} & Specify the desired output file
   format, overriding any guess based on file name extension. \\
 \end{tabular}
 

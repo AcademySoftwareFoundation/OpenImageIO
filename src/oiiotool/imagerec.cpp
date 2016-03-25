@@ -239,7 +239,6 @@ ImageRec::read (bool force_native_read)
         return false;  // Image not found
     }
     m_subimages.resize (subimages);
-
     bool allok = true;
     for (int s = 0;  s < subimages;  ++s) {
         int miplevels = 0;
