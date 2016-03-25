@@ -36,6 +36,7 @@ addons:
       - libwebp-dev
       - ffmpeg
       - freetype6-dev
+      - libjpeg-turbo8-dev
 
 cache:
     ccache: true
@@ -109,7 +110,7 @@ matrix:
         env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=avx,f16c"
       - os: linux
         compiler: gcc
-        env: BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0"
+        env: BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0 USE_JPEGTURBO=0"
 
 notifications:
     email:

@@ -1,4 +1,3 @@
-find_package (JPEG)
 find_package (TIFF)
 
 if (JPEG_FOUND AND TIFF_FOUND)
