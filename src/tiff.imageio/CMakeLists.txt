@@ -1,5 +1,4 @@
 find_package (TIFF)
-find_package (JPEG)
 find_package (ZLIB)
 
 if (TIFF_FOUND AND JPEG_FOUND AND ZLIB_FOUND)

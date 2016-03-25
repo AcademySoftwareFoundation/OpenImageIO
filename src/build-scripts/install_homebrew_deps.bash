@@ -23,7 +23,7 @@ brew install ccache
 brew install ilmbase openexr
 brew install boost-python
 brew install opencolorio
-brew install freetype libraw libpng webp
+brew install freetype libraw libpng webp jpeg-turbo
 #brew install homebrew/science/hdf5 --with-threadsafe
 #brew install field3d webp ffmpeg openjpeg opencv
 echo ""

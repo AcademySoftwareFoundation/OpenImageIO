@@ -375,11 +375,27 @@ endif ()
 # end Field3d setup
 ###########################################################################
 
+
+###########################################################################
+# JPEG
+
+if (USE_JPEGTURBO)
+    find_package (JPEGTurbo)
+endif ()
+if (NOT JPEG_FOUND)
+    find_package (JPEG REQUIRED)
+endif ()
+
+# end JPEG
+###########################################################################
+
+
+###########################################################################
 # OpenJpeg
 if (USE_OPENJPEG)
     find_package (OpenJpeg)
 endif()
-# end OpenJpeg setup_path
+# end OpenJpeg setup
 ###########################################################################
 
 
