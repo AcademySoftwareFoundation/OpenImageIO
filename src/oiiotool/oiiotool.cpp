@@ -201,7 +201,7 @@ format_resolution (int w, int h, int d, int x, int y, int z)
 
 
 bool
-Oiiotool::read (ImageRecRef img)
+Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
 {
     // If the image is already elaborated, take an early out, both to
     // save time, but also because we only want to do the format and
@@ -214,7 +214,9 @@ Oiiotool::read (ImageRecRef img)
     float pre_ic_time, post_ic_time;
     imagecache->getattribute ("stat:fileio_time", pre_ic_time);
     total_readtime.start ();
-    bool ok = img->read (ot.nativeread);
+    if (ot.nativeread)
+        readpolicy = ReadPolicy (readpolicy | ReadNative);
+    bool ok = img->read (readpolicy);
     total_readtime.stop ();
     imagecache->getattribute ("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
@@ -3786,7 +3788,7 @@ input_file (int argc, const char *argv[])
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
         if (readnow) {
-            ot.curimg->read ();
+            ot.curimg->read (ReadNoCache);
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;

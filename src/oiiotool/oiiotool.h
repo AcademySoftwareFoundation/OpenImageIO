@@ -46,6 +46,20 @@ class ImageRec;
 typedef shared_ptr<ImageRec> ImageRecRef;
 
 
+/// Polycy hints for reading images
+enum ReadPolicy {
+    ReadDefault = 0,       //< Default: use cache, maybe convert to float.
+                           //<   For "small" files, may bypass cache.
+    ReadNative  = 1,       //< Keep in native type, use cache if it supports
+                           //<   the native type, bypass if not. May still
+                           //<   bypass cache for "small" images.
+    ReadNoCache = 2,       //< Bypass the cache regardless of size (beware!),
+                           //<   but still subject to format conversion.
+    ReadNativeNoCache = 3, //< No cache, no conversion. Do it all now.
+                           //<   You better know what you're doing.
+};
+
+
 
 class Oiiotool {
 public:
@@ -117,11 +131,11 @@ public:
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to
     /// oiiotool.
-    bool read (ImageRecRef img);
+    bool read (ImageRecRef img, ReadPolicy readpolicy = ReadDefault);
     // Read the current image
-    bool read () {
+    bool read (ReadPolicy readpolicy = ReadDefault) {
         if (curimg)
-            return read (curimg);
+            return read (curimg, readpolicy);
         return true;
     }
 
@@ -325,7 +339,7 @@ public:
     // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
-    bool read (bool force_native_read=false);
+    bool read (ReadPolicy readpolicy = ReadDefault);
 
     // ir(subimg,mip) references a specific MIP level of a subimage
     // ir(subimg) references the first MIP level of a subimage

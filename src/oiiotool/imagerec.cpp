@@ -225,7 +225,7 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
 
 
 bool
-ImageRec::read (bool force_native_read)
+ImageRec::read (ReadPolicy readpolicy)
 {
     if (elaborated())
         return true;
@@ -257,18 +257,22 @@ ImageRec::read (bool force_native_read)
             bool forceread = (s == 0 && m == 0 &&
                               m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
             ImageBuf *ib = new ImageBuf (name(), m_imagecache);
-            TypeDesc convert = TypeDesc::UNKNOWN;
-            if (force_native_read) {
-                convert = ib->nativespec().format;
-                if (convert != TypeDesc::UINT8 && convert != TypeDesc::UINT16 &&
-                    convert != TypeDesc::HALF &&  convert != TypeDesc::FLOAT) {
-                    // It can't be represented natively in the IC
-                    convert = TypeDesc::FLOAT;
-                    forceread = true;
-                }
-            } else {
-                convert = TypeDesc::FLOAT;
+
+            // If we were requested to bypass the cache, force a full read.
+            if (readpolicy & ReadNoCache)
+                forceread = true;
+
+            // Convert to float unless asked to keep native.
+            TypeDesc convert = (readpolicy & ReadNative)
+                             ? ib->nativespec().format : TypeDesc::FLOAT;
+            if (! forceread &&
+                convert != TypeDesc::UINT8 && convert != TypeDesc::UINT16 &&
+                convert != TypeDesc::HALF &&  convert != TypeDesc::FLOAT) {
+                // If we're still trying to use the cache but it doesn't
+                // support the native type, force a full read.
+                forceread = true;
             }
+
             bool ok = ib->read (s, m, forceread, convert);
             if (!ok)
                 error ("%s", ib->geterror());
