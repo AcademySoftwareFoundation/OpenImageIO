@@ -171,6 +171,27 @@ ImageOutputWrap::write_scanlines_array (int ybegin, int yend, int z,
 }
 
 
+bool
+ImageOutputWrap::write_scanlines_random_array (int ybegin, int yend, int z,
+                                               int subimage, int miplevel,
+                                               numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (static_cast<int>(numelements) < spec().width*spec().nchannels*(yend-ybegin)) {
+        m_output->error ("write_scanlines was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_scanlines (ybegin, yend, z, subimage, miplevel,
+                                      format, array);
+}
+
+
 // DEPRECATED (1.6)
 bool
 ImageOutputWrap::write_scanlines (int ybegin, int yend, int z,
@@ -258,6 +279,27 @@ ImageOutputWrap::write_tiles_array (int xbegin, int xend, int ybegin, int yend,
     ScopedGILRelease gil;
     return m_output->write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
                                   format, array);
+}
+
+
+bool
+ImageOutputWrap::write_tiles_random_array (int xbegin, int xend, int ybegin, int yend,
+                                    int zbegin, int zend, int subimage, int miplevel,
+                                    numeric::array &buffer)
+{
+    TypeDesc format;
+    size_t numelements = 0;
+    const void *array = python_array_address (buffer, format, numelements);
+    if (static_cast<int>(numelements) < (xend-xbegin)*(yend-ybegin)*(zend-zbegin)*spec().nchannels) {
+        m_output->error ("write_tiles was not passed a long enough array");
+        return false;
+    }
+    if (! array) {
+        return false;
+    }
+    ScopedGILRelease gil;
+    return m_output->write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                                  subimage, miplevel, format, array);
 }
 
 // DEPRECATED (1.6)
@@ -439,6 +481,9 @@ void declare_imageoutput()
         .def("write_scanlines",  &ImageOutputWrap::write_scanlines_bt,
              ImageOutputWrap_write_scanlines_bt_overloads())
         .def("write_scanlines",  &ImageOutputWrap::write_scanlines_array)
+        .def("write_scanlines",  &ImageOutputWrap::write_scanlines_random_array,
+             (arg("ybegin"), arg("yend"), arg("z"),
+              arg("subimage"), arg("miplevel"), arg("data")))
         .def("write_tile",      &ImageOutputWrap::write_tile,
              ImageOutputWrap_write_tile_overloads())
         .def("write_tile",      &ImageOutputWrap::write_tile_bt,
@@ -449,6 +494,10 @@ void declare_imageoutput()
         .def("write_tiles",      &ImageOutputWrap::write_tiles_bt,
              ImageOutputWrap_write_tiles_bt_overloads())
         .def("write_tiles",      &ImageOutputWrap::write_tiles_array)
+        .def("write_tiles",      &ImageOutputWrap::write_tiles_random_array,
+             (arg("xbegin"), arg("xend"), arg("ybegin"), arg("yend"),
+              arg("zbegin"), arg("zend"), arg("subimage"), arg("miplevel"),
+              arg("data")))
         .def("write_deep_scanlines", &ImageOutputWrap::write_deep_scanlines)
         .def("write_deep_tiles", &ImageOutputWrap::write_deep_tiles)
         .def("write_deep_image", &ImageOutputWrap::write_deep_image)

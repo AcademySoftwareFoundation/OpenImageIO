@@ -1064,8 +1064,9 @@ Returns {\cf True} upon success, {\cf False} upon failure.
 \end{code}
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_scanline} (y, z, pixels) \\
-bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, pixels)}
+\apiitem{bool ImageOutput.{\ce write_scanline} (y, z, data) \\
+bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, data) \\
+bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, subimage, miplevel, data)}
 
 Write one or many scanlines to the currently open file.
 
@@ -1093,8 +1094,10 @@ Write one or many scanlines to the currently open file.
 \end{code}
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, pixels) \\
-bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend)}
+\apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, data) \\
+bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, data) \\
+bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend,\\
+\bigspc\bigspc subimage, miplevel, data)}
 
 Write one or many tiles to the currently open file.
 

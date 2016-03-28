@@ -319,6 +319,7 @@ public:
     bool write_scanlines_bt (int, int, int, TypeDesc::BASETYPE,
                             boost::python::object&, stride_t xstride=AutoStride);
     bool write_scanlines_array (int, int, int, numeric::array&);
+    bool write_scanlines_random_array (int, int, int, int, int, numeric::array&);
     bool write_tile (int, int, int, TypeDesc, boost::python::object&,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
@@ -337,6 +338,7 @@ public:
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
     bool write_tiles_array (int, int, int, int, int, int, numeric::array&);
+    bool write_tiles_random_array (int, int, int, int, int, int, int, int, numeric::array&);
     bool write_image (TypeDesc format, object &buffer,
                       stride_t xstride=AutoStride,
                       stride_t ystride=AutoStride,

@@ -873,9 +873,13 @@ public:
     ///    "rectangles"     Does this plugin accept arbitrary rectangular
     ///                       pixel regions, not necessarily aligned to
     ///                       scanlines or tiles?
-    ///    "random_access"  May tiles or scanlines be written in
-    ///                       any order (false indicates that they MUST
-    ///                       be in successive order).
+    ///    "random_access"  May tiles or scanlines (within the current
+    ///                       subimage and MIP level) be written in any
+    ///                       order (false indicates that they MUST be in
+    ///                       successive order).
+    ///    "random_subimage_access"  May tiles or scanlines be written in
+    ///                       written in any order to any subimage or MIP
+    ///                       level?
     ///    "multiimage"     Does this format support multiple subimages
     ///                       within a file?
     ///    "appendsubimage" Does this format support adding subimages one at
@@ -986,12 +990,21 @@ public:
                                   stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride);
 
+    /// This variety of write_scanlines takes subimge and MIP level indices.
+    /// It is expected that this is only called (and only implemented) for
+    /// ImageOutput subclasses for which supports("random_subimage_access")
+    /// is true.
+    virtual bool write_scanlines (int ybegin, int yend, int z,
+                                  int subimage, int miplevel,
+                                  TypeDesc format, const void *data,
+                                  stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride);
+
     /// Write the tile with (x,y,z) as the upper left corner.  (z is
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
     /// imply 'contiguous' data in the shape of a full tile, i.e.,
-
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
@@ -1025,6 +1038,17 @@ public:
     ///     zstride == ystride * (yend-ybegin)
     virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
+                              const void *data, stride_t xstride=AutoStride,
+                              stride_t ystride=AutoStride,
+                              stride_t zstride=AutoStride);
+
+    /// This variety of write_tiles takes subimge and MIP level indices.
+    /// It is expected that this is only called (and only implemented) for
+    /// ImageOutput subclasses for which supports("random_subimage_access")
+    /// is true.
+    virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend,
+                              int subimage, int miplevel, TypeDesc format,
                               const void *data, stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride);

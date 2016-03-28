@@ -100,6 +100,20 @@ ImageOutput::write_scanlines (int ybegin, int yend, int z,
 
 
 bool
+ImageOutput::write_scanlines (int ybegin, int yend, int z,
+                              int subimage, int miplevel,
+                              TypeDesc format, const void *data,
+                              stride_t xstride, stride_t ystride)
+{
+    // Overridden for subclasses of ImageOutput that support
+    // random_subimage_access. The default implementation is to ignore
+    // the subimage and miplevel.
+    return write_scanlines (ybegin, yend, z, format, data, xstride, ystride);
+}
+
+
+
+bool
 ImageOutput::write_tile (int x, int y, int z, TypeDesc format,
                          const void *data, stride_t xstride,
                          stride_t ystride,
@@ -160,6 +174,21 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
         }
     }
     return ok;
+}
+
+
+
+bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend,
+                               int subimage, int miplevel, TypeDesc format,
+                               const void *data, stride_t xstride,
+                               stride_t ystride, stride_t zstride)
+{
+    // Overridden for subclasses of ImageOutput that support
+    // random_subimage_access. The default implementation is to ignore
+    // the subimage and miplevel.
+    return write_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+                        format, data, xstride, ystride, zstride);
 }
 
 

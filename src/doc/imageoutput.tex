@@ -811,6 +811,18 @@ queried using:
             ...
 \end{code}
 
+Generally, a subimage and/or MIP-map level is written to completion before
+the next {\cf open()} call designates the start of the next subimage or MIP
+level (assuming that the file format supports those concepts in the first
+place). For some file formats, their \ImageOutput may support truly random
+write access across subimages or MIP levels via a variants of {\cf
+write_scanlines()} and {\cf write_tiles()} that take scanline and MIP
+level indices. Support for these calls may be detected by:
+
+\begin{code}
+        if (out->supports ("random_subimage_access"))
+\end{code}
+
 
 \subsection{Multi-image files}
 \label{sec:imageoutput:multiimage}
@@ -1331,8 +1343,14 @@ as such). The following features are recognized by this query:
   pixels must be transmitted via \writescanline (if
   scanline-oriented) or \writetile (if tile-oriented, and only if
   {\kw supports("tiles")} returns true).
-\item[\rm \qkw{random_access}] May tiles or scanlines be written in any
+\item[\rm \qkw{random_access}] May tiles or scanlines (of the current
+  subimage and MIP level) be written in any
   order?  False indicates that they must be in successive order.
+\item[\rm \qkw{random_subimage_access}] May tiles or scanlines be written
+  to subimages or MIP levels in any order on a scanline-by-scanline or
+  tile-by-tile or  basis?  False indicates that each scanline or MIP level
+  must be written to completion, followed by a call to {\cf open()} to
+  explicitly move to the next MIP level or subimage.
 \item[\rm \qkw{multiimage}] Does this format support multiple subimages
   within a single file?
 \item[\rm \qkw{appendsubimage}] Does this format support multiple
@@ -1459,6 +1477,10 @@ access.
 \apiitem{bool {\ce write_scanlines} (int ybegin, int yend, int z, \\
 \bigspc TypeDesc format,
      const void *data, \\
+\bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride) \\
+bool {\ce write_scanlines} (int ybegin, int yend, int z, \\
+\bigspc int subimage, int miplevel, \\
+\bigspc TypeDesc format, const void *data, \\
 \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
 Write a block of scanlines that include pixels $(*,y,z)$,
@@ -1482,6 +1504,12 @@ Return {\kw true} for success, {\kw false} for failure.
 It is a failure to call \writescanline with an
 out-of-order scanline if this format driver does not support random
 access.
+
+Note that the second variety of the call, which takes indices for the
+subimage and MIP level to provide truly random access writes across the
+whole collection of images in the file, is only functional for \ImageOutput
+implementations for which {\cf supports("random_subimage_access")} returns
+{\cf true}.
 \apiend
 
 \apiitem{bool {\ce write_tile} (int x, int y, int z, TypeDesc format,
@@ -1515,6 +1543,11 @@ actually a tile boundary.
 \apiitem{bool {\ce write_tiles} (int xbegin, int xend, int ybegin, int yend,\\
 \bigspc int zbegin, int zend, TypeDesc format, const void *data, \\
 \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
+\bigspc stride_t zstride=AutoStride) \\
+bool {\ce write_tiles} (int xbegin, int xend, int ybegin, int yend,\\
+\bigspc int zbegin, int zend, int subimage, int miplevel,\\
+\bigspc TypeDesc format, const void *data,\\
+\bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
 \bigspc stride_t zstride=AutoStride)}
 
 Write the tiles that include pixels {\kw xbegin} $\le x <$ {\kw xend},
@@ -1540,6 +1573,12 @@ otherwise {\cf false} for a failure.
 The call will fail if the image is not tiled, or if the pixel ranges
 do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
+
+Note that the second variety of the call, which takes indices for the
+subimage and MIP level to provide truly random access writes across the
+whole collection of images in the file, is only functional for \ImageOutput
+implementations for which {\cf supports("random_subimage_access")} returns
+{\cf true}.
 \apiend
 
 \apiitem{bool {\ce write_rectangle} ({\small int xbegin, int xend, int ybegin, int yend, \\ \bigspc
