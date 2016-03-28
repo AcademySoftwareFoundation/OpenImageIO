@@ -121,11 +121,11 @@ namespace OIIO = OIIO_NAMESPACE::OIIO_VERSION_NS;
 #define OIIO_PLUGIN_EXPORTS_END }
 #endif
 
-/// OIIO_BUILD_CPP11 will be 1 if this OIIO was built using C++11
+// OIIO_BUILD_CPP11 will be 1 if this OIIO was built using C++11
 #cmakedefine01 OIIO_BUILD_CPP11
-/// OIIO_BUILD_CPP14 will be 1 if this OIIO was built using C++14
+// OIIO_BUILD_CPP14 will be 1 if this OIIO was built using C++14
 #cmakedefine01 OIIO_BUILD_CPP14
-/// OIIO_BUILD_USELIBPLUSPLUS will be 1 if this OIIO was built using libc++
+// OIIO_BUILD_USELIBPLUSPLUS will be 1 if this OIIO was built using libc++
 #cmakedefine01 OIIO_BUILD_LIBCPLUSPLUS
 
 #endif
