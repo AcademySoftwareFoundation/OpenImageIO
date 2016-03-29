@@ -3,18 +3,25 @@ Changes:
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
- * New oiiotool commands: --box, --line #1319 (1.7.1); --laplacian #1332
-   (1.7.2)
- * oiiotool -otex and -oenv allow oiiotool to directly output proper texture
-   maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+ * New oiiotool commands:
+    * -otex and -oenv allow oiiotool to directly output proper texture
+      maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+    * --line can draw polylines into an image. #1319 (1.7.1)
+    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
+    * --laplacian computes the Laplacian. #1332 (1.7.1)
+    * --deep_merge does a full merge/composite of deep images. #1388 (1.7.2)
+    * -i inputs a file. Options autocc=, now=, info= control aspects
+      of reading that one file. #1389 (1.7.2)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
-   #1319 (1.7.1); laplacian() #1332 (1.7.2).
+   #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
+   deep_merge() #1388,1393 (1.7.2)
 
 Public API changes:
  * DeepData internals and API overhaul: struct internals hidden, now you
    must use the API; DeepData declaration is now in deepdata.h, not in
    imageio.h; DD methods now allow insertion and erasure of individual
-   samples. #1289 (1.7.0)
+   samples. #1289 (1.7.0) New DeepData methods: split, sort, merge_overlaps,
+   merge_deep_pixels, occlusion_cull. #1388,1393 (1.7.2)
  * imageio.h: Removed items deprecated since 1.4: a version of convert_types()
    that took alpha and z channel indices (but never used them). #1291
  * fmath.h: Removed safe_sqrtf, safe_acosf, fast_expf, which have been
@@ -46,11 +53,8 @@ Fixes, minor enhancements, and performance improvements:
     * Allow command-line expression metadata names to contain ':'. #1321
       (1.7.1/1.6.10)
     * --info more clearly prints info about subimage formats. #1320 (1.7.1)
-    * --line can draw polylines into an image. #1319 (1.7.1)
-    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
     * --ch: when the channels were only renamed, not reordered, the
       renaming didn't happen properly. #1326 (1.7.1/1.6.10)
-    * --laplacian computes the Laplacian. #1332 (1.7.1)
     * Improved error message propagation from the underlying IBA functions
       and from errors encounered during --stats. #1338 (1.7.2)
     * --dumpdata:empty=0 now does something for non-deep files: skips
@@ -66,8 +70,13 @@ Fixes, minor enhancements, and performance improvements:
     * -o now takes optional arguments that control the output of just that
       one file, including :datatype=, :bits=, :dither=, :autocc=,
       :autocrop=, :autotrim=, :separate=, :contig=.  #1351 (1.7.2)
-    * -otex and -oenv allow oiiotool to directly output proper texture
-      maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+    * --resize and --fit sped up by approximately 2x. #1372 (1.7.2)
+    * --runstats not tracks and reports max memory usage. #1385 (1.7.2)
+    * New --cache and --autotile options let you set the ImageCache size and
+      autotile options. #1385 (1.7.2)
+    * --native results in slightly different behavior: does not force float,
+      but still uses the ImageCache as backing if the native data type
+      is one of the types directly supported by IC. #1385 (1.7.2)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -91,6 +100,7 @@ Fixes, minor enhancements, and performance improvements:
       return an error if nonfinite values are encountered. #1351 (1.7.2)
     * convolve() and unsharp_mask() have been sped up by about 35% for
       common cases. #1357 (1.7.2)
+    * IBA::resize sped up by approximately 2x. #1372 (1.7.2)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
       #1336 (1.7.2/1.6.11)
@@ -112,11 +122,16 @@ Fixes, minor enhancements, and performance improvements:
     * Output: "tiff:zipquality" attribute controls time-vs-quality for
       ZIP compression (1-9, defualt 6, higher means more compression).
       #1295 (1.7.1)
+    * Fix typo that made TIFF files incorrectly name color space metadata
+      "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
     * Improved error reporting for bad tile reads. #1338 (1.7.2/1.6.11)
     * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2/1.6.11)
+    * The global OIIO::attribute("exr_threads") has been modified so that 0
+      means to use full available hardware, -1 disables the OpenEXR
+      thread pool and execute in the caller thread. #1381 (1.7.2)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
@@ -131,6 +146,12 @@ Fixes, minor enhancements, and performance improvements:
     * Fix bad memory access crash when reading specific JPEG files that were
       written without their comment field including a null character to
       end the string. #1365 (1.7.2/1.6.11)
+ * Improved accuracy of "lanczos3" filter; speed up blackman-harris filter.
+   #1379 (1.7.2)
+ * Speed up linear<->sRGB color conversions (as used by any of the IBA color
+   conversion functions as well as oiiotool --colorconvert and friends),
+   approximately doubling the speed when no OpenColorIO config is found.
+   #1383 (1.7.2)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
@@ -160,6 +181,12 @@ Build/test system improvements:
  * Fix Filesystem::open() issues with UTF-8 filenames on MinGW.
    #1353,#1357 (1.7.2/1.6.11)
  * Allow build against a wider range of ffmpeg versions. #1359 (1.7.2)
+ * Build correctly against FFMPEG 3.0. #1374 (1.7.2)
+ * If found, libjpeg-turbo is used rather than libjpeg; this gives about
+   a 2x speed improvement for reading and writing JPEG files. #1390 (1.7.2)
+ * USE_CPP11=... and USE_CPP14=... are the build flags for both the Make
+   wrapper and the CMake scripts. (Before, it was confusing to have USE_CPP11
+   for make but OIIO_BUILD_CPP11 for CMake. Now they are one.) #1391 (1.7.2)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -171,9 +198,12 @@ Developer goodies / internals:
  * simd.h improvements: select(); round(); float4::store(half*),
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
    Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
-   and add ~ for int4. #1331 (1.7.2)
+   and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
+   andnot #1377 (1.7.2); exp, log #1384 (1.7.2).
  * fmath.h: convert_types has new special cases that vastly speed up
-   float <-> uint16, uint8, and half buffer conversions. #1305 (1.7.0)
+   float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
+   ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
+   fast_exp, fast_pow_pos #1384 (1.7.2)
  * compute_test: new unit test can be used to benchmark computation
    times. #1310 (1.7.1)
  * Strutil::extract_from_list_string is more flixible by allowing the vals
@@ -182,7 +212,25 @@ Developer goodies / internals:
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
+ * platform.h: better distinguishing beteen Apple and Generic clang,
+   separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
+   OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
 
+
+
+Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
+------------------------------------------------
+* Build correctly against FFMPEG 3.0. #1374
+* The global OIIO::attribute("exr_threads") has been modified so that 0
+  means to use full available hardware, -1 disables the OpenEXR thread
+  pool and execute in the caller thread. #1381
+* Thread-pool counts initialized to hardware_concurrency, not
+  physical_concurrency (i.e., they will include hyperthread cores by
+  default). #1378
+* oiiotool --autocc bug fixed.
+* Miscellaneous improvements to simd.h ported from master.
+* Fix typo that made TIFF files incorrectly name color space metadata
+  "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394
 
 Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
 ------------------------------------------------
