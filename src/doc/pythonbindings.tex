@@ -590,11 +590,12 @@ Constructs a \DeepData object. It needs to have its {\cf init()} and
 {\cf alloc()} methods called before it can hold any meaningful data.
 \apiend
 
-\apiitem{DeepData.{\ce init} (npixels, nchannels, pixeltypes)}
+\apiitem{DeepData.{\ce init} (npixels, nchannels, channeltypes, channelnames)}
 Initializes this \DeepData to hold {\cf npixels} total pixels, with
 {\cf nchannels} color channels. The data types of the channels are
-described by {\cf pixeltypes}, a tuple of \TypeDesc values (one per
-channel). After calling {\cf init}, you still need to set the number of
+described by {\cf channeltypes}, a tuple of \TypeDesc values (one per
+channel), and the names are provided in a tuple of {\cf string}s
+{\cf channelnames}. After calling {\cf init}, you still need to set the number of
 samples for each pixel (using {\cf set_nsamples}) and then call {\cf alloc()}
 to actually allocate the sample memory.
 \apiend
@@ -607,6 +608,25 @@ collection of deep data.
 \apiitem{DeepData.{\ce channels}}
 This {\cf int} field constains the number of channels.
 \apiend
+
+
+\apiitem{string DeepData.{\ce channelname} (c)}
+\NEW % 1.7
+Retrieve the name of channel {\cf c}.
+\apiend
+
+\apiitem{TypeDesc DeepData.{\ce channeltype} (c)}
+Retrieve the data type of channel {\cf c}.
+\apiend
+
+\apiitem{int DeepData.{\ce channelsize} (c)}
+Retrieve the size (in bytes) of one datum of channel {\cf c}.
+\apiend
+
+\apiitem{int DeepData.{\ce samplesize} ()}
+Retrieve the packed size (in bytes) of all channels of one sample.
+\apiend
+
 
 \apiitem{DeepData.{\ce set_samples} (pixel, nsamples) \\
 int DeepData.{\ce samples} (pixel)}
@@ -633,6 +653,42 @@ Retrieve the specific value of a given pixel,
 channel, and sample index (for float or uint channels, respectively).
 \apiend
 
+\apiitem{DeepData.{\ce copy_deep_sample} (pixel, sample, src, srcpixel, srcsample)}
+\NEW % 1.7
+Copy a deep sample from \DeepData {\cf src} into this \DeepData.
+\apiend
+
+\apiitem{DeepData.{\ce copy_deep_pixel} (pixel, src, srcpixel)}
+\NEW % 1.7
+Copy a deep pixel from \DeepData {\cf src} into this \DeepData.
+\apiend
+
+\apiitem{DeepData.{\ce split} (pixel, depth)}
+\NEW % 1.7
+Split any samples of the pixel that cross {\cf depth}.
+\apiend
+
+\apiitem{DeepData.{\ce sort} (pixel)}
+\NEW % 1.7
+Sort the samples of the pixel by their Z depth.
+\apiend
+
+\apiitem{DeepData.{\ce merge_overlaps} (pixel)}
+\NEW % 1.7
+Merge any adjacent samples in the pixel that exactly overlap in $z$
+range. This is only useful if the pixel has previously been split at
+all sample starts and ends, and sorted by depth.
+\apiend
+
+\apiitem{DeepData.{\ce merge_deep_pixels} (pixel, src, srcpixel)}
+\NEW % 1.7
+Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
+\apiend
+
+\apiitem{DeepData.{\ce occlusion_cull} (pixel)}
+\NEW % 1.7
+Eliminate any samples beyond an opaque sample.
+\apiend
 
 
 
@@ -1886,6 +1942,24 @@ src} and store the single  resulting value per pixel in ``flat'' \ImageBuf
 \begin{code}
     Flat = ImageBuf()
     ImageBufAlgo.flatten (Flat, ImageBuf("deepalpha.exr"))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce copy} (dst, src, convert=TypeDesc.UNKNOWN, \\
+        \bigspc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!copy} \indexapi{copy}
+Copy the specified region of pixels of {\cf src} into {\cf dst} at the same
+locations, without changing any existing pixels of {\cf dst} outside the
+region.  If {\cf dst} is not already initialized, it will be set to the same
+size as {\cf roi} (defaulting to all of {\cf src}), optionally with the pixel
+type overridden by {\cf convert} (if it is not {\cf UNKNOWN}).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Copy A's upper left 200x100 region into B
+    ImageBufAlgo.copy (B, A, ROI(0,200,0,100))
 \end{code}
 \apiend
 

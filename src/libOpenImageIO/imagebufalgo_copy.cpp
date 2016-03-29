@@ -107,13 +107,13 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
 
 template<class D, class S>
 static bool
-crop_ (ImageBuf &dst, const ImageBuf &src,
+copy_ (ImageBuf &dst, const ImageBuf &src,
        ROI roi, int nthreads=1)
 {
     if (nthreads != 1 && roi.npixels() >= 1000) {
         // Lots of pixels and request for multi threads? Parallelize.
         ImageBufAlgo::parallel_image (
-            OIIO::bind(crop_<D,S>, OIIO::ref(dst), OIIO::cref(src),
+            OIIO::bind(copy_<D,S>, OIIO::ref(dst), OIIO::cref(src),
                         _1 /*roi*/, 1 /*nthreads*/),
             roi, nthreads);
         return true;
@@ -123,14 +123,26 @@ crop_ (ImageBuf &dst, const ImageBuf &src,
 
     // Deep
     if (dst.deep()) {
+        DeepData &dstdeep (*dst.deepdata());
+        const DeepData &srcdeep (*src.deepdata());
         ImageBuf::ConstIterator<S,D> s (src, roi);
         for (ImageBuf::Iterator<D,D> d (dst, roi);  ! d.done();  ++d, ++s) {
-            int samples = d.deep_samples ();
+            int samples = s.deep_samples ();
+            // The caller should ALREADY have set the samples, since that
+            // is not thread-safe against the copying below.
+            // d.set_deep_samples (samples);
+            DASSERT (d.deep_samples() == samples);
             if (samples == 0)
                 continue;
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                for (int samp = 0; samp < samples; ++samp)
-                    d.set_deep_value (c, samp, (float)s.deep_value(c, samp));
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                if (dstdeep.channeltype(c) == TypeDesc::UINT32 &&
+                        srcdeep.channeltype(c) == TypeDesc::UINT32)
+                    for (int samp = 0; samp < samples; ++samp)
+                        d.set_deep_value (c, samp, (uint32_t)s.deep_value_uint(c, samp));
+                else
+                    for (int samp = 0; samp < samples; ++samp)
+                        d.set_deep_value (c, samp, (float)s.deep_value(c, samp));
+            }
         }
         return true;
     }
@@ -146,8 +158,40 @@ crop_ (ImageBuf &dst, const ImageBuf &src,
 }
 
 
+bool
+ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
+                    ROI roi, int nthreads)
+{
+    if (&dst == &src)   // trivial copy to self
+        return true;
 
-bool 
+    roi.chend = std::min (roi.chend, src.nchannels());
+    if (! dst.initialized()) {
+        ImageSpec newspec = src.spec();
+        set_roi (newspec, roi);
+        newspec.nchannels = roi.chend;
+        if (convert != TypeDesc::UNKNOWN)
+            newspec.set_format (convert);
+        dst.reset (newspec);
+    }
+    IBAprep (roi, &dst, &src, IBAprep_SUPPORT_DEEP);
+    if (dst.deep()) {
+        // If it's deep, figure out the sample allocations first, because
+        // it's not thread-safe to do that simultaneously with copying the
+        // values.
+        ImageBuf::ConstIterator<float> s (src, roi);
+        for (ImageBuf::Iterator<float> d (dst, roi);  !d.done();  ++d, ++s)
+            d.set_deep_samples (s.deep_samples());
+    }
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "copy", copy_, dst.spec().format, src.spec().format,
+                          dst, src, roi, nthreads);
+    return ok;
+}
+
+
+
+bool
 ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi, int nthreads)
 {
@@ -157,14 +201,16 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
         return false;
 
     if (dst.deep()) {
-        // If it's deep, figure out the sample allocations first
+        // If it's deep, figure out the sample allocations first, because
+        // it's not thread-safe to do that simultaneously with copying the
+        // values.
         ImageBuf::ConstIterator<float> s (src, roi);
         for (ImageBuf::Iterator<float> d (dst, roi);  !d.done();  ++d, ++s)
             d.set_deep_samples (s.deep_samples());
     }
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "crop", crop_, dst.spec().format, src.spec().format,
+    OIIO_DISPATCH_TYPES2 (ok, "crop", copy_, dst.spec().format, src.spec().format,
                           dst, src, roi, nthreads);
     return ok;
 }

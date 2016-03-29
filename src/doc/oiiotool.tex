@@ -2716,6 +2716,16 @@ If the top image is ``deep,'' then ``flatten'' it by compositing the depth
 samples in each pixel.
 \apiend
 
+\apiitem{\ce --deepmerge}
+\index{composite}
+\NEW % 1.7
+Replace the \emph{two} top images with a new deep image that is the ``deep
+merge'' of the inputs. Both input images must be deep images, have the same
+number and order of channels and must contain an alpha channel and depth
+channel.
+\apiend
+
+
 \subsection{General commands that also work for deep images}
 
 \apiitem{\ce --addc \\ --subc \\ --mulc \\ --divc}

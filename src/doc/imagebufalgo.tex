@@ -422,6 +422,26 @@ region.
 \apiend
 
 
+\apiitem{bool {\ce copy} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc TypeDesc convert=TypeDesc::UNKNOWN, ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!copy} \indexapi{copy}
+Copy the specified region of pixels of {\cf src} into {\cf dst} at the same
+locations, without changing any existing pixels of {\cf dst} outside the
+region.  If {\cf dst} is not already initialized, it will be set to the same
+size as {\cf roi} (by default all of {\cf src}, optionally with the pixel
+type overridden by {\cf convert} (if it is not {\cf UNKNOWN}).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Set B to be A, but converted to float
+    ImageBuf A (...);  // Assume initialized
+    ImageBuf B;
+    ImageBufAlgo::copy (B, A, TypeDesc::FLOAT);
+\end{code}
+\apiend
+
+
 \apiitem{bool {\ce crop} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
@@ -2395,6 +2415,24 @@ alteration.
     ImageBuf Deep ("deepalpha.exr");
     ImageBuf Flat;
     ImageBufAlgo::flatten (Flat, Deep);
+\end{code}
+\apiend
+
+\apiitem{bool {\ce deep_merge} (ImageBuf \&dst,\\
+        \bigspc  const ImageBuf \&A, const ImageBuf \&B, \\
+        \bigspc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!deep_merge} \indexapi{deep_merge} \index{deep images}
+\NEW % 1.7
+Merge the sample of two \emph{deep} images {\cf A} and {\cf B} into deep
+result {\cf dst}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf DeepA ("hardsurf.exr");
+    ImageBuf DeepB ("volume.exr");
+    ImageBuf Merged;
+    ImageBufAlgo::deep_merge (Merged, DeepA, DeepB);
 \end{code}
 \apiend
 

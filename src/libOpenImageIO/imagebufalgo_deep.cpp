@@ -38,6 +38,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/thread.h"
 
@@ -287,6 +288,63 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
     return ok;
 }
 
+
+
+bool
+ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
+                          bool occlusion_cull, ROI roi, int nthreads)
+{
+    if (! A.deep()) {
+        // For some reason, we were asked to merge a flat image.
+        dst.error ("deep_merge can only be performed on deep images");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &A, NULL, NULL, IBAprep_SUPPORT_DEEP))
+        return false;
+    if (! dst.deep()) {
+        dst.error ("Cannot deep_merge to a flat image");
+        return false;
+    }
+
+    bool ok = true;
+    DeepData &dstdd (*dst.deepdata());
+    const DeepData &Add (*A.deepdata());
+    for (int z = roi.zbegin; z < roi.zend; ++z)
+    for (int y = roi.ybegin; y < roi.yend; ++y)
+    for (int x = roi.xbegin; x < roi.xend; ++x) {
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        int Apixel = A.pixelindex (x, y, z, true);
+        DASSERT (dstpixel >= 0);
+        dstdd.merge_deep_pixels (dstpixel, Add, Apixel);
+        if (occlusion_cull)
+            dstdd.occlusion_cull (dstpixel);
+    }
+    return ok;
+}
+
+
+bool
+ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
+                          const ImageBuf &B, bool occlusion_cull,
+                          ROI roi, int nthreads)
+{
+    if (! A.deep() || ! B.deep()) {
+        // For some reason, we were asked to merge a flat image.
+        dst.error ("deep_merge can only be performed on deep images");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_SUPPORT_DEEP))
+        return false;
+    if (! dst.deep()) {
+        dst.error ("Cannot deep_merge to a flat image");
+        return false;
+    }
+
+    bool ok = ImageBufAlgo::copy (dst, A, TypeDesc::UNKNOWN, roi, nthreads);
+    if (ok)
+        ok = deep_merge (dst, B, occlusion_cull, roi, nthreads);
+    return ok;
+}
 
 
 OIIO_NAMESPACE_END
