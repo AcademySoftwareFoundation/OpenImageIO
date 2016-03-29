@@ -61,6 +61,13 @@ DeepData_init_spec (DeepData &dd, const ImageSpec &spec)
 
 
 int
+DeepData_get_capacity (const DeepData &dd, int pixel)
+{
+    return int (dd.capacity(pixel));
+}
+
+
+int
 DeepData_get_samples (const DeepData &dd, int pixel)
 {
     return int (dd.samples(pixel));
@@ -129,6 +136,10 @@ void declare_deepdata()
         .def("samples",         &DeepData_get_samples,
              (arg("pixel")))
         .def("set_samples",     &DeepData::set_samples,
+             (arg("pixel"), arg("nsamples")))
+        .def("capacity",        &DeepData_get_capacity,
+             (arg("pixel")))
+        .def("set_capacity",    &DeepData::set_capacity,
              (arg("pixel"), arg("nsamples")))
         .def("insert_samples",  &DeepData::insert_samples,
              (arg("pixel"), arg("samplepos"), arg("nsamples")=1))

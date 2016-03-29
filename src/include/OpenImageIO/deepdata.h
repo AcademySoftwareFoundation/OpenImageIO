@@ -101,6 +101,14 @@ public:
     /// required to match pixels().
     void set_all_samples (array_view<const unsigned int> samples);
 
+    /// Set the capacity of samples for the given pixel. This must be called
+    /// after init().
+    void set_capacity (int pixel, int samps);
+
+    /// Retrieve the capacity (number of allocated samples) for the given
+    /// pixel index.
+    int capacity (int pixel) const;
+
     /// Insert n samples at the given pixel, starting at the indexed
     /// position.
     void insert_samples (int pixel, int samplepos, int n=1);

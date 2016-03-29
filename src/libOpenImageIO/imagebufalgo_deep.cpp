@@ -292,39 +292,6 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
 
 bool
 ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
-                          bool occlusion_cull, ROI roi, int nthreads)
-{
-    if (! A.deep()) {
-        // For some reason, we were asked to merge a flat image.
-        dst.error ("deep_merge can only be performed on deep images");
-        return false;
-    }
-    if (! IBAprep (roi, &dst, &A, NULL, NULL, IBAprep_SUPPORT_DEEP))
-        return false;
-    if (! dst.deep()) {
-        dst.error ("Cannot deep_merge to a flat image");
-        return false;
-    }
-
-    bool ok = true;
-    DeepData &dstdd (*dst.deepdata());
-    const DeepData &Add (*A.deepdata());
-    for (int z = roi.zbegin; z < roi.zend; ++z)
-    for (int y = roi.ybegin; y < roi.yend; ++y)
-    for (int x = roi.xbegin; x < roi.xend; ++x) {
-        int dstpixel = dst.pixelindex (x, y, z, true);
-        int Apixel = A.pixelindex (x, y, z, true);
-        DASSERT (dstpixel >= 0);
-        dstdd.merge_deep_pixels (dstpixel, Add, Apixel);
-        if (occlusion_cull)
-            dstdd.occlusion_cull (dstpixel);
-    }
-    return ok;
-}
-
-
-bool
-ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
                           const ImageBuf &B, bool occlusion_cull,
                           ROI roi, int nthreads)
 {
@@ -340,9 +307,34 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
         return false;
     }
 
+    // First, set the capacity of the dst image to reserve enough space for
+    // the segments of both source images. It may be that more insertions
+    // are needed, due to overlaps, but those will be compartively fewer
+    // than doing reallocations for every single sample.
+    DeepData &dstdd (*dst.deepdata());
+    const DeepData &Add (*A.deepdata());
+    const DeepData &Bdd (*B.deepdata());
+    for (int z = roi.zbegin; z < roi.zend; ++z)
+    for (int y = roi.ybegin; y < roi.yend; ++y)
+    for (int x = roi.xbegin; x < roi.xend; ++x) {
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        int Apixel = A.pixelindex (x, y, z, true);
+        int Bpixel = B.pixelindex (x, y, z, true);
+        dstdd.set_capacity (dstpixel, Add.capacity(Apixel) + Bdd.capacity(Bpixel));
+    }
+
     bool ok = ImageBufAlgo::copy (dst, A, TypeDesc::UNKNOWN, roi, nthreads);
-    if (ok)
-        ok = deep_merge (dst, B, occlusion_cull, roi, nthreads);
+
+    for (int z = roi.zbegin; z < roi.zend; ++z)
+    for (int y = roi.ybegin; y < roi.yend; ++y)
+    for (int x = roi.xbegin; x < roi.xend; ++x) {
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        int Bpixel = B.pixelindex (x, y, z, true);
+        DASSERT (dstpixel >= 0);
+        dstdd.merge_deep_pixels (dstpixel, Bdd, Bpixel);
+        if (occlusion_cull)
+            dstdd.occlusion_cull (dstpixel);
+    }
     return ok;
 }
 

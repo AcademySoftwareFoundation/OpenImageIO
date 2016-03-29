@@ -44,6 +44,17 @@
 OIIO_NAMESPACE_BEGIN
 
 
+// Each pixel has a capacity (number of samples allocated) and a number of
+// samples currently used. Erasing samples only reduces the samples in the
+// pixels without changing the capacity, so there is no reallocation or data
+// movement except for that pixel. Samples can be added without any
+// reallocation or copying data (other than that one pixel) unles the
+// capacity of the pixel is exceeded. Furthermore, only changes in capacity
+// need to lock the mutex. As long as capacity is not changing, threads may
+// change number of samples (inserting or deleting) as well as altering
+// data, simultaneously, as long as they are working on separate pixels.
+
+
 
 class DeepData::Impl {  // holds all the nontrivial stuff
     friend class DeepData;
@@ -52,7 +63,8 @@ public:
     std::vector<size_t> m_channelsizes;    // for each channel [c]
     std::vector<size_t> m_channeloffsets;  // for each channel [c]
     std::vector<unsigned int> m_nsamples;  // for each pixel [p]
-    std::vector<size_t> m_cumsamples;      // cumulative samples before pixel [p]
+    std::vector<unsigned int> m_capacity;  // for each pixel [p]
+    std::vector<unsigned int> m_cumcapacity;  // cumulative capacity before pixel [p]
     std::vector<char> m_data;              // for each sample [p][s][c]
     std::vector<std::string> m_channelnames; // For each channel[c]
     std::vector<int> m_myalphachannel;     // For each channel[c], its alpha
@@ -72,7 +84,8 @@ public:
         m_channelsizes.clear();
         m_channeloffsets.clear();
         m_nsamples.clear();
-        m_cumsamples.clear();
+        m_capacity.clear();
+        m_cumcapacity.clear();
         m_data.clear();
         m_channelnames.clear ();
         m_myalphachannel.clear ();
@@ -83,26 +96,27 @@ public:
         m_allocated = false;
     }
 
-    // If not already done, allocate data and cumsamples
+    // If not already done, allocate data and cumcapacity
     void alloc (size_t npixels) {
         if (! m_allocated) {
             spin_lock lock (m_mutex);
             if (! m_allocated) {
-                m_cumsamples.resize (npixels);
-                size_t totalsamples = 0;
+                // m_cumcapacity.resize (npixels);
+                size_t totalcapacity = 0;
                 for (size_t i = 0; i < npixels; ++i) {
-                    m_cumsamples[i] = totalsamples;
-                    totalsamples += m_nsamples[i];
+                    m_cumcapacity[i] = totalcapacity;
+                    totalcapacity += m_capacity[i];
                 }
-                m_data.resize (totalsamples * m_samplesize);
+                m_data.resize (totalcapacity * m_samplesize);
                 m_allocated = true;
             }
         }
     }
 
     size_t data_offset (int pixel, int channel, int sample) {
-        DASSERT (int(m_cumsamples.size()) > pixel);
-        return (m_cumsamples[pixel] + sample) * m_samplesize
+        DASSERT (int(m_cumcapacity.size()) > pixel);
+        DASSERT (m_capacity[pixel] >= m_nsamples[pixel]);
+        return (m_cumcapacity[pixel] + sample) * m_samplesize
              + m_channeloffsets[channel];
     }
 
@@ -112,6 +126,27 @@ public:
         return &m_data[offset];
     }
 
+    size_t total_capacity () const {
+        return m_cumcapacity.back() + m_capacity.back();
+    }
+
+    inline void sanity () const {
+        // int nchannels = int (m_channeltypes.size());
+        ASSERT (m_channeltypes.size() == m_channelsizes.size());
+        ASSERT (m_channeltypes.size() == m_channeloffsets.size());
+        int npixels = int(m_capacity.size());
+        ASSERT (m_nsamples.size() == m_capacity.size());
+        ASSERT (m_cumcapacity.size() == m_capacity.size());
+        if (m_allocated) {
+            size_t totalcapacity = 0;
+            for (int p = 0; p < npixels; ++p) {
+                ASSERT (m_cumcapacity[p] == totalcapacity);
+                totalcapacity += m_capacity[p];
+                ASSERT (m_capacity[p] >= m_nsamples[p]);
+            }
+            ASSERT (totalcapacity * m_samplesize == m_data.size());
+        }
+    }
 };
 
 
@@ -184,7 +219,6 @@ string_view
 DeepData::channelname (int c) const
 {
     DASSERT (m_impl);
-    // std::cout << "channelname(" << c << ")\n";
     return (c >= 0 && c < m_nchannels) ? string_view(m_impl->m_channelnames[c])
                                        : string_view();
 }
@@ -253,6 +287,8 @@ DeepData::init (int npix, int nchan,
     m_impl->m_myalphachannel.resize (m_nchannels, -1);
     m_impl->m_samplesize = 0;
     m_impl->m_nsamples.resize (m_npixels, 0);
+    m_impl->m_capacity.resize (m_npixels, 0);
+    m_impl->m_cumcapacity.resize (m_npixels, 0);
 
     // Channel name hunt
     // First, find Z, Zback, A
@@ -340,6 +376,50 @@ DeepData::free ()
 
 
 int
+DeepData::capacity (int pixel) const
+{
+    if (pixel < 0 || pixel >= m_npixels)
+        return 0;
+    DASSERT (m_impl && m_impl->m_capacity.size() > size_t(pixel));
+    return m_impl->m_capacity[pixel];
+}
+
+
+
+void
+DeepData::set_capacity (int pixel, int samps)
+{
+    if (pixel < 0 || pixel >= m_npixels)
+        return;
+    ASSERT (m_impl);
+    spin_lock lock (m_impl->m_mutex);
+    if (m_impl->m_allocated) {
+        // Data already allocated. Expand capacity if necessary, don't
+        // contract. (FIXME?)
+        int n = (int)capacity(pixel);
+        if (samps > n) {
+            int toadd = samps-n;
+            if (m_impl->m_data.empty()) {
+                size_t newtotal = (m_impl->total_capacity()+toadd);
+                m_impl->m_data.resize (newtotal*samplesize());
+            } else {
+                size_t offset = m_impl->data_offset (pixel, 0, n);
+                m_impl->m_data.insert (m_impl->m_data.begin() + offset,
+                                       toadd*samplesize(), 0);
+            }
+            // Adjust the cumulative prefix sum of samples for subsequent pixels
+            for (int p = pixel+1; p < m_npixels; ++p)
+                m_impl->m_cumcapacity[p] += toadd;
+            m_impl->m_capacity[pixel] = samps;
+        }
+    } else {
+        m_impl->m_capacity[pixel] = samps;
+    }
+}
+
+
+
+int
 DeepData::samples (int pixel) const
 {
     if (pixel < 0 || pixel >= m_npixels)
@@ -365,6 +445,7 @@ DeepData::set_samples (int pixel, int samps)
             erase_samples (pixel, samps, n-samps);
     } else {
         m_impl->m_nsamples[pixel] = samps;
+        m_impl->m_capacity[pixel] = std::max (unsigned(samps), m_impl->m_capacity[pixel]);
     }
 }
 
@@ -383,6 +464,7 @@ DeepData::set_all_samples (array_view<const unsigned int> samples)
     } else {
         // Data not yet allocated: copy in one shot
         m_impl->m_nsamples.assign (&samples[0], &samples[m_npixels]);
+        m_impl->m_capacity.assign (&samples[0], &samples[m_npixels]);
     }
 }
 
@@ -391,19 +473,21 @@ DeepData::set_all_samples (array_view<const unsigned int> samples)
 void
 DeepData::insert_samples (int pixel, int samplepos, int n)
 {
-    spin_lock lock (m_impl->m_mutex);
+    int oldsamps = samples(pixel);
+    set_capacity (pixel, oldsamps + n);
+    // set_capacity is thread-safe, it locks internalls. Once the acpacity
+    // is adjusted, we can alter nsamples or copy the data around within
+    // the pixel without a lock, we presume that if multiple threads are
+    // in play, they are working on separate pixels.
     if (m_impl->m_allocated) {
         // Move the data
-        if (m_impl->m_data.empty()) {
-            m_impl->m_data.resize (n*samplesize());
-        } else {
+        if (samplepos < oldsamps) {
             size_t offset = m_impl->data_offset (pixel, 0, samplepos);
-            m_impl->m_data.insert (m_impl->m_data.begin() + offset,
-                                   n*samplesize(), 0);
+            size_t end = m_impl->data_offset (pixel, 0, oldsamps);
+            std::copy_backward (m_impl->m_data.begin() + offset,
+                                m_impl->m_data.begin() + end,
+                                m_impl->m_data.begin() + end + n*samplesize());
         }
-        // Adjust the cumulative prefix sum of samples for subsequent pixels
-        for (int p = pixel+1; p < m_npixels; ++p)
-            m_impl->m_cumsamples[p] += size_t(n);
     }
     // Add to this pixel's sample count
     m_impl->m_nsamples[pixel] += n;
@@ -414,18 +498,19 @@ DeepData::insert_samples (int pixel, int samplepos, int n)
 void
 DeepData::erase_samples (int pixel, int samplepos, int n)
 {
-    spin_lock lock (m_impl->m_mutex);
+    // DON'T reduce the capacity! Just leave holes for speed.
+    // Because erase_samples only moves data within a pixel and doesn't
+    // change the capacity, no lock is needed.
     n = std::min (n, int(m_impl->m_nsamples[pixel]));
     if (m_impl->m_allocated) {
         // Move the data
+        int oldsamps = samples(pixel);
         size_t offset = m_impl->data_offset (pixel, 0, samplepos);
-        m_impl->m_data.erase (m_impl->m_data.begin() + offset,
-                              m_impl->m_data.begin() + offset + n*samplesize());
-        // Adjust the cumulative prefix sum of samples for subsequent pixels
-        for (int p = pixel+1; p < m_npixels; ++p)
-            m_impl->m_cumsamples[p] -= size_t(n);
+        size_t end = m_impl->data_offset (pixel, 0, oldsamps);
+        std::copy (m_impl->m_data.begin() + offset + n*samplesize(),
+                   m_impl->m_data.begin() + end,
+                   m_impl->m_data.begin() + offset);
     }
-    // Subtract from this pixel's sample count
     m_impl->m_nsamples[pixel] -= n;
 }
 

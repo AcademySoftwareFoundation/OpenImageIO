@@ -44,8 +44,8 @@ def print_deep_image (dd, prefix="After init,") :
     print prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels."
     for p in range(dd.pixels) :
         ns = dd.samples(p)
-        if ns > 0 :
-            print "  Nsamples[", p, "] =", ns, "samples:"
+        if ns > 0 or dd.capacity(p) > 0 :
+            print "  Nsamples[", p, "] =", ns, " (capacity=", dd.capacity(p), ")", "samples:"
             for s in range(ns) :
                 print "  sample", s, ": ",
                 for c in range(dd.channels) :
