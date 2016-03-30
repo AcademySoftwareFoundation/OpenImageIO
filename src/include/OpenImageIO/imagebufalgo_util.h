@@ -84,7 +84,7 @@ enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest };
 ///     void my_image_op (ImageBuf &out, const ImageBuf &in,
 ///                       float scale, ROI roi);
 /// Then you can parallelize it as follows:
-///     ImageBuf R /*result*/, A /*input*/;
+///     ImageBuf R, A;   // result, input
 ///     ROI roi = get_roi (R.spec());
 ///     parallel_image (bind(my_image_op,ref(R), cref(A),3.14,_1), roi);
 ///
