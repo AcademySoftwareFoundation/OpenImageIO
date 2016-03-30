@@ -958,7 +958,7 @@ TIFFInput::readspec (bool read_meta)
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
             if (*(const int *)p->data() != 0xffff)
-                m_spec.attribute ("oiio::ColorSpace", "sRGB");
+                m_spec.attribute ("oiio:ColorSpace", "sRGB");
         }
     }
 #endif
