@@ -272,14 +272,14 @@ DeepData::init (int npix, int nchan,
     clear ();
     m_npixels = npix;
     m_nchannels = nchan;
-    ASSERT (channeltypes.size() == 1 || int(channeltypes.size()) == nchan);
+    ASSERT (channeltypes.size() >= 1);
     if (! m_impl)
         m_impl = new Impl;
-    if (channeltypes.size() == 1) {
+    if (int(channeltypes.size()) >= nchan) {
+        m_impl->m_channeltypes.assign (channeltypes.data(), channeltypes.data()+nchan);
+    } else {
         m_impl->m_channeltypes.clear ();
         m_impl->m_channeltypes.resize (m_nchannels, channeltypes[0]);
-    } else {
-        m_impl->m_channeltypes.assign (channeltypes.data(), channeltypes.data()+channeltypes.size());
     }
     m_impl->m_channelsizes.resize (m_nchannels);
     m_impl->m_channeloffsets.resize (m_nchannels);
