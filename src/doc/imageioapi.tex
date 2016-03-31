@@ -772,14 +772,14 @@ floating point or unsigned integer channel types, respectively.
 \apiend
 
 \apiitem{bool {\ce copy_deep_sample} (int pixel, int sample, \\
-    \bigspace const DeepData &src, int srcpixel, int srcsample)}
+    \bigspc const DeepData \&src, int srcpixel, int srcsample)}
 \NEW % 1.7
 Copy a deep sample from {\cf src} to this \DeepData. They must have the same
 channel layout. Return {\cf true} if ok, {\cf false} if the operation could
 not be performed.
 \apiend
 
-\apiitem{bool {\ce copy_deep_pixel} (int pixel, const DeepData &src, int srcpixel)}
+\apiitem{bool {\ce copy_deep_pixel} (int pixel, const DeepData \&src, int srcpixel)}
 \NEW % 1.7
 Copy an entire deep pixel from {\cf src} to this \DeepData, completely
 replacing any pixel data for that pixel. They must have the same channel
@@ -805,7 +805,7 @@ all sample starts and ends, and sorted by depth. Note that this may change
 the number of samples in the pixel.
 \apiend
 
-\apiitem{bool {\ce merge_deep_pixels} (int pixel, const DeepData &src, int srcpixel)}
+\apiitem{bool {\ce merge_deep_pixels} (int pixel, const DeepData \&src, int srcpixel)}
 \NEW % 1.7
 Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
 Return {\cf true} if ok, {\cf false} if the operation could not be
