@@ -22,6 +22,11 @@
 #
 # Downloaded from: http://www.itk.org/Wiki/CMakeMacroParseArguments
 #
+# -----------
+# FIXME: Once the minimum cmake version we expect is 2.8.3 or higher, this
+# macro can be eliminated in favor of cmake_parse_arguments which ships
+# with cmake.
+# -----------
 MACRO(PARSE_ARGUMENTS prefix arg_names option_names)
   SET(DEFAULT_ARGS)
   FOREACH(arg_name ${arg_names})    

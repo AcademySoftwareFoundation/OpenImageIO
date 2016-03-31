@@ -281,6 +281,11 @@ ifneq (${CODECOV},)
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug -DCODECOV:BOOL=${CODECOV}
 endif
 
+ifneq (${USE_FREETYPE},)
+MY_CMAKE_FLAGS += -DUSE_FREETYPE:BOOL=${USE_FREETYPE}
+endif
+
+
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
 
@@ -466,6 +471,7 @@ help:
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
+	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
 	@echo "  OIIO build-time options:"
 	@echo "      NAMESPACE=name           Wrap everything in another namespace"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"

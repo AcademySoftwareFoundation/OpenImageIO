@@ -32,7 +32,6 @@ if (NOT VERBOSE)
     set (ZLIB_FIND_QUIETLY true)
 endif ()
 
-
 setup_path (THIRD_PARTY_TOOLS_HOME
             "unknown"
             "Location of third party libraries in the external project")
@@ -62,28 +61,39 @@ if (SPECIAL_COMPILE_FLAGS)
 endif ()
 
 
+###########################################################################
+# TIFF
+find_package (TIFF REQUIRED)
+include_directories (${TIFF_INCLUDE_DIR})
+
+
+###########################################################################
+# Several packages need Zlib
+find_package (ZLIB REQUIRED)
+include_directories (${ZLIB_INCLUDE_DIR})
+
+
+###########################################################################
+# PNG
+find_package (PNG REQUIRED)
+include_directories (${PNG_INCLUDE_DIR})
+
 
 ###########################################################################
 # IlmBase & OpenEXR setup
 
-if (NOT OPENEXR_FOUND)
-    find_package (OpenEXR REQUIRED)
-endif ()
-
+find_package (OpenEXR REQUIRED)
 #OpenEXR 2.2 still has problems with importing ImathInt64.h unqualified
 #thus need for ilmbase/OpenEXR
 include_directories ("${OPENEXR_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}/OpenEXR")
-
 if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
     # OpenEXR 1.x had weird #include dirctives, this is also necessary:
     include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
 else ()
     add_definitions (-DUSE_OPENEXR_VERSION2=1)
 endif ()
-
-
 if (NOT OpenEXR_FIND_QUIETLY)
     message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
     message (STATUS "OPENEXR_LIBRARIES = ${OPENEXR_LIBRARIES}")
@@ -220,13 +230,8 @@ if (USE_OCIO)
     endif()
 
     find_package (OpenColorIO)
-    FindOpenColorIO ()
 
     if (OCIO_FOUND)
-        if (NOT OpenColorIO_FIND_QUIETLY)
-            message (STATUS "OpenColorIO enabled")
-            message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
-        endif ()
         include_directories (${OCIO_INCLUDES})
         add_definitions ("-DUSE_OCIO=1")
     else ()
@@ -385,6 +390,7 @@ endif ()
 if (NOT JPEG_FOUND)
     find_package (JPEG REQUIRED)
 endif ()
+include_directories (${JPEG_INCLUDE_DIR})
 
 # end JPEG
 ###########################################################################
@@ -428,6 +434,12 @@ if (USE_LIBRAW)
         set (LIBRAW_FOUND FALSE)
         message (STATUS "LibRaw not found!")
     endif()
+
+    if (LINKSTATIC)
+        find_package (Jasper)
+        find_library (LCMS2_LIBRARIES NAMES lcms2)
+        set (LibRaw_r_LIBRARIES ${LibRaw_r_LIBRARIES} ${JASPER_LIBRARIES} ${LCMS2_LIBRARIES})
+    endif ()
 else ()
     message (STATUS "Not using LibRaw")
 endif()
@@ -582,17 +594,9 @@ endif()
 # PTex
 if (USE_PTEX)
     find_package (PTex)
-    if (PTEX_FOUND)
-        if (VERBOSE)
-            message (STATUS "PTex include ${PTEX_INCLUDE_DIR}")
-            message (STATUS "PTex library ${PTEX_LIBRARY}")
-        endif ()
-    else ()
-        if (VERBOSE)
-            message (STATUS "PTex not found externally, using embedded source")
-        endif ()
-        set (PTEX_LIBRARY "")
+    if (NOT PTEX_FOUND)
         set (PTEX_INCLUDE_DIR "")
+        set (PTEX_LIBRARIES "")
     endif ()
 endif()
 # end PTEX setup

@@ -13,7 +13,6 @@
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 
-MACRO(FindOpenColorIO)
     if (NOT OpenColorIO_FIND_QUIETLY)
         if (OCIO_PATH)
             message(STATUS "OCIO path explicitly specified: ${OCIO_PATH}")
@@ -56,5 +55,4 @@ MACRO(FindOpenColorIO)
         set(OCIO_FOUND FALSE)
         message(STATUS "OCIO not found. Specify OCIO_PATH to locate it")
     endif()
-ENDMACRO()
 

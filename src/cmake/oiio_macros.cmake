@@ -17,19 +17,29 @@ endmacro ()
 # Usage:
 #
 # add_oiio_plugin ( source1 [source2 ...]
-#                   [LINK_LIBRARIES external_lib1 ...] )
+#                   [ INCLUDE_DIRS include_dir1 ... ]
+#                   [ LINK_LIBRARIES external_lib1 ... ] )
 #
 # The plugin name is deduced from the name of the current directory and the
-# source is automatically linked against OpenImageIO.  Additional libraries
-# (for example, libpng) may be specified after the optionl LINK_LIBRARIES
-# keyword.
+# source is automatically linked against OpenImageIO. Additional include
+# directories (just for this target) may be specified after the optional
+# INCLUDE_DIRS keyword. Additional libraries (for example, libpng) may be
+# specified after the optionl LINK_LIBRARIES keyword.
 #
 macro (add_oiio_plugin)
-    parse_arguments (_plugin "LINK_LIBRARIES" "" ${ARGN})
+    if (CMAKE_VERSION VERSION_LESS 2.8.3)
+        parse_arguments (_plugin "LINK_LIBRARIES;INCLUDE_DIRS" "" ${ARGN})
+        set (_plugin_UNPARSED_ARGUMENTS ${_plugin_DEFAULT_ARGS})
+    else ()
+        # Modern cmake has this functionality built-in
+        cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES" ${ARGN})
+        # Arguments: <name> <options> <one_value_keywords> <multi_value_keywords>
+    endif ()
     set (_target_name ${CMAKE_CURRENT_SOURCE_DIR})
     # Get the name of the current directory and use it as the target name.
     get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-    add_library (${_target_name} SHARED ${_plugin_DEFAULT_ARGS})
+    add_library (${_target_name} SHARED ${_plugin_UNPARSED_ARGUMENTS})
+    target_include_directories (${_target_name} PRIVATE ${_plugin_INCLUDE_DIRS})
     target_link_libraries (${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES})
     set_target_properties (${_target_name} PROPERTIES PREFIX "" FOLDER "Plugins")
     oiio_install_targets (${_target_name})

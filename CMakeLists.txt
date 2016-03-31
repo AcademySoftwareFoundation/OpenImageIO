@@ -313,6 +313,18 @@ if (NOT OIIO_NAMESPACE)
 endif ()
 message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
 
+# Use .a files if LINKSTATIC is enabled
+if (LINKSTATIC)
+    set (_orig_link_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    message (STATUS "Statically linking external libraries")
+    if (WIN32)
+        set (CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    else ()
+        # set (CMAKE_FIND_LIBRARY_SUFFIXES .a)
+        set (CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif ()
+endif ()
+
 set (CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
      "${PROJECT_SOURCE_DIR}/src/cmake")

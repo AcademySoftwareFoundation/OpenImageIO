@@ -111,11 +111,6 @@ if (EMBEDPLUGINS)
             )
         add_definitions ("-DUSE_BOOST_ASIO=1")
     endif ()
-    find_package (PNG REQUIRED)
-    find_package (TIFF REQUIRED)
-    find_package (ZLIB REQUIRED)
-    include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
-    include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 
     add_definitions ("-DEMBED_PLUGINS=1")
 
@@ -167,7 +162,7 @@ if (EMBEDPLUGINS)
         include_directories (${LibRaw_INCLUDE_DIR})
         add_definitions ("-DUSE_LIBRAW=1")
     else()
-        message (STATUS "Raw plugin will not be build")
+        message (STATUS "Raw plugin will not be built")
     endif()
 
     if (WEBP_FOUND)
@@ -203,7 +198,6 @@ if (EMBEDPLUGINS)
         add_definitions("-DUSE_PTEX")
     else()
         message (STATUS "PTex plugin will not be built")
-        set (PTEX_LIBRARY "")
     endif()
 
     # Organize the embedded plugins into source folders
@@ -219,9 +213,6 @@ if (EMBEDPLUGINS)
                       REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
                      )
     endforeach ()
-else()
-    find_package (TIFF REQUIRED)
-    include_directories (${TIFF_INCLUDE_DIR})
 endif ()
 
 # Source groups for libutil and libtexture
@@ -288,7 +279,7 @@ if (EMBEDPLUGINS)
                                ${HDF5_LIBRARIES}
                                ${OPENEXR_LIBRARIES}
                                ${OPENJPEG_LIBRARIES}
-                               ${PTEX_LIBRARY}
+                               ${PTEX_LIBRARIES}
                                ${WEBP_LIBRARY}
                                ${ZLIB_LIBRARIES}
                           )
@@ -306,6 +297,8 @@ target_link_libraries (OpenImageIO ${ILMBASE_LIBRARIES})
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
 endif ()
+
+target_link_libraries (OpenImageIO ${ZLIB_LIBRARIES})
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")
@@ -332,16 +325,6 @@ oiio_install_targets (OpenImageIO)
 
 
 # Testing
-
-# Definition needed by boost_unit_test_framework library
-# and by PTEX DLL
-if (NOT LINKSTATIC)
-    add_definitions (-DBOOST_TEST_DYN_LINK)
-    add_definitions (-DPTEX_EXPORTS)
-else()
-    add_definitions (-DPTEX_STATIC)
-endif ()
-
 
 if (OIIO_BUILD_TESTS)
 
