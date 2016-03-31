@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.13 (released ?? 2016 -- compared to 1.6.12)
+------------------------------------------------
+
 Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 ------------------------------------------------
 * Build correctly against FFMPEG 3.0. #1374
