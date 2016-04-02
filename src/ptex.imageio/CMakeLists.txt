@@ -6,7 +6,8 @@ if (PTEX_FOUND)
     # External PTex found
     add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
                      INCLUDE_DIRS ${ZLIB_INCLUDE_DIR} ${PTEX_INCLUDE_DIR}
-                     LINK_LIBRARIES ${PTEX_LIBRARIES} ${ZLIB_LIBRARIES} )
+                     LINK_LIBRARIES ${PTEX_LIBRARIES} ${ZLIB_LIBRARIES}
+                     DEFINITIONS "-DUSE_PTEX")
 else ()
     # No external PTex. Fall back on the embedded version.
     if (WIN32)
@@ -24,7 +25,8 @@ else ()
                      ptex/PtexUtils.cpp
                      ptex/PtexWriter.cpp
                      INCLUDE_DIRS ${ZLIB_INCLUDE_DIR}
-                     LINK_LIBRARIES ${ZLIB_LIBRARIES} )
+                     LINK_LIBRARIES ${ZLIB_LIBRARIES}
+                     DEFINITIONS "-DUSE_PTEX")
 endif ()
 
 endif (USE_PTEX)

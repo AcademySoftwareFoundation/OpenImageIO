@@ -15,12 +15,18 @@ if [ ! -e ./openexr ] ; then
     git clone -b v${EXRVERSION} https://github.com/openexr/openexr.git ./openexr
 fi
 
+flags=
+
+if [ ${LINKSTATIC} == 1 ] ; then
+    flags=${flags} --enable-static --enable-shared=no --with-pic
+fi
+
 pushd ./openexr
 git checkout v${EXRVERSION} --force
 cd IlmBase
-./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make clean && make -j 4 && make install
+./bootstrap && ./configure --prefix=${EXRINSTALLDIR} ${flags} && make clean && make -j 4 && make install
 cd ../OpenEXR
-./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make clean && make -j 4 && make install
+./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} ${flags} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make clean && make -j 4 && make install
 popd
 
 ls -R ${EXRINSTALLDIR}

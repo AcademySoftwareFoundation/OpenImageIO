@@ -153,13 +153,6 @@ if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_I
     endif ()
 endif ()
 
-# Try to detect if this is an OSX distro new enough that the system library
-# is libc++.
-if ((CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
-    AND EXISTS "/usr/lib/libc++.dylib")
-    set (OSL_SYSTEM_HAS_LIBCPP ON)
-endif ()
-
 
 set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
@@ -258,12 +251,17 @@ if (USE_CPP11 OR USE_CPP14)
         add_definitions ("-Wno-deprecated-register")
     endif ()
 else ()
-    message (STATUS "Building for C++98!")
+    message (STATUS "Building for C++03!")
 endif ()
 
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
     message (STATUS "Using libc++")
     add_definitions ("-stdlib=libc++")
+endif ()
+
+set (USE_fPIC OFF CACHE BOOL "Build with -fPIC")
+if (USE_fPIC)
+    add_definitions ("-fPIC")
 endif ()
 
 # Options common to gcc and clang
@@ -444,6 +442,23 @@ include (CTest)
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
 
+# Add IO plugin directories -- if we are embedding plugins, we need to visit
+# these directories BEFORE the OpenImageIO target is established (in
+# src/libOpenImageIO). For each plugin, we append to the lists of source
+# files, format libs, include directories, and definitions, all of which
+# will be used by src/libOpenImageIO.
+set (libOpenImageIO_srcs "")
+set (format_plugin_libs "")
+set (format_plugin_include_dirs "")
+set (format_plugin_definitions "")
+file (GLOB all_format_plugin_dirs src/*.imageio)
+if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
+    foreach (plugin_dir ${all_format_plugin_dirs})
+        add_subdirectory (${plugin_dir})
+    endforeach ()
+endif ()
+
+
 if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
 endif ()
@@ -459,35 +474,13 @@ if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
   add_subdirectory (src/iv)
 endif ()
 
-# Add IO plugin directories
-if (NOT EMBEDPLUGINS)
-    add_subdirectory (src/bmp.imageio)
-    add_subdirectory (src/cineon.imageio)
-    add_subdirectory (src/dds.imageio)
-    add_subdirectory (src/dpx.imageio)
-    add_subdirectory (src/ffmpeg.imageio)
-    add_subdirectory (src/field3d.imageio)
-    add_subdirectory (src/fits.imageio)
-    add_subdirectory (src/gif.imageio)
-    add_subdirectory (src/hdr.imageio)
-    add_subdirectory (src/ico.imageio)
-    add_subdirectory (src/iff.imageio)
-    add_subdirectory (src/jpeg.imageio)
-    add_subdirectory (src/jpeg2000.imageio)
-    add_subdirectory (src/openexr.imageio)
-    add_subdirectory (src/png.imageio)
-    add_subdirectory (src/pnm.imageio)
-    add_subdirectory (src/psd.imageio)
-    add_subdirectory (src/ptex.imageio)
-    add_subdirectory (src/raw.imageio)
-    add_subdirectory (src/rla.imageio)
-    add_subdirectory (src/sgi.imageio)
-    add_subdirectory (src/socket.imageio)
-    add_subdirectory (src/softimage.imageio)
-    add_subdirectory (src/targa.imageio)
-    add_subdirectory (src/tiff.imageio)
-    add_subdirectory (src/webp.imageio)
-    add_subdirectory (src/zfile.imageio)
+# Add IO plugin directories -- if we are not embedding plugins, we need to
+# do it AFTER the OpenImageIO target is established (in src/libOpenImageIO),
+# since each plugin needs libOpenImageIO to be a dependency.
+if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
+    foreach (plugin_dir ${all_format_plugin_dirs})
+        add_subdirectory (${plugin_dir})
+    endforeach ()
 endif ()
 
 if (USE_PYTHON AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)

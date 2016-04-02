@@ -75,8 +75,8 @@ include_directories (${ZLIB_INCLUDE_DIR})
 
 ###########################################################################
 # PNG
-find_package (PNG REQUIRED)
-include_directories (${PNG_INCLUDE_DIR})
+# find_package (PNG REQUIRED)
+# include_directories (${PNG_INCLUDE_DIR})
 
 
 ###########################################################################
@@ -236,6 +236,21 @@ if (USE_OCIO)
         add_definitions ("-DUSE_OCIO=1")
     else ()
         message (STATUS "Skipping OpenColorIO support")
+    endif ()
+
+    if (LINKSTATIC)
+        find_library (TINYXML_LIBRARY NAMES tinyxml)
+        if (TINYXML_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${TINYXML_LIBRARY})
+        endif ()
+        find_library (YAML_LIBRARY NAMES yaml-cpp)
+        if (YAML_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${YAML_LIBRARY})
+        endif ()
+        find_library (LCMS2_LIBRARY NAMES lcms2)
+        if (LCMS2_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${LCMS2_LIBRARY})
+        endif ()
     endif ()
 else ()
     message (STATUS "OpenColorIO disabled")

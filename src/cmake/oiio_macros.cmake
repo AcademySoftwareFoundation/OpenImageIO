@@ -18,31 +18,58 @@ endmacro ()
 #
 # add_oiio_plugin ( source1 [source2 ...]
 #                   [ INCLUDE_DIRS include_dir1 ... ]
-#                   [ LINK_LIBRARIES external_lib1 ... ] )
+#                   [ LINK_LIBRARIES external_lib1 ... ]
+#                   [ DEFINITIONS -DFOO=bar ... ])
 #
 # The plugin name is deduced from the name of the current directory and the
 # source is automatically linked against OpenImageIO. Additional include
 # directories (just for this target) may be specified after the optional
 # INCLUDE_DIRS keyword. Additional libraries (for example, libpng) may be
-# specified after the optionl LINK_LIBRARIES keyword.
+# specified after the optionl LINK_LIBRARIES keyword. Additional
+# preprocessor definitions may be specified after the optional DEFINITIONS
+# keyword.
+#
+# What goes on under the covers is quite different depending on whether
+# EMBEDPLUGINS is 0 or 1. If EMBEDPLUGINS is 0 (in which case this is
+# expected to be called *after* the OpenImageIO target is declared), it will
+# create a new target to build the full plugin. On the other hand, if
+# EMBEDPLUGINS is 1 (in which case this should be called *before* the
+# OpenImageIO target is declared), it will merely append the required
+# definitions, includs, and libraries to lists format_plugin_blah that will
+# be handed off too the setup of the later OpenImageIO target.
 #
 macro (add_oiio_plugin)
     if (CMAKE_VERSION VERSION_LESS 2.8.3)
-        parse_arguments (_plugin "LINK_LIBRARIES;INCLUDE_DIRS" "" ${ARGN})
+        parse_arguments (_plugin "LINK_LIBRARIES;INCLUDE_DIRS;DEFINITIONS" "" ${ARGN})
         set (_plugin_UNPARSED_ARGUMENTS ${_plugin_DEFAULT_ARGS})
     else ()
         # Modern cmake has this functionality built-in
-        cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES" ${ARGN})
+        cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
         # Arguments: <name> <options> <one_value_keywords> <multi_value_keywords>
     endif ()
-    set (_target_name ${CMAKE_CURRENT_SOURCE_DIR})
-    # Get the name of the current directory and use it as the target name.
-    get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-    add_library (${_target_name} SHARED ${_plugin_UNPARSED_ARGUMENTS})
-    target_include_directories (${_target_name} PRIVATE ${_plugin_INCLUDE_DIRS})
-    target_link_libraries (${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES})
-    set_target_properties (${_target_name} PROPERTIES PREFIX "" FOLDER "Plugins")
-    oiio_install_targets (${_target_name})
+    if (EMBEDPLUGINS)
+        set (_target_name OpenImageIO)
+        # Add each source file to the libOpenImageIO_srcs, but it takes some
+        # bending over backwards to change it in the parent scope.
+        set (_plugin_all_source ${libOpenImageIO_srcs})
+        foreach (_plugin_source_file ${_plugin_UNPARSED_ARGUMENTS})
+            list (APPEND _plugin_all_source "${CMAKE_CURRENT_SOURCE_DIR}/${_plugin_source_file}")
+        endforeach ()
+        set (libOpenImageIO_srcs "${_plugin_all_source}" PARENT_SCOPE)
+        set (format_plugin_definitions ${format_plugin_definitions} ${_plugin_DEFINITIONS} PARENT_SCOPE)
+        set (format_plugin_include_dirs ${format_plugin_include_dirs} ${_plugin_INCLUDE_DIRS} PARENT_SCOPE)
+        set (format_plugin_libs ${format_plugin_libs} ${_plugin_LINK_LIBRARIES} PARENT_SCOPE)
+    else ()
+        # Get the name of the current directory and use it as the target name.
+        set (_target_name ${CMAKE_CURRENT_SOURCE_DIR})
+        get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+        add_library (${_target_name} SHARED ${_plugin_UNPARSED_ARGUMENTS})
+        add_definitions (${_plugin_DEFINITIONS})
+        include_directories (${_target_name} PRIVATE ${_plugin_INCLUDE_DIRS})
+        target_link_libraries (${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES})
+        set_target_properties (${_target_name} PROPERTIES PREFIX "" FOLDER "Plugins")
+        oiio_install_targets (${_target_name})
+    endif ()
 endmacro ()
 
 
