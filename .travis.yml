@@ -107,6 +107,7 @@ branches:
     - /lg-/
 
 matrix:
+    fast_finish: true
     exclude:
       - os: osx
         compiler: gcc
