@@ -2802,6 +2802,13 @@ Prints detailed statistical information about each input image as it is
 read.
 \apiend
 
+\apiitem{\ce --fixnan {\rm \emph{streategy}}}
+\NEW % 1.7
+Replace the top image with a copy in which any pixels that contained {\cf
+NaN} or {\cf Inf} values (hereafter referred to collectively as
+``nonfinite'') are repaired.  The \emph{strategy} may be either {\cf black}
+or {\cf error}.
+\apiend
 
 
 \chapwidthend

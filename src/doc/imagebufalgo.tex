@@ -2486,6 +2486,14 @@ Add, subtract, multiply, or divide a deep image {\cf A} by per-channel
 values {\cf B[]}, storing the result in deep image {\cf dst}.
 \apiend
 
+\apiitem{bool {\ce fixNonFinite} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc NonFiniteFixMode mode = NONFINITE_BOX3, \\
+  \bigspc\spc int *pixelsFixed = NULL, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
+\NEW % 1.7
+Repair nonfinite ({\cf NaN} or {\cf Inf}) values, setting them to 0.0.
+\apiend
 
 
 \begin{comment}
