@@ -352,9 +352,13 @@ print_stats (Oiiotool &ot,
         float maxdepth = -std::numeric_limits<float>::max();
         Imath::V3i maxsamples_pixel(-1,-1,-1), minsamples_pixel(-1,-1,-1);
         Imath::V3i mindepth_pixel(-1,-1,-1), maxdepth_pixel(-1,-1,-1);
+        Imath::V3i nonfinite_pixel(-1,-1,-1);
+        int nonfinite_pixel_samp(-1), nonfinite_pixel_chan(-1);
         size_t sampoffset = 0;
+        int nchannels = dd->channels();
         int depthchannel = -1;
-        for (int c = 0; c < input.nchannels(); ++c)
+        long long nonfinites = 0;
+        for (int c = 0; c < nchannels; ++c)
             if (Strutil::iequals (originalspec.channelnames[c], "Z"))
                 depthchannel = c;
         int xend = originalspec.x + originalspec.width;
@@ -365,36 +369,45 @@ print_stats (Oiiotool &ot,
         for (int z = originalspec.z; z < zend; ++z) {
             for (int y = originalspec.y; y < yend; ++y) {
                 for (int x = originalspec.x; x < xend; ++x, ++p) {
-                    size_t c = input.deep_samples (x, y, z);
-                    totalsamples += c;
-                    if (c == maxsamples)
+                    size_t samples = input.deep_samples (x, y, z);
+                    totalsamples += samples;
+                    if (samples == maxsamples)
                         ++maxsamples_npixels;
-                    if (c > maxsamples) {
-                        maxsamples = c;
+                    if (samples > maxsamples) {
+                        maxsamples = samples;
                         maxsamples_pixel.setValue (x, y, z);
                         maxsamples_npixels = 1;
                     }
-                    if (c < minsamples)
-                        minsamples = c;
-                    if (c == 0)
+                    if (samples < minsamples)
+                        minsamples = samples;
+                    if (samples == 0)
                         ++emptypixels;
-                    if (c >= nsamples_histogram.size())
-                        nsamples_histogram.resize (c+1, 0);
-                    nsamples_histogram[c] += 1;
-                    if (depthchannel >= 0) {
-                        for (unsigned int s = 0;  s < c;  ++s) {
-                            float d = input.deep_value (x, y, z, depthchannel, s);
-                            if (d < mindepth) {
-                                mindepth = d;
-                                mindepth_pixel.setValue (x, y, z);
+                    if (samples >= nsamples_histogram.size())
+                        nsamples_histogram.resize (samples+1, 0);
+                    nsamples_histogram[samples] += 1;
+                    for (unsigned int s = 0;  s < samples;  ++s) {
+                        for (int c = 0;  c < nchannels; ++c) {
+                            float d = input.deep_value (x, y, z, c, s);
+                            if (! isfinite(d)) {
+                                if (nonfinites++ == 0) {
+                                    nonfinite_pixel.setValue (x, y, z);
+                                    nonfinite_pixel_samp = s;
+                                    nonfinite_pixel_chan = c;
+                                }
                             }
-                            if (d > maxdepth) {
-                                maxdepth = d;
-                                maxdepth_pixel.setValue (x, y, z);
+                            if (depthchannel == c) {
+                                if (d < mindepth) {
+                                    mindepth = d;
+                                    mindepth_pixel.setValue (x, y, z);
+                                }
+                                if (d > maxdepth) {
+                                    maxdepth = d;
+                                    maxdepth_pixel.setValue (x, y, z);
+                                }
                             }
                         }
                     }
-                    sampoffset += c;
+                    sampoffset += samples;
                 }
             }
         }
@@ -434,6 +447,12 @@ print_stats (Oiiotool &ot,
                     mindepth_pixel.x, mindepth_pixel.y);
             printf ("%sMaximum depth was %g at (%d, %d)\n", indent, maxdepth,
                     maxdepth_pixel.x, maxdepth_pixel.y);
+        }
+        if (nonfinites > 0) {
+            printf ("%sNonfinite values: %lld, including (x=%d, y=%d, chan=%s, samp=%d)\n",
+                    indent, nonfinites, nonfinite_pixel.x, nonfinite_pixel.y,
+                    input.spec().channelnames[nonfinite_pixel_chan].c_str(),
+                    nonfinite_pixel_samp);
         }
     } else {
         std::vector<float> constantValues(input.spec().nchannels);
