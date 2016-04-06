@@ -350,7 +350,9 @@ OpenEXRInput::OpenEXRInput ()
 bool
 OpenEXRInput::valid_file (const std::string &filename) const
 {
-    return Imf::isOpenExrFile (filename.c_str());
+	OpenEXRInputStream temp_stream (filename.c_str());
+
+    return Imf::isOpenExrFile (temp_stream);
 }
 
 
@@ -358,16 +360,7 @@ OpenEXRInput::valid_file (const std::string &filename) const
 bool
 OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 {
-    // Quick check to reject non-exr files
-    if (! Filesystem::is_regular (name)) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
     bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
-        error ("\"%s\" is not an OpenEXR file", name.c_str());
-        return false;
-    }
 
     pvt::set_exr_threads ();
 
@@ -375,6 +368,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     
     try {
         m_input_stream = new OpenEXRInputStream (name.c_str());
+		if (! Imf::isOpenExrFile (*m_input_stream, tiled)) {
+			error ("\"%s\" is not an OpenEXR file", name.c_str());
+			return false;
+		}
     } catch (const std::exception &e) {
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
