@@ -107,12 +107,10 @@ public:
                 ifs.reset(ifsraw);
             }
         }
-        if (!ifs)
-            Iex::throwErrnoExc ();
     }
     virtual bool read (char c[], int n) {
         if (!ifs)
-            throw Iex::InputExc ("Unexpected end of file.");
+            return false;
         errno = 0;
         ifs->read (c, n);
         return check_error ();
@@ -122,7 +120,7 @@ public:
     }
     virtual void seekg (Imath::Int64 pos) {
         if (!ifs) {
-            Iex::throwErrnoExc ();
+            return;
         }
         ifs->seekg (pos);
         check_error ();
@@ -133,15 +131,14 @@ public:
         }
     }
 
-private:
-    bool check_error () {
+    bool check_error () const {
         if (!ifs) {
-            if (errno)
-                Iex::throwErrnoExc ();
             return false;
         }
         return true;
     }
+
+private:
     boost::scoped_ptr<std::istream> ifs;
 };
 
@@ -351,6 +348,10 @@ bool
 OpenEXRInput::valid_file (const std::string &filename) const
 {
 	OpenEXRInputStream temp_stream (filename.c_str());
+	if (!temp_stream.check_error())
+	{
+		return false;
+	}
 
     return Imf::isOpenExrFile (temp_stream);
 }
@@ -368,6 +369,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     
     try {
         m_input_stream = new OpenEXRInputStream (name.c_str());
+		if (m_input_stream == NULL || !m_input_stream->check_error()) {
+			error ("Cannot open file \"%s\"", name.c_str());
+			return false;
+		}
 		if (! Imf::isOpenExrFile (*m_input_stream, tiled)) {
 			error ("\"%s\" is not an OpenEXR file", name.c_str());
 			return false;
