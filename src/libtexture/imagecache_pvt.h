@@ -961,6 +961,13 @@ public:
     /// void error (const char *message, ...);
     TINYFORMAT_WRAP_FORMAT (void, error, const,
         std::ostringstream msg;, msg, append_error(msg.str());)
+	/// For debugging only to improve performance for frequently called functions
+#ifndef NDEBUG
+	TINYFORMAT_WRAP_FORMAT (void, debug_error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+#else
+	inline void debug_error (const char *message, ...) const {}
+#endif
 
     /// Append a string to the current error message
     void append_error (const std::string& message) const;
