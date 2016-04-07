@@ -179,7 +179,12 @@ Filesystem::searchpath_find (const std::string &filename,
 
         if (recursive && Filesystem::is_directory (d)) {
             std::vector<std::string> subdirs;
+#ifdef _WIN32
+            std::wstring wd = Strutil::utf8_to_utf16 (d);
+            for (boost::filesystem::directory_iterator s(wd);
+#else
             for (boost::filesystem::directory_iterator s(d); 
+#endif
                  s != boost::filesystem::directory_iterator();  ++s)
                 if (Filesystem::is_directory(s->path().string()))
                     subdirs.push_back (s->path().string());
@@ -211,14 +216,24 @@ Filesystem::get_directory_entries (const std::string &dirname,
     }
 
     if (recursive) {
+#ifdef _WIN32
+        std::wstring wdirpath = Strutil::utf8_to_utf16 (dirpath.string());
+        for (boost::filesystem::recursive_directory_iterator s (wdirpath);
+#else
         for (boost::filesystem::recursive_directory_iterator s (dirpath);
+#endif
              s != boost::filesystem::recursive_directory_iterator();  ++s) {
             std::string file = s->path().string();
             if (!filter_regex.size() || boost::regex_search (file, re))
                 filenames.push_back (file);
         }
     } else {
+#ifdef _WIN32
+        std::wstring wdirpath = Strutil::utf8_to_utf16 (dirpath.string());
+        for (boost::filesystem::directory_iterator s (wdirpath);
+#else
         for (boost::filesystem::directory_iterator s (dirpath);
+#endif
              s != boost::filesystem::directory_iterator();  ++s) {
             std::string file = s->path().string();
             if (!filter_regex.size() || boost::regex_search (file, re))
