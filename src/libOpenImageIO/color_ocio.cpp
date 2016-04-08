@@ -529,7 +529,6 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
             outputrole = outputColorSpace;
             outputColorSpace = name;
         }
-        OCIO::ConstProcessorRcPtr p;
         try {
             // Get the processor corresponding to this transform.
             p = getImpl()->config_->getProcessor(inputColorSpace.c_str(),
