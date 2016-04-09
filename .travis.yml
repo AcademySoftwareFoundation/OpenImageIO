@@ -8,15 +8,18 @@ compiler:
 os:
     - linux
     - osx
-#osx_image: xcode7
+osx_image: xcode7.2
 dist: trusty
 
 env:
+    # The tests we run for both platforms:
     matrix:
-      - BUILD_FLAGS="USE_CPP11=0"
-      - BUILD_FLAGS="USE_CPP11=1"
-      - BUILD_FLAGS="USE_CPP11=1" DEBUG=1
-      - BUILD_FLAGS="USE_CPP11=1 USE_SIMD=sse4.2"
+      # Basic C++11 build
+      - USE_CPP11=1
+      # DEBUG build
+      - USE_CPP11=1 DEBUG=1
+      # The rest of the tests will be spelled out individually in the
+      # 'matrix' section at the bottom of this file.
 
 # Add-ons: specify apt packages for Linux
 addons:
@@ -37,6 +40,10 @@ addons:
       - ffmpeg
       - freetype6-dev
       - libjpeg-turbo8-dev
+      # - bzip2
+      # - libtinyxml-dev
+      # - liblcms2-dev
+      # - libyaml-cpp-dev
 
 cache:
     ccache: true
@@ -79,6 +86,10 @@ script:
     - export OPENIMAGEIOHOME=$PWD/dist/$PLATFORM
     - export DYLD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$DYLD_LIBRARY_PATH 
     - export LD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$LD_LIBRARY_PATH
+    - export OIIO_LIBRARY_PATH=$OPENIMAGEIOHOME/lib
+    - echo "OIIO_LIBRARY_PATH is ${OIIO_LIBRARY_PATH}"
+    - echo "list of library path:"
+    - ls -R $OIIO_LIBRARY_PATH
     - export PYTHONPATH=$OPENIMAGEIOHOME/python:$PYTHONPATH
     - make $BUILD_FLAGS test
 
@@ -96,21 +107,73 @@ branches:
     - /lg-/
 
 matrix:
+    fast_finish: true
     exclude:
       - os: osx
         compiler: gcc
       - os: linux
         compiler: clang
+
     include:
+    # Make sure we can still build C++03, both platforms
       - os: linux
+        dist: trusty
         compiler: gcc
-        env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1"
+        env: USE_CPP11=0
+      - os: osx
+        osx_image: xcode7.2
+        compiler: clang
+        env: USE_CPP11=0
+    # Build with EMBEDPLUGINS=0, both platforms.
+      # FIXME: doesn't work yet on Travis
+      # - os: linux
+      #   dist: trusty
+      #   compiler: gcc
+      #   env: EMBEDPLUGINS=0
+      # FIXME: don't have OSX EMBEDPLUGINS=0 working yet on Travis (though
+      # it works fine on my laptop).
+      # - os: osx
+      #   osx_image: xcode7.2
+      #   compiler: clang
+      #   env: EMBEDPLUGINS=0
+    # Build with a higher SIMD level (SSE4.2).
       - os: linux
+        dist: trusty
         compiler: gcc
-        env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=avx,f16c"
+        env: USE_SIMD=sse4.2
+      - os: osx
+        osx_image: xcode7.2
+        compiler: clang
+        env: USE_SIMD=sse4.2
+    # Test LINKSTATIC on both platforms. This is incomplete and to make it
+    # work we still need to disable a bunch of specific plugins.
+      # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
+      # complaining about PIC issues.
+      # - os: linux
+      #   dist: trusty
+      #   compiler: gcc
+      #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
+      - os: osx
+        osx_image: xcode7.2
+        compiler: clang
+        env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
+    # Linux only: test gcc 5 (sometimes it has new warnings that weren't
+    # issues for gcc 4.x or clang) and also use a higher SIMD level, avx and
+    # f16c, to make sure all is well. TravisCI's OSX images don't yet
+    # support avx/f16c, so we only do this on Linux for now, but eventually
+    # we'll want to separate these concerns into separate tests.
       - os: linux
+        dist: trusty
         compiler: gcc
-        env: BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0 USE_JPEGTURBO=0"
+        env: WHICHGCC=5 USE_SIMD=avx,f16c
+    # One more, just for the heck of it, turn all SIMD off, and also make
+    # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
+    # should/could be both platforms, but in the interest of making the
+    # tests go faster, don't bother doing it on OSX.
+      - os: linux
+        dist: trusty
+        compiler: gcc
+        env: USE_SIMD=0 USE_JPEGTURBO=0
 
 notifications:
     email:
