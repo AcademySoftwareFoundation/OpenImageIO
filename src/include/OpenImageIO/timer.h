@@ -38,10 +38,10 @@
 
 #include "oiioversion.h"
 #include "export.h"
-#include "platform.h"    /* Must be before windows.h */
+#include "platform.h"
 
 #ifdef _WIN32
-# include <windows.h>
+//# include <windows.h>  // Already done by platform.h
 #elif defined(__APPLE__)
 # include <mach/mach_time.h>
 #else
@@ -91,7 +91,7 @@ public:
     Timer (StartNowVal startnow=StartNow,
            PrintDtrVal printdtr=DontPrintDtr,
            const char *name=NULL)
-        : m_ticking(false), m_printdtr(printdtr),
+        : m_ticking(false), m_printdtr(printdtr==PrintDtr),
           m_starttime(0), m_elapsed_ticks(0),
           m_name(name)
     {
@@ -284,7 +284,7 @@ DoNotOptimize (T const &val) { asm volatile("" : "+rm" (const_cast<T&>(val))); }
 
 // Microsoft of course has its own way of turning off optimizations.
 #pragma optimize("", off)
-template <class T> inline void DoNotOptimize (T const &val) { val = val; }
+template <class T> inline void DoNotOptimize (T const &val) { const_cast<T&>(val) = val; }
 #pragma optimize("", on)
 
 #else

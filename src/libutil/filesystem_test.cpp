@@ -31,14 +31,13 @@
 #include <sstream>
 #include <fstream>
 
+#include "OpenImageIO/platform.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/unittest.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/stat.h>
+#ifndef _WIN32
+# include <sys/stat.h>
 #endif
 
 OIIO_NAMESPACE_USING;

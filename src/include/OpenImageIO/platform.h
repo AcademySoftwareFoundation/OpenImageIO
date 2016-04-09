@@ -374,16 +374,16 @@ inline void cpuid (int info[4], int infoType, int extra)
 }
 
 
-inline bool cpu_has_sse2  () {int i[4]; cpuid(i,1,0); return i[3] & (1<<26); }
-inline bool cpu_has_sse3  () {int i[4]; cpuid(i,1,0); return i[2] & (1<<0); }
-inline bool cpu_has_ssse3 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<9); }
-inline bool cpu_has_fma   () {int i[4]; cpuid(i,1,0); return i[2] & (1<<12); }
-inline bool cpu_has_sse41 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<19); }
-inline bool cpu_has_sse42 () {int i[4]; cpuid(i,1,0); return i[2] & (1<<20); }
-inline bool cpu_has_popcnt() {int i[4]; cpuid(i,1,0); return i[2] & (1<<23); }
-inline bool cpu_has_avx   () {int i[4]; cpuid(i,1,0); return i[2] & (1<<28); }
-inline bool cpu_has_f16c  () {int i[4]; cpuid(i,1,0); return i[2] & (1<<29); }
-inline bool cpu_has_rdrand() {int i[4]; cpuid(i,1,0); return i[2] & (1<<30); }
+inline bool cpu_has_sse2  () {int i[4]; cpuid(i,1,0); return (i[3] & (1<<26)) != 0; }
+inline bool cpu_has_sse3  () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<0)) != 0; }
+inline bool cpu_has_ssse3 () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<9)) != 0; }
+inline bool cpu_has_fma   () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<12)) != 0; }
+inline bool cpu_has_sse41 () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<19)) != 0; }
+inline bool cpu_has_sse42 () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<20)) != 0; }
+inline bool cpu_has_popcnt() {int i[4]; cpuid(i,1,0); return (i[2] & (1<<23)) != 0; }
+inline bool cpu_has_avx   () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<28)) != 0; }
+inline bool cpu_has_f16c  () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<29)) != 0; }
+inline bool cpu_has_rdrand() {int i[4]; cpuid(i,1,0); return (i[2] & (1<<30)) != 0; }
 
 
 OIIO_NAMESPACE_END

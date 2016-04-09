@@ -215,10 +215,10 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
     float xratio = float(dstspec.full_width) / srcfw; // 2 upsize, 0.5 downsize
     float yratio = float(dstspec.full_height) / srcfh;
 
-    float dstfx = dstspec.full_x;
-    float dstfy = dstspec.full_y;
-    float dstfw = dstspec.full_width;
-    float dstfh = dstspec.full_height;
+    float dstfx = float (dstspec.full_x);
+    float dstfy = float (dstspec.full_y);
+    float dstfw = float (dstspec.full_width);
+    float dstfh = float (dstspec.full_height);
     float dstpixelwidth = 1.0f / dstfw;
     float dstpixelheight = 1.0f / dstfh;
     float *pel = ALLOCA (float, nchannels);

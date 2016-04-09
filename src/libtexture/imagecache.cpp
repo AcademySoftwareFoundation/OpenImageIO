@@ -1847,56 +1847,56 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
         }
     }
     else if (name == "autoscanline" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_autoscanline) {
             m_autoscanline = a;
             do_invalidate = true;
         }
     }
     else if (name == "automip" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_automip) {
             m_automip = a;
             do_invalidate = true;
         }
     }
     else if (name == "forcefloat" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_forcefloat) {
             m_forcefloat = a;
             do_invalidate = true;
         }
     }
     else if (name == "accept_untiled" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_accept_untiled) {
             m_accept_untiled = a;
             do_invalidate = true;
         }
     }
     else if (name == "accept_unmipped" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_accept_unmipped) {
             m_accept_unmipped = a;
             do_invalidate = true;
         }
     }
     else if (name == "read_before_insert" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_read_before_insert) {
             m_read_before_insert = r;
             do_invalidate = true;
         }
     }
     else if (name == "deduplicate" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_deduplicate) {
             m_deduplicate = r;
             do_invalidate = true;
         }
     }
     else if (name == "unassociatedalpha" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_unassociatedalpha) {
             m_unassociatedalpha = r;
             do_invalidate = true;

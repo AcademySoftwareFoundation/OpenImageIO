@@ -81,7 +81,7 @@ void test_timeintervalformat ()
 
 void test_get_rest_arguments ()
 {
-    int ret;
+    bool ret;
     std::map <std::string, std::string> result;
     std::string base;
     std::string url = "someplace?arg1=value1&arg2=value2";

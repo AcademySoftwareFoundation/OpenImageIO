@@ -555,7 +555,7 @@ format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
 {
     std::string out;
     TypeDesc element = p.type().elementtype();
-    int nfull = p.type().numelements() * p.nvalues();
+    int nfull = int(p.type().numelements()) * p.nvalues();
     int n = std::min (nfull, maxsize);
     if (element.basetype == TypeDesc::STRING) {
         for (int i = 0;  i < n;  ++i) {

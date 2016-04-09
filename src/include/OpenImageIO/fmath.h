@@ -1440,7 +1440,7 @@ inline float fast_logb (float x) {
     if (x < std::numeric_limits<float>::min()) x = std::numeric_limits<float>::min();
     if (x > std::numeric_limits<float>::max()) x = std::numeric_limits<float>::max();
     unsigned bits = bit_cast<float, unsigned>(x);
-    return int(bits >> 23) - 127;
+    return float (int(bits >> 23) - 127);
 }
 
 inline float fast_exp2 (float x) {
