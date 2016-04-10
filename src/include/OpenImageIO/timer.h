@@ -256,6 +256,66 @@ private:
 
 
 
+/// DoNotOptimize(val) is a helper function for timing benchmarks that fools
+/// the compiler into thinking the the location 'val' is used and will not
+/// optimize it away.  For benchmarks only, do not use in production code!
+/// May not work on all platforms. References:
+/// * Chandler Carruth's CppCon 2015 talk
+/// * Folly https://github.com/facebook/folly/blob/master/folly/Benchmark.h
+/// * Google Benchmark https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h
+
+#if __has_attribute(__optnone__)
+
+// If __optnone__ attribute is available: make a null function with no
+// optimization, that's all we need.
+template <class T>
+inline void __attribute__((__optnone__))
+DoNotOptimize (T const &val) { }
+
+#elif ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+
+// Major non-MS compilers on x86/x86_64: use asm trick to indicate that
+// the value is needed.
+template <class T>
+inline void
+DoNotOptimize (T const &val) { asm volatile("" : "+rm" (const_cast<T&>(val))); }
+
+#elif _MSC_VER
+
+// Microsoft of course has its own way of turning off optimizations.
+#pragma optimize("", off)
+template <class T> inline void DoNotOptimize (T const &val) { const_cast<T&>(val) = val; }
+#pragma optimize("", on)
+
+#else
+
+// Otherwise, it won't work, just make a stub.
+template <class T> inline void DoNotOptimize (T const &val) { }
+
+#endif
+
+
+
+/// clobber_all_memory() is a helper function for timing benchmarks that
+/// fools the compiler into thinking that potentially any part of memory
+/// has been modified, and thus serves as a barrier where the optimizer
+/// won't assume anything about the state of memory preceding it.
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+
+// Special trick for x86/x86_64 and gcc-like compilers
+inline void clobber_all_memory() {
+    asm volatile ("" : : : "memory");
+}
+
+#else
+
+// No fallback for other CPUs or compilers. Suggestions?
+inline void clobber_all_memory() { }
+
+#endif
+
+
+
 /// Helper template that runs a function (or functor) n times, using a
 /// Timer to benchmark the results, and returning the fastest trial.  If
 /// 'range' is non-NULL, the range (max-min) of the various time trials

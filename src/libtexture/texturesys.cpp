@@ -2547,7 +2547,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     int w = 256, h = 256;
     ImageSpec spec (w, h, 3);
     ImageBuf ib (spec);
-    static float dark[3] = { 0.2, 0.2, 0.2 };
+    static float dark[3] = { 0.2f, 0.2f, 0.2f };
     static float white[3] = { 1, 1, 1 };
     static float grey[3] = { 0.5, 0.5, 0.5 };
     static float red[3] = { 1, 0, 0 };
