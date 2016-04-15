@@ -43,7 +43,7 @@ install:
   - appveyor DownloadFile https://github.com/madler/zlib/archive/v1.2.8.tar.gz
   - 7z x v1.2.8.tar.gz -so | 7z x -si -ttar
   - cd zlib-1.2.8
-  - cmake -G "Visual Studio 14 2015 Win64" .  -DCMAKE_INSTALL_PREFIX=C:/Sys
+  - cmake -G "%CMAKE_PLATFORM%" . -DCMAKE_INSTALL_PREFIX=C:/Sys
   - cmake --build . --config Release
   - cmake --build . --config Release --target install
   - cd ..
