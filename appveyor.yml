@@ -23,13 +23,13 @@ environment:
 
 install:
   - cinstall: python
-  - ps: if($env:build_platform -eq 'x64') {
-          $env:vcvar_arg = 'x86_amd64';
-        }
-        else {
-          $env:vcvar_arg = 'x86';
-        }
-  - call "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat"
+  # - ps: if($env:build_platform -eq 'x64') {
+  #         $env:vcvar_arg = 'x86_amd64';
+  #       }
+  #       else {
+  #         $env:vcvar_arg = 'x86';
+  #       }
+  # - call "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat"
   - set CMAKE_PREFIX_PATH=C:/Sys;%APPVEYOR_BUILD_FOLDER%/deps
   - set CMAKE_LIBRARY_PATH=C:/Sys/lib;%APPVEYOR_BUILD_FOLDER%/deps/lib
   - set CMAKE_INCLUDE_PATH=C:/Sys/include;%APPVEYOR_BUILD_FOLDER%/deps/include
