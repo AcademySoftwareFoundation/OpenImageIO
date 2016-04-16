@@ -268,8 +268,8 @@ if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
 endif ()
 
-if (DEFINED ENV{TRAVIS})
-    add_definitions ("-DOIIO_TRAVIS=1")
+if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
+    add_definitions ("-DOIIO_CI=1")
 endif ()
 
 if (NOT USE_SIMD STREQUAL "")
