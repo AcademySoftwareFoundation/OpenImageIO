@@ -110,7 +110,7 @@ OIIO_NAMESPACE_BEGIN
 // Windows doesn't define these functions from math.h
 #define hypotf _hypotf
 #define copysign(x,y) _copysign(x,y)
-#define copysignf(x,y) copysign(x,y)
+#define copysignf(x,y) float(copysign(x,y))
 
 
 
@@ -189,7 +189,7 @@ using std::isfinite;
 inline float
 exp2f (float val) {
    // 2^val = e^(val*ln(2))
-   return exp( val * M_LN2 );
+   return (float) exp( val * M_LN2 );
 }
 
 

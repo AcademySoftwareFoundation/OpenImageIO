@@ -40,17 +40,18 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
+#include "OpenImageIO/platform.h"
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/ustring.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/refcnt.h"
 
 #ifdef _WIN32
-#include <windows.h>
-#include <shellapi.h>
-#include <direct.h>
+// # include <windows.h>   // Already done by platform.h
+# include <shellapi.h>
+# include <direct.h>
 #else
-#include <unistd.h>
+# include <unistd.h>
 #endif
 
 

@@ -643,9 +643,7 @@ scaled_conversion (const S &src, F scale, F min, F max)
 // FIXME: make table-based specializations for common types with only a
 // few possible src values (like unsigned char -> float).
 template<typename S, typename D>
-void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
-                   D _min=std::numeric_limits<D>::min(),
-                   D _max=std::numeric_limits<D>::max())
+void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 {
     if (is_same<S,D>::value) {
         // They must be the same type.  Just memcpy.
@@ -713,7 +711,6 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
 template<>
 inline void convert_type<uint8_t,float> (const uint8_t *src,
                                          float *dst, size_t n,
-                                         float _zero, float _one,
                                          float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint8_t>::max());
@@ -732,7 +729,6 @@ inline void convert_type<uint8_t,float> (const uint8_t *src,
 template<>
 inline void convert_type<uint16_t,float> (const uint16_t *src,
                                           float *dst, size_t n,
-                                          float _zero, float _one,
                                           float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint16_t>::max());
@@ -751,7 +747,6 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
 template<>
 inline void convert_type<half,float> (const half *src,
                                       float *dst, size_t n,
-                                      float _zero, float _one,
                                       float _min, float _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
@@ -768,7 +763,6 @@ inline void convert_type<half,float> (const half *src,
 template<>
 inline void
 convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
-                              uint16_t _zero, uint16_t _one,
                               uint16_t _min, uint16_t _max)
 {
     float min = std::numeric_limits<uint16_t>::min();
@@ -791,7 +785,6 @@ convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
-                             uint8_t _zero, uint8_t _one,
                              uint8_t _min, uint8_t _max)
 {
     float min = std::numeric_limits<uint8_t>::min();
@@ -815,7 +808,7 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,
-                          half _zero, half _one, half _min, half _max)
+                          half _min, half _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::float4 s (src);
@@ -825,6 +818,17 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
         *dst++ = *src++;
 }
 #endif
+
+
+
+template<typename S, typename D>
+inline void convert_type (const S *src, D *dst, size_t n)
+{
+    convert_type<S,D> (src, dst, n,
+                       std::numeric_limits<D>::min(),
+                       std::numeric_limits<D>::max());
+}
+
 
 
 
@@ -1440,7 +1444,7 @@ inline float fast_logb (float x) {
     if (x < std::numeric_limits<float>::min()) x = std::numeric_limits<float>::min();
     if (x > std::numeric_limits<float>::max()) x = std::numeric_limits<float>::max();
     unsigned bits = bit_cast<float, unsigned>(x);
-    return int(bits >> 23) - 127;
+    return float (int(bits >> 23) - 127);
 }
 
 inline float fast_exp2 (float x) {

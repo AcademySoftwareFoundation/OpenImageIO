@@ -1702,26 +1702,26 @@ public:
         // SSE half-to-float by Fabian "ryg" Giesen. Public domain.
         // https://gist.github.com/rygorous/2144712
         int4 h ((const unsigned short *)values);
-# define CONST(name) *(const __m128i *)&name
+# define CONSTI(name) *(const __m128i *)&name
 # define CONSTF(name) *(const __m128 *)&name
         OIIO_SIMD_UINT4_CONST(mask_nosign, 0x7fff);
         OIIO_SIMD_UINT4_CONST(magic,       (254 - 15) << 23);
         OIIO_SIMD_UINT4_CONST(was_infnan,  0x7bff);
         OIIO_SIMD_UINT4_CONST(exp_infnan,  255 << 23);
-        __m128i mnosign     = CONST(mask_nosign);
+        __m128i mnosign     = CONSTI(mask_nosign);
         __m128i expmant     = _mm_and_si128(mnosign, h);
         __m128i justsign    = _mm_xor_si128(h, expmant);
         __m128i expmant2    = expmant; // copy (just here for counting purposes)
         __m128i shifted     = _mm_slli_epi32(expmant, 13);
         __m128  scaled      = _mm_mul_ps(_mm_castsi128_ps(shifted), *(const __m128 *)&magic);
-        __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant2, CONST(was_infnan));
+        __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant2, CONSTI(was_infnan));
         __m128i sign        = _mm_slli_epi32(justsign, 16);
         __m128  infnanexp   = _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), CONSTF(exp_infnan));
         __m128  sign_inf    = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
         __m128  final       = _mm_or_ps(scaled, sign_inf);
         // ~11 SSE2 ops.
         m_vec = final;
-# undef CONST
+# undef CONSTI
 # undef CONSTF
 #else /* No SIMD defined: */
         for (int i = 0; i < elements; ++i)
@@ -2408,7 +2408,7 @@ OIIO_FORCEINLINE float4 madd (const simd::float4& a, const simd::float4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fmadd_ps intrinsic is available, use it.
     return _mm_fmadd_ps (a, b, c);
-#elif OIIO_SIMD_SSE
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
     // the intrinsic.
@@ -2427,7 +2427,7 @@ OIIO_FORCEINLINE float4 msub (const simd::float4& a, const simd::float4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
     return _mm_fmsub_ps (a, b, c);
-#elif OIIO_SIMD_SSE
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
     // the intrinsic.
@@ -2447,7 +2447,7 @@ OIIO_FORCEINLINE float4 nmadd (const simd::float4& a, const simd::float4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fnmadd_ps intrinsic is available, use it.
     return _mm_fnmadd_ps (a, b, c);
-#elif OIIO_SIMD_SSE
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
     // the intrinsic.
@@ -2467,7 +2467,7 @@ OIIO_FORCEINLINE float4 nmsub (const simd::float4& a, const simd::float4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
     return _mm_fnmsub_ps (a, b, c);
-#elif OIIO_SIMD_SSE
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
     // the intrinsic.

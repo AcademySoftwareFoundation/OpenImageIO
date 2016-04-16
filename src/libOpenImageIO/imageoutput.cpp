@@ -393,7 +393,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     } else {
         // Convert from 'format' to float.
         buf = convert_to_float (data, (float *)&scratch[contiguoussize],
-                                rectangle_values, format);
+                                (int)rectangle_values, format);
     }
 
     if (dither && format.is_floating_point() &&
