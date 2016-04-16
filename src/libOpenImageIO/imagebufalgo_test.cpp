@@ -563,6 +563,74 @@ test_maketx_from_imagebuf()
 
 
 
+// Test various IBAprep features
+void
+test_IBAprep ()
+{
+    using namespace ImageBufAlgo;
+    ImageBuf rgb  (ImageSpec(256, 256, 3));  // Basic RGB uint8 image
+    ImageBuf rgba (ImageSpec(256, 256, 4));  // Basic RGBA uint8 image
+
+#define CHECK(...)  { ImageBuf dst; ROI roi; OIIO_CHECK_ASSERT (IBAprep (__VA_ARGS__)); }
+#define CHECK0(...) { ImageBuf dst; ROI roi; OIIO_CHECK_ASSERT (!IBAprep (__VA_ARGS__)); }
+
+    // Test REQUIRE_ALPHA
+    CHECK  (roi, &dst, &rgba, IBAprep_REQUIRE_ALPHA);
+    CHECK0 (roi, &dst, &rgb,  IBAprep_REQUIRE_ALPHA);
+
+    // Test REQUIRE_Z
+    ImageSpec rgbaz_spec (256, 256, 5);
+    rgbaz_spec.channelnames[4] = "Z";
+    rgbaz_spec.z_channel = 4;
+    ImageBuf rgbaz (rgbaz_spec);
+    CHECK  (  roi, &dst, &rgbaz, IBAprep_REQUIRE_Z);
+    CHECK0 (roi, &dst, &rgb, IBAprep_REQUIRE_Z);
+
+    // Test REQUIRE_SAME_NCHANNELS
+    CHECK  (roi, &dst, &rgb, &rgb,  NULL, NULL, IBAprep_REQUIRE_SAME_NCHANNELS);
+    CHECK0 (roi, &dst, &rgb, &rgba, NULL, NULL, IBAprep_REQUIRE_SAME_NCHANNELS);
+
+    // Test NO_SUPPOERT_VOLUME
+    ImageSpec volspec (256, 256, 3);  volspec.depth = 256;
+    ImageBuf vol (volspec);
+    CHECK  (roi, &dst, &rgb, IBAprep_NO_SUPPORT_VOLUME);
+    CHECK0 (roi, &dst, &vol, IBAprep_NO_SUPPORT_VOLUME);
+
+    // Test SUPPORT_DEEP
+    ImageSpec deepspec (256, 256, 3);  deepspec.deep = true;
+    ImageBuf deep (deepspec);
+    CHECK  (roi, &dst, &deep, IBAprep_SUPPORT_DEEP);
+    CHECK0 (roi, &dst, &deep);  // deep should be rejected
+
+    // Test DEEP_MIXED
+    CHECK  (roi, &dst, &deep, &deep, NULL, IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED);
+    CHECK  (roi, &dst, &deep, &rgb, NULL, IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED);
+    CHECK  (roi, &dst, &deep, &deep, NULL, IBAprep_SUPPORT_DEEP);
+    CHECK0 (roi, &dst, &deep, &rgb, NULL, IBAprep_SUPPORT_DEEP);
+
+    // Test DST_FLOAT_PIXELS
+    {
+        ROI roi1, roi2;
+        ImageBuf dst1, dst2;
+        OIIO_CHECK_ASSERT (IBAprep (roi1, &dst1, &rgb));
+        OIIO_CHECK_EQUAL (dst1.spec().format, TypeDesc::UINT8);
+        OIIO_CHECK_ASSERT (IBAprep (roi2, &dst2, &rgb, IBAprep_DST_FLOAT_PIXELS));
+        OIIO_CHECK_EQUAL (dst2.spec().format, TypeDesc::FLOAT);
+    }
+
+    // Test MINIMIZE_NCHANNELS
+    {
+        ROI roi1, roi2;
+        ImageBuf dst1, dst2;
+        OIIO_CHECK_ASSERT (IBAprep (roi1, &dst1, &rgb, &rgba));
+        OIIO_CHECK_EQUAL (dst1.nchannels(), 4);
+        OIIO_CHECK_ASSERT (IBAprep (roi2, &dst2, &rgb, &rgba, NULL, NULL, IBAprep_MINIMIZE_NCHANNELS));
+        OIIO_CHECK_EQUAL (dst2.nchannels(), 3);
+    }
+#undef CHECK
+}
+
+
 
 int
 main (int argc, char **argv)
@@ -582,6 +650,7 @@ main (int argc, char **argv)
     test_isMonochrome ();
     test_computePixelStats ();
     test_maketx_from_imagebuf ();
+    test_IBAprep ();
     
     return unit_test_failures;
 }
