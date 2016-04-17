@@ -60,12 +60,21 @@ image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla", ".dpx" ]
 # print ("refdir = " + refdir)
 # print ("test source dir = " + test_source_dir)
 
-if not os.path.exists("./ref") :
-    os.symlink (os.path.join (test_source_dir, "ref"), "./ref")
-if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
-    os.symlink (os.path.join (test_source_dir, "src"), "./src")
-if not os.path.exists("../common") :
-    os.symlink ("../../../testsuite/common", "../common")
+if platform.system() == 'Windows' :
+    if not os.path.exists("./ref") :
+        shutil.copytree (os.path.join (test_source_dir, "ref"), "./ref")
+    if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
+        shutil.copytree (os.path.join (test_source_dir, "src"), "./src")
+    # if not os.path.exists("../common") :
+    #     shutil.copytree ("../../../testsuite/common", "..")
+else :
+    if not os.path.exists("./ref") :
+        os.symlink (os.path.join (test_source_dir, "ref"), "./ref")
+    if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
+        os.symlink (os.path.join (test_source_dir, "src"), "./src")
+    if not os.path.exists("../common") :
+        os.symlink ("../../../testsuite/common", "../common")
+
 
 ###########################################################################
 
