@@ -194,12 +194,29 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A, &B))
         return false;
+    ROI origroi = roi;
+    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "add", add_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, roi, nthreads);
+
+    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+        // Edge case: A and B differed in nchannels, we allocated dst to be
+        // the bigger of them, but adjusted roi to be the lesser. Now handle
+        // the channels that got left out because they were not common to
+        // all the inputs.
+        ASSERT (roi.chend <= dst.nchannels());
+        roi.chbegin = roi.chend;
+        roi.chend = origroi.chend;
+        if (A.nchannels() > B.nchannels()) { // A exists
+            copy (dst, A, dst.spec().format, roi, nthreads);
+        } else { // B exists
+            copy (dst, B, dst.spec().format, roi, nthreads);
+        }
+    }
     return ok;
 }
 
@@ -276,12 +293,29 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A, &B))
         return false;
+    ROI origroi = roi;
+    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "sub", sub_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, roi, nthreads);
+
+    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+        // Edge case: A and B differed in nchannels, we allocated dst to be
+        // the bigger of them, but adjusted roi to be the lesser. Now handle
+        // the channels that got left out because they were not common to
+        // all the inputs.
+        ASSERT (roi.chend <= dst.nchannels());
+        roi.chbegin = roi.chend;
+        roi.chend = origroi.chend;
+        if (A.nchannels() > B.nchannels()) { // A exists
+            copy (dst, A, dst.spec().format, roi, nthreads);
+        } else { // B exists
+            sub (dst, dst, B, roi, nthreads);
+        }
+    }
     return ok;
 }
 
@@ -387,12 +421,29 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                        ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+    if (! IBAprep (roi, &dst, &A, &B))
         return false;
+    ROI origroi = roi;
+    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "absdiff", absdiff_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, roi, nthreads);
+
+    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+        // Edge case: A and B differed in nchannels, we allocated dst to be
+        // the bigger of them, but adjusted roi to be the lesser. Now handle
+        // the channels that got left out because they were not common to
+        // all the inputs.
+        ASSERT (roi.chend <= dst.nchannels());
+        roi.chbegin = roi.chend;
+        roi.chend = origroi.chend;
+        if (A.nchannels() > B.nchannels()) { // A exists
+            abs (dst, A, roi, nthreads);
+        } else { // B exists
+            abs (dst, B, roi, nthreads);
+        }
+    }
     return ok;
 }
 
@@ -418,7 +469,7 @@ ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, float b,
 {
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
-    int nc = A.nchannels();
+    int nc = dst.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
         vals[c] = b;
@@ -477,6 +528,9 @@ ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "mul", mul_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
                                  dst, A, B, roi, nthreads);
+    // N.B. No need to consider the case where A and B have differing number
+    // of channels. Missing channels are assumed 0, multiplication by 0 is
+    // 0, so it all just works through the magic of IBAprep.
     return ok;
 }
 
