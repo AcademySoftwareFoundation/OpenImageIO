@@ -117,7 +117,7 @@ main (int argc, char **argv)
     // tolereance on Apple to make this test pass.
 # if defined(OIIO_TRAVIS) || defined(OIIO_CODECOV)
     // It seems especially bad on Travis, give extra time slop.
-    eps *= 2;
+    eps *= 3;
 # endif
 #endif
 
