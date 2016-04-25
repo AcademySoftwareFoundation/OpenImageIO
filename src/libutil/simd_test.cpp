@@ -172,7 +172,7 @@ template<>
 void test_component_access<mask4> ()
 {
     typedef mask4 VEC;
-    typedef typename VEC::value_t ELEM;
+    typedef VEC::value_t ELEM;
     std::cout << "test_component_access " << VEC::type_name() << "\n";
 
     VEC a (false, true, true, true);
