@@ -578,7 +578,7 @@ oiio_add_tests (webp
     URL http://code.google.com/speed/webp/gallery.html)
 
 oiio_add_tests (ptex
-    FOUNDVAR USE_PTEX)
+    FOUNDVAR PTEX_FOUND)
 
 
 if (NOT DEFINED ENV{TRAVIS})

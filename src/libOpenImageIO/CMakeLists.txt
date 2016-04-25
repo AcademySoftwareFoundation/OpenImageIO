@@ -183,22 +183,10 @@ if (EMBEDPLUGINS)
     endif ()
 
 
-    if (USE_PTEX)
+    if (PTEX_FOUND)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
              ../ptex.imageio/ptexinput.cpp
              ../ptex.imageio/ptexoutput.cpp)
-        if (NOT PTEX_FOUND)
-            # No external Ptex found -- use embedded one
-            set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-                ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
-                ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
-                ../ptex.imageio/ptex/PtexSeparableFilter.cpp
-                ../ptex.imageio/ptex/PtexSeparableKernel.cpp
-                ../ptex.imageio/ptex/PtexTriangleFilter.cpp
-                ../ptex.imageio/ptex/PtexTriangleKernel.cpp
-                ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp)
-            message (STATUS "Using embedded PTex source")
-        endif ()
         include_directories (${PTEX_INCLUDE_DIR})
         add_definitions("-DUSE_PTEX")
     else()

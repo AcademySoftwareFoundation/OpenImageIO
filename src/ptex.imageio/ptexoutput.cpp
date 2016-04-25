@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "ptex/PtexWriter.h"
+#include <Ptexture.h>
 
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/imageio.h"

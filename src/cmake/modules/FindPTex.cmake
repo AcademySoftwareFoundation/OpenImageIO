@@ -19,21 +19,23 @@ if (WIN32)
     find_path( PTEX_INCLUDE_DIR
         NAMES
             Ptexture.h
+        HINTS
+            "${PTEX_LOCATION}/include"
+            "$ENV{PTEX_LOCATION}/include"
         PATHS
-            ${PTEX_LOCATION}/include
-            $ENV{PTEX_LOCATION}/include
-            $ENV{PROGRAMFILES}/Ptex/include
+            "$ENV{PROGRAMFILES}/Ptex/include"
             /usr/include
             DOC "The directory where Ptexture.h resides")
     find_library( PTEX_LIBRARY
         NAMES
             Ptex32 Ptex32s Ptex
+        HINTS
+            "${PTEX_LOCATION}/lib64"
+            "${PTEX_LOCATION}/lib"
+            "$ENV{PTEX_LOCATION}/lib64"
+            "$ENV{PTEX_LOCATION}/lib"
         PATHS
-            ${PTEX_LOCATION}/lib64
-            ${PTEX_LOCATION}/lib
-            $ENV{PTEX_LOCATION}/lib64
-            $ENV{PTEX_LOCATION}/lib
-            $ENV{PROGRAMFILES}/Ptex/lib
+            "$ENV{PROGRAMFILES}/Ptex/lib"
             /usr/lib64
             /usr/lib
             /usr/lib/w32api
@@ -44,38 +46,40 @@ elseif (APPLE)
     find_path( PTEX_INCLUDE_DIR
         NAMES
             Ptexture.h
+        HINTS
+            "${PTEX_LOCATION}/include"
+            "$ENV{PTEX_LOCATION}/include"
         PATHS
-            ${PTEX_LOCATION}/include
-            $ENV{PTEX_LOCATION}/include
             DOC "The directory where Ptexture.h resides")
     find_library( PTEX_LIBRARY
         NAMES
             Ptex libPtex.a
         PATHS
-            ${PTEX_LOCATION}/lib
-            $ENV{PTEX_LOCATION}/lib
+            "${PTEX_LOCATION}/lib"
+            "$ENV{PTEX_LOCATION}/lib"
             DOC "The Ptex Library")
 else ()
     find_path( PTEX_INCLUDE_DIR
         NAMES
             Ptexture.h
+        HINTS
+            "${PTEX_LOCATION}/include"
+            "${PTEX_LOCATION}/include/wdas"
+            "$ENV{PTEX_LOCATION}/include"
+            "$ENV{PTEX_LOCATION}/include/wdas"
         PATHS
-            ${PTEX_LOCATION}/include
-            ${PTEX_LOCATION}/include/wdas
-            $ENV{PTEX_LOCATION}/include
-            $ENV{PTEX_LOCATION}/include/wdas
             /usr/include
             /usr/local/include
             DOC "The directory where Ptexture.h resides")
-
     find_library( PTEX_LIBRARY
         NAMES
             Ptex wdasPtex
+        HINTS
+            "${PTEX_LOCATION}/lib64"
+            "${PTEX_LOCATION}/lib"
+            "$ENV{PTEX_LOCATION}/lib64"
+            "$ENV{PTEX_LOCATION}/lib"
         PATHS
-            ${PTEX_LOCATION}/lib64
-            ${PTEX_LOCATION}/lib
-            $ENV{PTEX_LOCATION}/lib64
-            $ENV{PTEX_LOCATION}/lib
             /usr/lib64
             /usr/lib
             /usr/local/lib64
@@ -83,7 +87,20 @@ else ()
             DOC "The Ptex library")
 endif ()
 
-if (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/Ptexture.h" )
+if (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/PtexVersion.h" )
+
+    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexAPIVersion.*$")
+    string(REGEX MATCHALL "[0-9]+" API ${TMP})
+    
+    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexFileMajorVersion.*$")
+    string(REGEX MATCHALL "[0-9]+" MAJOR ${TMP})
+
+    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexFileMinorVersion.*$")
+    string(REGEX MATCHALL "[0-9]+" MINOR ${TMP})
+
+    set(PTEX_VERSION ${API}.${MAJOR}.${MINOR})
+
+elseif (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/Ptexture.h" )
 
     file(STRINGS "${PTEX_INCLUDE_DIR}/Ptexture.h" TMP REGEX "^#define PtexAPIVersion.*$")
     string(REGEX MATCHALL "[0-9]+" API ${TMP})
