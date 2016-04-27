@@ -117,14 +117,7 @@ endif ()
 # Include Freetype if using it
 if (FREETYPE_FOUND)
     include_directories (${FREETYPE_INCLUDE_DIRS})
-    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
-    # Used by Freetype:
-    if (LINKSTATIC)
-        find_package (BZip2)
-        if (BZIP2_FOUND)
-            target_link_libraries (OpenImageIO ${BZIP2_LIBRARIES})
-        endif ()
-    endif ()
+    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES} ${BZIP2_LIBRARIES})
 endif ()
 
 

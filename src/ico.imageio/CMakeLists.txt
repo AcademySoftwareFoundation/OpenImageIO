@@ -1,4 +1,3 @@
-find_package (PNG REQUIRED)
 if (PNG_FOUND)
     add_oiio_plugin (icoinput.cpp icooutput.cpp
                      INCLUDE_DIRS ${PNG_INCLUDE_DIR}

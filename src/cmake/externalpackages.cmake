@@ -75,8 +75,7 @@ include_directories (${ZLIB_INCLUDE_DIR})
 
 ###########################################################################
 # PNG
-# find_package (PNG REQUIRED)
-# include_directories (${PNG_INCLUDE_DIR})
+find_package (PNG REQUIRED)
 
 
 ###########################################################################
@@ -307,6 +306,14 @@ endif (USE_OPENGL)
 
 # end GL Extension Wrangler library setup
 ###########################################################################
+
+
+###########################################################################
+# BZIP2 - used by ffmped and freetype
+find_package (BZip2)   # Used by ffmpeg
+if (NOT BZIP2_FOUND)
+    set (BZIP2_LIBRARIES "")
+endif ()
 
 
 ###########################################################################
