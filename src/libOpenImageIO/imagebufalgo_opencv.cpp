@@ -146,9 +146,9 @@ ImageBufAlgo::to_IplImage (const ImageBuf &src)
 
 namespace {
 
+#ifdef USE_OPENCV
 static mutex opencv_mutex;
 
-#ifdef USE_OPENCV
 class CameraHolder {
 public:
     CameraHolder () { }
