@@ -246,7 +246,7 @@ endif ()
 # Include OpenCV if using it
 if (OpenCV_FOUND)
     include_directories (${OpenCV_INCLUDE_DIR})
-    target_link_libraries (OpenImageIO opencv_core opencv_highgui)
+    target_link_libraries (OpenImageIO ${OpenCV_LIBS})
 endif ()
 
 # Include OpenSSL if using it
