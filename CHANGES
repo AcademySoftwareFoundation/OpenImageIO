@@ -211,6 +211,8 @@ Build/test system improvements:
    not sometimes OIIO_BUILD_LIBCPLUSPLUS. #1404 (1.7.3)
  * Overhaul OpenCV dependency finding and make it work with OpenCV 3.x.
    #1409 (1.7.3/1.6.13)
+ * Allow custom JPEG_PATH to hint location of JPEG library. #1411
+   (1.7.3/1.6.13)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -250,6 +252,7 @@ Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
 * Remove old embedded Ptex, now must find Ptex externally. Also modified
   the build scripts to correctly handle newer versions of Ptex. #1400
 * Overhaul OpenCV dependency finding and make it work with OpenCV 3.x. #1409
+* Allow custom JPEG_PATH to hint location of JPEG library. #1411
 
 Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 ------------------------------------------------
