@@ -22,10 +22,14 @@
 
 include (FindPackageHandleStandardArgs)
 
-find_path(JPEG_INCLUDE_DIR jpeglib.h)
+find_path (JPEG_INCLUDE_DIR
+           NAMES jpeglib.h
+           HINTS "${JPEG_PATH}/include"
+          )
 
 set(JPEG_NAMES ${JPEG_NAMES} jpeg libjpeg)
-find_library(JPEG_LIBRARY NAMES ${JPEG_NAMES} )
+find_library (JPEG_LIBRARY NAMES ${JPEG_NAMES}
+              HINTS "${JPEG_PATH}/lib")
 
 # handle the QUIETLY and REQUIRED arguments and set JPEG_FOUND to TRUE if
 # all listed variables are TRUE

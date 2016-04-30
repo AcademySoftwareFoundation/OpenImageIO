@@ -172,6 +172,7 @@ set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set fo
 set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_FFMPEG ON CACHE BOOL "Use FFmpeg if found")
+set (JPEG_PATH "" CACHE STRING "Custom JPEG path")
 set (USE_JPEGTURBO ON CACHE BOOL "Use JPEG-Turbo if found")
 set (JPEGTURBO_PATH "" CACHE STRING "Custom JPEG-Turbo path")
 set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
