@@ -1,7 +1,14 @@
 Changes:
 
-Release 1.6.13 (released ?? 2016 -- compared to 1.6.12)
+Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
 ------------------------------------------------
+* Use libjpeg-turbo if found. It's a drop-in replacement for libjpeg, but
+  is around 2x faster. #1390
+* Fix some Windows compiler warnings and errors.
+* Remove old embedded Ptex, now must find Ptex externally. Also modified
+  the build scripts to correctly handle newer versions of Ptex. #1400
+* Overhaul OpenCV dependency finding and make it work with OpenCV 3.x. #1409
+* Allow custom JPEG_PATH to hint location of JPEG library. #1411
 
 Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 ------------------------------------------------
@@ -15,7 +22,7 @@ Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 * oiiotool --autocc bug fixed.
 * Miscellaneous improvements to simd.h ported from master.
 * Fix typo that made TIFF files incorrectly name color space metadata
-  "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394)
+  "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394
 
 Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
 ------------------------------------------------
