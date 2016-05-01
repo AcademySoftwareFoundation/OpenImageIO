@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.14 (released ?? 2016 -- compared to 1.6.13)
+------------------------------------------------
+
 Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
 ------------------------------------------------
 * Use libjpeg-turbo if found. It's a drop-in replacement for libjpeg, but
