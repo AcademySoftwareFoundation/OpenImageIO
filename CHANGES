@@ -77,7 +77,14 @@ Fixes, minor enhancements, and performance improvements:
     * --native results in slightly different behavior: does not force float,
       but still uses the ImageCache as backing if the native data type
       is one of the types directly supported by IC. #1385 (1.7.2)
- * ImageBuf:
+    * --fixnan now works with deep images. #1397 (1.7.3)
+    * --stats when used with deep images, if it encounters any nonfinite
+      values, will print the location of a representative one. #1397 (1.7.3)
+    * --add, --sub, and --absdiff, when its two image operands have differing
+      number of channels, now try to do the "correct" thing and have the
+      result have the larger number of channels, treating any "missing"
+      channels in either input as if they were 0-valued. #1402 (1.7.3)
+* ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
     * ImageBuf reads from disk have been improved substantially (in some
@@ -101,6 +108,7 @@ Fixes, minor enhancements, and performance improvements:
     * convolve() and unsharp_mask() have been sped up by about 35% for
       common cases. #1357 (1.7.2)
     * IBA::resize sped up by approximately 2x. #1372 (1.7.2)
+    * IBA::fixNonFinite() now works with deep images. #1397 (1.7.3)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
       #1336 (1.7.2/1.6.11)
@@ -182,11 +190,27 @@ Build/test system improvements:
    #1353,#1357 (1.7.2/1.6.11)
  * Allow build against a wider range of ffmpeg versions. #1359 (1.7.2)
  * Build correctly against FFMPEG 3.0. #1374 (1.7.2)
- * If found, libjpeg-turbo is used rather than libjpeg; this gives about
-   a 2x speed improvement for reading and writing JPEG files. #1390 (1.7.2)
+ * If found, libjpeg-turbo is used rather than libjpeg; this gives about a
+   2x speed improvement for reading & writing JPEG files. #1390 (1.7.2/1.6.13)
  * USE_CPP11=... and USE_CPP14=... are the build flags for both the Make
    wrapper and the CMake scripts. (Before, it was confusing to have USE_CPP11
    for make but OIIO_BUILD_CPP11 for CMake. Now they are one.) #1391 (1.7.2)
+ * Improved LINKSTATIC=1, now mostly works. #1395 (1.7.3)
+ * Big CMake refactor, got rid of redundancies. #1395 (1.7.3)
+ * Remove old embedded Ptex, now must find Ptex externally. Also modified
+   the build scripts to correctly handle newer versions of Ptex. #1400
+   (1.7.3/1.6.13)
+ * Got Appveyor building OIIO. This is a continuous integration service
+   much like Travis, but it's for Windows. Hopefully this means that it will
+   be much harder for us to make changes that inadvertently break the build
+   on Windows. #1399 (1.7.3)
+ * Make FindOpenEXR.cmake more robust when the version number is embedded
+   in the library name. #1401 (1.7.3)
+ * Clear up some inconsistencies in the CMake files and the Makefile wrapper:
+   the flag to compile with libc++ is now always called USE_LIBCPLUSPLUS,
+   not sometimes OIIO_BUILD_LIBCPLUSPLUS. #1404 (1.7.3)
+ * Overhaul OpenCV dependency finding and make it work with OpenCV 3.x.
+   #1409 (1.7.3/1.6.13)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -217,6 +241,15 @@ Developer goodies / internals:
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
 
 
+
+Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
+------------------------------------------------
+* Use libjpeg-turbo if found. It's a drop-in replacement for libjpeg, but
+  is around 2x faster. #1390
+* Fix some Windows compiler warnings and errors.
+* Remove old embedded Ptex, now must find Ptex externally. Also modified
+  the build scripts to correctly handle newer versions of Ptex. #1400
+* Overhaul OpenCV dependency finding and make it work with OpenCV 3.x. #1409
 
 Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
 ------------------------------------------------
