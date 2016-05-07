@@ -147,6 +147,13 @@ public:
         DASSERT (Rank == 1);
     }
 
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    /// Construct an array_view from an initializer_list.
+    constexpr array_view (std::initializer_list<T> il)
+        : array_view (il.begin(), il.size())
+    { }
+#endif
+
     // assignments
     array_view& operator= (const array_view &copy) {
         m_data = copy.data();
@@ -270,6 +277,13 @@ public:
         : m_data(v.size() ? &v[0] : NULL), m_bounds(v.size()), m_stride(1) {
         DASSERT (Rank == 1);
     }
+
+#if OIIO_CPLUSPLUS_VERSION >= 11
+    /// Construct an array_view from an initializer_list.
+    constexpr array_view_strided (std::initializer_list<T> il)
+        : array_view_strided (il.begin(), il.size())
+    { }
+#endif
 
     // assignments
     array_view_strided& operator= (const array_view_strided &copy) {
