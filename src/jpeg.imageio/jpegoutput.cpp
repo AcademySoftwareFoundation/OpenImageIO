@@ -174,17 +174,20 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         m_cinfo.density_unit = 2;
     else
         m_cinfo.density_unit = 0;
+
     m_cinfo.X_density = int (m_spec.get_float_attribute ("XResolution"));
     m_cinfo.Y_density = int (m_spec.get_float_attribute ("YResolution"));
-    float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
-    if (m_cinfo.X_density <= 1 && m_cinfo.Y_density <= 1 && aspect != 1.0f) {
+    const float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    if (aspect != 1.0f && m_cinfo.X_density <= 1 && m_cinfo.Y_density <= 1) {
         // No useful [XY]Resolution, but there is an aspect ratio requested.
         // Arbitrarily pick 72 dots per undefined unit, and jigger it to
         // honor it as best as we can.
-        m_cinfo.X_density = 72;
-        m_cinfo.Y_density = int (m_cinfo.X_density * aspect);
-        m_spec.attribute ("XResolution", 72.0f);
-        m_spec.attribute ("YResolution", 72.0f*aspect);
+        // XResolution / YResolution == PixelAspectRatio
+
+        m_cinfo.Y_density = 72;
+        m_cinfo.X_density = int (m_cinfo.Y_density * aspect + 0.5);
+        m_spec.attribute ("XResolution", (float) m_cinfo.X_density);
+        m_spec.attribute ("YResolution", (float) m_cinfo.Y_density);
     }
 
     m_cinfo.write_JFIF_header = TRUE;
