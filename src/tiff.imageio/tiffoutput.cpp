@@ -293,11 +293,17 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
 
     TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, m_spec.width);
     TIFFSetField (m_tif, TIFFTAG_IMAGELENGTH, m_spec.height);
+
+    // Handle display window or "full" size. Note that TIFF can't represent
+    // nonzero offsets of the full size, so we may need to expand the
+    // display window to encompass the origin.
     if ((m_spec.full_width != 0 || m_spec.full_height != 0) &&
-        (m_spec.full_width != m_spec.width || m_spec.full_height != m_spec.height)) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, m_spec.full_width);
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, m_spec.full_height);
+        (m_spec.full_width != m_spec.width || m_spec.full_height != m_spec.height ||
+         m_spec.full_x != 0 || m_spec.full_y != 0)) {
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, m_spec.full_width+m_spec.full_x);
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, m_spec.full_height+m_spec.full_y);
     }
+
     if (m_spec.tile_width) {
         TIFFSetField (m_tif, TIFFTAG_TILEWIDTH, m_spec.tile_width);
         TIFFSetField (m_tif, TIFFTAG_TILELENGTH, m_spec.tile_height);
