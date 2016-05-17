@@ -651,12 +651,6 @@ TIFFInput::readspec (bool read_meta)
         m_spec.width = (int)width;
         m_spec.height = (int)height;
         m_spec.depth = (int)depth;
-        m_spec.full_x = 0;
-        m_spec.full_y = 0;
-        m_spec.full_z = 0;
-        m_spec.full_width = (int)width;
-        m_spec.full_height = (int)height;
-        m_spec.full_depth = (int)depth;
         m_spec.nchannels = (int)m_inputchannels;
     }
 
@@ -670,12 +664,25 @@ TIFFInput::readspec (bool read_meta)
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
 
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
-          && width > 0)
+    // Start by assuming the "full" (aka display) window is the same as the
+    // data window. That's what we'll stick to if there is no further
+    // information in the file. But if the file has tags for hte "full"
+    // size, assume a display window with origin (0,0) and those dimensions.
+    // (Unfortunately, there are no TIFF tags for "full" origin.)
+    m_spec.full_x = m_spec.x;
+    m_spec.full_y = m_spec.y;
+    m_spec.full_z = m_spec.z;
+    m_spec.full_width  = m_spec.width;
+    m_spec.full_height = m_spec.height;
+    m_spec.full_depth  = m_spec.depth;
+    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1 &&
+        TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1 &&
+          width > 0 && height > 0) {
         m_spec.full_width = width;
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1
-          && height > 0)
         m_spec.full_height = height;
+        m_spec.full_x = 0;
+        m_spec.full_y = 0;
+    }
 
     if (TIFFIsTiled (m_tif)) {
         TIFFGetField (m_tif, TIFFTAG_TILEWIDTH, &m_spec.tile_width);
