@@ -299,6 +299,8 @@ TypeDesc::fromstring (string_view typestring)
         t = TypeMatrix33;
     else if (type == "matrix" || type == "matrix44")
         t = TypeMatrix44;
+    else if (type == "timecode")
+        t = TypeTimeCode;
     else {
         return 0;  // unknown
     }

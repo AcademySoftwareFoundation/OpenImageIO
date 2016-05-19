@@ -33,6 +33,7 @@
 #include <sstream>
 
 #include <OpenEXR/half.h>
+#include <OpenEXR/ImfTimeCode.h>
 
 #include <boost/foreach.hpp>
 
@@ -855,6 +856,11 @@ ImageSpec::metadata_val (const ImageIOParameter &p, bool human)
                 nice = explanation[e].explainer (p, explanation[e].extradata);
                 break;
             }
+        }
+        if (p.type() == TypeDesc::TypeTimeCode) {
+            Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode *>(p.data());
+            nice = Strutil::format ("%02d:%02d:%02d:%02d", tc.hours(),
+                                    tc.minutes(), tc.seconds(), tc.frame());
         }
         if (nice.length())
             out = out + " (" + nice + ")";
