@@ -45,6 +45,8 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
+#include <OpenEXR/ImfTimeCode.h>
+
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
@@ -1141,6 +1143,25 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         for (int s = 0, send = img->subimages();  s < send;  ++s) {
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
+                img->update_spec_from_imagebuf (s, m);
+                if (! ot.allsubimages)
+                    break;
+            }
+            if (! ot.allsubimages)
+                break;
+        }
+        return true;
+    }
+    if (type == TypeDesc::TypeTimeCode && value.find(':') != value.npos) {
+        // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
+        // string, we need to re-encode as a uint32[2].
+        int hour = 0, min = 0, sec = 0, frame = 0;
+        sscanf (value.c_str(), "%d:%d:%d:%d", &hour, &min, &sec, &frame);
+        Imf::TimeCode tc (hour, min, sec, frame);
+        img->metadata_modified (true);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, &tc);
                 img->update_spec_from_imagebuf (s, m);
                 if (! ot.allsubimages)
                     break;

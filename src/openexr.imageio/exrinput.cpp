@@ -304,7 +304,6 @@ private:
         // utcOffset
         // longitude latitude altitude
         // focus isoSpeed
-        // keyCode timeCode framesPerSecond
     }
 };
 

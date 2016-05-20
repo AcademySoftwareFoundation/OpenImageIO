@@ -384,6 +384,12 @@ Convert a scanline file to a tiled file with $16 \times 16$ tiles:
 \begin{code}
     oiiotool in.exr --attrib "FStop" 22.0 \
             --attrib "IPTC:City" "Berkeley" -o out.exr
+
+    oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
+            -o out.exr
+
+    oiiotool in.exr --attrib:type=int[4] FaceBBox "140,300,219,460" \
+            -o out.exr
 \end{code}
 
 
@@ -1217,6 +1223,9 @@ a {\cf string} metadata.
 
     oiiotool in.exr --attrib:type=matrix worldtocam \
             "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
+
+    oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
+            -o out.exr
 \end{code}
 \apiend
 
