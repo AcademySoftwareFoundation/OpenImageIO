@@ -257,6 +257,144 @@ atomic_exchange_and_add (volatile long long *at, long long x,
 
 
 
+/// Atomic version of:  r = *at, *at &= x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange_and_and (volatile int *at, int x,
+                        memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    int r = *at;  *at &= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_and (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_and ((int *)at, x);
+#elif defined(_MSC_VER)
+    // Windows
+    return _InterlockedAnd ((volatile LONG *)at, x);
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+inline long long
+atomic_exchange_and_and (volatile long long *at, long long x,
+                        memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    long long r = *at;  *at &= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_and (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_and (at, x);
+#elif defined(_MSC_VER)
+    // Windows
+#  if defined(_WIN64)
+    return _InterlockedAnd64 ((volatile LONGLONG *)at, x);
+#  else
+    return InterlockedAnd64 ((volatile LONGLONG *)at, x);
+#  endif
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+/// Atomic version of:  r = *at, *at |= x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange_and_or (volatile int *at, int x,
+                        memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    int r = *at;  *at |= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_or (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_or ((int *)at, x);
+#elif defined(_MSC_VER)
+    // Windows
+    return _InterlockedOr ((volatile LONG *)at, x);
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+inline long long
+atomic_exchange_and_or (volatile long long *at, long long x,
+                        memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    long long r = *at;  *at |= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_or (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_or (at, x);
+#elif defined(_MSC_VER)
+    // Windows
+#  if defined(_WIN64)
+    return _InterlockedOr64 ((volatile LONGLONG *)at, x);
+#  else
+    return InterlockedOr64 ((volatile LONGLONG *)at, x);
+#  endif
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+/// Atomic version of:  r = *at, *at ^= x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange_and_xor (volatile int *at, int x,
+                         memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    int r = *at;  *at ^= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_xor (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_xor ((int *)at, x);
+#elif defined(_MSC_VER)
+    // Windows
+    return _InterlockedXor ((volatile LONG *)at, x);
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
+inline long long
+atomic_exchange_and_xor (volatile long long *at, long long x,
+                         memory_order order = memory_order_seq_cst)
+{
+#ifdef NOTHREADS
+    long long r = *at;  *at ^= x;  return r;
+#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+    return __atomic_fetch_xor (at, x, order);
+#elif defined(USE_GCC_ATOMICS)
+    return __sync_fetch_and_xor (at, x);
+#elif defined(_MSC_VER)
+    // Windows
+#  if defined(_WIN64)
+    return _InterlockedXor64 ((volatile LONGLONG *)at, x);
+#  else
+    return InterlockedXor64 ((volatile LONGLONG *)at, x);
+#  endif
+#else
+#   error No atomics on this platform.
+#endif
+}
+
+
+
 /// Atomic version of:
 ///    if (*at == compareval) {
 ///        *at = newval;  return true;
@@ -508,6 +646,18 @@ public:
     T fetch_sub (T x, memory_order order = memory_order_seq_cst) {
         return atomic_exchange_and_add (&m_val, -x, order);
     }
+    /// Atomic fetch-and-and: bitwise and with x and return the old value.
+    T fetch_and (T x, memory_order order = memory_order_seq_cst) {
+        return atomic_exchange_and_and (&m_val, x, order);
+    }
+    /// Atomic fetch-and-or: bitwise or with x and return the old value.
+    T fetch_or (T x, memory_order order = memory_order_seq_cst) {
+        return atomic_exchange_and_or (&m_val, x, order);
+    }
+    /// Atomic fetch-and-xor: bitwise xor with x and return the old value.
+    T fetch_xor (T x, memory_order order = memory_order_seq_cst) {
+        return atomic_exchange_and_xor (&m_val, x, order);
+    }
 
     /// Assign new value.
     ///
@@ -536,6 +686,18 @@ public:
     /// Subtract from the value, return the new result
     ///
     T operator-= (T x) { return fetch_sub(x) - x; }
+
+    /// Logical and, return the new result
+    ///
+    T operator&= (T x) { return fetch_and(x) & x; }
+
+    /// Logical or, return the new result
+    ///
+    T operator|= (T x) { return fetch_or(x) | x; }
+
+    /// Logical xor, return the new result
+    ///
+    T operator^= (T x) { return fetch_xor(x) ^ x; }
 
     bool bool_compare_and_swap (T compareval, T newval) {
         return atomic_compare_and_exchange (&m_val, compareval, newval);
