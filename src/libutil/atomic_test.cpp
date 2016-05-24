@@ -88,13 +88,23 @@ do_int_math (int iterations)
 void test_atomic_int (int numthreads, int iterations)
 {
     ai = 42;
-    boost::thread_group threads;
+    thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
         threads.create_thread (boost::bind (do_int_math, iterations));
     }
     ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
     OIIO_CHECK_EQUAL (ai, 42);
+
+    // Test and, or, xor
+    ai &= 15; OIIO_CHECK_EQUAL (ai, 10);
+    ai |=  6; OIIO_CHECK_EQUAL (ai, 14);
+    ai ^= 31; OIIO_CHECK_EQUAL (ai, 17);
+    ai = 42;
+    int tmp;
+    tmp = ai.fetch_and(15); OIIO_CHECK_EQUAL(tmp,42); OIIO_CHECK_EQUAL(ai,10);
+    tmp = ai.fetch_or ( 6); OIIO_CHECK_EQUAL(tmp,10); OIIO_CHECK_EQUAL(ai,14);
+    tmp = ai.fetch_xor(31); OIIO_CHECK_EQUAL(tmp,14); OIIO_CHECK_EQUAL(ai,17);
 }
 
 
@@ -126,12 +136,23 @@ do_int64_math (int iterations)
 void test_atomic_int64 (int numthreads, int iterations)
 {
     all = 0;
-    boost::thread_group threads;
+    thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
         threads.create_thread (boost::bind (do_int64_math, iterations));
     }
     threads.join_all ();
     OIIO_CHECK_EQUAL (all, 0);
+
+    // Test and, or, xor
+    all = 42;
+    all &= 15; OIIO_CHECK_EQUAL (all, 10);
+    all |=  6; OIIO_CHECK_EQUAL (all, 14);
+    all ^= 31; OIIO_CHECK_EQUAL (all, 17);
+    all = 42;
+    long long tmp;
+    tmp = all.fetch_and(15); OIIO_CHECK_EQUAL(tmp,42); OIIO_CHECK_EQUAL(all,10);
+    tmp = all.fetch_or ( 6); OIIO_CHECK_EQUAL(tmp,10); OIIO_CHECK_EQUAL(all,14);
+    tmp = all.fetch_xor(31); OIIO_CHECK_EQUAL(tmp,14); OIIO_CHECK_EQUAL(all,17);
 }
 
 
