@@ -1251,6 +1251,13 @@ set_fullsize (int argc, const char *argv[])
         spec.full_y = y;
         spec.full_width = w;
         spec.full_height = h;
+        // That updated the private spec of the ImageRec. In this case
+        // we really need to update the underlying IB as well.
+        ImageSpec &ibspec = (*A)(0,0).specmod();
+        ibspec.full_x = x;
+        ibspec.full_y = y;
+        ibspec.full_width = w;
+        ibspec.full_height = h;
         A->metadata_modified (true);
     }
     ot.function_times[command] += timer();
