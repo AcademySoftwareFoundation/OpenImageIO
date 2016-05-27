@@ -1,7 +1,10 @@
 Changes:
 
-Release 1.6.14 (released ?? 2016 -- compared to 1.6.13)
+Release 1.6.14 (released 1 Jun 2016 -- compared to 1.6.13)
 ------------------------------------------------
+* More robust handling of TIFF I/O when non-zero origin of full/display
+  window. (#1414)
+* oiiotool --fullsize didn't work properly when followed by --attrib. (#1418)
 
 Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
 ------------------------------------------------
