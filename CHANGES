@@ -84,7 +84,13 @@ Fixes, minor enhancements, and performance improvements:
       number of channels, now try to do the "correct" thing and have the
       result have the larger number of channels, treating any "missing"
       channels in either input as if they were 0-valued. #1402 (1.7.3)
-* ImageBuf:
+    * --attrib:type-timecode lets you set timecodes in "human-readable" form:
+        oiiotool in.exr -attrib:type=timecode TimeCode 11:34:03:00 -o out.exr
+      #1415 (1.7.3)
+    * -info -v will print timecodes in human-readable form. #1415 (1.7.3)
+    * Bug fix: --fullsize didn't work properly when followed by --attrib.
+      #1418 (1.7.3/1.6.14)
+ * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
     * ImageBuf reads from disk have been improved substantially (in some
@@ -113,13 +119,16 @@ Fixes, minor enhancements, and performance improvements:
     * Less unnecessary pausing after read errors when falure_retries == 0.
       #1336 (1.7.2/1.6.11)
     * Texture: slight improvement in texture sharpness. #1369 (1.7.2/1.6.11)
+    * New statistics related to redundant tile reads. #1417 (1.7.3)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
     * Remove long-obsolete and non-functional command line options: --new,
       --old, --hash. #1351 (1.7.2)
- * iinfo more clearly prints info about subimage formats. #1320 (1.7.1)
+ * iinfo:
+    * More clearly prints info about subimage formats. #1320 (1.7.1)
+    * Print timecodes in human-readable form. #1415 (1.7.3)
  * TIFF:
     * When outputting a TIFF file, a special attribute "tiff:half", if
       set to nonzero, will enable writing of 16-bit float pixel data
@@ -132,6 +141,8 @@ Fixes, minor enhancements, and performance improvements:
       #1295 (1.7.1)
     * Fix typo that made TIFF files incorrectly name color space metadata
       "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
+    * More robust handling of non-zero origin of full/display window.
+      #1414 (1.6.14/1.7.3)
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
@@ -230,6 +241,7 @@ Developer goodies / internals:
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
    fast_exp, fast_pow_pos #1384 (1.7.2)
+ * thread.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14)
  * compute_test: new unit test can be used to benchmark computation
    times. #1310 (1.7.1)
  * Strutil::extract_from_list_string is more flixible by allowing the vals
