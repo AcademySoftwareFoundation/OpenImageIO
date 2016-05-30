@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.15 (released ?? 2016 -- compared to 1.6.14)
+------------------------------------------------
+
 Release 1.6.14 (released 1 Jun 2016 -- compared to 1.6.13)
 ------------------------------------------------
 * More robust handling of TIFF I/O when non-zero origin of full/display
