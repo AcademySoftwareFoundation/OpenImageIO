@@ -123,6 +123,7 @@ public:
     TimingMap function_times;
     bool enable_function_timing;
     size_t peak_memory;
+    int num_outputs;                         // Count of outputs written
 
     Oiiotool ();
 
@@ -358,10 +359,20 @@ public:
         return subimg < subimages() ? m_subimages[subimg].spec(mip) : NULL;
     }
 
+    bool was_output () const { return m_was_output; }
+    void was_output (bool val) { m_was_output = val; }
     bool metadata_modified () const { return m_metadata_modified; }
-    void metadata_modified (bool mod) { m_metadata_modified = mod; }
+    void metadata_modified (bool mod) {
+        m_metadata_modified = mod;
+        if (mod)
+            was_output(false);
+    }
     bool pixels_modified () const { return m_pixels_modified; }
-    void pixels_modified (bool mod) { m_pixels_modified = mod; }
+    void pixels_modified (bool mod) {
+        m_pixels_modified = mod;
+        if (mod)
+            was_output(false);
+    }
 
     std::time_t time() const { return m_time; }
 
@@ -370,7 +381,7 @@ public:
     // update the outer copy held by the SubimageRec.
     void update_spec_from_imagebuf (int subimg=0, int mip=0) {
         *m_subimages[subimg].spec(mip) = m_subimages[subimg][mip]->spec();
-        metadata_modified();
+        metadata_modified (true);
     }
 
     /// Error reporting for ImageRec: call this with printf-like arguments.
@@ -393,6 +404,7 @@ private:
     bool m_elaborated;
     bool m_metadata_modified;
     bool m_pixels_modified;
+    bool m_was_output;
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
     ImageCache *m_imagecache;

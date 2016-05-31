@@ -223,6 +223,9 @@ struct OIIO_API TypeDesc {
     /// Shortcut: is it UNKNOWN?
     bool is_unknown () const { return (basetype == UNKNOWN); }
 
+    /// if (typespec) is the same as asking whether it's not UNKNOWN.
+    operator bool () const { return (basetype != UNKNOWN); }
+
     /// Set *this to the type described in the string.  Return the
     /// length of the part of the string that describes the type.  If
     /// no valid type could be assembled, return 0 and do not modify
