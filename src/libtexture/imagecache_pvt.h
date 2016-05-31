@@ -36,12 +36,6 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
-#  include <unordered_map>
-#else /* FIXME(C++11): remove this after making C++11 the baseline */
-#  include <boost/unordered_map.hpp>
-#endif
-
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/thread/tss.hpp>
