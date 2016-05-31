@@ -51,8 +51,22 @@
 #include "string_view.h"
 #include "array_view.h"
 
+#if OIIO_CPLUSPLUS_VERSION >= 11
+#  include <unordered_map>
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
+#  include <boost/unordered_map.hpp>
+#endif
+
 
 OIIO_NAMESPACE_BEGIN
+
+// Define OIIO::unordered_map as either std or boost.
+#if OIIO_CPLUSPLUS_VERSION >= 11
+using std::unordered_map;
+#else /* FIXME(C++11): remove this after making C++11 the baseline */
+using boost::unordered_map;
+#endif
+
 
 namespace xxhash {
 
