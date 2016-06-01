@@ -501,6 +501,32 @@ Strutil::repeat (string_view str, int n)
 
 
 
+std::string
+Strutil::replace (string_view str, string_view pattern,
+                  string_view replacement, bool global)
+{
+    std::string r;
+    while (1) {
+        size_t f = str.find (pattern);
+        if (f != str.npos) {
+            // Pattern found -- copy the part of str prior to the pattern,
+            // then copy the replacement, and skip str up to the part after
+            // the pattern and continue for another go at it.
+            r.append (str.data(), f);
+            r.append (replacement.data(), replacement.size());
+            str.remove_prefix (f + pattern.size());
+            if (global)
+                continue;   // Try for another match
+        }
+        // Pattern not found -- copy remaining string and we're done
+        r.append (str.data(), str.size());
+        break;
+    }
+    return r;
+}
+
+
+
 #ifdef _WIN32
 std::wstring
 Strutil::utf8_to_utf16 (string_view str)
