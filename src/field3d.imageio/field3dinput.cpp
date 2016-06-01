@@ -341,9 +341,6 @@ void Field3DInput::read_layers (TypeDesc datatype)
 bool
 Field3DInput::valid_file (const std::string &filename) const
 {
-    if (! Filesystem::is_regular (filename))
-        return false;
-
     oiio_field3d_initialize ();
 
     bool ok = false;
@@ -369,9 +366,6 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
 {
     if (m_input)
         close();
-
-    if (! Filesystem::is_regular (name))
-        return false;
 
     oiio_field3d_initialize ();
 

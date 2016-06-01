@@ -725,7 +725,7 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
             }
         }
         if (! ok)
-            imagecache().error ("%s", m_input->geterror().c_str());
+            imagecache().debug_error ("%s", m_input->geterror().c_str());
     }
     if (ok) {
         size_t b = spec(subimage,miplevel).tile_bytes();
@@ -847,7 +847,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         m_input->current_miplevel() != miplevel) {
         ImageSpec tmp;
         if (! m_input->seek_subimage (subimage, miplevel, tmp)) {
-            imagecache().error ("%s", m_input->geterror().c_str());
+            imagecache().debug_error ("%s", m_input->geterror().c_str());
             return false;
         }
     }
@@ -887,7 +887,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
                                       format, (void *)&buf[0],
                                       pixelsize, scanlinesize);
         if (! ok)
-            imagecache().error ("%s", m_input->geterror().c_str());
+            imagecache().debug_error ("%s", m_input->geterror().c_str());
         size_t b = (y1-y0+1) * spec.scanline_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
@@ -935,7 +935,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         ok = m_input->read_image (chbegin, chend, format, data,
                                   xstride, ystride, zstride);
         if (! ok)
-            imagecache().error ("%s", m_input->geterror().c_str());
+            imagecache().debug_error ("%s", m_input->geterror().c_str());
         size_t b = spec.image_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
@@ -2239,7 +2239,7 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
     if (!file && dataname != s_exists) {
-        error ("Invalid image file \"%s\"", filename);
+        debug_error ("Invalid image file \"%s\"", filename);
         return false;
     }
     return get_image_info (file, thread_info, subimage, miplevel,
@@ -2265,11 +2265,11 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         return true;
     }
     if (!file) {
-        error ("Invalid image file");
+        debug_error ("Invalid image file");
         return false;
     }
     if (file->broken()) {
-        error ("Invalid image file \"%s\"", file->filename());
+        debug_error ("Invalid image file \"%s\"", file->filename());
         return false;
     }
     if (dataname == s_subimages && datatype == TypeDesc::TypeInt) {
@@ -2450,7 +2450,7 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
     if (! file) {
-        error ("Image file \"%s\" not found", filename.c_str());
+        debug_error ("Image file \"%s\" not found", filename.c_str());
         return NULL;
     }
     return imagespec (file, thread_info, subimage, miplevel, native);
@@ -2464,22 +2464,22 @@ ImageCacheImpl::imagespec (ImageCacheFile *file,
                            int subimage, int miplevel, bool native)
 {
     if (! file) {
-        error ("Image file handle was NULL");
+        debug_error ("Image file handle was NULL");
         return NULL;
     }
     if (! thread_info)
         thread_info = get_perthread_info ();
     file = verify_file (file, thread_info, true);
     if (file->broken()) {
-        error ("Invalid image file \"%s\"", file->filename());
+        debug_error ("Invalid image file \"%s\"", file->filename());
         return NULL;
     }
     if (subimage < 0 || subimage >= file->subimages()) {
-        error ("Unknown subimage %d (out of %d)", subimage, file->subimages());
+        debug_error ("Unknown subimage %d (out of %d)", subimage, file->subimages());
         return NULL;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
-        error ("Unknown mip level %d (out of %d)", miplevel,
+        debug_error ("Unknown mip level %d (out of %d)", miplevel,
                file->miplevels(subimage));
         return NULL;
     }
@@ -2542,7 +2542,7 @@ ImageCacheImpl::get_pixels (ustring filename,
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file) {
-        error ("Image file \"%s\" not found", filename);
+        debug_error ("Image file \"%s\" not found", filename);
         return false;
     }
     return get_pixels (file, thread_info, subimage, miplevel,
@@ -2568,16 +2568,16 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
         thread_info = get_perthread_info ();
     file = verify_file (file, thread_info);
     if (file->broken()) {
-        error ("Invalid image file \"%s\"", file->filename());
+        debug_error ("Invalid image file \"%s\"", file->filename());
         return false;
     }
     if (subimage < 0 || subimage >= file->subimages()) {
-        error ("get_pixels asked for nonexistant subimage %d of \"%s\"",
+        debug_error ("get_pixels asked for nonexistant subimage %d of \"%s\"",
                subimage, file->filename());
         return false;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
-        error ("get_pixels asked for nonexistant MIP level %d of \"%s\"",
+        debug_error ("get_pixels asked for nonexistant MIP level %d of \"%s\"",
                miplevel, file->filename());
         return false;
     }
@@ -2826,7 +2826,7 @@ ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
     ImageCacheFile *file = find_file (filename, thread_info);
     file = verify_file (file, thread_info);
     if (! file || file->broken()) {
-        error ("Cannot add_tile for an image file that was not set up with add_file()");
+        debug_error ("Cannot add_tile for an image file that was not set up with add_file()");
         return false;
     }
     if (chend < chbegin)
@@ -2835,7 +2835,7 @@ ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
     ImageCacheTileRef tile = new ImageCacheTile (tileid, buffer, format,
                                                  xstride, ystride, zstride);
     if (! tile || ! tile->valid()) {
-        error ("Could not construct the tile; unknown reasons.");
+        debug_error ("Could not construct the tile; unknown reasons.");
         return false;
     }
     add_tile_to_cache (tile, thread_info);
