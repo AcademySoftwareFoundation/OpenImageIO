@@ -85,6 +85,7 @@
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/deepdata.h"
+#include "OpenImageIO/sysutil.h"
 
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -310,7 +311,6 @@ private:
         // utcOffset
         // longitude latitude altitude
         // focus isoSpeed
-        // keyCode timeCode framesPerSecond
     }
 };
 
@@ -326,7 +326,14 @@ void set_exr_threads ()
 
     int oiio_threads = 1;
     OIIO::getattribute ("exr_threads", oiio_threads);
-
+    
+    // 0 means all threads in OIIO, but single-threaded in OpenEXR
+    // -1 means single-threaded in OIIO
+    if (oiio_threads == 0) {
+        oiio_threads = Sysutil::hardware_concurrency();
+    } else if (oiio_threads == -1) {
+        oiio_threads = 0;
+    }
     spin_lock lock (exr_threads_mutex);
     if (exr_threads != oiio_threads) {
         exr_threads = oiio_threads;
@@ -1191,16 +1198,18 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
+                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin),
+                       spec().channelnames);
+        std::vector<unsigned int> all_samples (npixels);
+        std::vector<void*> pointerbuf (npixels*nchans);
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_samples().data()
+                               (char *)(&all_samples[0]
                                         - m_spec.x
                                         - ybegin*m_spec.width),
                                sizeof(unsigned int),
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
-        std::vector<void*> pointerbuf (npixels*nchans);
 
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
@@ -1217,6 +1226,7 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         // Get the sample counts for each pixel and compute the total
         // number of samples and resize the data area appropriately.
         m_deep_scanline_input_part->readPixelSampleCounts (ybegin, yend-1);
+        deepdata.set_all_samples (all_samples);
         deepdata.get_pointers (pointerbuf);
 
         // Read the pixels
@@ -1263,16 +1273,18 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin));
+                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin),
+                       spec().channelnames);
+        std::vector<unsigned int> all_samples (npixels);
+        std::vector<void*> pointerbuf (npixels * nchans);
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
-                               (char *)(deepdata.all_samples().data()
+                               (char *)(&all_samples[0]
                                         - xbegin
                                         - ybegin*width),
                                sizeof(unsigned int),
                                sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice (countslice);
-        std::vector<void*> pointerbuf (npixels * nchans);
         for (int c = chbegin;  c < chend;  ++c) {
             Imf::DeepSlice slice (part.pixeltype[c],
                                   (char *)(&pointerbuf[0]+(c-chbegin)
@@ -1296,6 +1308,7 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         m_deep_tiled_input_part->readPixelSampleCounts (
                 firstxtile, firstxtile+xtiles-1,
                 firstytile, firstytile+ytiles-1);
+        deepdata.set_all_samples (all_samples);
         deepdata.get_pointers (pointerbuf);
 
         // Read the pixels
