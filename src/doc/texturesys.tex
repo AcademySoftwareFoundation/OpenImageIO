@@ -1164,7 +1164,7 @@ The return value is {\cf true} if {\cf get_texture_info()} is able to answer
 the query -- that is, find the requested {\cf dataname} for the texture and
 it matched the requested {\cf datatype}.  If the requested data was not
 found, or was not of the right data type, {\cf get_texture_info()} will
-return {\cf false}. Except for the \qkw{exists} query, file that does not
+return {\cf false}. Except for the \qkw{exists} and \qkw{udim} queries, file that does not
 exist or could not be read properly as an image also constitutes a query
 failure that will return {\cf false}.
 
@@ -1178,6 +1178,10 @@ exists and is an image format that \product can read, or 0 if the file
 does not exist, or could not be properly read as a texture. Note that
 unlike all other queries, this query will ``succeed'' (return {\cf true})
 even if the file does not exist.
+
+\item[\rm \kw{udim}] Stores the value 1 (as an {\cf int} if the file
+is a ``virtual UDIM'' or texture atlas file (as described in
+Section~\ref{sec:texturesys:udim}) or 0 otherwise.
 
 \item[\rm \kw{subimages}] The number of subimages/faces in the file, as an integer.
 
@@ -1413,6 +1417,59 @@ everything will be invalidated, no matter how wasteful it is, but if
 force is false, in actuality files will only be invalidated if their
 modification times have been changed since they were first opened.
 \apiend
+
+\subsection{UDIM and texture atlases}
+\label{sec:texturesys:udim}
+\NEW % 1.7
+The {\cf texture()} call supports virtual filenames that expand per lookup
+for UDIM and other tiled texture atlas techniques. The substitutions will
+occur if the texture filename initially passed to {\cf texture()} does not
+exist as a concrete file and contains one or more of the following
+substrings:
+
+\medskip
+
+%\noindent
+\begin{tabular}{p{0.75in} p{4.75in}}
+{\cf <UDIM>} & 1001 + \emph{utile} + \emph{vtile}*10 \\
+{\cf <u>} & \emph{utile} \\
+{\cf <v>} & \emph{vtile} \\
+{\cf <U>} & \emph{utile} + 1 \\
+{\cf <V>} & \emph{vtile} + 1 \\
+\end{tabular}
+
+\medskip
+
+\noindent where the tile numbers are derived from the input $u,v$ texture
+coordinates as follows:
+
+\begin{code}
+    // Each unit square of texture is a different tile
+    utile = max (0, int(u));
+    vtile = max (0, int(v));
+    // Re-adjust the texture coordinates to the offsets within the tile
+    u = u - utile;
+    v = v - vtile;
+\end{code}
+\smallskip
+
+\noindent Example:
+
+\begin{code}
+    ustring filename ("paint.<UDIM>.tif");
+    float s = 1.4, t = 3.8;
+    texsys->texture (filename, s, t, ...);
+\end{code}
+
+\noindent will retrieve from file \qkw{paint.1032.tif} at coordinates $(0.4,0.8)$.
+
+\smallskip
+
+Please note that most other calls, including most queries for {\cf
+get_texture_info()}, will fail with one of these special filenames, since
+it's not a real file and the system doesn't know which concrete file you it
+corresponds to in the absence of specific texture coordinates.
+
 
 \index{Texture System|)}
 

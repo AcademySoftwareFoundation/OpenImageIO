@@ -951,7 +951,12 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
 
     PerThreadInfo *thread_info = m_imagecache->get_perthread_info((PerThreadInfo *)thread_info_);
-    TextureFile *texturefile = verify_texturefile ((TextureFile *)texture_handle_, thread_info);
+    TextureFile *texturefile = (TextureFile *)texture_handle_;
+    if (texturefile->is_udim())
+        texturefile = m_imagecache->resolve_udim (texturefile, s, t);
+
+    texturefile = verify_texturefile (texturefile, thread_info);
+
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
     ++stats.texture_queries;
