@@ -53,30 +53,14 @@ ifeq ($(SP_OS), rhel7)
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
     CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
     MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
-    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
-    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v406"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
+    OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
+    FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v406"
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
     LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
-
-    # default compiler is clang, taken from the LLVM directory
-    ifeq (${COMPILER},)
-        MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
-           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-    endif
-
-    # requesting 'clang' or 'gcc' (no version) means the first clang or
-    # gcc in your path
-    ifeq (${COMPILER},clang)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-    endif
-    ifeq (${COMPILER},gcc)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-    endif
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -84,16 +68,23 @@ ifeq ($(SP_OS), rhel7)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    endif
-    ifeq (${COMPILER}, gcc472)
+    else ifeq (${COMPILER}, gcc472)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc490)
+    else ifeq (${COMPILER}, gcc490)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
     MY_CMAKE_FLAGS += \
@@ -114,7 +105,7 @@ ifeq ($(SP_OS), rhel7)
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
-	-Doiio_boost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
+	-Dboost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
@@ -141,53 +132,41 @@ else ifeq ($(SP_OS), spinux1)
     ## (may be changed as new versions are rolled out to the facility)
     LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
 
-    # default compiler is clang, taken from the LLVM directory
-    ifeq (${COMPILER},)
-        MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
-           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-    endif
-
-    # requesting 'clang' or 'gcc' (no version) means the first clang or
-    # gcc in your path
-    ifeq (${COMPILER},clang)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-    endif
-    ifeq (${COMPILER},gcc)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-    endif
-
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
     ifeq (${COMPILER}, clang341)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.1/bin/clang++
-    endif
-    ifeq (${COMPILER}, clang342)
+    else ifeq (${COMPILER}, clang342)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    endif
-    ifeq (${COMPILER}, gcc463)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc470)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc472)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
-    endif
-    ifeq (${COMPILER}, gcc490)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
+    else ifeq (${COMPILER}, gcc463)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.6.3-test/bin/g++
+    else ifeq (${COMPILER}, gcc470)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.0-test/bin/g++
+    else ifeq (${COMPILER}, gcc472)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
+    else ifeq (${COMPILER}, gcc490)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/  gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
     MY_CMAKE_FLAGS += \
@@ -209,7 +188,7 @@ else ifeq ($(SP_OS), spinux1)
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
-	-Doiio_boost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
+	-Dboost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
         -DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_filesystem-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_regex-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_system-gcc44-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERS}/libboost_thread-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
         -DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERS}/libboost_python-gcc44-mt${BOOSTVERS_SUFFIX}.so" \
         -DPYTHON_VERSION=${PYVER} \
@@ -272,6 +251,25 @@ else ifeq (${platform}, macosx)
     MY_CMAKE_FLAGS += \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
     # don't need this? -DBUILD_WITH_INSTALL_RPATH=1
+
+    # A variety of tags can be used to try specific versions of gcc or
+    # clang from the site-specific places we have installed them.
+    ifeq (${COMPILER}, gcc5)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-5 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-5
+    else ifeq (${COMPILER}, gcc6)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-6 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-6
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+    else ifeq (${COMPILER},gcc)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+    else ifeq (${COMPILER},)
+        # default compiler is clang, taken from the LLVM directory
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
+           -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+    endif
 
     # end generic OSX
 

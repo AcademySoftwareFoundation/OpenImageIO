@@ -206,6 +206,12 @@ public:
     size_t tilesread () const { return m_tilesread; }
     imagesize_t bytesread () const { return m_bytesread; }
     double & iotime () { return m_iotime; }
+    size_t redundant_tiles () const { return (size_t) m_redundant_tiles.load(); }
+    imagesize_t redundant_bytesread () const { return (imagesize_t) m_redundant_bytesread.load(); }
+    void register_redundant_tile (imagesize_t bytesread) {
+        m_redundant_tiles += 1;
+        m_redundant_bytesread += (long long) bytesread;
+    }
 
     std::time_t mod_time () const { return m_mod_time; }
     ustring fingerprint () const { return m_fingerprint; }
@@ -225,7 +231,11 @@ public:
         bool onetile;               ///< Whole level fits on one tile
         mutable bool polecolorcomputed;     ///< Pole color was computed
         mutable std::vector<float> polecolor;///< Pole colors
+        int nxtiles, nytiles, nztiles; ///< Number of tiles in each dimension
+        atomic_ll *tiles_read;      ///< Bitfield for tiles read at least once
         LevelInfo (const ImageSpec &spec, const ImageSpec &nativespec);  ///< Initialize based on spec
+        LevelInfo (const LevelInfo &src); // needed for vector<LevelInfo>
+        ~LevelInfo () { delete [] tiles_read; }
     };
 
     /// Info for each subimage
@@ -261,6 +271,7 @@ public:
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
         const ImageSpec &nativespec (int m) const { return levels[m].nativespec; }
+        int miplevels () const { return (int) levels.size(); }
     };
 
     const SubimageInfo &subimageinfo (int subimage) const {
@@ -314,6 +325,8 @@ private:
     ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
     imagesize_t m_bytesread;        ///< Bytes read from this file
+    atomic_ll m_redundant_tiles;    ///< Redundant tile reads
+    atomic_ll m_redundant_bytesread;///< Redundant bytes read
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
     bool m_mipused;                 ///< MIP level >0 accessed

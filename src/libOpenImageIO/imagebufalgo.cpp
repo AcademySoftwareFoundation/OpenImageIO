@@ -93,18 +93,30 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             dst->error ("Uninitialized input image");
         return false;
     }
-    int maxchans = 10000;
-    if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS) {
-        // Instructions to clamp chend to the highest of the inputs
-        if (dst && dst->initialized())
-            maxchans = std::min (maxchans, dst->spec().nchannels);
-        if (A && A->initialized())
-            maxchans = std::min (maxchans, A->spec().nchannels);
-        if (B && B->initialized())
-            maxchans = std::min (maxchans, B->spec().nchannels);
-        if (C && C->initialized())
-            maxchans = std::min (maxchans, C->spec().nchannels);
+
+    int minchans, maxchans;
+    if (dst || A || B || C) {
+        minchans = 10000; maxchans = 1;
+        if (dst && dst->initialized()) {
+            minchans = std::min (minchans, dst->spec().nchannels);
+            maxchans = std::max (maxchans, dst->spec().nchannels);
+        }
+        if (A && A->initialized()) {
+            minchans = std::min (minchans, A->spec().nchannels);
+            maxchans = std::max (maxchans, A->spec().nchannels);
+        }
+        if (B && B->initialized()) {
+            minchans = std::min (minchans, B->spec().nchannels);
+            maxchans = std::max (maxchans, B->spec().nchannels);
+        }
+        if (C && C->initialized()) {
+            minchans = std::min (minchans, C->spec().nchannels);
+            maxchans = std::max (maxchans, C->spec().nchannels);
+        }
+    } else {
+        minchans = maxchans = 1;
     }
+
     if (dst->initialized()) {
         // Valid destination image.  Just need to worry about ROI.
         if (roi.defined()) {
@@ -150,7 +162,18 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
         if (A) {
             // If there's an input image, give dst A's spec (with
             // modifications detailed below...)
-            spec = force_spec ? (*force_spec) : A->spec();
+            if (force_spec) {
+                spec = *force_spec;
+            } else {
+                // If dst is uninitialized and no force_spec was supplied,
+                // make it like A, but having number of channels as large as
+                // any of the inputs.
+                spec = A->spec();
+                if (prepflags & IBAprep_MINIMIZE_NCHANNELS)
+                    spec.nchannels = minchans;
+                else
+                    spec.nchannels = maxchans;
+            }
             // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
             // they should have pre-allocated dst with their desired format.
@@ -193,7 +216,25 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
         }
 
         dst->reset (spec);
+
+        // If we just allocated more channels than the caller will write,
+        // clear the extra channels.
+        if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
+            roi.chend = std::min (roi.chend, minchans);
+        roi.chend = std::min (roi.chend, spec.nchannels);
+        if (roi.chbegin > 0) {
+            ROI r = roi;
+            r.chbegin = 0; r.chend = roi.chbegin;
+            ImageBufAlgo::zero (*dst, r, 1);
+        }
+        if (roi.chend < dst->nchannels()) {
+            ROI r = roi;
+            r.chbegin = roi.chend; r.chend = dst->nchannels();
+            ImageBufAlgo::zero (*dst, r, 1);
+        }
     }
+    if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
+        roi.chend = std::min (roi.chend, minchans);
     roi.chend = std::min (roi.chend, maxchans);
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 ||

@@ -254,7 +254,18 @@ public:
     void add_configspec (const ImageSpec *config=NULL) {
         if (! m_configspec)
             m_configspec.reset (config ? new ImageSpec (*config) : new ImageSpec);
-   }
+    }
+
+    // Return the index of pixel (x,y,z). If check_range is true, return
+    // -1 for an invalid coordinate that is not within the data window.
+    int pixelindex (int x, int y, int z, bool check_range=false) const {
+        x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
+        if (check_range && (x < 0 || x >= m_spec.width ||
+                            y < 0 || y >= m_spec.height ||
+                            z < 0 || z >= m_spec.depth))
+            return -1;
+        return (z * m_spec.height + y) * m_spec.width + x;
+    }
 
 private:
     ImageBuf::IBStorage m_storage; ///< Pixel storage class
@@ -934,22 +945,74 @@ ImageBuf::write (ImageOutput *out,
     bool ok = true;
     const ImageBufImpl *impl = this->impl();
     ok &= impl->validate_pixels ();
-    const ImageSpec &m_spec (impl->m_spec);
+    const ImageSpec &bufspec (impl->m_spec);
+    const ImageSpec &outspec (out->spec());
+    TypeDesc bufformat = spec().format;
     if (impl->m_localpixels) {
         // In-core pixel buffer for the whole image
-        ok = out->write_image (m_spec.format, impl->m_localpixels, as, as, as,
+        ok = out->write_image (bufformat, impl->m_localpixels, as, as, as,
                                progress_callback, progress_callback_data);
     } else if (deep()) {
         // Deep image record
         ok = out->write_deep_image (impl->m_deepdata);
     } else {
-        // Backed by ImageCache
-        boost::scoped_array<char> tmp (new char [m_spec.image_bytes()]);
-        ok = get_pixels (roi(), m_spec.format, &tmp[0]);
-        ok &= out->write_image (m_spec.format, &tmp[0], as, as, as,
-                                progress_callback, progress_callback_data);
-        // FIXME -- not good for huge images.  Instead, we should read
-        // little bits at a time (scanline or tile blocks).
+        // The image we want to write is backed by ImageCache -- we must be
+        // immediately writing out a file from disk, possibly with file
+        // format or data format conversion, but without any ImageBufAlgo
+        // functions having been applied.
+        const imagesize_t budget = 1024*1024*64; // 64 MB
+        imagesize_t imagesize = bufspec.image_bytes();
+        if (imagesize <= budget) {
+            // whole image can fit within our budget
+            boost::scoped_array<char> tmp (new char [imagesize]);
+            ok &= get_pixels (roi(), bufformat, &tmp[0]);
+            ok &= out->write_image (bufformat, &tmp[0], as, as, as,
+                                    progress_callback, progress_callback_data);
+        } else if (outspec.tile_width) {
+            // Big tiled image: break up into tile strips
+            size_t pixelsize = bufspec.pixel_bytes();
+            size_t chunksize = pixelsize * outspec.width * outspec.tile_height * outspec.tile_depth;
+            boost::scoped_array<char> tmp (new char [chunksize]);
+            for (int z = 0;  z < outspec.depth;  z += outspec.tile_depth) {
+                int zend = std::min (z+outspec.z+outspec.tile_depth,
+                                     outspec.z+outspec.depth);
+                for (int y = 0;  y < outspec.height && ok;  y += outspec.tile_height) {
+                    int yend = std::min (y+outspec.y+outspec.tile_height,
+                                         outspec.y+outspec.height);
+                    ok &= get_pixels (ROI(outspec.x, outspec.x+outspec.width,
+                                          outspec.y+y, yend,
+                                          outspec.z+z, zend),
+                                      bufformat, &tmp[0]);
+                    ok &= out->write_tiles (outspec.x, outspec.x+outspec.width,
+                                            y+outspec.y, yend, z+outspec.z, zend,
+                                            bufformat, &tmp[0]);
+                    if (progress_callback &&
+                        progress_callback (progress_callback_data,
+                                           (float)(z*outspec.height+y)/(outspec.height*outspec.depth)))
+                        return ok;
+                }
+            }
+        } else {
+            // Big scanline image: break up into scanline strips
+            imagesize_t slsize = bufspec.scanline_bytes();
+            int chunk = clamp (round_to_multiple(budget/slsize, 64), 1, 1024);
+            boost::scoped_array<char> tmp (new char [chunk*slsize]);
+            for (int z = 0;  z < outspec.depth;  ++z) {
+                for (int y = 0;  y < outspec.height && ok;  y += chunk) {
+                    int yend = std::min (y+outspec.y+chunk, outspec.y+outspec.height);
+                    ok &= get_pixels (ROI(outspec.x, outspec.x+outspec.width,
+                                          outspec.y+y, yend,
+                                          outspec.z, outspec.z+outspec.depth),
+                                      bufformat, &tmp[0]);
+                    ok &= out->write_scanlines (y+outspec.y, yend, z+outspec.z,
+                                                bufformat, &tmp[0]);
+                    if (progress_callback &&
+                        progress_callback (progress_callback_data,
+                                           (float)(z*outspec.height+y)/(outspec.height*outspec.depth)))
+                        return ok;
+                }
+            }
+        }
     }
     if (! ok)
         error ("%s", out->geterror ());
@@ -1748,14 +1811,8 @@ ImageBuf::deep_samples (int x, int y, int z) const
     impl()->validate_pixels();
     if (! deep())
         return 0;
-    const ImageSpec &m_spec (spec());
-    if (x < m_spec.x || y < m_spec.y || z < m_spec.z)
-        return 0;
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth)
-        return 0;
-    int p = (z * m_spec.height + y) * m_spec.width  + x;
-    return deepdata()->samples(p);
+    int p = impl()->pixelindex (x, y, z, true);
+    return p >= 0 ? deepdata()->samples(p) : 0;
 }
 
 
@@ -1767,13 +1824,9 @@ ImageBuf::deep_pixel_ptr (int x, int y, int z, int c, int s) const
     if (! deep())
         return NULL;
     const ImageSpec &m_spec (spec());
-    if (x < m_spec.x || y < m_spec.y || z < m_spec.z)
+    int p = impl()->pixelindex (x, y, z, true);
+    if (p < 0 || c < 0 || c >= m_spec.nchannels)
         return NULL;
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    if (x >= m_spec.width || y >= m_spec.height || z >= m_spec.depth ||
-        c < 0 || c >= m_spec.nchannels)
-        return NULL;
-    int p = (z * m_spec.height + y) * m_spec.width  + x;
     return (s < deepdata()->samples(p)) ? deepdata()->data_ptr (p, c, s) : NULL;
 }
 
@@ -1785,9 +1838,7 @@ ImageBuf::deep_value (int x, int y, int z, int c, int s) const
     impl()->validate_pixels();
     if (! deep())
         return 0.0f;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.deep_value (p, c, s);
 }
 
@@ -1799,9 +1850,7 @@ ImageBuf::deep_value_uint (int x, int y, int z, int c, int s) const
     impl()->validate_pixels();
     if (! deep())
         return 0;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.deep_value_uint (p, c, s);
 }
 
@@ -1812,9 +1861,7 @@ ImageBuf::set_deep_samples (int x, int y, int z, int samps)
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.set_samples (p, samps);
 }
 
@@ -1826,9 +1873,7 @@ ImageBuf::deep_insert_samples (int x, int y, int z,
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.insert_samples (p, samplepos, nsamples);
 }
 
@@ -1840,9 +1885,7 @@ ImageBuf::deep_erase_samples (int x, int y, int z,
 {
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     impl()->m_deepdata.erase_samples (p, samplepos, nsamples);
 }
 
@@ -1854,9 +1897,7 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, float value)
     impl()->validate_pixels();
     if (! deep())
         return ;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.set_deep_value (p, c, s, value);
 }
 
@@ -1868,9 +1909,7 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, uint32_t value)
     impl()->validate_pixels();
     if (! deep())
         return;
-    const ImageSpec &m_spec (spec());
-    x -= m_spec.x;  y -= m_spec.y;  z -= m_spec.z;
-    int p = (z * m_spec.height + y) * m_spec.width + x;
+    int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.set_deep_value (p, c, s, value);
 }
 
@@ -2163,6 +2202,14 @@ void *
 ImageBuf::pixeladdr (int x, int y, int z)
 {
     return impl()->pixeladdr (x, y, z);
+}
+
+
+
+int
+ImageBuf::pixelindex (int x, int y, int z, bool check_range) const
+{
+    return impl()->pixelindex (x, y, z, check_range);
 }
 
 

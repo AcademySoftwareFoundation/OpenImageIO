@@ -254,15 +254,6 @@ public:
     float xfilt (float x) const { return FilterCatmullRom1D::catrom1d(x * m_wscale); }
     float yfilt (float y) const { return FilterCatmullRom1D::catrom1d(y * m_hscale); }
     string_view name (void) const { return "catmull-rom"; }
-private :
-    static float catrom1d (float x) {
-        x = fabsf(x);
-        float x2 = x * x;
-        float x3 = x * x2;
-        return (x >= 2.0f) ? 0.0f :  ((x < 1.0f) ?
-                                      (3.0f * x3 - 5.0f * x2 + 2.0f) :
-                                      (-x3 + 5.0f * x2 - 8.0f * x + 4.0f) );
-    }
 private:
     float m_wscale, m_hscale;
 };
@@ -279,7 +270,7 @@ public:
     }
     string_view name (void) const { return "blackman-harris"; }
     static float bh1d (float x) {
-	if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
+        if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
             return 0.0f;
         // Compute BH.  Straight from classic BH paper, but the usual
         // formula assumes that the filter is centered at 0.5, so scale:
@@ -289,8 +280,20 @@ public:
         const float A2 =  0.14128f;
         const float A3 = -0.01168f;
         const float m_pi = float (M_PI);
+#if 0
+        // original -- three cos calls!
         return A0 + A1 * cosf(2.f * m_pi * x) 
              + A2 * cosf(4.f * m_pi * x) + A3 * cosf(6.f * m_pi * x);
+#else
+        // Use trig identintities to reduce to just one cos.
+        // https://en.wikipedia.org/wiki/List_of_trigonometric_identities
+        // cos(2x) = 2 cos^2(x) - 1
+        // cos(3x) = 4 cos^3(x) − 3 cos(x)
+        float cos2pix = cosf(2.f * m_pi * x);
+        float cos4pix = 2.0f * cos2pix * cos2pix - 1.0f;
+        float cos6pix = cos2pix * (2.0f * cos4pix - 1.0f);
+        return A0 + A1 * cos2pix + A2 * cos4pix + A3 * cos6pix;
+#endif
     }
 private:
     float m_rad_inv;
@@ -369,21 +372,31 @@ public:
 
     static float lanczos3 (float x) {
         const float a = 3.0f;  // Lanczos 3 lobe
+        const float ainv = 1.0f / a;
+        const float m_pi = float (M_PI);
         x = fabsf(x);
         if (x > a)
              return 0.0f;
         if (x < 0.0001f)
             return 1.0f;
-        const float m_pi = float (M_PI);
-        const float ainv = 1.0f/a;
-#if 1
-        // Use approximate fast_sinphi -- about 0.1% absolute error, but
-        // several times faster.
-        return a/(x*x*(m_pi*m_pi)) * fast_sinpi(x)*fast_sinpi(x*ainv);
-#else
+#if 0
         // Full precision, for reference:
         float pix = m_pi * x;
         return a/(x*x*(m_pi*m_pi)) * sinf(pix)*sinf(pix*ainv);
+#elif 0
+        // Use approximate fast_sinphi -- about 0.1% absolute error, but
+        // around 2.5x times faster. BUT when graphed, looks very icky near
+        // f(0).
+        return a/(x*x*(m_pi*m_pi)) * fast_sinpi(x)*fast_sinpi(x*ainv);
+#else
+        // Compromise: full-precision sin(), but use the trig identity
+        //   sin(3x) = -4 sin^3(x) + 3 sin(x)
+        // to make it so only one call to sin is sufficient. This is still
+        // about 1.5x the speed of the reference implementation, but with
+        // no precision compromises.
+        float s1 = sinf(x*ainv*m_pi); // sin(x*pi/a)
+        float s3 = (-4.0f * s1*s1 + 3.0f) * s1; // sin(3*x*pi/a) == sin(x*pi)
+        return a/(x*x*(m_pi*m_pi)) * s1 * s3;
 #endif
     }
 private:
@@ -667,7 +680,7 @@ FilterDesc filter1d_list[] = {
     { "triangle",        1,   2,    false,    true,     true },
     { "gaussian",        1,   3,    false,    true,     true },
     { "sharp-gaussian",  1,   2,    false,    true,     true },
-    { "catrom",          1,   4,    false,    true,     true },
+    { "catmull-rom",     1,   4,    false,    true,     true },
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
     { "lanczos3",        1,   6,    false,    true,     true },
@@ -749,7 +762,7 @@ static FilterDesc filter2d_list[] = {
     { "triangle",        2,   2,    false,    true,     true  },
     { "gaussian",        2,   3,    false,    true,     true  },
     { "sharp-gaussian",  2,   2,    false,    true,     true  },
-    { "catrom",          2,   4,    false,    true,     true  },
+    { "catmull-rom",     2,   4,    false,    true,     true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
     { "lanczos3",        2,   6,    false,    true,     true  },

@@ -67,6 +67,13 @@
 OIIO_NAMESPACE_BEGIN
 
 
+/// Helper template to let us tell if two types are the same.
+template<typename T, typename U> struct is_same { static const bool value = false; };
+template<typename T> struct is_same<T,T> { static const bool value = true; };
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 //
@@ -215,24 +222,108 @@ clamp (T a, T low, T high)
 }
 
 
-// Specialization of clamp for float4 (the ?: doesn't work quite the same)
+// Specialization of clamp for float4
 template<>
 inline simd::float4
 clamp (simd::float4 a, simd::float4 low, simd::float4 high)
 {
-    return simd::select (a < low, low, simd::select (a > high, high, a));
+    return simd::min (high, simd::max (low, a));
 }
 
 
 
-/// Multiply and add: (a * b) + c
+/// Fused multiply and add: (a*b + c)
 template <typename T>
 inline T madd (const T& a, const T& b, const T& c) {
-    // NOTE:  in the future we may want to explicitly ask for a fused
-    // multiply-add in a specialized version for float.
-    // NOTE2: GCC/ICC will turn this (for float) into a FMA unless
-    // explicitly asked not to, clang seems to leave the code alone.
+#if OIIO_FMA_ENABLED && (OIIO_CPLUSPLUS_VERSION >= 11)
+    // C++11 defines std::fma, which we assume is implemented using an
+    // intrinsic.
+    if (is_same<T,float>::value || is_same<T,double>::value)
+        return std::fma (a, b, c);
+#endif
+    // NOTE: GCC/ICC will turn this (for float) into a FMA unless
+    // explicitly asked not to, clang will do so if -ffp-contract=fast.
     return a * b + c;
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float madd (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fmadd_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 madd (const simd::float4& a, const simd::float4& b,
+                          const simd::float4& c) {
+    // Implement float4 madd in terms of the one defined in simd.h.
+    return simd::madd (a, b, c);
+}
+
+
+
+/// Fused multiply and subtract: -(a*b - c)
+template <typename T>
+inline T msub (const T& a, const T& b, const T& c) {
+    return a * b - c; // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float msub (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fmsub_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 msub (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 msub in terms of the one defined in simd.h.
+    return simd::msub (a, b, c);
+}
+
+
+
+/// Fused negative multiply and add: -(a*b) + c
+template <typename T>
+inline T nmadd (const T& a, const T& b, const T& c) {
+    return c - (a * b); // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float nmadd (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fnmadd_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 nmadd (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 nmadd in terms of the one defined in simd.h.
+    return simd::nmadd (a, b, c);
+}
+
+
+
+/// Negative fused multiply and subtract: -(a*b) - c
+template <typename T>
+inline T nmsub (const T& a, const T& b, const T& c) {
+    return -(a * b) - c; // Hope for the best
+}
+
+#if OIIO_FMA_ENABLED
+template <>
+inline float nmsub (const float& a, const float& b, const float& c) {
+    return _mm_cvtss_f32 (_mm_fnmsub_ss (_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+}
+#endif
+
+template <>
+inline simd::float4 nmsub (const simd::float4& a, const simd::float4& b,
+                           const simd::float4& c) {
+    // Implement float4 nmsub in terms of the one defined in simd.h.
+    return simd::nmsub (a, b, c);
 }
 
 
@@ -408,6 +499,17 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 
 
 
+/// Return floor(x) as an int, as efficiently as possible.
+inline int
+ifloor (float x)
+{
+    // Find the greatest whole number <= x.  This cast is faster than
+    // calling floorf.
+    return (int) x - (x < 0.0f ? 1 : 0);
+}
+
+
+
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
@@ -415,9 +517,7 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 inline float
 floorfrac (float x, int *xint)
 {
-    // Find the greatest whole number <= x.  This cast is faster than
-    // calling floorf.
-    int i = (int) x - (x < 0.0f ? 1 : 0);
+    int i = ifloor(x);
     *xint = i;
     return x - static_cast<float>(i);   // Return the fraction left over
 }
@@ -468,12 +568,6 @@ sincos (double x, double* sine, double* cosine)
 // CONVERSION
 //
 // Type and range conversion helper functions and classes.
-
-
-/// Helper template to let us tell if two types are the same.
-template<typename T, typename U> struct is_same { static const bool value = false; };
-template<typename T> struct is_same<T,T> { static const bool value = true; };
-
 
 
 template <typename IN_TYPE, typename OUT_TYPE>
@@ -549,9 +643,7 @@ scaled_conversion (const S &src, F scale, F min, F max)
 // FIXME: make table-based specializations for common types with only a
 // few possible src values (like unsigned char -> float).
 template<typename S, typename D>
-void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
-                   D _min=std::numeric_limits<D>::min(),
-                   D _max=std::numeric_limits<D>::max())
+void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 {
     if (is_same<S,D>::value) {
         // They must be the same type.  Just memcpy.
@@ -619,7 +711,6 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
 template<>
 inline void convert_type<uint8_t,float> (const uint8_t *src,
                                          float *dst, size_t n,
-                                         float _zero, float _one,
                                          float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint8_t>::max());
@@ -638,7 +729,6 @@ inline void convert_type<uint8_t,float> (const uint8_t *src,
 template<>
 inline void convert_type<uint16_t,float> (const uint16_t *src,
                                           float *dst, size_t n,
-                                          float _zero, float _one,
                                           float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint16_t>::max());
@@ -657,7 +747,6 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
 template<>
 inline void convert_type<half,float> (const half *src,
                                       float *dst, size_t n,
-                                      float _zero, float _one,
                                       float _min, float _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
@@ -674,7 +763,6 @@ inline void convert_type<half,float> (const half *src,
 template<>
 inline void
 convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
-                              uint16_t _zero, uint16_t _one,
                               uint16_t _min, uint16_t _max)
 {
     float min = std::numeric_limits<uint16_t>::min();
@@ -697,7 +785,6 @@ convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
-                             uint8_t _zero, uint8_t _one,
                              uint8_t _min, uint8_t _max)
 {
     float min = std::numeric_limits<uint8_t>::min();
@@ -721,7 +808,7 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,
-                          half _zero, half _one, half _min, half _max)
+                          half _min, half _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::float4 s (src);
@@ -731,6 +818,17 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
         *dst++ = *src++;
 }
 #endif
+
+
+
+template<typename S, typename D>
+inline void convert_type (const S *src, D *dst, size_t n)
+{
+    convert_type<S,D> (src, dst, n,
+                       std::numeric_limits<D>::min(),
+                       std::numeric_limits<D>::max());
+}
+
 
 
 
@@ -1071,6 +1169,10 @@ inline int fast_rint (float x) {
 #endif
 }
 
+inline simd::int4 fast_rint (const simd::float4& x) {
+    return simd::rint (x);
+}
+
 
 inline float fast_sin (float x) {
     // very accurate argument reduction from SLEEF
@@ -1182,6 +1284,7 @@ inline float fast_tan (float x) {
 
 /// Fast, approximate sin(x*M_PI) with maximum absolute error of 0.000918954611.
 /// Adapted from http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
+/// Note that this is MUCH faster, but much less accurate than fast_sin.
 inline float fast_sinpi (float x)
 {
 	// Fast trick to strip the integral part off, so our domain is [-1,1]
@@ -1215,6 +1318,7 @@ inline float fast_sinpi (float x)
 }
 
 /// Fast approximate cos(x*M_PI) with ~0.1% absolute error.
+/// Note that this is MUCH faster, but much less accurate than fast_cos.
 inline float fast_cospi (float x)
 {
     return fast_sinpi (x+0.5f);
@@ -1296,8 +1400,36 @@ static inline float fast_log2 (float x) {
     return ((f4 * hi) + (f * lo)) + exponent;
 }
 
+inline simd::float4 fast_log2 (const simd::float4& xval) {
+    using namespace simd;
+#if OIIO_SIMD_SSE
+    // See float fast_log2 for explanations
+    OIIO_SIMD_FLOAT4_CONST (log2_hi, std::numeric_limits<float>::max());
+    OIIO_SIMD_FLOAT4_CONST (log2_lo, std::numeric_limits<float>::min());
+    float4 x = clamp (xval, float4(log2_lo), float4(log2_hi));
+    int4 bits = bitcast_to_int4(x);
+    int4 exponent = srl (bits, 23) - int4(127);
+    float4 f = bitcast_to_float4 ((bits & int4(0x007FFFFF)) | int4(0x3f800000)) - float4(1.0f);
+    float4 f2 = f * f;
+    float4 f4 = f2 * f2;
+    float4 hi = madd(f, float4(-0.00931049621349f), float4( 0.05206469089414f));
+    float4 lo = madd(f, float4( 0.47868480909345f), float4(-0.72116591947498f));
+    hi = madd(f, hi, float4(-0.13753123777116f));
+    hi = madd(f, hi, float4( 0.24187369696082f));
+    hi = madd(f, hi, float4(-0.34730547155299f));
+    lo = madd(f, lo, float4( 1.442689881667200f));
+    return ((f4 * hi) + (f * lo)) + float4(exponent);
+#else
+    return float4 (fast_log2(xval[0]), fast_log2(xval[1]), fast_log2(xval[2]), fast_log2(xval[3]));
+#endif
+}
+
 inline float fast_log (float x) {
     // Examined 2130706432 values of logf on [1.17549435e-38,3.40282347e+38]: 0.313865375 avg ulp diff, 5148137 max ulp, 7.62939e-06 max error
+    return fast_log2(x) * float(M_LN2);
+}
+
+inline simd::float4 fast_log (const simd::float4& x) {
     return fast_log2(x) * float(M_LN2);
 }
 
@@ -1312,7 +1444,7 @@ inline float fast_logb (float x) {
     if (x < std::numeric_limits<float>::min()) x = std::numeric_limits<float>::min();
     if (x > std::numeric_limits<float>::max()) x = std::numeric_limits<float>::max();
     unsigned bits = bit_cast<float, unsigned>(x);
-    return int(bits >> 23) - 127;
+    return float (int(bits >> 23) - 127);
 }
 
 inline float fast_exp2 (float x) {
@@ -1338,8 +1470,40 @@ inline float fast_exp2 (float x) {
     return bit_cast<unsigned, float>(bit_cast<float, unsigned>(r) + (unsigned(m) << 23));
 }
 
+inline simd::float4 fast_exp2 (const simd::float4& xval) {
+    using namespace simd;
+#if OIIO_SIMD_SSE
+    // See float fast_exp2 for explanations
+    OIIO_SIMD_FLOAT4_CONST (exp_hi,  126.0f);
+    OIIO_SIMD_FLOAT4_CONST (exp_lo, -126.0f);
+    float4 x = clamp (xval, float4(exp_lo), float4(exp_hi));
+    int4 m (x); x -= float4(m);
+    OIIO_SIMD_FLOAT4_CONST (kone, 1.0f);
+    float4 one (kone);
+    x = one - (one - x); // crush denormals (does not affect max ulps!)
+    OIIO_SIMD_FLOAT4_CONST (kA, 1.33336498402e-3f);
+    OIIO_SIMD_FLOAT4_CONST (kB, 9.810352697968e-3f);
+    OIIO_SIMD_FLOAT4_CONST (kC, 5.551834031939e-2f);
+    OIIO_SIMD_FLOAT4_CONST (kD, 0.2401793301105f);
+    OIIO_SIMD_FLOAT4_CONST (kE, 0.693144857883f);
+    float4 r (kA);
+    r = madd(x, r, float4(kB));
+    r = madd(x, r, float4(kC));
+    r = madd(x, r, float4(kD));
+    r = madd(x, r, float4(kE));
+    r = madd(x, r, one);
+    return bitcast_to_float4 (bitcast_to_int4(r) + (m << 23));
+#else
+    return float4 (fast_exp2(xval[0]), fast_exp2(xval[1]), fast_exp2(xval[2]), fast_exp2(xval[3]));
+#endif
+}
+
 inline float fast_exp (float x) {
     // Examined 2237485550 values of exp on [-87.3300018,87.3300018]: 2.6666452 avg ulp diff, 230 max ulp
+    return fast_exp2(x * float(1 / M_LN2));
+}
+
+inline simd::float4 fast_exp (const simd::float4& x) {
     return fast_exp2(x * float(1 / M_LN2));
 }
 
@@ -1431,6 +1595,13 @@ inline float fast_safe_pow (float x, float y) {
     }
     return sign * fast_exp2(y * fast_log2(fabsf(x)));
 }
+
+
+// Fast simd pow that only needs to work for positive x
+inline simd::float4 fast_pow_pos (const simd::float4& x, const simd::float4& y) {
+    return fast_exp2(y * fast_log2(x));
+}
+
 
 inline float fast_erf (float x)
 {

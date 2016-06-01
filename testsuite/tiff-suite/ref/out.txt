@@ -73,7 +73,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     Exif:FocalPlaneYResolution: 847
     Exif:FocalPlaneResolutionUnit: 3 (cm)
     Exif:SensingMethod: 2 (1-chip color area)
-    oiio::ColorSpace: "sRGB"
+    oiio:ColorSpace: "sRGB"
  subimage  1:  160 x  120, 3 channel, uint8 tiff
     SHA-1: D7C5E398DC47C1FF619F62650EE2F8B303ADCDDC
     channel list: R, G, B
@@ -244,7 +244,7 @@ Reading ../../../../../libtiffpic/pc260001.tif
     Exif:Contrast: 2 (hard)
     Exif:Saturation: 0 (normal)
     Exif:Sharpness: 2 (hard)
-    oiio::ColorSpace: "sRGB"
+    oiio:ColorSpace: "sRGB"
 Comparing "../../../../../libtiffpic/pc260001.tif" and "pc260001.tif"
 PASS
 Reading ../../../../../libtiffpic/quad-lzw.tif

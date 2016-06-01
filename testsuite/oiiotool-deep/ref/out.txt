@@ -20,3 +20,5 @@ Comparing "deep_mulc.exr" and "ref/deep_mulc.exr"
 PASS
 Comparing "deep_divc.exr" and "ref/deep_divc.exr"
 PASS
+Comparing "deepmerge.exr" and "ref/deepmerge.exr"
+PASS

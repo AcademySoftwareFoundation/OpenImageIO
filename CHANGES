@@ -3,18 +3,25 @@ Changes:
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
- * New oiiotool commands: --box, --line #1319 (1.7.1); --laplacian #1332
-   (1.7.2)
- * oiiotool -otex and -oenv allow oiiotool to directly output proper texture
-   maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+ * New oiiotool commands:
+    * -otex and -oenv allow oiiotool to directly output proper texture
+      maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+    * --line can draw polylines into an image. #1319 (1.7.1)
+    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
+    * --laplacian computes the Laplacian. #1332 (1.7.1)
+    * --deep_merge does a full merge/composite of deep images. #1388 (1.7.2)
+    * -i inputs a file. Options autocc=, now=, info= control aspects
+      of reading that one file. #1389 (1.7.2)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
-   #1319 (1.7.1); laplacian() #1332 (1.7.2).
+   #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
+   deep_merge() #1388,1393 (1.7.2)
 
 Public API changes:
  * DeepData internals and API overhaul: struct internals hidden, now you
    must use the API; DeepData declaration is now in deepdata.h, not in
    imageio.h; DD methods now allow insertion and erasure of individual
-   samples. #1289 (1.7.0)
+   samples. #1289 (1.7.0) New DeepData methods: split, sort, merge_overlaps,
+   merge_deep_pixels, occlusion_cull. #1388,1393 (1.7.2)
  * imageio.h: Removed items deprecated since 1.4: a version of convert_types()
    that took alpha and z channel indices (but never used them). #1291
  * fmath.h: Removed safe_sqrtf, safe_acosf, fast_expf, which have been
@@ -32,6 +39,10 @@ Public API changes:
    in the data region of the IB. #1310 (1.7.1)
  * TypeDesc::is_signed() return true of the TypeDesc returns a type that
    can represent negative values. #1320
+ * Python: improve: reading with request for type UNKNOWN returns native
+   data in an unsigned char array. Also, requesting HALF returns the half
+   bits in an unsigned short array (since there is no 'half' type in Python).
+   #1362 (1.7.2/1.6.11)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -42,16 +53,13 @@ Fixes, minor enhancements, and performance improvements:
     * Allow command-line expression metadata names to contain ':'. #1321
       (1.7.1/1.6.10)
     * --info more clearly prints info about subimage formats. #1320 (1.7.1)
-    * --line can draw polylines into an image. #1319 (1.7.1)
-    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
     * --ch: when the channels were only renamed, not reordered, the
       renaming didn't happen properly. #1326 (1.7.1/1.6.10)
-    * --laplacian computes the Laplacian. #1332 (1.7.1)
     * Improved error message propagation from the underlying IBA functions
       and from errors encounered during --stats. #1338 (1.7.2)
     * --dumpdata:empty=0 now does something for non-deep files: skips
       reporting of pixels where all channels are black. Also fixed errors
-      for dumpdata of deep, but non-float, fles. #1355 (1.7.2)
+      for dumpdata of deep, but non-float, files. #1355 (1.7.2/1.6.11)
     * '--attrib:type=t name value' lets you explicitly name the top of
       the attribute you're seting. This helps for ambiguous cases, and also
       lets you create aggregate types (such as 'matrix' or 'int[2]' --
@@ -62,8 +70,26 @@ Fixes, minor enhancements, and performance improvements:
     * -o now takes optional arguments that control the output of just that
       one file, including :datatype=, :bits=, :dither=, :autocc=,
       :autocrop=, :autotrim=, :separate=, :contig=.  #1351 (1.7.2)
-    * -otex and -oenv allow oiiotool to directly output proper texture
-      maps, and it can now do everything that maketx can do. #1351 (1.7.2)
+    * --resize and --fit sped up by approximately 2x. #1372 (1.7.2)
+    * --runstats not tracks and reports max memory usage. #1385 (1.7.2)
+    * New --cache and --autotile options let you set the ImageCache size and
+      autotile options. #1385 (1.7.2)
+    * --native results in slightly different behavior: does not force float,
+      but still uses the ImageCache as backing if the native data type
+      is one of the types directly supported by IC. #1385 (1.7.2)
+    * --fixnan now works with deep images. #1397 (1.7.3)
+    * --stats when used with deep images, if it encounters any nonfinite
+      values, will print the location of a representative one. #1397 (1.7.3)
+    * --add, --sub, and --absdiff, when its two image operands have differing
+      number of channels, now try to do the "correct" thing and have the
+      result have the larger number of channels, treating any "missing"
+      channels in either input as if they were 0-valued. #1402 (1.7.3)
+    * --attrib:type-timecode lets you set timecodes in "human-readable" form:
+        oiiotool in.exr -attrib:type=timecode TimeCode 11:34:03:00 -o out.exr
+      #1415 (1.7.3)
+    * -info -v will print timecodes in human-readable form. #1415 (1.7.3)
+    * Bug fix: --fullsize didn't work properly when followed by --attrib.
+      #1418 (1.7.3/1.6.14)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -81,22 +107,28 @@ Fixes, minor enhancements, and performance improvements:
     * channels(): when the channels were only renamed, not reordered,
       the renaming didn't happen properly. #1326 (1.7.1/1.6.10)
     * computePixelStats: Improved numerical accuracy to avoid getting
-      NaN values from imprecision. #1333 (1.7.2)
+      NaN values from imprecision. #1333 (1.7.2/1.6.11)
     * laplacian() computes the laplacian of an image. #1332 (1.7.2)
     * fixNonFinite() takes a new option: NONFINITE_ERROR, which will
       return an error if nonfinite values are encountered. #1351 (1.7.2)
     * convolve() and unsharp_mask() have been sped up by about 35% for
       common cases. #1357 (1.7.2)
+    * IBA::resize sped up by approximately 2x. #1372 (1.7.2)
+    * IBA::fixNonFinite() now works with deep images. #1397 (1.7.3)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
-      #1336 (1.7.2)
+      #1336 (1.7.2/1.6.11)
+    * Texture: slight improvement in texture sharpness. #1369 (1.7.2/1.6.11)
+    * New statistics related to redundant tile reads. #1417 (1.7.3)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
     * Remove long-obsolete and non-functional command line options: --new,
       --old, --hash. #1351 (1.7.2)
- * iinfo more clearly prints info about subimage formats. #1320 (1.7.1)
+ * iinfo:
+    * More clearly prints info about subimage formats. #1320 (1.7.1)
+    * Print timecodes in human-readable form. #1415 (1.7.3)
  * TIFF:
     * When outputting a TIFF file, a special attribute "tiff:half", if
       set to nonzero, will enable writing of 16-bit float pixel data
@@ -107,24 +139,38 @@ Fixes, minor enhancements, and performance improvements:
     * Output: "tiff:zipquality" attribute controls time-vs-quality for
       ZIP compression (1-9, defualt 6, higher means more compression).
       #1295 (1.7.1)
+    * Fix typo that made TIFF files incorrectly name color space metadata
+      "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
+    * More robust handling of non-zero origin of full/display window.
+      #1414 (1.6.14/1.7.3)
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
-    * Improved error reporting for bad tile reads. #1338 (1.7.2)
-    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2)
+    * Improved error reporting for bad tile reads. #1338 (1.7.2/1.6.11)
+    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2/1.6.11)
+    * The global OIIO::attribute("exr_threads") has been modified so that 0
+      means to use full available hardware, -1 disables the OpenEXR
+      thread pool and execute in the caller thread. #1381 (1.7.2)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
  * GIF:
-    * GIF reader failed to set spec full_width, full_height. #1348 (1.7.2)
+    * GIF reader failed to set spec full_width, full_height. #1348
+      (1.7.2/1.6.11)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
  * PNM:
-    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2)
+    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
  * JPEG:
     * Fix bad memory access crash when reading specific JPEG files that were
       written without their comment field including a null character to
-      end the string. #1365 (1.7.2)
+      end the string. #1365 (1.7.2/1.6.11)
+ * Improved accuracy of "lanczos3" filter; speed up blackman-harris filter.
+   #1379 (1.7.2)
+ * Speed up linear<->sRGB color conversions (as used by any of the IBA color
+   conversion functions as well as oiiotool --colorconvert and friends),
+   approximately doubling the speed when no OpenColorIO config is found.
+   #1383 (1.7.2)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
@@ -144,29 +190,58 @@ Build/test system improvements:
  * imagespeed_test can not specify the data conversion type for reads,
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
- * Fix build breaks for gcc 6. #1339 (1.7.2)
+ * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11)
  * Fix errors in finding the correct locaiton of pugixml.hpp when using
-   USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2)
+   USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2/1.6.11)
  * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
-   No more FindIlmbase.cmake at all. #1346 (1.7.2)
+   No more FindIlmbase.cmake at all. #1346 (1.7.2/1.6.11)
  * 'make CODECOV=1; make CODECOV=1 test' can build and test in a way that
    provides a code coverage report. #1356 (1.7.2)
- * Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353 (1.7.2)
+ * Fix Filesystem::open() issues with UTF-8 filenames on MinGW.
+   #1353,#1357 (1.7.2/1.6.11)
  * Allow build against a wider range of ffmpeg versions. #1359 (1.7.2)
+ * Build correctly against FFMPEG 3.0. #1374 (1.7.2)
+ * If found, libjpeg-turbo is used rather than libjpeg; this gives about a
+   2x speed improvement for reading & writing JPEG files. #1390 (1.7.2/1.6.13)
+ * USE_CPP11=... and USE_CPP14=... are the build flags for both the Make
+   wrapper and the CMake scripts. (Before, it was confusing to have USE_CPP11
+   for make but OIIO_BUILD_CPP11 for CMake. Now they are one.) #1391 (1.7.2)
+ * Improved LINKSTATIC=1, now mostly works. #1395 (1.7.3)
+ * Big CMake refactor, got rid of redundancies. #1395 (1.7.3)
+ * Remove old embedded Ptex, now must find Ptex externally. Also modified
+   the build scripts to correctly handle newer versions of Ptex. #1400
+   (1.7.3/1.6.13)
+ * Got Appveyor building OIIO. This is a continuous integration service
+   much like Travis, but it's for Windows. Hopefully this means that it will
+   be much harder for us to make changes that inadvertently break the build
+   on Windows. #1399 (1.7.3)
+ * Make FindOpenEXR.cmake more robust when the version number is embedded
+   in the library name. #1401 (1.7.3)
+ * Clear up some inconsistencies in the CMake files and the Makefile wrapper:
+   the flag to compile with libc++ is now always called USE_LIBCPLUSPLUS,
+   not sometimes OIIO_BUILD_LIBCPLUSPLUS. #1404 (1.7.3)
+ * Overhaul OpenCV dependency finding and make it work with OpenCV 3.x.
+   #1409 (1.7.3/1.6.13)
+ * Allow custom JPEG_PATH to hint location of JPEG library. #1411
+   (1.7.3/1.6.13)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
    direction; raised minimum chunk size to prevent thread fan-out for
    images too small to benefit; uses the calling thread as part of the
    pool. #1303 (1.7.0)
- * timer.h: DoNotOptimize() and clobber() help to disable certain
+ * timer.h: DoNotOptimize() and clobber_all_memory() help to disable certain
    optimizations that would interfere with micro-benchmarks. #1305 (1.7.0)
  * simd.h improvements: select(); round(); float4::store(half*),
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
    Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
-   and add ~ for int4. #1331 (1.7.2)
+   and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
+   andnot #1377 (1.7.2); exp, log #1384 (1.7.2).
  * fmath.h: convert_types has new special cases that vastly speed up
-   float <-> uint16, uint8, and half buffer conversions. #1305 (1.7.0)
+   float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
+   ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
+   fast_exp, fast_pow_pos #1384 (1.7.2)
+ * thread.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14)
  * compute_test: new unit test can be used to benchmark computation
    times. #1310 (1.7.1)
  * Strutil::extract_from_list_string is more flixible by allowing the vals
@@ -175,8 +250,66 @@ Developer goodies / internals:
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
+ * platform.h: better distinguishing beteen Apple and Generic clang,
+   separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
+   OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
 
 
+
+Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
+------------------------------------------------
+* Use libjpeg-turbo if found. It's a drop-in replacement for libjpeg, but
+  is around 2x faster. #1390
+* Fix some Windows compiler warnings and errors.
+* Remove old embedded Ptex, now must find Ptex externally. Also modified
+  the build scripts to correctly handle newer versions of Ptex. #1400
+* Overhaul OpenCV dependency finding and make it work with OpenCV 3.x. #1409
+* Allow custom JPEG_PATH to hint location of JPEG library. #1411
+
+Release 1.6.12 (released 1 Apr 2016 -- compared to 1.6.11)
+------------------------------------------------
+* Build correctly against FFMPEG 3.0. #1374
+* The global OIIO::attribute("exr_threads") has been modified so that 0
+  means to use full available hardware, -1 disables the OpenEXR thread
+  pool and execute in the caller thread. #1381
+* Thread-pool counts initialized to hardware_concurrency, not
+  physical_concurrency (i.e., they will include hyperthread cores by
+  default). #1378
+* oiiotool --autocc bug fixed.
+* Miscellaneous improvements to simd.h ported from master.
+* Fix typo that made TIFF files incorrectly name color space metadata
+  "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394
+
+Release 1.6.11 (released 1 Mar 2016 -- compared to 1.6.10)
+------------------------------------------------
+* Fix potential of IBA::computePixelStats (including oiiotool --stats)
+  to end up with NaNs due to numerical imprecision. #1333
+* Less unnecessary pausing after read errors when falure_retries == 0.
+  #1336
+* Fix errors in finding the correct locaiton of pugixml.hpp when using
+  USE_EXTERNAL_PUGIXML=1. #1339
+* Fix build breaks for gcc 6. #1339
+* GIF reader failed to set spec full_width, full_height. #1348
+* PNM: Fixed byte swapping when reading 16 but PNM files. #1352
+* OpenEXR: Improved error reporting for bad tile reads. #1338
+* OpenEXR: Fix errors reading tiles for mixed-format EXR files. #1352
+* oiiotool --dumpdata:empty=0 now does something for non-deep files: skips
+  reporting of pixels where all channels are black. Also fixed errors
+  for dumpdata of deep, but non-float, files. #1355
+* Fix Filesystem::open() issues with UTF-8 filenames on MinGW. #1353
+* Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
+  No more FindIlmbase.cmake at all. #1346
+* Fix build break for older gcc < 4.4 that didn't have immintrin.h.
+* Fix bad memory access crash when reading specific JPEG files that were
+  written without their comment field including a null character to
+  end the string. #1365
+* The ffmpeg-based reader had a variety of fixes. #1288
+* Python: improve: reading with request for type UNKNOWN returns native
+  data in an unsigned char array. Also, requesting HALF returns the half
+  bits in an unsigned short array (since there is no 'half' type in Python).
+  #1362
+* Texture: slight improvement in texture sharpness. #1369
+* Update webp testsuite references for new webp version.
 
 Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 ------------------------------------------------
@@ -731,6 +864,12 @@ Developer goodies / internals:
    (1.6.6/1.5.21)
 
 
+
+Release 1.5.24 (1 Mar 2016) -- compared to 1.5.23)
+---------------------------------------------------
+* Fix oiiotool --dumpdata, didn't work properly for non-float files.
+* Fix broken OpenEXR multi-part output when parts have different pixel types.
+* Update webp testsuite references for new webp version.
 
 Release 1.5.23 (28 Dec 2015) -- compared to 1.5.22)
 ---------------------------------------------------

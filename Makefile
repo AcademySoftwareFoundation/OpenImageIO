@@ -28,7 +28,7 @@ endif
 
 MY_MAKE_FLAGS ?=
 MY_NINJA_FLAGS ?=
-MY_CMAKE_FLAGS ?= -g3 -DSELF_CONTAINED_INSTALL_TREE:BOOL=TRUE
+MY_CMAKE_FLAGS += -g3 -DSELF_CONTAINED_INSTALL_TREE:BOOL=TRUE
 BUILDSENTINEL ?= Makefile
 NINJA ?= ninja
 CMAKE ?= cmake
@@ -105,6 +105,14 @@ ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
 
+ifneq (${PYLIB_LIB_PREFIX},)
+MY_CMAKE_FLAGS += -DPYLIB_LIB_PREFIX:BOOL=${PYLIB_LIB_PREFIX}
+endif
+
+ifneq (${PYLIB_INCLUDE_SONAME},)
+MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
+endif
+
 ifneq (${USE_FFMPEG},)
 MY_CMAKE_FLAGS += -DUSE_FFMPEG:BOOL=${USE_FFMPEG}
 endif
@@ -119,6 +127,14 @@ endif
 
 ifneq (${USE_OPENJPEG},)
 MY_CMAKE_FLAGS += -DUSE_OPENJPEG:BOOL=${USE_OPENJPEG}
+endif
+
+ifneq (${USE_JPEGTURBO},)
+MY_CMAKE_FLAGS += -DUSE_JPEGTURBO:BOOL=${USE_JPEGTURBO}
+endif
+
+ifneq (${JPEGTURBO_PATH},)
+MY_CMAKE_FLAGS += -DJPEGTURBO_PATH:STRING=${JPEGTURBO_PATH}
 endif
 
 ifneq (${USE_GIF},)
@@ -165,6 +181,10 @@ ifneq (${OPENEXR_HOME},)
 MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
 endif
 
+ifneq (${ILMBASE_HOME},)
+MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
+endif
+
 ifneq (${OCIO_HOME},)
 MY_CMAKE_FLAGS += -DOCIO_PATH:STRING=${OCIO_HOME}
 endif
@@ -205,14 +225,6 @@ ifneq (${SOVERSION},)
 MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
 endif
 
-ifneq (${PYLIB_LIB_PREFIX},)
-MY_CMAKE_FLAGS += -DPYLIB_LIB_PREFIX:BOOL=${PYLIB_LIB_PREFIX}
-endif
-
-ifneq (${PYLIB_INCLUDE_SONAME},)
-MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
-endif
-
 ifneq (${BUILD_OIIOUTIL_ONLY},)
 MY_CMAKE_FLAGS += -DBUILD_OIIOUTIL_ONLY:BOOL=${BUILD_OIIOUTIL_ONLY}
 endif
@@ -233,15 +245,15 @@ MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING="${MYCXX}"
 endif
 
 ifneq (${USE_CPP11},)
-MY_CMAKE_FLAGS += -DOIIO_BUILD_CPP11:BOOL=${USE_CPP11}
+MY_CMAKE_FLAGS += -DUSE_CPP11:BOOL=${USE_CPP11}
 endif
 
 ifneq (${USE_CPP14},)
-MY_CMAKE_FLAGS += -DOIIO_BUILD_CPP14:BOOL=${USE_CPP14}
+MY_CMAKE_FLAGS += -DUSE_CPP14:BOOL=${USE_CPP14}
 endif
 
 ifneq (${USE_LIBCPLUSPLUS},)
-MY_CMAKE_FLAGS += -DOIIO_BUILD_LIBCPLUSPLUS:BOOL=${USE_LIBCPLUSPLUS}
+MY_CMAKE_FLAGS += -DUSE_LIBCPLUSPLUS:BOOL=${USE_LIBCPLUSPLUS}
 endif
 
 ifneq (${EXTRA_CPP_ARGS},)
@@ -268,6 +280,11 @@ endif
 ifneq (${CODECOV},)
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug -DCODECOV:BOOL=${CODECOV}
 endif
+
+ifneq (${USE_FREETYPE},)
+MY_CMAKE_FLAGS += -DUSE_FREETYPE:BOOL=${USE_FREETYPE}
+endif
+
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
@@ -356,7 +373,7 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 test: cmake
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	@ # if [ "${CODECOV}" == "1" ] ; then lcov -b ${build_dir} -d ${build_dir} -z ; rm -rf ${build_dir}/cov ; fi
-	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest  ${TEST_FLAGS} -E broken )
+	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest -E broken ${TEST_FLAGS} )
 	@ ( if [ "${CODECOV}" == "1" ] ; then \
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \
@@ -403,7 +420,7 @@ help:
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
 	@echo "  make test         Run tests"
-	@echo "  make testall      Run all tets, even broken ones"
+	@echo "  make testall      Run all tests, even broken ones"
 	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
@@ -428,6 +445,7 @@ help:
 	@echo "  Finding and Using Dependencies:"
 	@echo "      BOOST_HOME=path          Custom Boost installation"
 	@echo "      OPENEXR_HOME=path        Custom OpenEXR installation"
+	@echo "      ILMBASE_HOME=path        Custom IlmBase installation"
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_OPENGL=0             Skip anything that needs OpenGL"
@@ -438,6 +456,8 @@ help:
 	@echo "      USE_FIELD3D=0            Don't build the Field3D plugin"
 	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
 	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"
+	@echo "      USE_JPEGTURBO=0          Don't build the JPEG-Turbo even if found"
+	@echo "      JPEGTURBO_PATH=path      Custom path for JPEG-Turbo"
 	@echo "      USE_OPENJPEG=0           Don't build the JPEG-2000 plugin"
 	@echo "      USE_GIF=0                Don't build the GIF plugin"
 	@echo "      GIF_DIR=path             Custom GIFLIB installation"
@@ -451,6 +471,7 @@ help:
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
+	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
 	@echo "  OIIO build-time options:"
 	@echo "      NAMESPACE=name           Wrap everything in another namespace"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"

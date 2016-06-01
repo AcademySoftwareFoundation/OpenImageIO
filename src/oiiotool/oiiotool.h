@@ -34,6 +34,7 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/refcnt.h"
 #include "OpenImageIO/timer.h"
+#include "OpenImageIO/sysutil.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -43,6 +44,20 @@ typedef int (*CallbackFunction)(int argc,const char*argv[]);
 
 class ImageRec;
 typedef shared_ptr<ImageRec> ImageRecRef;
+
+
+/// Polycy hints for reading images
+enum ReadPolicy {
+    ReadDefault = 0,       //< Default: use cache, maybe convert to float.
+                           //<   For "small" files, may bypass cache.
+    ReadNative  = 1,       //< Keep in native type, use cache if it supports
+                           //<   the native type, bypass if not. May still
+                           //<   bypass cache for "small" images.
+    ReadNoCache = 2,       //< Bypass the cache regardless of size (beware!),
+                           //<   but still subject to format conversion.
+    ReadNativeNoCache = 3, //< No cache, no conversion. Do it all now.
+                           //<   You better know what you're doing.
+};
 
 
 
@@ -64,6 +79,8 @@ public:
     bool autoorient;
     bool autocc;                      // automatically color correct
     bool nativeread;                  // force native data type reads
+    int cachesize;
+    int autotile;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
@@ -105,6 +122,7 @@ public:
     typedef std::map<std::string, double> TimingMap;
     TimingMap function_times;
     bool enable_function_timing;
+    size_t peak_memory;
 
     Oiiotool ();
 
@@ -113,11 +131,11 @@ public:
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to
     /// oiiotool.
-    bool read (ImageRecRef img);
+    bool read (ImageRecRef img, ReadPolicy readpolicy = ReadDefault);
     // Read the current image
-    bool read () {
+    bool read (ReadPolicy readpolicy = ReadDefault) {
         if (curimg)
-            return read (curimg);
+            return read (curimg, readpolicy);
         return true;
     }
 
@@ -188,6 +206,12 @@ public:
 
     void error (string_view command, string_view explanation="");
     void warning (string_view command, string_view explanation="");
+
+    size_t check_peak_memory () {
+        size_t mem = Sysutil::memory_used();
+        peak_memory = std::max (peak_memory, mem);
+        return mem;
+    }
 
 private:
     CallbackFunction m_pending_callback;
@@ -315,7 +339,7 @@ public:
     // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
-    bool read (bool force_native_read=false);
+    bool read (ReadPolicy readpolicy = ReadDefault);
 
     // ir(subimg,mip) references a specific MIP level of a subimage
     // ir(subimg) references the first MIP level of a subimage
@@ -549,6 +573,9 @@ public:
             if (img[i]->has_error())
                 ot.error (opname(), img[i]->geterror());
         }
+
+        if (ot.debug || ot.runstats)
+            ot.check_peak_memory();
 
         // Optional cleanup after processing all the subimages
         cleanup ();

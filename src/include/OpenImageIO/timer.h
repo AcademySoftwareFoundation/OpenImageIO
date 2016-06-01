@@ -38,10 +38,10 @@
 
 #include "oiioversion.h"
 #include "export.h"
-#include "platform.h"    /* Must be before windows.h */
+#include "platform.h"
 
 #ifdef _WIN32
-# include <windows.h>
+//# include <windows.h>  // Already done by platform.h
 #elif defined(__APPLE__)
 # include <mach/mach_time.h>
 #else
@@ -91,7 +91,7 @@ public:
     Timer (StartNowVal startnow=StartNow,
            PrintDtrVal printdtr=DontPrintDtr,
            const char *name=NULL)
-        : m_ticking(false), m_printdtr(printdtr),
+        : m_ticking(false), m_printdtr(printdtr==PrintDtr),
           m_starttime(0), m_elapsed_ticks(0),
           m_name(name)
     {
@@ -272,7 +272,7 @@ template <class T>
 inline void __attribute__((__optnone__))
 DoNotOptimize (T const &val) { }
 
-#elif (defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#elif ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Major non-MS compilers on x86/x86_64: use asm trick to indicate that
 // the value is needed.
@@ -284,7 +284,7 @@ DoNotOptimize (T const &val) { asm volatile("" : "+rm" (const_cast<T&>(val))); }
 
 // Microsoft of course has its own way of turning off optimizations.
 #pragma optimize("", off)
-template <class T> inline void DoNotOptimize (T const &val) { val = val; }
+template <class T> inline void DoNotOptimize (T const &val) { const_cast<T&>(val) = val; }
 #pragma optimize("", on)
 
 #else
@@ -300,17 +300,17 @@ template <class T> inline void DoNotOptimize (T const &val) { }
 /// fools the compiler into thinking that potentially any part of memory
 /// has been modified, and thus serves as a barrier where the optimizer
 /// won't assume anything about the state of memory preceding it.
-#if (defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
 
 // Special trick for x86/x86_64 and gcc-like compilers
-inline void clobber() {
+inline void clobber_all_memory() {
     asm volatile ("" : : : "memory");
 }
 
 #else
 
 // No fallback for other CPUs or compilers. Suggestions?
-inline void clobber() { }
+inline void clobber_all_memory() { }
 
 #endif
 
@@ -329,7 +329,7 @@ time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
         Timer timer;
         for (int i = 0; i < nrepeats; ++i) {
             // Be sure that the repeated calls to func aren't optimzed away:
-            clobber ();
+            clobber_all_memory();
             func ();
         }
         double t = timer();

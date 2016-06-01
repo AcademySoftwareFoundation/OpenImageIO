@@ -52,7 +52,7 @@ failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
 
-image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla" ]
+image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla", ".dpx" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -309,8 +309,9 @@ with open(os.path.join(test_source_dir,"run.py")) as f:
     exec (code)
 
 # Allow a little more slop for slight pixel differences when in DEBUG
-# mode or when running on remote Travis-CI machines.
+# mode or when running on remote Travis-CI or Appveyor machines.
 if (("TRAVIS" in os.environ and os.environ["TRAVIS"]) or
+    ("APPVEYOR" in os.environ and os.environ["APPVEYOR"]) or
     ("DEBUG" in os.environ and os.environ["DEBUG"])) :
     failthresh *= 2.0
     hardfail *= 2.0

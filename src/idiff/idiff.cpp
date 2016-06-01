@@ -304,10 +304,10 @@ main (int argc, char *argv[])
                         std::cout << ", channel " << cr.maxc << ')';
                 }
                 std::cout << "\n";
-// when Visual Studio is used float values in scientific foramt are 
-// printed with three digit exponent. We change this behaviour to fit
-// Linux way
-#ifdef _MSC_VER
+#if OIIO_MSVS_BEFORE_2015
+                // When older Visual Studio is used, float values in
+                // scientific foramt are printed with three digit exponent.
+                // We change this behaviour to fit Linux way.
                 _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
                 std::streamsize precis = std::cout.precision();

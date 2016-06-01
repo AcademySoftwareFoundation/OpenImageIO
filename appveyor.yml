@@ -1,0 +1,132 @@
+version: '{branch}-{build}'
+os: Visual Studio 2015
+clone_folder: C:\projects\oiio
+test: off
+configuration:
+    - Release
+    # - Debug
+platform:
+    - x64
+# branches:
+#   only:
+#     - master
+environment:
+  matrix:
+    # - CMAKE_PLATFORM: "Visual Studio 14 2015"
+    #   PYTHON_DIR: "C:\\Python27"
+    - CMAKE_PLATFORM: "Visual Studio 14 2015 Win64"
+      PYTHON_DIR: "C:\\Python27-x64"
+      tbs_arch: "x64"
+      tbs_tools: "msvc14"
+      tbs_static_runtime: 0
+      # BUILD_STATIC: 1
+
+install:
+  - cinstall: python
+  - set CMAKE_PREFIX_PATH=C:/Sys;%APPVEYOR_BUILD_FOLDER%/deps
+  - set CMAKE_LIBRARY_PATH=C:/Sys/lib;%APPVEYOR_BUILD_FOLDER%/deps/lib
+  - set CMAKE_INCLUDE_PATH=C:/Sys/include;%APPVEYOR_BUILD_FOLDER%/deps/include
+  - mkdir c:\sys
+  - mkdir deps
+  - cd deps
+  - mkdir lib
+  - mkdir include
+
+  # ZLIB
+  - appveyor DownloadFile https://github.com/madler/zlib/archive/v1.2.8.tar.gz
+  - 7z x v1.2.8.tar.gz -so | 7z x -si -ttar
+  - cd zlib-1.2.8
+  - cmake -G "%CMAKE_PLATFORM%" . -DCMAKE_INSTALL_PREFIX=C:/Sys
+  - cmake --build . --config Release
+  - cmake --build . --config Release --target install
+  - cd ..
+
+  # TIFF
+  - nuget install libtiff-%tbs_tools%-%tbs_arch%-master -Version 4.0.6.85 -Source https://ci.appveyor.com/nuget/libtiff-i3h8tqqy7o7b &&
+      powershell -Command "move libtiff*\* . -force" 
+
+  # PNG
+  - nuget install libpng-%tbs_tools%-%tbs_arch%-master -Version 1.6.18.44 -Source https://ci.appveyor.com/nuget/libpng-7hwq4pmmrc48
+  - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/libpng-msvc14-x64-master.1.6.18.44
+
+  # OpenEXR   FIXME - this is 2.0?
+  - set EXRINSTALLDIR=%APPVEYOR_BUILD_FOLDER%/deps/openexr-install
+  - set EXRVERSION=2.2.0
+  - mkdir openexr-install
+  - git clone -b v%EXRVERSION% https://github.com/openexr/openexr.git ./openexr
+  - cd openexr
+  - dir
+  - cd IlmBase
+  - mkdir build
+  - cd build
+  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_INSTALL_PREFIX=C:/Sys ..
+  - cmake --build . --config Release
+  - cmake --build . --config Release --target install
+  - dir C:\Sys
+  - dir C:\Sys\lib
+  - dir C:\Sys\include
+  - cd ../../OpenEXR
+  - mkdir build
+  # Huge cheat -- substitute our own tables to save compile time, and
+  # a modified IlmImf/CMakeLists.txt that skips the files if already present
+  - copy %APPVEYOR_BUILD_FOLDER%\src\build-scripts\OpenEXR-CMakeLists.txt CMakeLists.txt
+  - copy %APPVEYOR_BUILD_FOLDER%\src\build-scripts\OpenEXR-IlmImf-CMakeLists.txt IlmImf\CMakeLists.txt
+  - cd build
+  - mkdir IlmImf
+  - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/b44ExpLogTable.h.zip"
+  - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/dwaLookups.h.zip"
+  - dir IlmImf
+  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_INSTALL_PREFIX=C:/Sys -DCMAKE_PREFIX_PATH=c:/sys -DILMBASE_PACKAGE_PREFIX=c:/sys -DBUILD_UTILS=0 -DBUILD_TESTS=0 ..
+  - cmake --build . --config Release
+  - cmake --build . --config Release --target install
+  - cd ../../..
+  - dir
+
+  # JPEG
+  - nuget install libjpeg-%tbs_tools%-%tbs_arch%-master -Version 1.4.80.21 -Source https://ci.appveyor.com/nuget/libjpegturbo-o6k4js4y7pjw
+  - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/libjpeg-msvc14-x64-master.1.4.80.21
+
+  # Boost
+  - set BOOST_ROOT=C:\Libraries\boost_1_59_0
+  - dir %BOOST_ROOT%
+  - set BOOST_LIBRARYDIR=C:\Libraries\boost_1_59_0\lib64-msvc-14.0
+  - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%BOOST_ROOT%
+
+  # OpenColorIO
+  # - svn co https://svn.blender.org/svnroot/bf-blender/trunk//lib/win64_vc14/OpenColorIO
+  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/OpenColorIO
+
+  # FFmpeg
+  # - svn co https://svn.blender.org/svnroot/bf-blender/trunk//lib/win64/ffmpeg
+  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/ffmpeg
+
+  # Freetype
+  # - nuget install freetype-%tbs_tools%-%tbs_arch%-master -Version 2.6.2.1 -Source https://ci.appveyor.com/nuget/freetype-vf7bw7v5ec29
+  # - ps: move freetype*\* deps -force
+  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/freetype
+
+  - cd ..
+  - dir C:\Sys
+  - dir C:\Sys\include
+  - dir C:\Sys\lib
+  - dir C:\projects\oiio\deps
+  - dir C:\projects\oiio\deps\include
+  - dir C:\projects\oiio\deps\lib
+
+
+build_script:
+  - echo Running cmake...
+  - cd c:\projects\oiio
+  - mkdir build
+  - mkdir build\windows64
+  - cd build\windows64
+  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_HOME=C:\projects\oiio\deps -DVERBOSE=1 ../..
+  - dir c:\projects\oiio
+  - dir c:\projects\oiio\build
+  - dir c:\projects\oiio\build\windows64
+  - cmake --build . --config %CONFIGURATION%
+
+
+matrix:
+    fast_finish: true
+

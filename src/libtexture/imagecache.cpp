@@ -122,6 +122,14 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 }
 
 
+// Functor to compare amount of redundant reading, sort in descending order
+static bool
+redundantbytes_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->redundant_bytesread() > b->redundant_bytesread();
+}
+
+
 };  // end anonymous namespace
 
 
@@ -230,6 +238,38 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
                spec.height <= spec.tile_height &&
                spec.depth <= spec.tile_depth);
     polecolorcomputed = false;
+
+    // Allocate bit field for which tiles have been read at least once.
+    if (onetile) {
+        nxtiles = 1;
+        nytiles = 1;
+        nztiles = 1;
+    } else {
+        nxtiles = (spec.width  + spec.tile_width  - 1) / spec.tile_width;
+        nytiles = (spec.height + spec.tile_height - 1) / spec.tile_height;
+        nztiles = (spec.depth  + spec.tile_depth  - 1) / spec.tile_depth;
+    }
+    int total_tiles = nxtiles * nytiles * nztiles;
+    ASSERT (total_tiles >= 1);
+    tiles_read = new atomic_ll [round_to_multiple (total_tiles, 64) / 64];
+}
+
+
+
+ImageCacheFile::LevelInfo::LevelInfo (const LevelInfo &src)
+    : spec(src.spec), nativespec(src.nativespec),
+      full_pixel_range(src.full_pixel_range),
+      onetile(src.onetile),
+      polecolorcomputed(src.polecolorcomputed),
+      polecolor(src.polecolor),
+      nxtiles(src.nxtiles),
+      nytiles(src.nytiles),
+      nztiles(src.nztiles)
+{
+    int nwords = round_to_multiple (nxtiles * nytiles * nztiles, 64) / 64;
+    tiles_read = new atomic_ll [nwords];
+    for (int i = 0; i < nwords; ++i)
+        tiles_read[i] = src.tiles_read[i];
 }
 
 
@@ -1360,7 +1400,19 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
                               m_id.chbegin(), m_id.chend(),
                               file.datatype(m_id.subimage()), &m_pixels[0]);
     m_id.file().imagecache().incr_mem (size);
-    if (! m_valid) {
+    if (m_valid) {
+        // Figure out if 
+        ImageCacheFile::LevelInfo &lev (file.levelinfo (m_id.subimage(), m_id.miplevel()));
+        int whichtile = ((m_id.x() - lev.spec.x) / lev.spec.tile_width)
+                      + ((m_id.y() - lev.spec.y) / lev.spec.tile_height) * lev.nxtiles
+                      + ((m_id.z() - lev.spec.z) / lev.spec.tile_depth) * (lev.nxtiles*lev.nytiles);
+        int index = whichtile / 64;
+        int64_t bitmask = int64_t (1ULL << (whichtile & 63));
+        int64_t oldval = lev.tiles_read[index].fetch_or (bitmask);
+        if (oldval & bitmask)   // Was it previously read?
+            file.register_redundant_tile (lev.spec.tile_bytes());
+    } else {
+        // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
 #if 0
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y()
@@ -1493,12 +1545,23 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     }
     if (i >= 0)
         out << Strutil::format ("%7d ", i);
-    if (includestats)
-        out << Strutil::format ("%4llu    %5llu   %6.1f %9s  ",
-                                (unsigned long long) file->timesopened(),
-                                (unsigned long long) file->tilesread(),
-                                file->bytesread()/1024.0/1024.0,
-                                Strutil::timeintervalformat(file->iotime()).c_str());
+    if (includestats) {
+        unsigned long long redund_tiles = file->redundant_tiles();
+        if (redund_tiles)
+            out << Strutil::format ("%4llu  %7llu   %8.1f   (%5llu %6.1f) %9s  ",
+                                    (unsigned long long) file->timesopened(),
+                                    (unsigned long long) file->tilesread(),
+                                    file->bytesread()/1024.0/1024.0,
+                                    redund_tiles,
+                                    file->redundant_bytesread()/1024.0/1024.0,
+                                    Strutil::timeintervalformat(file->iotime()));
+        else
+            out << Strutil::format ("%4llu  %7llu   %8.1f                  %9s  ",
+                                    (unsigned long long) file->timesopened(),
+                                    (unsigned long long) file->tilesread(),
+                                    file->bytesread()/1024.0/1024.0,
+                                    Strutil::timeintervalformat(file->iotime()));
+    }
     if (file->subimages() > 1)
         out << Strutil::format ("%3d face x%d.%s", file->subimages(),
                                 spec.nchannels, formatcode);
@@ -1550,6 +1613,43 @@ ImageCacheImpl::getstats (int level) const
     // Merge all the threads
     ImageCacheStatistics stats;
     mergestats (stats);
+
+    // Gather file list and statistics
+    size_t total_opens = 0, total_tiles = 0;
+    size_t total_redundant_tiles = 0;
+    imagesize_t total_bytes = 0;
+    imagesize_t total_redundant_bytes = 0;
+    size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
+    size_t total_constant = 0;
+    double total_iotime = 0;
+    std::vector<ImageCacheFileRef> files;
+    {
+        for (FilenameMap::iterator f = m_files.begin(); f != m_files.end(); ++f) {
+            const ImageCacheFileRef &file (f->second);
+            files.push_back (file);
+            total_opens += file->timesopened();
+            total_tiles += file->tilesread();
+            total_redundant_tiles += file->redundant_tiles();
+            total_redundant_bytes += file->redundant_bytesread();
+            total_bytes += file->bytesread();
+            total_iotime += file->iotime();
+            if (file->duplicate()) {
+                ++total_duplicates;
+                continue;
+            }
+            bool found_untiled = false, found_unmipped = false;
+            bool found_const = true;
+            for (int s = 0, send = file->subimages();  s < send;  ++s) {
+                const ImageCacheFile::SubimageInfo &si (file->subimageinfo(s));
+                found_untiled |= si.untiled;
+                found_unmipped |= si.unmipped;
+                found_const &= si.is_constant_image;
+            }
+            total_untiled += found_untiled;
+            total_unmipped += found_unmipped;
+            total_constant += found_const;
+        }
+    }
 
     std::ostringstream out;
     if (level > 0) {
@@ -1617,6 +1717,8 @@ ImageCacheImpl::getstats (int level) const
             out << "    total tile requests : " << stats.find_tile_calls << "\n";
             out << "    micro-cache misses : " << stats.find_tile_microcache_misses << " (" << 100.0*(double)stats.find_tile_microcache_misses/(double)stats.find_tile_calls << "%)\n";
             out << "    main cache misses : " << stats.find_tile_cache_misses << " (" << 100.0*(double)stats.find_tile_cache_misses/(double)stats.find_tile_calls << "%)\n";
+            out << "    redundant reads: " << (unsigned long long) total_redundant_tiles
+                << " tiles, " << Strutil::memformat (total_redundant_bytes) << "\n";
         }
         out << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
         if (stats.tile_locking_time > 0.001)
@@ -1629,42 +1731,9 @@ ImageCacheImpl::getstats (int level) const
                 << stats.tile_retry_success << " tiles\n";
     }
 
-    // Gather file list and statistics
-    size_t total_opens = 0, total_tiles = 0;
-    imagesize_t total_bytes = 0;
-    size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
-    size_t total_constant = 0;
-    double total_iotime = 0;
-    std::vector<ImageCacheFileRef> files;
-    {
-        for (FilenameMap::iterator f = m_files.begin(); f != m_files.end(); ++f) {
-            const ImageCacheFileRef &file (f->second);
-            files.push_back (file);
-            total_opens += file->timesopened();
-            total_tiles += file->tilesread();
-            total_bytes += file->bytesread();
-            total_iotime += file->iotime();
-            if (file->duplicate()) {
-                ++total_duplicates;
-                continue;
-            }
-            bool found_untiled = false, found_unmipped = false;
-            bool found_const = true;
-            for (int s = 0;  s < file->subimages();  ++s) {
-                const ImageCacheFile::SubimageInfo &si (file->subimageinfo(s));
-                found_untiled |= si.untiled;
-                found_unmipped |= si.unmipped;
-                found_const &= si.is_constant_image;
-            }
-            total_untiled += found_untiled;
-            total_unmipped += found_unmipped;
-            total_constant += found_const;
-        }
-    }
-
     if (level >= 2 && files.size()) {
         out << "  Image file statistics:\n";
-        out << "        opens   tiles  MB read  I/O time  res              File\n";
+        out << "        opens   tiles    MB read   --redundant--   I/O time  res              File\n";
         std::sort (files.begin(), files.end(), filename_compare);
         for (size_t i = 0;  i < files.size();  ++i) {
             const ImageCacheFileRef &file (files[i]);
@@ -1676,11 +1745,13 @@ ImageCacheImpl::getstats (int level) const
             }
             out << onefile_stat_line (file, i+1) << "\n";
         }
-        out << Strutil::format ("\n  Tot:  %4llu    %5llu   %6.1f %9s\n",
+        out << Strutil::format ("\n  Tot:  %4llu  %7llu   %8.1f   (%5llu %6.1f) %9s\n",
                                 (unsigned long long) total_opens,
                                 (unsigned long long) total_tiles,
                                 total_bytes/1024.0/1024.0,
-                                Strutil::timeintervalformat(total_iotime).c_str());
+                                (unsigned long long) total_redundant_tiles,
+                                total_redundant_bytes/1024.0/1024.0,
+                                Strutil::timeintervalformat(total_iotime));
     }
 
     // Try to point out hot spots
@@ -1745,6 +1816,18 @@ ImageCacheImpl::getstats (int level) const
                 out << "    (nothing took more than 0.25s)\n";
             double fast = files.back()->bytesread()/(1024.0*1024.0) / files.back()->iotime();
             out << Strutil::format ("    (fastest was %.1f MB/s)\n", fast);
+            if (total_redundant_tiles > 0) {
+                std::sort (files.begin(), files.end(), redundantbytes_compare);
+                out << "  Top files by redundant I/O:\n";
+                for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
+                    if (files[i]->broken() || !files[i]->validspec())
+                        continue;
+                    out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
+                                            files[i]->redundant_bytesread()/1024.0/1024.0,
+                                            100.0 * (files[i]->redundant_bytesread() / (double)total_redundant_bytes));
+                    out << onefile_stat_line (files[i], -1, false) << "\n";
+                }
+            }
         }
     }
 
@@ -1847,56 +1930,56 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
         }
     }
     else if (name == "autoscanline" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_autoscanline) {
             m_autoscanline = a;
             do_invalidate = true;
         }
     }
     else if (name == "automip" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_automip) {
             m_automip = a;
             do_invalidate = true;
         }
     }
     else if (name == "forcefloat" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_forcefloat) {
             m_forcefloat = a;
             do_invalidate = true;
         }
     }
     else if (name == "accept_untiled" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_accept_untiled) {
             m_accept_untiled = a;
             do_invalidate = true;
         }
     }
     else if (name == "accept_unmipped" && type == TypeDesc::INT) {
-        int a = *(const int *)val;
+        bool a = (*(const int *)val != 0);
         if (a != m_accept_unmipped) {
             m_accept_unmipped = a;
             do_invalidate = true;
         }
     }
     else if (name == "read_before_insert" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_read_before_insert) {
             m_read_before_insert = r;
             do_invalidate = true;
         }
     }
     else if (name == "deduplicate" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_deduplicate) {
             m_deduplicate = r;
             do_invalidate = true;
         }
     }
     else if (name == "unassociatedalpha" && type == TypeDesc::INT) {
-        int r = *(const int *)val;
+        bool r = (*(const int *)val != 0);
         if (r != m_unassociatedalpha) {
             m_unassociatedalpha = r;
             do_invalidate = true;

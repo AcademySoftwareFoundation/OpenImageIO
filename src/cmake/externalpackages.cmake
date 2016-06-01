@@ -32,7 +32,6 @@ if (NOT VERBOSE)
     set (ZLIB_FIND_QUIETLY true)
 endif ()
 
-
 setup_path (THIRD_PARTY_TOOLS_HOME
             "unknown"
             "Location of third party libraries in the external project")
@@ -62,24 +61,38 @@ if (SPECIAL_COMPILE_FLAGS)
 endif ()
 
 
+###########################################################################
+# TIFF
+find_package (TIFF REQUIRED)
+include_directories (${TIFF_INCLUDE_DIR})
+
+
+###########################################################################
+# Several packages need Zlib
+find_package (ZLIB REQUIRED)
+include_directories (${ZLIB_INCLUDE_DIR})
+
+
+###########################################################################
+# PNG
+find_package (PNG REQUIRED)
+
 
 ###########################################################################
 # IlmBase & OpenEXR setup
 
-if (NOT OPENEXR_FOUND)
-    find_package (OpenEXR REQUIRED)
-endif ()
-
-include_directories ("${OPENEXR_INCLUDE_DIR}")
-
+find_package (OpenEXR REQUIRED)
+#OpenEXR 2.2 still has problems with importing ImathInt64.h unqualified
+#thus need for ilmbase/OpenEXR
+include_directories ("${OPENEXR_INCLUDE_DIR}"
+                     "${ILMBASE_INCLUDE_DIR}"
+                     "${ILMBASE_INCLUDE_DIR}/OpenEXR")
 if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
     # OpenEXR 1.x had weird #include dirctives, this is also necessary:
     include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
 else ()
     add_definitions (-DUSE_OPENEXR_VERSION2=1)
 endif ()
-
-
 if (NOT OpenEXR_FIND_QUIETLY)
     message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
     message (STATUS "OPENEXR_LIBRARIES = ${OPENEXR_LIBRARIES}")
@@ -121,42 +134,42 @@ else ()
     # include python in the component list above, cmake will abort if
     # it's not found.  So we resort to checking for the boost_python
     # library's existance to get a soft failure.
-    find_library (oiio_boost_python_lib boost_python
+    find_library (my_boost_python_lib boost_python
                   PATHS ${Boost_LIBRARY_DIRS} NO_DEFAULT_PATH)
-    mark_as_advanced (oiio_boost_python_lib)
-    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
-        get_filename_component (oiio_boost_PYTHON_rel
+    mark_as_advanced (my_boost_python_lib)
+    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
+        get_filename_component (my_boost_PYTHON_rel
                                 ${Boost_SYSTEM_LIBRARY_RELEASE} NAME
                                )
         string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                oiio_boost_PYTHON_rel ${oiio_boost_PYTHON_rel}
+                my_boost_PYTHON_rel ${my_boost_PYTHON_rel}
                )
-        find_library (oiio_boost_PYTHON_LIBRARY_RELEASE
-                      NAMES ${oiio_boost_PYTHON_rel} lib${oiio_boost_PYTHON_rel}
+        find_library (my_boost_PYTHON_LIBRARY_RELEASE
+                      NAMES ${my_boost_PYTHON_rel} lib${my_boost_PYTHON_rel}
                       HINTS ${Boost_LIBRARY_DIRS}
                       NO_DEFAULT_PATH
                      )
-        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_RELEASE)
+        mark_as_advanced (my_boost_PYTHON_LIBRARY_RELEASE)
     endif ()
-    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
-        get_filename_component (oiio_boost_PYTHON_dbg
+    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
+        get_filename_component (my_boost_PYTHON_dbg
                                 ${Boost_SYSTEM_LIBRARY_DEBUG} NAME
                                )
         string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                oiio_boost_PYTHON_dbg ${oiio_boost_PYTHON_dbg}
+                my_boost_PYTHON_dbg ${my_boost_PYTHON_dbg}
                )
-        find_library (oiio_boost_PYTHON_LIBRARY_DEBUG
-                      NAMES ${oiio_boost_PYTHON_dbg} lib${oiio_boost_PYTHON_dbg}
+        find_library (my_boost_PYTHON_LIBRARY_DEBUG
+                      NAMES ${my_boost_PYTHON_dbg} lib${my_boost_PYTHON_dbg}
                       HINTS ${Boost_LIBRARY_DIRS}
                       NO_DEFAULT_PATH
                      )
-        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_DEBUG)
+        mark_as_advanced (my_boost_PYTHON_LIBRARY_DEBUG)
     endif ()
-    if (oiio_boost_python_lib OR
-        oiio_boost_PYTHON_LIBRARY_RELEASE OR oiio_boost_PYTHON_LIBRARY_DEBUG)
-        set (oiio_boost_PYTHON_FOUND ON)
+    if (my_boost_python_lib OR
+        my_boost_PYTHON_LIBRARY_RELEASE OR my_boost_PYTHON_LIBRARY_DEBUG)
+        set (boost_PYTHON_FOUND ON)
     else ()
-        set (oiio_boost_PYTHON_FOUND OFF)
+        set (boost_PYTHON_FOUND OFF)
     endif ()
 endif ()
 
@@ -172,9 +185,9 @@ if (NOT Boost_FIND_QUIETLY)
     message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
     message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
     message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-    message (STATUS "Boost python found ${oiio_boost_PYTHON_FOUND}")
+    message (STATUS "Boost python found ${boost_PYTHON_FOUND}")
 endif ()
-if (NOT oiio_boost_PYTHON_FOUND)
+if (NOT boost_PYTHON_FOUND)
     # If Boost python components were not found, turn off all python support.
     message (STATUS "Boost python support not found -- will not build python components!")
     if (APPLE AND USE_PYTHON)
@@ -216,17 +229,27 @@ if (USE_OCIO)
     endif()
 
     find_package (OpenColorIO)
-    FindOpenColorIO ()
 
     if (OCIO_FOUND)
-        if (NOT OpenColorIO_FIND_QUIETLY)
-            message (STATUS "OpenColorIO enabled")
-            message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
-        endif ()
         include_directories (${OCIO_INCLUDES})
         add_definitions ("-DUSE_OCIO=1")
     else ()
         message (STATUS "Skipping OpenColorIO support")
+    endif ()
+
+    if (LINKSTATIC)
+        find_library (TINYXML_LIBRARY NAMES tinyxml)
+        if (TINYXML_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${TINYXML_LIBRARY})
+        endif ()
+        find_library (YAML_LIBRARY NAMES yaml-cpp)
+        if (YAML_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${YAML_LIBRARY})
+        endif ()
+        find_library (LCMS2_LIBRARY NAMES lcms2)
+        if (LCMS2_LIBRARY)
+            set (OCIO_LIBRARIES ${OCIO_LIBRARIES} ${LCMS2_LIBRARY})
+        endif ()
     endif ()
 else ()
     message (STATUS "OpenColorIO disabled")
@@ -283,6 +306,14 @@ endif (USE_OPENGL)
 
 # end GL Extension Wrangler library setup
 ###########################################################################
+
+
+###########################################################################
+# BZIP2 - used by ffmped and freetype
+find_package (BZip2)   # Used by ffmpeg
+if (NOT BZIP2_FOUND)
+    set (BZIP2_LIBRARIES "")
+endif ()
 
 
 ###########################################################################
@@ -371,11 +402,28 @@ endif ()
 # end Field3d setup
 ###########################################################################
 
+
+###########################################################################
+# JPEG
+
+if (USE_JPEGTURBO)
+    find_package (JPEGTurbo)
+endif ()
+if (NOT JPEG_FOUND)
+    find_package (JPEG REQUIRED)
+endif ()
+include_directories (${JPEG_INCLUDE_DIR})
+
+# end JPEG
+###########################################################################
+
+
+###########################################################################
 # OpenJpeg
 if (USE_OPENJPEG)
     find_package (OpenJpeg)
 endif()
-# end OpenJpeg setup_path
+# end OpenJpeg setup
 ###########################################################################
 
 
@@ -408,6 +456,12 @@ if (USE_LIBRAW)
         set (LIBRAW_FOUND FALSE)
         message (STATUS "LibRaw not found!")
     endif()
+
+    if (LINKSTATIC)
+        find_package (Jasper)
+        find_library (LCMS2_LIBRARIES NAMES lcms2)
+        set (LibRaw_r_LIBRARIES ${LibRaw_r_LIBRARIES} ${JASPER_LIBRARIES} ${LCMS2_LIBRARIES})
+    endif ()
 else ()
     message (STATUS "Not using LibRaw")
 endif()
@@ -461,43 +515,10 @@ endif()
 # OpenCV setup
 
 if (USE_OPENCV)
-    find_path (OpenCV_INCLUDE_DIR opencv/cv.h
-               "${THIRD_PARTY_TOOLS}/include"
-               "${PROJECT_SOURCE_DIR}/include"
-               "${OpenCV_HOME}/include"
-               /usr/local/include
-               /opt/local/include
-               )
-    find_library (OpenCV_LIBS
-                  NAMES opencv_core
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${PROJECT_SOURCE_DIR}/lib"
-                        "${OpenCV_HOME}/lib"
-                        /usr/local/lib
-                        /opt/local/lib
-                 )
-    find_library (OpenCV_LIBS_highgui
-                  NAMES opencv_highgui
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${PROJECT_SOURCE_DIR}/lib"
-                        "${OpenCV_HOME}/lib"
-                        /usr/local/lib
-                        /opt/local/lib
-                 )
-    set (OpenCV_LIBS "${OpenCV_LIBS} ${OpenCV_LIBS_highgui}")
-    if (OpenCV_INCLUDE_DIR AND OpenCV_LIBS)
-        set (OpenCV_FOUND TRUE)
+    find_package (OpenCV)
+    if (OpenCV_FOUND)
         add_definitions ("-DUSE_OPENCV")
-        if (NOT OpenCV_FIND_QUIETLY)
-            message (STATUS "OpenCV includes = ${OpenCV_INCLUDE_DIR} ")
-            message (STATUS "OpenCV libs = ${OpenCV_LIBS} ")
-        endif ()
-    else ()
-        set (OpenCV_FOUND FALSE)
-        message (STATUS "OpenCV library not found")
     endif ()
-else ()
-    message (STATUS "Not using OpenCV")
 endif ()
 
 # end OpenCV setup
@@ -562,17 +583,9 @@ endif()
 # PTex
 if (USE_PTEX)
     find_package (PTex)
-    if (PTEX_FOUND)
-        if (VERBOSE)
-            message (STATUS "PTex include ${PTEX_INCLUDE_DIR}")
-            message (STATUS "PTex library ${PTEX_LIBRARY}")
-        endif ()
-    else ()
-        if (VERBOSE)
-            message (STATUS "PTex not found externally, using embedded source")
-        endif ()
-        set (PTEX_LIBRARY "")
+    if (NOT PTEX_FOUND)
         set (PTEX_INCLUDE_DIR "")
+        set (PTEX_LIBRARIES "")
     endif ()
 endif()
 # end PTEX setup

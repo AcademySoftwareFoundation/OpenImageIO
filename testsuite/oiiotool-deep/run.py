@@ -27,6 +27,15 @@ command += oiiotool("src/deepalpha.exr -mulc 1,10 -crop 160x110 -o deep_mulc.exr
 # --divc
 command += oiiotool("src/deepalpha.exr -divc 1,2 -crop 160x115 -o deep_divc.exr")
 
+# --deepmerge
+exrdir = parent+"/openexr-images/v2/LowResLeftView"
+command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
+                     exrdir+"/Ground.exr -cut 512x288+0+0 " +
+                     exrdir+"/Leaves.exr -cut 512x288+0+0 " +
+                     exrdir+"/Trunks.exr -cut 512x288+0+0 " +
+                     " -deepmerge -deepmerge -deepmerge -flatten " +
+                     " -ch R,G,B,A -d half -o deepmerge.exr")
+
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -43,6 +52,7 @@ outputs = [ "flat.exr",
             "deep_subc.exr",
             "deep_mulc.exr",
             "deep_divc.exr",
+            "deepmerge.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

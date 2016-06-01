@@ -4,6 +4,8 @@
 
 EXRINSTALLDIR=${EXRINSTALLDIR:=${PWD}/openexr-install}
 EXRVERSION=${EXRVERSION:=2.2.0}
+BASEDIR=`pwd`
+pwd
 echo "EXR install dir will be: ${EXRINSTALLDIR}"
 
 if [ ! -e ${EXRINSTALLDIR} ] ; then
@@ -15,12 +17,28 @@ if [ ! -e ./openexr ] ; then
     git clone -b v${EXRVERSION} https://github.com/openexr/openexr.git ./openexr
 fi
 
+flags=
+
+if [ ${LINKSTATIC:=0} == 1 ] ; then
+    flags=${flags} --enable-static --enable-shared=no --with-pic
+fi
+
 pushd ./openexr
 git checkout v${EXRVERSION} --force
 cd IlmBase
-./bootstrap && ./configure --prefix=${EXRINSTALLDIR} && make clean && make -j 4 && make install
+mkdir build
+cd build
+cmake --config Release -DCMAKE_INSTALL_PREFIX=${EXRINSTALLDIR} .. && make clean && make -j 4 && make install
+cd ..
 cd ../OpenEXR
-./bootstrap ; ./configure --prefix=${EXRINSTALLDIR} --with-ilmbase-prefix=${EXRINSTALLDIR} --disable-ilmbasetest && make clean && make -j 4 && make install
+cp ${BASEDIR}/src/build-scripts/OpenEXR-CMakeLists.txt CMakeLists.txt
+cp ${BASEDIR}/src/build-scripts/OpenEXR-IlmImf-CMakeLists.txt IlmImf/CMakeLists.txt
+mkdir build
+mkdir build/IlmImf
+cd build
+unzip -d IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
+unzip -d IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
+cmake --config Release -DCMAKE_INSTALL_PREFIX=${EXRINSTALLDIR} -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DBUILD_UTILS=0 -DBUILD_TESTS=0 .. && make clean && make -j 4 && make install
 popd
 
 ls -R ${EXRINSTALLDIR}

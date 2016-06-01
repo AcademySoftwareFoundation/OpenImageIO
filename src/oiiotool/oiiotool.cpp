@@ -45,11 +45,14 @@
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
+#include <OpenEXR/ImfTimeCode.h>
+
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/sysutil.h"
+#include "OpenImageIO/strutil.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/color.h"
@@ -121,7 +124,8 @@ Oiiotool::Oiiotool ()
       total_readtime (Timer::DontStartNow),
       total_writetime (Timer::DontStartNow),
       total_imagecache_readtime (0.0),
-      enable_function_timing(true)
+      enable_function_timing(true),
+      peak_memory(0)
 {
     clear_options ();
 }
@@ -146,6 +150,8 @@ Oiiotool::clear_options ()
     autoorient = false;
     autocc = false;
     nativeread = false;
+    cachesize = 4096;
+    autotile = 4096;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
@@ -197,7 +203,7 @@ format_resolution (int w, int h, int d, int x, int y, int z)
 
 
 bool
-Oiiotool::read (ImageRecRef img)
+Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
 {
     // If the image is already elaborated, take an early out, both to
     // save time, but also because we only want to do the format and
@@ -210,7 +216,9 @@ Oiiotool::read (ImageRecRef img)
     float pre_ic_time, post_ic_time;
     imagecache->getattribute ("stat:fileio_time", pre_ic_time);
     total_readtime.start ();
-    bool ok = img->read (ot.nativeread);
+    if (ot.nativeread)
+        readpolicy = ReadPolicy (readpolicy | ReadNative);
+    bool ok = img->read (readpolicy);
     total_readtime.stop ();
     imagecache->getattribute ("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
@@ -331,6 +339,41 @@ set_threads (int argc, const char *argv[])
     int nthreads = atoi(argv[1]);
     OIIO::attribute ("threads", nthreads);
     OIIO::attribute ("exr_threads", nthreads);
+    return 0;
+}
+
+
+
+static int
+set_cachesize (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.cachesize = atoi(argv[1]);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    return 0;
+}
+
+
+
+static int
+set_autotile (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    ot.autotile = atoi(argv[1]);
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
+    return 0;
+}
+
+
+
+static int
+set_native (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.nativeread = true;
+    ot.imagecache->attribute ("forcefloat", 0);
     return 0;
 }
 
@@ -1109,6 +1152,25 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         }
         return true;
     }
+    if (type == TypeDesc::TypeTimeCode && value.find(':') != value.npos) {
+        // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
+        // string, we need to re-encode as a uint32[2].
+        int hour = 0, min = 0, sec = 0, frame = 0;
+        sscanf (value.c_str(), "%d:%d:%d:%d", &hour, &min, &sec, &frame);
+        Imf::TimeCode tc (hour, min, sec, frame);
+        img->metadata_modified (true);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, &tc);
+                img->update_spec_from_imagebuf (s, m);
+                if (! ot.allsubimages)
+                    break;
+            }
+            if (! ot.allsubimages)
+                break;
+        }
+        return true;
+    }
     if (type.basetype == TypeDesc::INT) {
         size_t n = type.numelements() * type.aggregate;
         std::vector<int> vals (n, 0);
@@ -1378,6 +1440,13 @@ set_fullsize (int argc, const char *argv[])
         spec.full_y = y;
         spec.full_width = w;
         spec.full_height = h;
+        // That updated the private spec of the ImageRec. In this case
+        // we really need to update the underlying IB as well.
+        ImageSpec &ibspec = (*A)(0,0).specmod();
+        ibspec.full_x = x;
+        ibspec.full_y = y;
+        ibspec.full_width = w;
+        ibspec.full_height = h;
         A->metadata_modified (true);
     }
     ot.function_times[command] += timer();
@@ -3364,6 +3433,19 @@ action_zover (int argc, const char *argv[])
 
 
 
+class OpDeepMerge : public OiiotoolOp {
+public:
+    OpDeepMerge (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 2) {}
+    virtual int impl (ImageBuf **img) {
+        return ImageBufAlgo::deep_merge (*img[0], *img[1], *img[2]);
+    }
+};
+
+OP_CUSTOMCLASS (deepmerge, OpDeepMerge, 2);
+
+
+
 class OpDeepen : public OiiotoolOp {
 public:
     OpDeepen (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -3679,6 +3761,20 @@ action_histogram (int argc, const char *argv[])
 static int
 input_file (int argc, const char *argv[])
 {
+    ot.total_readtime.start();
+    string_view command = ot.express (argv[0]);
+    if (argc > 1 && Strutil::starts_with(command, "-i")) {
+        --argc;
+        ++argv;
+    } else {
+        command = "-i";
+    }
+    std::map<std::string,std::string> fileoptions;
+    ot.extract_options (fileoptions, command);
+    int printinfo = get_value_override (fileoptions["info"], int(ot.printinfo));
+    bool readnow = get_value_override (fileoptions["now"], int(0));
+    bool autocc = get_value_override (fileoptions["autocc"], int(ot.autocc));
+
     for (int i = 0;  i < argc;  i++) {
         string_view filename = ot.express(argv[i]);
         std::map<std::string,ImageRecRef>::const_iterator found;
@@ -3719,9 +3815,12 @@ input_file (int argc, const char *argv[])
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
-        if (ot.printinfo || ot.printstats || ot.dumpdata || ot.hash) {
+        if (readnow) {
+            ot.curimg->read (ReadNoCache);
+        }
+        if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
-            pio.verbose = ot.verbose;
+            pio.verbose = ot.verbose || printinfo > 1;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
@@ -3742,7 +3841,7 @@ input_file (int argc, const char *argv[])
             action_reorient (1, argv);
         }
 
-        if (ot.autocc) {
+        if (autocc) {
             // Try to deduce the color space it's in
             string_view colorspace (ot.colorconfig.parseColorSpaceFromString(filename));
             if (colorspace.size() && ot.debug)
@@ -3770,6 +3869,9 @@ input_file (int argc, const char *argv[])
 
         ot.process_pending ();
     }
+
+    ot.check_peak_memory ();
+    ot.total_readtime.stop();
     return 0;
 }
 
@@ -3974,7 +4076,7 @@ output_file (int argc, const char *argv[])
             if (ot.debug)
                 std::cout << "  Converting from " << currentspace << " to "
                           << outcolorspace << " for output to " << filename << "\n";
-            const char *argv[] = { "colorconvert", "", outcolorspace.c_str() };
+            const char *argv[] = { "colorconvert", currentspace.c_str(), outcolorspace.c_str() };
             action_colorconvert (3, argv);
             ir = ot.curimg;
         }
@@ -4077,6 +4179,7 @@ output_file (int argc, const char *argv[])
                     ot.error (command, (*ir)(s,m).geterror());
                     return 0;
                 }
+                ot.check_peak_memory();
                 if (mend > 1) {
                     if (out->supports("mipmap")) {
                         mode = ImageOutput::AppendMIPLevel;  // for next level
@@ -4110,6 +4213,7 @@ output_file (int argc, const char *argv[])
         Filesystem::last_write_time (filename, in_time);
     }
 
+    ot.check_peak_memory();
     ot.curimg = saveimg;
     ot.output_dataformat = saved_output_dataformat;
     ot.output_bitspersample = saved_bitspersample;
@@ -4288,7 +4392,11 @@ getargs (int argc, char *argv[])
                 "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
                 "--autocc", &ot.autocc, "Automatically color convert based on filename",
                 "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
-                "--native", &ot.nativeread, "Force native data type reads if cache would lose precision",
+                "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
+                "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
+                "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
+                "<SEPARATOR>", "Commands that read images:",
+                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=0:printinfo=0:autocc=0)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
@@ -4382,6 +4490,7 @@ getargs (int argc, char *argv[])
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
+                "--deepmerge %@", action_deepmerge, NULL, "Merge/composite two deep images",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
                 "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
                 "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",
@@ -4670,9 +4779,10 @@ handle_sequence (int argc, const char **argv)
 int
 main (int argc, char *argv[])
 {
-// When Visual Studio is used float values in scientific format are printed 
-// with three digit exponent. We change this behavior to fit the Linux way.
-#ifdef _MSC_VER
+#if OIIO_MSVS_BEFORE_2015
+     // When older Visual Studio is used, float values in scientific foramt
+     // are printed with three digit exponent. We change this behaviour to
+     // fit Linux way.
     _set_output_format (_TWO_DIGIT_EXPONENT);
 #endif
 
@@ -4681,8 +4791,10 @@ main (int argc, char *argv[])
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
-    ot.imagecache->attribute ("max_memory_MB", 4096.0);
-//    ot.imagecache->attribute ("autotile", 1024);
+    ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
+    ot.imagecache->attribute ("autotile", ot.autotile);
+    if (ot.autotile)
+        ot.imagecache->attribute ("autoscanline", 1);
 
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {
@@ -4713,7 +4825,10 @@ main (int argc, char *argv[])
             unaccounted -= t;
         }
         std::cout << Strutil::format (timeformat, "unaccounted", std::max(unaccounted, 0.0));
-        std::cout << ot.imagecache->getstats() << "\n";
+        ot.check_peak_memory ();
+        std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory) << "\n";
+        std::cout << "  Current memory: " << Strutil::memformat(Sysutil::memory_used()) << "\n";
+        std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
     }
 
     return ot.return_value;

@@ -93,6 +93,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
 #endif
 
+#if defined(__FMA__) || defined(__AVX2__)
+#  define OIIO_FMA_ENABLED 1
+#endif
+
 // FIXME Future: support ARM Neon
 // Uncomment this when somebody with Neon can verify it works
 #if 0 && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
@@ -1386,6 +1390,20 @@ OIIO_FORCEINLINE int4 rotl32 (const int4& x, const unsigned int k)
 
 
 
+/// andnot(a,b) returns ((~a) & b)
+OIIO_FORCEINLINE int4 andnot (const int4& a, const int4& b) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_si128 (a.simd(), b.simd());
+#else
+    return int4 (~(a[0]) & b[0],
+                 ~(a[1]) & b[1],
+                 ~(a[2]) & b[2],
+                 ~(a[3]) & b[3]);
+#endif
+}
+
+
+
 
 /// Floating point 4-vector, accelerated by SIMD instructions when
 /// available.
@@ -1684,26 +1702,26 @@ public:
         // SSE half-to-float by Fabian "ryg" Giesen. Public domain.
         // https://gist.github.com/rygorous/2144712
         int4 h ((const unsigned short *)values);
-# define CONST(name) *(const __m128i *)&name
+# define CONSTI(name) *(const __m128i *)&name
 # define CONSTF(name) *(const __m128 *)&name
         OIIO_SIMD_UINT4_CONST(mask_nosign, 0x7fff);
         OIIO_SIMD_UINT4_CONST(magic,       (254 - 15) << 23);
         OIIO_SIMD_UINT4_CONST(was_infnan,  0x7bff);
         OIIO_SIMD_UINT4_CONST(exp_infnan,  255 << 23);
-        __m128i mnosign     = CONST(mask_nosign);
+        __m128i mnosign     = CONSTI(mask_nosign);
         __m128i expmant     = _mm_and_si128(mnosign, h);
         __m128i justsign    = _mm_xor_si128(h, expmant);
         __m128i expmant2    = expmant; // copy (just here for counting purposes)
         __m128i shifted     = _mm_slli_epi32(expmant, 13);
         __m128  scaled      = _mm_mul_ps(_mm_castsi128_ps(shifted), *(const __m128 *)&magic);
-        __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant2, CONST(was_infnan));
+        __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant2, CONSTI(was_infnan));
         __m128i sign        = _mm_slli_epi32(justsign, 16);
         __m128  infnanexp   = _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), CONSTF(exp_infnan));
         __m128  sign_inf    = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
         __m128  final       = _mm_or_ps(scaled, sign_inf);
         // ~11 SSE2 ops.
         m_vec = final;
-# undef CONST
+# undef CONSTI
 # undef CONSTF
 #else /* No SIMD defined: */
         for (int i = 0; i < elements; ++i)
@@ -2270,6 +2288,17 @@ OIIO_FORCEINLINE float4 abs (const float4& a)
 #endif
 }
 
+
+
+/// Return 1.0 for each component >= 0, -1.0 for each negative component.
+OIIO_FORCEINLINE float4 sign (const float4& a)
+{
+    float4 one(1.0f);
+    return blend (one, -one, a < float4::Zero());
+}
+
+
+
 /// Per-element ceil.
 OIIO_FORCEINLINE float4 ceil (const float4& a)
 {
@@ -2319,6 +2348,15 @@ OIIO_FORCEINLINE int4 floori (const float4& a)
 #endif
 }
 
+/// Per-element round to nearest integer (rounding away from 0 in cases
+/// that are exactly half way).
+OIIO_FORCEINLINE int4 rint (const float4& a)
+{
+    return int4 (round(a));
+}
+
+
+
 /// Per-element min
 OIIO_FORCEINLINE float4 min (const float4& a, const float4& b)
 {
@@ -2342,6 +2380,220 @@ OIIO_FORCEINLINE float4 max (const float4& a, const float4& b)
                    std::max (a[1], b[1]),
                    std::max (a[2], b[2]),
                    std::max (a[3], b[3]));
+#endif
+}
+
+
+
+/// andnot(a,b) returns ((~a) & b)
+OIIO_FORCEINLINE float4 andnot (const float4& a, const float4& b) {
+#if defined(OIIO_SIMD_SSE)
+    return _mm_andnot_ps (a.simd(), b.simd());
+#else
+    const int *ai = (const int *)&a;
+    const int *bi = (const int *)&b;
+    return bitcast_to_float4 (int4(~(ai[0]) & bi[0],
+                                   ~(ai[1]) & bi[1],
+                                   ~(ai[2]) & bi[2],
+                                   ~(ai[3]) & bi[3]));
+#endif
+}
+
+
+
+/// Fused multiply and add: (a*b + c)
+OIIO_FORCEINLINE float4 madd (const simd::float4& a, const simd::float4& b,
+                              const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fmadd_ps intrinsic is available, use it.
+    return _mm_fmadd_ps (a, b, c);
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return a.simd() * b.simd() + c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b + c;
+#endif
+}
+
+
+/// Fused multiply and subtract: (a*b - c)
+OIIO_FORCEINLINE float4 msub (const simd::float4& a, const simd::float4& b,
+                              const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
+    return _mm_fmsub_ps (a, b, c);
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return a.simd() * b.simd() - c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b - c;
+#endif
+}
+
+
+
+/// Fused negative multiply and add: -(a*b) + c
+OIIO_FORCEINLINE float4 nmadd (const simd::float4& a, const simd::float4& b,
+                               const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmadd_ps intrinsic is available, use it.
+    return _mm_fnmadd_ps (a, b, c);
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return c.simd() - a.simd() * b.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return c - a * b;
+#endif
+}
+
+
+
+/// Fused negative multiply and subtract: -(a*b) - c
+OIIO_FORCEINLINE float4 nmsub (const simd::float4& a, const simd::float4& b,
+                               const simd::float4& c)
+{
+#if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
+    // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
+    return _mm_fnmsub_ps (a, b, c);
+#elif OIIO_SIMD_SSE && !defined(_MSC_VER)
+    // If we directly access the underlying __m128, on some platforms and
+    // compiler flags, it will turn into fma anyway, even if we don't use
+    // the intrinsic.
+    return -(a.simd() * b.simd()) - c.simd();
+#else
+    // Fallback: just use regular math and hope for the best.
+    return -(a * b) - c;
+#endif
+}
+
+
+
+// Full precision exp() of all components of a SIMD vector.
+OIIO_FORCEINLINE float4 exp (const float4& v)
+{
+#if OIIO_SIMD_SSE
+    // Implementation inspired by:
+    // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
+    // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
+    // under the zlib license.
+    float4 x = v;
+    OIIO_SIMD_FLOAT4_CONST (exp_hi,  88.3762626647949f);
+    OIIO_SIMD_FLOAT4_CONST (exp_lo,  -88.3762626647949f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_LOG2EF, 1.44269504088896341f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C1, 0.693359375f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C2, -2.12194440e-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p0, 1.9875691500E-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p1, 1.3981999507E-3f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p2, 8.3334519073E-3f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p3, 4.1665795894E-2f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p4, 1.6666665459E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p5, 5.0000001201E-1f);
+    float4 tmp (0.0f);
+    float4 one (1.0f);
+    x = min (x, float4(exp_hi));
+    x = max (x, float4(exp_lo));
+    float4 fx = madd (x, float4(cephes_LOG2EF), float4(0.5f));
+    int4 emm0 = int4(fx);
+    tmp = float4(emm0);
+    float4 mask = bitcast_to_float4 (bitcast_to_int4(tmp > fx) & bitcast_to_int4(one));
+    fx = tmp - mask;
+    tmp = fx * float4(cephes_exp_C1);
+    float4 z = fx * float4(cephes_exp_C2);
+    x = x - tmp;
+    x = x - z;
+    z = x * x;
+    float4 y = float4(cephes_exp_p0);
+    y = madd (y, x, float4(cephes_exp_p1));
+    y = madd (y, x, float4(cephes_exp_p2));
+    y = madd (y, x, float4(cephes_exp_p3));
+    y = madd (y, x, float4(cephes_exp_p4));
+    y = madd (y, x, float4(cephes_exp_p5));
+    y = madd (y, z, x);
+    y = y + one;
+    emm0 = (int4(fx) + int4(0x7f)) << 23;
+    float4 pow2n = bitcast_to_float4(emm0);
+    y = y * pow2n;
+    return y;
+
+#else
+    return float4 (expf(v[0]), expf(v[1]), expf(v[2]), expf(v[3]));
+#endif
+}
+
+
+
+// Full precision log() of all components of a SIMD vector.
+OIIO_FORCEINLINE float4 log (const float4& v)
+{
+#if OIIO_SIMD_SSE
+    // Implementation inspired by:
+    // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
+    // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
+    // under the zlib license.
+    float4 x = v;
+    int4 emm0;
+    float4 zero (float4::Zero());
+    float4 one (1.0f);
+    mask4 invalid_mask = (x <= zero);
+    OIIO_SIMD_INT4_CONST (min_norm_pos, (int)0x00800000);
+    OIIO_SIMD_INT4_CONST (inv_mant_mask, (int)~0x7f800000);
+    x = max(x, bitcast_to_float4(int4(min_norm_pos)));  /* cut off denormalized stuff */
+    emm0 = srl (bitcast_to_int4(x), 23);
+    /* keep only the fractional part */
+    x = bitcast_to_float4 (bitcast_to_int4(x) & int4(inv_mant_mask));
+    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(float4(0.5f)));
+    emm0 = emm0 - int4(0x7f);
+    float4 e (emm0);
+    e = e + one;
+    OIIO_SIMD_FLOAT4_CONST (cephes_SQRTHF, 0.707106781186547524f);
+    mask4 mask = (x < float4(cephes_SQRTHF));
+    float4 tmp = bitcast_to_float4 (bitcast_to_int4(x) & bitcast_to_int4(mask));
+    x = x - one;
+    e = e - bitcast_to_float4 (bitcast_to_int4(one) & bitcast_to_int4(mask));
+    x = x + tmp;
+    float4 z = x * x;
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p0, 7.0376836292E-2f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p1, - 1.1514610310E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p2, 1.1676998740E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p3, - 1.2420140846E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p4, + 1.4249322787E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p5, - 1.6668057665E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p6, + 2.0000714765E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p7, - 2.4999993993E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_p8, + 3.3333331174E-1f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_q1, -2.12194440e-4f);
+    OIIO_SIMD_FLOAT4_CONST (cephes_log_q2, 0.693359375f);
+    float4 y = *(float4*)cephes_log_p0;
+    y = madd (y, x, float4(cephes_log_p1));
+    y = madd (y, x, float4(cephes_log_p2));
+    y = madd (y, x, float4(cephes_log_p3));
+    y = madd (y, x, float4(cephes_log_p4));
+    y = madd (y, x, float4(cephes_log_p5));
+    y = madd (y, x, float4(cephes_log_p6));
+    y = madd (y, x, float4(cephes_log_p7));
+    y = madd (y, x, float4(cephes_log_p8));
+    y = y * x;
+    y = y * z;
+    y = madd(e, float4(cephes_log_q1), y);
+    y = nmadd (z, 0.5f, y);
+    x = x + y;
+    x = madd (e, float4(cephes_log_q2), x);
+    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(invalid_mask)); // negative arg will be NAN
+    return x;
+#else
+    return float4 (logf(v[0]), logf(v[1]), logf(v[2]), logf(v[3]));
 #endif
 }
 
@@ -2470,6 +2722,13 @@ template<typename T,int elements> struct VecType {};
 template<> struct VecType<int,4>   { typedef int4 type; };
 template<> struct VecType<float,4> { typedef float4 type; };
 template<> struct VecType<bool,4>  { typedef mask4 type; };
+
+/// Template to retrieve the SIMD size of a SIMD type. Rigged to be 1 for
+/// anything but our SIMD types.
+template<typename T> struct SimdSize { static const int size = 1; };
+template<> struct SimdSize<int4>     { static const int size = 4; };
+template<> struct SimdSize<float4>   { static const int size = 4; };
+template<> struct SimdSize<mask4>    { static const int size = 4; };
 
 
 } // end namespace

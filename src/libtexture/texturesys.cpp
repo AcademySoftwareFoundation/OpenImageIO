@@ -1200,7 +1200,7 @@ compute_miplevels (TextureSystemImpl::TextureFile &texturefile,
         if (filtwidth_ras <= 1.0f) {
             miplevel[0] = m-1;
             miplevel[1] = m;
-            levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
+            levelblend = Imath::clamp (2.0f*filtwidth_ras - 1.0f, 0.0f, 1.0f);
             break;
         }
     }
@@ -2547,7 +2547,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     int w = 256, h = 256;
     ImageSpec spec (w, h, 3);
     ImageBuf ib (spec);
-    static float dark[3] = { 0.2, 0.2, 0.2 };
+    static float dark[3] = { 0.2f, 0.2f, 0.2f };
     static float white[3] = { 1, 1, 1 };
     static float grey[3] = { 0.5, 0.5, 0.5 };
     static float red[3] = { 1, 0, 0 };

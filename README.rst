@@ -1,10 +1,12 @@
 README for OpenImageIO
 ======================
 
-Build Status:
-
+.. image:: https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square
+    :target: https://github.com/OpenImageIO/oiio/blob/master/LICENSE
 .. image:: https://travis-ci.org/OpenImageIO/oiio.svg?branch=master
     :target: https://travis-ci.org/OpenImageIO/oiio
+.. image:: https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true
+    :target: https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master
 
 
 Introduction

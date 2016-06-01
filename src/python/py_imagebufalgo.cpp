@@ -234,6 +234,26 @@ IBA_flatten (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
 
 bool
+IBA_deep_merge (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                 bool occlusion_cull, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::deep_merge (dst, A, B, occlusion_cull, roi, nthreads);
+}
+
+
+
+bool
+IBA_copy (ImageBuf &dst, const ImageBuf &src, TypeDesc::BASETYPE convert,
+          ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::copy (dst, src, convert, roi, nthreads);
+}
+
+
+
+bool
 IBA_crop (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1282,6 +1302,16 @@ void declare_imagebufalgo()
              (arg("dst"), arg("src"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("flatten")
+
+        .def("deep_merge", IBA_deep_merge,
+             (arg("dst"), arg("A"), arg("B"), arg("occlusion_cull")=true,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("deep_merge")
+
+        .def("copy", IBA_copy,
+             (arg("dst"), arg("src"), arg("convert")=TypeDesc::UNKNOWN,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("copy")
 
         .def("crop", IBA_crop,
              (arg("dst"), arg("src"),

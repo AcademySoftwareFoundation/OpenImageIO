@@ -480,6 +480,8 @@ void declare_imagebuf()
         .add_property("has_error",   &ImageBuf::has_error)
         .def("geterror",    &ImageBuf::geterror)
 
+        .def("pixelindex", &ImageBuf::pixelindex,
+             (arg("x"), arg("y"), arg("z"), arg("check_range")=false))
         .def("copy_metadata", &ImageBuf::copy_metadata)
         .def("copy_pixels", &ImageBuf::copy_pixels)
         .def("copy",  &ImageBuf_copy,

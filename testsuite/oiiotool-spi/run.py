@@ -2,6 +2,7 @@
 
 imagedir = parent + "spi-oiio-tests/"
 refdir = imagedir + "ref/"
+outputs = [ ]
 
 
 # Define a handy function that runs an oiiotool command, and
@@ -9,7 +10,7 @@ refdir = imagedir + "ref/"
 def oiiotool_and_test (inputfile, ops, outputfile, precommand="") :
     cmd = oiiotool (precommand + " " + imagedir + inputfile +
                     " " + ops + " -o " + outputfile)
-    cmd += diff_command (outputfile, refdir+outputfile)
+    outputs.append (outputfile)
     return cmd
 
 
@@ -50,5 +51,3 @@ command += oiiotool_and_test ("os0225_110_lightingfix_v002.0101.dpx",
 #                              "--iscolorspace lg16 --crop -2,0,2401,911 --fullpixels",
 #                              "dpxoverscan_lg16.dpx")
 
-
-outputs = [ "out.txt"]
