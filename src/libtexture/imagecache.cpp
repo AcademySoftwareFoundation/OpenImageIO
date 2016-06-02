@@ -295,10 +295,12 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_filename = imagecache.resolve_filename (m_filename_original.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
     // reflected by the fact that m_validspec is false.
+#if USE_SHADOW_MATRICES
     m_Mlocal.makeIdentity();
     m_Mproj.makeIdentity();
     m_Mtex.makeIdentity();
     m_Mras.makeIdentity();
+#endif
 }
 
 
@@ -644,6 +646,7 @@ ImageCacheFile::init_from_spec ()
             m_envlayout = LayoutTexture;
     }
 
+#if USE_SHADOW_MATRICES
     Imath::M44f c2w;
     m_imagecache.get_commontoworld (c2w);
     if ((p = spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix))) {
@@ -655,6 +658,7 @@ ImageCacheFile::init_from_spec ()
         m_Mproj = c2w * (*m);
     }
     // FIXME -- compute Mtex, Mras
+#endif
 
     // See if there's a SHA-1 hash in the image description
     std::string fing = spec.get_string_attribute ("oiio:SHA-1");
