@@ -1739,7 +1739,7 @@ ImageCacheImpl::getstats (int level) const
             const ImageCacheFileRef &file (files[i]);
             ASSERT (file);
             if (file->broken() || file->subimages() == 0) {
-                out << "  BROKEN                                                  " 
+                out << "  BROKEN                                                                      " 
                     << file->filename() << "\n";
                 continue;
             }
