@@ -314,6 +314,11 @@ public:
         m_subimages.clear ();
     }
 
+    /// Should we print an error message? Keeps track of whether the
+    /// number of errors so far, including this one, is a above the limit
+    /// set for errors to print for each file.
+    int errors_should_issue () const;
+    
 private:
     ustring m_filename_original;    ///< original filename before search path
     ustring m_filename;             ///< Filename
@@ -343,8 +348,9 @@ private:
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
     bool m_mipused;                 ///< MIP level >0 accessed
-    std::vector<size_t> m_mipreadcount; ///< Tile reads per mip level
     volatile bool m_validspec;      ///< If false, reread spec upon open
+    mutable int m_errors_issued;    ///< Errors issued for this file
+    std::vector<size_t> m_mipreadcount; ///< Tile reads per mip level
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
     std::time_t m_mod_time;         ///< Time file was last updated
@@ -778,6 +784,7 @@ public:
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
+    int max_errors_per_file () const { return m_max_errors_per_file; }
 
     virtual std::string resolve_filename (const std::string &filename) const;
 
@@ -1093,6 +1100,7 @@ private:
 
     atomic_ll m_mem_used;        ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
+    int m_max_errors_per_file;   ///< Max errors to print for each file.
 
     /// Saved error string, per-thread
     ///

@@ -107,6 +107,7 @@ static int ntrials = 1;
 static int testicwrite = 0;
 static bool test_derivs = false;
 static Imath::M33f xform;
+static mutex error_mutex;
 void *dummyptr;
 
 typedef void (*Mapping2D)(int,int,float&,float&,float&,float&,float&,float&);
@@ -526,8 +527,10 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
                                   nchannels, result, dresultds, dresultdt);
         if (! ok) {
             std::string e = texsys->geterror ();
-            if (! e.empty())
+            if (! e.empty()) {
+                lock_guard lock (error_mutex);
                 std::cerr << "ERROR: " << e << "\n";
+            }
         }
 
         // Save filtered pixels back to the image.
@@ -624,8 +627,10 @@ tex3d_region (ImageBuf &image, ustring filename, Mapping3D mapping,
                                      result, dresultds, dresultdt, dresultdr);
         if (! ok) {
             std::string e = texsys->geterror ();
-            if (! e.empty())
+            if (! e.empty()) {
+                lock_guard lock (error_mutex);
                 std::cerr << "ERROR: " << e << "\n";
+            }
         }
 
         // Save filtered pixels back to the image.
@@ -686,8 +691,10 @@ test_getimagespec_gettexels (ustring filename)
     if (! texsys->get_imagespec (filename, 0, spec)) {
         std::cerr << "Could not get spec for " << filename << "\n";
         std::string e = texsys->geterror ();
-        if (! e.empty())
+        if (! e.empty()) {
+            lock_guard lock (error_mutex);
             std::cerr << "ERROR: " << e << "\n";
+        }
         return;
     }
 
@@ -932,6 +939,7 @@ do_tex_thread_workout (int iterations, int mythread)
                                   result, dresultds, dresultdt);
         }
         if (! ok) {
+            lock_guard lock (error_mutex);
             std::cerr << "Unexpected error: " << texsys->geterror() << "\n";
             return;
         }
@@ -1062,8 +1070,10 @@ test_icwrite (int testicwrite)
                     }
                 bool ok = ic->add_tile (filename, 0, 0, tx, ty, 0, 0, -1,
                                         TypeDesc::FLOAT, &tile[0]);
-                if (! ok)
+                if (! ok) {
+                    lock_guard lock (error_mutex);
                     std::cout << "ic->add_tile error: " << ic->geterror() << "\n";
+                }
                 ASSERT (ok);
             }
         }

@@ -321,7 +321,17 @@ private:
         texturefile = m_imagecache->verify_file (texturefile, thread_info);
         if (!texturefile || texturefile->broken()) {
             std::string err = m_imagecache->geterror();
-            error ("%s", err.size() ? err.c_str() : "(unknown error)");
+            if (err.size())
+                error ("%s", err.c_str());
+#if 0
+            // If the file is "broken", at least one verbose error message
+            // has already been issued about it, so don't belabor the point.
+            // But for debugging purposes, these might help:
+            else if (texturefile && texturefile->broken())
+                error ("(unknown error - broken texture \"%s\")", texturefile->filename());
+            else
+                error ("(unknown error - NULL texturefile)");
+#endif
         }
         return texturefile;
     }
