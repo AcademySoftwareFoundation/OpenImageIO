@@ -297,6 +297,29 @@ void test_repeat ()
 
 
 
+void test_replace ()
+{
+    std::cout << "Testing replace\n";
+    std::string pattern ("Red rose, red rose, end.");
+    // Replace start
+    OIIO_CHECK_EQUAL (Strutil::replace(pattern, "Red", "foo"),
+                      "foo rose, red rose, end.");
+    // Replace end
+    OIIO_CHECK_EQUAL (Strutil::replace(pattern, "end.", "foo"),
+                      "Red rose, red rose, foo");
+    // Pattern not found
+    OIIO_CHECK_EQUAL (Strutil::replace(pattern, "bar", "foo"),
+                      pattern);
+    // One replacement
+    OIIO_CHECK_EQUAL (Strutil::replace(pattern, "rose", "foo"),
+                      "Red foo, red rose, end.");
+    // Global replacement
+    OIIO_CHECK_EQUAL (Strutil::replace(pattern, "rose", "foo", true),
+                      "Red foo, red foo, end.");
+}
+
+
+
 void test_conversion ()
 {
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("hi"), 0);
@@ -575,6 +598,7 @@ main (int argc, char *argv[])
     test_split ();
     test_join ();
     test_repeat ();
+    test_replace ();
     test_conversion ();
     test_extract ();
     test_safe_strcpy ();

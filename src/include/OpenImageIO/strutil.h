@@ -209,6 +209,10 @@ std::string OIIO_API join (const std::vector<std::string> &seq,
 /// Repeat a string formed by concatenating str n times.
 std::string OIIO_API repeat (string_view str, int n);
 
+/// Replace a pattern inside a string and return the result. If global is
+/// true, replace all instances of the pattern, otherwise just the first.
+std::string OIIO_API replace (string_view str, string_view pattern,
+                              string_view replacement, bool global=false);
 
 // Helper template to test if a string is a generic type
 template<typename T>
