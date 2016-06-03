@@ -996,6 +996,40 @@ typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
 
 
 
+/// Mutex pool. Sometimes, we have lots of objects that need to be
+/// individually locked for thread safety, but two separate objects don't
+/// need to lock against each other. If there are many more objects than
+/// threads, it's wasteful for each object to contain its own mutex. So a
+/// solution is to make a mutex_pool -- a collection of several mutexes.
+/// Each object uses a hash to choose a consistent mutex for itself, but
+/// which will be unlikely to be locked simultaneously by different object.
+/// Semantically, it looks rather like an associative array of mutexes. We
+/// also ensure that the mutexes are all on different cache lines, to ensure
+/// that they don't exhibit false sharing. Try to choose Bins larger than
+/// the expected number of threads that will be simultaneously locking
+/// mutexes.
+template<class Mutex, class Key, class Hash, size_t Bins=16>
+class mutex_pool
+{
+public:
+    mutex_pool () { }
+    Mutex& operator[] (const Key &key) {
+        return m_mutex[m_hash(key) % Bins].m;
+    }
+private:
+    // Helper type -- force cache line alignment. This should make an array
+    // of these also have padding so that each individual mutex is aligned
+    // to its own cache line, thus eliminating any "false sharing."
+    struct AlignedMutex {
+        OIIO_CACHE_ALIGN Mutex m;
+    };
+
+    AlignedMutex m_mutex[Bins];
+    Hash m_hash;
+};
+
+
+
 /// Simple thread group class. This is just as good as boost::thread_group,
 /// for the limited functionality that we use.
 class thread_group {
