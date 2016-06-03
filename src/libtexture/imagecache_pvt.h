@@ -64,6 +64,10 @@ namespace pvt {
 
 #define IMAGECACHE_USE_RW_MUTEX 1
 
+// Should we compute and store shadow matrices? Not if we don't support
+// shadow maps!
+#define USE_SHADOW_MATRICES 0
+
 
 using boost::thread_specific_ptr;
 
@@ -309,10 +313,12 @@ private:
     TextureOpt::Wrap m_swrap;       ///< Default wrap modes
     TextureOpt::Wrap m_twrap;       ///< Default wrap modes
     TextureOpt::Wrap m_rwrap;       ///< Default wrap modes
+#if USE_SHADOW_MATRICES
     Imath::M44f m_Mlocal;           ///< shadows: world-to-local (light) matrix
     Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
+#endif
     EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;           ///< are edge samples exactly on the border?
