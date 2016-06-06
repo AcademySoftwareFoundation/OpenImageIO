@@ -125,7 +125,8 @@ Oiiotool::Oiiotool ()
       total_writetime (Timer::DontStartNow),
       total_imagecache_readtime (0.0),
       enable_function_timing(true),
-      peak_memory(0)
+      peak_memory(0),
+      num_outputs(0)
 {
     clear_options ();
 }
@@ -1070,16 +1071,9 @@ Oiiotool::express_impl (string_view s)
 {
     std::string result;
     string_view orig = s;
-
-    // std::cout << "express_impl '" << s << "'\n";
-
     if (! express_parse_summands(orig, s, result)) {
         result = orig;
     }
-
-    // if (ot.debug)
-    //     std::cout << "  express_impl \"" << orig << "\" -> \"" << result << "\"\n";
-
     return result;
 }
 
@@ -1138,8 +1132,6 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             Strutil::parse_float (value, vals[i]);
             Strutil::parse_char (value, ',');
         }
-        img->read ();
-        img->metadata_modified (true);
         for (int s = 0, send = img->subimages();  s < send;  ++s) {
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
@@ -1158,7 +1150,6 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         int hour = 0, min = 0, sec = 0, frame = 0;
         sscanf (value.c_str(), "%d:%d:%d:%d", &hour, &min, &sec, &frame);
         Imf::TimeCode tc (hour, min, sec, frame);
-        img->metadata_modified (true);
         for (int s = 0, send = img->subimages();  s < send;  ++s) {
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &tc);
@@ -1178,8 +1169,6 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             Strutil::parse_int (value, vals[i]);
             Strutil::parse_char (value, ',');
         }
-        img->read ();
-        img->metadata_modified (true);
         for (int s = 0, send = img->subimages();  s < send;  ++s) {
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
@@ -1205,8 +1194,6 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
                 Strutil::parse_char (value, ',');
             }
         }
-        img->read ();
-        img->metadata_modified (true);
         for (int s = 0, send = img->subimages();  s < send;  ++s) {
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
@@ -4054,11 +4041,18 @@ output_file (int argc, const char *argv[])
         int bits;
         type = ot.colorconfig.getColorSpaceDataType(outcolorspace,&bits);
         if (type.basetype != TypeDesc::UNKNOWN) {
-            ot.output_dataformat = type;
-            ot.output_bitspersample = bits;
             if (ot.debug)
                 std::cout << "  Deduced data type " << type << " (" << bits
                           << "bits) for output to " << filename << "\n";
+            if ((ot.output_dataformat && ot.output_dataformat != type)
+                || (bits && ot.output_bitspersample && ot.output_bitspersample != bits)) {
+                std::string msg = Strutil::format (
+                    "Output filename colorspace \"%s\" implies %s (%d bits), overriding prior request for %s.",
+                    outcolorspace, type, bits, ot.output_dataformat);
+                ot.warning (command, msg);
+            }
+            ot.output_dataformat = type;
+            ot.output_bitspersample = bits;
         }
     }
     if (autocc) {
@@ -4115,6 +4109,7 @@ output_file (int argc, const char *argv[])
     // FIXME -- the various automatic transformations above neglect to handle
     // MIPmaps or subimages with full generality.
 
+    bool ok = true;
     if (do_tex || do_latlong) {
         ImageSpec configspec;
         adjust_output_options (filename, configspec, ot, supports_tiles, fileoptions);
@@ -4126,9 +4121,8 @@ output_file (int argc, const char *argv[])
             mode = ImageBufAlgo::MakeTxEnvLatl;
         // if (lightprobemode)
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
-        bool ok = ImageBufAlgo::make_texture (mode, (*ir)(0,0),
-                                              filename, configspec,
-                                              &std::cout);
+        ok = ImageBufAlgo::make_texture (mode, (*ir)(0,0), filename,
+                                         configspec, &std::cout);
         if (!ok)
             ot.error (command, "Could not make texture");
 
@@ -4165,19 +4159,21 @@ output_file (int argc, const char *argv[])
 
         // Output all the subimages and MIP levels
         for (int s = 0, send = ir->subimages();  s < send;  ++s) {
-            for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
+            for (int m = 0, mend = ir->miplevels(s);  m < mend && ok;  ++m) {
                 ImageSpec spec = *ir->spec(s,m);
                 adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (! out->open (filename, spec, mode)) {
                         std::string err = out->geterror();
                         ot.error (command, err.size() ? err.c_str() : "unknown error");
-                        return 0;
+                        ok = false;
+                        break;
                     }
                 }
                 if (! (*ir)(s,m).write (out)) {
                     ot.error (command, (*ir)(s,m).geterror());
-                    return 0;
+                    ok = false;
+                    break;
                 }
                 ot.check_peak_memory();
                 if (mend > 1) {
@@ -4205,7 +4201,7 @@ output_file (int argc, const char *argv[])
 
     delete out;
 
-    if (ot.output_adjust_time) {
+    if (ot.output_adjust_time && ok) {
         std::string metadatatime = ir->spec(0,0)->get_string_attribute ("DateTime");
         std::time_t in_time = ir->time();
         if (! metadatatime.empty())
@@ -4213,12 +4209,14 @@ output_file (int argc, const char *argv[])
         Filesystem::last_write_time (filename, in_time);
     }
 
+    ir->was_output (true);
     ot.check_peak_memory();
     ot.curimg = saveimg;
     ot.output_dataformat = saved_output_dataformat;
     ot.output_bitspersample = saved_bitspersample;
     ot.total_writetime.stop();
     ot.function_times[command] += timer();
+    ot.num_outputs += 1;
     return 0;
 }
 
@@ -4806,6 +4804,14 @@ main (int argc, char *argv[])
         ot.process_pending ();
         if (ot.pending_callback())
             ot.warning (Strutil::format ("pending '%s' command never executed", ot.pending_callback_name()));
+    }
+
+    if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun) {
+        if (ot.curimg && !ot.curimg->was_output() &&
+            (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
+            ot.warning ("modified images without outputting them. Did you forget -o?");
+        else if (ot.num_outputs == 0)
+            ot.warning ("oiiotool produced no output. Did you forget -o?");
     }
 
     if (ot.runstats) {

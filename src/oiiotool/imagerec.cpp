@@ -64,6 +64,7 @@ ImageRec::ImageRec (const std::string &name, int nsubimages,
                     const int *miplevels, const ImageSpec *specs)
     : m_name(name), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(true),
+      m_was_output(false),
       m_imagecache(NULL)
 {
     int specnum = 0;
@@ -89,6 +90,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
                     int miplevel_to_copy, bool writable, bool copy_pixels)
     : m_name(img.name()), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(false),
+      m_was_output(false),
       m_imagecache(img.m_imagecache)
 {
     img.read ();
@@ -131,6 +133,7 @@ ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
                     TypeDesc pixeltype)
     : m_name(A.name()), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(false),
+      m_was_output(false),
       m_imagecache(A.m_imagecache)
 {
     A.read ();
@@ -188,6 +191,7 @@ ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
 ImageRec::ImageRec (ImageBufRef img, bool copy_pixels)
     : m_name(img->name()), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(false),
+      m_was_output(false),
       m_imagecache(img->imagecache())
 {
     m_subimages.resize (1);
@@ -206,6 +210,7 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
                     ImageCache *imagecache)
     : m_name(name), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(true),
+      m_was_output(false),
       m_imagecache(imagecache)
 {
     int subimages = 1;
