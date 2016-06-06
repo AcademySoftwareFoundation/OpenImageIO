@@ -163,7 +163,7 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
         // If subimage was specified by name, figure out its index.
         int s = m_imagecache->subimage_from_name (texturefile, options.subimagename);
         if (s < 0) {
-            error ("Unknown subimage \"%s\" in texture \"%s\"",
+            debug_error ("Unknown subimage \"%s\" in texture \"%s\"",
                    options.subimagename.c_str(), texturefile->filename().c_str());
             return false;
         }
@@ -391,7 +391,7 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
                tile_chbegin, tile_chend);
     bool ok = find_tile (id, thread_info);
     if (! ok)
-        error ("%s", m_imagecache->geterror().c_str());
+        debug_error ("%s", m_imagecache->geterror().c_str());
     TileRef &tile (thread_info->tile);
     if (! tile  ||  ! ok)
         return false;
@@ -525,7 +525,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
         id.xyz (stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
         bool ok = find_tile (id, thread_info);
         if (! ok)
-            error ("%s", m_imagecache->geterror().c_str());
+            debug_error ("%s", m_imagecache->geterror().c_str());
         TileRef &tile (thread_info->tile);
         if (! tile->valid())
             return false;
@@ -558,7 +558,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                             rtex[k] - tile_r);
                     bool ok = find_tile (id, thread_info);
                     if (! ok)
-                        error ("%s", m_imagecache->geterror().c_str());
+                        debug_error ("%s", m_imagecache->geterror().c_str());
                     TileRef &tile (thread_info->tile);
                     if (! tile->valid())
                         return false;

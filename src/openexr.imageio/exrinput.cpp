@@ -88,6 +88,7 @@
 #include "OpenImageIO/sysutil.h"
 
 #include <boost/scoped_array.hpp>
+#include <boost/scoped_ptr.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -101,40 +102,46 @@ public:
     OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
-        Filesystem::open (ifs, filename, std::ios_base::binary);
-        if (!ifs) 
-            Iex::throwErrnoExc ();
+        {
+            std::istream* ifsraw;
+            Filesystem::open (&ifsraw, filename, std::ios_base::binary);
+            if (ifsraw) {
+                ifs.reset(ifsraw);
+            }
+        }
     }
     virtual bool read (char c[], int n) {
-        if (!ifs) 
-            throw Iex::InputExc ("Unexpected end of file.");
-		
+        if (!ifs)
+            return false;
         errno = 0;
-        ifs.read (c, n);
+        ifs->read (c, n);
         return check_error ();
     }
     virtual Imath::Int64 tellg () {
-        return std::streamoff (ifs.tellg ());
+        return ifs ? std::streamoff (ifs->tellg ()) : 0;
     }
     virtual void seekg (Imath::Int64 pos) {
-        ifs.seekg (pos);
+        if (!ifs) {
+            return;
+        }
+        ifs->seekg (pos);
         check_error ();
     }
     virtual void clear () {
-        ifs.clear ();
+        if (ifs) {
+            ifs->clear ();
+        }
     }
 
-private:
-    bool check_error () {
+    bool check_error () const {
         if (!ifs) {
-            if (errno) 
-                Iex::throwErrnoExc ();
-			
             return false;
         }
         return true;
     }
-    OIIO::ifstream ifs;
+
+private:
+    boost::scoped_ptr<std::istream> ifs;
 };
 
 
@@ -348,7 +355,13 @@ OpenEXRInput::OpenEXRInput ()
 bool
 OpenEXRInput::valid_file (const std::string &filename) const
 {
-    return Imf::isOpenExrFile (filename.c_str());
+	OpenEXRInputStream temp_stream (filename.c_str());
+	if (!temp_stream.check_error())
+	{
+		return false;
+	}
+
+    return Imf::isOpenExrFile (temp_stream);
 }
 
 
@@ -356,16 +369,7 @@ OpenEXRInput::valid_file (const std::string &filename) const
 bool
 OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 {
-    // Quick check to reject non-exr files
-    if (! Filesystem::is_regular (name)) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
     bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
-        error ("\"%s\" is not an OpenEXR file", name.c_str());
-        return false;
-    }
 
     pvt::set_exr_threads ();
 
@@ -373,6 +377,14 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     
     try {
         m_input_stream = new OpenEXRInputStream (name.c_str());
+		if (m_input_stream == NULL || !m_input_stream->check_error()) {
+			error ("Cannot open file \"%s\"", name.c_str());
+			return false;
+		}
+		if (! Imf::isOpenExrFile (*m_input_stream, tiled)) {
+			error ("\"%s\" is not an OpenEXR file", name.c_str());
+			return false;
+		}
     } catch (const std::exception &e) {
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());
