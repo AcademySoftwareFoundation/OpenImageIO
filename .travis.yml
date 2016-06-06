@@ -95,7 +95,7 @@ script:
 
 
 after_success:
-    - if [ "$CODECOV" == 1 ]; then bash <(curl -s https://codecov.io/bash) ; fi
+    - if [ "$CODECOV" == 1 ] ; then bash <(curl -s https://codecov.io/bash) ; fi
 
 after_failure:
 # FIXME: find failed logs, stash them or send them to lg?
@@ -121,7 +121,6 @@ matrix:
         compiler: gcc
         env: USE_CPP11=0
       - os: osx
-        osx_image: xcode6.4
         compiler: clang
         env: USE_CPP11=0
     # Build with EMBEDPLUGINS=0, both platforms.
@@ -133,7 +132,6 @@ matrix:
       # FIXME: don't have OSX EMBEDPLUGINS=0 working yet on Travis (though
       # it works fine on my laptop).
       # - os: osx
-      #   osx_image: xcode6.4
       #   compiler: clang
       #   env: EMBEDPLUGINS=0
     # Build with a higher SIMD level (SSE4.2).
@@ -142,7 +140,6 @@ matrix:
         compiler: gcc
         env: USE_SIMD=sse4.2
       - os: osx
-        osx_image: xcode6.4
         compiler: clang
         env: USE_SIMD=sse4.2
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
@@ -154,7 +151,6 @@ matrix:
       #   compiler: gcc
       #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
       - os: osx
-        osx_image: xcode6.4
         compiler: clang
         env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
     # Linux only: test gcc 5 (sometimes it has new warnings that weren't
