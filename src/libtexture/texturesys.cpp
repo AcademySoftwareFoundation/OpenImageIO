@@ -343,6 +343,7 @@ TextureSystemImpl::init ()
 {
     m_Mw2c.makeIdentity();
     m_gray_to_rgb = false;
+    m_flip_t = false;
     m_max_tile_channels = 5;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
@@ -388,6 +389,7 @@ TextureSystemImpl::getstats (int level, bool icstats) const
 #define INTOPT(name) opt += Strutil::format(#name "=%d ", m_##name)
 #define STROPT(name) if (m_##name.size()) opt += Strutil::format(#name "=\"%s\" ", m_##name)
         INTOPT(gray_to_rgb);
+        INTOPT(flip_t);
         INTOPT(max_tile_channels);
 #undef BOOLOPT
 #undef INTOPT
@@ -467,6 +469,10 @@ TextureSystemImpl::attribute (string_view name, TypeDesc type,
         m_gray_to_rgb = *(const int *)val;
         return true;
     }
+    if (name == "flip_t" && type == TypeDesc::TypeInt) {
+        m_flip_t = *(const int *)val;
+        return true;
+    }
     if (name == "m_max_tile_channels" && type == TypeDesc::TypeInt) {
         m_max_tile_channels = *(const int *)val;
         return true;
@@ -499,6 +505,10 @@ TextureSystemImpl::getattribute (string_view name, TypeDesc type,
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
         (type == TypeDesc::TypeInt)) {
         *(int *)val = m_gray_to_rgb;
+        return true;
+    }
+    if (name == "flip_t" && type == TypeDesc::TypeInt) {
+        *(int *)val = m_flip_t;
         return true;
     }
     if (name == "m_max_tile_channels" && type == TypeDesc::TypeInt) {
@@ -995,6 +1005,12 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
             fill_gray_channels (spec, nchannels, result,
                                 dresultds, dresultdt);
         return true;
+    }
+
+    if (m_flip_t) {
+        t = 1.0f - t;
+        dtdx *= -1.0f;
+        dtdy *= -1.0f;
     }
 
     if (! subinfo.full_pixel_range) {  // remap st for overscan or crop

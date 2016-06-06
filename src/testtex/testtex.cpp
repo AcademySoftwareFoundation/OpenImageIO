@@ -99,6 +99,7 @@ static Imath::V3f texoffset (0,0,0);
 static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
+static bool flip_t = false;
 static bool resetstats = false;
 static bool testhash = false;
 static bool wedge = false;
@@ -177,6 +178,7 @@ getargs (int argc, const char *argv[])
                   "--nountiled", &nountiled, "Reject untiled images",
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
+                  "--flipt", &flip_t, "Flip direction of t coordinate",
                   "--derivs", &test_derivs, "Test returning derivatives of texture lookups",
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
                   "--testhash", &testhash, "Test the tile hashing function",
@@ -1097,6 +1099,7 @@ main (int argc, const char *argv[])
     if (nounmipped)
         texsys->attribute ("accept_unmipped", 0);
     texsys->attribute ("gray_to_rgb", gray_to_rgb);
+    texsys->attribute ("flip_t", flip_t);
 
     if (test_construction) {
         Timer t;

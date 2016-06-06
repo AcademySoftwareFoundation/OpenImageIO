@@ -336,6 +336,7 @@ public:
     ///     int gray_to_rgb : make 1-channel images fill RGB lookups
     ///     int max_tile_channels : max channels to store all chans in a tile
     ///     string latlong_up : default "up" direction for latlong ("y")
+    ///     int flip_t : flip v coord for texture lookups?
     ///
     virtual bool attribute (string_view name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types

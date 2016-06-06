@@ -566,6 +566,12 @@ that explicitly requires a particular orientation).  The default is
 \qkw{y}.  (Currently any other value will result in $z$ being ``up.'')
 \apiend
 
+\apiitem{int flip_t}
+\NEW % 1.7
+If nonzero, $t$ coordinates will be flipped ($1-t$) for texture lookups.
+The default is 0.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,
