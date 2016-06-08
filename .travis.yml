@@ -50,8 +50,8 @@ cache:
     apt: true
     directories:
       - $HOME/.ccache
-      - $HOME/lgritz/oiio-images
-      - $HOME/lgritz/libtiffpic
+      - $PWD/oiio-images
+      - $PWD/libtiffpic
 
 before_install:
     - if [ "$WHICHGCC" == "" ]; then export WHICHGCC="4.8" ; fi
