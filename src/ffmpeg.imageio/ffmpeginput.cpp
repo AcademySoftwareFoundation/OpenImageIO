@@ -53,6 +53,7 @@ extern "C" { // ffmpeg is a C api
 #if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51,74,100)
 #  define AVPixelFormat PixelFormat
 #  define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+#  define AV_PIX_FMT_RGB48 PIX_FMT_RGB48
 #  define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
 #  define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
 #  define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
@@ -119,6 +120,8 @@ private:
     AVCodec *m_codec;
     AVFrame *m_frame;
     AVFrame *m_rgb_frame;
+    int m_stride;
+    AVPixelFormat m_dst_pix_format;
     SwsContext *m_sws_rgb_context;
     AVRational m_frame_rate;
     std::vector<uint8_t> m_rgb_buffer;
@@ -141,6 +144,7 @@ private:
         m_frame = 0;
         m_rgb_frame = 0;
         m_sws_rgb_context = 0;
+        m_stride = 0;
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream = -1;
@@ -151,7 +155,7 @@ private:
         m_read_frame = false;
         m_codec_cap_delay = false;
         m_subimage = 0;
-        m_start_time=0;
+        m_start_time = 0;
     }
 };
 
@@ -172,7 +176,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT const char *ffmpeg_input_extensions[] = {
         "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", NULL
     };
-    
+
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -237,7 +241,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
             m_video_indexes.push_back (i); // needed for later use
             break;
         }
-    }  
+    }
     if (m_video_stream == -1) {
         error ("\"%s\" could not find a valid videostream", file_name);
         return false;
@@ -286,42 +290,71 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     }
     m_frame = av_frame_alloc();
     m_rgb_frame = av_frame_alloc();
+
+    AVPixelFormat src_pix_format;
+    switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
+        case AV_PIX_FMT_YUVJ420P:
+            src_pix_format = AV_PIX_FMT_YUV420P;
+            break;
+        case AV_PIX_FMT_YUVJ422P:
+            src_pix_format = AV_PIX_FMT_YUV422P;
+            break;
+        case AV_PIX_FMT_YUVJ444P:
+            src_pix_format = AV_PIX_FMT_YUV444P;
+            break;
+        case AV_PIX_FMT_YUVJ440P:
+            src_pix_format = AV_PIX_FMT_YUV440P;
+        default:
+            src_pix_format = m_codec_context->pix_fmt;
+            break;
+    }
+
+    m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3);
+
+    switch (src_pix_format) { // support for 10-bit and 12-bit pix_fmts
+        case AV_PIX_FMT_YUV420P10BE:
+        case AV_PIX_FMT_YUV420P10LE:
+        case AV_PIX_FMT_YUV422P10BE:
+        case AV_PIX_FMT_YUV422P10LE:
+        case AV_PIX_FMT_YUV444P10BE:
+        case AV_PIX_FMT_YUV444P10LE:
+        case AV_PIX_FMT_YUV420P12BE:
+        case AV_PIX_FMT_YUV420P12LE:
+        case AV_PIX_FMT_YUV422P12BE:
+        case AV_PIX_FMT_YUV422P12LE:
+        case AV_PIX_FMT_YUV444P12BE:
+        case AV_PIX_FMT_YUV444P12LE:
+            m_spec.set_format (TypeDesc::UINT16);
+            m_dst_pix_format = AV_PIX_FMT_RGB48;
+            m_stride = m_spec.width * 3 * 2;
+            break;
+        default:
+            m_spec.set_format (TypeDesc::UINT8);
+            m_dst_pix_format = AV_PIX_FMT_RGB24;
+            m_stride = m_spec.width * 3;
+            break;
+    }
+
     m_rgb_buffer.resize(
-        avpicture_get_size (AV_PIX_FMT_RGB24,
+        avpicture_get_size (m_dst_pix_format,
         m_codec_context->width,
         m_codec_context->height),
         0
     );
-    AVPixelFormat pixFormat;
-    switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
-        case AV_PIX_FMT_YUVJ420P:
-            pixFormat = AV_PIX_FMT_YUV420P;
-            break;
-        case AV_PIX_FMT_YUVJ422P:
-            pixFormat = AV_PIX_FMT_YUV422P;
-            break;
-        case AV_PIX_FMT_YUVJ444P:
-            pixFormat = AV_PIX_FMT_YUV444P;
-            break;
-        case AV_PIX_FMT_YUVJ440P:
-            pixFormat = AV_PIX_FMT_YUV440P;
-        default:
-            pixFormat = m_codec_context->pix_fmt;
-            break;
-    }
+
     m_sws_rgb_context = sws_getContext(
         m_codec_context->width,
         m_codec_context->height,
-        pixFormat,
+        src_pix_format,
         m_codec_context->width,
         m_codec_context->height,
-        AV_PIX_FMT_RGB24,
+        m_dst_pix_format,
         SWS_AREA,
         NULL,
         NULL,
         NULL
     );
-    m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3, TypeDesc::UINT8);
+
     AVDictionaryEntry *tag = NULL;
     while ((tag = av_dict_get (m_format_context->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute (tag->key, tag->value);
@@ -359,7 +392,7 @@ FFmpegInput::read_native_scanline (int y, int z, void *data)
     if (!m_read_frame) {
         read_frame (m_subimage);
     }
-    memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_spec.width*3);
+    memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_stride);
     return true;
 }
 
@@ -405,7 +438,7 @@ FFmpegInput::read_frame(int frame)
                 pts = av_q2d (m_format_context->streams[m_video_stream]->time_base) *  m_frame->pkt_pts;
             }
 
-            int current_frame = int((pts-m_start_time) * fps() + 0.5f); //??? 
+            int current_frame = int((pts-m_start_time) * fps() + 0.5f); //???
             //current_frame =   m_frame->display_picture_number;
             m_last_search_pos = current_frame;
 
@@ -415,7 +448,7 @@ FFmpegInput::read_frame(int frame)
                 (
                     reinterpret_cast<AVPicture*>(m_rgb_frame),
                     &m_rgb_buffer[0],
-                    AV_PIX_FMT_RGB24,
+                    m_dst_pix_format,
                     m_codec_context->width,
                     m_codec_context->height
                 );
@@ -429,7 +462,7 @@ FFmpegInput::read_frame(int frame)
                     m_rgb_frame->data,
                     m_rgb_frame->linesize
                 );
-                m_last_decoded_pos = current_frame; 
+                m_last_decoded_pos = current_frame;
                 av_free_packet (&pkt);
                 break;
             }
