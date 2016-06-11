@@ -1123,7 +1123,6 @@ main (int argc, const char *argv[])
     }
 
     if (test_getimagespec) {
-        Timer t;
         ImageSpec spec;
         for (int i = 0;  i < iters;  ++i) {
             texsys->get_imagespec (filenames[0], 0, spec);
@@ -1182,6 +1181,7 @@ main (int argc, const char *argv[])
         const char *texturetype = "Plain Texture";
         texsys->get_texture_info (filename, 0, ustring("texturetype"),
                                   TypeDesc::STRING, &texturetype);
+        Timer timer;
         if (! strcmp (texturetype, "Plain Texture")) {
             if (nowarp)
                 test_plain_texture (map_default);
@@ -1205,6 +1205,7 @@ main (int argc, const char *argv[])
             test_environment (filename);
         }
         test_getimagespec_gettexels (filename);
+        std::cout << "Time: " << Strutil::timeintervalformat (timer()) << "\n";
     }
 
     std::cout << "Memory use: "

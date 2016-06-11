@@ -36,9 +36,13 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
+#include <boost/version.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/thread/tss.hpp>
+#if BOOST_VERSION >= 104900
+# include <boost/container/flat_map.hpp>
+#endif
 
 #include <OpenEXR/half.h>
 
@@ -76,6 +80,13 @@ class ImageCachePerThreadInfo;
 
 const char * texture_format_name (TexFormat f);
 const char * texture_type_name (TexFormat f);
+
+#ifdef BOOST_CONTAINER_FLAT_MAP_HPP
+typedef boost::container::flat_map<uint64_t,ImageCacheFile*> UdimLookupMap;
+#else
+typedef unordered_map<uint64_t,ImageCacheFile*> UdimLookupMap;
+#endif
+
 
 
 /// Structure to hold IC and TS statistics.  We combine into a single
@@ -196,6 +207,7 @@ public:
     }
     bool mipused (void) const { return m_mipused; }
     bool sample_border (void) const { return m_sample_border; }
+    bool is_udim (void) const { return m_is_udim; }
     const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
 
     void invalidate ();
@@ -301,7 +313,7 @@ public:
         m_validspec = false;
         m_subimages.clear ();
     }
-    
+
 private:
     ustring m_filename_original;    ///< original filename before search path
     ustring m_filename;             ///< Filename
@@ -322,6 +334,7 @@ private:
     EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;           ///< are edge samples exactly on the border?
+    bool m_is_udim;                 ///< Is tiled/UDIM?
     ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
     imagesize_t m_bytesread;        ///< Bytes read from this file
@@ -340,6 +353,9 @@ private:
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
     boost::scoped_ptr<ImageSpec> m_configspec; // Optional configuration hints
+    UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
+                                    // protected by mutex elsewhere!
+
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -1001,6 +1017,10 @@ public:
 
     /// Enforce the max number of open files.
     void check_max_files (ImageCachePerThreadInfo *thread_info);
+
+    // For virtual UDIM-like files, adjust s and t and return the concrete
+    // ImageCacheFile pointer for the tile it's on.
+    ImageCacheFile *resolve_udim (ImageCacheFile *file, float &s, float &t);
 
 private:
     void init ();

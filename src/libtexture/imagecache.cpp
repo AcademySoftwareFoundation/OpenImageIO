@@ -82,6 +82,7 @@ static ustring s_textureformat ("textureformat"), s_fileformat ("fileformat");
 static ustring s_format ("format"), s_cachedformat ("cachedformat");
 static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
 static ustring s_exists ("exists");
+static ustring s_UDIM ("UDIM");
 static ustring s_subimages ("subimages"), s_miplevels ("miplevels");
 static ustring s_datawindow ("datawindow"), s_displaywindow ("displaywindow");
 static ustring s_averagecolor ("averagecolor"), s_averagealpha ("averagealpha");
@@ -284,6 +285,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
       m_rwrap(TextureOpt::WrapBlack),
       m_envlayout(LayoutTexture), m_y_up(false), m_sample_border(false),
+      m_is_udim(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
       m_imagecache(imagecache), m_duplicate(NULL),
@@ -301,6 +303,16 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_Mtex.makeIdentity();
     m_Mras.makeIdentity();
 #endif
+
+    // Figure out if it's a UDIM-like virtual texture
+    if (! Filesystem::exists(m_filename.string())
+        && (m_filename.find("<UDIM>") != m_filename.npos ||
+            m_filename.find("<U>") != m_filename.npos ||
+            m_filename.find("<V>") != m_filename.npos ||
+            m_filename.find("<u>") != m_filename.npos ||
+            m_filename.find("<v>") != m_filename.npos)) {
+        m_is_udim = true;
+    }
 }
 
 
@@ -1138,6 +1150,11 @@ ImageCacheImpl::verify_file (ImageCacheFile *tf,
     if (! tf)
         return NULL;
 
+    if (tf->is_udim()) {
+        // Can't really open a UDIM-like virtual file
+        return tf;
+    }
+
     // Open the file if it's never been opened before.
     // No need to have the file cache locked for this, though we lock
     // the tf->m_input_mutex if we need to open it.
@@ -1742,6 +1759,8 @@ ImageCacheImpl::getstats (int level) const
         for (size_t i = 0;  i < files.size();  ++i) {
             const ImageCacheFileRef &file (files[i]);
             ASSERT (file);
+            if (file->is_udim())
+                continue;
             if (file->broken() || file->subimages() == 0) {
                 out << "  BROKEN                                                                      " 
                     << file->filename() << "\n";
@@ -2359,6 +2378,16 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         error ("Invalid image file \"%s\"", file->filename());
         return false;
     }
+    if (dataname == s_UDIM && datatype == TypeDesc::TypeInt) {
+        // Just check for existence.  Need to do this before the invalid
+        // file error below, since in this one case, it's not an error
+        // for the file to be nonexistant or broken!
+        *(int *)data = file->is_udim();
+        return true;
+    }
+    if (file->is_udim()) {
+        return false;     // UDIM-like files fail all other queries
+    }
     if (dataname == s_subimages && datatype == TypeDesc::TypeInt) {
         *(int *)data = file->subimages();
         return true;
@@ -2561,6 +2590,10 @@ ImageCacheImpl::imagespec (ImageCacheFile *file,
         error ("Invalid image file \"%s\"", file->filename());
         return NULL;
     }
+    if (file->is_udim()) {
+        error ("Cannot retrieve ImageSpec of a UDIM-like virtual file");
+        return NULL;     // UDIM-like files don't have an ImageSpec
+    }
     if (subimage < 0 || subimage >= file->subimages()) {
         error ("Unknown subimage %d (out of %d)", subimage, file->subimages());
         return NULL;
@@ -2657,6 +2690,10 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     if (file->broken()) {
         error ("Invalid image file \"%s\"", file->filename());
         return false;
+    }
+    if (file->is_udim()) {
+        error ("Cannot get_pixels() of a UDIM-like virtual file");
+        return false;     // UDIM-like files don't have pixels
     }
     if (subimage < 0 || subimage >= file->subimages()) {
         error ("get_pixels asked for nonexistant subimage %d of \"%s\"",
@@ -2816,7 +2853,7 @@ ImageCacheImpl::get_tile (ImageHandle *file, Perthread *thread_info,
     if (! thread_info)
         thread_info = get_perthread_info ();
     file = verify_file (file, thread_info);
-    if (! file || file->broken())
+    if (! file || file->broken() || file->is_udim())
         return NULL;
     const ImageSpec &spec (file->spec(subimage,miplevel));
     // Snap x,y,z to the corner of the tile
@@ -2896,7 +2933,7 @@ ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator,
     ImageCacheFile *file = find_file (filename, thread_info, creator,
                                       false, config);
     file = verify_file (file, thread_info);
-    if (!file || file->broken())
+    if (!file || file->broken() || file->is_udim())
         return false;
     return true;
 }
@@ -2914,6 +2951,10 @@ ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
     file = verify_file (file, thread_info);
     if (! file || file->broken()) {
         error ("Cannot add_tile for an image file that was not set up with add_file()");
+        return false;
+    }
+    if (file->is_udim()) {
+        error ("Cannot add_tile to a UDIM-like virtual file");
         return false;
     }
     if (chend < chbegin)
@@ -3046,6 +3087,73 @@ ImageCacheImpl::invalidate_all (bool force)
 
     // Mark the per-thread microcaches as invalid
     purge_perthread_microcaches ();
+}
+
+
+
+namespace {
+// Mutex to protect all the UDIM table access.
+static mutex_pool<spin_rw_mutex,ustring,ustringHash,8> udim_lookup_mutex_pool;
+// static spin_rw_mutex udim_lookup_mutex;
+}
+
+
+
+ImageCacheFile *
+ImageCacheImpl::resolve_udim (ImageCacheFile *udimfile, float &s, float &t)
+{
+    // Find the u and v tile IDs, and adjust s,t to take their floors
+    int utile = std::max (0, int(s));
+    int vtile = std::max (0, int(t));
+    s = s - utile;
+    t = t - vtile;
+
+    // Synthesized a single combined ID that we'll use as an index.
+    uint64_t id = (uint64_t(vtile) << 32) + uint64_t(utile);
+
+    // Which is our mutex from the pool? Use a hash baseed on the filename.
+    spin_rw_mutex &udim_lookup_mutex (udim_lookup_mutex_pool[udimfile->filename()]);
+
+    // First, try a read lock and see if we already have an entry
+    ImageCacheFile *realfile = NULL;
+    {
+        spin_rw_mutex::read_lock_guard rlock (udim_lookup_mutex);
+        UdimLookupMap::iterator f = udimfile->m_udim_lookup.find (id);
+        if (f != udimfile->m_udim_lookup.end())
+            realfile = f->second;
+    }
+    // If that didn't work, get a write lock and we'll make the entry for
+    // the first time.
+    if (! realfile) {
+        // Here's the one spot where we do string manipulation -- only the
+        // first time a particular tiled region is needed. Just go ahead and
+        // do all possible substitutions we support!
+        ustring realname = udimfile->filename();
+        int udim_tile = 1001 + utile + 10*vtile;
+        realname = Strutil::replace (realname, "<UDIM>",
+                                     Strutil::format("%04d", udim_tile), true);
+        realname = Strutil::replace (realname, "<u>",
+                                     Strutil::format("u%d", utile), true);
+        realname = Strutil::replace (realname, "<v>",
+                                     Strutil::format("v%d", vtile), true);
+        realname = Strutil::replace (realname, "<U>",
+                                     Strutil::format("u%d", utile+1), true);
+        realname = Strutil::replace (realname, "<V>",
+                                     Strutil::format("v%d", vtile+1), true);
+        realfile = find_file (realname, get_perthread_info());
+        // Now grab the actual write lock, and double check that it hasn't
+        // been added by another thread during the brief time when we
+        // weren't holding any lock.
+        spin_rw_mutex::write_lock_guard rlock (udim_lookup_mutex);
+        UdimLookupMap::iterator f = udimfile->m_udim_lookup.find (id);
+        if (f == udimfile->m_udim_lookup.end()) {
+            // Not yet in the lookup table, so create one so we don't have
+            // to do that lookup again.
+            udimfile->m_udim_lookup[id] = realfile;
+            // std::cout << "Associate " << id << " with " << (void*)realfile << "\n";
+        }
+    }
+    return realfile;
 }
 
 

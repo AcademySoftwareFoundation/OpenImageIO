@@ -562,7 +562,7 @@ oiio_add_tests (
                 texture-uint8
                 texture-width0blur
                 texture-fat texture-skinny texture-wrapfill
-                texture-missing texture-res
+                texture-missing texture-res texture-udim texture-udim2
               )
 
 
