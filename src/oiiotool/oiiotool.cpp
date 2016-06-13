@@ -4209,11 +4209,11 @@ output_file (int argc, const char *argv[])
         Filesystem::last_write_time (filename, in_time);
     }
 
-    ir->was_output (true);
     ot.check_peak_memory();
     ot.curimg = saveimg;
     ot.output_dataformat = saved_output_dataformat;
     ot.output_bitspersample = saved_bitspersample;
+    ot.curimg->was_output (true);
     ot.total_writetime.stop();
     ot.function_times[command] += timer();
     ot.num_outputs += 1;
