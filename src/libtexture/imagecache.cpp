@@ -1505,7 +1505,7 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     else
         out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
                                 spec.nchannels, formatcode);
-    out << "  " << file->filename();
+    out << "  " << file->filename() << " ";
     if (file->duplicate()) {
         out << " DUPLICATES " << file->duplicate()->filename();
         return out.str();
@@ -1532,7 +1532,7 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
             }
     }
     if (file->mipreadcount().size() > 1) {
-        out << " MIP-COUNT [";
+        out << " MIP-COUNT[";
         int nmip = (int) file->mipreadcount().size();
         for (int c = 0; c < nmip; c++)
             out << (c ? "," : "") << file->mipreadcount()[c];
@@ -1706,45 +1706,69 @@ ImageCacheImpl::getstats (int level) const
                 << " constant-valued in all pixels\n";
         if (files.size() >= 50) {
             const int topN = 3;
+            int nprinted;
             std::sort (files.begin(), files.end(), bytesread_compare);
             out << "  Top files by bytes read:\n";
-            for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
-                if (files[i]->broken() || !files[i]->validspec())
+            nprinted = 0;
+            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                if (nprinted++ >= topN)
+                    break;
+                if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
-                                        files[i]->bytesread()/1024.0/1024.0,
-                                        100.0 * (files[i]->bytesread() / (double)total_bytes));
-                out << onefile_stat_line (files[i], -1, false) << "\n";
+                out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", nprinted,
+                                        file->bytesread()/1024.0/1024.0,
+                                        100.0 * (file->bytesread() / (double)total_bytes));
+                out << onefile_stat_line (file, -1, false) << "\n";
             }
             std::sort (files.begin(), files.end(), iotime_compare);
             out << "  Top files by I/O time:\n";
-            for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
-                if (files[i]->broken() || !files[i]->validspec())
+            nprinted = 0;
+            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                if (nprinted++ >= topN)
+                    break;
+                if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
-                                        Strutil::timeintervalformat (files[i]->iotime()).c_str(),
-                                        100.0 * files[i]->iotime() / total_iotime);
-                out << onefile_stat_line (files[i], -1, false) << "\n";
+                out << Strutil::format ("    %d   %9s (%4.1f%%)   ", nprinted,
+                                        Strutil::timeintervalformat (file->iotime()).c_str(),
+                                        100.0 * file->iotime() / total_iotime);
+                out << onefile_stat_line (file, -1, false) << "\n";
             }
             std::sort (files.begin(), files.end(), iorate_compare);
             out << "  Files with slowest I/O rates:\n";
-            int n = 0;
+            nprinted = 0;
             BOOST_FOREACH (const ImageCacheFileRef &file, files) {
                 if (file->broken() || !file->validspec())
                     continue;
                 if (file->iotime() < 0.25)
                     continue;
+                if (nprinted++ >= topN)
+                    break;
                 double mb = file->bytesread()/(1024.0*1024.0);
                 double r = mb / file->iotime();
-                out << Strutil::format ("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ", n+1, r, mb, file->iotime());
+                out << Strutil::format ("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ",
+                                        nprinted, r, mb, file->iotime());
                 out << onefile_stat_line (file, -1, false) << "\n";
-                if (++n >= topN)
-                    break;
             }
-            if (n == 0)
+            if (nprinted == 0)
                 out << "    (nothing took more than 0.25s)\n";
             double fast = files.back()->bytesread()/(1024.0*1024.0) / files.back()->iotime();
             out << Strutil::format ("    (fastest was %.1f MB/s)\n", fast);
+        }
+        int nbroken = 0;
+        BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+            if (file->broken() || !file->validspec())
+                ++nbroken;
+        }
+        out << "  Broken or invalid files: " << nbroken << "\n";
+        if (nbroken) {
+            std::sort (files.begin(), files.end(), filename_compare);
+            int nprinted = 0;
+            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                if (file->broken() || !file->validspec()) {
+                    ++nprinted;
+                    out << Strutil::format ("   %4d  %s\n", nprinted, file->filename());
+                }
+            }
         }
     }
 
