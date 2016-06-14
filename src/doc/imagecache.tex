@@ -377,6 +377,14 @@ converting to associated alpha upon reading the pixels.  The default is
 0, meaning that the automatic conversion will take place.
 \apiend
 
+\apiitem{int max_errors_per_file}
+\NEW % 1.7
+The maximum number of errors that will be printed for each file. The default
+is 100. If your output is cluttered with error messages and after the first
+few for each file you aren't getting any helpful additional information,
+this can cut down on the clutter and the runtime.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,

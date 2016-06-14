@@ -102,6 +102,8 @@ public:
     ///     string substitute_image : uses the named image in place of all
     ///                               texture and image references.
     ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
+    ///     int max_errors_per_file : Limits how many errors to issue for
+    ///                               issue for each (default: 100)
     ///
     virtual bool attribute (string_view name, TypeDesc type,
                             const void *val) = 0;

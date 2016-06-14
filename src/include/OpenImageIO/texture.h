@@ -337,6 +337,8 @@ public:
     ///     int max_tile_channels : max channels to store all chans in a tile
     ///     string latlong_up : default "up" direction for latlong ("y")
     ///     int flip_t : flip v coord for texture lookups?
+    ///     int max_errors_per_file : Limits how many errors to issue for
+    ///                               issue for each (default: 100)
     ///
     virtual bool attribute (string_view name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types

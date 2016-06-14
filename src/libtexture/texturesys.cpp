@@ -538,8 +538,11 @@ TextureSystemImpl::get_texture_info (ustring filename, int subimage,
 {
     bool ok = m_imagecache->get_image_info (filename, subimage, 0,
                                             dataname, datatype, data);
-    if (! ok)
-        error ("%s", m_imagecache->geterror());
+    if (! ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error ("%s", err);
+    }
     return ok;
 }
 
@@ -554,8 +557,11 @@ TextureSystemImpl::get_texture_info (TextureHandle *texture_handle,
                                             (ImageCache::Perthread *)thread_info,
                                             subimage, 0,
                                             dataname, datatype, data);
-    if (! ok)
-        error ("%s", m_imagecache->geterror());
+    if (! ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error ("%s", err);
+    }
     return ok;
 }
 
@@ -566,8 +572,11 @@ TextureSystemImpl::get_imagespec (ustring filename, int subimage,
                                   ImageSpec &spec)
 {
     bool ok = m_imagecache->get_imagespec (filename, spec, subimage);
-    if (! ok)
-        error ("%s", m_imagecache->geterror());
+    if (! ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error ("%s", err);
+    }
     return ok;
 }
 
@@ -581,8 +590,11 @@ TextureSystemImpl::get_imagespec (TextureHandle *texture_handle,
     bool ok = m_imagecache->get_imagespec ((ImageCache::ImageHandle *)texture_handle,
                                            (ImageCache::Perthread *)thread_info,
                                            spec, subimage);
-    if (! ok)
-        error ("%s", m_imagecache->geterror());
+    if (! ok) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error ("%s", err);
+    }
     return ok;
 }
 
@@ -606,8 +618,11 @@ TextureSystemImpl::imagespec (TextureHandle *texture_handle,
     const ImageSpec *spec =
         m_imagecache->imagespec ((ImageCache::ImageHandle *)texture_handle,
                                  (ImageCache::Perthread *)thread_info, subimage);
-    if (! spec)
-        error ("%s", m_imagecache->geterror());
+    if (! spec) {
+        std::string err = m_imagecache->geterror();
+        if (!err.empty())
+            error ("%s", err);
+    }
     return spec;
 }
 
@@ -649,7 +664,8 @@ TextureSystemImpl::get_texels (TextureHandle *texture_handle_,
     }
 
     if (texfile->broken()) {
-        error ("Invalid texture file \"%s\"", texfile->filename());
+        if (texfile->errors_should_issue())
+            error ("Invalid texture file \"%s\"", texfile->filename());
         return false;
     }
     int subimage = options.subimage;
@@ -659,8 +675,9 @@ TextureSystemImpl::get_texels (TextureHandle *texture_handle_,
         return false;
     }
     if (miplevel < 0 || miplevel >= texfile->miplevels(subimage)) {
-        error ("get_texel asked for nonexistant MIP level %d of \"%s\"",
-               miplevel, texfile->filename());
+        if (texfile->errors_should_issue())
+            error ("get_texel asked for nonexistant MIP level %d of \"%s\"",
+                   miplevel, texfile->filename());
         return false;
     }
     const ImageSpec &spec (texfile->spec(subimage, miplevel));
@@ -725,8 +742,11 @@ TextureSystemImpl::get_texels (TextureHandle *texture_handle_,
             }
         }
     }
-    if (! ok)
-        error ("%s", m_imagecache->geterror());
+    if (! ok) {
+        std::string err = m_imagecache->geterror();
+        if (! err.empty())
+            error ("%s", err);
+    }
     return ok;
 }
 
