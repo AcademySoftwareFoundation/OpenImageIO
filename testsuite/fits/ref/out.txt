@@ -1,7 +1,7 @@
 Reading ../../../../../fits-images/pg93/tst0001.fits
 ../../../../../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
     SHA-1: FC4F635D410B219477B709E4D6F993E9AA42C7B3
-    channel list: A
+    channel list: Y
     Extend: "T"
     Blocked: "T"
     Cdelt1: -2.3
@@ -22,7 +22,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0002.fits
 ../../../../../fits-images/pg93/tst0002.fits :   73 x   31, 1 channel, uint16 fits
     SHA-1: 4FCD0E343956DEA4E792786138651F9D8C81F615
-    channel list: A
+    channel list: Y
     Cdelt1: -2.3
     Crval1: -73.5
     Crpix1: 12.1
@@ -44,7 +44,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0003.fits
 ../../../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, uint fits
     SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
-    channel list: A
+    channel list: Y
     Extend: "T"
     Blocked: "T"
     Cdelt1: -0.12321
@@ -67,7 +67,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0005.fits
 ../../../../../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
     SHA-1: 763996BCEADB93234A73AD0D714C3E9D874014CE
-    channel list: A
+    channel list: Y
     Extend: "T"
     Blocked: "T"
     Cdelt1: 3.1
@@ -86,7 +86,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0006.fits
 ../../../../../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
     SHA-1: B043726D3F76840AAC84713C1A6C323D85CADC74
-    channel list: A
+    channel list: Y
     Extend: "T"
     Blocked: "T"
     Cdelt1: -0.25
@@ -105,7 +105,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0007.fits
 ../../../../../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
     SHA-1: 32FB2E046F09E6DC814A6040B03706174EAE7229
-    channel list: A
+    channel list: Y
     Object: "IEEE 32-bit test"
     Origin: "ESO"
     DateTime: "1992:08:20 00:00:00"
@@ -161,7 +161,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0008.fits
 ../../../../../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
     SHA-1: 5C21742E65AF385B106DE98BE7004190C6F2E2BC
-    channel list: A
+    channel list: Y
     Object: "IEEE 64-bit test"
     Origin: "ESO"
     DateTime: "1992:08:20 00:00:00"
@@ -216,7 +216,7 @@ PASS
 Reading ../../../../../fits-images/pg93/tst0013.fits
 ../../../../../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
     SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
-    channel list: A
+    channel list: Y
     Blocked: "T"
     Origin: "BASIC-UX-LA SILLA"
     Object: "Test data"
@@ -273,7 +273,7 @@ PASS
 Reading ../../../../../fits-images/ftt4b/file001.fits
 ../../../../../fits-images/ftt4b/file001.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
-    channel list: A
+    channel list: Y
     Extend: "T"
     Origin: "ESO"
     Object: "SNG - CAT."
@@ -283,7 +283,7 @@ PASS
 Reading ../../../../../fits-images/ftt4b/file002.fits
 ../../../../../fits-images/ftt4b/file002.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
-    channel list: A
+    channel list: Y
     Extend: "T"
     Origin: "ESO"
     Object: "PGSNC - SN.CAT."
@@ -293,7 +293,7 @@ PASS
 Reading ../../../../../fits-images/ftt4b/file003.fits
 ../../../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, uint16 fits
     SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
-    channel list: A
+    channel list: Y
     Extend: "T"
     Object: 3
     Observer: "LISZ"
@@ -506,7 +506,7 @@ PASS
 Reading ../../../../../fits-images/ftt4b/file009.fits
 ../../../../../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, uint16 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
-    channel list: A
+    channel list: Y
     Groups: "T"
     Pcount: 5
     Gcount: 631
@@ -588,7 +588,7 @@ PASS
 Reading ../../../../../fits-images/ftt4b/file012.fits
 ../../../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, uint16 fits
     SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
-    channel list: A
+    channel list: Y
     Tables: 1
     Object: "M84"
     Observer: "LAIN"

@@ -1,7 +1,7 @@
 Reading ../../../../../libtiffpic/depth/flower-minisblack-02.tif
 ../../../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint2 tiff
     SHA-1: F6BD9D10FB0DD8E9AC62DEBBB743A78FC48D3C9B
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 2
     Orientation: 1 (normal)
     XResolution: 72
@@ -21,7 +21,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
 ../../../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint4 tiff
     SHA-1: 8C0CF14B3B585F4B1F249C681BEDEA4CB63E3EDD
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 4
     Orientation: 1 (normal)
     XResolution: 72
@@ -41,7 +41,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-06.tif
 ../../../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint6 tiff
     SHA-1: AE809BFEF36E3E0047343655231200A916D83492
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 6
     Orientation: 1 (normal)
     XResolution: 72
@@ -61,7 +61,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-08.tif
 ../../../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 1A909C8E70CC479D8A35BAA9BFEDDCBF4BF46FDC
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
@@ -81,7 +81,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
 ../../../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint10 tiff
     SHA-1: E9240FEF19CC8EF5EBBF2EE4A10EDF25E51C67B4
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 10
     Orientation: 1 (normal)
     XResolution: 72
@@ -101,7 +101,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
 ../../../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint12 tiff
     SHA-1: AAE977957ED6AAC647967192A74E4AD55FF75811
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 12
     Orientation: 1 (normal)
     XResolution: 72
@@ -121,7 +121,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-14.tif
 ../../../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint14 tiff
     SHA-1: C1B9CA21C227EF11626EF0C58BD49769EEF48363
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 14
     Orientation: 1 (normal)
     XResolution: 72
@@ -141,7 +141,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
 ../../../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: 7EBB74E46C869CA0D6D091183732214B6A75173A
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 16
     Orientation: 1 (normal)
     XResolution: 72
@@ -161,7 +161,7 @@ PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-32.tif
 ../../../../../libtiffpic/depth/flower-minisblack-32.tif :   73 x   43, 1 channel, uint tiff
     SHA-1: C98FB1125C7210E380E3F86DFCAEFF49A16742E0
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 32
     Orientation: 1 (normal)
     XResolution: 72

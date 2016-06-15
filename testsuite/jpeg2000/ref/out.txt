@@ -28,7 +28,7 @@ PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2
 ../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2 :  768 x  512, 1 channel, uint8 jpeg2000
     SHA-1: A45171430806BA3E74705675C855A781FC04BE44
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
@@ -47,7 +47,7 @@ PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2
 ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2 :  768 x  512, 1 channel, uint12 jpeg2000
     SHA-1: 3A29DFAD0AA3F910AA2D37007989A4CC6E7BDE2A
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 12
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
@@ -66,7 +66,7 @@ PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
 ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2 :  700 x  400, 1 channel, uint8 jpeg2000
     SHA-1: 593D82DE9935FC3F7963CABAAD5ACB7F8134E39A
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"

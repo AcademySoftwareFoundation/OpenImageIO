@@ -1,7 +1,7 @@
 Reading ../../../../../libtiffpic/cramps.tif
 ../../../../../libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
@@ -18,7 +18,7 @@ PASS
 Reading ../../../../../libtiffpic/cramps-tile.tif
 ../../../../../libtiffpic/cramps-tile.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
-    channel list: A
+    channel list: Y
     tile size: 256 x 256
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
@@ -95,7 +95,7 @@ PASS
 Reading ../../../../../libtiffpic/fax2d.tif
 ../../../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint1 tiff
     SHA-1: A57ECEDA78607AE81ABA344E4456EDB1E34A6CB0
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 1
     Orientation: 1 (normal)
     XResolution: 204
@@ -114,7 +114,7 @@ PASS
 Reading ../../../../../libtiffpic/g3test.tif
 ../../../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint1 tiff
     SHA-1: D674B2BB7707525F8DD678E81CAF50EE3A15D1E8
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 1
     Orientation: 1 (normal)
     XResolution: 204
@@ -148,7 +148,7 @@ PASS
 Reading ../../../../../libtiffpic/off_l16.tif
 ../../../../../libtiffpic/off_l16.tif :  333 x  225, 1 channel, uint8 tiff
     SHA-1: 430C2B645099A186CC7AE28C5DA697297E40A4D5
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 16
     Orientation: 1 (normal)
     XResolution: 72

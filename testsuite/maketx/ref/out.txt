@@ -69,7 +69,7 @@ Reading checker-1chan.tx
 checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: F7DAC8772B7C6BFABDA884D61ABC84844C949AF1
-    channel list: A
+    channel list: Y
     tile size: 64 x 64
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
@@ -222,7 +222,7 @@ Reading gray-mono.tx
 gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     MIP-map levels: 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: F5C1F9FA963006D501B14542F5E941AEDB4C5907
-    channel list: A
+    channel list: Y
     tile size: 64 x 64
     oiio:BitsPerSample: 8
     Orientation: 1 (normal)
