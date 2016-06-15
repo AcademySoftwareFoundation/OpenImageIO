@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=39
+OPENIMAGEIO_SPCOMP2_VERSION=40
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -86,7 +86,7 @@ ifeq ($(SP_OS), rhel7)
     # $(info CONSTRUCTED_BOOSTVERS ${CONSTRUCTED_BOOSTVERS})
     # $(info SPCOMP2_BOOSTVERS_SUFFIX ${SPCOMP2_BOOSTVERS_SUFFIX})
     OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
-    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155${BOOSTSPSUFFIX}/v406
+    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155${BOOSTSPSUFFIX}/v408
     OIIO_SPCOMP2_PATH := ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}-boost${SPCOMP2_BOOSTVERS_SUFFIX}/v${OPENIMAGEIO_SPCOMP2_VERSION}
     $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
 
@@ -151,10 +151,10 @@ else ifeq ($(SP_OS), spinux1)
     USE_SIMD = sse4.1
 #    USE_NINJA := 1
 #    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
-#    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
+    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
 #    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
-#    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v406
+#    FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v408
     # At SPI, we have two "flavors" of spinux.  One is based on Foresight, which
     # uses a special libGL (below).  The other is based on Fedora which uses
     # the standard libGL.  This attempts to detect which libGL to use.
@@ -211,10 +211,12 @@ else ifeq ($(SP_OS), spinux1)
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	-DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
 
+    CONSTRUCTED_BOOSTVERS = ${shell echo ${BOOSTVERS} | sed "s/\\./0/"}00
     ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
 	BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
 	MY_CMAKE_FLAGS += \
 		-DBOOST_CUSTOM=1 \
+		-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 		-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERS} \
 		-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERS} \
 		-Dboost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
