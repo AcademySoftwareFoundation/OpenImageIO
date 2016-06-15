@@ -155,37 +155,26 @@ void
 ImageSpec::default_channel_names ()
 {
     channelnames.clear();
+    channelnames.reserve (nchannels);
     alpha_channel = -1;
     z_channel = -1;
-    switch (nchannels) {
-    case 1:
-        channelnames.push_back ("A");
-        break;
-    case 2:
-        channelnames.push_back ("I");
-        channelnames.push_back ("A");
-        alpha_channel = 1;
-        break;
-    case 3:
-        channelnames.push_back ("R");
-        channelnames.push_back ("G");
-        channelnames.push_back ("B");
-        break;
-    default:
-        if (nchannels >= 1)
-            channelnames.push_back ("R");
-        if (nchannels >= 2)
-            channelnames.push_back ("G");
-        if (nchannels >= 3)
-            channelnames.push_back ("B");
-        if (nchannels >= 4) {
-            channelnames.push_back ("A");
-            alpha_channel = 3;
-        }
-        for (int c = 4;  c < nchannels;  ++c)
-            channelnames.push_back (Strutil::format("channel%d", c));
-        break;
+    if (nchannels == 1) {   // Special case: 1-channel is named "Y"
+        channelnames.push_back ("Y");
+        return;
     }
+    // General case: name channels R, G, B, A, channel4, channel5, ...
+    if (nchannels >= 1)
+        channelnames.push_back ("R");
+    if (nchannels >= 2)
+        channelnames.push_back ("G");
+    if (nchannels >= 3)
+        channelnames.push_back ("B");
+    if (nchannels >= 4) {
+        channelnames.push_back ("A");
+        alpha_channel = 3;
+    }
+    for (int c = 4;  c < nchannels;  ++c)
+        channelnames.push_back (Strutil::format("channel%d", c));
 }
 
 

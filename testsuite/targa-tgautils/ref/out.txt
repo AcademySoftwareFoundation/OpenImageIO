@@ -1,7 +1,7 @@
 Reading ../../../../../TGAUTILS/CBW8.TGA
 ../../../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
@@ -91,7 +91,7 @@ PASS
 Reading ../../../../../TGAUTILS/UBW8.TGA
 ../../../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
-    channel list: A
+    channel list: Y
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"

@@ -71,9 +71,9 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2
-../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2 :  768 x  512, 3 channel, uint8 jpeg2000
-    SHA-1: 501807547A6F9B8FA61EF7A4FD9AB7B369E7800C
-    channel list: R, G, B
+../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2 :  768 x  512, 1 channel, uint8 jpeg2000
+    SHA-1: 9784D248E95A47CDB3D0B260C7FBFFE2A4A2D492
+    channel list: Y
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
