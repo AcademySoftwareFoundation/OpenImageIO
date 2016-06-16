@@ -154,6 +154,12 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                        bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     spec.default_channel_names ();
+    if (spec.nchannels == 2) {
+        // Special case: PNG spec says 2-channel image is Gray & Alpha
+        spec.channelnames[0] = "Y";
+        spec.channelnames[1] = "A";
+        spec.alpha_channel = 1;
+    }
 
     int srgb_intent;
     if (png_get_sRGB (sp, ip, &srgb_intent)) {
@@ -329,14 +335,28 @@ create_write_struct (png_structp& sp, png_infop& ip, int& color_type,
         return "PNG does not support volume images (depth > 1)";
 
     switch (spec.nchannels) {
-    case 1 : color_type = PNG_COLOR_TYPE_GRAY; break;
-    case 2 : color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
-    case 3 : color_type = PNG_COLOR_TYPE_RGB; break;
-    case 4 : color_type = PNG_COLOR_TYPE_RGB_ALPHA; break;
+    case 1 :
+        color_type = PNG_COLOR_TYPE_GRAY;
+        spec.alpha_channel = -1;
+        break;
+    case 2 :
+        color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
+        spec.alpha_channel = 1;
+        break;
+    case 3 :
+        color_type = PNG_COLOR_TYPE_RGB;
+        spec.alpha_channel = -1;
+        break;
+    case 4 :
+        color_type = PNG_COLOR_TYPE_RGB_ALPHA;
+        spec.alpha_channel = 3;
+        break;
     default:
         return Strutil::format  ("PNG only supports 1-4 channels, not %d",
                                  spec.nchannels);
     }
+    // N.B. PNG is very rigid about the meaning of the channels, so enforce
+    // which channel is alpha, that's the only way PNG can do it.
 
     sp = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (! sp)
