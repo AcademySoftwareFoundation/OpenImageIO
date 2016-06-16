@@ -230,7 +230,7 @@ command += oiiotool ("src/tahoe-tiny.tif --laplacian -d uint8 -o tahoe-laplacian
 
 # test fft, ifft
 command += oiiotool ("src/tahoe-tiny.tif --ch 2 --fft -d float -o fft.exr")
-command += oiiotool ("fft.exr --ifft --ch 0,0,0 -d float -o ifft.exr")
+command += oiiotool ("fft.exr --ifft --ch 0 -d float -o ifft.exr")
 
 # test --polar, --unpolar
 # note that fft.exr that we built above is in complex form
