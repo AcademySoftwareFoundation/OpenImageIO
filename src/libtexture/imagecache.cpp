@@ -55,7 +55,6 @@
 #include "imagecache_pvt.h"
 
 #include <boost/foreach.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/scoped_array.hpp>
 
 
@@ -81,7 +80,7 @@ static ustring s_resolution ("resolution"), s_texturetype ("texturetype");
 static ustring s_textureformat ("textureformat"), s_fileformat ("fileformat");
 static ustring s_format ("format"), s_cachedformat ("cachedformat");
 static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
-static ustring s_exists ("exists");
+static ustring s_exists ("exists"), s_broken ("broken");
 static ustring s_UDIM ("UDIM");
 static ustring s_subimages ("subimages"), s_miplevels ("miplevels");
 static ustring s_datawindow ("datawindow"), s_displaywindow ("displaywindow");
@@ -2106,6 +2105,7 @@ ImageCacheImpl::getattribute (string_view name, TypeDesc type,
     ATTR_DECODE ("deduplicate", int, m_deduplicate);
     ATTR_DECODE ("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
+    ATTR_DECODE ("total_files", int, m_files.size());
 
     // The cases that don't fit in the simple ATTR_DECODE scheme
     if (name == "searchpath" && type == TypeDesc::STRING) {
@@ -2134,17 +2134,26 @@ ImageCacheImpl::getattribute (string_view name, TypeDesc type,
         *(const char **)val = m_substitute_image.c_str();
         return true;
     }
+    if (name == "all_filenames" && type.basetype == TypeDesc::STRING &&
+            type.is_sized_array()) {
+        ustring *names = (ustring *) val;
+        int n = type.arraylen;
+        for (FilenameMap::iterator f = m_files.begin(); f != m_files.end() && n-- > 0; ++f) {
+            *names++ = f->second->filename();
+        }
+        return true;
+    }
 
-    // Stats we can just grab
-    ATTR_DECODE ("stat:cache_memory_used", long long, m_mem_used);
-    ATTR_DECODE ("stat:tiles_created", int, m_stat_tiles_created);
-    ATTR_DECODE ("stat:tiles_current", int, m_stat_tiles_current);
-    ATTR_DECODE ("stat:tiles_peak", int, m_stat_tiles_peak);
-    ATTR_DECODE ("stat:open_files_created", int, m_stat_open_files_created);
-    ATTR_DECODE ("stat:open_files_current", int, m_stat_open_files_current);
-    ATTR_DECODE ("stat:open_files_peak", int, m_stat_open_files_peak);
+    if (Strutil::starts_with(name, "stat:")) {
+        // Stats we can just grab
+        ATTR_DECODE ("stat:cache_memory_used", long long, m_mem_used);
+        ATTR_DECODE ("stat:tiles_created", int, m_stat_tiles_created);
+        ATTR_DECODE ("stat:tiles_current", int, m_stat_tiles_current);
+        ATTR_DECODE ("stat:tiles_peak", int, m_stat_tiles_peak);
+        ATTR_DECODE ("stat:open_files_created", int, m_stat_open_files_created);
+        ATTR_DECODE ("stat:open_files_current", int, m_stat_open_files_current);
+        ATTR_DECODE ("stat:open_files_peak", int, m_stat_open_files_peak);
 
-    if (boost::algorithm::starts_with(name, "stat:")) {
         // All the other stats are those that need to be summed from all
         // the threads.
         ImageCacheStatistics stats;
@@ -2411,6 +2420,12 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
                                 ustring dataname,
                                 TypeDesc datatype, void *data)
 {
+#define ATTR_DECODE(_name,_ctype,_src)                                   \
+    if (dataname == _name && datatype == BaseTypeFromC<_ctype>::value) { \
+        *(_ctype *)(data) = (_ctype)(_src);                              \
+        return true;                                                     \
+    }
+
     file = verify_file (file, thread_info, true);
     if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
         // Just check for existence.  Need to do this before the invalid
@@ -2424,11 +2439,25 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         error ("Invalid image file");
         return false;
     }
+    ATTR_DECODE (s_broken, int, file->broken());
+    if (Strutil::starts_with (dataname, "stat:")) {
+        ATTR_DECODE ("stat:tilesread", long long, file->m_tilesread);
+        ATTR_DECODE ("stat:bytesread", long long, file->m_bytesread);
+        ATTR_DECODE ("stat:redundant_tiles", long long, file->m_redundant_tiles);
+        ATTR_DECODE ("stat:redundant_bytesread", long long, file->m_redundant_bytesread);
+        ATTR_DECODE ("stat:timesopened", int, file->m_timesopened);
+        ATTR_DECODE ("stat:iotime", float, file->m_iotime);
+        ATTR_DECODE ("stat:mipused", int, file->m_mipused);
+        ATTR_DECODE ("stat:is_duplicate", int, bool(file->duplicate()));
+    }
+
     if (file->broken()) {
         if (file->errors_should_issue())
             error ("Invalid image file \"%s\"", file->filename());
         return false;
     }
+    // No other queries below are expected to work with broken
+
     if (dataname == s_UDIM && datatype == TypeDesc::TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
@@ -2554,7 +2583,6 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
             return false;   // Fail if it's not a constant image
     }
 
-
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
     const ImageIOParameter *p = spec.find_attribute (dataname.string());
@@ -2574,6 +2602,8 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
     }
 
     return false;
+
+#undef ATTR_DECODE
 }
 
 

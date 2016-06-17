@@ -1180,7 +1180,7 @@ does not exist, or could not be properly read as a texture. Note that
 unlike all other queries, this query will ``succeed'' (return {\cf true})
 even if the file does not exist.
 
-\item[\rm \kw{udim}] Stores the value 1 (as an {\cf int} if the file
+\item[\rm \kw{udim}] Stores the value 1 (as an {\cf int}) if the file
 is a ``virtual UDIM'' or texture atlas file (as described in
 Section~\ref{sec:texturesys:udim}) or 0 otherwise.
 
@@ -1213,6 +1213,16 @@ all accessible through the same API calls.
 
 \item[\rm \kw{channels}] The number of color channels in the file 
 (an integer).
+
+\item[\rm \kw{format}] The native data format of the pixels in the
+  file (an integer, giving the {\cf TypeDesc::BASETYPE} of the data).
+  Note that this is not necessarily the same as the data format stored
+  in the image cache.
+
+\item[\rm \kw{cachedformat}] The native data format of the pixels as
+  stored in the image cache (an integer, giving the {\cf
+    TypeDesc::BASETYPE} of the data).  Note that this is not necessarily
+  the same as the native data format of the file.
 
 \item[\rm \kw{datawindow}] 
 Returns the pixel data window of the image, which is either an array of 4
@@ -1257,6 +1267,29 @@ the same values for all pixels in the texture, this will retrieve the
 constant alpha value of the texture (into a float). A non-constant image (or
 one that does not have the special metadata tag identifying it as a constant
 texture) will fail this query (return false).
+
+\item[\rm \kw{stat:tilesread}] Number of tiles read from this file ({\cf int64}).
+
+\item[\rm \kw{stat:bytesread}] Number of bytes of uncompressed pixel data read
+from this file ({cf int64}).
+
+\item[\rm \kw{stat:redundant_tiles}] Number of times a tile was read, where
+the same tile had been rad before. ({\cf int64}).
+
+\item[\rm \kw{stat:redundant_bytesread}] Number of bytes (of uncompressed pixel
+data) in tiles that were read redundantly. ({\cf int64}).
+
+\item[\rm \kw{stat:redundant_bytesread}] Number of tiles read from this file ({\cf int}).
+
+\item[\rm \kw{stat:timesopened}] Number of times this file was opened ({\cf int}).
+
+\item[\rm \kw{stat:iotime}] Time (in seconds) spent on all I/O for this file ({\cf float}).
+
+\item[\rm \kw{stat:mipsused}] Stores 1 if any MIP levels beyond the highest
+resolution were accesed, otherwise 0. ({\cf int})
+
+\item[\rm \kw{stat:is_duplicate}] Stores 1 if this file was a duplicate of
+another image, otherwise 0. ({\cf int})
 
 \item[Anything else] -- For all other data names, the
 the metadata of the image file will be searched for an item that

@@ -353,6 +353,9 @@ public:
     /// Return true if the entire map is empty.
     bool empty() { return m_size == 0; }
 
+    /// Return the total number of entries in the map.
+    size_t size () { return size_t(m_size); }
+
     /// Expliticly lock the bin that will contain the key (regardless of
     /// whether there is such an entry in the map), and return its bin
     /// number.

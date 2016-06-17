@@ -112,7 +112,19 @@ public:
     virtual bool attribute (string_view name, double val) = 0;
     virtual bool attribute (string_view name, string_view val) = 0;
 
-    /// Get the named attribute, store it in value.
+    /// Get the named attribute, store it in *val. All of the attributes
+    /// that may be set with the attribute() call may also be queried with
+    /// getattribute().
+    ///
+    /// Additionally, there are some read-only attributes that can be
+    /// queried with getattribute():
+    ///     int total_files : the total number of unique files referenced by
+    ///             calls to the ImageCache.
+    ///     string[] all_filenames : an array that will be filled with the
+    ///             list of the names of all files referenced by calls to
+    ///             the ImageCache. (The array is of ustrings or char*'s.)
+    ///     stat:* : a variety of statistics (see full docs for details).
+    ///
     virtual bool getattribute (string_view name, TypeDesc type,
                                void *val) const = 0;
     // Shortcuts for common types
