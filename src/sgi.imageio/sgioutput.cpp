@@ -28,8 +28,6 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/algorithm/string/predicate.hpp>
-using boost::algorithm::iequals;
 #include "sgi_pvt.h"
 
 
