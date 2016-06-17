@@ -38,11 +38,7 @@
 #include <string>
 #include <utility>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
-
-using boost::algorithm::iequals;
 
 
 #include "OpenImageIO/argparse.h"
