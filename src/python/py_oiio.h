@@ -364,7 +364,6 @@ private:
 public:
     static ImageCacheWrap *create (bool);
     static void destroy (ImageCacheWrap*);
-    void clear ();     
     void attribute_int    (const std::string&, int );
     void attribute_float  (const std::string&, float);
     void attribute_string (const std::string&, const std::string&);

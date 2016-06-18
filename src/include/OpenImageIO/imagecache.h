@@ -78,9 +78,8 @@ public:
     ImageCache (void) { }
     virtual ~ImageCache () { }
 
-    /// Close everything, free resources, start from scratch.
-    ///
-    virtual void clear () = 0;
+    OIIO_DEPRECATED("clear() was never implemented. Don't bother calling it. [1.7]")
+    virtual void clear () { }
 
     /// Set an attribute controlling the image cache.  Return true
     /// if the name and type were recognized and the attrib was set.
