@@ -1372,32 +1372,33 @@ set_origin (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.curimg;
-    ImageSpec &spec (*A->spec(0,0));
-    int x = spec.x, y = spec.y, z = spec.z;
-    int w = spec.width, h = spec.height, d = spec.depth;
-
-    ot.adjust_geometry (command, w, h, x, y, origin.c_str());
-    if (spec.width != w || spec.height != h || spec.depth != d)
-        ot.warning (command, "can't be used to change the size, only the origin");
-    if (spec.x != x || spec.y != y) {
-        ImageBuf &ib = (*A)(0,0);
-        if (ib.storage() == ImageBuf::IMAGECACHE) {
-            // If the image is cached, we will totally screw up the IB/IC
-            // operations if we try to change the origin in place, so in
-            // that case force a full read to convert to a local buffer,
-            // which is safe to diddle the origin.
-            ib.read (0, 0, true /*force*/, spec.format);
+    for (int s = 0; s < A->subimages(); ++s) {
+        ImageSpec &spec (*A->spec(s));
+        int x = spec.x, y = spec.y, z = spec.z;
+        int w = spec.width, h = spec.height, d = spec.depth;
+        ot.adjust_geometry (command, w, h, x, y, origin.c_str());
+        if (spec.width != w || spec.height != h || spec.depth != d)
+            ot.warning (command, "can't be used to change the size, only the origin");
+        if (spec.x != x || spec.y != y) {
+            ImageBuf &ib = (*A)(s);
+            if (ib.storage() == ImageBuf::IMAGECACHE) {
+                // If the image is cached, we will totally screw up the IB/IC
+                // operations if we try to change the origin in place, so in
+                // that case force a full read to convert to a local buffer,
+                // which is safe to diddle the origin.
+                ib.read (0, 0, true /*force*/, spec.format);
+            }
+            spec.x = x;
+            spec.y = y;
+            spec.z = z;
+            // That updated the private spec of the ImageRec. In this case
+            // we really need to update the underlying IB as well.
+            ImageSpec &ibspec = ib.specmod();
+            ibspec.x = x;
+            ibspec.y = y;
+            ibspec.z = z;
+            A->metadata_modified (true);
         }
-        spec.x = x;
-        spec.y = y;
-        spec.z = z;
-        // That updated the private spec of the ImageRec. In this case
-        // we really need to update the underlying IB as well.
-        ImageSpec &ibspec = ib.specmod();
-        ibspec.x = x;
-        ibspec.y = y;
-        ibspec.z = z;
-        A->metadata_modified (true);
     }
     ot.function_times[command] += timer();
     return 0;
@@ -2704,24 +2705,46 @@ action_crop (int argc, const char *argv[])
     string_view command = ot.express (argv[0]);
     string_view size    = ot.express (argv[1]);
 
+    std::map<std::string,std::string> options;
+    options["allsubimages"] = ot.allsubimages;
+    ot.extract_options (options, command);
+    int crop_all_subimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read ();
     ImageRecRef A = ot.curimg;
-    ImageSpec &Aspec (*A->spec(0,0));
-    ImageSpec newspec = Aspec;
+    bool crops_needed = false;
+    int subimages = crop_all_subimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
+        ImageSpec &spec (*A->spec(s,0));
+        int w = spec.width, h = spec.height, d = spec.depth;
+        int x = spec.x, y = spec.y, z = spec.z;
+        ot.adjust_geometry (argv[0], w, h, x, y, size.c_str());
+        crops_needed |=
+            (w != spec.width || h != spec.height || d != spec.depth ||
+             x != spec.x || y != spec.y || z != spec.z);
+    }
 
-    ot.adjust_geometry (argv[0], newspec.width, newspec.height,
-                        newspec.x, newspec.y, size.c_str());
-    if (newspec.width != Aspec.width || newspec.height != Aspec.height ||
-        newspec.depth != Aspec.depth ||
-        newspec.x != Aspec.x || newspec.y != Aspec.y || newspec.z != Aspec.z) {
-        // resolution changed -- we need to do a full crop
-        ot.pop();
-        ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
-        const ImageBuf &Aib ((*A)(0,0));
-        ImageBuf &Rib ((*ot.curimg)(0,0));
-        bool ok = ImageBufAlgo::crop (Rib, Aib, get_roi(newspec));
-        if (! ok)
-            ot.error (command, Rib.geterror());
+    if (crops_needed) {
+        ot.pop ();
+        ImageRecRef R (new ImageRec (A->name(), subimages, 0));
+        ot.push (R);
+        for (int s = 0; s < subimages; ++s) {
+            ImageSpec &spec (*A->spec(s,0));
+            int w = spec.width, h = spec.height, d = spec.depth;
+            int x = spec.x, y = spec.y, z = spec.z;
+            ot.adjust_geometry (argv[0], w, h, x, y, size.c_str());
+            const ImageBuf &Aib ((*A)(s,0));
+            ImageBuf &Rib ((*R)(s,0));
+            ROI roi = Aib.roi();
+            if (w != spec.width || h != spec.height || d != spec.depth ||
+                    x != spec.x || y != spec.y || z != spec.z) {
+                roi = ROI (x, x+w, y, y+h, z, z+d);
+            }
+            bool ok = ImageBufAlgo::crop (Rib, Aib, roi);
+            if (! ok)
+                ot.error (command, Rib.geterror());
+            R->update_spec_from_imagebuf (s, 0);
+        }
     }
 
     ot.function_times[command] += timer();
@@ -2740,18 +2763,27 @@ action_croptofull (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.curimg;
-    const ImageSpec &Aspec (*A->spec(0,0));
-    // Implement by calling action_crop with a geometry specifier built
-    // from the current full image size.
-    std::string size = format_resolution (Aspec.full_width, Aspec.full_height,
-                                          Aspec.full_x, Aspec.full_y);
-    const char *newargv[2] = { "crop", size.c_str() };
-    bool old_enable_function_timing = ot.enable_function_timing;
-    ot.enable_function_timing = false;
-    int result = action_crop (2, newargv);
+    bool crops_needed = false;
+    for (int s = 0; s < A->subimages(); ++s) {
+        crops_needed |= ((*A)(s).roi() != (*A)(s).roi_full());
+    }
+
+    if (crops_needed) {
+        ot.pop ();
+        ImageRecRef R (new ImageRec (A->name(), A->subimages(), 0));
+        ot.push (R);
+        for (int s = 0; s < A->subimages(); ++s) {
+            const ImageBuf &Aib ((*A)(s,0));
+            ImageBuf &Rib ((*R)(s,0));
+            ROI roi = (Aib.roi() != Aib.roi_full()) ? Aib.roi_full() : Aib.roi();
+            bool ok = ImageBufAlgo::crop (Rib, Aib, roi);
+            if (! ok)
+                ot.error (command, Rib.geterror());
+            R->update_spec_from_imagebuf (s, 0);
+        }
+    }
     ot.function_times[command] += timer();
-    ot.enable_function_timing = old_enable_function_timing;
-    return result;
+    return 0;
 }
 
 
@@ -2766,30 +2798,41 @@ action_trim (int argc, const char *argv[])
 
     ot.read ();
     ImageRecRef A = ot.curimg;
-
-    // Implement by calling action_crop with a geometry specifier built
-    // from examining the nonzero region of the image.
-    ROI origroi = get_roi(*A->spec(0,0));
-    ROI roi = ImageBufAlgo::nonzero_region ((*A)(0,0), origroi);
-    if (roi.npixels() == 0) {
-        // Special case -- all zero; but doctor to make it 1 zero pixel
-        roi = origroi;
-        roi.xend = roi.xbegin+1;
-        roi.yend = roi.ybegin+1;
-        roi.zend = roi.zbegin+1;
+    
+    // First, figure out shared nonzero region
+    ROI nonzero_region;
+    for (int s = 0; s < A->subimages(); ++s) {
+        ROI roi = ImageBufAlgo::nonzero_region ((*A)(s));
+        if (roi.npixels() == 0) {
+            // Special case -- all zero; but doctor to make it 1 zero pixel
+            roi = (*A)(s).roi();
+            roi.xend = roi.xbegin+1;
+            roi.yend = roi.ybegin+1;
+            roi.zend = roi.zbegin+1;
+        }
+        nonzero_region = roi_union (nonzero_region, roi);
     }
-    std::string crop = (A->spec(0,0)->depth == 1)
-            ? format_resolution (roi.width(), roi.height(),
-                                 roi.xbegin, roi.ybegin)
-            : format_resolution (roi.width(), roi.height(), roi.depth(),
-                                 roi.xbegin, roi.ybegin, roi.zbegin);
-    const char *newargv[2] = { "crop", crop.c_str() };
-    bool old_enable_function_timing = ot.enable_function_timing;
-    ot.enable_function_timing = false;
-    int result = action_crop (2, newargv);
+    
+    // Now see if any subimges need cropping
+    bool crops_needed = false;
+    for (int s = 0; s < A->subimages(); ++s) {
+        crops_needed |= (nonzero_region != (*A)(s).roi());
+    }
+    if (crops_needed) {
+        ot.pop ();
+        ImageRecRef R (new ImageRec (A->name(), A->subimages(), 0));
+        ot.push (R);
+        for (int s = 0; s < A->subimages(); ++s) {
+            const ImageBuf &Aib ((*A)(s,0));
+            ImageBuf &Rib ((*R)(s,0));
+            bool ok = ImageBufAlgo::crop (Rib, Aib, nonzero_region);
+            if (! ok)
+                ot.error (command, Rib.geterror());
+            R->update_spec_from_imagebuf (s, 0);
+        }
+    }
     ot.function_times[command] += timer();
-    ot.enable_function_timing = old_enable_function_timing;
-    return result;
+    return 0;
 }
 
 

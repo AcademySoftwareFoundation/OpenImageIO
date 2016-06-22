@@ -1973,6 +1973,10 @@ The size is in the form
 Note that {\cf crop} does not \emph{reposition} pixels, it only trims or
 pads to reset the image's pixel data window to the specified region.
 
+If \oiiotool's global {\cf -a} flag is used ({\bf a}ll subimages)), or if the
+optional {\cf --crop:allsubimages=1} is employed, the crop will be applied
+identically to all subimages.
+
 \noindent Examples:
 
 \begin{code}
