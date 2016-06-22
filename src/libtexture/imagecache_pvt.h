@@ -764,10 +764,6 @@ public:
     }
 
 
-    /// Close everything, free resources, start from scratch.
-    ///
-    virtual void clear () { }
-
     // Retrieve options
     int max_open_files () const { return m_max_open_files; }
     const std::string &searchpath () const { return m_searchpath; }

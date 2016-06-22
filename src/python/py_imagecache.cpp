@@ -49,12 +49,6 @@ void ImageCacheWrap::destroy (ImageCacheWrap *x)
     ImageCache::destroy(x->m_cache);
 }
 
-void ImageCacheWrap::clear ()
-{
-    m_cache->clear();
-}
-
-
 std::string ImageCacheWrap::resolve_filename (const std::string &val)
 {
     ScopedGILRelease gil;
@@ -199,7 +193,6 @@ void declare_imagecache()
         .staticmethod("create")
         .def("destroy", &ImageCacheWrap::destroy)
         .staticmethod("destroy")
-        .def("clear", &ImageCacheWrap::clear)
         .def("attribute", &ImageCacheWrap::attribute_float)
         .def("attribute", &ImageCacheWrap::attribute_int)
         .def("attribute", &ImageCacheWrap::attribute_string)
@@ -227,4 +220,3 @@ void declare_imagecache()
 }
 
 } // namespace PyOpenImageIO
-

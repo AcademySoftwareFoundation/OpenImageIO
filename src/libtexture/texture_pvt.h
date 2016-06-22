@@ -108,8 +108,6 @@ public:
     }
 
 
-    virtual void clear () { }
-
     // Retrieve options
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
