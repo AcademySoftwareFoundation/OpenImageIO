@@ -372,7 +372,7 @@ try:
     inv = ImageBuf()
     ImageBufAlgo.ifft (inv, fft)
     b = ImageBuf()
-    ImageBufAlgo.channels (b, inv, (0,0,0))
+    ImageBufAlgo.channels (b, inv, (0,))
     write (b, "ifft.exr", oiio.FLOAT)
     inv.clear()
     fft.clear()

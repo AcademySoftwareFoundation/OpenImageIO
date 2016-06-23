@@ -218,6 +218,10 @@ private:
     // Decode the IlmImf MIP parameters from the spec.
     static void figure_mip (const ImageSpec &spec, int &nmiplevels,
                             int &levelmode, int &roundingmode);
+
+    // Helper: if the channel names are nonsensical, fix them to keep the
+    // app from shooting itself in the foot.
+    void sanity_check_channelnames ();
 };
 
 
@@ -343,6 +347,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         m_miplevel = 0;
         m_headers.resize (1);
         m_spec = userspec;  // Stash the spec
+        sanity_check_channelnames ();
 
         if (! spec_to_header (m_spec, m_subimage, m_headers[m_subimage]))
             return false;
@@ -422,6 +427,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             return false;
         }
         m_spec = m_subimagespecs[m_subimage];
+        sanity_check_channelnames ();
         compute_pixeltypes(m_spec);
         return true;
 #else
@@ -507,6 +513,7 @@ OpenEXROutput::open (const std::string &name, int subimages,
     }
 
     m_spec = m_subimagespecs[0];
+    sanity_check_channelnames ();
     compute_pixeltypes(m_spec);
 
     // Create an ImfMultiPartOutputFile
@@ -1209,6 +1216,26 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 
     OIIO::debugmsg ("Don't know what to do with %s %s\n", type, xname);
     return false;
+}
+
+
+
+void
+OpenEXROutput::sanity_check_channelnames ()
+{
+    m_spec.channelnames.resize (m_spec.nchannels, "");
+    for (int c = 1; c < m_spec.nchannels; ++c) {
+        for (int i = 0; i < c; ++i) {
+            if (m_spec.channelnames[c].empty() ||
+                m_spec.channelnames[c] == m_spec.channelnames[i]) {
+                // Duplicate or missing channel name! We don't want
+                // libIlmImf to drop the channel (as it will do for
+                // duplicates), so rename it and hope for the best.
+                m_spec.channelnames[c] = Strutil::format ("channel%d", c);
+                break;
+            }
+        }
+    }
 }
 
 
