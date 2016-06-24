@@ -479,7 +479,8 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
     spec.full_depth = 1;
     spec.tile_depth = 1;
 
-    if (header->hasTileDescription()) {
+    if (Strutil::icontains(header->type(), "tile")
+          && header->hasTileDescription()) {
         const Imf::TileDescription &td (header->tileDescription());
         spec.tile_width = td.xSize;
         spec.tile_height = td.ySize;
@@ -1321,4 +1322,3 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
 
 
 OIIO_PLUGIN_NAMESPACE_END
-
