@@ -2,8 +2,8 @@ project(documentation)
 
 set (public_docs
      openimageio.pdf
-     "${OpenImageIO_SOURCE_DIR}/LICENSE"
-     "${OpenImageIO_SOURCE_DIR}/CHANGES"
+     "${OpenImageIO_SOURCE_DIR}/LICENSE.md"
+     "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
 )
 
 if (INSTALL_DOCS)

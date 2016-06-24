@@ -1,12 +1,10 @@
 README for OpenImageIO
 ======================
 
-.. image:: https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square
-    :target: https://github.com/OpenImageIO/oiio/blob/master/LICENSE
-.. image:: https://travis-ci.org/OpenImageIO/oiio.svg?branch=master
-    :target: https://travis-ci.org/OpenImageIO/oiio
-.. image:: https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true
-    :target: https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/OpenImageIO/oiio.svg?branch=master)](https://travis-ci.org/OpenImageIO/oiio)
+[![Windows Build Status](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master)
+
 
 
 Introduction
@@ -68,7 +66,7 @@ OpenImageIO consists of:
 Licensing
 ---------
 
-OpenImageIO is (c) Copyright 2008-2015 by Larry Gritz et al.
+OpenImageIO is (c) Copyright 2008-2016 by Larry Gritz et al.
 All Rights Reserved.
 
 OpenImageIO is distributed using the modified BSD license (also known as
@@ -118,9 +116,9 @@ Building and Installation
 Please read the "INSTALL" file for detailed instructions on how to
 build and install OpenImageIO.
 
-Remember that you need to set the environment variable
-IMAGEIO_LIBRARY_PATH to point to the 'lib' directory where OpenImageIO
-is installed, or else it will not be able to find the plugins.
+If you build with EMBEDPLUGINS=0, remember that you need to set the
+environment variable OIIO_LIBRARY_PATH to point to the 'lib' directory where
+OpenImageIO is installed, or else it will not be able to find the plugins.
 
 
 Documentation
@@ -129,4 +127,3 @@ Documentation
 The primary user and programmer documentation can be found in
 src/doc/openimageio.pdf (in a source distribution) or in the
 doc/openimageio.pdf file of an installed binary distribution.
-
