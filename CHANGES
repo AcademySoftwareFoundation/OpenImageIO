@@ -14,7 +14,13 @@ Major new features and improvements:
       of reading that one file. #1389 (1.7.2)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
    #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
-   deep_merge() #1388,1393 (1.7.2)
+ * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
+   automatically be resolved to the correct UTIM tile based on the s,t
+   coordinates. #1426 (1.7.3) deep_merge() #1388,1393 (1.7.2)
+ * Behavior change: When reading files without explicit channel names,
+   single channel images now name their channel "Y" (no longer "A",
+   which was confusing to algorithms that treat alpha in special ways).
+   Similarly, 2-channel images name their channels "R" and "G". #1434 (1.7.3)
 
 Public API changes:
  * DeepData internals and API overhaul: struct internals hidden, now you
@@ -43,6 +49,8 @@ Public API changes:
    data in an unsigned char array. Also, requesting HALF returns the half
    bits in an unsigned short array (since there is no 'half' type in Python).
    #1362 (1.7.2/1.6.11)
+ * Deprecate ImageCache/TextureSystem clear() methods, which never did
+   anything useful. #1347 (1.7.3)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -90,6 +98,10 @@ Fixes, minor enhancements, and performance improvements:
     * -info -v will print timecodes in human-readable form. #1415 (1.7.3)
     * Bug fix: --fullsize didn't work properly when followed by --attrib.
       #1418 (1.7.3/1.6.14)
+    * Easily understandable warnings for common mistakes: no output specified,
+      an image that's modified but never output, or when -autocc causes
+      output to be a data format that overrides a previous -d directive.
+      #1419 (1.7.3)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -120,6 +132,18 @@ Fixes, minor enhancements, and performance improvements:
       #1336 (1.7.2/1.6.11)
     * Texture: slight improvement in texture sharpness. #1369 (1.7.2/1.6.11)
     * New statistics related to redundant tile reads. #1417 (1.7.3)
+    * TextureSystem option "flip_t", if nonzero, will flip the vertical
+      direction of all texture lookups. Use this for renderers that adhere
+      to the convention that the t=0 texture coordinate is the visible
+      "bottom" of the texture. #1428 (1.7.3)
+    * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
+      automatically be resolved to the correct UTIM tile based on the
+      s,t coordinates. #1426 (1.7.3)
+    * Avoid repeated broken texture error messages. #1423 (1.7.3)
+    * New IC/TS attribute: "max_errors_per_file" limits how many error
+      messages are printed for each file. #1423 (1.7.3)
+    * Improved statistics: for the "top 3" stats, print the top 3 that aren't
+      broken. Also print a count & list of broken/invalid files. #1433 (1.7.3)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
@@ -129,6 +153,43 @@ Fixes, minor enhancements, and performance improvements:
  * iinfo:
     * More clearly prints info about subimage formats. #1320 (1.7.1)
     * Print timecodes in human-readable form. #1415 (1.7.3)
+ * ImageOutput: fix cases with native data but non-contiguous strides.
+   #1416 (1.7.3)
+ * GIF:
+    * GIF reader failed to set spec full_width, full_height. #1348
+      (1.7.2/1.6.11)
+ * JPEG:
+    * Fix bad memory access crash when reading specific JPEG files that were
+      written without their comment field including a null character to
+      end the string. #1365 (1.7.2/1.6.11)
+    * Change in behavior writing JPEG files when XResolution & YResolution
+      are not provided, but a PixelAspectRatio is requested. Previously, we
+      obeyed the JPEG/JFIF spec exactly, but it turns out that popular apps
+      including PhotoShop and Nuke use the field differently than the spec
+      dictates. So now we conform to how these apps work, rather than to
+      the letter of the spec. #1412 (1.7.3)
+ * OpenEXR:
+    * Fix broken multipart output when parts had different pixel data
+      types. #1306,#1316 (1.7.1/1.6.10)
+    * Improved error reporting for bad tile reads. #1338 (1.7.2/1.6.11)
+    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2/1.6.11)
+    * The global OIIO::attribute("exr_threads") has been modified so that 0
+      means to use full available hardware, -1 disables the OpenEXR
+      thread pool and execute in the caller thread. #1381 (1.7.2)
+    * When writing EXR, double check that there are no repeated channel
+      names, and if so, rename them so the data is not lost (since the
+      underlying libIlmImf will silently drop channels with repeated
+      names).  #1435 (1.7.3)
+ * PNG:
+    * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
+    * Enforce that alpha premultiplication on output MUST consider alpha
+      to be the last channel of 2 or 4 channel images, no other cases
+      (as dictated by the PNG spec). #1435 (1.7.3)
+ * PNM:
+    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
+ * RLA:
+    * Fixes for both reading and writing of RLA images that are cropped
+      (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
  * TIFF:
     * When outputting a TIFF file, a special attribute "tiff:half", if
       set to nonzero, will enable writing of 16-bit float pixel data
@@ -143,28 +204,8 @@ Fixes, minor enhancements, and performance improvements:
       "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
     * More robust handling of non-zero origin of full/display window.
       #1414 (1.6.14/1.7.3)
- * OpenEXR:
-    * Fix broken multipart output when parts had different pixel data
-      types. #1306,#1316 (1.7.1/1.6.10)
-    * Improved error reporting for bad tile reads. #1338 (1.7.2/1.6.11)
-    * Fix errors reading tiles for mixed-format EXR files. #1352 (1.7.2/1.6.11)
-    * The global OIIO::attribute("exr_threads") has been modified so that 0
-      means to use full available hardware, -1 disables the OpenEXR
-      thread pool and execute in the caller thread. #1381 (1.7.2)
- * RLA:
-    * Fixes for both reading and writing of RLA images that are cropped
-      (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
- * GIF:
-    * GIF reader failed to set spec full_width, full_height. #1348
-      (1.7.2/1.6.11)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
- * PNM:
-    * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
- * JPEG:
-    * Fix bad memory access crash when reading specific JPEG files that were
-      written without their comment field including a null character to
-      end the string. #1365 (1.7.2/1.6.11)
  * Improved accuracy of "lanczos3" filter; speed up blackman-harris filter.
    #1379 (1.7.2)
  * Speed up linear<->sRGB color conversions (as used by any of the IBA color
@@ -190,7 +231,7 @@ Build/test system improvements:
  * imagespeed_test can not specify the data conversion type for reads,
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
- * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11)
+ * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436 (1.7.3)
  * Fix errors in finding the correct locaiton of pugixml.hpp when using
    USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2/1.6.11)
  * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
@@ -224,6 +265,7 @@ Build/test system improvements:
    #1409 (1.7.3/1.6.13)
  * Allow custom JPEG_PATH to hint location of JPEG library. #1411
    (1.7.3/1.6.13)
+ * Windows UTF-8 filename safety fixes. #1420 (1.7.3)
 
 Developer goodies / internals:
  * parallel_image has been improved in several ways: can choose split
@@ -241,18 +283,21 @@ Developer goodies / internals:
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
    fast_exp, fast_pow_pos #1384 (1.7.2)
- * thread.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14)
+ * thread.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14);
+   mutex_pool #1425 (1.7.3)
  * compute_test: new unit test can be used to benchmark computation
    times. #1310 (1.7.1)
- * Strutil::extract_from_list_string is more flixible by allowing the vals
-   list to start empty, in which case it will add as many values as it finds
-   rather than only replacing existing values. #1319 (1.7.1)
+ * Strutil: Strutil::extract_from_list_string is more flixible by
+   allowing the vals list to start empty, in which case it will add as
+   many values as it finds rather than only replacing existing
+   values #1319 (1.7.1); Strutil::replace #1422 (1.7.3)
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
  * platform.h: better distinguishing beteen Apple and Generic clang,
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
+ * ImageCache: remove unused shadow matrix fields, save space. #1424 (1.7.3)
 
 
 
