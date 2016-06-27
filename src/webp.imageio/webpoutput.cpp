@@ -74,7 +74,10 @@ class WebpOutput : public ImageOutput
 int
 WebpOutput::supports (string_view feature) const
 {
-    return (feature == "alpha");
+    return feature == "tiles"
+        || feature == "alpha"
+        || feature == "random_access"
+        || feature == "rewrite";
 }
 
 
