@@ -493,7 +493,7 @@ adjust_output_options (string_view filename,
         if (type == TypeDesc::UNKNOWN)
             type = ot.output_dataformat;
         if (type != TypeDesc::UNKNOWN)
-            spec.set_format (ot.output_dataformat);
+            spec.format = ot.output_dataformat;
         int bits = get_value_override (fileoptions["bits"], ot.output_bitspersample);
         if (bits)
             spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
