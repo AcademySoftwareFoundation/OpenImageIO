@@ -106,6 +106,7 @@ static bool wedge = false;
 static int ntrials = 1;
 static int testicwrite = 0;
 static bool test_derivs = false;
+static bool test_statquery = false;
 static Imath::M33f xform;
 static mutex error_mutex;
 void *dummyptr;
@@ -187,6 +188,7 @@ getargs (int argc, const char *argv[])
                   "--trials %d", &ntrials, "Number of trials for timings",
                   "--wedge", &wedge, "Wedge test",
                   "--testicwrite %d", &testicwrite, "Test ImageCache write ability (1=seeded, 2=generated)",
+                  "--teststatquery", &test_statquery, "Test queries of statistics",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -1216,6 +1218,31 @@ main (int argc, const char *argv[])
         }
         test_getimagespec_gettexels (filename);
         std::cout << "Time: " << Strutil::timeintervalformat (timer()) << "\n";
+    }
+
+    if (test_statquery) {
+        std::cout << "Testing statistics queries:\n";
+        int total_files = 0;
+        texsys->getattribute ("total_files", total_files);
+        std::cout << "  Total files: " << total_files << "\n";
+        std::vector<ustring> all_filenames (total_files);
+        std::cout << TypeDesc(TypeDesc::STRING,total_files) << "\n";
+        texsys->getattribute ("all_filenames", TypeDesc(TypeDesc::STRING,total_files), &all_filenames[0]);
+        for (int i = 0; i < total_files; ++i) {
+            int timesopened = 0;
+            int64_t bytesread = 0;
+            float iotime = 0.0f;
+            texsys->get_texture_info (all_filenames[i], 0, ustring("stat:timesopened"),
+                                      TypeDesc::INT, &timesopened);
+            texsys->get_texture_info (all_filenames[i], 0, ustring("stat:bytesread"),
+                                      TypeDesc::INT64, &bytesread);
+            texsys->get_texture_info (all_filenames[i], 0, ustring("stat:iotime"),
+                                      TypeDesc::FLOAT, &iotime);
+            std::cout << Strutil::format ("  %d: %s  opens=%d, read=%s, time=%s\n",
+                                          i, all_filenames[i], timesopened,
+                                          Strutil::memformat(bytesread),
+                                          Strutil::timeintervalformat(iotime,2));
+        }
     }
 
     std::cout << "Memory use: "
