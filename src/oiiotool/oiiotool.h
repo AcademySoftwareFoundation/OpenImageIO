@@ -544,6 +544,12 @@ public:
             std::cout << "\n";
         }
 
+        // Parse the options.
+        options.clear ();
+        options["allsubimages"] = ot.allsubimages;
+        option_defaults ();  // this can be customized to set up defaults
+        ot.extract_options (options, args[0]);
+
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
         if (nimages()) {
@@ -554,11 +560,6 @@ public:
             ir[0].reset (new ImageRec (opname(), subimages));
             ot.push (ir[0]);
         }
-
-        // Parse the options.
-        options.clear ();
-        option_defaults ();  // this can be customized to set up defaults
-        ot.extract_options (options, args[0]);
 
         // Give a chance for customization before we walk the subimages.
         // If the setup method returns false, we're done.
@@ -571,7 +572,7 @@ public:
             // Get pointers for the ImageBufs for this subimage
             img.resize (nimages());
             for (int i = 0; i < nimages(); ++i)
-                img[i] = &((*ir[i])(std::min (s, ir[i]->subimages())));
+                img[i] = &((*ir[i])(std::min (s, ir[i]->subimages()-1)));
 
             // Call the impl kernel for this subimage
             bool ok = impl (nimages() ? &img[0] : NULL);
@@ -613,10 +614,13 @@ public:
     // to defaults. This will be called separate
     virtual void option_defaults () { }
 
-    // By default, we make the results have the same number of subimages as
-    // the first input image. Override this is you want another behavior.
+    // Default subimage logic: if the global -a flag was set or if this command
+    // had ":allsubimages=1" option set, then apply the command to all subimages
+    // (of the first input image). Otherwise, we'll only apply the command to
+    // the first subimage. Override this is you want another behavior.
     virtual int compute_subimages () {
-        return ot.allsubimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
+        int all_subimages = Strutil::from_string<int>(options["allsubimages"]);
+        return all_subimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
     }
 
     int nargs () const { return m_nargs; }

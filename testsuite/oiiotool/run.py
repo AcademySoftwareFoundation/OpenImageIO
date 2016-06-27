@@ -127,6 +127,11 @@ command += oiiotool (parent + "/oiio-images/grid.tif "
 command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
                      + " -rotate 30 -trim -origin +0+0 -fullpixels -d uint8 -o trim.tif")
 
+# test --trim, tricky case of multiple subimages
+command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 "
+                     + "--create 320x240 3 -fill:color=.5,.5,.1 100x10+70+70 -rotate 140 "
+                     + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
+
 # test mosaic
 command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--pattern constant:color=0,1,0 50x50 3 "
@@ -289,7 +294,8 @@ outputs = [
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
-            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif", "trim.tif",
+            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
+            "trim.tif", "trimsubimages.tif",
             "flip.tif", "flip-crop.tif",
             "flop.tif", "flop-crop.tif",
             "flipflop.tif", "flipflop-crop.tif",
