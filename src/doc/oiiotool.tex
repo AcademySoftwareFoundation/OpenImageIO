@@ -975,6 +975,30 @@ is turned on, The \ImageCache \qkw{autoscanline} feature will also be enabled.
 See Section~\ref{imagecacheattr:autotile} for details.
 \apiend
 
+\apiitem{\ce --iconfig {\rm \emph{name value}}}
+\NEW % 1.7
+Sets configuration metadata that will apply to the next input file read.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf type=}\emph{typename} & Specify the metadata type.
+\end{tabular}
+
+If the optional {\cf type=} specifier is used, that provides an
+explicit type for the metadata. If not provided,
+it will try to infer the type of the metadata from the value: if the
+value contains only numerals (with optional leading minus sign), it will
+be saved as {\cf int} metadata; if it also contains a decimal point, it
+will be saved as {\cf float} metadata; otherwise, it will be saved as
+a {\cf string} metadata.
+
+\noindent Examples:
+\begin{code}
+    oiiotool --iconfig "oiio:UnassociatedAlpha" 1 in.png -o out.tif
+\end{code}
+\apiend
+
 \newpage
 \subsection*{Writing images}
 

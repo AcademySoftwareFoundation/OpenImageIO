@@ -84,6 +84,8 @@ public:
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
+    ImageSpec input_config;           // configuration options for reading
+    bool input_config_set;
 
     // Output options
     TypeDesc output_dataformat;

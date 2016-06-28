@@ -724,7 +724,8 @@ OiioTool::print_info (Oiiotool &ot,
                       std::string &error)
 {
     error.clear();
-    ImageInput *input = ImageInput::open (filename.c_str());
+    ImageSpec *config = ot.input_config_set ? &ot.input_config : NULL;
+    ImageInput *input = ImageInput::open (filename.c_str(), config);
     if (! input) {
         error = geterror();
         if (error.empty())
