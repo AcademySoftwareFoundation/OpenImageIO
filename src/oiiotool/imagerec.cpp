@@ -47,6 +47,7 @@
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/filter.h"
+#include "OpenImageIO/thread.h"
 
 #include "oiiotool.h"
 
