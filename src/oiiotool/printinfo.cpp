@@ -35,6 +35,9 @@
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#if defined(_MSC_VER)
+#include <io.h>
+#endif
 
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
