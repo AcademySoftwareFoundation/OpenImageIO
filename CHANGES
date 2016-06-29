@@ -1,7 +1,25 @@
 Changes:
 
-Release 1.6.15 (released ?? 2016 -- compared to 1.6.14)
+Release 1.6.15 (released 1 Jul 2016 -- compared to 1.6.14)
 ------------------------------------------------
+* Improved statistics: for the "top 3" stats, print the top 3 that aren't
+  broken. Also print a count & list of broken/invalid files. #1433
+* Change in behavior writing JPEG files when XResolution & YResolution
+  are not provided, but a PixelAspectRatio is requested. Previously, we
+  obeyed the JPEG/JFIF spec exactly, but it turns out that popular apps
+  including PhotoShop and Nuke use the field differently than the spec
+  dictates. So now we conform to how these apps work, rather than to
+  the letter of the spec. #1412
+* IC/TS: add ability to retrieve various per-file statistics. #1438
+* Windows UTF-8 filename safety fixes. #1420
+* ImageOutput: fix cases with native data but non-contiguous strides.  #1416
+* Make FindOpenEXR.cmake more robust when the version number is embedded
+  in the library name. #1401
+* Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436
+* More robust detected of when OpenEXR is tiled (for weird files).  #1441
+* Various Windows compilation and warning fixes.
+* strutil.h: added replace(). #1422
+* thread.h: added mutex_pool. #1425
 
 Release 1.6.14 (released 1 Jun 2016 -- compared to 1.6.13)
 ------------------------------------------------
