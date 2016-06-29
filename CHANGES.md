@@ -1,20 +1,18 @@
-Changes:
-
 Release 1.7 (in progress) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool commands:
-    * -otex and -oenv allow oiiotool to directly output proper texture
+    * `-otex` and `-oenv` allow oiiotool to directly output proper texture
       maps, and it can now do everything that maketx can do. #1351 (1.7.2)
-    * --line can draw polylines into an image. #1319 (1.7.1)
-    * --box can draw a filled or unfilled box into an image. #1319 (1.7.1)
-    * --laplacian computes the Laplacian. #1332 (1.7.1)
-    * --deep_merge does a full merge/composite of deep images. #1388 (1.7.2)
-    * -i inputs a file. Options autocc=, now=, info= control aspects
+    * `--line` can draw polylines into an image. #1319 (1.7.1)
+    * `--box` can draw a filled or unfilled box into an image. #1319 (1.7.1)
+    * `--laplacian` computes the Laplacian. #1332 (1.7.1)
+    * `--deep_merge` does a full merge/composite of deep images. #1388 (1.7.2)
+    * `-i` inputs a file. Options `autocc=`, `now=`, `info=` control aspects
       of reading that one file. #1389 (1.7.2)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
    #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
- * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
+ * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
    automatically be resolved to the correct UTIM tile based on the s,t
    coordinates. #1426 (1.7.3) deep_merge() #1388,1393 (1.7.2)
  * Behavior change: When reading files without explicit channel names,
@@ -1581,12 +1579,12 @@ Major new features and improvements:
 * Preliminary support for reading a wide variety of digital camera "RAW"
   files.  (1.4.1)
 * New oiiotool commands:
-    --cpow : raise pixel values to a power (1.4.1)
-    --label : give a name to the top-of-stack image, can be referred
-              to later in the command line (1.4.1)
-    --cut : combine --crop, --origin +0+0, and --fullpixels. (1.4.3)
-    --pdiff : perceptual diff (#815) (1.4.4)
-    --polar, --unpolar : complex <-> polar conversion. (#831) (1.4.5)
+    * `--cpow` : raise pixel values to a power (1.4.1)
+    * `--label` : give a name to the top-of-stack image, can be referred
+       to later in the command line (1.4.1)
+    * `--cut` : combine --crop, --origin +0+0, and --fullpixels. (1.4.3)
+    * `--pdiff` : perceptual diff (#815) (1.4.4)
+    * `--polar`, `--unpolar` : complex <-> polar conversion. (#831) (1.4.5)
 * oiiotool --resize and --fit, and also maketx when using "good" filters
   for downsizing, have been significantly sped up. When downsizing
   with large filters, we have seen up to 3x improvement. (#808) (1.4.3)
@@ -2139,34 +2137,34 @@ Release 1.2 (8 July 2013)
 -------------------------
 Major new features and improvements:
 * New oiiotool commands:
-    --swap        Exchanges the top two items on the image stack.
-    --fit         Resize image to fit into a given resolution (keeping aspect).
-    --ch          Select/cull/reorder/add channels within an image.
-    --chappend    Merge two images by appending their color channels.
-    --chnames     Rename some or all of the color channels in an image.
-    --zover       Depth compositing
-    --cadd        Add constant per-channel values to all pixels
-    --cmul        Multiply an imge by a scalar or per-channel constant.
-    --fillholes   Smoothly interpolate for hole filling.
-    --resample    Similar to --resize, but just uses closest pixel lookup.
-    --clamp       Clamp pixel values
-    --rangeexpand Expand range for certain HDR processing
-    --rangecompress  Compress range for certain HDR processing
-    --unpremult   Divide colors by alpha (un-premultiply).
-    --premult     Multiply colors by alpha.
-    --kernel      Make a convolution kernel using a filter name.
-    --convolve    Convolve two images.
-    --blur        Blur an image.
-    --unsharp     Sharpen an image using an unsharp mask.
-    --paste       Paste one image on another.
-    --mosaic      Create a rectilinear image mosaic.
-    --transpose   Transpose an image (flip along the diagonal axis)
-    --chsum       Sum all channels in each pixel
-    --cshift      Circular shift an image pixels
-    --fft --ifft  Forward and inverse Fourier transform
-    --colorcount  Counts how many pixels are one of a list of colors.
-    --rangecheck  Counts how many pixels fall outside the given range.
-    --ociolook    Apply OpenColorIO "looks"
+    * `--swap`        Exchanges the top two items on the image stack.
+    * `--fit`         Resize image to fit into a given resolution (keeping aspect).
+    * `--ch`          Select/cull/reorder/add channels within an image.
+    * `--chappend`    Merge two images by appending their color channels.
+    * `--chnames`     Rename some or all of the color channels in an image.
+    * `--zover`       Depth compositing
+    * `--cadd`        Add constant per-channel values to all pixels
+    * `--cmul`        Multiply an image by a scalar or per-channel constant.
+    * `--fillholes`   Smoothly interpolate for hole filling.
+    * `--resample`    Similar to `--resize`, but just uses closest pixel lookup.
+    * `--clamp`       Clamp pixel values
+    * `--rangeexpand` Expand range for certain HDR processing
+    * `--rangecompress`  Compress range for certain HDR processing
+    * `--unpremult`   Divide colors by alpha (un-premultiply).
+    * `--premult`     Multiply colors by alpha.
+    * `--kernel`      Make a convolution kernel using a filter name.
+    * `--convolve`    Convolve two images.
+    * `--blur`        Blur an image.
+    * `--unsharp`     Sharpen an image using an unsharp mask.
+    * `--paste`       Paste one image on another.
+    * `--mosaic`      Create a rectilinear image mosaic.
+    * `--transpose`   Transpose an image (flip along the diagonal axis)
+    * `--chsum`       Sum all channels in each pixel
+    * `--cshift`      Circular shift an image pixels
+    * `--fft` `--ifft`  Forward and inverse Fourier transform
+    * `--colorcount`  Counts how many pixels are one of a list of colors.
+    * `--rangecheck`  Counts how many pixels fall outside the given range.
+    * `--ociolook`    Apply OpenColorIO "looks"
 * oiiotool can loop over entire numeric frame ranges by specifying
   wildcard filenames such as "foo.#.tif" or "bar.1-10#.exr".
 * oiiotool --frames and --framepadding give more explicit control over
@@ -2561,23 +2559,23 @@ Major new features and improvements:
     TS simultaneously (mostly due to use of reader-writer locks on the
     tile cache rather than unique locks).
 * New ImageBufAlgo functions:
-    fromIplImage() : converts/copies an OpenCV image to an ImageBuf.
-    capture_image() : captures from a camera device (only if OpenCV is found)
-    over() : Porter/Duff "over" compositing operation
-    render_text() : render text into an image
-    histogram() : compute value histogram information for an image
-    histogram_draw() : compute an image containing a graph of the histogram
-                       of another image
-    channels() : select, shuffle, truncate, or extend channels of an image.
+    * `fromIplImage()` : converts/copies an OpenCV image to an ImageBuf.
+    * `capture_image()` : captures from a camera device (only if OpenCV is found)
+    * `over()` : Porter/Duff "over" compositing operation
+    * `render_text()` : render text into an image
+    * `histogram()` : compute value histogram information for an image
+    * `histogram_draw()` : compute an image containing a graph of the histogram
+       of another image
+    * `channels()` : select, shuffle, truncate, or extend channels of an image.
 * New oiiotool commands:
-    --capture : captures from a camera device (only if OpenCV is found)
-    --pattern constant : creates a constant-color image
-    --over : Porter/Duff "over" compositing operation
-    --text : render text into an image.
-    --histogram : computes an image containing a graph of the histogram of
-                  the input image.
-    --fill : fills a region with a solid color
-    --ch : select, shuffle, truncate, or extend channels
+    * `--capture` : captures from a camera device (only if OpenCV is found)
+    * `--pattern` constant : creates a constant-color image
+    * `--over` : Porter/Duff "over" compositing operation
+    * `--text` : render text into an image.
+    * `--histogram` : computes an image containing a graph of the histogram of
+       the input image.
+    * `--fill` : fills a region with a solid color
+    * `--ch` : select, shuffle, truncate, or extend channels
 
 API changes:
 * A new static ImageInput::open(filename [,config]) combines the old
@@ -3654,7 +3652,7 @@ For developers:
 
 
 
-Initial developer release 0.1 (9/1/08):
+Initial developer release 0.1 (1 Sep 2008):
 ---------------------------------------
 
 * ImageInput, ImageOutput, TextureSystem APIs pretty mature
@@ -3668,5 +3666,3 @@ Initial developer release 0.1 (9/1/08):
 * maketx
 * API docs for ImageInput, ImageOutput, writing plugins
 * Linux and OSX
-
-
