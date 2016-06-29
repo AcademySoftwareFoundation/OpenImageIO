@@ -39,7 +39,7 @@
 #ifndef OPENIMAGEIO_REFCNT_H
 #define OPENIMAGEIO_REFCNT_H
 
-#include <OpenImageIO/thread.h>
+#include <OpenImageIO/atomic.h>
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 # include <memory>
