@@ -100,6 +100,14 @@ Fixes, minor enhancements, and performance improvements:
       an image that's modified but never output, or when -autocc causes
       output to be a data format that overrides a previous -d directive.
       #1419 (1.7.3)
+    * --origin, --croptofull, and --trim all do their thing to all subimages,
+      if the image at the top of the stack has multiple subimages.
+      #1440 (1.7.3)
+    * --crop operates on all subimages if either the -a flag was used, or
+      if the specific optinoal override `--crop:allsubimages=1` is used.
+      #1440 (1.7.3)
+    * --trim will trim all subimages to the same region, containing the
+      union of all nonzero pixels in all subimages. #1440 (1.7.3)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -141,7 +149,9 @@ Fixes, minor enhancements, and performance improvements:
     * New IC/TS attribute: "max_errors_per_file" limits how many error
       messages are printed for each file. #1423 (1.7.3)
     * Improved statistics: for the "top 3" stats, print the top 3 that aren't
-      broken. Also print a count & list of broken/invalid files. #1433 (1.7.3)
+      broken. Also print a count & list of broken/invalid files. #1433
+      (1.7.3/1.6.15)
+    * Add ability to retrieve various per-file statistics. #1438 (1.7.3/1.6.15)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
@@ -152,7 +162,7 @@ Fixes, minor enhancements, and performance improvements:
     * More clearly prints info about subimage formats. #1320 (1.7.1)
     * Print timecodes in human-readable form. #1415 (1.7.3)
  * ImageOutput: fix cases with native data but non-contiguous strides.
-   #1416 (1.7.3)
+   #1416 (1.7.3/1.6.15)
  * GIF:
     * GIF reader failed to set spec full_width, full_height. #1348
       (1.7.2/1.6.11)
@@ -165,7 +175,7 @@ Fixes, minor enhancements, and performance improvements:
       obeyed the JPEG/JFIF spec exactly, but it turns out that popular apps
       including PhotoShop and Nuke use the field differently than the spec
       dictates. So now we conform to how these apps work, rather than to
-      the letter of the spec. #1412 (1.7.3)
+      the letter of the spec. #1412 (1.7.3/1.6.15)
  * OpenEXR:
     * Fix broken multipart output when parts had different pixel data
       types. #1306,#1316 (1.7.1/1.6.10)
@@ -178,6 +188,8 @@ Fixes, minor enhancements, and performance improvements:
       names, and if so, rename them so the data is not lost (since the
       underlying libIlmImf will silently drop channels with repeated
       names).  #1435 (1.7.3)
+    * More robust detected of when OpenEXR is tiled (for weird files).
+      #1441 (1.7.3/1.6.15)
  * PNG:
     * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
     * Enforce that alpha premultiplication on output MUST consider alpha
@@ -229,7 +241,7 @@ Build/test system improvements:
  * imagespeed_test can not specify the data conversion type for reads,
    can optionally allow skipping the IB iteration tests, and can set the
    IC tile cache size. #1323 (1.7.1)
- * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436 (1.7.3)
+ * Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436 (1.7.3/1.6.15)
  * Fix errors in finding the correct locaiton of pugixml.hpp when using
    USE_EXTERNAL_PUGIXML=1. #1339 (1.7.2/1.6.11)
  * Rewrite of FindOpenEXR.cmake. Solves many problems and is simpler.
@@ -255,7 +267,7 @@ Build/test system improvements:
    be much harder for us to make changes that inadvertently break the build
    on Windows. #1399 (1.7.3)
  * Make FindOpenEXR.cmake more robust when the version number is embedded
-   in the library name. #1401 (1.7.3)
+   in the library name. #1401 (1.7.3/1.6.15)
  * Clear up some inconsistencies in the CMake files and the Makefile wrapper:
    the flag to compile with libc++ is now always called USE_LIBCPLUSPLUS,
    not sometimes OIIO_BUILD_LIBCPLUSPLUS. #1404 (1.7.3)
@@ -263,9 +275,13 @@ Build/test system improvements:
    #1409 (1.7.3/1.6.13)
  * Allow custom JPEG_PATH to hint location of JPEG library. #1411
    (1.7.3/1.6.13)
- * Windows UTF-8 filename safety fixes. #1420 (1.7.3)
+ * Windows UTF-8 filename safety fixes. #1420 (1.7.3/1.6.14)
+ * Various Windows compilation & warning fixes. #1443 (1.7.3/1.6.15)
 
 Developer goodies / internals:
+ * thread.h has had all the atomic operations split into a separate atomic.h.
+   #1443 (1.7.3)
+ * atomic.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14);
  * parallel_image has been improved in several ways: can choose split
    direction; raised minimum chunk size to prevent thread fan-out for
    images too small to benefit; uses the calling thread as part of the
@@ -281,14 +297,13 @@ Developer goodies / internals:
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
    fast_exp, fast_pow_pos #1384 (1.7.2)
- * thread.h: add atomic and, or, and xor. #1417 (1.7.2/1.6.14);
-   mutex_pool #1425 (1.7.3)
+ * thread.h: add mutex_pool #1425 (1.7.3/1.6.15)
  * compute_test: new unit test can be used to benchmark computation
    times. #1310 (1.7.1)
  * Strutil: Strutil::extract_from_list_string is more flixible by
    allowing the vals list to start empty, in which case it will add as
    many values as it finds rather than only replacing existing
-   values #1319 (1.7.1); Strutil::replace #1422 (1.7.3)
+   values #1319 (1.7.1); Strutil::replace #1422 (1.7.3/1.6.15)
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
@@ -296,8 +311,37 @@ Developer goodies / internals:
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
  * ImageCache: remove unused shadow matrix fields, save space. #1424 (1.7.3)
+ * Many documentation files (such as README, CHANGES, LICENSE, CREDITS,
+   and INSTALL) have been changed from plain text to MarkDown. #1442 (1.7.3)
 
 
+
+Release 1.6.15 (released 1 Jul 2016 -- compared to 1.6.14)
+------------------------------------------------
+* Improved statistics: for the "top 3" stats, print the top 3 that aren't
+  broken. Also print a count & list of broken/invalid files. #1433
+* Change in behavior writing JPEG files when XResolution & YResolution
+  are not provided, but a PixelAspectRatio is requested. Previously, we
+  obeyed the JPEG/JFIF spec exactly, but it turns out that popular apps
+  including PhotoShop and Nuke use the field differently than the spec
+  dictates. So now we conform to how these apps work, rather than to
+  the letter of the spec. #1412
+* IC/TS: add ability to retrieve various per-file statistics. #1438
+* Windows UTF-8 filename safety fixes. #1420
+* ImageOutput: fix cases with native data but non-contiguous strides.  #1416
+* Make FindOpenEXR.cmake more robust when the version number is embedded
+  in the library name. #1401
+* Fix build breaks for gcc 6. #1339 (1.7.2/1.6.11) #1436
+* More robust detected of when OpenEXR is tiled (for weird files).  #1441
+* Various Windows compilation and warning fixes.
+* strutil.h: added replace(). #1422
+* thread.h: added mutex_pool. #1425
+
+Release 1.6.14 (released 1 Jun 2016 -- compared to 1.6.13)
+------------------------------------------------
+* More robust handling of TIFF I/O when non-zero origin of full/display
+  window. (#1414)
+* oiiotool --fullsize didn't work properly when followed by --attrib. (#1418)
 
 Release 1.6.13 (released 1 May 2016 -- compared to 1.6.12)
 ------------------------------------------------
