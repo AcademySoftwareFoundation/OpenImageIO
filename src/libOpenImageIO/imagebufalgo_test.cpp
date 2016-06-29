@@ -87,7 +87,7 @@ void test_zero_fill ()
     ImageBuf A (spec);
     
     // Set a pixel to an odd value, make sure it takes
-    const float arbitrary1[CHANNELS] = { 0.2, 0.3, 0.4, 0.5 };
+    const float arbitrary1[CHANNELS] = { 0.2f, 0.3f, 0.4f, 0.5f };
     A.setpixel (1, 1, arbitrary1);
     float pixel[CHANNELS];   // test pixel
     A.getpixel (1, 1, pixel);
@@ -106,7 +106,7 @@ void test_zero_fill ()
     }
 
     // Test fill of whole image
-    const float arbitrary2[CHANNELS] = { 0.6, 0.7, 0.3, 0.9 };
+    const float arbitrary2[CHANNELS] = { 0.6f, 0.7f, 0.3f, 0.9f };
     ImageBufAlgo::fill (A, arbitrary2);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
@@ -118,7 +118,7 @@ void test_zero_fill ()
     }
 
     // Test fill of partial image
-    const float arbitrary3[CHANNELS] = { 0.42, 0.43, 0.44, 0.45 };
+    const float arbitrary3[CHANNELS] = { 0.42f, 0.43f, 0.44f, 0.45f };
     {
         const int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
         ImageBufAlgo::fill (A, arbitrary3, ROI(xbegin, xend, ybegin, yend));
@@ -153,10 +153,10 @@ void test_crop ()
     A.reset (spec);
     B.reset (spec);
     float arbitrary1[4];
-    arbitrary1[0] = 0.2;
-    arbitrary1[1] = 0.3;
-    arbitrary1[2] = 0.4;
-    arbitrary1[3] = 0.5;
+    arbitrary1[0] = 0.2f;
+    arbitrary1[1] = 0.3f;
+    arbitrary1[2] = 0.4f;
+    arbitrary1[3] = 0.5f;
     ImageBufAlgo::fill (A, arbitrary1);
 
     // Test CUT crop
@@ -541,7 +541,7 @@ test_maketx_from_imagebuf()
     const int WIDTH = 16, HEIGHT = 16, CHANNELS = 3;
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A (spec);
-    float pink[] = { .5, .3, .3 }, green[] = { .1, .5, .1 };
+    float pink[] = { 0.5f, 0.3f, 0.3f }, green[] = { 0.1f, 0.5f, 0.1f };
     ImageBufAlgo::checker (A, 4, 4, 4, pink, green);
 
     // Write it

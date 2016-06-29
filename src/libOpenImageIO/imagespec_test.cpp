@@ -108,7 +108,7 @@ void test_imagespec_metadata_val ()
     OIIO_CHECK_EQUAL (ret, "100, 200, 300, 400");
     OIIO_CHECK_NE (ret, "100, 200, 300, 400,");
 
-    float fmatrix[] = {10.12, 200.34, 300.11, 400.9};
+    float fmatrix[] = {10.12f, 200.34f, 300.11f, 400.9f};
     metadata_val_test (&fmatrix[0], 1, TypeDesc::TypeFloat, ret);
     OIIO_CHECK_EQUAL (ret, "10.12");
     metadata_val_test (fmatrix, sizeof (fmatrix) / sizeof (float), TypeDesc::TypeFloat, ret);

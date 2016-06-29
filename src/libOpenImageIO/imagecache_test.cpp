@@ -54,7 +54,8 @@ test_get_pixels_cachechannels (int chbegin = 0, int chend = 4,
     ustring filename ("tenchannels.tif");
     const int nchans = 10;
     ImageBuf A (ImageSpec (64, 64, nchans, TypeDesc::FLOAT));
-    const float pixelvalue[nchans] = { 0, .1, .2, .3, .4, .5, .6, .7, .8, .9 };
+    const float pixelvalue[nchans] = { 0.0f, 0.1f, 0.2f, 0.3f, 0.4f,
+                                       0.5f, 0.6f, 0.7f, 0.8f, 0.9f };
     ImageBufAlgo::fill (A, pixelvalue);
     A.write (filename);
 
