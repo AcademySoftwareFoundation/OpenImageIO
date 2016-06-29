@@ -57,6 +57,11 @@
 
 OIIO_NAMESPACE_BEGIN
 
+#ifdef _MSC_VER
+    // fix for https://svn.boost.org/trac/boost/ticket/6320
+    const std::string dummy_path = "../dummy_path.txt";
+    const std::string dummy_extension = boost::filesystem::path(dummy_path).extension().string();
+#endif
 
 std::string
 Filesystem::filename (const std::string &filepath)

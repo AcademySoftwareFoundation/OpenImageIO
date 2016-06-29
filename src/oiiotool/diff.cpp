@@ -31,6 +31,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <cmath>
 #include <iostream>
 #include <iterator>
