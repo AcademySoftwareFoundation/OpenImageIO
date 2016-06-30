@@ -156,6 +156,8 @@ Oiiotool::clear_options ()
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
+    input_config = ImageSpec();
+    input_config_set = false;
     output_dataformat = TypeDesc::UNKNOWN;
     output_channelformats.clear ();
     output_bitspersample = 0;
@@ -1105,6 +1107,97 @@ Oiiotool::express (string_view str)
         std::cout << "Expanding expression \"" << str << "\" -> \"" << result << "\"\n";
     return result;
 }
+
+
+
+static int
+set_input_attribute (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+
+    std::map<std::string,std::string> options;
+    ot.extract_options (options, argv[0]);
+    TypeDesc type (options["type"]);
+    string_view attribname = ot.express(argv[1]);
+    string_view value = ot.express(argv[2]);
+
+    if (! value.size()) {
+        // If the value is the empty string, clear the attribute
+        ot.input_config.erase_attribute (attribname);
+        return 0;
+    }
+
+    ot.input_config_set = true;
+
+    // First, handle the cases where we're told what to expect
+    if (type.basetype == TypeDesc::FLOAT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<float> vals (n, 0.0f);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_float (value, vals[i]);
+            Strutil::parse_char (value, ',');
+        }
+        ot.input_config.attribute (attribname, type, &vals[0]);
+        return 0;
+    }
+    if (type.basetype == TypeDesc::INT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<int> vals (n, 0);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_int (value, vals[i]);
+            Strutil::parse_char (value, ',');
+        }
+        ot.input_config.attribute (attribname, type, &vals[0]);
+        return 0;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<ustring> vals (n, ustring());
+        if (n == 1)
+            vals[0] = ustring(value);
+        else {
+            for (size_t i = 0; i < n && value.size(); ++i) {
+                string_view s;
+                Strutil::parse_string (value, s);
+                vals[i] = ustring(s);
+                Strutil::parse_char (value, ',');
+            }
+        }
+        ot.input_config.attribute (attribname, type, &vals[0]);
+        return 0;
+    }
+
+    // Does it seem to be an int, or did the caller explicitly request
+    // that it be set as an int?
+    char *p = NULL;
+    int i = strtol (value.c_str(), &p, 10);
+    while (*p && isspace(*p))
+        ++p;
+    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::INT) {
+        // int conversion succeeded and accounted for the whole string --
+        // so set an int attribute.
+        ot.input_config.attribute (attribname, i);
+        return 0;
+    }
+
+    // Does it seem to be a float, or did the caller explicitly request
+    // that it be set as a float?
+    p = NULL;
+    float f = (float)strtod (value.c_str(), &p);
+    while (*p && isspace(*p))
+        ++p;
+    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
+        // float conversion succeeded and accounted for the whole string --
+        // so set a float attribute.
+        ot.input_config.attribute (attribname, f);
+        return 0;
+    }
+
+    // Otherwise, set it as a string attribute
+    ot.input_config.attribute (attribname, value);
+    return 0;
+}
+
 
 
 
@@ -3819,6 +3912,13 @@ input_file (int argc, const char *argv[])
         Timer timer (ot.enable_function_timing);
         int exists = 1;
         // ustring filename (argv[i]);
+        if (ot.input_config_set) {
+            // User has set some input configuration, so seed the cache with
+            // that information.
+            ustring fn (filename);
+            ot.imagecache->invalidate (fn);
+            ot.imagecache->add_file (fn, NULL, &ot.input_config);
+        }
         if (! ot.imagecache->get_image_info (ustring(filename), 0, 0,
                             ustring("exists"), TypeDesc::TypeInt, &exists)
             || !exists) {
@@ -3900,6 +4000,10 @@ input_file (int argc, const char *argv[])
         ot.process_pending ();
     }
 
+    if (ot.input_config_set) {
+        ot.input_config = ImageSpec();
+        ot.input_config_set = false;
+    }
     ot.check_peak_memory ();
     ot.total_readtime.stop();
     return 0;
@@ -4438,6 +4542,7 @@ getargs (int argc, char *argv[])
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that read images:",
                 "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=0:printinfo=0:autocc=0)",
+                "--iconfig %@ %s %s", set_input_attribute, NULL, NULL, "Sets input config attribute (name, value) (options: type=...)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",

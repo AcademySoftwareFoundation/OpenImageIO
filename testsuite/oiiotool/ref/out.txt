@@ -53,6 +53,8 @@ copyA.0007.jpg       :  360 x  240, 3 channel, uint8 jpeg
 copyA.0008.jpg       :  360 x  240, 3 channel, uint8 jpeg
 copyA.0009.jpg       :  360 x  240, 3 channel, uint8 jpeg
 copyA.0010.jpg       :  360 x  240, 3 channel, uint8 jpeg
+Reading black.tif
+    oiio:DebugOpenConfig!: 42
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
