@@ -16,12 +16,10 @@ dist: trusty
 # excluded).
 env:
     matrix:
-      - WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=0"
-      - WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=sse4.2"
-      - WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=1"
-      - WHICHGCC=4.9 BUILD_FLAGS="USE_CPP11=1"
-      - WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1"
-      - WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=0" DEBUG=1
+      - WHICHGCC=4.8 USE_CPP11=0
+      - WHICHGCC=4.8 USE_CPP11=1 USE_SIMD=sse4.2
+      - WHICHGCC=4.8 USE_CPP11=1
+      - WHICHGCC=4.8 USE_CPP11=0 DEBUG=1
 
 # Add-ons: specify apt packages for Linux
 addons:
@@ -36,6 +34,8 @@ addons:
       - g++-4.9
       - gcc-5
       - g++-5
+      - gcc-6
+      - g++-6
       - libboost1.55-all-dev
       - libgif-dev
       - libtiff4-dev
@@ -105,22 +105,16 @@ matrix:
         compiler: gcc
       - os: linux
         compiler: clang
-      - os: osx
-        compiler: clang
-        env: WHICHGCC=4.9
-      - os: osx
-        compiler: clang
-        env: WHICHGCC=4.9 BUILD_FLAGS="USE_CPP11=1"
-      - os: osx
-        compiler: clang
-        env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1"
     include:
       - os: linux
         compiler: gcc
-        env: WHICHGCC=5 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=avx,f16c"
+        env: WHICHGCC=5 USE_CPP11=1
       - os: linux
         compiler: gcc
-        env: WHICHGCC=4.8 BUILD_FLAGS="USE_CPP11=1 USE_SIMD=0 USE_JPEGTURBO=0"
+        env: WHICHGCC=6 USE_CPP11=1 USE_SIMD=avx,f16c
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=4.8 USE_CPP11=1 USE_SIMD=0 USE_JPEGTURBO=0
 
 notifications:
     email:
