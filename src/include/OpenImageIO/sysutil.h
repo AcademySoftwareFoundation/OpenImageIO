@@ -49,6 +49,7 @@
 #include "export.h"
 #include "oiioversion.h"
 #include "platform.h"
+#include "string_view.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -78,6 +79,10 @@ OIIO_API void get_local_time (const time_t *time, struct tm *converted_time);
 /// Return the full path of the currently-running executable program.
 ///
 OIIO_API std::string this_program_path ();
+
+/// Return the value of an environment variable (or the empty string_view
+/// if it is not found in the environment.)
+OIIO_API string_view getenv (string_view name);
 
 /// Sleep for the given number of microseconds.
 ///

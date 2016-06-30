@@ -262,6 +262,14 @@ Sysutil::this_program_path ()
 
 
 
+string_view
+Sysutil::getenv (string_view name)
+{
+    return string_view (::getenv (name.c_str()));
+}
+
+
+
 void
 Sysutil::usleep (unsigned long useconds)
 {
