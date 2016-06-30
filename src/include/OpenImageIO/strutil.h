@@ -477,6 +477,10 @@ string_view OIIO_API parse_nested (string_view &str, bool eat=true);
 /// is caught up to C++11.
 void OIIO_API utf8_to_unicode (string_view str, std::vector<uint32_t> &uvec);
 
+/// Encode the string in base64.
+/// https://en.wikipedia.org/wiki/Base64
+std::string OIIO_API base64_encode (string_view str);
+
 }  // namespace Strutil
 
 OIIO_NAMESPACE_END
