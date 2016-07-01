@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.16 (released ?? 2016 -- compared to 1.6.15)
+------------------------------------------------
+
 Release 1.6.15 (released 1 Jul 2016 -- compared to 1.6.14)
 ------------------------------------------------
 * Improved statistics: for the "top 3" stats, print the top 3 that aren't
@@ -3394,5 +3397,3 @@ Initial developer release 0.1 (9/1/08):
 * maketx
 * API docs for ImageInput, ImageOutput, writing plugins
 * Linux and OSX
-
-
