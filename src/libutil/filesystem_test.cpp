@@ -95,8 +95,8 @@ void test_filename_searchpath_find ()
     std::cout << "Testing searchpath_find\n";
 
     // non-recursive search success
-    OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("License.md", dirs, false, false),
-                      ".." DIRSEP ".." DIRSEP "cpack" DIRSEP "License.md");
+    OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("License.txt", dirs, false, false),
+                      ".." DIRSEP ".." DIRSEP "cpack" DIRSEP "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
     OIIO_CHECK_EQUAL (Filesystem::searchpath_find ("oiioversion.h", dirs, false, false),
