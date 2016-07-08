@@ -479,8 +479,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
     spec.full_depth = 1;
     spec.tile_depth = 1;
 
-    if (Strutil::icontains(header->type(), "tile")
-          && header->hasTileDescription()) {
+    if (header->hasTileDescription()
+#if USE_OPENEXR_VERSION2
+        && Strutil::icontains(header->type(), "tile")
+#endif
+        ) {
         const Imf::TileDescription &td (header->tileDescription());
         spec.tile_width = td.xSize;
         spec.tile_height = td.ySize;
