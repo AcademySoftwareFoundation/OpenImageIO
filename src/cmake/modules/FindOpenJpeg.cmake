@@ -8,6 +8,7 @@
 # OPENJPEG_INCLUDE_DIR - where to find openjpeg.h
 # OPENJPEG_LIBRARIES   - list of libraries to link against when using OpenJpeg.
 # OPENJPEG_FOUND       - True if OpenJpeg was found.
+# OPENJPEG_VERSION     - Set to the OpenJPEG version found
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 include (SelectLibraryConfigurations)
@@ -58,6 +59,8 @@ endmacro ()
 
 # Generic search paths
 set (OpenJpeg_include_paths
+     /usr/local/include/openjpeg-2.1
+     /usr/local/include/openjpeg-2.0
      /usr/local/include/openjpeg
      /usr/local/include
      /usr/include/openjpeg
@@ -75,12 +78,15 @@ set (OpenJpeg_library_paths
 
 if (OPENJPEG_HOME)
   set (OpenJpeg_library_paths
-       ${OpenJpeg_library_paths}
        ${OPENJPEG_HOME}/lib
-       ${OPENJPEG_HOME}/lib64)
+       ${OPENJPEG_HOME}/lib64
+       ${OPENJPEG_HOME}/bin
+       ${OpenJpeg_library_paths}
+      )
   set (OpenJpeg_include_paths
+       ${OPENJPEG_HOME}/include
        ${OpenJpeg_include_paths}
-       ${OPENJPEG_HOME}/include)
+      )
 endif()
 
 
@@ -95,14 +101,46 @@ if (OPENJPEG_INCLUDE_DIR)
   unset (tmp_extra_dir)
 endif ()
 
+# Search for opj_config.h -- it is only part of OpenJpeg >= 2.0, and will
+# contain symbols OPJ_VERSION_MAJOR and OPJ_VERSION_MINOR. If the file
+# doesn't exist, we're dealing with OpenJPEG 1.x.
+# Note that for OpenJPEG 2.x, the library is named libopenjp2, not
+# libopenjpeg (which is for 1.x)
+set (OPENJPEG_CONFIG_FILE "${OPENJPEG_INCLUDE_DIR}/opj_config.h")
+if (EXISTS "${OPENJPEG_CONFIG_FILE}")
+    file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_PACKAGE_VERSION .*$")
+    if (TMP)
+        # 2.0 is the only one with this construct
+        set (OPJ_VERSION_MAJOR 2)
+        set (OPJ_VERSION_MINOR 0)
+    else ()
+        # 2.1 and beyond
+        file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_VERSION_MAJOR .*$")
+        string (REGEX MATCHALL "[0-9]+" OPJ_VERSION_MAJOR ${TMP})
+        file(STRINGS "${OPENJPEG_CONFIG_FILE}" TMP REGEX "^#define OPJ_VERSION_MINOR .*$")
+        string (REGEX MATCHALL "[0-9]+" OPJ_VERSION_MINOR ${TMP})
+    endif ()
+else ()
+    # Guess OpenJPEG 1.5 -- older versions didn't have the version readily
+    # apparent in the headers.
+    set (OPJ_VERSION_MAJOR 1)
+    set (OPJ_VERSION_MINOR 5)
+endif ()
+set (OPENJPEG_VERSION "${OPJ_VERSION_MAJOR}.${OPJ_VERSION_MINOR}")
 
-# Locate the OpenEXR library
+
+# Locate the OpenJpeg library
 set (OpenJpeg_libvars "")
 set (OpenJpeg_cachevars "")
-PREFIX_FIND_LIB (OpenJpeg openjpeg
-  OpenJpeg_library_paths OpenJpeg_libvars OpenJpeg_cachevars)
+if ("${OPENJPEG_VERSION}" VERSION_LESS 2.0)
+    PREFIX_FIND_LIB (OpenJpeg openjpeg
+      OpenJpeg_library_paths OpenJpeg_libvars OpenJpeg_cachevars)
+else ()
+    PREFIX_FIND_LIB (OpenJpeg openjp2
+      OpenJpeg_library_paths OpenJpeg_libvars OpenJpeg_cachevars)
+endif ()
 
-# Use the standard function to handle OPENEXR_FOUND
+# Use the standard function to handle OPENJPEG_FOUND
 FIND_PACKAGE_HANDLE_STANDARD_ARGS (OpenJpeg DEFAULT_MSG
   OPENJPEG_INCLUDE_DIR ${OpenJpeg_libvars})
 
@@ -111,9 +149,9 @@ if (OPENJPEG_FOUND)
   foreach (tmplib ${OpenJpeg_libvars})
     list (APPEND OPENJPEG_LIBRARIES ${${tmplib}})
   endforeach ()
-  if (VERBOSE)
+  if (NOT OpenJpeg_FIND_QUIETLY)
     FIND_PACKAGE_MESSAGE (OPENJPEG
-      "Found OpenJPEG: ${OPENJPEG_LIBRARIES}"
+      "Found OpenJpeg: v${OPENJPEG_VERSION} ${OPENJPEG_LIBRARIES}"
       "[${OPENJPEG_INCLUDE_DIR}][${OPENJPEG_LIBRARIES}]"
       )
   endif ()

@@ -153,14 +153,19 @@ if (EMBEDPLUGINS)
     endif()
 
     if (OPENJPEG_FOUND AND USE_OPENJPEG)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
+        if (${OPENJPEG_VERSION} VERSION_LESS 2.0)
+            set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+                 ../jpeg2000.imageio/jpeg2000input-v1.cpp ../jpeg2000.imageio/jpeg2000output-v1.cpp)
+        else ()
+            set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+                 ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
+        endif ()
         include_directories (${OPENJPEG_INCLUDE_DIR})
         add_definitions("-DUSE_OPENJPEG")
     else()
         message (STATUS "Jpeg-2000 plugin will not be built")
     endif()
-    
+
     if (LIBRAW_FOUND AND USE_LIBRAW)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
             ../raw.imageio/rawinput.cpp ../raw.imageio/rawoutput.cpp)
