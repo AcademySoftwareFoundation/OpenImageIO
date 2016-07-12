@@ -42,10 +42,10 @@
 #ifndef OPENIMAGEIO_FILESYSTEM_H
 #define OPENIMAGEIO_FILESYSTEM_H
 
+#include <stdint.h>
 #include <cstdio>
 #include <ctime>
 #include <fstream>
-#include <cassert>
 #include <string>
 #include <vector>
 
@@ -219,12 +219,19 @@ OIIO_API void open (OIIO::ifstream &stream, string_view path,
 ///
 OIIO_API void open (OIIO::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
-    
 
 
 /// Read the entire contents of the named text file and place it in str,
 /// returning true on success, false on failure.
 OIIO_API bool read_text_file (string_view filename, std::string &str);
+
+/// Read a maximum of n bytes from the named file, starting at position pos
+/// (which defaults to the start of the file), storing results in
+/// buffer[0..n-1]. Return the number of bytes read, which will be n for
+/// full success, less than n if the file was fewer than n+pos bytes long,
+/// or 0 if the file did not exist or could not be read.
+OIIO_API size_t read_bytes (string_view path, void *buffer, size_t n,
+                            size_t pos=0);
 
 /// Get last modified time of file
 ///
@@ -233,6 +240,10 @@ OIIO_API std::time_t last_write_time (const std::string& path);
 /// Set last modified time on file
 ///
 OIIO_API void last_write_time (const std::string& path, std::time_t time);
+
+/// Return the size of the file (in bytes), or uint64_t(-1) if there is any
+/// error.
+OIIO_API uint64_t file_size (string_view path);
 
 /// Ensure command line arguments are UTF-8 everywhere
 ///
