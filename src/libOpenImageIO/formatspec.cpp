@@ -124,7 +124,6 @@ ImageSpec::ImageSpec (TypeDesc format)
       nchannels(0), format(format), alpha_channel(-1), z_channel(-1),
       deep(false)
 {
-    set_format (format);
 }
 
 
@@ -137,7 +136,6 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
       nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1),
       deep(false)
 {
-    set_format (format);
     default_channel_names ();
 }
 
@@ -147,6 +145,7 @@ void
 ImageSpec::set_format (TypeDesc fmt)
 {
     format = fmt;
+    channelformats.clear ();
 }
 
 
@@ -990,4 +989,3 @@ ImageSpec::from_xml (const char *xml)
 
 
 OIIO_NAMESPACE_END
-

@@ -360,8 +360,7 @@ image, of {\cf False} if it is an ordinary image.
 \apiitem{ImageSpec.{\ce set_format} (basetype) \\
 ImageSpec.{\ce set_format} (typedesc)}
 Given a {\cf BASETYPE} or a \TypeDesc, sets the {\cf format} field and
-also sets all the {\cf quantize} fields to the defaults for the given
-data format.
+clear any per-channel formats in {\cf channelformats}.
 
 \noindent Example:
 \begin{code}

@@ -187,12 +187,12 @@ adjust_spec (ImageInput *in, ImageOutput *out,
     bool nocopy = no_copy_image;
 
     // Copy the spec, with possible change in format
-    outspec.set_format (inspec.format);
+    outspec.format = inspec.format;
     if (inspec.channelformats.size()) {
         // Input file has mixed channels
         if (out->supports("channelformats")) {
             // Output supports mixed formats -- so request it
-            outspec.set_format (TypeDesc::UNKNOWN);
+            outspec.format = TypeDesc::UNKNOWN;
         } else {
             // Input had mixed formats, output did not, so just use a fixed
             // format and forget the per-channel formats for output.
