@@ -42,6 +42,7 @@ tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 
 refdir = "ref/"
+refdirlist = [ refdir ]
 parent = "../../../../../"
 test_source_dir = "../../../../testsuite/" + os.path.basename(os.path.abspath(srcdir))
 
@@ -52,7 +53,7 @@ failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
 
-image_extensions = [ ".tif", ".exr", ".jpg", ".png", ".rla", ".dpx" ]
+image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla", ".dpx" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -226,6 +227,43 @@ def oiiotool (args, silent=False, concat=True) :
 
 
 
+# Check one output file against reference images in a list of reference
+# directories. For each directory, it will first check for a match under
+# the identical name, and if that fails, it will look for alternatives of
+# the form "basename-*.ext".
+def checkref (name, refdirlist) :
+    # Break the output into prefix+extension
+    (prefix, extension) = os.path.splitext(name)
+    ok = 0
+    for ref in refdirlist :
+        # We will first compare name to ref/name, and if that fails, we will
+        # compare it to everything else that matches ref/prefix-*.extension.
+        # That allows us to have multiple matching variants for different
+        # platforms, etc.
+        defaulttest = os.path.join(ref,name)
+        for testfile in ([defaulttest] + glob.glob (os.path.join (ref, prefix+"-*"+extension))) :
+            if not os.path.exists(testfile) :
+                continue
+            # print ("comparing " + name + " to " + testfile)
+            if extension in image_extensions :
+                # images -- use idiff
+                cmpcommand = diff_command (name, testfile, concat=False, silent=True)
+                cmpresult = os.system (cmpcommand)
+            elif extension == ".txt" :
+                cmpresult = text_diff (name, testfile, name + ".diff")
+            else :
+                # anything else
+                cmpresult = 0
+                if os.path.exists(testfile) and filecmp.cmp (name, testfile) :
+                    cmpresult = 0
+                else :
+                    cmpresult = 1
+            if cmpresult == 0 :
+                return (True, testfile)   # we're done
+    return (False, defaulttest)
+
+
+
 # Run 'command'.  For each file in 'outputs', compare it to the copy
 # in 'ref/'.  If all outputs match their reference copies, return 0
 # to pass.  If any outputs do not match their references return 1 to
@@ -258,28 +296,8 @@ def runtest (command, outputs, failureok=0) :
             err = 1
 
     for out in outputs :
-        extension = os.path.splitext(out)[1]
-        ok = 0
-        # We will first compare out to ref/out, and if that fails, we
-        # will compare it to everything else with the same extension in
-        # the ref directory.  That allows us to have multiple matching
-        # variants for different platforms, etc.
-        for testfile in ([os.path.join(refdir,out)] + glob.glob (os.path.join (refdir, "*"+extension))) :
-            # print ("comparing " + out + " to " + testfile)
-            if extension in image_extensions :
-                print ("Testing " + testfile)
-                # images -- use idiff
-                cmpcommand = diff_command (out, testfile, concat=False, silent=True)
-                # print ("cmpcommand = " + cmpcommand)
-                cmpresult = os.system (cmpcommand)
-            elif extension == ".txt" :
-                cmpresult = text_diff (out, testfile, out + ".diff")
-            else :
-                # anything else
-                cmpresult = 0 if filecmp.cmp (out, testfile) else 1
-            if cmpresult == 0 :
-                ok = 1
-                break      # we're done
+        (prefix, extension) = os.path.splitext(out)
+        (ok, testfile) = checkref (out, refdirlist)
 
         if ok :
             if extension in image_extensions :
@@ -300,7 +318,7 @@ def runtest (command, outputs, failureok=0) :
             if extension in image_extensions :
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
-                os.system (diff_command (out, os.path.join (refdir, out), silent=False))
+                os.system (diff_command (out, testfile, silent=False))
 
     return (err)
 

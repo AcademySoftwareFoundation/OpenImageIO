@@ -1,38 +1,25 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 import os.path
 
 imagedir = parent + "oiio-images"
-refdir2 = "../../../../testsuite/oiiotool/ref/"
-refdir3 = "../../../../testsuite/oiiotool-composite/ref/"
-refdir4 = "../../../../testsuite/oiiotool-fixnan/ref/"
-refdir5 = "../../../../testsuite/oiiotool-deep/ref/"
-refdir6 = "../../../../testsuite/oiiotool-pattern/ref/"
-refdir7 = "../../../../testsuite/oiiotool-text/ref/"
+
+refdirlist = [
+    "../../../../testsuite/oiiotool/ref/",
+    "../../../../testsuite/oiiotool-composite/ref/",
+    "../../../../testsuite/oiiotool-fixnan/ref/",
+    "../../../../testsuite/oiiotool-deep/ref/",
+    "../../../../testsuite/oiiotool-pattern/ref/",
+    "../../../../testsuite/oiiotool-text/ref/",
+    refdir
+]
 
 
-def checkref (name) :
-    if os.path.isfile(refdir2+name) :
-        return diff_command (name, refdir2+name)
-    elif os.path.isfile(refdir3+name) :
-        return diff_command (name, refdir3+name)
-    elif os.path.isfile(refdir4+name) :
-        return diff_command (name, refdir4+name)
-    elif os.path.isfile(refdir5+name) :
-        return diff_command (name, refdir5+name)
-    elif os.path.isfile(refdir6+name) :
-        return diff_command (name, refdir6+name)
-    elif os.path.isfile(refdir7+name) :
-        return diff_command (name, refdir7+name)
-    else :
-        return diff_command (name, refdir+name)
-
-
-# Run the script 
+# Run the script
 command += "python src/test_imagebufalgo.py > out.txt ;"
 
 # Checkout outputs -- some of the refs are in the oiiotool test dir
-for f in [ "black.tif", "filled.tif", "checker.tif",
+outputs = ["black.tif", "filled.tif", "checker.tif",
            "noise-uniform3.tif", "noise-gauss.tif", "noise-salt.tif",
            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
            "chappend-rgbaz.exr",
@@ -60,11 +47,7 @@ for f in [ "black.tif", "filled.tif", "checker.tif",
            "box3.exr",
            "a_over_b.exr",
            "tahoe-small.tx",
-           "text.tif",
-         ] :
-    command += checkref (f)
-
-
-# compare the outputs
-outputs = [ "out.txt" ]
+           "text.tif"
+         ]
+    # command += checkref (f)
 
