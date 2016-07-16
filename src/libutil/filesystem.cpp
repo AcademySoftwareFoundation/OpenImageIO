@@ -648,6 +648,26 @@ Filesystem::read_text_file (string_view filename, std::string &str)
 
 
 
+/// Read the entire contents of the named file and place it in str,
+/// returning true on success, false on failure.
+size_t
+Filesystem::read_bytes (string_view path, void *buffer, size_t n, size_t pos)
+{
+    size_t ret = 0;
+    if (FILE *file = Filesystem::fopen (path, "rb")) {
+#ifdef _MSC_VER
+        _fseeki64 (file, __int64(pos), SEEK_SET);
+#else
+        fseeko (file, pos, SEEK_SET);
+#endif
+        ret = fread (buffer, 1, n, file);
+        fclose (file);
+    }
+    return ret;
+}
+
+
+
 std::time_t
 Filesystem::last_write_time (const std::string& path)
 {
@@ -678,6 +698,24 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
 #endif
     } catch (...) {
         // File doesn't exist
+    }
+}
+
+
+
+uint64_t
+Filesystem::file_size (string_view path)
+{
+    try {
+#ifdef _WIN32
+        std::wstring wpath = Strutil::utf8_to_utf16 (path);
+        return boost::filesystem::file_size (wpath);
+#else
+        return boost::filesystem::file_size (path.str());
+#endif
+    } catch (...) {
+        // File doesn't exist
+        return 0;
     }
 }
 

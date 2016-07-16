@@ -132,8 +132,19 @@ test_file_status ()
     fputs (testtext, file);
     fclose (file);
 
+    std::cout << "Testing file_size:\n";
+    OIIO_CHECK_EQUAL (Filesystem::file_size("testfile"), 13);
+
     std::cout << "Testing read_text_file\n";
     OIIO_CHECK_EQUAL (my_read_text_file("testfile"), testtext);
+
+    std::cout << "Testing read_bytes:\n";
+    char buf[3];
+    size_t nread = Filesystem::read_bytes ("testfile", buf, 3, 5);
+    OIIO_CHECK_EQUAL (nread, 3);
+    OIIO_CHECK_EQUAL (buf[0], 'f');
+    OIIO_CHECK_EQUAL (buf[1], 'o');
+    OIIO_CHECK_EQUAL (buf[2], 'o');
 
     std::cout << "Testing create_directory\n";
     Filesystem::create_directory ("testdir");
