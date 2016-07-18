@@ -15,7 +15,7 @@
 #   OPENEXR_CUSTOM_LIB_SUFFIX - special snowflake library suffix
 #
 
-# Other standarnd issue macros
+# Other standard issue macros
 include (FindPackageHandleStandardArgs)
 include (SelectLibraryConfigurations)
 
@@ -35,9 +35,9 @@ set (GENERIC_INCLUDE_PATHS
     ${OPENEXR_CUSTOM_INCLUDE_DIR}
     ${OPENEXR_HOME}/include
     ${ILMBASE_HOME}/include
+    /usr/local/include
     /usr/include
     /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
-    /usr/local/include
     /sw/include
     /opt/local/include )
 
@@ -71,16 +71,29 @@ endif ()
 
 # List of likely places to find the libraries -- note priority override of
 # OPENEXR_CUSTOM_LIB_DIR and ${OPENEXR_HOME}/lib.
-set (GENERIC_LIBRARY_PATHS 
-    ${OPENEXR_CUSTOM_LIB_DIR}
-    ${OPENEXR_HOME}/lib
-    ${ILMBASE_HOME}/lib
+
+# If there's no OPENEXR_HOME or ILMBASE_HOME, then the path will point to
+# "/lib", which may not always be wanted/expected.
+if (OPENEXR_CUSTOM_LIB_DIR)
+  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${OPENEXR_CUSTOM_LIB_DIR})
+endif()
+
+if (OPENEXR_HOME)
+  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${OPENEXR_HOME})
+endif()
+
+if (ILMBASE_HOME)
+  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${ILMBASE_HOME})
+endif()
+
+set (GENERIC_LIBRARY_PATHS
+    ${GENERIC_LIBRARY_PATHS}
     ${OPENEXR_INCLUDE_PATH}/../lib
     ${ILMBASE_INCLUDE_PATH}/../lib
-    /usr/lib
-    /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
     /usr/local/lib
     /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
+    /usr/lib
+    /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
     /sw/lib
     /opt/local/lib
     $ENV{PROGRAM_FILES}/OpenEXR/lib/static )
@@ -116,7 +129,6 @@ foreach (COMPONENT ${_openexr_components})
     # One more time, with no restrictions
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
 endforeach ()
-
 #Half usually has no suffix
 find_library (OPENEXR_HALF_LIBRARY ${OPENEXR_CUSTOM_LIB_PREFIX}Half
               PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
