@@ -726,7 +726,7 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
     // Fix up density and aspect to be consistent
     float aspect = spec.get_float_attribute ("PixelAspectRatio", 0.0f);
     float xdensity = spec.get_float_attribute ("XResolution", 0.0f);
-    float ydensity = spec.get_float_attribute ("XResolution", 0.0f);
+    float ydensity = spec.get_float_attribute ("YResolution", 0.0f);
     if (! aspect && xdensity && ydensity) {
         // No aspect ratio. Compute it from density, if supplied.
         spec.attribute ("PixelAspectRatio", xdensity / ydensity);
