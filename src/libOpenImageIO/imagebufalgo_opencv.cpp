@@ -36,10 +36,13 @@
 #ifdef USE_OPENCV
 #include <opencv2/core/core_c.h>
 #include <opencv2/highgui/highgui_c.h>
+#include <opencv2/imgproc/imgproc_c.h>
 #endif
 
 #include <iostream>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -93,7 +96,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
         dst.error ("Unsupported IplImage data order %d", (int)ipl->dataOrder);
         return false;
     }
-    
+
     dst.reset (dst.name(), spec);
     size_t pixelsize = srcformat.size()*spec.nchannels;
     // Account for the origin in the line step size, to end up with the
@@ -102,7 +105,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
     // Block copy and convert
     convert_image (spec.nchannels, spec.width, spec.height, 1,
                    ipl->imageData, srcformat,
-                   pixelsize, linestep, 0, 
+                   pixelsize, linestep, 0,
                    dst.pixeladdr(0,0), dstformat,
                    spec.pixel_bytes(), spec.scanline_bytes(), 0);
     // FIXME - honor dataOrder.  I'm not sure if it is ever used by
@@ -136,7 +139,74 @@ IplImage *
 ImageBufAlgo::to_IplImage (const ImageBuf &src)
 {
 #ifdef USE_OPENCV
-    return NULL;
+    ImageBuf tmp = src;
+    ImageSpec spec = tmp.spec();
+
+    // Make sure the image buffer is initialized.
+    if (!tmp.initialized() && !tmp.read(tmp.subimage(), tmp.miplevel(), true)) {
+        DASSERT (0 && "Could not initialize ImageBuf.");
+        return NULL;
+    }
+
+    int dstFormat;
+    TypeDesc dstSpecFormat;
+    if (spec.format == TypeDesc(TypeDesc::UINT8)) {
+        dstFormat = IPL_DEPTH_8U;
+        dstSpecFormat = spec.format;
+    } else if (spec.format == TypeDesc(TypeDesc::INT8)) {
+        dstFormat = IPL_DEPTH_8S;
+        dstSpecFormat = spec.format;
+    } else if (spec.format == TypeDesc(TypeDesc::UINT16)) {
+        dstFormat = IPL_DEPTH_16U;
+        dstSpecFormat = spec.format;
+    } else if (spec.format == TypeDesc(TypeDesc::INT16)) {
+        dstFormat = IPL_DEPTH_16S;
+        dstSpecFormat = spec.format;
+    } else if (spec.format == TypeDesc(TypeDesc::HALF)) {
+        dstFormat = IPL_DEPTH_32F;
+        // OpenCV does not support half types. Switch to float instead.
+        dstSpecFormat = TypeDesc(TypeDesc::FLOAT);
+    } else if (spec.format == TypeDesc(TypeDesc::FLOAT)) {
+        dstFormat = IPL_DEPTH_32F;
+        dstSpecFormat = spec.format;
+    } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
+        dstFormat = IPL_DEPTH_64F;
+        dstSpecFormat = spec.format;
+    } else {
+        DASSERT (0 && "Unknown data format in ImageBuf.");
+        return NULL;
+    }
+    IplImage *ipl = cvCreateImage(cvSize(spec.width, spec.height), dstFormat, spec.nchannels);
+    if (!ipl) {
+        DASSERT (0 && "Unable to create IplImage.");
+        return NULL;
+    }
+
+    size_t pixelsize = dstSpecFormat.size() * spec.nchannels;
+    // Account for the origin in the line step size, to end up with the
+    // standard OIIO origin-at-upper-left:
+    size_t linestep = ipl->origin ? -ipl->widthStep : ipl->widthStep;
+
+    bool converted = convert_image(spec.nchannels, spec.width, spec.height, 1,
+                                   tmp.localpixels(), spec.format,
+                                   spec.pixel_bytes(), spec.scanline_bytes(), 0,
+                                   ipl->imageData, dstSpecFormat,
+                                   pixelsize, linestep, 0);
+
+    if (!converted) {
+        DASSERT (0 && "convert_image failed.");
+        cvReleaseImage(&ipl);
+        return NULL;
+    }
+
+    // OpenCV uses BGR ordering
+    if (spec.nchannels == 3) {
+        cvCvtColor(ipl, ipl, CV_RGB2BGR);
+    } else if (spec.nchannels == 4) {
+        cvCvtColor(ipl, ipl, CV_RGBA2BGRA);
+    }
+
+    return ipl;
 #else
     return NULL;
 #endif
