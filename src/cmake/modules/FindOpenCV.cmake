@@ -51,7 +51,7 @@ set (libdirs "${PROJECT_SOURCE_DIR}/lib"
              )
 
 
-set (opencv_components opencv_highgui opencv_core)
+set (opencv_components opencv_highgui opencv_imgproc opencv_core)
 if (NOT ${OpenCV_VERSION} VERSION_LESS 3.0.0)
     set (opencv_components opencv_videoio ${opencv_components})
 endif ()
