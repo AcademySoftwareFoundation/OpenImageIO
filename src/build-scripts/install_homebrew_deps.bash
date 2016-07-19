@@ -23,7 +23,7 @@ brew install ccache cmake
 brew install ilmbase openexr
 brew install boost-python
 brew install opencolorio
-brew install freetype libraw libpng webp jpeg-turbo openjpeg
+brew install freetype libraw libpng webp jpeg-turbo openjpeg21
 brew install openjpeg
 if [ "$LINKSTATIC" == "1" ] ; then
     brew install little-cms2 tinyxml szip
