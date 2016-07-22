@@ -404,7 +404,13 @@ ImageOutput::create (const std::string &filename,
     }
 
     ASSERT (create_function != NULL);
-    return (ImageOutput *) create_function();
+    ImageOutput *out = NULL;
+    try {
+        out = (ImageOutput *) create_function();
+    } catch (...) {
+        // Safety in case the ctr throws an exception
+    }
+    return out;
 }
 
 
@@ -517,7 +523,12 @@ ImageInput::create (const std::string &filename,
             formats_tried.push_back (plugin->second);  // remember
 
             ImageSpec tmpspec;
-            ImageInput *in = plugin->second();
+            ImageInput *in = NULL;
+            try {
+                in = plugin->second();
+            } catch (...) {
+                // Safety in case the ctr throws an exception
+            }
             if (! in)
                 continue;
             if (! do_open && ! in->valid_file(filename)) {
