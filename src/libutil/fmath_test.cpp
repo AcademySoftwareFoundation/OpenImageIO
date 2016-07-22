@@ -189,7 +189,7 @@ void benchmark_convert_type ()
     std::cout << Strutil::format("Benchmark conversion of %6s -> %6s : ",
                                  TypeDesc(BaseTypeFromC<S>::value),
                                  TypeDesc(BaseTypeFromC<D>::value));
-    float time = time_trial (bind (do_convert_type<S,D>, OIIO::cref(svec), OIIO::ref(dvec)),
+    float time = time_trial (boost::bind (do_convert_type<S,D>, OIIO::cref(svec), OIIO::ref(dvec)),
                              ntrials, iterations) / iterations;
     std::cout << Strutil::format ("%7.1f Mvals/sec", (size/1.0e6)/time) << std::endl;
     D r = convert_type<S,D>(testval);

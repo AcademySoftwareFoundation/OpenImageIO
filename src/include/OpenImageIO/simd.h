@@ -124,6 +124,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
+#include "missing_math.h"
+
 
 OIIO_NAMESPACE_BEGIN
 

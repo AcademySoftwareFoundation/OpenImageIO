@@ -59,6 +59,7 @@
 #endif
 
 #include "OpenImageIO/platform.h"
+#include "OpenImageIO/strutil.h"
 
 #ifdef _WIN32
 # include <Psapi.h>
@@ -221,6 +222,14 @@ Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
 std::string
 Sysutil::this_program_path ()
 {
+#if defined(_WIN32)
+    // According to MSDN...
+    WCHAR filename[10240];
+    int r = GetModuleFileNameW(NULL, filename, 10240);
+    if (r > 0)
+        return Strutil::utf16_to_utf8(filename);
+    return std::string();
+#else
     char filename[10240];
     filename[0] = 0;
 
@@ -235,10 +244,6 @@ Sysutil::this_program_path ()
     int r = _NSGetExecutablePath (filename, &size);
     if (r == 0)
         r = size;
-#elif defined(_WIN32)
-    // According to MSDN...
-    unsigned int size = sizeof(filename);
-    int r = GetModuleFileName (NULL, filename, size);
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
     mib[0] = CTL_KERN;
@@ -258,6 +263,7 @@ Sysutil::this_program_path ()
     if (r > 0)
         return std::string (filename);
     return std::string();   // Couldn't figure it out
+#endif
 }
 
 

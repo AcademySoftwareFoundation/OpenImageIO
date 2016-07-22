@@ -39,6 +39,7 @@
 
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/plugin.h"
+#include "OpenImageIO/strutil.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -75,7 +76,8 @@ Plugin::plugin_extension (void)
 Handle
 dlopen (const char *plugin_filename, int)
 {
-    return LoadLibrary (plugin_filename);
+    std::wstring w = Strutil::utf8_to_utf16(plugin_filename);
+    return LoadLibraryW(w.c_str());
 }
 
 
