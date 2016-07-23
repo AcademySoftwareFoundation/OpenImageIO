@@ -1507,9 +1507,23 @@ ImageCacheImpl::ImageCacheImpl ()
 
 
 void
+ImageCacheImpl::set_max_open_files (int max_open_files)
+{
+    // Clamp to somewhat less than the maximum number of files allowed
+    // by the system.
+    int m = int (std::min (Sysutil::max_open_files(),
+                           size_t(std::numeric_limits<int>::max())));
+    m = std::max (10, m - 5 * int(Sysutil::hardware_concurrency()));
+    m_max_open_files = std::min (max_open_files, m);
+    // std::cout << "clamped max_open_files = " << m_max_open_files << "\n";
+}
+
+
+
+void
 ImageCacheImpl::init ()
 {
-    m_max_open_files = 100;
+    set_max_open_files (100);
     m_max_memory_bytes = 256 * 1024 * 1024;   // 256 MB default cache size
     m_autotile = 0;
     m_autoscanline = false;
@@ -1946,7 +1960,7 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
         return optparser (*this, *(const char **)val);
     }
     if (name == "max_open_files" && type == TypeDesc::INT) {
-        m_max_open_files = *(const int *)val;
+        set_max_open_files (*(const int *)val);
     }
     else if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
         float size = *(const float *)val;

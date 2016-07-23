@@ -784,6 +784,9 @@ public:
 
     virtual std::string resolve_filename (const std::string &filename) const;
 
+    // Set m_max_open_files, with logic to try to clamp reasonably.
+    void set_max_open_files (int m);
+
     /// Get information about the given image.
     ///
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
