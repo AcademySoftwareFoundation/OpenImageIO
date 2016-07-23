@@ -64,6 +64,7 @@
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 # include <Psapi.h>
+# include <cstdio>
 #else
 # include <sys/resource.h>
 #endif
@@ -377,5 +378,19 @@ Sysutil::physical_concurrency ()
 #endif
 }
 
+
+
+size_t
+Sysutil::max_open_files ()
+{
+#if defined(_WIN32)
+    return size_t(_getmaxstdio());
+#else
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+        return rl.rlim_cur;
+#endif
+    return size_t(-1); // Couldn't figure out, so return effectively infinity
+}
 
 OIIO_NAMESPACE_END

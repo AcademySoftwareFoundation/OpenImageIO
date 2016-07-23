@@ -108,6 +108,9 @@ OIIO_API unsigned int hardware_concurrency ();
 /// platforms will return the number of virtual cores.
 OIIO_API unsigned int physical_concurrency ();
 
+/// Get the maximum number of open file handles allowed on this system.
+OIIO_API size_t max_open_files ();
+
 }  // namespace Sysutils
 
 OIIO_NAMESPACE_END
