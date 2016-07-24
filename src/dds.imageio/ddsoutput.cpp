@@ -33,6 +33,7 @@
 #include <cmath>
 
 #include "dds_pvt.h"
+#include "oiioversion.h"
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/imageio.h"

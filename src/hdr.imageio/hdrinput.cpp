@@ -87,6 +87,7 @@ private:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int hdr_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* hdr_imageio_library_version () { return NULL; }
     OIIO_EXPORT ImageInput *hdr_input_imageio_create () {
         return new HdrInput;
     }

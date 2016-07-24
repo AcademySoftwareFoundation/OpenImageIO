@@ -108,6 +108,8 @@ OIIO_EXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
 
 OIIO_EXPORT int ico_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* ico_imageio_library_version () { return NULL; }
+
 OIIO_EXPORT const char * ico_input_extensions[] = {
     "ico", NULL
 };

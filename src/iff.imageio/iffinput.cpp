@@ -39,6 +39,7 @@ using namespace iff_pvt;
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* iff_imageio_library_version () { return NULL; }
     OIIO_EXPORT ImageInput *iff_input_imageio_create () {
         return new IffInput;
     }

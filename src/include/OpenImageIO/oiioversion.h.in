@@ -48,7 +48,7 @@
 // We also define the old name for backwards compatibility purposes.
 #define OPENIMAGEIO_VERSION OIIO_VERSION
 
-// Magic macros to make OPENIMAGEIO_VERSION_STRING that looks like "1.2.3"
+// Magic macros to make OIIO_VERSION_STRING that looks like "1.2.3"
 #define OIIO_MAKE_VERSION_STRING2(a,b,c,d) #a "." #b "." #c #d
 #define OIIO_MAKE_VERSION_STRING(a,b,c,d) OIIO_MAKE_VERSION_STRING2(a,b,c,d)
 #define OIIO_VERSION_STRING \
@@ -107,8 +107,9 @@ namespace OIIO = OIIO_NAMESPACE::OIIO_VERSION_NS;
 ///     bool supports(const std::string&)). (OIIO 1.6)
 /// Version 18 changed to add an m_threads member to ImageInput/Output.
 /// Version 19 changed the definition of DeepData.
+/// Version 20 added FMT_imageio_library_version() to plugins. (OIIO 1.7)
 
-#define OIIO_PLUGIN_VERSION 19
+#define OIIO_PLUGIN_VERSION 20
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END

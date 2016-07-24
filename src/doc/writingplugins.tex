@@ -40,7 +40,7 @@ real-world example of writing a JPEG/JFIF plug-in.
     OIIO_PLUGIN_NAMESPACE_END
   \end{code}
 
-\item Declare three public items:
+\item Declare these public items:
 
   \begin{enumerate}
     \item An integer called \emph{name}{\cf _imageio_version} that identifies
@@ -48,6 +48,10 @@ real-world example of writing a JPEG/JFIF plug-in.
       defined in {\fn imageio.h} as the constant {\cf OIIO_PLUGIN_VERSION}.
       This allows the library to be sure it is not loading a plugin
       that was compiled against an incompatible version of \product.
+    \item An function named \emph{name}{\cf _imageio_library_version} that identifies
+      the underlying dependent library that is responsible for reading or
+      writing the format (it may return {\cf NULL} to indicate that there is
+      no dependent library being used for this format).
     \item A function named \emph{name}{\cf _input_imageio_create} that
       takes no arguments and returns a new instance of your \ImageInput
       subclass.  (Note that \emph{name} is the name of your format,
@@ -75,8 +79,18 @@ real-world example of writing a JPEG/JFIF plug-in.
             return new JpgInput;
         }
         OIIO_EXPORT const char *jpeg_input_extensions[] = {
-            "jpg", "jpe", "jpeg", NULL
+            "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", NULL
         };
+        OIIO_EXPORT const char* jpeg_imageio_library_version () {
+          #define STRINGIZE2(a) #a
+          #define STRINGIZE(a) STRINGIZE2(a)
+          #ifdef LIBJPEG_TURBO_VERSION
+            return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION);
+          #else
+            return "jpeglib " STRINGIZE(JPEG_LIB_VERSION_MAJOR) "." \\
+                    STRINGIZE(JPEG_LIB_VERSION_MINOR);
+          #endif
+        }
     OIIO_PLUGIN_EXPORTS_END
   \end{code}
 

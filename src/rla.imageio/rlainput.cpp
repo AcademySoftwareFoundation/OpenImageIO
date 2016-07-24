@@ -155,6 +155,8 @@ OIIO_EXPORT ImageInput *rla_input_imageio_create () { return new RLAInput; }
 
 OIIO_EXPORT int rla_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* rla_imageio_library_version () { return NULL; }
+
 OIIO_EXPORT const char * rla_input_extensions[] = {
     "rla", NULL
 };
