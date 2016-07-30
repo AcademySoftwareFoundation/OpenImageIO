@@ -1,5 +1,9 @@
 Changes:
 
+Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
+------------------------------------------------
+
+
 Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
 ------------------------------------------------
 * Fix EXR tile logic for OpenEXR 1.x (fixes a break introduced in 1.6.15,
