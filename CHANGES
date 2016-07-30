@@ -1,7 +1,19 @@
 Changes:
 
-Release 1.6.16 (released ?? 2016 -- compared to 1.6.15)
+Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
 ------------------------------------------------
+* Fix EXR tile logic for OpenEXR 1.x (fixes a break introduced in 1.6.15,
+  is not an issue for exr 2.x). #1448
+* Now builds correctly against OpenJPEG 2.x, it previously only supported
+  OpenJPEG 1.x. #1452  (Fixes #957, #1449)
+* New utility functions: Sysutil::getenv(), Filesystem::file_size(),
+  FileSystem::read_bytes(). #1451
+* Fixed minor bug with OpenEXR output with correctly setting
+  PixelAspectRatio based on the "XResolution" and "YResolution"
+  attributes. #1453 (Fixes #1214)
+* Gracefully handle unexpected exceptions inside an ImageInput or
+  ImageOutput constructor -- return an error rather than crashing.
+  #1456
 
 Release 1.6.15 (released 1 Jul 2016 -- compared to 1.6.14)
 ------------------------------------------------
