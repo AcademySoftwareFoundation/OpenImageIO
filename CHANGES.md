@@ -12,9 +12,10 @@ Major new features and improvements:
       of reading that one file. #1389 (1.7.2)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
    #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
+   deep_merge() #1388,1393 (1.7.2)
  * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
    automatically be resolved to the correct UTIM tile based on the s,t
-   coordinates. #1426 (1.7.3) deep_merge() #1388,1393 (1.7.2)
+   coordinates. #1426 (1.7.3)
  * Behavior change: When reading files without explicit channel names,
    single channel images now name their channel "Y" (no longer "A",
    which was confusing to algorithms that treat alpha in special ways).
@@ -49,6 +50,8 @@ Public API changes:
    #1362 (1.7.2/1.6.11)
  * Deprecate ImageCache/TextureSystem clear() methods, which never did
    anything useful. #1347 (1.7.3)
+ * ImageSpec::set_format() clears any per-channel format information. #1446)
+   (1.7.4)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -189,7 +192,10 @@ Fixes, minor enhancements, and performance improvements:
       underlying libIlmImf will silently drop channels with repeated
       names).  #1435 (1.7.3)
     * More robust detected of when OpenEXR is tiled (for weird files).
-      #1441 (1.7.3/1.6.15)
+      #1441 (1.7.3/1.6.15) (and a fix in #1448/1.7.4)
+    * Fixed minor bug with OpenEXR output with correctly setting
+      PixelAspectRatio based on the "XResolution" and "YResolution"
+      attributes. #1453 (Fixes #1214) (1.7.4/1.6.16)
  * PNG:
     * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
     * Enforce that alpha premultiplication on output MUST consider alpha
@@ -222,6 +228,9 @@ Fixes, minor enhancements, and performance improvements:
    conversion functions as well as oiiotool --colorconvert and friends),
    approximately doubling the speed when no OpenColorIO config is found.
    #1383 (1.7.2)
+* ImageInput::create() and ImageOutput::create() will now gracefully
+   handle unexpected exceptions inside an ImageInput or ImageOutput
+   constructor -- return an error rather than crashing.  #1456 (1.7.4/1.6.16)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
@@ -277,6 +286,8 @@ Build/test system improvements:
    (1.7.3/1.6.13)
  * Windows UTF-8 filename safety fixes. #1420 (1.7.3/1.6.14)
  * Various Windows compilation & warning fixes. #1443 (1.7.3/1.6.15)
+ * Now builds correctly against OpenJPEG 2.x, it previously only supported
+   OpenJPEG 1.x. #1452  (Fixes #957, #1449) (1.7.4/1.6.16)
 
 Developer goodies / internals:
  * thread.h has had all the atomic operations split into a separate atomic.h.
@@ -297,16 +308,23 @@ Developer goodies / internals:
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
    fast_exp, fast_pow_pos #1384 (1.7.2)
- * thread.h: add mutex_pool #1425 (1.7.3/1.6.15)
- * compute_test: new unit test can be used to benchmark computation
-   times. #1310 (1.7.1)
- * Strutil: Strutil::extract_from_list_string is more flixible by
-   allowing the vals list to start empty, in which case it will add as
-   many values as it finds rather than only replacing existing
-   values #1319 (1.7.1); Strutil::replace #1422 (1.7.3/1.6.15)
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
+ * thread.h: add mutex_pool #1425 (1.7.3/1.6.15)
+ * compute_test: new unit test can be used to benchmark computation
+   times. #1310 (1.7.1)
+ * filesystem.h: Filesystem::file_size() returns file size in bytes;
+   Filesystem::read_bytes() reads the first n (or all) bytes from a file
+   into a buffer. #1451 (1.7.4/1.6.16)
+ * strutil.h: Strutil::extract_from_list_string is more flixible by
+   allowing the vals list to start empty, in which case it will add as
+   many values as it finds rather than only replacing existing
+   values #1319 (1.7.1); Strutil::replace #1422 (1.7.3/1.6.15);
+   utf_to_unicode now takes a string_view rather than a std::string&
+   #1450 (1.7.4); add Strutil::base64_encode() #1450 (1.7.4).
+ * sysutil.h: Sysutil::getenv() safely gets an env variable as a string_view
+   #1451 (1.7.4/1.6.16).
  * platform.h: better distinguishing beteen Apple and Generic clang,
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
@@ -315,6 +333,21 @@ Developer goodies / internals:
    and INSTALL) have been changed from plain text to MarkDown. #1442 (1.7.3)
 
 
+
+Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
+------------------------------------------------
+* Fix EXR tile logic for OpenEXR 1.x (fixes a break introduced in 1.6.15,
+  is not an issue for exr 2.x). #1448
+* Now builds correctly against OpenJPEG 2.x, it previously only supported
+  OpenJPEG 1.x. #1452  (Fixes #957, #1449)
+* New utility functions: Sysutil::getenv(), Filesystem::file_size(),
+  FileSystem::read_bytes(). #1451
+* Fixed minor bug with OpenEXR output with correctly setting
+  PixelAspectRatio based on the "XResolution" and "YResolution"
+  attributes. #1453 (Fixes #1214)
+* Gracefully handle unexpected exceptions inside an ImageInput or
+  ImageOutput constructor -- return an error rather than crashing.
+  #1456
 
 Release 1.6.15 (released 1 Jul 2016 -- compared to 1.6.14)
 ------------------------------------------------
