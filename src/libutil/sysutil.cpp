@@ -61,6 +61,8 @@
 #include "OpenImageIO/platform.h"
 
 #ifdef _WIN32
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
 # include <Psapi.h>
 #else
 # include <sys/resource.h>
@@ -292,7 +294,12 @@ Sysutil::terminal_columns ()
     ioctl (0, TIOCGWINSZ, &w);
     columns = w.ws_col;
 #elif defined(_WIN32)
-    // FIXME: is there a Windows equivalent?
+    HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+    if (h != INVALID_HANDLE_VALUE) {
+        CONSOLE_SCREEN_BUFFER_INFO csbi = { { 0 } };
+        GetConsoleScreenBufferInfo (h, &csbi);
+        columns = csbi.dwSize.X;
+    }
 #endif
 
     return columns;
