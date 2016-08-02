@@ -2,6 +2,7 @@
 
 imagedir = parent + "spi-oiio-tests/"
 refdir = imagedir + "ref/"
+refdirlist = [ refdir ]
 outputs = [ ]
 
 
@@ -32,9 +33,10 @@ command += oiiotool_and_test ("ffr0830_avid_ref_v3_hd_ref8.1024.jpg",
                               "ffr0830_avid_ref_match_v3_2kdcip_ref8.1024.jpg")
 
 # Test fit + color conversion + DPX->JPEG
+# N.B. 
 command += oiiotool_and_test ("ep0400_bg1_v101_3kalxog_alogc16.1001.dpx",
                               "--fit 1028x662 --colorconvert alogc16 vd8",
-                              "ep0400_bg1_v101_1kalxog_vd8.1001.jpg",
+                              "ep0400-v2_bg1_v101_1kalxog_vd8.1001.jpg",
                               precommand = "--colorconfig " + imagedir + "pxl.ocio/config.ocio")
 
 # Test ociofiletransform
