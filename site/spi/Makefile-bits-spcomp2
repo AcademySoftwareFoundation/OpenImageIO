@@ -31,18 +31,25 @@ SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
 PYLIB_LIB_PREFIX ?= 1
 PYLIB_INCLUDE_SONAME ?= 1
+CPPSTDSUFFIX=
+
 
 ## Detect which SPI platform and set $platform, $COMPILER, $SPCOMP2_COMPILER,
 ## and PYVER. Lots of other decisions are based on these.
 ifeq ($(SP_OS), rhel7)
     # Rhel7 (current)
     platform := rhel7
-    SPCOMP2_COMPILER=gcc48m64
+    SPCOMP2_COMPILER ?= gcc48m64
+    # On RHEL7, we need to make a variant that disables C++11 to link
+    # cleanly with Maya 2015, which is built against gcc 4.1, ugh.
+    ifeq ($(USE_CPP11),0)
+	CPPSTDSUFFIX=-c++03
+    endif
 else ifeq ($(SP_OS), spinux1)
     # Spinux (current)
     #COMPILER=gcc44m64
     platform := spinux1
-    SPCOMP2_COMPILER := gcc44m64
+    SPCOMP2_COMPILER ?= gcc44m64
     PYVER ?= 2.6
 else ifeq (${SP_OS}, lion)
     # Official OS X build machines with special conventions
@@ -60,7 +67,7 @@ endif  # endif $(SP_OS)
 
 PYVER ?= 2.7
 OCIO_SPCOMP_VERSION ?= 2
-OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OPENIMAGEIO_SPCOMP2_VERSION}
+OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}$(CPPSTDSUFFIX)/v${OPENIMAGEIO_SPCOMP2_VERSION}
 
 
 
@@ -87,7 +94,7 @@ ifeq ($(SP_OS), rhel7)
     # $(info SPCOMP2_BOOSTVERS_SUFFIX ${SPCOMP2_BOOSTVERS_SUFFIX})
     OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
     FIELD3D_HOME ?= ${SPCOMP2_SHOTTREE_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155${BOOSTSPSUFFIX}/v408
-    OIIO_SPCOMP2_PATH := ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}-boost${SPCOMP2_BOOSTVERS_SUFFIX}/v${OPENIMAGEIO_SPCOMP2_VERSION}
+    OIIO_SPCOMP2_PATH := ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}$(CPPSTDSUFFIX)-boost${SPCOMP2_BOOSTVERS_SUFFIX}/v${OPENIMAGEIO_SPCOMP2_VERSION}
     $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
 
     ## If not overridden, here is our preferred LLVM installation
@@ -310,12 +317,12 @@ else
 endif  # endif $(SP_OS)
 
 
-SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)
+SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)
 BOOSTVERSSP?=${BOOSTVERS}${BOOSTSPSUFFIX}
 
 ifdef SPCOMP2_USE_BOOSTVERS
 	ifneq ($(BOOSTVERS),1.42)
-		SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)-boost$(subst .,,$(BOOSTVERSSP))
+		SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)-boost$(subst .,,$(BOOSTVERSSP))
 	endif
 endif
 
