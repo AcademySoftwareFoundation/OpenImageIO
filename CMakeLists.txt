@@ -19,6 +19,11 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
 endif ()
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
+# N.B./FIXME - after CMake 3.0 is our minimum, we should change many of the
+# add_definitions to add_compile_options. In newer cmake versions, the
+# former is designated for definitions (-Dblah) and the latter is for
+# compile flags (-Wno-foo).
+
 if (VERBOSE)
     message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 endif ()
