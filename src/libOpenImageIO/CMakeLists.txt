@@ -19,6 +19,13 @@ if (NOT USE_EXTERNAL_PUGIXML)
     endif ()
 endif()
 
+# Make the build complete for newer ffmpeg versions (3.1.1+) that have
+# marked m_format_context->streams[i]->codec as deprecated.
+# FIXME -- at some point, come back and figure out how to fix for real
+# before the field disappears entirely.
+set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
+                             PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+
 set (libOpenImageIO_srcs deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp

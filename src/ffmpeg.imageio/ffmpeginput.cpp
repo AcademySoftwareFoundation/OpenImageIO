@@ -83,6 +83,10 @@ inline int avpicture_fill(AVPicture *picture, uint8_t *ptr,
 }
 #endif
 
+// In ffmpeg 3.1.1, the AVStream->codec field was marked as deprecated,
+//we're supposed to use ->codecpar instead.
+#define USE_CODECPAR (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0))
+
 
 #include <boost/thread/once.hpp>
 
