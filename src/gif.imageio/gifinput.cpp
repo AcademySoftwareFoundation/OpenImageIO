@@ -121,6 +121,16 @@ OIIO_EXPORT int gif_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT ImageInput *gif_input_imageio_create () { return new GIFInput; }
 OIIO_EXPORT const char *gif_input_extensions[] = { "gif", NULL };
 
+OIIO_EXPORT const char* gif_imageio_library_version () {
+#define STRINGIZE2(a) #a
+#define STRINGIZE(a) STRINGIZE2(a)
+#if defined(GIFLIB_MAJOR) && defined(GIFLIB_MINOR) && defined(GIFLIB_RELEASE)
+    return "gif_lib " STRINGIZE(GIFLIB_MAJOR) "." STRINGIZE(GIFLIB_MINOR) "." STRINGIZE(GIFLIB_RELEASE);
+#else
+    return "gif_lib unknown version";
+#endif
+}
+
 OIIO_PLUGIN_EXPORTS_END
 
 

@@ -74,6 +74,8 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int pnm_imageio_version = OIIO_PLUGIN_VERSION;
 
+    OIIO_EXPORT const char* pnm_imageio_library_version() { return NULL; }
+
     OIIO_EXPORT const char* pnm_input_extensions[] = {
         "ppm","pgm","pbm","pnm", "pfm", NULL
     };

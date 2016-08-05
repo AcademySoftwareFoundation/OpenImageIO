@@ -179,6 +179,9 @@ class Jpeg2000Input : public ImageInput {
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* jpeg2000_imageio_library_version () {
+        return ustring::format("OpenJpeg %s", opj_version()).c_str();
+    }
     OIIO_EXPORT ImageInput *jpeg2000_input_imageio_create () {
         return new Jpeg2000Input;
     }

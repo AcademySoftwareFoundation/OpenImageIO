@@ -37,6 +37,7 @@ using namespace bmp_pvt;
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int bmp_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* bmp_imageio_library_version () { return NULL; }
     OIIO_EXPORT ImageInput *bmp_input_imageio_create () {
         return new BmpInput;
     }
