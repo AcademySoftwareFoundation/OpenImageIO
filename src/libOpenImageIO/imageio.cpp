@@ -60,6 +60,7 @@ int tiff_half (0);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
 std::string extension_list;   // list of all extensions for all formats
+std::string library_list;   // list of all libraries for all formats
 }
 
 using namespace pvt;
@@ -201,6 +202,12 @@ getattribute (string_view name, TypeDesc type, void *val)
         if (extension_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(extension_list);
+        return true;
+    }
+    if (name == "library_list" && type == TypeDesc::TypeString) {
+        if (library_list.empty())
+            pvt::catalog_all_plugins (plugin_searchpath.string());
+        *(ustring *)val = ustring(library_list);
         return true;
     }
     if (name == "exr_threads" && type == TypeDesc::TypeInt) {

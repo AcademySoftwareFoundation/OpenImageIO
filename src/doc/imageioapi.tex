@@ -928,6 +928,20 @@ example,
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 
+\apiitem{string library_list}
+\vspace{10pt}
+\index{library_list}
+\NEW   % 1.7
+For each format that uses a dependent library, the format name, followed by
+a colon, followed by the name and version of the dependency. Semicolons
+separate the lists for formats.  For example,
+\begin{code}
+     "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
+\end{code}
+(Note: can only be retrieved by {\cf getattribute()}, cannot be set by
+{\cf attribute()}.)
+\apiend
+
 \apiitem{int read_chunk}
 \vspace{10pt}
 \index{read_chunk}

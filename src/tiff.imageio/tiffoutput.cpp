@@ -127,6 +127,12 @@ OIIO_EXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; 
 
 OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* tiff_imageio_library_version () {
+    string_view v (TIFFGetVersion());
+    v = v.substr (0, v.find ('\n'));
+    return v.c_str();
+}
+
 OIIO_EXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };

@@ -38,6 +38,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* socket_imageio_library_version() { return NULL; }
     OIIO_EXPORT ImageInput *socket_input_imageio_create () {
         return new SocketInput;
     }

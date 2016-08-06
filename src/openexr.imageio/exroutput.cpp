@@ -238,6 +238,14 @@ openexr_output_imageio_create ()
 
 OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* openexr_imageio_library_version () {
+#ifdef OPENEXR_PACKAGE_STRING
+    return OPENEXR_PACKAGE_STRING;
+#else
+    return "OpenEXR 1.x";
+#endif
+}
+
 OIIO_EXPORT const char * openexr_output_extensions[] = {
     "exr", "sxr", "mxr", NULL
 };

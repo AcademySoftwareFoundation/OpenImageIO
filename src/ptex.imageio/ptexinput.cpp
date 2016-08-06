@@ -89,6 +89,10 @@ OIIO_EXPORT ImageInput *ptex_input_imageio_create () { return new PtexInput; }
 
 OIIO_EXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* ptex_imageio_library_version () {
+    return ustring::format("Ptex %d.%d", PtexLibraryMajorVersion, PtexLibraryMinorVersion).c_str();
+}
+
 OIIO_EXPORT const char * ptex_input_extensions[] = {
     "ptex", "ptx", NULL
 };

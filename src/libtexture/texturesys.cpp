@@ -1052,8 +1052,11 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     // is space for a float4 in all of the result locations, so if that's
     // not the case (or it's not properly aligned), make a local copy and
     // then copy back when we're done.
+    // FIXME -- is this necessary at all? Can we eliminate the conditional
+    // and the duplicated code by always doing the simd copy thing? Come
+    // back here and time whether for 4-channnel textures it really matters.
     bool simd_copy = (nchannels != 4 || ((size_t)result&0x0f) ||
-                      ((size_t)dresultds & 0x0f) ||
+                      ((size_t)dresultds & 0x0f) || /* FIXME -- necessary? */
                       ((size_t)dresultdt & 0x0f));
     if (simd_copy) {
         simd::float4 result_simd, dresultds_simd, dresultdt_simd;
@@ -1072,6 +1075,8 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
                                 dresultds, dresultdt);
         result_simd.store (result, nchannels);
         if (saved_dresultds) {
+            if (m_flip_t)
+                dresultdt_simd = -dresultdt_simd;
             dresultds_simd.store (saved_dresultds, nchannels);
             dresultdt_simd.store (saved_dresultdt, nchannels);
         }
@@ -1084,6 +1089,8 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
         if (actualchannels < nchannels && options.firstchannel == 0 && m_gray_to_rgb)
             fill_gray_channels (spec, nchannels, result,
                                 dresultds, dresultdt);
+        if (m_flip_t && dresultdt)
+            *(float4 *)dresultdt = -(*(float4 *)dresultdt);
     }
 
     return ok;

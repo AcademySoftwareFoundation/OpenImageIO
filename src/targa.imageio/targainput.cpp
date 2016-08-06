@@ -107,6 +107,8 @@ OIIO_EXPORT const char * targa_input_extensions[] = {
     "tga", "tpic", NULL
 };
 
+OIIO_EXPORT const char* targa_imageio_library_version () { return NULL; }
+
 OIIO_PLUGIN_EXPORTS_END
 
 

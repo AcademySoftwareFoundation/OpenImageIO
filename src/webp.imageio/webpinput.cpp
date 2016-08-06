@@ -145,6 +145,10 @@ WebpInput::close()
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int webp_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* webp_imageio_library_version () {
+        int v = WebPGetDecoderVersion();
+        return ustring::format("Webp %d.%d.%d", v>>16, (v>>8)&255, v&255).c_str();
+    }
     OIIO_EXPORT ImageInput *webp_input_imageio_create () {
         return new webp_pvt::WebpInput;
     }

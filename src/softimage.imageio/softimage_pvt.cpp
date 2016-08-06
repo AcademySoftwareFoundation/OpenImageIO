@@ -40,6 +40,8 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int softimage_imageio_version = OIIO_PLUGIN_VERSION;
 
+OIIO_EXPORT const char* softimage_imageio_library_version () { return NULL; }
+
 OIIO_PLUGIN_EXPORTS_END
 
 

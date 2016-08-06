@@ -4482,6 +4482,18 @@ print_help (ArgParse &ap)
     }
     if (! ot.colorconfig.supportsOpenColorIO())
         std::cout << "No OpenColorIO support was enabled at build time.\n";
+    std::string libs = OIIO::get_string_attribute("library_list");
+    if (libs.size()) {
+        std::vector<string_view> libvec;
+        Strutil::split (libs, libvec, ";");
+        for (size_t i = 0; i < libvec.size(); ++i) {
+            size_t pos = libvec[i].find(':');
+            libvec[i].remove_prefix (pos+1);
+        }
+        std::cout << "Dependent libraries:\n    "
+                  << Strutil::wordwrap(Strutil::join (libvec, ", "), columns, 4)
+                  << std::endl;
+    }
 }
 
 

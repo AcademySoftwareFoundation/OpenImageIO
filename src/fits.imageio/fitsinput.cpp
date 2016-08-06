@@ -42,6 +42,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 OIIO_PLUGIN_EXPORTS_BEGIN
 
     OIIO_EXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT const char* fits_imageio_library_version () { return NULL; }
     OIIO_EXPORT ImageInput *fits_input_imageio_create () {
         return new FitsInput;
     }

@@ -49,6 +49,7 @@ OIIO_NAMESPACE_BEGIN
 
 typedef std::map <std::string, ImageInput::Creator> InputPluginMap;
 typedef std::map <std::string, ImageOutput::Creator> OutputPluginMap;
+typedef const char* (*PluginLibVersionFunc) ();
 
 namespace {
 
@@ -64,8 +65,9 @@ static OutputPluginMap output_extensions;
 static std::map <std::string, Plugin::Handle> plugin_handles;
 // Map format name to full path
 static std::map <std::string, std::string> plugin_filepaths;
+// Map format name to underlying implementation library
+static std::map <std::string, std::string> format_library_versions;
 
-// FIXME -- do we use the extensions above?
 
 
 static std::string pattern = Strutil::format (".imageio.%s",
@@ -90,7 +92,8 @@ declare_imageio_format (const std::string &format_name,
                         ImageInput::Creator input_creator,
                         const char **input_extensions,
                         ImageOutput::Creator output_creator,
-                        const char **output_extensions)
+                        const char **output_extensions,
+                        const char *lib_version)
 {
     std::vector<std::string> all_extensions;
     // Look for input creator and list of supported extensions
@@ -132,6 +135,13 @@ declare_imageio_format (const std::string &format_name,
         extension_list += std::string(";");
     extension_list += format_name + std::string(":");
     extension_list += Strutil::join(all_extensions, ",");
+    if (lib_version) {
+        format_library_versions[format_name] = lib_version;
+        if (library_list.length())
+            library_list += std::string(";");
+        library_list += Strutil::format ("%s:%s", format_name, lib_version);
+        // std::cout << format_name << ": " << lib_version << "\n";
+    }
 }
 
 
@@ -167,6 +177,10 @@ catalog_plugin (const std::string &format_name,
         return;
     }
 
+    std::string lib_version_function = format_name + "_imageio_library_version";
+    PluginLibVersionFunc plugin_lib_version =
+        (PluginLibVersionFunc) Plugin::getsym (handle, lib_version_function.c_str());
+
     // Add the filepath and handle to the master lists
     plugin_filepaths[format_name] = plugin_fullpath;
     plugin_handles[format_name] = handle;
@@ -182,7 +196,8 @@ catalog_plugin (const std::string &format_name,
 
     if (input_creator || output_creator)
         declare_imageio_format (format_name, input_creator, input_extensions,
-                                output_creator, output_extensions);
+                                output_creator, output_extensions,
+                                plugin_lib_version ? plugin_lib_version() : NULL);
     else
         Plugin::close (handle);   // not useful
 }
@@ -199,7 +214,8 @@ catalog_plugin (const std::string &format_name,
     ImageInput *name ## _input_imageio_create ();       \
     ImageOutput *name ## _output_imageio_create ();     \
     extern const char *name ## _output_extensions[];    \
-    extern const char *name ## _input_extensions[];
+    extern const char *name ## _input_extensions[];     \
+    extern const char *name ## _imageio_library_version();
 
     PLUGENTRY (bmp);
     PLUGENTRY (cineon);
@@ -249,7 +265,8 @@ catalog_builtin_plugins ()
                    (ImageInput::Creator) name ## _input_imageio_create,   \
                    name ## _input_extensions,                             \
                    (ImageOutput::Creator) name ## _output_imageio_create, \
-                   name ## _output_extensions)
+                   name ## _output_extensions,                            \
+                   name ## _imageio_library_version())
 
     DECLAREPLUG (bmp);
     DECLAREPLUG (cineon);

@@ -1,9 +1,9 @@
 # - Try to find libjpeg-turbo
 # Once done, this will define
 #
-#  JPEGTurbo_FOUND - system has libjpeg-turbo
-#  JPEGTurbo_INCLUDE_DIRS - the libjpeg-turbo include directories
-#  JPEGTurbo_LIBRARIES - link these to use libjpeg-turbo
+#  JPEG_FOUND - system has libjpeg-turbo
+#  JPEG_INCLUDE_DIRS - the libjpeg-turbo include directories
+#  JPEG_LIBRARIES - link these to use libjpeg-turbo
 #
 
 include (FindPackageHandleStandardArgs)
