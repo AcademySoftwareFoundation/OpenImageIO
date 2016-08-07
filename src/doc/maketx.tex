@@ -371,7 +371,7 @@ Specifies the name of an image file to use as a custom MIP-map level,
 instead of simply downsizing the last one.  This option may be used
 multiple times to specify multiple levels.  For example:
 \begin{code}
-    maketx 256.tif --miplevel 128.tif --miplevel 64.tif -o out.tx
+    maketx 256.tif --mipimage 128.tif --mipimage 64.tif -o out.tx
 \end{code}
 This will make a texture with the first MIP level taken from {\cf 256.tif},
 the second level from {\cf 128.tif}, the third from {\cf 64.tif}, and
