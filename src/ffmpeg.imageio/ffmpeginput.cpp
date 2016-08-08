@@ -304,6 +304,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
             break;
         case AV_PIX_FMT_YUVJ440P:
             src_pix_format = AV_PIX_FMT_YUV440P;
+            break;
         default:
             src_pix_format = m_codec_context->pix_fmt;
             break;
@@ -311,7 +312,8 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
 
     m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3);
 
-    switch (src_pix_format) { // support for 10-bit and 12-bit pix_fmts
+    switch (src_pix_format) {
+        // support for 10-bit and 12-bit pix_fmts
         case AV_PIX_FMT_YUV420P10BE:
         case AV_PIX_FMT_YUV420P10LE:
         case AV_PIX_FMT_YUV422P10BE:
@@ -361,6 +363,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     }
     m_spec.attribute ("FramesPerSecond", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
     m_spec.attribute ("oiio:Movie", true);
+    m_spec.attribute ("oiio:BitsPerSample", m_codec_context->bits_per_raw_sample);
     m_nsubimages = m_frames;
     spec = m_spec;
     return true;
