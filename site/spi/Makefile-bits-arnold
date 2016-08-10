@@ -10,7 +10,7 @@ endif
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
-MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1"
+MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
 NUKE_VERSION ?= 8.0v5
 SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
@@ -25,7 +25,7 @@ else ifeq ($(SP_OS), spinux1)
     # Spinux (current)
     #COMPILER=gcc44m64
     platform := spinux1
-    SPCOMP2_COMPILER := gcc44m64
+    SPCOMP2_COMPILER ?= gcc44m64
     PYVER ?= 2.6
 else ifeq (${SP_OS}, lion)
     # Official OS X build machines with special conventions
@@ -109,6 +109,13 @@ ifeq ($(SP_OS), rhel7)
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+    # FIXME: Force use of libtiff 3.9.4 because libtiff symbols are not
+    # namespaced, and if we compile OIIO against the system default of
+    # 4.0.x, but it's used by a Maya plugin and Maya links against the old
+    # libtiff.so.3, we get crashes. Hopefully we can come back to this and
+    # upgrade to libtiff 4.x later.
+    MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include/libtiff-3.9.4 \
+                      -DTIFF_LIBRARIES:STRING=/usr/lib64/libtiff.so.3
 
     # end rhel7
 

@@ -470,12 +470,17 @@ set (format_plugin_libs "")
 set (format_plugin_include_dirs "")
 set (format_plugin_definitions "")
 file (GLOB all_format_plugin_dirs src/*.imageio)
+if ("${OIIO_SITE}" STREQUAL "SPI")
+    # SPI only -- because of a workaround for a very weird linkage issue
+    # specific to our system, we need to be sure libtiff is referenced first.
+    set (all_format_plugin_dirs src/tiff.imageio ${all_format_plugin_dirs})
+    list (REMOVE_DUPLICATES all_format_plugin_dirs)
+endif ()
 if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     foreach (plugin_dir ${all_format_plugin_dirs})
         add_subdirectory (${plugin_dir})
     endforeach ()
 endif ()
-
 
 if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
