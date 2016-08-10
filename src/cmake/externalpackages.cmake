@@ -63,8 +63,13 @@ endif ()
 
 ###########################################################################
 # TIFF
-find_package (TIFF REQUIRED)
-include_directories (${TIFF_INCLUDE_DIR})
+if (NOT TIFF_LIBRARIES OR NOT TIFF_INCLUDE_DIR)
+    find_package (TIFF REQUIRED)
+    include_directories (${TIFF_INCLUDE_DIR})
+else ()
+    message (STATUS "Custom TIFF_LIBRARIES ${TIFF_LIBRARIES}")
+    message (STATUS "Custom TIFF_INCLUDE_DIR ${TIFF_INCLUDE_DIR}")
+endif ()
 
 
 ###########################################################################

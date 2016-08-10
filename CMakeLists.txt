@@ -455,6 +455,12 @@ include (CTest)
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
 
+if ("${OIIO_SITE}" STREQUAL "SPI")
+    # SPI only -- because of a workaround for a very weird linkage issue
+    # specific to our system, we need to be sure libtiff is referenced first.
+    add_subdirectory (src/tiff.imageio)
+endif ()
+
 # Add IO plugin directories -- if we are embedding plugins, we need to visit
 # these directories BEFORE the OpenImageIO target is established (in
 # src/libOpenImageIO). For each plugin, we append to the lists of source
