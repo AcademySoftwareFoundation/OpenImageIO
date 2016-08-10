@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/missing_math.h>
 #include <OpenImageIO/platform.h>
 #include <OpenEXR/ImathVec.h>
 
