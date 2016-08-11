@@ -158,42 +158,56 @@ Filesystem::searchpath_split (const std::string &searchpath,
 
 
 std::string
-Filesystem::searchpath_find (const std::string &filename,
+Filesystem::searchpath_find (const std::string &filename_utf8,
                              const std::vector<std::string> &dirs,
                              bool testcwd, bool recursive)
 {
-    bool abs = Filesystem::path_is_absolute (filename);
+#ifdef _WIN32
+    const boost::filesystem::path filename (Strutil::utf8_to_utf16 (filename_utf8));
+#else
+    const boost::filesystem::path filename (filename_utf8);
+#endif
+    bool abs = filename.is_absolute();
 
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (Filesystem::is_regular (filename))
-            return filename;
+        if (boost::filesystem::is_regular_file (filename))
+            return filename_utf8;
     }
 
     // Relative filename, not yet found -- try each directory in turn
-    BOOST_FOREACH (const std::string &d, dirs) {
+    BOOST_FOREACH (const std::string &d_utf8, dirs) {
         // std::cerr << "\tPath = '" << d << "'\n";
-        boost::filesystem::path f = d;
-        f /= filename;
-        // std::cerr << "\tTesting '" << f << "'\n";
-        if (Filesystem::is_regular (f.string())) {
-            // std::cerr << "Found '" << f << "'\n";
+#ifdef _WIN32
+        const boost::filesystem::path d(Strutil::utf8_to_utf16 (d_utf8));
+#else
+        const boost::filesystem::path d(d_utf8);
+#endif
+        boost::filesystem::path f = d / filename;
+        // std::cerr << "\tTesting '" << f.string() << "'\n";
+        if (boost::filesystem::is_regular_file (f)) {
+            // std::cerr << "Found '" << f.string() << "'\n";
+#ifdef _WIN32
+            return Strutil::utf16_to_utf8 (f.native());
+#else
             return f.string();
+#endif
         }
 
-        if (recursive && Filesystem::is_directory (d)) {
+        if (recursive && boost::filesystem::is_directory (d)) {
             std::vector<std::string> subdirs;
+            boost::filesystem::directory_iterator end_iter;
+            for (boost::filesystem::directory_iterator s(d); s != end_iter; ++s) {
+                if (boost::filesystem::is_directory (s->status())) {
 #ifdef _WIN32
-            std::wstring wd = Strutil::utf8_to_utf16 (d);
-            for (boost::filesystem::directory_iterator s(wd);
+                    subdirs.push_back (Strutil::utf16_to_utf8 (s->path().native()));
 #else
-            for (boost::filesystem::directory_iterator s(d); 
-#endif
-                 s != boost::filesystem::directory_iterator();  ++s)
-                if (Filesystem::is_directory(s->path().string()))
                     subdirs.push_back (s->path().string());
-            std::string found = searchpath_find (filename, subdirs, false, true);
+#endif
+                }
+            }
+            std::string found = searchpath_find (filename_utf8, subdirs, false, true);
             if (found.size())
                 return found;
         }
