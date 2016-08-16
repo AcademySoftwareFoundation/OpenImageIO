@@ -225,7 +225,7 @@ clamp (T a, T low, T high)
 // Specialization of clamp for float4
 template<>
 inline simd::float4
-clamp (simd::float4 a, simd::float4 low, simd::float4 high)
+clamp (const simd::float4& a, const simd::float4& low, const simd::float4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
