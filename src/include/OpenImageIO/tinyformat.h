@@ -192,7 +192,7 @@ template<int n> struct is_wchar<wchar_t[n]> {};
 
 // Format the value by casting to type fmtT.  This default implementation
 // should never be called.
-template<typename T, typename fmtT, bool convertible = is_convertible<T, fmtT>::value>
+template<typename T, typename fmtT, bool convertible = is_convertible<const T&, fmtT>::value>
 struct formatValueAsType
 {
     static void invoke(std::ostream& /*out*/, const T& /*value*/) { assert(0); }
@@ -229,7 +229,7 @@ struct formatZeroIntegerWorkaround<T,true>
 
 // Convert an arbitrary type to integer.  The version with convertible=false
 // throws an error.
-template<typename T, bool convertible = is_convertible<T,int>::value>
+template<typename T, bool convertible = is_convertible<const T&, int>::value>
 struct convertToInt
 {
     static int invoke(const T& /*value*/)
@@ -241,7 +241,7 @@ struct convertToInt
 };
 // Specialization for convertToInt when conversion is possible
 template<typename T>
-struct convertToInt<T,true>
+struct convertToInt<const T&,true>
 {
     static int invoke(const T& value) { return static_cast<int>(value); }
 };
@@ -278,8 +278,8 @@ inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
     // void* respectively and format that instead of the value itself.  For the
     // %p conversion it's important to avoid dereferencing the pointer, which
     // could otherwise lead to a crash when printing a dangling (const char*).
-    const bool canConvertToChar = detail::is_convertible<T,char>::value;
-    const bool canConvertToVoidPtr = detail::is_convertible<T, const void*>::value;
+    const bool canConvertToChar = detail::is_convertible<const T&,char>::value;
+    const bool canConvertToVoidPtr = detail::is_convertible<const T&, const void*>::value;
     if(canConvertToChar && *(fmtEnd-1) == 'c')
         detail::formatValueAsType<T, char>::invoke(out, value);
     else if(canConvertToVoidPtr && *(fmtEnd-1) == 'p')
