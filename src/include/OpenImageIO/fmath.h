@@ -225,7 +225,7 @@ clamp (T a, T low, T high)
 // Specialization of clamp for float4
 template<>
 inline simd::float4
-clamp (const simd::float4& a, const simd::float4& low, const simd::float4& high)
+clamp (simd::float4& a, simd::float4& low, simd::float4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
@@ -276,8 +276,8 @@ inline float msub (const float& a, const float& b, const float& c) {
 #endif
 
 template <>
-inline simd::float4 msub (simd::float4& a, simd::float4& b,
-                          simd::float4& c) {
+inline simd::float4 msub (const simd::float4& a, const simd::float4& b,
+                          const simd::float4& c) {
     // Implement float4 msub in terms of the one defined in simd.h.
     return simd::msub (a, b, c);
 }
