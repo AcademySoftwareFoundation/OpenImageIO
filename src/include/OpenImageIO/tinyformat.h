@@ -158,7 +158,7 @@ struct is_convertible
     private:
         // two types of different size
         struct fail { char dummy[2]; };
-        struct succeed { char dummy; };
+        struct succeed { const char& dummy; };
         // Try to convert a T1 to a T2 by plugging into tryConvert
         static fail tryConvert(...);
         static succeed tryConvert(const T2&);
