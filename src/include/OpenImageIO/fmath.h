@@ -277,7 +277,7 @@ inline float msub (const float& a, const float& b, const float& c) {
 
 template <>
 inline simd::float4 msub (const simd::float4& a, const simd::float4& b,
-                           const simd::float4& c) {
+                          const simd::float4& c) {
     // Implement float4 msub in terms of the one defined in simd.h.
     return simd::msub (a, b, c);
 }
