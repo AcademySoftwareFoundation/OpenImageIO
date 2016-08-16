@@ -324,31 +324,31 @@ void test_comparisons ()
 
 
 
-template<typename VEC>
-void test_shuffle ()
-{
-    std::cout << "test_shuffle " << VEC::type_name() << "\n";
+//template<typename VEC>
+//void test_shuffle ()
+//{
+//    std::cout << "test_shuffle " << VEC::type_name() << "\n";
+//
+//    VEC a (0, 1, 2, 3);
+//    OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0>(a)), VEC(3,2,1,0));
+//    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2>(a)), VEC(0,0,2,2));
+//    OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3>(a)), VEC(1,1,3,3));
+//    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1>(a)), VEC(0,1,0,1));
+//}
 
-    VEC a (0, 1, 2, 3);
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0>(a)), VEC(3,2,1,0));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2>(a)), VEC(0,0,2,2));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3>(a)), VEC(1,1,3,3));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1>(a)), VEC(0,1,0,1));
-}
 
 
-
-template<typename VEC>
-void test_swizzle ()
-{
-    std::cout << "test_swizzle " << VEC::type_name() << "\n";
-
-    VEC a (0, 1, 2, 3);
-    VEC b (10, 11, 12, 13);
-    OIIO_CHECK_SIMD_EQUAL (AxyBxy(a,b), VEC(0,1,10,11));
-    OIIO_CHECK_SIMD_EQUAL (AxBxAyBy(a,b), VEC(0,10,1,11));
-    OIIO_CHECK_SIMD_EQUAL (b.xyz0(), VEC(10,11,12,0));
-}
+//template<typename VEC>
+//void test_swizzle ()
+//{
+//    std::cout << "test_swizzle " << VEC::type_name() << "\n";
+//
+//    VEC a (0, 1, 2, 3);
+//    VEC b (10, 11, 12, 13);
+//    OIIO_CHECK_SIMD_EQUAL (AxyBxy(a,b), VEC(0,1,10,11));
+//    OIIO_CHECK_SIMD_EQUAL (AxBxAyBy(a,b), VEC(0,10,1,11));
+//    OIIO_CHECK_SIMD_EQUAL (b.xyz0(), VEC(10,11,12,0));
+//}
 
 
 
