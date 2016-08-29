@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /// To find out which CPU features you have:
 ///   Linux: cat /proc/cpuinfo
 ///   OSX:   sysctl machdep.cpu.features
+///
+/// Additional web resources:
+///   http://www.codersnotes.com/notes/maths-lib-2016/
 
 
 #pragma once
@@ -49,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenImageIO/missing_math.h>
 #include <OpenImageIO/platform.h>
 #include <OpenEXR/ImathVec.h>
+#include <OpenEXR/ImathMatrix.h>
 
 #if defined(_MSC_VER)
 #include <algorithm>
@@ -133,6 +137,7 @@ namespace simd {
 class int4;
 class float4;
 class mask4;
+class float3;
 
 
 # define OIIO_SIMD_FLOAT4_CONST(name,val) \
@@ -224,12 +229,13 @@ public:
     static const char* type_name() { return "mask4"; }
     typedef bool value_t;     ///< Underlying equivalent scalar value type
     enum { elements = 4 };    ///< Number of scalar elements
+    enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128   simd_t;
 #else
-    typedef int      simd_t[elements];
+    typedef int      simd_t[paddedelements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -488,7 +494,7 @@ private:
 #if OIIO_SIMD
         simd_t m_vec;
 #endif
-        int m_val[elements];
+        int m_val[paddedelements];
     };
 };
 
@@ -576,12 +582,13 @@ public:
     static const char* type_name() { return "int4"; }
     typedef int value_t;      ///< Underlying equivalent scalar value type
     enum { elements = 4 };    ///< Number of scalar elements
+    enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
     typedef __m128i simd_t;
 #else
-    typedef int4    simd_t[elements];
+    typedef int4    simd_t[paddedelements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -704,6 +711,15 @@ public:
         DASSERT(i<elements);
         return m_val[i];
     }
+
+    OIIO_FORCEINLINE value_t x () const;
+    OIIO_FORCEINLINE value_t y () const;
+    OIIO_FORCEINLINE value_t z () const;
+    OIIO_FORCEINLINE value_t w () const;
+    OIIO_FORCEINLINE void set_x (value_t val);
+    OIIO_FORCEINLINE void set_y (value_t val);
+    OIIO_FORCEINLINE void set_z (value_t val);
+    OIIO_FORCEINLINE void set_w (value_t val);
 
     /// Helper: load a single int into all components
     OIIO_FORCEINLINE void load (int a) {
@@ -1225,6 +1241,17 @@ OIIO_FORCEINLINE int4 insert (const int4& a, int val) {
 }
 
 
+
+OIIO_FORCEINLINE int int4::x () const { return extract<0>(*this); }
+OIIO_FORCEINLINE int int4::y () const { return extract<1>(*this); }
+OIIO_FORCEINLINE int int4::z () const { return extract<2>(*this); }
+OIIO_FORCEINLINE int int4::w () const { return extract<3>(*this); }
+OIIO_FORCEINLINE void int4::set_x (int val) { *this = insert<0>(*this, val); }
+OIIO_FORCEINLINE void int4::set_y (int val) { *this = insert<1>(*this, val); }
+OIIO_FORCEINLINE void int4::set_z (int val) { *this = insert<2>(*this, val); }
+OIIO_FORCEINLINE void int4::set_w (int val) { *this = insert<3>(*this, val); }
+
+
 /// The sum of all components, returned in all components.
 OIIO_FORCEINLINE int4 vreduce_add (const int4& v) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
@@ -1409,6 +1436,10 @@ OIIO_FORCEINLINE int4 andnot (const int4& a, const int4& b) {
 
 
 
+template<int i> OIIO_FORCEINLINE float4 insert (const float4& a, float val);
+
+
+
 
 /// Floating point 4-vector, accelerated by SIMD instructions when
 /// available.
@@ -1418,6 +1449,7 @@ public:
     typedef float value_t;    ///< Underlying equivalent scalar value type
     typedef mask4 mask_t;     ///< SIMD mask type
     enum { elements = 4 };    ///< Number of scalar elements
+    enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
     /// simd_t is the native SIMD type used
 #if defined(OIIO_SIMD_SSE)
@@ -1425,7 +1457,7 @@ public:
 #elif defined(OIIO_SIMD_NEON)
     typedef float32x4_t simd_t;
 #else
-    typedef float    simd_t[elements];
+    typedef float    simd_t[paddedelements];
 #endif
 
     /// Default constructor (contents undefined)
@@ -1473,7 +1505,7 @@ public:
 #endif
 
     /// Construct from a Imath::V3f
-    OIIO_FORCEINLINE float4 (const Imath::V3f &v) { load (v[0], v[1], v[2], 0.0f); }
+    OIIO_FORCEINLINE float4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
 
     /// Cast to a Imath::V3f
     OIIO_FORCEINLINE const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
@@ -1571,6 +1603,15 @@ public:
         return m_val[i];
     }
 
+    OIIO_FORCEINLINE value_t x () const;
+    OIIO_FORCEINLINE value_t y () const;
+    OIIO_FORCEINLINE value_t z () const;
+    OIIO_FORCEINLINE value_t w () const;
+    OIIO_FORCEINLINE void set_x (value_t val);
+    OIIO_FORCEINLINE void set_y (value_t val);
+    OIIO_FORCEINLINE void set_z (value_t val);
+    OIIO_FORCEINLINE void set_w (value_t val);
+
     /// Helper: load a single value into all components
     OIIO_FORCEINLINE void load (float val) {
 #if defined(OIIO_SIMD_SSE)
@@ -1649,7 +1690,7 @@ public:
 #else
         for (int i = 0; i < n; ++i)
             m_val[i] = values[i];
-        for (int i = n; i < elements; ++i)
+        for (int i = n; i < paddedelements; ++i)
             m_val[i] = 0;
 #endif
     }
@@ -1939,7 +1980,6 @@ public:
         return *this;
     }
 
-
     friend OIIO_FORCEINLINE mask_t operator== (const float4& a, const float4& b) {
 #if defined(OIIO_SIMD_SSE)
         return _mm_cmpeq_ps (a.m_vec, b.m_vec);
@@ -2012,15 +2052,12 @@ public:
 
     /// Return xyz components, plus 0 for w
     float4 xyz0 () const {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
-        return _mm_insert_ps (m_vec, _mm_set_ss(0.0f), 3<<4);
-#elif defined(OIIO_SIMD_SSE) /* SSE2 */
-        float4 tmp = m_vec;
-        tmp[3] = 0.0f;
-        return tmp;
-#else
-        return float4 (m_val[0], m_val[1], m_val[2], 0.0f);
-#endif
+        return insert<3>(*this, 0.0f);
+    }
+
+    /// Return xyz components, plus 1 for w
+    float4 xyz1 () const {
+        return insert<3>(*this, 1.0f);
     }
 
     /// Stream output
@@ -2028,14 +2065,209 @@ public:
         return cout << val[0] << ' ' << val[1] << ' ' << val[2] << ' ' << val[3];
     }
 
-private:
+protected:
     // The actual data representation
     union {
 #if OIIO_SIMD
         simd_t  m_vec;
 #endif
-        value_t m_val[elements];
+        value_t m_val[paddedelements];
     };
+};
+
+
+
+
+/// Floating point 3-vector, aligned to be internally identical to a float4.
+/// The way it differs from float4 is that all of he load functions only
+/// load three values, and all the stores only store 3 values. The vast
+/// majority of ops just fall back to the float4 version, and so will
+/// operate on the 4th component, but we won't care about that results.
+class float3 : public float4 {
+public:
+    static const char* type_name() { return "float3"; }
+    enum { elements = 3 };    ///< Number of scalar elements
+    enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
+    /// simd_t is the native SIMD type used
+
+    /// Default constructor (contents undefined)
+    OIIO_FORCEINLINE float3 () { }
+
+    /// Destructor
+    OIIO_FORCEINLINE ~float3 () { }
+
+    /// Construct from a single value (store it in all slots)
+    OIIO_FORCEINLINE float3 (float a) { load(a); }
+
+    /// Construct from 3 or 4 values
+    OIIO_FORCEINLINE float3 (float a, float b, float c) { float4::load(a,b,c); }
+
+    /// Construct from a pointer to 4 values
+    OIIO_FORCEINLINE float3 (const float *f) { load (f); }
+
+    /// Copy construct from another float3
+    OIIO_FORCEINLINE float3 (const float3 &other) {
+#if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
+        m_vec = other.m_vec;
+#else
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other.m_val[i];
+#endif
+    }
+
+    OIIO_FORCEINLINE explicit float3 (const float4 &other) {
+#if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
+        m_vec = other.simd();
+#else
+        for (int i = 0; i < elements; ++i)
+            m_val[i] = other[i];
+        m_val[3] = 0.0f;
+#endif
+    }
+
+#if OIIO_SIMD
+    /// Construct from the underlying SIMD type
+    OIIO_FORCEINLINE explicit float3 (const simd_t& m) : float4(m) { }
+#endif
+
+    /// Construct from a Imath::V3f
+    OIIO_FORCEINLINE float3 (const Imath::V3f &v) : float4(v) { }
+
+    /// Cast to a Imath::V3f
+    OIIO_FORCEINLINE const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
+
+    /// Construct from a pointer to 4 unsigned short values
+    OIIO_FORCEINLINE explicit float3 (const unsigned short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 short values
+    OIIO_FORCEINLINE explicit float3 (const short *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 unsigned char values
+    OIIO_FORCEINLINE explicit float3 (const unsigned char *vals) { load(vals); }
+
+    /// Construct from a pointer to 4 char values
+    OIIO_FORCEINLINE explicit float3 (const char *vals) { load(vals); }
+
+#ifdef _HALF_H_
+    /// Construct from a pointer to 4 half (16 bit float) values
+    OIIO_FORCEINLINE explicit float3 (const half *vals) { load(vals); }
+#endif
+
+    /// Assign a single value to all components
+    OIIO_FORCEINLINE const float3 & operator= (float a) { load(a); return *this; }
+
+    /// Return a float3 with all components set to 0.0
+    static OIIO_FORCEINLINE const float3 Zero () { return float3(float4::Zero()); }
+
+    /// Return a float3 with all components set to 1.0
+    static OIIO_FORCEINLINE const float3 One () { return float3(1.0f); }
+
+    /// Return a float3 with incremented components (e.g., 0.0,1.0,2.0,3.0).
+    /// Optional argument can give a non-zero starting point.
+    static OIIO_FORCEINLINE const float3 Iota (float value=0.0f) {
+        return float3(value,value+1.0f,value+2.0f);
+    }
+
+
+    /// Helper: load a single value into all components
+    OIIO_FORCEINLINE void load (float val) { float4::load (val, val, val, 0.0f); }
+
+    /// Load from an array of 4 values
+    OIIO_FORCEINLINE void load (const float *values) { float4::load (values, 3); }
+
+    /// Load from an array of 4 values
+    OIIO_FORCEINLINE void load (const float *values, int n) {
+        float4::load (values, n);
+    }
+
+    /// Load from an array of 4 unsigned short values, convert to float
+    OIIO_FORCEINLINE void load (const unsigned short *values) {
+        float4::load (float(values[0]), float(values[1]), float(values[2]));
+    }
+
+    /// Load from an array of 4 short values, convert to float
+    OIIO_FORCEINLINE void load (const short *values) {
+        float4::load (float(values[0]), float(values[1]), float(values[2]));
+    }
+
+    /// Load from an array of 4 unsigned char values, convert to float
+    OIIO_FORCEINLINE void load (const unsigned char *values) {
+        float4::load (float(values[0]), float(values[1]), float(values[2]));
+    }
+
+    /// Load from an array of 4 char values, convert to float
+    OIIO_FORCEINLINE void load (const char *values) {
+        float4::load (float(values[0]), float(values[1]), float(values[2]));
+    }
+
+#ifdef _HALF_H_
+    /// Load from an array of 4 half values, convert to float
+    OIIO_FORCEINLINE void load (const half *values) {
+        float4::load (float(values[0]), float(values[1]), float(values[2]));
+    }
+#endif /* _HALF_H_ */
+
+    OIIO_FORCEINLINE void store (float *values) const {
+        float4::store (values, 3);
+    }
+
+    OIIO_FORCEINLINE void store (float *values, int n) const {
+        float4::store (values, n);
+    }
+
+#ifdef _HALF_H_
+    OIIO_FORCEINLINE void store (half *values) const {
+        values[0] = m_val[0];
+        values[1] = m_val[1];
+        values[2] = m_val[2];
+    }
+#endif
+
+    /// Store into an Imath::V3f reference.
+    OIIO_FORCEINLINE void store (Imath::V3f &vec) const {
+        store ((float *)&vec);
+    }
+
+    // Math operators -- define in terms of float3.
+    friend OIIO_FORCEINLINE float3 operator+ (const float3& a, const float3& b) {
+        return float3 (float4(a) + float4(b));
+    }
+    OIIO_FORCEINLINE const float3 & operator+= (const float3& a) {
+        *this = *this + a; return *this;
+    }
+    OIIO_FORCEINLINE float3 operator- () const { return float3 (-float4(*this)); }
+    friend OIIO_FORCEINLINE float3 operator- (const float3& a, const float3& b) {
+        return float3 (float4(a) - float4(b));
+    }
+    OIIO_FORCEINLINE const float3 & operator-= (const float3& a) {
+        *this = *this - a; return *this;
+    }
+    friend OIIO_FORCEINLINE float3 operator* (const float3& a, const float3& b) {
+        return float3 (float4(a) * float4(b));
+    }
+    OIIO_FORCEINLINE const float3 & operator*= (const float3& a) {
+        *this = *this * a; return *this;
+    }
+    OIIO_FORCEINLINE const float3 & operator*= (float a) {
+        *this = *this * a; return *this;
+    }
+    friend OIIO_FORCEINLINE float3 operator/ (const float3& a, const float3& b) {
+        return float3 (float4(a) / b.xyz1()); // Avoid divide by zero!
+    }
+    OIIO_FORCEINLINE const float3 & operator/= (const float3& a) {
+        *this = *this / a; return *this;
+    }
+    OIIO_FORCEINLINE const float3 & operator/= (float a) {
+        *this = *this / a; return *this;
+    }
+
+    OIIO_FORCEINLINE float3 normalized () const;
+    OIIO_FORCEINLINE float3 normalized_fast () const;
+
+    /// Stream output
+    friend inline std::ostream& operator<< (std::ostream& cout, const float3& val) {
+        return cout << val[0] << ' ' << val[1] << ' ' << val[2];
+    }
 };
 
 
@@ -2126,6 +2358,23 @@ OIIO_FORCEINLINE float4 insert (const float4& a, float val) {
 #endif
 }
 
+#if defined(OIIO_SIMD_SSE)
+// Slightly faster special cases for SSE
+template<> OIIO_FORCEINLINE float4 insert<0> (const float4& a, float val) {
+    return _mm_move_ss (a.simd(), _mm_set_ss(val));
+}
+#endif
+
+
+OIIO_FORCEINLINE float float4::x () const { return extract<0>(*this); }
+OIIO_FORCEINLINE float float4::y () const { return extract<1>(*this); }
+OIIO_FORCEINLINE float float4::z () const { return extract<2>(*this); }
+OIIO_FORCEINLINE float float4::w () const { return extract<3>(*this); }
+OIIO_FORCEINLINE void float4::set_x (float val) { *this = insert<0>(*this, val); }
+OIIO_FORCEINLINE void float4::set_y (float val) { *this = insert<1>(*this, val); }
+OIIO_FORCEINLINE void float4::set_z (float val) { *this = insert<2>(*this, val); }
+OIIO_FORCEINLINE void float4::set_w (float val) { *this = insert<3>(*this, val); }
+
 
 OIIO_FORCEINLINE int4 bitcast_to_int4 (const mask4& x)
 {
@@ -2193,31 +2442,89 @@ OIIO_FORCEINLINE float reduce_add (const float4& v) {
 
 
 
+/// The sum of all components, returned in all components.
+OIIO_FORCEINLINE float3 vreduce_add (const float3& v) {
+#if defined(OIIO_SIMD_SSE)
+    return float3 ((vreduce_add(float4(v))).xyz0());
+#else
+    return float3 (v[0] + v[1] + v[2]);
+#endif
+}
+
+
+/// Return the float dot (inner) product of a and b in every component.
+OIIO_FORCEINLINE float4 vdot (const float4 &a, const float4 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return _mm_dp_ps (a.simd(), b.simd(), 0xff);
+#elif OIIO_SIMD_NEON
+    float32x4_t ab = vmulq_f32(a, b);
+    float32x4_t sum1 = vaddq_f32(ab, vrev64q_f32(ab));
+    return vaddq_f32(sum1, vcombine_f32(vget_high_f32(sum1), vget_low_f32(sum1)));
+#else
+    return vreduce_add (a*b);
+#endif
+}
+
+
 /// Return the float dot (inner) product of a and b.
 OIIO_FORCEINLINE float dot (const float4 &a, const float4 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return _mm_cvtss_f32 (_mm_dp_ps (a.simd(), b.simd(), 0xff));
+#else
     return reduce_add (a*b);
+#endif
 }
 
 
-/// Return the float dot (inner) product of the first three components of
-/// a and b.
-OIIO_FORCEINLINE float dot3 (const float4 &a, const float4 &b) {
-    return reduce_add (insert<3>(a*b, 0.0f));
-}
-
-
-/// Return the dot (inner) product of a and b in every component of a
-/// float4.
-OIIO_FORCEINLINE float4 vdot (const float4 &a, const float4 &b) {
+/// Return the float dot (inner) product of a and b in every component.
+OIIO_FORCEINLINE float3 vdot (const float3 &a, const float3 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return float3(_mm_dp_ps (a.simd(), b.simd(), 0x77));
+#else
     return vreduce_add (a*b);
+#endif
 }
 
 
-/// Return the dot (inner) product of the first three components of
-/// a and b, in every product of a float4.
+/// Return the float dot (inner) product of a and b.
+OIIO_FORCEINLINE float dot (const float3 &a, const float3 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return _mm_cvtss_f32 (_mm_dp_ps (a.simd(), b.simd(), 0x77));
+#else
+    return reduce_add (a*b);
+#endif
+}
+
+
+/// Return the float 3-component dot (inner) product of a and b in
+/// all components.
 OIIO_FORCEINLINE float4 vdot3 (const float4 &a, const float4 &b) {
-    return vreduce_add (insert<3>(a*b, 0.0f));
+#if OIIO_SIMD_SSE >= 4
+    return _mm_dp_ps (a.simd(), b.simd(), 0x7f);
+#else
+    return vreduce_add((a*b).xyz0());
+#endif
 }
+
+/// Return the float 3-component dot (inner) product of a and b in
+/// all components.
+OIIO_FORCEINLINE float3 vdot3 (const float3 &a, const float3 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return float3(_mm_dp_ps (a.simd(), b.simd(), 0x77));
+#else
+    return float3 (vreduce_add((a*b).xyz0()).xyz0());
+#endif
+}
+
+/// Return the float 3-component dot (inner) product of a and b.
+OIIO_FORCEINLINE float dot3 (const float4 &a, const float4 &b) {
+#if OIIO_SIMD_SSE >= 4
+    return _mm_cvtss_f32 (_mm_dp_ps (a.simd(), b.simd(), 0x77));
+#else
+    return reduce_add ((a*b).xyz0());
+#endif
+}
+
 
 
 /// Use a mask to select between components of a (if mask[i] is false) and
@@ -2267,6 +2574,34 @@ OIIO_FORCEINLINE float4 blend0not (const float4& a, const mask4& mask)
                    mask[1] ? 0.0f : a[1],
                    mask[2] ? 0.0f : a[2],
                    mask[3] ? 0.0f : a[3]);
+#endif
+}
+
+
+
+/// "Safe" divide of float4/float4 -- for any component of the divisor
+/// that is 0, return 0 rather than Inf.
+OIIO_FORCEINLINE float4 safe_div (const float4 &a, const float4 &b) {
+#if defined(OIIO_SIMD_SSE)
+    return blend0not (a/b, b == float4::Zero());
+#else
+    return float4 (b[0] == 0.0f ? 0.0f : a[0] / b[0],
+                   b[1] == 0.0f ? 0.0f : a[1] / b[1],
+                   b[2] == 0.0f ? 0.0f : a[2] / b[2],
+                   b[3] == 0.0f ? 0.0f : a[3] / b[3]);
+#endif
+}
+
+
+
+/// Homogeneous divide to turn a float4 into a float3.
+OIIO_FORCEINLINE float3 hdiv (const float4 &a)
+{
+#if defined(OIIO_SIMD_SSE)
+    return float3(safe_div(a, shuffle<3>(a)).xyz0());
+#else
+    float d = a[3];
+    return d == 0.0f ? float3 (0.0f) : float3 (a[0]/d, a[1]/d, a[2]/d);
 #endif
 }
 
@@ -2358,6 +2693,71 @@ OIIO_FORCEINLINE int4 floori (const float4& a)
 OIIO_FORCEINLINE int4 rint (const float4& a)
 {
     return int4 (round(a));
+}
+
+
+
+/// Compute the per-component sqrt.
+OIIO_FORCEINLINE float4 sqrt (const float4 &a)
+{
+#if OIIO_SIMD_SSE
+    return _mm_sqrt_ps (a.simd());
+#else
+    return float4 (sqrtf(a[0]), sqrtf(a[1]), sqrtf(a[2]), sqrtf(a[3]));
+#endif
+}
+
+
+
+/// Compute the per-component sqrt, fully accurate.
+OIIO_FORCEINLINE float4 rsqrt (const float4 &a)
+{
+#if OIIO_SIMD_SSE
+    return _mm_div_ps (_mm_set1_ps(1.0f), _mm_sqrt_ps (a.simd()));
+#else
+    return float4 (1.0f/sqrtf(a[0]), 1.0f/sqrtf(a[1]),
+                   1.0f/sqrtf(a[2]), 1.0f/sqrtf(a[3]));
+#endif
+}
+
+
+
+/// Compute the per-component approximate reciprocal sqrt.
+OIIO_FORCEINLINE float4 rsqrt_fast (const float4 &a)
+{
+#if OIIO_SIMD_SSE
+    return _mm_rsqrt_ps (a.simd());
+#else
+    return float4 (1.0f/sqrtf(a[0]), 1.0f/sqrtf(a[1]),
+                   1.0f/sqrtf(a[2]), 1.0f/sqrtf(a[3]));
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float3 float3::normalized () const
+{
+#if OIIO_SIMD
+    float3 len2 = vdot3 (*this, *this);
+    return float3 (safe_div (*this, sqrt(len2)));
+#else
+    float len2 = dot (*this, *this);
+    return len2 > 0.0f ? (*this) / sqrtf(len2) : float3::Zero();
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float3 float3::normalized_fast () const
+{
+#if OIIO_SIMD
+    float3 len2 = vdot3 (*this, *this);
+    float4 invlen = blend0not (rsqrt_fast (len2), len2 == float4::Zero());
+    return float3 ((*this) * invlen);
+#else
+    float len2 = dot (*this, *this);
+    return len2 > 0.0f ? (*this) / sqrtf(len2) : float3::Zero();
+#endif
 }
 
 
@@ -2721,11 +3121,323 @@ OIIO_FORCEINLINE int4 AxBxCxDx (const int4& a, const int4& b,
 
 
 
+/// SIMD-based 4x4 matrix. This is guaranteed to have memory layout (when
+/// not in registers) isomorphic to Imath::M44f.
+class matrix44 {
+public:
+    // Uninitialized
+    matrix44 ()
+    #ifndef OIIO_SIMD_SSE
+        : m_mat(Imath::UNINITIALIZED)
+    #endif
+     { }
+
+    /// Construct from a reference to an Imath::M44f
+    matrix44 (const Imath::M44f &M) {
+    #if OIIO_SIMD_SSE
+        m_row[0].load (M[0]);
+        m_row[1].load (M[1]);
+        m_row[2].load (M[2]);
+        m_row[3].load (M[3]);
+    #else
+        m_mat = M;
+    #endif
+    }
+
+    /// Construct from a float array
+    explicit matrix44 (const float *f) {
+    #if OIIO_SIMD_SSE
+        m_row[0].load (f+0);
+        m_row[1].load (f+4);
+        m_row[2].load (f+8);
+        m_row[3].load (f+12);
+    #else
+        memcpy (&m_mat, f, 16*sizeof(float));
+    #endif
+    }
+
+    /// Construct from 4 float4 rows
+    explicit matrix44 (float4 a, float4 b, float4 c, float4 d) {
+    #if OIIO_SIMD_SSE
+        m_row[0] = a; m_row[1] = b; m_row[2] = c; m_row[3] = d;
+    #else
+        a.store (m_mat[0]);
+        b.store (m_mat[1]);
+        c.store (m_mat[2]);
+        d.store (m_mat[3]);
+    #endif
+    }
+
+    /// Construct from 4 float[4] rows
+    explicit matrix44 (const float *a, const float *b,
+                       const float *c, const float *d) {
+    #if OIIO_SIMD_SSE
+        m_row[0].load(a); m_row[1].load(b); m_row[2].load(c); m_row[3].load(d);
+    #else
+        memcpy (m_mat[0], a, 4*sizeof(float));
+        memcpy (m_mat[1], b, 4*sizeof(float));
+        memcpy (m_mat[2], c, 4*sizeof(float));
+        memcpy (m_mat[3], d, 4*sizeof(float));
+    #endif
+    }
+
+    /// Present as an Imath::M44f
+    const Imath::M44f& M44f() const { return *(Imath::M44f*)this; }
+
+    /// Return one row
+    float4 operator[] (int i) const {
+    #if OIIO_SIMD_SSE
+        return m_row[i];
+    #else
+        return float4 (m_mat[i]);
+    #endif
+    }
+
+    /// Return the transposed matrix
+    OIIO_FORCEINLINE matrix44 transposed () const {
+        matrix44 T;
+    #if OIIO_SIMD_SSE
+        simd::transpose (m_row[0], m_row[1], m_row[2], m_row[3],
+                         T.m_row[0], T.m_row[1], T.m_row[2], T.m_row[3]);
+    #else
+        T = m_mat.transposed();
+    #endif
+        return T;
+    }
+
+    /// Transform 3-point V by 4x4 matrix M.
+    OIIO_FORCEINLINE float3 transformp (const float3 &V) const {
+    #if OIIO_SIMD_SSE
+        float4 R = shuffle<0>(V) * m_row[0] + shuffle<1>(V) * m_row[1] +
+                   shuffle<2>(V) * m_row[2] + m_row[3];
+        R = R / shuffle<3>(R);
+        return float3 (R.xyz0());
+    #else
+        Imath::V3f R;
+        m_mat.multVecMatrix (*(Imath::V3f *)&V, R);
+        return float3(R);
+    #endif
+    }
+
+    /// Transform 3-vector V by 4x4 matrix M.
+    OIIO_FORCEINLINE float3 transformv (const float3 &V) const {
+    #if OIIO_SIMD_SSE
+        float4 R = shuffle<0>(V) * m_row[0] + shuffle<1>(V) * m_row[1] +
+                   shuffle<2>(V) * m_row[2];
+        return float3 (R.xyz0());
+    #else
+        Imath::V3f R;
+        m_mat.multDirMatrix (*(Imath::V3f *)&V, R);
+        return float3(R);
+    #endif
+    }
+
+    /// Transform 3-vector V by the transpose of 4x4 matrix M.
+    OIIO_FORCEINLINE float3 transformvT (const float3 &V) const {
+    #if OIIO_SIMD_SSE
+        matrix44 T = transposed();
+        float4 R = shuffle<0>(V) * T[0] + shuffle<1>(V) * T[1] +
+                   shuffle<2>(V) * T[2];
+        return float3 (R.xyz0());
+    #else
+        Imath::V3f R;
+        m_mat.transposed().multDirMatrix (*(Imath::V3f *)&V, R);
+        return float3(R);
+    #endif
+    }
+
+    OIIO_FORCEINLINE bool operator== (const matrix44& m) const {
+    #if OIIO_SIMD_SSE
+        mask4 b0 = (m_row[0] == m[0]);
+        mask4 b1 = (m_row[1] == m[1]);
+        mask4 b2 = (m_row[2] == m[2]);
+        mask4 b3 = (m_row[3] == m[3]);
+        return simd::all (b0 & b1 & b2 & b3);
+    #else
+        return memcmp(this, &m, 16*sizeof(float)) == 0;
+    #endif
+    }
+
+    OIIO_FORCEINLINE bool operator== (const Imath::M44f& m) const {
+        return memcmp(this, &m, 16*sizeof(float)) == 0;
+    }
+    friend OIIO_FORCEINLINE bool operator== (const Imath::M44f& a, const matrix44 &b) {
+        return (b == a);
+    }
+
+    OIIO_FORCEINLINE bool operator!= (const matrix44& m) const {
+    #if OIIO_SIMD_SSE
+        mask4 b0 = (m_row[0] != m[0]);
+        mask4 b1 = (m_row[1] != m[1]);
+        mask4 b2 = (m_row[2] != m[2]);
+        mask4 b3 = (m_row[3] != m[3]);
+        return simd::any (b0 | b1 | b2 | b3);
+    #else
+        return memcmp(this, &m, 16*sizeof(float)) != 0;
+    #endif
+    }
+
+    OIIO_FORCEINLINE bool operator!= (const Imath::M44f& m) const {
+        return memcmp(this, &m, 16*sizeof(float)) != 0;
+    }
+    friend OIIO_FORCEINLINE bool operator!= (const Imath::M44f& a, const matrix44 &b) {
+        return (b != a);
+    }
+
+    OIIO_FORCEINLINE matrix44 inverse() const {
+    #if OIIO_SIMD_SSE
+        // Adapted from this code from Intel:
+        // ftp://download.intel.com/design/pentiumiii/sml/24504301.pdf
+        float4 minor0, minor1, minor2, minor3;
+        float4 row0, row1, row2, row3;
+        float4 det, tmp1;
+        const float *src = (const float *)this;
+        float4 zero = float4::Zero();
+        tmp1 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src)), (__m64*)(src+ 4));
+        row1 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+8)), (__m64*)(src+12));
+        row0 = _mm_shuffle_ps(tmp1, row1, 0x88);
+        row1 = _mm_shuffle_ps(row1, tmp1, 0xDD);
+        tmp1 = _mm_loadh_pi(_mm_loadl_pi(tmp1, (__m64*)(src+ 2)), (__m64*)(src+ 6));
+        row3 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+10)), (__m64*)(src+14));
+        row2 = _mm_shuffle_ps(tmp1, row3, 0x88);
+        row3 = _mm_shuffle_ps(row3, tmp1, 0xDD);
+        // -----------------------------------------------
+        tmp1 = row2 * row3;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        minor0 = row1 * tmp1;
+        minor1 = row0 * tmp1;
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor0 = (row1 * tmp1) - minor0;
+        minor1 = (row0 * tmp1) - minor1;
+        minor1 = shuffle<2,3,0,1>(minor1);
+        // -----------------------------------------------
+        tmp1 = row1 * row2;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        minor0 = (row3 * tmp1) + minor0;
+        minor3 = row0 * tmp1;
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor0 = minor0 - (row3 * tmp1);
+        minor3 = (row0 * tmp1) - minor3;
+        minor3 = shuffle<2,3,0,1>(minor3);
+        // -----------------------------------------------
+        tmp1 = shuffle<2,3,0,1>(row1) * row3;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        row2 = shuffle<2,3,0,1>(row2);
+        minor0 = (row2 * tmp1) + minor0;
+        minor2 = row0 * tmp1;
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor0 = minor0 - (row2 * tmp1);
+        minor2 = (row0 * tmp1) - minor2;
+        minor2 = shuffle<2,3,0,1>(minor2);
+        // -----------------------------------------------
+        tmp1 = row0 * row1;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        minor2 = (row3 * tmp1) + minor2;
+        minor3 = (row2 * tmp1) - minor3;
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor2 = (row3 * tmp1) - minor2;
+        minor3 = minor3 - (row2 * tmp1);
+        // -----------------------------------------------
+        tmp1 = row0 * row3;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        minor1 = minor1 - (row2 * tmp1);
+        minor2 = (row1 * tmp1) + minor2;
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor1 = (row2 * tmp1) + minor1;
+        minor2 = minor2 - (row1 * tmp1);
+        // -----------------------------------------------
+        tmp1 = row0 * row2;
+        tmp1 = shuffle<1,0,3,2>(tmp1);
+        minor1 = (row3 * tmp1) + minor1;
+        minor3 = minor3 - (row1 * tmp1);
+        tmp1 = shuffle<2,3,0,1>(tmp1);
+        minor1 = minor1 - (row3 * tmp1);
+        minor3 = (row1 * tmp1) + minor3;
+        // -----------------------------------------------
+        det = row0 * minor0;
+        det = shuffle<2,3,0,1>(det) + det;
+        det = _mm_add_ss(shuffle<1,0,3,2>(det), det);
+        tmp1 = _mm_rcp_ss(det);
+        det = _mm_sub_ss(_mm_add_ss(tmp1, tmp1), _mm_mul_ss(det, _mm_mul_ss(tmp1, tmp1)));
+        det = shuffle<0>(det);
+        return matrix44 (det*minor0, det*minor1, det*minor2, det*minor3);
+    #else
+        return m_mat.inverse();
+    #endif
+    }
+    /// Stream output
+    friend inline std::ostream& operator<< (std::ostream& cout, const matrix44 &M) {
+        const float *m = (const float *)&M;
+        return cout << m[0]  << ' ' << m[1]  << ' ' << m[2]  << ' ' << m[3] << ' '
+                    << m[4]  << ' ' << m[5]  << ' ' << m[6]  << ' ' << m[7] << ' '
+                    << m[8]  << ' ' << m[9]  << ' ' << m[10] << ' ' << m[11] << ' '
+                    << m[12] << ' ' << m[13] << ' ' << m[14] << ' ' << m[15];
+    }
+
+private:
+#if OIIO_SIMD_SSE
+    float4 m_row[4];
+#else
+    Imath::M44f m_mat;
+#endif
+};
+
+
+
+/// Transform 3-point V by 4x4 matrix M.
+OIIO_FORCEINLINE float3 transformp (const matrix44 &M, const float3 &V) {
+    return M.transformp (V);
+}
+
+OIIO_FORCEINLINE float3 transformp (const Imath::M44f &M, const float3 &V)
+{
+#if OIIO_SIMD
+    return matrix44(M).transformp (V);
+#else
+    Imath::V3f R;
+    M.multVecMatrix (*(Imath::V3f *)&V, R);
+    return float3(R);
+#endif
+}
+
+
+/// Transform 3-vector V by 4x4 matrix M.
+OIIO_FORCEINLINE float3 transformv (const matrix44 &M, const float3 &V) {
+    return M.transformv (V);
+}
+
+OIIO_FORCEINLINE float3 transformv (const Imath::M44f &M, const float3 &V)
+{
+#if OIIO_SIMD
+    return matrix44(M).transformv (V);
+#else
+    Imath::V3f R;
+    M.multDirMatrix (*(Imath::V3f *)&V, R);
+    return float3(R);
+#endif
+}
+
+OIIO_FORCEINLINE float3 transformvT (const matrix44 &M, const float3 &V)
+{
+    return M.transformvT (V);
+}
+
+OIIO_FORCEINLINE float3 transformvT (const Imath::M44f &M, const float3 &V)
+{
+#if OIIO_SIMD
+    return matrix44(M).transformvT(V);
+#else
+    return transformv (M.transposed(), V);
+#endif
+}
+
+
 /// Template to retrieve the vector type from the scalar. For example,
 /// simd::VecType<int,4> will be float4.
 template<typename T,int elements> struct VecType {};
 template<> struct VecType<int,4>   { typedef int4 type; };
 template<> struct VecType<float,4> { typedef float4 type; };
+template<> struct VecType<float,3> { typedef float3 type; };
 template<> struct VecType<bool,4>  { typedef mask4 type; };
 
 /// Template to retrieve the SIMD size of a SIMD type. Rigged to be 1 for
@@ -2733,7 +3445,13 @@ template<> struct VecType<bool,4>  { typedef mask4 type; };
 template<typename T> struct SimdSize { static const int size = 1; };
 template<> struct SimdSize<int4>     { static const int size = 4; };
 template<> struct SimdSize<float4>   { static const int size = 4; };
+template<> struct SimdSize<float3>   { static const int size = 4; };
 template<> struct SimdSize<mask4>    { static const int size = 4; };
+
+/// Template to retrieve the number of elements size of a SIMD type. Rigged
+/// to be 1 for anything but our SIMD types.
+template<typename T> struct SimdElements { static const int size = SimdSize<T>::size; };
+template<> struct SimdElements<float3>   { static const int size = 3; };
 
 
 } // end namespace
