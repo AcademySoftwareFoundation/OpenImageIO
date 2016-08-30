@@ -417,7 +417,8 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                 delete m_deep_scanline_output_part;
                 m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, m_subimage);
             } else {
-                ASSERT (0);
+                error ("Called open with AppendSubimage mode, but no appropriate part is found. Application bug?");
+                return false;
             }
         } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
@@ -472,7 +473,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         }
     }
 
-    ASSERTMSG (0, "Unknown open mode %d", int(mode));
+    error ("Unknown open mode %d", int(mode));
     return false;
 }
 
@@ -1321,7 +1322,8 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
             m_scanline_output_part->writePixels (1);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempt to write scanline to a non-scanline file.");
+            return false;
         }
     } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
@@ -1398,7 +1400,8 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
                 m_scanline_output_part->writePixels (nscanlines);
 #endif
             } else {
-                ASSERT (0);
+                error ("Attempt to write scanlines to a non-scanline file.");
+                return false;
             }
         } catch (const std::exception &e) {
             error ("Failed OpenEXR write: %s", e.what());
@@ -1528,7 +1531,8 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                              m_miplevel, m_miplevel);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempt to write tiles for a non-tiled file.");
+            return false;
         }
     } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());

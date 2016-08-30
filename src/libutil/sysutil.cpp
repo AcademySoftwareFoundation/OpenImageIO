@@ -255,7 +255,7 @@ Sysutil::this_program_path ()
     int r = 0;
 #else
     // No idea what platform this is
-    ASSERT (0);
+    OIIO_STATIC_ASSERT_MSG (0, "this_program_path() unimplemented on this platform");
 #endif
 
     if (r > 0)
