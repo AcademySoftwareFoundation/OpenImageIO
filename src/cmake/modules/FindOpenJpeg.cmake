@@ -84,6 +84,7 @@ if (OPENJPEG_HOME)
        ${OpenJpeg_library_paths}
       )
   set (OpenJpeg_include_paths
+       ${OPENJPEG_HOME}/include/openjpeg
        ${OPENJPEG_HOME}/include
        ${OpenJpeg_include_paths}
       )
