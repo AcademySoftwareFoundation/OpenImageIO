@@ -50,8 +50,10 @@ Public API changes:
    #1362 (1.7.2/1.6.11)
  * Deprecate ImageCache/TextureSystem clear() methods, which never did
    anything useful. #1347 (1.7.3)
- * ImageSpec::set_format() clears any per-channel format information. #1446)
+ * ImageSpec::set_format() clears any per-channel format information. #1446
    (1.7.4)
+ * OIIO::getattribute("library_list", ...) can retrieve a list of all the
+   dependent libraries used when OIIO was built. #1458 (1.7.5)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -111,6 +113,8 @@ Fixes, minor enhancements, and performance improvements:
       #1440 (1.7.3)
     * --trim will trim all subimages to the same region, containing the
       union of all nonzero pixels in all subimages. #1440 (1.7.3)
+    * --help now prints all of the dependent libraries for individual
+      formats. #1458 (1.7.5)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -144,7 +148,7 @@ Fixes, minor enhancements, and performance improvements:
     * TextureSystem option "flip_t", if nonzero, will flip the vertical
       direction of all texture lookups. Use this for renderers that adhere
       to the convention that the t=0 texture coordinate is the visible
-      "bottom" of the texture. #1428 (1.7.3)
+      "bottom" of the texture. #1428 (1.7.3) #1462 (1.7.5)
     * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
       automatically be resolved to the correct UTIM tile based on the
       s,t coordinates. #1426 (1.7.3)
@@ -155,7 +159,10 @@ Fixes, minor enhancements, and performance improvements:
       broken. Also print a count & list of broken/invalid files. #1433
       (1.7.3/1.6.15)
     * Add ability to retrieve various per-file statistics. #1438 (1.7.3/1.6.15)
- * maketx:
+    * IC will clamp the max_open_files to the maximum allowed by the
+      system, so you can no longer crash a program by incorrectly
+      setting this limit too high. #1457 (1.7.5)
+* maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
@@ -220,8 +227,11 @@ Fixes, minor enhancements, and performance improvements:
       "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
     * More robust handling of non-zero origin of full/display window.
       #1414 (1.6.14/1.7.3)
+ * Cineon:
+    * Improved deduction/setting of color space info. #1466 (1.7.5)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
+    * Support for reading 10-bit and 12-bit movies. #1430 (1.7.5)
  * Improved accuracy of "lanczos3" filter; speed up blackman-harris filter.
    #1379 (1.7.2)
  * Speed up linear<->sRGB color conversions (as used by any of the IBA color
@@ -288,6 +298,9 @@ Build/test system improvements:
  * Various Windows compilation & warning fixes. #1443 (1.7.3/1.6.15)
  * Now builds correctly against OpenJPEG 2.x, it previously only supported
    OpenJPEG 1.x. #1452  (Fixes #957, #1449) (1.7.4/1.6.16)
+ * Fix Filesystem::searchpath_find on Windows with UTF-8 paths.
+   #1469 (1.7.51.6.17)
+ * Improved the way OpenEXR installations are found. #1464 (1.7.5)
 
 Developer goodies / internals:
  * thread.h has had all the atomic operations split into a separate atomic.h.
@@ -303,7 +316,9 @@ Developer goodies / internals:
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
    Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
    and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
-   andnot #1377 (1.7.2); exp, log #1384 (1.7.2).
+   andnot #1377 (1.7.2); exp, log #1384 (1.7.2); simd::float3 is like float4,
+   but only loads and stores 3 components, it's a good Vec3f replacement (but
+   padded) #1473 (1.7.5); matrix44 4x4 matrix class #1473 (1.7.5).
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
@@ -324,7 +339,9 @@ Developer goodies / internals:
    utf_to_unicode now takes a string_view rather than a std::string&
    #1450 (1.7.4); add Strutil::base64_encode() #1450 (1.7.4).
  * sysutil.h: Sysutil::getenv() safely gets an env variable as a string_view
-   #1451 (1.7.4/1.6.16).
+   #1451 (1.7.4/1.6.16); terminal_columns() now has a correct implementation
+   on Windows #1460 (1.7.5); max_open_files() retrieves the maximum number
+   of files the process may open simultaneously #1457 (1.7.5).
  * platform.h: better distinguishing beteen Apple and Generic clang,
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
@@ -333,6 +350,14 @@ Developer goodies / internals:
    and INSTALL) have been changed from plain text to MarkDown. #1442 (1.7.3)
 
 
+
+Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
+------------------------------------------------
+* Fix build for newer ffmpeg release that deprecated functions.
+* Improved finding of OCIO installations. #1467
+* Fixed Sysutil::terminal_columns() for WIndows. #1640
+* Fix build break in Windows when roundf function not found. #1468
+* Fix Filesystem::searchpath_find on Windows with UTF-8 paths. #1469
 
 Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
 ------------------------------------------------
