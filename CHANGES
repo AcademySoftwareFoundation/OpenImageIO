@@ -2,7 +2,11 @@ Changes:
 
 Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
 ------------------------------------------------
-
+* Fix build for newer ffmpeg release that deprecated functions.
+* Improved finding of OCIO installations. #1467
+* Fixed Sysutil::terminal_columns() for WIndows. #1640
+* Fix build break in Windows when roundf function not found. #1468
+* Fix Filesystem::searchpath_find on Windows with UTF-8 paths. #1469
 
 Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
 ------------------------------------------------
