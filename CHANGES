@@ -1,5 +1,8 @@
 Changes:
 
+Release 1.6.18 (released ?? 2016 -- compared to 1.6.17)
+------------------------------------------------
+
 Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
 ------------------------------------------------
 * Fix build for newer ffmpeg release that deprecated functions.
