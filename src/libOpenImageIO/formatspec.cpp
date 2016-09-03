@@ -110,7 +110,7 @@ pvt::get_default_quantize (TypeDesc format,
     case TypeDesc::DOUBLE:
         get_default_quantize_ <double> (quant_min, quant_max);
         break;
-    default: ASSERT(0);
+    default: ASSERT_MSG (0, "Unknown data format %d", format.basetype);
     }
 }
 

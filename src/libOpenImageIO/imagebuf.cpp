@@ -1652,7 +1652,7 @@ ImageBuf::setpixel (int x, int y, int z, const float *pixel, int maxchannels)
     case TypeDesc::UINT64: setpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
     case TypeDesc::INT64 : setpixel_<long long> (*this, x, y, z, pixel, n); break;
     default:
-        ASSERT (0);
+        ASSERTMSG (0, "Unknown/unsupported data type %d", spec().format.basetype);
     }
 }
 

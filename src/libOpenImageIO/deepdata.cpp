@@ -570,7 +570,8 @@ DeepData::deep_value (int pixel, int channel, int sample) const
     case TypeDesc::INT64 :
         return ConstDataArrayProxy<long long,float>((const long long *)ptr)[0];
     default:
-        ASSERT (0);
+        ASSERT_MSG (0, "Unknown/unsupported data type %d",
+                    channeltype(channel).basetype);
         return 0.0f;
     }
 }
@@ -605,7 +606,8 @@ DeepData::deep_value_uint (int pixel, int channel, int sample) const
     case TypeDesc::INT64 :
         return ConstDataArrayProxy<long long,uint32_t>((const long long *)ptr)[0];
     default:
-        ASSERT (0);
+        ASSERT_MSG (0, "Unknown/unsupported data type %d",
+                    channeltype(channel).basetype);
         return 0;
     }
 }
@@ -640,7 +642,8 @@ DeepData::set_deep_value (int pixel, int channel, int sample, float value)
     case TypeDesc::INT64 :
         DataArrayProxy<int64_t,float>((int64_t *)ptr)[0] = value; break;
     default:
-        ASSERT (0);
+        ASSERT_MSG (0, "Unknown/unsupported data type %d",
+                    channeltype(channel).basetype);
     }
 }
 
@@ -674,7 +677,8 @@ DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
     case TypeDesc::INT64 :
         DataArrayProxy<int64_t,uint32_t>((int64_t *)ptr)[0] = value; break;
     default:
-        ASSERT (0);
+        ASSERT_MSG (0, "Unknown/unsupported data type %d",
+                    channeltype(channel).basetype);
     }
 }
 
@@ -754,7 +758,7 @@ DeepData::copy_deep_pixel (int pixel, const DeepData &src, int srcpixel)
 {
     if (pixel < 0 || pixel >= pixels()) {
         // std::cout << "dst pixel was " << pixel << "\n";
-        ASSERT(0);
+        DASSERT (0 && "Out of range pixel index");
         return false;
     }
     if (srcpixel < 0 || srcpixel >= src.pixels()) {
@@ -765,7 +769,7 @@ DeepData::copy_deep_pixel (int pixel, const DeepData &src, int srcpixel)
     }
     int nchans = channels();
     if (nchans != src.channels()) {
-        ASSERT(0);
+        DASSERT (0 && "Number of channels don't match.");
         return false;
     }
     int nsamples = src.samples(srcpixel);
