@@ -603,6 +603,18 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   name and apparent type.
 \end{tabular}
 
+\subsubsection*{A note on channel names}
+
+The underlying OpenEXR library (libIlmImf) always saves channels
+into lexicographic order, so the channel order on disk (and thus when
+read!) will NOT match the order when the image was created.
+
+But in order to adhere to OIIO's convention that RGBAZ will always be
+the first channels (if they exist), OIIO's OpenEXR reader will automatically
+reorder just those channels to appear at the front and in that order. All
+other channel names will remain in their relative order as presented to
+OIIO by libIlmImf.
+
 \subsubsection*{Limitations}
 
 \begin{itemize}
