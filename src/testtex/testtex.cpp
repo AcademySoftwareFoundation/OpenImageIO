@@ -1232,16 +1232,23 @@ main (int argc, const char *argv[])
             int timesopened = 0;
             int64_t bytesread = 0;
             float iotime = 0.0f;
+            int64_t data_size = 0, file_size = 0;
             texsys->get_texture_info (all_filenames[i], 0, ustring("stat:timesopened"),
                                       TypeDesc::INT, &timesopened);
             texsys->get_texture_info (all_filenames[i], 0, ustring("stat:bytesread"),
                                       TypeDesc::INT64, &bytesread);
             texsys->get_texture_info (all_filenames[i], 0, ustring("stat:iotime"),
                                       TypeDesc::FLOAT, &iotime);
-            std::cout << Strutil::format ("  %d: %s  opens=%d, read=%s, time=%s\n",
+            texsys->get_texture_info (all_filenames[i], 0, ustring("stat:image_size"),
+                                      TypeDesc::INT64, &data_size);
+            texsys->get_texture_info (all_filenames[i], 0, ustring("stat:file_size"),
+                                      TypeDesc::INT64, &file_size);
+            std::cout << Strutil::format ("  %d: %s  opens=%d, read=%s, time=%s, data=%s, file=%s\n",
                                           i, all_filenames[i], timesopened,
                                           Strutil::memformat(bytesread),
-                                          Strutil::timeintervalformat(iotime,2));
+                                          Strutil::timeintervalformat(iotime,2),
+                                          Strutil::memformat(data_size),
+                                          Strutil::memformat(file_size));
         }
     }
 
