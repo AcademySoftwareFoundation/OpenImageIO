@@ -839,6 +839,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_spec.format = convert;
     else
         m_spec.format = m_nativespec.format;
+    m_spec.channelformats = m_nativespec.channelformats;
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     realloc ();
 
