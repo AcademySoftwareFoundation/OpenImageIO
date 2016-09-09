@@ -1528,8 +1528,8 @@ inline float fast_exp10 (float x) {
 
 inline float fast_expm1 (float x) {
     if (fabsf(x) < 1e-5f) {
-        x = 1.0f - (1.0f - x); // crush denormals
-        return madd(0.5f, x * x, x);
+        float y = 1.0f - (1.0f - x); // crush denormals
+        return copysignf(madd(0.5f, y * y, y), x);
     } else
         return fast_exp(x) - 1.0f;
 }
