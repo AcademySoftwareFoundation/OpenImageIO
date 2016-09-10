@@ -1447,6 +1447,15 @@ inline float fast_logb (float x) {
     return float (int(bits >> 23) - 127);
 }
 
+inline float fast_log1p (float x) {
+    if (fabsf(x) < 0.01f) {
+        float y = 1.0f - (1.0f - x); // crush denormals
+        return copysignf(madd(-0.5f, y * y, y), x);
+    } else {
+        return fast_log(x + 1);
+    }
+}
+
 inline float fast_exp2 (float x) {
     // clamp to safe range for final addition
     if (x < -126.0f) x = -126.0f;
@@ -1527,7 +1536,7 @@ inline float fast_exp10 (float x) {
 }
 
 inline float fast_expm1 (float x) {
-    if (fabsf(x) < 1e-5f) {
+    if (fabsf(x) < 0.03f) {
         float y = 1.0f - (1.0f - x); // crush denormals
         return copysignf(madd(0.5f, y * y, y), x);
     } else
