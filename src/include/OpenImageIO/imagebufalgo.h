@@ -1598,6 +1598,50 @@ bool OIIO_API median_filter (ImageBuf &dst, const ImageBuf &src,
                              ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Replace the given ROI of dst with the dilated version of the
+/// corresponding region of src. Dilation is definted as the maximum
+/// value of all pixels under nonzero values of the structuring element
+/// (which is taken to be a width x height square). If height is not
+/// set, it will default to be the same as width.
+///
+/// If roi is not defined, it defaults to the full size of dst (or src,
+/// if dst was undefined).  If dst is uninitialized, it will be
+/// allocated to be the size specified by roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API dilate (ImageBuf &dst, const ImageBuf &src,
+                      int width = 3, int height = -1,
+                      ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Replace the given ROI of dst with the eroded version of the
+/// corresponding region of src. Erosion is definted as the minimum
+/// value of all pixels under nonzero values of the structuring element
+/// (which is taken to be a width x height square). If height is not
+/// set, it will default to be the same as width.
+///
+/// If roi is not defined, it defaults to the full size of dst (or src,
+/// if dst was undefined).  If dst is uninitialized, it will be
+/// allocated to be the size specified by roi.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+///
+/// Return true on success, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
+                     int width = 3, int height = -1,
+                     ROI roi = ROI::All(), int nthreads = 0);
+
+
 /// Take the discrete Fourier transform (DFT) of the section of src
 /// denoted by roi, store it in dst.  If roi is not defined, it will be
 /// all of src's pixels.  Only one channel of src may be FFT'd at a

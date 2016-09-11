@@ -224,6 +224,15 @@ command += oiiotool ("src/tahoe-small.tif --blur 5x5 -d uint8 -o gauss5x5-blur.t
 # test median filter
 command += oiiotool ("src/tahoe-small.tif --median 5x5 -d uint8 -o tahoe-median.tif")
 
+# test dilate and erode
+# command += oiiotool ("--pattern constant:color=0.1,0.1,0.1 80x64 3 --text:x=8:y=54:size=40:font=DroidSerif Aai -o morphsource.tif")
+command += oiiotool ("src/morphsource.tif --dilate 3x3 -d uint8 -o dilate.tif")
+command += oiiotool ("src/morphsource.tif --erode 3x3 -d uint8 -o erode.tif")
+# command += oiiotool ("morphsource.tif --erode 3x3 --dilate 3x3 -d uint8 -o morphopen.tif")
+# command += oiiotool ("morphsource.tif --dilate 3x3 --erode 3x3 -d uint8 -o morphclose.tif")
+# command += oiiotool ("morphsource.tif morphopen.tif -sub -d uint8 -o tophat.tif")
+# command += oiiotool ("morphclose.tif morphsource.tif -sub -d uint8 -o bottomhat.tif")
+
 # test unsharp mask
 command += oiiotool ("src/tahoe-small.tif --unsharp -d uint8 -o unsharp.tif")
 
@@ -325,6 +334,7 @@ outputs = [
             "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "tahoe-median.tif",
+            "dilate.tif", "erode.tif",
             "unsharp.tif", "unsharp-median.tif", "tahoe-laplacian.tif",
             "fft.exr", "ifft.exr",
             "polar.exr", "unpolar.exr",

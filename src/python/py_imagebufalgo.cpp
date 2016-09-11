@@ -865,6 +865,26 @@ IBA_median_filter (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
+IBA_dilate (ImageBuf &dst, const ImageBuf &src,
+            int width, int height, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::dilate (dst, src, width, height, roi, nthreads);
+}
+
+
+
+bool
+IBA_erode (ImageBuf &dst, const ImageBuf &src,
+           int width, int height, ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::erode (dst, src, width, height, roi, nthreads);
+}
+
+
+
+bool
 IBA_laplacian (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 {
     ScopedGILRelease gil;
@@ -1638,6 +1658,18 @@ void declare_imagebufalgo()
               arg("width")=3, arg("height")=-1,
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("median_filter")
+
+        .def("dilate", &IBA_dilate,
+             (arg("dst"), arg("src"),
+              arg("width")=3, arg("height")=-1,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("dilate")
+
+        .def("erode", &IBA_erode,
+             (arg("dst"), arg("src"),
+              arg("width")=3, arg("height")=-1,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("erode")
 
         .def("laplacian", &IBA_laplacian,
              (arg("dst"), arg("src"),

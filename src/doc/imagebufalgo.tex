@@ -1880,6 +1880,80 @@ original & with dropouts & median filtered \\
 \apiend
 
 
+\apiitem{bool {\ce dilate} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc int width = 3, int height = -1, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce erode} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\spc int width = 3, int height = -1, \\
+  \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!dilate} \indexapi{dilate}
+\index{ImageBufAlgo!erode} \indexapi{erode}
+\index{morphological filtering}
+\NEW % 1.7
+
+Replace the given ROI of {\cf dst} with the dilated or eroded version of the
+corresponding region of {\cf src}.  The dilate operation replaces each pixel
+with the maximum value underneath the $\mathit{width} \times \mathit{height}$
+window surrounding it, and the erode operation does the same for the minimum
+value under the window. If the height is $< 1$, it will be set to width,
+making a square window.
+
+Dilation makes bright features wider and more prominent, dark features
+thinner, and removes small isolated dark spots. Erosion makes dark features
+wider, bright features thinner, and removes small isolated bright spots.
+
+Dilation and erosion are basic morphological filters, and more complex ones
+are often constructed from them:
+\begin{itemize}
+\item
+\item ``open'' is erode followed by dilate, and it keeps the overall shape
+while removing small bright regions;
+\item ``close'' is dilate followed by erode, and it keeps the overall shape
+while removing small dark regions;
+\item ``morphological gradient'' is dilate minus erode, which gives a
+bright perimeter edge;
+\item ``tophat'' is the original source minus the ``open'', which isolates
+local peaks;
+\item ``bottomhat'' is the ``close'' minus the original source, which
+isolates dark holes.
+\end{itemize}
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf Source ("source.tif");
+    ImageBuf Dilate, Erode, Opene, Close, Gradient, Tophat, Bottomhat;
+    ImageBufAlgo::dilate (Dilated, Source, 3, 3);
+    ImageBufAlgo::erode (Eroded, Source, 3, 3);
+
+    // Morphological "open" is dilate(erode((source))
+    ImageBufAlgo::dilate (Opene, Erode, 3, 3);
+    // Morphological "close" is erode(dilate(source))
+    ImageBufAlgo::erode (Close, Dilate, 3, 3);
+    // Morphological "gradient" is dilate minus erode
+    ImageBufAlgo::sub (Gradient, Dilate, Erode);
+    // Tophat filter is source minus open
+    ImageBufAlgo::sub (Tophat, Source, Opene);
+    // Bottomhat filter is close minus source
+    ImageBufAlgo::sub (Bottomhat, Close, Source);
+\end{code}
+
+\spc \begin{tabular}{llll}
+\includegraphics[width=0.75in]{figures/morphsource.jpg} &
+\includegraphics[width=0.75in]{figures/dilate.jpg} &
+\includegraphics[width=0.75in]{figures/erode.jpg} &
+\includegraphics[width=0.75in]{figures/morphopen.jpg} \\
+original & dilate & erode & open \\
+\includegraphics[width=0.75in]{figures/morphclose.jpg} &
+\includegraphics[width=0.75in]{figures/morphgradient.jpg} &
+\includegraphics[width=0.75in]{figures/tophat.jpg} &
+\includegraphics[width=0.75in]{figures/bottomhat.jpg} \\
+close & gradient & tophat & bottomhat \\
+\end{tabular}
+
+\apiend
+
+
 \apiitem{bool {\ce unsharp_mask} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view kernel = "gaussian", float width = 3.0f, \\
   \bigspc\spc float contrast = 1.0f, float threshold = 0.0f, \\

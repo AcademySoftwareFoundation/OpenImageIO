@@ -3288,6 +3288,40 @@ OP_CUSTOMCLASS (median, OpMedian, 1);
 
 
 
+class OpDilate : public OiiotoolOp {
+public:
+    OpDilate (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual int impl (ImageBuf **img) {
+        string_view size (args[1]);
+        int w = 3, h = 3;
+        if (sscanf (size.c_str(), "%dx%d", &w, &h) != 2)
+            ot.error (opname(), Strutil::format ("Unknown size %s", size));
+        return ImageBufAlgo::dilate (*img[0], *img[1], w, h);
+    }
+};
+
+OP_CUSTOMCLASS (dilate, OpDilate, 1);
+
+
+
+class OpErode : public OiiotoolOp {
+public:
+    OpErode (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual int impl (ImageBuf **img) {
+        string_view size (args[1]);
+        int w = 3, h = 3;
+        if (sscanf (size.c_str(), "%dx%d", &w, &h) != 2)
+            ot.error (opname(), Strutil::format ("Unknown size %s", size));
+        return ImageBufAlgo::erode (*img[0], *img[1], w, h);
+    }
+};
+
+OP_CUSTOMCLASS (erode, OpErode, 1);
+
+
+
 class OpUnsharp : public OiiotoolOp {
 public:
     OpUnsharp (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -4671,6 +4705,10 @@ getargs (int argc, char *argv[])
                     "Blur the image (arg: WxH; options: kernel=name)",
                 "--median %@ %s", action_median, NULL,
                     "Median filter the image (arg: WxH)",
+                "--dilate %@ %s", action_dilate, NULL,
+                    "Dilate (area maximum) the image (arg: WxH)",
+                "--erode %@ %s", action_erode, NULL,
+                    "Erode (area minimum) the image (arg: WxH)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
                 "--laplacian %@", action_laplacian, NULL,
