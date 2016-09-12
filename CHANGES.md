@@ -56,6 +56,8 @@ Public API changes:
    (1.7.4)
  * OIIO::getattribute("library_list", ...) can retrieve a list of all the
    dependent libraries used when OIIO was built. #1458 (1.7.5)
+ * simd::mask4 class has been renamed simd::bool4 (though the old name
+   is still typedef'ed to work for now). #1484 (1.7.5)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -153,7 +155,7 @@ Fixes, minor enhancements, and performance improvements:
       direction of all texture lookups. Use this for renderers that adhere
       to the convention that the t=0 texture coordinate is the visible
       "bottom" of the texture. #1428 (1.7.3) #1462 (1.7.5)
-    * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
+    * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
       automatically be resolved to the correct UTIM tile based on the
       s,t coordinates. #1426 (1.7.3)
     * Avoid repeated broken texture error messages. #1423 (1.7.3)
@@ -166,6 +168,9 @@ Fixes, minor enhancements, and performance improvements:
     * IC will clamp the max_open_files to the maximum allowed by the
       system, so you can no longer crash a program by incorrectly
       setting this limit too high. #1457 (1.7.5)
+    * IC/TS statistics now report separately the total size of images
+      referenced, in terms of in-cache data size, as well as on-disk
+      size (the latter may be compressed). #1481 (1.7.5)
 * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
@@ -207,6 +212,7 @@ Fixes, minor enhancements, and performance improvements:
     * Fixed minor bug with OpenEXR output with correctly setting
       PixelAspectRatio based on the "XResolution" and "YResolution"
       attributes. #1453 (Fixes #1214) (1.7.4/1.6.16)
+    * Fix setting "chromaticity" metadata in EXR files. #1487 (1.7.5)
  * PNG:
     * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
     * Enforce that alpha premultiplication on output MUST consider alpha
@@ -257,7 +263,7 @@ Build/test system improvements:
  * Travis: add DEBUG builds to the matrix to fix any warnings or failures
    that only show up for DEBUG builds. #1309 (1.7.1/1.6.10)
  * Fix build issues on some platforms for SHA1.h, by adding proper include
-   of <climits>. #1298,#1311,#1312 (1.7.1/1.6.10)
+   of `<climits>`. #1298,#1311,#1312 (1.7.1/1.6.10)
  * Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
    #1314 (1.7.1/1.6.10)
  * Fix build breaks for certain 32 bit platforms. #1315,#1322 (1.7.1/1.6.10)
@@ -328,7 +334,8 @@ Developer goodies / internals:
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
-   fast_exp, fast_pow_pos #1384 (1.7.2)
+   fast_exp, fast_pow_pos #1384 (1.7.2); fix sign of expm1 for small
+   arguments #1482 (1.7.5); added fast_log1p #1483 (1.75).
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
@@ -354,6 +361,8 @@ Developer goodies / internals:
  * ImageCache: remove unused shadow matrix fields, save space. #1424 (1.7.3)
  * Many documentation files (such as README, CHANGES, LICENSE, CREDITS,
    and INSTALL) have been changed from plain text to MarkDown. #1442 (1.7.3)
+ * Sysutil::Term class makes it easy to use color output on the terminal.
+   #1479 (1.7.5)
 
 
 
@@ -477,7 +486,7 @@ Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 * Fixes for both reading and writing of RLA images that are cropped
   (i.e., data window is a subset of display window). #1224
 * Fix build issues on some platforms for SHA1.h, by adding proper include
-  of <climits>. #1298,#1311,#1312
+  of `<climits>`. #1298,#1311,#1312
 * Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
   #1314
 * Fix build breaks for certain 32 bit platforms. #1315,#1322
@@ -971,8 +980,8 @@ Developer goodies / internals:
  * Add Filesystem::rename() utility. #1070  (1.6.2/1.5.13)
  * New SIMD methods: insert<>, xyz0, vreduce_add, dot, dot3, vdot, vdot3,
    AxBxCxDx, blend0not (1.6.2)
- * array_view enhancements that let you initialize an array_view<const float>
-   from a const std::vector<float>&.  #1084 (1.6.2/1.5.14)
+ * array_view enhancements that let you initialize an `array_view<const float>`
+   from a const `std::vector<float>&`.  #1084 (1.6.2/1.5.14)
  * hash.h contains several new hashes in namespaces 'OIIO::xxhash' and
    'OIIO::farmhash'. Also, Strutil::strhash now uses farmhash rather than
    the Jenkins one-at-a-time hash, bringing big speed improvements
@@ -1365,7 +1374,7 @@ Fixes, minor enhancements, and performance improvements:
    * maketx --attrib, --sattrib, and --sansattrib now work like
      oiiotool; in other words, you can use command line arguments to add
      or alter metadata in the process of creating a texture. #901 (1.5.1)
-   * maketx --sharpen <AMT> adds slight sharpening and emphasis of
+   * `maketx --sharpen <AMT>` adds slight sharpening and emphasis of
      higher frequencies when creating MIP-maps. #958 (1.5.5)
    * Fix crash when using maketx --checknan (1.5.5)
    * maketx now embeds metadata hints ("oiio:ConstantColor") for
@@ -1837,8 +1846,8 @@ Build/test system improvements:
   false positive errors from Thread Sanitizer.  The default is the old
   way, with full optimization! (1.4.1)
 * More robust detection of OpenEXR library filenames. (1.4.1)
-* Always reference OpenEXR and Imath headers as <OpenEXR/foo.h> rather 
-  than <foo.h>. (1.4.1)
+* Always reference OpenEXR and Imath headers as `<OpenEXR/foo.h>` rather
+  than `<foo.h>`. (1.4.1)
 * Unit test strutil_test now comprehensively tests Strutil. (1.4.1)
 * Fix broken build when EMBEDPLUGINS=0. (1.4.3/1.3.13)
 * Fix broken build against OpenEXR 1.x. (1.4.3/1.3.13)
@@ -3530,7 +3539,7 @@ For developers:
 * ustring: make string comparison safe for empty strings. (r1330)
 * Include file fixes for gcc 4.4. (r1331)
 * Regularize all #include references to Imath and Openexr to 
-  <OpenEXR/blah>. (r1335)
+  `<OpenEXR/blah>`. (r1335)
 
 
 
