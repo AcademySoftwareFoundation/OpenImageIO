@@ -430,8 +430,15 @@ the query), and the peak number of files opened at any time.
 Number of times a filename was looked up in the file cache.
 \apiend
 
-\apiitem{int64 stat:files_totalsize {\rm ~(read only)}}
-Total size (uncompressed bytes of pixel data) of all files referenced.
+\apiitem{int64 stat:image_size {\rm ~(read only)}}
+Total size (uncompressed bytes of pixel data) of all images referenced
+by the \ImageCache. (Note: Prior to 1.7, this was called \qkw{stat:files_totalsize}.)
+\apiend
+
+\apiitem{int64 stat:file_size {\rm ~(read only)}}
+\NEW   % 1.7
+Total size of all files (as on disk, possibly compressed) of all images
+referenced by the \ImageCache.
 \apiend
 
 \apiitem{int64 stat:bytes_read {\rm ~(read only)}}
@@ -658,6 +665,12 @@ the same tile had been rad before. ({\cf int64}).
 data) in tiles that were read redundantly. ({\cf int64}).
 
 \item[\rm \kw{stat:redundant_bytesread}] Number of tiles read from this file ({\cf int}).
+
+\item[\rm \kw{stat:image_size}] Size of the uncompressed image pixel data
+of this image, in bytes ({\cf int64}).
+
+\item[\rm \kw{stat:file_size}] Size of the disk file (possibly compressed)
+for this image, in bytes ({\cf int64}).
 
 \item[\rm \kw{stat:timesopened}] Number of times this file was opened ({\cf int}).
 

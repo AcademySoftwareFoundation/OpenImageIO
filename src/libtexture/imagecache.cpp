@@ -148,6 +148,7 @@ ImageCacheStatistics::init ()
 //    tiles_current = 0;
 //    tiles_peak = 0;
     files_totalsize = 0;
+    files_totalsize_ondisk = 0;
     bytes_read = 0;
 //    open_files_created = 0;
 //    open_files_current = 0;
@@ -192,6 +193,7 @@ ImageCacheStatistics::merge (const ImageCacheStatistics &s)
 //    tiles_current += s.tiles_current;
 //    tiles_peak += s.tiles_peak;
     files_totalsize += s.files_totalsize;
+    files_totalsize_ondisk += s.files_totalsize_ondisk;
     bytes_read += s.bytes_read;
 //    open_files_created += s.open_files_created;
 //    open_files_current += s.open_files_current;
@@ -289,6 +291,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_mipused(false), m_validspec(false), m_errors_issued(0),
       m_imagecache(imagecache), m_duplicate(NULL),
       m_total_imagesize(0),
+      m_total_imagesize_ondisk(0),
       m_inputcreator(creator),
       m_configspec(config ? new ImageSpec(*config) : NULL)
 {
@@ -410,8 +413,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if (m_inputcreator)
         m_input.reset (m_inputcreator());
     else
-        m_input.reset (ImageInput::create (m_filename.c_str(),
-                                           m_imagecache.plugin_searchpath().c_str()));
+        m_input.reset (ImageInput::create (m_filename.string(),
+                                           m_imagecache.plugin_searchpath()));
     if (! m_input) {
         imagecache().error ("%s", OIIO::geterror());
         m_broken = true;
@@ -467,6 +470,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // Since each subimage can potentially have its own mipmap levels,
     // keep track of the highest level discovered
     imagesize_t old_total_imagesize = m_total_imagesize;
+    imagesize_t old_total_imagesize_ondisk = m_total_imagesize_ondisk;
     m_total_imagesize = 0;
     do {
         m_subimages.resize (nsubimages+1);
@@ -579,8 +583,15 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     } while (m_input->seek_subimage (nsubimages, 0, nativespec));
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
+    if (Filesystem::exists(m_filename.string()))
+        m_total_imagesize_ondisk = imagesize_t(Filesystem::file_size (m_filename));
+    else
+        m_total_imagesize_ondisk = 0;
+
     thread_info->m_stats.files_totalsize -= old_total_imagesize;
     thread_info->m_stats.files_totalsize += m_total_imagesize;
+    thread_info->m_stats.files_totalsize_ondisk -= old_total_imagesize_ondisk;
+    thread_info->m_stats.files_totalsize_ondisk += m_total_imagesize_ondisk;
 
     init_from_spec ();  // Fill in the rest of the fields
     return true;
@@ -1740,8 +1751,9 @@ ImageCacheImpl::getstats (int level) const
         if (stats.unique_files) {
             out << "  Images : " << stats.unique_files << " unique\n";
             out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
-            out << "    Total size of all images referenced : " << Strutil::memformat (stats.files_totalsize) << "\n";
-            out << "    Read from disk : " << Strutil::memformat (stats.bytes_read) << "\n";
+            out << "    Total pixel data size of all images referenced : " << Strutil::memformat (stats.files_totalsize) << "\n";
+            out << "    Total actual file size of all images referenced : " << Strutil::memformat (stats.files_totalsize_ondisk) << "\n";
+            out << "    Pixel data read : " << Strutil::memformat (stats.bytes_read) << "\n";
         } else {
             out << "  No images opened\n";
         }
@@ -2175,7 +2187,9 @@ ImageCacheImpl::getattribute (string_view name, TypeDesc type,
         ATTR_DECODE ("stat:find_tile_calls", long long, stats.find_tile_calls);
         ATTR_DECODE ("stat:find_tile_microcache_misses", long long, stats.find_tile_microcache_misses);
         ATTR_DECODE ("stat:find_tile_cache_misses", int, stats.find_tile_cache_misses);
-        ATTR_DECODE ("stat:files_totalsize", long long, stats.files_totalsize);
+        ATTR_DECODE ("stat:files_totalsize", long long, stats.files_totalsize); // Old name
+        ATTR_DECODE ("stat:image_size", long long, stats.files_totalsize);
+        ATTR_DECODE ("stat:file_size", long long, stats.files_totalsize_ondisk);
         ATTR_DECODE ("stat:bytes_read", long long, stats.bytes_read);
         ATTR_DECODE ("stat:unique_files", int, stats.unique_files);
         ATTR_DECODE ("stat:fileio_time", float, stats.fileio_time);
@@ -2463,6 +2477,8 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         ATTR_DECODE ("stat:iotime", float, file->m_iotime);
         ATTR_DECODE ("stat:mipused", int, file->m_mipused);
         ATTR_DECODE ("stat:is_duplicate", int, bool(file->duplicate()));
+        ATTR_DECODE ("stat:image_size", long long, file->m_total_imagesize);
+        ATTR_DECODE ("stat:file_size", long long, file->m_total_imagesize_ondisk);
     }
 
     if (file->broken()) {
