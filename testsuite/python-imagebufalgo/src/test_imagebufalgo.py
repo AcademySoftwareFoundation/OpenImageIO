@@ -341,6 +341,16 @@ try:
                                 5, 5)
     write (b, "tahoe-median.tif", oiio.UINT8)
 
+    # Dilate/erode
+    b = ImageBuf()
+    undilated = ImageBuf("../oiiotool/src/morphsource.tif")
+    ImageBufAlgo.dilate (b, undilated, 3, 3)
+    write (b, "dilate.tif", oiio.UINT8)
+    b = ImageBuf()
+    ImageBufAlgo.erode (b, undilated, 3, 3)
+    write (b, "erode.tif", oiio.UINT8)
+    undilated = None
+
     # unsharp_mask
     b = ImageBuf()
     ImageBufAlgo.unsharp_mask (b, ImageBuf("../oiiotool/src/tahoe-small.tif"),

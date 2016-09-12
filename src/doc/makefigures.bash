@@ -54,5 +54,15 @@ ${OIIOTOOL} --pattern checker:color1=.1,.2,.1:color2=.2,.2,.2 320x240 3 \
             --box:color=0,1,1,1 150,100,240,180 \
             --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 \
             --colorconvert linear sRGB -d uint8 -o box.png
+
+${OIIOTOOL} --autocc --pattern constant:color=0.1,0.1,0.1 80x64 3 --text:x=8:y=54:size=40:font=DroidSerif Aai -o morphsource.jpg
+${OIIOTOOL} --autocc morphsource.jpg --dilate 3x3 -d uint8 -o dilate.jpg
+${OIIOTOOL} --autocc morphsource.jpg --erode 3x3 -d uint8 -o erode.jpg
+${OIIOTOOL} --autocc morphsource.jpg --erode 3x3 --dilate 3x3 -d uint8 -o morphopen.jpg
+${OIIOTOOL} --autocc morphsource.jpg --dilate 3x3 --erode 3x3 -d uint8 -o morphclose.jpg
+${OIIOTOOL} --autocc dilate.jpg erode.jpg -sub -d uint8 -o morphgradient.jpg
+${OIIOTOOL} --autocc morphsource.jpg morphopen.jpg -sub -d uint8 -o tophat.jpg
+${OIIOTOOL} --autocc morphclose.jpg morphsource.jpg -sub -d uint8 -o bottomhat.jpg
+
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif
 

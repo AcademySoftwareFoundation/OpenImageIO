@@ -2877,8 +2877,9 @@ of src was < 1, dst will have a pixel color that is a plausible
 \index{ImageBufAlgo!median_filter} \indexapi{median_filter}
 
 
-Replace the given ROI of {\cf dst} with a sharpened version of the
-corresponding region of {\cf src} using the ``unsharp mask'' technique.
+Replace the given ROI of {\cf dst} with the
+${\mathit width} \times {\mathit height}$ median filter of the corresponding
+region of {\cf src} using the ``unsharp mask'' technique.
 
 \smallskip
 \noindent Examples:
@@ -2886,6 +2887,27 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
     Noisy = ImageBuf ("tahoe.exr")
     Clean = ImageBuf ()
     ImageBufAlgo.median_filter (Clean, Noisy, 3, 3)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce dilate} (dst, src, width=3, height=-1, \\
+  \bigspc\spc  roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce erode} (dst, src, width=3, height=-1, \\
+  \bigspc\spc  roi=ROI.All, nthreads=0) }
+\index{ImageBufAlgo!dilate} \indexapi{dilate}
+\index{ImageBufAlgo!erode} \indexapi{erode}
+\NEW % 1.7
+
+Replace the given ROI of {\cf dst} with a dilated or eroded version of the
+corresponding region of {\cf src}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Source = ImageBuf ("source.tif")
+    Dilated = ImageBuf ()
+    ImageBufAlgo.dilate (Dilated, Source, 3, 3)
 \end{code}
 \apiend
 

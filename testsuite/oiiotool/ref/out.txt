@@ -207,6 +207,10 @@ Comparing "gauss5x5-blur.tif" and "ref/gauss5x5-blur.tif"
 PASS
 Comparing "tahoe-median.tif" and "ref/tahoe-median.tif"
 PASS
+Comparing "dilate.tif" and "ref/dilate.tif"
+PASS
+Comparing "erode.tif" and "ref/erode.tif"
+PASS
 Comparing "unsharp.tif" and "ref/unsharp.tif"
 PASS
 Comparing "unsharp-median.tif" and "ref/unsharp-median.tif"

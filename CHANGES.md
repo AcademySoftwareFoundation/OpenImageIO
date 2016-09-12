@@ -10,9 +10,11 @@ Major new features and improvements:
     * `--deep_merge` does a full merge/composite of deep images. #1388 (1.7.2)
     * `-i` inputs a file. Options `autocc=`, `now=`, `info=` control aspects
       of reading that one file. #1389 (1.7.2)
+    * `--dilate` and `--erode` perform the basic morphological operations
+      of dilation and erosion. #1486 (1.7.5)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
    #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
-   deep_merge() #1388,1393 (1.7.2)
+   deep_merge() #1388,1393 (1.7.2); dilate() and erode() (1.7.5).
  * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
    automatically be resolved to the correct UTIM tile based on the s,t
    coordinates. #1426 (1.7.3)
@@ -140,6 +142,8 @@ Fixes, minor enhancements, and performance improvements:
       common cases. #1357 (1.7.2)
     * IBA::resize sped up by approximately 2x. #1372 (1.7.2)
     * IBA::fixNonFinite() now works with deep images. #1397 (1.7.3)
+    * dilate() and erode() perform basic morphological operations.
+      #1486 (1.7.5)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
       #1336 (1.7.2/1.6.11)
