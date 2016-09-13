@@ -1,5 +1,8 @@
 Release 1.8 (in progress) -- compared to 1.7.x
 ----------------------------------------------
+New minimum dependencies:
+ * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
+
 Major new features and improvements:
  * New oiiotool commands:
  * New ImageBufAlgo functions:

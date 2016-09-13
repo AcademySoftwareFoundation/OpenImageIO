@@ -105,13 +105,13 @@
 // C++11 but the client package may be older, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
 #if (__cplusplus >= 201402L)
-#  define OIIO_USING_CPP11 1
+#  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  14
 #  define OIIO_CONSTEXPR          constexpr
 #  define OIIO_CONSTEXPR_OR_CONST constexpr
 #  define OIIO_CONSTEXPR14        constexpr
 #  define OIIO_NOEXCEPT           noexcept
-#elif (__cplusplus >= 201103L)
+#elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
 #  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  11
 #  define OIIO_CONSTEXPR          constexpr
@@ -119,11 +119,7 @@
 #  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
 #  define OIIO_NOEXCEPT           noexcept
 #else
-#  define OIIO_CPLUSPLUS_VERSION  3 /* presume C++03 */
-#  define OIIO_CONSTEXPR          /* not constexpr before C++11 */
-#  define OIIO_CONSTEXPR_OR_CONST const /* not constexpr before C++11 */
-#  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
-#  define OIIO_NOEXCEPT           /* no noexcept before C++11 */
+#  error "This version of OIIO is meant to work only with C++11 and above"
 #endif
 
 
@@ -147,6 +143,8 @@
 #endif
 
 
+
+// Detect which compiler and version we're using
 
 // Define OIIO_GNUC_VERSION to hold an encoded gcc version (e.g. 40802 for
 // 4.8.2), or 0 if not a GCC release. N.B.: This will be 0 for clang.
