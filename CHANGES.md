@@ -1,3 +1,23 @@
+Release 1.8 (in progress) -- compared to 1.7.x
+----------------------------------------------
+Major new features and improvements:
+ * New oiiotool commands:
+ * New ImageBufAlgo functions:
+
+Public API changes:
+
+Fixes, minor enhancements, and performance improvements:
+ * oiiotool:
+
+Build/test system improvements:
+
+Developer goodies / internals:
+
+
+
+
+
+
 Release 1.7 (scheduled: 1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
