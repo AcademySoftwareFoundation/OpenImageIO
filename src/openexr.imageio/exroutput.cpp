@@ -56,6 +56,7 @@
 #include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
@@ -1204,6 +1205,14 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     return true;
 #endif
             }
+        }
+        if (type.basetype == TypeDesc::FLOAT && type.aggregate * type.arraylen == 8
+            && Strutil::iequals (xname, "chromaticities")) {
+            const float *f = (const float *)data;
+            Imf::Chromaticities c (Imath::V2f(f[0], f[1]), Imath::V2f(f[2], f[3]),
+                                   Imath::V2f(f[4], f[5]), Imath::V2f(f[6], f[7]));
+            header.insert ("chromaticities", Imf::ChromaticitiesAttribute (c));
+            return true;
         }
 #ifdef USE_OPENEXR_VERSION2
         // String Vector
