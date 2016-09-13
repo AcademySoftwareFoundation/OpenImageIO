@@ -60,8 +60,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //////////////////////////////////////////////////////////////////////////
 // Sort out which SIMD capabilities we have and set definitions
-// appropriately.
+// appropriately. This is mostly for internal (within this file) use,
+// but client applications using this header may find a few of the macros
+// we define to be useful:
 //
+// OIIO_SIMD : Will be 0 if no hardware SIMD support is specified. If SIMD
+//             hardware is available, this will hold the width in number of
+//             float SIMD "lanes" of widest SIMD registers available. For
+//             example, OIIO_SIMD will be 4 if float4/int4/bool4 are
+//             hardware accelerated, 8 if float8/int8/bool8 are accelerated,
+//             etc. Using SIMD classes wider than this should work (will be
+//             emulated with narrower SIMD or scalar operations), but is not
+//             expected to have high performance.
+// OIIO_SIMD_SSE : if Intel SSE is supported, this will be nonzero,
+//             specifically 2 for SSE2, 3 for SSSE3, 4 for SSE4.1 or
+//             higher (including AVX).
+// OIIO_SIMD_AVX : If Intel AVX is supported, this will be nonzero, and
+//             specifically 1 for AVX (1.0), 2 for AVX2, 512 for AVX512f.
+// OIIO_SIMD_NEON : If ARM NEON is supported, this will be nonzero.
+// OIIO_SIMD_MAX_SIZE : holds the width in bytes of the widest SIMD
+//             available (generally will be OIIO_SIMD*4).
+// OIIO_SIMD4_ALIGN : macro for best alignment of 4-wide SIMD values in mem.
+// OIIO_SIMD8_ALIGN : macro for best alignment of 8-wide SIMD values in mem.
+// OIIO_SIMD_HAS_MATRIX4 : nonzero if matrix44 is defined
+// OIIO_SIMD_HAS_FLOAT8 : nonzero if float8, int8, bool8 are defined
 
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
 #  include <immintrin.h>
@@ -87,27 +109,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  else
 #    define OIIO_SIMD_SSE 2
 #  endif
-#  define OIIO_SIMD 1
-#  define OIIO_SIMD_MASK_BYTE_WIDTH 4
+#  define OIIO_SIMD 4
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SIMD4_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SSE_ALIGN OIIO_ALIGN(16)
 #endif
 
-// FIXME Future: support AVX
 #if defined(__AVX__) && !defined(OIIO_NO_AVX)
    // N.B. Any machine with AVX will also have SSE
-#  define OIIO_SIMD_AVX 1
-// #  define OIIO_SIMD_MASK_BYTE_WIDTH 4
-// #  undef OIIO_SIMD_MAX_SIZE_BYTES
-// #  define OIIO_SIMD_MAX_SIZE_BYTES 32
-// #  undef OIIO_SIMD_ALIGN
-// #  define OIIO_SIMD_ALIGN OIIO_ALIGN(32)
-// #  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
+#  if defined(__AVX2__) && !defined(OIIO_NO_AVX2)
+#    define OIIO_SIMD_AVX 2
+#  else
+#    define OIIO_SIMD_AVX 1
+#  endif
+#  undef OIIO_SIMD
+#  define OIIO_SIMD 8
+#  undef OIIO_SIMD_MAX_SIZE_BYTES
+#  define OIIO_SIMD_MAX_SIZE_BYTES 32
+#  define OIIO_SIMD8_ALIGN OIIO_ALIGN(32)
+#  define OIIO_AVX_ALIGN OIIO_ALIGN(32)
+#  if defined(__AVX512__) && !defined(OIIO_NO_AVX512)
+#    define OIIO_SIMD_AVX 512
+#    undef OIIO_SIMD_MAX_SIZE_BYTES
+#    define OIIO_SIMD_MAX_SIZE_BYTES 64
+#    define OIIO_SIMD16_ALIGN OIIO_ALIGN(64)
+#    define OIIO_AVX512_ALIGN OIIO_ALIGN(64)
+#  endif
 #endif
 
-#if defined(__FMA__) || defined(__AVX2__)
+#if defined(__FMA__)
 #  define OIIO_FMA_ENABLED 1
 #endif
 
@@ -117,7 +148,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  include <arm_neon.h>
 #  define OIIO_SIMD 1
 #  define OIIO_SIMD_NEON 1
-#  define OIIO_SIMD_MASK_BYTE_WIDTH 4
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SIMD4_ALIGN OIIO_ALIGN(16)
@@ -129,8 +159,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define OIIO_SIMD 0
 #  define OIIO_SIMD_ALIGN
 #  define OIIO_SIMD4_ALIGN
+#  define OIIO_SIMD8_ALIGN
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #endif
+
+// General features that client apps may want to test for, for conditional
+// compilation. Will add to this over time as needed. Note that just
+// because a feature is present doesn't mean it's fast -- HAS_FLOAT8 means
+// the float8 class (and friends) are in this version of simd.h, but that's
+// different from OIIO_SIMD >= 8, which means it's supported in hardware.
+#define OIIO_SIMD_HAS_MATRIX4 1  /* matrix44 defined */
+#define OIIO_SIMD_HAS_FLOAT8 1   /* float8, int8, bool8 defined */
+
 
 
 
@@ -141,11 +181,15 @@ namespace simd {
 //////////////////////////////////////////////////////////////////////////
 // Forward declarations of our main SIMD classes
 
+class bool4;
 class int4;
 class float4;
-class mask4;
 class float3;
 class matrix44;
+typedef bool4 mask4;    // old name
+class bool8;
+class int8;
+class float8;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -183,10 +227,14 @@ template<> struct simd_bool_t<4> { typedef int32x4 type; };
 /// Template to retrieve the vector type from the scalar. For example,
 /// simd::VecType<int,4> will be float4.
 template<typename T,int elements> struct VecType {};
+template<> struct VecType<int,1>   { typedef int type; };
+template<> struct VecType<float,1> { typedef float type; };
 template<> struct VecType<int,4>   { typedef int4 type; };
-template<> struct VecType<float,4> { typedef float4 type; };
 template<> struct VecType<float,3> { typedef float3 type; };
-template<> struct VecType<bool,4>  { typedef mask4 type; };
+template<> struct VecType<bool,4>  { typedef bool4 type; };
+template<> struct VecType<int,8>   { typedef int8 type; };
+template<> struct VecType<float,8> { typedef float8 type; };
+template<> struct VecType<bool,8>  { typedef bool8 type; };
 
 /// Template to retrieve the SIMD size of a SIMD type. Rigged to be 1 for
 /// anything but our SIMD types.
@@ -194,13 +242,24 @@ template<typename T> struct SimdSize { static const int size = 1; };
 template<> struct SimdSize<int4>     { static const int size = 4; };
 template<> struct SimdSize<float4>   { static const int size = 4; };
 template<> struct SimdSize<float3>   { static const int size = 4; };
-template<> struct SimdSize<mask4>    { static const int size = 4; };
+template<> struct SimdSize<bool4>    { static const int size = 4; };
+template<> struct SimdSize<int8>     { static const int size = 8; };
+template<> struct SimdSize<float8>   { static const int size = 8; };
+template<> struct SimdSize<bool8>    { static const int size = 8; };
 
 /// Template to retrieve the number of elements size of a SIMD type. Rigged
 /// to be 1 for anything but our SIMD types.
 template<typename T> struct SimdElements { static const int size = SimdSize<T>::size; };
 template<> struct SimdElements<float3>   { static const int size = 3; };
 
+/// Template giving a printable name for each type
+template<typename T> struct SimdTypeName { static const char *name() { return "unknown"; } };
+template<> struct SimdTypeName<float4>   { static const char *name() { return "float4"; } };
+template<> struct SimdTypeName<int4>     { static const char *name() { return "int4"; } };
+template<> struct SimdTypeName<bool4>    { static const char *name() { return "bool4"; } };
+template<> struct SimdTypeName<float8>   { static const char *name() { return "float8"; } };
+template<> struct SimdTypeName<int8>     { static const char *name() { return "int8"; } };
+template<> struct SimdTypeName<bool8>    { static const char *name() { return "bool8"; } };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -219,6 +278,25 @@ template<> struct SimdElements<float3>   { static const int size = 3; };
 # define OIIO_SIMD_UINT4_CONST4(name,v0,v1,v2,v3) \
     static const OIIO_SIMD4_ALIGN uint32_t name[4] = { (v0), (v1), (v2), (v3) }
 
+# define OIIO_SIMD_FLOAT8_CONST(name,val) \
+    static const OIIO_SIMD8_ALIGN float name[8] = { (val), (val), (val), (val), \
+                                                    (val), (val), (val), (val) }
+# define OIIO_SIMD_FLOAT8_CONST8(name,v0,v1,v2,v3,v4,v5,v6,v7) \
+    static const OIIO_SIMD8_ALIGN float name[8] = { (v0), (v1), (v2), (v3), \
+                                                    (v4), (v5), (v6), (v7) }
+# define OIIO_SIMD_INT8_CONST(name,val) \
+    static const OIIO_SIMD8_ALIGN int name[8] = { (val), (val), (val), (val), \
+                                                  (val), (val), (val), (val) }
+# define OIIO_SIMD_INT8_CONST8(name,v0,v1,v2,v3,v4,v5,v6,v7) \
+    static const OIIO_SIMD8_ALIGN int name[8] = { (v0), (v1), (v2), (v3), \
+                                                  (v4), (v5), (v6), (v7) }
+# define OIIO_SIMD_UINT8_CONST(name,val) \
+    static const OIIO_SIMD8_ALIGN uint32_t name[8] = { (val), (val), (val), (val), \
+                                                       (val), (val), (val), (val) }
+# define OIIO_SIMD_UINT8_CONST8(name,v0,v1,v2,v3,v4,v5,v6,v7) \
+    static const OIIO_SIMD8_ALIGN uint32_t name[8] = { (v0), (v1), (v2), (v3), \
+                                                       (v4), (v5), (v6), (v7) }
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -230,12 +308,13 @@ template<> struct SimdElements<float3>   { static const int size = 3; };
 #define SIMD_CONSTRUCT_PAD(x) for (int i = 0; i < elements; ++i) m_val[i] = (x); \
                               for (int i = elements; i < paddedelements; ++i) m_val[i] = 0
 #define SIMD_RETURN(T,x) T r; for (int i = 0; i < r.elements; ++i) r[i] = (x); return r
+#define SIMD_RETURN_REDUCE(T,init,op) T r = init; for (int i = 0; i < v.elements; ++i) op; return r
 
 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-// The public declarations of the main SIMD classes follow: maskN, intN,
+// The public declarations of the main SIMD classes follow: boolN, intN,
 // floatN, matrix44.
 //
 // These class declarations are intended to be brief and self-documenting,
@@ -251,61 +330,62 @@ template<> struct SimdElements<float3>   { static const int size = 3; };
 //////////////////////////////////////////////////////////////////////////
 
 
-/// mask4: A mask 4-vector, whose elements act mostly like bools,
-/// accelerated by SIMD instructions when available. This is what is
-/// naturally produced by SIMD comparison operators on the float4 and int4
-/// types.
-class mask4 {
+/// bool4: An 4-vector whose elements act mostly like bools, accelerated by
+/// SIMD instructions when available. This is what is naturally produced by
+/// SIMD comparison operators on the float4 and int4 types.
+class bool4 {
 public:
-    static const char* type_name() { return "mask4"; }
-    typedef bool value_t;     ///< Underlying equivalent scalar value type
-    enum { elements = 4 };    ///< Number of scalar elements
+    static const char* type_name() { return "bool4"; }
+    typedef bool value_t;        ///< Underlying equivalent scalar value type
+    enum { elements = 4 };       ///< Number of scalar elements
     enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
-    enum { bits = 128 };      ///< Total number of bits
+    enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_bool_t<4>::type simd_t;  ///< the native SIMD type used
 
     /// Default constructor (contents undefined)
-    mask4 () { }
+    bool4 () { }
 
     /// Destructor
-    ~mask4 () { }
+    ~bool4 () { }
 
     /// Construct from a single value (store it in all slots)
-    mask4 (bool a) { load(a); }
+    bool4 (bool a) { load(a); }
+
+    explicit bool4 (bool *a);
 
     /// Construct from 4 values
-    mask4 (bool a, bool b, bool c, bool d) { load(a,b,c,d); }
+    bool4 (bool a, bool b, bool c, bool d) { load (a, b, c, d); }
 
-    /// Copy construct from another mask4
-    mask4 (const mask4 &other) { m_vec = other.m_vec; }
+    /// Copy construct from another bool4
+    bool4 (const bool4 &other) { m_simd = other.m_simd; }
 
-    /// Construct from an int4 (is each element nonzero?)
-    mask4 (const int4 &i);
+    /// Construct from a SIMD int (is each element nonzero?)
+    bool4 (const int4 &i);
 
     /// Construct from the underlying SIMD type
-    mask4 (const simd_t& m) : m_vec(m) { }
+    bool4 (const simd_t& m) : m_simd(m) { }
 
     /// Return the raw SIMD type
-    operator simd_t () const { return m_vec; }
-    simd_t simd () const { return m_vec; }
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
 
     /// Set all components to false
     void clear ();
 
-    /// Return a mask4 the is 'false' for all values
-    static const mask4 False ();
+    /// Return a bool4 the is 'false' for all values
+    static const bool4 False ();
 
-    /// Return a mask4 the is 'true' for all values
-    static const mask4 True ();
+    /// Return a bool4 the is 'true' for all values
+    static const bool4 True ();
 
     /// Assign one value to all components
-    const mask4 & operator= (bool a);
+    const bool4 & operator= (bool a) { load(a); return *this; }
 
-    /// Assignment of another mask4
-    const mask4 & operator= (const mask4 & other);
+    /// Assignment of another bool4
+    const bool4 & operator= (const bool4 & other);
 
     /// Component access (get)
-    bool operator[] (int i) const ;
+    int operator[] (int i) const;
 
     /// Component access (set).
     /// NOTE: use with caution. The implementation sets the integer
@@ -326,26 +406,26 @@ public:
     void store (bool *values, int n) const;
 
     /// Logical/bitwise operators, component-by-component
-    friend mask4 operator! (const mask4 & a);
-    friend mask4 operator& (const mask4 & a, const mask4 & b);
-    const mask4& operator&= (const mask4 & b);
-    friend mask4 operator| (const mask4 & a, const mask4 & b);
-    const mask4& operator|= (const mask4 & a);
-    friend mask4 operator^ (const mask4& a, const mask4& b);
-    const mask4 & operator^= (const mask4& a);
-    mask4 operator~ ();
+    friend bool4 operator! (const bool4& a);
+    friend bool4 operator& (const bool4& a, const bool4& b);
+    friend bool4 operator| (const bool4& a, const bool4& b);
+    friend bool4 operator^ (const bool4& a, const bool4& b);
+    friend bool4 operator~ (const bool4& a);
+    friend const bool4& operator&= (bool4& a, const bool4& b);
+    friend const bool4& operator|= (bool4& a, const bool4& b);
+    friend const bool4& operator^= (bool4& a, const bool4& b);
 
     /// Comparison operators, component by component
-    friend const mask4 operator== (const mask4 & a, const mask4 & b);
-    friend const mask4 operator!= (const mask4 & a, const mask4 & b);
+    friend bool4 operator== (const bool4& a, const bool4& b);
+    friend bool4 operator!= (const bool4& a, const bool4& b);
 
     /// Stream output
-    friend inline std::ostream& operator<< (std::ostream& cout, const mask4 & a);
+    friend std::ostream& operator<< (std::ostream& cout, const bool4 & a);
 
 private:
     // The actual data representation
     union {
-        simd_t m_vec;
+        simd_t m_simd;
         int m_val[paddedelements];
     };
 };
@@ -353,35 +433,169 @@ private:
 
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
-/// Example: shuffle<1,1,2,2>(mask4(a,b,c,d)) returns (b,b,c,c)
-template<int i0, int i1, int i2, int i3> mask4 shuffle (const mask4& a);
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
+template<int i0, int i1, int i2, int i3> bool4 shuffle (const bool4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> mask4 shuffle (const mask4& a);
+template<int i> bool4 shuffle (const bool4& a);
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
-template<int i> bool extract (const mask4& a);
+template<int i> bool extract (const bool4& a);
 
 /// Helper: substitute val for a[i]
-template<int i> mask4 insert (const mask4& a, bool val);
+template<int i> bool4 insert (const bool4& a, bool val);
 
-/// Logical "and" reduction, i.e., 'and' all components together, resulting
-/// in a single bool.
-bool reduce_and (const mask4& v);
+/// Logical reduction across all components.
+bool reduce_and (const bool4& v);
+bool reduce_or (const bool4& v);
 
-/// Logical "or" reduction, i.e., 'or' all components together, resulting
-/// in a single bool.
-bool reduce_or (const mask4& v);
+// Are all/any/no components true?
+bool all (const bool4& v);
+bool any (const bool4& v);
+bool none (const bool4& v);
 
-/// Are all components true?
-OIIO_FORCEINLINE bool all  (const mask4& v) { return reduce_and(v) == true; }
 
-/// Are any components true?
-OIIO_FORCEINLINE bool any  (const mask4& v) { return reduce_or(v) == true; }
 
-/// Are all components false:
-OIIO_FORCEINLINE bool none (const mask4& v) { return reduce_or(v) == false; }
+
+
+/// bool8: An 8-vector whose elements act mostly like bools, accelerated by
+/// SIMD instructions when available. This is what is naturally produced by
+/// SIMD comparison operators on the float4 and int4 types.
+class bool8 {
+public:
+    static const char* type_name() { return "bool8"; }
+    typedef bool value_t;        ///< Underlying equivalent scalar value type
+    enum { elements = 8 };       ///< Number of scalar elements
+    enum { paddedelements = 8 }; ///< Number of scalar elements for full pad
+    enum { bits = elements*32 }; ///< Total number of bits
+    typedef simd_bool_t<8>::type simd_t;  ///< the native SIMD type used
+
+    /// Default constructor (contents undefined)
+    bool8 () { }
+
+    /// Destructor
+    ~bool8 () { }
+
+    /// Construct from a single value (store it in all slots)
+    bool8 (bool a) { load (a); }
+
+    explicit bool8 (bool *values);
+
+    /// Construct from 8 values
+    bool8 (bool a, bool b, bool c, bool d, bool e, bool f, bool g, bool h);
+
+    /// Copy construct from another bool8
+    bool8 (const bool8 &other) { m_simd = other.m_simd; }
+
+    /// Construct from a SIMD int (is each element nonzero?)
+    bool8 (const int8 &i);
+
+    /// Construct from two bool4's
+    bool8 (const bool4 &lo, const bool4 &hi);
+
+    /// Construct from the underlying SIMD type
+    bool8 (const simd_t& m) : m_simd(m) { }
+
+    /// Return the raw SIMD type
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
+
+    /// Set all components to false
+    void clear ();
+
+    /// Return a bool8 the is 'false' for all values
+    static const bool8 False ();
+
+    /// Return a bool8 the is 'true' for all values
+    static const bool8 True ();
+
+    /// Assign one value to all components
+    const bool8 & operator= (bool a);
+
+    /// Assignment of another bool8
+    const bool8 & operator= (const bool8 & other);
+
+    /// Component access (get)
+    int operator[] (int i) const;
+
+    /// Component access (set).
+    /// NOTE: use with caution. The implementation sets the integer
+    /// value, which may not have the same bit pattern as the bool returned
+    /// by operator[]const.
+    int& operator[] (int i);
+
+    /// Extract the lower percision bool4
+    bool4 lo () const;
+
+    /// Extract the higher percision bool4
+    bool4 hi () const;
+
+    /// Helper: load a single value into all components.
+    void load (bool a);
+
+    /// Helper: load separate values into each component.
+    void load (bool a, bool b, bool c, bool d,
+               bool e, bool f, bool g, bool h);
+
+    /// Helper: store the values into memory as bools.
+    void store (bool *values) const;
+
+    /// Store the first n values into memory.
+    void store (bool *values, int n) const;
+
+    /// Logical/bitwise operators, component-by-component
+    friend bool4 operator! (const bool4& a);
+    friend bool8 operator! (const bool8& a);
+    friend bool8 operator& (const bool8& a, const bool8& b);
+    friend bool8 operator| (const bool8& a, const bool8& b);
+    friend bool8 operator^ (const bool8& a, const bool8& b);
+    friend bool8 operator~ (const bool8& a);
+    friend const bool8& operator&= (bool8& a, const bool8& b);
+    friend const bool8& operator|= (bool8& a, const bool8& b);
+    friend const bool8& operator^= (bool8& a, const bool8& b);
+
+    /// Comparison operators, component by component
+    friend bool8 operator== (const bool8& a, const bool8& b);
+    friend bool8 operator!= (const bool8& a, const bool8& b);
+
+    /// Stream output
+    friend std::ostream& operator<< (std::ostream& cout, const bool8 & a);
+
+private:
+    // The actual data representation
+    union {
+        simd_t m_simd;
+        int m_val[paddedelements];
+        simd_bool_t<4>::type m_4[2];
+    };
+};
+
+
+
+/// Helper: shuffle/swizzle with constant (templated) indices.
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+bool8 shuffle (const bool8& a);
+
+/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
+template<int i> bool8 shuffle (const bool8& a);
+
+/// Helper: as rapid as possible extraction of one component, when the
+/// index is fixed.
+template<int i> bool extract (const bool8& a);
+
+/// Helper: substitute val for a[i]
+template<int i> bool8 insert (const bool8& a, bool val);
+
+/// Logical reduction across all components.
+bool reduce_and (const bool8& v);
+bool reduce_or (const bool8& v);
+
+// Are all/any/no components true?
+bool all (const bool8& v);
+bool any (const bool8& v);
+bool none (const bool8& v);
 
 
 
@@ -393,9 +607,11 @@ public:
     static const char* type_name() { return "int4"; }
     typedef int value_t;      ///< Underlying equivalent scalar value type
     enum { elements = 4 };    ///< Number of scalar elements
-    enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
+    enum { paddedelements =4 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
-    typedef simd_raw_t<int,4>::type simd_t;  ///< the native SIMD type used
+    typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
+    typedef bool4 bool_t; ///< bool type of the same length
+    typedef float4 float_t; ///< float type of the same length
 
     /// Default constructor (contents undefined)
     int4 () { }
@@ -404,41 +620,41 @@ public:
     ~int4 () { }
 
     /// Construct from a single value (store it in all slots)
-    int4 (int a) { load(a); }
+    int4 (int a);
 
     /// Construct from 2 values -- (a,a,b,b)
-    int4 (int a, int b) { load(a,a,b,b); }
+    int4 (int a, int b);
 
     /// Construct from 4 values
-    int4 (int a, int b, int c, int d) { load(a,b,c,d); }
+    int4 (int a, int b, int c, int d);
 
-    /// Construct from a pointer to 4 values
-    int4 (const int *vals) { load (vals); }
+    /// Construct from a pointer to values
+    int4 (const int *vals);
 
-    /// Construct from a pointer to 4 unsigned short values
-    explicit int4 (const unsigned short *vals) { load(vals); }
+    /// Construct from a pointer to unsigned short values
+    explicit int4 (const unsigned short *vals);
 
-    /// Construct from a pointer to 4 signed short values
-    explicit int4 (const short *vals) { load(vals); }
+    /// Construct from a pointer to signed short values
+    explicit int4 (const short *vals);
 
-    /// Construct from a pointer to 4 unsigned char values (0 - 255)
-    explicit int4 (const unsigned char *vals) { load(vals); }
+    /// Construct from a pointer to unsigned char values (0 - 255)
+    explicit int4 (const unsigned char *vals);
 
-    /// Construct from a pointer to 4 signed char values (-128 - 127)
-    explicit int4 (const char *vals) { load(vals); }
+    /// Construct from a pointer to signed char values (-128 - 127)
+    explicit int4 (const char *vals);
 
     /// Copy construct from another int4
-    int4 (const int4 & other) { m_vec = other.m_vec; }
+    int4 (const int4 & other) { m_simd = other.m_simd; }
 
-    /// Convert a float4 to an int4. Equivalent to i = (int)f;
-    explicit int4 (const float4& f); // implementation below
+    /// Convert a float_t to an int4. Equivalent to i = (int)f;
+    explicit int4 (const float_t& f); // implementation below
 
     /// Construct from the underlying SIMD type
-    int4 (const simd_t& m) : m_vec(m) { }
+    int4 (const simd_t& m) : m_simd(m) { }
 
     /// Return the raw SIMD type
-    operator simd_t () const { return m_vec; }
-    simd_t simd () const { return m_vec; }
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
 
     /// Sset all components to 0
     void clear () ;
@@ -454,7 +670,7 @@ public:
 
     /// Return an int4 with incremented components (e.g., 0,1,2,3).
     /// Optional argument can give a non-zero starting point.
-    static const int4 Iota (int value=0);
+    static const int4 Iota (int start=0, int step=1);
 
     /// Assign one value to all components.
     const int4 & operator= (int a);
@@ -516,63 +732,56 @@ public:
 
     // Arithmetic operators (component-by-component)
     friend int4 operator+ (const int4& a, const int4& b);
-    const int4 & operator+= (const int4& a);
-    int4 operator- () const ;
+    friend int4 operator- (const int4& a);
     friend int4 operator- (const int4& a, const int4& b);
-    const int4 & operator-= (const int4& a) ;
     friend int4 operator* (const int4& a, const int4& b);
-    const int4 & operator*= (const int4& a);
-    const int4 & operator*= (int val);
     friend int4 operator/ (const int4& a, const int4& b);
-    const int4 & operator/= (const int4& a);
-    const int4 & operator/= (int val);
     friend int4 operator% (const int4& a, const int4& b);
-    const int4 & operator%= (const int4& a);
-    friend int4 operator% (const int4& a, int w);
-    const int4 & operator%= (int a);
-    friend int4 operator% (int a, const int4& b);
-
+    friend const int4 & operator+= (int4& a, const int4& b);
+    friend const int4 & operator-= (int4& a, const int4& b);
+    friend const int4 & operator*= (int4& a, const int4& b);
+    friend const int4 & operator/= (int4& a, const int4& b);
+    friend const int4 & operator%= (int4& a, const int4& b);
     // Bitwise operators (component-by-component)
     friend int4 operator& (const int4& a, const int4& b);
-    const int4 & operator&= (const int4& a);
     friend int4 operator| (const int4& a, const int4& b);
-    const int4 & operator|= (const int4& a);
     friend int4 operator^ (const int4& a, const int4& b);
-    const int4 & operator^= (const int4& a);
-    int4 operator~ ();
-    int4 operator<< (const unsigned int bits) const;
-    const int4 & operator<<= (const unsigned int bits);
-    int4 operator>> (const unsigned int bits);
-    const int4 & operator>>= (const unsigned int bits);
-
-    // Shift right logical -- unsigned shift. This differs from operator>>
-    // in how it handles the sign bit.  (1<<31) >> 1 == (1<<31), but
-    // srl((1<<31),1) == 1<<30.
-    friend int4 srl (const int4& val, const unsigned int bits);
-
+    friend const int4& operator&= (int4& a, const int4& b);
+    friend const int4& operator|= (int4& a, const int4& b);
+    friend const int4& operator^= (int4& a, const int4& b);
+    friend int4 operator~ (const int4& a);
+    friend int4 operator<< (const int4& a, unsigned int bits);
+    friend int4 operator>> (const int4& a, unsigned int bits);
+    friend const int4& operator<<= (int4& a, unsigned int bits);
+    friend const int4& operator>>= (int4& a, unsigned int bits);
     // Comparison operators (component-by-component)
-    friend mask4 operator== (const int4& a, const int4& b);
-    friend mask4 operator!= (const int4& a, const int4& b);
-    friend mask4 operator< (const int4& a, const int4& b);
-    friend mask4 operator>  (const int4& a, const int4& b);
-    friend mask4 operator>= (const int4& a, const int4& b);
-    friend mask4 operator<= (const int4& a, const int4& b);
+    friend bool4 operator== (const int4& a, const int4& b);
+    friend bool4 operator!= (const int4& a, const int4& b);
+    friend bool4 operator<  (const int4& a, const int4& b);
+    friend bool4 operator>  (const int4& a, const int4& b);
+    friend bool4 operator>= (const int4& a, const int4& b);
+    friend bool4 operator<= (const int4& a, const int4& b);
 
     /// Stream output
-    friend inline std::ostream& operator<< (std::ostream& cout, const int4& val);
+    friend std::ostream& operator<< (std::ostream& cout, const int4 & a);
 
 private:
     // The actual data representation
     union {
-        simd_t  m_vec;
-        value_t m_val[4];
+        simd_t  m_simd;
+        value_t m_val[elements];
     };
 };
 
 
 
+// Shift right logical -- unsigned shift. This differs from operator>>
+// in how it handles the sign bit.  (1<<31) >> 1 == (1<<31), but
+// srl((1<<31),1) == 1<<30.
+int4 srl (const int4& val, const unsigned int bits);
+
 /// Helper: shuffle/swizzle with constant (templated) indices.
-/// Example: shuffle<1,1,2,2>(mask4(a,b,c,d)) returns (b,b,c,c)
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
 template<int i0, int i1, int i2, int i3> int4 shuffle (const int4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
@@ -582,57 +791,46 @@ template<int i> int4 shuffle (const int4& a);
 /// index is fixed.
 template<int i> int extract (const int4& v);
 
-/// Helper: substitute val for a[i]
-template<int i> int4 insert (const int4& a, int val);
-
 /// The sum of all components, returned in all components.
 int4 vreduce_add (const int4& v);
 
-/// The sum of all components, returned as a scalar.
+// Reduction across all components
 int reduce_add (const int4& v);
-
-/// Bitwise "and" of all components.
 int reduce_and (const int4& v);
-
-/// Bitwise "or" of all components.
 int reduce_or (const int4& v);
 
-/// Use a mask to select between components of a (if mask[i] is false) and
-/// b (if mask[i] is true).
-int4 blend (const int4& a, const int4& b, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is false)
+/// and b (if mask[i] is true).
+int4 blend (const int4& a, const int4& b, const bool4& mask);
 
-/// Use a mask to select between components of a (if mask[i] is true) or
-/// 0 (if mask[i] is true).
-int4 blend0 (const int4& a, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is true)
+/// or 0 (if mask[i] is true).
+int4 blend0 (const int4& a, const bool4& mask);
 
-/// Use a mask to select between components of a (if mask[i] is FALSE) or
-/// 0 (if mask[i] is TRUE).
-int4 blend0not (const int4& a, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is FALSE)
+/// or 0 (if mask[i] is TRUE).
+int4 blend0not (const int4& a, const bool4& mask);
 
 /// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
 /// synonym for blend with arguments rearranged, but this is more clear
 /// because the arguments are symmetric to scalar (cond ? a : b).
-int4 select (const mask4& mask, const int4& a, const int4& b);
+int4 select (const bool4& mask, const int4& a, const int4& b);
 
-/// Per-element absolute value.
+// Per-element math
 int4 abs (const int4& a);
-
-/// Per-element min
 int4 min (const int4& a, const int4& b);
-
-/// Per-element max
 int4 max (const int4& a, const int4& b);
 
-// Circular bit rotate by k bits, for 4 values at once.
+// Circular bit rotate by k bits, for N values at once.
 int4 rotl32 (const int4& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
 int4 andnot (const int4& a, const int4& b);
 
-/// Bitcast back and forth int4 (not a convert -- move the bits!)
-int4 bitcast_to_int4 (const mask4& x);
-int4 bitcast_to_int4 (const float4& x);
-float4 bitcast_to_float4 (const int4& x);
+/// Bitcast back and forth to intN (not a convert -- move the bits!)
+int4 bitcast_to_int (const bool4& x);
+int4 bitcast_to_int (const float4& x);
+float4 bitcast_to_float (const int4& x);
 
 void transpose (int4 &a, int4 &b, int4 &c, int4 &d);
 void transpose (const int4& a, const int4& b, const int4& c, const int4& d,
@@ -643,16 +841,266 @@ int4 AxBxCxDx (const int4& a, const int4& b, const int4& c, const int4& d);
 
 
 
+/// Integer 8-vector, accelerated by SIMD instructions when available.
+class int8 {
+public:
+    static const char* type_name() { return "int8"; }
+    typedef int value_t;      ///< Underlying equivalent scalar value type
+    enum { elements = 8 };    ///< Number of scalar elements
+    enum { paddedelements =8 }; ///< Number of scalar elements for full pad
+    enum { bits = 128 };      ///< Total number of bits
+    typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
+    typedef bool8 bool_t; ///< bool type of the same length
+    typedef float8 float_t; ///< float type of the same length
+
+    /// Default constructor (contents undefined)
+    int8 () { }
+
+    /// Destructor
+    ~int8 () { }
+
+    /// Construct from a single value (store it in all slots)
+    int8 (int a);
+
+    /// Construct from 2 values -- (a,a,b,b)
+    int8 (int a, int b);
+
+    /// Construct from 8 values (won't work for int8)
+    int8 (int a, int b, int c, int d, int e, int f, int g, int h);
+
+    /// Construct from a pointer to values
+    int8 (const int *vals);
+
+    /// Construct from a pointer to unsigned short values
+    explicit int8 (const unsigned short *vals);
+
+    /// Construct from a pointer to signed short values
+    explicit int8 (const short *vals);
+
+    /// Construct from a pointer to unsigned char values (0 - 255)
+    explicit int8 (const unsigned char *vals);
+
+    /// Construct from a pointer to signed char values (-128 - 127)
+    explicit int8 (const char *vals);
+
+    /// Copy construct from another int8
+    int8 (const int8 & other) { m_simd = other.m_simd; }
+
+    /// Convert a float8 to an int8. Equivalent to i = (int)f;
+    explicit int8 (const float8& f); // implementation below
+
+    /// Construct from two int4's
+    int8 (const int4 &lo, const int4 &hi);
+
+    /// Construct from the underlying SIMD type
+    int8 (const simd_t& m) : m_simd(m) { }
+
+    /// Return the raw SIMD type
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
+
+    /// Sset all components to 0
+    void clear () ;
+
+    /// Return an int8 with all components set to 0
+    static const int8 Zero ();
+
+    /// Return an int8 with all components set to 1
+    static const int8 One ();
+
+    /// Return an int8 with all components set to -1 (aka 0xffffffff)
+    static const int8 NegOne ();
+
+    /// Return an int8 with incremented components (e.g., 0,1,2,3).
+    /// Optional argument can give a non-zero starting point.
+    static const int8 Iota (int start=0, int step=1);
+
+    /// Assign one value to all components.
+    const int8 & operator= (int a);
+
+    /// Assignment from another int8
+    const int8 & operator= (int8 other) ;
+
+    /// Component access (set)
+    int& operator[] (int i) ;
+
+    /// Component access (get)
+    int operator[] (int i) const;
+
+    value_t x () const;
+    value_t y () const;
+    value_t z () const;
+    value_t w () const;
+    void set_x (value_t val);
+    void set_y (value_t val);
+    void set_z (value_t val);
+    void set_w (value_t val);
+
+    /// Extract the lower percision int4
+    int4 lo () const;
+
+    /// Extract the higher percision int4
+    int4 hi () const;
+
+    /// Helper: load a single int into all components
+    void load (int a);
+
+    /// Load separate values into each component. (doesn't work for int8)
+    void load (int a, int b, int c, int d, int e, int f, int g, int h);
+
+    /// Load from an array of 8 values
+    void load (const int *values);
+
+    void load (const int *values, int n) ;
+
+    /// Load from an array of 8 unsigned short values, convert to int8
+    void load (const unsigned short *values) ;
+
+    /// Load from an array of 8 unsigned short values, convert to int8
+    void load (const short *values);
+
+    /// Load from an array of 8 unsigned char values, convert to int8
+    void load (const unsigned char *values);
+
+    /// Load from an array of 8 unsigned char values, convert to int8
+    void load (const char *values);
+
+    /// Store the values into memory
+    void store (int *values) const;
+
+    /// Store the first n values into memory
+    void store (int *values, int n) const;
+
+    /// Store the least significant 16 bits of each element into adjacent
+    /// unsigned shorts.
+    void store (unsigned short *values) const;
+
+    /// Store the least significant 8 bits of each element into adjacent
+    /// unsigned chars.
+    void store (unsigned char *values) const;
+
+    // Arithmetic operators (component-by-component)
+    friend int8 operator+ (const int8& a, const int8& b);
+    friend int8 operator- (const int8& a);
+    friend int8 operator- (const int8& a, const int8& b);
+    friend int8 operator* (const int8& a, const int8& b);
+    friend int8 operator/ (const int8& a, const int8& b);
+    friend int8 operator% (const int8& a, const int8& b);
+    friend const int8 & operator+= (int8& a, const int8& b);
+    friend const int8 & operator-= (int8& a, const int8& b);
+    friend const int8 & operator*= (int8& a, const int8& b);
+    friend const int8 & operator/= (int8& a, const int8& b);
+    friend const int8 & operator%= (int8& a, const int8& b);
+    // Bitwise operators (component-by-component)
+    friend int8 operator& (const int8& a, const int8& b);
+    friend int8 operator| (const int8& a, const int8& b);
+    friend int8 operator^ (const int8& a, const int8& b);
+    friend const int8& operator&= (int8& a, const int8& b);
+    friend const int8& operator|= (int8& a, const int8& b);
+    friend const int8& operator^= (int8& a, const int8& b);
+    friend int8 operator~ (const int8& a);
+    friend int8 operator<< (const int8& a, unsigned int bits);
+    friend int8 operator>> (const int8& a, unsigned int bits);
+    friend const int8& operator<<= (int8& a, unsigned int bits);
+    friend const int8& operator>>= (int8& a, unsigned int bits);
+    // Comparison operators (component-by-component)
+    friend bool8 operator== (const int8& a, const int8& b);
+    friend bool8 operator!= (const int8& a, const int8& b);
+    friend bool8 operator<  (const int8& a, const int8& b);
+    friend bool8 operator>  (const int8& a, const int8& b);
+    friend bool8 operator>= (const int8& a, const int8& b);
+    friend bool8 operator<= (const int8& a, const int8& b);
+
+    /// Stream output
+    friend std::ostream& operator<< (std::ostream& cout, const int8& a);
+
+private:
+    // The actual data representation
+    union {
+        simd_t  m_simd;
+        value_t m_val[elements];
+        simd_raw_t<int,4>::type m_4[2];
+    };
+};
+
+
+
+// Shift right logical -- unsigned shift. This differs from operator>>
+// in how it handles the sign bit.  (1<<31) >> 1 == (1<<31), but
+// srl((1<<31),1) == 1<<30.
+int8 srl (const int8& val, const unsigned int bits);
+
+/// Helper: shuffle/swizzle with constant (templated) indices.
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
+template<int i0, int i1, int i2, int i3,
+         int i4, int i5, int i6, int i7> int8 shuffle (const int8& a);
+
+/// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
+template<int i> int8 shuffle (const int8& a);
+
+/// Helper: as rapid as possible extraction of one component, when the
+/// index is fixed.
+template<int i> int extract (const int8& v);
+
+/// Helper: substitute val for a[i]
+template<int i> int8 insert (const int8& a, int val);
+
+/// The sum of all components, returned in all components.
+int8 vreduce_add (const int8& v);
+
+// Reduction across all components
+int reduce_add (const int8& v);
+int reduce_and (const int8& v);
+int reduce_or (const int8& v);
+
+/// Use a bool mask to select between components of a (if mask[i] is false)
+/// and b (if mask[i] is true).
+int8 blend (const int8& a, const int8& b, const bool8& mask);
+
+/// Use a bool mask to select between components of a (if mask[i] is true)
+/// or 0 (if mask[i] is true).
+int8 blend0 (const int8& a, const bool8& mask);
+
+/// Use a bool mask to select between components of a (if mask[i] is FALSE)
+/// or 0 (if mask[i] is TRUE).
+int8 blend0not (const int8& a, const bool8& mask);
+
+/// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
+/// synonym for blend with arguments rearranged, but this is more clear
+/// because the arguments are symmetric to scalar (cond ? a : b).
+int8 select (const bool8& mask, const int8& a, const int8& b);
+
+// Per-element math
+int8 abs (const int8& a);
+int8 min (const int8& a, const int8& b);
+int8 max (const int8& a, const int8& b);
+
+// Circular bit rotate by k bits, for N values at once.
+int8 rotl32 (const int8& x, const unsigned int k);
+
+/// andnot(a,b) returns ((~a) & b)
+int8 andnot (const int8& a, const int8& b);
+
+/// Bitcast back and forth to intN (not a convert -- move the bits!)
+int8 bitcast_to_int (const bool8& x);
+int8 bitcast_to_int (const float8& x);
+float8 bitcast_to_float (const int8& x);
+
+
+
+
+
 /// Floating point 4-vector, accelerated by SIMD instructions when
 /// available.
 class float4 {
 public:
     static const char* type_name() { return "float4"; }
     typedef float value_t;    ///< Underlying equivalent scalar value type
-    typedef mask4 mask_t;     ///< SIMD mask type
+    typedef int4 int_t;       ///< SIMD int type
+    typedef bool4 bool_t;     ///< SIMD bool type
     enum { elements = 4 };    ///< Number of scalar elements
     enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
-    enum { bits = 128 };      ///< Total number of bits
+    enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_raw_t<float,4>::type simd_t;  ///< the native SIMD type used
 
     /// Default constructor (contents undefined)
@@ -671,17 +1119,17 @@ public:
     float4 (const float *f) { load (f); }
 
     /// Copy construct from another float4
-    float4 (const float4 &other) { m_vec = other.m_vec; }
+    float4 (const float4 &other) { m_simd = other.m_simd; }
 
     /// Construct from an int4 (promoting all components to float)
     explicit float4 (const int4& ival);
 
     /// Construct from the underlying SIMD type
-    float4 (const simd_t& m) : m_vec(m) { }
+    float4 (const simd_t& m) : m_simd(m) { }
 
     /// Return the raw SIMD type
-    operator simd_t () const { return m_vec; }
-    simd_t simd () const { return m_vec; }
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
 
     /// Construct from a Imath::V3f
     float4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
@@ -721,7 +1169,7 @@ public:
 
     /// Assign a float4
     const float4 & operator= (float4 other) {
-        m_vec = other.m_vec;
+        m_simd = other.m_simd;
         return *this;
     }
 
@@ -732,8 +1180,9 @@ public:
     static const float4 One ();
 
     /// Return a float4 with incremented components (e.g., 0.0,1.0,2.0,3.0).
-    /// Optional argument can give a non-zero starting point.
-    static const float4 Iota (float value=0.0f);
+    /// Optional argument can give a non-zero starting point and non-1 step.
+    static const float4 Iota (float start=0.0f, float step=1.0f);
+
     /// Set all components to 0.0
     void clear ();
 
@@ -812,12 +1261,12 @@ public:
     const float4 & operator/= (float val);
 
     // Comparison operations
-    friend mask_t operator== (const float4& a, const float4& b);
-    friend mask_t operator!= (const float4& a, const float4& b);
-    friend mask_t operator< (const float4& a, const float4& b);
-    friend mask_t operator>  (const float4& a, const float4& b);
-    friend mask_t operator>= (const float4& a, const float4& b);
-    friend mask_t operator<= (const float4& a, const float4& b);
+    friend bool4 operator== (const float4& a, const float4& b);
+    friend bool4 operator!= (const float4& a, const float4& b);
+    friend bool4 operator<  (const float4& a, const float4& b);
+    friend bool4 operator>  (const float4& a, const float4& b);
+    friend bool4 operator>= (const float4& a, const float4& b);
+    friend bool4 operator<= (const float4& a, const float4& b);
 
     // Some oddball items that are handy
 
@@ -841,14 +1290,14 @@ public:
 protected:
     // The actual data representation
     union {
-        simd_t  m_vec;
+        simd_t  m_simd;
         value_t m_val[paddedelements];
     };
 };
 
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
-/// Example: shuffle<1,1,2,2>(mask4(a,b,c,d)) returns (b,b,c,c)
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
 template<int i0, int i1, int i2, int i3> float4 shuffle (const float4& a);
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
@@ -860,7 +1309,6 @@ template<int i> float extract (const float4& a);
 
 /// Helper: substitute val for a[i]
 template<int i> float4 insert (const float4& a, float val);
-
 
 /// The sum of all components, returned in all components.
 float4 vreduce_add (const float4& v);
@@ -881,17 +1329,17 @@ float4 vdot3 (const float4 &a, const float4 &b);
 /// Return the float 3-component dot (inner) product of a and b.
 float dot3 (const float4 &a, const float4 &b);
 
-/// Use a mask to select between components of a (if mask[i] is false) and
-/// b (if mask[i] is true).
-float4 blend (const float4& a, const float4& b, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is false)
+/// and b (if mask[i] is true).
+float4 blend (const float4& a, const float4& b, const bool4& mask);
 
-/// Use a mask to select between components of a (if mask[i] is true) or
-/// 0 (if mask[i] is true).
-float4 blend0 (const float4& a, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is true)
+/// or 0 (if mask[i] is true).
+float4 blend0 (const float4& a, const bool4& mask);
 
-/// Use a mask to select between components of a (if mask[i] is FALSE) or
-/// 0 (if mask[i] is TRUE).
-float4 blend0not (const float4& a, const mask4& mask);
+/// Use a bool mask to select between components of a (if mask[i] is FALSE)
+/// or 0 (if mask[i] is TRUE).
+float4 blend0not (const float4& a, const bool4& mask);
 
 /// "Safe" divide of float4/float4 -- for any component of the divisor
 /// that is 0, return 0 rather than Inf.
@@ -903,7 +1351,7 @@ float3 hdiv (const float4 &a);
 /// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
 /// synonym for blend with arguments rearranged, but this is more clear
 /// because the arguments are symmetric to scalar (cond ? a : b).
-float4 select (const mask4& mask, const float4& a, const float4& b);
+float4 select (const bool4& mask, const float4& a, const float4& b);
 
 // Per-element math
 float4 abs (const float4& a);    ///< absolute value (float)
@@ -923,10 +1371,10 @@ int4 rint (const float4& a);
 float4 sqrt (const float4 &a);
 float4 rsqrt (const float4 &a);   ///< Fully accurate 1/sqrt
 float4 rsqrt_fast (const float4 &a);  ///< Fast, approximate 1/sqrt
-float4 exp (const float4& v);
-float4 log (const float4& v);
 float4 min (const float4& a, const float4& b); ///< Per-element min
 float4 max (const float4& a, const float4& b); ///< Per-element max
+template <typename T> T exp (const T& v);  // template for all SIMD variants
+template <typename T> T log (const T& v);
 
 /// andnot(a,b) returns ((~a) & b)
 float4 andnot (const float4& a, const float4& b);
@@ -1018,9 +1466,9 @@ public:
     /// Return a float3 with all components set to 1.0
     static const float3 One ();
 
-    /// Return a float3 with incremented components (e.g., 0.0,1.0,2.0,3.0).
-    /// Optional argument can give a non-zero starting point.
-    static const float3 Iota (float value=0.0f);
+    /// Return a float3 with incremented components (e.g., 0.0,1.0,2.0).
+    /// Optional argument can give a non-zero starting point and non-1 step.
+    static const float3 Iota (float start=0.0f, float step=1.0f);
 
     /// Helper: load a single value into all components
     void load (float val);
@@ -1199,6 +1647,276 @@ float3 transformvT (const Imath::M44f &M, const float3 &V);
 
 
 
+/// Floating point 8-vector, accelerated by SIMD instructions when
+/// available.
+class float8 {
+public:
+    enum { elements = 8 };    ///< Number of scalar elements
+    enum { paddedelements = 8 }; ///< Number of scalar elements for full pad
+    enum { bits = elements*32 }; ///< Total number of bits
+    typedef float value_t;    ///< Underlying equivalent scalar value type
+    typedef simd_raw_t<float,8>::type simd_t;  ///< the native SIMD type used
+    typedef bool8 bool_t; ///< bool type of the same length
+    typedef int8 int_t;    ///< int type of the same length
+    static const char* type_name() { return "float8"; }
+
+    /// Default constructor (contents undefined)
+    float8 () { }
+
+    /// Destructor
+    ~float8 () { }
+
+    /// Construct from a single value (store it in all slots)
+    float8 (float a) { load(a); }
+
+    /// Construct from 3 or 4 values
+    float8 (float a, float b, float c, float d,
+            float e, float f, float g, float h) { load(a,b,c,d,e,f,g,h); }
+
+    /// Construct from a pointer to 4 values
+    float8 (const float *f) { load (f); }
+
+    /// Copy construct from another float8
+    float8 (const float8 &other) { m_simd = other.m_simd; }
+
+    /// Construct from an int vector (promoting all components to float)
+    explicit float8 (const int8& ival);
+
+    /// Construct from two float4's
+    float8 (const float4 &lo, const float4 &hi);
+
+    /// Construct from the underlying SIMD type
+    float8 (const simd_t& m) : m_simd(m) { }
+
+    /// Return the raw SIMD type
+    operator simd_t () const { return m_simd; }
+    simd_t simd () const { return m_simd; }
+
+    /// Construct from a pointer to unsigned short values
+    explicit float8 (const unsigned short *vals) { load(vals); }
+
+    /// Construct from a pointer to short values
+    explicit float8 (const short *vals) { load(vals); }
+
+    /// Construct from a pointer to unsigned char values
+    explicit float8 (const unsigned char *vals) { load(vals); }
+
+    /// Construct from a pointer to char values
+    explicit float8 (const char *vals) { load(vals); }
+
+#ifdef _HALF_H_
+    /// Construct from a pointer to half (16 bit float) values
+    explicit float8 (const half *vals) { load(vals); }
+#endif
+
+    /// Assign a single value to all components
+    const float8& operator= (float a) { load(a); return *this; }
+
+    /// Assign a float8
+    const float8& operator= (float8 other) {
+        m_simd = other.m_simd;
+        return *this;
+    }
+
+    /// Return a float8 with all components set to 0.0
+    static const float8 Zero ();
+
+    /// Return a float8 with all components set to 1.0
+    static const float8 One ();
+
+    /// Return a float8 with incremented components (e.g., 0,1,2,3,...)
+    /// Optional argument can give a non-zero starting point and non-1 step.
+    static const float8 Iota (float start=0.0f, float step=1.0f);
+
+    /// Set all components to 0.0
+    void clear ();
+
+    /// Component access (set)
+    float& operator[] (int i);
+    /// Component access (get)
+    float operator[] (int i) const;
+
+    value_t x () const;
+    value_t y () const;
+    value_t z () const;
+    value_t w () const;
+    void set_x (value_t val);
+    void set_y (value_t val);
+    void set_z (value_t val);
+    void set_w (value_t val);
+
+    /// Extract the lower percision float4
+    float4 lo () const;
+
+    /// Extract the higher percision float4
+    float4 hi () const;
+
+    /// Helper: load a single value into all components
+    void load (float val);
+
+    /// Helper: load 3 or 4 values. (If 3 are supplied, the 4th will be 0.)
+    void load (float a, float b, float c, float d,
+               float e, float f, float g, float h);
+
+    /// Load from an array of values
+    void load (const float *values);
+
+    /// Load from a partial array of <=4 values. Unassigned values are
+    /// undefined.
+    void load (const float *values, int n);
+
+    /// Load from an array of 4 unsigned short values, convert to float
+    void load (const unsigned short *values);
+
+    /// Load from an array of 4 short values, convert to float
+    void load (const short *values);
+
+    /// Load from an array of 4 unsigned char values, convert to float
+    void load (const unsigned char *values);
+
+    /// Load from an array of 4 char values, convert to float
+    void load (const char *values);
+
+#ifdef _HALF_H_
+    /// Load from an array of 4 half values, convert to float
+    void load (const half *values);
+#endif /* _HALF_H_ */
+
+    void store (float *values) const;
+
+    /// Store the first n values into memory
+    void store (float *values, int n) const;
+
+#ifdef _HALF_H_
+    void store (half *values) const;
+#endif
+
+    // Arithmetic operators
+    friend float8 operator+ (const float8& a, const float8& b);
+    const float8 & operator+= (const float8& a);
+    float8 operator- () const;
+    friend float8 operator- (const float8& a, const float8& b);
+    const float8 & operator-= (const float8& a);
+    friend float8 operator* (const float8& a, const float8& b);
+    const float8 & operator*= (const float8& a);
+    const float8 & operator*= (float val);
+    friend float8 operator/ (const float8& a, const float8& b);
+    const float8 & operator/= (const float8& a);
+    const float8 & operator/= (float val);
+
+    // Comparison operations
+    friend bool8 operator== (const float8& a, const float8& b);
+    friend bool8 operator!= (const float8& a, const float8& b);
+    friend bool8 operator<  (const float8& a, const float8& b);
+    friend bool8 operator>  (const float8& a, const float8& b);
+    friend bool8 operator>= (const float8& a, const float8& b);
+    friend bool8 operator<= (const float8& a, const float8& b);
+
+    // Some oddball items that are handy
+
+    /// Stream output
+    friend inline std::ostream& operator<< (std::ostream& cout, const float8& val);
+
+protected:
+    // The actual data representation
+    union {
+        simd_t  m_simd;
+        value_t m_val[paddedelements];
+        simd_raw_t<float,4>::type m_4[2];
+    };
+};
+
+
+/// Helper: shuffle/swizzle with constant (templated) indices.
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+float8 shuffle (const float8& a);
+
+/// shuffle<i>(a) is the same as shuffle<i,i,i,i,...>(a)
+template<int i> float8 shuffle (const float8& a);
+
+/// Helper: as rapid as possible extraction of one component, when the
+/// index is fixed.
+template<int i> float extract (const float8& a);
+
+/// Helper: substitute val for a[i]
+template<int i> float8 insert (const float8& a, float val);
+
+/// The sum of all components, returned in all components.
+float8 vreduce_add (const float8& v);
+
+/// The sum of all components, returned as a scalar.
+float reduce_add (const float8& v);
+
+/// Return the float dot (inner) product of a and b in every component.
+float8 vdot (const float8 &a, const float8 &b);
+
+/// Return the float dot (inner) product of a and b.
+float dot (const float8 &a, const float8 &b);
+
+/// Return the float 3-component dot (inner) product of a and b in
+/// all components.
+float8 vdot3 (const float8 &a, const float8 &b);
+
+/// Return the float 3-component dot (inner) product of a and b.
+float dot3 (const float8 &a, const float8 &b);
+
+/// Use a bool mask to select between components of a (if mask[i] is false)
+/// and b (if mask[i] is true).
+float8 blend (const float8& a, const float8& b, const bool4& mask);
+
+/// Use a bool mask to select between components of a (if mask[i] is true)
+/// or 0 (if mask[i] is true).
+float8 blend0 (const float8& a, const bool4& mask);
+
+/// Use a bool mask to select between components of a (if mask[i] is FALSE)
+/// or 0 (if mask[i] is TRUE).
+float8 blend0not (const float8& a, const bool4& mask);
+
+/// "Safe" divide of float8/float8 -- for any component of the divisor
+/// that is 0, return 0 rather than Inf.
+float8 safe_div (const float8 &a, const float8 &b);
+
+/// Select 'a' where mask is true, 'b' where mask is false. Sure, it's a
+/// synonym for blend with arguments rearranged, but this is more clear
+/// because the arguments are symmetric to scalar (cond ? a : b).
+float8 select (const bool8& mask, const float8& a, const float8& b);
+
+// Per-element math
+float8 abs (const float8& a);    ///< absolute value (float)
+float8 sign (const float8& a);   ///< 1.0 when value >= 0, -1 when negative
+float8 ceil (const float8& a);
+float8 floor (const float8& a);
+int8 floori (const float8& a);    ///< (int)floor
+
+/// Per-element round to nearest integer (rounding away from 0 in cases
+/// that are exactly half way).
+float8 round (const float8& a);
+
+/// Per-element round to nearest integer (rounding away from 0 in cases
+/// that are exactly half way).
+int8 rint (const float8& a);
+
+float8 sqrt (const float8 &a);
+float8 rsqrt (const float8 &a);   ///< Fully accurate 1/sqrt
+float8 rsqrt_fast (const float8 &a);  ///< Fast, approximate 1/sqrt
+float8 min (const float8& a, const float8& b); ///< Per-element min
+float8 max (const float8& a, const float8& b); ///< Per-element max
+// float8 exp (const float8& v);  // See template with float4
+// float8 log (const float8& v);  // See template with float4
+
+/// andnot(a,b) returns ((~a) & b)
+float8 andnot (const float8& a, const float8& b);
+
+// Fused multiply and add (or subtract):
+float8 madd (const float8& a, const float8& b, const float8& c); // a*b + c
+float8 msub (const float8& a, const float8& b, const float8& c); // a*b - c
+float8 nmadd (const float8& a, const float8& b, const float8& c); // -a*b + c
+float8 nmsub (const float8& a, const float8& b, const float8& c); // -a*b - c
+
+
+
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1223,182 +1941,25 @@ float3 transformvT (const Imath::M44f &M, const float3 &V);
 
 
 //////////////////////////////////////////////////////////////////////
-// mask4 implementation
+// bool4 implementation
 
 
-OIIO_FORCEINLINE void mask4::clear () {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_setzero_ps();
+OIIO_FORCEINLINE int bool4::operator[] (int i) const {
+    DASSERT(i >= 0 && i < elements);
+#if OIIO_SIMD_SSE
+    return ((_mm_movemask_ps(m_simd) >> i) & 1) ? -1 : 0;
 #else
-    *this = false;
+    return m_val[i];
 #endif
 }
 
-OIIO_FORCEINLINE const mask4 mask4::False () {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_setzero_ps();
-#else
-    return mask4(false);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4 mask4::True () {
-#if defined(OIIO_SIMD_SSE)
-    // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
-    // any value to itself.
-# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
-    __m128i anyval = _mm_undefined_si128();
-# else
-    __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
-# endif
-    return _mm_castsi128_ps (_mm_cmpeq_epi8 (anyval, anyval));
-#else
-    return mask4(true);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4 & mask4::operator= (bool a) { load(a); return *this; }
-
-OIIO_FORCEINLINE const mask4 & mask4::operator= (const mask4 & other) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = other.m_vec;
-#else
-    SIMD_CONSTRUCT (other.m_val[i]);
-#endif
-    return *this;
-}
-
-OIIO_FORCEINLINE bool mask4::operator[] (int i) const {
-    DASSERT(i >= 0 && i < 4);
-#if defined(OIIO_SIMD_SSE)
-    return (_mm_movemask_ps(m_vec) >> i) & 1;
-#else
-    return bool(m_val[i]);
-#endif
-}
-
-OIIO_FORCEINLINE int& mask4::operator[] (int i) {
-    DASSERT(i >= 0 && i < 4);
+OIIO_FORCEINLINE int& bool4::operator[] (int i) {
+    DASSERT(i >= 0 && i < elements);
     return m_val[i];
 }
 
-OIIO_FORCEINLINE void mask4::load (bool a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_castsi128_ps(_mm_set1_epi32(a ? -1 : 0));
-#else
-    int val = a ? -1 : 0;
-    SIMD_CONSTRUCT (val);
-#endif
-}
 
-OIIO_FORCEINLINE void mask4::load (bool a, bool b, bool c, bool d) {
-#if defined(OIIO_SIMD_SSE)
-    // N.B. -- we need to reverse the order because of our convention
-    // of storing a,b,c,d in the same order in memory.
-    m_vec = _mm_castsi128_ps(_mm_set_epi32(d ? -1 : 0,
-                                           c ? -1 : 0,
-                                           b ? -1 : 0,
-                                           a ? -1 : 0));
-#else
-    m_val[0] = a ? -1 : 0;
-    m_val[1] = b ? -1 : 0;
-    m_val[2] = c ? -1 : 0;
-    m_val[3] = d ? -1 : 0;
-#endif
-}
-
-OIIO_FORCEINLINE void mask4::store (bool *values) const {
-#if 0 && defined(OIIO_SIMD_SSE)
-    // FIXME: is there a more efficient way to do this?
-#else
-    SIMD_DO (values[i] = m_val[i] ? true : false);
-#endif
-}
-
-OIIO_FORCEINLINE void mask4::store (bool *values, int n) const {
-    DASSERT (n >= 0 && n <= elements);
-    for (int i = 0; i < n; ++i)
-        values[i] = m_val[i] ? true : false;
-}
-
-OIIO_FORCEINLINE mask4 operator! (const mask4 & a) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_xor_ps (a.m_vec, mask4::True());
-#else
-    SIMD_RETURN (mask4, a.m_val[i] ^ (-1));
-#endif
-}
-
-OIIO_FORCEINLINE mask4 operator& (const mask4 & a, const mask4 & b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_and_ps (a.m_vec, b.m_vec);
-#else
-    SIMD_RETURN (mask4, a.m_val[i] & b.m_val[i]);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4& mask4::operator&= (const mask4 & b) {
-    return *this = *this & b;
-}
-
-OIIO_FORCEINLINE mask4 operator| (const mask4 & a, const mask4 & b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_or_ps (a.m_vec, b.m_vec);
-#else
-    SIMD_RETURN (mask4, a.m_val[i] | b.m_val[i]);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4& mask4::operator|= (const mask4 & a) {
-    return *this = *this | a;
-}
-
-OIIO_FORCEINLINE mask4 operator^ (const mask4& a, const mask4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_xor_ps (a.m_vec, b.m_vec);
-#else
-    SIMD_RETURN (mask4, a.m_val[i] ^ b.m_val[i]);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4 & mask4::operator^= (const mask4& a) {
-    return *this = *this ^ a;
-}
-
-OIIO_FORCEINLINE mask4 mask4::operator~ () {
-#if defined(OIIO_SIMD_SSE)
-    // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
-    // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
-    // any value to itself.
-# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
-    __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
-# else
-    __m128i anyval = _mm_castps_si128 (m_vec);
-# endif
-    __m128 all_one_bits = _mm_castsi128_ps (_mm_cmpeq_epi8 (anyval, anyval));
-    return _mm_xor_ps (m_vec, all_one_bits);
-#else
-    SIMD_RETURN (mask4, ~m_val[i]);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4 operator== (const mask4 & a, const mask4 & b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a.m_vec), _mm_castps_si128(b.m_vec)));
-#else
-    SIMD_RETURN (mask4, a.m_val[i] == b.m_val[i] ? -1 : 0);
-#endif
-}
-
-OIIO_FORCEINLINE const mask4 operator!= (const mask4 & a, const mask4 & b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_xor_ps (a.m_vec, b.m_vec);
-#else
-    SIMD_RETURN (mask4, a.m_val[i] != b.m_val[i] ? -1 : 0);
-#endif
-}
-
-inline std::ostream& operator<< (std::ostream& cout, const mask4 & a) {
+OIIO_FORCEINLINE std::ostream& operator<< (std::ostream& cout, const bool4& a) {
     cout << a[0];
     for (int i = 1; i < a.elements; ++i)
         cout << ' ' << a[i];
@@ -1406,8 +1967,157 @@ inline std::ostream& operator<< (std::ostream& cout, const mask4 & a) {
 }
 
 
+OIIO_FORCEINLINE void bool4::load (bool a) {
+#if OIIO_SIMD_SSE
+    m_simd = _mm_castsi128_ps(_mm_set1_epi32(-int(a)));
+#else
+    int val = -int(a);
+    SIMD_CONSTRUCT (val);
+#endif
+}
 
-#if defined(OIIO_SIMD_SSE)
+
+OIIO_FORCEINLINE void bool4::load (bool a, bool b, bool c, bool d) {
+#if OIIO_SIMD_SSE
+    // N.B. -- we need to reverse the order because of our convention
+    // of storing a,b,c,d in the same order in memory.
+    m_simd = _mm_castsi128_ps(_mm_set_epi32(-int(d), -int(c), -int(b), -int(a)));
+#else
+    m_val[0] = -int(a);
+    m_val[1] = -int(b);
+    m_val[2] = -int(c);
+    m_val[3] = -int(d);
+#endif
+}
+
+OIIO_FORCEINLINE bool4::bool4 (bool *a) {
+    load (a[0], a[1], a[2], a[3]);
+}
+
+OIIO_FORCEINLINE const bool4& bool4::operator= (const bool4 & other) {
+    m_simd = other.m_simd;
+    return *this;
+}
+
+
+
+OIIO_FORCEINLINE void bool4::clear () {
+#if OIIO_SIMD_SSE
+    m_simd = _mm_setzero_ps();
+#else
+    *this = false;
+#endif
+}
+
+
+OIIO_FORCEINLINE const bool4 bool4::False () {
+#if OIIO_SIMD_SSE
+    return _mm_setzero_ps();
+#else
+    return false;
+#endif
+}
+
+OIIO_FORCEINLINE const bool4 bool4::True () {
+    // Fastest way to fill with all 1 bits is to cmp any value to itself.
+#if OIIO_SIMD_SSE
+# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+    __m128i anyval = _mm_undefined_si128();
+# else
+    __m128i anyval = _mm_setzero_si128();
+# endif
+    return _mm_castsi128_ps (_mm_cmpeq_epi8 (anyval, anyval));
+#else
+    return true;
+#endif
+}
+
+OIIO_FORCEINLINE void bool4::store (bool *values) const {
+    SIMD_DO (values[i] = m_val[i] ? true : false);
+}
+
+OIIO_FORCEINLINE void bool4::store (bool *values, int n) const {
+    DASSERT (n >= 0 && n <= elements);
+    for (int i = 0; i < n; ++i)
+        values[i] = m_val[i] ? true : false;
+}
+
+
+
+OIIO_FORCEINLINE bool4 operator! (const bool4 & a) {
+#if OIIO_SIMD_SSE
+    return _mm_xor_ps (a.simd(), bool4::True());
+#else
+    SIMD_RETURN (bool4, a[i] ^ (-1));
+#endif
+}
+
+OIIO_FORCEINLINE bool4 operator& (const bool4 & a, const bool4 & b) {
+#if OIIO_SIMD_SSE
+    return _mm_and_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool4, a[i] & b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool4 operator| (const bool4 & a, const bool4 & b) {
+#if OIIO_SIMD_SSE
+    return _mm_or_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool4, a[i] | b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool4 operator^ (const bool4& a, const bool4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_xor_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool4, a[i] ^ b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE const bool4& operator&= (bool4& a, const bool4 &b) {
+    return a = a & b;
+}
+
+OIIO_FORCEINLINE const bool4& operator|= (bool4& a, const bool4& b) {
+    return a = a | b;
+}
+
+OIIO_FORCEINLINE const bool4& operator^= (bool4& a, const bool4& b) {
+    return a = a ^ b;
+}
+
+OIIO_FORCEINLINE bool4 operator~ (const bool4& a) {
+#if OIIO_SIMD_SSE
+    // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
+    return _mm_xor_ps (a.simd(), bool4::True());
+#else
+    SIMD_RETURN (bool4, ~a[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool4 operator== (const bool4 & a, const bool4 & b) {
+#if OIIO_SIMD_SSE
+    return _mm_castsi128_ps (_mm_cmpeq_epi32 (_mm_castps_si128 (a), _mm_castps_si128(b)));
+#else
+    SIMD_RETURN (bool4, a[i] == b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool4 operator!= (const bool4 & a, const bool4 & b) {
+#if OIIO_SIMD_SSE
+    return _mm_xor_ps (a, b);
+#else
+    SIMD_RETURN (bool4, a[i] != b[i] ? -1 : 0);
+#endif
+}
+
+
+
+
+#if OIIO_SIMD_SSE
 // Shuffling. Use like this:  x = shuffle<3,2,1,0>(b)
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE __m128i shuffle_sse (__m128i v) {
@@ -1428,7 +2138,7 @@ template<> OIIO_FORCEINLINE __m128i shuffle_sse<0, 1, 0, 1> (__m128i a) {
 }
 #endif
 
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE __m128 shuffle_sse (__m128 a) {
     return _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(a), _MM_SHUFFLE(i3, i2, i1, i0)));
@@ -1450,25 +2160,27 @@ template<> OIIO_FORCEINLINE __m128 shuffle_sse<0, 1, 0, 1> (__m128 a) {
 
 
 /// Helper: shuffle/swizzle with constant (templated) indices.
-/// Example: shuffle<1,1,2,2>(mask4(a,b,c,d)) returns (b,b,c,c)
+/// Example: shuffle<1,1,2,2>(bool4(a,b,c,d)) returns (b,b,c,c)
 template<int i0, int i1, int i2, int i3>
-OIIO_FORCEINLINE mask4 shuffle (const mask4& a) {
-#if defined(OIIO_SIMD_SSE)
+OIIO_FORCEINLINE bool4 shuffle (const bool4& a) {
+#if OIIO_SIMD_SSE
     return shuffle_sse<i0,i1,i2,i3> (a.simd());
 #else
-    return mask4(a[i0], a[i1], a[i2], a[i3]);
+    return bool4 (a[i0], a[i1], a[i2], a[i3]);
 #endif
 }
 
 /// shuffle<i>(a) is the same as shuffle<i,i,i,i>(a)
-template<int i> OIIO_FORCEINLINE mask4 shuffle (const mask4& a) { return shuffle<i,i,i,i>(a); }
+template<int i> OIIO_FORCEINLINE bool4 shuffle (const bool4& a) {
+    return shuffle<i,i,i,i>(a);
+}
 
 
 /// Helper: as rapid as possible extraction of one component, when the
 /// index is fixed.
 template<int i>
-OIIO_FORCEINLINE bool extract (const mask4& a) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+OIIO_FORCEINLINE bool extract (const bool4& a) {
+#if OIIO_SIMD_SSE >= 4
     return _mm_extract_epi32(_mm_castps_si128(a.simd()), i);  // SSE4.1 only
 #else
     return a[i];
@@ -1477,82 +2189,333 @@ OIIO_FORCEINLINE bool extract (const mask4& a) {
 
 /// Helper: substitute val for a[i]
 template<int i>
-OIIO_FORCEINLINE mask4 insert (const mask4& a, bool val) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
-    int ival = val ? -1 : 0;
+OIIO_FORCEINLINE bool4 insert (const bool4& a, bool val) {
+#if OIIO_SIMD_SSE >= 4
+    int ival = -int(val);
     return _mm_castsi128_ps (_mm_insert_epi32 (_mm_castps_si128(a), ival, i));
 #else
-    mask4 tmp = a;
-    tmp[i] = val ? -1 : 0;
+    bool4 tmp = a;
+    tmp[i] = -int(val);
+    return tmp;
+#endif
+}
+
+OIIO_FORCEINLINE bool reduce_and (const bool4& v) {
+#if OIIO_SIMD_AVX
+    return _mm_testc_ps (v, bool4(true)) != 0;
+#elif OIIO_SIMD_SSE
+    return _mm_movemask_ps(v.simd()) == 0xf;
+#else
+    SIMD_RETURN_REDUCE (bool, true, r &= v[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool reduce_or (const bool4& v) {
+#if OIIO_SIMD_AVX
+    return ! _mm_testz_ps (v, v);
+#elif OIIO_SIMD_SSE
+    return _mm_movemask_ps(v) != 0;
+#else
+    SIMD_RETURN_REDUCE (bool, false, r |= v[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool all (const bool4& v) { return reduce_and(v) == true; }
+OIIO_FORCEINLINE bool any (const bool4& v) { return reduce_or(v) == true; }
+OIIO_FORCEINLINE bool none (const bool4& v) { return reduce_or(v) == false; }
+
+
+
+//////////////////////////////////////////////////////////////////////
+// bool8 implementation
+
+
+OIIO_FORCEINLINE int bool8::operator[] (int i) const {
+    DASSERT(i >= 0 && i < elements);
+#if OIIO_SIMD_AVX
+    return ((_mm256_movemask_ps(m_simd) >> i) & 1) ? -1 : 0;
+#else
+    return m_val[i];
+#endif
+}
+
+OIIO_FORCEINLINE int& bool8::operator[] (int i) {
+    DASSERT(i >= 0 && i < elements);
+    return m_val[i];
+}
+
+
+OIIO_FORCEINLINE std::ostream& operator<< (std::ostream& cout, const bool8& a) {
+    cout << a[0];
+    for (int i = 1; i < a.elements; ++i)
+        cout << ' ' << a[i];
+    return cout;
+}
+
+
+OIIO_FORCEINLINE void bool8::load (bool a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_castsi256_ps(_mm256_set1_epi32(-int(a)));
+#else
+    int val = -int(a);
+    SIMD_CONSTRUCT (val);
+#endif
+}
+
+
+OIIO_FORCEINLINE void bool8::load (bool a, bool b, bool c, bool d,
+                                   bool e, bool f, bool g, bool h) {
+#if OIIO_SIMD_AVX
+    // N.B. -- we need to reverse the order because of our convention
+    // of storing a,b,c,d in the same order in memory.
+    m_simd = _mm256_castsi256_ps(_mm256_set_epi32(-int(h), -int(g), -int(f), -int(e),
+                                                  -int(d), -int(c), -int(b), -int(a)));
+#else
+    m_val[0] = -int(a);
+    m_val[1] = -int(b);
+    m_val[2] = -int(c);
+    m_val[3] = -int(d);
+    m_val[4] = -int(e);
+    m_val[5] = -int(f);
+    m_val[6] = -int(g);
+    m_val[7] = -int(h);
+#endif
+}
+
+OIIO_FORCEINLINE bool8::bool8 (bool a, bool b, bool c, bool d,
+                               bool e, bool f, bool g, bool h) {
+    load (a, b, c, d, e, f, g, h);
+}
+
+OIIO_FORCEINLINE bool8::bool8 (bool *a) {
+    load (a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+}
+
+
+OIIO_FORCEINLINE const bool8& bool8::operator= (bool a) {
+    load(a);
+    return *this;
+}
+
+OIIO_FORCEINLINE const bool8& bool8::operator= (const bool8 & other) {
+    m_simd = other.m_simd;
+    return *this;
+}
+
+OIIO_FORCEINLINE void bool8::clear () {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_setzero_ps();
+#else
+    *this = false;
+#endif
+}
+
+OIIO_FORCEINLINE const bool8 bool8::False () {
+#if OIIO_SIMD_AVX
+    return _mm256_setzero_ps();
+#else
+    return false;
+#endif
+}
+
+
+OIIO_FORCEINLINE const bool8 bool8::True () {
+#if OIIO_SIMD_AVX
+# if OIIO_SIMD_AVX >= 2 && (OIIO_GNUC_VERSION > 50000)
+    // Fastest way to fill with all 1 bits is to cmp any value to itself.
+    __m256i anyval = _mm256_undefined_si256();
+    return _mm256_cmpeq_epi8 (anyval, anyval);
+# else
+    return _mm256_castsi256_ps (_mm256_set1_epi32 (-1));
+# endif
+#else
+    return true;
+#endif
+}
+
+
+OIIO_FORCEINLINE void bool8::store (bool *values) const {
+    SIMD_DO (values[i] = m_val[i] ? true : false);
+}
+
+OIIO_FORCEINLINE void bool8::store (bool *values, int n) const {
+    DASSERT (n >= 0 && n <= elements);
+    for (int i = 0; i < n; ++i)
+        values[i] = m_val[i] ? true : false;
+}
+
+
+OIIO_FORCEINLINE bool4 bool8::lo () const {
+#if OIIO_SIMD_AVX
+    return _mm256_castps256_ps128 (simd());
+#else
+    return m_4[0];
+#endif
+}
+
+OIIO_FORCEINLINE bool4 bool8::hi () const {
+#if OIIO_SIMD_AVX
+    return _mm256_extractf128_ps (simd(), 1);
+#else
+    return m_4[1];
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8::bool8 (const bool4& lo, const bool4 &hi) {
+#if OIIO_SIMD_AVX
+    __m256 r = _mm256_castps128_ps256 (lo);
+    m_simd = _mm256_insertf128_ps (r, hi, 1);
+    // N.B. equivalent, if available: m_simd = _mm256_set_m128 (hi, lo);
+#else
+    m_4[0] = lo;
+    m_4[1] = hi;
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator! (const bool8 & a) {
+#if OIIO_SIMD_AVX
+    return _mm256_xor_ps (a.simd(), bool8::True());
+#else
+    SIMD_RETURN (bool8, a[i] ^ (-1));
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator& (const bool8 & a, const bool8 & b) {
+#if OIIO_SIMD_AVX
+    return _mm256_and_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool8, a[i] & b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator| (const bool8 & a, const bool8 & b) {
+#if OIIO_SIMD_AVX
+    return _mm256_or_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool8, a[i] | b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator^ (const bool8& a, const bool8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_xor_ps (a.simd(), b.simd());
+#else
+    SIMD_RETURN (bool8, a[i] ^ b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE const bool8& operator&= (bool8& a, const bool8 &b) {
+    return a = a & b;
+}
+
+OIIO_FORCEINLINE const bool8& operator|= (bool8& a, const bool8& b) {
+    return a = a | b;
+}
+
+OIIO_FORCEINLINE const bool8& operator^= (bool8& a, const bool8& b) {
+    return a = a ^ b;
+}
+
+
+OIIO_FORCEINLINE bool8 operator~ (const bool8& a) {
+#if OIIO_SIMD_AVX
+    // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
+    return _mm256_xor_ps (a.simd(), bool8::True());
+#else
+    SIMD_RETURN (bool8, ~a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator== (const bool8 & a, const bool8 & b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_castsi256_ps (_mm256_cmpeq_epi32 (_mm256_castps_si256 (a), _mm256_castps_si256(b)));
+#elif OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a, b, _CMP_EQ_UQ);
+#else
+    SIMD_RETURN (bool8, a[i] == b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator!= (const bool8 & a, const bool8 & b) {
+#if OIIO_SIMD_AVX
+    return _mm256_xor_ps (a, b);
+#else
+    SIMD_RETURN (bool8, a[i] != b[i] ? -1 : 0);
+#endif
+}
+
+
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+OIIO_FORCEINLINE bool8 shuffle (const bool8& a) {
+#if OIIO_SIMD_AVX >= 2
+    int8 index (i0, i1, i2, i3, i4, i5, i6, i7);
+    return _mm256_permutevar8x32_ps (a.simd(), index.simd());
+#else
+    return bool8 (a[i0], a[i1], a[i2], a[i3], a[i4], a[i5], a[i6], a[i7]);
+#endif
+}
+
+template<int i> OIIO_FORCEINLINE bool8 shuffle (const bool8& a) {
+    return shuffle<i,i,i,i,i,i,i,i>(a);
+}
+
+
+template<int i>
+OIIO_FORCEINLINE bool extract (const bool8& a) {
+#if OIIO_SIMD_AVX
+    return _mm256_extract_epi32(_mm256_castps_si256(a.simd()), i);  // SSE4.1 only
+#else
+    return a[i];
+#endif
+}
+
+template<int i>
+OIIO_FORCEINLINE bool8 insert (const bool8& a, bool val) {
+#if OIIO_SIMD_AVX
+    int ival = -int(val);
+    return _mm256_castsi256_ps (_mm256_insert_epi32 (_mm256_castps_si256(a.simd()), ival, i));
+#else
+    bool8 tmp = a;
+    tmp[i] = -int(val);
     return tmp;
 #endif
 }
 
 
-OIIO_FORCEINLINE bool reduce_and (const mask4& v) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_movemask_ps(v.simd()) == 0xf;
+OIIO_FORCEINLINE bool reduce_and (const bool8& v) {
+#if OIIO_SIMD_AVX
+    return _mm256_testc_ps (v, bool8(true)) != 0;
+    // return _mm256_movemask_ps(v.simd()) == 0xff;
 #else
-    return v[0] & v[1] & v[2] & v[3];
+    SIMD_RETURN_REDUCE (bool, true, r &= v[i]);
+#endif
+}
+
+OIIO_FORCEINLINE bool reduce_or (const bool8& v) {
+#if OIIO_SIMD_AVX
+    return ! _mm256_testz_ps (v, v);   // FIXME? Not in all immintrin.h !
+    // return _mm256_movemask_ps(v) != 0;
+#else
+    SIMD_RETURN_REDUCE (bool, false, r |= v[i]);
 #endif
 }
 
 
-OIIO_FORCEINLINE bool reduce_or (const mask4& v) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_movemask_ps(v) != 0;
-#else
-    return v[0] | v[1] | v[2] | v[3];
-#endif
-}
+OIIO_FORCEINLINE bool all (const bool8& v) { return reduce_and(v) == true; }
+OIIO_FORCEINLINE bool any (const bool8& v) { return reduce_or(v) == true; }
+OIIO_FORCEINLINE bool none (const bool8& v) { return reduce_or(v) == false; }
 
 
 
 //////////////////////////////////////////////////////////////////////
 // int4 implementation
 
-
-OIIO_FORCEINLINE void int4::clear () {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_setzero_si128();
-#else
-    *this = 0.0f;
-#endif
-}
-
-OIIO_FORCEINLINE const int4 int4::Zero () {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_setzero_si128();
-#else
-    return int4(0);
-#endif
-}
-
-OIIO_FORCEINLINE const int4 int4::One () { return int4(1); }
-
-OIIO_FORCEINLINE const int4 int4::NegOne () {
-#if defined(OIIO_SIMD_SSE)
-    // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
-    // any value to itself.
-# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
-    __m128i anyval = _mm_undefined_si128();
-# else
-    __m128i anyval = _mm_castps_si128 (_mm_setzero_ps());
-# endif
-    return _mm_cmpeq_epi8 (anyval, anyval);
-#else
-    return int4(-1);
-#endif
-}
-
-OIIO_FORCEINLINE const int4 int4::Iota (int value) {
-    return int4(value,value+1,value+2,value+3);
-}
-
-OIIO_FORCEINLINE const int4 & int4::operator= (int a) { load(a); return *this; }
-
 OIIO_FORCEINLINE const int4 & int4::operator= (int4 other) {
-    m_vec = other.m_vec;
+    m_simd = other.m_simd;
     return *this;
 }
 
@@ -1568,16 +2531,18 @@ OIIO_FORCEINLINE int int4::operator[] (int i) const {
 
 
 OIIO_FORCEINLINE void int4::load (int a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_set1_epi32 (a);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_set1_epi32 (a);
 #else
     SIMD_CONSTRUCT (a);
 #endif
 }
 
+
+
 OIIO_FORCEINLINE void int4::load (int a, int b, int c, int d) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_set_epi32 (d, c, b, a);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_set_epi32 (d, c, b, a);
 #else
     m_val[0] = a;
     m_val[1] = b;
@@ -1586,190 +2551,214 @@ OIIO_FORCEINLINE void int4::load (int a, int b, int c, int d) {
 #endif
 }
 
+
+// OIIO_FORCEINLINE void int4::load (int a, int b, int c, int d,
+//                                   int e, int f, int g, int h) {
+//     load (a, b, c, d);
+// }
+
+
+
 OIIO_FORCEINLINE void int4::load (const int *values) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_loadu_si128 ((const simd_t *)values);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_loadu_si128 ((const simd_t *)values);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
 
+
 OIIO_FORCEINLINE void int4::load (const int *values, int n)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     switch (n) {
     case 1:
-        m_vec = _mm_castps_si128 (_mm_load_ss ((const float *)values));
+        m_simd = _mm_castps_si128 (_mm_load_ss ((const float *)values));
         break;
     case 2:
-            // Trickery: load one double worth of bits!
-        m_vec = _mm_castpd_si128 (_mm_load_sd ((const double*)values));
+        // Trickery: load one double worth of bits!
+        m_simd = _mm_castpd_si128 (_mm_load_sd ((const double*)values));
         break;
     case 3:
         // Trickery: load one double worth of bits, then a float,
         // and combine, casting to ints.
-        m_vec = _mm_castps_si128 (_mm_movelh_ps(_mm_castpd_ps(_mm_load_sd((const double*)values)),
+        m_simd = _mm_castps_si128 (_mm_movelh_ps(_mm_castpd_ps(_mm_load_sd((const double*)values)),
                                                 _mm_load_ss ((const float *)values + 2)));
         break;
     case 4:
-        m_vec = _mm_loadu_si128 ((const simd_t *)values);
+        m_simd = _mm_loadu_si128 ((const simd_t *)values);
         break;
     default:
         break;
     }
-#endif
+#else
     for (int i = 0; i < n; ++i)
         m_val[i] = values[i];
     for (int i = n; i < elements; ++i)
         m_val[i] = 0;
+#endif
 }
+
 
 OIIO_FORCEINLINE void int4::load (const unsigned short *values) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     // Trickery: load one double worth of bits = 4 uint16's!
     simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
-    m_vec = _mm_cvtepu16_epi32 (a);
+    m_simd = _mm_cvtepu16_epi32 (a);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
+
 
 OIIO_FORCEINLINE void int4::load (const short *values) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     // Trickery: load one double worth of bits = 4 int16's!
     simd_t a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
-    m_vec = _mm_cvtepi16_epi32 (a);
+    m_simd = _mm_cvtepi16_epi32 (a);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
+
 
 OIIO_FORCEINLINE void int4::load (const unsigned char *values) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     // Trickery: load one float worth of bits = 4 uint8's!
     simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
-    m_vec = _mm_cvtepu8_epi32 (a);
+    m_simd = _mm_cvtepu8_epi32 (a);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
+
 
 OIIO_FORCEINLINE void int4::load (const char *values) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     // Trickery: load one float worth of bits = 4 uint8's!
     simd_t a = _mm_castps_si128 (_mm_load_ss ((const float *)values));
-    m_vec = _mm_cvtepi8_epi32 (a);
+    m_simd = _mm_cvtepi8_epi32 (a);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
 
+
+OIIO_FORCEINLINE int4::int4 (int a) { load(a); }
+
+OIIO_FORCEINLINE int4::int4 (int a, int b) { load(a,a,b,b); }
+
+OIIO_FORCEINLINE int4::int4 (int a, int b, int c, int d) { load(a,b,c,d); }
+
+// OIIO_FORCEINLINE int4::int4 (int a, int b, int c, int d,
+//                              int e, int f, int g, int h) {
+//     load(a,b,c,d,e,f,g,h);
+// }
+
+OIIO_FORCEINLINE int4::int4 (const int *vals) { load (vals); }
+OIIO_FORCEINLINE int4::int4 (const unsigned short *vals) { load(vals); }
+OIIO_FORCEINLINE int4::int4 (const short *vals) { load(vals); }
+OIIO_FORCEINLINE int4::int4 (const unsigned char *vals) { load(vals); }
+OIIO_FORCEINLINE int4::int4 (const char *vals) { load(vals); }
+
+OIIO_FORCEINLINE const int4 & int4::operator= (int a) { load(a); return *this; }
+
+
 OIIO_FORCEINLINE void int4::store (int *values) const {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     // Use an unaligned store -- it's just as fast when the memory turns
     // out to be aligned, nearly as fast even when unaligned. Not worth
     // the headache of using stores that require alignment.
-    _mm_storeu_si128 ((simd_t *)values, m_vec);
+    _mm_storeu_si128 ((simd_t *)values, m_simd);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
 }
 
-OIIO_FORCEINLINE void int4::store (int *values, int n) const {
-    DASSERT (n >= 0 && n <= elements);
-#if defined(OIIO_SIMD)
-    // For full SIMD, there is a speed advantage to storing all components.
-    if (n == elements)
-        store (values);
-    else
-#endif
-        for (int i = 0; i < n; ++i)
-            values[i] = m_val[i];
-}
 
-OIIO_FORCEINLINE void int4::store (unsigned short *values) const {
-#if defined(OIIO_SIMD_SSE)
-    // Expressed as half-words and considering little endianness, we
-    // currently have xAxBxCxD (the 'x' means don't care).
-    int4 clamped = m_val & int4(0xffff);   // A0B0C0D0
-    int4 low = _mm_shufflelo_epi16 (clamped, (0<<0) | (2<<2) | (1<<4) | (1<<6));
-                    // low = AB00xxxx
-    int4 high = _mm_shufflehi_epi16 (clamped, (1<<0) | (1<<2) | (0<<4) | (2<<6));
-                    // high = xxxx00CD
-    int4 highswapped = shuffle_sse<2,3,0,1>(high);  // 00CDxxxx
-    int4 result = low | highswapped;   // ABCDxxxx
-    _mm_storel_pd ((double *)values, _mm_castsi128_pd(result));
-    // At this point, values[] should hold A,B,C,D
+OIIO_FORCEINLINE void int4::clear () {
+#if OIIO_SIMD_SSE
+    m_simd = _mm_setzero_si128();
 #else
-    SIMD_DO (values[i] = m_val[i]);
+    *this = 0;
 #endif
 }
 
-OIIO_FORCEINLINE void int4::store (unsigned char *values) const {
-#if defined(OIIO_SIMD_SSE)
-    // Expressed as bytes and considering little endianness, we
-    // currently have xAxBxCxD (the 'x' means don't care).
-    int4 clamped = m_val & int4(0xff);            // A000 B000 C000 D000
-    int4 swapped = shuffle_sse<1,0,3,2>(clamped); // B000 A000 D000 C000
-    int4 shifted = swapped << 8;                  // 0B00 0A00 0D00 0C00
-    int4 merged = clamped | shifted;              // AB00 xxxx CD00 xxxx
-    int4 merged2 = shuffle_sse<2,2,2,2>(merged);  // CD00 ...
-    int4 shifted2 = merged2 << 16;                // 00CD ...
-    int4 result = merged | shifted2;              // ABCD ...
-    *(int*)values = result[0]; //extract<0>(result);
-    // At this point, values[] should hold A,B,C,D
+
+
+OIIO_FORCEINLINE const int4 int4::Zero () {
+#if OIIO_SIMD_SSE
+    return _mm_setzero_si128();
 #else
-    SIMD_DO (values[i] = m_val[i]);
+    return 0;
 #endif
 }
+
+
+OIIO_FORCEINLINE const int4 int4::One () { return int4(1); }
+
+OIIO_FORCEINLINE const int4 int4::NegOne () {
+#if OIIO_SIMD_SSE
+    // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
+    // any value to itself.
+# if OIIO_SIMD_AVX && (OIIO_GNUC_VERSION > 50000)
+    __m128i anyval = _mm_undefined_si128();
+# else
+    __m128i anyval = _mm_setzero_si128();
+# endif
+    return _mm_cmpeq_epi8 (anyval, anyval);
+#else
+    return int4(-1);
+#endif
+}
+
+
+
+OIIO_FORCEINLINE const int4 int4::Iota (int start, int step) {
+    return int4 (start+0*step, start+1*step, start+2*step, start+3*step);
+}
+
 
 OIIO_FORCEINLINE int4 operator+ (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_add_epi32 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_add_epi32 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] + b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator+= (const int4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_add_epi32 (m_vec, a.m_vec);
-#else
-    SIMD_DO (m_val[i] += a[i]);
-#endif
-    return *this;
+OIIO_FORCEINLINE const int4& operator+= (int4& a, const int4& b) {
+    return a = a + b;
 }
 
-OIIO_FORCEINLINE int4 int4::operator- () const {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_sub_epi32 (_mm_setzero_si128(), m_vec);
+
+OIIO_FORCEINLINE int4 operator- (const int4& a) {
+#if OIIO_SIMD_SSE
+    return _mm_sub_epi32 (_mm_setzero_si128(), a);
 #else
-    SIMD_RETURN (int4, -m_val[i]);
+    SIMD_RETURN (int4, -a[i]);
 #endif
 }
+
 
 OIIO_FORCEINLINE int4 operator- (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_sub_epi32 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_sub_epi32 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] - b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator-= (const int4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_sub_epi32 (m_vec, a.m_vec);
-#else
-    SIMD_DO (m_val[i] -= a[i]);
-#endif
-        return *this;
+
+OIIO_FORCEINLINE const int4 &operator-= (int4& a, const int4& b) {
+    return a = a - b;
 }
 
 
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
 // Shamelessly lifted from Syrah which lifted from Manta which lifted it
 // from intel.com
-OIIO_FORCEINLINE __m128i mm_mul_epi32 (__m128i a, __m128i b) {
+OIIO_FORCEINLINE __m128i mul_epi32 (__m128i a, __m128i b) {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_mullo_epi32(a, b);
 #else
@@ -1789,197 +2778,159 @@ OIIO_FORCEINLINE __m128i mm_mul_epi32 (__m128i a, __m128i b) {
 
 
 OIIO_FORCEINLINE int4 operator* (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return mm_mul_epi32 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return mul_epi32 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] * b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator*= (const int4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = mm_mul_epi32 (m_vec, a.m_vec);
-#else
-    SIMD_DO (m_val[i] *= a[i]);
-#endif
-    return *this;
-}
 
-OIIO_FORCEINLINE const int4 & int4::operator*= (int val) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = mm_mul_epi32 (m_vec, _mm_set1_epi32(val));
-#else
-    SIMD_DO (m_val[i] *= val);
-#endif
-    return *this;
-}
+OIIO_FORCEINLINE const int4& operator*= (int4& a, const int4& b) { return a = a * b; }
+OIIO_FORCEINLINE const int4& operator*= (int4& a, int b) { return a = a * b; }
+
 
 OIIO_FORCEINLINE int4 operator/ (const int4& a, const int4& b) {
     // NO INTEGER DIVISION IN SSE!
     SIMD_RETURN (int4, a[i] / b[i]);
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator/= (const int4& a) {
-    // NO INTEGER DIVISION IN SSE!
-    SIMD_DO (m_val[i] /= a[i]);
-    return *this;
-}
 
-OIIO_FORCEINLINE const int4 & int4::operator/= (int val) {
-    // NO INTEGER DIVISION IN SSE!
-    SIMD_DO (m_val[i] /= val);
-    return *this;
-}
+OIIO_FORCEINLINE const int4& operator/= (int4& a, const int4& b) { return a = a / b; }
 
 OIIO_FORCEINLINE int4 operator% (const int4& a, const int4& b) {
-    // NO INTEGER MODULUS in SSE!
+    // NO INTEGER MODULUS IN SSE!
     SIMD_RETURN (int4, a[i] % b[i]);
-    }
-
-OIIO_FORCEINLINE const int4 & int4::operator%= (const int4& a) {
-    // NO INTEGER MODULUS in SSE!
-    SIMD_DO (m_val[i] %= a[i]);
-    return *this;
 }
+
+
+
+OIIO_FORCEINLINE const int4& operator%= (int4& a, const int4& b) { return a = a % b; }
+
 
 OIIO_FORCEINLINE int4 operator% (const int4& a, int w) {
     // NO INTEGER MODULUS in SSE!
     SIMD_RETURN (int4, a[i] % w);
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator%= (int a) {
-    // NO INTEGER MODULUS IN SSE!
-    SIMD_DO (m_val[i] %= a);
-    return *this;
-}
 
-OIIO_FORCEINLINE int4 operator% (int a, const int4& b) {
-    // NO INTEGER MODULUS in SSE!
-    SIMD_RETURN (int4, a % b[i]);
-}
+OIIO_FORCEINLINE const int4& operator%= (int4& a, int b) { return a = a % b; }
 
 
 OIIO_FORCEINLINE int4 operator& (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_and_si128 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_and_si128 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] & b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator&= (const int4& a) {
-    return *this = *this & a;
-}
+
+OIIO_FORCEINLINE const int4& operator&= (int4& a, const int4& b) { return a = a & b; }
+
 
 
 OIIO_FORCEINLINE int4 operator| (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_or_si128 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_or_si128 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] | b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator|= (const int4& a) {
-    return *this = *this | a;
-}
+OIIO_FORCEINLINE const int4& operator|= (int4& a, const int4& b) { return a = a | b; }
+
 
 OIIO_FORCEINLINE int4 operator^ (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_xor_si128 (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_xor_si128 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, a[i] ^ b[i]);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator^= (const int4& a) {
-    return *this = *this ^ a;
-}
 
-OIIO_FORCEINLINE int4 int4::operator~ () {
-#if defined(OIIO_SIMD_SSE)
-    // Fastest way to bit-complement in SSE is to xor with 0xffffffff.
-    // Fastest way to fill an __m128 with all 1 bits is to cmpeq_epi8
-    // any value to itself.
-# if defined(OIIO_SIMD_AVX) && (OIIO_GNUC_VERSION > 50000)
-    __m128i anyval = _mm_undefined_si128(); // AVX only, sigh
-    __m128i all_one_bits = _mm_cmpeq_epi8 (anyval, anyval);
-# else
-    __m128i all_one_bits = _mm_cmpeq_epi8 (m_vec, m_vec);
-# endif
-    return _mm_xor_si128 (m_vec, all_one_bits);
+OIIO_FORCEINLINE const int4& operator^= (int4& a, const int4& b) { return a = a ^ b; }
+
+
+OIIO_FORCEINLINE int4 operator~ (const int4& a) {
+#if OIIO_SIMD_SSE
+    return a ^ a.NegOne();
 #else
-    SIMD_RETURN (int4, ~m_val[i]);
+    SIMD_RETURN (int4, ~a[i]);
 #endif
 }
 
-OIIO_FORCEINLINE int4 int4::operator<< (const unsigned int bits) const {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_slli_epi32 (m_vec, bits);
+OIIO_FORCEINLINE int4 operator<< (const int4& a, unsigned int bits) {
+#if OIIO_SIMD_SSE
+    return _mm_slli_epi32 (a, bits);
 #else
-    SIMD_RETURN (int4, m_val[i] << bits);
+    SIMD_RETURN (int4, a[i] << bits);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator<<= (const unsigned int bits) {
-    return *this = *this << bits;
+OIIO_FORCEINLINE const int4& operator<<= (int4& a, const unsigned int bits) {
+    return a = a << bits;
 }
 
-OIIO_FORCEINLINE int4 int4::operator>> (const unsigned int bits) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_srai_epi32 (m_vec, bits);
+
+OIIO_FORCEINLINE int4 operator>> (const int4& a, const unsigned int bits) {
+#if OIIO_SIMD_SSE
+    return _mm_srai_epi32 (a, bits);
 #else
-    SIMD_RETURN (int4, m_val[i] >> bits);
+    SIMD_RETURN (int4, a[i] >> bits);
 #endif
 }
 
-OIIO_FORCEINLINE const int4 & int4::operator>>= (const unsigned int bits) {
-    return *this = *this >> bits;
+OIIO_FORCEINLINE const int4& operator>>= (int4& a, const unsigned int bits) {
+    return a = a >> bits;
 }
 
-OIIO_FORCEINLINE int4 srl (const int4& val, const unsigned int bits) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_srli_epi32 (val.m_vec, bits);
+
+OIIO_FORCEINLINE int4 srl (const int4& a, const unsigned int bits) {
+#if OIIO_SIMD_SSE
+    return _mm_srli_epi32 (a, bits);
 #else
-    SIMD_RETURN (int4, int ((unsigned int)(val[i]) >> bits));
+    SIMD_RETURN (int4, int ((unsigned int)(a[i]) >> bits));
 #endif
 }
 
 
-OIIO_FORCEINLINE mask4 operator== (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_castsi128_ps(_mm_cmpeq_epi32 (a.m_vec, b.m_vec));
+OIIO_FORCEINLINE bool4 operator== (const int4& a, const int4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_castsi128_ps(_mm_cmpeq_epi32 (a, b));
 #else
-    SIMD_RETURN (mask4, a[i] == b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] == b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator!= (const int4& a, const int4& b) {
-        return ! (a == b);
+OIIO_FORCEINLINE bool4 operator!= (const int4& a, const int4& b) {
+    return ! (a == b);
 }
 
-OIIO_FORCEINLINE mask4 operator< (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_castsi128_ps(_mm_cmplt_epi32 (a.m_vec, b.m_vec));
+
+OIIO_FORCEINLINE bool4 operator> (const int4& a, const int4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_castsi128_ps(_mm_cmpgt_epi32 (a, b));
 #else
-    SIMD_RETURN (mask4, a[i] < b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] > b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator>  (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_castsi128_ps(_mm_cmpgt_epi32 (a.m_vec, b.m_vec));
+OIIO_FORCEINLINE bool4 operator< (const int4& a, const int4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_castsi128_ps(_mm_cmplt_epi32 (a, b));
 #else
-    SIMD_RETURN (mask4, a[i] > b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] < b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator>= (const int4& a, const int4& b) {
-    return !(a < b);
+OIIO_FORCEINLINE bool4 operator>= (const int4& a, const int4& b) {
+    return (b < a) | (a == b);
 }
 
-OIIO_FORCEINLINE mask4 operator<= (const int4& a, const int4& b) {
-    return !(a > b);
+OIIO_FORCEINLINE bool4 operator<= (const int4& a, const int4& b) {
+    return (b > a) | (a == b);
 }
 
 inline std::ostream& operator<< (std::ostream& cout, const int4& val) {
@@ -1990,10 +2941,66 @@ inline std::ostream& operator<< (std::ostream& cout, const int4& val) {
 }
 
 
+// FIXME(SSE,AVX): is there a faster way to do a partial store? 512!
+
+OIIO_FORCEINLINE void int4::store (int *values, int n) const {
+    DASSERT (n >= 0 && n <= elements);
+#if defined(OIIO_SIMD)
+    // For full SIMD, there is a speed advantage to storing all components.
+    if (n == elements)
+        store (values);
+    else
+#endif
+        for (int i = 0; i < n; ++i)
+            values[i] = m_val[i];
+}
+
+// FIXME(SSE,AVX): is there a faster way to do a partial store? 512!
+
+OIIO_FORCEINLINE void int4::store (unsigned short *values) const {
+#if OIIO_SIMD_SSE
+    // Expressed as half-words and considering little endianness, we
+    // currently have xAxBxCxD (the 'x' means don't care).
+    int4 clamped = m_val & int4(0xffff);   // A0B0C0D0
+    int4 low = _mm_shufflelo_epi16 (clamped, (0<<0) | (2<<2) | (1<<4) | (1<<6));
+                    // low = AB00xxxx
+    int4 high = _mm_shufflehi_epi16 (clamped, (1<<0) | (1<<2) | (0<<4) | (2<<6));
+                    // high = xxxx00CD
+    int4 highswapped = shuffle_sse<2,3,0,1>(high);  // 00CDxxxx
+    int4 result = low | highswapped;   // ABCDxxxx
+    _mm_storel_pd ((double *)values, _mm_castsi128_pd(result));
+    // At this point, values[] should hold A,B,C,D
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+
+OIIO_FORCEINLINE void int4::store (unsigned char *values) const {
+#if OIIO_SIMD_SSE
+    // Expressed as bytes and considering little endianness, we
+    // currently have xAxBxCxD (the 'x' means don't care).
+    int4 clamped = m_val & int4(0xff);            // A000 B000 C000 D000
+    int4 swapped = shuffle_sse<1,0,3,2>(clamped); // B000 A000 D000 C000
+    int4 shifted = swapped << 8;                  // 0B00 0A00 0D00 0C00
+    int4 merged = clamped | shifted;              // AB00 xxxx CD00 xxxx
+    int4 merged2 = shuffle_sse<2,2,2,2>(merged);  // CD00 ...
+    int4 shifted2 = merged2 << 16;                // 00CD ...
+    int4 result = merged | shifted2;              // ABCD ...
+    *(int*)values = result[0]; //extract<0>(result);
+    // At this point, values[] should hold A,B,C,D
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+
 
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE int4 shuffle (const int4& a) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return shuffle_sse<i0,i1,i2,i3> (__m128i(a));
 #else
     return int4(a[i0], a[i1], a[i2], a[i3]);
@@ -2005,18 +3012,23 @@ template<int i> OIIO_FORCEINLINE int4 shuffle (const int4& a) { return shuffle<i
 
 template<int i>
 OIIO_FORCEINLINE int extract (const int4& v) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     return _mm_extract_epi32(v.simd(), i);  // SSE4.1 only
 #else
     return v[i];
 #endif
 }
 
+#if OIIO_SIMD_SSE
+template<> OIIO_FORCEINLINE int extract<0> (const int4& v) {
+    return _mm_cvtsi128_si32(v.simd());
+}
+#endif
 
 template<int i>
 OIIO_FORCEINLINE int4 insert (const int4& a, int val) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
-    return _mm_insert_epi32 (a, val, i);
+#if OIIO_SIMD_SSE >= 4
+    return _mm_insert_epi32 (a.simd(), val, i);
 #else
     int4 tmp = a;
     tmp[i] = val;
@@ -2036,18 +3048,21 @@ OIIO_FORCEINLINE void int4::set_z (int val) { *this = insert<2>(*this, val); }
 OIIO_FORCEINLINE void int4::set_w (int val) { *this = insert<3>(*this, val); }
 
 
-OIIO_FORCEINLINE int4 bitcast_to_int4 (const mask4& x)
+OIIO_FORCEINLINE int4 bitcast_to_int (const bool4& x)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_castps_si128 (x.simd());
 #else
     return *(int4 *)&x;
 #endif
 }
 
+// Old names:
+inline int4 bitcast_to_int4 (const bool4& x) { return bitcast_to_int(x); }
+
 
 OIIO_FORCEINLINE int4 vreduce_add (const int4& v) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
+#if OIIO_SIMD_SSE >= 3
     // People seem to agree that SSE3 does add reduction best with 2
     // horizontal adds.
     // suppose v = (a, b, c, d)
@@ -2056,7 +3071,7 @@ OIIO_FORCEINLINE int4 vreduce_add (const int4& v) {
     simd::int4 abcd = _mm_hadd_epi32 (ab_cd.simd(), ab_cd.simd());
     // all abcd elements are a+b+c+d, return an element as fast as possible
     return abcd;
-#elif defined(OIIO_SIMD_SSE)
+#elif OIIO_SIMD_SSE >= 2
     // I think this is the best we can do for SSE2, and I'm still not sure
     // it's faster than the default scalar operation. But anyway...
     // suppose v = (a, b, c, d)
@@ -2067,50 +3082,48 @@ OIIO_FORCEINLINE int4 vreduce_add (const int4& v) {
     int4 abcd = ab_ab_cd_cd + cd_cd_ab_ab;   // a+b+c+d in all components
     return abcd;
 #else
-    return int4(v[0] + v[1] + v[2] + v[3]);
+    SIMD_RETURN_REDUCE (int4, 0, r += v[i]);
 #endif
 }
 
 
 OIIO_FORCEINLINE int reduce_add (const int4& v) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cvtsi128_si32(vreduce_add(v));
+#if OIIO_SIMD_SSE
+    return extract<0> (vreduce_add(v));
 #else
-    return v[0] + v[1] + v[2] + v[3];
+    SIMD_RETURN_REDUCE (int, 0, r += v[i]);
 #endif
 }
 
 
 OIIO_FORCEINLINE int reduce_and (const int4& v) {
-#if defined(OIIO_SIMD_SSE)
-    // I think this is the best we can do for SSE, and I'm still not sure
-    // it's faster than the default scalar operation. But anyway...
-    // suppose v = (a, b, c, d)
-    int4 x = shuffle<1,0,3,2>(v) & v;
-    return extract<0>(x) & extract<2>(x);
+#if OIIO_SIMD_SSE
+    int4 ab = v & shuffle<1,1,3,3>(v); // ab bb cd dd
+    int4 abcd = ab & shuffle<2>(ab);
+    return extract<0>(abcd);
 #else
-    return v[0] & v[1] & v[2] & v[3];
+    SIMD_RETURN_REDUCE (int, -1, r &= v[i]);
 #endif
 }
 
 
 OIIO_FORCEINLINE int reduce_or (const int4& v) {
-#if defined(OIIO_SIMD_SSE)
-    // I think this is the best we can do for SSE, and I'm still not sure
-    // it's faster than the default scalar operation. But anyway...
-    // suppose v = (a, b, c, d)
-    int4 x = shuffle<1,0,3,2>(v) | v;
-    return extract<0>(x) | extract<2>(x);
+#if OIIO_SIMD_SSE
+    int4 ab = v | shuffle<1,1,3,3>(v); // ab bb cd dd
+    int4 abcd = ab | shuffle<2>(ab);
+    return extract<0>(abcd);
 #else
-    return v[0] | v[1] | v[2] | v[3];
+    SIMD_RETURN_REDUCE (int, 0, r |= v[i]);
 #endif
 }
 
-OIIO_FORCEINLINE int4 blend (const int4& a, const int4& b, const mask4& mask)
-{
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
-    return _mm_blendv_epi8 (a.simd(), b.simd(), _mm_castps_si128(mask));
-#elif defined(OIIO_SIMD_SSE) /* SSE2 */
+
+
+OIIO_FORCEINLINE int4 blend (const int4& a, const int4& b, const bool4& mask) {
+#if OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
+    return _mm_castps_si128 (_mm_blendv_ps (_mm_castsi128_ps(a.simd()),
+                                            _mm_castsi128_ps(b.simd()), mask));
+#elif OIIO_SIMD_SSE
     return _mm_or_si128 (_mm_and_si128(_mm_castps_si128(mask.simd()), b.simd()),
                          _mm_andnot_si128(_mm_castps_si128(mask.simd()), a.simd()));
 #else
@@ -2118,11 +3131,8 @@ OIIO_FORCEINLINE int4 blend (const int4& a, const int4& b, const mask4& mask)
 #endif
 }
 
-
-
-OIIO_FORCEINLINE int4 blend0 (const int4& a, const mask4& mask)
-{
-#if defined(OIIO_SIMD_SSE)
+OIIO_FORCEINLINE int4 blend0 (const int4& a, const bool4& mask) {
+#if OIIO_SIMD_SSE
     return _mm_and_si128(_mm_castps_si128(mask), a.simd());
 #else
     SIMD_RETURN (int4, mask[i] ? a[i] : 0.0f);
@@ -2130,10 +3140,8 @@ OIIO_FORCEINLINE int4 blend0 (const int4& a, const mask4& mask)
 }
 
 
-
-OIIO_FORCEINLINE int4 blend0not (const int4& a, const mask4& mask)
-{
-#if defined(OIIO_SIMD_SSE)
+OIIO_FORCEINLINE int4 blend0not (const int4& a, const bool4& mask) {
+#if OIIO_SIMD_SSE
     return _mm_andnot_si128(_mm_castps_si128(mask), a.simd());
 #else
     SIMD_RETURN (int4, mask[i] ? 0.0f : a[i]);
@@ -2141,50 +3149,47 @@ OIIO_FORCEINLINE int4 blend0not (const int4& a, const mask4& mask)
 }
 
 
-OIIO_FORCEINLINE int4 select (const mask4& mask, const int4& a, const int4& b)
-{
+OIIO_FORCEINLINE int4 select (const bool4& mask, const int4& a, const int4& b) {
     return blend (b, a, mask);
 }
 
 
 
-OIIO_FORCEINLINE int4 abs (const int4& a)
-{
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
+OIIO_FORCEINLINE int4 abs (const int4& a) {
+#if OIIO_SIMD_SSE >= 3
     return _mm_abs_epi32(a.simd());
 #else
-    return int4 (std::abs(a[0]), std::abs(a[1]), std::abs(a[2]), std::abs(a[3]));
+    SIMD_RETURN (int4, std::abs(a[i]));
 #endif
 }
 
-OIIO_FORCEINLINE int4 min (const int4& a, const int4& b)
-{
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
+
+
+OIIO_FORCEINLINE int4 min (const int4& a, const int4& b) {
+#if OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
     return _mm_min_epi32 (a, b);
 #else
-    SIMD_RETURN (int4, std::min (a[i], b[i]));
+    SIMD_RETURN (int4, std::min(a[i], b[i]));
 #endif
 }
 
-OIIO_FORCEINLINE int4 max (const int4& a, const int4& b)
-{
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
+
+OIIO_FORCEINLINE int4 max (const int4& a, const int4& b) {
+#if OIIO_SIMD_SSE >= 4 /* SSE >= 4.1 */
     return _mm_max_epi32 (a, b);
 #else
-    SIMD_RETURN (int4, std::max (a[i], b[i]));
+    SIMD_RETURN (int4, std::max(a[i], b[i]));
 #endif
 }
 
 
-OIIO_FORCEINLINE int4 rotl32 (const int4& x, const unsigned int k)
-{
+OIIO_FORCEINLINE int4 rotl32 (const int4& x, const unsigned int k) {
     return (x<<k) | srl(x,32-k);
 }
 
 
-
 OIIO_FORCEINLINE int4 andnot (const int4& a, const int4& b) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_andnot_si128 (a.simd(), b.simd());
 #else
     SIMD_RETURN (int4, ~(a[i]) & b[i]);
@@ -2192,14 +3197,621 @@ OIIO_FORCEINLINE int4 andnot (const int4& a, const int4& b) {
 }
 
 
-// Implementation had to be after the definition of int4.
-OIIO_FORCEINLINE mask4::mask4 (const int4& ival)
-{
-#if defined(OIIO_SIMD_SSE)
-    m_vec = (ival != int4::Zero());
+// Implementation had to be after the definition of int4::Zero.
+OIIO_FORCEINLINE bool4::bool4 (const int4& ival) {
+    m_simd = (ival != int4::Zero());
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+// int8 implementation
+
+OIIO_FORCEINLINE const int8 & int8::operator= (int8 other) {
+    m_simd = other.m_simd;
+    return *this;
+}
+
+OIIO_FORCEINLINE int& int8::operator[] (int i) {
+    DASSERT(i<elements);
+    return m_val[i];
+}
+
+OIIO_FORCEINLINE int int8::operator[] (int i) const {
+    DASSERT(i<elements);
+    return m_val[i];
+}
+
+
+OIIO_FORCEINLINE void int8::load (int a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_set1_epi32 (a);
 #else
-    SIMD_CONSTRUCT (ival[i] ? -1 : 0);
+    SIMD_CONSTRUCT (a);
 #endif
+}
+
+
+OIIO_FORCEINLINE void int8::load (int a, int b, int c, int d,
+                                  int e, int f, int g, int h) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_set_epi32 (h, g, f, e, d, c, b, a);
+#else
+    m_val[0] = a;
+    m_val[1] = b;
+    m_val[2] = c;
+    m_val[3] = d;
+    m_val[4] = e;
+    m_val[5] = f;
+    m_val[6] = g;
+    m_val[7] = h;
+#endif
+}
+
+
+OIIO_FORCEINLINE void int8::load (const int *values) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_loadu_si256 ((const simd_t *)values);
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void int8::load (const int *values, int n)
+{
+    // FIXME: is this faster with AVX masked loads?
+#if OIIO_SIMD_SSE
+    if (n > 0 && n <= 4) {
+        int4 l; l.load (values, n);
+        m_simd = int8(l, int4::Zero());
+    } else if (n > 4 && n <= 8) {
+        int4 h; h.load (values+4, n-4);
+        m_simd = int8(int4(values), h);
+    }
+    else
+        clear();
+#else
+    for (int i = 0; i < n; ++i)
+        m_val[i] = values[i];
+    for (int i = n; i < elements; ++i)
+        m_val[i] = 0;
+#endif
+}
+
+// FIXME(AVX): fast load from unsigned short, short, unsigned char, char
+
+OIIO_FORCEINLINE void int8::load (const short *values) {
+    SIMD_CONSTRUCT (values[i]);
+}
+
+OIIO_FORCEINLINE void int8::load (const unsigned short *values) {
+    SIMD_CONSTRUCT (values[i]);
+}
+
+
+OIIO_FORCEINLINE void int8::load (const char *values) {
+    SIMD_CONSTRUCT (values[i]);
+}
+
+OIIO_FORCEINLINE void int8::load (const unsigned char *values) {
+    SIMD_CONSTRUCT (values[i]);
+}
+
+
+
+OIIO_FORCEINLINE int8::int8 (int a) { load(a); }
+
+// OIIO_FORCEINLINE int8::int8 (int a, int b, int c, int d) { load(a,b,c,d); }
+
+OIIO_FORCEINLINE int8::int8 (int a, int b, int c, int d,
+                             int e, int f, int g, int h) {
+    load(a,b,c,d,e,f,g,h);
+}
+
+OIIO_FORCEINLINE int8::int8 (const int *vals) { load (vals); }
+OIIO_FORCEINLINE int8::int8 (const unsigned short *vals) { load(vals); }
+OIIO_FORCEINLINE int8::int8 (const short *vals) { load(vals); }
+OIIO_FORCEINLINE int8::int8 (const unsigned char *vals) { load(vals); }
+OIIO_FORCEINLINE int8::int8 (const char *vals) { load(vals); }
+
+OIIO_FORCEINLINE const int8 & int8::operator= (int a) { load(a); return *this; }
+
+
+OIIO_FORCEINLINE void int8::store (int *values) const {
+#if OIIO_SIMD_AVX
+    // Use an unaligned store -- it's just as fast when the memory turns
+    // out to be aligned, nearly as fast even when unaligned. Not worth
+    // the headache of using stores that require alignment.
+    _mm256_storeu_si256 ((simd_t *)values, m_simd);
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void int8::clear () {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_setzero_si256();
+#else
+    *this = 0;
+#endif
+}
+
+
+OIIO_FORCEINLINE const int8 int8::Zero () {
+#if OIIO_SIMD_AVX
+    return _mm256_setzero_si256();
+#else
+    return 0;
+#endif
+}
+
+OIIO_FORCEINLINE const int8 int8::One () { return int8(1); }
+
+OIIO_FORCEINLINE const int8 int8::NegOne () { return int8(-1); }
+
+
+OIIO_FORCEINLINE const int8 int8::Iota (int start, int step) {
+    return int8 (start+0*step, start+1*step, start+2*step, start+3*step,
+                 start+4*step, start+5*step, start+6*step, start+7*step);
+}
+
+
+OIIO_FORCEINLINE int4 int8::lo () const {
+#if OIIO_SIMD_AVX
+    return _mm256_castsi256_si128 (simd());
+#else
+    return m_4[0];
+#endif
+}
+
+OIIO_FORCEINLINE int4 int8::hi () const {
+#if OIIO_SIMD_AVX
+    return _mm256_extractf128_si256 (simd(), 1);
+#else
+    return m_4[1];
+#endif
+}
+
+
+OIIO_FORCEINLINE int8::int8 (const int4& lo, const int4 &hi) {
+#if OIIO_SIMD_AVX
+    __m256i r = _mm256_castsi128_si256 (lo);
+    m_simd = _mm256_insertf128_si256 (r, hi, 1);
+    // N.B. equivalent, if available: m_simd = _mm256_set_m128i (hi, lo);
+#else
+    m_4[0] = lo;
+    m_4[1] = hi;
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 operator+ (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_add_epi32 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] + b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE const int8& operator+= (int8& a, const int8& b) {
+    return a = a + b;
+}
+
+
+OIIO_FORCEINLINE int8 operator- (const int8& a) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_sub_epi32 (_mm256_setzero_si256(), a);
+#else
+    SIMD_RETURN (int8, -a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 operator- (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_sub_epi32 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] - b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE const int8 &operator-= (int8& a, const int8& b) {
+    return a = a - b;
+}
+
+
+OIIO_FORCEINLINE int8 operator* (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_mullo_epi32 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] * b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE const int8& operator*= (int8& a, const int8& b) { return a = a * b; }
+OIIO_FORCEINLINE const int8& operator*= (int8& a, int b) { return a = a * b; }
+
+
+OIIO_FORCEINLINE int8 operator/ (const int8& a, const int8& b) {
+    // NO INTEGER DIVISION IN SSE or AVX!
+    SIMD_RETURN (int8, a[i] / b[i]);
+}
+
+OIIO_FORCEINLINE const int8& operator/= (int8& a, const int8& b) { return a = a / b; }
+
+
+OIIO_FORCEINLINE int8 operator% (const int8& a, const int8& b) {
+    // NO INTEGER MODULUS IN SSE or AVX!
+    SIMD_RETURN (int8, a[i] % b[i]);
+}
+
+OIIO_FORCEINLINE const int8& operator%= (int8& a, const int8& b) { return a = a % b; }
+
+OIIO_FORCEINLINE int8 operator% (const int8& a, int w) {
+    // NO INTEGER MODULUS in SSE or AVX!
+    SIMD_RETURN (int8, a[i] % w);
+}
+
+OIIO_FORCEINLINE const int8& operator%= (int8& a, int b) { return a = a % b; }
+
+
+OIIO_FORCEINLINE int8 operator& (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_and_si256 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] & b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const int8& operator&= (int8& a, const int8& b) { return a = a & b; }
+
+OIIO_FORCEINLINE int8 operator| (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_or_si256 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] | b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const int8& operator|= (int8& a, const int8& b) { return a = a | b; }
+
+OIIO_FORCEINLINE int8 operator^ (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_xor_si256 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, a[i] ^ b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const int8& operator^= (int8& a, const int8& b) { return a = a ^ b; }
+
+
+OIIO_FORCEINLINE int8 operator~ (const int8& a) {
+#if OIIO_SIMD_AVX >= 2
+    return a ^ a.NegOne();
+#else
+    SIMD_RETURN (int8, ~a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 operator<< (const int8& a, unsigned int bits) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_slli_epi32 (a, bits);
+#elif OIIO_SIMD_SSE
+    return int8 (a.lo() << bits, a.hi() << bits);
+#else
+    SIMD_RETURN (int8, a[i] << bits);
+#endif
+}
+
+
+OIIO_FORCEINLINE const int8& operator<<= (int8& a, const unsigned int bits) {
+    return a = a << bits;
+}
+
+OIIO_FORCEINLINE int8 operator>> (const int8& a, const unsigned int bits) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_srai_epi32 (a, bits);
+#elif OIIO_SIMD_SSE
+    return int8 (a.lo() >> bits, a.hi() >> bits);
+#else
+    SIMD_RETURN (int8, a[i] >> bits);
+#endif
+}
+
+OIIO_FORCEINLINE const int8& operator>>= (int8& a, const unsigned int bits) {
+    return a = a >> bits;
+}
+
+
+OIIO_FORCEINLINE int8 srl (const int8& a, const unsigned int bits) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_srli_epi32 (a, bits);
+#else
+    SIMD_RETURN (int8, int ((unsigned int)(a[i]) >> bits));
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator== (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_castsi256_ps(_mm256_cmpeq_epi32 (a.m_simd, b.m_simd));
+#elif OIIO_SIMD_SSE  /* Fall back to 4-wide */
+    return bool8 (a.lo() == b.lo(), a.hi() == b.hi());
+#else
+    SIMD_RETURN (bool8, a[i] == b[i] ? -1 : 0);
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator!= (const int8& a, const int8& b) {
+    return ! (a == b);
+}
+
+
+OIIO_FORCEINLINE bool8 operator> (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_castsi256_ps(_mm256_cmpgt_epi32 (a, b));
+#elif OIIO_SIMD_SSE  /* Fall back to 4-wide */
+    return bool8 (a.lo() > b.lo(), a.hi() > b.hi());
+#else
+    SIMD_RETURN (bool8, a[i] > b[i] ? -1 : 0);
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator< (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    // No lt or lte!
+    return (b > a);
+#elif OIIO_SIMD_SSE  /* Fall back to 4-wide */
+    return bool8 (a.lo() < b.lo(), a.hi() < b.hi());
+#else
+    SIMD_RETURN (bool8, a[i] < b[i] ? -1 : 0);
+#endif
+}
+
+
+OIIO_FORCEINLINE bool8 operator>= (const int8& a, const int8& b) {
+    return (a > b) | (a == b);
+}
+
+
+OIIO_FORCEINLINE bool8 operator<= (const int8& a, const int8& b) {
+    return (b > a) | (a == b);
+}
+
+
+inline std::ostream& operator<< (std::ostream& cout, const int8& val) {
+    cout << val[0];
+    for (int i = 1; i < val.elements; ++i)
+        cout << ' ' << val[i];
+    return cout;
+}
+
+
+OIIO_FORCEINLINE void int8::store (int *values, int n) const {
+    DASSERT (n >= 0 && n <= elements);
+    // FIXME: is this faster with AVX masked stores?
+#if OIIO_SIMD_SSE
+    if (n <= 4) {
+        lo().store (values, n);
+    } else if (n <= 8) {
+        lo().store (values);
+        hi().store (values+4, n-4);
+    }
+#endif
+        for (int i = 0; i < n; ++i)
+            values[i] = m_val[i];
+}
+
+
+// FIXME(AVX): fast int8 store to unsigned short, unsigned char
+
+OIIO_FORCEINLINE void int8::store (unsigned short *values) const {
+#if 0 && OIIO_SIMD_AVX >= 2
+    // FIXME -- try to determine if this is faster:
+    lo().store (values);
+    hi().store (values+4);
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void int8::store (unsigned char *values) const {
+#if OIIO_SIMD_SSE
+    lo().store (values);
+    hi().store (values+4);
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+OIIO_FORCEINLINE int8 shuffle (const int8& a) {
+#if OIIO_SIMD_AVX >= 2
+    int8 index (i0, i1, i2, i3, i4, i5, i6, i7);
+    return _mm256_castps_si256 (_mm256_permutevar8x32_ps (_mm256_castsi256_ps(a.simd()), index.simd()));
+#else
+    return int8 (a[i0], a[i1], a[i2], a[i3], a[i4], a[i5], a[i6], a[i7]);
+#endif
+}
+
+template<int i> OIIO_FORCEINLINE int8 shuffle (const int8& a) {
+    return shuffle<i,i,i,i,i,i,i,i>(a);
+}
+
+
+template<int i>
+OIIO_FORCEINLINE int extract (const int8& v) {
+#if OIIO_SIMD_AVX
+    return _mm256_extract_epi32(v.simd(), i);
+#else
+    return v[i];
+#endif
+}
+
+
+template<int i>
+OIIO_FORCEINLINE int8 insert (const int8& a, int val) {
+#if OIIO_SIMD_AVX
+    return _mm256_insert_epi32 (a.simd(), val, i);
+#else
+    int8 tmp = a;
+    tmp[i] = val;
+    return tmp;
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 bitcast_to_int (const bool8& x)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_castps_si256 (x.simd());
+#else
+    return *(int8 *)&x;
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 vreduce_add (const int8& v) {
+#if OIIO_SIMD_AVX >= 2
+    // From Syrah:
+    int8 ab_cd_0_0_ef_gh_0_0 = _mm256_hadd_epi32(v.simd(), _mm256_setzero_si256());
+    int8 abcd_0_0_0_efgh_0_0_0 = _mm256_hadd_epi32(ab_cd_0_0_ef_gh_0_0, _mm256_setzero_si256());
+    // get efgh in the 0-idx slot
+    int8 efgh = shuffle<4>(abcd_0_0_0_efgh_0_0_0);
+    int8 final_sum = abcd_0_0_0_efgh_0_0_0 + efgh;
+    return shuffle<0>(final_sum);
+#elif OIIO_SIMD_SSE
+    int4 hadd4 = vreduce_add(v.lo()) + vreduce_add(v.hi());
+    return int8(hadd4, hadd4);
+#else
+    SIMD_RETURN_REDUCE (int8, 0, r += v[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE int reduce_add (const int8& v) {
+#if OIIO_SIMD_SSE
+    return extract<0> (vreduce_add(v));
+#else
+    SIMD_RETURN_REDUCE (int, 0, r += v[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE int reduce_and (const int8& v) {
+#if OIIO_SSE_AVX >= 2
+    int8 ab = v & shuffle<1,1,3,3,5,5,7,7>(v); // ab bb cd dd ef ff gh hh
+    int8 abcd = ab & shuffle<2,2,2,2,6,6,6,6>(ab); // abcd x x x efgh x x x
+    int8 abcdefgh = abcd & shuffle<4>(abcdefgh); // abcdefgh x x x x x x x
+    return extract<0> (abcdefgh);
+#else
+    // AVX 1.0 or less -- use SSE
+    return reduce_and(v.lo() & v.hi());
+#endif
+}
+
+
+OIIO_FORCEINLINE int reduce_or (const int8& v) {
+#if OIIO_SSE_AVX >= 2
+    int8 ab = v | shuffle<1,1,3,3,5,5,7,7>(v); // ab bb cd dd ef ff gh hh
+    int8 abcd = ab | shuffle<2,2,2,2,6,6,6,6>(ab); // abcd x x x efgh x x x
+    int8 abcdefgh = abcd | shuffle<4>(abcdefgh); // abcdefgh x x x x x x x
+    return extract<0> (abcdefgh);
+#else
+    // AVX 1.0 or less -- use SSE
+    return reduce_or(v.lo() | v.hi());
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 blend (const int8& a, const int8& b, const bool8& mask) {
+#if OIIO_SIMD_AVX
+    return _mm256_castps_si256 (_mm256_blendv_ps (_mm256_castsi256_ps(a.simd()),
+                                                  _mm256_castsi256_ps(b.simd()), mask));
+#else
+    SIMD_RETURN (int8, mask[i] ? b[i] : a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 blend0 (const int8& a, const bool8& mask) {
+#if OIIO_SIMD_AVX
+    return _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(a.simd()), mask));
+#else
+    SIMD_RETURN (int8, mask[i] ? a[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 blend0not (const int8& a, const bool8& mask) {
+#if OIIO_SIMD_AVX
+    return _mm256_castps_si256 (_mm256_andnot_ps (mask.simd(), _mm256_castsi256_ps(a.simd())));
+#else
+    SIMD_RETURN (int8, mask[i] ? 0.0f : a[i]);
+#endif
+}
+
+OIIO_FORCEINLINE int8 select (const bool8& mask, const int8& a, const int8& b) {
+    return blend (b, a, mask);
+}
+
+
+OIIO_FORCEINLINE int8 abs (const int8& a) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_abs_epi32(a.simd());
+#else
+    SIMD_RETURN (int8, std::abs(a[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 min (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_min_epi32 (a, b);
+#else
+    SIMD_RETURN (int8, std::min(a[i], b[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 max (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_max_epi32 (a, b);
+#else
+    SIMD_RETURN (int8, std::max(a[i], b[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 rotl32 (const int8& x, const unsigned int k) {
+    return (x<<k) | srl(x,32-k);
+}
+
+
+OIIO_FORCEINLINE int8 andnot (const int8& a, const int8& b) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_andnot_si256 (a.simd(), b.simd());
+#else
+    SIMD_RETURN (int8, ~(a[i]) & b[i]);
+#endif
+}
+
+
+// Implementation had to be after the definition of int8::Zero.
+OIIO_FORCEINLINE bool8::bool8 (const int8& ival) {
+    m_simd = (ival != int8::Zero());
 }
 
 
@@ -2210,8 +3822,8 @@ OIIO_FORCEINLINE mask4::mask4 (const int4& ival)
 
 
 OIIO_FORCEINLINE float4::float4 (const int4& ival) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_cvtepi32_ps (ival.simd());
+#if OIIO_SIMD_SSE
+    m_simd = _mm_cvtepi32_ps (ival.simd());
 #else
     SIMD_CONSTRUCT (float(ival[i]));
 #endif
@@ -2219,7 +3831,7 @@ OIIO_FORCEINLINE float4::float4 (const int4& ival) {
 
 
 OIIO_FORCEINLINE const float4 float4::Zero () {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_setzero_ps();
 #else
     return float4(0.0f);
@@ -2230,14 +3842,14 @@ OIIO_FORCEINLINE const float4 float4::One () {
     return float4(1.0f);
 }
 
-OIIO_FORCEINLINE const float4 float4::Iota (float value) {
-    return float4(value,value+1.0f,value+2.0f,value+3.0f);
+OIIO_FORCEINLINE const float4 float4::Iota (float start, float step) {
+    return float4 (start+0.0f*step, start+1.0f*step, start+2.0f*step, start+3.0f*step);
 }
 
-    /// Set all components to 0.0
+/// Set all components to 0.0
 OIIO_FORCEINLINE void float4::clear () {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_setzero_ps();
+#if OIIO_SIMD_SSE
+    m_simd = _mm_setzero_ps();
 #else
     load (0.0f);
 #endif
@@ -2267,21 +3879,21 @@ OIIO_FORCEINLINE float float4::operator[] (int i) const {
 
 
 OIIO_FORCEINLINE void float4::load (float val) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_set1_ps (val);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_set1_ps (val);
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vdupq_n_f32 (val);
+    m_simd = vdupq_n_f32 (val);
 #else
     SIMD_CONSTRUCT (val);
 #endif
 }
 
 OIIO_FORCEINLINE void float4::load (float a, float b, float c, float d) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_set_ps (d, c, b, a);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_set_ps (d, c, b, a);
 #elif defined(OIIO_SIMD_NEON)
     float values[4] = { a, b, c, d };
-    m_vec = vld1q_f32 (values);
+    m_simd = vld1q_f32 (values);
 #else
     m_val[0] = a;
     m_val[1] = b;
@@ -2292,49 +3904,48 @@ OIIO_FORCEINLINE void float4::load (float a, float b, float c, float d) {
 
     /// Load from an array of 4 values
 OIIO_FORCEINLINE void float4::load (const float *values) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_loadu_ps (values);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_loadu_ps (values);
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vld1q_f32 (values);
+    m_simd = vld1q_f32 (values);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
 
-    /// Load from a partial array of <=4 values. Unassigned values are
-    /// undefined.
+
 OIIO_FORCEINLINE void float4::load (const float *values, int n) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     switch (n) {
     case 1:
-        m_vec = _mm_load_ss (values);
+        m_simd = _mm_load_ss (values);
         break;
     case 2:
         // Trickery: load one double worth of bits!
-        m_vec = _mm_castpd_ps (_mm_load_sd ((const double*)values));
+        m_simd = _mm_castpd_ps (_mm_load_sd ((const double*)values));
         break;
     case 3:
-        m_vec = _mm_setr_ps (values[0], values[1], values[2], 0.0f);
+        m_simd = _mm_setr_ps (values[0], values[1], values[2], 0.0f);
         // This looks wasteful, but benchmarks show that it's the
         // fastest way to set 3 values with the 4th getting zero.
         // Actually, gcc and clang both turn it into something more
         // efficient than _mm_setr_ps. The version below looks smart,
         // but was much more expensive as the _mm_setr_ps!
         //   __m128 xy = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*)values));
-        //   m_vec = _mm_movelh_ps(xy, _mm_load_ss (values + 2));
+        //   m_simd = _mm_movelh_ps(xy, _mm_load_ss (values + 2));
         break;
     case 4:
-        m_vec = _mm_loadu_ps (values);
+        m_simd = _mm_loadu_ps (values);
         break;
     default:
         break;
     }
 #elif defined(OIIO_SIMD_NEON)
     switch (n) {
-    case 1: m_vec = vdupq_n_f32 (val);                    break;
+    case 1: m_simd = vdupq_n_f32 (val);                    break;
     case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
     case 3: load (values[0], values[1], values[2], 0.0f); break;
-    case 4: m_vec = vld1q_f32 (values);                   break;
+    case 4: m_simd = vld1q_f32 (values);                   break;
     default: break;
     }
 #else
@@ -2345,30 +3956,30 @@ OIIO_FORCEINLINE void float4::load (const float *values, int n) {
 #endif
 }
 
-    /// Load from an array of 4 unsigned short values, convert to float
+
 OIIO_FORCEINLINE void float4::load (const unsigned short *values) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
-    m_vec = _mm_cvtepi32_ps (int4(values).simd());
+    m_simd = _mm_cvtepi32_ps (int4(values).simd());
     // You might guess that the following is faster, but it's NOT:
-    //   NO!  m_vec = _mm_cvtpu16_ps (*(__m64*)values);
+    //   NO!  m_simd = _mm_cvtpu16_ps (*(__m64*)values);
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
 
-    /// Load from an array of 4 short values, convert to float
+
 OIIO_FORCEINLINE void float4::load (const short *values) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
-    m_vec = _mm_cvtepi32_ps (int4(values).simd());
+    m_simd = _mm_cvtepi32_ps (int4(values).simd());
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
 
-    /// Load from an array of 4 unsigned char values, convert to float
+
 OIIO_FORCEINLINE void float4::load (const unsigned char *values) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
-    m_vec = _mm_cvtepi32_ps (int4(values).simd());
+    m_simd = _mm_cvtepi32_ps (int4(values).simd());
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
@@ -2377,7 +3988,7 @@ OIIO_FORCEINLINE void float4::load (const unsigned char *values) {
     /// Load from an array of 4 char values, convert to float
 OIIO_FORCEINLINE void float4::load (const char *values) {
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
-    m_vec = _mm_cvtepi32_ps (int4(values).simd());
+    m_simd = _mm_cvtepi32_ps (int4(values).simd());
 #else
     SIMD_CONSTRUCT (values[i]);
 #endif
@@ -2388,7 +3999,7 @@ OIIO_FORCEINLINE void float4::load (const half *values) {
 #if defined(__F16C__) && defined(OIIO_SIMD_SSE)
     /* Enabled 16 bit float instructions! */
     __m128i a = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
-    m_vec = _mm_cvtph_ps (a);
+    m_simd = _mm_cvtph_ps (a);
 #elif defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 2
     // SSE half-to-float by Fabian "ryg" Giesen. Public domain.
     // https://gist.github.com/rygorous/2144712
@@ -2411,7 +4022,7 @@ OIIO_FORCEINLINE void float4::load (const half *values) {
     __m128  sign_inf    = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
     __m128  final       = _mm_or_ps(scaled, sign_inf);
     // ~11 SSE2 ops.
-    m_vec = final;
+    m_simd = final;
 # undef CONSTI
 # undef CONSTF
 #else /* No SIMD defined: */
@@ -2421,13 +4032,13 @@ OIIO_FORCEINLINE void float4::load (const half *values) {
 #endif /* _HALF_H_ */
 
 OIIO_FORCEINLINE void float4::store (float *values) const {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     // Use an unaligned store -- it's just as fast when the memory turns
     // out to be aligned, nearly as fast even when unaligned. Not worth
     // the headache of using stores that require alignment.
-    _mm_storeu_ps (values, m_vec);
+    _mm_storeu_ps (values, m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    vst1q_f32 (values, m_vec);
+    vst1q_f32 (values, m_simd);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
@@ -2435,14 +4046,14 @@ OIIO_FORCEINLINE void float4::store (float *values) const {
 
 OIIO_FORCEINLINE void float4::store (float *values, int n) const {
     DASSERT (n >= 0 && n <= 4);
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     switch (n) {
         case 1:
-        _mm_store_ss (values, m_vec);
+        _mm_store_ss (values, m_simd);
         break;
     case 2:
         // Trickery: store two floats as a double worth of bits
-        _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
+        _mm_store_sd ((double*)values, _mm_castps_pd(m_simd));
         break;
     case 3:
         values[0] = m_val[0];
@@ -2451,8 +4062,8 @@ OIIO_FORCEINLINE void float4::store (float *values, int n) const {
         // This looks wasteful, but benchmarks show that it's the
         // fastest way to store 3 values, in benchmarks was faster than
         // this, below:
-        //   _mm_store_sd ((double*)values, _mm_castps_pd(m_vec));
-        //   _mm_store_ss (values + 2, _mm_movehl_ps(m_vec,m_vec));
+        //   _mm_store_sd ((double*)values, _mm_castps_pd(m_simd));
+        //   _mm_store_ss (values + 2, _mm_movehl_ps(m_simd,m_simd));
         break;
     case 4:
         store (values);
@@ -2463,19 +4074,19 @@ OIIO_FORCEINLINE void float4::store (float *values, int n) const {
 #elif defined(OIIO_SIMD_NEON)
     switch (n) {
     case 1:
-        vst1q_lane_f32 (values, m_vec, 0);
+        vst1q_lane_f32 (values, m_simd, 0);
         break;
     case 2:
-        vst1q_lane_f32 (values++, m_vec, 0);
-        vst1q_lane_f32 (values, m_vec, 1);
+        vst1q_lane_f32 (values++, m_simd, 0);
+        vst1q_lane_f32 (values, m_simd, 1);
         break;
     case 3:
-        vst1q_lane_f32 (values++, m_vec, 0);
-        vst1q_lane_f32 (values++, m_vec, 1);
-        vst1q_lane_f32 (values, m_vec, 2);
+        vst1q_lane_f32 (values++, m_simd, 0);
+        vst1q_lane_f32 (values++, m_simd, 1);
+        vst1q_lane_f32 (values, m_simd, 2);
         break;
     case 4:
-        vst1q_f32 (values, m_vec); break;
+        vst1q_f32 (values, m_simd); break;
     default:
         break;
     }
@@ -2488,29 +4099,29 @@ OIIO_FORCEINLINE void float4::store (float *values, int n) const {
 #ifdef _HALF_H_
 OIIO_FORCEINLINE void float4::store (half *values) const {
 #if defined(__F16C__) && defined(OIIO_SIMD_SSE)
-    __m128i h = _mm_cvtps_ph (m_vec, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+    __m128i h = _mm_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
     _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
-    #else
+#else
     SIMD_DO (values[i] = m_val[i]);
 #endif
 }
 #endif
 
 OIIO_FORCEINLINE float4 operator+ (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_add_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_add_ps (a.m_simd, b.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    return vaddq_f32 (a.m_vec, b.m_vec);
+    return vaddq_f32 (a.m_simd, b.m_simd);
 #else
     SIMD_RETURN (float4, a[i] + b[i]);
 #endif
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator+= (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_add_ps (m_vec, a.m_vec);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_add_ps (m_simd, a.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vaddq_f32 (m_vec, a.m_vec);
+    m_simd = vaddq_f32 (m_simd, a.m_simd);
 #else
     SIMD_DO (m_val[i] += a[i]);
 #endif
@@ -2518,30 +4129,30 @@ OIIO_FORCEINLINE const float4 & float4::operator+= (const float4& a) {
     }
 
 OIIO_FORCEINLINE float4 float4::operator- () const {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_sub_ps (_mm_setzero_ps(), m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_sub_ps (_mm_setzero_ps(), m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    return vsubq_f32 (Zero(), m_vec);
+    return vsubq_f32 (Zero(), m_simd);
 #else
     SIMD_RETURN (float4, -m_val[i]);
 #endif
 }
 
 OIIO_FORCEINLINE float4 operator- (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_sub_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_sub_ps (a.m_simd, b.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    return vsubq_f32 (a.m_vec, b.m_vec);
+    return vsubq_f32 (a.m_simd, b.m_simd);
 #else
     SIMD_RETURN (float4, a[i] - b[i]);
 #endif
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator-= (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_sub_ps (m_vec, a.m_vec);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_sub_ps (m_simd, a.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vsubq_f32 (m_vec, a.m_vec);
+    m_simd = vsubq_f32 (m_simd, a.m_simd);
 #else
     SIMD_DO (m_val[i] -= a[i]);
 #endif
@@ -2549,20 +4160,20 @@ OIIO_FORCEINLINE const float4 & float4::operator-= (const float4& a) {
 }
 
 OIIO_FORCEINLINE float4 operator* (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_mul_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_mul_ps (a.m_simd, b.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    return vmulq_f32 (a.m_vec, b.m_vec);
+    return vmulq_f32 (a.m_simd, b.m_simd);
 #else
     SIMD_RETURN (float4, a[i] * b[i]);
 #endif
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator*= (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_mul_ps (m_vec, a.m_vec);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_mul_ps (m_simd, a.m_simd);
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vmulq_f32 (m_vec, a.m_vec);
+    m_simd = vmulq_f32 (m_simd, a.m_simd);
 #else
     SIMD_DO (m_val[i] *= a[i]);
 #endif
@@ -2570,10 +4181,10 @@ OIIO_FORCEINLINE const float4 & float4::operator*= (const float4& a) {
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator*= (float val) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_mul_ps (m_vec, _mm_set1_ps(val));
+#if OIIO_SIMD_SSE
+    m_simd = _mm_mul_ps (m_simd, _mm_set1_ps(val));
 #elif defined(OIIO_SIMD_NEON)
-    m_vec = vmulq_f32 (m_vec, vdupq_n_f32(val));
+    m_simd = vmulq_f32 (m_simd, vdupq_n_f32(val));
 #else
     SIMD_DO (m_val[i] *= val);
 #endif
@@ -2581,16 +4192,16 @@ OIIO_FORCEINLINE const float4 & float4::operator*= (float val) {
 }
 
 OIIO_FORCEINLINE float4 operator/ (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_div_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_div_ps (a.m_simd, b.m_simd);
 #else
     SIMD_RETURN (float4, a[i] / b[i]);
 #endif
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator/= (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_div_ps (m_vec, a.m_vec);
+#if OIIO_SIMD_SSE
+    m_simd = _mm_div_ps (m_simd, a.m_simd);
 #else
     SIMD_DO (m_val[i] /= a[i]);
 #endif
@@ -2598,73 +4209,73 @@ OIIO_FORCEINLINE const float4 & float4::operator/= (const float4& a) {
 }
 
 OIIO_FORCEINLINE const float4 & float4::operator/= (float val) {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_div_ps (m_vec, _mm_set1_ps(val));
+#if OIIO_SIMD_SSE
+    m_simd = _mm_div_ps (m_simd, _mm_set1_ps(val));
 #else
     SIMD_DO (m_val[i] /= val);
 #endif
     return *this;
 }
 
-OIIO_FORCEINLINE mask4 operator== (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmpeq_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator== (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmpeq_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] == b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] == b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator!= (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmpneq_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator!= (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmpneq_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] != b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] != b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator< (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmplt_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator< (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmplt_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] < b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] < b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator>  (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmpgt_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator>  (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmpgt_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] > b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] > b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator>= (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmpge_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator>= (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmpge_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] >= b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] >= b[i] ? -1 : 0);
 #endif
 }
 
-OIIO_FORCEINLINE mask4 operator<= (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_cmple_ps (a.m_vec, b.m_vec);
+OIIO_FORCEINLINE bool4 operator<= (const float4& a, const float4& b) {
+#if OIIO_SIMD_SSE
+    return _mm_cmple_ps (a.m_simd, b.m_simd);
 #else
-    SIMD_RETURN (mask4, a[i] <= b[i] ? -1 : 0);
+    SIMD_RETURN (bool4, a[i] <= b[i] ? -1 : 0);
 #endif
 }
 
 OIIO_FORCEINLINE float4 AxyBxy (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_movelh_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_movelh_ps (a.m_simd, b.m_simd);
 #else
     return float4 (a[0], a[1], b[0], b[1]);
 #endif
 }
 
 OIIO_FORCEINLINE float4 AxBxAyBy (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
-    return _mm_unpacklo_ps (a.m_vec, b.m_vec);
+#if OIIO_SIMD_SSE
+    return _mm_unpacklo_ps (a.m_simd, b.m_simd);
 #else
     return float4 (a[0], b[0], a[1], b[1]);
 #endif
@@ -2689,18 +4300,17 @@ inline std::ostream& operator<< (std::ostream& cout, const float4& val) {
 // Implementation had to be after the definition of float4.
 OIIO_FORCEINLINE int4::int4 (const float4& f)
 {
-#if defined(OIIO_SIMD_SSE)
-    m_vec = _mm_cvttps_epi32(f.simd());
+#if OIIO_SIMD_SSE
+    m_simd = _mm_cvttps_epi32(f.simd());
 #else
     SIMD_CONSTRUCT ((int) f[i]);
 #endif
 }
 
 
-
 template<int i0, int i1, int i2, int i3>
 OIIO_FORCEINLINE float4 shuffle (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return shuffle_sse<i0,i1,i2,i3> (__m128(a));
 #else
     return float4(a[i0], a[i1], a[i2], a[i3]);
@@ -2711,16 +4321,16 @@ template<int i> OIIO_FORCEINLINE float4 shuffle (const float4& a) { return shuff
 
 #if defined(OIIO_SIMD_NEON)
 template<> OIIO_FORCEINLINE float4 shuffle<0> (const float4& a) {
-    float32x2_t t = vget_low_f32(a.m_vec); return vdupq_lane_f32(t,0);
+    float32x2_t t = vget_low_f32(a.m_simd); return vdupq_lane_f32(t,0);
 }
 template<> OIIO_FORCEINLINE float4 shuffle<1> (const float4& a) {
-    float32x2_t t = vget_low_f32(a.m_vec); return vdupq_lane_f32(t,1);
+    float32x2_t t = vget_low_f32(a.m_simd); return vdupq_lane_f32(t,1);
 }
 template<> OIIO_FORCEINLINE float4 shuffle<2> (const float4& a) {
-    float32x2_t t = vget_high_f32(a.m_vec); return vdupq_lane_f32(t,0);
+    float32x2_t t = vget_high_f32(a.m_simd); return vdupq_lane_f32(t,0);
 }
 template<> OIIO_FORCEINLINE float4 shuffle<3> (const float4& a) {
-    float32x2_t t = vget_high_f32(a.m_vec); return vdupq_lane_f32(t,1);
+    float32x2_t t = vget_high_f32(a.m_simd); return vdupq_lane_f32(t,1);
 }
 #endif
 
@@ -2730,14 +4340,14 @@ template<> OIIO_FORCEINLINE float4 shuffle<3> (const float4& a) {
 /// index is fixed.
 template<int i>
 OIIO_FORCEINLINE float extract (const float4& a) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_cvtss_f32(shuffle_sse<i,i,i,i>(a.simd()));
 #else
     return a[i];
 #endif
 }
 
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
 template<> OIIO_FORCEINLINE float extract<0> (const float4& a) {
     return _mm_cvtss_f32(a.simd());
 }
@@ -2747,7 +4357,7 @@ template<> OIIO_FORCEINLINE float extract<0> (const float4& a) {
 /// Helper: substitute val for a[i]
 template<int i>
 OIIO_FORCEINLINE float4 insert (const float4& a, float val) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     return _mm_insert_ps (a, _mm_set_ss(val), i<<4);
 #else
     float4 tmp = a;
@@ -2756,7 +4366,7 @@ OIIO_FORCEINLINE float4 insert (const float4& a, float val) {
 #endif
 }
 
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
 // Slightly faster special cases for SSE
 template<> OIIO_FORCEINLINE float4 insert<0> (const float4& a, float val) {
     return _mm_move_ss (a.simd(), _mm_set_ss(val));
@@ -2774,18 +4384,18 @@ OIIO_FORCEINLINE void float4::set_z (float val) { *this = insert<2>(*this, val);
 OIIO_FORCEINLINE void float4::set_w (float val) { *this = insert<3>(*this, val); }
 
 
-OIIO_FORCEINLINE int4 bitcast_to_int4 (const float4& x)
+OIIO_FORCEINLINE int4 bitcast_to_int (const float4& x)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_castps_si128 (x.simd());
 #else
     return *(int4 *)&x;
 #endif
 }
 
-OIIO_FORCEINLINE float4 bitcast_to_float4 (const int4& x)
+OIIO_FORCEINLINE float4 bitcast_to_float (const int4& x)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_castsi128_ps (x.simd());
 #else
     return *(float4 *)&x;
@@ -2793,8 +4403,14 @@ OIIO_FORCEINLINE float4 bitcast_to_float4 (const int4& x)
 }
 
 
+// Old names:
+inline int4 bitcast_to_int4 (const float4& x) { return bitcast_to_int(x); }
+inline float4 bitcast_to_float4 (const int4& x) { return bitcast_to_float(x); }
+
+
+
 OIIO_FORCEINLINE float4 vreduce_add (const float4& v) {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 3
+#if OIIO_SIMD_SSE >= 3
     // People seem to agree that SSE3 does add reduction best with 2
     // horizontal adds.
     // suppose v = (a, b, c, d)
@@ -2820,7 +4436,7 @@ OIIO_FORCEINLINE float4 vreduce_add (const float4& v) {
 
 
 OIIO_FORCEINLINE float reduce_add (const float4& v) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_cvtss_f32(vreduce_add (v));
 #else
     return v[0] + v[1] + v[2] + v[3];
@@ -2864,9 +4480,9 @@ OIIO_FORCEINLINE float dot3 (const float4 &a, const float4 &b) {
 }
 
 
-OIIO_FORCEINLINE float4 blend (const float4& a, const float4& b, const mask4& mask)
+OIIO_FORCEINLINE float4 blend (const float4& a, const float4& b, const bool4& mask)
 {
-#if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4
+#if OIIO_SIMD_SSE >= 4
     // SSE >= 4.1 only
     return _mm_blendv_ps (a.simd(), b.simd(), mask.simd());
 #elif defined(OIIO_SIMD_SSE)
@@ -2882,9 +4498,9 @@ OIIO_FORCEINLINE float4 blend (const float4& a, const float4& b, const mask4& ma
 }
 
 
-OIIO_FORCEINLINE float4 blend0 (const float4& a, const mask4& mask)
+OIIO_FORCEINLINE float4 blend0 (const float4& a, const bool4& mask)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_and_ps(mask.simd(), a.simd());
 #else
     return float4 (mask[0] ? a[0] : 0.0f,
@@ -2895,9 +4511,9 @@ OIIO_FORCEINLINE float4 blend0 (const float4& a, const mask4& mask)
 }
 
 
-OIIO_FORCEINLINE float4 blend0not (const float4& a, const mask4& mask)
+OIIO_FORCEINLINE float4 blend0not (const float4& a, const bool4& mask)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_andnot_ps(mask.simd(), a.simd());
 #else
     return float4 (mask[0] ? 0.0f : a[0],
@@ -2909,7 +4525,7 @@ OIIO_FORCEINLINE float4 blend0not (const float4& a, const mask4& mask)
 
 
 OIIO_FORCEINLINE float4 safe_div (const float4 &a, const float4 &b) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return blend0not (a/b, b == float4::Zero());
 #else
     return float4 (b[0] == 0.0f ? 0.0f : a[0] / b[0],
@@ -2922,7 +4538,7 @@ OIIO_FORCEINLINE float4 safe_div (const float4 &a, const float4 &b) {
 
 OIIO_FORCEINLINE float3 hdiv (const float4 &a)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return float3(safe_div(a, shuffle<3>(a)).xyz0());
 #else
     float d = a[3];
@@ -2932,7 +4548,7 @@ OIIO_FORCEINLINE float3 hdiv (const float4 &a)
 
 
 
-OIIO_FORCEINLINE float4 select (const mask4& mask, const float4& a, const float4& b)
+OIIO_FORCEINLINE float4 select (const bool4& mask, const float4& a, const float4& b)
 {
     return blend (b, a, mask);
 }
@@ -2940,11 +4556,11 @@ OIIO_FORCEINLINE float4 select (const mask4& mask, const float4& a, const float4
 
 OIIO_FORCEINLINE float4 abs (const float4& a)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     // Just clear the sign bit for cheap fabsf
     return _mm_and_ps (a.simd(), _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff)));
 #else
-    return float4 (fabsf(a[0]), fabsf(a[1]), fabsf(a[2]), fabsf(a[3]));
+    SIMD_RETURN (float4, fabsf(a[i]));
 #endif
 }
 
@@ -2961,7 +4577,7 @@ OIIO_FORCEINLINE float4 ceil (const float4& a)
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_ceil_ps (a);
 #else
-    return float4 (ceilf(a[0]), ceilf(a[1]), ceilf(a[2]), ceilf(a[3]));
+    SIMD_RETURN (float4, ceilf(a[i]));
 #endif
 }
 
@@ -2970,7 +4586,7 @@ OIIO_FORCEINLINE float4 floor (const float4& a)
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_floor_ps (a);
 #else
-    return float4 (floorf(a[0]), floorf(a[1]), floorf(a[2]), floorf(a[3]));
+    SIMD_RETURN (float4, floorf(a[i]));
 #endif
 }
 
@@ -2979,7 +4595,7 @@ OIIO_FORCEINLINE float4 round (const float4& a)
 #if defined(OIIO_SIMD_SSE) && OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
 #else
-    return float4 (roundf(a[0]), roundf(a[1]), roundf(a[2]), roundf(a[3]));
+    SIMD_RETURN (float4, roundf(a[i]));
 #endif
 }
 
@@ -2989,14 +4605,13 @@ OIIO_FORCEINLINE int4 floori (const float4& a)
     return int4(floor(a));
 #elif defined(OIIO_SIMD_SSE)   /* SSE2/3 */
     int4 i (a);  // truncates
-    int4 isneg = bitcast_to_int4 (a < float4::Zero());
+    int4 isneg = bitcast_to_int (a < float4::Zero());
     return i + isneg;
     // The trick here (thanks, Cycles, for letting me spy on your code) is
     // that the comparison will return (int)-1 for components that are less
     // than zero, and adding that is the same as subtracting one!
 #else
-    return int4 ((int)floorf(a[0]), (int)floorf(a[1]),
-                 (int)floorf(a[2]), (int)floorf(a[3]));
+    SIMD_RETURN (int4, (int)floorf(a[i]));
 #endif
 }
 
@@ -3007,16 +4622,14 @@ OIIO_FORCEINLINE int4 rint (const float4& a)
 }
 
 
-
 OIIO_FORCEINLINE float4 sqrt (const float4 &a)
 {
 #if OIIO_SIMD_SSE
     return _mm_sqrt_ps (a.simd());
 #else
-    return float4 (sqrtf(a[0]), sqrtf(a[1]), sqrtf(a[2]), sqrtf(a[3]));
+    SIMD_RETURN (float4, sqrtf(a[i]));
 #endif
 }
-
 
 
 OIIO_FORCEINLINE float4 rsqrt (const float4 &a)
@@ -3024,11 +4637,9 @@ OIIO_FORCEINLINE float4 rsqrt (const float4 &a)
 #if OIIO_SIMD_SSE
     return _mm_div_ps (_mm_set1_ps(1.0f), _mm_sqrt_ps (a.simd()));
 #else
-    return float4 (1.0f/sqrtf(a[0]), 1.0f/sqrtf(a[1]),
-                   1.0f/sqrtf(a[2]), 1.0f/sqrtf(a[3]));
+    SIMD_RETURN (float4, 1.0f/sqrtf(a[i]));
 #endif
 }
-
 
 
 OIIO_FORCEINLINE float4 rsqrt_fast (const float4 &a)
@@ -3036,52 +4647,42 @@ OIIO_FORCEINLINE float4 rsqrt_fast (const float4 &a)
 #if OIIO_SIMD_SSE
     return _mm_rsqrt_ps (a.simd());
 #else
-    return float4 (1.0f/sqrtf(a[0]), 1.0f/sqrtf(a[1]),
-                   1.0f/sqrtf(a[2]), 1.0f/sqrtf(a[3]));
+    SIMD_RETURN (float4, 1.0f/sqrtf(a[i]));
 #endif
 }
 
 
-
 OIIO_FORCEINLINE float4 min (const float4& a, const float4& b)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_min_ps (a, b);
 #else
-    return float4 (std::min (a[0], b[0]),
-                   std::min (a[1], b[1]),
-                   std::min (a[2], b[2]),
-                   std::min (a[3], b[3]));
+    SIMD_RETURN (float4, std::min (a[i], b[i]));
 #endif
 }
 
 OIIO_FORCEINLINE float4 max (const float4& a, const float4& b)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_max_ps (a, b);
 #else
-    return float4 (std::max (a[0], b[0]),
-                   std::max (a[1], b[1]),
-                   std::max (a[2], b[2]),
-                   std::max (a[3], b[3]));
+    SIMD_RETURN (float4, std::max (a[i], b[i]));
 #endif
 }
 
 
-
 OIIO_FORCEINLINE float4 andnot (const float4& a, const float4& b) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return _mm_andnot_ps (a.simd(), b.simd());
 #else
     const int *ai = (const int *)&a;
     const int *bi = (const int *)&b;
-    return bitcast_to_float4 (int4(~(ai[0]) & bi[0],
-                                   ~(ai[1]) & bi[1],
-                                   ~(ai[2]) & bi[2],
-                                   ~(ai[3]) & bi[3]));
+    return bitcast_to_float (int4(~(ai[0]) & bi[0],
+                                  ~(ai[1]) & bi[1],
+                                  ~(ai[2]) & bi[2],
+                                  ~(ai[3]) & bi[3]));
 #endif
 }
-
 
 
 OIIO_FORCEINLINE float4 madd (const simd::float4& a, const simd::float4& b,
@@ -3160,119 +4761,124 @@ OIIO_FORCEINLINE float4 nmsub (const simd::float4& a, const simd::float4& b,
 
 
 // Full precision exp() of all components of a SIMD vector.
-OIIO_FORCEINLINE float4 exp (const float4& v)
+template<typename T>
+OIIO_FORCEINLINE T exp (const T& v)
 {
 #if OIIO_SIMD_SSE
     // Implementation inspired by:
     // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
     // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
     // under the zlib license.
-    float4 x = v;
-    OIIO_SIMD_FLOAT4_CONST (exp_hi,  88.3762626647949f);
-    OIIO_SIMD_FLOAT4_CONST (exp_lo,  -88.3762626647949f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_LOG2EF, 1.44269504088896341f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C1, 0.693359375f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_C2, -2.12194440e-4f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p0, 1.9875691500E-4f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p1, 1.3981999507E-3f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p2, 8.3334519073E-3f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p3, 4.1665795894E-2f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p4, 1.6666665459E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_exp_p5, 5.0000001201E-1f);
-    float4 tmp (0.0f);
-    float4 one (1.0f);
-    x = min (x, float4(exp_hi));
-    x = max (x, float4(exp_lo));
-    float4 fx = madd (x, float4(cephes_LOG2EF), float4(0.5f));
-    int4 emm0 = int4(fx);
-    tmp = float4(emm0);
-    float4 mask = bitcast_to_float4 (bitcast_to_int4(tmp > fx) & bitcast_to_int4(one));
+    typedef typename T::int_t int_t;
+    T x = v;
+    const float exp_hi (88.3762626647949f);
+    const float exp_lo (-88.3762626647949f);
+    const float cephes_LOG2EF (1.44269504088896341f);
+    const float cephes_exp_C1 (0.693359375f);
+    const float cephes_exp_C2 (-2.12194440e-4f);
+    const float cephes_exp_p0 (1.9875691500E-4f);
+    const float cephes_exp_p1 (1.3981999507E-3f);
+    const float cephes_exp_p2 (8.3334519073E-3f);
+    const float cephes_exp_p3 (4.1665795894E-2f);
+    const float cephes_exp_p4 (1.6666665459E-1f);
+    const float cephes_exp_p5 (5.0000001201E-1f);
+    T tmp (0.0f);
+    T one (1.0f);
+    x = min (x, T(exp_hi));
+    x = max (x, T(exp_lo));
+    T fx = madd (x, T(cephes_LOG2EF), T(0.5f));
+    int_t emm0 = int_t(fx);
+    tmp = T(emm0);
+    T mask = bitcast_to_float (bitcast_to_int(tmp > fx) & bitcast_to_int(one));
     fx = tmp - mask;
-    tmp = fx * float4(cephes_exp_C1);
-    float4 z = fx * float4(cephes_exp_C2);
+    tmp = fx * cephes_exp_C1;
+    T z = fx * cephes_exp_C2;
     x = x - tmp;
     x = x - z;
     z = x * x;
-    float4 y = float4(cephes_exp_p0);
-    y = madd (y, x, float4(cephes_exp_p1));
-    y = madd (y, x, float4(cephes_exp_p2));
-    y = madd (y, x, float4(cephes_exp_p3));
-    y = madd (y, x, float4(cephes_exp_p4));
-    y = madd (y, x, float4(cephes_exp_p5));
+    T y = cephes_exp_p0;
+    y = madd (y, x, cephes_exp_p1);
+    y = madd (y, x, cephes_exp_p2);
+    y = madd (y, x, cephes_exp_p3);
+    y = madd (y, x, cephes_exp_p4);
+    y = madd (y, x, cephes_exp_p5);
     y = madd (y, z, x);
     y = y + one;
-    emm0 = (int4(fx) + int4(0x7f)) << 23;
-    float4 pow2n = bitcast_to_float4(emm0);
+    emm0 = (int_t(fx) + int_t(0x7f)) << 23;
+    T pow2n = bitcast_to_float(emm0);
     y = y * pow2n;
     return y;
-
 #else
-    return float4 (expf(v[0]), expf(v[1]), expf(v[2]), expf(v[3]));
+    SIMD_RETURN (T, expf(v[i]));
 #endif
 }
 
 
 
 // Full precision log() of all components of a SIMD vector.
-OIIO_FORCEINLINE float4 log (const float4& v)
+template<typename T>
+OIIO_FORCEINLINE T log (const T& v)
 {
 #if OIIO_SIMD_SSE
     // Implementation inspired by:
     // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
     // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
     // under the zlib license.
-    float4 x = v;
-    int4 emm0;
-    float4 zero (float4::Zero());
-    float4 one (1.0f);
-    mask4 invalid_mask = (x <= zero);
-    OIIO_SIMD_INT4_CONST (min_norm_pos, (int)0x00800000);
-    OIIO_SIMD_INT4_CONST (inv_mant_mask, (int)~0x7f800000);
-    x = max(x, bitcast_to_float4(int4(min_norm_pos)));  /* cut off denormalized stuff */
-    emm0 = srl (bitcast_to_int4(x), 23);
+    typedef typename T::int_t int_t;
+    typedef typename T::bool_t bool_t;
+    T x = v;
+    int_t emm0;
+    T zero (T::Zero());
+    T one (1.0f);
+    bool_t invalid_mask = (x <= zero);
+    const int min_norm_pos ((int)0x00800000);
+    const int inv_mant_mask ((int)~0x7f800000);
+    x = max(x, bitcast_to_float(int_t(min_norm_pos)));  /* cut off denormalized stuff */
+    emm0 = srl (bitcast_to_int(x), 23);
     /* keep only the fractional part */
-    x = bitcast_to_float4 (bitcast_to_int4(x) & int4(inv_mant_mask));
-    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(float4(0.5f)));
-    emm0 = emm0 - int4(0x7f);
-    float4 e (emm0);
+    x = bitcast_to_float (bitcast_to_int(x) & int_t(inv_mant_mask));
+    x = bitcast_to_float (bitcast_to_int(x) | bitcast_to_int(T(0.5f)));
+    emm0 = emm0 - int_t(0x7f);
+    T e (emm0);
     e = e + one;
-    OIIO_SIMD_FLOAT4_CONST (cephes_SQRTHF, 0.707106781186547524f);
-    mask4 mask = (x < float4(cephes_SQRTHF));
-    float4 tmp = bitcast_to_float4 (bitcast_to_int4(x) & bitcast_to_int4(mask));
+    // OIIO_SIMD_FLOAT4_CONST (cephes_SQRTHF, 0.707106781186547524f);
+    const float cephes_SQRTHF (0.707106781186547524f);
+    bool_t mask = (x < T(cephes_SQRTHF));
+    T tmp = bitcast_to_float (bitcast_to_int(x) & bitcast_to_int(mask));
     x = x - one;
-    e = e - bitcast_to_float4 (bitcast_to_int4(one) & bitcast_to_int4(mask));
+    e = e - bitcast_to_float (bitcast_to_int(one) & bitcast_to_int(mask));
     x = x + tmp;
-    float4 z = x * x;
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p0, 7.0376836292E-2f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p1, - 1.1514610310E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p2, 1.1676998740E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p3, - 1.2420140846E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p4, + 1.4249322787E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p5, - 1.6668057665E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p6, + 2.0000714765E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p7, - 2.4999993993E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_p8, + 3.3333331174E-1f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_q1, -2.12194440e-4f);
-    OIIO_SIMD_FLOAT4_CONST (cephes_log_q2, 0.693359375f);
-    float4 y = *(float4*)cephes_log_p0;
-    y = madd (y, x, float4(cephes_log_p1));
-    y = madd (y, x, float4(cephes_log_p2));
-    y = madd (y, x, float4(cephes_log_p3));
-    y = madd (y, x, float4(cephes_log_p4));
-    y = madd (y, x, float4(cephes_log_p5));
-    y = madd (y, x, float4(cephes_log_p6));
-    y = madd (y, x, float4(cephes_log_p7));
-    y = madd (y, x, float4(cephes_log_p8));
+    T z = x * x;
+    const float cephes_log_p0 (7.0376836292E-2f);
+    const float cephes_log_p1 (- 1.1514610310E-1f);
+    const float cephes_log_p2 (1.1676998740E-1f);
+    const float cephes_log_p3 (- 1.2420140846E-1f);
+    const float cephes_log_p4 (+ 1.4249322787E-1f);
+    const float cephes_log_p5 (- 1.6668057665E-1f);
+    const float cephes_log_p6 (+ 2.0000714765E-1f);
+    const float cephes_log_p7 (- 2.4999993993E-1f);
+    const float cephes_log_p8 (+ 3.3333331174E-1f);
+    const float cephes_log_q1 (-2.12194440e-4f);
+    const float cephes_log_q2 (0.693359375f);
+    T y = cephes_log_p0;
+    y = madd (y, x, T(cephes_log_p1));
+    y = madd (y, x, T(cephes_log_p2));
+    y = madd (y, x, T(cephes_log_p3));
+    y = madd (y, x, T(cephes_log_p4));
+    y = madd (y, x, T(cephes_log_p5));
+    y = madd (y, x, T(cephes_log_p6));
+    y = madd (y, x, T(cephes_log_p7));
+    y = madd (y, x, T(cephes_log_p8));
     y = y * x;
     y = y * z;
-    y = madd(e, float4(cephes_log_q1), y);
+    y = madd(e, T(cephes_log_q1), y);
     y = nmadd (z, 0.5f, y);
     x = x + y;
-    x = madd (e, float4(cephes_log_q2), x);
-    x = bitcast_to_float4 (bitcast_to_int4(x) | bitcast_to_int4(invalid_mask)); // negative arg will be NAN
+    x = madd (e, T(cephes_log_q2), x);
+    x = bitcast_to_float (bitcast_to_int(x) | bitcast_to_int(invalid_mask)); // negative arg will be NAN
     return x;
 #else
-    return float4 (logf(v[0]), logf(v[1]), logf(v[2]), logf(v[3]));
+    SIMD_RETURN (T, logf(v[i]));
 #endif
 }
 
@@ -3280,7 +4886,7 @@ OIIO_FORCEINLINE float4 log (const float4& v)
 
 OIIO_FORCEINLINE void transpose (float4 &a, float4 &b, float4 &c, float4 &d)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     _MM_TRANSPOSE4_PS (a, b, c, d);
 #else
     float4 A (a[0], b[0], c[0], d[0]);
@@ -3295,7 +4901,7 @@ OIIO_FORCEINLINE void transpose (float4 &a, float4 &b, float4 &c, float4 &d)
 OIIO_FORCEINLINE void transpose (const float4& a, const float4& b, const float4& c, const float4& d,
                                  float4 &r0, float4 &r1, float4 &r2, float4 &r3)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     //_MM_TRANSPOSE4_PS (a, b, c, d);
     float4 l02 = _mm_unpacklo_ps (a, c);
     float4 h02 = _mm_unpackhi_ps (a, c);
@@ -3316,7 +4922,7 @@ OIIO_FORCEINLINE void transpose (const float4& a, const float4& b, const float4&
 
 OIIO_FORCEINLINE void transpose (int4 &a, int4 &b, int4 &c, int4 &d)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     __m128 A = _mm_castsi128_ps (a);
     __m128 B = _mm_castsi128_ps (b);
     __m128 C = _mm_castsi128_ps (c);
@@ -3338,7 +4944,7 @@ OIIO_FORCEINLINE void transpose (int4 &a, int4 &b, int4 &c, int4 &d)
 OIIO_FORCEINLINE void transpose (const int4& a, const int4& b, const int4& c, const int4& d,
                                  int4 &r0, int4 &r1, int4 &r2, int4 &r3)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     //_MM_TRANSPOSE4_PS (a, b, c, d);
     __m128 A = _mm_castsi128_ps (a);
     __m128 B = _mm_castsi128_ps (b);
@@ -3361,7 +4967,7 @@ OIIO_FORCEINLINE void transpose (const int4& a, const int4& b, const int4& c, co
 OIIO_FORCEINLINE float4 AxBxCxDx (const float4& a, const float4& b,
                                   const float4& c, const float4& d)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     float4 l02 = _mm_unpacklo_ps (a, c);
     float4 l13 = _mm_unpacklo_ps (b, d);
     return _mm_unpacklo_ps (l02, l13);
@@ -3374,7 +4980,7 @@ OIIO_FORCEINLINE float4 AxBxCxDx (const float4& a, const float4& b,
 OIIO_FORCEINLINE int4 AxBxCxDx (const int4& a, const int4& b,
                                 const int4& c, const int4& d)
 {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     int4 l02 = _mm_unpacklo_epi32 (a, c);
     int4 l13 = _mm_unpacklo_epi32 (b, d);
     return _mm_unpacklo_epi32 (l02, l13);
@@ -3390,7 +4996,7 @@ OIIO_FORCEINLINE int4 AxBxCxDx (const int4& a, const int4& b,
 
 OIIO_FORCEINLINE float3::float3 (const float3 &other) {
 #if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
-    m_vec = other.m_vec;
+    m_simd = other.m_simd;
 #else
     SIMD_CONSTRUCT_PAD (other[i]);
 #endif
@@ -3398,7 +5004,7 @@ OIIO_FORCEINLINE float3::float3 (const float3 &other) {
 
 OIIO_FORCEINLINE float3::float3 (const float4 &other) {
 #if defined(OIIO_SIMD_SSE) || defined(OIIO_SIMD_NEON)
-    m_vec = other.simd();
+    m_simd = other.simd();
 #else
     SIMD_CONSTRUCT_PAD (other[i]);
     m_val[3] = 0.0f;
@@ -3409,8 +5015,8 @@ OIIO_FORCEINLINE const float3 float3::Zero () { return float3(float4::Zero()); }
 
 OIIO_FORCEINLINE const float3 float3::One () { return float3(1.0f); }
 
-OIIO_FORCEINLINE const float3 float3::Iota (float value) {
-    return float3(value,value+1.0f,value+2.0f);
+OIIO_FORCEINLINE const float3 float3::Iota (float start, float step) {
+    return float3 (start+0.0f*step, start+1.0f*step, start+2.0f*step);
 }
 
 
@@ -3516,7 +5122,7 @@ inline std::ostream& operator<< (std::ostream& cout, const float3& val) {
 
 
 OIIO_FORCEINLINE float3 vreduce_add (const float3& v) {
-#if defined(OIIO_SIMD_SSE)
+#if OIIO_SIMD_SSE
     return float3 ((vreduce_add(float4(v))).xyz0());
 #else
     return float3 (v[0] + v[1] + v[2]);
@@ -3645,10 +5251,10 @@ OIIO_FORCEINLINE float3 matrix44::transformvT (const float3 &V) const {
 
 OIIO_FORCEINLINE bool matrix44::operator== (const matrix44& m) const {
 #if OIIO_SIMD_SSE
-    mask4 b0 = (m_row[0] == m[0]);
-    mask4 b1 = (m_row[1] == m[1]);
-    mask4 b2 = (m_row[2] == m[2]);
-    mask4 b3 = (m_row[3] == m[3]);
+    bool4 b0 = (m_row[0] == m[0]);
+    bool4 b1 = (m_row[1] == m[1]);
+    bool4 b2 = (m_row[2] == m[2]);
+    bool4 b3 = (m_row[3] == m[3]);
     return simd::all (b0 & b1 & b2 & b3);
 #else
     return memcmp(this, &m, 16*sizeof(float)) == 0;
@@ -3665,10 +5271,10 @@ OIIO_FORCEINLINE bool operator== (const Imath::M44f& a, const matrix44 &b) {
 
 OIIO_FORCEINLINE bool matrix44::operator!= (const matrix44& m) const {
 #if OIIO_SIMD_SSE
-    mask4 b0 = (m_row[0] != m[0]);
-    mask4 b1 = (m_row[1] != m[1]);
-    mask4 b2 = (m_row[2] != m[2]);
-    mask4 b3 = (m_row[3] != m[3]);
+    bool4 b0 = (m_row[0] != m[0]);
+    bool4 b1 = (m_row[1] != m[1]);
+    bool4 b2 = (m_row[2] != m[2]);
+    bool4 b3 = (m_row[3] != m[3]);
     return simd::any (b0 | b1 | b2 | b3);
 #else
     return memcmp(this, &m, 16*sizeof(float)) != 0;
@@ -3823,6 +5429,748 @@ OIIO_FORCEINLINE float3 transformvT (const Imath::M44f &M, const float3 &V)
 
 
 
+//////////////////////////////////////////////////////////////////////
+// float8 implementation
+
+OIIO_FORCEINLINE float& float8::operator[] (int i) {
+    DASSERT(i<elements);
+    return m_val[i];
+}
+
+OIIO_FORCEINLINE float float8::operator[] (int i) const {
+    DASSERT(i<elements);
+    return m_val[i];
+}
+
+
+inline std::ostream& operator<< (std::ostream& cout, const float8& val) {
+    cout << val[0];
+    for (int i = 1; i < val.elements; ++i)
+        cout << ' ' << val[i];
+    return cout;
+}
+
+
+OIIO_FORCEINLINE float4 float8::lo () const {
+#if OIIO_SIMD_AVX
+    return _mm256_castps256_ps128 (simd());
+#else
+    return m_4[0];
+#endif
+}
+
+OIIO_FORCEINLINE float4 float8::hi () const {
+#if OIIO_SIMD_AVX
+    return _mm256_extractf128_ps (simd(), 1);
+#else
+    return m_4[1];
+#endif
+}
+
+
+OIIO_FORCEINLINE float8::float8 (const float4& lo, const float4 &hi) {
+#if OIIO_SIMD_AVX
+    __m256 r = _mm256_castps128_ps256 (lo);
+    m_simd = _mm256_insertf128_ps (r, hi, 1);
+    // N.B. equivalent, if available: m_simd = _mm256_set_m128 (hi, lo);
+#else
+    m_4[0] = lo;
+    m_4[1] = hi;
+#endif
+}
+
+
+OIIO_FORCEINLINE float8::float8 (const int8& ival) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_cvtepi32_ps (ival);
+#else
+    SIMD_CONSTRUCT (float(ival[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE const float8 float8::Zero () {
+#if OIIO_SIMD_AVX
+    return _mm256_setzero_ps();
+#else
+    return float8(0.0f);
+#endif
+}
+
+OIIO_FORCEINLINE const float8 float8::One () {
+    return float8(1.0f);
+}
+
+OIIO_FORCEINLINE const float8 float8::Iota (float start, float step) {
+    return float8 (start+0.0f*step, start+1.0f*step, start+2.0f*step, start+3.0f*step,
+                   start+4.0f*step, start+5.0f*step, start+6.0f*step, start+7.0f*step);
+}
+
+/// Set all components to 0.0
+OIIO_FORCEINLINE void float8::clear () {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_setzero_ps();
+#else
+    load (0.0f);
+#endif
+}
+
+
+
+OIIO_FORCEINLINE void float8::load (float val) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_set1_ps (val);
+#else
+    SIMD_CONSTRUCT (val);
+#endif
+}
+
+OIIO_FORCEINLINE void float8::load (float a, float b, float c, float d,
+                                    float e, float f, float g, float h) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_set_ps (h, g, f, e, d, c, b, a);
+#else
+    m_val[0] = a;
+    m_val[1] = b;
+    m_val[2] = c;
+    m_val[3] = d;
+    m_val[4] = e;
+    m_val[5] = f;
+    m_val[6] = g;
+    m_val[7] = h;
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const float *values) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_loadu_ps (values);
+#elif OIIO_SIMD_SSE
+    m_4[0] = float4(values);
+    m_4[1] = float4(values+4);
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const float *values, int n) {
+    // FIXME: is this faster with AVX masked loads?
+#if OIIO_SIMD_SSE
+    if (n > 0 && n <= 4) {
+        float4 l; l.load (values, n);
+        m_simd = float8(l, float4::Zero());
+    } else if (n > 4 && n <= 8) {
+        float4 h; h.load (values+4, n-4);
+        m_simd = float8(float4(values), h);
+    }
+    else
+        clear();
+#else
+    for (int i = 0; i < n; ++i)
+        m_val[i] = values[i];
+    for (int i = n; i < paddedelements; ++i)
+        m_val[i] = 0;
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const unsigned short *values) {
+#if OIIO_SIMD_AVX
+    // Rely on the uint16->int conversion, then convert to float
+    m_simd = _mm256_cvtepi32_ps (int8(values).simd());
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const short *values) {
+#if OIIO_SIMD_AVX
+    // Rely on the int16->int conversion, then convert to float
+    m_simd = _mm256_cvtepi32_ps (int8(values).simd());
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const unsigned char *values) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_cvtepi32_ps (int8(values).simd());
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::load (const char *values) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_cvtepi32_ps (int8(values).simd());
+#else
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+
+#ifdef _HALF_H_
+OIIO_FORCEINLINE void float8::load (const half *values) {
+#if OIIO_SIMD_AVX && defined(__F16C__)
+    /* Enabled 16 bit float instructions! */
+    int4 a ((const int *)values);
+    m_simd = _mm256_cvtph_ps (a);
+#elif OIIO_SIMD_SSE >= 2
+    m_4[0] = float4(values);
+    m_4[1] = float4(values+4);
+#else /* No SIMD defined: */
+    SIMD_CONSTRUCT (values[i]);
+#endif
+}
+#endif /* _HALF_H_ */
+
+
+OIIO_FORCEINLINE void float8::store (float *values) const {
+#if OIIO_SIMD_AVX
+    // Use an unaligned store -- it's just as fast when the memory turns
+    // out to be aligned, nearly as fast even when unaligned. Not worth
+    // the headache of using stores that require alignment.
+    _mm256_storeu_ps (values, m_simd);
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void float8::store (float *values, int n) const {
+    DASSERT (n >= 0 && n <= elements);
+    // FIXME: is this faster with AVX masked stores?
+#if OIIO_SIMD_SSE
+    if (n <= 4) {
+        lo().store (values, n);
+    } else if (n <= 8) {
+        lo().store (values);
+        hi().store (values+4, n-4);
+    }
+#else
+    for (int i = 0; i < n; ++i)
+        values[i] = m_val[i];
+#endif
+}
+
+#ifdef _HALF_H_
+OIIO_FORCEINLINE void float8::store (half *values) const {
+#if OIIO_SIMD_AVX && defined(__F16C__)
+    __m128i h = _mm256_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+    _mm_storeu_si128 ((__m128i *)values, h);
+#else
+    SIMD_DO (values[i] = m_val[i]);
+#endif
+}
+#endif
+
+
+OIIO_FORCEINLINE float8 operator+ (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_add_ps (a.m_simd, b.m_simd);
+#else
+    SIMD_RETURN (float8, a[i] + b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator+= (const float8& a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_add_ps (m_simd, a.m_simd);
+#else
+    SIMD_DO (m_val[i] += a[i]);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE float8 float8::operator- () const {
+#if OIIO_SIMD_AVX
+    return _mm256_sub_ps (_mm256_setzero_ps(), m_simd);
+#else
+    SIMD_RETURN (float8, -m_val[i]);
+#endif
+}
+
+OIIO_FORCEINLINE float8 operator- (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_sub_ps (a.m_simd, b.m_simd);
+#else
+    SIMD_RETURN (float8, a[i] - b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator-= (const float8& a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_sub_ps (m_simd, a.m_simd);
+#else
+    SIMD_DO (m_val[i] -= a[i]);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE float8 operator* (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_mul_ps (a.m_simd, b.m_simd);
+#else
+    SIMD_RETURN (float8, a[i] * b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator*= (const float8& a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_mul_ps (m_simd, a.m_simd);
+#else
+    SIMD_DO (m_val[i] *= a[i]);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator*= (float val) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_mul_ps (m_simd, _mm256_set1_ps(val));
+#else
+    SIMD_DO (m_val[i] *= val);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE float8 operator/ (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_div_ps (a.m_simd, b.m_simd);
+#else
+    SIMD_RETURN (float8, a[i] / b[i]);
+#endif
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator/= (const float8& a) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_div_ps (m_simd, a.m_simd);
+#else
+    SIMD_DO (m_val[i] /= a[i]);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE const float8 & float8::operator/= (float val) {
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_div_ps (m_simd, _mm256_set1_ps(val));
+#else
+    SIMD_DO (m_val[i] /= val);
+#endif
+    return *this;
+}
+
+OIIO_FORCEINLINE bool8 operator== (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_EQ_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] == b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator!= (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_NEQ_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] != b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator< (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_LT_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] < b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator>  (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_GT_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] > b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator>= (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_GE_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] >= b[i] ? -1 : 0);
+#endif
+}
+
+OIIO_FORCEINLINE bool8 operator<= (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_cmp_ps (a.m_simd, b.m_simd, _CMP_LE_OQ);
+#else
+    SIMD_RETURN (bool8, a[i] <= b[i] ? -1 : 0);
+#endif
+}
+
+
+// Implementation had to be after the definition of float8.
+OIIO_FORCEINLINE int8::int8 (const float8& f)
+{
+#if OIIO_SIMD_AVX
+    m_simd = _mm256_cvttps_epi32(f);
+#else
+    SIMD_CONSTRUCT ((int) f[i]);
+#endif
+}
+
+
+template<int i0, int i1, int i2, int i3, int i4, int i5, int i6, int i7>
+OIIO_FORCEINLINE float8 shuffle (const float8& a) {
+#if OIIO_SIMD_AVX >= 2
+    int8 index (i0, i1, i2, i3, i4, i5, i6, i7);
+    return _mm256_permutevar8x32_ps (a, index);
+#else
+    return float8 (a[i0], a[i1], a[i2], a[i3], a[i4], a[i5], a[i6], a[i7]);
+#endif
+}
+
+template<int i> OIIO_FORCEINLINE float8 shuffle (const float8& a) {
+#if OIIO_SIMD_AVX >= 2
+    return _mm256_permutevar8x32_ps (a, int8(i));
+#else
+    return shuffle<i,i,i,i,i,i,i,i>(a);
+#endif
+}
+
+
+template<int i>
+OIIO_FORCEINLINE float extract (const float8& v) {
+#if OIIO_SIMD_AVX_NO_FIXME
+    // Looks like the fastest we can do it is to extract a float4,
+    // shuffle its one element everywhere, then extract element 0.
+    _m128 f4 = _mm256_extractf128_ps (i >> 2);
+    int j = i & 3;
+    return _mm_cvtss_f32(shuffle_sse<j,j,j,j>(a.simd()));
+#else
+    return v[i];
+#endif
+}
+
+
+template<int i>
+OIIO_FORCEINLINE float8 insert (const float8& a, float val) {
+#if OIIO_SIMD_AVX_NO_FIXME
+    return _mm256_insert_epi32 (a, val, i);
+#else
+    float8 tmp = a;
+    tmp[i] = val;
+    return tmp;
+#endif
+}
+
+
+OIIO_FORCEINLINE float float8::x () const { return extract<0>(*this); }
+OIIO_FORCEINLINE float float8::y () const { return extract<1>(*this); }
+OIIO_FORCEINLINE float float8::z () const { return extract<2>(*this); }
+OIIO_FORCEINLINE float float8::w () const { return extract<3>(*this); }
+OIIO_FORCEINLINE void float8::set_x (float val) { *this = insert<0>(*this, val); }
+OIIO_FORCEINLINE void float8::set_y (float val) { *this = insert<1>(*this, val); }
+OIIO_FORCEINLINE void float8::set_z (float val) { *this = insert<2>(*this, val); }
+OIIO_FORCEINLINE void float8::set_w (float val) { *this = insert<3>(*this, val); }
+
+
+OIIO_FORCEINLINE int8 bitcast_to_int (const float8& x)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_castps_si256 (x.simd());
+#else
+    return *(int8 *)&x;
+#endif
+}
+
+OIIO_FORCEINLINE float8 bitcast_to_float (const int8& x)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_castsi256_ps (x.simd());
+#else
+    return *(float8 *)&x;
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 vreduce_add (const float8& v) {
+#if OIIO_SIMD_AVX
+    // From Syrah:
+    float8 ab_cd_0_0_ef_gh_0_0 = _mm256_hadd_ps(v.simd(), _mm256_setzero_ps());
+    float8 abcd_0_0_0_efgh_0_0_0 = _mm256_hadd_ps(ab_cd_0_0_ef_gh_0_0, _mm256_setzero_ps());
+    // get efgh in the 0-idx slot
+    float8 efgh = shuffle<4>(abcd_0_0_0_efgh_0_0_0);
+    float8 final_sum = abcd_0_0_0_efgh_0_0_0 + efgh;
+    return shuffle<0>(final_sum);
+#else
+    float4 hadd4 = vreduce_add(v.lo()) + vreduce_add(v.hi());
+    return float8(hadd4, hadd4);
+#endif
+}
+
+
+OIIO_FORCEINLINE float reduce_add (const float8& v) {
+#if OIIO_SIMD_AVX >= 2
+    return extract<0>(vreduce_add(v));
+#else
+    return reduce_add(v.lo()) + reduce_add(v.hi());
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 blend (const float8& a, const float8& b, const bool8& mask)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_blendv_ps (a, b, mask);
+#elif defined(OIIO_SIMD_SSE)
+    return float8 (blend (a.lo(), b.lo(), mask.lo()),
+                   blend (a.hi(), b.hi(), mask.hi()));
+#else
+    SIMD_RETURN (float8, mask[i] ? b[i] : a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 blend0 (const float8& a, const bool8& mask)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_and_ps(mask, a);
+#elif defined(OIIO_SIMD_SSE)
+    return float8 (blend0 (a.lo(), mask.lo()),
+                   blend0 (a.hi(), mask.hi()));
+#else
+    SIMD_RETURN (float8, mask[i] ? a[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 blend0not (const float8& a, const bool8& mask)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_andnot_ps(mask, a);
+#elif defined(OIIO_SIMD_SSE)
+    return float8 (blend0not (a.lo(), mask.lo()),
+                   blend0not (a.hi(), mask.hi()));
+#else
+    SIMD_RETURN (float8, mask[i] ? 0.0f : a[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 safe_div (const float8 &a, const float8 &b) {
+#if OIIO_SIMD_SSE
+    return blend0not (a/b, b == float8::Zero());
+#else
+    SIMD_RETURN (float8, b[i] == 0.0f ? 0.0f : a[i] / b[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 select (const bool8& mask, const float8& a, const float8& b)
+{
+    return blend (b, a, mask);
+}
+
+
+OIIO_FORCEINLINE float8 abs (const float8& a)
+{
+#if OIIO_SIMD_AVX
+    // Just clear the sign bit for cheap fabsf
+    return _mm256_and_ps (a.simd(), _mm256_castsi256_ps(_mm256_set1_epi32(0x7fffffff)));
+#else
+    SIMD_RETURN (float8, fabsf(a[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 sign (const float8& a)
+{
+    float8 one(1.0f);
+    return blend (one, -one, a < float8::Zero());
+}
+
+
+OIIO_FORCEINLINE float8 ceil (const float8& a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_ceil_ps (a);
+#else
+    SIMD_RETURN (float8, ceilf(a[i]));
+#endif
+}
+
+OIIO_FORCEINLINE float8 floor (const float8& a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_floor_ps (a);
+#else
+    SIMD_RETURN (float8, floorf(a[i]));
+#endif
+}
+
+OIIO_FORCEINLINE float8 round (const float8& a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
+#else
+    SIMD_RETURN (float8, roundf(a[i]));
+#endif
+}
+
+OIIO_FORCEINLINE int8 floori (const float8& a)
+{
+#if OIIO_SIMD_AVX
+    return int8(floor(a));
+#elif defined(OIIO_SIMD_SSE)   /* SSE2/3 */
+    int8 i (a);  // truncates
+    int8 isneg = bitcast_to_int (a < float8::Zero());
+    return i + isneg;
+    // The trick here (thanks, Cycles, for letting me spy on your code) is
+    // that the comparison will return (int)-1 for components that are less
+    // than zero, and adding that is the same as subtracting one!
+#else
+    SIMD_RETURN (int8, (int)floorf(a[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE int8 rint (const float8& a)
+{
+    return int8 (round(a));
+}
+
+
+
+OIIO_FORCEINLINE float8 sqrt (const float8 &a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_sqrt_ps (a.simd());
+#else
+    SIMD_RETURN (float8, sqrtf(a[i]));
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float8 rsqrt (const float8 &a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_div_ps (_mm256_set1_ps(1.0f), _mm256_sqrt_ps (a.simd()));
+#else
+    SIMD_RETURN (float8, 1.0f/sqrtf(a[i]));
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float8 rsqrt_fast (const float8 &a)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_rsqrt_ps (a.simd());
+#else
+    SIMD_RETURN (float8, 1.0f/sqrtf(a[i]));
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float8 min (const float8& a, const float8& b)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_min_ps (a, b);
+#else
+    SIMD_RETURN (float8, std::min (a[i], b[i]));
+#endif
+}
+
+OIIO_FORCEINLINE float8 max (const float8& a, const float8& b)
+{
+#if OIIO_SIMD_AVX
+    return _mm256_max_ps (a, b);
+#else
+    SIMD_RETURN (float8, std::max (a[i], b[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 andnot (const float8& a, const float8& b) {
+#if OIIO_SIMD_AVX
+    return _mm256_andnot_ps (a.simd(), b.simd());
+#else
+    const int *ai = (const int *)&a;
+    const int *bi = (const int *)&b;
+    return bitcast_to_float (int8(~(ai[0]) & bi[0],
+                                  ~(ai[1]) & bi[1],
+                                  ~(ai[2]) & bi[2],
+                                  ~(ai[3]) & bi[3],
+                                  ~(ai[4]) & bi[4],
+                                  ~(ai[5]) & bi[5],
+                                  ~(ai[6]) & bi[6],
+                                  ~(ai[7]) & bi[7]));
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 madd (const simd::float8& a, const simd::float8& b,
+                              const simd::float8& c)
+{
+#if OIIO_SIMD_AVX && OIIO_FMA_ENABLED
+    // If we are sure _mm256_fmadd_ps intrinsic is available, use it.
+    return _mm256_fmadd_ps (a, b, c);
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b + c;
+#endif
+}
+
+
+OIIO_FORCEINLINE float8 msub (const simd::float8& a, const simd::float8& b,
+                              const simd::float8& c)
+{
+#if OIIO_SIMD_AVX && OIIO_FMA_ENABLED
+    // If we are sure _mm256_fnmsub_ps intrinsic is available, use it.
+    return _mm256_fmsub_ps (a, b, c);
+#else
+    // Fallback: just use regular math and hope for the best.
+    return a * b - c;
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float8 nmadd (const simd::float8& a, const simd::float8& b,
+                               const simd::float8& c)
+{
+#if OIIO_SIMD_AVX && OIIO_FMA_ENABLED
+    // If we are sure _mm256_fnmadd_ps intrinsic is available, use it.
+    return _mm256_fnmadd_ps (a, b, c);
+#else
+    // Fallback: just use regular math and hope for the best.
+    return c - a * b;
+#endif
+}
+
+
+
+OIIO_FORCEINLINE float8 nmsub (const simd::float8& a, const simd::float8& b,
+                               const simd::float8& c)
+{
+#if OIIO_SIMD_AVX && OIIO_FMA_ENABLED
+    // If we are sure _mm256_fnmsub_ps intrinsic is available, use it.
+    return _mm256_fnmsub_ps (a, b, c);
+#else
+    // Fallback: just use regular math and hope for the best.
+    return -(a * b) - c;
+#endif
+}
+
+
+
+
+
 } // end namespace simd
 
 OIIO_NAMESPACE_END
@@ -3832,5 +6180,6 @@ OIIO_NAMESPACE_END
 #undef SIMD_CONSTRUCT
 #undef SIMD_CONSTRUCT_PAD
 #undef SIMD_RETURN
+#undef SIMD_RETURN_REDUCE
 
 #endif /* OIIO_SIMD_H */

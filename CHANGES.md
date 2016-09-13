@@ -322,7 +322,9 @@ Developer goodies / internals:
    and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
    andnot #1377 (1.7.2); exp, log #1384 (1.7.2); simd::float3 is like float4,
    but only loads and stores 3 components, it's a good Vec3f replacement (but
-   padded) #1473 (1.7.5); matrix44 4x4 matrix class #1473 (1.7.5).
+   padded) #1473 (1.7.5); matrix44 4x4 matrix class #1473 (1.7.5);
+   mask4 renamed to bool4, and addition of float8, int8, bool8 classes
+   for 8-wide AVX/AVX2 SIMD #1484 (1.7.5).
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,

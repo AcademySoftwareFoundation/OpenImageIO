@@ -485,7 +485,7 @@ help:
 	@echo "      OIIO_BUILD_TESTS=0       Skip building the unit tests"
 	@echo "      BUILD_OIIOUTIL_ONLY=1    Build *only* libOpenImageIO_Util"
 	@echo "      USE_SIMD=arch            Build with SIMD support (choices: 0, sse2, sse3,"
-	@echo "                                  ssse3, sse4.1, sse4.2, f16c,"
+	@echo "                                  ssse3, sse4.1, sse4.2, f16c, avx, avx2"
 	@echo "                                  comma-separated ok)"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/ustring.h>
@@ -49,9 +50,14 @@ OIIO_NAMESPACE_USING;
 using namespace OIIO::simd;
 
 
-static int iterations = 10;
+static int iterations = 1000000;
 static int ntrials = 5;
 static bool verbose = false;
+static Sysutil::Term term(std::cout);
+float dummy_float[16];
+float dummy_float2[16];
+float dummy_int[16];
+
 
 
 static void
@@ -82,38 +88,109 @@ getargs (int argc, char *argv[])
 
 
 
-
-template<typename X, typename Y>
-inline void
-OIIO_CHECK_SIMD_EQUAL_impl (const X& x, const Y& y,
-                            const char *xstr, const char *ystr,
-                            const char *file, int line)
+static void
+category_heading (string_view name)
 {
-    if (! all(x == y)) {
-        std::cout << __FILE__ << ":" << __LINE__ << ":\n"
-                  << "FAILED: " << xstr << " == " << ystr << "\n"
-                  << "\tvalues were '" << x << "' and '" << y << "'\n";
-        ++unit_test_failures;
-    }
+    std::cout << "\n" << term.ansi("bold,underscore,yellow", name) << "\n\n";
 }
 
 
-#define xOIIO_CHECK_SIMD_EQUAL(x,y) \
-            OIIO_CHECK_SIMD_EQUAL_impl(x,y,#x,#y,__FILE__,__LINE__)
+
+static void
+test_heading (string_view name, string_view name2="")
+{
+    std::cout << term.ansi("bold") << name << ' ' << name2
+              << term.ansi("normal") << "\n";
+}
+
+
+
 #define OIIO_CHECK_SIMD_EQUAL(x,y)                                      \
     (all ((x) == (y)) ? ((void)0)                                       \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " == " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 
 #define OIIO_CHECK_SIMD_EQUAL_THRESH(x,y,eps)                           \
     (all (abs((x)-(y)) < (eps)) ? ((void)0)                             \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " == " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
+
+
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+
+// What I really want to do is merge benchmark() and benchmark2() into
+// one template using variadic arguments, like this:
+//   template <typename FUNC, typename ...ARGS>
+//   void benchmark (size_t work, string_view funcname, FUNC func, ARGS... args)
+// But it seems that although this works for Clang, it does not for gcc 4.8
+// (but does for 4.9). Some day I'll get back to this simplification, but
+// for now, gcc 4.8 seems like an important barrier.
+
+
+template <typename FUNC, typename T>
+void benchmark (string_view funcname, FUNC func, T x,
+                size_t work=0)
+{
+    if (!work)
+        work = SimdElements<decltype(func(x))>::size;
+    auto repeat_func = [&](){
+        // Unroll the loop 8 times
+        auto r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+        r = func(x); DoNotOptimize (r); clobber_all_memory();
+    };
+    float time = time_trial (repeat_func, ntrials, iterations/8);
+    std::cout << Strutil::format ("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+                                  funcname, ((iterations*work)/1.0e6)/time,
+                                  (iterations/1.0e6)/time);
+}
+
+
+template <typename FUNC, typename T, typename U>
+void benchmark2 (string_view funcname, FUNC func, T x, U y,
+                 size_t work=0)
+{
+    if (!work)
+        work = SimdElements<decltype(func(x,y))>::size;
+    auto repeat_func = [&](){
+        // Unroll the loop 8 times
+        auto r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+        r = func(x, y); DoNotOptimize (r); clobber_all_memory();
+    };
+    float time = time_trial (repeat_func, ntrials, iterations/8);
+    std::cout << Strutil::format ("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+                                  funcname, ((iterations*work)/1.0e6)/time,
+                                  (iterations/1.0e6)/time);
+}
+
+#else
+
+// No support of lambdas, just skip the benchmarks
+#define benchmark(a,b,c,d)
+#define benchmark2(a,b,c,d,e)
+
+#endif
 
 
 
@@ -124,14 +201,86 @@ inline VEC mkvec (typename VEC::value_t a, typename VEC::value_t b,
     return VEC(a,b,c,d);
 }
 
+template<> inline float3 mkvec<float3> (float a, float b, float c, float d) {
+    return float3(a,b,c);
+}
 
-template<>
-inline float3 mkvec (float a, float b, float c, float d)
+template<> inline float8 mkvec<float8> (float a, float b, float c, float d) {
+    return float8(a,b,c,d,a,b,c,d);
+}
+
+template<> inline int8 mkvec<int8> (int a, int b, int c, int d) {
+    return int8(a,b,c,d,a,b,c,d);
+}
+
+template<> inline bool8 mkvec<bool8> (bool a, bool b, bool c, bool d) {
+    return bool8(a,b,c,d,a,b,c,d);
+}
+
+
+
+template<typename VEC>
+inline VEC mkvec (typename VEC::value_t a, typename VEC::value_t b,
+                  typename VEC::value_t c, typename VEC::value_t d,
+                  typename VEC::value_t e, typename VEC::value_t f,
+                  typename VEC::value_t g, typename VEC::value_t h)
 {
+    return VEC(a,b,c,d,e,f,g,h);
+}
+
+
+template<> inline bool4 mkvec<bool4> (bool a, bool b, bool c, bool d,
+                                      bool e, bool f, bool g, bool h) {
+    return bool4(a,b,c,d);
+}
+
+template<> inline int4 mkvec<int4> (int a, int b, int c, int d,
+                                    int e, int f, int g, int h) {
+    return int4(a,b,c,d);
+}
+
+template<> inline float4 mkvec<float4> (float a, float b, float c, float d,
+                                        float e, float f, float g, float h) {
+    return float4(a,b,c,d);
+}
+
+template<> inline float3 mkvec<float3> (float a, float b, float c, float d,
+                                        float e, float f, float g, float h) {
     return float3(a,b,c);
 }
 
 
+template<typename VEC>
+inline int loadstore_vec (int dummy) {
+    typedef typename VEC::value_t ELEM;
+    ELEM B[VEC::elements];
+    VEC v;
+    v.load ((ELEM *)dummy_float);
+    v.store ((ELEM *)B);
+    return 0;
+}
+
+template<typename VEC, int N>
+inline int loadstore_vec_N (int dummy) {
+    typedef typename VEC::value_t ELEM;
+    ELEM B[VEC::elements];
+    VEC v;
+    v.load ((ELEM *)dummy_float, N);
+    v.store ((ELEM *)B, N);
+    return 0;
+}
+
+
+inline float dot_imath (const Imath::V3f &v) {
+    return v.dot(v);
+}
+inline float dot_imath_simd (const Imath::V3f &v_) {
+    float3 v (v_);
+    return simd::dot(v,v);
+}
+inline float dot_simd (const simd::float3 v) {
+    return dot(v,v);
+}
 
 inline Imath::V3f
 norm_imath (const Imath::V3f &a) {
@@ -176,17 +325,17 @@ template<typename VEC>
 void test_loadstore ()
 {
     typedef typename VEC::value_t ELEM;
-    std::cout << "test_loadstore " << VEC::type_name() << "\n";
-    VEC C1234 = mkvec<VEC>(1, 2, 3, 4);
+    test_heading ("loadstore ", VEC::type_name());
+    VEC C1234 = mkvec<VEC>(1, 2, 3, 4, 5, 6, 7, 8);
     // VEC C0 (0);
-    ELEM partial[4] = { 101, 102, 103, 104 };
+    ELEM partial[] = { 101, 102, 103, 104, 105, 106, 107, 108 };
     for (int i = 1; i <= VEC::elements; ++i) {
         VEC a (ELEM(0));
         a.load (partial, i);
         for (int j = 0; j < VEC::elements; ++j)
             OIIO_CHECK_EQUAL (a[j], j<i ? partial[j] : ELEM(0));
         std::cout << "  partial load " << i << " : " << a << "\n";
-        ELEM stored[4] = { 0, 0, 0, 0 };
+        ELEM stored[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         C1234.store (stored, i);
         for (int j = 0; j < VEC::elements; ++j)
             OIIO_CHECK_EQUAL (stored[j], j<i ? ELEM(j+1) : ELEM(0));
@@ -198,44 +347,63 @@ void test_loadstore ()
 
     {
     // Check load from integers
-    // VEC C1234 (1, 2, 3, 4);
-    unsigned short us1234[] = {1, 2, 3, 4};
-    short s1234[] = {1, 2, 3, 4};
-    unsigned char uc1234[] = {1, 2, 3, 4};
-    char c1234[] = {1, 2, 3, 4};
+    unsigned short us1234[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    short s1234[]           = {1, 2, 3, 4, 5, 6, 7, 8};
+    unsigned char uc1234[]  = {1, 2, 3, 4, 5, 6, 7, 8};
+    char c1234[]            = {1, 2, 3, 4, 5, 6, 7, 8};
     OIIO_CHECK_SIMD_EQUAL (VEC(us1234), C1234);
     OIIO_CHECK_SIMD_EQUAL (VEC( s1234), C1234);
     OIIO_CHECK_SIMD_EQUAL (VEC(uc1234), C1234);
     OIIO_CHECK_SIMD_EQUAL (VEC( c1234), C1234);
     }
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark ("load/store", loadstore_vec<VEC>, 0, VEC::elements);
+    if (VEC::elements > 4) {
+        benchmark ("load/store, 8 comps", loadstore_vec_N<VEC, 8>, 0, 8);
+        benchmark ("load/store, 7 comps", loadstore_vec_N<VEC, 7>, 0, 7);
+        benchmark ("load/store, 6 comps", loadstore_vec_N<VEC, 6>, 0, 6);
+        benchmark ("load/store, 5 comps", loadstore_vec_N<VEC, 5>, 0, 5);
+    }
+    if (VEC::elements >= 4) {
+        benchmark ("load/store, 4 comps", loadstore_vec_N<VEC, 4>, 0, 4);
+    }
+    benchmark ("load/store, 3 comps", loadstore_vec_N<VEC, 3>, 0, 3);
+    benchmark ("load/store, 2 comps", loadstore_vec_N<VEC, 2>, 0, 2);
+    benchmark ("load/store, 1 comps", loadstore_vec_N<VEC, 1>, 0, 1);
+#endif
 }
 
 
 
-void
-test_int4_to_uint16s ()
+template<typename VEC>
+void test_vint_to_uint16s ()
 {
-    int4 i (0xffff0001, 0xffff0002, 0xffff0003, 0xffff0004);
-    unsigned short s[4];
-    i.store (s);
-    OIIO_CHECK_EQUAL (s[0], 1);
-    OIIO_CHECK_EQUAL (s[1], 2);
-    OIIO_CHECK_EQUAL (s[2], 3);
-    OIIO_CHECK_EQUAL (s[3], 4);
+    test_heading (Strutil::format("test converting %s to uint16", VEC::type_name()));
+    VEC ival = VEC::Iota (0xffff0000);
+    unsigned short buf[VEC::elements];
+    ival.store (buf);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (int(buf[i]), i);
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("convert to uint16", [](VEC& a, unsigned short *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
+#endif
 }
 
 
 
-void
-test_int4_to_uint8s ()
+template<typename VEC>
+void test_vint_to_uint8s ()
 {
-    int4 i (0xffffff01, 0xffffff02, 0xffffff03, 0xffffff04);
-    unsigned char c[4];
-    i.store (c);
-    OIIO_CHECK_EQUAL (int(c[0]), 1);
-    OIIO_CHECK_EQUAL (int(c[1]), 2);
-    OIIO_CHECK_EQUAL (int(c[2]), 3);
-    OIIO_CHECK_EQUAL (int(c[3]), 4);
+    test_heading (Strutil::format("test converting %s to uint8", VEC::type_name()));
+    VEC ival = VEC::Iota (0xffffff00);
+    unsigned char buf[VEC::elements];
+    ival.store (buf);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (int(buf[i]), i);
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("convert to uint16", [](VEC& a, unsigned char *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
+#endif
 }
 
 
@@ -244,59 +412,72 @@ template<typename VEC>
 void test_component_access ()
 {
     typedef typename VEC::value_t ELEM;
-    std::cout << "test_component_access " << VEC::type_name() << "\n";
+    test_heading ("component_access ", VEC::type_name());
 
-    VEC a = mkvec<VEC> (0, 1, 2, 3);
-    OIIO_CHECK_EQUAL (a[0], 0);
-    OIIO_CHECK_EQUAL (a[1], 1);
-    OIIO_CHECK_EQUAL (a[2], 2);
-    if (SimdElements<VEC>::size > 3)
-        OIIO_CHECK_EQUAL (a[3], 3);
+    const ELEM vals[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    VEC a = mkvec<VEC>(0, 1, 2, 3, 4, 5, 6, 7);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (a[i], vals[i]);
+
+    if (VEC::elements <= 4) {
     OIIO_CHECK_EQUAL (a.x(), 0);
     OIIO_CHECK_EQUAL (a.y(), 1);
     OIIO_CHECK_EQUAL (a.z(), 2);
     if (SimdElements<VEC>::size > 3)
         OIIO_CHECK_EQUAL (a.w(), 3);
+    VEC t;
+    t = a; t.set_x(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(42,1,2,3,4,5,6,7));
+    t = a; t.set_y(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,42,2,3,4,5,6,7));
+    t = a; t.set_z(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,1,42,3,4,5,6,7));
+    if (SimdElements<VEC>::size > 3) {
+        t = a; t.set_w(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,1,2,42,4,5,6,7));
+    }
+    }
+
     OIIO_CHECK_EQUAL (extract<0>(a), 0);
     OIIO_CHECK_EQUAL (extract<1>(a), 1);
     OIIO_CHECK_EQUAL (extract<2>(a), 2);
     if (SimdElements<VEC>::size > 3)
         OIIO_CHECK_EQUAL (extract<3>(a), 3);
-    OIIO_CHECK_SIMD_EQUAL (insert<0>(a, ELEM(42)), mkvec<VEC>(42,1,2,3));
-    OIIO_CHECK_SIMD_EQUAL (insert<1>(a, ELEM(42)), mkvec<VEC>(0,42,2,3));
-    OIIO_CHECK_SIMD_EQUAL (insert<2>(a, ELEM(42)), mkvec<VEC>(0,1,42,3));
+    OIIO_CHECK_SIMD_EQUAL (insert<0>(a, ELEM(42)), mkvec<VEC>(42,1,2,3,4,5,6,7));
+    OIIO_CHECK_SIMD_EQUAL (insert<1>(a, ELEM(42)), mkvec<VEC>(0,42,2,3,4,5,6,7));
+    OIIO_CHECK_SIMD_EQUAL (insert<2>(a, ELEM(42)), mkvec<VEC>(0,1,42,3,4,5,6,7));
     if (SimdElements<VEC>::size > 3)
-        OIIO_CHECK_SIMD_EQUAL (insert<3>(a, ELEM(42)), mkvec<VEC>(0,1,2,42));
-    VEC t;
-    t = a; t.set_x(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(42,1,2,3));
-    t = a; t.set_y(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,42,2,3));
-    t = a; t.set_z(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,1,42,3));
-    if (SimdElements<VEC>::size > 3) {
-        t = a; t.set_w(42); OIIO_CHECK_SIMD_EQUAL (t, mkvec<VEC>(0,1,2,42));
-    }
+        OIIO_CHECK_SIMD_EQUAL (insert<3>(a, ELEM(42)), mkvec<VEC>(0,1,2,42,4,5,6,7));
 
-    const ELEM vals[4] = { 0, 1, 2, 3 };
     VEC b (vals);
-    OIIO_CHECK_EQUAL (b[0], 0);
-    OIIO_CHECK_EQUAL (b[1], 1);
-    OIIO_CHECK_EQUAL (b[2], 2);
-    if (SimdElements<VEC>::size > 3)
-        OIIO_CHECK_EQUAL (b[3], 3);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (b[i], vals[i]);
     OIIO_CHECK_EQUAL (extract<0>(b), 0);
     OIIO_CHECK_EQUAL (extract<1>(b), 1);
     OIIO_CHECK_EQUAL (extract<2>(b), 2);
     if (SimdElements<VEC>::size > 3)
         OIIO_CHECK_EQUAL (extract<3>(b), 3);
+    if (SimdElements<VEC>::size > 4) {
+        OIIO_CHECK_EQUAL (extract<4>(b), 4);
+        OIIO_CHECK_EQUAL (extract<5>(b), 5);
+        OIIO_CHECK_EQUAL (extract<6>(b), 6);
+        OIIO_CHECK_EQUAL (extract<7>(b), 7);
+    }
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator[i]", [&](const VEC& v, int i){ return v[i]; },  b, 2, 1 /*work*/);
+    benchmark2 ("operator[2]", [&](const VEC& v, int i){ return v[2]; },  b, 2, 1 /*work*/);
+    benchmark2 ("operator[0]", [&](const VEC& v, int i){ return v[0]; },  b, 0, 1 /*work*/);
+    benchmark2 ("extract<2> ", [&](const VEC& v, int i){ return extract<2>(v); },  b, 2, 1 /*work*/);
+    benchmark2 ("extract<0> ", [&](const VEC& v, int i){ return extract<0>(v); },  b, 0, 1 /*work*/);
+    benchmark2 ("insert<2> ", [&](const VEC& v, ELEM i){ return insert<2>(v, i); }, b, ELEM(1), 1 /*work*/);
+#endif
 }
 
 
 
 template<>
-void test_component_access<mask4> ()
+void test_component_access<bool4> ()
 {
-    typedef mask4 VEC;
+    typedef bool4 VEC;
     typedef VEC::value_t ELEM;
-    std::cout << "test_component_access " << VEC::type_name() << "\n";
+    test_heading ("component_access ", VEC::type_name());
 
     VEC a (false, true, true, true);
     OIIO_CHECK_EQUAL (bool(a[0]), false);
@@ -315,43 +496,110 @@ void test_component_access<mask4> ()
 
 
 
-template<typename VEC>
-void test_arithmetic ()
+template<>
+void test_component_access<bool8> ()
 {
-    typedef typename VEC::value_t ELEM;
-    std::cout << "test_arithmetic " << VEC::type_name() << "\n";
+    typedef bool8 VEC;
+    typedef VEC::value_t ELEM;
+    test_heading ("component_access ", VEC::type_name());
 
-    VEC a (10, 11, 12, 13);
-    VEC b (1, 2, 3, 4);
-    OIIO_CHECK_SIMD_EQUAL (a+b, VEC(11,13,15,17));
-    OIIO_CHECK_SIMD_EQUAL (a-b, VEC(9,9,9,9));
-    OIIO_CHECK_SIMD_EQUAL (a*b, VEC(10,22,36,52));
-    OIIO_CHECK_SIMD_EQUAL (a/b, VEC(a[0]/b[0],a[1]/b[1],a[2]/b[2],a[3]/b[3]));
-    if (is_same<VEC,float3>::value)
-        OIIO_CHECK_EQUAL (reduce_add(b), ELEM(6));
-    else
-        OIIO_CHECK_EQUAL (reduce_add(b), ELEM(10));
-    OIIO_CHECK_SIMD_EQUAL (vreduce_add(b), VEC(ELEM(10)));
-    OIIO_CHECK_EQUAL (reduce_add(VEC(1.0f)), SimdElements<VEC>::size);
+    VEC a (false, true, true, true, false, false, true, true);
+    OIIO_CHECK_EQUAL (bool(a[0]), false);
+    OIIO_CHECK_EQUAL (bool(a[1]), true);
+    OIIO_CHECK_EQUAL (bool(a[2]), true);
+    OIIO_CHECK_EQUAL (bool(a[3]), true);
+    OIIO_CHECK_EQUAL (bool(a[4]), false);
+    OIIO_CHECK_EQUAL (bool(a[5]), false);
+    OIIO_CHECK_EQUAL (bool(a[6]), true);
+    OIIO_CHECK_EQUAL (bool(a[7]), true);
+    OIIO_CHECK_EQUAL (extract<0>(a), false);
+    OIIO_CHECK_EQUAL (extract<1>(a), true);
+    OIIO_CHECK_EQUAL (extract<2>(a), true);
+    OIIO_CHECK_EQUAL (extract<3>(a), true);
+    OIIO_CHECK_EQUAL (extract<4>(a), false);
+    OIIO_CHECK_EQUAL (extract<5>(a), false);
+    OIIO_CHECK_EQUAL (extract<6>(a), true);
+    OIIO_CHECK_EQUAL (extract<7>(a), true);
+    OIIO_CHECK_SIMD_EQUAL (insert<0>(a, ELEM(true)),
+                           VEC(true, true, true, true, false, false, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<1>(a, ELEM(false)),
+                           VEC(false, false, true, true, false, false, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<2>(a, ELEM(false)),
+                           VEC(false, true, false, true, false, false, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<3>(a, ELEM(false)),
+                           VEC(false, true, true, false, false, false, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<4>(a, ELEM(true)),
+                           VEC(false, true, true, true, true, false, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<5>(a, ELEM(true)),
+                           VEC(false, true, true, true, false, true, true, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<6>(a, ELEM(false)),
+                           VEC(false, true, true, true, false, false, false, true));
+    OIIO_CHECK_SIMD_EQUAL (insert<7>(a, ELEM(false)),
+                           VEC(false, true, true, true, false, false, true, false));
 }
 
 
 
-template<>
-void test_arithmetic<float3> ()
-{
-    typedef float3 VEC;
-    typedef typename VEC::value_t ELEM;
-    std::cout << "test_arithmetic " << VEC::type_name() << "\n";
+template<typename T> inline T do_add (const T &a, const T &b) { return a+b; }
+template<typename T> inline T do_sub (const T &a, const T &b) { return a-b; }
+template<typename T> inline T do_mul (const T &a, const T &b) { return a*b; }
+template<typename T> inline T do_div (const T &a, const T &b) { return a/b; }
+template<typename T> inline T do_safe_div (const T &a, const T &b) { return T(safe_div(a,b)); }
+inline Imath::V3f add_vec_simd (const Imath::V3f &a, const Imath::V3f &b) {
+    return (float3(a)+float3(b)).V3f();
+}
 
-    VEC a (10, 11, 12);
-    VEC b (1, 2, 3);
-    OIIO_CHECK_SIMD_EQUAL (a+b, VEC(11,13,15));
-    OIIO_CHECK_SIMD_EQUAL (a-b, VEC(9,9,9));
-    OIIO_CHECK_SIMD_EQUAL (a*b, VEC(10,22,36));
-    OIIO_CHECK_SIMD_EQUAL (a/b, VEC(a[0]/b[0],a[1]/b[1],a[2]/b[2]));
-    OIIO_CHECK_EQUAL (reduce_add(b), ELEM(6));
-    OIIO_CHECK_SIMD_EQUAL (vreduce_add(b), VEC(ELEM(6)));
+
+template<typename VEC>
+void test_arithmetic ()
+{
+    typedef typename VEC::value_t ELEM;
+    test_heading ("arithmetic ", VEC::type_name());
+
+    VEC a = VEC::Iota (1.0f, 3.0f);
+    VEC b = VEC::Iota (1.0f, 1.0f);
+    VEC add(ELEM(0)), sub(ELEM(0)), mul(ELEM(0)), div(ELEM(0));
+    ELEM bsum(ELEM(0));
+    for (int i = 0; i < VEC::elements; ++i) {
+        add[i] = a[i] + b[i];
+        sub[i] = a[i] - b[i];
+        mul[i] = a[i] * b[i];
+        div[i] = a[i] / b[i];
+        bsum += b[i];
+    }
+    OIIO_CHECK_SIMD_EQUAL (a+b, add);
+    OIIO_CHECK_SIMD_EQUAL (a-b, sub);
+    OIIO_CHECK_SIMD_EQUAL (a*b, mul);
+    OIIO_CHECK_SIMD_EQUAL (a/b, div);
+    OIIO_CHECK_SIMD_EQUAL (a*ELEM(2), a*VEC(ELEM(2)));
+    { VEC r = a; r += b; OIIO_CHECK_SIMD_EQUAL (r, add); }
+    { VEC r = a; r -= b; OIIO_CHECK_SIMD_EQUAL (r, sub); }
+    { VEC r = a; r *= b; OIIO_CHECK_SIMD_EQUAL (r, mul); }
+    { VEC r = a; r /= b; OIIO_CHECK_SIMD_EQUAL (r, div); }
+    { VEC r = a; r *= ELEM(2); OIIO_CHECK_SIMD_EQUAL (r, a*ELEM(2)); }
+
+    OIIO_CHECK_EQUAL (reduce_add(b), bsum);
+    OIIO_CHECK_SIMD_EQUAL (vreduce_add(b), VEC(bsum));
+    OIIO_CHECK_EQUAL (reduce_add(VEC(1.0f)), SimdElements<VEC>::size);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator+", do_add<VEC>, a, b);
+    benchmark2 ("operator-", do_sub<VEC>, a, b);
+    benchmark2 ("operator*", do_mul<VEC>, a, b);
+    benchmark2 ("operator/", do_div<VEC>, a, b);
+    benchmark  ("reduce_add", [](VEC& a){ return vreduce_add(a); }, a);
+    if (is_same<VEC,float3>::value) {  // For float3, compare to Imath
+        Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
+        benchmark2 ("add Imath::V3f", do_add<Imath::V3f>, a, b, 3 /*work*/);
+        benchmark2 ("add Imath::V3f with simd", add_vec_simd, a, b, 3 /*work*/);
+        benchmark2 ("sub Imath::V3f", do_sub<Imath::V3f>, a, b, 3 /*work*/);
+        benchmark2 ("mul Imath::V3f", do_mul<Imath::V3f>, a, b, 3 /*work*/);
+        benchmark2 ("div Imath::V3f", do_div<Imath::V3f>, a, b, 3 /*work*/);
+    }
+    benchmark2 ("reference: add scalar", do_add<ELEM>, a[2], b[1]);
+    benchmark2 ("reference: mul scalar", do_mul<ELEM>, a[2], b[1]);
+    benchmark2 ("reference: div scalar", do_div<ELEM>, a[2], b[1]);
+#endif
 }
 
 
@@ -360,79 +608,195 @@ template<typename VEC>
 void test_fused ()
 {
     typedef typename VEC::value_t ELEM;
-    std::cout << "test_fused " << VEC::type_name() << "\n";
+    test_heading ("fused ", VEC::type_name());
 
-    VEC a (10, 11, 12, 13);
-    VEC b (1, 2, 3, 4);
-    VEC c (0.5, 1.5, 2.5, 3.5);
+    VEC a = VEC::Iota (10);
+    VEC b = VEC::Iota (1);
+    VEC c = VEC::Iota (0.5f);
     OIIO_CHECK_SIMD_EQUAL (madd (a, b, c), a*b+c);
     OIIO_CHECK_SIMD_EQUAL (msub (a, b, c), a*b-c);
     OIIO_CHECK_SIMD_EQUAL (nmadd (a, b, c), -(a*b)+c);
     OIIO_CHECK_SIMD_EQUAL (nmsub (a, b, c), -(a*b)-c);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("madd old *+", [&](VEC&a, VEC&b){ return a*b+c; }, a, b);
+    benchmark2 ("madd fused", [&](VEC&a, VEC&b){ return madd(a,b,c); }, a, b);
+    benchmark2 ("msub old *-", [&](VEC&a, VEC&b){ return a*b-c; }, a, b);
+    benchmark2 ("msub fused", [&](VEC&a, VEC&b){ return msub(a,b,c); }, a, b);
+    benchmark2 ("nmadd old (-*)+", [&](VEC&a, VEC&b){ return c-(a*b); }, a, b);
+    benchmark2 ("nmadd fused", [&](VEC&a, VEC&b){ return nmadd(a,b,c); }, a, b);
+    benchmark2 ("nmsub old -(*+)", [&](VEC&a, VEC&b){ return -(a*b)-c; }, a, b);
+    benchmark2 ("nmsub fused", [&](VEC&a, VEC&b){ return nmsub(a,b,c); }, a, b);
+#endif
 }
 
 
 
-void test_bitwise_int4 ()
+template<typename T> T do_and (const T& a, const T& b) { return a & b; }
+template<typename T> T do_or  (const T& a, const T& b) { return a | b; }
+template<typename T> T do_xor (const T& a, const T& b) { return a ^ b; }
+template<typename T> T do_compl (const T& a) { return ~a; }
+template<typename T> T do_andnot (const T& a, const T& b) { return andnot(a,b); }
+
+
+
+template<typename VEC>
+void test_bitwise_int ()
 {
-    typedef int4 VEC;
-    typedef int ELEM;
-    std::cout << "test_bitwise " << VEC::type_name() << "\n";
+    typedef typename VEC::value_t ELEM;
+    test_heading ("bitwise ", VEC::type_name());
 
-    OIIO_CHECK_SIMD_EQUAL (VEC(0x12341234) & VEC(0x11111111), VEC(0x10101010));
-    OIIO_CHECK_SIMD_EQUAL (VEC(0x12341234) | VEC(0x11111111), VEC(0x13351335));
-    OIIO_CHECK_SIMD_EQUAL (VEC(0x12341234) ^ VEC(0x11111111), VEC(0x03250325));
-    OIIO_CHECK_SIMD_EQUAL (~(VEC(0x12341234)), VEC(0xedcbedcb));
-    OIIO_CHECK_SIMD_EQUAL (andnot (VEC(0x11111111), VEC(0x12341234)),
-                           (~(VEC(0x11111111))) & VEC(0x12341234));
-    OIIO_CHECK_SIMD_EQUAL (andnot (VEC(0x11111111), VEC(0x12341234)), VEC(0x02240224));
+    VEC a (0x12341234);
+    VEC b (0x11111111);
+    OIIO_CHECK_SIMD_EQUAL (a & b, VEC(0x10101010));
+    OIIO_CHECK_SIMD_EQUAL (a | b, VEC(0x13351335));
+    OIIO_CHECK_SIMD_EQUAL (a ^ b, VEC(0x03250325));
+    OIIO_CHECK_SIMD_EQUAL (~(a), VEC(0xedcbedcb));
+    OIIO_CHECK_SIMD_EQUAL (andnot (b, a), (~(b)) & a);
+    OIIO_CHECK_SIMD_EQUAL (andnot (b, a), VEC(0x02240224));
+
+    OIIO_CHECK_EQUAL (reduce_and(mkvec<VEC>(15, 7, 15, 15, 15, 15, 15, 15)), 7);
+    OIIO_CHECK_EQUAL (reduce_or(mkvec<VEC>(0, 3, 4, 0, 0, 0, 0, 0)), 7);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator&", do_and<VEC>, a, b);
+    benchmark2 ("operator|", do_or<VEC>, a, b);
+    benchmark2 ("operator^", do_xor<VEC>, a, b);
+    benchmark  ("operator!", do_compl<VEC>, a);
+    benchmark2 ("andnot",    do_andnot<VEC>, a, b);
+    benchmark  ("reduce_and", [](VEC& a){ return reduce_and(a); }, a);
+    benchmark  ("reduce_or ", [](VEC& a){ return reduce_or(a); }, a);
+#endif
 }
 
 
 
-void test_bitwise_mask4 ()
+template<typename VEC>
+void test_bitwise_bool ()
 {
-    typedef mask4 VEC;
     typedef int ELEM;
-    std::cout << "test_bitwise " << VEC::type_name() << "\n";
+    test_heading ("bitwise ", VEC::type_name());
 
-    OIIO_CHECK_SIMD_EQUAL (VEC(true, true, false, false) & VEC(true, false, true, false),
-                           VEC(true, false, false, false));
-    OIIO_CHECK_SIMD_EQUAL (VEC(true, true, false, false) | VEC(true, false, true, false),
-                           VEC(true, true, true, false));
-    OIIO_CHECK_SIMD_EQUAL (VEC(true, true, false, false) ^ VEC(true, false, true, false),
-                           VEC(false, true, true, false));
-    OIIO_CHECK_SIMD_EQUAL (~(VEC(true, true, false, false)), VEC(false, false, true, true));
+    bool A[]   = { true,  true,  false, false, false, false, true,  true  };
+    bool B[]   = { true,  false, true,  false, true,  false, true,  false };
+    bool AND[] = { true,  false, false, false, false, false, true,  false };
+    bool OR[]  = { true,  true,  true,  false, true,  false, true,  true  };
+    bool XOR[] = { false, true,  true,  false, true,  false, false, true  };
+    bool NOT[] = { false, false, true,  true,  true,  true,  false, false  };
+    VEC a(A), b(B), rand(AND), ror(OR), rxor(XOR), rnot(NOT);
+    OIIO_CHECK_SIMD_EQUAL (a & b, rand);
+    OIIO_CHECK_SIMD_EQUAL (a | b, ror);
+    OIIO_CHECK_SIMD_EQUAL (a ^ b, rxor);
+    OIIO_CHECK_SIMD_EQUAL (~a, rnot);
+
+    OIIO_CHECK_EQUAL (reduce_or(mkvec<VEC>(0, 0, 0, 0, 0, 0, 0, 0)), false);
+    OIIO_CHECK_EQUAL (reduce_or(mkvec<VEC>(0, 1, 0, 0, 0, 0, 0, 0)), true);
+    OIIO_CHECK_EQUAL (reduce_and(mkvec<VEC>(1, 1, 1, 1, 1, 1, 1, 1)), true);
+    OIIO_CHECK_EQUAL (reduce_and(mkvec<VEC>(0, 1, 0, 0, 0, 0, 0, 0)), false);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator&", do_and<VEC>, a, b);
+    benchmark2 ("operator|", do_or<VEC>, a, b);
+    benchmark2 ("operator^", do_xor<VEC>, a, b);
+    benchmark  ("operator!", do_compl<VEC>, a);
+    benchmark  ("reduce_and", [](VEC& a){ return reduce_and(a); }, a);
+    benchmark  ("reduce_or ", [](VEC& a){ return reduce_or(a); }, a);
+#endif
 }
+
+
+
+template<class T, class B> B do_lt (const T& a, const T& b) { return a < b; }
+template<class T, class B> B do_gt (const T& a, const T& b) { return a > b; }
+template<class T, class B> B do_le (const T& a, const T& b) { return a <= b; }
+template<class T, class B> B do_ge (const T& a, const T& b) { return a >= b; }
+template<class T, class B> B do_eq (const T& a, const T& b) { return a == b; }
+template<class T, class B> B do_ne (const T& a, const T& b) { return a != b; }
 
 
 
 template<typename VEC>
 void test_comparisons ()
 {
-    std::cout << "test_comparisons " << VEC::type_name() << "\n";
+    typedef typename VEC::value_t ELEM;
+    typedef typename VEC::bool_t bool_t;
+    test_heading ("comparisons ", VEC::type_name());
 
-    VEC a (0, 1, 2, 3);
-    OIIO_CHECK_SIMD_EQUAL (a < 2, mask4(1,1,0,0));
-    OIIO_CHECK_SIMD_EQUAL (a > 2, mask4(0,0,0,1));
-    OIIO_CHECK_SIMD_EQUAL (a <= 2, mask4(1,1,1,0));
-    OIIO_CHECK_SIMD_EQUAL (a >= 2, mask4(0,0,1,1));
-    OIIO_CHECK_SIMD_EQUAL (a == 2, mask4(0,0,1,0));
-    OIIO_CHECK_SIMD_EQUAL (a != 2, mask4(1,1,0,1));
+    VEC a = VEC::Iota();
+    bool lt2[] = { 1, 1, 0, 0, 0, 0, 0, 0 };
+    bool gt2[] = { 0, 0, 0, 1, 1, 1, 1, 1 };
+    bool le2[] = { 1, 1, 1, 0, 0, 0, 0, 0 };
+    bool ge2[] = { 0, 0, 1, 1, 1, 1, 1, 1 };
+    bool eq2[] = { 0, 0, 1, 0, 0, 0, 0, 0 };
+    bool ne2[] = { 1, 1, 0, 1, 1, 1, 1, 1 };
+    OIIO_CHECK_SIMD_EQUAL ((a < 2), bool_t(lt2));
+    OIIO_CHECK_SIMD_EQUAL ((a > 2), bool_t(gt2));
+    OIIO_CHECK_SIMD_EQUAL ((a <= 2), bool_t(le2));
+    OIIO_CHECK_SIMD_EQUAL ((a >= 2), bool_t(ge2));
+    OIIO_CHECK_SIMD_EQUAL ((a == 2), bool_t(eq2));
+    OIIO_CHECK_SIMD_EQUAL ((a != 2), bool_t(ne2));
+    VEC b (ELEM(2));
+    OIIO_CHECK_SIMD_EQUAL ((a < b), bool_t(lt2));
+    OIIO_CHECK_SIMD_EQUAL ((a > b), bool_t(gt2));
+    OIIO_CHECK_SIMD_EQUAL ((a <= b), bool_t(le2));
+    OIIO_CHECK_SIMD_EQUAL ((a >= b), bool_t(ge2));
+    OIIO_CHECK_SIMD_EQUAL ((a == b), bool_t(eq2));
+    OIIO_CHECK_SIMD_EQUAL ((a != b), bool_t(ne2));
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator< ", do_lt<VEC,bool_t>, a, b);
+    benchmark2 ("operator> ", do_gt<VEC,bool_t>, a, b);
+    benchmark2 ("operator<=", do_le<VEC,bool_t>, a, b);
+    benchmark2 ("operator>=", do_ge<VEC,bool_t>, a, b);
+    benchmark2 ("operator==", do_eq<VEC,bool_t>, a, b);
+    benchmark2 ("operator!=", do_ne<VEC,bool_t>, a, b);
+#endif
 }
 
 
 
 template<typename VEC>
-void test_shuffle ()
+void test_shuffle4 ()
 {
-    std::cout << "test_shuffle " << VEC::type_name() << "\n";
+    test_heading ("shuffle ", VEC::type_name());
 
     VEC a (0, 1, 2, 3);
     OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0>(a)), VEC(3,2,1,0));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2>(a)), VEC(0,0,2,2));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3>(a)), VEC(1,1,3,3));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1>(a)), VEC(0,1,0,1));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(2));
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark ("shuffle<...> ", [&](VEC& v){ return shuffle<3,2,1,0>(v); }, a);
+    benchmark ("shuffle<0> ", [&](VEC& v){ return shuffle<0>(v); }, a);
+    benchmark ("shuffle<1> ", [&](VEC& v){ return shuffle<1>(v); }, a);
+    benchmark ("shuffle<2> ", [&](VEC& v){ return shuffle<2>(v); }, a);
+    benchmark ("shuffle<3> ", [&](VEC& v){ return shuffle<3>(v); }, a);
+#endif
+}
+
+
+
+template<typename VEC>
+void test_shuffle8 ()
+{
+    test_heading ("shuffle ", VEC::type_name());
+    VEC a (0, 1, 2, 3, 4, 5, 6, 7);
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0,3,2,1,0>(a)), VEC(3,2,1,0,3,2,1,0));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2,0,0,2,2>(a)), VEC(0,0,2,2,0,0,2,2));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3,1,1,3,3>(a)), VEC(1,1,3,3,1,1,3,3));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1,0,1,0,1>(a)), VEC(0,1,0,1,0,1,0,1));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(2));
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark ("shuffle<...> ", [&](VEC& v){ return shuffle<7,6,5,4,3,2,1,0>(v); }, a);
+    benchmark ("shuffle<0> ", [&](VEC& v){ return shuffle<0>(v); }, a);
+    benchmark ("shuffle<1> ", [&](VEC& v){ return shuffle<1>(v); }, a);
+    benchmark ("shuffle<2> ", [&](VEC& v){ return shuffle<2>(v); }, a);
+    benchmark ("shuffle<3> ", [&](VEC& v){ return shuffle<3>(v); }, a);
+    benchmark ("shuffle<4> ", [&](VEC& v){ return shuffle<4>(v); }, a);
+    benchmark ("shuffle<5> ", [&](VEC& v){ return shuffle<5>(v); }, a);
+    benchmark ("shuffle<6> ", [&](VEC& v){ return shuffle<6>(v); }, a);
+    benchmark ("shuffle<7> ", [&](VEC& v){ return shuffle<7>(v); }, a);
+#endif
 }
 
 
@@ -440,10 +804,10 @@ void test_shuffle ()
 template<typename VEC>
 void test_swizzle ()
 {
-    std::cout << "test_swizzle " << VEC::type_name() << "\n";
+    test_heading ("swizzle ", VEC::type_name());
 
-    VEC a (0, 1, 2, 3);
-    VEC b (10, 11, 12, 13);
+    VEC a = VEC::Iota(0);
+    VEC b = VEC::Iota(10);
     OIIO_CHECK_SIMD_EQUAL (AxyBxy(a,b), VEC(0,1,10,11));
     OIIO_CHECK_SIMD_EQUAL (AxBxAyBy(a,b), VEC(0,10,1,11));
     OIIO_CHECK_SIMD_EQUAL (b.xyz0(), VEC(10,11,12,0));
@@ -455,30 +819,45 @@ void test_swizzle ()
 template<typename VEC>
 void test_blend ()
 {
-    std::cout << "test_blend " << VEC::type_name() << "\n";
+    test_heading ("blend ", VEC::type_name());
+    typedef typename VEC::value_t ELEM;
+    typedef typename VEC::bool_t bool_t;
 
-    VEC a (1, 2, 3, 4);
-    VEC b (10, 11, 12, 13);
+    VEC a = VEC::Iota (1);
+    VEC b = VEC::Iota (10);
+    bool_t f(false), t(true);
+    bool tf_values[] = { true, false, true, false, true, false, true, false };
+    bool_t tf ((bool *)tf_values);
 
-    OIIO_CHECK_SIMD_EQUAL (blend (a, b, mask4(false,false,false,false)), a);
-    OIIO_CHECK_SIMD_EQUAL (blend (a, b, mask4(true,true,true,true)), b);
-    OIIO_CHECK_SIMD_EQUAL (blend (a, b, mask4(true,false,true,false)), VEC (10, 2, 12, 4));
+    OIIO_CHECK_SIMD_EQUAL (blend (a, b, f), a);
+    OIIO_CHECK_SIMD_EQUAL (blend (a, b, t), b);
 
-    OIIO_CHECK_SIMD_EQUAL (blend0 (a, mask4(false,false,false,false)), VEC(0,0,0,0));
-    OIIO_CHECK_SIMD_EQUAL (blend0 (a, mask4(true,true,true,true)), a);
-    OIIO_CHECK_SIMD_EQUAL (blend0 (a, mask4(true,false,true,false)), VEC (1, 0, 3, 0));
+    ELEM r1[] = { 10, 2, 12, 4, 14, 6, 16, 8 };
+    OIIO_CHECK_SIMD_EQUAL (blend (a, b, tf), VEC(r1));
 
-    OIIO_CHECK_SIMD_EQUAL (blend0not (a, mask4(false,false,false,false)), a);
-    OIIO_CHECK_SIMD_EQUAL (blend0not (a, mask4(true,true,true,true)), VEC(0,0,0,0));
-    OIIO_CHECK_SIMD_EQUAL (blend0not (a, mask4(true,false,true,false)), VEC (0, 2, 0, 4));
+    OIIO_CHECK_SIMD_EQUAL (blend0 (a, f), VEC::Zero());
+    OIIO_CHECK_SIMD_EQUAL (blend0 (a, t), a);
+    ELEM r2[] = { 1, 0, 3, 0, 5, 0, 7, 0 };
+    OIIO_CHECK_SIMD_EQUAL (blend0 (a, tf), VEC(r2));
+
+    OIIO_CHECK_SIMD_EQUAL (blend0not (a, f), a);
+    OIIO_CHECK_SIMD_EQUAL (blend0not (a, t), VEC::Zero());
+    ELEM r3[] = { 0, 2, 0, 4, 0, 6, 0, 8 };
+    OIIO_CHECK_SIMD_EQUAL (blend0not (a, tf), VEC(r3));
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("blend", [&](VEC& a, VEC& b){ return blend(a,b,tf); }, a, b);
+    benchmark2 ("blend0", [](VEC& a, bool_t& b){ return blend0(a,b); }, a, tf);
+    benchmark2 ("blend0not", [](VEC& a, bool_t& b){ return blend0not(a,b); }, a, tf);
+#endif
 }
 
 
 
 template<typename VEC>
-void test_transpose ()
+void test_transpose4 ()
 {
-    std::cout << "test_transpose " << VEC::type_name() << "\n";
+    test_heading ("transpose ", VEC::type_name());
 
     VEC a (0, 1, 2, 3);
     VEC b (4, 5, 6, 7);
@@ -506,40 +885,64 @@ void test_transpose ()
 
 
 
+template<typename T> inline T do_shl (const T &a, int b) { return a<<b; }
+template<typename T> inline T do_shr (const T &a, int b) { return a>>b; }
+template<typename T> inline T do_srl (const T &a, int b) { return srl(a,b); }
+
+
+template<typename VEC>
 void test_shift ()
 {
-    std::cout << "test_shift\n";
-    int4 i (1, 2, 4, 8);
-    OIIO_CHECK_SIMD_EQUAL (i << 2, int4(4, 8, 16, 32));
+    test_heading ("shift ", VEC::type_name());
+    typedef typename VEC::value_t ELEM;
 
+    // Basics of << and >>
+    VEC i = VEC::Iota (10, 10);   // 10, 20, 30 ...
+    OIIO_CHECK_SIMD_EQUAL (i << 2, VEC::Iota(40, 40));
+    OIIO_CHECK_SIMD_EQUAL (i >> 1, VEC::Iota(5, 5));
+
+    // Tricky cases with high bits, and the difference between >> and srl
     int a = 1<<31, b = -1, c = 0xffff, d = 3;
-    int4 hard (a, b, c, d);
-    OIIO_CHECK_SIMD_EQUAL (hard >> 1, int4(a>>1, b>>1, c>>1, d>>1));
-    OIIO_CHECK_SIMD_EQUAL (srl(hard,1), int4(unsigned(a)>>1, unsigned(b)>>1,
-                                             unsigned(c)>>1, unsigned(d)>>1));
+    VEC hard = mkvec<VEC> (a, b, c, d, d, c, b, a);
+    OIIO_CHECK_SIMD_EQUAL (hard >> 1,
+                           mkvec<VEC>(a>>1, b>>1, c>>1, d>>1, d>>1, c>>1, b>>1, a>>1));
+    OIIO_CHECK_SIMD_EQUAL (srl(hard,1),
+                           mkvec<VEC>(unsigned(a)>>1, unsigned(b)>>1,
+                                      unsigned(c)>>1, unsigned(d)>>1,
+                                      unsigned(d)>>1, unsigned(c)>>1,
+                                      unsigned(b)>>1, unsigned(a)>>1));
     std::cout << Strutil::format ("  [%x] >>  1 == [%x]\n", hard, hard>>1);
-    std::cout << Strutil::format ("  [%x] srl 1 == [%x]\n", hard, srl(hard,4));
-    OIIO_CHECK_SIMD_EQUAL (hard >> 4, int4(a>>4, b>>4, c>>4, d>>4));
-    OIIO_CHECK_SIMD_EQUAL (srl(hard,4), int4(unsigned(a)>>4, unsigned(b)>>4,
-                                             unsigned(c)>>4, unsigned(d)>>4));
+    std::cout << Strutil::format ("  [%x] srl 1 == [%x]\n", hard, srl(hard,1));
+    OIIO_CHECK_SIMD_EQUAL (hard >> 4, mkvec<VEC>(a>>4, b>>4, c>>4, d>>4,
+                                                 d>>4, c>>4, b>>4, a>>4));
+    OIIO_CHECK_SIMD_EQUAL (srl(hard,4), mkvec<VEC>(unsigned(a)>>4, unsigned(b)>>4,
+                                                   unsigned(c)>>4, unsigned(d)>>4,
+                                                   unsigned(d)>>4, unsigned(c)>>4,
+                                                   unsigned(b)>>4, unsigned(a)>>4));
     std::cout << Strutil::format ("  [%x] >>  4 == [%x]\n", hard, hard>>4);
     std::cout << Strutil::format ("  [%x] srl 4 == [%x]\n", hard, srl(hard,4));
 
-    i = int4(1,2,4,8);
-    i <<= 1;
-    OIIO_CHECK_SIMD_EQUAL (i, int4(2,4,8,16));
-    i = int4(1,2,4,8);
-    i >>= 1;
-    OIIO_CHECK_SIMD_EQUAL (i, int4(0,1,2,4));
+    // Test <<= and >>=
+    i = VEC::Iota (10, 10);   i <<= 2;
+    OIIO_CHECK_SIMD_EQUAL (i, VEC::Iota(40, 40));
+    i = VEC::Iota (10, 10);   i >>= 1;
+    OIIO_CHECK_SIMD_EQUAL (i, VEC::Iota(5, 5));
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    // Benchmark
+    benchmark2 ("operator<<", do_shl<VEC>, i, 2);
+    benchmark2 ("operator>>", do_shr<VEC>, i, 2);
+    benchmark2 ("srl       ", do_srl<VEC>, i, 2);
+#endif
 }
 
 
 
-template<typename VEC>
-void test_vectorops ()
+void test_vectorops_float4 ()
 {
-    typedef typename VEC::value_t ELEM;
-    std::cout << "test_vectorops " << VEC::type_name() << "\n";
+    typedef float4 VEC;
+    typedef VEC::value_t ELEM;
+    test_heading ("vectorops ", VEC::type_name());
 
     VEC a = mkvec<VEC> (10, 11, 12, 13);
     VEC b = mkvec<VEC> (1, 2, 3, 4);
@@ -547,16 +950,23 @@ void test_vectorops ()
     OIIO_CHECK_EQUAL (dot3(a,b), ELEM(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot(a,b), VEC(10+22+36+52));
     OIIO_CHECK_SIMD_EQUAL (vdot3(a,b), VEC(10+22+36));
+    OIIO_CHECK_SIMD_EQUAL (hdiv(float4(1.0f,2.0f,3.0f,2.0f)), float3(0.5f,1.0f,1.5f));
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
+    benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
+    benchmark2 ("vdot3", [](VEC& a, VEC& b){ return vdot3(a,b); }, a, b);
+    benchmark2 ("dot3", [](VEC& a, VEC& b){ return dot3(a,b); }, a, b);
+#endif
 }
 
 
 
-template<>
-void test_vectorops<float3> ()
+void test_vectorops_float3 ()
 {
     typedef float3 VEC;
-    typedef typename VEC::value_t ELEM;
-    std::cout << "test_vectorops " << VEC::type_name() << "\n";
+    typedef VEC::value_t ELEM;
+    test_heading ("vectorops ", VEC::type_name());
 
     VEC a = mkvec<VEC> (10, 11, 12);
     VEC b = mkvec<VEC> (1, 2, 3);
@@ -564,16 +974,34 @@ void test_vectorops<float3> ()
     OIIO_CHECK_EQUAL (dot3(a,b), ELEM(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot(a,b), VEC(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot3(a,b), VEC(10+22+36));
+    OIIO_CHECK_SIMD_EQUAL (float3(1.0f,2.0f,3.0f).normalized(),
+                           float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (float3(1.0f,2.0f,3.0f).normalized_fast(),
+                                  float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))), 0.0005);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
+    benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
+    benchmark ("dot float3", dot_simd, float3(2.0f,1.0f,0.0f), 1);
+    // benchmark2 ("dot Imath::V3f", [](Imath::V3f& a, Imath::V3f& b){ return a.dot(b); }, a.V3f(), b.V3f());
+    benchmark ("dot Imath::V3f", dot_imath, Imath::V3f(2.0f,1.0f,0.0f), 1);
+    benchmark ("dot Imath::V3f with simd", dot_imath_simd, Imath::V3f(2.0f,1.0f,0.0f), 1);
+    benchmark ("normalize Imath", norm_imath, Imath::V3f(1.0f,4.0f,9.0f));
+    benchmark ("normalize Imath with simd", norm_imath_simd, Imath::V3f(1.0f,4.0f,9.0f));
+    benchmark ("normalize Imath with simd fast", norm_imath_simd_fast, Imath::V3f(1.0f,4.0f,9.0f));
+    benchmark ("normalize simd", norm_simd, float3(1.0f,4.0f,9.0f));
+    benchmark ("normalize simd fast", norm_simd_fast, float3(1.0f,4.0f,9.0f));
+#endif
 }
 
 
 
 void test_constants ()
 {
-    std::cout << "test_constants\n";
+    test_heading ("constants");
 
-    OIIO_CHECK_SIMD_EQUAL (mask4::False(), mask4(false));
-    OIIO_CHECK_SIMD_EQUAL (mask4::True(), mask4(true));
+    OIIO_CHECK_SIMD_EQUAL (bool4::False(), bool4(false));
+    OIIO_CHECK_SIMD_EQUAL (bool4::True(), bool4(true));
 
     OIIO_CHECK_SIMD_EQUAL (int4::Zero(), int4(0));
     OIIO_CHECK_SIMD_EQUAL (int4::One(), int4(1));
@@ -581,9 +1009,33 @@ void test_constants ()
 
     OIIO_CHECK_SIMD_EQUAL (float4::Zero(), float4(0.0f));
     OIIO_CHECK_SIMD_EQUAL (float4::One(), float4(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (float4::Iota(), float4(0,1,2,3));
+    OIIO_CHECK_SIMD_EQUAL (float4::Iota(3.0f), float4(3,4,5,6));
+    OIIO_CHECK_SIMD_EQUAL (float4::Iota(3.0f,2.0f), float4(3,5,7,9));
 
     OIIO_CHECK_SIMD_EQUAL (float3::Zero(), float3(0.0f));
     OIIO_CHECK_SIMD_EQUAL (float3::One(), float3(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (float3::Iota(), float3(0,1,2));
+    OIIO_CHECK_SIMD_EQUAL (float3::Iota(3.0f), float3(3,4,5));
+    OIIO_CHECK_SIMD_EQUAL (float3::Iota(3.0f,2.0f), float3(3,5,7));
+
+    OIIO_CHECK_SIMD_EQUAL (float8::Zero(), float8(0.0f));
+    OIIO_CHECK_SIMD_EQUAL (float8::One(), float8(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (float8::Iota(), float8(0,1,2,3,4,5,6,7));
+    OIIO_CHECK_SIMD_EQUAL (float8::Iota(3.0f), float8(3,4,5,6,7,8,9,10));
+    OIIO_CHECK_SIMD_EQUAL (float8::Iota(3.0f,2.0f), float8(3,5,7,9,11,13,15,17));
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark ("float4 = float(const)", [](float f){ return float4(f); }, 1.0f);
+    benchmark ("float4 = Zero()", [](int){ return float4::Zero(); }, 0);
+    benchmark ("float4 = One()", [](int){ return float4::One(); }, 0);
+    benchmark ("float4 = Iota()", [](int){ return float4::Iota(); }, 0);
+
+    benchmark ("float8 = float(const)", [](float f){ return float8(f); }, 1.0f);
+    benchmark ("float8 = Zero()", [](int){ return float8::Zero(); }, 0);
+    benchmark ("float8 = One()", [](int){ return float8::One(); }, 0);
+    benchmark ("float8 = Iota()", [](int){ return float8::Iota(); }, 0);
+#endif
 }
 
 
@@ -591,7 +1043,7 @@ void test_constants ()
 // Miscellaneous one-off stuff not caught by other tests
 void test_special ()
 {
-    std::cout << "test_special\n";
+    test_heading ("special");
     {
         // Make sure a float4 constructed from saturated unsigned short,
         // short, unsigned char, or char values, then divided by the float
@@ -613,60 +1065,88 @@ void test_special ()
 
 
 
+// Wrappers to resolve the return type ambiguity
+inline float fast_exp_float (float x) { return fast_exp(x); }
+inline float4 fast_exp_float4 (const float4& x) { return fast_exp(x); }
+inline float fast_log_float (float x) { return fast_log(x); }
+//inline float4 fast_log_float (const float4& x) { return fast_log(x); }
+inline float rsqrtf (float f) { return 1.0f / sqrtf(f); }
+
+
+
+template<typename VEC>
 void test_mathfuncs ()
 {
-    std::cout << "test_mathfuncs\n";
-    float4 A (-1.0f, 0.0f, 1.0f, 4.5f);
-    float4 expA (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
+    test_heading ("mathfuncs", VEC::type_name());
+    typedef typename VEC::value_t ELEM;
+
+    VEC A = mkvec<VEC> (-1.0f, 0.0f, 1.0f, 4.5f);
+    VEC expA = mkvec<VEC> (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
     OIIO_CHECK_SIMD_EQUAL (exp(A), expA);
     OIIO_CHECK_SIMD_EQUAL_THRESH (log(expA), A, 1e-6f);
     OIIO_CHECK_SIMD_EQUAL (fast_exp(A),
-                float4(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
+                mkvec<VEC>(fast_exp(A[0]), fast_exp(A[1]), fast_exp(A[2]), fast_exp(A[3])));
     OIIO_CHECK_SIMD_EQUAL (fast_log(expA),
-                float4(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])));
-    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(float4(2.0f), A),
-                           float4(0.5f, 1.0f, 2.0f, 22.62741699796952f), 0.0001f);
+                mkvec<VEC>(fast_log(expA[0]), fast_log(expA[1]), fast_log(expA[2]), fast_log(expA[3])));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (fast_pow_pos(VEC(2.0f), A),
+                           mkvec<VEC>(0.5f, 1.0f, 2.0f, 22.62741699796952f), 0.0001f);
 
-    OIIO_CHECK_SIMD_EQUAL (safe_div(float4(1.0f,2.0f,3.0f,4.0f), float4(2.0f,0.0f,2.0f,0.0f)),
-                           float4(0.5f,0.0f,1.5f,0.0f));
-    OIIO_CHECK_SIMD_EQUAL (hdiv(float4(1.0f,2.0f,3.0f,2.0f)), float3(0.5f,1.0f,1.5f));
-    OIIO_CHECK_SIMD_EQUAL (sqrt(float4(1.0f,4.0f,9.0f,16.0f)), float4(1.0f,2.0f,3.0f,4.0f));
-    OIIO_CHECK_SIMD_EQUAL (rsqrt(float4(1.0f,4.0f,9.0f,16.0f)), float4(1.0f)/float4(1.0f,2.0f,3.0f,4.0f));
-    OIIO_CHECK_SIMD_EQUAL_THRESH (rsqrt_fast(float4(1.0f,4.0f,9.0f,16.0f)),
-                                  float4(1.0f)/float4(1.0f,2.0f,3.0f,4.0f), 0.0005f);
-    OIIO_CHECK_SIMD_EQUAL (float3(1.0f,2.0f,3.0f).normalized(),
-                           float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))));
-    OIIO_CHECK_SIMD_EQUAL_THRESH (float3(1.0f,2.0f,3.0f).normalized_fast(),
-                                  float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))), 0.0005);
+    OIIO_CHECK_SIMD_EQUAL (safe_div(mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), mkvec<VEC>(2.0f,0.0f,2.0f,0.0f)),
+                           mkvec<VEC>(0.5f,0.0f,1.5f,0.0f));
+    OIIO_CHECK_SIMD_EQUAL (sqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), mkvec<VEC>(1.0f,2.0f,3.0f,4.0f));
+    OIIO_CHECK_SIMD_EQUAL (rsqrt(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)), VEC(1.0f)/mkvec<VEC>(1.0f,2.0f,3.0f,4.0f));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (rsqrt_fast(mkvec<VEC>(1.0f,4.0f,9.0f,16.0f)),
+                                  VEC(1.0f)/mkvec<VEC>(1.0f,2.0f,3.0f,4.0f), 0.0005f);
+
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark2 ("operator/", do_div<VEC>, A, A);
+    benchmark2 ("safe_div", do_safe_div<VEC>, A, A);
+    benchmark ("float expf", expf, 0.67f);
+    benchmark ("fast_exp", fast_exp_float, 0.67f);
+    benchmark ("simd::exp", [](VEC& v){ return simd::exp(v); }, VEC(0.67f));
+    benchmark ("simd::fast_exp", [](VEC& v){ return fast_exp(v); }, VEC(0.67f));
+
+    benchmark ("float logf", logf, 0.67f);
+    benchmark ("fast_log", fast_log_float, 0.67f);
+    benchmark ("simd::log", [](VEC& v){ return simd::log(v); }, VEC(0.67f));
+    benchmark ("simd::fast_log", fast_log<VEC>, VEC(0.67f));
+    benchmark2 ("float powf", powf, 0.67f, 0.67f);
+    benchmark2 ("simd fast_pow_pos", [](VEC& x,VEC& y){ return fast_pow_pos(x,y); }, VEC(0.67f), VEC(0.67f));
+    benchmark ("float sqrt", sqrtf, 4.0f);
+    benchmark ("simd::sqrt", [](VEC& v){ return sqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("float rsqrt", rsqrtf, 4.0f);
+    benchmark ("simd::rsqrt", [](VEC& v){ return rsqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("simd::rsqrt_fast", [](VEC& v){ return rsqrt_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+#endif
 }
 
 
 
 void test_metaprogramming ()
 {
-    std::cout << "test_metaprogramming\n";
+    test_heading ("metaprogramming");
     OIIO_CHECK_EQUAL (SimdSize<float4>::size, 4);
     OIIO_CHECK_EQUAL (SimdSize<float3>::size, 4);
     OIIO_CHECK_EQUAL (SimdSize<int4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdSize<mask4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<bool4>::size, 4);
     OIIO_CHECK_EQUAL (SimdSize<float>::size, 1);
     OIIO_CHECK_EQUAL (SimdSize<int>::size, 1);
 
     OIIO_CHECK_EQUAL (SimdElements<float4>::size, 4);
     OIIO_CHECK_EQUAL (SimdElements<float3>::size, 3);
     OIIO_CHECK_EQUAL (SimdElements<int4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdElements<mask4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdElements<bool4>::size, 4);
     OIIO_CHECK_EQUAL (SimdElements<float>::size, 1);
     OIIO_CHECK_EQUAL (SimdElements<int>::size, 1);
 
     OIIO_CHECK_EQUAL (float4::elements, 4);
     OIIO_CHECK_EQUAL (float3::elements, 3);
     OIIO_CHECK_EQUAL (int4::elements, 4);
-    OIIO_CHECK_EQUAL (mask4::elements, 4);
+    OIIO_CHECK_EQUAL (bool4::elements, 4);
     // OIIO_CHECK_EQUAL (is_same<float4::value_t,float>::value, true);
     // OIIO_CHECK_EQUAL (is_same<float3::value_t,float>::value, true);
     // OIIO_CHECK_EQUAL (is_same<int4::value_t,int>::value, true);
-    // OIIO_CHECK_EQUAL (is_same<mask4::value_t,int>::value, true);
+    // OIIO_CHECK_EQUAL (is_same<bool4::value_t,int>::value, true);
 }
 
 
@@ -717,13 +1197,22 @@ mx_equal_thresh (const matrix44 &a, const matrix44 &b, float thresh)
 
 
 
+inline Imath::M44f mat_transpose (const Imath::M44f &m) {
+    return m.transposed();
+}
+
+inline Imath::M44f mat_transpose_simd (const Imath::M44f &m) {
+    return matrix44(m).transposed().M44f();
+}
+
+
 void test_matrix ()
 {
     Imath::V3f P (1.0f, 0.0f, 0.0f);
     Imath::M44f Mtrans (1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  10, 11, 12, 1);
     Imath::M44f Mrot = Imath::M44f().rotate(Imath::V3f(0.0f, M_PI_2, 0.0f));
 
-    std::cout << "Testing matrix ops:\n";
+    test_heading ("Testing matrix ops:");
     std::cout << "  P = " << P << "\n";
     std::cout << "  Mtrans = " << Mtrans << "\n";
     std::cout << "  Mrot   = " << Mrot << "\n";
@@ -753,206 +1242,28 @@ void test_matrix ()
                        matrix44(Mtrans).inverse(), 1.0e-6f));
     OIIO_CHECK_ASSERT (mx_equal_thresh (Mrot.inverse(),
                        matrix44(Mrot).inverse(), 1.0e-6f));
-}
-
-
 
 #if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
-
-template <typename FUNC, typename T>
-void benchmark_function (string_view funcname, size_t n, FUNC func, T x,
-                         size_t work=SimdElements<T>::size)
-{
-    auto repeat_func = [&](){
-        // Unroll the loop 8 times
-        for (size_t i = 0; i < n; i += work*8) {
-            auto r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-            r = func(x); DoNotOptimize (r);
-        }
-    };
-    float time = time_trial (repeat_func, ntrials, iterations) / iterations;
-    std::cout << Strutil::format (" %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
-                                  funcname, (n/1.0e6)/time,
-                                  ((n/work)/1.0e6)/time);
-}
-
-
-template <typename FUNC, typename T, typename U>
-void benchmark_function2 (string_view funcname, size_t n, FUNC func, T x, U y,
-                          size_t work=SimdElements<T>::size)
-{
-    auto repeat_func = [&](){
-        // Unroll the loop 8 times
-        for (size_t i = 0; i < n; i += work*8) {
-            auto r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-            r = func(x, y); DoNotOptimize (r);
-        }
-    };
-    float time = time_trial (repeat_func, ntrials, iterations) / iterations;
-    std::cout << Strutil::format (" %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
-                                  funcname, (n/1.0e6)/time,
-                                  ((n/work)/1.0e6)/time);
-}
-
-
-// Wrappers to resolve the return type ambiguity
-inline float fast_exp_float (float x) { return fast_exp(x); }
-inline float4 fast_exp_float4 (const float4& x) { return fast_exp(x); }
-inline float fast_log_float (float x) { return fast_log(x); }
-inline float4 fast_log_float4 (const float4& x) { return fast_log(x); }
-
-float dummy_float[16];
-float dummy_float2[16];
-float dummy_int[16];
-
-template<typename VEC>
-inline int loadstore_vec (int x) {
-    VEC v;
-    v.load (dummy_float);
-    v.store (dummy_float2);
-    return 0;
-}
-
-template<typename VEC, int N>
-inline int loadstore_vec_N (int x) {
-    VEC v;
-    v.load (dummy_float, N);
-    v.store (dummy_float2, N);
-    return 0;
-}
-
-template<typename VEC>
-inline VEC add_vec (const VEC &a, const VEC &b) {
-    return a+b;
-}
-
-template<typename VEC>
-inline VEC mul_vec (const VEC &a, const VEC &b) {
-    return a*b;
-}
-
-template<typename VEC>
-inline VEC div_vec (const VEC &a, const VEC &b) {
-    return a/b;
-}
-
-// Add Imath 3-vectors using simd underneath
-inline Imath::V3f
-add_vec_simd (const Imath::V3f &a, const Imath::V3f &b) {
-    return (float3(a)*float3(b)).V3f();
-}
-
-inline float dot_imath (const Imath::V3f &v) {
-    return v.dot(v);
-}
-inline float dot_imath_simd (const Imath::V3f &v_) {
-    float3 v (v_);
-    return simd::dot(v,v);
-}
-inline float dot_simd (const simd::float3 v) {
-    return dot(v,v);
-}
-
-inline Imath::M44f
-mat_transpose (const Imath::M44f &m) {
-    return m.transposed();
-}
-
-inline Imath::M44f
-mat_transpose_simd (const Imath::M44f &m) {
-    return matrix44(m).transposed().M44f();
-}
-
-
-inline float rsqrtf (float f) { return 1.0f / sqrtf(f); }
-
-#endif
-
-
-void test_timing ()
-{
-#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
-    const size_t size = 1000000;
-    for (int i = 0; i < 16; ++i) {
-        dummy_float[i] = 1.0f;
-        dummy_int[i] = 1;
-    }
-    benchmark_function ("load/store float4", size, loadstore_vec<float4>, 0);
-    benchmark_function ("load/store float4, 4 comps", size, loadstore_vec_N<float4, 4>, 0);
-    benchmark_function ("load/store float4, 3 comps", size, loadstore_vec_N<float4, 3>, 0);
-    benchmark_function ("load/store float4, 2 comps", size, loadstore_vec_N<float4, 2>, 0);
-    benchmark_function ("load/store float4, 1 comps", size, loadstore_vec_N<float4, 1>, 0);
-    benchmark_function ("load/store float3", size, loadstore_vec<float3>, 0);
-
-    benchmark_function2 ("add float", size, add_vec<float>, float(2.51f), float(3.1f));
-    benchmark_function2 ("add float4", size, add_vec<float4>, float4(2.51f), float4(3.1f));
-    benchmark_function2 ("add float3", size, add_vec<float3>, float3(2.51f), float3(3.1f));
-    benchmark_function2 ("add Imath::V3f", size, add_vec<Imath::V3f>, Imath::V3f(2.51f,1.0f,1.0f), Imath::V3f(3.1f,1.0f,1.0f));
-    benchmark_function2 ("add Imath::V3f with simd", size, add_vec_simd, Imath::V3f(2.51f,1.0f,1.0f), Imath::V3f(3.1f,1.0f,1.0f));
-    benchmark_function2 ("add int", size, add_vec<int>, int(2), int(3));
-    benchmark_function2 ("add int4", size, add_vec<int4>, int4(2), int4(3));
-    benchmark_function2 ("mul float", size, mul_vec<float>, float(2.51f), float(3.1f));
-    benchmark_function2 ("mul float4", size, mul_vec<float4>, float4(2.51f), float4(3.1f));
-    benchmark_function2 ("mul float3", size, mul_vec<float3>, float3(2.51f), float3(3.1f));
-    benchmark_function2 ("mul Imath::V3f", size, mul_vec<Imath::V3f>, Imath::V3f(2.51f,0.0f,0.0f), Imath::V3f(3.1f,0.0f,0.0f));
-    benchmark_function2 ("div float", size, div_vec<float>, float(2.51f), float(3.1f));
-    benchmark_function2 ("div float4", size, div_vec<float4>, float4(2.51f), float4(3.1f));
-    benchmark_function2 ("div float3", size, div_vec<float3>, float3(2.51f), float3(3.1f));
-    benchmark_function2 ("div int", size, div_vec<int>, int(2), int(3));
-    benchmark_function2 ("div int4", size, div_vec<int4>, int4(2), int4(3));
-    benchmark_function ("dot Imath::V3f", size, dot_imath, Imath::V3f(2.0f,1.0f,0.0f), 1);
-    benchmark_function ("dot Imath::V3f with simd", size, dot_imath_simd, Imath::V3f(2.0f,1.0f,0.0f), 1);
-    benchmark_function ("dot float3", size, dot_simd, float3(2.0f,1.0f,0.0f), 1);
-
     Imath::V3f vx (2.51f,1.0f,1.0f);
     Imath::M44f mx (1,0,0,0, 0,1,0,0, 0,0,1,0, 10,11,12,1);
-    benchmark_function2 ("transformp Imath", size, transformp_imath, vx, mx, 1);
-    benchmark_function2 ("transformp Imath with simd", size, transformp_imath_simd, vx, mx, 1);
-    benchmark_function2 ("transformp simd", size, transformp_simd, float3(vx), mx, 1);
-    benchmark_function ("transpose m44", size, mat_transpose, mx, 1);
-    benchmark_function ("transpose m44 with simd", size, mat_transpose_simd, mx, 1);
-
-    benchmark_function ("expf", size, expf, 0.67f);
-    benchmark_function ("fast_exp", size, fast_exp_float, 0.67f);
-    benchmark_function ("simd::exp", size, simd::exp, float4(0.67f));
-    benchmark_function ("simd::fast_exp", size, fast_exp_float4, float4(0.67f));
-
-    benchmark_function ("logf", size, logf, 0.67f);
-    benchmark_function ("fast_log", size, fast_log_float, 0.67f);
-    benchmark_function ("simd::log", size, simd::log, float4(0.67f));
-    benchmark_function ("simd::fast_log", size, fast_log_float4, float4(0.67f));
-    benchmark_function2 ("powf", size, powf, 0.67f, 0.67f);
-    benchmark_function2 ("simd fast_pow_pos", size, fast_pow_pos, float4(0.67f), float4(0.67f));
-    benchmark_function ("sqrt", size, sqrtf, 4.0f);
-    benchmark_function ("simd::sqrt", size, simd::sqrt, float4(1.0f,4.0f,9.0f,16.0f));
-    benchmark_function ("rsqrt", size, rsqrtf, 4.0f);
-    benchmark_function ("simd::rsqrt", size, simd::rsqrt, float4(1.0f,4.0f,9.0f,16.0f));
-    benchmark_function ("simd::rsqrt_fast", size, simd::rsqrt_fast, float4(1.0f,4.0f,9.0f,16.0f));
-    benchmark_function ("normalize Imath", size, norm_imath, Imath::V3f(1.0f,4.0f,9.0f));
-    benchmark_function ("normalize Imath with simd", size, norm_imath_simd, Imath::V3f(1.0f,4.0f,9.0f));
-    benchmark_function ("normalize Imath with simd fast", size, norm_imath_simd_fast, Imath::V3f(1.0f,4.0f,9.0f));
-    benchmark_function ("normalize simd", size, norm_simd, float3(1.0f,4.0f,9.0f));
-    benchmark_function ("normalize simd fast", size, norm_simd_fast, float3(1.0f,4.0f,9.0f));
-    benchmark_function ("m44 inverse Imath", size/8, inverse_imath, mx, 1);
+    benchmark2 ("transformp Imath", transformp_imath, vx, mx, 1);
+    benchmark2 ("transformp Imath with simd", transformp_imath_simd, vx, mx, 1);
+    benchmark2 ("transformp simd", transformp_simd, float3(vx), mx, 1);
+    benchmark ("transpose m44", mat_transpose, mx, 1);
+    benchmark ("transpose m44 with simd", mat_transpose_simd, mx, 1);
+    // Reduce the iterations of the ones below, if we can
+    iterations /= 2;
+    benchmark ("m44 inverse Imath", inverse_imath, mx, 1);
     // std::cout << "inv " << matrix44(inverse_imath(mx)) << "\n";
-    benchmark_function ("m44 inverse_simd", size/8, inverse_simd, mx, 1);
+    benchmark ("m44 inverse_simd", inverse_simd, mx, 1);
     // std::cout << "inv " << inverse_simd(mx) << "\n";
-    benchmark_function ("m44 inverse_simd native simd", size/8, inverse_simd, matrix44(mx), 1);
+    benchmark ("m44 inverse_simd native simd", inverse_simd, matrix44(mx), 1);
     // std::cout << "inv " << inverse_simd(mx) << "\n";
+    iterations *= 2;  // put things the way they were
 #endif
 }
+
+
 
 
 
@@ -966,6 +1277,10 @@ main (int argc, char *argv[])
     iterations /= 10;
     ntrials = 1;
 #endif
+    for (int i = 0; i < 16; ++i) {
+        dummy_float[i] = 1.0f;
+        dummy_int[i] = 1;
+    }
 
     getargs (argc, argv);
 
@@ -975,66 +1290,101 @@ main (int argc, char *argv[])
     std::cout << "SIMD is SSE " << OIIO_SIMD_SSE << "\n";
 #elif defined(OIIO_SIMD_NEON)
     std::cout << "SIMD is NEON " << OIIO_SIMD_NEON << "\n";
-#elif defined(OIIO_SIMD_SSE)
+#else
     std::cout << "NO SIMD!!\n";
 #endif
+    Timer timer;
 
-    std::cout << "\n";
+    int4 dummy4(0);
+    int8 dummy8(0);
+#if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
+    benchmark ("null benchmark 4", [](const int4&){ return int(0); }, dummy4);
+    benchmark ("null benchmark 8", [](const int8&){ return int(0); }, dummy8);
+#endif
+
+    category_heading ("float4");
     test_loadstore<float4> ();
     test_component_access<float4> ();
     test_arithmetic<float4> ();
     test_comparisons<float4> ();
-    test_shuffle<float4> ();
+    test_shuffle4<float4> ();
     test_swizzle<float4> ();
     test_blend<float4> ();
-    test_transpose<float4> ();
-    test_vectorops<float4> ();
+    test_transpose4<float4> ();
+    test_vectorops_float4 ();
     test_fused<float4> ();
+    test_mathfuncs<float4>();
 
-    std::cout << "\n";
+    category_heading ("float3");
     test_loadstore<float3> ();
     test_component_access<float3> ();
     test_arithmetic<float3> ();
     // Unnecessary to test these, they just use the float4 ops.
     // test_comparisons<float3> ();
-    // test_shuffle<float3> ();
+    // test_shuffle4<float3> ();
     // test_swizzle<float3> ();
     // test_blend<float3> ();
-    // test_transpose<float3> ();
-    test_vectorops<float3> ();
-    // test_fused<float3> ();
+    // test_transpose4<float3> ();
+    test_vectorops_float3 ();
+    test_fused<float3> ();
+    // test_mathfuncs<float3>();
 
-    std::cout << "\n";
+    category_heading ("float8");
+    test_loadstore<float8> ();
+    test_component_access<float8> ();
+    test_arithmetic<float8> ();
+    test_comparisons<float8> ();
+    test_shuffle8<float8> ();
+    test_blend<float8> ();
+    test_fused<float8> ();
+    test_mathfuncs<float8>();
+
+    category_heading ("int4");
     test_loadstore<int4> ();
     test_component_access<int4> ();
     test_arithmetic<int4> ();
-    test_bitwise_int4 ();
+    test_bitwise_int<int4> ();
     test_comparisons<int4> ();
-    test_shuffle<int4> ();
-    test_swizzle<float4> ();
+    test_shuffle4<int4> ();
     test_blend<int4> ();
-    test_transpose<int4> ();
-    test_int4_to_uint16s ();
-    test_int4_to_uint8s ();
-    test_shift ();
+    test_vint_to_uint16s<int4> ();
+    test_vint_to_uint8s<int4> ();
+    test_shift<int4> ();
+    test_transpose4<int4> ();
 
-    std::cout << "\n";
-    test_shuffle<mask4> ();
-    test_component_access<mask4> ();
-    test_bitwise_mask4 ();
+    category_heading ("int8");
+    test_loadstore<int8> ();
+    test_component_access<int8> ();
+    test_arithmetic<int8> ();
+    test_bitwise_int<int8> ();
+    test_comparisons<int8> ();
+    test_shuffle8<int8> ();
+    test_blend<int8> ();
+    test_vint_to_uint16s<int8> ();
+    test_vint_to_uint8s<int8> ();
+    test_shift<int8> ();
 
+    category_heading ("bool4");
+    test_shuffle4<bool4> ();
+    test_component_access<bool4> ();
+    test_bitwise_bool<bool4> ();
+
+    category_heading ("bool8");
+    test_shuffle8<bool8> ();
+    test_component_access<bool8> ();
+    test_bitwise_bool<bool8> ();
+
+    category_heading ("Odds and ends");
     test_constants();
     test_special();
-    test_mathfuncs();
     test_metaprogramming();
     test_matrix();
 
-    std::cout << "\nTiming tests:\n";
-    test_timing();
+    std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer()) << "\n";
 
     if (unit_test_failures)
-        std::cout << "\nERRORS!\n";
+        std::cout << term.ansi ("red", "ERRORS!\n");
     else
-        std::cout << "\nOK\n";
+        std::cout << term.ansi ("green", "OK\n");
     return unit_test_failures;
 }
