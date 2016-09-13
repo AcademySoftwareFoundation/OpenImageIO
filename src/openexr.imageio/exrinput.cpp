@@ -57,6 +57,7 @@
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
@@ -298,7 +299,7 @@ private:
         // FIXME: Things to consider in the future:
         // preview
         // screenWindowCenter
-        // chromaticities whiteLuminance adoptedNeutral
+        // adoptedNeutral
         // renderingTransform, lookModTransform
         // utcOffset
         // longitude latitude altitude
@@ -576,6 +577,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::Box2fAttribute *b2fattr;
         const Imf::TimeCodeAttribute *tattr;
         const Imf::KeyCodeAttribute *kcattr;
+        const Imf::ChromaticitiesAttribute *crattr;
 #ifdef USE_OPENEXR_VERSION2
         const Imf::StringVectorAttribute *svattr;
         const Imf::DoubleAttribute *dattr;
@@ -698,6 +700,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             if (oname == "keyCode")
                 oname = "smpte:KeyCode";
             spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
+        } else if (type == "chromaticities" &&
+                   (crattr = header->findTypedAttribute<Imf::ChromaticitiesAttribute> (name))) {
+            const Imf::Chromaticities *chroma = &crattr->value();
+            spec.attribute (oname, TypeDesc(TypeDesc::FLOAT,8),
+                            (const float *)chroma);
         }
         else {
 #if 0
