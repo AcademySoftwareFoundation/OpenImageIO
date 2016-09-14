@@ -248,9 +248,11 @@ Fixes, minor enhancements, and performance improvements:
    conversion functions as well as oiiotool --colorconvert and friends),
    approximately doubling the speed when no OpenColorIO config is found.
    #1383 (1.7.2)
-* ImageInput::create() and ImageOutput::create() will now gracefully
+ * ImageInput::create() and ImageOutput::create() will now gracefully
    handle unexpected exceptions inside an ImageInput or ImageOutput
    constructor -- return an error rather than crashing.  #1456 (1.7.4/1.6.16)
+ * Nuke txWriter adds UI to let you choose which type of texture you are
+   building (ordinary 2D texture, latlong env map, etc). #1488 (1.7.6)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build

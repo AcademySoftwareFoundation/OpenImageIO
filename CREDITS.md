@@ -107,6 +107,7 @@ Other contributors (alphabetically):
 * Morteza Ramezanali
 * Carl Rand
 * Sam Richards
+* Mike Root
 * Jeremy Rose
 * Will Rosecrans
 * Ryen
