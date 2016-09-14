@@ -35,6 +35,7 @@ Major contributors (roughly in order of joining the project):
 Other contributors (alphabetically):
 
 * Vishal Agrawal
+* David Aguilar
 * Jeph Alapat
 * Shane Ambler
 * Basileios Anastasatos
@@ -129,6 +130,7 @@ Other contributors (alphabetically):
 * Wormszer
 * Xo Wang
 * Christoph Willing
+* Scott Wilson
 * Yang Yang
 * Nicholas Yue
 
