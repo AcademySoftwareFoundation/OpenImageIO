@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenEXR/ImathVec.h>
 #include <OpenEXR/ImathMatrix.h>
 #include <algorithm>
+#include <cstring>
 
 
 //////////////////////////////////////////////////////////////////////////
