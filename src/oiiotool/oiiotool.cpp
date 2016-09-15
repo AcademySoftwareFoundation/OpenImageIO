@@ -241,6 +241,12 @@ Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
         if (! output_bitspersample)
             output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
     }
+    if (output_channelformats.empty() && nspec.channelformats.size()) {
+        for (int c = 0; c < nspec.nchannels; ++c) {
+            std::string chname = nspec.channelnames[c];
+            output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+        }
+    }
 
     if (! ok) {
         error ("read "+img->name(), img->geterror());
