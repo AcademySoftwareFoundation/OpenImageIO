@@ -58,6 +58,8 @@ Public API changes:
    dependent libraries used when OIIO was built. #1458 (1.7.5)
  * simd::mask4 class has been renamed simd::bool4 (though the old name
    is still typedef'ed to work for now). #1484 (1.7.5)
+ * Python bindings for ImageBuf.reset() now properly understands the
+   argument names and default values. #1492 (1.7.6)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -119,6 +121,8 @@ Fixes, minor enhancements, and performance improvements:
       union of all nonzero pixels in all subimages. #1440 (1.7.3)
     * --help now prints all of the dependent libraries for individual
       formats. #1458 (1.7.5)
+    * Bug fix: make sure to propagate per-channel formats from input
+      to output. #1491 (1.7.6)
     * -o:all=n will output all images currently on the stack, and the
       filename argument will be assumed to be a pattern containing a %d,
       which will be substituted with the index of the image (beginning with
@@ -179,7 +183,7 @@ Fixes, minor enhancements, and performance improvements:
     * IC/TS statistics now report separately the total size of images
       referenced, in terms of in-cache data size, as well as on-disk
       size (the latter may be compressed). #1481 (1.7.5)
-* maketx:
+ * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
       #1281 (1.7.0)
@@ -190,6 +194,8 @@ Fixes, minor enhancements, and performance improvements:
     * Print timecodes in human-readable form. #1415 (1.7.3)
  * ImageOutput: fix cases with native data but non-contiguous strides.
    #1416 (1.7.3/1.6.15)
+ * Cineon:
+    * Improved deduction/setting of color space info. #1466 (1.7.5)
  * GIF:
     * GIF reader failed to set spec full_width, full_height. #1348
       (1.7.2/1.6.11)
@@ -231,6 +237,12 @@ Fixes, minor enhancements, and performance improvements:
       (as dictated by the PNG spec). #1435 (1.7.3)
  * PNM:
     * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
+ * RAW:
+    * Changes to how we instruct libraw to process images when reading:
+      Now, by default, auto-bright adjustment is off, camera white
+      balance is on, and maximum threshoding is set to 0. There are
+      "open with config" overrides for all of these, for anybody who
+      doesn't like the default. #1490 (1.7.6)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
@@ -248,8 +260,6 @@ Fixes, minor enhancements, and performance improvements:
       "oiio::ColorSpace" instead of "oiio:ColorSpace". #1394 (1.7.2)
     * More robust handling of non-zero origin of full/display window.
       #1414 (1.6.14/1.7.3)
- * Cineon:
-    * Improved deduction/setting of color space info. #1466 (1.7.5)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
     * Support for reading 10-bit and 12-bit movies. #1430 (1.7.5)
