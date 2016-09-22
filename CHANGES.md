@@ -221,6 +221,9 @@ Fixes, minor enhancements, and performance improvements:
       PixelAspectRatio based on the "XResolution" and "YResolution"
       attributes. #1453 (Fixes #1214) (1.7.4/1.6.16)
     * Fix setting "chromaticity" metadata in EXR files. #1487 (1.7.5)
+    * When writing OpenEXR, accept compression requests with quality numbers
+      appended to the compression algorithm name, such as "dwaa:200" to mean
+      dwaa compression with a dwaCompressionLevel set to 200. #1493 (1.7.6)
  * PNG:
     * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
     * Enforce that alpha premultiplication on output MUST consider alpha
