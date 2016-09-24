@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=40
+OPENIMAGEIO_SPCOMP2_VERSION=41
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -29,6 +29,7 @@ MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
 SOVERSION ?= ${OPENIMAGEIO_SPCOMP2_VERSION}
 SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+NUKE_VERSION ?= 10.0v4
 PYLIB_LIB_PREFIX ?= 1
 PYLIB_INCLUDE_SONAME ?= 1
 CPPSTDSUFFIX=
@@ -133,7 +134,7 @@ ifeq ($(SP_OS), rhel7)
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
 	-DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	-DNuke_ROOT=/net/apps/rhal7/foundry/nuke${NUKE_VERSION}
+	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION}
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
@@ -145,6 +146,12 @@ ifeq ($(SP_OS), rhel7)
       MY_CMAKE_FLAGS += \
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so"
+    else
+      MY_CMAKE_FLAGS += \
+	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
+	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_python-gcc48-mt${BOOSTVERS_SUFFIX}.so"
+    endif
+    ifneq (${USE_TIFF3},)
       # FIXME: for the sake of Maya 2015 (and 2016, and 2017, ugh!), we
       # need to link against old libtiff 3.9.4, not the system default
       # 4.0.x, to avoid runtime problems when the SpComp2 OIIO is used
@@ -153,11 +160,15 @@ ifeq ($(SP_OS), rhel7)
       # from within Maya plugins.
       MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include/libtiff-3.9.4 \
                         -DTIFF_LIBRARIES:STRING=/usr/lib64/libtiff.so.3
-    else
-      MY_CMAKE_FLAGS += \
-	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
-	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_python-gcc48-mt${BOOSTVERS_SUFFIX}.so"
     endif
+
+    # No, for now, just use libtiff I built myself, static, and try to
+    # hide its symbols.
+    MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include \
+                      -DTIFF_LIBRARIES:STRING=/net/soft_scratch/users/lg/tiff-4.0.3/rhel7/lib/libtiff.a
+    MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
+    MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/libOpenImageIO.map"
+
     # end rhel7
 
 ## Spinux (current)
