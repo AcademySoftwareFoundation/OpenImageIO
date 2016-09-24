@@ -455,9 +455,11 @@ bool print_info (Oiiotool &ot, const std::string &filename,
 // TypeDesc::INT (decode the value as an int), FLOAT, STRING, or UNKNOWN
 // (look at the string and try to discern whether it's an int, float, or
 // string).  If the 'value' string is empty, it will delete the
-// attribute.
+// attribute.  If allsubimages is true, apply the attribute to all
+// subimages, otherwise just the first subimage.
 bool set_attribute (ImageRecRef img, string_view attribname,
-                    TypeDesc type, string_view value);
+                    TypeDesc type, string_view value,
+                    bool allsubimages);
 
 inline bool same_size (const ImageBuf &A, const ImageBuf &B)
 {

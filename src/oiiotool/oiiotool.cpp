@@ -701,7 +701,8 @@ set_string_attribute (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2]);
+    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2],
+                   ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -721,7 +722,7 @@ set_any_attribute (int argc, const char *argv[])
     ot.extract_options (options, argv[0]);
     TypeDesc type (options["type"]);
 
-    set_attribute (ot.curimg, argv[1], type, argv[2]);
+    set_attribute (ot.curimg, argv[1], type, argv[2], ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -1209,7 +1210,8 @@ set_input_attribute (int argc, const char *argv[])
 
 bool
 OiioTool::set_attribute (ImageRecRef img, string_view attribname,
-                         TypeDesc type, string_view value)
+                         TypeDesc type, string_view value,
+                         bool allsubimages)
 {
     // Expression substitution
     attribname = ot.express(attribname);
@@ -1220,7 +1222,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
     if (! value.size()) {
         // If the value is the empty string, clear the attribute
         return apply_spec_mod (*img, do_erase_attribute,
-                               attribname, ot.allsubimages);
+                               attribname, allsubimages);
     }
 
     // First, handle the cases where we're told what to expect
@@ -1235,10 +1237,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1253,10 +1255,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &tc);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1272,10 +1274,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1297,10 +1299,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1317,7 +1319,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         // so set an int attribute.
         return apply_spec_mod (*img, do_set_any_attribute<int>,
                                std::pair<std::string,int>(attribname,i),
-                               ot.allsubimages);
+                               allsubimages);
     }
 
     // Does it seem to be a float, or did the caller explicitly request
@@ -1331,13 +1333,13 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         // so set a float attribute.
         return apply_spec_mod (*img, do_set_any_attribute<float>,
                                std::pair<std::string,float>(attribname,f),
-                               ot.allsubimages);
+                               allsubimages);
     }
 
     // Otherwise, set it as a string attribute
     return apply_spec_mod (*img, do_set_any_attribute<std::string>,
                            std::pair<std::string,std::string>(attribname,value),
-                           ot.allsubimages);
+                           allsubimages);
 }
 
 
@@ -1413,7 +1415,8 @@ set_orientation (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1]);
+    return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1],
+                          ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
 }
 
