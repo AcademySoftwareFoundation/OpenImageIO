@@ -11,7 +11,7 @@ endif
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
-NUKE_VERSION ?= 8.0v5
+NUKE_VERSION ?= 10.0v4
 SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
 
@@ -94,7 +94,7 @@ ifeq ($(SP_OS), rhel7)
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
 	-DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	-DNuke_ROOT=/net/apps/spinux1/foundry/nuke${NUKE_VERSION}
+	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION}
 
     BOOSTVERSSP=${BOOSTVERS}sp
     BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
@@ -114,8 +114,14 @@ ifeq ($(SP_OS), rhel7)
     # 4.0.x, but it's used by a Maya plugin and Maya links against the old
     # libtiff.so.3, we get crashes. Hopefully we can come back to this and
     # upgrade to libtiff 4.x later.
-    MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include/libtiff-3.9.4 \
-                      -DTIFF_LIBRARIES:STRING=/usr/lib64/libtiff.so.3
+    # MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include/libtiff-3.9.4 \
+    #                   -DTIFF_LIBRARIES:STRING=/usr/lib64/libtiff.so.3
+    # No, for now, just use libtiff I built myself, static, and try to
+    # hide its symbols.
+    MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include \
+                      -DTIFF_LIBRARIES:STRING=/net/soft_scratch/users/lg/tiff-4.0.3/rhel7/lib/libtiff.a
+    MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
+    MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/libOpenImageIO.map"
 
     # end rhel7
 

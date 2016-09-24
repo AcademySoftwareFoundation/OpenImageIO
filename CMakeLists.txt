@@ -119,8 +119,14 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
             # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
             # libraries to prevent clashes if an app using OIIO is linked
             # against other verions of our dependencies.
-            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
+            if (NOT VISIBILITY_MAP_FILE)
+                set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
+            endif ()
+            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
         endif ()
+    endif ()
+    if (VERBOSE)
+        message (STATUS "VISIBILITY_MAP_COMMAND = ${VISIBILITY_MAP_COMMAND}")
     endif ()
 endif ()
 
