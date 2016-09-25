@@ -623,6 +623,16 @@ of time, and will always put the text 30 pixels from the bottom of the image
 without requiring you to know the resolution.
 
 
+\subsection{Split a multi-image file into separate files}
+\noindent Take a multi-image TIFF file, split into its constituent subimages
+and output each one to a different file, with names \qkw{sub0001.tif},
+\qkw{sub0002.tif}, etc.
+
+\begin{code}
+    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+\end{code}
+
+
 \newpage
 \section{\oiiotool commands: general and image information}
 
@@ -1029,7 +1039,24 @@ current image from the image stack, it merely saves a copy of it.
     for this output. \\
 {\cf\small fileformatname=}\emph{string} & Specify the desired output file
   format, overriding any guess based on file name extension. \\
+{\cf all=}\emph{n} & Output all images currently on the stack using a
+      pattern. See further explanation below.
 \end{tabular}
+
+The {\cf all=}\emph{n} option causes \emph{all} images on the image stack
+to be output, with the
+filename argument used as a pattern assumed to contain a {\cf \%d},
+which will be substituted with the index of the image (beginning with
+\emph{n}). For example, to take a multi-image TIFF and extract all the
+subimages and save them as separate files,
+\NEW % 1.7
+
+\begin{code}
+    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+\end{code}
+\vspace{-12pt}
+\noindent This will output the subimges as separate files \qkw{sub0001.tif},
+\qkw{sub0002.tif}, and so on.
 
 \apiend
 

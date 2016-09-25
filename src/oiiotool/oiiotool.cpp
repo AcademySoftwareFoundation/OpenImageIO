@@ -4139,6 +4139,34 @@ output_file (int argc, const char *argv[])
         ot.warning (command, Strutil::format("%s did not have any current image to output.", filename));
         return 0;
     }
+
+    if (fileoptions["all"].size()) {
+        // Special case: if they requested outputting all images on the
+        // stack, handle it recursively. The filename, then, is the pattern,
+        // presumed to have a %d in it somewhere, which we will substitute
+        // with the image index.
+        int startnumber = Strutil::from_string<int>(fileoptions["all"]);
+        int nimages = 1 /*curimg*/ + int(ot.image_stack.size());
+        const char *new_argv[2];
+        // Git rid of the ":all=" part of the command so we don't infinitely
+        // recurse.
+        std::string newcmd = boost::regex_replace (command.str(),
+                                                   boost::regex(":all=[0-9]+"), "");
+        new_argv[0] = newcmd.c_str();;
+        ImageRecRef saved_curimg = ot.curimg; // because we'll overwrite it
+        for (int i = 0; i < nimages; ++i) {
+            if (i < nimages-1)
+                ot.curimg = ot.image_stack[i];
+            else
+                ot.curimg = saved_curimg;  // note: last iteration also restores it!
+            // Use the filename as a pattern, format with the frame number
+            new_argv[1] = ustring::format(filename.c_str(), i+startnumber).c_str();
+            // recurse for this file
+            output_file (2, new_argv);
+        }
+        return 0;
+    }
+
     if (ot.noclobber && Filesystem::exists(filename)) {
         ot.warning (command, Strutil::format("%s already exists, not overwriting.", filename));
         return 0;
@@ -4840,8 +4868,14 @@ handle_sequence (int argc, const char **argv)
     bool wildcard_on = true;
     for (int a = 1;  a < argc;  ++a) {
         bool is_output = false;
-        if (! strcmp (argv[a], "-o") && a < argc-1) {
+        bool is_output_all = false;
+        if (Strutil::starts_with (argv[a], "-o") && a < argc-1) {
             is_output = true;
+            if (Strutil::contains (argv[a], ":all=")) {
+                // skip wildcard expansion for -o:all, because the name
+                // will be a pattern for expansion of the subimage number.
+                is_output_all = true;
+            }
             a++;
         }
         std::string strarg (argv[a]);
@@ -4866,7 +4900,7 @@ handle_sequence (int argc, const char **argv)
         else if (strarg == "--wildcardon" || strarg == "-wildcardon") {
             wildcard_on = true;
         }
-        else if (wildcard_on &&
+        else if (wildcard_on && !is_output_all &&
                  boost::regex_search (strarg, range_match, sequence_re)) {
             is_sequence = true;
             sequence_args.push_back (a);

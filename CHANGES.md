@@ -119,6 +119,14 @@ Fixes, minor enhancements, and performance improvements:
       union of all nonzero pixels in all subimages. #1440 (1.7.3)
     * --help now prints all of the dependent libraries for individual
       formats. #1458 (1.7.5)
+    * -o:all=n will output all images currently on the stack, and the
+      filename argument will be assumed to be a pattern containing a %d,
+      which will be substituted with the index of the image (beginning with
+      n). For example, to take a multi-image TIFF and extract all the
+      subimages separately,
+          oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+      will output the subimges as sub0001.tif, sub0002.tif, and so on.
+      #1494 (1.7.6)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
