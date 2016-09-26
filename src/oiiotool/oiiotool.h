@@ -84,6 +84,8 @@ public:
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
+    std::string printinfo_format;
+    bool printinfo_verbose;
     ImageSpec input_config;           // configuration options for reading
     bool input_config_set;
 
@@ -126,6 +128,7 @@ public:
     bool enable_function_timing;
     size_t peak_memory;
     int num_outputs;                         // Count of outputs written
+    bool printed_info;                       // printed info at some point
 
     Oiiotool ();
 
@@ -436,6 +439,7 @@ struct print_info_options {
     bool dumpdata_showempty;
     std::string metamatch;
     std::string nometamatch;
+    std::string infoformat;
     size_t namefieldlength;
 
     print_info_options ()
