@@ -576,7 +576,9 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   \qkw{dwaa}, or \qkw{dwab}.  If the
   writer receives a request for a compression type it does not
   recognize or is not supported by the version of OpenEXR on the system,
-  it will use \qkw{zip} by default. \\
+  it will use \qkw{zip} by default. For \qkw{dwaa} and \qkw{dwab}, the
+  dwaCompressionLevel may be optionally appended to the compression name
+  after a colon, like this: \qkw{dwaa:200}. \\
 \qkw{textureformat} & string & set to \qkw{Plain Texture} for
   MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
     Environment} for OpenEXR environment maps.  Non-environment
