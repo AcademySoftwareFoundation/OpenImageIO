@@ -167,7 +167,11 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 #else
     const boost::filesystem::path filename (filename_utf8);
 #endif
+#if BOOST_FILESYSTEM_VERSION == 3
     bool abs = filename.is_absolute();
+#else
+    bool abs = path_is_absolute (filename.string());
+#endif
 
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
