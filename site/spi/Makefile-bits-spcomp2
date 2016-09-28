@@ -168,6 +168,7 @@ ifeq ($(SP_OS), rhel7)
                       -DTIFF_LIBRARIES:STRING=/net/soft_scratch/users/lg/tiff-4.0.3/rhel7/lib/libtiff.a
     MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
     MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/libOpenImageIO.map"
+    MY_CMAKE_FLAGS += -DEXTRA_DSO_LINK_ARGS:STRING="-Wl,--exclude-libs,libtiff.a"
 
     # end rhel7
 
