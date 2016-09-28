@@ -831,7 +831,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
 
 
 
-template<class ABtype>
+template<class Rtype, class ABtype>
 static bool
 channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      ROI roi, int nthreads)
@@ -839,12 +839,10 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     if (nthreads == 1 || roi.npixels() < 1000) {
         int na = A.nchannels(), nb = B.nchannels();
         int n = std::min (dst.nchannels(), na+nb);
-        ImageBuf::Iterator<float> r (dst, roi);
+        ImageBuf::Iterator<Rtype> r (dst, roi);
         ImageBuf::ConstIterator<ABtype> a (A, roi);
         ImageBuf::ConstIterator<ABtype> b (B, roi);
-        for (;  !r.done();  ++r) {
-            a.pos (r.x(), r.y(), r.z());
-            b.pos (r.x(), r.y(), r.z());
+        for (;  !r.done();  ++r, ++a, ++b) {
             for (int c = 0; c < n; ++c) {
                 if (c < na)
                     r[c] = a.exists() ? a[c] : 0.0f;
@@ -855,7 +853,7 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     } else {
         // Possible multiple thread case -- recurse via parallel_image
         ImageBufAlgo::parallel_image (
-            OIIO::bind (channel_append_impl<ABtype>, OIIO::ref(dst),
+            OIIO::bind (channel_append_impl<Rtype,ABtype>, OIIO::ref(dst),
                          OIIO::cref(A), OIIO::cref(B), _1, 1),
             roi, nthreads);
     }
@@ -882,9 +880,20 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
         dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
         for (int c = 0;  c < B.spec().nchannels;  ++c) {
             std::string name = B.spec().channelnames[c];
-            // Eliminate duplicates
-            if (std::find(dstspec.channelnames.begin(), dstspec.channelnames.end(), name) != dstspec.channelnames.end())
+            // It's a duplicate channel name. This will wreak havoc for
+            // OpenEXR, so we need to choose a unique name.
+            if (std::find(dstspec.channelnames.begin(), dstspec.channelnames.end(), name) != dstspec.channelnames.end()) {
+                // First, let's see if the original image had a subimage
+                // name and use that.
+                std::string subname = B.spec().get_string_attribute("oiio:subimagename");
+                if (subname.size())
+                    name = subname + "." + name;
+            }
+            if (std::find(dstspec.channelnames.begin(), dstspec.channelnames.end(), name) != dstspec.channelnames.end()) {
+                // If it's still a duplicate, fall back on a totally
+                // artificial name that contains the channel number.
                 name = Strutil::format ("channel%d", A.spec().nchannels+c);
+            }
             dstspec.channelnames.push_back (name);
         }
         if (dstspec.alpha_channel < 0 && B.spec().alpha_channel >= 0)
@@ -895,18 +904,17 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
         dst.reset (dstspec);
     }
 
-    // For now, only support float destination, and equivalent A and B
-    // types.
-    if (dst.spec().format != TypeDesc::FLOAT ||
-        A.spec().format != B.spec().format) {
+    // For now, only support A and B having the same type.
+    if (A.spec().format != B.spec().format) {
         dst.error ("Unable to perform channel_append of %s, %s -> %s",
                    A.spec().format, B.spec().format, dst.spec().format);
         return false;
     }
 
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "channel_append", channel_append_impl,
-                         A.spec().format, dst, A, B, roi, nthreads);
+    OIIO_DISPATCH_TYPES2 (ok, "channel_append", channel_append_impl,
+                          dst.spec().format, A.spec().format,
+                          dst, A, B, roi, nthreads);
     return ok;
 }
 

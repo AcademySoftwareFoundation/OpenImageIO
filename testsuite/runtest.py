@@ -134,7 +134,7 @@ def oiio_app (app):
 # Construct a command that will print info for an image, appending output to
 # the file "out.txt".  If 'safematch' is nonzero, it will exclude printing
 # of fields that tend to change from run to run or release to release.
-def info_command (file, extraargs="", safematch=0, hash=True) :
+def info_command (file, extraargs="", safematch=False, hash=True) :
     if safematch :
         extraargs += " --no-metamatch \"DateTime|Software|OriginatingProgram|ImageHistory\""
     if hash :
