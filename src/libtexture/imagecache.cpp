@@ -2495,6 +2495,26 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         *(int *)data = file->is_udim();
         return true;
     }
+    if (file->is_udim() && dataname == s_channels) {
+        // Special case -- it's ok to ask for a UDIM's channels. It'll
+        // search for a concrete file. Beware, this will cause trouble
+        // if different panels of the same UDIM scheme have different
+        // numbers of channels! Search the 10x100 files for a match, give
+        // up if not found.
+        ImageCacheFile *concretefile = NULL;
+        for (int j = 0; j < 100 && !concretefile; ++j) {
+            for (int i = 0; i < 10; ++i) {
+                float s = i + 0.5f, t = j + 0.5f;
+                if (ImageCacheFile *c = resolve_udim (file, s, t)) {
+                    concretefile = c;
+                    break;
+                }
+            }
+        }
+        if (concretefile)
+            file = verify_file (concretefile, thread_info, true);
+    }
+
     if (file->is_udim()) {
         return false;     // UDIM-like files fail all other queries
     }
