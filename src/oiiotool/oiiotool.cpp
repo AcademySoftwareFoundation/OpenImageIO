@@ -3497,6 +3497,7 @@ action_mosaic (int argc, const char *argv[])
         if (! blank_img) {
             ImageSpec blankspec (1, 1, 1, TypeDesc::UINT8);
             blank_img.reset (new ImageRec ("blank", blankspec, ot.imagecache));
+            ImageBufAlgo::zero ((*blank_img)());
         }
         ot.push (blank_img);
     }
