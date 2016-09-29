@@ -260,7 +260,7 @@ bool
 Oiiotool::postpone_callback (int required_images, CallbackFunction func,
                              int argc, const char *argv[])
 {
-    if (((curimg ? 1 : 0) + (int)image_stack.size()) < required_images) {
+    if (image_stack_depth() < required_images) {
         // Not enough have inputs been specified so far, so put this
         // function on the "pending" list.
         m_pending_callback = func;
@@ -3477,6 +3477,8 @@ action_paste (int argc, const char *argv[])
 static int
 action_mosaic (int argc, const char *argv[])
 {
+    Timer timer (ot.enable_function_timing);
+
     // Mosaic is tricky. We have to parse the argument before we know
     // how many images it wants to pull off the stack.
     string_view command = ot.express (argv[0]);
@@ -3489,9 +3491,15 @@ action_mosaic (int argc, const char *argv[])
     }
     int nimages = ximages * yimages;
 
-    if (ot.postpone_callback (nimages, action_paste, argc, argv))
-        return 0;
-    Timer timer (ot.enable_function_timing);
+    // Make the matrix complete with placeholder images
+    ImageRecRef blank_img;
+    while (ot.image_stack_depth() < nimages) {
+        if (! blank_img) {
+            ImageSpec blankspec (1, 1, 1, TypeDesc::UINT8);
+            blank_img.reset (new ImageRec ("blank", blankspec, ot.imagecache));
+        }
+        ot.push (blank_img);
+    }
 
     int widest = 0, highest = 0, nchannels = 0;
     std::vector<ImageRecRef> images (nimages);

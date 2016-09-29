@@ -179,6 +179,11 @@ public:
 
     ImageRecRef top () { return curimg; }
 
+    // How many images are on the stack?
+    int image_stack_depth () const {
+        return curimg ? 1+int(image_stack.size()) : 0;
+    }
+
     // Parse geom in the form of "x,y" to retrieve a 2D integer position.
     bool get_position (string_view command, string_view geom, int &x, int &y);
 
