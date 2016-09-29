@@ -131,6 +131,9 @@ Fixes, minor enhancements, and performance improvements:
           oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
       will output the subimges as sub0001.tif, sub0002.tif, and so on.
       #1494 (1.7.6)
+    * --mosaic MxN would fail mysteriously if the number of images on the
+      stack was less then M*N. This has been fixed to handle too-few images
+      gracefully and just leave blank spaces as needed. #1501 (1.7.7)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)

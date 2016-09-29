@@ -133,10 +133,10 @@ command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
 
 # test mosaic
+# Purposely test with fewer images than the mosaic array size
 command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--pattern constant:color=0,1,0 50x50 3 "
             + "--pattern constant:color=0,0,1 50x50 3 "
-            + "--pattern constant:color=1,1,1 50x50 3 "
             + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
 
 # test flip
