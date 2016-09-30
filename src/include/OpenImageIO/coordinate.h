@@ -131,34 +131,34 @@ public:
             result[i] = m_ind[i] - rhs[i];
         return result;
     };
-    OIIO_CONSTEXPR14 offset& operator+= (const offset& rhs) {
+    offset& operator+= (const offset& rhs) {
         for (size_t i = 0; i < Rank; ++i)
             m_ind[i] += rhs[i];
         return *this;
     }
-    OIIO_CONSTEXPR14 offset& operator-= (const offset& rhs) {
+    offset& operator-= (const offset& rhs) {
         for (size_t i = 0; i < Rank; ++i)
             m_ind[i] -= rhs[i];
         return *this;
     }
 
-    OIIO_CONSTEXPR14 offset& operator++ () {  // prefix increment
+    offset& operator++ () {  // prefix increment
         DASSERT (Rank == 1);
         ++m_ind[0];
         return *this;
     }
-    OIIO_CONSTEXPR14 offset  operator++ (int) {  // postfix increment
+    offset  operator++ (int) {  // postfix increment
         DASSERT (Rank == 1);
         offset ret;
         ++(*this);
         return ret;
     }
-    OIIO_CONSTEXPR14 offset& operator-- () { // prefix increment
+    offset& operator-- () { // prefix increment
         DASSERT (Rank == 1);
         --m_ind[0];
         return *this;
     }
-    OIIO_CONSTEXPR14 offset  operator-- (int) { // postfix increment
+    offset  operator-- (int) { // postfix increment
         DASSERT (Rank == 1);
         offset ret;
         --(*this);
@@ -188,12 +188,12 @@ public:
         result /= v;
         return result;
     }
-    OIIO_CONSTEXPR14 offset& operator*= (value_type v) {
+    offset& operator*= (value_type v) {
         for (size_t i = 0; i < Rank; ++i)
             m_ind[i] *= v;
         return *this;
     }
-    OIIO_CONSTEXPR14 offset& operator/= (value_type v) {
+    offset& operator/= (value_type v) {
         for (size_t i = 0; i < Rank; ++i)
             m_ind[i] /= v;
         return *this;
@@ -293,7 +293,7 @@ public:
     }
 
     /// Component access
-    OIIO_CONSTEXPR14 reference operator[] (size_type n) {
+    reference operator[] (size_type n) {
         DASSERT (n < Rank);
         return m_bnd[n];
     }
@@ -336,22 +336,22 @@ public:
             result[i] = bnd[i] / v;
         return result;
     }
-    OIIO_CONSTEXPR14 bounds& operator+= (const offset<Rank>& rhs) {
+    bounds& operator+= (const offset<Rank>& rhs) {
         for (size_t i = 0; i < Rank; ++i)
             m_bnd[i] += rhs[i];
         return *this;
     }
-    OIIO_CONSTEXPR14 bounds& operator-= (const offset<Rank>& rhs) {
+    bounds& operator-= (const offset<Rank>& rhs) {
         for (size_t i = 0; i < Rank; ++i)
             m_bnd[i] -= rhs[i];
         return *this;
     }
-    OIIO_CONSTEXPR14 bounds& operator*= (value_type v) {
+    bounds& operator*= (value_type v) {
         for (size_t i = 0; i < Rank; ++i)
             m_bnd[i] *= v;
         return *this;
     }
-    OIIO_CONSTEXPR14 bounds& operator/= (value_type v) {
+    bounds& operator/= (value_type v) {
         for (size_t i = 0; i < Rank; ++i)
             m_bnd[i] /= v;
         return *this;
