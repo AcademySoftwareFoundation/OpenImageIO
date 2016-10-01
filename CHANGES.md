@@ -1,3 +1,7 @@
+Release 1.7.8 (??) -- compared to 1.7.7
+----------------------------------------------
+
+
 Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
