@@ -3674,6 +3674,16 @@ OIIO_FORCEINLINE int8 insert (const int8& a, int val) {
 }
 
 
+OIIO_FORCEINLINE int int8::x () const { return extract<0>(*this); }
+OIIO_FORCEINLINE int int8::y () const { return extract<1>(*this); }
+OIIO_FORCEINLINE int int8::z () const { return extract<2>(*this); }
+OIIO_FORCEINLINE int int8::w () const { return extract<3>(*this); }
+OIIO_FORCEINLINE void int8::set_x (int val) { *this = insert<0>(*this, val); }
+OIIO_FORCEINLINE void int8::set_y (int val) { *this = insert<1>(*this, val); }
+OIIO_FORCEINLINE void int8::set_z (int val) { *this = insert<2>(*this, val); }
+OIIO_FORCEINLINE void int8::set_w (int val) { *this = insert<3>(*this, val); }
+
+
 OIIO_FORCEINLINE int8 bitcast_to_int (const bool8& x)
 {
 #if OIIO_SIMD_AVX
