@@ -1,4 +1,4 @@
-Release 1.7 (scheduled: 1 Oct 2016) -- compared to 1.6.x
+Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool commands:
