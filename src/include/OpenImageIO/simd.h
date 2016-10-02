@@ -2325,7 +2325,7 @@ OIIO_FORCEINLINE const bool8 bool8::True () {
 # if OIIO_SIMD_AVX >= 2 && (OIIO_GNUC_VERSION > 50000)
     // Fastest way to fill with all 1 bits is to cmp any value to itself.
     __m256i anyval = _mm256_undefined_si256();
-    return _mm256_cmpeq_epi8 (anyval, anyval);
+    return _mm256_castsi256_ps (_mm256_cmpeq_epi8 (anyval, anyval));
 # else
     return _mm256_castsi256_ps (_mm256_set1_epi32 (-1));
 # endif
