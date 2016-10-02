@@ -2492,7 +2492,7 @@ OIIO_FORCEINLINE bool reduce_and (const bool8& v) {
     return _mm256_testc_ps (v, bool8(true)) != 0;
     // return _mm256_movemask_ps(v.simd()) == 0xff;
 #else
-    SIMD_RETURN_REDUCE (bool, true, r &= v[i]);
+    SIMD_RETURN_REDUCE (bool, true, r &= bool(v[i]));
 #endif
 }
 
@@ -2501,7 +2501,7 @@ OIIO_FORCEINLINE bool reduce_or (const bool8& v) {
     return ! _mm256_testz_ps (v, v);   // FIXME? Not in all immintrin.h !
     // return _mm256_movemask_ps(v) != 0;
 #else
-    SIMD_RETURN_REDUCE (bool, false, r |= v[i]);
+    SIMD_RETURN_REDUCE (bool, false, r |= bool(v[i]));
 #endif
 }
 
