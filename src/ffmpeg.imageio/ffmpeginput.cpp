@@ -71,7 +71,9 @@ extern "C" { // ffmpeg is a C api
 #endif
 
 // Changes for ffmpeg 3.0
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0)
+#define USE_FFMPEG_3_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0))
+
+#if USE_FFMPEG_3_0
 #  define av_free_packet av_packet_unref
 #  define avpicture_get_size(fmt,w,h) av_image_get_buffer_size(fmt,w,h,1)
 
@@ -84,10 +86,43 @@ inline int avpicture_fill(AVPicture *picture, uint8_t *ptr,
 }
 #endif
 
-// In ffmpeg 3.1.1, the AVStream->codec field was marked as deprecated,
-//we're supposed to use ->codecpar instead.
-#define USE_CODECPAR (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0))
+// Changes for ffmpeg 3.1
+#define USE_FFMPEG_3_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 101))
 
+#if USE_FFMPEG_3_1
+// AVStream::codec was changed to AVStream::codecpar
+#  define stream_codec(ix) m_format_context->streams[(ix)]->codecpar
+// avcodec_decode_video2 was deprecated.
+// This now works by sending `avpkt` to the decoder, which buffers the
+// decoded image in `avctx`. Then `avcodec_receive_frame` will copy the
+// frame to `picture`.
+inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
+                         AVPacket *avpkt)
+{
+    int ret;
+
+    ret = avcodec_send_packet(avctx, avpkt);
+
+    if (ret < 0)
+        return 0;
+
+    ret = avcodec_receive_frame(avctx, picture);
+
+    if (ret < 0)
+        return 0;
+
+    return 1;
+}
+#else
+#  define stream_codec(ix) m_format_context->streams[(ix)]->codec
+inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
+                         AVPacket *avpkt)
+{
+    int ret;
+    avcodec_decode_video2(avctx, picture, &ret, avpkt);
+    return ret;
+}
+#endif
 
 #include <boost/thread/once.hpp>
 
@@ -118,20 +153,20 @@ public:
 private:
     std::string m_filename;
     int m_subimage;
-    int m_nsubimages;
+    int64_t m_nsubimages;
     AVFormatContext * m_format_context;
     AVCodecContext * m_codec_context;
     AVCodec *m_codec;
     AVFrame *m_frame;
     AVFrame *m_rgb_frame;
-    int m_stride;
+    size_t m_stride;
     AVPixelFormat m_dst_pix_format;
     SwsContext *m_sws_rgb_context;
     AVRational m_frame_rate;
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
     int m_video_stream;
-    int m_frames;
+    int64_t m_frames;
     int m_last_search_pos;
     int m_last_decoded_pos;
     bool m_offset_time;
@@ -241,7 +276,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     }
     m_video_stream = -1;
     for (unsigned int i=0; i<m_format_context->nb_streams; i++) {
-        if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (stream_codec(i)->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (m_video_stream < 0) {
                 m_video_stream=i;
             }
@@ -253,12 +288,40 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         error ("\"%s\" could not find a valid videostream", file_name);
         return false;
     }
-    m_codec_context = m_format_context->streams[m_video_stream]->codec; // codec context for videostream
+
+    // codec context for videostream
+#if USE_FFMPEG_3_1
+    AVCodecParameters *par = stream_codec(m_video_stream);
+
+    m_codec = avcodec_find_decoder(par->codec_id);
+    if (!m_codec) {
+        error ("\"%s\" can't find decoder", file_name);
+        return false;
+    }
+
+    m_codec_context = avcodec_alloc_context3(m_codec);
+    if (!m_codec_context) {
+        error ("\"%s\" can't allocate decoder context", file_name);
+        return false;
+    }
+
+    int ret;
+
+    ret = avcodec_parameters_to_context(m_codec_context, par);
+    if (ret < 0) {
+        error ("\"%s\" unsupported codec", file_name);
+        return false;
+    }
+#else
+    m_codec_context = stream_codec(m_video_stream);
+
     m_codec = avcodec_find_decoder (m_codec_context->codec_id);
     if (!m_codec) {
         error ("\"%s\" unsupported codec", file_name);
         return false;
     }
+#endif
+
     if (avcodec_open2 (m_codec_context, m_codec, NULL) < 0) {
         error ("\"%s\" could not open codec", file_name);
         return false;
@@ -267,7 +330,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         !strcmp (m_codec_context->codec->name, "dvvideo")) {
         m_offset_time = false;
     }
-    m_codec_cap_delay = m_codec_context->codec->capabilities & CODEC_CAP_DELAY ;
+    m_codec_cap_delay = (bool) (m_codec_context->codec->capabilities & CODEC_CAP_DELAY);
 
     AVStream *stream = m_format_context->streams[m_video_stream];
     if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
@@ -335,12 +398,12 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         case AV_PIX_FMT_YUV444P12LE:
             m_spec.set_format (TypeDesc::UINT16);
             m_dst_pix_format = AV_PIX_FMT_RGB48;
-            m_stride = m_spec.width * 3 * 2;
+            m_stride = (size_t) (m_spec.width * 3 * 2);
             break;
         default:
             m_spec.set_format (TypeDesc::UINT8);
             m_dst_pix_format = AV_PIX_FMT_RGB24;
-            m_stride = m_spec.width * 3;
+            m_stride = (size_t) (m_spec.width * 3);
             break;
     }
 
@@ -441,7 +504,7 @@ FFmpegInput::read_frame(int frame)
                 pkt.size = 0;
             }
 
-            avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
+            finished = receive_frame(m_codec_context, m_frame, &pkt);
 
             double pts = 0;
             if (static_cast<int64_t>(m_frame->pkt_pts) != int64_t(AV_NOPTS_VALUE)) {
