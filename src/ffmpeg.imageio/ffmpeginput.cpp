@@ -119,7 +119,7 @@ inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
                          AVPacket *avpkt)
 {
     int ret;
-    avcodec_decode_video2(avctx, picture, &ret, avpkt)
+    avcodec_decode_video2(avctx, picture, &ret, avpkt);
     return ret;
 }
 #endif
