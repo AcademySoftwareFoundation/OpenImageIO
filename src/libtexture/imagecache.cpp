@@ -2511,8 +2511,11 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
                 }
             }
         }
-        if (concretefile)
-            file = verify_file (concretefile, thread_info, true);
+        if (concretefile) {
+            // Recurse to try again with the concrete file
+            return get_image_info (concretefile, thread_info, subimage,
+                                   miplevel, dataname, datatype, data);
+        }
     }
 
     if (file->is_udim()) {
