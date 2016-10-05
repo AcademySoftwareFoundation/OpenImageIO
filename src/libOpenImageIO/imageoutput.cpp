@@ -379,6 +379,8 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
+    bool do_dither = (dither && format.is_floating_point() &&
+                      m_spec.format.basetype == TypeDesc::UINT8);
     scratch.resize (contiguoussize + floatsize + rectangle_bytes);
 
     // Force contiguity if not already present
@@ -392,27 +394,24 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // will always preserve enough precision.
     const float *buf;
     if (format == TypeDesc::FLOAT) {
-        // Already in float format -- leave it as-is.
-        buf = (float *)data;
+        if (! do_dither) {
+            // Already in float format and no dither -- leave it as-is.
+            buf = (float *)data;
+        } else {
+            // Need to make a copy, even though it's already float, so the
+            // dither doesn't overwrite the caller's data.
+            buf = (float *)&scratch[contiguoussize];
+            memcpy ((float *)buf, data, floatsize);
+        }
     } else {
         // Convert from 'format' to float.
         buf = convert_to_float (data, (float *)&scratch[contiguoussize],
                                 (int)rectangle_values, format);
     }
 
-    if (dither && format.is_floating_point() &&
-            m_spec.format.basetype == TypeDesc::UINT8) {
-        float *ditherarea = (float *)&scratch[contiguoussize];
+    if (do_dither) {
         stride_t pixelsize = m_spec.nchannels * sizeof(float);
-        if (buf != ditherarea) {
-            // Need to make a copy for dither so we don't destroy user's data.
-            OIIO::copy_image (m_spec.nchannels, width, height, depth,
-                              buf, pixelsize, pixelsize, pixelsize*width,
-                              pixelsize*width*height, ditherarea,
-                              pixelsize, pixelsize*width, pixelsize*width*height);
-            buf = ditherarea;
-        }
-        OIIO::add_dither (m_spec.nchannels, width, height, depth, ditherarea,
+        OIIO::add_dither (m_spec.nchannels, width, height, depth, (float *)buf,
                           pixelsize, pixelsize*width, pixelsize*width*height,
                           1.0f/255.0f, m_spec.alpha_channel, m_spec.z_channel,
                           dither, 0, xorigin, yorigin, zorigin);

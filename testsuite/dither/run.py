@@ -1,10 +1,9 @@
 #!/usr/bin/env python 
 
-# Run the script 
+# Basic test -- python script that saves with dither
 command += "python src/make_ramp.py > out.txt ;"
 
-# compare the outputs
-files = [ "ramp.tif" ]
-for f in files :
-    command += diff_command (f, "ref/"+f)
+# Regression test for a buffer copy bug
+command += oiiotool ("src/copybug-input.exr -ch R -dither -d uint8 -o bad.tif")
 
+outputs = [ "ramp.tif", "bad.tif" ]
