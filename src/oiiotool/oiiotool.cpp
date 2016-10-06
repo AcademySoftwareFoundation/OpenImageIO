@@ -126,7 +126,7 @@ Oiiotool::Oiiotool ()
       total_imagecache_readtime (0.0),
       enable_function_timing(true),
       peak_memory(0),
-      num_outputs(0)
+      num_outputs(0), printed_info(false)
 {
     clear_options ();
 }
@@ -156,6 +156,7 @@ Oiiotool::clear_options ()
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
+    printinfo_verbose = false;
     input_config = ImageSpec();
     input_config_set = false;
     output_dataformat = TypeDesc::UNKNOWN;
@@ -398,6 +399,21 @@ set_dumpdata (int argc, const char *argv[])
     options["empty"] = "1";
     ot.extract_options (options, command);
     ot.dumpdata_showempty = Strutil::from_string<int> (options["empty"]);
+    return 0;
+}
+
+
+
+static int
+set_printinfo (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    string_view command = ot.express (argv[0]);
+    ot.printinfo = true;
+    std::map<std::string,std::string> options;
+    ot.extract_options (options, command);
+    ot.printinfo_format = options["format"];
+    ot.printinfo_verbose = Strutil::from_string<int>(options["verbose"]);
     return 0;
 }
 
@@ -3949,6 +3965,8 @@ input_file (int argc, const char *argv[])
     int printinfo = get_value_override (fileoptions["info"], int(ot.printinfo));
     bool readnow = get_value_override (fileoptions["now"], int(0));
     bool autocc = get_value_override (fileoptions["autocc"], int(ot.autocc));
+    std::string infoformat = get_value_override (fileoptions["format"],
+                                                 ot.printinfo_format);
 
     for (int i = 0;  i < argc;  i++) {
         string_view filename = ot.express(argv[i]);
@@ -4002,7 +4020,7 @@ input_file (int argc, const char *argv[])
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
-            pio.verbose = ot.verbose || printinfo > 1;
+            pio.verbose = ot.verbose || printinfo > 1 || ot.printinfo_verbose;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
@@ -4010,11 +4028,13 @@ input_file (int argc, const char *argv[])
             pio.compute_sha1 = ot.hash;
             pio.metamatch = ot.printinfo_metamatch;
             pio.nometamatch = ot.printinfo_nometamatch;
+            pio.infoformat = infoformat;
             long long totalsize = 0;
             std::string error;
             bool ok = OiioTool::print_info (ot, filename, pio, totalsize, error);
             if (! ok)
                 ot.error ("read", error);
+            ot.printed_info = true;
         }
         ot.function_times["input"] += timer();
         if (ot.autoorient) {
@@ -4602,7 +4622,7 @@ getargs (int argc, char *argv[])
                 "--debug", &ot.debug, "Debug mode",
                 "--runstats", &ot.runstats, "Print runtime statistics",
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
-                "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
+                "--info %@", set_printinfo, NULL, "Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)",
                 "--metamatch %s", &ot.printinfo_metamatch,
                     "Regex: which metadata is printed with -info -v",
                 "--no-metamatch %s", &ot.printinfo_nometamatch,
@@ -5056,7 +5076,7 @@ main (int argc, char *argv[])
             ot.warning (Strutil::format ("pending '%s' command never executed", ot.pending_callback_name()));
     }
 
-    if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun) {
+    if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun && !ot.printed_info) {
         if (ot.curimg && !ot.curimg->was_output() &&
             (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
             ot.warning ("modified images without outputting them. Did you forget -o?");

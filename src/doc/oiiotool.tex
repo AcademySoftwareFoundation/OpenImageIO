@@ -248,6 +248,12 @@ To print the name, format, resolution, and data type of an image
     oiiotool --info -v *.tif
 \end{code}
 
+\noindent or
+
+\begin{code}
+    oiiotool --info:verbose=1 *.tif
+\end{code}
+
 \noindent To print info about all subimages and/or MIP-map levels of each
 input image, use the {\cf -a} flag:
 
@@ -679,6 +685,16 @@ Prints information about each input image as it is read.  If verbose mode
 is turned on ({\cf -v}), all the metadata for the image is printed.
 If verbose mode is not turned on, only the resolution and data format
 are printed.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf format=}\emph{name} & The format may be one of: {\cf text} (default)
+      for readable text, or {\cf xml} for an XML description of the image
+      metadata. \\
+  & {\cf verbose=}\emph{1} & If nonzero, the information will contain all
+      metadata, not just the minimal amount.
+\end{tabular}
 \apiend
 
 \apiitem{{\ce --metamatch} {\rm \emph{regex}} \\
@@ -884,6 +900,9 @@ options that control the reading of just that one file.
 {\cf info=}\emph{int} & Print info about this file (even if the global
      {\cf --info} was not used) if nonzero. If the value is 2, print full
      verbose info (like {\cf --info -v}). \\
+{\cf format=}\emph{name} & When printing info, the format may be one of:
+      {\cf text} (default) for readable text, or {\cf xml} for an XML
+      description of the image metadata. \\
 \end{tabular}
 \apiend
 
@@ -2891,6 +2910,13 @@ Print to the console detailed information about the values in every pixel.
 
 \apiitem{\ce --info}
 Prints information about each input image as it is read.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf format=}\emph{fmt} & The format of the information printed, which
+  may be {\cf text} (the default) or {\cf xml}.
+\end{tabular}
 \apiend
 
 \apiitem{\ce --trim}
