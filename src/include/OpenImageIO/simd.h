@@ -2467,7 +2467,7 @@ template<int i> OIIO_FORCEINLINE bool8 shuffle (const bool8& a) {
 
 template<int i>
 OIIO_FORCEINLINE bool extract (const bool8& a) {
-#if OIIO_SIMD_AVX
+#if OIIO_SIMD_AVX && !_WIN32
     return _mm256_extract_epi32(_mm256_castps_si256(a.simd()), i);  // SSE4.1 only
 #else
     return a[i];
@@ -2476,7 +2476,7 @@ OIIO_FORCEINLINE bool extract (const bool8& a) {
 
 template<int i>
 OIIO_FORCEINLINE bool8 insert (const bool8& a, bool val) {
-#if OIIO_SIMD_AVX
+#if OIIO_SIMD_AVX && !_WIN32
     int ival = -int(val);
     return _mm256_castsi256_ps (_mm256_insert_epi32 (_mm256_castps_si256(a.simd()), ival, i));
 #else
@@ -3654,7 +3654,7 @@ template<int i> OIIO_FORCEINLINE int8 shuffle (const int8& a) {
 
 template<int i>
 OIIO_FORCEINLINE int extract (const int8& v) {
-#if OIIO_SIMD_AVX
+#if OIIO_SIMD_AVX && !_WIN32
     return _mm256_extract_epi32(v.simd(), i);
 #else
     return v[i];
@@ -3664,7 +3664,7 @@ OIIO_FORCEINLINE int extract (const int8& v) {
 
 template<int i>
 OIIO_FORCEINLINE int8 insert (const int8& a, int val) {
-#if OIIO_SIMD_AVX
+#if OIIO_SIMD_AVX && !_WIN32
     return _mm256_insert_epi32 (a.simd(), val, i);
 #else
     int8 tmp = a;
