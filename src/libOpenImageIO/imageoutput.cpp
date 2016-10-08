@@ -299,6 +299,8 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // native_data is true if the user is passing data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
                         (format == m_spec.format && !perchanfile));
+    stride_t input_pixel_bytes = native_data ? native_pixel_bytes
+                                             : stride_t(format.size()*m_spec.nchannels);
     // If user is passing native data and it's all one type, go ahead and
     // set format correctly.
     if (format == TypeDesc::UNKNOWN && !perchanfile)
@@ -338,7 +340,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
 
     imagesize_t rectangle_pixels = width * height * depth;
     imagesize_t rectangle_values = rectangle_pixels * m_spec.nchannels;
-    imagesize_t rectangle_bytes = rectangle_pixels * native_pixel_bytes;
+    imagesize_t native_rectangle_bytes = rectangle_pixels * native_pixel_bytes;
 
     // Cases to handle:
     // 1. File has per-channel data, user passes native data -- this has
@@ -356,7 +358,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
         }
         ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
-        scratch.resize (rectangle_bytes);
+        scratch.resize (native_rectangle_bytes);
         size_t offset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -375,13 +377,13 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // The remaining code is where all channels in the file have the
     // same data type, which may or may not be what the user passed in
     // (cases #3 and #4 above).
-    imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * native_pixel_bytes;
+    imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * input_pixel_bytes;
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
     bool do_dither = (dither && format.is_floating_point() &&
                       m_spec.format.basetype == TypeDesc::UINT8);
-    scratch.resize (contiguoussize + floatsize + rectangle_bytes);
+    scratch.resize (contiguoussize + floatsize + native_rectangle_bytes);
 
     // Force contiguity if not already present
     if (! contiguous) {
