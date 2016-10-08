@@ -142,6 +142,7 @@ if (USE_EXTERNAL_PUGIXML)
 endif ()
 
 target_link_libraries (OpenImageIO ${ILMBASE_LIBRARIES})
+target_link_libraries (OpenImageIO ${OPENEXR_LIBRARIES})
 target_link_libraries (OpenImageIO ${ZLIB_LIBRARIES})
 
 if (VERBOSE)
