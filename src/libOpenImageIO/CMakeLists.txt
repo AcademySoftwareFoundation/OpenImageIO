@@ -23,8 +23,10 @@ endif()
 # marked m_format_context->streams[i]->codec as deprecated.
 # FIXME -- at some point, come back and figure out how to fix for real
 # before the field disappears entirely.
-set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
+if (NOT MSVC)
+    set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
 
 list (APPEND libOpenImageIO_srcs
                           deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
