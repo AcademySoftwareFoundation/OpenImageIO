@@ -248,7 +248,11 @@ Filesystem::get_directory_entries (const std::string &dirname,
              s != boost::filesystem::recursive_directory_iterator();  ++s) {
             std::string file = s->path().string();
             if (!filter_regex.size() || boost::regex_search (file, re))
+#ifdef _WIN32
+                filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
+#else
                 filenames.push_back (file);
+#endif
         }
     } else {
 #ifdef _WIN32
@@ -260,7 +264,11 @@ Filesystem::get_directory_entries (const std::string &dirname,
              s != boost::filesystem::directory_iterator();  ++s) {
             std::string file = s->path().string();
             if (!filter_regex.size() || boost::regex_search (file, re))
+#ifdef _WIN32
+                filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
+#else
                 filenames.push_back (file);
+#endif
         }
     }
     return true;
