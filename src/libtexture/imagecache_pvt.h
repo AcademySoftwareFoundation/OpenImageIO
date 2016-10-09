@@ -40,9 +40,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/thread/tss.hpp>
-#if BOOST_VERSION >= 104900
-# include <boost/container/flat_map.hpp>
-#endif
+#include <boost/container/flat_map.hpp>
 
 #include <OpenEXR/half.h>
 
