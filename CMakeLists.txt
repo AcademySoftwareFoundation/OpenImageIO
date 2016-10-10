@@ -359,6 +359,7 @@ include (externalpackages)
 
 
 include_directories (
+    BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
   )
