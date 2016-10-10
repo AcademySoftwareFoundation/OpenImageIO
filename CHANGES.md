@@ -4,15 +4,45 @@ New minimum dependencies:
  * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
 
 Major new features and improvements:
- * New oiiotool commands:
- * New ImageBufAlgo functions:
+* New oiiotool commands:
+   * `--info:format=xml` format option requests what format the info
+      is printed. Current choices: `"text"`, `"xml"`. #1504 (1.8.0)
+   * `--info:verbose=1` verbose option make file info print full metadata,
+     but without needing to make other oiiotool operations verbose as would
+     happen with `--info -v`. #1504 (1.8.0)
+* New ImageBufAlgo functions:
 
 Public API changes:
+* `ImageSpec::serialize()` returns a string with a serialized version of
+  the contents of the ImageSpec. It may be text (human readable, like
+  is printed by `oiiotool -info -v`) or XML. #1504 (1.8.0)
 
 Fixes, minor enhancements, and performance improvements:
- * oiiotool:
+* oiiotool:
+   * `--chappend` resolves redundant channel names by using the subimage
+     name, if available. #1498 (1.8.0/1.7.8)
+   * `--mosaic` now gracefully handles the case of not having enough
+      images to completely fill the MxN matrix, with "left over" slots
+      black. #1501 (1.8.0/1.7.8)
+* ImageBufAlgo:
+   * `channel_append()` resolves redundant channel names by using the
+     subimage name, if available. #1498 (1.8.0/1.7.8)
+* TextureSystem / ImageCache:
+   * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
+     on UDIM file patterns now succeed, returning the value for the first
+     matching file it finds. (N.B.: Relies on all textures within the same
+     UDIM set having the same nchannels.) #1502, #1519 (1.8.0/1.7.8)
+   * maketx: multiple simultaneous maketx process trying to create the same
+     texture will no longer clobber each other's output. #1525 (1.8.0/1.7.8)
+* Bug fix to possible crashes when adding dither to tiled file output
+  (buffer size miscalculation). #1518 (1.8.0/1.7.8)
 
 Build/test system improvements:
+* Support for building against ffmpeg 3.1 (their API has changed).
+  #1515 (1.8.0/1.7.8)
+* Build no longer gets confused about include files from older installations
+  of OIIO elsewhere on the system. #1524 (1.8.0/1.7.8)
+* Improvements in finding OpenJPEG. #1520 (1.8.0/1.7.8)
 
 Developer goodies / internals:
 
@@ -20,8 +50,7 @@ Developer goodies / internals:
 
 
 
-
-Release 1.7 (scheduled: 1 Oct 2016) -- compared to 1.6.x
+Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool commands:
