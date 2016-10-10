@@ -862,8 +862,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // chance a crash during texture conversion will leave behind a
     // partially formed tx with incomplete mipmaps levels which happesn to
     // be extremely slow to use in a raytracer.
+    // We also force a unique filename to protect against multiple maketx
+    // processes running at the same time on the same file.
     std::string extension = Filesystem::extension(outputfilename);
-    std::string tmpfilename = Filesystem::replace_extension (outputfilename, ".temp"+extension);
+    std::string tmpfilename = Filesystem::replace_extension (outputfilename, ".%%%%%%%%.temp"+extension);
+    tmpfilename = Filesystem::unique_path(tmpfilename);
 
     // When was the input file last modified?
     // This is only used when we're reading from a filename
