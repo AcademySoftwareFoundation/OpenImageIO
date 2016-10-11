@@ -39,8 +39,6 @@
 
 #include <OpenEXR/ImathVec.h>
 
-#include <boost/foreach.hpp>
-
 #include "field3d_pvt.h"
 using namespace OIIO_NAMESPACE::f3dpvt;
 

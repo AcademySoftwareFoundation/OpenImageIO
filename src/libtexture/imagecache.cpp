@@ -54,7 +54,6 @@
 #include "OpenImageIO/simd.h"
 #include "imagecache_pvt.h"
 
-#include <boost/foreach.hpp>
 #include <boost/scoped_array.hpp>
 
 
@@ -1848,7 +1847,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), bytesread_compare);
             out << "  Top files by bytes read:\n";
             nprinted = 0;
-            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+            for (const ImageCacheFileRef &file : files) {
                 if (nprinted++ >= topN)
                     break;
                 if (file->broken() || !file->validspec())
@@ -1861,7 +1860,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), iotime_compare);
             out << "  Top files by I/O time:\n";
             nprinted = 0;
-            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+            for (const ImageCacheFileRef &file : files) {
                 if (nprinted++ >= topN)
                     break;
                 if (file->broken() || !file->validspec())
@@ -1874,7 +1873,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), iorate_compare);
             out << "  Files with slowest I/O rates:\n";
             nprinted = 0;
-            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+            for (const ImageCacheFileRef &file : files) {
                 if (file->broken() || !file->validspec())
                     continue;
                 if (file->iotime() < 0.25)
@@ -1895,7 +1894,7 @@ ImageCacheImpl::getstats (int level) const
                 std::sort (files.begin(), files.end(), redundantbytes_compare);
                 out << "  Top files by redundant I/O:\n";
                 nprinted = 0;
-                BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                for (const ImageCacheFileRef &file : files) {
                     if (nprinted++ >= topN)
                         break;
                     if (file->broken() || !file->validspec())
@@ -1908,7 +1907,7 @@ ImageCacheImpl::getstats (int level) const
             }
         }
         int nbroken = 0;
-        BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+        for (const ImageCacheFileRef &file : files) {
             if (file->broken() || !file->validspec())
                 ++nbroken;
         }
@@ -1916,7 +1915,7 @@ ImageCacheImpl::getstats (int level) const
         if (nbroken) {
             std::sort (files.begin(), files.end(), filename_compare);
             int nprinted = 0;
-            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+            for (const ImageCacheFileRef &file : files) {
                 if (file->broken() || !file->validspec()) {
                     ++nprinted;
                     out << Strutil::format ("   %4d  %s\n", nprinted, file->filename());
@@ -3135,9 +3134,8 @@ ImageCacheImpl::invalidate (ustring filename)
     // N.B. at this point, we hold no locks!
 
     // Safely erase all the tiles we found
-    BOOST_FOREACH (const TileID &id, tiles_to_delete) {
+    for (const TileID &id : tiles_to_delete)
         m_tilecache.erase (id);
-    }
 
     // Invalidate the file itself (close it and clear its spec)
     file->invalidate ();
@@ -3167,9 +3165,8 @@ ImageCacheImpl::invalidate_all (bool force)
              t != e;  ++t) {
             tiles_to_delete.push_back (t->second->id());
         }
-        BOOST_FOREACH (const TileID &id, tiles_to_delete) {
+        for (const TileID &id : tiles_to_delete)
             m_tilecache.erase (id);
-        }
         // Invalidate (close and clear spec) all individual files
         for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
                  fileit != e;  ++fileit) {
@@ -3220,7 +3217,7 @@ ImageCacheImpl::invalidate_all (bool force)
     }
 
     // Now, invalidate all the files in our "needs invalidation" list
-    BOOST_FOREACH (ustring f, all_files) {
+    for (auto f : all_files) {
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate (f);
     }

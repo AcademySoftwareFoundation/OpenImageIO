@@ -35,8 +35,6 @@
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImfTimeCode.h>
 
-#include <boost/foreach.hpp>
-
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
 #include "OpenImageIO/strutil.h"
@@ -890,9 +888,8 @@ add_channelnames_node (xml_document &doc, const std::vector<std::string> &channe
 {
     xml_node channel_node = doc.child ("ImageSpec").append_child();
     channel_node.set_name ("channelnames");
-    BOOST_FOREACH (const std::string &name, channelnames) {
+    for (auto&& name : channelnames)
         add_node (channel_node, "channelname", name.c_str ());
-    }
 }
 
 
@@ -979,7 +976,7 @@ spec_to_xml (const ImageSpec &spec, ImageSpec::SerialVerbose verbose)
     add_node (node, "deep", int(spec.deep));
 
     if (verbose > ImageSpec::SerialBrief) {
-        BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+        for (auto&& p : spec.extra_attribs) {
             std::string s = spec.metadata_val (p, false);  // raw data
             if (s == "1.#INF")
                 s ="inf";
@@ -1073,7 +1070,7 @@ ImageSpec::serialize (SerialFormat fmt, SerialVerbose verbose) const
                 << format_res (*this, tile_width, tile_height, tile_depth) << '\n';
         }
 
-        BOOST_FOREACH (const ImageIOParameter &p, extra_attribs) {
+        for (auto&& p : extra_attribs) {
             out << format ("    %s: ", p.name());
             std::string s = metadata_val (p, verbose == SerialDetailedHuman);
             if (s == "1.#INF")

@@ -32,10 +32,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
-
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/foreach.hpp>
+#include <functional>
 
 #include "psd_pvt.h"
 #include "jpeg_memory_src.h"
@@ -91,7 +88,7 @@ private:
     // into ImageSpec
     struct ResourceLoader {
         uint16_t resource_id;
-        boost::function<bool (PSDInput *, uint32_t)> load;
+        std::function<bool (PSDInput *, uint32_t)> load;
     };
 
     // Map image resource ID to image resource block
@@ -389,9 +386,6 @@ private:
         m_file.read ((char *)&buffer, sizeof(buffer));
         if (!bigendian ())
             swap_endian (&buffer);
-
-        // For debugging, numeric_cast will throw if precision is lost:
-        // value = boost::numeric_cast<TVariable>(buffer);
         value = buffer;
         return m_file.good();
     }
@@ -455,7 +449,7 @@ private:
 // 1) Add ADD_LOADER(<ResourceID>) below
 // 2) Add a method in PSDInput:
 //    bool load_resource_<ResourceID> (uint32_t length);
-#define ADD_LOADER(id) {id, boost::bind (&PSDInput::load_resource_##id, _1, _2)}
+#define ADD_LOADER(id) {id, std::bind (&PSDInput::load_resource_##id, std::placeholders::_1, std::placeholders::_2)}
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
     ADD_LOADER(1005),
@@ -988,7 +982,7 @@ PSDInput::handle_resources (ImageResourceMap &resources)
 {
     // Loop through each of our resource loaders
     const ImageResourceMap::const_iterator end (resources.end ());
-    BOOST_FOREACH (const ResourceLoader &loader, resource_loaders) {
+    for (const ResourceLoader &loader : resource_loaders) {
         ImageResourceMap::const_iterator it (resources.find (loader.resource_id));
         // If a resource with that ID exists in the file, call the loader
         if (it != end) {
@@ -1637,7 +1631,7 @@ PSDInput::load_image_data ()
     m_image_data.channel_info.resize (m_header.channel_count);
     // setup some generic properties and read any RLE lengths
     // Image Data Section has RLE lengths for all channels stored first
-    BOOST_FOREACH (ChannelInfo &channel_info, m_image_data.channel_info) {
+    for (ChannelInfo &channel_info : m_image_data.channel_info) {
         channel_info.compression = compression;
         channel_info.channel_id = id++;
         channel_info.data_length = row_length * m_header.height;
@@ -1646,7 +1640,7 @@ PSDInput::load_image_data ()
                 return false;
         }
     }
-    BOOST_FOREACH (ChannelInfo &channel_info, m_image_data.channel_info) {
+    for (ChannelInfo &channel_info : m_image_data.channel_info) {
         channel_info.row_pos.resize (m_header.height);
         channel_info.data_pos = m_file.tellg ();
         channel_info.row_length = (m_header.width * m_header.depth + 7) / 8;
@@ -1699,7 +1693,7 @@ PSDInput::setup ()
     for (int i = 0; i < raw_channel_count; ++i)
         m_channels[0].push_back (&m_image_data.channel_info[i]);
 
-    BOOST_FOREACH (Layer &layer, m_layers) {
+    for (Layer &layer : m_layers) {
         spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode] : 3;
         raw_channel_count = mode_channel_count[m_header.color_mode];
         bool transparency = (bool)layer.channel_id_map.count (ChannelID_Transparency);

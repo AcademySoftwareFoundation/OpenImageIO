@@ -37,8 +37,6 @@
 #include <vector>
 #include <string>
 
-#include <boost/foreach.hpp>
-
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/sysutil.h"
@@ -302,9 +300,9 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             for (size_t i = 0; i < oldkwlist.size(); ++i)
                 oldkwlist[i] = Strutil::strip (oldkwlist[i]);
         }
-        BOOST_FOREACH (const std::string &nk, keywords) {
+        for (auto&& nk : keywords) {
             bool dup = false;
-            BOOST_FOREACH (const std::string &ok, oldkwlist)
+            for (auto&& ok : oldkwlist)
                 dup |= (ok == nk);
             if (! dup)
                 oldkwlist.push_back (nk);
@@ -513,7 +511,7 @@ main (int argc, char *argv[])
     bool ok = true;
 
     if (inplace) {
-        BOOST_FOREACH (const std::string &s, filenames)
+        for (auto&& s : filenames)
             ok &= convert_file (s, s);
     } else {
         ok = convert_file (filenames[0], filenames[1]);
