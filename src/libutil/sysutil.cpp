@@ -377,7 +377,7 @@ bool enableVTMode()
     return true;
 }
 #else
-bool enableVTMode() {}
+bool enableVTMode() { return true; }
 #endif
 
 
