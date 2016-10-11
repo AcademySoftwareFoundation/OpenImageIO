@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/scoped_array.hpp>
+#include <memory>
 
 #include "py_oiio.h"
 #include "OpenImageIO/platform.h"
@@ -306,7 +306,7 @@ ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
     roi.chend = std::min (roi.chend, buf.nchannels()+1);
 
     size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
-    boost::scoped_array<char> data (new char [size]);
+    std::unique_ptr<char[]> data (new char [size]);
     if (! buf.get_pixels (roi, format, &data[0])) {
         return object(handle<>(Py_None));
     }

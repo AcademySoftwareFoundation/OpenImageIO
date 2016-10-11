@@ -37,8 +37,6 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/version.hpp>
-#include <boost/scoped_ptr.hpp>
-#include <boost/scoped_array.hpp>
 #include <boost/thread/tss.hpp>
 #include <boost/container/flat_map.hpp>
 
@@ -358,7 +356,7 @@ private:
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
     imagesize_t m_total_imagesize_ondisk;  ///< Total size, compressed on disk
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
-    boost::scoped_ptr<ImageSpec> m_configspec; // Optional configuration hints
+    std::unique_ptr<ImageSpec> m_configspec; // Optional configuration hints
     UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
                                     // protected by mutex elsewhere!
 
@@ -640,7 +638,7 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    boost::scoped_array<char> m_pixels;  ///< The pixel data
+    std::unique_ptr<char[]> m_pixels;  ///< The pixel data
     size_t m_pixels_size;         ///< How much m_pixels has allocated
     int m_channelsize;            ///< How big is each channel (bytes)
     int m_pixelsize;              ///< How big is each pixel (bytes)

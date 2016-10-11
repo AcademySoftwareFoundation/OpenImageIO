@@ -34,6 +34,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
@@ -41,12 +42,9 @@
 #include "OpenImageIO/plugin.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
-
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/deepdata.h"
 #include "imageio_pvt.h"
-
-#include <boost/scoped_array.hpp>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -128,7 +126,7 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 
     bool ok = true;
     stride_t pixelsize = format.size() * m_spec.nchannels;
-    boost::scoped_array<char> buf;
+    std::unique_ptr<char[]> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
@@ -532,7 +530,7 @@ ImageOutput::copy_image (ImageInput *in)
     // a time, to minimize mem footprint.
     bool native = supports("channelformats") && inspec.channelformats.size();
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
-    boost::scoped_array<char> pixels (new char [inspec.image_bytes(native)]);
+    std::unique_ptr<char[]> pixels (new char [inspec.image_bytes(native)]);
     bool ok = in->read_image (format, &pixels[0]);
     if (ok)
         ok = write_image (format, &pixels[0]);
@@ -565,7 +563,7 @@ ImageOutput::copy_to_image_buffer (int xbegin, int xend, int ybegin, int yend,
     imagesize_t npixels = imagesize_t(width) * imagesize_t(height) * imagesize_t(depth);
 
     // Add dither if requested -- requires making a temporary staging area
-    boost::scoped_array<float> ditherarea;
+    std::unique_ptr<float[]> ditherarea;
     unsigned int dither = spec.get_int_attribute ("oiio:dither", 0);
     if (dither && format.is_floating_point() &&
             buf_format.basetype == TypeDesc::UINT8) {

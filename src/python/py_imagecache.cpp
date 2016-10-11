@@ -28,8 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/scoped_array.hpp>
-
+#include <memory>
 #include "py_oiio.h"
 #include "OpenImageIO/ustring.h"
 
@@ -88,7 +87,7 @@ object ImageCacheWrap::get_pixels (const std::string &filename_,
 
     size_t size = size_t ((xend-xbegin) * (yend-ybegin) * (zend-zbegin) *
                           (chend-chbegin) * datatype.size());
-    boost::scoped_array<char> data (new char [size]);
+    std::unique_ptr<char[]> data (new char [size]);
     if (! m_cache->get_pixels (filename, subimage, miplevel, xbegin, xend,
                                ybegin, yend, zbegin, zend, datatype, &data[0]))
         return object(handle<>(Py_None));   // get_pixels failed;

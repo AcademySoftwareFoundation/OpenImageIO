@@ -34,6 +34,7 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <memory>
 
 #include <tiffio.h>
 
@@ -52,8 +53,6 @@
 #include "OpenImageIO/sysutil.h"
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/fmath.h"
-
-#include <boost/scoped_array.hpp>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -1007,7 +1006,7 @@ TIFFOutput::write_tile (int x, int y, int z,
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
 
-        boost::scoped_array<char> separate_heap;
+        std::unique_ptr<char[]> separate_heap;
         char *separate = NULL;
         imagesize_t separate_size = plane_bytes * m_spec.nchannels;
         if (separate_size <= (1<<16))

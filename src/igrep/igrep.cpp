@@ -35,8 +35,8 @@
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#include <memory>
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/regex.hpp>
 
 #include "OpenImageIO/argparse.h"
@@ -84,7 +84,7 @@ grep_file (const std::string &filename, boost::regex &re,
         return r;
     }
 
-    boost::scoped_ptr<ImageInput> in (ImageInput::open (filename.c_str()));
+    std::unique_ptr<ImageInput> in (ImageInput::open (filename.c_str()));
     if (! in.get()) {
         if (! ignore_nonimage_files)
             std::cerr << geterror() << "\n";
