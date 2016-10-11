@@ -63,6 +63,7 @@
 
 #ifdef _WIN32
 # define WIN32_LEAN_AND_MEAN
+# define DEFINE_CONSOLEV2_PROPERTIES
 # include <windows.h>
 # include <Psapi.h>
 # include <cstdio>
@@ -346,11 +347,47 @@ Term::Term (FILE *file)
 
 
 
+#ifdef _WIN32
+// from https://msdn.microsoft.com/fr-fr/library/windows/desktop/mt638032%28v=vs.85%29.aspx
+
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
+bool enableVTMode()
+{
+    // Set output mode to handle virtual terminal sequences
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false;
+    }
+    return true;
+}
+#else
+bool enableVTMode() {}
+#endif
+
+
 Term::Term (const std::ostream &stream)
 {
     m_is_console = (&stream == &std::cout && isatty(fileno(stdout)))
                 || (&stream == &std::cerr && isatty(fileno(stderr)))
                 || (&stream == &std::clog && isatty(fileno(stderr)));
+    if (is_console())
+        enableVTMode();
 }
 
 
