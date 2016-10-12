@@ -18,7 +18,7 @@ find_package(PythonInterp)
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     message (STATUS "Unix man page documentation will be generated")
     set (cli_tools oiiotool iinfo maketx idiff igrep iconvert)
-    if (USE_QT)
+    if (IV_BUILT)
         list (APPEND cli_tools iv)
     endif()
 
