@@ -147,6 +147,10 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
         add_definitions ("-Wno-unused-local-typedefs")
     endif ()
+    if (CLANG_VERSION_STRING VERSION_EQUAL 3.9 OR CLANG_VERSION_STRING VERSION_GREATER 3.9)
+        # Don't warn about using unknown preprocessor symbols in #if'set
+        add_definitions ("-Wno-expansion-to-defined")
+    endif ()
 endif ()
 
 # gcc specific options
