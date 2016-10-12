@@ -23,6 +23,7 @@ Release 1.7.8 (??) -- compared to 1.7.7
 * Fix RLA reading and writing with certain channel orders and mixded data
   formats. #1499
 * Improved finding of OCIO headers. #1528
+* Better recognition of C++11 features in MSVS.
 
 
 Release 1.7 (1 Oct 2016) -- compared to 1.6.x

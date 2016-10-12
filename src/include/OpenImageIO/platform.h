@@ -111,7 +111,7 @@
 #  define OIIO_CONSTEXPR_OR_CONST constexpr
 #  define OIIO_CONSTEXPR14        constexpr
 #  define OIIO_NOEXCEPT           noexcept
-#elif (__cplusplus >= 201103L)
+#elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
 #  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  11
 #  define OIIO_CONSTEXPR          constexpr
