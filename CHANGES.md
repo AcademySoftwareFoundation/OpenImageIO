@@ -1,5 +1,28 @@
 Release 1.7.8 (??) -- compared to 1.7.7
 ----------------------------------------------
+* Fix gcc warnings when compiling for AVX2. #1511
+* Fix a variety of Windows warnings and breaks. #1512, #1523
+* Added support for new API introduced with ffmpeg 3.1. #1515
+* Improve oiiotool --mosaic, wasn't reliably clearing the blank spaces
+  for missing images.
+* Smarter channel_append channel renaming: try to resolve redundant
+  channel names by using the subimage name, if available. #1498
+* Texture: get_image_info queries for "channels" on UDIM file patterns
+  now succeeds, returning the value for the first matching file it finds.
+  (Relies on all textures within the same UDIM set having the same
+  nchannels.) #1502, #1519
+* Bug fix to possible crashes when adding dither to tiled file output
+  (buffer size miscalculation). #1518
+* maketx: multiple simultaneous maketx process trying to create the same
+  texture will no longer clobber each other's output. #1525
+* Build no longer gets confused about include files from older installations
+  of OIIO elsewhere on the system. #1524
+* Improvements in finding OpenJPEG. #1520
+* Sysutil::Term formatting now works properly in Windows (though is only
+  functional for Windows 10 or above). #1527
+* Fix RLA reading and writing with certain channel orders and mixded data
+  formats. #1499
+* Improved finding of OCIO headers. #1528
 
 
 Release 1.7 (1 Oct 2016) -- compared to 1.6.x
