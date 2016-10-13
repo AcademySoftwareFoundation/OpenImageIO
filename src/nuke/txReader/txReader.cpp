@@ -35,17 +35,38 @@ static const char* const EMPTY[] = {NULL};
 
 class TxReaderFormat : public ReaderFormat {
     int mipLevel_;
+    int mipEnumIndex_;
     Knob* mipLevelKnob_;
+    Knob* mipLevelEnumKnob_;
 
 public:
-    TxReaderFormat() : mipLevel_(0), mipLevelKnob_(NULL) { }
+    TxReaderFormat() :
+        mipLevel_(0),
+        mipEnumIndex_(0),
+        mipLevelKnob_(NULL),
+        mipLevelEnumKnob_(NULL)
+    { }
 
     void knobs(Knob_Callback cb) {
-        mipLevelKnob_ = Enumeration_knob(cb, &mipLevel_, EMPTY,
-                                         "tx_mip_level", "mip level");
-        SetFlags(cb, Knob::EXPAND_TO_WIDTH);
+        // The "real" mip level knob that controls the level read by the Reader
+        // class, and whose value is stored when the Read is serialized.
+        mipLevelKnob_ = Int_knob(cb, &mipLevel_, "tx_mip_level", "mip index");
+        SetFlags(cb, Knob::INVISIBLE);
+
+        // The user-facing mip level dropdown. This is populated lazily by the
+        // Reader when it opens a file, and does not directly contribute to the
+        // op hash or get stored when the Read is serialized.
+        mipLevelEnumKnob_ = Enumeration_knob(cb, &mipEnumIndex_, EMPTY,
+                                            "tx_user_mip_level", "mip level");
+        SetFlags(cb, Knob::EXPAND_TO_WIDTH | Knob::DO_NOT_WRITE | Knob::NO_RERENDER);
         Tooltip(cb, "The mip level to read from the file. Currently, this will "
                 "be resampled to fill the same resolution as the base image.");
+    }
+
+    int knob_changed(Knob* k) {
+        if (k == mipLevelEnumKnob_)
+            mipLevelKnob_->set_value(mipEnumIndex_);
+        return 1;
     }
 
     void append(Hash& hash) { hash.append(mipLevel_); }
@@ -53,8 +74,13 @@ public:
     inline int mipLevel() { return mipLevel_; }
 
     void setMipLabels(std::vector<std::string> items) {
-        if (mipLevelKnob_)
-            mipLevelKnob_->enumerationKnob()->menu(items);
+        if (mipLevelEnumKnob_) {
+            mipLevelEnumKnob_->set_flag(Knob::NO_KNOB_CHANGED);
+            mipLevelEnumKnob_->enumerationKnob()->menu(items);
+            mipLevelEnumKnob_->set_value(
+                    std::min((int)items.size() - 1, mipLevel_));
+            mipLevelEnumKnob_->clear_flag(Knob::NO_KNOB_CHANGED);
+        }
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }
@@ -87,6 +113,9 @@ class txReader : public Reader {
             case TypeDesc::UINT32:
             case TypeDesc::INT32:
                 meta_.setData(MetaData::DEPTH, MetaData::DEPTH_32);
+                break;
+            case TypeDesc::HALF:
+                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_HALF);
                 break;
             case TypeDesc::FLOAT:
                 meta_.setData(MetaData::DEPTH, MetaData::DEPTH_FLOAT);
@@ -213,15 +242,13 @@ public:
         fillMetadata(baseSpec, isEXR);
 
         // Populate mip level pulldown with labels in the form:
-        //      "MIPLEVEL\tMIPLEVEL - WxH" (e.g. "0\t0 - 1920x1080")
-        // The knob will split these on tab characters, and only store the
-        // first part (i.e. the index) when the knob is serialized.
+        //      "MIPLEVEL - WxH" (e.g. "0 - 1920x1080")
         std::vector<std::string> mipLabels;
         std::ostringstream buf;
         ImageSpec mipSpec(baseSpec);
         int mipLevel = 0;
         while (true) {
-            buf << mipLevel << '\t' << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
+            buf << mipLevel << " - " << mipSpec.width << 'x' << mipSpec.height;
             mipLabels.push_back(buf.str());
             if (oiioInput_->seek_subimage(0, mipLevel + 1, mipSpec)) {
                 buf.str(std::string());
