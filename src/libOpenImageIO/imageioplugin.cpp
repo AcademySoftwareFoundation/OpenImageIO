@@ -579,8 +579,7 @@ ImageInput::create (const std::string &filename,
         else if (! specific_error.empty()) {
             // Pass along any specific error message we got from our
             // best guess of the format.
-            pvt::error ("OpenImageIO could not open \"%s\" as %s: %s",
-                        filename.c_str(), format.c_str(), specific_error.c_str());
+            pvt::error ("%s", specific_error);
         }
         else if (Filesystem::exists (filename))
             pvt::error ("OpenImageIO could not find a format reader for \"%s\". "
