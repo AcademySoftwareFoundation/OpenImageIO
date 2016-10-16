@@ -88,6 +88,35 @@ these compression modes.  Alas.
 
 \vspace{.25in}
 
+\section{DICOM}
+\label{sec:bundledplugins:dicom}
+\index{DICOM}
+
+DICOM (Digital Imaging and Communications in Medicine) is the standard
+format used for medical images. DICOM files usually have the extension
+{\cf .dcm}.
+
+\productver currently only supports reading DICOM files, not writing them.
+
+%\subsubsection*{Attributes}
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.5in}|p{0.5in}|p{3.5in}}
+\ImageSpec Attribute & Type & DICOM header data or explanation \\
+\hline
+\qkw{oiio:BitsPerSample} & int & bits per sample \\
+\qkw{dicom:*} &  & DICOM header information and metadata is currently all
+preceded by the {\cf dicom:} prefix. \\
+\end{tabular}
+
+%\subsubsection*{Limitations}
+%\begin{itemize}
+%\item blah
+%\end{itemize}
+
+
+\vspace{.25in}
+
 \section{DPX}
 \label{sec:bundledplugins:dpx}
 \index{DPX}

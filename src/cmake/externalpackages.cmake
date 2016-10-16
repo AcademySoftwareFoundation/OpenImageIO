@@ -4,6 +4,7 @@
 # When not in VERBOSE mode, try to make things as quiet as possible
 if (NOT VERBOSE)
     set (Boost_FIND_QUIETLY true)
+    set (DCMTK_FIND_QUIETLY true)
     set (FFmpeg_FIND_QUIETLY true)
     set (Field3D_FIND_QUIETLY true)
     set (Freetype_FIND_QUIETLY true)
@@ -600,5 +601,18 @@ if (USE_PTEX)
     endif ()
 endif()
 # end PTEX setup
+###########################################################################
+
+
+###########################################################################
+# DCMTK
+if (USE_DICOM)
+    find_package (DCMTK)
+    if (NOT DCMTK_FOUND)
+        set (DCMTK_INCLUDE_DIR "")
+        set (DCMTK_LIBRARIES "")
+    endif ()
+endif()
+# end DCMTK setup
 ###########################################################################
 

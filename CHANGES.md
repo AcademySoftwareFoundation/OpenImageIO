@@ -26,6 +26,8 @@ Major new features and improvements:
      map can be one of several named ones, or given explicitly with
      numerical values. #1552 (1.8.1)
    * Added implementation of ImageBufAlgo::to_IplImage(). #1461 (1.7.9/1.8.1)
+* DICOM file format support (currently read-only). DICOM is the standard for
+  medical imaging data. #1534 (1.8.1)
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of

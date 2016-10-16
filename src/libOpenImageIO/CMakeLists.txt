@@ -130,6 +130,14 @@ if (FREETYPE_FOUND)
     target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES} ${BZIP2_LIBRARIES})
 endif ()
 
+# Include GDCM if using it
+if (GDCM_FOUND)
+    include_directories (${GDCM_INCLUDE_DIRS})
+    target_link_libraries (OpenImageIO ${GDCM_LIBRARIES})
+    # set_property(SOURCE dicominput.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
+    set_property(SOURCE ../dicom.imageio/dicominput.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
+endif ()
+
 
 
 if (WIN32)

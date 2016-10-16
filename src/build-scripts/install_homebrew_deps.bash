@@ -26,6 +26,7 @@ brew install opencolorio
 brew install freetype
 brew install libraw libpng webp jpeg-turbo
 brew install openjpeg20
+brew install dcmtk
 if [ "$LINKSTATIC" == "1" ] ; then
     brew install little-cms2 tinyxml szip
     brew install homebrew/dupes/bzip2

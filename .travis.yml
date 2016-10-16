@@ -27,6 +27,7 @@ addons:
       - ffmpeg
       - libfreetype6-dev
       - libjpeg-turbo8-dev
+      - dcmtk
       # - bzip2
       # - libtinyxml-dev
       # - liblcms2-dev

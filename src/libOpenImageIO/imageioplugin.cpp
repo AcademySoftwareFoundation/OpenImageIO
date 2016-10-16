@@ -218,6 +218,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (bmp);
     PLUGENTRY (cineon);
     PLUGENTRY (dds);
+    PLUGENTRY (dicom);
     PLUGENTRY (dpx);
     PLUGENTRY (ffmpeg);
     PLUGENTRY (field3d);
@@ -269,6 +270,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (bmp);
     DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
+#ifdef USE_DCMTK
+    DECLAREPLUG (dicom);
+#endif
     DECLAREPLUG (dpx);
 #ifdef USE_FFMPEG
     DECLAREPLUG (ffmpeg);
