@@ -38,8 +38,6 @@
 #endif
 #include <vector>
 
-#include <boost/foreach.hpp>
-
 #include <QtCore/QSettings>
 #include <QtCore/QTimer>
 #include <QtGui/QApplication>
@@ -158,7 +156,7 @@ ImageViewer::ImageViewer ()
 
 ImageViewer::~ImageViewer ()
 {
-    BOOST_FOREACH (IvImage *i, m_images)
+    for (auto i : m_images)
         delete i;
 }
 
@@ -595,7 +593,7 @@ ImageViewer::readSettings (bool ui_is_set_up)
     linearInterpolationBox->setChecked (settings.value ("linearInterpolation").toBool());
     darkPaletteBox->setChecked (settings.value ("darkPalette").toBool());
     QStringList recent = settings.value ("RecentFiles").toStringList();
-    BOOST_FOREACH (const QString &s, recent)
+    for (auto&& s : recent)
         addRecentFile (s.toStdString());
     updateRecentFilesMenu (); // only safe because it's called after menu setup
 
@@ -626,7 +624,7 @@ ImageViewer::writeSettings()
     settings.setValue ("maxMemoryIC", maxMemoryIC->value());
     settings.setValue ("slideShowDuration", slideShowDuration->value());
     QStringList recent;
-    BOOST_FOREACH (const std::string &s, m_recent_files)
+    for (auto&& s : m_recent_files)
         recent.push_front (QString(s.c_str()));
     settings.setValue ("RecentFiles", recent);
 }

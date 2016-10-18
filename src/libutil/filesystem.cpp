@@ -34,9 +34,7 @@
 #include <string>
 #include <algorithm>
 
-#include <boost/version.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
 #include "OpenImageIO/platform.h"
@@ -144,7 +142,7 @@ Filesystem::searchpath_split (const std::string &searchpath,
     }
 #if 0
     std::cerr << "Searchpath = '" << searchpath << "'\n";
-    BOOST_FOREACH (std::string &d, dirs)
+    for (auto& d : dirs)
         std::cerr << "\tPath = '" << d << "'\n";
     std::cerr << "\n";
 #endif
@@ -172,7 +170,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
     }
 
     // Relative filename, not yet found -- try each directory in turn
-    BOOST_FOREACH (const std::string &d_utf8, dirs) {
+    for (auto&& d_utf8 : dirs) {
         // std::cerr << "\tPath = '" << d << "'\n";
 #ifdef _WIN32
         const filesystem::path d(Strutil::utf8_to_utf16 (d_utf8));
@@ -700,7 +698,7 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
     Strutil::split (desc, ranges, ",");
 
     // For each subrange...
-    BOOST_FOREACH (string_view s, ranges) {
+    for (auto s : ranges) {
         // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.

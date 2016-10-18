@@ -36,7 +36,7 @@
 #include <cmath>
 #include <sstream>
 #include <limits>
-#include <boost/foreach.hpp>
+
 #include <boost/algorithm/string.hpp>
 
 #include "OpenImageIO/platform.h"
@@ -198,7 +198,7 @@ Strutil::get_rest_arguments (const std::string &str, std::string &base,
     std::string rest = str.substr (mark_pos + 1);
     std::vector<std::string> rest_tokens;
     Strutil::split (rest, rest_tokens, "&");
-    BOOST_FOREACH (const std::string &keyval, rest_tokens) {
+    for (const std::string &keyval : rest_tokens) {
         mark_pos = keyval.find_first_of ("=");
         if (mark_pos == std::string::npos)
             return false;

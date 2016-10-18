@@ -46,13 +46,6 @@
 #include <QtGui/QProgressBar>
 #include <QtOpenGL/QGLFormat>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-#include <boost/foreach.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/compare.hpp>
-
 #include "ivutils.h"
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"
@@ -943,7 +936,7 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 
     if (!m_use_shaders) {
         glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+        for (auto&& tb : m_texbufs) {
             glBindTexture (GL_TEXTURE_2D, tb.tex_object);
             if (m_viewer.linearInterpolation ()) {
                 glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1042,7 +1035,7 @@ IvGL::update ()
         glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
 
-    BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+    for (auto&& tb : m_texbufs) {
         tb.width = 0;
         tb.height= 0;
         glBindTexture (GL_TEXTURE_2D, tb.tex_object);
@@ -1482,7 +1475,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, 
         break;
     }
 
-    bool issrgb = iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB");
+    bool issrgb = Strutil::iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB");
     
     glinternalformat = nchannels;
     if (nchannels == 1) {
@@ -1566,7 +1559,7 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
 {
     const ImageSpec &spec = m_current_image->spec ();
     // Find if this has already been loaded.
-    BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+    for (auto&& tb : m_texbufs) {
         if (tb.x == x && tb.y == y && tb.width >= width && tb.height >= height) {
             glBindTexture (GL_TEXTURE_2D, tb.tex_object);
             return;

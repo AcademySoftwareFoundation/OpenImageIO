@@ -37,8 +37,6 @@
 #include <set>
 #include <algorithm>
 
-#include <boost/foreach.hpp>
-
 #include "OpenImageIO/fmath.h"
 
 extern "C" {
@@ -624,7 +622,7 @@ append_dir_entry (const TagMap &tagmap,
     print_dir_entry (tagmap, dir, (const char *)mydata);
 #endif
     // Don't double-add
-    BOOST_FOREACH (TIFFDirEntry &d, dirs) {
+    for (TIFFDirEntry &d : dirs) {
         if (d.tdir_tag == tag) {
             d = dir;
             return;
@@ -739,7 +737,7 @@ static void
 reoffset (std::vector<TIFFDirEntry> &dirs, const TagMap &tagmap,
           size_t offset)
 {
-    BOOST_FOREACH (TIFFDirEntry &dir, dirs) {
+    for (TIFFDirEntry &dir : dirs) {
         if (tiff_data_size (dir) <= 4 &&
             dir.tdir_tag != TIFFTAG_EXIFIFD && dir.tdir_tag != TIFFTAG_GPSIFD) {
 #if DEBUG_EXIF_WRITE
@@ -887,7 +885,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 
     // Go through all spec attribs, add them to the appropriate tag
     // directory (tiff, gps, or exif).
-    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+    for (const ImageIOParameter &p : spec.extra_attribs) {
         // Which tag domain are we using?
         if (! strncmp (p.name().c_str(), "GPS:", 4)) {
             // GPS
@@ -1007,7 +1005,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     std::cerr << "resulting exif block is a total of " << blob.size() << "\n";
 #if 0
     std::cerr << "APP1 dump:\n";
-    BOOST_FOREACH (char c, blob) {
+    for (char c : blob) {
         if (c >= ' ')
             std::cerr << c << ' ';
         std::cerr << "(" << (int)c << ") ";

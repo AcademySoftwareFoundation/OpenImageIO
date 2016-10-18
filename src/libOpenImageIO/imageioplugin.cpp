@@ -34,8 +34,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/foreach.hpp>
-
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/plugin.h"
 #include "OpenImageIO/strutil.h"
@@ -356,10 +354,10 @@ pvt::catalog_all_plugins (std::string searchpath)
     size_t patlen = pattern.length();
     std::vector<std::string> dirs;
     Filesystem::searchpath_split (searchpath, dirs, true);
-    BOOST_FOREACH (const std::string &dir, dirs) {
+    for (const auto &dir : dirs) {
         std::vector<std::string> dir_entries;
         Filesystem::get_directory_entries (dir, dir_entries);
-        BOOST_FOREACH (const std::string &full_filename, dir_entries) {
+        for (const auto  &full_filename : dir_entries) {
             std::string leaf = Filesystem::filename (full_filename);
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&

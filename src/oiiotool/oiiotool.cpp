@@ -42,7 +42,6 @@
 #include <ctype.h>
 #include <map>
 
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
 #include <OpenEXR/ImfTimeCode.h>
@@ -1379,7 +1378,7 @@ do_set_keyword (ImageSpec &spec, const std::string &keyword)
     if (! oldkw.empty())
         Strutil::split (oldkw, oldkwlist, ";");
     bool dup = false;
-    BOOST_FOREACH (std::string &ok, oldkwlist) {
+    for (std::string &ok : oldkwlist) {
         ok = Strutil::strip (ok);
         dup |= (ok == keyword);
     }
