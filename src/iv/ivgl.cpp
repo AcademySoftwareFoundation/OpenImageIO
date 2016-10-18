@@ -33,18 +33,14 @@
 
 #include <iostream>
 
-// This needs to be included before GL.h
-// (which is included by QtOpenGL and QGLFormat)
-#include <glew.h>
-
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathFun.h>
 
-#include <QtGui/QComboBox>
-#include <QtGui/QLabel>
-#include <QtGui/QMouseEvent>
-#include <QtGui/QProgressBar>
-#include <QtOpenGL/QGLFormat>
+#include <QComboBox>
+#include <QLabel>
+#include <QMouseEvent>
+#include <QProgressBar>
+#include <QGLFormat>
 
 #include "ivutils.h"
 #include "OpenImageIO/strutil.h"

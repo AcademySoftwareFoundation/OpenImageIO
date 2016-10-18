@@ -44,7 +44,7 @@
 #include <iostream>
 #include <iterator>
 
-#include <QtGui/QApplication>
+#include <QApplication>
 
 #include "imageviewer.h"
 #include "OpenImageIO/timer.h"

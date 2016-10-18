@@ -28,9 +28,6 @@
   (This is the Modified BSD License)
 */
 
-#include "imageviewer.h"
-#include "ivgl.h"
-
 #include <iostream>
 #include <cmath>
 #ifndef WIN32
@@ -38,21 +35,24 @@
 #endif
 #include <vector>
 
-#include <QtCore/QSettings>
-#include <QtCore/QTimer>
-#include <QtGui/QApplication>
-#include <QtGui/QComboBox>
-#include <QtGui/QDesktopWidget>
-#include <QtGui/QFileDialog>
-#include <QtGui/QKeyEvent>
-#include <QtGui/QLabel>
-#include <QtGui/QMenu>
-#include <QtGui/QMenuBar>
-#include <QtGui/QMessageBox>
-#include <QtGui/QProgressBar>
-#include <QtGui/QResizeEvent>
-#include <QtGui/QSpinBox>
-#include <QtGui/QStatusBar>
+#include "imageviewer.h"
+#include "ivgl.h"
+
+#include <QSettings>
+#include <QTimer>
+#include <QApplication>
+#include <QComboBox>
+#include <QDesktopWidget>
+#include <QFileDialog>
+#include <QKeyEvent>
+#include <QLabel>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMessageBox>
+#include <QProgressBar>
+#include <QResizeEvent>
+#include <QSpinBox>
+#include <QStatusBar>
 
 #include <OpenEXR/ImathFun.h>
 

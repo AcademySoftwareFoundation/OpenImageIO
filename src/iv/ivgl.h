@@ -46,10 +46,7 @@
 
 #include <vector>
 
-// This needs to be included before GL.h
-#include <glew.h>
-
-#include <QtOpenGL/QGLWidget>
+#include <QGLWidget>
 
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
