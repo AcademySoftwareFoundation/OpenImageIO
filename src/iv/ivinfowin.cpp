@@ -31,11 +31,11 @@
 
 #include <iostream>
 
-#include <QtGui/QKeyEvent>
-#include <QtGui/QLabel>
-#include <QtGui/QPushButton>
-#include <QtGui/QScrollArea>
-#include <QtGui/QVBoxLayout>
+#include <QKeyEvent>
+#include <QLabel>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QVBoxLayout>
 
 #include "imageviewer.h"
 #include "OpenImageIO/dassert.h"
