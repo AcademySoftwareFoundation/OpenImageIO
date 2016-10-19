@@ -14,6 +14,8 @@ Major new features and improvements:
    * `--colormap` applies a color map based on the input values; the
      map can be one of several named ones, or given explicitly with
      numerical values. #1552 (1.8.1)
+   * `-i:type=...` lets you override the internal buffer type that will be
+     used for an input image. #1541 (1.8.1)
 * New ImageBufAlgo functions:
    * `color_map()` applies a color map based on the input values; the
      map can be one of several named ones, or given explicitly with

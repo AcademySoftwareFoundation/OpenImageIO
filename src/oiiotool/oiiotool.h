@@ -386,6 +386,12 @@ public:
 
     std::time_t time() const { return m_time; }
 
+    // Request that any eventual input reads be stored internally in this
+    // format. UNKNOWN means to use the usual default logic.
+    void input_dataformat (TypeDesc dataformat) {
+        m_input_dataformat = dataformat;
+    }
+
     // This should be called if for some reason the underlying
     // ImageBuf's spec may have been modified in place.  We need to
     // update the outer copy held by the SubimageRec.
@@ -417,6 +423,7 @@ private:
     bool m_was_output;
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
+    TypeDesc m_input_dataformat;
     ImageCache *m_imagecache;
     mutable std::string m_err;
 

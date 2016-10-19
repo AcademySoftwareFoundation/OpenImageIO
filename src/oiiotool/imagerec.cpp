@@ -114,7 +114,8 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
                 // The other image is not modified, and we don't need to be
                 // writable, either.
                 ib = new ImageBuf (img.name(), srcib.imagecache());
-                bool ok = ib->read (srcsub, srcmip);
+                bool ok = ib->read (srcsub, srcmip, false /*force*/,
+                                    img.m_input_dataformat /*convert*/);
                 ASSERT (ok);
             }
             m_subimages[s].m_miplevels[m].reset (ib);
@@ -264,9 +265,14 @@ ImageRec::read (ReadPolicy readpolicy)
             if (readpolicy & ReadNoCache)
                 forceread = true;
 
-            // Convert to float unless asked to keep native.
-            TypeDesc convert = (readpolicy & ReadNative)
-                             ? ib->nativespec().format : TypeDesc::FLOAT;
+            // Convert to float unless asked to keep native or override.
+            TypeDesc convert = TypeDesc::FLOAT;
+            if (m_input_dataformat != TypeDesc::UNKNOWN) {
+                convert = m_input_dataformat;
+                forceread = true;
+            }
+            else if (readpolicy & ReadNative)
+                convert = ib->nativespec().format;
             if (! forceread &&
                 convert != TypeDesc::UINT8 && convert != TypeDesc::UINT16 &&
                 convert != TypeDesc::HALF &&  convert != TypeDesc::FLOAT) {
