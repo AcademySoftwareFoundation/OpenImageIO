@@ -4751,7 +4751,7 @@ getargs (int argc, char *argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         print_help (ap);
-        exit (EXIT_SUCCESS);
+        exit (EXIT_FAILURE);
     }
     if (help) {
         print_help (ap);
