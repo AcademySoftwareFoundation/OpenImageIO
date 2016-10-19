@@ -53,6 +53,7 @@ extern "C" { // ffmpeg is a C api
 #if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51,74,100)
 #  define AVPixelFormat PixelFormat
 #  define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+#  define AV_PIX_FMT_RGB48 PIX_FMT_RGB48
 #  define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
 #  define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
 #  define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
@@ -70,7 +71,9 @@ extern "C" { // ffmpeg is a C api
 #endif
 
 // Changes for ffmpeg 3.0
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0)
+#define USE_FFMPEG_3_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0))
+
+#if USE_FFMPEG_3_0
 #  define av_free_packet av_packet_unref
 #  define avpicture_get_size(fmt,w,h) av_image_get_buffer_size(fmt,w,h,1)
 
@@ -83,10 +86,43 @@ inline int avpicture_fill(AVPicture *picture, uint8_t *ptr,
 }
 #endif
 
-// In ffmpeg 3.1.1, the AVStream->codec field was marked as deprecated,
-//we're supposed to use ->codecpar instead.
-#define USE_CODECPAR (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,24,0))
+// Changes for ffmpeg 3.1
+#define USE_FFMPEG_3_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 101))
 
+#if USE_FFMPEG_3_1
+// AVStream::codec was changed to AVStream::codecpar
+#  define stream_codec(ix) m_format_context->streams[(ix)]->codecpar
+// avcodec_decode_video2 was deprecated.
+// This now works by sending `avpkt` to the decoder, which buffers the
+// decoded image in `avctx`. Then `avcodec_receive_frame` will copy the
+// frame to `picture`.
+inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
+                         AVPacket *avpkt)
+{
+    int ret;
+
+    ret = avcodec_send_packet(avctx, avpkt);
+
+    if (ret < 0)
+        return 0;
+
+    ret = avcodec_receive_frame(avctx, picture);
+
+    if (ret < 0)
+        return 0;
+
+    return 1;
+}
+#else
+#  define stream_codec(ix) m_format_context->streams[(ix)]->codec
+inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
+                         AVPacket *avpkt)
+{
+    int ret;
+    avcodec_decode_video2(avctx, picture, &ret, avpkt);
+    return ret;
+}
+#endif
 
 #include <boost/thread/once.hpp>
 
@@ -117,18 +153,20 @@ public:
 private:
     std::string m_filename;
     int m_subimage;
-    int m_nsubimages;
+    int64_t m_nsubimages;
     AVFormatContext * m_format_context;
     AVCodecContext * m_codec_context;
     AVCodec *m_codec;
     AVFrame *m_frame;
     AVFrame *m_rgb_frame;
+    size_t m_stride;
+    AVPixelFormat m_dst_pix_format;
     SwsContext *m_sws_rgb_context;
     AVRational m_frame_rate;
     std::vector<uint8_t> m_rgb_buffer;
     std::vector<int> m_video_indexes;
     int m_video_stream;
-    int m_frames;
+    int64_t m_frames;
     int m_last_search_pos;
     int m_last_decoded_pos;
     bool m_offset_time;
@@ -145,6 +183,7 @@ private:
         m_frame = 0;
         m_rgb_frame = 0;
         m_sws_rgb_context = 0;
+        m_stride = 0;
         m_rgb_buffer.clear();
         m_video_indexes.clear();
         m_video_stream = -1;
@@ -155,7 +194,7 @@ private:
         m_read_frame = false;
         m_codec_cap_delay = false;
         m_subimage = 0;
-        m_start_time=0;
+        m_start_time = 0;
     }
 };
 
@@ -179,7 +218,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT const char *ffmpeg_input_extensions[] = {
         "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", NULL
     };
-    
+
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -237,24 +276,52 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     }
     m_video_stream = -1;
     for (unsigned int i=0; i<m_format_context->nb_streams; i++) {
-        if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (stream_codec(i)->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (m_video_stream < 0) {
                 m_video_stream=i;
             }
             m_video_indexes.push_back (i); // needed for later use
             break;
         }
-    }  
+    }
     if (m_video_stream == -1) {
         error ("\"%s\" could not find a valid videostream", file_name);
         return false;
     }
-    m_codec_context = m_format_context->streams[m_video_stream]->codec; // codec context for videostream
+
+    // codec context for videostream
+#if USE_FFMPEG_3_1
+    AVCodecParameters *par = stream_codec(m_video_stream);
+
+    m_codec = avcodec_find_decoder(par->codec_id);
+    if (!m_codec) {
+        error ("\"%s\" can't find decoder", file_name);
+        return false;
+    }
+
+    m_codec_context = avcodec_alloc_context3(m_codec);
+    if (!m_codec_context) {
+        error ("\"%s\" can't allocate decoder context", file_name);
+        return false;
+    }
+
+    int ret;
+
+    ret = avcodec_parameters_to_context(m_codec_context, par);
+    if (ret < 0) {
+        error ("\"%s\" unsupported codec", file_name);
+        return false;
+    }
+#else
+    m_codec_context = stream_codec(m_video_stream);
+
     m_codec = avcodec_find_decoder (m_codec_context->codec_id);
     if (!m_codec) {
         error ("\"%s\" unsupported codec", file_name);
         return false;
     }
+#endif
+
     if (avcodec_open2 (m_codec_context, m_codec, NULL) < 0) {
         error ("\"%s\" could not open codec", file_name);
         return false;
@@ -263,7 +330,7 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         !strcmp (m_codec_context->codec->name, "dvvideo")) {
         m_offset_time = false;
     }
-    m_codec_cap_delay = m_codec_context->codec->capabilities & CODEC_CAP_DELAY ;
+    m_codec_cap_delay = (bool) (m_codec_context->codec->capabilities & CODEC_CAP_DELAY);
 
     AVStream *stream = m_format_context->streams[m_video_stream];
     if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
@@ -293,48 +360,80 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
     }
     m_frame = av_frame_alloc();
     m_rgb_frame = av_frame_alloc();
+
+    AVPixelFormat src_pix_format;
+    switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
+        case AV_PIX_FMT_YUVJ420P:
+            src_pix_format = AV_PIX_FMT_YUV420P;
+            break;
+        case AV_PIX_FMT_YUVJ422P:
+            src_pix_format = AV_PIX_FMT_YUV422P;
+            break;
+        case AV_PIX_FMT_YUVJ444P:
+            src_pix_format = AV_PIX_FMT_YUV444P;
+            break;
+        case AV_PIX_FMT_YUVJ440P:
+            src_pix_format = AV_PIX_FMT_YUV440P;
+            break;
+        default:
+            src_pix_format = m_codec_context->pix_fmt;
+            break;
+    }
+
+    m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3);
+
+    switch (src_pix_format) {
+        // support for 10-bit and 12-bit pix_fmts
+        case AV_PIX_FMT_YUV420P10BE:
+        case AV_PIX_FMT_YUV420P10LE:
+        case AV_PIX_FMT_YUV422P10BE:
+        case AV_PIX_FMT_YUV422P10LE:
+        case AV_PIX_FMT_YUV444P10BE:
+        case AV_PIX_FMT_YUV444P10LE:
+        case AV_PIX_FMT_YUV420P12BE:
+        case AV_PIX_FMT_YUV420P12LE:
+        case AV_PIX_FMT_YUV422P12BE:
+        case AV_PIX_FMT_YUV422P12LE:
+        case AV_PIX_FMT_YUV444P12BE:
+        case AV_PIX_FMT_YUV444P12LE:
+            m_spec.set_format (TypeDesc::UINT16);
+            m_dst_pix_format = AV_PIX_FMT_RGB48;
+            m_stride = (size_t) (m_spec.width * 3 * 2);
+            break;
+        default:
+            m_spec.set_format (TypeDesc::UINT8);
+            m_dst_pix_format = AV_PIX_FMT_RGB24;
+            m_stride = (size_t) (m_spec.width * 3);
+            break;
+    }
+
     m_rgb_buffer.resize(
-        avpicture_get_size (AV_PIX_FMT_RGB24,
+        avpicture_get_size (m_dst_pix_format,
         m_codec_context->width,
         m_codec_context->height),
         0
     );
-    AVPixelFormat pixFormat;
-    switch (m_codec_context->pix_fmt) { // deprecation warning for YUV formats
-        case AV_PIX_FMT_YUVJ420P:
-            pixFormat = AV_PIX_FMT_YUV420P;
-            break;
-        case AV_PIX_FMT_YUVJ422P:
-            pixFormat = AV_PIX_FMT_YUV422P;
-            break;
-        case AV_PIX_FMT_YUVJ444P:
-            pixFormat = AV_PIX_FMT_YUV444P;
-            break;
-        case AV_PIX_FMT_YUVJ440P:
-            pixFormat = AV_PIX_FMT_YUV440P;
-        default:
-            pixFormat = m_codec_context->pix_fmt;
-            break;
-    }
+
     m_sws_rgb_context = sws_getContext(
         m_codec_context->width,
         m_codec_context->height,
-        pixFormat,
+        src_pix_format,
         m_codec_context->width,
         m_codec_context->height,
-        AV_PIX_FMT_RGB24,
+        m_dst_pix_format,
         SWS_AREA,
         NULL,
         NULL,
         NULL
     );
-    m_spec = ImageSpec (m_codec_context->width, m_codec_context->height, 3, TypeDesc::UINT8);
+
     AVDictionaryEntry *tag = NULL;
     while ((tag = av_dict_get (m_format_context->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
         m_spec.attribute (tag->key, tag->value);
     }
     m_spec.attribute ("FramesPerSecond", m_frame_rate.num / static_cast<float> (m_frame_rate.den));
     m_spec.attribute ("oiio:Movie", true);
+    m_spec.attribute ("oiio:BitsPerSample", m_codec_context->bits_per_raw_sample);
     m_nsubimages = m_frames;
     spec = m_spec;
     return true;
@@ -366,7 +465,7 @@ FFmpegInput::read_native_scanline (int y, int z, void *data)
     if (!m_read_frame) {
         read_frame (m_subimage);
     }
-    memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_spec.width*3);
+    memcpy (data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_stride);
     return true;
 }
 
@@ -405,14 +504,14 @@ FFmpegInput::read_frame(int frame)
                 pkt.size = 0;
             }
 
-            avcodec_decode_video2 (m_codec_context, m_frame, &finished, &pkt);
+            finished = receive_frame(m_codec_context, m_frame, &pkt);
 
             double pts = 0;
             if (static_cast<int64_t>(m_frame->pkt_pts) != int64_t(AV_NOPTS_VALUE)) {
                 pts = av_q2d (m_format_context->streams[m_video_stream]->time_base) *  m_frame->pkt_pts;
             }
 
-            int current_frame = int((pts-m_start_time) * fps() + 0.5f); //??? 
+            int current_frame = int((pts-m_start_time) * fps() + 0.5f); //???
             //current_frame =   m_frame->display_picture_number;
             m_last_search_pos = current_frame;
 
@@ -422,7 +521,7 @@ FFmpegInput::read_frame(int frame)
                 (
                     reinterpret_cast<AVPicture*>(m_rgb_frame),
                     &m_rgb_buffer[0],
-                    AV_PIX_FMT_RGB24,
+                    m_dst_pix_format,
                     m_codec_context->width,
                     m_codec_context->height
                 );
@@ -436,7 +535,7 @@ FFmpegInput::read_frame(int frame)
                     m_rgb_frame->data,
                     m_rgb_frame->linesize
                 );
-                m_last_decoded_pos = current_frame; 
+                m_last_decoded_pos = current_frame;
                 av_free_packet (&pkt);
                 break;
             }

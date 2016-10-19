@@ -57,6 +57,7 @@
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
@@ -299,7 +300,7 @@ private:
         // FIXME: Things to consider in the future:
         // preview
         // screenWindowCenter
-        // chromaticities whiteLuminance adoptedNeutral
+        // adoptedNeutral
         // renderingTransform, lookModTransform
         // utcOffset
         // longitude latitude altitude
@@ -576,6 +577,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::Box2fAttribute *b2fattr;
         const Imf::TimeCodeAttribute *tattr;
         const Imf::KeyCodeAttribute *kcattr;
+        const Imf::ChromaticitiesAttribute *crattr;
 #ifdef USE_OPENEXR_VERSION2
         const Imf::StringVectorAttribute *svattr;
         const Imf::DoubleAttribute *dattr;
@@ -698,6 +700,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             if (oname == "keyCode")
                 oname = "smpte:KeyCode";
             spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
+        } else if (type == "chromaticities" &&
+                   (crattr = header->findTypedAttribute<Imf::ChromaticitiesAttribute> (name))) {
+            const Imf::Chromaticities *chroma = &crattr->value();
+            spec.attribute (oname, TypeDesc(TypeDesc::FLOAT,8),
+                            (const float *)chroma);
         }
         else {
 #if 0
@@ -735,7 +742,7 @@ TypeDesc_from_ImfPixelType (Imf::PixelType ptype)
     case Imf::UINT  : return TypeDesc::UINT;  break;
     case Imf::HALF  : return TypeDesc::HALF;  break;
     case Imf::FLOAT : return TypeDesc::FLOAT; break;
-    default: ASSERT (0);
+    default: ASSERT_MSG (0, "Unknown Imf::PixelType %d", int(ptype));
     }
 }
 
@@ -886,7 +893,6 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             m_tiled_input_part = NULL;
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part = NULL;
-            ASSERT(0);
             return false;
         } catch (...) {   // catch-all for edge cases or compiler bugs
             error ("OpenEXR exception: unknown");
@@ -894,7 +900,6 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             m_tiled_input_part = NULL;
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part = NULL;
-            ASSERT(0);
             return false;
         }
     }
@@ -930,7 +935,7 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     } else if (part.levelmode == Imf::RIPMAP_LEVELS) {
         // FIXME
     } else {
-        ASSERT(0);
+        ASSERT_MSG (0, "Unknown levelmode %d", int(part.levelmode));
     }
 
     m_spec.width = w;
@@ -1040,7 +1045,8 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
             m_scanline_input_part->readPixels (ybegin, yend-1);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempted to read scanline from a non-scanline file.");
+            return false;
         }
     } catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
@@ -1146,7 +1152,8 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                            m_miplevel, m_miplevel);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempted to read tiles from a non-tiled file");
+            return false;
         }
         if (data != origdata) {
             stride_t user_scanline_bytes = (xend-xbegin) * pixelbytes;

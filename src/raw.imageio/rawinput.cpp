@@ -135,6 +135,21 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
     m_processor.imgdata.params.gamm[0] = 1.0;
     m_processor.imgdata.params.gamm[1] = 1.0;
 
+    // Disable exposure correction (unless config "raw:auto_bright" == 1)
+    m_processor.imgdata.params.no_auto_bright =
+        ! config.get_int_attribute("raw:auto_bright", 0);
+    // Use camera white balance if "raw:use_camera_wb" is not 0
+    m_processor.imgdata.params.use_camera_wb =
+        config.get_int_attribute("raw:use_camera_wb", 1);
+    // Turn off maximum threshold value (unless set to non-zero)
+    m_processor.imgdata.params.adjust_maximum_thr =
+        config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
+
+    // Use camera matrix (if config "raw:use_camera_matrix" is not 0)
+    m_processor.imgdata.params.use_camera_matrix =
+        config.get_int_attribute("raw:use_camera_matrix", 0);
+
+
     // Check to see if the user has explicitly set the output colorspace primaries
     std::string cs = config.get_string_attribute ("raw:ColorSpace", "sRGB");
     if (cs.size()) {

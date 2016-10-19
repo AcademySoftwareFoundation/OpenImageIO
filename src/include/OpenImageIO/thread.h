@@ -55,16 +55,7 @@
 #else   /* prior to C++11... */
   // Use Boost mutexes & guards when C++11 is not available
 # include <boost/version.hpp>
-# if defined(__GNUC__) && (BOOST_VERSION == 104500)
-   // gcc reports errors inside some of the boost headers with boost 1.45
-   // See: https://svn.boost.org/trac/boost/ticket/4818
-#  pragma GCC diagnostic ignored "-Wunused-variable"
-# endif
 # include <boost/thread.hpp>
-# if defined(__GNUC__) && (BOOST_VERSION == 104500)
-   // can't restore via push/pop in all versions of gcc (warning push/pop implemented for 4.6+ only)
-#  pragma GCC diagnostic error "-Wunused-variable"
-# endif
 #endif
 
 

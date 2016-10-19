@@ -416,9 +416,13 @@ void declare_imagebuf()
         .def(init<const ImageSpec&>())
 
         .def("clear", &ImageBuf::clear)
-        .def("reset", &ImageBuf_reset_name)
-        .def("reset", &ImageBuf_reset_name2)
-        .def("reset", &ImageBuf_reset_name_config)
+        .def("reset", &ImageBuf_reset_name,
+             (arg("name")))
+        .def("reset", &ImageBuf_reset_name2,
+             (arg("name"), arg("subimage")=0, arg("miplevel")=0))
+        .def("reset", &ImageBuf_reset_name_config,
+             (arg("name"), arg("subimage")=0, arg("miplevel")=0,
+              arg("config")=ImageSpec()))
         .def("reset", &ImageBuf_reset_spec)
         .add_property ("initialized", &ImageBuf::initialized)
         .def("init_spec", &ImageBuf::init_spec)

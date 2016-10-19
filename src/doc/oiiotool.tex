@@ -248,6 +248,12 @@ To print the name, format, resolution, and data type of an image
     oiiotool --info -v *.tif
 \end{code}
 
+\noindent or
+
+\begin{code}
+    oiiotool --info:verbose=1 *.tif
+\end{code}
+
 \noindent To print info about all subimages and/or MIP-map levels of each
 input image, use the {\cf -a} flag:
 
@@ -623,6 +629,16 @@ of time, and will always put the text 30 pixels from the bottom of the image
 without requiring you to know the resolution.
 
 
+\subsection{Split a multi-image file into separate files}
+\noindent Take a multi-image TIFF file, split into its constituent subimages
+and output each one to a different file, with names \qkw{sub0001.tif},
+\qkw{sub0002.tif}, etc.
+
+\begin{code}
+    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+\end{code}
+
+
 \newpage
 \section{\oiiotool commands: general and image information}
 
@@ -669,6 +685,16 @@ Prints information about each input image as it is read.  If verbose mode
 is turned on ({\cf -v}), all the metadata for the image is printed.
 If verbose mode is not turned on, only the resolution and data format
 are printed.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf format=}\emph{name} & The format may be one of: {\cf text} (default)
+      for readable text, or {\cf xml} for an XML description of the image
+      metadata. \\
+  & {\cf verbose=}\emph{1} & If nonzero, the information will contain all
+      metadata, not just the minimal amount.
+\end{tabular}
 \apiend
 
 \apiitem{{\ce --metamatch} {\rm \emph{regex}} \\
@@ -874,6 +900,9 @@ options that control the reading of just that one file.
 {\cf info=}\emph{int} & Print info about this file (even if the global
      {\cf --info} was not used) if nonzero. If the value is 2, print full
      verbose info (like {\cf --info -v}). \\
+{\cf format=}\emph{name} & When printing info, the format may be one of:
+      {\cf text} (default) for readable text, or {\cf xml} for an XML
+      description of the image metadata. \\
 \end{tabular}
 \apiend
 
@@ -1029,7 +1058,24 @@ current image from the image stack, it merely saves a copy of it.
     for this output. \\
 {\cf\small fileformatname=}\emph{string} & Specify the desired output file
   format, overriding any guess based on file name extension. \\
+{\cf all=}\emph{n} & Output all images currently on the stack using a
+      pattern. See further explanation below.
 \end{tabular}
+
+The {\cf all=}\emph{n} option causes \emph{all} images on the image stack
+to be output, with the
+filename argument used as a pattern assumed to contain a {\cf \%d},
+which will be substituted with the index of the image (beginning with
+\emph{n}). For example, to take a multi-image TIFF and extract all the
+subimages and save them as separate files,
+\NEW % 1.7
+
+\begin{code}
+    oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+\end{code}
+\vspace{-12pt}
+\noindent This will output the subimges as separate files \qkw{sub0001.tif},
+\qkw{sub0002.tif}, and so on.
 
 \apiend
 
@@ -2281,6 +2327,47 @@ original & with dropouts & median filtered \\
 \apiend
 
 
+\apiitem{\ce --dilate {\rm \emph{size}}\\
+\ce --erode {\rm \emph{size}}}
+\indexapi{dilate} \indexapi{erode}
+\index{morphological filtering}
+\NEW % 1.7
+
+Perform dilation or erosion on the top image with a window of the given size
+expressed as \emph{width}{\cf x}\emph{height}. (The sizes are integers.)
+Dilation takes the maximum of pixel values inside the window, and makes
+bright features wider and more prominent, dark features thinner, and removes
+small isolated dark spots. Erosion takes the minimum of pixel values inside
+the window, and makes dark features wider, bright features thinner, and
+removes small isolated bright spots.
+
+\noindent Examples:
+\begin{code}
+    oiiotool orig.tif --dilate 3x3 -o dilate.tif
+    oiiotool orig.tif --erode 3x3 -o erode.tif
+    oiiotool orig.tif --erode 3x3 --dilate 3x3 -o open.tif
+    oiiotool orig.tif --dilate 3x3 --erode 3x3 -o close.tif
+    oiiotool orig.tif --dilate 3x3 --erode 3x3 -sub -o gradient.tif
+    oiiotool orig.tif open.tif -o tophat.tif
+    oiiotool close.tif orig.tif -o bottomhat.tif
+\end{code}
+
+\spc \begin{tabular}{llll}
+\includegraphics[width=0.75in]{figures/morphsource.jpg} &
+\includegraphics[width=0.75in]{figures/dilate.jpg} &
+\includegraphics[width=0.75in]{figures/erode.jpg} &
+\includegraphics[width=0.75in]{figures/morphopen.jpg} \\
+original & dilate & erode & open \\
+\includegraphics[width=0.75in]{figures/morphclose.jpg} &
+\includegraphics[width=0.75in]{figures/morphgradient.jpg} &
+\includegraphics[width=0.75in]{figures/tophat.jpg} &
+\includegraphics[width=0.75in]{figures/bottomhat.jpg} \\
+close & gradient & tophat & bottomhat \\
+\end{tabular}
+
+\apiend
+
+
 \apiitem{\ce --laplacian}
 Calculates the Laplacian of the top image.
 
@@ -2823,6 +2910,13 @@ Print to the console detailed information about the values in every pixel.
 
 \apiitem{\ce --info}
 Prints information about each input image as it is read.
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
+  & {\cf format=}\emph{fmt} & The format of the information printed, which
+  may be {\cf text} (the default) or {\cf xml}.
+\end{tabular}
 \apiend
 
 \apiitem{\ce --trim}

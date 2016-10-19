@@ -84,6 +84,8 @@ public:
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
+    std::string printinfo_format;
+    bool printinfo_verbose;
     ImageSpec input_config;           // configuration options for reading
     bool input_config_set;
 
@@ -126,6 +128,7 @@ public:
     bool enable_function_timing;
     size_t peak_memory;
     int num_outputs;                         // Count of outputs written
+    bool printed_info;                       // printed info at some point
 
     Oiiotool ();
 
@@ -178,6 +181,11 @@ public:
     }
 
     ImageRecRef top () { return curimg; }
+
+    // How many images are on the stack?
+    int image_stack_depth () const {
+        return curimg ? 1+int(image_stack.size()) : 0;
+    }
 
     // Parse geom in the form of "x,y" to retrieve a 2D integer position.
     bool get_position (string_view command, string_view geom, int &x, int &y);
@@ -431,6 +439,7 @@ struct print_info_options {
     bool dumpdata_showempty;
     std::string metamatch;
     std::string nometamatch;
+    std::string infoformat;
     size_t namefieldlength;
 
     print_info_options ()
@@ -455,9 +464,11 @@ bool print_info (Oiiotool &ot, const std::string &filename,
 // TypeDesc::INT (decode the value as an int), FLOAT, STRING, or UNKNOWN
 // (look at the string and try to discern whether it's an int, float, or
 // string).  If the 'value' string is empty, it will delete the
-// attribute.
+// attribute.  If allsubimages is true, apply the attribute to all
+// subimages, otherwise just the first subimage.
 bool set_attribute (ImageRecRef img, string_view attribname,
-                    TypeDesc type, string_view value);
+                    TypeDesc type, string_view value,
+                    bool allsubimages);
 
 inline bool same_size (const ImageBuf &A, const ImageBuf &B)
 {

@@ -18,7 +18,7 @@ files = [ "StillLife.exr", "Tree.exr", "Blobbies.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
 # Cannon must be instructed to use lossless compression
-# FIXME - on all: chromaticies, screenWindowCenter, preview?
+# FIXME - on all: screenWindowCenter, preview?
 
 # ../openexr-images/TestImages:
 # AllHalfValues.exr        GrayRampsDiagonal.exr    SquaresSwirls.exr
@@ -36,7 +36,6 @@ for f in files:
 # ../openexr-images/Tiles:
 # GoldenGate.exr  Ocean.exr       Spirals.exr
 imagedir = parent + "/openexr-images/Tiles"
-files = [ "GoldenGate.exr", "Ocean.exr" ]
+files = [ "GoldenGate.exr", "Ocean.exr", "Spirals.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
-# FIXME - Spirals: per-channel formats, iv >4 chans, chromaticities

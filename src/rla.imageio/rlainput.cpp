@@ -273,7 +273,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                    + 7) / 8;
     int nchannels = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels
                                              + m_rla.NumOfAuxChannels;
-    TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::UINT32
+    TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::FLOAT
                      : (maxbytes == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
     if (nchannels < 1 || nchannels > 16 ||
         (maxbytes != 1 && maxbytes != 2 && maxbytes != 4)) {
@@ -307,14 +307,21 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     t = get_channel_typedesc (m_rla.MatteChannelType, m_rla.NumOfMatteBits);
     for (int i = 0; i < m_rla.NumOfMatteChannels; ++i)
         m_spec.channelformats.push_back (t);
+    if (m_rla.NumOfMatteChannels >= 1)
+        m_spec.alpha_channel = m_rla.NumOfColorChannels;
+    else
+        m_spec.alpha_channel = -1;
     m_stride += m_rla.NumOfMatteChannels * t.size ();
     t = get_channel_typedesc (m_rla.AuxChannelType, m_rla.NumOfAuxBits);
     for (int i = 0; i < m_rla.NumOfAuxChannels; ++i) {
         m_spec.channelformats.push_back (t);
         // assume first float aux or 32 bit int channel is z
         if (z_channel < 0 && (t == TypeDesc::FLOAT || t == TypeDesc::INT32 ||
-                              t == TypeDesc::UINT32))
+                              t == TypeDesc::UINT32)) {
             z_channel = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels;
+            m_spec.z_channel = z_channel;
+            m_spec.channelnames[z_channel] = "Z";
+        }
     }
     m_stride += m_rla.NumOfAuxChannels * t.size ();
 
@@ -328,13 +335,6 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.channelformats.clear();
         m_spec.attribute ("oiio:BitsPerSample", m_rla.NumOfChannelBits);
         // N.B. don't set bps for mixed formats, it isn't well defined
-    }
-
-    // make a guess at channel names for the time being
-    m_spec.default_channel_names ();
-    if (z_channel >= 0) {
-        m_spec.z_channel = z_channel;
-        m_spec.channelnames[z_channel] = "Z";
     }
 
     // this is always true

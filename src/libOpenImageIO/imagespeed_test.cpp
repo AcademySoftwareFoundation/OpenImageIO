@@ -40,9 +40,7 @@
 
 #include <iostream>
 #include <vector>
-
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
+#include <functional>
 
 OIIO_NAMESPACE_USING;
 
@@ -116,7 +114,7 @@ getargs (int argc, char *argv[])
 static void
 time_read_image ()
 {
-    BOOST_FOREACH (ustring filename, input_filename) {
+    for (ustring filename : input_filename) {
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
         in->read_image (conversion, &buffer[0]);
@@ -130,7 +128,7 @@ time_read_image ()
 static void
 time_read_scanline_at_a_time ()
 {
-    BOOST_FOREACH (ustring filename, input_filename) {
+    for (ustring filename : input_filename) {
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
@@ -152,7 +150,7 @@ time_read_scanline_at_a_time ()
 static void
 time_read_64_scanlines_at_a_time ()
 {
-    BOOST_FOREACH (ustring filename, input_filename) {
+    for (ustring filename : input_filename) {
         ImageInput *in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
@@ -175,7 +173,7 @@ static void
 time_read_imagebuf ()
 {
     imagecache->invalidate_all (true);
-    BOOST_FOREACH (ustring filename, input_filename) {
+    for (ustring filename : input_filename) {
         ImageBuf ib (filename.string(), imagecache);
         ib.read (0, 0, true, conversion);
     }
@@ -187,7 +185,7 @@ static void
 time_ic_get_pixels ()
 {
     imagecache->invalidate_all (true);
-    BOOST_FOREACH (ustring filename, input_filename) {
+    for (ustring filename : input_filename) {
         const ImageSpec spec = (*imagecache->imagespec (filename));
         imagecache->get_pixels (filename, 0, 0, spec.x, spec.x+spec.width,
                                 spec.y, spec.y+spec.height,
@@ -495,7 +493,7 @@ test_pixel_iteration (const std::string &explanation,
     imagecache->attribute ("autoscanline", 1);
     ImageBuf ib (input_filename[0].string(), imagecache);
     ib.read (0, 0, preload, TypeDesc::TypeFloat);
-    double t = time_trial (boost::bind(func,boost::ref(ib),iters), ntrials);
+    double t = time_trial (std::bind(func,std::ref(ib),iters), ntrials);
     double rate = double(ib.spec().image_pixels()) / (t/iters);
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t/iters,3) 

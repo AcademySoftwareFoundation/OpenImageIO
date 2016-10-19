@@ -35,6 +35,7 @@ Major contributors (roughly in order of joining the project):
 Other contributors (alphabetically):
 
 * Vishal Agrawal
+* David Aguilar
 * Jeph Alapat
 * Shane Ambler
 * Basileios Anastasatos
@@ -46,6 +47,7 @@ Other contributors (alphabetically):
 * Nicolas Burtnyk
 * Kevin Brightwell
 * Fabien Castan
+* Clément Champetier
 * Duncan Chan
 * Guillaume Chatelet
 * Irena Damsky
@@ -54,6 +56,7 @@ Other contributors (alphabetically):
 * Frédéric Devernay
 * Thomas Dinges
 * Chad Dombrova
+* Seifeddine Dridi
 * Nandan Dubey
 * Sebastian Elsner
 * Julien Enche
@@ -68,6 +71,7 @@ Other contributors (alphabetically):
 * Deepak Gopinath
 * John Haddon
 * Brian Hall
+* Jep Hill
 * Changlin Hsieh
 * Justin Israel
 * Thiago Ize
@@ -77,9 +81,14 @@ Other contributors (alphabetically):
 * Vinod Khare
 * Konrad Kleine
 * Alexander Kuleshov
+* Nixon Kwok
 * Pete Larabell
 * Michel Lerenard
+* Manuel Leonhardt
+* Matthew E. Levine
 * Rui Li
+* Elvic Liang
+* Max Liani
 * Hugh Macdonald
 * Lukasz Maliszewski
 * Justina Mikonyte
@@ -88,30 +97,41 @@ Other contributors (alphabetically):
 * Ramon Montoya
 * Gregor Mueckl
 * Alexander Murashko
+* Hanspeter Niederstrasser
 * Samuel Nicholas
+* Michel Normand
+* Alexis Oblet
 * Leonid Onokhov
 * Lucas Panian
 * M Joonas Pihlaja
 * Morteza Ramezanali
 * Carl Rand
 * Sam Richards
+* Mike Root
 * Jeremy Rose
+* Will Rosecrans
 * Ryen
 * Lukas Schrangl
 * Alex Schworer
 * Aman Shah
+* Sergey Sharybin
 * Richard Shaw
+* Tim D. Smith
 * Troy James Sobotka
 * Stefan Stavrev
 * Cliff Stein
 * Mariusz Szczepanczyk
+* Blair Tennessy
 * Ott Tinn
 * Edgar Velazquez-Armendariz
+* Ghislain Antony Vaillant
 * Matteo F. Vescovi
 * Mark Visser
 * Brecht Van Lommel
 * Wormszer
 * Xo Wang
+* Christoph Willing
+* Scott Wilson
 * Yang Yang
 * Nicholas Yue
 

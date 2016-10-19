@@ -42,7 +42,6 @@
 #include <ctype.h>
 #include <map>
 
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
 #include <OpenEXR/ImfTimeCode.h>
@@ -126,7 +125,7 @@ Oiiotool::Oiiotool ()
       total_imagecache_readtime (0.0),
       enable_function_timing(true),
       peak_memory(0),
-      num_outputs(0)
+      num_outputs(0), printed_info(false)
 {
     clear_options ();
 }
@@ -156,6 +155,7 @@ Oiiotool::clear_options ()
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
+    printinfo_verbose = false;
     input_config = ImageSpec();
     input_config_set = false;
     output_dataformat = TypeDesc::UNKNOWN;
@@ -241,6 +241,12 @@ Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
         if (! output_bitspersample)
             output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
     }
+    if (output_channelformats.empty() && nspec.channelformats.size()) {
+        for (int c = 0; c < nspec.nchannels; ++c) {
+            std::string chname = nspec.channelnames[c];
+            output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+        }
+    }
 
     if (! ok) {
         error ("read "+img->name(), img->geterror());
@@ -254,7 +260,7 @@ bool
 Oiiotool::postpone_callback (int required_images, CallbackFunction func,
                              int argc, const char *argv[])
 {
-    if (((curimg ? 1 : 0) + (int)image_stack.size()) < required_images) {
+    if (image_stack_depth() < required_images) {
         // Not enough have inputs been specified so far, so put this
         // function on the "pending" list.
         m_pending_callback = func;
@@ -392,6 +398,21 @@ set_dumpdata (int argc, const char *argv[])
     options["empty"] = "1";
     ot.extract_options (options, command);
     ot.dumpdata_showempty = Strutil::from_string<int> (options["empty"]);
+    return 0;
+}
+
+
+
+static int
+set_printinfo (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    string_view command = ot.express (argv[0]);
+    ot.printinfo = true;
+    std::map<std::string,std::string> options;
+    ot.extract_options (options, command);
+    ot.printinfo_format = options["format"];
+    ot.printinfo_verbose = Strutil::from_string<int>(options["verbose"]);
     return 0;
 }
 
@@ -695,7 +716,8 @@ set_string_attribute (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2]);
+    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2],
+                   ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -715,7 +737,7 @@ set_any_attribute (int argc, const char *argv[])
     ot.extract_options (options, argv[0]);
     TypeDesc type (options["type"]);
 
-    set_attribute (ot.curimg, argv[1], type, argv[2]);
+    set_attribute (ot.curimg, argv[1], type, argv[2], ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -1203,7 +1225,8 @@ set_input_attribute (int argc, const char *argv[])
 
 bool
 OiioTool::set_attribute (ImageRecRef img, string_view attribname,
-                         TypeDesc type, string_view value)
+                         TypeDesc type, string_view value,
+                         bool allsubimages)
 {
     // Expression substitution
     attribname = ot.express(attribname);
@@ -1214,7 +1237,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
     if (! value.size()) {
         // If the value is the empty string, clear the attribute
         return apply_spec_mod (*img, do_erase_attribute,
-                               attribname, ot.allsubimages);
+                               attribname, allsubimages);
     }
 
     // First, handle the cases where we're told what to expect
@@ -1229,10 +1252,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1247,10 +1270,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &tc);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1266,10 +1289,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1291,10 +1314,10 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
             for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
                 ((*img)(s,m).specmod()).attribute (attribname, type, &vals[0]);
                 img->update_spec_from_imagebuf (s, m);
-                if (! ot.allsubimages)
+                if (! allsubimages)
                     break;
             }
-            if (! ot.allsubimages)
+            if (! allsubimages)
                 break;
         }
         return true;
@@ -1311,7 +1334,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         // so set an int attribute.
         return apply_spec_mod (*img, do_set_any_attribute<int>,
                                std::pair<std::string,int>(attribname,i),
-                               ot.allsubimages);
+                               allsubimages);
     }
 
     // Does it seem to be a float, or did the caller explicitly request
@@ -1325,13 +1348,13 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         // so set a float attribute.
         return apply_spec_mod (*img, do_set_any_attribute<float>,
                                std::pair<std::string,float>(attribname,f),
-                               ot.allsubimages);
+                               allsubimages);
     }
 
     // Otherwise, set it as a string attribute
     return apply_spec_mod (*img, do_set_any_attribute<std::string>,
                            std::pair<std::string,std::string>(attribname,value),
-                           ot.allsubimages);
+                           allsubimages);
 }
 
 
@@ -1355,7 +1378,7 @@ do_set_keyword (ImageSpec &spec, const std::string &keyword)
     if (! oldkw.empty())
         Strutil::split (oldkw, oldkwlist, ";");
     bool dup = false;
-    BOOST_FOREACH (std::string &ok, oldkwlist) {
+    for (std::string &ok : oldkwlist) {
         ok = Strutil::strip (ok);
         dup |= (ok == keyword);
     }
@@ -1407,7 +1430,8 @@ set_orientation (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1]);
+    return set_attribute (ot.curimg, "Orientation", TypeDesc::INT, argv[1],
+                          ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
 }
 
@@ -3288,6 +3312,40 @@ OP_CUSTOMCLASS (median, OpMedian, 1);
 
 
 
+class OpDilate : public OiiotoolOp {
+public:
+    OpDilate (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual int impl (ImageBuf **img) {
+        string_view size (args[1]);
+        int w = 3, h = 3;
+        if (sscanf (size.c_str(), "%dx%d", &w, &h) != 2)
+            ot.error (opname(), Strutil::format ("Unknown size %s", size));
+        return ImageBufAlgo::dilate (*img[0], *img[1], w, h);
+    }
+};
+
+OP_CUSTOMCLASS (dilate, OpDilate, 1);
+
+
+
+class OpErode : public OiiotoolOp {
+public:
+    OpErode (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) { }
+    virtual int impl (ImageBuf **img) {
+        string_view size (args[1]);
+        int w = 3, h = 3;
+        if (sscanf (size.c_str(), "%dx%d", &w, &h) != 2)
+            ot.error (opname(), Strutil::format ("Unknown size %s", size));
+        return ImageBufAlgo::erode (*img[0], *img[1], w, h);
+    }
+};
+
+OP_CUSTOMCLASS (erode, OpErode, 1);
+
+
+
 class OpUnsharp : public OiiotoolOp {
 public:
     OpUnsharp (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -3434,6 +3492,8 @@ action_paste (int argc, const char *argv[])
 static int
 action_mosaic (int argc, const char *argv[])
 {
+    Timer timer (ot.enable_function_timing);
+
     // Mosaic is tricky. We have to parse the argument before we know
     // how many images it wants to pull off the stack.
     string_view command = ot.express (argv[0]);
@@ -3446,9 +3506,16 @@ action_mosaic (int argc, const char *argv[])
     }
     int nimages = ximages * yimages;
 
-    if (ot.postpone_callback (nimages, action_paste, argc, argv))
-        return 0;
-    Timer timer (ot.enable_function_timing);
+    // Make the matrix complete with placeholder images
+    ImageRecRef blank_img;
+    while (ot.image_stack_depth() < nimages) {
+        if (! blank_img) {
+            ImageSpec blankspec (1, 1, 1, TypeDesc::UINT8);
+            blank_img.reset (new ImageRec ("blank", blankspec, ot.imagecache));
+            ImageBufAlgo::zero ((*blank_img)());
+        }
+        ot.push (blank_img);
+    }
 
     int widest = 0, highest = 0, nchannels = 0;
     std::vector<ImageRecRef> images (nimages);
@@ -3897,6 +3964,8 @@ input_file (int argc, const char *argv[])
     int printinfo = get_value_override (fileoptions["info"], int(ot.printinfo));
     bool readnow = get_value_override (fileoptions["now"], int(0));
     bool autocc = get_value_override (fileoptions["autocc"], int(ot.autocc));
+    std::string infoformat = get_value_override (fileoptions["format"],
+                                                 ot.printinfo_format);
 
     for (int i = 0;  i < argc;  i++) {
         string_view filename = ot.express(argv[i]);
@@ -3950,7 +4019,7 @@ input_file (int argc, const char *argv[])
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
-            pio.verbose = ot.verbose || printinfo > 1;
+            pio.verbose = ot.verbose || printinfo > 1 || ot.printinfo_verbose;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
@@ -3958,11 +4027,13 @@ input_file (int argc, const char *argv[])
             pio.compute_sha1 = ot.hash;
             pio.metamatch = ot.printinfo_metamatch;
             pio.nometamatch = ot.printinfo_nometamatch;
+            pio.infoformat = infoformat;
             long long totalsize = 0;
             std::string error;
             bool ok = OiioTool::print_info (ot, filename, pio, totalsize, error);
             if (! ok)
                 ot.error ("read", error);
+            ot.printed_info = true;
         }
         ot.function_times["input"] += timer();
         if (ot.autoorient) {
@@ -4099,6 +4170,34 @@ output_file (int argc, const char *argv[])
         ot.warning (command, Strutil::format("%s did not have any current image to output.", filename));
         return 0;
     }
+
+    if (fileoptions["all"].size()) {
+        // Special case: if they requested outputting all images on the
+        // stack, handle it recursively. The filename, then, is the pattern,
+        // presumed to have a %d in it somewhere, which we will substitute
+        // with the image index.
+        int startnumber = Strutil::from_string<int>(fileoptions["all"]);
+        int nimages = 1 /*curimg*/ + int(ot.image_stack.size());
+        const char *new_argv[2];
+        // Git rid of the ":all=" part of the command so we don't infinitely
+        // recurse.
+        std::string newcmd = boost::regex_replace (command.str(),
+                                                   boost::regex(":all=[0-9]+"), "");
+        new_argv[0] = newcmd.c_str();;
+        ImageRecRef saved_curimg = ot.curimg; // because we'll overwrite it
+        for (int i = 0; i < nimages; ++i) {
+            if (i < nimages-1)
+                ot.curimg = ot.image_stack[i];
+            else
+                ot.curimg = saved_curimg;  // note: last iteration also restores it!
+            // Use the filename as a pattern, format with the frame number
+            new_argv[1] = ustring::format(filename.c_str(), i+startnumber).c_str();
+            // recurse for this file
+            output_file (2, new_argv);
+        }
+        return 0;
+    }
+
     if (ot.noclobber && Filesystem::exists(filename)) {
         ot.warning (command, Strutil::format("%s already exists, not overwriting.", filename));
         return 0;
@@ -4522,7 +4621,7 @@ getargs (int argc, char *argv[])
                 "--debug", &ot.debug, "Debug mode",
                 "--runstats", &ot.runstats, "Print runtime statistics",
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
-                "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
+                "--info %@", set_printinfo, NULL, "Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)",
                 "--metamatch %s", &ot.printinfo_metamatch,
                     "Regex: which metadata is printed with -info -v",
                 "--no-metamatch %s", &ot.printinfo_nometamatch,
@@ -4671,6 +4770,10 @@ getargs (int argc, char *argv[])
                     "Blur the image (arg: WxH; options: kernel=name)",
                 "--median %@ %s", action_median, NULL,
                     "Median filter the image (arg: WxH)",
+                "--dilate %@ %s", action_dilate, NULL,
+                    "Dilate (area maximum) the image (arg: WxH)",
+                "--erode %@ %s", action_erode, NULL,
+                    "Erode (area minimum) the image (arg: WxH)",
                 "--unsharp %@", action_unsharp, NULL,
                     "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
                 "--laplacian %@", action_laplacian, NULL,
@@ -4796,8 +4899,14 @@ handle_sequence (int argc, const char **argv)
     bool wildcard_on = true;
     for (int a = 1;  a < argc;  ++a) {
         bool is_output = false;
-        if (! strcmp (argv[a], "-o") && a < argc-1) {
+        bool is_output_all = false;
+        if (Strutil::starts_with (argv[a], "-o") && a < argc-1) {
             is_output = true;
+            if (Strutil::contains (argv[a], ":all=")) {
+                // skip wildcard expansion for -o:all, because the name
+                // will be a pattern for expansion of the subimage number.
+                is_output_all = true;
+            }
             a++;
         }
         std::string strarg (argv[a]);
@@ -4822,7 +4931,7 @@ handle_sequence (int argc, const char **argv)
         else if (strarg == "--wildcardon" || strarg == "-wildcardon") {
             wildcard_on = true;
         }
-        else if (wildcard_on &&
+        else if (wildcard_on && !is_output_all &&
                  boost::regex_search (strarg, range_match, sequence_re)) {
             is_sequence = true;
             sequence_args.push_back (a);
@@ -4966,7 +5075,7 @@ main (int argc, char *argv[])
             ot.warning (Strutil::format ("pending '%s' command never executed", ot.pending_callback_name()));
     }
 
-    if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun) {
+    if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun && !ot.printed_info) {
         if (ot.curimg && !ot.curimg->was_output() &&
             (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
             ot.warning ("modified images without outputting them. Did you forget -o?");

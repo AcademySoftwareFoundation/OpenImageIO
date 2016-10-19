@@ -15,9 +15,9 @@ env:
     # The tests we run for both platforms:
     matrix:
       # Basic C++11 build
-      - USE_CPP11=1
+      - USE_CPP=11
       # DEBUG build
-      - USE_CPP11=1 DEBUG=1
+      - DEBUG=1
       # The rest of the tests will be spelled out individually in the
       # 'matrix' section at the bottom of this file.
 
@@ -117,32 +117,18 @@ matrix:
         compiler: clang
 
     include:
-    # Make sure we can still build C++03, both platforms
+    # test with C++14
+      - os: osx
+        compiler: clang
+        env: USE_CPP=14
       - os: linux
         dist: trusty
         compiler: gcc
-        env: USE_CPP11=0
-      - os: osx
-        compiler: clang
-        env: USE_CPP11=0
-    # Build with EMBEDPLUGINS=0, both platforms.
-      # FIXME: doesn't work yet on Travis
-      # - os: linux
-      #   dist: trusty
-      #   compiler: gcc
-      #   env: EMBEDPLUGINS=0
-      # FIXME: don't have OSX EMBEDPLUGINS=0 working yet on Travis (though
-      # it works fine on my laptop).
-      # - os: osx
-      #   compiler: clang
-      #   env: EMBEDPLUGINS=0
-    # Build with a higher SIMD level (SSE4.2).
+        env: WHICHGCC=6 USE_CPP=14
+    # Build with a higher SIMD level (SSE4.2). Only bother testing linux.
       - os: linux
         dist: trusty
         compiler: gcc
-        env: USE_SIMD=sse4.2
-      - os: osx
-        compiler: clang
         env: USE_SIMD=sse4.2
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
@@ -177,6 +163,17 @@ matrix:
         dist: trusty
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0
+    # Build with EMBEDPLUGINS=0, both platforms.
+      # FIXME: doesn't work yet on Travis
+      # - os: linux
+      #   dist: trusty
+      #   compiler: gcc
+      #   env: EMBEDPLUGINS=0
+      # FIXME: don't have OSX EMBEDPLUGINS=0 working yet on Travis (though
+      # it works fine on my laptop).
+      # - os: osx
+      #   compiler: clang
+      #   env: EMBEDPLUGINS=0
 
 notifications:
     email:
