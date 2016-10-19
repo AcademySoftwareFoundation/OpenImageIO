@@ -370,8 +370,7 @@ set_autotile (int argc, const char *argv[])
     ASSERT (argc == 2);
     ot.autotile = atoi(argv[1]);
     ot.imagecache->attribute ("autotile", ot.autotile);
-    if (ot.autotile)
-        ot.imagecache->attribute ("autoscanline", 1);
+    ot.imagecache->attribute ("autoscanline", int(ot.autotile ? 1 : 0));
     return 0;
 }
 
@@ -4014,8 +4013,9 @@ input_file (int argc, const char *argv[])
     int printinfo = get_value_override (fileoptions["info"], int(ot.printinfo));
     bool readnow = get_value_override (fileoptions["now"], int(0));
     bool autocc = get_value_override (fileoptions["autocc"], int(ot.autocc));
-    std::string infoformat = get_value_override (fileoptions["format"],
+    std::string infoformat = get_value_override (fileoptions["infoformat"],
                                                  ot.printinfo_format);
+    TypeDesc input_dataformat (fileoptions["type"]);
 
     for (int i = 0;  i < argc;  i++) {
         string_view filename = ot.express(argv[i]);
@@ -4064,6 +4064,7 @@ input_file (int argc, const char *argv[])
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
+        ot.curimg->input_dataformat (input_dataformat);
         if (readnow) {
             ot.curimg->read (ReadNoCache);
         }
@@ -4702,7 +4703,7 @@ getargs (int argc, char *argv[])
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that read images:",
-                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=0:printinfo=0:autocc=0)",
+                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=)",
                 "--iconfig %@ %s %s", set_input_attribute, NULL, NULL, "Sets input config attribute (name, value) (options: type=...)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
@@ -5111,8 +5112,7 @@ main (int argc, char *argv[])
     ot.imagecache->attribute ("forcefloat", 1);
     ot.imagecache->attribute ("max_memory_MB", float(ot.cachesize));
     ot.imagecache->attribute ("autotile", ot.autotile);
-    if (ot.autotile)
-        ot.imagecache->attribute ("autoscanline", 1);
+    ot.imagecache->attribute ("autoscanline", int(ot.autotile ? 1 : 0));
 
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     if (handle_sequence (argc, (const char **)argv)) {

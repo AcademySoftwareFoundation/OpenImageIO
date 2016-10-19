@@ -920,9 +920,12 @@ options that control the reading of just that one file.
 {\cf info=}\emph{int} & Print info about this file (even if the global
      {\cf --info} was not used) if nonzero. If the value is 2, print full
      verbose info (like {\cf --info -v}). \\
-{\cf format=}\emph{name} & When printing info, the format may be one of:
+{\cf infoformat=}\emph{name} & When printing info, the format may be one of:
       {\cf text} (default) for readable text, or {\cf xml} for an XML
       description of the image metadata. \\
+{\cf type=}\emph{name} & Upon reading, convert the pixel data to the named
+      type. This can override the default behavior of internally storing
+      whatever type is the most precise one found in the file.\\
 \end{tabular}
 \apiend
 
@@ -2957,13 +2960,6 @@ Print to the console detailed information about the values in every pixel.
 
 \apiitem{\ce --info}
 Prints information about each input image as it is read.
-
-\noindent Optional appended arguments include:
-
-\begin{tabular}{p{10pt} p{0.75in} p{3.75in}}
-  & {\cf format=}\emph{fmt} & The format of the information printed, which
-  may be {\cf text} (the default) or {\cf xml}.
-\end{tabular}
 \apiend
 
 \apiitem{\ce --trim}
