@@ -2477,6 +2477,13 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
         } else {
             wx = evalBSplineWeights (float4(sfrac));
             wy = evalBSplineWeights (float4(tfrac));
+#if defined(__i386__) && !defined(__x86_64__)
+            // gcc on some 32 bit platforms complains here about these being
+            // uninitialized, so initialize them. Don't waste the cycles
+            // for 64 bit platforms that don't seem to have that error.
+            dwx = float4::Zero();
+            dwy = float4::Zero();
+#endif
         }
 
         // figure out lerp weights so we can turn the filter into a sequence of lerp's
