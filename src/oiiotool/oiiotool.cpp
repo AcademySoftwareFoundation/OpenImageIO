@@ -4083,7 +4083,7 @@ input_file (int argc, const char *argv[])
                 if (nspec.channelformats.size()) {
                     for (int c = 0; c < nspec.nchannels; ++c) {
                         std::string chname = nspec.channelnames[c];
-                        output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+                        ot.output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
                     }
                 }
             }
