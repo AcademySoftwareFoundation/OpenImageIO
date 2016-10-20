@@ -239,15 +239,22 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
         } else {
             // Per-channel formats -- have to convert/copy channels individually
             size_t offset = 0;
-            for (int c = 0;  ok && c < nchans;  ++c) {
+            int n = 1;
+            for (int c = 0;  ok && c < nchans; c += n) {
                 TypeDesc chanformat = m_spec.channelformats[c+chbegin];
-                ok = parallel_convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
+                // Try to do more than one channel at a time to improve
+                // memory coherence, if there are groups of adjacent
+                // channels needing the same data conversion.
+                for (n = 1; c+n < nchans; ++n)
+                    if (m_spec.channelformats[c+chbegin+n] != chanformat)
+                        break;
+                ok = parallel_convert_image (n /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat,
                                     native_pixel_bytes, AutoStride, AutoStride,
                                     (char *)data + c*format.size(),
                                     format, xstride, ystride, zstride,
                                     -1 /*alpha*/, -1 /*z*/, threads());
-                offset += chanformat.size ();
+                offset += n * chanformat.size ();
             }
         }
         if (! ok)
