@@ -240,11 +240,11 @@ Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
         output_dataformat = nspec.format;
         if (! output_bitspersample)
             output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
-    }
-    if (output_channelformats.empty() && nspec.channelformats.size()) {
-        for (int c = 0; c < nspec.nchannels; ++c) {
-            std::string chname = nspec.channelnames[c];
-            output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+        if (nspec.channelformats.size()) {
+            for (int c = 0; c < nspec.nchannels; ++c) {
+                std::string chname = nspec.channelnames[c];
+                output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+            }
         }
     }
 
@@ -4073,6 +4073,20 @@ input_file (int argc, const char *argv[])
         ot.curimg->input_dataformat (input_dataformat);
         if (readnow) {
             ot.curimg->read (ReadNoCache, channel_set);
+            // If we do not yet have an expected output format, set it based on
+            // this image (presumably the first one read.
+            if (ot.output_dataformat == TypeDesc::UNKNOWN) {
+                const ImageSpec &nspec ((*ot.curimg)(0,0).nativespec());
+                ot.output_dataformat = nspec.format;
+                if (! ot.output_bitspersample)
+                    ot.output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
+                if (nspec.channelformats.size()) {
+                    for (int c = 0; c < nspec.nchannels; ++c) {
+                        std::string chname = nspec.channelnames[c];
+                        output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+                    }
+                }
+            }
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
