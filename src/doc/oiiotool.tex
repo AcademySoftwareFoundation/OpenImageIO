@@ -552,10 +552,11 @@ yielding RGB only:
     oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
 \end{code}
 
-\noindent Extract just the named channels from a complicted many-channel
-image, and add an alpha channel that is 1 everywhere:
+\noindent Extract just the named channels from a many-channel image,
+as efficiently as possible (avoiding memory and I/O for the unused
+channels):
 \begin{code}
-    oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,A=1 -o spec.exr
+    oiiotool -i:ch=R,G,B manychannels.exr -o rgb.exr
 \end{code}
 
 \noindent Add an alpha channel to an RGB image, setting it to 1.0 everywhere,
@@ -926,6 +927,10 @@ options that control the reading of just that one file.
 {\cf type=}\emph{name} & Upon reading, convert the pixel data to the named
       type. This can override the default behavior of internally storing
       whatever type is the most precise one found in the file.\\
+{\cf ch=}\emph{name,...} & Causes the input to read only the specified
+      channels. This is equivalent to following the input with a {\cf --ch}
+      command, except that by integrating into the {\cf -i}, it potentially
+      can avoid the I/O of the unneeded channels.\\
 \end{tabular}
 \apiend
 

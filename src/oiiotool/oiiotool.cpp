@@ -1854,7 +1854,7 @@ set_channelnames (int argc, const char *argv[])
 // newchannelnames will be the name of renamed or non-default-named
 // channels (defaulting to "" if no special name is needed).
 bool
-decode_channel_set (const ImageSpec &spec, string_view chanlist,
+OiioTool::decode_channel_set (const ImageSpec &spec, string_view chanlist,
                     std::vector<std::string> &newchannelnames,
                     std::vector<int> &channels, std::vector<float> &values)
 {
@@ -4016,8 +4016,9 @@ input_file (int argc, const char *argv[])
     std::string infoformat = get_value_override (fileoptions["infoformat"],
                                                  ot.printinfo_format);
     TypeDesc input_dataformat (fileoptions["type"]);
+    std::string channel_set = fileoptions["ch"];
 
-    for (int i = 0;  i < argc;  i++) {
+    for (int i = 0;  i < argc;  i++) { // FIXME: this loop is pointless
         string_view filename = ot.express(argv[i]);
         std::map<std::string,ImageRecRef>::const_iterator found;
         found = ot.image_labels.find(filename);
@@ -4030,7 +4031,6 @@ input_file (int argc, const char *argv[])
         }
         Timer timer (ot.enable_function_timing);
         int exists = 1;
-        // ustring filename (argv[i]);
         if (ot.input_config_set) {
             // User has set some input configuration, so seed the cache with
             // that information.
@@ -4061,12 +4061,18 @@ input_file (int argc, const char *argv[])
             }
             exit (1);
         }
+
+        if (channel_set.size()) {
+            ot.input_channel_set = channel_set;
+            readnow = true;
+        }
+
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
         ot.curimg->input_dataformat (input_dataformat);
         if (readnow) {
-            ot.curimg->read (ReadNoCache);
+            ot.curimg->read (ReadNoCache, channel_set);
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
@@ -4126,6 +4132,7 @@ input_file (int argc, const char *argv[])
         ot.input_config = ImageSpec();
         ot.input_config_set = false;
     }
+    ot.input_channel_set.clear ();
     ot.check_peak_memory ();
     ot.total_readtime.stop();
     return 0;
@@ -4703,7 +4710,7 @@ getargs (int argc, char *argv[])
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
                 "<SEPARATOR>", "Commands that read images:",
-                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=)",
+                "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=, ch=)",
                 "--iconfig %@ %s %s", set_input_attribute, NULL, NULL, "Sets input config attribute (name, value) (options: type=...)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",

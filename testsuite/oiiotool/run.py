@@ -297,6 +297,10 @@ command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
 
+# test -i:ch=...
+command += oiiotool ("--pattern fill:color=.6,.5,.4,.3,.2 64x64 5 -d uint8 -o const5.tif")
+command += oiiotool ("-i:ch=R,G,B const5.tif -o const5-rgb.tif")
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
@@ -350,6 +354,7 @@ outputs = [
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "tahoe-contraststretch.tif",
             "rgbfromtga.png",
+            "const5-rgb.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

@@ -228,7 +228,7 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
 
 
 bool
-ImageRec::read (ReadPolicy readpolicy)
+ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
 {
     if (elaborated())
         return true;
@@ -259,7 +259,31 @@ ImageRec::read (ReadPolicy readpolicy)
             // simply fall back on ImageCache.
             bool forceread = (s == 0 && m == 0 &&
                               m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
-            ImageBuf *ib = new ImageBuf (name(), m_imagecache);
+            ImageBufRef ib (new ImageBuf (name(), m_imagecache));
+
+            bool post_channel_set_action = false;
+            std::vector<std::string> newchannelnames;
+            std::vector<int> channel_set_channels;
+            std::vector<float> channel_set_values;
+            int chbegin = 0, chend = -1;
+            if (channel_set.size()) {
+                decode_channel_set (ib->nativespec(), channel_set,
+                                    newchannelnames, channel_set_channels,
+                                    channel_set_values);
+                for (size_t c = 0, e = channel_set_channels.size(); c < e; ++c) {
+                    if (channel_set_channels[c] < 0)
+                        post_channel_set_action = true; // value fill-in
+                    else if (c>=1 && channel_set_channels[c] != channel_set_channels[c-1]+1)
+                        post_channel_set_action = true; // non-consecutive chans
+                }
+                if (ib->deep())
+                    post_channel_set_action = true;
+                if (! post_channel_set_action) {
+                    chbegin = channel_set_channels.front();
+                    chend = channel_set_channels.back()+1;
+                    forceread = true;
+                }
+            }
 
             // If we were requested to bypass the cache, force a full read.
             if (readpolicy & ReadNoCache)
@@ -281,9 +305,17 @@ ImageRec::read (ReadPolicy readpolicy)
                 forceread = true;
             }
 
-            bool ok = ib->read (s, m, forceread, convert);
+            bool ok = ib->read (s, m, chbegin, chend, forceread, convert);
+            if (ok && post_channel_set_action) {
+                ImageBufRef allchan_buf;
+                std::swap (allchan_buf, ib);
+                ok = ImageBufAlgo::channels (*ib, *allchan_buf,
+                            (int)channel_set_channels.size(), &channel_set_channels[0],
+                            &channel_set_values[0], &newchannelnames[0], false);
+            }
             if (!ok)
                 error ("%s", ib->geterror());
+
             allok &= ok;
             // Remove any existing SHA-1 hash from the spec.
             ib->specmod().erase_attribute ("oiio:SHA-1");
@@ -292,7 +324,7 @@ ImageRec::read (ReadPolicy readpolicy)
                 ib->specmod().attribute ("ImageDescription",
                                          boost::regex_replace (desc, regex_sha, ""));
 
-            m_subimages[s].m_miplevels[m].reset (ib);
+            m_subimages[s].m_miplevels[m] = ib;
             m_subimages[s].m_specs[m] = ib->spec();
             // For ImageRec purposes, we need to restore a few of the
             // native settings.

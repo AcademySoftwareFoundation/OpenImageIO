@@ -88,6 +88,7 @@ public:
     bool printinfo_verbose;
     ImageSpec input_config;           // configuration options for reading
     bool input_config_set;
+    std::string input_channel_set;    // Optional input channel set
 
     // Output options
     TypeDesc output_dataformat;
@@ -350,7 +351,8 @@ public:
     // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
-    bool read (ReadPolicy readpolicy = ReadDefault);
+    bool read (ReadPolicy readpolicy = ReadDefault,
+               string_view channel_set = "");
 
     // ir(subimg,mip) references a specific MIP level of a subimage
     // ir(subimg) references the first MIP level of a subimage
@@ -496,6 +498,10 @@ enum DiffErrors {
 
 int do_action_diff (ImageRec &ir0, ImageRec &ir1, Oiiotool &options,
                     int perceptual = 0);
+
+bool decode_channel_set (const ImageSpec &spec, string_view chanlist,
+                    std::vector<std::string> &newchannelnames,
+                    std::vector<int> &channels, std::vector<float> &values);
 
 
 

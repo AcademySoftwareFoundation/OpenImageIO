@@ -16,6 +16,10 @@ Major new features and improvements:
      numerical values. #1552 (1.8.1)
    * `-i:type=...` lets you override the internal buffer type that will be
      used for an input image. #1541 (1.8.1)
+   * `-i:ch=a,...` lets you restrict the input to only the listed channels.
+     This is semantically equivalent to following the input with a `--ch`
+     command, but by integrating into the input itself, it can sometimes
+     avoid using memory and I/O for unneeded channels. #1541 (1.8.1)
 * New ImageBufAlgo functions:
    * `color_map()` applies a color map based on the input values; the
      map can be one of several named ones, or given explicitly with
