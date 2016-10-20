@@ -204,6 +204,10 @@ or special instructions to be passed on to the eventual
 \apiitem{bool {\ce read} (int subimage=0, int miplevel=0, bool force=false, \\
    \bigspc            TypeDesc convert=TypeDesc::UNKNOWN, \\
    \bigspc            ProgressCallback progress_callback=NULL, \\
+   \bigspc            void *progress_callback_data=NULL) \\
+bool {\ce read} (int subimage, int miplevel, \\
+   \bigspc            int chbegin, int chend, bool force, TypeDesc convert, \\
+   \bigspc            ProgressCallback progress_callback=NULL, \\
    \bigspc            void *progress_callback_data=NULL)}
 
 Explicitly reads the particular subimage and MIP level of the image.  Generally,
@@ -229,6 +233,13 @@ native file type and also is not one of the internal types supported by
 the {\cf ImageCache} (specifically, {\cf FLOAT} and {\cf UINT8});
 (c) if the \ImageBuf already has local pixel memory allocated, or
 ``wraps'' an application buffer.
+
+\NEW % 1.8
+The variety of {\cf read()} that takes {\cf chbegin} and {\cf chend}
+parameters allows you to populate the \ImageBuf with a (contiguous) subset
+of channels from the file. This can be useful if you are only interested
+in a subset of channels and want to save the memory and I/O costs for the
+channels you won't want.
 
 If {\cf progress_callback} is non-NULL, the underlying read, if
 expensive, may make several calls to

@@ -267,6 +267,19 @@ public:
                ProgressCallback progress_callback=NULL,
                void *progress_callback_data=NULL);
 
+    /// Read the file from disk, if possible only allocating and reading a
+    /// subset of channels, [chbegin..chend-1] from disk. This can be a
+    /// performance and memory improvement if you know that any use of the
+    /// ImageBuf will only access a subset of channels from a many-channel
+    /// file. If chbegin==0 and chend is either negative or greater than the
+    /// number of channels in the file, all channels will be read. Please
+    /// note that it is "advisory" and not guaranteed to be honored by the
+    /// underlying implementation.
+    bool read (int subimage, int miplevel, int chbegin, int chend,
+               bool force, TypeDesc convert,
+               ProgressCallback progress_callback=NULL,
+               void *progress_callback_data=NULL);
+
     /// Initialize this ImageBuf with the named image file, and read its
     /// header to fill out the spec correctly.  Return true if this
     /// succeeded, false if the file could not be read.  But don't
