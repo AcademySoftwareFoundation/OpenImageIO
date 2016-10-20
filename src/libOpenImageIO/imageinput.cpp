@@ -241,11 +241,12 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
             size_t offset = 0;
             for (int c = 0;  ok && c < nchans;  ++c) {
                 TypeDesc chanformat = m_spec.channelformats[c+chbegin];
-                ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
-                                    &buf[offset], chanformat, 
+                ok = parallel_convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
+                                    &buf[offset], chanformat,
                                     native_pixel_bytes, AutoStride, AutoStride,
                                     (char *)data + c*format.size(),
-                                    format, xstride, ystride, zstride);
+                                    format, xstride, ystride, zstride,
+                                    -1 /*alpha*/, -1 /*z*/, threads());
                 offset += chanformat.size ();
             }
         }
