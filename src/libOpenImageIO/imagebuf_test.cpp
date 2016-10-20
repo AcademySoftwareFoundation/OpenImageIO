@@ -325,6 +325,40 @@ test_set_get_pixels ()
 
 
 
+void
+test_read_channel_subset ()
+{
+    std::cout << "\nTesting reading a channel subset\n";
+
+    // FIrst, write a test image with 6 channels
+    static float color6[] = { .6, .5, .4, .3, .2, .1 };
+    ImageBuf A (ImageSpec (2, 2, 6, TypeDesc::FLOAT));
+    ImageBufAlgo::fill (A, color6);
+    A.write ("sixchans.tif");
+    std::cout << " Start with image:\n";
+    print (A);
+
+    // Now read it back using the "channel range" option.
+    ImageBuf B ("sixchans.tif");
+    B.read (0 /*subimage*/, 0 /*mip*/, 2 /*chbegin*/, 5 /*chend*/,
+            true /*force*/, TypeDesc::FLOAT);
+    std::cout << " After reading channels [2,5), we have:\n";
+    print (B);
+    OIIO_CHECK_EQUAL (B.nativespec().nchannels, 6);
+    OIIO_CHECK_EQUAL (B.spec().nchannels, 3);
+    OIIO_CHECK_EQUAL (B.spec().format, TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (B.spec().channelnames[0], "B");
+    OIIO_CHECK_EQUAL (B.spec().channelnames[1], "A");
+    OIIO_CHECK_EQUAL (B.spec().channelnames[2], "channel4");
+    for (ImageBuf::ConstIterator<float> p (B);  ! p.done();  ++p) {
+        OIIO_CHECK_EQUAL (p[0], 0.4f);
+        OIIO_CHECK_EQUAL (p[1], 0.3f);
+        OIIO_CHECK_EQUAL (p[2], 0.2f);
+    }
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -343,6 +377,7 @@ main (int argc, char **argv)
     ImageBuf_test_appbuffer ();
     histogram_computation_test ();
     test_open_with_config ();
+    test_read_channel_subset ();
 
     test_set_get_pixels ();
 

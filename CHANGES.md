@@ -29,7 +29,9 @@ Public API changes:
   extended to allow multiple key/value context pairs, by making them
   comma-separated lists. The createColorProcessor() method has also been
   extended to take context key/value pairs. #1542 (1.7.8, 1.8.0)
-
+* `ImageBuf::read()` now has a variety that takes a channel range, allowing
+  you to populate an ImageBuf with a subset of channels in a file,
+  potentially saving memory and I/O for the unneeded channels. #1541 (1.8.1)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:

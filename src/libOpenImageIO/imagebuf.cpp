@@ -152,8 +152,8 @@ public:
     void alloc (const ImageSpec &spec);
     void realloc ();
     bool init_spec (string_view filename, int subimage, int miplevel);
-    bool read (int subimage=0, int miplevel=0, bool force=false,
-               TypeDesc convert=TypeDesc::UNKNOWN,
+    bool read (int subimage, int miplevel, int chbegin=0, int chend=-1,
+               bool force=false, TypeDesc convert=TypeDesc::UNKNOWN,
                ProgressCallback progress_callback=NULL,
                void *progress_callback_data=NULL);
     void copy_metadata (const ImageBufImpl &src);
@@ -767,7 +767,8 @@ ImageBuf::init_spec (string_view filename, int subimage, int miplevel)
 
 
 bool
-ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
+ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
+                    bool force, TypeDesc convert,
                     ProgressCallback progress_callback,
                     void *progress_callback_data)
 {
@@ -786,6 +787,9 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
 
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
+    if (chend < 0 || chend > nativespec().nchannels)
+        chend = nativespec().nchannels;
+    bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
 
     if (m_spec.deep) {
         std::unique_ptr<ImageInput> input (
@@ -810,6 +814,8 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         return true;
     }
 
+    m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
+
     // If we don't already have "local" pixels, and we aren't asking to
     // convert the pixels to a specific (and different) type, then take an
     // early out by relying on the cache.
@@ -818,7 +824,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
                                   ustring("cachedpixeltype"),
                                   TypeDesc::TypeInt, &peltype);
     m_cachedpixeltype = TypeDesc ((TypeDesc::BASETYPE)peltype);
-    if (! m_localpixels && ! force &&
+    if (! m_localpixels && ! force && ! use_channel_subset &&
         (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
         m_spec.format = m_cachedpixeltype;
         m_pixel_bytes = m_spec.pixel_bytes();
@@ -834,11 +840,24 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
         return true;
     }
 
+    if (use_channel_subset) {
+        // Some adjustments because we are reading a channel subset
+        force = true;
+        m_spec.nchannels = chend-chbegin;
+        m_spec.channelnames.resize (m_spec.nchannels);
+        for (int c = 0; c < m_spec.nchannels; ++c)
+            m_spec.channelnames[c] = m_nativespec.channelnames[c+chbegin];
+        if (m_nativespec.channelformats.size()) {
+            m_spec.channelformats.resize (m_spec.nchannels);
+            for (int c = 0; c < m_spec.nchannels; ++c)
+                m_spec.channelformats[c] = m_nativespec.channelformats[c+chbegin];
+        }
+    }
+
     if (convert != TypeDesc::UNKNOWN)
         m_spec.format = convert;
     else
         m_spec.format = m_nativespec.format;
-    m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     realloc ();
 
     // If forcing a full read, make sure the spec reflects the nativespec's
@@ -873,7 +892,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
                 ok &= in->seek_subimage (subimage, miplevel, newspec);
             }
             if (ok)
-                ok &= in->read_image (convert, m_localpixels);
+                ok &= in->read_image (chbegin, chend, convert, m_localpixels);
             in->close ();
             if (ok) {
                 m_pixels_valid = true;
@@ -895,6 +914,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
                                   m_spec.x, m_spec.x+m_spec.width,
                                   m_spec.y, m_spec.y+m_spec.height,
                                   m_spec.z, m_spec.z+m_spec.depth,
+                                  chbegin, chend,
                                   m_spec.format, m_localpixels)) {
         m_pixels_valid = true;
     } else {
@@ -912,7 +932,19 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
                 ProgressCallback progress_callback,
                 void *progress_callback_data)
 {
-    return impl()->read (subimage, miplevel, force, convert,
+    return impl()->read (subimage, miplevel, 0, -1, force, convert,
+                         progress_callback, progress_callback_data);
+}
+
+
+
+bool
+ImageBuf::read (int subimage, int miplevel, int chbegin, int chend,
+                bool force, TypeDesc convert,
+                ProgressCallback progress_callback,
+                void *progress_callback_data)
+{
+    return impl()->read (subimage, miplevel, chbegin, chend, force, convert,
                          progress_callback, progress_callback_data);
 }
 
@@ -1078,7 +1110,7 @@ bool
 ImageBuf::make_writeable (bool keep_cache_type)
 {
     if (storage() == IMAGECACHE) {
-        return read (subimage(), miplevel(), true /*force*/,
+        return read (subimage(), miplevel(), 0, -1, true /*force*/,
                      keep_cache_type ? impl()->m_cachedpixeltype : TypeDesc());
     }
     return true;
