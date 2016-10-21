@@ -35,6 +35,7 @@
 #include <fstream>
 #include <map>
 #include <numeric>
+#include <memory>
 
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfInputFile.h>
@@ -88,7 +89,6 @@
 #include "OpenImageIO/deepdata.h"
 #include "OpenImageIO/sysutil.h"
 
-#include <boost/scoped_array.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -1115,8 +1115,8 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
     int whole_width = nxtiles * m_spec.tile_width;
     int whole_height = nytiles * m_spec.tile_height;
-    
-    boost::scoped_array<char> tmpbuf;
+
+    std::unique_ptr<char[]> tmpbuf;
     void *origdata = data;
     if (whole_width != (xend-xbegin) || whole_height != (yend-ybegin)) {
         // Deal with the case of reading not a whole number of tiles --

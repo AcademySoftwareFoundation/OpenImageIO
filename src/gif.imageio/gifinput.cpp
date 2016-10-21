@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/scoped_array.hpp>
 #include <vector>
+#include <memory>
 #include <gif_lib.h>
 
 #include "OpenImageIO/imageio.h"
@@ -319,11 +319,9 @@ GIFInput::read_subimage_data()
     int window_width  = m_gif_file->Image.Width;
     int window_top    = m_gif_file->Image.Top;
     int window_left   = m_gif_file->Image.Left;
+    std::unique_ptr<unsigned char[]> fscanline (new unsigned char [window_width]);
     for (int wy = 0; wy < window_height; wy++) {
-        boost::scoped_array<unsigned char> fscanline
-                (new unsigned char[window_width]);
-        if (DGifGetLine (m_gif_file, fscanline.get(), window_width)
-                == GIF_ERROR) {
+        if (DGifGetLine (m_gif_file, &fscanline[0], window_width) == GIF_ERROR) {
             report_last_error ();
             return false;
         }

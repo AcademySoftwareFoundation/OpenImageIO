@@ -54,8 +54,6 @@
 #include "OpenImageIO/simd.h"
 #include "imagecache_pvt.h"
 
-#include <boost/scoped_array.hpp>
-
 
 OIIO_NAMESPACE_BEGIN
     using namespace pvt;
@@ -943,7 +941,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         // buffer to be an even multiple of the tile width, so round up.
         stride_t scanlinesize = tw * ((spec.width+tw-1)/tw);
         scanlinesize *= pixelsize;
-        boost::scoped_array<char> buf (new char [scanlinesize * th]); // a whole tile-row size
+        std::unique_ptr<char[]> buf (new char [scanlinesize * th]); // a whole tile-row size
         int yy = y - spec.y;   // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
         int y0 = yy - (yy % th);
