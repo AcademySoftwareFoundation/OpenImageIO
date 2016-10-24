@@ -11,15 +11,16 @@ endif
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
-NUKE_VERSION ?= 10.0v4
 SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+NUKE_VERSION ?= 10.0v4
 
 ## Detect which SPI platform and set $platform, $COMPILER, $SPCOMP2_COMPILER,
 ## and PYVER. Lots of other decisions are based on these.
 ifeq ($(SP_OS), rhel7)
     # Rhel7 (current)
     platform := rhel7
+    COMPILER ?= clang35
     SPCOMP2_COMPILER=gcc48m64
 else ifeq (${SP_OS}, lion)
     # Official OS X build machines with special conventions
@@ -42,10 +43,10 @@ OCIO_SPCOMP_VERSION ?= 2
 ## Rhel7 (current)
 ifeq ($(SP_OS), rhel7)
     USE_CPP ?= 11
-    USE_SIMD = sse4.1
+    USE_SIMD ?= sse4.1
+    CMAKE ?= cmake
     USE_NINJA := 1
     NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
-    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
     MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
@@ -54,7 +55,7 @@ ifeq ($(SP_OS), rhel7)
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.4.2
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.5
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -62,16 +63,18 @@ ifeq ($(SP_OS), rhel7)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang \
            -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.4.2/bin/clang++
-    else ifeq (${COMPILER}, gcc472)
-      MY_CMAKE_FLAGS += \
-         -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/gcc \
-         -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.7.2-test/bin/g++
+    else ifeq (${COMPILER}, clang35)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.5/bin/clang \
+           -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_3.5/bin/clang++
+    else ifeq (${COMPILER},clang38)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.8 -DCMAKE_CXX_COMPILER=clang++-3.8
+    else ifeq (${COMPILER},clang)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER}, gcc490)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
-    else ifeq (${COMPILER},clang)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
     else ifeq (${COMPILER},)
@@ -123,7 +126,7 @@ ifeq ($(SP_OS), rhel7)
 ## Official OS X build machines with special conventions
 else ifeq ($(SP_OS), lion)
     USE_CPP ?= 11
-    USE_SIMD = sse4.2
+    USE_SIMD ?= sse4.2
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
     FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
@@ -171,7 +174,7 @@ else ifeq ($(SP_OS), lion)
 
 ## Generic OSX machines (including LG's laptop)
 else ifeq (${platform}, macosx)
-    USE_SIMD = sse4.2
+    USE_SIMD ?= sse4.2
     MY_CMAKE_FLAGS += \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
     # don't need this? -DBUILD_WITH_INSTALL_RPATH=1
@@ -184,6 +187,10 @@ else ifeq (${platform}, macosx)
     else ifeq (${COMPILER}, gcc6)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/usr/local/bin/gcc-6 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-6
+    else ifeq (${COMPILER},clang35)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.5 -DCMAKE_CXX_COMPILER=clang++-3.5
+    else ifeq (${COMPILER},clang38)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.8 -DCMAKE_CXX_COMPILER=clang++-3.8
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
