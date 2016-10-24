@@ -594,7 +594,7 @@ ColorConfig::createLookTransform (string_view looks,
                                   string_view outputColorSpace,
                                   bool inverse,
                                   string_view context_key,
-                                  string_view context_val) const
+                                  string_view context_value) const
 {
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
@@ -619,9 +619,13 @@ ColorConfig::createLookTransform (string_view looks,
             dir = OCIO::TRANSFORM_DIR_FORWARD;
         }
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        if (context_key.size() && context_val.size()) {
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
-            ctx->setStringVar (context_key.c_str(), context_val.c_str());
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
             context = ctx;
         }
 
@@ -673,9 +677,13 @@ ColorConfig::createDisplayTransform (string_view display,
             transform->setLooksOverrideEnabled(false);
         }
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        if (context_key.size() && context_value.size()) {
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
-            ctx->setStringVar (context_key.c_str(), context_value.c_str());
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
             context = ctx;
         }
 
