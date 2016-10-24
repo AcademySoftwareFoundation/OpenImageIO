@@ -125,13 +125,13 @@ public:
     /// separately!
     ColorProcessor* createColorProcessor (string_view inputColorSpace,
                                           string_view outputColorSpace) const;
-    
-    /// Given the named look(s), input and output color spaces,
-    /// construct a color processor that applies an OCIO look
-    /// transformation.  If inverse==true, construct the inverse
-    /// transformation.  The context_key and context_value can
-    /// optionally be used to establish an extra token/value pair in the
-    /// OCIO context.
+
+    /// Given the named look(s), input and output color spaces, construct a
+    /// color processor that applies an OCIO look transformation.  If
+    /// inverse==true, construct the inverse transformation.  The
+    /// context_key and context_value can optionally be used to establish
+    /// extra key/value pairs in the OCIO context if they are comma-
+    /// separated lists of ontext keys and values, respectively.
     ///
     /// It is possible that this will return NULL, if one of the color
     /// spaces or the look itself doesnt exist or is not allowed.  When
@@ -176,8 +176,9 @@ public:
     /// forward/inverse transformation (and forward is assumed in the
     /// absence of either). It is possible to remove all looks from the
     /// display by passing an empty string. The context_key and context_value
-    /// can optionally be used to establish an extra token/value pair in the
-    /// OCIO context.
+    /// can optionally be used to establish extra key/value pair in the OCIO
+    /// context if they are comma-separated lists of context keys and
+    /// values, respectively.
     ///
     /// It is possible that this will return NULL, if one of the color
     /// spaces or the display or view doesn't exist or is not allowed.  When
