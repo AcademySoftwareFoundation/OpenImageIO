@@ -975,12 +975,16 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
 bool
 IBA_colorconvert_colorconfig (ImageBuf &dst, const ImageBuf &src,
                   const std::string &from, const std::string &to,
-                  bool unpremult = false, const std::string &colorconfig="",
+                  bool unpremult = false,
+                  const std::string &context_key="",
+                  const std::string &context_value="",
+                  const std::string &colorconfig="",
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ColorConfig config (colorconfig);
     ScopedGILRelease gil;
     return ImageBufAlgo::colorconvert (dst, src, from, to, unpremult,
+                                       context_key, context_value,
                                        &config, roi, nthreads);
 }
 
@@ -1520,8 +1524,10 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .def("colorconvert", &IBA_colorconvert_colorconfig,
              (arg("dst"), arg("src"),
-              arg("from"), arg("to"), 
-              arg("unpremult")=false, arg("colorconfig")="",
+              arg("from"), arg("to"),
+              arg("unpremult")=false,
+              arg("context_key")="", arg("context_value")="",
+              arg("colorconfig")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("colorconvert")
 

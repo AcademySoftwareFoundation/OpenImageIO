@@ -124,6 +124,11 @@ public:
     /// (or multiple images), NOT for every scanline or pixel
     /// separately!
     ColorProcessor* createColorProcessor (string_view inputColorSpace,
+                                          string_view outputColorSpace,
+                                          string_view context_key /* ="" */,
+                                          string_view context_value="") const;
+    // DEPRECATED (1.7):
+    ColorProcessor* createColorProcessor (string_view inputColorSpace,
                                           string_view outputColorSpace) const;
 
     /// Given the named look(s), input and output color spaces, construct a

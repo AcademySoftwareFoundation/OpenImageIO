@@ -511,6 +511,17 @@ ColorProcessor*
 ColorConfig::createColorProcessor (string_view inputColorSpace,
                                    string_view outputColorSpace) const
 {
+    return createColorProcessor (inputColorSpace, outputColorSpace, "", "");
+}
+
+
+
+ColorProcessor*
+ColorConfig::createColorProcessor (string_view inputColorSpace,
+                                   string_view outputColorSpace,
+                                   string_view context_key,
+                                   string_view context_value) const
+{
     string_view inputrole, outputrole;
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
@@ -529,9 +540,22 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
             outputrole = outputColorSpace;
             outputColorSpace = name;
         }
+
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
+            OCIO::ContextRcPtr ctx = context->createEditableCopy();
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
+            context = ctx;
+        }
+
         try {
             // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(inputColorSpace.c_str(),
+            p = getImpl()->config_->getProcessor(context, inputColorSpace.c_str(),
                                                  outputColorSpace.c_str());
         }
         catch(OCIO::Exception &e) {
@@ -797,6 +821,20 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             bool unpremult, ColorConfig *colorconfig,
                             ROI roi, int nthreads)
 {
+    return colorconvert (dst, src, from, to, unpremult, "", "",
+                         colorconfig, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult, string_view context_key,
+                            string_view context_value,
+                            ColorConfig *colorconfig,
+                            ROI roi, int nthreads)
+{
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -811,7 +849,8 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             colorconfig = default_colorconfig.get();
         if (! colorconfig)
             default_colorconfig.reset (colorconfig = new ColorConfig);
-        processor = colorconfig->createColorProcessor (from, to);
+        processor = colorconfig->createColorProcessor (from, to,
+                                                context_key, context_value);
         if (! processor) {
             if (colorconfig->error())
                 dst.error ("%s", colorconfig->geterror());
