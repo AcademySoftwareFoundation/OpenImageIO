@@ -525,7 +525,7 @@ inline OUT_TYPE bit_cast (const IN_TYPE in) {
 
 
 inline int bitcast_to_int (float x) { return bit_cast<float,int>(x); }
-inline int bitcast_to_float (int x) { return bit_cast<int,float>(x); }
+inline float bitcast_to_float (int x) { return bit_cast<int,float>(x); }
 
 
 
