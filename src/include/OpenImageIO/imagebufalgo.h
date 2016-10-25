@@ -967,6 +967,14 @@ bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
                             bool unpremult=false,
+                            string_view context_key="",
+                            string_view context_value="",
+                            ColorConfig *colorconfig=NULL,
+                            ROI roi=ROI::All(), int nthreads=0);
+// DEPRECATED: [1.7]
+bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult=false,
                             ColorConfig *colorconfig=NULL,
                             ROI roi=ROI::All(), int nthreads=0);
 OIIO_DEPRECATED("Use the version that takes a ColorConfig*. [1.6]")

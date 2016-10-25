@@ -1636,8 +1636,11 @@ public:
         return true;
     }
     virtual int impl (ImageBuf **img) {
+        string_view contextkey = options["key"];
+        string_view contextvalue = options["value"];
         return ImageBufAlgo::colorconvert (*img[0], *img[1],
                                            fromspace, tospace, false,
+                                           contextkey, contextvalue,
                                            &ot.colorconfig);
     }
     string_view fromspace, tospace;
@@ -4838,7 +4841,7 @@ getargs (int argc, char *argv[])
                 "--tocolorspace %@ %s", action_tocolorspace, NULL,
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
-                    "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                    "Convert pixels from 'src' to 'dst' color space (options: key=, value=)",
                 "--ociolook %@ %s", action_ociolook, NULL,
                     "Apply the named OCIO look (options: from=, to=, inverse=, key=, value=)",
                 "--ociodisplay %@ %s %s", action_ociodisplay, NULL, NULL,

@@ -2715,8 +2715,16 @@ as a guide for the location of the configuration file.
 \apiitem{\ce --colorconvert {\rm \emph{fromspace tospace}}}
 Replace the current image with a new image whose pixels are transformed
 from the named \emph{fromspace} color space into the named
-\emph{tospace} (disregarding any notion it may have previously had 
-about the color space of the current image).  
+\emph{tospace} (disregarding any notion it may have previously had
+about the color space of the current image). Optional appended
+arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf key=}\emph{name} & \\
+ & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
+  OpenColorIO will used when applying the look. Multiple key/value pairs
+  may be specified by making each one a comma-separated list. \\
+\end{tabular}
 \apiend
 
 \apiitem{\ce --tocolorspace {\rm \emph{tospace}}}

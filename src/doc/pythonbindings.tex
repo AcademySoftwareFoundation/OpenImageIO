@@ -2936,9 +2936,7 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
 
 \apiitem{bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
   unpremult=False, \\
-  \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
-  unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
 }
 \index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
@@ -2959,10 +2957,6 @@ are supported.
 
 \apiitem{bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
   \bigspc\bigspc  inverse=False, unpremult=False, \\
-  \bigspc\bigspc context_key="", context_value="", \\
-  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
- bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to, \\
-  \bigspc\bigspc inverse=False, unpremult=False, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
@@ -2983,10 +2977,6 @@ are supported.
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
-  \bigspc\bigspc from=None, looks=None, unpremult=False, \\
-  \bigspc\bigspc context_key="", context_value="", \\
-  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
   \bigspc\bigspc from=None, looks=None, unpremult=False, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}

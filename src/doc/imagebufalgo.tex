@@ -2000,6 +2000,7 @@ higher-contrast edges.
 
 \apiitem{bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view from, string_view to, bool unpremult=false, \\
+  \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
@@ -2023,6 +2024,9 @@ is passed, the default OCIO color configuration found by examining the {\cf
 The second form is directly passed a {\cf ColorProcessor}, which is is a
 special object created by a {\cf ColorConfig} (see {\cf OpenImageIO/color.h}
 for details).
+
+The {\cf context_key} and {\cf context_value} may optionally be used
+to establish a context (for example, a shot-specific transform).
 
 If OIIO was built with OpenColorIO support enabled, then the transformation
 may be between any two spaces supported by the active OCIO configuration, or
@@ -2056,14 +2060,14 @@ to \qkw{linear} and vice versa.
 \apiitem{bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view looks, string_view from, string_view to, \\
   \bigspc\spc bool inverse=false, bool unpremult=false, \\
-  \bigspc\spc string_view key="", string_view value="", \\
+  \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``look'' transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.  The {\cf key} and {\cf value} may optionally be used
+are supported.  The {\cf context_key} and {\cf context_value} may optionally be used
 to establish a context (for example, a shot-specific transform).
 
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
