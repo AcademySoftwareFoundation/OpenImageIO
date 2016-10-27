@@ -576,7 +576,9 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   \qkw{dwaa}, or \qkw{dwab}.  If the
   writer receives a request for a compression type it does not
   recognize or is not supported by the version of OpenEXR on the system,
-  it will use \qkw{zip} by default. \\
+  it will use \qkw{zip} by default. For \qkw{dwaa} and \qkw{dwab}, the
+  dwaCompressionLevel may be optionally appended to the compression name
+  after a colon, like this: \qkw{dwaa:200}. \\
 \qkw{textureformat} & string & set to \qkw{Plain Texture} for
   MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
     Environment} for OpenEXR environment maps.  Non-environment
@@ -602,6 +604,18 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
 \end{tabular}
+
+\subsubsection*{A note on channel names}
+
+The underlying OpenEXR library (libIlmImf) always saves channels
+into lexicographic order, so the channel order on disk (and thus when
+read!) will NOT match the order when the image was created.
+
+But in order to adhere to OIIO's convention that RGBAZ will always be
+the first channels (if they exist), OIIO's OpenEXR reader will automatically
+reorder just those channels to appear at the front and in that order. All
+other channel names will remain in their relative order as presented to
+OIIO by libIlmImf.
 
 \subsubsection*{Limitations}
 
@@ -686,10 +700,10 @@ It's not a smart choice unless you are sending your images back to the
 \noindent\begin{tabular}{p{1.3in}|p{0.5in}|p{3.50in}}
 \ImageSpec Attribute & Type & PNG header data or explanation \\
 \hline
-\qkw{oiio:BitsPerSample} & int & the true bits per sample of the file
+\qkws{oiio:BitsPerSample} & int & the true bits per sample of the file
   (1 for true PBM files, even though OIIO will report the {\cf format}
   as UINT8). \\
-\qkw{pnm:binary} & int & nonzero if the file itself used the PNM
+\qkws{pnm:binary} & int & nonzero if the file itself used the PNM
   binary format, 0 if it used ASCII.  The PNM writer honors this
   attribute in the \ImageSpec to determine whether to write an ASCII
   or binary file.
@@ -741,6 +755,66 @@ write Ptex files at all.
 
 \vspace{.25in}
 
+\section{RAW digital camera files}
+\label{sec:bundledplugins:raw}
+\index{RAW digital camera files}
+
+A variety of digital camera ``raw'' formats are supported via this
+plugin that is based on the LibRaw library ({\cf http://www.libraw.org/}).
+
+
+% FIXME - fill in more docs here
+
+\begin{comment}
+%\subsubsection*{Attributes}
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
+\ImageSpec Attribute & Type & RAW header data or explanation \\
+\hline
+\qkw{ImageDescription} & string & comment \\
+\qkw{oiio:BitsPerSample} & int & the true bits per sample in the RAW file.
+\end{tabular}
+\end{comment}
+
+\subsubsection*{Configuration settings for RAW input}
+
+When opening an \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+options are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkws{raw:auto_bright} & int & If nonzero, will use libraw's exposure
+                               correction. (Default: 0) \\
+\qkws{raw:use_camera_wb} & int & If 1, use libraw's camera white
+                               balance adjustment. (Default: 1) \\
+\qkws{raw:use_camera_matrix} & int & If 1, use libraw's camera matrix
+                               balance adjustment. (Default: 0) \\
+\qkws{raw:adjust_maximum_thr} & float & If nonzero, auto-adjusting maximum
+                                    value. (Default:0.0) \\
+\qkws{raw:ColorSpace} & string & Which color primaries to use: \qkw{raw},
+                                \qkw{sRGB}, \qkw{Adobe}, \qkw{Wide},
+                                \qkw{ProPhoto}, \qkw{XYZ}.
+                                (Default: \qkw{sRGB}) \\
+\qkws{raw:Exposure} & float & Amount of exposure before de-mosaicing, from
+                                0.25 (2 stop darken) to 8 (3 stop brighten).
+                                (Default: 0, meaning no correction.) \\
+\qkws{raw:Demosaic} & string & Force a demosaicing algorithm: \qkw{linear},
+                                \qkw{VNG}, \qkw{PPG}, \qkw{AHD} (default),
+                                \qkw{DCB}, \qkw{Modified AHD}, \qkw{AFD},
+                                \qkw{VCD}, \qkw{Mixed}, \qkw{LMMSE},
+                                \qkw{AMaZE}. \\
+\end{tabular}
+
+
+\vspace{.25in}
+\newpage
+
+
 \section{RLA}
 \label{sec:bundledplugins:rla}
 \index{RLA}
@@ -752,42 +826,42 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
+\noindent\begin{tabular}{p{1.65in}|p{0.85in}|p{2.8in}}
 \ImageSpec Attribute & Type & RLA header data or explanation \\
 \hline
-{\cf width}, {\cf height}, {\cf x}, {\cf y} & & RLA ``active/viewable'' window. \\
+{\cf width}, {\cf height}, {\cf x}, {\cf y} & {\kw int} & RLA ``active/viewable'' window. \\
 & & \\
 {\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
-  {\cf\small full_y} & & RLA ``full'' window.  \\
+  {\cf\small full_y} & {\kw int} & RLA ``full'' window.  \\
 & & \\
-\qkw{rla:FrameNumber} & int & frame sequence number. \\
-\qkw{rla:Revision} & int & file format revision number, currently
+\qkws{rla:FrameNumber} & int & frame sequence number. \\
+\qkws{rla:Revision} & int & file format revision number, currently
   \qkw{0xFFFE}. \\
-\qkw{rla:JobNumber} & int & job number ID of the file. \\
-\qkw{rla:FieldRendered} & int & whether the image is a field-rendered
+\qkws{rla:JobNumber} & int & job number ID of the file. \\
+\qkws{rla:FieldRendered} & int & whether the image is a field-rendered
   (interlaced) one (\qkw{0} for false, non-zero for true). \\
-\qkw{rla:FileName} & string & name under which the file was orignally saved. \\
+\qkws{rla:FileName} & string & name under which the file was orignally saved. \\
 \qkw{ImageDescription} & string & RLA ``Description'' of the image. \\
 \qkw{Software} & string & name of software used to save the image. \\
 \qkw{HostComputer} & string & name of machine used to save the image. \\
 \qkw{Artist} & string & RLA ``UserName'': logon name of user who saved the image. \\
-\qkw{rla:Aspect} & string & aspect format description string. \\
-\qkw{rla:ColorChannel} & string & textual description of color channel data
+\qkws{rla:Aspect} & string & aspect format description string. \\
+\qkws{rla:ColorChannel} & string & textual description of color channel data
   format (usually \qkw{rgb}). \\
-\qkw{rla:Time} & string & description (format not standardized) of amount of
+\qkws{rla:Time} & string & description (format not standardized) of amount of
   time spent on creating the image. \\
-\qkw{rla:Filter} & string & name of post-processing filter applied to the
+\qkws{rla:Filter} & string & name of post-processing filter applied to the
   image. \\
-\qkw{rla:AuxData} & string & textual description of auxiliary channel data
+\qkws{rla:AuxData} & string & textual description of auxiliary channel data
   format. \\
-\qkw{rla:AspectRatio} & float & image aspect ratio. \\
-\qkw{rla:RedChroma} & vec2 or vec3 of floats & red point XY (vec2) or XYZ
+\qkws{rla:AspectRatio} & float & image aspect ratio. \\
+\qkws{rla:RedChroma} & vec2 or vec3 of floats & red point XY (vec2) or XYZ
   (vec3) coordinates. \\
-\qkw{rla:GreenChroma} & vec2 or vec3 of floats & green point XY (vec2) or XYZ
+\qkws{rla:GreenChroma} & vec2 or vec3 of floats & green point XY (vec2) or XYZ
   (vec3) coordinates. \\
-\qkw{rla:BlueChroma} & vec2 or vec3 of floats & blue point XY (vec2) or XYZ
+\qkws{rla:BlueChroma} & vec2 or vec3 of floats & blue point XY (vec2) or XYZ
   (vec3) coordinates. \\
-\qkw{rla:WhitePoint} & vec2 or vec3 of floats & white point XY (vec2) or XYZ
+\qkws{rla:WhitePoint} & vec2 or vec3 of floats & white point XY (vec2) or XYZ
   (vec3) coordinates. \\
 \end{tabular}
 
@@ -851,31 +925,6 @@ files and is unable to write them.
 \qkw{oiio:BitsPerSample} & int & the true bits per sample in the PIC file.
 \end{tabular}
 
-
-
-\vspace{.25in}
-
-\section{RAW digital camera files}
-\label{sec:bundledplugins:raw}
-\index{RAW digital camera files}
-
-A variety of digital camera ``raw'' formats are supported via this
-plugin that is based on the LibRaw library ({\cf http://www.libraw.org/}).
-
-
-% FIXME - fill in more docs here
-
-\begin{comment}
-%\subsubsection*{Attributes}
-\vspace{.125in}
-
-\noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
-\ImageSpec Attribute & Type & PIC header data or explanation \\
-\hline
-\qkw{ImageDescription} & string & comment \\
-\qkw{oiio:BitsPerSample} & int & the true bits per sample in the PIC file.
-\end{tabular}
-\end{comment}
 
 
 \vspace{.25in}
@@ -1024,7 +1073,6 @@ Output attribute & Type & Meaning \\
         what the setting.
 \end{tabular}
 
-\newpage
 \subsubsection*{TIFF compression modes}
 
 \noindent The full list of possible TIFF compression mode values are as

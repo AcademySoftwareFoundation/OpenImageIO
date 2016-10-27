@@ -24,7 +24,9 @@ include (FindPackageMessage)
             message(STATUS "OCIO LIBRARY_PATH explicitly specified: ${OCIO_LIBRARY_PATH}")
         endif()
     endif ()
-    FIND_PATH( OCIO_INCLUDES OpenColorIO/OpenColorIO.h
+    FIND_PATH(OCIO_INCLUDES
+        OpenColorIO/OpenColorIO.h
+        PATHS
         ${OCIO_INCLUDE_PATH}
         ${OCIO_PATH}/include/
         /usr/include

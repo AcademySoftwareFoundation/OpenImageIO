@@ -36,7 +36,6 @@
 #include <iostream>
 #include <iterator>
 
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 #include <boost/scoped_array.hpp>
 
@@ -377,8 +376,8 @@ print_metadata (const ImageSpec &spec, const std::string &filename)
             printed = true;
         }
     }
-    
-    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+
+    for (auto&& p : spec.extra_attribs) {
         if (! metamatch.empty() &&
             ! boost::regex_search (p.name().c_str(), field_re))
             continue;
@@ -666,12 +665,12 @@ main (int argc, const char *argv[])
 
     // Find the longest filename
     size_t longestname = 0;
-    BOOST_FOREACH (const std::string &s, filenames)
+    for (auto&& s : filenames)
         longestname = std::max (longestname, s.length());
     longestname = std::min (longestname, (size_t)40);
 
     long long totalsize = 0;
-    BOOST_FOREACH (const std::string &s, filenames) {
+    for (auto&& s : filenames) {
         ImageInput *in = ImageInput::open (s.c_str());
         if (! in) {
             std::string err = geterror();

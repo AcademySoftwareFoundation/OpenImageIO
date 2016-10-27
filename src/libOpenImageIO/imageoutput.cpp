@@ -34,6 +34,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/typedesc.h"
@@ -41,12 +42,9 @@
 #include "OpenImageIO/plugin.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
-
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/deepdata.h"
 #include "imageio_pvt.h"
-
-#include <boost/scoped_array.hpp>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -128,7 +126,7 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 
     bool ok = true;
     stride_t pixelsize = format.size() * m_spec.nchannels;
-    boost::scoped_array<char> buf;
+    std::unique_ptr<char[]> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
         for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
@@ -299,6 +297,8 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // native_data is true if the user is passing data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN ||
                         (format == m_spec.format && !perchanfile));
+    stride_t input_pixel_bytes = native_data ? native_pixel_bytes
+                                             : stride_t(format.size()*m_spec.nchannels);
     // If user is passing native data and it's all one type, go ahead and
     // set format correctly.
     if (format == TypeDesc::UNKNOWN && !perchanfile)
@@ -338,7 +338,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
 
     imagesize_t rectangle_pixels = width * height * depth;
     imagesize_t rectangle_values = rectangle_pixels * m_spec.nchannels;
-    imagesize_t rectangle_bytes = rectangle_pixels * native_pixel_bytes;
+    imagesize_t native_rectangle_bytes = rectangle_pixels * native_pixel_bytes;
 
     // Cases to handle:
     // 1. File has per-channel data, user passes native data -- this has
@@ -356,7 +356,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
         }
         ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
-        scratch.resize (rectangle_bytes);
+        scratch.resize (native_rectangle_bytes);
         size_t offset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -375,11 +375,13 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // The remaining code is where all channels in the file have the
     // same data type, which may or may not be what the user passed in
     // (cases #3 and #4 above).
-    imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * native_pixel_bytes;
+    imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * input_pixel_bytes;
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
-    scratch.resize (contiguoussize + floatsize + rectangle_bytes);
+    bool do_dither = (dither && format.is_floating_point() &&
+                      m_spec.format.basetype == TypeDesc::UINT8);
+    scratch.resize (contiguoussize + floatsize + native_rectangle_bytes);
 
     // Force contiguity if not already present
     if (! contiguous) {
@@ -392,27 +394,24 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     // will always preserve enough precision.
     const float *buf;
     if (format == TypeDesc::FLOAT) {
-        // Already in float format -- leave it as-is.
-        buf = (float *)data;
+        if (! do_dither) {
+            // Already in float format and no dither -- leave it as-is.
+            buf = (float *)data;
+        } else {
+            // Need to make a copy, even though it's already float, so the
+            // dither doesn't overwrite the caller's data.
+            buf = (float *)&scratch[contiguoussize];
+            memcpy ((float *)buf, data, floatsize);
+        }
     } else {
         // Convert from 'format' to float.
         buf = convert_to_float (data, (float *)&scratch[contiguoussize],
                                 (int)rectangle_values, format);
     }
 
-    if (dither && format.is_floating_point() &&
-            m_spec.format.basetype == TypeDesc::UINT8) {
-        float *ditherarea = (float *)&scratch[contiguoussize];
+    if (do_dither) {
         stride_t pixelsize = m_spec.nchannels * sizeof(float);
-        if (buf != ditherarea) {
-            // Need to make a copy for dither so we don't destroy user's data.
-            OIIO::copy_image (m_spec.nchannels, width, height, depth,
-                              buf, pixelsize, pixelsize, pixelsize*width,
-                              pixelsize*width*height, ditherarea,
-                              pixelsize, pixelsize*width, pixelsize*width*height);
-            buf = ditherarea;
-        }
-        OIIO::add_dither (m_spec.nchannels, width, height, depth, ditherarea,
+        OIIO::add_dither (m_spec.nchannels, width, height, depth, (float *)buf,
                           pixelsize, pixelsize*width, pixelsize*width*height,
                           1.0f/255.0f, m_spec.alpha_channel, m_spec.z_channel,
                           dither, 0, xorigin, yorigin, zorigin);
@@ -531,7 +530,7 @@ ImageOutput::copy_image (ImageInput *in)
     // a time, to minimize mem footprint.
     bool native = supports("channelformats") && inspec.channelformats.size();
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
-    boost::scoped_array<char> pixels (new char [inspec.image_bytes(native)]);
+    std::unique_ptr<char[]> pixels (new char [inspec.image_bytes(native)]);
     bool ok = in->read_image (format, &pixels[0]);
     if (ok)
         ok = write_image (format, &pixels[0]);
@@ -564,7 +563,7 @@ ImageOutput::copy_to_image_buffer (int xbegin, int xend, int ybegin, int yend,
     imagesize_t npixels = imagesize_t(width) * imagesize_t(height) * imagesize_t(depth);
 
     // Add dither if requested -- requires making a temporary staging area
-    boost::scoped_array<float> ditherarea;
+    std::unique_ptr<float[]> ditherarea;
     unsigned int dither = spec.get_int_attribute ("oiio:dither", 0);
     if (dither && format.is_floating_point() &&
             buf_format.basetype == TypeDesc::UINT8) {

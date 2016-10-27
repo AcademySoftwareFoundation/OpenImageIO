@@ -355,6 +355,13 @@ public:
     static std::string metadata_val (const ImageIOParameter &p,
                               bool human=false);
 
+    enum SerialFormat  { SerialText, SerialXML };
+    enum SerialVerbose { SerialBrief, SerialDetailed, SerialDetailedHuman };
+
+    /// Convert ImageSpec class into a serialized string.
+    std::string serialize (SerialFormat format,
+                           SerialVerbose verbose = SerialDetailed) const;
+
     /// Convert ImageSpec class into XML string.
     ///
     std::string to_xml () const;

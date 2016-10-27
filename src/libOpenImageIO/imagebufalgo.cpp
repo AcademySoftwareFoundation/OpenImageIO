@@ -669,6 +669,102 @@ ImageBufAlgo::median_filter (ImageBuf &dst, const ImageBuf &src,
 
 
 
+enum MorphOp { MorphDilate, MorphErode };
+
+template<class Rtype, class Atype>
+static bool
+morph_impl (ImageBuf &R, const ImageBuf &A, int width, int height,
+            MorphOp op, ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            OIIO::bind(morph_impl<Rtype,Atype>,
+                        OIIO::ref(R), OIIO::cref(A),
+                        width, height, op, _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    if (width < 1)
+        width = 1;
+    if (height < 1)
+        height = width;
+    int w_2 = std::max (1, width/2);
+    int h_2 = std::max (1, height/2);
+    int nchannels = R.nchannels();
+    float *vals = OIIO_ALLOCA (float, nchannels);
+
+    ImageBuf::ConstIterator<Atype> a (A, roi);
+    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+        a.rerange (r.x()-w_2, r.x()-w_2+width,
+                   r.y()-h_2, r.y()-h_2+height,
+                   r.z(), r.z()+1, ImageBuf::WrapClamp);
+        if (op == MorphDilate) {
+            for (int c = 0; c < nchannels; ++c)
+                vals[c] = -std::numeric_limits<float>::max();
+            for ( ;  ! a.done(); ++a) {
+                if (a.exists()) {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        vals[c] = std::max(vals[c], a[c]);
+                }
+            }
+        } else if (op == MorphErode) {
+            for (int c = 0; c < nchannels; ++c)
+                vals[c] = std::numeric_limits<float>::max();
+            for ( ;  ! a.done(); ++a) {
+                if (a.exists()) {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        vals[c] = std::min(vals[c], a[c]);
+                }
+            }
+        } else {
+            ASSERT (0 && "Unknown morphological operator");
+        }
+        for (int c = 0;  c < nchannels;  ++c)
+            r[c] = vals[c];
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::dilate (ImageBuf &dst, const ImageBuf &src,
+                      int width, int height, ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "dilate",
+                                 morph_impl, dst.spec().format,
+                                 src.spec().format, dst, src,
+                                 width, height, MorphDilate, roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::erode (ImageBuf &dst, const ImageBuf &src,
+                      int width, int height, ROI roi, int nthreads)
+{
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "erode",
+                                 morph_impl, dst.spec().format,
+                                 src.spec().format, dst, src,
+                                 width, height, MorphErode, roi, nthreads);
+    return ok;
+}
+
+
+
 // Helper function: fft of the horizontal rows
 static bool
 hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,

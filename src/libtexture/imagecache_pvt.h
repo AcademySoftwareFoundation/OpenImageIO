@@ -37,12 +37,8 @@
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include <boost/version.hpp>
-#include <boost/scoped_ptr.hpp>
-#include <boost/scoped_array.hpp>
 #include <boost/thread/tss.hpp>
-#if BOOST_VERSION >= 104900
-# include <boost/container/flat_map.hpp>
-#endif
+#include <boost/container/flat_map.hpp>
 
 #include <OpenEXR/half.h>
 
@@ -100,6 +96,7 @@ struct ImageCacheStatistics {
     long long find_tile_microcache_misses;
     int find_tile_cache_misses;
     long long files_totalsize;
+    long long files_totalsize_ondisk;
     long long bytes_read;
     // These stats are hard to deal with on a per-thread basis, so for
     // now, they are still atomics shared by the whole IC.
@@ -357,8 +354,9 @@ private:
     ustring m_fingerprint;          ///< Optional cryptographic fingerprint
     ImageCacheFile *m_duplicate;    ///< Is this a duplicate?
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
+    imagesize_t m_total_imagesize_ondisk;  ///< Total size, compressed on disk
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
-    boost::scoped_ptr<ImageSpec> m_configspec; // Optional configuration hints
+    std::unique_ptr<ImageSpec> m_configspec; // Optional configuration hints
     UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
                                     // protected by mutex elsewhere!
 
@@ -640,7 +638,7 @@ public:
 
 private:
     TileID m_id;                  ///< ID of this tile
-    boost::scoped_array<char> m_pixels;  ///< The pixel data
+    std::unique_ptr<char[]> m_pixels;  ///< The pixel data
     size_t m_pixels_size;         ///< How much m_pixels has allocated
     int m_channelsize;            ///< How big is each channel (bytes)
     int m_pixelsize;              ///< How big is each pixel (bytes)
@@ -783,6 +781,9 @@ public:
     int max_errors_per_file () const { return m_max_errors_per_file; }
 
     virtual std::string resolve_filename (const std::string &filename) const;
+
+    // Set m_max_open_files, with logic to try to clamp reasonably.
+    void set_max_open_files (int m);
 
     /// Get information about the given image.
     ///

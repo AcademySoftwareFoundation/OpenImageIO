@@ -57,6 +57,17 @@ static const char* const planarValues[] = {"contig\tcontiguous",
                                            "separate",
                                            NULL};
 
+// Knob values for texture mode configuration
+static const char* const txModeValues[] = {"Ordinary 2D texture",
+                                           "Latitude-longitude environment map",
+                                           "Latitude-longitude environment map (light probe)",
+                                           "Shadow texture",
+                                           NULL};
+static const ImageBufAlgo::MakeTextureMode oiiotxMode[] = {ImageBufAlgo::MakeTxTexture,
+                                                           ImageBufAlgo::MakeTxEnvLatl,
+                                                           ImageBufAlgo::MakeTxEnvLatlFromLightProbe,
+                                                           ImageBufAlgo::MakeTxShadow};
+
 
 bool gTxFiltersInitialized = false;
 static std::vector<const char*> gFilterNames;
@@ -66,6 +77,7 @@ class txWriter : public Writer {
     int preset_;
     int tileW_, tileH_;
     int planarMode_;
+    int txMode_;
     int bitDepth_;
     int filter_;
     bool fixNan_;
@@ -116,6 +128,7 @@ public:
             preset_(0),
             tileW_(64), tileH_(64),
             planarMode_(0),
+            txMode_(0),    // ordinary 2d texture
             bitDepth_(3),  // float
             filter_(0),
             fixNan_(false),
@@ -167,6 +180,10 @@ public:
             k->enable();
         Tooltip(cb, "Planar mode of the image channels.");
         SetFlags(cb, Knob::STARTLINE);
+
+        Enumeration_knob(cb, &txMode_, &txModeValues[0], "tx_mode",
+                         "mode");
+        Tooltip(cb, "What type of texture file we are creating.");
 
         Enumeration_knob(cb, &bitDepth_, &bitDepthValues[0], "tx_datatype",
                          "datatype");
@@ -292,7 +309,7 @@ public:
             return;
 
         iop->progressMessage("Writing %s", filename());
-        if (!ImageBufAlgo::make_texture(ImageBufAlgo::MakeTxTexture, srcBuffer,
+        if (!ImageBufAlgo::make_texture(oiiotxMode[txMode_], srcBuffer,
                                         filename(), destSpec, &std::cout))
             iop->critical("ImageBufAlgo::make_texture failed to write file %s",
                           filename());

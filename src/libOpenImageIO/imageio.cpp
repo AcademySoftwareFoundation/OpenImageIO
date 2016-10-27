@@ -34,7 +34,6 @@
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathFun.h>
 
-#include <boost/scoped_array.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/tss.hpp>
 
@@ -501,7 +500,7 @@ convert_types (TypeDesc src_type, const void *src,
 
     // Conversion is to a non-float type
 
-    boost::scoped_array<float> tmp;   // In case we need a lot of temp space
+    std::unique_ptr<float[]> tmp;   // In case we need a lot of temp space
     float *buf = (float *)src;
     if (src_type != TypeDesc::TypeFloat) {
         // If src is also not float, convert through an intermediate buffer

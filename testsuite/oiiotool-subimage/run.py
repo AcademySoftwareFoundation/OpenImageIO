@@ -15,8 +15,7 @@ command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 --text A -att
                      "--siappendall -d half -o subimages-4.exr")
 command += oiiotool ("subimages-4.exr --subimage 3 -o subimageD3.exr")
 command += oiiotool ("subimages-4.exr --subimage layerB -o subimageB1.exr")
-command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
-                     "--pop -o subimage1.exr")
+command += oiiotool ("subimages-2.exr --sisplit -o:all=1 subimage%d.exr")
 
 
 # Outputs to check against references

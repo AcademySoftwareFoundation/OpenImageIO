@@ -2,8 +2,10 @@
 # marked m_format_context->streams[i]->codec as deprecated.
 # FIXME -- at some point, come back and figure out how to fix for real
 # before the field disappears entirely.
-set_source_files_properties (ffmpeginput.cpp
+if (NOT MSVC)
+    set_source_files_properties (ffmpeginput.cpp
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
 
 if (USE_FFMPEG AND FFMPEG_FOUND)
     add_oiio_plugin (ffmpeginput.cpp ffmpegoutput.cpp

@@ -208,6 +208,12 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
     }
     m_spec.attribute ("Orientation", orientation);
 
+#if 1
+    // This is not very smart, but it seems that as a practical matter,
+    // all Cineon files are log. So ignore the gamma field and just set
+    // the color space to KodakLog.
+    m_spec.attribute ("oiio:ColorSpace", "KodakLog");
+#else
     // image linearity
     // FIXME: making this more robust would require the per-channel transfer
     // function functionality which isn't yet in OIIO
@@ -218,15 +224,16 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             m_spec.attribute ("oiio:ColorSpace", "Rec709");
         default:
             // either grayscale or printing density
-            if (!isinf (m_cin.header.Gamma ()))
+            if (!isinf (m_cin.header.Gamma ()) && m_cin.header.Gamma () != 0.0f)
                 // actual gamma value is read later on
                 m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
             break;
     }
 
     // gamma exponent
-    if (!isinf (m_cin.header.Gamma ()))
+    if (!isinf (m_cin.header.Gamma ()) && m_cin.header.Gamma () != 0.0f)
         m_spec.attribute ("oiio:Gamma", (float) m_cin.header.Gamma ());
+#endif
 
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather
@@ -268,10 +275,11 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
                                             CINEON_SET_ATTRIB(x, )
 #define CINEON_SET_ATTRIB_COORDS(x)     m_cin.header.x (floats);            \
                                         if (!isinf (floats[0])              \
-                                            && !isinf (floats[1]))          \
+                                            && !isinf (floats[1])           \
+                                            && !(floats[0] == 0. && floats[1] == 0.)) \
                                             m_spec.attribute ("cineon:" #x, \
-                                                TypeDesc (TypeDesc::FLOAT,  \
-                                                2), &floats[0])
+                                                TypeDesc (TypeDesc::FLOAT, 2), \
+                                                &floats[0])
 #define CINEON_SET_ATTRIB_STR(X, x)     if (m_cin.header.x[0]               \
                                         && m_cin.header.x[0] != char(-1))   \
                                             m_spec.attribute ("cineon:" #X, \

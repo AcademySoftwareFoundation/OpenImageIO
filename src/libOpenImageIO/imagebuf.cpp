@@ -34,11 +34,10 @@
 
 
 #include <iostream>
+#include <memory>
 
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
-#include <boost/scoped_ptr.hpp>
-#include <boost/scoped_array.hpp>
 
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/deepdata.h"
@@ -278,7 +277,7 @@ private:
     int m_threads;               ///< thread policy for this image
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    boost::scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
+    std::unique_ptr<char[]> m_pixels; ///< Pixel data, if local and we own it
     char *m_localpixels;         ///< Pointer to local pixels
     mutable spin_mutex m_valid_mutex;
     mutable bool m_spec_valid;   ///< Is the spec valid
@@ -297,7 +296,7 @@ private:
     int m_write_tile_width;
     int m_write_tile_height;
     int m_write_tile_depth;
-    boost::scoped_ptr<ImageSpec> m_configspec; // Configuration spec
+    std::unique_ptr<ImageSpec> m_configspec; // Configuration spec
     mutable std::string m_err;   ///< Last error message
 
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
@@ -789,7 +788,7 @@ ImageBufImpl::read (int subimage, int miplevel, bool force, TypeDesc convert,
     m_current_miplevel = miplevel;
 
     if (m_spec.deep) {
-        boost::scoped_ptr<ImageInput> input (
+        std::unique_ptr<ImageInput> input (
                     ImageInput::open (m_name.string(), m_configspec.get()));
         if (! input) {
             error ("%s", OIIO::geterror());
@@ -964,7 +963,7 @@ ImageBuf::write (ImageOutput *out,
         imagesize_t imagesize = bufspec.image_bytes();
         if (imagesize <= budget) {
             // whole image can fit within our budget
-            boost::scoped_array<char> tmp (new char [imagesize]);
+            std::unique_ptr<char[]> tmp (new char [imagesize]);
             ok &= get_pixels (roi(), bufformat, &tmp[0]);
             ok &= out->write_image (bufformat, &tmp[0], as, as, as,
                                     progress_callback, progress_callback_data);
@@ -972,7 +971,7 @@ ImageBuf::write (ImageOutput *out,
             // Big tiled image: break up into tile strips
             size_t pixelsize = bufspec.pixel_bytes();
             size_t chunksize = pixelsize * outspec.width * outspec.tile_height * outspec.tile_depth;
-            boost::scoped_array<char> tmp (new char [chunksize]);
+            std::unique_ptr<char[]> tmp (new char [chunksize]);
             for (int z = 0;  z < outspec.depth;  z += outspec.tile_depth) {
                 int zend = std::min (z+outspec.z+outspec.tile_depth,
                                      outspec.z+outspec.depth);
@@ -996,7 +995,7 @@ ImageBuf::write (ImageOutput *out,
             // Big scanline image: break up into scanline strips
             imagesize_t slsize = bufspec.scanline_bytes();
             int chunk = clamp (round_to_multiple(budget/slsize, 64), 1, 1024);
-            boost::scoped_array<char> tmp (new char [chunk*slsize]);
+            std::unique_ptr<char[]> tmp (new char [chunk*slsize]);
             for (int z = 0;  z < outspec.depth;  ++z) {
                 for (int y = 0;  y < outspec.height && ok;  y += chunk) {
                     int yend = std::min (y+outspec.y+chunk, outspec.y+outspec.height);
@@ -1033,7 +1032,7 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
         return false;
     }
     impl()->validate_pixels ();
-    boost::scoped_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
+    std::unique_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
     if (! out) {
         error ("%s", geterror());
         return false;
@@ -1652,7 +1651,7 @@ ImageBuf::setpixel (int x, int y, int z, const float *pixel, int maxchannels)
     case TypeDesc::UINT64: setpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
     case TypeDesc::INT64 : setpixel_<long long> (*this, x, y, z, pixel, n); break;
     default:
-        ASSERT (0);
+        ASSERTMSG (0, "Unknown/unsupported data type %d", spec().format.basetype);
     }
 }
 

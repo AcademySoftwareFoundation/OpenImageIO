@@ -1,4 +1,57 @@
-Release 1.7 (in progress) -- compared to 1.6.x
+Release 1.8 (in progress) -- compared to 1.7.x
+----------------------------------------------
+New minimum dependencies:
+ * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
+ * Boost >= 1.50
+
+Major new features and improvements:
+* New oiiotool commands:
+   * `--info:format=xml` format option requests what format the info
+      is printed. Current choices: `"text"`, `"xml"`. #1504 (1.8.0)
+   * `--info:verbose=1` verbose option make file info print full metadata,
+     but without needing to make other oiiotool operations verbose as would
+     happen with `--info -v`. #1504 (1.8.0)
+* New ImageBufAlgo functions:
+
+Public API changes:
+* `ImageSpec::serialize()` returns a string with a serialized version of
+  the contents of the ImageSpec. It may be text (human readable, like
+  is printed by `oiiotool -info -v`) or XML. #1504 (1.8.0)
+
+Fixes, minor enhancements, and performance improvements:
+* oiiotool:
+   * `--chappend` resolves redundant channel names by using the subimage
+     name, if available. #1498 (1.8.0/1.7.8)
+   * `--mosaic` now gracefully handles the case of not having enough
+      images to completely fill the MxN matrix, with "left over" slots
+      black. #1501 (1.8.0/1.7.8)
+* ImageBufAlgo:
+   * `channel_append()` resolves redundant channel names by using the
+     subimage name, if available. #1498 (1.8.0/1.7.8)
+* TextureSystem / ImageCache:
+   * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
+     on UDIM file patterns now succeed, returning the value for the first
+     matching file it finds. (N.B.: Relies on all textures within the same
+     UDIM set having the same nchannels.) #1502, #1519 (1.8.0/1.7.8)
+   * maketx: multiple simultaneous maketx process trying to create the same
+     texture will no longer clobber each other's output. #1525 (1.8.0/1.7.8)
+* Bug fix to possible crashes when adding dither to tiled file output
+  (buffer size miscalculation). #1518 (1.8.0/1.7.8)
+
+Build/test system improvements:
+* Support for building against ffmpeg 3.1 (their API has changed).
+  #1515 (1.8.0/1.7.8)
+* Build no longer gets confused about include files from older installations
+  of OIIO elsewhere on the system. #1524 (1.8.0/1.7.8)
+* Improvements in finding OpenJPEG. #1520 (1.8.0/1.7.8)
+
+Developer goodies / internals:
+
+
+
+
+
+Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
 Major new features and improvements:
  * New oiiotool commands:
@@ -10,9 +63,11 @@ Major new features and improvements:
     * `--deep_merge` does a full merge/composite of deep images. #1388 (1.7.2)
     * `-i` inputs a file. Options `autocc=`, `now=`, `info=` control aspects
       of reading that one file. #1389 (1.7.2)
+    * `--dilate` and `--erode` perform the basic morphological operations
+      of dilation and erosion. #1486 (1.7.5)
  * New ImageBufAlgo functions: render_point(), render_line(), render_box()
    #1319 (1.7.1); laplacian() #1332 (1.7.2); copy() #1388 (1.7.2);
-   deep_merge() #1388,1393 (1.7.2)
+   deep_merge() #1388,1393 (1.7.2); dilate() and erode() (1.7.5).
  * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
    automatically be resolved to the correct UTIM tile based on the s,t
    coordinates. #1426 (1.7.3)
@@ -50,8 +105,14 @@ Public API changes:
    #1362 (1.7.2/1.6.11)
  * Deprecate ImageCache/TextureSystem clear() methods, which never did
    anything useful. #1347 (1.7.3)
- * ImageSpec::set_format() clears any per-channel format information. #1446)
+ * ImageSpec::set_format() clears any per-channel format information. #1446
    (1.7.4)
+ * OIIO::getattribute("library_list", ...) can retrieve a list of all the
+   dependent libraries used when OIIO was built. #1458 (1.7.5)
+ * simd::mask4 class has been renamed simd::bool4 (though the old name
+   is still typedef'ed to work for now). #1484 (1.7.5)
+ * Python bindings for ImageBuf.reset() now properly understands the
+   argument names and default values. #1492 (1.7.6)
 
 Fixes, minor enhancements, and performance improvements:
  * oiiotool:
@@ -111,6 +172,21 @@ Fixes, minor enhancements, and performance improvements:
       #1440 (1.7.3)
     * --trim will trim all subimages to the same region, containing the
       union of all nonzero pixels in all subimages. #1440 (1.7.3)
+    * --help now prints all of the dependent libraries for individual
+      formats. #1458 (1.7.5)
+    * Bug fix: make sure to propagate per-channel formats from input
+      to output. #1491 (1.7.6)
+    * -o:all=n will output all images currently on the stack, and the
+      filename argument will be assumed to be a pattern containing a %d,
+      which will be substituted with the index of the image (beginning with
+      n). For example, to take a multi-image TIFF and extract all the
+      subimages separately,
+          oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
+      will output the subimges as sub0001.tif, sub0002.tif, and so on.
+      #1494 (1.7.6)
+    * --mosaic MxN would fail mysteriously if the number of images on the
+      stack was less then M*N. This has been fixed to handle too-few images
+      gracefully and just leave blank spaces as needed. #1501 (1.7.7)
  * ImageBuf:
     * ImageBuf::iterator performance is improved -- roughly cutting in half
       the overhead of iterating over pixels. #1308 (1.7.1/1.6.10)
@@ -136,6 +212,8 @@ Fixes, minor enhancements, and performance improvements:
       common cases. #1357 (1.7.2)
     * IBA::resize sped up by approximately 2x. #1372 (1.7.2)
     * IBA::fixNonFinite() now works with deep images. #1397 (1.7.3)
+    * dilate() and erode() perform basic morphological operations.
+      #1486 (1.7.5)
  * ImageCache / TextureSystem:
     * Less unnecessary pausing after read errors when falure_retries == 0.
       #1336 (1.7.2/1.6.11)
@@ -144,8 +222,8 @@ Fixes, minor enhancements, and performance improvements:
     * TextureSystem option "flip_t", if nonzero, will flip the vertical
       direction of all texture lookups. Use this for renderers that adhere
       to the convention that the t=0 texture coordinate is the visible
-      "bottom" of the texture. #1428 (1.7.3)
-    * UDIM support for textures: filenames like "tex_<UDIM>.exr" will
+      "bottom" of the texture. #1428 (1.7.3) #1462 (1.7.5)
+    * UDIM support for textures: filenames like `"tex_<UDIM>.exr"` will
       automatically be resolved to the correct UTIM tile based on the
       s,t coordinates. #1426 (1.7.3)
     * Avoid repeated broken texture error messages. #1423 (1.7.3)
@@ -155,6 +233,12 @@ Fixes, minor enhancements, and performance improvements:
       broken. Also print a count & list of broken/invalid files. #1433
       (1.7.3/1.6.15)
     * Add ability to retrieve various per-file statistics. #1438 (1.7.3/1.6.15)
+    * IC will clamp the max_open_files to the maximum allowed by the
+      system, so you can no longer crash a program by incorrectly
+      setting this limit too high. #1457 (1.7.5)
+    * IC/TS statistics now report separately the total size of images
+      referenced, in terms of in-cache data size, as well as on-disk
+      size (the latter may be compressed). #1481 (1.7.5)
  * maketx:
     * maketx -u now remakes the file if command line arguments or OIIO
       version changes, even if the files' dates appear to match.
@@ -166,6 +250,8 @@ Fixes, minor enhancements, and performance improvements:
     * Print timecodes in human-readable form. #1415 (1.7.3)
  * ImageOutput: fix cases with native data but non-contiguous strides.
    #1416 (1.7.3/1.6.15)
+ * Cineon:
+    * Improved deduction/setting of color space info. #1466 (1.7.5)
  * GIF:
     * GIF reader failed to set spec full_width, full_height. #1348
       (1.7.2/1.6.11)
@@ -196,6 +282,10 @@ Fixes, minor enhancements, and performance improvements:
     * Fixed minor bug with OpenEXR output with correctly setting
       PixelAspectRatio based on the "XResolution" and "YResolution"
       attributes. #1453 (Fixes #1214) (1.7.4/1.6.16)
+    * Fix setting "chromaticity" metadata in EXR files. #1487 (1.7.5)
+    * When writing OpenEXR, accept compression requests with quality numbers
+      appended to the compression algorithm name, such as "dwaa:200" to mean
+      dwaa compression with a dwaCompressionLevel set to 200. #1493 (1.7.6)
  * PNG:
     * Per the PNG spec, name 2-channel images Y,A. #1435 (1.7.3)
     * Enforce that alpha premultiplication on output MUST consider alpha
@@ -203,6 +293,12 @@ Fixes, minor enhancements, and performance improvements:
       (as dictated by the PNG spec). #1435 (1.7.3)
  * PNM:
     * Fixed byte swapping when reading 16 but PNM files. #1352 (1.7.2/1.6.11)
+ * RAW:
+    * Changes to how we instruct libraw to process images when reading:
+      Now, by default, auto-bright adjustment is off, camera white
+      balance is on, and maximum threshoding is set to 0. There are
+      "open with config" overrides for all of these, for anybody who
+      doesn't like the default. #1490 (1.7.6)
  * RLA:
     * Fixes for both reading and writing of RLA images that are cropped
       (i.e., data window is a subset of display window). #1224 (1.7.0/1.6.10)
@@ -222,15 +318,18 @@ Fixes, minor enhancements, and performance improvements:
       #1414 (1.6.14/1.7.3)
  * Video formats:
     * The ffmpeg-based reader had a variety of fixes. #1288 (1.7.0)
+    * Support for reading 10-bit and 12-bit movies. #1430 (1.7.5)
  * Improved accuracy of "lanczos3" filter; speed up blackman-harris filter.
    #1379 (1.7.2)
  * Speed up linear<->sRGB color conversions (as used by any of the IBA color
    conversion functions as well as oiiotool --colorconvert and friends),
    approximately doubling the speed when no OpenColorIO config is found.
    #1383 (1.7.2)
-* ImageInput::create() and ImageOutput::create() will now gracefully
+ * ImageInput::create() and ImageOutput::create() will now gracefully
    handle unexpected exceptions inside an ImageInput or ImageOutput
    constructor -- return an error rather than crashing.  #1456 (1.7.4/1.6.16)
+ * Nuke txWriter adds UI to let you choose which type of texture you are
+   building (ordinary 2D texture, latlong env map, etc). #1488 (1.7.6)
 
 Build/test system improvements:
  * Default build is now C++11! #1344 (1.7.2) You can still (for now) build
@@ -243,7 +342,7 @@ Build/test system improvements:
  * Travis: add DEBUG builds to the matrix to fix any warnings or failures
    that only show up for DEBUG builds. #1309 (1.7.1/1.6.10)
  * Fix build issues on some platforms for SHA1.h, by adding proper include
-   of <climits>. #1298,#1311,#1312 (1.7.1/1.6.10)
+   of `<climits>`. #1298,#1311,#1312 (1.7.1/1.6.10)
  * Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
    #1314 (1.7.1/1.6.10)
  * Fix build breaks for certain 32 bit platforms. #1315,#1322 (1.7.1/1.6.10)
@@ -288,6 +387,9 @@ Build/test system improvements:
  * Various Windows compilation & warning fixes. #1443 (1.7.3/1.6.15)
  * Now builds correctly against OpenJPEG 2.x, it previously only supported
    OpenJPEG 1.x. #1452  (Fixes #957, #1449) (1.7.4/1.6.16)
+ * Fix Filesystem::searchpath_find on Windows with UTF-8 paths.
+   #1469 (1.7.51.6.17)
+ * Improved the way OpenEXR installations are found. #1464 (1.7.5)
 
 Developer goodies / internals:
  * thread.h has had all the atomic operations split into a separate atomic.h.
@@ -303,11 +405,16 @@ Developer goodies / internals:
    int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
    Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
    and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
-   andnot #1377 (1.7.2); exp, log #1384 (1.7.2).
+   andnot #1377 (1.7.2); exp, log #1384 (1.7.2); simd::float3 is like float4,
+   but only loads and stores 3 components, it's a good Vec3f replacement (but
+   padded) #1473 (1.7.5); matrix44 4x4 matrix class #1473 (1.7.5);
+   mask4 renamed to bool4, and addition of float8, int8, bool8 classes
+   for 8-wide AVX/AVX2 SIMD #1484 (1.7.5).
  * fmath.h: convert_types has new special cases that vastly speed up
    float <-> uint16, uint8, and half buffer conversions #1305 (1.7.0);
    ifloor (1.7.2); SIMD versions of fast_log2, fast_log, fast_exp2,
-   fast_exp, fast_pow_pos #1384 (1.7.2)
+   fast_exp, fast_pow_pos #1384 (1.7.2); fix sign of expm1 for small
+   arguments #1482 (1.7.5); added fast_log1p #1483 (1.75).
  * Fix pesky precision discrepancy in internal convert_type<> that used
    slightly different math when converting one value at a time, versus
    converting whole arrays. #1350 (1.7.2)
@@ -324,15 +431,27 @@ Developer goodies / internals:
    utf_to_unicode now takes a string_view rather than a std::string&
    #1450 (1.7.4); add Strutil::base64_encode() #1450 (1.7.4).
  * sysutil.h: Sysutil::getenv() safely gets an env variable as a string_view
-   #1451 (1.7.4/1.6.16).
+   #1451 (1.7.4/1.6.16); terminal_columns() now has a correct implementation
+   on Windows #1460 (1.7.5); max_open_files() retrieves the maximum number
+   of files the process may open simultaneously #1457 (1.7.5).
  * platform.h: better distinguishing beteen Apple and Generic clang,
    separately set OIIO_CLANG_VERSION and OIIO_APPLE_CLANG_VERSION. Also change
    OIIO_GNUC_VERSION to 0 for clang, only nonzero for true gcc. #1380 (1.7.2)
  * ImageCache: remove unused shadow matrix fields, save space. #1424 (1.7.3)
  * Many documentation files (such as README, CHANGES, LICENSE, CREDITS,
    and INSTALL) have been changed from plain text to MarkDown. #1442 (1.7.3)
+ * Sysutil::Term class makes it easy to use color output on the terminal.
+   #1479 (1.7.5)
 
 
+
+Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
+------------------------------------------------
+* Fix build for newer ffmpeg release that deprecated functions.
+* Improved finding of OCIO installations. #1467
+* Fixed Sysutil::terminal_columns() for WIndows. #1640
+* Fix build break in Windows when roundf function not found. #1468
+* Fix Filesystem::searchpath_find on Windows with UTF-8 paths. #1469
 
 Release 1.6.16 (released 1 Aug 2016 -- compared to 1.6.15)
 ------------------------------------------------
@@ -446,7 +565,7 @@ Release 1.6.10 (released 1 Feb 2016 -- compared to 1.6.9)
 * Fixes for both reading and writing of RLA images that are cropped
   (i.e., data window is a subset of display window). #1224
 * Fix build issues on some platforms for SHA1.h, by adding proper include
-  of <climits>. #1298,#1311,#1312
+  of `<climits>`. #1298,#1311,#1312
 * Cleanup of include logic in simd.h that fixed build problems for gcc < 4.4.
   #1314
 * Fix build breaks for certain 32 bit platforms. #1315,#1322
@@ -940,8 +1059,8 @@ Developer goodies / internals:
  * Add Filesystem::rename() utility. #1070  (1.6.2/1.5.13)
  * New SIMD methods: insert<>, xyz0, vreduce_add, dot, dot3, vdot, vdot3,
    AxBxCxDx, blend0not (1.6.2)
- * array_view enhancements that let you initialize an array_view<const float>
-   from a const std::vector<float>&.  #1084 (1.6.2/1.5.14)
+ * array_view enhancements that let you initialize an `array_view<const float>`
+   from a const `std::vector<float>&`.  #1084 (1.6.2/1.5.14)
  * hash.h contains several new hashes in namespaces 'OIIO::xxhash' and
    'OIIO::farmhash'. Also, Strutil::strhash now uses farmhash rather than
    the Jenkins one-at-a-time hash, bringing big speed improvements
@@ -1334,7 +1453,7 @@ Fixes, minor enhancements, and performance improvements:
    * maketx --attrib, --sattrib, and --sansattrib now work like
      oiiotool; in other words, you can use command line arguments to add
      or alter metadata in the process of creating a texture. #901 (1.5.1)
-   * maketx --sharpen <AMT> adds slight sharpening and emphasis of
+   * `maketx --sharpen <AMT>` adds slight sharpening and emphasis of
      higher frequencies when creating MIP-maps. #958 (1.5.5)
    * Fix crash when using maketx --checknan (1.5.5)
    * maketx now embeds metadata hints ("oiio:ConstantColor") for
@@ -1806,8 +1925,8 @@ Build/test system improvements:
   false positive errors from Thread Sanitizer.  The default is the old
   way, with full optimization! (1.4.1)
 * More robust detection of OpenEXR library filenames. (1.4.1)
-* Always reference OpenEXR and Imath headers as <OpenEXR/foo.h> rather 
-  than <foo.h>. (1.4.1)
+* Always reference OpenEXR and Imath headers as `<OpenEXR/foo.h>` rather
+  than `<foo.h>`. (1.4.1)
 * Unit test strutil_test now comprehensively tests Strutil. (1.4.1)
 * Fix broken build when EMBEDPLUGINS=0. (1.4.3/1.3.13)
 * Fix broken build against OpenEXR 1.x. (1.4.3/1.3.13)
@@ -3499,7 +3618,7 @@ For developers:
 * ustring: make string comparison safe for empty strings. (r1330)
 * Include file fixes for gcc 4.4. (r1331)
 * Regularize all #include references to Imath and Openexr to 
-  <OpenEXR/blah>. (r1335)
+  `<OpenEXR/blah>`. (r1335)
 
 
 

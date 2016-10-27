@@ -23,8 +23,10 @@ endif()
 # marked m_format_context->streams[i]->codec as deprecated.
 # FIXME -- at some point, come back and figure out how to fix for real
 # before the field disappears entirely.
-set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
+if (NOT MSVC)
+    set_source_files_properties (../ffmpeg.imageio/ffmpeginput.cpp
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
 
 list (APPEND libOpenImageIO_srcs
                           deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
@@ -140,6 +142,7 @@ if (USE_EXTERNAL_PUGIXML)
 endif ()
 
 target_link_libraries (OpenImageIO ${ILMBASE_LIBRARIES})
+target_link_libraries (OpenImageIO ${OPENEXR_LIBRARIES})
 target_link_libraries (OpenImageIO ${ZLIB_LIBRARIES})
 
 if (VERBOSE)
@@ -162,6 +165,10 @@ if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
                            SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
                        )
 endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+
+if (EXTRA_DSO_LINK_ARGS)
+    set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${EXTRA_DSO_LINK_ARGS})
+endif()
 
 oiio_install_targets (OpenImageIO)
 

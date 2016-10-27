@@ -2,8 +2,8 @@ project (OpenImageIO)
 
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
-set (OIIO_VERSION_MINOR 7)
-set (OIIO_VERSION_PATCH 5)
+set (OIIO_VERSION_MINOR 8)
+set (OIIO_VERSION_PATCH 0)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
@@ -119,8 +119,14 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
             # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
             # libraries to prevent clashes if an app using OIIO is linked
             # against other verions of our dependencies.
-            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
+            if (NOT VISIBILITY_MAP_FILE)
+                set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/libOpenImageIO/libOpenImageIO.map")
+            endif ()
+            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
         endif ()
+    endif ()
+    if (VERBOSE)
+        message (STATUS "VISIBILITY_MAP_COMMAND = ${VISIBILITY_MAP_COMMAND}")
     endif ()
 endif ()
 
@@ -140,6 +146,10 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     if (CLANG_VERSION_STRING VERSION_GREATER 3.5 OR
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
         add_definitions ("-Wno-unused-local-typedefs")
+    endif ()
+    if (CLANG_VERSION_STRING VERSION_EQUAL 3.9 OR CLANG_VERSION_STRING VERSION_GREATER 3.9)
+        # Don't warn about using unknown preprocessor symbols in #if'set
+        add_definitions ("-Wno-expansion-to-defined")
     endif ()
 endif ()
 
@@ -201,11 +211,11 @@ set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML lib
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 set (BUILD_OIIOUTIL_ONLY OFF CACHE BOOL "If ON, will build *only* libOpenImageIO_Util")
-set (USE_CPP11 ON CACHE BOOL "Compile in C++11 mode")
-set (USE_CPP14 OFF CACHE BOOL "Compile in C++14 mode")
+set (USE_CPP 11 CACHE STRING "C++ standard to prefer (11, 14, etc.)")
 set (USE_LIBCPLUSPLUS OFF CACHE BOOL "Compile with clang libc++")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2)")
+set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
+set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c)")
 set (USE_CCACHE ON CACHE BOOL "Use ccache if found")
 set (CODECOV OFF CACHE BOOL "Build code coverage tests")
 
@@ -238,20 +248,16 @@ if (EXTRA_CPP_ARGS)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
-    if (USE_CPP11 OR USE_CPP14)
-        if (USE_CPP14)
-            message (STATUS "Building for C++14")
-            add_definitions ("-std=c++14")
-        elseif (USE_CPP11)
-            message (STATUS "Building for C++11")
-            add_definitions ("-std=c++11")
-        endif ()
-        if (CMAKE_COMPILER_IS_CLANG)
-            # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
-            add_definitions ("-Wno-deprecated-register")
-        endif ()
+    if (USE_CPP VERSION_GREATER 11)
+        message (STATUS "Building for C++14")
+        add_definitions ("-std=c++14")
     else ()
-        message (STATUS "Building for C++03!")
+        message (STATUS "Building for C++11")
+        add_definitions ("-std=c++11")
+    endif ()
+    if (CMAKE_COMPILER_IS_CLANG)
+        # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
+        add_definitions ("-Wno-deprecated-register")
     endif ()
 endif ()
 
@@ -352,6 +358,7 @@ include (externalpackages)
 
 
 include_directories (
+    BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include/OpenImageIO"
   )
@@ -470,12 +477,17 @@ set (format_plugin_libs "")
 set (format_plugin_include_dirs "")
 set (format_plugin_definitions "")
 file (GLOB all_format_plugin_dirs src/*.imageio)
+if ("${OIIO_SITE}" STREQUAL "SPI")
+    # SPI only -- because of a workaround for a very weird linkage issue
+    # specific to our system, we need to be sure libtiff is referenced first.
+    set (all_format_plugin_dirs src/tiff.imageio ${all_format_plugin_dirs})
+    list (REMOVE_DUPLICATES all_format_plugin_dirs)
+endif ()
 if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     foreach (plugin_dir ${all_format_plugin_dirs})
         add_subdirectory (${plugin_dir})
     endforeach ()
 endif ()
-
 
 if (NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/libOpenImageIO)
@@ -552,7 +564,7 @@ oiio_add_tests (
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text
                 maketx oiiotool-maketx
-                dither
+                dither dup-channels
                 dpx ico iff png psd rla sgi
                 python-typedesc python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput

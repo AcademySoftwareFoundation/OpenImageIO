@@ -44,9 +44,7 @@
 #include <iostream>
 #include <iterator>
 
-#include <QtGui/QApplication>
-
-#include <boost/foreach.hpp>
+#include <QApplication>
 
 #include "imageviewer.h"
 #include "OpenImageIO/timer.h"
@@ -134,7 +132,7 @@ main (int argc, char *argv[])
     mainWin->activateWindow ();
 
     // Add the images
-    BOOST_FOREACH (const std::string &s, filenames) {
+    for (const auto &s : filenames) {
         mainWin->add_image (s);
     }
 

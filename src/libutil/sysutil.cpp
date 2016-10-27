@@ -30,6 +30,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include <string>
 #include <iostream>
 #include <ctime>
@@ -62,8 +63,11 @@
 
 #ifdef _WIN32
 # define WIN32_LEAN_AND_MEAN
+# define DEFINE_CONSOLEV2_PROPERTIES
 # include <windows.h>
 # include <Psapi.h>
+# include <cstdio>
+# include <io.h>
 #else
 # include <sys/resource.h>
 #endif
@@ -73,8 +77,9 @@
 # include <sys/ioctl.h>
 #endif
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/sysutil.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/strutil.h>
 
 #include <boost/version.hpp>
 #include <boost/thread.hpp>
@@ -254,7 +259,7 @@ Sysutil::this_program_path ()
     int r = 0;
 #else
     // No idea what platform this is
-    ASSERT (0);
+    OIIO_STATIC_ASSERT_MSG (0, "this_program_path() unimplemented on this platform");
 #endif
 
     if (r > 0)
@@ -303,6 +308,167 @@ Sysutil::terminal_columns ()
 #endif
 
     return columns;
+}
+
+
+
+int
+Sysutil::terminal_rows ()
+{
+    int rows = 24;   // a decent guess, if we have nothing more to go on
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
+    struct winsize w;
+    ioctl (0, TIOCGWINSZ, &w);
+    rows = w.ws_row;
+#elif defined(_WIN32)
+    HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+    if (h != INVALID_HANDLE_VALUE) {
+        CONSOLE_SCREEN_BUFFER_INFO csbi = { { 0 } };
+        GetConsoleScreenBufferInfo (h, &csbi);
+        rows = csbi.dwSize.Y;
+    }
+#endif
+
+    return rows;
+}
+
+
+
+#ifdef _WIN32
+int isatty(int fd) { return _isatty(fd); }
+#endif
+
+
+Term::Term (FILE *file)
+{
+    m_is_console = isatty (fileno((file)));
+}
+
+
+
+#ifdef _WIN32
+// from https://msdn.microsoft.com/fr-fr/library/windows/desktop/mt638032%28v=vs.85%29.aspx
+
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
+bool enableVTMode()
+{
+    // Set output mode to handle virtual terminal sequences
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false;
+    }
+    return true;
+}
+#else
+bool enableVTMode() { return true; }
+#endif
+
+
+Term::Term (const std::ostream &stream)
+{
+    m_is_console = (&stream == &std::cout && isatty(fileno(stdout)))
+                || (&stream == &std::cerr && isatty(fileno(stderr)))
+                || (&stream == &std::clog && isatty(fileno(stderr)));
+    if (is_console())
+        enableVTMode();
+}
+
+
+
+std::string
+Term::ansi (string_view command) const
+{
+    static const char *codes[] = {
+        "default",    "0",
+        "normal",     "0",
+        "reset",      "0",
+        "bold",       "1",
+        "italic",     "3",       // Not widely supported, sometimes inverse
+        "underscore", "4",
+        "underline",  "4",
+        "blink",      "5",
+        "reverse",    "7",
+        "concealed",  "8",
+        "strike",     "9",       // Not widely supported
+        "black",      "30",
+        "red",        "31",
+        "green",      "32",
+        "yellow",     "33",
+        "blue",       "34",
+        "magenta",    "35",
+        "cyan",       "36",
+        "white",      "37",
+        "black_bg",   "40",
+        "red_bg",     "41",
+        "green_bg",   "42",
+        "yellow_bg",  "43",
+        "blue_bg",    "44",
+        "magenta_bg", "45",
+        "cyan_bg",    "46",
+        "white_bg",   "47",
+        NULL
+    };
+    std::string ret;
+    if (is_console()) {
+        std::vector<string_view> cmds;
+        Strutil::split (command, cmds, ",");
+        for (size_t c = 0; c < cmds.size(); ++c) {
+            for (size_t i = 0; codes[i]; i += 2)
+                if (codes[i] == cmds[c]) {
+                    ret += c ? ";" : "\033[";
+                    ret += codes[i+1];
+                }
+        }
+        ret += "m";
+    }
+    return ret;
+}
+
+
+
+std::string
+Term::ansi_fgcolor (int r, int g, int b)
+{
+    std::string ret;
+    if (is_console()) {
+        r = std::max (0, std::min (255, r));
+        g = std::max (0, std::min (255, g));
+        b = std::max (0, std::min (255, b));
+        ret = Strutil::format ("\033[38;2;%d;%d;%dm", r, g, b);
+    }
+    return ret;
+}
+
+
+
+std::string
+Term::ansi_bgcolor (int r, int g, int b)
+{
+    std::string ret;
+    if (is_console()) {
+        r = std::max (0, std::min (255, r));
+        g = std::max (0, std::min (255, g));
+        b = std::max (0, std::min (255, b));
+        ret = Strutil::format ("\033[48;2;%d;%d;%dm", r, g, b);
+    }
+    return ret;
 }
 
 
@@ -377,5 +543,19 @@ Sysutil::physical_concurrency ()
 #endif
 }
 
+
+
+size_t
+Sysutil::max_open_files ()
+{
+#if defined(_WIN32)
+    return size_t(_getmaxstdio());
+#else
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+        return rl.rlim_cur;
+#endif
+    return size_t(-1); // Couldn't figure out, so return effectively infinity
+}
 
 OIIO_NAMESPACE_END

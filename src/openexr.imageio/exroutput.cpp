@@ -56,6 +56,7 @@
 #include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfChromaticitiesAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
@@ -417,7 +418,8 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                 delete m_deep_scanline_output_part;
                 m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, m_subimage);
             } else {
-                ASSERT (0);
+                error ("Called open with AppendSubimage mode, but no appropriate part is found. Application bug?");
+                return false;
             }
         } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
@@ -472,7 +474,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         }
     }
 
-    ASSERTMSG (0, "Unknown open mode %d", int(mode));
+    error ("Unknown open mode %d", int(mode));
     return false;
 }
 
@@ -697,14 +699,31 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
 #endif
     }
 
-    // Default to ZIP compression if no request came with the user spec.
-    if (! spec.find_attribute("compression"))
-        spec.attribute ("compression", "zip");
-
+    // See what compression has been requested, default to ZIP compression
+    // if no request came with the user spec.
+    string_view compression = spec.get_string_attribute ("compression", "zip");
     // It seems that zips is the only compression that can reliably work
     // on deep files.
     if (spec.deep)
-        spec.attribute ("compression", "zips");
+        compression = "zips";
+    // Separate any appended quality from the name
+    size_t sep = compression.find_first_of (":");
+    if (sep != compression.npos) {
+        string_view qual = compression.substr (sep+1);
+        compression = compression.substr (0, sep);
+        if (qual.size() && Strutil::istarts_with (compression, "dwa")) {
+            float q = Strutil::from_string<float>(qual);
+            q = clamp (q, 10.0f, 250000.0f);  // useful range
+            spec.attribute ("openexr:dwaCompressionLevel", q);
+        }
+    }
+    spec.attribute ("compression", compression);
+
+    // If compression is one of the DWA types and no compression level
+    // was set, default to 45.
+    if (Strutil::istarts_with (compression, "dwa") &&
+        ! spec.find_attribute("openexr:dwaCompressionLevel"))
+        spec.attribute ("openexr:dwaCompressionLevel", 45.0f);
 
     // Default to increasingY line order
     if (! spec.find_attribute("openexr:lineOrder"))
@@ -1204,6 +1223,14 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 #endif
             }
         }
+        if (type.basetype == TypeDesc::FLOAT && type.aggregate * type.arraylen == 8
+            && Strutil::iequals (xname, "chromaticities")) {
+            const float *f = (const float *)data;
+            Imf::Chromaticities c (Imath::V2f(f[0], f[1]), Imath::V2f(f[2], f[3]),
+                                   Imath::V2f(f[4], f[5]), Imath::V2f(f[6], f[7]));
+            header.insert ("chromaticities", Imf::ChromaticitiesAttribute (c));
+            return true;
+        }
 #ifdef USE_OPENEXR_VERSION2
         // String Vector
         if (type.basetype == TypeDesc::STRING) {
@@ -1321,7 +1348,8 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
             m_scanline_output_part->writePixels (1);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempt to write scanline to a non-scanline file.");
+            return false;
         }
     } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
@@ -1398,7 +1426,8 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
                 m_scanline_output_part->writePixels (nscanlines);
 #endif
             } else {
-                ASSERT (0);
+                error ("Attempt to write scanlines to a non-scanline file.");
+                return false;
             }
         } catch (const std::exception &e) {
             error ("Failed OpenEXR write: %s", e.what());
@@ -1528,7 +1557,8 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                              m_miplevel, m_miplevel);
 #endif
         } else {
-            ASSERT (0);
+            error ("Attempt to write tiles for a non-tiled file.");
+            return false;
         }
     } catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
