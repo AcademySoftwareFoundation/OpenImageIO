@@ -137,12 +137,12 @@ pow2rounddown (int x)
 
 
 
-/// Round up to the next whole multiple of m.
-///
-inline int
-round_to_multiple (int x, int m)
+/// Round value up to the next whole multiple.
+/// For example, round_to_multiple(7,10) returns 10.
+template <typename V, typename M>
+inline V round_to_multiple (V value, M multiple)
 {
-    return ((x + m - 1) / m) * m;
+    return V (((value + V(multiple) - 1) / V(multiple)) * V(multiple));
 }
 
 

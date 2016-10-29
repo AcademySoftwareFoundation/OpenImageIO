@@ -995,7 +995,7 @@ ImageBuf::write (ImageOutput *out,
         } else {
             // Big scanline image: break up into scanline strips
             imagesize_t slsize = bufspec.scanline_bytes();
-            int chunk = clamp (round_to_multiple(budget/slsize, 64), 1, 1024);
+            int chunk = clamp (round_to_multiple(int(budget/slsize), 64), 1, 1024);
             boost::scoped_array<char> tmp (new char [chunk*slsize]);
             for (int z = 0;  z < outspec.depth;  ++z) {
                 for (int y = 0;  y < outspec.height && ok;  y += chunk) {

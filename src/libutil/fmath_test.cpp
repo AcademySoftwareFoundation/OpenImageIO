@@ -122,6 +122,8 @@ test_int_helpers ()
     OIIO_CHECK_EQUAL (round_to_multiple(4, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(5, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(6, 5), 10);
+    OIIO_CHECK_EQUAL (round_to_multiple(size_t(5), 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(size_t(6), 5), 10);
 
     // round_to_multiple_of_pow2
     OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(1), 4), 4);
