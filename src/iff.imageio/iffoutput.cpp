@@ -133,7 +133,7 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     m_iff_header.author = m_spec.get_string_attribute ("Artist");
     m_iff_header.date = m_spec.get_string_attribute ("DateTime");
     
-    if (!m_iff_header.write_header (m_fd)) {
+    if (!write_header (m_iff_header)) {
         error ("\"%s\": could not write iff header", m_filename.c_str ());
         close ();
         return false;
