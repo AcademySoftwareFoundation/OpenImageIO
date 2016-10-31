@@ -1,4 +1,4 @@
-Release 1.7.8 (??) -- compared to 1.7.7
+Release 1.7.8 (1 Nov 2016) -- compared to 1.7.7
 ----------------------------------------------
 * Fix gcc warnings when compiling for AVX2. #1511
 * Fix a variety of Windows warnings and breaks. #1512, #1523
@@ -25,7 +25,22 @@ Release 1.7.8 (??) -- compared to 1.7.7
 * Improved finding of OCIO headers. #1528
 * Better recognition of C++11 features in MSVS.
 * Fix compile warnings with Clang 3.9. #1529
-
+* Texture: Fix UDIM channels query. #1530
+* nuke: Fix txReader to properly restore saved mip level knob value (#1531)
+* Fix warnings on some 32 bit platforms #1539
+* Exit oiiotool with non-zero status when command-line args fail to
+  parse properly. #1540
+* Fix typo in fmath bitcast_to_float declaration #1543
+* Allow multiple key/value pairs in OCIO wrappers. #1542
+* colorconvert API extended to take context key/values #1542
+* Fix to TIFF handling of certain unusual tags, which also affected raw
+  files. #1547
+* fmath.h: templatize round_to_multiple so it works with other types
+  (like size_t). #1548
+* Fix IFF output that didn't correctly save the "Author" and "Date"
+  metadata. #1549
+* Handle 'oiiotool --colorconvert X X' (transform from and to spaces that
+  are the same) without considering it an error. #1550
 
 Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
@@ -420,6 +435,15 @@ Developer goodies / internals:
    #1479 (1.7.5)
 
 
+
+Release 1.6.18 (released 1 Nov 2016 -- compared to 1.6.17)
+------------------------------------------------
+* Fix setting "chromaticity" metadata in EXR files. #1487
+* maketx: multiple simultaneous maketx process trying to create the same
+  texture will no longer clobber each other's output. #1525
+* Fix compile warnings with Clang 3.9. #1529
+* Fix IFF output that didn't correctly save the "Author" and "Date"
+  metadata. #1549
 
 Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
 ------------------------------------------------
