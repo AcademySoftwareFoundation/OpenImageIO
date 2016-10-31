@@ -568,7 +568,6 @@ that explicitly requires a particular orientation).  The default is
 \apiend
 
 \apiitem{int flip_t}
-\NEW % 1.7
 If nonzero, $t$ coordinates will be flipped ($1-t$) for texture lookups.
 The default is 0.
 \apiend
@@ -1454,7 +1453,6 @@ modification times have been changed since they were first opened.
 
 \subsection{UDIM and texture atlases}
 \label{sec:texturesys:udim}
-\NEW % 1.7
 The {\cf texture()} call supports virtual filenames that expand per lookup
 for UDIM and other tiled texture atlas techniques. The substitutions will
 occur if the texture filename initially passed to {\cf texture()} does not

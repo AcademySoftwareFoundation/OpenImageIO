@@ -994,12 +994,10 @@ bypassing the conversion to {\cf float}.
 \apiend
 
 \apiitem{\ce --cache {\rm \emph{size}}}
-\NEW % 1.7
 Set the underlying \ImageCache size (in MB). See Section~\ref{imagecacheattr:autotile}.
 \apiend
 
 \apiitem{\ce --autotile {\rm \emph{tilesize}}}
-\NEW % 1.7
 For the underlying \ImageCache, turn on auto-tiling with the given tile
 size. Setting \emph{tilesize} to 0 turns off auto-tiling. If auto-tile
 is turned on, The \ImageCache \qkw{autoscanline} feature will also be enabled.
@@ -1007,7 +1005,6 @@ See Section~\ref{imagecacheattr:autotile} for details.
 \apiend
 
 \apiitem{\ce --iconfig {\rm \emph{name value}}}
-\NEW % 1.7
 Sets configuration metadata that will apply to the next input file read.
 
 \noindent Optional appended arguments include:
@@ -1068,7 +1065,6 @@ filename argument used as a pattern assumed to contain a {\cf \%d},
 which will be substituted with the index of the image (beginning with
 \emph{n}). For example, to take a multi-image TIFF and extract all the
 subimages and save them as separate files,
-\NEW % 1.7
 
 \begin{code}
     oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
@@ -2331,7 +2327,6 @@ original & with dropouts & median filtered \\
 \ce --erode {\rm \emph{size}}}
 \indexapi{dilate} \indexapi{erode}
 \index{morphological filtering}
-\NEW % 1.7
 
 Perform dilation or erosion on the top image with a window of the given size
 expressed as \emph{width}{\cf x}\emph{height}. (The sizes are integers.)
@@ -2549,7 +2544,6 @@ image out.
 
 
 \apiitem{\ce --line {\rm \emph{x1,y1,x2,y2,...}}}
-\NEW % 1.7
 Draw (rasterize) an open polyline connecting the list of pixel positions, as
 a comma-separated list of alternating $x$ and $y$ values. Additional
 optional arguments include:
@@ -2570,7 +2564,6 @@ The default color, if not supplied, is opaque white.
 
 
 \apiitem{\ce --box {\rm \emph{x1,y1,x2,y2}}}
-\NEW % 1.7
 Draw (rasterize) a filled or unfilled a box with opposite corners {\cf (x1,y1)}
 and {\cf (x2,y2)}. Additional optional arguments include:
 
@@ -2870,7 +2863,6 @@ samples in each pixel.
 
 \apiitem{\ce --deepmerge}
 \index{composite}
-\NEW % 1.7
 Replace the \emph{two} top images with a new deep image that is the ``deep
 merge'' of the inputs. Both input images must be deep images, have the same
 number and order of channels and must contain an alpha channel and depth
@@ -2946,7 +2938,6 @@ read.
 \apiend
 
 \apiitem{\ce --fixnan {\rm \emph{streategy}}}
-\NEW % 1.7
 Replace the top image with a copy in which any pixels that contained {\cf
 NaN} or {\cf Inf} values (hereafter referred to collectively as
 ``nonfinite'') are repaired.  The \emph{strategy} may be either {\cf black}
