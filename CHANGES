@@ -1,7 +1,13 @@
 Changes:
 
-Release 1.6.18 (released ?? 2016 -- compared to 1.6.17)
+Release 1.6.18 (released 1 Nov 2016 -- compared to 1.6.17)
 ------------------------------------------------
+* Fix setting "chromaticity" metadata in EXR files. #1487
+* maketx: multiple simultaneous maketx process trying to create the same
+  texture will no longer clobber each other's output. #1525
+* Fix compile warnings with Clang 3.9. #1529
+* Fix IFF output that didn't correctly save the "Author" and "Date"
+  metadata. #1549
 
 Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)
 ------------------------------------------------
