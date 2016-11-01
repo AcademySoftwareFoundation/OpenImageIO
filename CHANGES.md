@@ -1,3 +1,7 @@
+Release 1.7.9 (?? 2016) -- compared to 1.7.8
+----------------------------------------------
+
+
 Release 1.7.8 (1 Nov 2016) -- compared to 1.7.7
 ----------------------------------------------
 * Fix gcc warnings when compiling for AVX2. #1511

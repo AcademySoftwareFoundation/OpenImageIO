@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 7)
-set (OIIO_VERSION_PATCH 8)
+set (OIIO_VERSION_PATCH 9)
 set (OIIO_VERSION_RELEASE_TYPE "")   # "dev", "betaX", "RCY", ""
 
 cmake_minimum_required (VERSION 2.6)
