@@ -1,2 +1,4 @@
-Comparing "../../../../../oiio-images/grid.tif" and "grid.iff"
+Comparing "../../../../../oiio-images/grid.tif" and "gridscanline.iff"
+PASS
+Comparing "../../../../../oiio-images/grid.tif" and "gridtile.iff"
 PASS
