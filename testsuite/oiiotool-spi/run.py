@@ -42,6 +42,11 @@ command += oiiotool_and_test ("os0225_110_lightingfix_v002.0101.dpx",
                               "os0225_110_lightingfix_v002.0101.png",
                               precommand = "--colorconfig " + imagedir + "os4.ocio/config.ocio")
 
+# Test read of iff
+command += oiiotool_and_test ("iff/iff_vd8.1001.iff",
+                              "",
+                              "./iff_vd8.1001.iff")
+command += info_command ("iff_vd8.1001.iff")
 
 
 # Regression test on dealing with DPX with overscan
