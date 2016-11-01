@@ -507,6 +507,20 @@ public:
 
 
 
+// ColorProcessor that does nothing (identity transform)
+class ColorProcessor_Ident : public ColorProcessor {
+public:
+    ColorProcessor_Ident () : ColorProcessor() { };
+    ~ColorProcessor_Ident () { };
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+    }
+};
+
+
+
 ColorProcessor*
 ColorConfig::createColorProcessor (string_view inputColorSpace,
                                    string_view outputColorSpace) const
@@ -581,6 +595,9 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     // was found at all.  There are a few color conversions we know
     // about even in such dire conditions.
     using namespace Strutil;
+    if (iequals(inputColorSpace,outputColorSpace)) {
+        return new ColorProcessor_Ident;
+    }
     if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear")) &&
         iequals(outputColorSpace,"sRGB")) {
         return new ColorProcessor_linear_to_sRGB;
@@ -855,7 +872,8 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             if (colorconfig->error())
                 dst.error ("%s", colorconfig->geterror());
             else
-                dst.error ("Could not construct the color transform");
+                dst.error ("Could not construct the color transform %s -> %s",
+                           from, to);
             return false;
         }
     }
