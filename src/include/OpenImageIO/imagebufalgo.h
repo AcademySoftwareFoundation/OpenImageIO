@@ -1105,7 +1105,7 @@ bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
                          ROI roi = ROI::All(), int nthreads = 0);
 
 /// Copy pixels from dst to src, and in the process multiply all color
-/// channels (those not alpha or z) by the alpha value, to "-premultiply"
+/// channels (those not alpha or z) by the alpha value, to "premultiply"
 /// them.  This presumes that the image starts off as "unassociated alpha"
 /// a.k.a. "non-premultiplied."  The alterations are restricted to the
 /// pixels and channels of the supplied ROI (which defaults to all of src).
@@ -1113,10 +1113,6 @@ bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
 /// operation is undefined in that case).  This is just a copy if there is
 /// no identified alpha channel (and a no-op if dst and src are the same
 /// image).
-///
-/// For all dst pixels and channels within the ROI, divide all color
-/// channels (those not alpha or z) by the alpha, to "un-premultiply"
-/// them.
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
