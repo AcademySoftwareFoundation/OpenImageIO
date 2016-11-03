@@ -1097,6 +1097,60 @@ per-channel weight (rather than defaulting to 1.0 for each channel).
 \apiend
 
 
+
+\apiitem{bool {\ce color_map} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc\spc int srcchannel, int nknots, int channels, \\
+        \bigspc\spc array_view<const float> knots, \\
+        \bigspc\spc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce color_map} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc\spc int srcchannel, string_view mapname, \\
+        \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!color_map} \indexapi{color_map}
+\NEW % 1.8
+
+Set pixels of {\cf dst} to colors with values determined by looking up a
+color map using values of the {\cf src} image, using either the channel
+specified by {\cf srcchannel}, or the luminance of {\cf src}'s RGB if {\cf
+srcchannel} is -1. This happens for all pixels within the ROI (which
+defaults to all of {\cf src}), and if {\cf dst} is not already initialized,
+it will be initialized to the ROI and with color channels equal to {\cf channels}.
+
+In the first variant, the values linearly-interpolated color map are
+given by {\cf knots[nknots*channels]}.
+An input value of 0.0 corresponds to {\cf knots[0..channels-1]}, an input
+value of 1.0 corresponds to {\cf knots[(nknots-1)*channels..knots.size()-1]}.
+
+In the second variant, just the name of a color map is specified. Recognized
+map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
+cases, the implied {\cf channels} is 3.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Use luminance of a.exr (assuming Rec709 primaries and a linear
+    // scale) and map to a color spectrum:
+    ImageBuf A ("a.exr");
+    ImageBuf B;
+    ImageBufAlgo::color_map (B, A, -1, "spectrum");
+
+    float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
+    ImageBufAlgo::color_map (B, A, -1 /* use luminance */,
+                             3 /* num knots */, 3 /* channels */,
+                             mymap);
+\end{code}
+
+\noindent \begin{tabular}{lllll}
+\includegraphics[width=0.9in]{figures/tahoe-small.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-blue-red.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-spectrum.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-heat.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-custom.jpg} \\
+original & red-blue & spectrum & heat & custom values \\
+\end{tabular}
+\apiend
+
+
+
 \apiitem{bool {\ce clamp} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc float min = -std::numeric_limits<float>::max(), \\
   \bigspc float max = std::numeric_limits<float>::max(), \\

@@ -1344,6 +1344,108 @@ ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
 
 
 
+template<class D, class S>
+static bool
+color_map_ (ImageBuf &dst, const ImageBuf &src,
+            int srcchannel, int nknots, int channels,
+            array_view<const float> knots,
+            ROI roi, int nthreads)
+{
+    if (nthreads != 1 && roi.npixels() >= 1000) {
+        // Possible multiple thread case -- recurse via parallel_image
+        ImageBufAlgo::parallel_image (
+            OIIO::bind(color_map_<D,S>, OIIO::ref(dst), OIIO::cref(src),
+                       srcchannel, nknots, channels, knots,
+                       _1 /*roi*/, 1 /*nthreads*/),
+            roi, nthreads);
+        return true;
+    }
+
+    if (srcchannel < 0 && src.nchannels() < 3)
+        srcchannel = 0;
+    roi.chend = std::min (roi.chend, channels);
+    ImageBuf::Iterator<D> d (dst, roi);
+    ImageBuf::ConstIterator<S> s (src, roi);
+    for ( ;  !d.done();  ++d, ++s) {
+        float x = srcchannel < 0 ? 0.2126f*s[0] + 0.7152f*s[1] + 0.0722f*s[2]
+                                 : s[srcchannel];
+        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+            array_view_strided<const float> k (knots.data()+c, nknots, channels);
+            d[c] = interpolate_linear (x, k);
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
+                         int srcchannel, int nknots, int channels,
+                         array_view<const float> knots,
+                         ROI roi, int nthreads)
+{
+    if (srcchannel >= src.nchannels()) {
+        dst.error ("invalid source channel selected");
+        return false;
+    }
+    if (nknots < 2 || knots.size() < size_t(nknots*channels)) {
+        dst.error ("not enough knot values supplied");
+        return false;
+    }
+    if (! roi.defined())
+        roi = get_roi(src.spec());
+    roi.chend = std::min (roi.chend, src.nchannels());
+    ROI dstroi = roi;
+    dstroi.chbegin = 0;
+    dstroi.chend = channels;
+    if (! IBAprep (dstroi, &dst))
+        return false;
+    dstroi.chend = std::min (channels, dst.nchannels());
+
+    bool ok;
+    OIIO_DISPATCH_TYPES2 (ok, "color_map", color_map_,
+                          dst.spec().format, src.spec().format,
+                          dst, src, srcchannel, nknots, channels, knots,
+                          dstroi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
+                         int srcchannel, string_view mapname,
+                         ROI roi, int nthreads)
+{
+    if (srcchannel >= src.nchannels()) {
+        dst.error ("invalid source channel selected");
+        return false;
+    }
+    array_view<const float> knots;
+    if (mapname == "blue-red" || mapname == "red-blue" ||
+          mapname == "bluered" || mapname == "redblue") {
+        static const float k[] = { 0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f };
+        knots = array_view<const float> (k);
+    } else if (mapname == "spectrum") {
+        static const float k[] = { 0, 0, 0.05,     0, 0, 0.75,   0, 0.5, 0,
+                                   0.5, 0.5, 0,   1, 0, 0 };
+        knots = array_view<const float> (k);
+    } else if (mapname == "heat") {
+        static const float k[] = { 0, 0, 0,  0.05, 0, 0,  0.25, 0, 0,
+                                   0.75, 0.75, 0,  1,1,1 };
+        knots = array_view<const float> (k);
+    } else {
+        dst.error ("Unknown map name \"%s\"", mapname);
+        return false;
+    }
+    return color_map (dst, src, srcchannel, int(knots.size()/3), 3, knots,
+                      roi, nthreads);
+}
+
+
+
+
 
 namespace
 {

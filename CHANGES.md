@@ -11,7 +11,13 @@ Major new features and improvements:
    * `--info:verbose=1` verbose option make file info print full metadata,
      but without needing to make other oiiotool operations verbose as would
      happen with `--info -v`. #1504 (1.8.0)
+   * `--colormap` applies a color map based on the input values; the
+     map can be one of several named ones, or given explicitly with
+     numerical values. #1552 (1.8.1)
 * New ImageBufAlgo functions:
+   * `color_map()` applies a color map based on the input values; the
+     map can be one of several named ones, or given explicitly with
+     numerical values. #1552 (1.8.1)
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of

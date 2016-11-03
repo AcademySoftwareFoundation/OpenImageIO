@@ -247,6 +247,16 @@ try:
                               (.2126,.7152,.0722))
     write (b, "chsum.tif", oiio.UINT8)
 
+    # color_map
+    b = ImageBuf()
+    ImageBufAlgo.color_map (b, ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
+                           -1, "spectrum")
+    write (b, "colormap-spectrum.tif", oiio.UINT8)
+    b = ImageBuf()
+    ImageBufAlgo.color_map (b, ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
+                           -1, 3, 3, (.25,.25,.25,0,.5,0,1,0,0))
+    write (b, "colormap-custom.tif", oiio.UINT8)
+
     # premult/unpremult
     b = make_constimage(100,100,4,oiio.FLOAT,(.1,.1,.1,1))
     ImageBufAlgo.fill (b, (.2,.2,.2,.5), oiio.ROI(50,80,50,80))
