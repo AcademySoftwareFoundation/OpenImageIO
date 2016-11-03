@@ -1120,6 +1120,41 @@ bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src,
                        ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Set pixels of dst with values determined by looking up a color map using
+/// values of the source image, using either the channel specified by
+/// srcchannel, or the luminance of src's RGB if srcchannel is -1. This
+/// happens for all pixels within the  ROI (which defaults to all of src),
+/// and if dst is not already initialized, it will be initialized to the ROI
+/// and with color channels equal to channels.
+///
+/// The knots of the interpolated map are given by knots[nknots*channels].
+/// An input value of 0.0 corresponds to knots[0..channels-1], an input
+/// value of 1.0 corresponds ot knots[(nknots-1)*channels..knots.size()-1].
+///
+/// Return true on successs, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API color_map (ImageBuf &dst, const ImageBuf &src,
+                         int srcchannel, int nknots, int channels,
+                         array_view<const float> knots,
+                         ROI roi = ROI::All(), int nthreads = 0);
+
+/// Set pixels of dst with values determined by looking up a color map using
+/// values of the source image, using either the channel specified by
+/// srcchannel, or the luminance of src's RGB if srcchannel is -1. This
+/// happens for all pixels within the  ROI (which defaults to all of src),
+/// and if dst is not already initialized, it will be initialized to the ROI
+/// and with 3 color channels.
+///
+/// The mapname may be one of: "blue-red", "spectrum", "heat".
+///
+/// Return true on successs, false on error (with an appropriate error
+/// message set in dst).
+bool OIIO_API color_map (ImageBuf &dst, const ImageBuf &src,
+                         int srcchannel, string_view mapname,
+                         ROI roi = ROI::All(), int nthreads = 0);
+
+
+
 
 struct OIIO_API PixelStats {
     std::vector<float> min;

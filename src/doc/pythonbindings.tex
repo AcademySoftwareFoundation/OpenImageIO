@@ -2338,8 +2338,37 @@ channel (if not supplied, all channels will have weight 1.0).
 \begin{code}
     # Compute luminance via a weighted sum of R,G,B
     # (assuming Rec709 primaries and a linear scale)
+    luma = ImageBuf()
     luma_weights = (.2126, .7152, .0722)
     ImageBufAlgo.channel_sum (luma, ImageBuf("a.exr"), luma_weights)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
+        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
+        mapname, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!color_map} \indexapi{color_map}
+\NEW % 1.8
+Set pixels of {\cf dst} by applying the color map to the values of {\cf
+src}, using either the channel specified by {\cf srcchannel}, or the
+luminance of {\cf src}'s RGB if {\cf srcchannel} is -1.
+
+In the first variant, the values linearly-interpolated color map are
+given by the tuple {\cf knots[nknots*channels]}.
+
+In the second variant, just the name of a color map is specified. Recognized
+map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
+cases, the implied {\cf channels} is 3.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    heatmap = ImageBuf()
+    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, "heat")
+    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, 3, 3,
+                            (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
 \end{code}
 \apiend
 

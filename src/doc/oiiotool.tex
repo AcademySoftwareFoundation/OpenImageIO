@@ -1485,7 +1485,6 @@ the channels of both images appended together.
 \apiend
 
 
-
 \section{\oiiotool commands that adjust the image stack}
 
 \apiitem{\ce --pop}
@@ -1862,6 +1861,32 @@ weight of each channel in the sum.
 \raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.5in]{figures/luma.jpg} \\
 \apiend
+
+\apiitem{\ce --colormap {\rm \emph{mapname}}}
+\NEW % 1.8
+Creates an RGB color map based on the luminance of the input image. The
+{\cf mapname} may be one of:  \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}.
+Or, {\cf mapname} may also be a comma-separated list of RGB triples, to form
+a custom color map curve.
+
+\noindent Example:
+\begin{code}
+    oiiotool tahoe.jpg --colormap blue-red -o blue-red.jpg
+    oiiotool tahoe.jpg --colormap spectrum -o spectrum.jpg
+    oiiotool tahoe.jpg --colormap heat -o heat.jpg
+    oiiotool tahoe.jpg --colormap .25,.25,.25,0,.5,0,1,0,0 -o custom.jpg
+\end{code}
+
+\noindent \begin{tabular}{lllll}
+\includegraphics[width=0.9in]{figures/tahoe-small.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-blue-red.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-spectrum.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-heat.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-custom.jpg} \\
+original & red-blue & spectrum & heat & custom values \\
+\end{tabular}
+\apiend
+
 
 \apiitem{\ce --paste {\rm \emph{location}}}
 Takes two images -- the first is the ``foreground'' and the second is
