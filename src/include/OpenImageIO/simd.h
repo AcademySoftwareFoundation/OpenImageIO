@@ -1591,6 +1591,25 @@ public:
 #endif
     }
 
+    /// Construct from 16 floats
+    OIIO_FORCEINLINE matrix44 (float f00, float f01, float f02, float f03,
+                               float f10, float f11, float f12, float f13,
+                               float f20, float f21, float f22, float f23,
+                               float f30, float f31, float f32, float f33)
+    {
+#if OIIO_SIMD_SSE
+        m_row[0].load (f00, f01, f02, f03);
+        m_row[1].load (f10, f11, f12, f13);
+        m_row[2].load (f20, f21, f22, f23);
+        m_row[3].load (f30, f31, f32, f33);
+#else
+        M[0][0] = f00; M[0][1] = f01; M[0][2] = f02; M[0][3] = f03;
+        M[1][0] = f10; M[1][1] = f11; M[1][2] = f12; M[1][3] = f13;
+        M[2][0] = f20; M[2][1] = f21; M[2][2] = f22; M[2][3] = f23;
+        M[3][0] = f30; M[3][1] = f31; M[3][2] = f32; M[3][3] = f33;
+#endif
+    }
+
     /// Present as an Imath::M44f
     const Imath::M44f& M44f() const;
 

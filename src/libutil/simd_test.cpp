@@ -1242,7 +1242,8 @@ void test_matrix ()
                        matrix44(Mtrans).inverse(), 1.0e-6f));
     OIIO_CHECK_ASSERT (mx_equal_thresh (Mrot.inverse(),
                        matrix44(Mrot).inverse(), 1.0e-6f));
-
+    OIIO_CHECK_EQUAL (matrix44(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15),
+                      Imath::M44f(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15));
 #if OIIO_CPLUSPLUS_VERSION >= 11  /* So easy with lambdas */
     Imath::V3f vx (2.51f,1.0f,1.0f);
     Imath::M44f mx (1,0,0,0, 0,1,0,0, 0,0,1,0, 10,11,12,1);
