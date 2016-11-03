@@ -62,6 +62,7 @@
 #include "dassert.h"
 #include "missing_math.h"
 #include "simd.h"
+#include "array_view.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -1694,6 +1695,22 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
             return x;   // converged
     }
     return x;
+}
+
+
+
+/// Linearly interpolate a list of evenly-spaced knots y[0..len-1] with
+/// y[0] corresponding to the value at x==0.0 and y[len-1] corresponding to
+/// x==1.0.
+inline float
+interpolate_linear (float x, array_view_strided<const float> y)
+{
+    DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%zd)", y.size());
+    x = clamp (x, float(0.0), float(1.0));
+    int nsegs = int(y.size()) - 1;
+    int segnum;
+    x = floorfrac (x*nsegs, &segnum);
+    return lerp (y[segnum], y[segnum+1], x);
 }
 
 // (end miscellaneous numerical methods)
