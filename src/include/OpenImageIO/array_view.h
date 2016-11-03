@@ -34,6 +34,7 @@
 #include <vector>
 #include <stdexcept>
 #include <iostream>
+#include <cstddef>
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 # include <initializer_list>
@@ -284,6 +285,10 @@ public:
         : array_view_strided (il.begin(), il.size())
     { }
 #endif
+
+    /// Initialize from an array_view (stride will be 1).
+    array_view_strided (array_view<T,Rank> av)
+        : m_data(av.data()), m_bounds(av.bounds()), m_stride(1) {}
 
     // assignments
     array_view_strided& operator= (const array_view_strided &copy) {
