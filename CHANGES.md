@@ -43,6 +43,11 @@ Fixes, minor enhancements, and performance improvements:
      optional paramters be comma-separated lists). #1504 (1.8.0)
    * Handle 'oiiotool --colorconvert X X' (transform from and to spaces that
      are the same) without considering it an error. #1550 (1.8.0/1.7.8)
+   * Expression substitution now recognizes the following new metadata
+     names: MINCOLOR, MAXCOLOR, AVGCOLOR. An example use is to stretch
+     the value range of an image to fill the full [0-1] range:
+        oiiotool in.exr -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.exr
+     #1553 (1.8.1)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -60,7 +65,7 @@ Fixes, minor enhancements, and performance improvements:
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
 * IFF:
    * Fix IFF output that didn't correctly save the "Author" and "Date"
-     metadata. #1549 (1.8.2/1.7.8)
+     metadata. #1549 (1.8.1/1.7.8)
 * RAW:
    * Fix possible crash when reading certain raw metadata. #1547 (1.7.8/1.8.0)
 * RLA:

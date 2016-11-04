@@ -237,5 +237,7 @@ Comparing "exprcropped.tif" and "ref/exprcropped.tif"
 PASS
 Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
 PASS
+Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
+PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS

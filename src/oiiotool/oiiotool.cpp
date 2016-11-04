@@ -939,6 +939,27 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
                 std::string filename = img->name();
                 std::string ext = Filesystem::extension (img->name());
                 result = filename.substr (0, filename.size()-ext.size());
+            } else if (metadata == "MINCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.min.size(); ++i)
+                    out << (i ? "," : "") << pixstat.min[i];
+                result = out.str();
+            } else if (metadata == "MAXCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.max.size(); ++i)
+                    out << (i ? "," : "") << pixstat.max[i];
+                result = out.str();
+            } else if (metadata == "AVGCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.avg.size(); ++i)
+                    out << (i ? "," : "") << pixstat.avg[i];
+                result = out.str();
             } else {
                 express_error (expr, s, Strutil::format ("unknown attribute name `%s'", metadata));
                 result = orig;

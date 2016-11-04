@@ -289,6 +289,7 @@ command += oiiotool ("src/tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,
                      "{TOP.geom} {TOP.nchannels} -d uint8 -o exprgradient.tif")
 command += oiiotool ("src/tahoe-small.tif -cut '{TOP.width-20* 2}x{TOP.height-40+(4*2- 2 ) /6-1}+{TOP.x+100.5-80.5 }+{TOP.y+20}' -d uint8 -o exprcropped.tif")
 command += oiiotool ("src/tahoe-small.tif -o exprstrcat{TOP.compression}.tif")
+command += oiiotool ("src/tahoe-tiny.tif -subc '{TOP.MINCOLOR}' -divc '{TOP.MAXCOLOR}' -o tahoe-contraststretch.tif")
 
 # test --no-autopremult on a TGA file thet needs it.
 command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
@@ -347,6 +348,7 @@ outputs = [
             "polar.exr", "unpolar.exr",
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
+            "tahoe-contraststretch.tif",
             "rgbfromtga.png",
             "out.txt" ]
 

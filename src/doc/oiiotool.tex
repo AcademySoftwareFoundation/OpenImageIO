@@ -201,14 +201,23 @@ The \emph{imagename} may be one of: {\cf TOP} (the top or current image),
 {\cf IMG[}\emph{i}{\cf ]} describing the \emph{i}{\textsuperscript{th}} image
 on the stack (thus {\cf TOP} is a synonym for {\cf IMG[0]} , the next image
 on the stack is {\cf IMG[1]}, etc.), or {\cf IMG["}\emph{name}{\cf "]} to
-denote an image named by filename or by label name.
+denote an image named by filename or by label name. Remember that the
+positions on the stack (including TOP) refer to \emph{at that moment},
+with successive commands changing the contents of the top image.
 
-The \emph{metadata} may be the name of any standard metadata of the
-specified image (e.g., \qkw{ImageDescription}, or \qkw{width}), or one of
-the following special names: \qkw{filename}, \qkw{file_extension},
-\qkw{file_noextension}, \qkw{geom} (giving the pixel data size in the form
-\qkw{640x480+0+0}), or \qkw{full_geom} (similar, for the ``full'' or
-``display'' size).
+The \emph{metadata} may be any of:
+
+\begin{itemize}
+\item the name of any standard metadata of the
+specified image (e.g., {\cf ImageDescription}, or {\cf width})
+\item {\cf filename} : the name of the file (e.g., \qkw{foo.tif})
+\item {\cf file_extension} : the extension of the file (e.g., \qkw{tif})
+\item {\cf geom} : the pixel data size in the form \qkw{640x480+0+0})
+\item {\cf full_geom} : the ``full'' or ``display'' size)
+\item {\cf MINCOLOR} : the minimum value in each channel(channels are comma-separated)
+\item {\cf MAXCOLOR} : the maximum value in each channel(channels are comma-separated)
+\item {\cf AVGCOLOR} : the average pixel value of the image (channels are comma-separated)
+\end{itemize}
 
 \item[{Arithmetic}] Sub-expressions may be joined by {\cf +}, {\cf -},
 {\cf *}, or {\cf /} for arithmetic operations. Parentheses are supported,
@@ -627,6 +636,17 @@ series of files with frame numbers in their names:
 \noindent Note that this works without needing to know the caption ahead
 of time, and will always put the text 30 pixels from the bottom of the image
 without requiring you to know the resolution.
+
+
+\subsection*{Contrast enhancement: stretch pixel value range to exactly fit [0-1]}
+\noindent This command reads a file, subtracts the minimum pixel value and
+then divides by the (new) maximum value, per channel, thus expanding its
+pixel values to the full $[0-1]$ range:
+\begin{code}
+    oiiotool input.tif -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.tif
+\end{code}
+\noindent Note that this is a naive way to improve contrast and because
+each channel is handled independently, it may result in color hue shifts.
 
 
 \subsection{Split a multi-image file into separate files}
