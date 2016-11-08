@@ -29,6 +29,7 @@
 */
 
 
+#include <functional>
 #include <iostream>
 
 #include "OpenImageIO/thread.h"
@@ -37,9 +38,6 @@
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/ustring.h"
-
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "OpenImageIO/unittest.h"
 
@@ -86,9 +84,9 @@ do_accum (int iterations)
 void test_spin_rw (int numthreads, int iterations)
 {
     accum = 0;
-    boost::thread_group threads;
+    thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind(do_accum,iterations));
+        threads.create_thread (do_accum, iterations);
     }
     if (verbose)
         std::cout << "Created " << threads.size() << " threads\n";
@@ -149,7 +147,7 @@ int main (int argc, char *argv[])
         int its = iterations/nt;
 
         double range;
-        double t = time_trial (boost::bind(test_spin_rw,nt,its),
+        double t = time_trial (std::bind(test_spin_rw,nt,its),
                                ntrials, &range);
 
         std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",

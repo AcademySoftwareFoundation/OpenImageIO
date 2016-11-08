@@ -48,6 +48,7 @@ namespace pvt {
 /// Mutex allowing thread safety of ImageOutput internals
 ///
 extern recursive_mutex imageio_mutex;
+extern thread_pool *oiio_thread_pool;
 extern atomic_int oiio_threads;
 extern atomic_int oiio_read_chunk;
 extern ustring plugin_searchpath;
@@ -100,8 +101,7 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
 /// A version of convert_from_float that will break up big jobs with
 /// multiple threads.
 const void *parallel_convert_from_float (const float *src, void *dst,
-                                         size_t nvals,
-                                         TypeDesc format, int nthreads=0);
+                                         size_t nvals, TypeDesc format);
 
 }  // namespace pvt
 

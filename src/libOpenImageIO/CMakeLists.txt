@@ -53,6 +53,7 @@ list (APPEND libOpenImageIO_srcs
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
+                          ../libutil/thread.cpp 
                           ../libutil/timer.cpp 
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 

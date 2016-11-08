@@ -2,7 +2,7 @@ Release 1.8 (in progress) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
  * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
- * **Boost >= 1.50**
+ * **Boost >= 1.53**
 
 Major new features and improvements:
 * New oiiotool commands:
@@ -106,6 +106,12 @@ Developer goodies / internals:
    * Fixed typo in fmath.h that made bitcast_to_float incorrect. #1543 (1.8.0)
    * Templatize round_to_multiple() so it works with types other than `int`.
      #1548 (1.8.0)
+* thread.h:
+   * thread_pool class offers true persistent thread pool. #1556 (1.8.1)
+   * Lots of C++ modernization of thread_group and spin_mutex. #1556 (1.8.1)
+* parallel.h:
+   * parallel_for, parallel_for_chunked, parallel_for_each offer simple
+     thread_pool-based parallel looping. #1556 (1.8.1)
 
 
 

@@ -1,18 +1,18 @@
 /*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
+  Copyright 2016 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are
   met:
   * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
+  notice, this list of conditions and the following disclaimer.
   * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
   * Neither the name of the software's owners nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,58 +30,25 @@
 
 
 #include <iostream>
-#include <cstdio>
 #include <functional>
+#include <algorithm>
 
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/unittest.h"
-
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/parallel.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/unittest.h>
+#include <OpenImageIO/ustring.h>
 
 OIIO_NAMESPACE_USING;
 
-// Test ustring's internal locks by creating a bunch of strings in many
-// threads simultaneously.  Hopefully something will crash if the 
-// internal table is not being locked properly.
-
-static int iterations = 1000000;
+static int iterations = 100000;
 static int numthreads = 16;
 static int ntrials = 1;
 static bool verbose = false;
 static bool wedge = false;
-static spin_mutex print_mutex;  // make the prints not clobber each other
-
-
-
-static void
-create_lotso_ustrings (int iterations)
-{
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "thread " << std::this_thread::get_id() << "\n";
-    }
-    for (int i = 0;  i < iterations;  ++i) {
-        char buf[20];
-        sprintf (buf, "%d", i);
-        ustring s (buf);
-    }
-}
-
-
-
-void test_ustring_lock (int numthreads, int iterations)
-{
-    thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (std::bind (create_lotso_ustrings, iterations));
-    }
-    threads.join_all ();
-    OIIO_CHECK_ASSERT (true);  // If we make it here without crashing, pass
-}
+static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
 
 
 
@@ -90,9 +57,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("ustring_test\n"
+    ap.options ("parallel_test\n"
                 OIIO_INTRO_STRING "\n"
-                "Usage:  ustring_test [options]",
+                "Usage:  parallel_test [options]",
                 // "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose mode",
@@ -116,36 +83,76 @@ getargs (int argc, char *argv[])
 
 
 
-int main (int argc, char *argv[])
+void
+time_parallel_for ()
 {
-    getargs (argc, argv);
-
-    OIIO_CHECK_ASSERT(ustring("foo") == ustring("foo"));
-    OIIO_CHECK_ASSERT(ustring("bar") != ustring("foo"));
-    ustring foo ("foo");
-    OIIO_CHECK_ASSERT (foo.string() == "foo");
-
-    std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
+    std::cout << "\nTiming how long it takes to run parallel_for:\n";
     std::cout << "threads\ttime (best of " << ntrials << ")\n";
     std::cout << "-------\t----------\n";
-
-    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt = wedge ? threadcounts[i] : numthreads;
         int its = iterations/nt;
 
-        double range;
-        double t = time_trial (std::bind(test_ustring_lock,nt,its),
-                               ntrials, &range);
+        // make a lambda function that spawns a bunch of threads, calls a
+        // trivial function, then waits for them to finish and tears down
+        // the group.
+        auto func = [=](){
+            parallel_for (0, nt, [](int64_t i){ /*empty*/ });
+        };
 
-        std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",
-                                      nt, t, range, its);
+        double range;
+        double t = time_trial (func, ntrials, its, &range);
+
+        std::cout << Strutil::format ("%2d\t%5.1f   launch %8.1f threads/sec\n",
+                                      nt, t, (nt*its)/t);
         if (! wedge)
             break;    // don't loop if we're not wedging
     }
+}
 
-    if (verbose)
-        std::cout << "\n" << ustring::getstats() << "\n";
+
+
+void
+test_parallel_for ()
+{
+    { // 1D test
+        // vector of ints, initialized to zero
+        const int length = 1000;
+        std::vector<int> vals (length, 0);
+
+        // Increment all the integers via parallel_for
+        parallel_for (0, length, [&](uint64_t i){
+            vals[i] += 1;
+        });
+
+        // Verify that all elements are exactly 1
+        bool all_one = std::all_of (vals.cbegin(), vals.cend(),
+                                    [&](int i){ return vals[i] == 1; });
+        OIIO_CHECK_ASSERT (all_one);
+    }
+
+}
+
+
+
+int
+main (int argc, char **argv)
+{
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs (argc, argv);
+
+    std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
+
+    test_parallel_for ();
+
+    time_parallel_for ();
 
     return unit_test_failures;
 }
