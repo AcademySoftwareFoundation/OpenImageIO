@@ -537,6 +537,7 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
                                    string_view context_value) const
 {
     string_view inputrole, outputrole;
+    std::string pending_error;
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -573,8 +574,10 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
                                                  outputColorSpace.c_str());
         }
         catch(OCIO::Exception &e) {
-            getImpl()->error_ = e.what();
-            return NULL;
+            // Don't quit yet, remember the error and see if any of our
+            // built-in knowledge of some generic spaces will save us.
+            p.reset();
+            pending_error = e.what();
         }
         catch(...) {
             getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
@@ -598,21 +601,24 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     if (iequals(inputColorSpace,outputColorSpace)) {
         return new ColorProcessor_Ident;
     }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear")) &&
-        iequals(outputColorSpace,"sRGB")) {
+    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh"))
+        && iequals(outputColorSpace,"sRGB")) {
         return new ColorProcessor_linear_to_sRGB;
     }
     if (iequals(inputColorSpace,"sRGB") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear"))) {
+        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
         return new ColorProcessor_sRGB_to_linear;
     }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear")) &&
+    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
         iequals(outputColorSpace,"Rec709")) {
         return new ColorProcessor_linear_to_Rec709;
     }
     if (iequals(inputColorSpace,"Rec709") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear"))) {
-        // No OCIO, or the OCIO config doesn't know linear->sRGB
+        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
         return new ColorProcessor_Rec709_to_linear;
     }
 
@@ -624,6 +630,8 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     }
 #endif
 
+    if (pending_error.size())
+        getImpl()->error_ = pending_error;
     return NULL;    // if we get this far, we've failed
 }
 
