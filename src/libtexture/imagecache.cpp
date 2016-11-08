@@ -268,7 +268,7 @@ ImageCacheFile::LevelInfo::LevelInfo (const LevelInfo &src)
     int nwords = round_to_multiple (nxtiles * nytiles * nztiles, 64) / 64;
     tiles_read = new atomic_ll [nwords];
     for (int i = 0; i < nwords; ++i)
-        tiles_read[i] = src.tiles_read[i];
+        tiles_read[i] = src.tiles_read[i].load();
 }
 
 

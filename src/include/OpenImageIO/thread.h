@@ -51,7 +51,6 @@
 # include <thread>
 # include <mutex>
 # include <atomic>
-# define not_yet_OIIO_USE_STDATOMIC 1
 #else   /* prior to C++11... */
   // Use Boost mutexes & guards when C++11 is not available
 # include <boost/version.hpp>

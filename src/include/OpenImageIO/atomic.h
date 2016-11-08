@@ -42,6 +42,11 @@
 #include "oiioversion.h"
 #include "platform.h"
 
+#if OIIO_CPLUSPLUS_VERSION >= 11
+# include <atomic>
+# define OIIO_USE_STDATOMIC 1
+#endif
+
 
 #if defined(_MSC_VER)
    // N.B. including platform.h also included <windows.h>
@@ -87,6 +92,12 @@ OIIO_NAMESPACE_BEGIN
 
 #if OIIO_USE_STDATOMIC
 using std::memory_order;
+using std::memory_order_relaxed;
+using std::memory_order_consume;
+using std::memory_order_acquire;
+using std::memory_order_release;
+using std::memory_order_acq_rel;
+using std::memory_order_seq_cst;
 #else
 enum memory_order {
 #if defined(OIIO_USE_GCC_NEW_ATOMICS)
@@ -414,7 +425,7 @@ atomic_thread_fence (memory_order order = memory_order_seq_cst)
 #ifdef NOTHREADS
     // nothing
 #elif OIIO_USE_STDATOMIC
-    std::__atomic_thread_fence (order);
+    std::atomic_thread_fence (order);
 #elif defined(OIIO_USE_GCC_NEW_ATOMICS)
     __atomic_thread_fence (order);
 #elif defined(USE_GCC_ATOMICS)
@@ -429,6 +440,15 @@ atomic_thread_fence (memory_order order = memory_order_seq_cst)
 }
 
 
+
+
+#ifdef OIIO_USE_STDATOMIC
+
+using std::atomic;
+
+#else
+
+// Our old home-rolled atomic<>. Is this ever needed in a post-C++11 world?
 
 
 /// Atomic integer.  Increment, decrement, add, and subtract in a
@@ -535,6 +555,17 @@ public:
         return atomic_compare_and_exchange (&m_val, compareval, newval);
     }
 
+    bool compare_exchange_weak (T& compareval, T newval,
+                                memory_order order = memory_order_seq_cst) {
+        return atomic_compare_and_exchange (&m_val, compareval, newval,
+                                            true, order, order);
+    }
+    bool compare_exchange_strong (T& compareval, T newval,
+                                  memory_order order = memory_order_seq_cst) {
+        return atomic_compare_and_exchange (&m_val, compareval, newval,
+                                            false, order, order);
+    }
+
     T operator= (const atomic &x) {
         T r = x();
         *this = r;
@@ -544,25 +575,46 @@ public:
 private:
 #ifdef __arm__
     OIIO_ALIGN(8)
-#endif 
+#endif
     volatile mutable T m_val;
 
     // Disallow copy construction by making private and unimplemented.
     atomic (atomic const &);
 };
 
+#endif
 
-#ifdef NOTHREADS
 
-typedef int atomic_int;
-typedef long long atomic_ll;
-
-#else
 
 typedef atomic<int> atomic_int;
 typedef atomic<long long> atomic_ll;
 
-#endif
+
+
+template<typename T>
+OIIO_FORCEINLINE void
+atomic_min (atomic<T> &avar, const T &bval)
+{
+    do {
+        T a = avar.load();
+        if (a <= bval || avar.compare_exchange_strong (a,bval))
+            break;
+    } while (1);
+}
+
+
+template<typename T>
+OIIO_FORCEINLINE void
+atomic_max (atomic<T> &avar, const T &bval)
+{
+    do {
+        T a = avar.load();
+        if (a >= bval || avar.compare_exchange_strong (a,bval))
+            break;
+    } while (1);
+}
+
+
 
 OIIO_NAMESPACE_END
 
