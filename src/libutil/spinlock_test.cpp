@@ -29,6 +29,7 @@
 */
 
 
+#include <functional>
 #include <iostream>
 
 #include "OpenImageIO/thread.h"
@@ -37,9 +38,6 @@
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/ustring.h"
-
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "OpenImageIO/unittest.h"
 
@@ -70,7 +68,7 @@ do_accum (int iterations)
 {
     if (verbose) {
         spin_lock lock(print_mutex);
-        std::cout << "thread " << boost::this_thread::get_id() 
+        std::cout << "thread " << std::this_thread::get_id() 
                   << ", accum = " << accum << "\n";
     }
 #if 1
@@ -96,9 +94,9 @@ do_accum (int iterations)
 void test_spinlock (int numthreads, int iterations)
 {
     accum = 0;
-    boost::thread_group threads;
+    thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind(do_accum,iterations));
+        threads.create_thread (do_accum, iterations);
     }
     ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
@@ -152,7 +150,7 @@ int main (int argc, char *argv[])
         int its = iterations/nt;
 
         double range;
-        double t = time_trial (boost::bind(test_spinlock,nt,its),
+        double t = time_trial (std::bind(test_spinlock,nt,its),
                                ntrials, &range);
 
         std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",

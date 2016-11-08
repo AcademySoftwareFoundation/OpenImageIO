@@ -1,7 +1,7 @@
 set (libOpenImageIO_Util_srcs argparse.cpp errorhandler.cpp filesystem.cpp
                   farmhash.cpp filter.cpp hashes.cpp paramlist.cpp
                   plugin.cpp SHA1.cpp
-                  strutil.cpp sysutil.cpp timer.cpp
+                  strutil.cpp sysutil.cpp thread.cpp timer.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
 if (BUILDSTATIC)
@@ -88,10 +88,20 @@ if (OIIO_BUILD_TESTS)
     target_link_libraries (hash_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_hash hash_test)
 
+    add_executable (parallel_test parallel_test.cpp)
+    set_target_properties (parallel_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (parallel_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    add_test (unit_parallel parallel_test)
+
     add_executable (timer_test timer_test.cpp)
     set_target_properties (timer_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (timer_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_timer timer_test)
+
+    add_executable (thread_test thread_test.cpp)
+    set_target_properties (thread_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (thread_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    add_test (unit_thread thread_test)
 
     add_executable (simd_test simd_test.cpp)
     set_target_properties (simd_test PROPERTIES FOLDER "Unit Tests")
