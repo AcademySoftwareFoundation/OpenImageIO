@@ -57,7 +57,6 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     PixelAspectRatio: 1
     FNumber: 3.4
     Exif:ExposureProgram: 2 (normal program)
-    Exif:ISOSpeedRatings: 1
     Exif:DateTimeOriginal: "2004:11:10 00:00:31"
     Exif:DateTimeDigitized: "2004:11:10 00:00:31"
     Exif:ShutterSpeedValue: 6.5 (1/90 s)
@@ -102,7 +101,6 @@ Reading ../../../../../libtiffpic/fax2d.tif
     YResolution: 98
     ResolutionUnit: "in"
     Software: "fax2tiff"
-    tiff:PageNumber: 1
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
@@ -121,7 +119,6 @@ Reading ../../../../../libtiffpic/g3test.tif
     YResolution: 98
     ResolutionUnit: "in"
     Software: "fax2tiff"
-    tiff:PageNumber: 1
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
@@ -226,7 +223,6 @@ Reading ../../../../../libtiffpic/pc260001.tif
     ExposureTime: 0.0125
     FNumber: 5.6
     Exif:ExposureProgram: 2 (normal program)
-    Exif:ISOSpeedRatings: 1
     Exif:DateTimeOriginal: "2005:12:26 17:09:35"
     Exif:DateTimeDigitized: "2005:12:26 17:09:35"
     Exif:ExposureBiasValue: 0

@@ -98,6 +98,10 @@ Comparing "invert.tif" and "../../../../testsuite/oiiotool/ref/invert.tif"
 PASS
 Comparing "chsum.tif" and "../../../../testsuite/oiiotool/ref/chsum.tif"
 PASS
+Comparing "colormap-spectrum.tif" and "../../../../testsuite/oiiotool/ref/colormap-spectrum.tif"
+PASS
+Comparing "colormap-custom.tif" and "../../../../testsuite/oiiotool/ref/colormap-custom.tif"
+PASS
 Comparing "grid-clamped.tif" and "../../../../testsuite/oiiotool/ref/grid-clamped.tif"
 PASS
 Comparing "rangecompress.tif" and "../../../../testsuite/oiiotool/ref/rangecompress.tif"
@@ -113,6 +117,10 @@ PASS
 Comparing "bspline-blur.tif" and "../../../../testsuite/oiiotool/ref/bspline-blur.tif"
 PASS
 Comparing "tahoe-median.tif" and "../../../../testsuite/oiiotool/ref/tahoe-median.tif"
+PASS
+Comparing "dilate.tif" and "../../../../testsuite/oiiotool/ref/dilate.tif"
+PASS
+Comparing "erode.tif" and "../../../../testsuite/oiiotool/ref/erode.tif"
 PASS
 Comparing "unsharp.tif" and "../../../../testsuite/oiiotool/ref/unsharp.tif"
 PASS

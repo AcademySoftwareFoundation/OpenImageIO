@@ -202,22 +202,22 @@ IffFileHeader::read_header (FILE *fd)
                             type[3] == 'H') {
                            
                             std::vector<char> str (chunksize);
-                            if (!fread (&str[0], 1, str.size(), fd))
+                            if (!fread (&str[0], 1, chunksize, fd))
                                 return false;
                                   
                             // get author
-                            author = std::string (&str[0], str.size());
+                            author = std::string (&str[0], size);
                         } else if (type[0] == 'D' &&
                                    type[1] == 'A' &&
                                    type[2] == 'T' &&
                                    type[3] == 'E') {
                        
                             std::vector<char> str (chunksize);
-                            if (!fread (&str[0], 1, str.size(), fd))
+                            if (!fread (&str[0], 1, chunksize, fd))
                                 return false;
                                   
                             // get date
-                            date = std::string (&str[0], str.size());                
+                            date = std::string (&str[0], size);
                         } else if (type[0] == 'F' &&
                                    type[1] == 'O' &&
                                    type[2] == 'R' &&
@@ -327,139 +327,66 @@ IffFileHeader::read_header (FILE *fd)
 
 
 bool
-IffFileHeader::write_header (FILE *fd)
+IffOutput::write_header (IffFileHeader &header)
 {
-    uint32_t length = 0;
-    uint32_t flags = 0;
-    uint16_t prnum = 0;
-    uint16_t prden = 0;
-
-    // write 'FOR4' type
-    std::string tmpstr = "FOR4";
-    if (!fwrite (tmpstr.c_str(), tmpstr.length(), 1, fd))
+    // write 'FOR4' type, with 0 length for now (to reserve it)
+    if (! (   write_str ("FOR4")
+           && write_int (0)))
         return false;
-
-    // write 'FOR4' length, only reserve it for now
-    if (littleendian())
-        swap_endian (&length);
-
-    if (!fwrite (&length, sizeof (length), 1, fd))
-        return false;  
 
     // write 'CIMG' type
-    tmpstr = "CIMG";
-    if (!fwrite (tmpstr.c_str(), tmpstr.length(), 1, fd))
+    if (! write_str ("CIMG"))
         return false;
-    
+
     // write 'TBHD' type
-    tmpstr = "TBHD";
-    if (!fwrite (tmpstr.c_str(), tmpstr.length(), 1, fd))
+    if (! write_str ("TBHD"))
         return false;
 
     // 'TBHD' length, 32 bytes
-    length = 32;
-    if (littleendian())
-        swap_endian (&length);
-      
-    if (!fwrite (&length, sizeof (length), 1, fd))
-        return false;  
+    if (! write_int (32))
+        return false;
 
-    // write width and height
-    if (littleendian()) {
-        swap_endian (&width);
-        swap_endian (&height);
-    }
+    if (! write_int (header.width) ||
+        ! write_int (header.height))
+    return false;
 
-    if (!fwrite (&width, sizeof (width), 1, fd) ||
-        !fwrite (&height, sizeof (height), 1, fd))
-    return false;    
+    // write prnum and prden (pixel aspect ratio? -- FIXME)
+    if (! write_short (1) ||
+        ! write_short (1))
+    return false;
 
-    // write prnum and prden
-    prnum = 1;
-    prden = 1;
-    if (littleendian()) {
-        swap_endian (&prnum);
-        swap_endian (&prden);
-    }
-
-    if (!fwrite (&prnum, sizeof (prnum), 1, fd) ||
-        !fwrite (&prden, sizeof (prden), 1, fd))
-    return false;   
-    
     // write flags and channels
-    if (pixel_channels == 3) {
-        flags = RGB;
-    } else {
-        flags = RGBA; 
-    }  
-
-    uint16_t tmpint;
-    if (pixel_bits == 8) {
-        tmpint = 0;
-    } else {
-        tmpint = 1;
-    }
-  
-    if (littleendian()) {
-        swap_endian (&flags);
-        swap_endian (&tmpint);
-    }
-  
-    if (!fwrite (&flags, sizeof (flags), 1, fd) ||
-        !fwrite (&tmpint, sizeof (tmpint), 1, fd))
-    return false;  
-
-    // write tiles
-    if (littleendian()) {
-        swap_endian (&tiles);
-    }
-
-    if (!fwrite (&tiles, sizeof (tiles), 1, fd))
-        return false;  
+    if (! write_int (header.pixel_channels == 3 ? RGB : RGBA) ||
+        ! write_short (header.pixel_bits == 8 ? 0 : 1) ||
+        ! write_short (header.tiles))
+        return false;
 
     // write compression
     // 0 no compression
     // 1 RLE compression
     // 2 QRL (not supported)
     // 3 QR4 (not supported)
-    if (littleendian()) {
-        swap_endian (&compression);
-    }
-  
-    if (!fwrite (&compression, sizeof (compression), 1, fd))
-        return false;  
-
-    // write x and y
-    if (littleendian()) {
-        swap_endian (&x);
-        swap_endian (&y);      
-    }
-  
-    if (!fwrite (&x, sizeof (x), 1, fd) ||
-        !fwrite (&y, sizeof (y), 1, fd))
-    return false;  
-    
-    // for4 position for later user in
-    // close
-            
-    for4_start = ftell (fd);
-
-    // write 'FOR4' type
-    tmpstr = "FOR4";
-    if (!fwrite (tmpstr.c_str(), tmpstr.length(), 1, fd))
+    if (! write_int (header.compression))
         return false;
 
-    // write 'FOR4' length, only reserve it for now
-    length = 0;
-    if (littleendian())
-        swap_endian (&length);
+    // write x and y
+    if (! write_int(header.x) || ! write_int(header.y))
+        return false;
 
-    if (!fwrite (&length, sizeof (length), 1, fd))
-        return false;  
-  
+    // Write metadata
+    write_meta_string ("AUTH", header.author);
+    write_meta_string ("DATE", header.date);
+
+    // for4 position for later user in close
+    header.for4_start = ftell (m_fd);
+
+    // write 'FOR4' type, with 0 length to reserve it for now
+    if (! write_str ("FOR4") ||
+        ! write_int (0))
+        return false;
+
     // write 'TBMP' type
-    tmpstr = "TBMP";
-    if (!fwrite (tmpstr.c_str(), tmpstr.length(), 1, fd))
+    if (! write_str ("TBMP"))
         return false;
 
     return true;

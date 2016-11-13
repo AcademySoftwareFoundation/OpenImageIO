@@ -181,6 +181,10 @@ Comparing "absdiffc.exr" and "ref/absdiffc.exr"
 PASS
 Comparing "chsum.tif" and "ref/chsum.tif"
 PASS
+Comparing "colormap-spectrum.tif" and "ref/colormap-spectrum.tif"
+PASS
+Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
+PASS
 Comparing "rgbahalf-zfloat.exr" and "ref/rgbahalf-zfloat.exr"
 PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
@@ -232,6 +236,8 @@ PASS
 Comparing "exprcropped.tif" and "ref/exprcropped.tif"
 PASS
 Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
+PASS
+Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
 PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS

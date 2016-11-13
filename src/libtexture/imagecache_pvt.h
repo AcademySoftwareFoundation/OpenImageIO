@@ -953,10 +953,7 @@ public:
     /// the number of simultaneously-opened files.
     void incr_open_files (void) {
         ++m_stat_open_files_created;
-        ++m_stat_open_files_current;
-        if (m_stat_open_files_current > m_stat_open_files_peak)
-            m_stat_open_files_peak = m_stat_open_files_current;
-        // FIXME -- can we make an atomic_max?
+        atomic_max (m_stat_open_files_peak, ++m_stat_open_files_current);
     }
 
     /// Called when a file is closed, so that the system can track
@@ -969,9 +966,7 @@ public:
     ///
     void incr_tiles (size_t size) {
         ++m_stat_tiles_created;
-        ++m_stat_tiles_current;
-        if (m_stat_tiles_current > m_stat_tiles_peak)
-            m_stat_tiles_peak = m_stat_tiles_current;
+        atomic_max (m_stat_tiles_peak, ++m_stat_tiles_current);
         m_mem_used += size;
     }
 
@@ -1134,7 +1129,7 @@ private:
             newval = oldval + incr;
             // Now try to atomically swap it, and repeat until we've
             // done it with nobody else interfering.
-        } while (llstat->bool_compare_and_swap (*llnewval,*lloldval));
+        } while (llstat->compare_exchange_strong (*llnewval,*lloldval));
 #endif
     }
 

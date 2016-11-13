@@ -736,7 +736,6 @@ Retrieve the number of channels.
 \apiend
 
 \apiitem{string_view {\ce channelname} (int c) const}
-\NEW % 1.7
 Retrieve the name of channel {\cf c}.
 \apiend
 
@@ -761,14 +760,12 @@ Set the number of samples for the given pixel index.
 \apiend
 
 \apiitem{void {\ce insert_samples} (int pixel, int samplepos, int n=1)}
-\NEW % 1.7
 Insert {\cf n} samples of the specified pixel, betinning at the sample
 position index. After insertion, the new samples will have uninitialized
 values.
 \apiend
 
 \apiitem{void {\ce erase_samples} (int pixel, int samplepos, int n=1)}
-\NEW % 1.7
 Remove {\cf n} samples of the specified pixel, betinning at the sample
 position index.
 \apiend
@@ -787,14 +784,12 @@ floating point or unsigned integer channel types, respectively.
 
 \apiitem{bool {\ce copy_deep_sample} (int pixel, int sample, \\
     \bigspc const DeepData \&src, int srcpixel, int srcsample)}
-\NEW % 1.7
 Copy a deep sample from {\cf src} to this \DeepData. They must have the same
 channel layout. Return {\cf true} if ok, {\cf false} if the operation could
 not be performed.
 \apiend
 
 \apiitem{bool {\ce copy_deep_pixel} (int pixel, const DeepData \&src, int srcpixel)}
-\NEW % 1.7
 Copy an entire deep pixel from {\cf src} to this \DeepData, completely
 replacing any pixel data for that pixel. They must have the same channel
 layout. Return {\cf true} if ok, {\cf false} if the operation could not be
@@ -802,17 +797,14 @@ performed.
 \apiend
 
 \apiitem{void {\ce split} (int pixel, float depth)}
-\NEW % 1.7
 Split any samples of the pixel that cross {\cf depth}.
 \apiend
 
 \apiitem{void {\ce sort} (int pixel)}
-\NEW % 1.7
 Sort the samples of the pixel by their Z depth.
 \apiend
 
 \apiitem{void {\ce merge_overlaps} (int pixel)}
-\NEW % 1.7
 Merge any adjacent samples in the pixel that exactly overlap in $z$
 range. This is only useful if the pixel has previously been split at
 all sample starts and ends, and sorted by depth. Note that this may change
@@ -820,14 +812,12 @@ the number of samples in the pixel.
 \apiend
 
 \apiitem{bool {\ce merge_deep_pixels} (int pixel, const DeepData \&src, int srcpixel)}
-\NEW % 1.7
 Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
 Return {\cf true} if ok, {\cf false} if the operation could not be
 performed.
 \apiend
 
 \apiitem{bool {\ce occlusion_cull} (int pixel)}
-\NEW % 1.7
 Eliminate any samples beyond an opaque sample.
 \apiend
 
@@ -944,7 +934,6 @@ by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiitem{string library_list}
 \vspace{10pt}
 \index{library_list}
-\NEW   % 1.7
 For each format that uses a dependent library, the format name, followed by
 a colon, followed by the name and version of the dependency. Semicolons
 separate the lists for formats.  For example,
@@ -1021,7 +1010,6 @@ string_view {\ce get_string_attribute} (string_view name, \\
 \bigspc\bigspc\bigspc  string_view defaultvalue="")}
 \indexapi{get_int_attribute} \indexapi{get_float_attribute}
 \indexapi{get_string_attribute}
-\NEW % 1.7
 Specialized versions of {\cf getattribute()} for common types, in which the
 data is returned directly, and a supplied default value is returned if the
 attribute was not found.

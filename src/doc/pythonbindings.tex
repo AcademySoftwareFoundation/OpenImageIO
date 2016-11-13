@@ -610,7 +610,6 @@ This {\cf int} field constains the number of channels.
 
 
 \apiitem{string DeepData.{\ce channelname} (c)}
-\NEW % 1.7
 Retrieve the name of channel {\cf c}.
 \apiend
 
@@ -635,7 +634,6 @@ index).
 
 \apiitem{DeepData.{\ce insert_samples} (pixel, samplepos, n) \\
 int DeepData.{\ce erase_samples} (pixel, samplepos, n)}
-\NEW % 1.7
 Insert or erase \emph{n} samples starting at the given position of an
 indexed pixel.
 \apiend
@@ -653,39 +651,32 @@ channel, and sample index (for float or uint channels, respectively).
 \apiend
 
 \apiitem{DeepData.{\ce copy_deep_sample} (pixel, sample, src, srcpixel, srcsample)}
-\NEW % 1.7
 Copy a deep sample from \DeepData {\cf src} into this \DeepData.
 \apiend
 
 \apiitem{DeepData.{\ce copy_deep_pixel} (pixel, src, srcpixel)}
-\NEW % 1.7
 Copy a deep pixel from \DeepData {\cf src} into this \DeepData.
 \apiend
 
 \apiitem{DeepData.{\ce split} (pixel, depth)}
-\NEW % 1.7
 Split any samples of the pixel that cross {\cf depth}.
 \apiend
 
 \apiitem{DeepData.{\ce sort} (pixel)}
-\NEW % 1.7
 Sort the samples of the pixel by their Z depth.
 \apiend
 
 \apiitem{DeepData.{\ce merge_overlaps} (pixel)}
-\NEW % 1.7
 Merge any adjacent samples in the pixel that exactly overlap in $z$
 range. This is only useful if the pixel has previously been split at
 all sample starts and ends, and sorted by depth.
 \apiend
 
 \apiitem{DeepData.{\ce merge_deep_pixels} (pixel, src, srcpixel)}
-\NEW % 1.7
 Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
 \apiend
 
 \apiitem{DeepData.{\ce occlusion_cull} (pixel)}
-\NEW % 1.7
 Eliminate any samples beyond an opaque sample.
 \apiend
 
@@ -1607,7 +1598,6 @@ retrieve the error message (and clear it afterwards).
 \apiend
 
 \apiitem{int ImageBuf.{\ce pixelindex} (x, y, z, check_range=False)}
-\NEW %1.7
 Return the index of pixel (x,y,z).
 \apiend
 
@@ -1626,7 +1616,6 @@ Set the number of deep samples for pixel (x,y,z).
 
 \apiitem{ImageBuf.{\ce deep_insert_samples} (x, y, z, samplepos, nsamples) \\
 int ImageBuf.{\ce deep_erase_samples} (x, y, z, samplepos, nsamples)}
-\NEW % 1.7
 Insert or erase \emph{nsamples} samples starting at the given position of
 pixel {\cf (x,y,z)}.
 \apiend
@@ -1778,7 +1767,6 @@ Choosing different seed values will result in a different pattern.
 
 \apiitem{bool ImageBufAlgo.{\ce render_point} (dst, x, y, color=(1,1,1,1))}
 \index{ImageBufAlgo!render_point} \indexapi{render_point}
-\NEW % 1.7
 
 Render a point at pixel $(x,y)$ of {\cf dst}.  The {\cf color} (if supplied)
 is a tuple giving the per-channel colors.
@@ -1795,7 +1783,6 @@ is a tuple giving the per-channel colors.
 \apiitem{bool ImageBufAlgo.{\ce render_line} (dst, x1, y1, x2, y2, \\
 \bigspc\bigspc color=(1,1,1,1), skip_first_point=False)}
 \index{ImageBufAlgo!render_line} \indexapi{render_line}
-\NEW % 1.7
 
 Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}.  The
 {\cf color} (if supplied) is a tuple giving the per-channel colors.
@@ -1812,7 +1799,6 @@ Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}.  The
 \apiitem{bool ImageBufAlgo.{\ce render_box} (dst, x1, y1, x2, y2, \\
 \bigspc\bigspc color=(1,1,1,1), filled=False)}
 \index{ImageBufAlgo!render_box} \indexapi{render_box}
-\NEW % 1.7
 
 Render a filled or unfilled box with corners at pixels $(x_1,y_1)$ and
 $(x_2,y_2)$ into {\cf dst}.  The {\cf color} (if supplied) is a tuple giving
@@ -2352,8 +2338,37 @@ channel (if not supplied, all channels will have weight 1.0).
 \begin{code}
     # Compute luminance via a weighted sum of R,G,B
     # (assuming Rec709 primaries and a linear scale)
+    luma = ImageBuf()
     luma_weights = (.2126, .7152, .0722)
     ImageBufAlgo.channel_sum (luma, ImageBuf("a.exr"), luma_weights)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
+        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
+        mapname, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!color_map} \indexapi{color_map}
+\NEW % 1.8
+Set pixels of {\cf dst} by applying the color map to the values of {\cf
+src}, using either the channel specified by {\cf srcchannel}, or the
+luminance of {\cf src}'s RGB if {\cf srcchannel} is -1.
+
+In the first variant, the values linearly-interpolated color map are
+given by the tuple {\cf knots[nknots*channels]}.
+
+In the second variant, just the name of a color map is specified. Recognized
+map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
+cases, the implied {\cf channels} is 3.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    heatmap = ImageBuf()
+    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, "heat")
+    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, 3, 3,
+                            (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
 \end{code}
 \apiend
 
@@ -2763,7 +2778,6 @@ a kernel (also an \ImageBuf).
 
 \apiitem{bool ImageBufAlgo.{\ce laplacian} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!laplacian} \indexapi{laplacian}
-\NEW % 1.7
 Replace the given ROI of {\cf dst} with the Laplacian of the corresponding
 part of {\cf src}.
 
@@ -2897,7 +2911,6 @@ bool ImageBufAlgo.{\ce erode} (dst, src, width=3, height=-1, \\
   \bigspc\spc  roi=ROI.All, nthreads=0) }
 \index{ImageBufAlgo!dilate} \indexapi{dilate}
 \index{ImageBufAlgo!erode} \indexapi{erode}
-\NEW % 1.7
 
 Replace the given ROI of {\cf dst} with a dilated or eroded version of the
 corresponding region of {\cf src}.
@@ -2936,9 +2949,7 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
 
 \apiitem{bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
   unpremult=False, \\
-  \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
-  unpremult=False, \\
+  \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
 }
 \index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
@@ -2959,10 +2970,6 @@ are supported.
 
 \apiitem{bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
   \bigspc\bigspc  inverse=False, unpremult=False, \\
-  \bigspc\bigspc context_key="", context_value="", \\
-  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
- bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to, \\
-  \bigspc\bigspc inverse=False, unpremult=False, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
@@ -2983,10 +2990,6 @@ are supported.
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
-  \bigspc\bigspc from=None, looks=None, unpremult=False, \\
-  \bigspc\bigspc context_key="", context_value="", \\
-  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
   \bigspc\bigspc from=None, looks=None, unpremult=False, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
@@ -3118,7 +3121,6 @@ recognized attribute.
 {\ce get_int_attribute} (name, defaultval=0) \\
 {\ce get_float_attribute} (name, defaultval=0.0) \\
 {\ce get_string_attribute} (name, defaultval="")}
-\NEW % 1.7
 Retrieves an attribute value from the named set of global OIIO options. (See
 Section~\ref{sec:globalattribute}.) The {\cf getattribute()} function
 returns the value regardless of type, or {\cf None} if the attribute does

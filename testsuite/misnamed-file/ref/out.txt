@@ -9,7 +9,6 @@ misnamed.exr         : 1000 x 1000, 4 channel, uint8 tiff
     ResolutionUnit: "in"
     Software: "GraphicsMagick 1.3.6 2009-07-25 Q8 http://www.GraphicsMagick.org/"
     DocumentName: "g.tif"
-    tiff:PageNumber: 0
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"

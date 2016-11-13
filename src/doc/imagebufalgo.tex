@@ -235,7 +235,6 @@ error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
   \bigspc\spc\spc array_view<const float> color, \\
   \bigspc\spc\spc oi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!render_point} \indexapi{render_point}
-\NEW % 1.7
 Render a point into the destination image,  doing an ``over'' of color (if
 it includes an alpha channel). The {\cf color} value should have at least as
 many entires as the ROI (which will default to being the entirety of
@@ -256,7 +255,6 @@ many entires as the ROI (which will default to being the entirety of
   \bigspc\spc\spc bool skip_first_point=false,\\
   \bigspc\spc\spc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!render_line} \indexapi{render_line}
-\NEW % 1.7
 Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}, doing an
 ``over'' of the color (if it includes an alpha channel) onto the existing
 data in {\cf dst}. The {\cf color} must include as many values as {\cf
@@ -283,7 +281,6 @@ vertex positions).
   \bigspc\spc\spc array_view<const float> color, bool fill=false,\\
   \bigspc\spc\spc oi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!render_box} \indexapi{render_box}
-\NEW % 1.7
 
 Render a filled or unfilled box with corners at pixels $(x_1,y_1)$ and
 $(x_2,y_2)$ into {\cf dst}, doing an ``over'' of the color (if it includes
@@ -1100,6 +1097,60 @@ per-channel weight (rather than defaulting to 1.0 for each channel).
 \apiend
 
 
+
+\apiitem{bool {\ce color_map} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc\spc int srcchannel, int nknots, int channels, \\
+        \bigspc\spc array_view<const float> knots, \\
+        \bigspc\spc ROI roi=ROI::All(), int nthreads=0) \\
+bool {\ce color_map} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc\spc int srcchannel, string_view mapname, \\
+        \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!color_map} \indexapi{color_map}
+\NEW % 1.8
+
+Set pixels of {\cf dst} to colors with values determined by looking up a
+color map using values of the {\cf src} image, using either the channel
+specified by {\cf srcchannel}, or the luminance of {\cf src}'s RGB if {\cf
+srcchannel} is -1. This happens for all pixels within the ROI (which
+defaults to all of {\cf src}), and if {\cf dst} is not already initialized,
+it will be initialized to the ROI and with color channels equal to {\cf channels}.
+
+In the first variant, the values linearly-interpolated color map are
+given by {\cf knots[nknots*channels]}.
+An input value of 0.0 corresponds to {\cf knots[0..channels-1]}, an input
+value of 1.0 corresponds to {\cf knots[(nknots-1)*channels..knots.size()-1]}.
+
+In the second variant, just the name of a color map is specified. Recognized
+map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
+cases, the implied {\cf channels} is 3.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Use luminance of a.exr (assuming Rec709 primaries and a linear
+    // scale) and map to a color spectrum:
+    ImageBuf A ("a.exr");
+    ImageBuf B;
+    ImageBufAlgo::color_map (B, A, -1, "spectrum");
+
+    float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
+    ImageBufAlgo::color_map (B, A, -1 /* use luminance */,
+                             3 /* num knots */, 3 /* channels */,
+                             mymap);
+\end{code}
+
+\noindent \begin{tabular}{lllll}
+\includegraphics[width=0.9in]{figures/tahoe-small.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-blue-red.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-spectrum.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-heat.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-custom.jpg} \\
+original & red-blue & spectrum & heat & custom values \\
+\end{tabular}
+\apiend
+
+
+
 \apiitem{bool {\ce clamp} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc float min = -std::numeric_limits<float>::max(), \\
   \bigspc float max = std::numeric_limits<float>::max(), \\
@@ -1678,7 +1729,6 @@ original & blurred \\
 \apiitem{bool {\ce laplacian} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!laplacian} \indexapi{laplacian}
-\NEW % 1.7
 Replace the given ROI of {\cf dst} with the Laplacian of the corresponding
 region of {\cf src}. The Laplacian is the generalized second derivative
 of the image,
@@ -1889,7 +1939,6 @@ bool {\ce erode} (ImageBuf \&dst, const ImageBuf \&src, \\
 \index{ImageBufAlgo!dilate} \indexapi{dilate}
 \index{ImageBufAlgo!erode} \indexapi{erode}
 \index{morphological filtering}
-\NEW % 1.7
 
 Replace the given ROI of {\cf dst} with the dilated or eroded version of the
 corresponding region of {\cf src}.  The dilate operation replaces each pixel
@@ -2000,6 +2049,7 @@ higher-contrast edges.
 
 \apiitem{bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view from, string_view to, bool unpremult=false, \\
+  \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
@@ -2023,6 +2073,9 @@ is passed, the default OCIO color configuration found by examining the {\cf
 The second form is directly passed a {\cf ColorProcessor}, which is is a
 special object created by a {\cf ColorConfig} (see {\cf OpenImageIO/color.h}
 for details).
+
+The {\cf context_key} and {\cf context_value} may optionally be used
+to establish a context (for example, a shot-specific transform).
 
 If OIIO was built with OpenColorIO support enabled, then the transformation
 may be between any two spaces supported by the active OCIO configuration, or
@@ -2056,14 +2109,14 @@ to \qkw{linear} and vice versa.
 \apiitem{bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view looks, string_view from, string_view to, \\
   \bigspc\spc bool inverse=false, bool unpremult=false, \\
-  \bigspc\spc string_view key="", string_view value="", \\
+  \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
 applying an OpenColorIO ``look'' transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.  The {\cf key} and {\cf value} may optionally be used
+are supported.  The {\cf context_key} and {\cf context_value} may optionally be used
 to establish a context (for example, a shot-specific transform).
 
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
@@ -2495,7 +2548,6 @@ alteration.
 \apiitem{bool {\ce deep_merge} (ImageBuf \&dst, const ImageBuf \&A, const ImageBuf \&B, \\
         \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!deep_merge} \indexapi{deep_merge} \index{deep images}
-\NEW % 1.7
 Merge the sample of two \emph{deep} images {\cf A} and {\cf B} into deep
 result {\cf dst}.
 
@@ -2565,7 +2617,6 @@ values {\cf B[]}, storing the result in deep image {\cf dst}.
   \bigspc\spc int *pixelsFixed = NULL, \\
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
-\NEW % 1.7
 Repair nonfinite ({\cf NaN} or {\cf Inf}) values, setting them to 0.0.
 \apiend
 

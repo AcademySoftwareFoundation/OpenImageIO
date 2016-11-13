@@ -2,7 +2,7 @@ Release 1.8 (in progress) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
  * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
- * Boost >= 1.50
+ * **Boost >= 1.50**
 
 Major new features and improvements:
 * New oiiotool commands:
@@ -11,32 +11,70 @@ Major new features and improvements:
    * `--info:verbose=1` verbose option make file info print full metadata,
      but without needing to make other oiiotool operations verbose as would
      happen with `--info -v`. #1504 (1.8.0)
+   * `--colormap` applies a color map based on the input values; the
+     map can be one of several named ones, or given explicitly with
+     numerical values. #1552 (1.8.1)
 * New ImageBufAlgo functions:
+   * `color_map()` applies a color map based on the input values; the
+     map can be one of several named ones, or given explicitly with
+     numerical values. #1552 (1.8.1)
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of
   the contents of the ImageSpec. It may be text (human readable, like
   is printed by `oiiotool -info -v`) or XML. #1504 (1.8.0)
+* ColorConig::createLookTransform() and createDisplayTransform() have been
+  extended to allow multiple key/value context pairs, by making them
+  comma-separated lists. The createColorProcessor() method has also been
+  extended to take context key/value pairs. #1542 (1.7.8, 1.8.0)
+
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:
    * `--chappend` resolves redundant channel names by using the subimage
      name, if available. #1498 (1.8.0/1.7.8)
    * `--mosaic` now gracefully handles the case of not having enough
-      images to completely fill the MxN matrix, with "left over" slots
-      black. #1501 (1.8.0/1.7.8)
+     images to completely fill the MxN matrix, with "left over" slots
+     black. #1501 (1.8.0/1.7.8)
+   * When command line arguments fail to parse properly, `oiiotool` will
+     exit with a non-zero shell status. #1540 (1.8.0)
+   * `--colorconvert`, `--ociodisplay`, and `--ociolook` can now take
+     multiple context key/value pairs (by allowing `key=` and `value=`
+     optional paramters be comma-separated lists). #1504 (1.8.0)
+   * Handle 'oiiotool --colorconvert X X' (transform from and to spaces that
+     are the same) without considering it an error. #1550 (1.8.0/1.7.8)
+   * Expression substitution now recognizes the following new metadata
+     names: MINCOLOR, MAXCOLOR, AVGCOLOR. An example use is to stretch
+     the value range of an image to fill the full [0-1] range:
+        oiiotool in.exr -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.exr
+     #1553 (1.8.1)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
+   * `colorconvert()`, `ociodisplay()`, and `ociolook()` can now take
+     multiple context key/value pairs (by allowing they `context_key` and
+     `context_value` paramters be comma-separated lists). #1504 (1.8.0)
 * TextureSystem / ImageCache:
    * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
      on UDIM file patterns now succeed, returning the value for the first
      matching file it finds. (N.B.: Relies on all textures within the same
-     UDIM set having the same nchannels.) #1502, #1519 (1.8.0/1.7.8)
+     UDIM set having the same nchannels.) #1502, #1519, #1530 (1.8.0/1.7.8)
    * maketx: multiple simultaneous maketx process trying to create the same
      texture will no longer clobber each other's output. #1525 (1.8.0/1.7.8)
 * Bug fix to possible crashes when adding dither to tiled file output
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
+* IFF:
+   * Fix IFF output that didn't correctly save the "Author" and "Date"
+     metadata. #1549 (1.8.1/1.7.8)
+* RAW:
+   * Fix possible crash when reading certain raw metadata. #1547 (1.7.8/1.8.0)
+* RLA:
+   * Fix RLA reading and writing with certain channel orders and mixded data
+     formats. #1499 (1.8.0/1.7.8)
+* TIFF:
+   * Fix to TIFF handling of certain unusual tags. #1547 (1.7.8/1.8.0)
+* Nuke plugin: Fix txReader to properly restore saved MIP level knob value.
+  #1531 (1.8.0)
 
 Build/test system improvements:
 * Support for building against ffmpeg 3.1 (their API has changed).
@@ -44,12 +82,68 @@ Build/test system improvements:
 * Build no longer gets confused about include files from older installations
   of OIIO elsewhere on the system. #1524 (1.8.0/1.7.8)
 * Improvements in finding OpenJPEG. #1520 (1.8.0/1.7.8)
+* Improved finding of OCIO headers. #1528 (1.8.0/1.7.8)
+* Fix compile warnings for Clang 3.9. #1529 (1.8.0/1.7.8)
+* Minimum C++ standard of C++11 is expected and enforced. #1513 (1.8.0)
+* Minimum Boost is now 1.50. #1526 (1.8.0)
 
 Developer goodies / internals:
+* Sysutil::Term formatting now works properly in Windows (though is only
+  functional for Windows 10 or above). (1.8.0/1.7.8) #1527
+* C++11 idioms:
+   * We now eschew BOOST_FOREACH, in favor of C++11 "range for". #1535
+   * We now use std::unique_ptr, no longer use boost::scoped_ptr or
+     boost::scoped_array. #1543 (1.8.0)
+* fmath.h:
+   * Fixed typo in fmath.h that made bitcast_to_float incorrect. #1543 (1.8.0)
+   * Templatize round_to_multiple() so it works with types other than `int`.
+     #1548 (1.8.0)
 
 
 
-
+Release 1.7.8 (1 Nov 2016) -- compared to 1.7.7
+----------------------------------------------
+* Fix gcc warnings when compiling for AVX2. #1511
+* Fix a variety of Windows warnings and breaks. #1512, #1523
+* Added support for new API introduced with ffmpeg 3.1. #1515
+* Improve oiiotool --mosaic, wasn't reliably clearing the blank spaces
+  for missing images.
+* Smarter channel_append channel renaming: try to resolve redundant
+  channel names by using the subimage name, if available. #1498
+* Texture: get_image_info queries for "channels" on UDIM file patterns
+  now succeeds, returning the value for the first matching file it finds.
+  (Relies on all textures within the same UDIM set having the same
+  nchannels.) #1502, #1519
+* Bug fix to possible crashes when adding dither to tiled file output
+  (buffer size miscalculation). #1518
+* maketx: multiple simultaneous maketx process trying to create the same
+  texture will no longer clobber each other's output. #1525
+* Build no longer gets confused about include files from older installations
+  of OIIO elsewhere on the system. #1524
+* Improvements in finding OpenJPEG. #1520
+* Sysutil::Term formatting now works properly in Windows (though is only
+  functional for Windows 10 or above). #1527
+* Fix RLA reading and writing with certain channel orders and mixded data
+  formats. #1499
+* Improved finding of OCIO headers. #1528
+* Better recognition of C++11 features in MSVS.
+* Fix compile warnings with Clang 3.9. #1529
+* Texture: Fix UDIM channels query. #1530
+* nuke: Fix txReader to properly restore saved mip level knob value (#1531)
+* Fix warnings on some 32 bit platforms #1539
+* Exit oiiotool with non-zero status when command-line args fail to
+  parse properly. #1540
+* Fix typo in fmath bitcast_to_float declaration #1543
+* Allow multiple key/value pairs in OCIO wrappers. #1542
+* colorconvert API extended to take context key/values #1542
+* Fix to TIFF handling of certain unusual tags, which also affected raw
+  files. #1547
+* fmath.h: templatize round_to_multiple so it works with other types
+  (like size_t). #1548
+* Fix IFF output that didn't correctly save the "Author" and "Date"
+  metadata. #1549
+* Handle 'oiiotool --colorconvert X X' (transform from and to spaces that
+  are the same) without considering it an error. #1550
 
 Release 1.7 (1 Oct 2016) -- compared to 1.6.x
 ----------------------------------------------
@@ -443,6 +537,16 @@ Developer goodies / internals:
  * Sysutil::Term class makes it easy to use color output on the terminal.
    #1479 (1.7.5)
 
+
+
+Release 1.6.18 (released 1 Nov 2016 -- compared to 1.6.17)
+------------------------------------------------
+* Fix setting "chromaticity" metadata in EXR files. #1487
+* maketx: multiple simultaneous maketx process trying to create the same
+  texture will no longer clobber each other's output. #1525
+* Fix compile warnings with Clang 3.9. #1529
+* Fix IFF output that didn't correctly save the "Author" and "Date"
+  metadata. #1549
 
 
 Release 1.6.17 (released 1 Sep 2016 -- compared to 1.6.16)

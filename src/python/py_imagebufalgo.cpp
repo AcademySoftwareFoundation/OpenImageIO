@@ -680,6 +680,43 @@ IBA_channel_sum (ImageBuf &dst, const ImageBuf &src,
 }
 
 
+bool
+IBA_color_map_values (ImageBuf &dst, const ImageBuf &src, int srcchannel,
+                      int nknots, int channels, tuple knots_tuple,
+                      ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> knots;
+    py_to_stdvector (knots, knots_tuple);
+    if (! src.initialized()) {
+        dst.error ("Uninitialized source image for color_map");
+        return false;
+    }
+    if (! knots.size()) {
+        dst.error ("No knot values supplied");
+        return false;
+    }
+    ScopedGILRelease gil;
+    return ImageBufAlgo::color_map (dst, src, srcchannel, nknots, channels,
+                                    knots, roi, nthreads);
+}
+
+
+bool
+IBA_color_map_name (ImageBuf &dst, const ImageBuf &src, int srcchannel,
+                    const std::string& mapname,
+                    ROI roi=ROI::All(), int nthreads=0)
+{
+    if (! src.initialized()) {
+        dst.error ("Uninitialized source image for color_map");
+        return false;
+    }
+    ScopedGILRelease gil;
+    return ImageBufAlgo::color_map (dst, src, srcchannel, mapname,
+                                    roi, nthreads);
+}
+
+
+
 bool IBA_rangeexpand (ImageBuf &dst, const ImageBuf &src,
                       bool useluma = false,
                       ROI roi = ROI::All(), int nthreads=0)
@@ -975,12 +1012,16 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
 bool
 IBA_colorconvert_colorconfig (ImageBuf &dst, const ImageBuf &src,
                   const std::string &from, const std::string &to,
-                  bool unpremult = false, const std::string &colorconfig="",
+                  bool unpremult = false,
+                  const std::string &context_key="",
+                  const std::string &context_value="",
+                  const std::string &colorconfig="",
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ColorConfig config (colorconfig);
     ScopedGILRelease gil;
     return ImageBufAlgo::colorconvert (dst, src, from, to, unpremult,
+                                       context_key, context_value,
                                        &config, roi, nthreads);
 }
 
@@ -1481,6 +1522,15 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("channel_sum")
 
+        .def("color_map", &IBA_color_map_name,
+             (arg("dst"), arg("src"), arg("srcchannel"), arg("mapname"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .def("color_map", &IBA_color_map_values,
+             (arg("dst"), arg("src"), arg("srcchannel"),
+              arg("nknots"), arg("channels"), arg("knots"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("color_map")
+
         .def("rangecompress", &IBA_rangecompress,
              (arg("dst"), arg("src"), arg("useluma")=false,
               arg("roi")=ROI::All(), arg("nthreads")=0))
@@ -1520,8 +1570,10 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .def("colorconvert", &IBA_colorconvert_colorconfig,
              (arg("dst"), arg("src"),
-              arg("from"), arg("to"), 
-              arg("unpremult")=false, arg("colorconfig")="",
+              arg("from"), arg("to"),
+              arg("unpremult")=false,
+              arg("context_key")="", arg("context_value")="",
+              arg("colorconfig")="",
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("colorconvert")
 

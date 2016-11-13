@@ -626,13 +626,11 @@ allocated, this is equivalent to inserting or erasing samples.
 \apiend
 
 \apiitem{void {\ce deep_insert_samples} (int x, int y, int z, int samplepos, int nsamples)}
-\NEW % 1.7
 Insert {\cf nsamples} new samples, starting at position {\cf samplepos} of
 pixel {\cf (x,y,z)}.
 \apiend
 
 \apiitem{void {\ce deep_erase_samples} (int x, int y, int z, int samplepos, int nsamples)}
-\NEW % 1.7
 Remove {\cf nsamples} new samples, starting at position {\cf samplepos} of
 pixel {\cf (x,y,z)}.
 \apiend
@@ -701,7 +699,6 @@ aren't local (for example, if backed by an \ImageCache).
 \apiend
 
 \apiitem{int {\ce pixelindex} (int x, int y, int z, bool check_range=false) const}
-\NEW %1.7
 Return the index of pixel (x,y,z). If {\cf check_range} is {\cf true},
 return -1 for an invalid coordinate that is not within the data window.
 \apiend

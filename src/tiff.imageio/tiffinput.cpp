@@ -213,7 +213,7 @@ private:
             std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
                       << name << " " << (void *)ptr << "\n";
 #endif
-//            return false;
+            return false;
         }
         return ok;
     }
@@ -221,9 +221,19 @@ private:
     // Get a string tiff tag field and put it into extra_params
     void get_string_attribute (const std::string &name, int tag) {
         char *s = NULL;
-        if (safe_tiffgetfield (name, tag, &s))
-            if (s && *s)
-                m_spec.attribute (name, s);
+        void *ptr = NULL;  // dummy -- expect it to stay NULL
+        bool ok = TIFFGetField (m_tif, tag, &s, &ptr);
+        if (ok && ptr) {
+            // Oy, some tags need 2 args, which are count, then ptr.
+            // There's no way to know ahead of time which ones, so we send
+            // a second pointer. If it gets overwritten, then we understand
+            // and try it again with 2 args, first one is count.
+            unsigned short count;
+            ok = TIFFGetField (m_tif, tag, &count, &s);
+            m_spec.attribute (name, string_view(s,count));
+        }
+        else if (ok && s && *s)
+            m_spec.attribute (name, s);
     }
 
     // Get a matrix tiff tag field and put it into extra_params

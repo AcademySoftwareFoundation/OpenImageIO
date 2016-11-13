@@ -939,6 +939,27 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
                 std::string filename = img->name();
                 std::string ext = Filesystem::extension (img->name());
                 result = filename.substr (0, filename.size()-ext.size());
+            } else if (metadata == "MINCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.min.size(); ++i)
+                    out << (i ? "," : "") << pixstat.min[i];
+                result = out.str();
+            } else if (metadata == "MAXCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.max.size(); ++i)
+                    out << (i ? "," : "") << pixstat.max[i];
+                result = out.str();
+            } else if (metadata == "AVGCOLOR") {
+                ImageBufAlgo::PixelStats pixstat;
+                ImageBufAlgo::computePixelStats (pixstat, (*img)(0,0));
+                std::stringstream out;
+                for (size_t i = 0; i < pixstat.avg.size(); ++i)
+                    out << (i ? "," : "") << pixstat.avg[i];
+                result = out.str();
             } else {
                 express_error (expr, s, Strutil::format ("unknown attribute name `%s'", metadata));
                 result = orig;
@@ -1636,8 +1657,11 @@ public:
         return true;
     }
     virtual int impl (ImageBuf **img) {
+        string_view contextkey = options["key"];
+        string_view contextvalue = options["value"];
         return ImageBufAlgo::colorconvert (*img[0], *img[1],
                                            fromspace, tospace, false,
+                                           contextkey, contextvalue,
                                            &ot.colorconfig);
     }
     string_view fromspace, tospace;
@@ -2457,6 +2481,32 @@ action_chsum (int argc, const char *argv[])
     ot.function_times[command] += timer();
     return 0;
 }
+
+
+
+class OpColormap : public OiiotoolOp {
+public:
+    OpColormap (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual int impl (ImageBuf **img) {
+        if (isalpha(args[1][0])) {
+            // Named color map
+            return ImageBufAlgo::color_map (*img[0], *img[1], -1, args[1],
+                                            img[1]->roi(), 0);
+        } else {
+            // Values
+            std::vector<float> knots;
+            int n = Strutil::extract_from_list_string (knots, args[1]);
+            return ImageBufAlgo::color_map (*img[0], *img[1], -1,
+                                            n/3, 3, knots,
+                                            img[1]->roi(), 0);
+        }
+    }
+};
+
+OP_CUSTOMCLASS (colormap, OpColormap, 1);
+
+
 
 
 
@@ -4738,6 +4788,7 @@ getargs (int argc, char *argv[])
                 "--noise %@", action_noise, NULL, "Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0",
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
+                "--colormap %s %@", action_colormap, NULL, "Color map based on channel 0 (arg: \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--trim %@", action_trim, NULL, "Crop to the minimal ROI containing nonzero pixel values",
@@ -4838,7 +4889,7 @@ getargs (int argc, char *argv[])
                 "--tocolorspace %@ %s", action_tocolorspace, NULL,
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
-                    "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                    "Convert pixels from 'src' to 'dst' color space (options: key=, value=)",
                 "--ociolook %@ %s", action_ociolook, NULL,
                     "Apply the named OCIO look (options: from=, to=, inverse=, key=, value=)",
                 "--ociodisplay %@ %s %s", action_ociodisplay, NULL, NULL,

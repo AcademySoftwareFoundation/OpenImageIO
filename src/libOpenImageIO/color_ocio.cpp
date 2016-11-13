@@ -507,11 +507,37 @@ public:
 
 
 
+// ColorProcessor that does nothing (identity transform)
+class ColorProcessor_Ident : public ColorProcessor {
+public:
+    ColorProcessor_Ident () : ColorProcessor() { };
+    ~ColorProcessor_Ident () { };
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+    }
+};
+
+
+
 ColorProcessor*
 ColorConfig::createColorProcessor (string_view inputColorSpace,
                                    string_view outputColorSpace) const
 {
+    return createColorProcessor (inputColorSpace, outputColorSpace, "", "");
+}
+
+
+
+ColorProcessor*
+ColorConfig::createColorProcessor (string_view inputColorSpace,
+                                   string_view outputColorSpace,
+                                   string_view context_key,
+                                   string_view context_value) const
+{
     string_view inputrole, outputrole;
+    std::string pending_error;
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -529,14 +555,29 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
             outputrole = outputColorSpace;
             outputColorSpace = name;
         }
+
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+        OCIO::ConstContextRcPtr context = config->getCurrentContext();
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
+            OCIO::ContextRcPtr ctx = context->createEditableCopy();
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
+            context = ctx;
+        }
+
         try {
             // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(inputColorSpace.c_str(),
+            p = getImpl()->config_->getProcessor(context, inputColorSpace.c_str(),
                                                  outputColorSpace.c_str());
         }
         catch(OCIO::Exception &e) {
-            getImpl()->error_ = e.what();
-            return NULL;
+            // Don't quit yet, remember the error and see if any of our
+            // built-in knowledge of some generic spaces will save us.
+            p.reset();
+            pending_error = e.what();
         }
         catch(...) {
             getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
@@ -557,21 +598,27 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     // was found at all.  There are a few color conversions we know
     // about even in such dire conditions.
     using namespace Strutil;
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear")) &&
-        iequals(outputColorSpace,"sRGB")) {
+    if (iequals(inputColorSpace,outputColorSpace)) {
+        return new ColorProcessor_Ident;
+    }
+    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh"))
+        && iequals(outputColorSpace,"sRGB")) {
         return new ColorProcessor_linear_to_sRGB;
     }
     if (iequals(inputColorSpace,"sRGB") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear"))) {
+        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
         return new ColorProcessor_sRGB_to_linear;
     }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear")) &&
+    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
         iequals(outputColorSpace,"Rec709")) {
         return new ColorProcessor_linear_to_Rec709;
     }
     if (iequals(inputColorSpace,"Rec709") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear"))) {
-        // No OCIO, or the OCIO config doesn't know linear->sRGB
+        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
         return new ColorProcessor_Rec709_to_linear;
     }
 
@@ -583,6 +630,8 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
     }
 #endif
 
+    if (pending_error.size())
+        getImpl()->error_ = pending_error;
     return NULL;    // if we get this far, we've failed
 }
 
@@ -594,7 +643,7 @@ ColorConfig::createLookTransform (string_view looks,
                                   string_view outputColorSpace,
                                   bool inverse,
                                   string_view context_key,
-                                  string_view context_val) const
+                                  string_view context_value) const
 {
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
@@ -619,9 +668,13 @@ ColorConfig::createLookTransform (string_view looks,
             dir = OCIO::TRANSFORM_DIR_FORWARD;
         }
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        if (context_key.size() && context_val.size()) {
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
-            ctx->setStringVar (context_key.c_str(), context_val.c_str());
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
             context = ctx;
         }
 
@@ -673,9 +726,13 @@ ColorConfig::createDisplayTransform (string_view display,
             transform->setLooksOverrideEnabled(false);
         }
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        if (context_key.size() && context_value.size()) {
+        std::vector<string_view> keys, values;
+        Strutil::split (context_key, keys, ",");
+        Strutil::split (context_value, values, ",");
+        if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
-            ctx->setStringVar (context_key.c_str(), context_value.c_str());
+            for (size_t i = 0; i < keys.size(); ++i)
+                ctx->setStringVar (keys[i].c_str(), values[i].c_str());
             context = ctx;
         }
 
@@ -789,6 +846,20 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             bool unpremult, ColorConfig *colorconfig,
                             ROI roi, int nthreads)
 {
+    return colorconvert (dst, src, from, to, unpremult, "", "",
+                         colorconfig, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult, string_view context_key,
+                            string_view context_value,
+                            ColorConfig *colorconfig,
+                            ROI roi, int nthreads)
+{
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -803,12 +874,14 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             colorconfig = default_colorconfig.get();
         if (! colorconfig)
             default_colorconfig.reset (colorconfig = new ColorConfig);
-        processor = colorconfig->createColorProcessor (from, to);
+        processor = colorconfig->createColorProcessor (from, to,
+                                                context_key, context_value);
         if (! processor) {
             if (colorconfig->error())
                 dst.error ("%s", colorconfig->geterror());
             else
-                dst.error ("Could not construct the color transform");
+                dst.error ("Could not construct the color transform %s -> %s",
+                           from, to);
             return false;
         }
     }

@@ -2,28 +2,13 @@
 
 language: cpp
 sudo: false
-compiler:
-    - clang
-    - gcc
-os:
-    - linux
-    - osx
 osx_image: xcode7.3
-dist: trusty
+dist: precise
 
-env:
-    # The tests we run for both platforms:
-    matrix:
-      # Basic C++11 build
-      - USE_CPP=11
-      # DEBUG build
-      - DEBUG=1
-      # The rest of the tests will be spelled out individually in the
-      # 'matrix' section at the bottom of this file.
 
 # Add-ons: specify apt packages for Linux
 addons:
-  apt: 
+  apt:
    sources:
       - boost-latest
       - ubuntu-toolchain-r-test
@@ -40,7 +25,7 @@ addons:
       - libopenjpeg-dev
       - libwebp-dev
       - ffmpeg
-      - freetype6-dev
+      - libfreetype6-dev
       - libjpeg-turbo8-dev
       # - bzip2
       # - libtinyxml-dev
@@ -117,17 +102,27 @@ matrix:
         compiler: clang
 
     include:
-    # test with C++14
+    # test default compile: C++11, optimized, default compilers
+      - os: linux
+        compiler: gcc
+      - os: osx
+        compiler: clang
+    # test debug build
+      - os: linux
+        compiler: gcc
+        env: DEBUG=1
+      - os: osx
+        compiler: clang
+        env: DEBUG=1
+    # test with C++14, most modern compiler
       - os: osx
         compiler: clang
         env: USE_CPP=14
       - os: linux
-        dist: trusty
         compiler: gcc
         env: WHICHGCC=6 USE_CPP=14
     # Build with a higher SIMD level (SSE4.2). Only bother testing linux.
       - os: linux
-        dist: trusty
         compiler: gcc
         env: USE_SIMD=sse4.2
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
@@ -135,7 +130,6 @@ matrix:
       # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
       # complaining about PIC issues.
       # - os: linux
-      #   dist: trusty
       #   compiler: gcc
       #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
       - os: osx
@@ -147,12 +141,10 @@ matrix:
     # on Linux for now, but eventually we'll want to separate these concerns
     # into separate tests.
       - os: linux
-        dist: trusty
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx,f16c
     # Linux only: test gcc 5
       - os: linux
-        dist: trusty
         compiler: gcc
         env: WHICHGCC=5
     # One more, just for the heck of it, turn all SIMD off, and also make
@@ -160,13 +152,11 @@ matrix:
     # should/could be both platforms, but in the interest of making the
     # tests go faster, don't bother doing it on OSX.
       - os: linux
-        dist: trusty
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
-      #   dist: trusty
       #   compiler: gcc
       #   env: EMBEDPLUGINS=0
       # FIXME: don't have OSX EMBEDPLUGINS=0 working yet on Travis (though

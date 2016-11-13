@@ -122,6 +122,8 @@ test_int_helpers ()
     OIIO_CHECK_EQUAL (round_to_multiple(4, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(5, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(6, 5), 10);
+    OIIO_CHECK_EQUAL (round_to_multiple(size_t(5), 5), 5);
+    OIIO_CHECK_EQUAL (round_to_multiple(size_t(6), 5), 10);
 
     // round_to_multiple_of_pow2
     OIIO_CHECK_EQUAL (round_to_multiple_of_pow2(int(1), 4), 4);
@@ -219,6 +221,43 @@ void test_bit_range_convert ()
 
 
 
+static void test_interpolate_linear ()
+{
+    std::cout << "\nTesting interpolate_linear\n";
+
+    // Test simple case of 2 knots
+    float knots2[] = { 1.0f, 2.0f };
+    OIIO_CHECK_EQUAL (interpolate_linear (0.0f, knots2),  1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.25f, knots2), 1.25f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.0f, knots2),  1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.0f, knots2),  2.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (-0.1f, knots2), 1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.1f, knots2),  2.0f);
+
+    // More complex case of many knots
+    float knots4[] = { 1.0f, 2.0f, 4.0f, 6.0f };
+    OIIO_CHECK_EQUAL (interpolate_linear (-0.1f, knots4), 1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.0f, knots4), 1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.0f/3.0f, knots4), 2.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.5f, knots4), 3.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (5.0f/6.0f, knots4), 5.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.0f, knots4), 6.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.1f, knots4), 6.0f);
+
+    // Make sure it all works for strided arrays, too
+    float knots4_strided[] = { 1.0f, 0.0f, 2.0f, 0.0f, 4.0f, 0.0f, 6.0f, 0.0f };
+    array_view_strided<const float> a (knots4_strided, 4, 2);
+    OIIO_CHECK_EQUAL (interpolate_linear (-0.1f, a), 1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.0f, a), 1.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.0f/3.0f, a), 2.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (0.5f, a), 3.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (5.0f/6.0f, a), 5.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.0f, a), 6.0f);
+    OIIO_CHECK_EQUAL (interpolate_linear (1.1f, a), 6.0f);
+}
+
+
+
 int main (int argc, char *argv[])
 {
 #if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODECOV)
@@ -272,6 +311,8 @@ int main (int argc, char *argv[])
 //    test_convert_type<float,unsigned short> ();
 
     test_bit_range_convert();
+
+    test_interpolate_linear();
 
     return unit_test_failures != 0;
 }
