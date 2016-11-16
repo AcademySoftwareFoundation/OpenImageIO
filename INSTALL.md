@@ -157,13 +157,13 @@ http://www.openimageio.org/external.zip
 4. Also, just to be safe, add QTDIR to the environment variables. It
    should point to directory where you unpacked Qt.
 
-5. Download precompiled BOOST 1.38 libraries from
+5. Download precompiled BOOST 1.53 or newer libraries from
    http://www.boostpro.com/download
 
    Install it on your system. Choose two versions: Multithread Debug, DLL
    and Multithread, DLL for Your Visual Studio version.
 
-6. Download precompiled BOOST 1.38 libraries from here (unfficial
+6. Download precompiled BOOST 1.53 or newer libraries from here (unfficial
    mirror) or from here (unofficial mirror, registration required). Install
    it on Your system. Choose two versions: Multithread Debug, DLL and
    Multithread, DLL for Your Visual Studio version.
