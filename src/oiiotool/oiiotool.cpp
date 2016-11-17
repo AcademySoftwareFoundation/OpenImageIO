@@ -1818,6 +1818,7 @@ set_channelnames (int argc, const char *argv[])
                 if (c < (int)newchannelnames.size() &&
                       newchannelnames[c].size()) {
                     std::string name = newchannelnames[c];
+                    ot.output_channelformats[name] = ot.output_channelformats[spec->channelnames[c]];
                     spec->channelnames[c] = name;
                     if (Strutil::iequals(name,"A") ||
                         Strutil::iends_with(name,".A") ||
