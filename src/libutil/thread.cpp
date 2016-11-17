@@ -81,7 +81,7 @@ public:
     // nThreads must be >= 0
     void resize(int nThreads) {
         if (nThreads < 1)
-            nThreads = Sysutil::hardware_concurrency();
+            nThreads = Sysutil::hardware_concurrency() - 1;
         if (!this->isStop && !this->isDone) {
             int oldNThreads = static_cast<int>(this->threads.size());
             if (oldNThreads <= nThreads) {  // if the number of threads is increased
