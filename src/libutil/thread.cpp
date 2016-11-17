@@ -29,7 +29,11 @@
 */
 
 
-// This implementation of thread_pool is based on CTPL
+// This implementation of thread_pool is based on CTPL.
+// We've made a variety of changes (we hope improvements) ourselves to cater
+// it to our needs.
+//
+// The original CTPL is:
 // https://github.com/vit-vit/CTPL
 // Copyright (C) 2014 by Vitaliy Vitsentiy
 // Licensed with Apache 2.0
@@ -68,7 +72,8 @@ public:
     int size() const { return static_cast<int>(this->threads.size()); }
 
     // number of idle threads
-    int n_idle() { return this->nWaiting; }
+    int n_idle() const { return this->nWaiting; }
+
     std::thread & get_thread(int i) { return *this->threads[i]; }
 
     // change the number of threads in the pool
@@ -189,6 +194,16 @@ public:
         this->cv.notify_one();
     }
 
+    // If any tasks are on the queue, pop and run one with the calling
+    // thread.
+    bool run_one_task () {
+        std::function<void(int id)> * f;
+        bool isPop = this->q.pop(f);
+        if (isPop)
+            (*f)(-1);
+        return isPop;
+    }
+
 private:
     Impl (const Impl  &) = delete;
     Impl (Impl  &&) = delete;
@@ -265,6 +280,22 @@ void
 thread_pool::resize (int nthreads)
 {
     m_impl->resize (nthreads);
+}
+
+
+
+int
+thread_pool::idle () const
+{
+    return m_impl->n_idle();
+}
+
+
+
+bool
+thread_pool::run_one_task ()
+{
+    return m_impl->run_one_task ();
 }
 
 

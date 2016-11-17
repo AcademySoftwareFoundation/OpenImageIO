@@ -135,6 +135,29 @@ test_parallel_for ()
 
 
 
+void
+test_thread_pool_recursion ()
+{
+    std::cout << "\nTesting thread pool recursion" << std::endl;
+    static spin_mutex print_mutex;
+    thread_pool *pool (default_thread_pool());
+    pool->resize (2);
+    parallel_for (0, 10, [&](int id, int64_t i){
+        // sleep long enough that we can push all the jobs before any get
+        // done.
+        Sysutil::usleep (10);
+        // then run something else that itself will push jobs onto the
+        // thread pool queue.
+        parallel_for (0, 10, [&](int id, int64_t i){
+            Sysutil::usleep (2);
+            spin_lock lock (print_mutex);
+            std::cout << "  recursive running thread " << id << std::endl;
+        });
+    });
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -153,6 +176,8 @@ main (int argc, char **argv)
     test_parallel_for ();
 
     time_parallel_for ();
+
+    test_thread_pool_recursion ();
 
     return unit_test_failures;
 }
