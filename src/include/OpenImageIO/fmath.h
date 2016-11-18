@@ -1710,7 +1710,8 @@ interpolate_linear (float x, array_view_strided<const float> y)
     int nsegs = int(y.size()) - 1;
     int segnum;
     x = floorfrac (x*nsegs, &segnum);
-    return lerp (y[segnum], y[segnum+1], x);
+    int nextseg = std::min (segnum+1, nsegs);
+    return lerp (y[segnum], y[nextseg], x);
 }
 
 // (end miscellaneous numerical methods)
