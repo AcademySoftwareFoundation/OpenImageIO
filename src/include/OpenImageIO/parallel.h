@@ -62,6 +62,10 @@ OIIO_NAMESPACE_BEGIN
 /// a number of chunks equal to the twice number of threads in the queue.
 /// (We do this to offer better load balancing than if we used exactly the
 /// thread count.)
+/// 
+/// Note that the thread_id may be -1, indicating that it's being executed
+/// by the calling thread itself, or perhaps some other helpful thread that
+/// is stealing work from the pool.
 inline void
 parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
                    std::function<void(int id, int64_t b, int64_t e)>&& task)
@@ -69,8 +73,16 @@ parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
     thread_pool *pool (default_thread_pool());
     if (chunksize < 1)
         chunksize = std::max (int64_t(1), (end-start) / (2*pool->size()));
-    for (task_set<void> ts; start < end; start += chunksize)
-        ts.push (pool->push (task, start, std::min (end, start+chunksize)));
+    for (task_set<void> ts (pool); start < end; start += chunksize) {
+        int64_t e = std::min (end, start+chunksize);
+        if (e == end) {
+            // For the last (or only) subtask, do it ourselves and avoid
+            // messing with the queue or handing off between threads.
+            task (-1, start, e);
+        } else {
+            ts.push (pool->push (task, start, e));
+        }
+    }
 }
 
 
@@ -83,9 +95,16 @@ inline void parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
     if (chunksize < 1)
         chunksize = std::max (int64_t(1), (end-start) / (2*pool->size()));
     auto wrapper = [&](int id, int64_t b, int64_t e){ task(b,e); };
-    for (task_set<void> ts; start < end; start += chunksize)
-        ts.push (pool->push (wrapper, start, std::min (end, start+chunksize)));
-
+    for (task_set<void> ts (pool); start < end; start += chunksize) {
+        int64_t e = std::min (end, start+chunksize);
+        if (e == end) {
+            // For the last (or only) subtask, do it ourselves and avoid
+            // messing with the queue or handing off between threads.
+            task (start, e);
+        } else {
+            ts.push (pool->push (wrapper, start, std::min (end, e)));
+        }
+    }
 }
 
 
@@ -139,7 +158,7 @@ UnaryFunction
 parallel_for_each (InputIt first, InputIt last, UnaryFunction f)
 {
     thread_pool *pool (default_thread_pool());
-    for (task_set<void> ts; first != last; ++first)
+    for (task_set<void> ts (pool); first != last; ++first)
         ts.push (pool->push ([&](int id){ f(*first); }));
     return std::move(f);
 }

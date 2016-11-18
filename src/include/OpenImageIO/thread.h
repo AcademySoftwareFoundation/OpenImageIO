@@ -46,6 +46,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <chrono>
 
 #include "oiioversion.h"
 #include "export.h"
@@ -503,19 +504,27 @@ private:
 /// A common idiom is to fire a bunch of sub-tasks at the queue, and then
 /// wait for them to all complete. We provide a helper class, task_set,
 /// to make this easy:
-///     task_set<decltype(myfunc())> tasks;
+///     task_set<decltype(myfunc())> tasks (pool);
 ///     for (int i = 0; i < n_subtasks; ++i)
 ///         tasks.push_back (pool->push (myfunc));
 ///     tasks.wait ();
 /// Note that the tasks.wait() is optional -- it will be called
 /// automatically when the task_set exits its scope.
 ///
+/// The task function's first argument, the thread_id, is the thread number
+/// for the pool, or -1 if it's being executed by a non-pool thread (this
+/// can happen in cases where the whole pool is occupied and the calling
+/// thread contributes to running the work load).
+///
 /// Thread pool. Have fun, be safe.
 ///
 class OIIO_API thread_pool {
 public:
-    /// Initialize the pool.  If the number of threads is 0, it will be
-    /// set to the number of cores on the machine.
+    /// Initialize the pool.  If nthreads is 0, the pool will be set to one
+    /// less than the number of hardware cores on the machine (this
+    /// preventing over-threading, on the assumption that the thread that
+    /// submits to the pool will itself either have other tasks or will
+    /// steal work from the pool while it waits.
     thread_pool (int nthreads = 0, int queue_size = 128);
     ~thread_pool ();
 
@@ -523,8 +532,13 @@ public:
     int size () const;
 
     /// Change the number of threads in the pool. BEWARE! This should not
-    /// be done while jobs are running.
+    /// be done while jobs are running. Passing nthreads == 0 will cause
+    /// it to resize to the number of HW cores minus one.
     void resize (int nthreads = 0);
+
+    /// Return the number of currently idle threads in the queue. Zero
+    /// means the queue is fully engaged.
+    int idle () const;
 
     /// Run the user's function that accepts argument int - id of the
     /// running thread. The returned value is templatized std::future, where
@@ -554,6 +568,13 @@ public:
         return pck->get_future();
     }
 
+    /// If there are any tasks on the queue, pull one off and run it (on
+    /// this calling thread) and return true. Otherwise (there are no
+    /// pending jobs), return false immediately. This utility is what makes
+    /// it possible for non-pool threads to also run tasks from the queue
+    /// when they would ordinarily be idle.
+    bool run_one_task ();
+
 private:
     // Disallow copy construction and assignment
     thread_pool (const thread_pool&) = delete;
@@ -579,7 +600,7 @@ OIIO_API thread_pool* default_thread_pool ();
 
 
 
-/// task_set<T> is a group of tasks represented by future<T> that you can
+/// task_set<T> is a group of future<T>'s from a thread_queue that you can
 /// add to, and when you either call wait() or just leave the task_set's
 /// scope, it will wait for all the tasks in the set to be done before
 /// proceeding.
@@ -588,9 +609,9 @@ OIIO_API thread_pool* default_thread_pool ();
 ///
 ///    void myfunc (int id) { ... do something ... }
 ///
-///    thread_pool& pool (default_thread_pool());
+///    thread_pool* pool (default_thread_pool());
 ///    {
-///        task_set<decltype(myfunc())> tasks;
+///        task_set<decltype(myfunc())> tasks (pool);
 ///        // Launch a bunch of tasks into the thread pool
 ///        for (int i = 0; i < ntasks; ++i)
 ///            tasks.push_back (pool->push (myfunc));
@@ -601,14 +622,40 @@ OIIO_API thread_pool* default_thread_pool ();
 template<typename T>
 class task_set {
 public:
-    task_set () { }
+    task_set (thread_pool *pool) { m_pool = pool; }
     ~task_set () { wait(); }
     void push (std::future<T> &&f) { m_futures.emplace_back (std::move(f)); }
-    void wait () {
-        for (auto& f : m_futures)
-            f.wait();
+    void wait (bool block = false) {
+        if (block == false) {
+            int tries = 0;
+            std::chrono::milliseconds wait_time (0);
+            while (1) {
+                bool all_finished = true;
+                for (auto& f : m_futures) {
+                    // Asking future.wait_for for 0 time just checks the status.
+                    auto status = f.wait_for (wait_time);
+                    if (status != std::future_status::ready)
+                        all_finished = false;
+                }
+                if (all_finished)   // All futures are ready? We're done.
+                    break;
+                // We're still waiting on some tasks to complete. What next?
+                if (++tries < 4)    // First few times,
+                    continue;       //   just busy-wait, check status again
+                // Since we're waiting, try to run a task ourselves to help
+                // with the load. If none is available, just yield schedule.
+                if (! m_pool->run_one_task())
+                    yield();
+            }
+        } else {
+            // If block is true, just block on completion of all the tasks
+            // and don't try to do any of the work with the calling thread.
+            for (auto& f : m_futures)
+                f.wait ();
+        }
     }
 private:
+    thread_pool *m_pool;
     std::vector<std::future<T>> m_futures;
 };
 

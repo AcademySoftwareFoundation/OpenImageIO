@@ -134,7 +134,7 @@ time_thread_pool ()
         // trivial function, then waits for them to finish and tears down
         // the group.
         auto func = [=](){
-            task_set<void> taskset;
+            task_set<void> taskset (pool);
             for (int i = 0; i < nt; ++i) {
                 taskset.push (pool->push (do_nothing));
             }
