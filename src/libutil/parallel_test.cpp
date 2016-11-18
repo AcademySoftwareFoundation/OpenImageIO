@@ -115,22 +115,39 @@ time_parallel_for ()
 void
 test_parallel_for ()
 {
-    { // 1D test
-        // vector of ints, initialized to zero
-        const int length = 1000;
-        std::vector<int> vals (length, 0);
+    // vector of ints, initialized to zero
+    const int length = 1000;
+    std::vector<int> vals (length, 0);
 
-        // Increment all the integers via parallel_for
-        parallel_for (0, length, [&](uint64_t i){
-            vals[i] += 1;
-        });
+    // Increment all the integers via parallel_for
+    parallel_for (0, length, [&](uint64_t i){
+        vals[i] += 1;
+    });
 
-        // Verify that all elements are exactly 1
-        bool all_one = std::all_of (vals.cbegin(), vals.cend(),
-                                    [&](int i){ return vals[i] == 1; });
-        OIIO_CHECK_ASSERT (all_one);
-    }
+    // Verify that all elements are exactly 1
+    bool all_one = std::all_of (vals.cbegin(), vals.cend(),
+                                [&](int i){ return vals[i] == 1; });
+    OIIO_CHECK_ASSERT (all_one);
+}
 
+
+
+void
+test_parallel_for_2D ()
+{
+    // vector of ints, initialized to zero
+    const int size = 100;
+    std::vector<int> vals (size*size, 0);
+
+    // Increment all the integers via parallel_for
+    parallel_for_2D (0, size, 0, 0, size, 0, [&](uint64_t i, uint64_t j){
+        vals[j*size+i] += 1;
+    });
+
+    // Verify that all elements are exactly 1
+    bool all_one = std::all_of (vals.cbegin(), vals.cend(),
+                                [&](int i){ return vals[i] == 1; });
+    OIIO_CHECK_ASSERT (all_one);
 }
 
 
@@ -151,7 +168,7 @@ test_thread_pool_recursion ()
         parallel_for (0, 10, [&](int id, int64_t i){
             Sysutil::usleep (2);
             spin_lock lock (print_mutex);
-            std::cout << "  recursive running thread " << id << std::endl;
+            // std::cout << "  recursive running thread " << id << std::endl;
         });
     });
 }
@@ -174,6 +191,7 @@ main (int argc, char **argv)
     std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
 
     test_parallel_for ();
+    test_parallel_for_2D ();
 
     time_parallel_for ();
 

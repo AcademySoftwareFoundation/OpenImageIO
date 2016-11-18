@@ -89,18 +89,8 @@ static bool
 flatten_ (ImageBuf &dst, const ImageBuf &src, 
           ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(flatten_<DSTTYPE>, OIIO::ref(dst), OIIO::cref(src),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
     const ImageSpec &srcspec (src.spec());
     int nc = srcspec.nchannels;
-
     int alpha_channel, AR_channel, AG_channel, AB_channel;
     int R_channel, G_channel, B_channel;
     int Z_channel, Zback_channel;
@@ -111,48 +101,50 @@ flatten_ (ImageBuf &dst, const ImageBuf &src,
         dst.error ("No alpha channel could be identified");
         return false;
     }
-    ASSERT (alpha_channel >= 0 ||
-            (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
-    float *val = ALLOCA (float, nc);
-    float &ARval (AR_channel >= 0 ? val[AR_channel] : val[alpha_channel]);
-    float &AGval (AG_channel >= 0 ? val[AG_channel] : val[alpha_channel]);
-    float &ABval (AB_channel >= 0 ? val[AB_channel] : val[alpha_channel]);
 
-    for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
-        int x = r.x(), y = r.y(), z = r.z();
-        int samps = src.deep_samples (x, y, z);
-        // Clear accumulated values for this pixel (0 for colors, big for Z)
-        memset (val, 0, nc*sizeof(float));
-        if (Z_channel >= 0 && samps == 0)
-            val[Z_channel] = 1.0e30;
-        if (Zback_channel >= 0 && samps == 0)
-            val[Zback_channel] = 1.0e30;
-        for (int s = 0;  s < samps;  ++s) {
-            float AR = ARval, AG = AGval, AB = ABval;  // make copies
-            float alpha = (AR + AG + AB) / 3.0f;
-            if (alpha >= 1.0f)
-                break;
-            for (int c = 0;  c < nc;  ++c) {
-                float v = src.deep_value (x, y, z, c, s);
-                if (c == Z_channel || c == Zback_channel)
-                    val[c] *= alpha;  // because Z are not premultiplied
-                float a;
-                if (c == R_channel)
-                    a = AR;
-                else if (c == G_channel)
-                    a = AG;
-                else if (c == B_channel)
-                    a = AB;
-                else
-                    a = alpha;
-                val[c] += (1.0f - a) * v;
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&dst,&src](ROI roi){
+        ASSERT (alpha_channel >= 0 ||
+                (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
+        float *val = ALLOCA (float, nc);
+        float &ARval (AR_channel >= 0 ? val[AR_channel] : val[alpha_channel]);
+        float &AGval (AG_channel >= 0 ? val[AG_channel] : val[alpha_channel]);
+        float &ABval (AB_channel >= 0 ? val[AB_channel] : val[alpha_channel]);
+
+        for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
+            int x = r.x(), y = r.y(), z = r.z();
+            int samps = src.deep_samples (x, y, z);
+            // Clear accumulated values for this pixel (0 for colors, big for Z)
+            memset (val, 0, nc*sizeof(float));
+            if (Z_channel >= 0 && samps == 0)
+                val[Z_channel] = 1.0e30;
+            if (Zback_channel >= 0 && samps == 0)
+                val[Zback_channel] = 1.0e30;
+            for (int s = 0;  s < samps;  ++s) {
+                float AR = ARval, AG = AGval, AB = ABval;  // make copies
+                float alpha = (AR + AG + AB) / 3.0f;
+                if (alpha >= 1.0f)
+                    break;
+                for (int c = 0;  c < nc;  ++c) {
+                    float v = src.deep_value (x, y, z, c, s);
+                    if (c == Z_channel || c == Zback_channel)
+                        val[c] *= alpha;  // because Z are not premultiplied
+                    float a;
+                    if (c == R_channel)
+                        a = AR;
+                    else if (c == G_channel)
+                        a = AG;
+                    else if (c == B_channel)
+                        a = AB;
+                    else
+                        a = alpha;
+                    val[c] += (1.0f - a) * v;
+                }
             }
+
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                r[c] = val[c];
         }
-
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            r[c] = val[c];
-    }
-
+    });
     return true;
 }
 

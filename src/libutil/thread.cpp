@@ -49,14 +49,71 @@
 #include <future>
 #include <memory>
 
-// Use boost::lockfree::queue for the task queue
-#include <boost/lockfree/queue.hpp>
-
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/strutil.h>
+
+#include <boost/thread/tss.hpp>
+
+#if 0
+
+// Use boost::lockfree::queue for the task queue
+#include <boost/lockfree/queue.hpp>
+template<typename T> using Queue = boost::lockfree::queue<T>;
+
+#else
+
+#include <queue>
+
+namespace {
+
+template <typename T>
+class Queue {
+public:
+    Queue (int size) { }
+    bool push(T const & value) {
+        std::unique_lock<Mutex> lock(this->mutex);
+        this->q.push(value);
+        return true;
+    }
+    // deletes the retrieved element, do not use for non integral types
+    bool pop(T & v) {
+        std::unique_lock<Mutex> lock(this->mutex);
+        if (this->q.empty())
+            return false;
+        v = this->q.front();
+        this->q.pop();
+        return true;
+    }
+    bool empty() {
+        std::unique_lock<Mutex> lock(this->mutex);
+        return this->q.empty();
+    }
+private:
+    typedef OIIO::spin_mutex Mutex;
+    std::queue<T> q;
+    Mutex mutex;
+};
+
+}
+
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
+
+bool debug_threads = false; // FIXME -- remove this after debugging
+
+static int
+threads_default ()
+{
+    int n = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_THREADS"));
+    if (n < 1)
+        n = Sysutil::hardware_concurrency();
+    return n;
+}
+
 
 
 class thread_pool::Impl {
@@ -81,7 +138,7 @@ public:
     // nThreads must be >= 0
     void resize(int nThreads) {
         if (nThreads < 1)
-            nThreads = std::max (1, int(Sysutil::hardware_concurrency()) - 1);
+            nThreads = std::max (1, int(threads_default()) - 1);
         if (!this->isStop && !this->isDone) {
             int oldNThreads = static_cast<int>(this->threads.size());
             if (oldNThreads <= nThreads) {  // if the number of threads is increased
@@ -199,9 +256,16 @@ public:
     bool run_one_task () {
         std::function<void(int id)> * f;
         bool isPop = this->q.pop(f);
-        if (isPop)
+        if (isPop) {
+            std::unique_ptr<std::function<void(int id)>> func(f);  // at return, delete the function even if an exception occurred
             (*f)(-1);
+        }
         return isPop;
+    }
+
+    bool this_thread_is_in_pool () const {
+        int *p = m_pool_members.get();
+        return p && (*p);
     }
 
 private:
@@ -213,6 +277,7 @@ private:
     void set_thread(int i) {
         std::shared_ptr<std::atomic<bool>> flag(this->flags[i]);  // a copy of the shared ptr to the flag
         auto f = [this, i, flag/* a copy of the shared ptr to the flag */]() {
+            this->m_pool_members.reset (new int (1)); // I'm in the pool
             std::atomic<bool> & _flag = *flag;
             std::function<void(int id)> * _f;
             bool isPop = this->q.pop(_f);
@@ -220,8 +285,11 @@ private:
                 while (isPop) {  // if there is anything in the queue
                     std::unique_ptr<std::function<void(int id)>> func(_f);  // at return, delete the function even if an exception occurred
                     (*_f)(i);
-                    if (_flag)
-                        return;  // the thread is wanted to stop, return even if the queue is not empty yet
+                    if (_flag) {
+                        // the thread is wanted to stop, return even if the queue is not empty yet
+                        this->m_pool_members.reset (); // I'm no longer in the pool
+                        return;
+                    }
                     else
                         isPop = this->q.pop(_f);
                 }
@@ -231,8 +299,9 @@ private:
                 this->cv.wait(lock, [this, &_f, &isPop, &_flag](){ isPop = this->q.pop(_f); return isPop || this->isDone || _flag; });
                 --this->nWaiting;
                 if (!isPop)
-                    return;  // if the queue is empty and this->isDone == true or *flag then return
+                    break;  // if the queue is empty and this->isDone == true or *flag then return
             }
+            this->m_pool_members.reset (); // I'm no longer in the pool
         };
         this->threads[i].reset(new std::thread(f));  // compiler may not support std::make_unique()
     }
@@ -241,20 +310,21 @@ private:
 
     std::vector<std::unique_ptr<std::thread>> threads;
     std::vector<std::shared_ptr<std::atomic<bool>>> flags;
-    mutable boost::lockfree::queue<std::function<void(int id)> *> q;
+    mutable Queue<std::function<void(int id)> *> q;
     std::atomic<bool> isDone;
     std::atomic<bool> isStop;
     std::atomic<int> nWaiting;  // how many threads are waiting
     std::mutex mutex;
     std::condition_variable cv;
+    boost::thread_specific_ptr<int> m_pool_members; // Who's in the pool
 };
 
 
 
 
 
-thread_pool::thread_pool (int nthreads, int queue_size)
-    : m_impl (new Impl (nthreads, queue_size))
+thread_pool::thread_pool (int nthreads /*, int queue_size*/)
+    : m_impl (new Impl (nthreads /*, queue_size*/))
 {
     resize (nthreads);
 }
@@ -304,6 +374,13 @@ void
 thread_pool::push_queue_and_notify (std::function<void(int id)> *f)
 {
     m_impl->push_queue_and_notify (f);
+}
+
+
+bool
+thread_pool::this_thread_is_in_pool () const
+{
+    return m_impl->this_thread_is_in_pool ();
 }
 
 

@@ -49,12 +49,21 @@
 
 OIIO_NAMESPACE_BEGIN
 
+static int
+threads_default ()
+{
+    int n = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_THREADS"));
+    if (n < 1)
+        n = Sysutil::hardware_concurrency();
+    return n;
+}
+
 // Global private data
 namespace pvt {
 recursive_mutex imageio_mutex;
 thread_pool *oiio_thread_pool = default_thread_pool();
-atomic_int oiio_threads (Sysutil::hardware_concurrency());
-atomic_int oiio_exr_threads (Sysutil::hardware_concurrency());
+atomic_int oiio_threads (threads_default());
+atomic_int oiio_exr_threads (threads_default());
 atomic_int oiio_read_chunk (256);
 int tiff_half (0);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
@@ -151,9 +160,9 @@ attribute (string_view name, TypeDesc type, const void *val)
     if (name == "threads" && type == TypeDesc::TypeInt) {
         int ot = Imath::clamp (*(const int *)val, 0, maxthreads);
         if (ot == 0)
-            ot = Sysutil::hardware_concurrency();
+            ot = threads_default();
         oiio_threads = ot;
-        oiio_thread_pool->resize (ot);
+        oiio_thread_pool->resize (ot-1);
         return true;
     }
     spin_lock lock (attrib_mutex);
@@ -458,7 +467,7 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
     if (format.basetype == TypeDesc::FLOAT)
         return src;
 
-    const int64_t blocksize = 30000;   // good choice?
+    const int64_t blocksize = 100000;   // good choice?
     long long quant_min, quant_max;
     get_default_quantize (format, quant_min, quant_max);
 
@@ -585,15 +594,12 @@ parallel_convert_image (int nchannels, int width, int height, int depth,
                stride_t dst_zstride,
                int alpha_channel, int z_channel, int nthreads)
 {
-    if (imagesize_t(width)*height*depth*nchannels < 30000)
-        nthreads = 1;
-
     if (nthreads <= 0)
         nthreads = oiio_threads;
-
+    nthreads = clamp (int((int64_t(width)*height*depth*nchannels)/100000), 1, nthreads);
     if (nthreads <= 1)
         return convert_image (nchannels, width, height, depth,
-                        src, src_type, src_xstride, src_ystride, src_zstride, 
+                        src, src_type, src_xstride, src_ystride, src_zstride,
                         dst, dst_type, dst_xstride, dst_ystride, dst_zstride,
                         alpha_channel, z_channel);
 
@@ -602,21 +608,15 @@ parallel_convert_image (int nchannels, int width, int height, int depth,
     ImageSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
                             dst_type, nchannels, width, height);
 
-    thread_group threads;
-    int blocksize = std::max (1, (height + nthreads - 1) / nthreads);
-    for (int i = 0;  i < nthreads;  i++) {
-        int ybegin = i * blocksize;
-        if (ybegin >= height)
-            break;  // no more work to divvy up
-        int yend = std::min (ybegin + blocksize, height);
-        threads.create_thread (convert_image, nchannels, width, yend-ybegin, depth,
-                               (const char *)src+src_ystride*ybegin,
-                               src_type, src_xstride, src_ystride, src_zstride,
-                               (char *)dst+dst_ystride*ybegin,
-                               dst_type, dst_xstride, dst_ystride, dst_zstride,
-                               alpha_channel, z_channel);
-    }
-    threads.join_all ();
+    int blocksize = std::max (1, height / nthreads);
+    parallel_for_chunked (0, height, blocksize, [=](int id, int64_t ybegin, int64_t yend){
+        convert_image (nchannels, width, yend-ybegin, depth,
+                       (const char *)src+src_ystride*ybegin,
+                       src_type, src_xstride, src_ystride, src_zstride,
+                       (char *)dst+dst_ystride*ybegin,
+                       dst_type, dst_xstride, dst_ystride, dst_zstride,
+                       alpha_channel, z_channel);
+    });
     return true;
 }
 

@@ -47,11 +47,13 @@
 #include <thread>
 #include <vector>
 #include <chrono>
+#include <iostream>
 
 #include "oiioversion.h"
 #include "export.h"
 #include "platform.h"
 #include "atomic.h"
+#include "dassert.h"
 
 
 
@@ -525,7 +527,7 @@ public:
     /// preventing over-threading, on the assumption that the thread that
     /// submits to the pool will itself either have other tasks or will
     /// steal work from the pool while it waits.
-    thread_pool (int nthreads = 0, int queue_size = 128);
+    thread_pool (int nthreads = 0 /*, int queue_size = 128 */);
     ~thread_pool ();
 
     /// How many threads are in the pool?
@@ -574,6 +576,11 @@ public:
     /// it possible for non-pool threads to also run tasks from the queue
     /// when they would ordinarily be idle.
     bool run_one_task ();
+
+    /// Return true if the calling thread is part of the thread pool. This
+    /// can be used to limit a pool thread from inadvisedly adding its own
+    /// subtasks to clog up the pool.
+    bool this_thread_is_in_pool () const;
 
 private:
     // Disallow copy construction and assignment
@@ -626,12 +633,12 @@ public:
     ~task_set () { wait(); }
     void push (std::future<T> &&f) { m_futures.emplace_back (std::move(f)); }
     void wait (bool block = false) {
+        const std::chrono::milliseconds wait_time (0);
         if (block == false) {
             int tries = 0;
-            std::chrono::milliseconds wait_time (0);
             while (1) {
                 bool all_finished = true;
-                for (auto& f : m_futures) {
+                for (auto&& f : m_futures) {
                     // Asking future.wait_for for 0 time just checks the status.
                     auto status = f.wait_for (wait_time);
                     if (status != std::future_status::ready)
@@ -650,9 +657,13 @@ public:
         } else {
             // If block is true, just block on completion of all the tasks
             // and don't try to do any of the work with the calling thread.
-            for (auto& f : m_futures)
+            for (auto&& f : m_futures)
                 f.wait ();
         }
+#ifndef NDEBUG
+        for (auto&& f : m_futures)
+            ASSERT (f.wait_for(wait_time) == std::future_status::ready);
+#endif
     }
 private:
     thread_pool *m_pool;

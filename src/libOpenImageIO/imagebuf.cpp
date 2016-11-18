@@ -1354,50 +1354,42 @@ template<class D, class S>
 static bool
 copy_pixels_impl (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads=0)
 {
-    if (nthreads != 1 && roi.npixels() >= 16384) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(copy_pixels_impl<D,S>, OIIO::ref(dst), OIIO::cref(src),
-                       _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-    // Serial case:
-
-    int nchannels = roi.nchannels();
-    if (is_same<D,S>::value) {
-        // If both bufs are the same type, just directly copy the values
-        if (src.localpixels() && roi.chbegin == 0 &&
-            roi.chend == dst.nchannels() && roi.chend == src.nchannels()) {
-            // Extra shortcut -- totally local pixels for src, copying all
-            // channels, so we can copy memory around line by line, rather
-            // than value by value.
-            int nxvalues = roi.width() * dst.nchannels();
-            for (int z = roi.zbegin; z < roi.zend; ++z)
-                for (int y = roi.ybegin; y < roi.yend; ++y) {
-                    D *draw = (D *) dst.pixeladdr (roi.xbegin, y, z);
-                    const S *sraw = (const S *) src.pixeladdr (roi.xbegin, y, z);
-                    DASSERT (draw && sraw);
-                    for (int x = 0; x < nxvalues; ++x)
-                        draw[x] = sraw[x];
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        int nchannels = roi.nchannels();
+        if (is_same<D,S>::value) {
+            // If both bufs are the same type, just directly copy the values
+            if (src.localpixels() && roi.chbegin == 0 &&
+                roi.chend == dst.nchannels() && roi.chend == src.nchannels()) {
+                // Extra shortcut -- totally local pixels for src, copying all
+                // channels, so we can copy memory around line by line, rather
+                // than value by value.
+                int nxvalues = roi.width() * dst.nchannels();
+                for (int z = roi.zbegin; z < roi.zend; ++z)
+                    for (int y = roi.ybegin; y < roi.yend; ++y) {
+                        D *draw = (D *) dst.pixeladdr (roi.xbegin, y, z);
+                        const S *sraw = (const S *) src.pixeladdr (roi.xbegin, y, z);
+                        DASSERT (draw && sraw);
+                        for (int x = 0; x < nxvalues; ++x)
+                            draw[x] = sraw[x];
+                    }
+            } else {
+                ImageBuf::Iterator<D,D> d (dst, roi);
+                ImageBuf::ConstIterator<D,D> s (src, roi);
+                for ( ; ! d.done();  ++d, ++s) {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        d[c] = s[c];
                 }
+            }
         } else {
-            ImageBuf::Iterator<D,D> d (dst, roi);
-            ImageBuf::ConstIterator<D,D> s (src, roi);
+            // If the two bufs are different types, convert through float
+            ImageBuf::Iterator<D> d (dst, roi);
+            ImageBuf::ConstIterator<S> s (src, roi);
             for ( ; ! d.done();  ++d, ++s) {
                 for (int c = 0;  c < nchannels;  ++c)
                     d[c] = s[c];
             }
         }
-    } else {
-        // If the two bufs are different types, convert through float
-        ImageBuf::Iterator<D> d (dst, roi);
-        ImageBuf::ConstIterator<S> s (src, roi);
-        for ( ; ! d.done();  ++d, ++s) {
-            for (int c = 0;  c < nchannels;  ++c)
-                d[c] = s[c];
-        }
-    }
+    });
     return true;
 }
 
@@ -1704,26 +1696,18 @@ get_pixels_ (const ImageBuf &buf, ROI whole_roi, ROI roi, void *r_,
              stride_t xstride, stride_t ystride, stride_t zstride,
              int nthreads=0)
 {
-    if (nthreads != 1 && roi.npixels() >= 64*1024) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(get_pixels_<D,S>, OIIO::ref(buf),
-                        whole_roi,  _1 /*roi*/, r_,
-                        xstride, ystride, zstride, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    D *r = (D *)r_;
-    int nchans = roi.nchannels();
-    for (ImageBuf::ConstIterator<S,D> p (buf, roi); !p.done(); ++p) {
-        imagesize_t offset = (p.z()-whole_roi.zbegin)*zstride
-                           + (p.y()-whole_roi.ybegin)*ystride
-                           + (p.x()-whole_roi.xbegin)*xstride;
-        D *rc = (D *)((char *)r + offset);
-        for (int c = 0;  c < nchans;  ++c)
-            rc[c] = p[c+roi.chbegin];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&buf](ROI roi){
+        D *r = (D *)r_;
+        int nchans = roi.nchannels();
+        for (ImageBuf::ConstIterator<S,D> p (buf, roi); !p.done(); ++p) {
+            imagesize_t offset = (p.z()-whole_roi.zbegin)*zstride
+                               + (p.y()-whole_roi.ybegin)*ystride
+                               + (p.x()-whole_roi.xbegin)*xstride;
+            D *rc = (D *)((char *)r + offset);
+            for (int c = 0;  c < nchans;  ++c)
+                rc[c] = p[c+roi.chbegin];
+        }
+    });
     return true;
 }
 
