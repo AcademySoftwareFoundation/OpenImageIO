@@ -75,6 +75,8 @@ Comparing "fit2.tif" and "ref/fit2.tif"
 PASS
 Comparing "fit3.tif" and "ref/fit3.tif"
 PASS
+Comparing "fit4.exr" and "ref/fit4.exr"
+PASS
 Comparing "pixelaspect.tif" and "ref/pixelaspect.tif"
 PASS
 Comparing "warped.tif" and "ref/warped.tif"

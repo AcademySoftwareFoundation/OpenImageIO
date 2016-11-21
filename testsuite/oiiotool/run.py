@@ -1,4 +1,22 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
+import OpenImageIO as oiio
+
+# helper function
+def make_test_pattern1 (filename, xres=288, yres=216) :
+    buf = oiio.ImageBuf (oiio.ImageSpec (xres, yres, 3, oiio.FLOAT))
+    for y in range(yres) :
+        for x in range(xres) :
+            b = 0.25 + 0.5 * float (((x/16) & 1) ^ ((y/16) & 1))
+            if x == 1 or y == 1 or x == xres-2 or y == yres-2 :
+                b = 0.0
+            if (((x >= 10 and x <= 20) or (x >= xres-20 and x <= xres-10)) and
+                ((y >= 10 and y <= 20) or (y >= yres-20 and y <= yres-10))) :
+                b = 0.0
+            if ((x == 15 or x == xres-15) and (y == 15 or y == yres-15)) :
+                b = 1.0
+            buf.setpixel (x, y, (float(x)/1000.0, float(y)/1000.0, b))
+    buf.write (filename)
+
 
 # Create some test images we need
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
@@ -38,6 +56,9 @@ command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o f
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
 # regression test: --fit without needing resize used to be problematic
 command += oiiotool ("src/tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
+# test --fit:exact=1 when we can't get a precise whole-pixel fit of aspect
+make_test_pattern1 ("./target1.exr", 288, 216)
+command += oiiotool ("target1.exr --fit:exact=1:filter=blackman-harris 216x162 -o fit4.exr")
 
 # test --pixelaspect
 command += oiiotool ("src/tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
@@ -312,7 +333,7 @@ outputs = [
             "autotrim.tif",
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
-            "fit.tif", "fit2.tif", "fit3.tif",
+            "fit.tif", "fit2.tif", "fit3.tif", "fit4.exr",
             "pixelaspect.tif",
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",
