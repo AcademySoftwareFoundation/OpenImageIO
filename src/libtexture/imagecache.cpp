@@ -3205,16 +3205,27 @@ ImageCacheImpl::invalidate_all (bool force)
             all_files.push_back (name);
             continue;
         }
-        // Invalidate if any unmipped subimage...
-        // ... didn't automip, but automip is now on
-        // ... did automip, but automip is now off
         for (int s = 0;  s < f->subimages();  ++s) {
-            ImageCacheFile::SubimageInfo &sub (f->subimageinfo(s));
+            const ImageCacheFile::SubimageInfo &sub (f->subimageinfo(s));
+            // Invalidate if any unmipped subimage didn't automip but
+            // automip is now on, or did automip but automip is now off.
             if (sub.unmipped &&
                 ((m_automip && f->miplevels(s) <= 1) ||
                  (!m_automip && f->miplevels(s) > 1))) {
                 all_files.push_back (name);
                 break;
+            }
+            // Invalidate if any untiled subimage doesn't match the current
+            // auto-tile setting.
+            if (sub.untiled) {
+                for (int m = 0, mend = f->miplevels(s); m < mend; ++m) {
+                    const ImageCacheFile::LevelInfo &level (f->levelinfo(s,m));
+                    if (level.spec.tile_width != m_autotile ||
+                        level.spec.tile_height != m_autotile) {
+                        all_files.push_back (name);
+                        break;
+                    }
+                }
             }
         }
     }
