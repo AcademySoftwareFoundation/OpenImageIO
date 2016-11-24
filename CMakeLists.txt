@@ -565,6 +565,7 @@ oiio_add_tests (
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text
                 maketx oiiotool-maketx
+                diff
                 dither dup-channels
                 dpx ico iff png psd rla sgi
                 python-typedesc python-imagespec python-roi python-deep

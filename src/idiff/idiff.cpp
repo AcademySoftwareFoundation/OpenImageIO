@@ -302,6 +302,12 @@ main (int argc, char *argv[])
                         std::cout << ", " << img1.spec().channelnames[cr.maxc] << ')';
                     else
                         std::cout << ", channel " << cr.maxc << ')';
+                    std::cout << "  values are ";
+                    for (int c = 0; c < img0.spec().nchannels; ++c)
+                        std::cout << (c ? ", " : "") << img0.getchannel(cr.maxx, cr.maxy, 0, c);
+                    std::cout << " vs ";
+                    for (int c = 0; c < img1.spec().nchannels; ++c)
+                        std::cout << (c ? ", " : "") << img1.getchannel(cr.maxx, cr.maxy, 0, c);
                 }
                 std::cout << "\n";
 #if OIIO_MSVS_BEFORE_2015
