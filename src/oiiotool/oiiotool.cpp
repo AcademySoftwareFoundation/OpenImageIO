@@ -2327,6 +2327,7 @@ action_diff (int argc, const char *argv[])
     if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
         ot.error (command);
 
+    ot.printed_info = true; // because taking the diff has output
     ot.function_times[command] += timer();
     return 0;
 }

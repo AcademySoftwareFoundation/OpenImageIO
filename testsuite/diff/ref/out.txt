@@ -1,0 +1,16 @@
+Comparing "img1.exr" and "img2.exr"
+  Mean error = 0.00166667
+  RMS error = 0.0288675
+  Peak SNR = 30.7918
+  Max error  = 0.5 @ (5, 7, G)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  1 pixels (1%) over 1e-06
+  1 pixels (1%) over 1e-06
+FAILURE
+Computing diff of "img1.exr" vs "img2.exr"
+  Mean error = 0.00166667
+  RMS error = 0.0288675
+  Peak SNR = 30.7918
+  Max error  = 0.5 @ (5, 7, G)  values are 0.1, 0.1, 0.1 vs 0.1, 0.6, 0.1
+  1 pixels (1%) over 1e-06
+  1 pixels (1%) over 1e-06
+FAILURE
