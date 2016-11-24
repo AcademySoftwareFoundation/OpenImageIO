@@ -485,8 +485,9 @@ file (GLOB all_format_plugin_dirs src/*.imageio)
 if ("${OIIO_SITE}" STREQUAL "SPI")
     # SPI only -- because of a workaround for a very weird linkage issue
     # specific to our system, we need to be sure libtiff is referenced first.
-    set (all_format_plugin_dirs src/tiff.imageio ${all_format_plugin_dirs})
-    list (REMOVE_DUPLICATES all_format_plugin_dirs)
+    file (GLOB tiff_format_plugin_dir src/tiff.imageio)
+    list (REMOVE_ITEM all_format_plugin_dirs ${tiff_format_plugin_dir})
+    list (INSERT all_format_plugin_dirs 0 ${tiff_format_plugin_dir})
 endif ()
 if (EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     foreach (plugin_dir ${all_format_plugin_dirs})
