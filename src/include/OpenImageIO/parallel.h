@@ -71,8 +71,10 @@ parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
                    std::function<void(int id, int64_t b, int64_t e)>&& task)
 {
     thread_pool *pool (default_thread_pool());
-    if (chunksize < 1)
-        chunksize = std::max (int64_t(1), (end-start) / (2*pool->size()));
+    if (chunksize < 1) {
+        int p = std::max (1, 2*pool->size());
+        chunksize = std::max (int64_t(1), (end-start) / p);
+    }
     for (task_set<void> ts (pool); start < end; start += chunksize) {
         int64_t e = std::min (end, start+chunksize);
         if (e == end) {
@@ -92,8 +94,10 @@ inline void parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
                            std::function<void(int64_t b, int64_t e)>&& task)
 {
     thread_pool *pool (default_thread_pool());
-    if (chunksize < 1)
-        chunksize = std::max (int64_t(1), (end-start) / (2*pool->size()));
+    if (chunksize < 1) {
+        int p = std::max (1, 2*pool->size());
+        chunksize = std::max (int64_t(1), (end-start) / p);
+    }
     auto wrapper = [&](int id, int64_t b, int64_t e){ task(b,e); };
     for (task_set<void> ts (pool); start < end; start += chunksize) {
         int64_t e = std::min (end, start+chunksize);
