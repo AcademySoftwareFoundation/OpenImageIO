@@ -56,6 +56,12 @@ Fixes, minor enhancements, and performance improvements:
      the value range of an image to fill the full [0-1] range:
         oiiotool in.exr -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.exr
      #1553 (1.8.1)
+   * `--fit:exact=1` use of the new `exact=1' option will perform the resize
+     to preserve exact aspect ratio and centering of the fit image to true
+     sub-pixel precision (at the possible risk of slight blurring,
+     especially of the edges), whereas the default (`exact=0`) will keep
+     the image sharper but round the size and offset to the nearest whole
+     pixel values. (1.8.1).
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)

@@ -3143,23 +3143,29 @@ action_fit (int argc, const char *argv[])
 
     std::map<std::string,std::string> options;
     ot.extract_options (options, command);
-    string_view padopt = options["pad"];
-    bool pad = padopt.size() && atoi(padopt.c_str());
+    bool pad = Strutil::from_string<int>(options["pad"]);
     string_view filtername = options["filter"];
-    
+    bool exact = Strutil::from_string<int>(options["exact"]);
+
     // Compute scaling factors and use action_resize to do the heavy lifting
     float oldaspect = float(Aspec->full_width) / Aspec->full_height;
     float newaspect = float(fit_full_width) / fit_full_height;
     int resize_full_width = fit_full_width;
     int resize_full_height = fit_full_height;
     int xoffset = 0, yoffset = 0;
+    float xoff = 0.0f, yoff = 0.0f;
+    float scale = 1.0f;
 
     if (newaspect >= oldaspect) {  // same or wider than original
         resize_full_width = int(resize_full_height * oldaspect + 0.5f);
         xoffset = (fit_full_width - resize_full_width) / 2;
+        scale = float(fit_full_height) / float(Aspec->full_height);
+        xoff = float(fit_full_width - scale * Aspec->full_width) / 2.0f;
     } else {  // narrower than original
         resize_full_height = int(resize_full_width / oldaspect + 0.5f);
         yoffset = (fit_full_height - resize_full_height) / 2;
+        scale = float(fit_full_width) / float(Aspec->full_width);
+        yoff = float(fit_full_height - scale * Aspec->full_height) / 2.0f;
     }
 
     if (ot.debug) {
@@ -3168,36 +3174,63 @@ action_fit (int argc, const char *argv[])
                                        Aspec->full_x, Aspec->full_y)
                   << " into "
                   << format_resolution(fit_full_width, fit_full_height,
-                                       fit_full_x, fit_full_y) 
-                  << "\n";
-    }
-    if (resize_full_width != Aspec->full_width ||
-        resize_full_height != Aspec->full_height ||
-        fit_full_x != Aspec->full_x || fit_full_y != Aspec->full_y) {
-        std::string resize = format_resolution (resize_full_width,
-                                                resize_full_height,
-                                                0, 0);
-        if (ot.debug)
-            std::cout << "    Resizing to " << resize << "\n";
-        std::string command = "resize";
-        if (filtername.size())
-            command += Strutil::format (":filter=%s", filtername);
-        const char *newargv[2] = { command.c_str(), resize.c_str() };
-        action_resize (2, newargv);
-        A = ot.top ();
-        Aspec = A->spec(0,0);
-        // Now A,Aspec are for the NEW resized top of stack
-    } else {
-        if (ot.debug)
-            std::cout << "   no need to do a resize\n";
+                                       fit_full_x, fit_full_y) << "\n";
+        std::cout << "  Fit scale factor " << scale << "\n";
     }
 
-    A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
-    A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = fit_full_height;
-    A->spec(0,0)->full_x = (*A)(0,0).specmod().full_x = fit_full_x;
-    A->spec(0,0)->full_y = (*A)(0,0).specmod().full_y = fit_full_y;
-    A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
-    A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
+    if (exact) {
+        // Full partial-pixel filtered resize -- exactly preserves aspect
+        // ratio and exactly centers the padded image, but might make the
+        // edges of the resized area blurry because it's not a whole number
+        // of pixels.
+        Imath::M33f M (scale, 0.0f,  0.0f,
+                       0.0f,  scale, 0.0f,
+                       xoff,  yoff,  1.0f);
+        if (ot.debug)
+            std::cout << "   Fit performing warp with " << M << "\n";
+        ImageSpec newspec = *Aspec;
+        newspec.width = newspec.full_width = fit_full_width;
+        newspec.height = newspec.full_height = fit_full_height;
+        newspec.x = newspec.full_x = fit_full_x;
+        newspec.y = newspec.full_y = fit_full_y;
+        ImageRecRef R (new ImageRec (A->name(), newspec, ot.imagecache));
+        ImageBufAlgo::warp ((*R)(0,0), (*A)(0,0), M, filtername, 0.0f,
+                            false, ImageBuf::WrapClamp);
+        ot.pop();
+        ot.push (R);
+        A = ot.top ();
+        Aspec = A->spec(0,0);
+    } else {
+        // Full pixel resize -- gives the sharpest result, but for odd-sized
+        // destination resolution, may not be exactly centered and will only
+        // preserve the aspect ratio to the nearest integer pixel size.
+        if (resize_full_width != Aspec->full_width ||
+            resize_full_height != Aspec->full_height ||
+            fit_full_x != Aspec->full_x || fit_full_y != Aspec->full_y) {
+            std::string resize = format_resolution (resize_full_width,
+                                                    resize_full_height,
+                                                    0, 0);
+            if (ot.debug)
+                std::cout << "    Resizing to " << resize << "\n";
+            std::string command = "resize";
+            if (filtername.size())
+                command += Strutil::format (":filter=%s", filtername);
+            const char *newargv[2] = { command.c_str(), resize.c_str() };
+            action_resize (2, newargv);
+            A = ot.top ();
+            Aspec = A->spec(0,0);
+            // Now A,Aspec are for the NEW resized top of stack
+        } else {
+            if (ot.debug)
+                std::cout << "   no need to do a resize\n";
+        }
+        A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = fit_full_width;
+        A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = fit_full_height;
+        A->spec(0,0)->full_x = (*A)(0,0).specmod().full_x = fit_full_x;
+        A->spec(0,0)->full_y = (*A)(0,0).specmod().full_y = fit_full_y;
+        A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
+        A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
+    }
 
     if (pad && (fit_full_width != Aspec->width ||
                 fit_full_height != Aspec->height)) {
@@ -4833,7 +4866,7 @@ getargs (int argc, char *argv[])
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
                 "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (options: filter=%s)",
-                "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d)",
+                "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d, exact=%d)",
                 "--pixelaspect %@ %g", action_pixelaspect, NULL, "Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)",
                 "--rotate %@ %g", action_rotate, NULL, "Rotate pixels (argument is degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d",
                 "--warp %@ %s", action_warp, NULL, "Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)",

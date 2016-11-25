@@ -2225,13 +2225,17 @@ Optional appended arguments include:
 decreasing resolution. \\
  & {\cf pad=}\emph{p} & If the argument is nonzero, will pad with
   black pixels to make the resulting image exactly the size specified, if
-  the source and desired size are not the same aspect ratio.
+  the source and desired size are not the same aspect ratio. \\
+ & {\cf exact=}\emph{e} & If the argument is nonzero, will result in an
+  exact match on aspect ratio and centering (partial pixel shift if necessary),
+  whereas the default (0) will only preserve aspect ratio and centering
+  to the precision of a whole pixel.
 \end{tabular}
 
 \noindent Examples:
 
 \begin{code}
-    oiiotool in.exr --fit:pad=1 640x480 -o out.exr
+    oiiotool in.exr --fit:pad=1:exact=1 640x480 -o out.exr
 
     oiiotool in.exr --fit 1024x1024 -o out.exr
 \end{code}
