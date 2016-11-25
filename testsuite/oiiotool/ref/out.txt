@@ -43,49 +43,21 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
-copyA.0001.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0002.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0003.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0004.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0005.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0006.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0007.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0008.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0009.jpg       :  360 x  240, 3 channel, uint8 jpeg
-copyA.0010.jpg       :  360 x  240, 3 channel, uint8 jpeg
+copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0004.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0005.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0006.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0007.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0008.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
+copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
 Reading black.tif
     oiio:DebugOpenConfig!: 42
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
-PASS
-Comparing "resample.tif" and "ref/resample.tif"
-PASS
-Comparing "resize.tif" and "ref/resize.tif"
-PASS
-Comparing "resize2.tif" and "ref/resize2.tif"
-PASS
-Comparing "resize64.tif" and "ref/resize64.tif"
-PASS
-Comparing "resize512.tif" and "ref/resize512.tif"
-PASS
-Comparing "fit.tif" and "ref/fit.tif"
-PASS
-Comparing "fit2.tif" and "ref/fit2.tif"
-PASS
-Comparing "fit3.tif" and "ref/fit3.tif"
-PASS
-Comparing "fit4.exr" and "ref/fit4.exr"
-PASS
-Comparing "pixelaspect.tif" and "ref/pixelaspect.tif"
-PASS
-Comparing "warped.tif" and "ref/warped.tif"
-PASS
-Comparing "rotated.tif" and "ref/rotated.tif"
-PASS
-Comparing "rotated-offcenter.tif" and "ref/rotated-offcenter.tif"
-PASS
-Comparing "rotated360.tif" and "ref/rotated360.tif"
 PASS
 Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
@@ -102,38 +74,6 @@ PASS
 Comparing "trim.tif" and "ref/trim.tif"
 PASS
 Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"
-PASS
-Comparing "flip.tif" and "ref/flip.tif"
-PASS
-Comparing "flip-crop.tif" and "ref/flip-crop.tif"
-PASS
-Comparing "flop.tif" and "ref/flop.tif"
-PASS
-Comparing "flop-crop.tif" and "ref/flop-crop.tif"
-PASS
-Comparing "flipflop.tif" and "ref/flipflop.tif"
-PASS
-Comparing "flipflop-crop.tif" and "ref/flipflop-crop.tif"
-PASS
-Comparing "rotate90.tif" and "ref/rotate90.tif"
-PASS
-Comparing "rotate90-crop.tif" and "ref/rotate90-crop.tif"
-PASS
-Comparing "rotate270.tif" and "ref/rotate270.tif"
-PASS
-Comparing "rotate270-crop.tif" and "ref/rotate270-crop.tif"
-PASS
-Comparing "reorient1.tif" and "ref/reorient1.tif"
-PASS
-Comparing "reorient2.tif" and "ref/reorient2.tif"
-PASS
-Comparing "reorient3.tif" and "ref/reorient3.tif"
-PASS
-Comparing "transpose.tif" and "ref/transpose.tif"
-PASS
-Comparing "transpose-crop.tif" and "ref/transpose-crop.tif"
-PASS
-Comparing "cshift.tif" and "ref/cshift.tif"
 PASS
 Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
 PASS

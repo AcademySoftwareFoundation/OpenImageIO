@@ -11,6 +11,7 @@ refdirlist = [
     "../../../../testsuite/oiiotool-deep/ref/",
     "../../../../testsuite/oiiotool-pattern/ref/",
     "../../../../testsuite/oiiotool-text/ref/",
+    "../../../../testsuite/oiiotool-xform/ref/",
     refdir
 ]
 
