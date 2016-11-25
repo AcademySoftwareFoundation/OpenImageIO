@@ -130,7 +130,7 @@ if (BOOST_CUSTOM)
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     set (Boost_COMPONENTS filesystem regex system thread)
-    find_package (Boost 1.50 REQUIRED
+    find_package (Boost 1.53 REQUIRED
                   COMPONENTS ${Boost_COMPONENTS}
                  )
 
