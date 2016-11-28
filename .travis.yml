@@ -9,7 +9,7 @@ os:
     - linux
     - osx
 #osx_image: xcode7
-dist: trusty
+#dist: trusty
 
 # Do a default build (C++03, sse2), an sse4.2 build, and a C++11 build.
 # Also try with both gcc 4.8 and 4.9 (on Linux; on OSX these will be
