@@ -76,9 +76,9 @@ OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2
 ifeq ($(SP_OS), rhel7)
     USE_CPP11 ?= 1
     USE_SIMD = sse4.1
-    USE_NINJA := 1
-    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
-    CMAKE := /net/soft_scratch/apps/arnold/tools/spinux1/bin/cmake
+    USE_NINJA := 0
+    NINJA ?= /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
+    CMAKE ?= cmake
     MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
