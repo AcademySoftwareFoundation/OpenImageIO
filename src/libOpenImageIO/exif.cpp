@@ -274,14 +274,14 @@ static const EXIF_tag_info gps_tag_table[] = {
 
 class TagMap {
     typedef std::map<int, const EXIF_tag_info *> tagmap_t;
-    typedef std::map<std::string, const EXIF_tag_info *> namemap_t;
+    typedef std::map<string_view, const EXIF_tag_info *> namemap_t;
 public:
     TagMap (const EXIF_tag_info *tag_table) {
         for (int i = 0;  tag_table[i].tifftag >= 0;  ++i) {
             const EXIF_tag_info *eti = &tag_table[i];
             m_tagmap[eti->tifftag] = eti;
             if (eti->name)
-                m_namemap[eti->name] = eti;
+                 m_namemap[string_view(eti->name)] = eti;
         }
     }
 
@@ -290,7 +290,7 @@ public:
         return i == m_tagmap.end() ? NULL : i->second;
     }
 
-    const EXIF_tag_info * find (const std::string &name) const {
+    const EXIF_tag_info * find (string_view name) const {
         namemap_t::const_iterator i = m_namemap.find (name);
         return i == m_namemap.end() ? NULL : i->second;
     }
@@ -310,7 +310,7 @@ public:
         return i == m_tagmap.end() ? 0 : i->second->tiffcount;
     }
 
-    int tag (const std::string &name) const {
+    int tag (string_view name) const {
         namemap_t::const_iterator i = m_namemap.find (name);
         return i == m_namemap.end() ? -1 : i->second->tifftag;
     }
@@ -320,8 +320,15 @@ private:
     namemap_t m_namemap;
 };
 
-static TagMap exif_tagmap (exif_tag_table);
-static TagMap gps_tagmap (gps_tag_table);
+static TagMap& exif_tagmap_ref () {
+    static TagMap T (exif_tag_table);
+    return T;
+}
+
+static TagMap& gps_tagmap_ref () {
+    static TagMap T (gps_tag_table);
+    return T;
+}
 
 
 
@@ -487,6 +494,9 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
                const char *buf, bool swab, std::set<size_t> &ifd_offsets_seen,
                const TagMap &tagmap)
 {
+    TagMap& exif_tagmap (exif_tagmap_ref());
+    TagMap& gps_tagmap (gps_tagmap_ref());
+
     // Make a copy of the pointed-to TIFF directory, swab the components
     // if necessary.
     TIFFDirEntry dir = *dirp;
@@ -767,6 +777,7 @@ reoffset (std::vector<TIFFDirEntry> &dirs, const TagMap &tagmap,
 bool
 decode_exif (const void *exif, int length, ImageSpec &spec)
 {
+    TagMap& exif_tagmap (exif_tagmap_ref());
     const unsigned char *buf = (const unsigned char *) exif;
 
 #if DEBUG_EXIF_READ
@@ -839,6 +850,9 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
 void
 encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 {
+    TagMap& exif_tagmap (exif_tagmap_ref());
+    TagMap& gps_tagmap (gps_tagmap_ref());
+
     // Reserve maximum space that an APP1 can take in a JPEG file, so
     // we can push_back to our heart's content and know that no offsets
     // or pointers to the exif vector's memory will change due to
@@ -1021,7 +1035,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 bool
 exif_tag_lookup (string_view name, int &tag, int &tifftype, int &count)
 {
-    const EXIF_tag_info *e = exif_tagmap.find (name);
+    const EXIF_tag_info *e = exif_tagmap_ref().find (name);
     if (! e)
         return false;  // not found
 
