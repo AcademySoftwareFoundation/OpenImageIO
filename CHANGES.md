@@ -1,6 +1,17 @@
-Release 1.7.9 (?? 2016) -- compared to 1.7.8
+Release 1.7.9 (1 Dec 2016) -- compared to 1.7.8
 ----------------------------------------------
-
+* Make sure that sRGB<->linear color transform still work (in the obvious
+  way) even when OpenColorIO is present but that its configuration for some
+  reason doesn't know about "sRGB" space. #1554
+* ImageCache: make robust to changes in autotile after opening and reading
+  from untiled files. #1566
+* ImageCache: fix initialization bug that made the reported stats output
+  nonsensical in the numbers it gave for "redundant reads". #1567
+* IC/TS get_image_info queries of "displaywindow" and "datawindow" did not
+  correctly return a 'true' value when the data was found. #1574
+* oiiotool -d giving per-channel formats is no longer confused by channel
+  renaming with --chnames. #1563
+* Added implementation of ImageBufAlgo::to_IplImage(). #1461
 
 Release 1.7.8 (1 Nov 2016) -- compared to 1.7.7
 ----------------------------------------------
