@@ -3,6 +3,7 @@ Release 1.8 (in progress) -- compared to 1.7.x
 New minimum dependencies:
  * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
  * **Boost >= 1.53**
+ * **CMake >= 3.0**
 
 Major new features and improvements:
 * New oiiotool commands:
@@ -24,6 +25,7 @@ Major new features and improvements:
    * `color_map()` applies a color map based on the input values; the
      map can be one of several named ones, or given explicitly with
      numerical values. #1552 (1.8.1)
+   * Added implementation of ImageBufAlgo::to_IplImage(). #1461 (1.7.9/1.8.1)
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of
@@ -62,6 +64,20 @@ Fixes, minor enhancements, and performance improvements:
      especially of the edges), whereas the default (`exact=0`) will keep
      the image sharper but round the size and offset to the nearest whole
      pixel values. (1.8.1).
+   * `-i:type=...` optional modifier to `-i` forces a read of the input
+     file into a particular data type. #1541 (1.8.1)
+   * `-i:ch=...` optional modifier to `-i` specifies that only certain named
+     channels should be read from the file. Under extreme circumstances
+     when only a small subset of channels is needed from an image file with
+     many channels, this may improve speed and I/O. #1541 (1.8.1)
+   * Improved logic governing output data formats: non-cached inputs didn't
+     set default output data format correctly, and per-channel output
+     formats updated defaults when they shouldn't have. #1541 (1.8.1)
+   * `--diff` : in addition to the pixel coordinates and differences of the
+      biggest differing pixel, it now also prints the full values of all
+      channels of that pixel for both images. #1570 (1.8.1)
+   * oiiotool -d giving per-channel formats is no longer confused by channel
+     renaming with --chnames. #1563 (1.8.1/1.7.9)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -75,8 +91,24 @@ Fixes, minor enhancements, and performance improvements:
      UDIM set having the same nchannels.) #1502, #1519, #1530 (1.8.0/1.7.8)
    * maketx: multiple simultaneous maketx process trying to create the same
      texture will no longer clobber each other's output. #1525 (1.8.0/1.7.8)
+   * ImageCache: make robust to changes in autotile after opening and reading
+     from untiled files. #1566 (1.8.1/1.7.9)
+   * ImageCache: fix initialization bug that made the reported stats output
+     nonsensical in the numbers it gave for "redundant reads". #1567
+     (1.8.1/1.7.9)
+   * get_image_info queries of "displaywindow" and "datawindow" did not
+     correctly return a 'true' value when the data was found.
+     #1574 (1.8.1/1.7.9)
 * Bug fix to possible crashes when adding dither to tiled file output
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
+* Make sure that sRGB<->linear color transform still work (in the obvious
+  way) even when OpenColorIO is present but that its configuration for some
+  reason doesn't know about "sRGB" space. #1554 (1.8.1)
+* Improved performance of input of many-channel files with differing
+  per-channel data formats. #1541 (1.8.1)
+* `idiff` : in addition to the pixel coordinates and differences of the
+  biggest differing pixel, it now also prints the full values of all
+  channels of that pixel for both images. #1570 (1.8.1)
 * IFF:
    * Fix IFF output that didn't correctly save the "Author" and "Date"
      metadata. #1549 (1.8.1/1.7.8)
@@ -99,7 +131,7 @@ Build/test system improvements:
 * Improved finding of OCIO headers. #1528 (1.8.0/1.7.8)
 * Fix compile warnings for Clang 3.9. #1529 (1.8.0/1.7.8)
 * Minimum C++ standard of C++11 is expected and enforced. #1513 (1.8.0)
-* Minimum Boost is now 1.50. #1526 (1.8.0)
+* Minimum Boost is now 1.53. #1526 (1.8.0)
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -112,6 +144,10 @@ Developer goodies / internals:
    * Fixed typo in fmath.h that made bitcast_to_float incorrect. #1543 (1.8.0)
    * Templatize round_to_multiple() so it works with types other than `int`.
      #1548 (1.8.0)
+   * `interpolate_linear()` utility linearly interpolates from a list of
+     evenly-spaced knots. #1552 (1.8.1)
+* simd.h:
+   * Add a matrix44 constructor from 16 floats. #1552 (1.8.1)
 * thread.h:
    * thread_pool class offers true persistent thread pool. #1556 (1.8.1)
    * Lots of C++ modernization of thread_group and spin_mutex. #1556 (1.8.1)
@@ -120,6 +156,21 @@ Developer goodies / internals:
      thread_pool-based parallel looping. #1556 (1.8.1)
 
 
+
+Release 1.7.9 (1 Dec 2016) -- compared to 1.7.8
+----------------------------------------------
+* Make sure that sRGB<->linear color transform still work (in the obvious
+  way) even when OpenColorIO is present but that its configuration for some
+  reason doesn't know about "sRGB" space. #1554
+* ImageCache: make robust to changes in autotile after opening and reading
+  from untiled files. #1566
+* ImageCache: fix initialization bug that made the reported stats output
+  nonsensical in the numbers it gave for "redundant reads". #1567
+* IC/TS get_image_info queries of "displaywindow" and "datawindow" did not
+  correctly return a 'true' value when the data was found. #1574
+* oiiotool -d giving per-channel formats is no longer confused by channel
+  renaming with --chnames. #1563
+* Added implementation of ImageBufAlgo::to_IplImage(). #1461
 
 Release 1.7.8 (1 Nov 2016) -- compared to 1.7.7
 ----------------------------------------------
