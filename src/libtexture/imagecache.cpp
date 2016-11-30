@@ -2588,6 +2588,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
             d[4] = spec.y + spec.height - 1;
             d[5] = spec.z + spec.depth - 1;
         }
+        return true;
     }
     if (dataname == s_displaywindow && datatype.basetype == TypeDesc::INT &&
         (datatype == TypeDesc(TypeDesc::INT,4) ||
@@ -2606,6 +2607,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
             d[4] = spec.full_y + spec.full_height - 1;
             d[5] = spec.full_z + spec.full_depth - 1;
         }
+        return true;
     }
     if (dataname == s_averagecolor && datatype.basetype == TypeDesc::FLOAT) {
         int datalen = datatype.numelements() * datatype.aggregate;
