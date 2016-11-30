@@ -79,7 +79,9 @@ ifeq ($(SP_OS), rhel7)
     USE_NINJA := 0
     NINJA ?= /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
     CMAKE ?= cmake
-    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
+    ifeq ($(USE_NINJA),1)
+        MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
+    endif
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
     BOOSTSPSUFFIX ?= sp
