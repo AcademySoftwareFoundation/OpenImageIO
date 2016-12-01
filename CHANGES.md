@@ -1,3 +1,7 @@
+Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
+----------------------------------------------
+
+
 Release 1.7.9 (1 Dec 2016) -- compared to 1.7.8
 ----------------------------------------------
 * Make sure that sRGB<->linear color transform still work (in the obvious
