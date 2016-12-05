@@ -36,6 +36,7 @@
 #include <cmath>
 #include <sstream>
 #include <limits>
+#include <mutex>
 
 #include <boost/algorithm/string.hpp>
 
@@ -68,6 +69,19 @@ string_view::c_str() const
     // the ustring table forever. Punt on this for now, it's an edge case
     // that we need to handle, but is not likely to ever be an issue.
     return ustring(m_chars, 0, m_len).c_str();
+}
+
+
+
+void
+Strutil::sync_output (FILE *file, string_view str)
+{
+    static std::mutex output_mutex;
+    if (str.size() && file) {
+        std::unique_lock<std::mutex> lock (output_mutex);
+        fwrite (str.data(), 1, str.size(), file);
+        fflush (file);
+    }
 }
 
 

@@ -1039,7 +1039,7 @@ ImageSpec::serialize (SerialFormat fmt, SerialVerbose verbose) const
     out << '\n';
 
     if (verbose >= SerialDetailed) {
-        out << format ("    channel list: ");
+        out << "    channel list: ";
         for (int i = 0;  i < nchannels;  ++i) {
             if (i < (int)channelnames.size())
                 out << channelnames[i];

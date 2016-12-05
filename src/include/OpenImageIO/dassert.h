@@ -71,7 +71,7 @@
 #ifndef ASSERT
 # define ASSERT(x)                                              \
     (OIIO_LIKELY(x) ? ((void)0)                                 \
-         : (fprintf (stderr, "%s:%u: failed assertion '%s'\n",  \
+         : (std::fprintf (stderr, "%s:%u: failed assertion '%s'\n",  \
                      __FILE__, __LINE__, #x), abort()))
 #endif
 
@@ -80,7 +80,7 @@
 #ifndef ASSERT_MSG
 # define ASSERT_MSG(x,msg,...)                                      \
     (OIIO_LIKELY(x) ? ((void)0)                                     \
-         : (fprintf (stderr, "%s:%u: failed assertion '%s': " msg "\n", \
+         : (std::fprintf (stderr, "%s:%u: failed assertion '%s': " msg "\n", \
                     __FILE__, __LINE__, #x,  __VA_ARGS__), abort()))
 #endif
 

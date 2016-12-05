@@ -572,10 +572,10 @@ test_float_formatting ()
         sprintf (buffer, "%.9g", *f);
         std::string tiny = Strutil::format ("%.9g", *f);
         if (sstream.str() != tiny || tiny != buffer)
-            printf ("%x  stream '%s'  printf '%s'  Strutil::format '%s'\n",
-                    i32, sstream.str().c_str(), buffer, tiny.c_str());
+            Strutil::printf ("%x  stream '%s'  printf '%s'  Strutil::format '%s'\n",
+                    i32, sstream.str(), buffer, tiny);
         if ((i32 & 0xfffffff) == 0xfffffff) {
-            printf ("%x\n", i32);
+            Strutil::printf ("%x\n", i32);
             fflush (stdout);
         }
     }

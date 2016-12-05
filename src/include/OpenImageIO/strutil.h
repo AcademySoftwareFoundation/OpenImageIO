@@ -44,6 +44,7 @@
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 #include <vector>
 #include <map>
 
@@ -79,16 +80,54 @@ OIIO_NAMESPACE_BEGIN
 /// @brief     String-related utilities.
 namespace Strutil {
 
+/// Output the string to the FILE* stream in a synchronized fashion, so that
+/// buffers are flushed and internal mutex is used to prevent threads from
+/// clobbering each other -- output strings coming from concurrent threads
+/// may be interleaved, but each string is "atomic" and will never splice
+/// each other character-by-character.
+void OIIO_API sync_output (FILE *file, string_view str);
+
+
 /// Construct a std::string in a printf-like fashion.  In other words,
 /// something like:
 ///    std::string s = Strutil::format ("blah %d %g", (int)foo, (float)bar);
 ///
-/// The printf argument list is fully typesafe via tinyformat; format
-/// conceptually has the signature
-///
-/// std::string Strutil::format (const char *fmt, ...);
-TINYFORMAT_WRAP_FORMAT (std::string, format, /**/,
-    std::ostringstream msg;, msg, return msg.str();)
+/// Uses the tinyformat library underneath, so it's fully type-safe, and
+/// works with any types that understand stream output via '<<'.
+template<typename T1, typename... Args>
+std::string format (string_view fmt, const T1& v1, const Args&... args)
+{
+    return tinyformat::format (fmt.c_str(), v1, args...);
+}
+
+inline string_view format (string_view str) { return str; }  // base case
+
+
+/// Output formatted string to stdout, type-safe, and threads can't clobber
+/// one another.
+template<typename T1, typename... Args>
+void printf (string_view fmt, const T1& v1, const Args&... args)
+{
+    sync_output (stdout, format(fmt.c_str(), v1, args...));
+}
+
+inline void printf (string_view str) {  // base case
+    sync_output (stdout, str);
+}
+
+/// Output formatted string to an open FILE*, type-safe, and threads can't
+/// clobber one another.
+template<typename T1, typename... Args>
+void fprintf (FILE *file, string_view fmt, const T1& v1, const Args&... args)
+{
+    sync_output (file, format(fmt.c_str(), v1, args...));
+}
+
+inline void fprintf (FILE *file, string_view str) {  // base case
+    sync_output (file, str);
+}
+
+
 
 /// Return a std::string formatted from printf-like arguments.  Like the
 /// real sprintf, this is not guaranteed type-safe and is not extensible
