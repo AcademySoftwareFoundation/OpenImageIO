@@ -1912,39 +1912,6 @@ the region of interest.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce deepen} (dst, src, zvalue=1.0, roi=ROI.All, nthreads=0)}
-\index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
-
-Convert a flat image to a deep one that has one depth sample per pixel
-(but no depth samples for the pixels corresponding to those in the source
-image that have infinite \qkw{Z} or that had 0 for all color channels and no
-\qkw{Z} channel).
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    Deep = ImageBuf()
-    ImageBufAlgo.deepen (Deep, ImageBuf("az.exr"))
-\end{code}
-\apiend
-
-
-\apiitem{bool ImageBufAlgo.{\ce flatten} (dst, src, roi=ROI.All, nthreads=0)}
-\index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
-
-Composite the depth samples within each pixel of ``deep'' \ImageBuf\ {\cf
-src} and store the single  resulting value per pixel in ``flat'' \ImageBuf
-{\cf dst}.
-
-\smallskip
-\noindent Examples:
-\begin{code}
-    Flat = ImageBuf()
-    ImageBufAlgo.flatten (Flat, ImageBuf("deepalpha.exr"))
-\end{code}
-\apiend
-
-
 \apiitem{bool ImageBufAlgo.{\ce copy} (dst, src, convert=TypeDesc.UNKNOWN, \\
         \bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!copy} \indexapi{copy}
@@ -3070,6 +3037,79 @@ Capture a still image from a designated camera.
     WebcamImage.save ("webcam.jpg")
 \end{code}
 \apiend
+
+
+\subsection{Functions specific to deep images}
+
+\apiitem{bool ImageBufAlgo.{\ce deepen} (dst, src, zvalue=1.0, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
+
+Convert a flat image to a deep one that has one depth sample per pixel
+(but no depth samples for the pixels corresponding to those in the source
+image that have infinite \qkw{Z} or that had 0 for all color channels and no
+\qkw{Z} channel).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Deep = ImageBuf()
+    ImageBufAlgo.deepen (Deep, ImageBuf("az.exr"))
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce flatten} (dst, src, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
+
+Composite the depth samples within each pixel of ``deep'' \ImageBuf\ {\cf
+src} and store the single  resulting value per pixel in ``flat'' \ImageBuf
+{\cf dst}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Flat = ImageBuf()
+    ImageBufAlgo.flatten (Flat, ImageBuf("deepalpha.exr"))
+\end{code}
+\apiend
+
+\apiitem{bool ImageBufAlgo.{\ce deep_merge} (dst, A, B, occlusion_cull, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deep_merge} \indexapi{deep_merge} \index{deep images}
+
+\NEW % 1.7
+Merge the samples of two \emph{deep} images {\cf A} and {\cf B} into deep
+result {\cf dst}. If {\cf occlusion_cull} is {\cf True}, samples beyond
+the first opaque sample will be discarded, otherwise they will be kept.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    DeepA = ImageBuf("hardsurf.exr")
+    DeepB = ImageBuf("volume.exr")
+    Merged = ImageBuf()
+    ImageBufAlgo.deep_merge (Merged, DeepA, DeepB)
+\end{code}
+\apiend
+
+\subsection*{Other ImageBufAlgo methods that understand deep images}
+
+In addition to the previously described methods that are specific to
+deep images, the following \ImageBufAlgo methods (described in their
+respective sections) work with deep inputs:
+
+\medskip
+
+\noindent
+{\cf ImageBufAlgo.add} \\
+{\cf ImageBufAlgo.channels} \\
+{\cf ImageBufAlgo.compare} \\
+{\cf ImageBufAlgo.computePixelStats} \\
+{\cf ImageBufAlgo.crop} \\
+{\cf ImageBufAlgo.div} \\
+{\cf ImageBufAlgo.fixNonFinite} \\
+{\cf ImageBufAlgo.mul} \\
+{\cf ImageBufAlgo.nonzero_region} \\
+{\cf ImageBufAlgo.sub} \\
 
 
 \newpage
