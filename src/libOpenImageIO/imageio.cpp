@@ -70,7 +70,8 @@ namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
 static const int maxthreads = 256;   // reasonable maximum for sanity check
-const char *oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+static const char *oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+static FILE *oiio_debug_file = NULL;
 #ifdef NDEBUG
 int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
 #else
@@ -129,12 +130,16 @@ geterror ()
 
 
 void
-pvt::debugmsg_ (string_view message)
+debug (string_view message)
 {
     recursive_lock_guard lock (pvt::imageio_mutex);
     if (print_debug) {
-        std::cerr << "OIIO DEBUG: " << message 
-                  << (message.back() == '\n' ? "" : "\n");
+        if (! oiio_debug_file) {
+            const char *filename = getenv("OPENIMAGEIO_DEBUG_FILE");
+            oiio_debug_file = filename && filename[0] ? fopen(filename,"a") : stderr;
+            ASSERT (oiio_debug_file);
+        }
+        Strutil::fprintf (oiio_debug_file, "OIIO DEBUG: %s", message);
     }
 }
 

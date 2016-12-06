@@ -59,6 +59,7 @@
 #include "platform.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
+#include "strutil.h"
 #include "array_view.h"
 
 OIIO_NAMESPACE_BEGIN
@@ -1473,18 +1474,17 @@ OIIO_API bool wrap_mirror (int &coord, int origin, int width);
 typedef bool (*wrap_impl) (int &coord, int origin, int width);
 
 
-namespace pvt {
-// For internal use - use debugmsg() below for a nicer interface.
-OIIO_API void debugmsg_ (string_view message);
-};
-
-/// debugmsg(format, ...) prints debugging message when attribute "debug" is
+/// debug(format, ...) prints debugging message when attribute "debug" is
 /// nonzero, which it is by default for DEBUG compiles or when the
 /// environment variable OPENIMAGEIO_DEBUG is set. This is preferred to raw
 /// output to stderr for debugging statements.
-///   void debugmsg (const char *format, ...);
-TINYFORMAT_WRAP_FORMAT (void, debugmsg, /**/,
-                        std::ostringstream msg;, msg, pvt::debugmsg_(msg.str());)
+OIIO_API void debug (string_view str);
+
+template<typename T1, typename... Args>
+void debug (string_view fmt, const T1& v1, const Args&... args)
+{
+    debug (Strutil::format(fmt.c_str(), v1, args...));
+}
 
 
 // to force correct linkage on some systems

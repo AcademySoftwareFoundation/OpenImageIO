@@ -156,10 +156,10 @@ catalog_plugin (const std::string &format_name,
             // It's ok if they're both the same file; just skip it.
             return;
         }
-        OIIO::debugmsg ("OpenImageIO WARNING: %s had multiple plugins:\n"
-                        "\t\"%s\"\n    as well as\n\t\"%s\"\n"
-                        "    Ignoring all but the first one.\n",
-                        format_name, found_path->second, plugin_fullpath);
+        OIIO::debug ("OpenImageIO WARNING: %s had multiple plugins:\n"
+                     "\t\"%s\"\n    as well as\n\t\"%s\"\n"
+                     "    Ignoring all but the first one.\n",
+                     format_name, found_path->second, plugin_fullpath);
         return;
     }
 
