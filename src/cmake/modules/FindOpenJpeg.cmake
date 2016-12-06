@@ -64,8 +64,10 @@ set (OpenJpeg_include_paths
      /usr/local/include/openjpeg-2.0
      /usr/local/include/openjpeg
      /usr/local/include
-     /usr/include/openjpeg
+     /usr/include/openjpeg-2.2
+     /usr/include/openjpeg-2.1
      /usr/include/openjpeg-1.5
+     /usr/include/openjpeg
      /usr/local/include/openjpeg-1.5
      /usr/include
      /opt/local/include)
