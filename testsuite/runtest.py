@@ -273,6 +273,8 @@ def runtest (command, outputs, failureok=0) :
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
     open ("out.txt", "w").close()    # truncate out.txt
+    if os.path.isfile("debug.log") :
+        os.remove ("debug.log")
 
     if options.path != "" :
         sys.path = [options.path] + sys.path
@@ -313,13 +315,20 @@ def runtest (command, outputs, failureok=0) :
                 # file and the diff, for easy debugging.
                 print ("-----" + out + "----->")
                 print (open(out,'r').read() + "<----------")
+                print ("-----" + testfile + "----->")
+                print (open(testfile,'r').read() + "<----------")
+                os.system ("ls -al " +out+" "+testfile)
                 print ("Diff was:\n-------")
                 print (open (out+".diff", 'rU').read())
             if extension in image_extensions :
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
                 os.system (diff_command (out, testfile, silent=False))
-
+            if os.path.isfile("debug.log") and os.path.getsize("debug.log") :
+                print ("---   DEBUG LOG   ---\n")
+                with open("debug.log", "r") as flog :
+                    print flog.read()
+                print ("--- END DEBUG LOG ---\n")
     return (err)
 
 

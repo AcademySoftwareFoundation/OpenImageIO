@@ -47,7 +47,7 @@ before_install:
           sysctl machdep.cpu.features ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
           export PLATFORM=linux64 ;
-          cat /proc/cpuinfo ;
+          head -40 /proc/cpuinfo ;
       fi
     - if [ "$DEBUG" == 1 ] ; then export PLATFORM=${PLATFORM}.debug ; fi
     - echo "Build platform name is $PLATFORM"
@@ -75,8 +75,8 @@ script:
     - export LD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$LD_LIBRARY_PATH
     - export OIIO_LIBRARY_PATH=$OPENIMAGEIOHOME/lib
     - echo "OIIO_LIBRARY_PATH is ${OIIO_LIBRARY_PATH}"
-    - echo "list of library path:"
-    - ls -R $OIIO_LIBRARY_PATH
+    # - echo "list of library path:"
+    # - ls -R $OIIO_LIBRARY_PATH
     - export PYTHONPATH=$OPENIMAGEIOHOME/python:$PYTHONPATH
     - make $BUILD_FLAGS test
 
