@@ -909,11 +909,14 @@ A colon-separated list of directories to search for
 dynamically-loaded format plugins.
 \apiend
 
-\apiitem{string format_list}
+\apiitem{string format_list \\
+string input_format_list \\
+string output_format_list}
 \vspace{10pt}
-\index{format_list}
-A comma-separated list of all the names of all supported 
-image format readers and writers.  (Note: can only be retrieved
+\index{format_list} \index{input_format_list} \index{output_format_list}
+A comma-separated list of all the names of, respectively, all supported
+image formats, all formats accepted as inputs, and all formats accepted
+as outputs.  (Note: can only be retrieved
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 

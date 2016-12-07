@@ -67,6 +67,8 @@ atomic_int oiio_read_chunk (256);
 int tiff_half (0);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
+std::string input_format_list;   // comma-separated list of readable formats
+std::string output_format_list;  // comma-separated list of writeable formats
 std::string extension_list;   // list of all extensions for all formats
 std::string library_list;   // list of all libraries for all formats
 }
@@ -208,6 +210,18 @@ getattribute (string_view name, TypeDesc type, void *val)
         if (format_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(format_list);
+        return true;
+    }
+    if (name == "input_format_list" && type == TypeDesc::TypeString) {
+        if (input_format_list.empty())
+            pvt::catalog_all_plugins (plugin_searchpath.string());
+        *(ustring *)val = ustring(input_format_list);
+        return true;
+    }
+    if (name == "output_format_list" && type == TypeDesc::TypeString) {
+        if (output_format_list.empty())
+            pvt::catalog_all_plugins (plugin_searchpath.string());
+        *(ustring *)val = ustring(output_format_list);
         return true;
     }
     if (name == "extension_list" && type == TypeDesc::TypeString) {

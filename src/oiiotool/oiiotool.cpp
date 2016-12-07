@@ -4678,6 +4678,24 @@ command_line_string (int argc, char * argv[], bool sansattrib)
 
 
 
+static std::string
+formatted_format_list (string_view format_typename, string_view attr)
+{
+    int columns = Sysutil::terminal_columns() - 2;
+    std::stringstream s;
+    s << format_typename << " formats supported: ";
+    std::string format_list;
+    OIIO::getattribute (attr, format_list);
+    std::vector<string_view> formats;
+    Strutil::split (format_list, formats, ",");
+    std::sort (formats.begin(), formats.end());
+    format_list = Strutil::join (formats, ", ");
+    s << format_list;
+    return Strutil::wordwrap(s.str(), columns, 4);
+}
+
+
+
 static void
 print_help (ArgParse &ap)
 {
@@ -4685,18 +4703,8 @@ print_help (ArgParse &ap)
     std::cout << "\n";
     int columns = Sysutil::terminal_columns() - 2;
 
-    {
-        std::stringstream s;
-        s << "Image formats supported: ";
-        std::string format_list;
-        OIIO::getattribute ("format_list", format_list);
-        std::vector<string_view> formats;
-        Strutil::split (format_list, formats, ",");
-        std::sort (formats.begin(), formats.end());
-        format_list = Strutil::join (formats, ", ");
-        s << format_list;
-        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
-    }
+    std::cout << formatted_format_list ("Input", "input_format_list") << "\n";
+    std::cout << formatted_format_list ("Output", "output_format_list") << "\n";
 
     // debugging color space names
     std::stringstream s;
