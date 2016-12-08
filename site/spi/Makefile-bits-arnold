@@ -120,7 +120,7 @@ ifeq ($(SP_OS), rhel7)
     MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
     MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/libOpenImageIO.map"
     MY_CMAKE_FLAGS += -DEXTRA_DSO_LINK_ARGS:STRING="-Wl,--exclude-libs,libtiff.a"
-    MY_CMAKE_FILES += -DUSE_OPENCV=0
+    MY_CMAKE_FLAGS += -DUSE_OPENCV=0
 
     # end rhel7
 

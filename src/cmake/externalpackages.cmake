@@ -525,7 +525,11 @@ if (USE_OPENCV)
     find_package (OpenCV)
     if (OpenCV_FOUND)
         add_definitions ("-DUSE_OPENCV")
+    else ()
+        message (STATUS "OpenCV library not found")
     endif ()
+else ()
+    message (STATUS "Not using OpenCV")
 endif ()
 
 # end OpenCV setup
