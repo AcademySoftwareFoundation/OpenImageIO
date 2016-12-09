@@ -629,9 +629,12 @@ public:
     /// The printf argument list is fully typesafe via tinyformat; format
     /// conceptually has the signature
     ///
-    /// static ustring format (const char *fmt, ...);
-    TINYFORMAT_WRAP_FORMAT (static ustring, format, /**/,
-        std::ostringstream msg;, msg, return ustring(msg.str());)
+    template<typename T1, typename... Args>
+    static ustring format (string_view fmt, const T1& v1, const Args&... args)
+    {
+        return ustring (Strutil::format (fmt, v1, args...));
+    }
+    friend inline ustring format (string_view str) { return ustring(str); }
 
     /// Generic stream output of a ustring.
     ///

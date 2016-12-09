@@ -65,7 +65,7 @@ if (OIIO_BUILD_TESTS)
 
     add_executable (strutil_test strutil_test.cpp)
     set_target_properties (strutil_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (strutil_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    target_link_libraries (strutil_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_strutil strutil_test)
 
     add_executable (fmath_test fmath_test.cpp)
