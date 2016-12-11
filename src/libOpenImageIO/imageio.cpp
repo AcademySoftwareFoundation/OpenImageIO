@@ -160,7 +160,7 @@ attribute (string_view name, TypeDesc type, const void *val)
         return true;
     }
     if (name == "exr_threads" && type == TypeDesc::TypeInt) {
-        oiio_exr_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
+        oiio_exr_threads = Imath::clamp (*(const int *)val, -1, maxthreads);
         return true;
     }
     if (name == "tiff:half" && type == TypeDesc::TypeInt) {
