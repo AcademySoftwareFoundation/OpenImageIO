@@ -1414,7 +1414,8 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec);
+OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
+OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec); // DEPRECATED (1.8)
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif 
 /// data as a big blob to the char vector.

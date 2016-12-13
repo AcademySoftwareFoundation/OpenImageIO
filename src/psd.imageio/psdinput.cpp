@@ -1116,8 +1116,8 @@ PSDInput::load_resource_1058 (uint32_t length)
     if (!m_file.read (&data[0], length))
         return false;
 
-    if (!decode_exif (&data[0], length, m_composite_attribs) ||
-        !decode_exif (&data[0], length, m_common_attribs)) {
+    if (!decode_exif (data, m_composite_attribs) ||
+        !decode_exif (data, m_common_attribs)) {
         error ("Failed to decode Exif data");
         return false;
     }
