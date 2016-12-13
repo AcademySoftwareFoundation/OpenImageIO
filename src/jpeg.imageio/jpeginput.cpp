@@ -274,7 +274,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
                 ! strcmp ((const char *)m->data, "Exif")) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
-            decode_exif ((unsigned char *)m->data+6, m->data_length-6, m_spec);
+            decode_exif (string_view((char *)m->data+6, m->data_length-6), m_spec);
         }
         else if (m->marker == (JPEG_APP0+1) &&
                  ! strcmp ((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
