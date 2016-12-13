@@ -4568,8 +4568,15 @@ output_file (int argc, const char *argv[])
     ot.output_bitspersample = saved_bitspersample;
     ot.curimg->was_output (true);
     ot.total_writetime.stop();
-    ot.function_times[command] += timer();
+    double optime = timer();
+    ot.function_times[command] += optime;
     ot.num_outputs += 1;
+
+    if (ot.debug)
+        Strutil::printf ("    output took %s  (total time %s, mem %s)\n",
+                         Strutil::timeintervalformat(optime,2),
+                         Strutil::timeintervalformat(ot.total_runtime(),2),
+                         Strutil::memformat(Sysutil::memory_used()));
     return 0;
 }
 
@@ -4983,8 +4990,6 @@ getargs (int argc, char *argv[])
 static bool 
 handle_sequence (int argc, const char **argv)
 {
-    Timer totaltime;
-
     // First, scan the original command line arguments for '#', '@', '%0Nd',
     // '%v' or '%V' characters.  Any found indicate that there are numeric
     // range or wildcards to deal with.  Also look for --frames,
@@ -5140,7 +5145,7 @@ handle_sequence (int argc, const char **argv)
 
         if (ot.runstats)
             std::cout << "End iteration " << i << ": "
-                    << Strutil::timeintervalformat(totaltime(),2) << "  "
+                    << Strutil::timeintervalformat(ot.total_runtime(),2) << "  "
                     << Strutil::memformat(Sysutil::memory_used()) << "\n";
         if (ot.debug)
             std::cout << "\n";
@@ -5160,8 +5165,6 @@ main (int argc, char *argv[])
      // fit Linux way.
     _set_output_format (_TWO_DIGIT_EXPONENT);
 #endif
-
-    Timer totaltime;
 
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
@@ -5191,7 +5194,7 @@ main (int argc, char *argv[])
     }
 
     if (ot.runstats) {
-        double total_time = totaltime();
+        double total_time = ot.total_runtime();
         double unaccounted = total_time;
         std::cout << "\n";
         int threads = -1;
