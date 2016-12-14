@@ -121,6 +121,7 @@ public:
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
     ColorConfig colorconfig;                 // OCIO color config
+    Timer total_runtime;
     Timer total_readtime;
     Timer total_writetime;
     double total_imagecache_readtime;
@@ -620,7 +621,14 @@ public:
         cleanup ();
 
         // Add the time we spent to the stats total for this op type.
-        ot.function_times[opname()] += timer();
+        double optime = timer();
+        ot.function_times[opname()] += optime;
+        if (ot.debug) {
+            Strutil::printf ("    %s took %s  (total time %s, mem %s)\n",
+                             opname(), Strutil::timeintervalformat(optime,2),
+                             Strutil::timeintervalformat(ot.total_runtime(),2),
+                             Strutil::memformat(Sysutil::memory_used()));
+        }
         return 0;
     }
 
