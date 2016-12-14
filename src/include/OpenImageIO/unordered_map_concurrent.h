@@ -73,7 +73,7 @@ OIIO_NAMESPACE_BEGIN
 /// lock and obtain a lock on the next bin.
 ///
 
-template<class KEY, class VALUE, class HASH=boost::hash<KEY>,
+template<class KEY, class VALUE, class HASH=std::hash<KEY>,
          class PRED=std::equal_to<KEY>, size_t BINS=16,
          class BINMAP=unordered_map<KEY,VALUE,HASH,PRED> >
 class unordered_map_concurrent {

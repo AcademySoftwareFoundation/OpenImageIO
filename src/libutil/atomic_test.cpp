@@ -30,6 +30,7 @@
 
 
 #include <iostream>
+#include <thread>
 
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
@@ -37,9 +38,6 @@
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/ustring.h"
-
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "OpenImageIO/unittest.h"
 
@@ -66,7 +64,7 @@ do_int_math (int iterations)
 {
     if (verbose) {
         spin_lock lock(print_mutex);
-        std::cout << "thread " << boost::this_thread::get_id()
+        std::cout << "thread " << std::this_thread::get_id()
               << ", ai = " << ai << "\n";
     }
     for (int i = 0;  i < iterations;  ++i) {
@@ -90,7 +88,7 @@ void test_atomic_int (int numthreads, int iterations)
     ai = 42;
     thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind (do_int_math, iterations));
+        threads.create_thread (do_int_math, iterations);
     }
     ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
@@ -114,7 +112,7 @@ do_int64_math (int iterations)
 {
     if (verbose) {
         spin_lock lock(print_mutex);
-        std::cout << "thread " << boost::this_thread::get_id()
+        std::cout << "thread " << std::this_thread::get_id()
                   << ", all = " << all << "\n";
     }
     for (int i = 0;  i < iterations;  ++i) {
@@ -138,7 +136,7 @@ void test_atomic_int64 (int numthreads, int iterations)
     all = 0;
     thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind (do_int64_math, iterations));
+        threads.create_thread (do_int64_math, iterations);
     }
     threads.join_all ();
     OIIO_CHECK_EQUAL (all, 0);
@@ -218,7 +216,7 @@ int main (int argc, char *argv[])
         int its = iterations/nt;
 
         double range;
-        double t = time_trial (boost::bind(test_atomics,nt,its),
+        double t = time_trial (std::bind(test_atomics,nt,its),
                                ntrials, &range);
 
         std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",

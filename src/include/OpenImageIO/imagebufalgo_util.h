@@ -79,8 +79,7 @@ enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest };
 /// Most image operations will require additional arguments, including
 /// additional input and output images or other parameters.  The
 /// parallel_image template can still be used by employing the
-/// std::bind (or boost::bind, for C++ < 11).  For example, suppose you
-/// have an image operation defined as:
+/// std::bind. For example, suppose you have an image operation defined as:
 ///     void my_image_op (ImageBuf &out, const ImageBuf &in,
 ///                       float scale, ROI roi);
 /// Then you can parallelize it as follows:

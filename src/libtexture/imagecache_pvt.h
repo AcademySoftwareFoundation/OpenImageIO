@@ -321,7 +321,7 @@ private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
-    shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
+    std::shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOpt::Wrap m_swrap;       ///< Default wrap modes
@@ -418,11 +418,7 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 /// Map file names to file references
 typedef unordered_map_concurrent<ustring,ImageCacheFileRef,ustringHash,std::equal_to<ustring>, 8> FilenameMap;
-#if OIIO_CPLUSPLUS_VERSION >= 11
 typedef std::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
-#else /* FIXME(C++11): remove this after making C++11 the baseline */
-typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
-#endif
 
 
 

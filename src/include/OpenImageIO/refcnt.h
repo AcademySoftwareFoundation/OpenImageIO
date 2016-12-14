@@ -39,28 +39,18 @@
 #ifndef OPENIMAGEIO_REFCNT_H
 #define OPENIMAGEIO_REFCNT_H
 
+#include <memory>
+
 #include <OpenImageIO/atomic.h>
-
-#if OIIO_CPLUSPLUS_VERSION >= 11
-# include <memory>
-#else
-# include <boost/shared_ptr.hpp>
-#endif
-
 
 
 OIIO_NAMESPACE_BEGIN
 
-#if OIIO_CPLUSPLUS_VERSION < 11
-using boost::shared_ptr;
-#else
-using std::shared_ptr;
-#endif
+using std::shared_ptr;    // DEPRECATED(1.8)
 
 
 
-/// A simple intrusive pointer, modeled after std::shared_ptr and
-/// boost::intrusive_ptr.
+/// A simple intrusive pointer, modeled after std::shared_ptr.
 template<class T>
 class intrusive_ptr
 {
@@ -81,12 +71,10 @@ public:
         if (m_ptr) intrusive_ptr_add_ref (m_ptr);
     }
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
     /// Move construct from another intrusive_ptr.
     intrusive_ptr (intrusive_ptr &&r) OIIO_NOEXCEPT : m_ptr(r.get()) {
         r.m_ptr = NULL;
     }
-#endif
 
     /// Destructor
     ~intrusive_ptr () { if (m_ptr) intrusive_ptr_release (m_ptr); }
@@ -97,13 +85,11 @@ public:
         return *this;
     }
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
     /// Move assignment from intrusive_ptr
     intrusive_ptr & operator= (intrusive_ptr&& r) OIIO_NOEXCEPT {
         intrusive_ptr (static_cast<intrusive_ptr&&>(r)).swap(*this);
         return *this;
     }
-#endif
 
     /// Reset to null reference
     void reset () OIIO_NOEXCEPT {

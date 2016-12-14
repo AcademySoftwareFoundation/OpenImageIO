@@ -37,10 +37,10 @@
 #ifndef OPENIMAGEIO_SOCKET_PVT_H
 #define OPENIMAGEIO_SOCKET_PVT_H
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/refcnt.h"
-
 #include <map>
+#include <memory>
+#include "OpenImageIO/imageio.h"
+
 
 // The boost::asio library uses functionality only available since Windows XP,
 // thus _WIN32_WINNT must be set to _WIN32_WINNT_WINXP (0x0501) or greater.
@@ -104,7 +104,7 @@ class SocketInput : public ImageInput {
     int m_next_scanline;      // Which scanline is the next to read?
     io_service io;
     ip::tcp::socket socket;
-    OIIO::shared_ptr <ip::tcp::acceptor> acceptor;
+    std::shared_ptr <ip::tcp::acceptor> acceptor;
     
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);

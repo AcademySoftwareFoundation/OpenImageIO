@@ -37,6 +37,7 @@
 #include <OpenEXR/ImathBox.h>
 
 #include <cmath>
+#include <memory>
 
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -44,7 +45,6 @@
 #include "OpenImageIO/dassert.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
-#include "OpenImageIO/refcnt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -429,7 +429,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    OIIO::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    std::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
         // If no filter was provided, punt and just linearly interpolate.
@@ -470,7 +470,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    OIIO::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    std::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
     std::string filtername = filtername_;
     if (filtername.empty()) {
         // No filter name supplied -- pick a good default
@@ -683,7 +683,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    OIIO::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    std::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
     if (filter == NULL) {
         // If no filter was provided, punt and just linearly interpolate.
         filterptr.reset (Filter2D::create ("lanczos3", 6.0f, 6.0f));
@@ -708,7 +708,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
 {
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    OIIO::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
+    std::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
     std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
     for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
         FilterDesc fd;

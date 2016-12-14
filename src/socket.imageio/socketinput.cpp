@@ -168,7 +168,7 @@ SocketInput::accept_connection(const std::string &name)
     int port = atoi (rest_args["port"].c_str ());
 
     try {
-        acceptor = OIIO::shared_ptr <ip::tcp::acceptor>
+        acceptor = std::shared_ptr <ip::tcp::acceptor>
             (new ip::tcp::acceptor (io, ip::tcp::endpoint (ip::tcp::v4(), port)));
         acceptor->accept (socket);
     } catch (boost::system::system_error &err) {
