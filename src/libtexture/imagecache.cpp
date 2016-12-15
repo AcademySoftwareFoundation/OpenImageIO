@@ -33,6 +33,7 @@
 #include <sstream>
 #include <vector>
 #include <cstring>
+#include <memory>
 
 #include <OpenEXR/ImathMatrix.h>
 
@@ -69,7 +70,7 @@ spin_mutex ImageCacheImpl::m_perthread_info_mutex;
 
 namespace {  // anonymous
 
-static shared_ptr<ImageCacheImpl> shared_image_cache;
+static std::shared_ptr<ImageCacheImpl> shared_image_cache;
 static spin_mutex shared_image_cache_mutex;
 
 // Make some static ustring constants to avoid strcmp's

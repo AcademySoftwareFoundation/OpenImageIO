@@ -35,11 +35,11 @@
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #if defined(_MSC_VER)
 #include <io.h>
 #endif
 
-#include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathVec.h>
@@ -86,7 +86,7 @@ compute_sha1 (Oiiotool &ot, ImageInput *input)
             return std::string();
         }
         else if (size != 0) {
-            boost::scoped_array<char> buf (new char [size]);
+            std::unique_ptr<char[]> buf (new char [size]);
             if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
                 ot.error ("    SHA-1: unable to compute, could not read image\n");
                 return std::string();

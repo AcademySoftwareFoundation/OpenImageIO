@@ -33,6 +33,7 @@
 #include <OpenEXR/half.h>
 
 #include <cmath>
+#include <memory>
 
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -41,7 +42,6 @@
 #include "OpenImageIO/platform.h"
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
-#include "OpenImageIO/refcnt.h"
 #include "kissfft.hh"
 
 
@@ -1101,7 +1101,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     // We generate a bunch of temp images to form an image pyramid.
     // These give us a place to stash them and make sure they are
     // auto-deleted when the function exits.
-    std::vector<OIIO::shared_ptr<ImageBuf> > pyramid;
+    std::vector<std::shared_ptr<ImageBuf> > pyramid;
 
     // First, make a writeable copy of the original image (converting
     // to float as a convenience) as the top level of the pyramid.
@@ -1109,7 +1109,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     topspec.set_format (TypeDesc::FLOAT);
     ImageBuf *top = new ImageBuf (topspec);
     paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
-    pyramid.push_back (OIIO::shared_ptr<ImageBuf>(top));
+    pyramid.push_back (std::shared_ptr<ImageBuf>(top));
 
     // Construct the rest of the pyramid by successive x/2 resizing and
     // then dividing nonzero alpha pixels by their alpha (this "spreads
@@ -1122,7 +1122,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
         ImageBuf *small = new ImageBuf (smallspec);
         ImageBufAlgo::resize (*small, *pyramid.back(), "triangle");
         divide_by_alpha (*small, get_roi(smallspec), nthreads);
-        pyramid.push_back (OIIO::shared_ptr<ImageBuf>(small));
+        pyramid.push_back (std::shared_ptr<ImageBuf>(small));
         //debug small->save();
     }
 

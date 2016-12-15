@@ -31,8 +31,9 @@
 
 #ifndef OIIOTOOL_H
 
+#include <memory>
+
 #include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/refcnt.h"
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/sysutil.h"
 
@@ -43,7 +44,7 @@ namespace OiioTool {
 typedef int (*CallbackFunction)(int argc,const char*argv[]);
 
 class ImageRec;
-typedef shared_ptr<ImageRec> ImageRecRef;
+typedef std::shared_ptr<ImageRec> ImageRecRef;
 
 
 /// Polycy hints for reading images
@@ -241,7 +242,7 @@ private:
 };
 
 
-typedef shared_ptr<ImageBuf> ImageBufRef;
+typedef std::shared_ptr<ImageBuf> ImageBufRef;
 
 
 class SubimageRec {
