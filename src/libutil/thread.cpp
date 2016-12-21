@@ -103,8 +103,6 @@ private:
 
 OIIO_NAMESPACE_BEGIN
 
-bool debug_threads = false; // FIXME -- remove this after debugging
-
 static int
 threads_default ()
 {
