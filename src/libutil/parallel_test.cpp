@@ -175,6 +175,27 @@ test_thread_pool_recursion ()
 
 
 
+void
+test_empty_thread_pool ()
+{
+    std::cout << "\nTesting that pool size 0 makes all jobs run by caller" << std::endl;
+    thread_pool *pool (default_thread_pool());
+    pool->resize (0);
+    OIIO_CHECK_EQUAL (pool->size(), 0);
+    atomic_int count (0);
+    const int ntasks = 100;
+    task_set<void> ts (pool);
+    for (int i = 0; i < ntasks; ++i)
+        ts.push (pool->push ([&](int id){
+            ASSERT (id == -1 && "Must be run by calling thread");
+            count += 1;
+        }));
+    ts.wait();
+    OIIO_CHECK_EQUAL (count, ntasks);
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -192,10 +213,9 @@ main (int argc, char **argv)
 
     test_parallel_for ();
     test_parallel_for_2D ();
-
     time_parallel_for ();
-
     test_thread_pool_recursion ();
+    test_empty_thread_pool ();
 
     return unit_test_failures;
 }

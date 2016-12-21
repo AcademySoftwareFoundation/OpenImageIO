@@ -137,7 +137,7 @@ public:
     // should be called from one thread, otherwise be careful to not interleave, also with this->stop()
     // nThreads must be >= 0
     void resize(int nThreads) {
-        if (nThreads < 1)
+        if (nThreads < 0)
             nThreads = std::max (1, int(threads_default()) - 1);
         if (!this->isStop && !this->isDone) {
             int oldNThreads = static_cast<int>(this->threads.size());
@@ -222,12 +222,16 @@ public:
         auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
             std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
         );
-        auto _f = new std::function<void(int id)>([pck](int id) {
-            (*pck)(id);
-        });
-        this->q.push(_f);
-        std::unique_lock<std::mutex> lock(this->mutex);
-        this->cv.notify_one();
+        if (size() < 1) {
+            (*pck)(-1); // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>([pck](int id) {
+                (*pck)(id);
+            });
+            this->q.push(_f);
+            std::unique_lock<std::mutex> lock(this->mutex);
+            this->cv.notify_one();
+        }
         return pck->get_future();
     }
 
@@ -236,12 +240,16 @@ public:
     template<typename F>
     auto push(F && f) ->std::future<decltype(f(0))> {
         auto pck = std::make_shared<std::packaged_task<decltype(f(0))(int)>>(std::forward<F>(f));
-        auto _f = new std::function<void(int id)>([pck](int id) {
-            (*pck)(id);
-        });
-        this->q.push(_f);
-        std::unique_lock<std::mutex> lock(this->mutex);
-        this->cv.notify_one();
+        if (size() < 1) {
+            (*pck)(-1); // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>([pck](int id) {
+                (*pck)(id);
+            });
+            this->q.push(_f);
+            std::unique_lock<std::mutex> lock(this->mutex);
+            this->cv.notify_one();
+        }
         return pck->get_future();
     }
 
@@ -323,8 +331,8 @@ private:
 
 
 
-thread_pool::thread_pool (int nthreads /*, int queue_size*/)
-    : m_impl (new Impl (nthreads /*, queue_size*/))
+thread_pool::thread_pool (int nthreads)
+    : m_impl (new Impl (nthreads))
 {
     resize (nthreads);
 }

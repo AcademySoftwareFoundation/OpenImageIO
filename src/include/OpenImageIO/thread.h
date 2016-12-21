@@ -522,21 +522,22 @@ private:
 ///
 class OIIO_API thread_pool {
 public:
-    /// Initialize the pool.  If nthreads is 0, the pool will be set to one
-    /// less than the number of hardware cores on the machine (this
-    /// preventing over-threading, on the assumption that the thread that
-    /// submits to the pool will itself either have other tasks or will
-    /// steal work from the pool while it waits.
-    thread_pool (int nthreads = 0 /*, int queue_size = 128 */);
+    /// Initialize the pool.  This implicitly calls resize() to set the
+    /// number of worker threads, defaulting to a number of workers that is
+    /// one less than the number of hardware cores.
+    thread_pool (int nthreads = -1);
     ~thread_pool ();
 
     /// How many threads are in the pool?
     int size () const;
 
-    /// Change the number of threads in the pool. BEWARE! This should not
-    /// be done while jobs are running. Passing nthreads == 0 will cause
-    /// it to resize to the number of HW cores minus one.
-    void resize (int nthreads = 0);
+    /// Sets the number of worker threads in the pool. If the pool size is
+    /// 0, any tasks added to the pool will be executed immediately by the
+    /// calling thread. Requesting nthreads < 0 will cause it to resize to
+    /// the number of hardware cores minus one (one less, to account for the
+    /// fact that the calling thread will also contribute). BEWARE! Resizing
+    /// the queue should not be done while jobs are running.
+    void resize (int nthreads = -1);
 
     /// Return the number of currently idle threads in the queue. Zero
     /// means the queue is fully engaged.
@@ -544,29 +545,41 @@ public:
 
     /// Run the user's function that accepts argument int - id of the
     /// running thread. The returned value is templatized std::future, where
-    /// the user can get the result and rethrow any exceptions.
+    /// the user can get the result and rethrow any exceptions. If the queue
+    /// has no worker threads, the task will be run immediately by the
+    /// calling thread.
     template<typename F>
     auto push (F && f) ->std::future<decltype(f(0))> {
         auto pck = std::make_shared<std::packaged_task<decltype(f(0))(int)>>(std::forward<F>(f));
-        auto _f = new std::function<void(int id)>([pck](int id) {
-            (*pck)(id);
-        });
-        push_queue_and_notify (_f);
+        if (size() < 1) {
+            (*pck)(-1); // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>([pck](int id) {
+                (*pck)(id);
+            });
+            push_queue_and_notify (_f);
+        }
         return pck->get_future();
     }
 
     /// Run the user's function that accepts an arbitrary set of arguments
     /// (also passed). The returned value is templatized std::future, where
-    /// the user can get the result and rethrow any exceptions.
+    /// the user can get the result and rethrow any exceptions. If the queue
+    /// has no worker threads, the task will be run immediately by the
+    /// calling thread.
     template<typename F, typename... Rest>
     auto push (F && f, Rest&&... rest) ->std::future<decltype(f(0, rest...))> {
         auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
             std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
         );
-        auto _f = new std::function<void(int id)>([pck](int id) {
-            (*pck)(id);
-        });
-        push_queue_and_notify (_f);
+        if (size() < 1) {
+            (*pck)(-1); // No worker threads, run it with the calling thread
+        } else {
+            auto _f = new std::function<void(int id)>([pck](int id) {
+                (*pck)(id);
+            });
+            push_queue_and_notify (_f);
+        }
         return pck->get_future();
     }
 
@@ -626,7 +639,7 @@ OIIO_API thread_pool* default_thread_pool ();
 ///        // wait for all those queue tasks to finish.
 ///    }
 ///
-template<typename T>
+template<typename T=void>
 class task_set {
 public:
     task_set (thread_pool *pool) { m_pool = pool; }

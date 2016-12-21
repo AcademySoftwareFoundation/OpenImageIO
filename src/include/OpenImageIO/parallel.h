@@ -166,8 +166,9 @@ UnaryFunction
 parallel_for_each (InputIt first, InputIt last, UnaryFunction f)
 {
     thread_pool *pool (default_thread_pool());
-    if (pool->this_thread_is_in_pool()) {
-        // don't use the pool recursively
+    if (pool->size() == 1 || pool->this_thread_is_in_pool()) {
+        // Don't use the pool recursively or if there are no workers --
+        // just run the function directly.
         for ( ; first != last; ++first)
             f (*first);
     } else {
