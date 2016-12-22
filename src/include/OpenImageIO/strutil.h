@@ -307,7 +307,7 @@ template<> inline float from_string<float> (string_view s) {
 template<class T>
 int extract_from_list_string (std::vector<T> &vals,
                               string_view list,
-                              string_view sep = string_view(",",1))
+                              string_view sep = ",")
 {
     size_t nvals = vals.size();
     std::vector<string_view> valuestrings;
@@ -316,8 +316,10 @@ int extract_from_list_string (std::vector<T> &vals,
         T v = from_string<T> (valuestrings[i]);
         if (nvals == 0)
             vals.push_back (v);
-        else if (valuestrings[i].size())
-            vals[i] = from_string<T> (valuestrings[i]);
+        else if (valuestrings[i].size()) {
+            if (vals.size() > i)  // don't replace non-existnt entries
+                vals[i] = from_string<T> (valuestrings[i]);
+        }
         /* Otherwise, empty space between commas, so leave default alone */
     }
     if (valuestrings.size() == 1 && nvals > 0) {
