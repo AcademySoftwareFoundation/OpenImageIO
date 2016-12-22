@@ -98,8 +98,14 @@ if (BUILDSTATIC)
 else ()
     add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
 endif ()
+
+# if (SANITIZE AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+#     # target_link_libraries (OpenImageIO "asan" "ubsan")
+#     target_link_libraries (OpenImageIO ${SANITIZE_LIBRARIES})
+# endif ()
+
 target_link_libraries (OpenImageIO
-                       ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
+                       ${SANITIZE_LIBRARIES}
                        ${format_plugin_libs} # Add all the target link libraries from the plugins
                        ${Boost_LIBRARIES})
 
@@ -162,6 +168,11 @@ set_target_properties(OpenImageIO
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
                      )
+if (VISIBILITY_COMMAND)
+    set_target_properties (OpenImageIO
+                           PROPERTIES
+                           LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
+endif ()
 
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
 # with a .so suffix instead of a .dylib suffix.

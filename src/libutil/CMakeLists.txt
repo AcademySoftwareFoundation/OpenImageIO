@@ -9,9 +9,8 @@ if (BUILDSTATIC)
 else ()
     add_library (OpenImageIO_Util SHARED ${libOpenImageIO_Util_srcs})
 endif ()
-target_link_libraries (OpenImageIO_Util
-                           ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
-                           ${Boost_LIBRARIES})
+target_link_libraries (OpenImageIO_Util ${SANITIZE_LIBRARIES})
+target_link_libraries (OpenImageIO_Util ${Boost_LIBRARIES})
 if (WIN32)
     target_link_libraries (OpenImageIO_Util psapi.lib)
 endif ()
@@ -25,6 +24,12 @@ set_target_properties(OpenImageIO_Util
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
                      )
+
+if (VISIBILITY_COMMAND)
+    set_target_properties (OpenImageIO_Util
+                           PROPERTIES
+                           LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
+endif ()
 
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
 # with a .so suffix instead of a .dylib suffix.

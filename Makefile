@@ -277,6 +277,10 @@ ifneq (${CODECOV},)
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug -DCODECOV:BOOL=${CODECOV}
 endif
 
+ifneq (${SANITIZE},)
+MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
+endif
+
 ifneq (${USE_FREETYPE},)
 MY_CMAKE_FLAGS += -DUSE_FREETYPE:BOOL=${USE_FREETYPE}
 endif
@@ -431,6 +435,7 @@ help:
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "      CODECOV=1                Enable code coverage tests"
+	@echo "      SANITIZE=name1,...       Enablie sanitizers (address, leak, thread)"
 	@echo "  Linking and libraries:"
 	@echo "      HIDE_SYMBOLS=1           Hide symbols not in the public API"
 	@echo "      SOVERSION=nn             Include the specifed major version number "

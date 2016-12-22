@@ -1,5 +1,5 @@
 set (oiiotool_srcs oiiotool.cpp diff.cpp imagerec.cpp printinfo.cpp)
 add_executable (oiiotool ${oiiotool_srcs})
 set_target_properties (oiiotool PROPERTIES FOLDER "Tools")
-target_link_libraries (oiiotool OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+target_link_libraries (oiiotool OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 oiio_install_targets (oiiotool)

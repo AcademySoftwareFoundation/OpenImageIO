@@ -91,7 +91,7 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
         target_link_libraries (${target_name} OpenImageIO ${Boost_LIBRARIES} ${Boost_PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
         set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
     else ()
-        target_link_libraries (${target_name} OpenImageIO ${Boost_LIBRARIES} ${Boost_PYTHON_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
+        target_link_libraries (${target_name} OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${Boost_PYTHON_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
     endif ()
 
     # Exclude the 'lib' prefix from the name

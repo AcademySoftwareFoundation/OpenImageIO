@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import OpenImageIO as oiio
 
 # Create some test images we need
 command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")

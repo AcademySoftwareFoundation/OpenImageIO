@@ -79,6 +79,7 @@ script:
     # - echo "list of library path:"
     # - ls -R $OIIO_LIBRARY_PATH
     - export PYTHONPATH=$OPENIMAGEIOHOME/python:$PYTHONPATH
+    - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
     - make $BUILD_FLAGS test
 
 
@@ -144,6 +145,10 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx,f16c
+    # Build with sanitizers
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
     # Linux only: test gcc 5
       - os: linux
         compiler: gcc
