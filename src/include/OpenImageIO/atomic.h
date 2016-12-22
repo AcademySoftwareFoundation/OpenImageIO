@@ -124,9 +124,7 @@ inline int
 atomic_exchange_and_add (volatile int *at, int x,
                          memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    int r = *at;  *at += x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_add (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add ((int *)at, x);
@@ -140,13 +138,12 @@ atomic_exchange_and_add (volatile int *at, int x,
 
 
 
+/// Atomic version of:  r = *at; *at += x; return r;
 inline long long
 atomic_exchange_and_add (volatile long long *at, long long x,
                          memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    long long r = *at;  *at += x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_add (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_add (at, x);
@@ -170,9 +167,7 @@ inline int
 atomic_exchange_and_and (volatile int *at, int x,
                         memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    int r = *at;  *at &= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_and (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_and ((int *)at, x);
@@ -186,13 +181,12 @@ atomic_exchange_and_and (volatile int *at, int x,
 
 
 
+/// Atomic version of:  r = *at, *at &= x, return r
 inline long long
 atomic_exchange_and_and (volatile long long *at, long long x,
                         memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    long long r = *at;  *at &= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_and (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_and (at, x);
@@ -216,9 +210,7 @@ inline int
 atomic_exchange_and_or (volatile int *at, int x,
                         memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    int r = *at;  *at |= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_or (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_or ((int *)at, x);
@@ -236,9 +228,7 @@ inline long long
 atomic_exchange_and_or (volatile long long *at, long long x,
                         memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    long long r = *at;  *at |= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_or (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_or (at, x);
@@ -262,9 +252,7 @@ inline int
 atomic_exchange_and_xor (volatile int *at, int x,
                          memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    int r = *at;  *at ^= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_xor (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_xor ((int *)at, x);
@@ -278,13 +266,12 @@ atomic_exchange_and_xor (volatile int *at, int x,
 
 
 
+/// Atomic version of:  r = *at, *at ^= x, return r
 inline long long
 atomic_exchange_and_xor (volatile long long *at, long long x,
                          memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    long long r = *at;  *at ^= x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_fetch_xor (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     return __sync_fetch_and_xor (at, x);
@@ -314,13 +301,7 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval,
                              memory_order success = memory_order_seq_cst,
                              memory_order failure = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    if (*at == compareval) {
-        *at = newval;  return true;
-    } else {
-        return false;
-    }
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_compare_exchange_n (at, &compareval, newval, weak,
                                         success, failure);
 #elif defined(USE_GCC_ATOMICS)
@@ -340,13 +321,7 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
                              memory_order success = memory_order_seq_cst,
                              memory_order failure = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    if (*at == compareval) {
-        *at = newval;  return true;
-    } else {
-        return false;
-    }
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_compare_exchange_n (at, &compareval, newval, weak,
                                         success, failure);
 #elif defined(USE_GCC_ATOMICS)
@@ -366,9 +341,7 @@ inline int
 atomic_exchange (volatile int *at, int x,
                  memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    int r = *at;  *at = x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_exchange_n (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     // No __sync version of atomic exchange! Do it the hard way:
@@ -392,9 +365,7 @@ inline long long
 atomic_exchange (volatile long long *at, long long x,
                  memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    long long r = *at;  *at = x;  return r;
-#elif defined(OIIO_USE_GCC_NEW_ATOMICS)
+#if defined(OIIO_USE_GCC_NEW_ATOMICS)
     return __atomic_exchange_n (at, x, order);
 #elif defined(USE_GCC_ATOMICS)
     // No __sync version of atomic exchange! Do it the hard way:
@@ -422,9 +393,7 @@ atomic_exchange (volatile long long *at, long long x,
 OIIO_FORCEINLINE void
 atomic_thread_fence (memory_order order = memory_order_seq_cst)
 {
-#ifdef NOTHREADS
-    // nothing
-#elif OIIO_USE_STDATOMIC
+#if OIIO_USE_STDATOMIC
     std::atomic_thread_fence (order);
 #elif defined(OIIO_USE_GCC_NEW_ATOMICS)
     __atomic_thread_fence (order);
