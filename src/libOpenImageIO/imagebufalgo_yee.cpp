@@ -117,22 +117,15 @@ AdobeRGBToXYZ_color (const Color3f &rgb)
 static bool
 AdobeRGBToXYZ (ImageBuf &A, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (OIIO::bind(AdobeRGBToXYZ, OIIO::ref(A),
-                                                  _1 /*roi*/, 1 /*nthreads*/),
-                                      roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
-        Color3f rgb (a[0], a[1], a[2]);
-        Color3f XYZ = AdobeRGBToXYZ_color (rgb);
-        a[0] = XYZ[0];
-        a[1] = XYZ[1];
-        a[2] = XYZ[2];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
+            Color3f rgb (a[0], a[1], a[2]);
+            Color3f XYZ = AdobeRGBToXYZ_color (rgb);
+            a[0] = XYZ[0];
+            a[1] = XYZ[1];
+            a[2] = XYZ[2];
+        }
+    });
     return true;
 }
 
@@ -168,22 +161,15 @@ XYZToLAB_color (const Color3f xyz)
 static bool
 XYZToLAB (ImageBuf &A, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (OIIO::bind(XYZToLAB, OIIO::ref(A),
-                                                  _1 /*roi*/, 1 /*nthreads*/),
-                                      roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
-        Color3f XYZ (a[0], a[1], a[2]);
-        Color3f LAB = XYZToLAB_color (XYZ);
-        a[0] = LAB[0];
-        a[1] = LAB[1];
-        a[2] = LAB[2];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<float> a (A, roi);  !a.done();  ++a) {
+            Color3f XYZ (a[0], a[1], a[2]);
+            Color3f LAB = XYZToLAB_color (XYZ);
+            a[0] = LAB[0];
+            a[1] = LAB[1];
+            a[2] = LAB[2];
+        }
+    });
     return true;
 }
 

@@ -576,11 +576,10 @@ test_plain_texture (Mapping2D mapping)
             std::cout << "iter " << iter << " file " << filename << "\n";
         }
 
-        OIIO::ImageBufAlgo::parallel_image (OIIO::bind(plain_tex_region, OIIO::ref(image), filename, mapping,
-                                                  test_derivs ? &image_ds : NULL,
-                                                  test_derivs ? &image_dt : NULL, _1),
-                                      get_roi(image.spec()), nthreads);
-
+        ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
+                std::bind(plain_tex_region, std::ref(image), filename, mapping,
+                          test_derivs ? &image_ds : NULL,
+                          test_derivs ? &image_dt : NULL, _1));
         if (resetstats) {
             std::cout << texsys->getstats(2) << "\n";
             texsys->reset_stats ();
@@ -659,9 +658,8 @@ test_texture3d (ustring filename, Mapping3D mapping)
         // Trick: switch to second texture, if given, for second iteration
         if (iter && filenames.size() > 1)
             filename = filenames[1];
-
-        OIIO::ImageBufAlgo::parallel_image (OIIO::bind(tex3d_region, OIIO::ref(image), filename, mapping, _1),
-                                      get_roi(image.spec()), nthreads);
+        ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
+                std::bind(tex3d_region, std::ref(image), filename, mapping, _1));
     }
     
     if (! image.write (output_filename)) 
@@ -968,7 +966,7 @@ launch_tex_threads (int numthreads, int iterations)
     texsys->invalidate_all (true);
     OIIO::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (OIIO::bind(do_tex_thread_workout,iterations,i));
+        threads.create_thread (std::bind(do_tex_thread_workout,iterations,i));
     }
     ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
@@ -1175,7 +1173,7 @@ main (int argc, const char *argv[])
             int nt = wedge ? threadcounts[i] : nthreads;
             int its = iters>1 ? (std::max (1, iters/nt)) : iterations; // / nt;
             double range;
-            double t = time_trial (OIIO::bind(launch_tex_threads,nt,its),
+            double t = time_trial (std::bind(launch_tex_threads,nt,its),
                                    ntrials, &range);
             if (nt == 1)
                 single_thread_time = (float)t;

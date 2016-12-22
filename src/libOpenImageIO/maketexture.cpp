@@ -398,32 +398,23 @@ lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
         roi = get_roi (dst.spec());
     roi.chend = std::min (roi.chend, dst.nchannels());
 
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(lightprobe_to_envlatl, OIIO::ref(dst),
-                        OIIO::cref(src), y_is_up,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        const ImageSpec &dstspec (dst.spec());
+        int nchannels = dstspec.nchannels;
+        ASSERT (dstspec.format == TypeDesc::FLOAT);
 
-    // Serial case
-    const ImageSpec &dstspec (dst.spec());
-    int nchannels = dstspec.nchannels;
-    ASSERT (dstspec.format == TypeDesc::FLOAT);
-
-    float *pixel = ALLOCA (float, nchannels);
-    float dw = dstspec.width, dh = dstspec.height;
-    for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
-        Imath::V3f V = latlong_to_dir ((d.x()+0.5f)/dw, (dh-1.0f-d.y()+0.5f)/dh, y_is_up);
-        float r = M_1_PI*acosf(V[2]) / hypotf(V[0],V[1]);
-        float u = (V[0]*r + 1.0f) * 0.5f;
-        float v = (V[1]*r + 1.0f) * 0.5f;
-        interppixel_NDC_clamped<float> (src, float(u), float(v), pixel, false);
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            d[c] = pixel[c];
-    }
+        float *pixel = ALLOCA (float, nchannels);
+        float dw = dstspec.width, dh = dstspec.height;
+        for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+            Imath::V3f V = latlong_to_dir ((d.x()+0.5f)/dw, (dh-1.0f-d.y()+0.5f)/dh, y_is_up);
+            float r = M_1_PI*acosf(V[2]) / hypotf(V[0],V[1]);
+            float u = (V[0]*r + 1.0f) * 0.5f;
+            float v = (V[1]*r + 1.0f) * 0.5f;
+            interppixel_NDC_clamped<float> (src, float(u), float(v), pixel, false);
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                d[c] = pixel[c];
+        }
+    });
 
     return true;
 }
@@ -656,8 +647,8 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
                                img->yend(), img->zbegin(), img->zend());
 
                 if (filtername == "box" && !orig_was_overscan && sharpen <= 0.0f) {
-                    ImageBufAlgo::parallel_image (OIIO::bind(resize_block, OIIO::ref(*small), OIIO::cref(*img), _1, envlatlmode, allow_shift),
-                                                  OIIO::get_roi(small->spec()));
+                    ImageBufAlgo::parallel_image (get_roi(small->spec()),
+                                                  std::bind(resize_block, std::ref(*small), std::cref(*img), _1, envlatlmode, allow_shift));
                 } else {
                     Filter2D *filter = setup_filter (small->spec(), img->spec(), filtername);
                     if (! filter) {
@@ -1197,8 +1188,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
                      srcspec.format.basetype == TypeDesc::HALF ||
                      srcspec.format.basetype == TypeDesc::DOUBLE)) {
         int found_nonfinite = 0;
-        ImageBufAlgo::parallel_image (OIIO::bind(check_nan_block, OIIO::ref(*src), _1, OIIO::ref(found_nonfinite)),
-                                      OIIO::get_roi(srcspec));
+        ImageBufAlgo::parallel_image (get_roi(srcspec),
+                                      std::bind(check_nan_block, std::ref(*src), _1, std::ref(found_nonfinite)));
         if (found_nonfinite) {
             if (found_nonfinite > 3)
                 outstream << "maketx ERROR: ...and Nan/Inf at "
@@ -1344,8 +1335,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         toplevel.reset (new ImageBuf (dstspec));
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
-            ImageBufAlgo::parallel_image (OIIO::bind(resize_block, OIIO::ref(*toplevel), OIIO::cref(*src), _1, envlatlmode, allow_shift),
-                                          OIIO::get_roi(dstspec));
+            ImageBufAlgo::parallel_image (get_roi(dstspec),
+                                          std::bind(resize_block, std::ref(*toplevel), std::cref(*src), _1, envlatlmode, allow_shift));
         } else {
             Filter2D *filter = setup_filter (toplevel->spec(), src->spec(), resize_filter);
             if (! filter) {

@@ -35,6 +35,8 @@
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
 #include "OpenImageIO/imagebufalgo_util.h"
+#include "OpenImageIO/argparse.h"
+#include "OpenImageIO/timer.h"
 #include "OpenImageIO/unittest.h"
 
 #include <iostream>
@@ -43,6 +45,45 @@
 #include <cstdio>
 
 OIIO_NAMESPACE_USING;
+
+
+static int iterations = 1;
+static int numthreads = 16;
+static int ntrials = 1;
+static bool verbose = false;
+static bool wedge = false;
+static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
+
+
+static void
+getargs (int argc, char *argv[])
+{
+    bool help = false;
+    ArgParse ap;
+    ap.options ("imagebufalgo_test\n"
+                OIIO_INTRO_STRING "\n"
+                "Usage:  imagebufalgo_test [options]",
+                // "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose mode",
+                "--threads %d", &numthreads, 
+                    ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+                "--iters %d", &iterations,
+                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                "--wedge", &wedge, "Do a wedge test",
+                NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
+        std::cerr << ap.geterror() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+}
+
 
 
 void test_type_merge ()
@@ -567,6 +608,7 @@ test_maketx_from_imagebuf()
 void
 test_IBAprep ()
 {
+    std::cout << "test IBAprep\n";
     using namespace ImageBufAlgo;
     ImageBuf rgb  (ImageSpec(256, 256, 3));  // Basic RGB uint8 image
     ImageBuf rgba (ImageSpec(256, 256, 4));  // Basic RGBA uint8 image
@@ -632,9 +674,79 @@ test_IBAprep ()
 
 
 
+void
+benchmark_parallel_image (int res, int iters)
+{
+    using namespace ImageBufAlgo;
+    std::cout << "\nTime old parallel_image for " << res << "x" << res << std::endl;
+
+    std::cout << "  threads time    rate   (best of " << ntrials << ")\n";
+    std::cout << "  ------- ------- -------\n";
+    ImageSpec spec (res, res, 3, TypeDesc::FLOAT);
+    ImageBuf X (spec), Y (spec);
+    float one[] = { 1, 1, 1 };
+    ImageBufAlgo::zero (Y);
+    ImageBufAlgo::fill (X, one);
+    float a = 0.5f;
+
+    // Lambda that does some exercise (a basic SAXPY)
+    auto exercise = [&](ROI roi) {
+        ImageBuf::Iterator<float> y (Y, roi);
+        ImageBuf::ConstIterator<float> x (X, roi);
+        for (; ! y.done(); ++y, ++x)
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                y[c] = a * x[c] + y[c];
+    };
+
+    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
+        int nt = wedge ? threadcounts[i] : numthreads;
+        ImageBufAlgo::zero (Y);
+        auto func = [&](){
+            ImageBufAlgo::parallel_image (Y.roi(), nt, exercise);
+        };
+        double range;
+        double t = time_trial (func, ntrials, iters, &range) / iters;
+        std::cout << Strutil::format ("  %4d   %7.3f ms  %5.1f Mpels/s\n",
+                                      nt, t*1000, double(res*res)/t / 1.0e6);
+        if (! wedge)
+            break;    // don't loop if we're not wedging
+    }
+
+    std::cout << "\nTime new parallel_image for " << res << "x" << res << "\n";
+
+    std::cout << "  threads time    rate   (best of " << ntrials << ")\n";
+    std::cout << "  ------- ------- -------\n";
+    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
+        int nt = wedge ? threadcounts[i] : numthreads;
+        // default_thread_pool()->resize (nt);
+        zero (Y);
+        auto func = [&](){
+            parallel_image (Y.roi(), nt, exercise);
+        };
+        double range;
+        double t = time_trial (func, ntrials, iters, &range) / iters;
+        std::cout << Strutil::format ("  %4d   %6.2f ms  %5.1f Mpels/s\n",
+                                      nt, t*1000, double(res*res)/t / 1.0e6);\
+        if (! wedge)
+            break;    // don't loop if we're not wedging
+    }
+}
+
+
+
 int
 main (int argc, char **argv)
 {
+#if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODECOV)
+    // For the sake of test time, reduce the default iterations for DEBUG,
+    // CI, and code coverage builds. Explicit use of --iters or --trials
+    // will override this, since it comes before the getargs() call.
+    iterations /= 10;
+    ntrials = 1;
+#endif
+
+    getargs (argc, argv);
+
     test_type_merge ();
     test_zero_fill ();
     test_crop ();
@@ -651,6 +763,11 @@ main (int argc, char **argv)
     test_computePixelStats ();
     test_maketx_from_imagebuf ();
     test_IBAprep ();
-    
+
+    benchmark_parallel_image (64, iterations*64);
+    benchmark_parallel_image (512, iterations*16);
+    benchmark_parallel_image (1024, iterations*4);
+    benchmark_parallel_image (2048, iterations);
+
     return unit_test_failures;
 }

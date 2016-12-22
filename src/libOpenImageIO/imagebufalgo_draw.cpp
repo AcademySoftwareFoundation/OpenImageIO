@@ -55,19 +55,11 @@ template<typename T>
 static bool
 fill_const_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(fill_const_<T>, OIIO::ref(dst), values,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            p[c] = values[c];
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = values[c];
+    });
     return true;
 }
 
@@ -77,22 +69,14 @@ static bool
 fill_tb_ (ImageBuf &dst, const float *top, const float *bottom,
        ROI origroi, ROI roi=ROI(), int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(fill_tb_<T>, OIIO::ref(dst), top, bottom,
-                        origroi, _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    float h = std::max (1, origroi.height() - 1);
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        float v = (p.y() - origroi.ybegin) / h;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            p[c] = lerp (top[c], bottom[c], v);
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        float h = std::max (1, origroi.height() - 1);
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            float v = (p.y() - origroi.ybegin) / h;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = lerp (top[c], bottom[c], v);
+        }
+    });
     return true;
 }
 
@@ -103,26 +87,17 @@ fill_corners_ (ImageBuf &dst, const float *topleft, const float *topright,
        const float *bottomleft, const float *bottomright,
        ROI origroi, ROI roi=ROI(), int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(fill_corners_<T>, OIIO::ref(dst), topleft, topright,
-                        bottomleft, bottomright,
-                        origroi, _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    float w = std::max (1, origroi.width() - 1);
-    float h = std::max (1, origroi.height() - 1);
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        float u = (p.x() - origroi.xbegin) / w;
-        float v = (p.y() - origroi.ybegin) / h;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            p[c] = bilerp (topleft[c], topright[c],
-                           bottomleft[c], bottomright[c], u, v);
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        float w = std::max (1, origroi.width() - 1);
+        float h = std::max (1, origroi.height() - 1);
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            float u = (p.x() - origroi.xbegin) / w;
+            float v = (p.y() - origroi.ybegin) / h;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                p[c] = bilerp (topleft[c], topright[c],
+                               bottomleft[c], bottomright[c], u, v);
+        }
+    });
     return true;
 }
 
@@ -362,31 +337,23 @@ static bool
 render_box_ (ImageBuf &dst, array_view<const float> color,
              ROI roi=ROI(), int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(render_box_<T>, OIIO::ref(dst), color,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        float alpha = 1.0f;
+        if (dst.spec().alpha_channel >= 0 && dst.spec().alpha_channel < int(color.size()))
+            alpha = color[dst.spec().alpha_channel];
+        else if (int(color.size()) == roi.chend+1)
+            alpha = color[roi.chend];
 
-    // Serial case
-    float alpha = 1.0f;
-    if (dst.spec().alpha_channel >= 0 && dst.spec().alpha_channel < int(color.size()))
-        alpha = color[dst.spec().alpha_channel];
-    else if (int(color.size()) == roi.chend+1)
-        alpha = color[roi.chend];
-
-    if (alpha == 1.0f) {
-        for (ImageBuf::Iterator<T> r (dst, roi);  !r.done();  ++r)
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                r[c] = color[c];
-    } else {
-        for (ImageBuf::Iterator<T> r (dst, roi);  !r.done();  ++r)
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                r[c] = color[c] + r[c] * (1.0f-alpha);  // "over"
-    }
+        if (alpha == 1.0f) {
+            for (ImageBuf::Iterator<T> r (dst, roi);  !r.done();  ++r)
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    r[c] = color[c];
+        } else {
+            for (ImageBuf::Iterator<T> r (dst, roi);  !r.done();  ++r)
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    r[c] = color[c] + r[c] * (1.0f-alpha);  // "over"
+        }
+    });
     return true;
 }
 
@@ -437,29 +404,20 @@ checker_ (ImageBuf &dst, Dim3 size,
           Dim3 offset,
           ROI roi, int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(checker_<T>, OIIO::ref(dst),
-                        size, color1, color2, offset,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        int xtile = (p.x()-offset.x)/size.x;  xtile += (p.x()<offset.x);
-        int ytile = (p.y()-offset.y)/size.y;  ytile += (p.y()<offset.y);
-        int ztile = (p.z()-offset.z)/size.z;  ztile += (p.z()<offset.z);
-        int v = xtile + ytile + ztile;
-        if (v & 1)
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                p[c] = color2[c];
-        else
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                p[c] = color1[c];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            int xtile = (p.x()-offset.x)/size.x;  xtile += (p.x()<offset.x);
+            int ytile = (p.y()-offset.y)/size.y;  ytile += (p.y()<offset.y);
+            int ztile = (p.z()-offset.z)/size.z;  ztile += (p.z()<offset.z);
+            int v = xtile + ytile + ztile;
+            if (v & 1)
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    p[c] = color2[c];
+            else
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    p[c] = color1[c];
+        }
+    });
     return true;
 }
 
@@ -520,26 +478,17 @@ static bool
 noise_uniform_ (ImageBuf &dst, float min, float max, bool mono,
                 int seed, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(noise_uniform_<T>, OIIO::ref(dst),
-                        min, max, mono, seed,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        int x = p.x(), y = p.y(), z = p.z();
-        float n = 0.0;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == roi.chbegin || !mono)
-                n = lerp (min, max, hashrand (x, y, z, c, seed));
-            p[c] = p[c] + n;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            int x = p.x(), y = p.y(), z = p.z();
+            float n = 0.0;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                if (c == roi.chbegin || !mono)
+                    n = lerp (min, max, hashrand (x, y, z, c, seed));
+                p[c] = p[c] + n;
+            }
         }
-    }
+    });
     return true;
 }
 
@@ -550,26 +499,17 @@ static bool
 noise_gaussian_ (ImageBuf &dst, float mean, float stddev, bool mono,
                  int seed, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(noise_gaussian_<T>, OIIO::ref(dst),
-                        mean, stddev, mono, seed,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        int x = p.x(), y = p.y(), z = p.z();
-        float n = 0.0;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == roi.chbegin || !mono)
-                n = mean + stddev * hashnormal (x, y, z, c, seed);
-            p[c] = p[c] + n;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            int x = p.x(), y = p.y(), z = p.z();
+            float n = 0.0;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                if (c == roi.chbegin || !mono)
+                    n = mean + stddev * hashnormal (x, y, z, c, seed);
+                p[c] = p[c] + n;
+            }
         }
-    }
+    });
     return true;
 }
 
@@ -580,27 +520,18 @@ static bool
 noise_salt_ (ImageBuf &dst, float saltval, float saltportion, bool mono,
              int seed, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(noise_salt_<T>, OIIO::ref(dst),
-                        saltval, saltportion, mono, seed,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
-        int x = p.x(), y = p.y(), z = p.z();
-        float n = 0.0;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            if (c == roi.chbegin || !mono)
-                n = hashrand (x, y, z, c, seed);
-            if (n < saltportion)
-                p[c] = saltval;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p) {
+            int x = p.x(), y = p.y(), z = p.z();
+            float n = 0.0;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                if (c == roi.chbegin || !mono)
+                    n = hashrand (x, y, z, c, seed);
+                if (n < saltportion)
+                    p[c] = saltval;
+            }
         }
-    }
+    });
     return true;
 }
 

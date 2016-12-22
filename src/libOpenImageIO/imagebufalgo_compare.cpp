@@ -496,37 +496,27 @@ color_count_ (const ImageBuf &src, atomic_ll *count,
               int ncolors, const float *color, const float *eps,
               ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(color_count_<T>, OIIO::ref(src),
-                        count, ncolors, color, eps,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    int nchannels = src.nchannels();
-    long long *n = ALLOCA (long long, ncolors);
-    for (int col = 0;  col < ncolors;  ++col)
-        n[col] = 0;
-    for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
-        int coloffset = 0;
-        for (int col = 0;  col < ncolors;  ++col, coloffset += nchannels) {
-            int match = 1;
-            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-                if (fabsf(p[c] - color[coloffset+c]) > eps[c]) {
-                    match = 0;
-                    break;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        int nchannels = src.nchannels();
+        long long *n = ALLOCA (long long, ncolors);
+        for (int col = 0;  col < ncolors;  ++col)
+            n[col] = 0;
+        for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
+            int coloffset = 0;
+            for (int col = 0;  col < ncolors;  ++col, coloffset += nchannels) {
+                int match = 1;
+                for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                    if (fabsf(p[c] - color[coloffset+c]) > eps[c]) {
+                        match = 0;
+                        break;
+                    }
                 }
+                n[col] += match;
             }
-            n[col] += match;
         }
-    }
-
-    for (int col = 0;  col < ncolors;  ++col)
-        count[col] += n[col];
+        for (int col = 0;  col < ncolors;  ++col)
+            count[col] += n[col];
+    });
     return true;
 }
 
@@ -568,39 +558,30 @@ color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
                     const float *low, const float *high,
                     ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(color_range_check_<T>, OIIO::ref(src),
-                        lowcount, highcount, inrangecount, low, high,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    long long lc = 0, hc = 0, inrange = 0;
-    for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
-        bool lowval = false, highval = false;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            float f = p[c];
-            lowval |= (f < low[c]);
-            highval |= (f > high[c]);
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&src](ROI roi){
+        long long lc = 0, hc = 0, inrange = 0;
+        for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
+            bool lowval = false, highval = false;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                float f = p[c];
+                lowval |= (f < low[c]);
+                highval |= (f > high[c]);
+            }
+            if (lowval)
+                ++lc;
+            if (highval)
+                ++hc;
+            if (!lowval && !highval)
+                ++inrange;
         }
-        if (lowval)
-            ++lc;
-        if (highval)
-            ++hc;
-        if (!lowval && !highval)
-            ++inrange;
-    }
 
-    if (lowcount)
-        *lowcount += lc;
-    if (highcount)
-        *highcount += hc;
-    if (inrangecount)
-        *inrangecount += inrange;
+        if (lowcount)
+            *lowcount += lc;
+        if (highcount)
+            *highcount += hc;
+        if (inrangecount)
+            *inrangecount += inrange;
+    });
     return true;
 }
 
@@ -799,23 +780,6 @@ simplePixelHashSHA1 (const ImageBuf &src,
 #endif
 }
 
-
-
-// Wrapper to single-threadedly SHA1 hash a region in blocks and store
-// the results in a designated place.
-static void
-sha1_hasher (const ImageBuf *src, ROI roi, int blocksize,
-             std::string *results, int firstresult)
-{
-    ROI broi = roi;
-    for (int y = roi.ybegin; y < roi.yend; y += blocksize) {
-        broi.ybegin = y;
-        broi.yend = std::min (y+blocksize, roi.yend);
-        std::string s = simplePixelHashSHA1 (*src, "", broi);
-        results[firstresult++] = s;
-    }
-}
-
 } // anon namespace
 
 
@@ -832,30 +796,16 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
     if (blocksize <= 0 || blocksize >= roi.height())
         return simplePixelHashSHA1 (src, extrainfo, roi);
 
-    // Request for 0 threads means "use the OIIO global thread count"
-    if (nthreads <= 0)
-        OIIO::getattribute ("threads", nthreads);
-
     int nblocks = (roi.height()+blocksize-1) / blocksize;
     std::vector<std::string> results (nblocks);
-    if (nthreads <= 1) {
-        sha1_hasher (&src, roi, blocksize, &results[0], 0);
-    } else {
-        // parallel case
-        OIIO::thread_group threads;
-        int blocks_per_thread = (nblocks+nthreads-1) / nthreads;
+    parallel_for_chunked (roi.ybegin, roi.yend, blocksize,
+                          [&](int64_t ybegin, int64_t yend){
+        int64_t b = (ybegin-src.ybegin())/blocksize;  // block number
         ROI broi = roi;
-        for (int b = 0, t = 0;  b < nblocks;  b += blocks_per_thread, ++t) {
-            int y = roi.ybegin + b*blocksize;
-            if (y >= roi.yend)
-                break;
-            broi.ybegin = y;
-            broi.yend = std::min (y+blocksize*blocks_per_thread, roi.yend);
-            threads.add_thread (new OIIO::thread (sha1_hasher, &src, broi,
-                                                   blocksize, &results[0], b));
-        }
-        threads.join_all ();
-    }
+        broi.ybegin = ybegin;
+        broi.yend = yend;
+        results[b] = simplePixelHashSHA1 (src, "", broi);
+    });
 
 #ifdef USE_OPENSSL
     // If OpenSSL was available at build time, use its SHA-1

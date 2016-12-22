@@ -110,18 +110,9 @@ static bool
 copy_ (ImageBuf &dst, const ImageBuf &src,
        ROI roi, int nthreads=1)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(copy_<D,S>, OIIO::ref(dst), OIIO::cref(src),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
+    using namespace ImageBufAlgo;
+    parallel_image (roi, nthreads, [&](ROI roi){
 
-    // Serial case
-
-    // Deep
     if (dst.deep()) {
         DeepData &dstdeep (*dst.deepdata());
         const DeepData &srcdeep (*src.deepdata());
@@ -144,16 +135,16 @@ copy_ (ImageBuf &dst, const ImageBuf &src,
                         d.set_deep_value (c, samp, (float)s.deep_value(c, samp));
             }
         }
-        return true;
+    } else {
+        ImageBuf::ConstIterator<S,D> s (src, roi);
+        ImageBuf::Iterator<D,D> d (dst, roi);
+        for ( ;  ! d.done();  ++d, ++s) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                d[c] = s[c];
+        }
     }
-    // Below is the non-deep case
 
-    ImageBuf::ConstIterator<S,D> s (src, roi);
-    ImageBuf::Iterator<D,D> d (dst, roi);
-    for ( ;  ! d.done();  ++d, ++s) {
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            d[c] = s[c];
-    }
+    });
     return true;
 }
 
@@ -569,26 +560,17 @@ static bool
 transpose_ (ImageBuf &dst, const ImageBuf &src,
             ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(transpose_<DSTTYPE,SRCTYPE>,
-                        OIIO::ref(dst), OIIO::cref(src),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
-    ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
-    for (  ;  ! s.done();  ++s) {
-        d.pos (s.y(), s.x(), s.z());
-        if (! d.exists())
-            continue;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            d[c] = s[c];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
+        ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
+        for (  ;  ! s.done();  ++s) {
+            d.pos (s.y(), s.x(), s.z());
+            if (! d.exists())
+                continue;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                d[c] = s[c];
+        }
+    });
     return true;
 }
 
@@ -626,31 +608,21 @@ circular_shift_ (ImageBuf &dst, const ImageBuf &src,
                  int xshift, int yshift, int zshift,
                  ROI dstroi, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(circular_shift_<DSTTYPE,SRCTYPE>,
-                        OIIO::ref(dst), OIIO::cref(src),
-                        xshift, yshift, zshift,
-                        dstroi, _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    int width = dstroi.width(), height = dstroi.height(), depth = dstroi.depth();
-    ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
-    ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
-    for (  ;  ! s.done();  ++s) {
-        int dx = s.x() + xshift;  OIIO::wrap_periodic (dx, dstroi.xbegin, width);
-        int dy = s.y() + yshift;  OIIO::wrap_periodic (dy, dstroi.ybegin, height);
-        int dz = s.z() + zshift;  OIIO::wrap_periodic (dz, dstroi.zbegin, depth);
-        d.pos (dx, dy, dz);
-        if (! d.exists())
-            continue;
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            d[c] = s[c];
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        int width = dstroi.width(), height = dstroi.height(), depth = dstroi.depth();
+        ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src, roi);
+        ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst);
+        for (  ;  ! s.done();  ++s) {
+            int dx = s.x() + xshift;  OIIO::wrap_periodic (dx, dstroi.xbegin, width);
+            int dy = s.y() + yshift;  OIIO::wrap_periodic (dy, dstroi.ybegin, height);
+            int dz = s.z() + zshift;  OIIO::wrap_periodic (dz, dstroi.zbegin, depth);
+            d.pos (dx, dy, dz);
+            if (! d.exists())
+                continue;
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                d[c] = s[c];
+        }
+    });
     return true;
 }
 
@@ -678,28 +650,20 @@ channels_ (ImageBuf &dst, const ImageBuf &src,
            const int *channelorder, const float *channelvalues,
            ROI roi, int nthreads=0)
 {
-    if (nthreads != 1 && roi.npixels() >= 64*1024) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(channels_<DSTTYPE>, OIIO::ref(dst),
-                        OIIO::cref(src), channelorder, channelvalues,
-                        _1 /*roi*/, 1 /*ntheads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    int nchannels = src.nchannels();
-    ImageBuf::ConstIterator<DSTTYPE> s (src, roi);
-    ImageBuf::Iterator<DSTTYPE> d (dst, roi);
-    for (  ;  ! s.done();  ++s, ++d) {
-        for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-            int cc = channelorder[c];
-            if (cc >= 0 && cc < nchannels)
-                d[c] = s[cc];
-            else if (channelvalues)
-                d[c] = channelvalues[c];
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        int nchannels = src.nchannels();
+        ImageBuf::ConstIterator<DSTTYPE> s (src, roi);
+        ImageBuf::Iterator<DSTTYPE> d (dst, roi);
+        for (  ;  ! s.done();  ++s, ++d) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                int cc = channelorder[c];
+                if (cc >= 0 && cc < nchannels)
+                    d[c] = s[cc];
+                else if (channelvalues)
+                    d[c] = channelvalues[c];
+            }
         }
-    }
+    });
     return true;
 }
 
@@ -836,7 +800,7 @@ static bool
 channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      ROI roi, int nthreads)
 {
-    if (nthreads == 1 || roi.npixels() < 1000) {
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         int na = A.nchannels(), nb = B.nchannels();
         int n = std::min (dst.nchannels(), na+nb);
         ImageBuf::Iterator<Rtype> r (dst, roi);
@@ -850,13 +814,7 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                     r[c] = b.exists() ? b[c-na] : 0.0f;
             }
         }
-    } else {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind (channel_append_impl<Rtype,ABtype>, OIIO::ref(dst),
-                         OIIO::cref(A), OIIO::cref(B), _1, 1),
-            roi, nthreads);
-    }
+    });
     return true;
 }
 

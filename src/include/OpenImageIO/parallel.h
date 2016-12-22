@@ -71,6 +71,8 @@ parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
                    std::function<void(int id, int64_t b, int64_t e)>&& task)
 {
     thread_pool *pool (default_thread_pool());
+    if (chunksize < end-start && pool->this_thread_is_in_pool())
+        chunksize = end-start;    // don't use the pool recursively
     if (chunksize < 1) {
         int p = std::max (1, 2*pool->size());
         chunksize = std::max (int64_t(1), (end-start) / p);
@@ -94,6 +96,8 @@ inline void parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
                            std::function<void(int64_t b, int64_t e)>&& task)
 {
     thread_pool *pool (default_thread_pool());
+    if (chunksize < end-start && pool->this_thread_is_in_pool())
+        chunksize = end-start;    // don't use the pool recursively
     if (chunksize < 1) {
         int p = std::max (1, 2*pool->size());
         chunksize = std::max (int64_t(1), (end-start) / p);
@@ -162,10 +166,120 @@ UnaryFunction
 parallel_for_each (InputIt first, InputIt last, UnaryFunction f)
 {
     thread_pool *pool (default_thread_pool());
-    for (task_set<void> ts (pool); first != last; ++first)
-        ts.push (pool->push ([&](int id){ f(*first); }));
+    if (pool->size() == 1 || pool->this_thread_is_in_pool()) {
+        // Don't use the pool recursively or if there are no workers --
+        // just run the function directly.
+        for ( ; first != last; ++first)
+            f (*first);
+    } else {
+        for (task_set<void> ts (pool); first != last; ++first)
+            ts.push (pool->push ([&](int id){ f(*first); }));
+    }
     return std::move(f);
 }
+
+
+
+/// Parallel "for" loop in 2D, chunked: for a task that takes an int thread
+/// ID followed by begin, end, chunksize for each of x and y, subdivide that
+/// run in parallel using the default thread pool.
+///
+///    task (threadid, xstart, xstart+xchunksize, );
+///    task (threadid, start+chunksize, start+2*chunksize);
+///    ...
+///    task (threadid, start+n*chunksize, end);
+///
+/// and wait for them all to complete.
+///
+/// If chunksize is 0, a chunksize will be chosen to divide the range into
+/// a number of chunks equal to the twice number of threads in the queue.
+/// (We do this to offer better load balancing than if we used exactly the
+/// thread count.)
+inline void
+parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                         int64_t ystart, int64_t yend, int64_t ychunksize,
+                   std::function<void(int id, int64_t xbegin, int64_t xend,
+                                      int64_t ybegin, int64_t yend)>&& task)
+{
+    thread_pool *pool (default_thread_pool());
+    if (pool->this_thread_is_in_pool()) {
+        // don't use the pool recursively
+        task (-1, xstart, xend, ystart, yend);
+        return;
+    }
+    if (ychunksize < 1)
+        ychunksize = std::max (int64_t(1), (yend-ystart) / (pool->size()));
+    if (xchunksize < 1) {
+        int64_t ny = std::max (int64_t(1), (yend-ystart) / ychunksize);
+        int64_t nx = std::max (int64_t(1), pool->size() / ny);
+        xchunksize = std::max (int64_t(1), (xend-xstart) / nx);
+    }
+    task_set<void> ts (pool);
+    for (auto y = ystart; y < yend; y += ychunksize) {
+        int64_t ychunkend = std::min (yend, y+ychunksize);
+        for (auto x = xstart; x < xend; x += xchunksize)
+            ts.push (pool->push (task, x, std::min (xend, x+xchunksize),
+                                 y, ychunkend));
+    }
+}
+
+
+
+/// Parallel "for" loop, chunked: for a task that takes a 2D [begin,end)
+/// range and chunk sizes.
+inline void
+parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                         int64_t ystart, int64_t yend, int64_t ychunksize,
+                     std::function<void(int64_t xbegin, int64_t xend,
+                                        int64_t ybegin, int64_t yend)>&& task)
+{
+    auto wrapper = [&](int id, int64_t xb, int64_t xe,
+                       int64_t yb, int64_t ye) { task(xb,xe,yb,ye); };
+    parallel_for_chunked_2D (xstart, xend, xchunksize,
+                             ystart, yend, ychunksize, wrapper);
+}
+
+
+
+/// parallel_for, for a task that takes an int threadid and int64_t x & y
+/// indices, running all of:
+///    task (id, xstart, ystart);
+///    ...
+///    task (id, xend-1, ystart);
+///    task (id, xstart, ystart+1);
+///    task (id, xend-1, ystart+1);
+///    ...
+///    task (id, xend-1, yend-1);
+inline void
+parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                 int64_t ystart, int64_t yend, int64_t ychunksize,
+                 std::function<void(int id, int64_t i, int64_t j)>&& task)
+{
+    parallel_for_chunked_2D (xstart, xend, 0, ystart, yend, 0,
+            [&task](int id, int64_t xb, int64_t xe, int64_t yb, int64_t ye) {
+        for (auto y = yb; y < ye; ++y)
+            for (auto x = xb; x < xe; ++x)
+                task (id, x, y);
+    });
+}
+
+
+
+/// parallel_for, for a 2D task that takes int64_t x & y indices (no
+/// threadid).
+inline void
+parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                 int64_t ystart, int64_t yend, int64_t ychunksize,
+                 std::function<void(int64_t i, int64_t j)>&& task)
+{
+    parallel_for_chunked_2D (xstart, xend, 0, ystart, yend, 0,
+            [&task](int id, int64_t xb, int64_t xe, int64_t yb, int64_t ye) {
+        for (auto y = yb; y < ye; ++y)
+            for (auto x = xb; x < xe; ++x)
+                task (x, y);
+    });
+}
+
 
 
 OIIO_NAMESPACE_END

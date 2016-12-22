@@ -336,51 +336,40 @@ static bool
 convolve_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &kernel,
            bool normalize, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(convolve_<DSTTYPE,SRCTYPE>, OIIO::ref(dst),
-                        OIIO::cref(src), OIIO::cref(kernel), normalize,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
+    using namespace ImageBufAlgo;
+    parallel_image (roi, nthreads, [&](ROI roi){
+        ASSERT (kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels() &&
+                "kernel should be float and in local memory");
+        ROI kroi = kernel.roi();
+        int kchans = kernel.nchannels();
 
-    // Serial case
-
-    ASSERT (kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels() &&
-            "kernel should be float and in local memory");
-    ROI kroi = kernel.roi();
-    int kchans = kernel.nchannels();
-
-    float scale = 1.0f;
-    if (normalize) {
-        scale = 0.0f;
-        for (ImageBuf::ConstIterator<float> k (kernel); ! k.done(); ++k)
-            scale += k[0];
-        scale = 1.0f / scale;
-    }
-    float *sum = ALLOCA (float, roi.chend);
-
-    // Final case: handle full generality
-    ImageBuf::Iterator<DSTTYPE> d (dst, roi);
-    ImageBuf::ConstIterator<SRCTYPE> s (src, roi, ImageBuf::WrapClamp);
-    for ( ; ! d.done();  ++d) {
-        for (int c = roi.chbegin; c < roi.chend; ++c)
-            sum[c] = 0.0f;
-        const float *k = (const float *)kernel.localpixels();
-        s.rerange (d.x() + kroi.xbegin, d.x() + kroi.xend,
-                   d.y() + kroi.ybegin, d.y() + kroi.yend,
-                   d.z() + kroi.zbegin, d.z() + kroi.zend,
-                   ImageBuf::WrapClamp);
-        for ( ; ! s.done(); ++s, k += kchans) {
-            for (int c = roi.chbegin; c < roi.chend; ++c)
-                sum[c] += k[0] * s[c];
+        float scale = 1.0f;
+        if (normalize) {
+            scale = 0.0f;
+            for (ImageBuf::ConstIterator<float> k (kernel); ! k.done(); ++k)
+                scale += k[0];
+            scale = 1.0f / scale;
         }
-        for (int c = roi.chbegin; c < roi.chend; ++c)
-            d[c] = scale * sum[c];
-    }
+        float *sum = ALLOCA (float, roi.chend);
 
+        ImageBuf::Iterator<DSTTYPE> d (dst, roi);
+        ImageBuf::ConstIterator<SRCTYPE> s (src, roi, ImageBuf::WrapClamp);
+        for ( ; ! d.done();  ++d) {
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                sum[c] = 0.0f;
+            const float *k = (const float *)kernel.localpixels();
+            s.rerange (d.x() + kroi.xbegin, d.x() + kroi.xend,
+                       d.y() + kroi.ybegin, d.y() + kroi.yend,
+                       d.z() + kroi.zbegin, d.z() + kroi.zend,
+                       ImageBuf::WrapClamp);
+            for ( ; ! s.done(); ++s, k += kchans) {
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    sum[c] += k[0] * s[c];
+            }
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                d[c] = scale * sum[c];
+        }
+    });
     return true;
 }
 
@@ -500,21 +489,12 @@ threshold_to_zero (ImageBuf &dst, float threshold,
 {
     ASSERT (dst.spec().format.basetype == TypeDesc::FLOAT);
 
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(threshold_to_zero, OIIO::ref(dst), threshold,
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    for (ImageBuf::Iterator<float> p (dst, roi);  ! p.done();  ++p)
-        for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            if (fabsf(p[c]) < threshold)
-                p[c] = 0.0f;
-
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        for (ImageBuf::Iterator<float> p (dst, roi);  ! p.done();  ++p)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                if (fabsf(p[c]) < threshold)
+                    p[c] = 0.0f;
+    });
     return true;
 }
 
@@ -599,52 +579,44 @@ static bool
 median_filter_impl (ImageBuf &R, const ImageBuf &A, int width, int height,
                     ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(median_filter_impl<Rtype,Atype>,
-                        OIIO::ref(R), OIIO::cref(A),
-                        width, height, _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        if (width < 1)
+            width = 1;
+        if (height < 1)
+            height = width;
+        int w_2 = std::max (1, width/2);
+        int h_2 = std::max (1, height/2);
+        int windowsize = width*height;
+        int nchannels = R.nchannels();
+        float **chans = OIIO_ALLOCA (float*, nchannels);
+        for (int c = 0;  c < nchannels;  ++c)
+            chans[c] = OIIO_ALLOCA (float, windowsize);
 
-    if (width < 1)
-        width = 1;
-    if (height < 1)
-        height = width;
-    int w_2 = std::max (1, width/2);
-    int h_2 = std::max (1, height/2);
-    int windowsize = width*height;
-    int nchannels = R.nchannels();
-    float **chans = OIIO_ALLOCA (float*, nchannels);
-    for (int c = 0;  c < nchannels;  ++c)
-        chans[c] = OIIO_ALLOCA (float, windowsize);
-
-    ImageBuf::ConstIterator<Atype> a (A, roi);
-    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
-        a.rerange (r.x()-w_2, r.x()-w_2+width,
-                   r.y()-h_2, r.y()-h_2+height,
-                   r.z(), r.z()+1, ImageBuf::WrapClamp);
-        int n = 0;
-        for ( ;  ! a.done(); ++a) {
-            if (a.exists()) {
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+            a.rerange (r.x()-w_2, r.x()-w_2+width,
+                       r.y()-h_2, r.y()-h_2+height,
+                       r.z(), r.z()+1, ImageBuf::WrapClamp);
+            int n = 0;
+            for ( ;  ! a.done(); ++a) {
+                if (a.exists()) {
+                    for (int c = 0;  c < nchannels;  ++c)
+                        chans[c][n] = a[c];
+                    ++n;
+                }
+            }
+            if (n) {
+                int mid = n/2;
+                for (int c = 0;  c < nchannels;  ++c) {
+                    std::sort (chans[c]+0, chans[c]+n);
+                    r[c] = chans[c][mid];
+                }
+            } else {
                 for (int c = 0;  c < nchannels;  ++c)
-                    chans[c][n] = a[c];
-                ++n;
+                    r[c] = 0.0f;
             }
         }
-        if (n) {
-            int mid = n/2;
-            for (int c = 0;  c < nchannels;  ++c) {
-                std::sort (chans[c]+0, chans[c]+n);
-                r[c] = chans[c][mid];
-            }
-        } else {
-            for (int c = 0;  c < nchannels;  ++c)
-                r[c] = 0.0f;
-        }
-    }
+    });
     return true;
 }
 
@@ -676,54 +648,45 @@ static bool
 morph_impl (ImageBuf &R, const ImageBuf &A, int width, int height,
             MorphOp op, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(morph_impl<Rtype,Atype>,
-                        OIIO::ref(R), OIIO::cref(A),
-                        width, height, op, _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    if (width < 1)
-        width = 1;
-    if (height < 1)
-        height = width;
-    int w_2 = std::max (1, width/2);
-    int h_2 = std::max (1, height/2);
-    int nchannels = R.nchannels();
-    float *vals = OIIO_ALLOCA (float, nchannels);
-
-    ImageBuf::ConstIterator<Atype> a (A, roi);
-    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
-        a.rerange (r.x()-w_2, r.x()-w_2+width,
-                   r.y()-h_2, r.y()-h_2+height,
-                   r.z(), r.z()+1, ImageBuf::WrapClamp);
-        if (op == MorphDilate) {
-            for (int c = 0; c < nchannels; ++c)
-                vals[c] = -std::numeric_limits<float>::max();
-            for ( ;  ! a.done(); ++a) {
-                if (a.exists()) {
-                    for (int c = 0;  c < nchannels;  ++c)
-                        vals[c] = std::max(vals[c], a[c]);
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        if (width < 1)
+            width = 1;
+        if (height < 1)
+            height = width;
+        int w_2 = std::max (1, width/2);
+        int h_2 = std::max (1, height/2);
+        int nchannels = R.nchannels();
+        float *vals = OIIO_ALLOCA (float, nchannels);
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r) {
+            a.rerange (r.x()-w_2, r.x()-w_2+width,
+                       r.y()-h_2, r.y()-h_2+height,
+                       r.z(), r.z()+1, ImageBuf::WrapClamp);
+            if (op == MorphDilate) {
+                for (int c = 0; c < nchannels; ++c)
+                    vals[c] = -std::numeric_limits<float>::max();
+                for ( ;  ! a.done(); ++a) {
+                    if (a.exists()) {
+                        for (int c = 0;  c < nchannels;  ++c)
+                            vals[c] = std::max(vals[c], a[c]);
+                    }
                 }
-            }
-        } else if (op == MorphErode) {
-            for (int c = 0; c < nchannels; ++c)
-                vals[c] = std::numeric_limits<float>::max();
-            for ( ;  ! a.done(); ++a) {
-                if (a.exists()) {
-                    for (int c = 0;  c < nchannels;  ++c)
-                        vals[c] = std::min(vals[c], a[c]);
+            } else if (op == MorphErode) {
+                for (int c = 0; c < nchannels; ++c)
+                    vals[c] = std::numeric_limits<float>::max();
+                for ( ;  ! a.done(); ++a) {
+                    if (a.exists()) {
+                        for (int c = 0;  c < nchannels;  ++c)
+                            vals[c] = std::min(vals[c], a[c]);
+                    }
                 }
+            } else {
+                ASSERT (0 && "Unknown morphological operator");
             }
-        } else {
-            ASSERT (0 && "Unknown morphological operator");
+            for (int c = 0;  c < nchannels;  ++c)
+                r[c] = vals[c];
         }
-        for (int c = 0;  c < nchannels;  ++c)
-            r[c] = vals[c];
-    }
+    });
     return true;
 }
 
@@ -778,31 +741,22 @@ hfft_ (ImageBuf &dst, const ImageBuf &src, bool inverse, bool unitary,
             (src.storage() == ImageBuf::LOCALBUFFER || src.storage() == ImageBuf::APPBUFFER)
         );
 
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind (hfft_, OIIO::ref(dst), OIIO::cref(src),
-                         inverse, unitary,
-                         _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    int width = roi.width();
-    float rescale = sqrtf (1.0f / width);
-    kissfft<float> F (width, inverse);
-    for (int z = roi.zbegin;  z < roi.zend;  ++z) {
-        for (int y = roi.ybegin;  y < roi.yend;  ++y) {
-            std::complex<float> *s, *d;
-            s = (std::complex<float> *)src.pixeladdr(roi.xbegin, y, z);
-            d = (std::complex<float> *)dst.pixeladdr(roi.xbegin, y, z);
-            F.transform (s, d);
-            if (unitary)
-                for (int x = 0;  x < width;  ++x)
-                    d[x] *= rescale;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        int width = roi.width();
+        float rescale = sqrtf (1.0f / width);
+        kissfft<float> F (width, inverse);
+        for (int z = roi.zbegin;  z < roi.zend;  ++z) {
+            for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+                std::complex<float> *s, *d;
+                s = (std::complex<float> *)src.pixeladdr(roi.xbegin, y, z);
+                d = (std::complex<float> *)dst.pixeladdr(roi.xbegin, y, z);
+                F.transform (s, d);
+                if (unitary)
+                    for (int x = 0;  x < width;  ++x)
+                        d[x] *= rescale;
+            }
         }
-    }
+    });
     return true;
 }
 
@@ -944,24 +898,17 @@ template<class Rtype, class Atype>
 static bool
 polar_to_complex_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(polar_to_complex_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    ImageBuf::ConstIterator<Atype> a (A, roi);
-    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
-        float amp = a[0];
-        float phase = a[1];
-        float sine, cosine;
-        sincos (phase, &sine, &cosine);
-        r[0] = amp * cosine;
-        r[1] = amp * sine;
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
+            float amp = a[0];
+            float phase = a[1];
+            float sine, cosine;
+            sincos (phase, &sine, &cosine);
+            r[0] = amp * cosine;
+            r[1] = amp * sine;
+        }
+    });
     return true;
 }
 
@@ -971,25 +918,18 @@ template<class Rtype, class Atype>
 static bool
 complex_to_polar_impl (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Possible multiple thread case -- recurse via parallel_image
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(complex_to_polar_impl<Rtype,Atype>, OIIO::ref(R), OIIO::cref(A),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    ImageBuf::ConstIterator<Atype> a (A, roi);
-    for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
-        float real = a[0];
-        float imag = a[1];
-        float phase = std::atan2 (imag, real);
-        if (phase < 0.0f)
-            phase += float (M_TWO_PI);
-        r[0] = hypotf (real, imag);
-        r[1] = phase;
-    }
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a) {
+            float real = a[0];
+            float imag = a[1];
+            float phase = std::atan2 (imag, real);
+            if (phase < 0.0f)
+                phase += float (M_TWO_PI);
+            r[0] = hypotf (real, imag);
+            r[1] = phase;
+        }
+    });
     return true;
 }
 
@@ -1050,27 +990,19 @@ ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
 static bool
 divide_by_alpha (ImageBuf &dst, ROI roi, int nthreads)
 {
-    if (nthreads != 1 && roi.npixels() >= 1000) {
-        // Lots of pixels and request for multi threads? Parallelize.
-        ImageBufAlgo::parallel_image (
-            OIIO::bind(divide_by_alpha, OIIO::ref(dst),
-                        _1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
-        return true;
-    }
-
-    // Serial case
-    const ImageSpec &spec (dst.spec());
-    ASSERT (spec.format == TypeDesc::FLOAT);
-    int nc = spec.nchannels;
-    int ac = spec.alpha_channel;
-    for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
-        float alpha = d[ac];
-        if (alpha != 0.0f) {
-            for (int c = 0; c < nc; ++c)
-                d[c] = d[c] / alpha;
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        const ImageSpec &spec (dst.spec());
+        ASSERT (spec.format == TypeDesc::FLOAT);
+        int nc = spec.nchannels;
+        int ac = spec.alpha_channel;
+        for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+            float alpha = d[ac];
+            if (alpha != 0.0f) {
+                for (int c = 0; c < nc; ++c)
+                    d[c] = d[c] / alpha;
+            }
         }
-    }
+    });
     return true;
 }
 
