@@ -1005,7 +1005,6 @@ TIFFOutput::write_tile (int x, int y, int z,
         imagesize_t tile_pixels = m_spec.tile_pixels();
         imagesize_t plane_bytes = tile_pixels * m_spec.format.size();
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
-        m_scratch.resize (m_spec.tile_bytes());
 
         boost::scoped_array<char> separate_heap;
         char *separate = NULL;
