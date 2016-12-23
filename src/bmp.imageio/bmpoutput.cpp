@@ -87,7 +87,7 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
     create_and_write_bitmap_header ();
 
     // Scanline size is rounded up to align to 4-byte boundary
-    m_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
+    m_padded_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
     fgetpos (m_fd, &m_image_start);
 
     // Only support 8 bit channels for now.
@@ -116,17 +116,18 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
 
     if (m_spec.width >= 0)
         y = (m_spec.height - y - 1);
-    int scanline_off = y * m_scanline_size;
+    int scanline_off = y * m_padded_scanline_size;
     fsetpos (m_fd, &m_image_start);
     fseek (m_fd, scanline_off, SEEK_CUR);
 
     std::vector<unsigned char> scratch;
     data = to_native_scanline (format, data, xstride, scratch,
                                m_dither, y, z);
-    std::vector<unsigned char> buf (m_scanline_size);
-    memcpy (&buf[0], data, m_scanline_size);
+    std::vector<unsigned char> buf (m_padded_scanline_size);
+    memcpy (&buf[0], data, m_spec.scanline_bytes());
 
     // Swap RGB pixels into BGR format
+    if (m_spec.nchannels >= 3)
     for (int i = 0, iend = buf.size() - 2; i < iend; i += m_spec.nchannels)
         std::swap (buf[i], buf[i+2]);
 
