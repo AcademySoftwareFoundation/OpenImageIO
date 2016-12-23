@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 #include <boost/regex.hpp>
 #include <boost/thread/tss.hpp>
@@ -1037,7 +1038,7 @@ TIFFInput::readspec (bool read_meta)
     found = desc.rfind ("oiio:ConstantColor=");
     if (found != std::string::npos) {
         size_t begin = desc.find_first_of ('=', found) + 1;
-        size_t end = desc.find_first_of (' ', begin);
+        size_t end = std::min (desc.find_first_of (' ', begin), desc.size());
         string_view s = string_view (desc.data()+begin, end-begin);
         m_spec.attribute ("oiio:ConstantColor", s);
         const std::string constcolor_pattern =
@@ -1048,7 +1049,7 @@ TIFFInput::readspec (bool read_meta)
     found = desc.rfind ("oiio:AverageColor=");
     if (found != std::string::npos) {
         size_t begin = desc.find_first_of ('=', found) + 1;
-        size_t end = desc.find_first_of (' ', begin);
+        size_t end = std::min (desc.find_first_of (' ', begin), desc.size());
         string_view s = string_view (desc.data()+begin, end-begin);
         m_spec.attribute ("oiio:AverageColor", s);
         const std::string average_pattern =
@@ -1061,7 +1062,7 @@ TIFFInput::readspec (bool read_meta)
         found = desc.rfind ("SHA-1=");
     if (found != std::string::npos) {
         size_t begin = desc.find_first_of ('=', found) + 1;
-        size_t end = begin+40;
+        size_t end = std::min (begin+40, desc.size());
         string_view s = string_view (desc.data()+begin, end-begin);
         m_spec.attribute ("oiio:SHA-1", s);
         desc = boost::regex_replace (desc, boost::regex("oiio:SHA-1=[[:xdigit:]]*[ ]*"), "");
