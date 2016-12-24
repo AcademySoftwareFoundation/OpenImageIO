@@ -56,7 +56,8 @@ dpx::Reader::Reader() : fd(0), rio(0)
 dpx::Reader::~Reader()
 {
 	this->Reset();
-}	
+    delete this->rio;
+}
 
 
 void dpx::Reader::Reset()
