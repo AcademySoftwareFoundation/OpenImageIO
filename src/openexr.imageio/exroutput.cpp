@@ -35,6 +35,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
@@ -161,21 +162,21 @@ public:
                                    const DeepData &deepdata);
 
 private:
-    OpenEXROutputStream *m_output_stream; ///< Stream for output file
-    Imf::OutputFile *m_output_scanline;   ///< Input for scanline files
-    Imf::TiledOutputFile *m_output_tiled; ///< Input for tiled files
+    std::unique_ptr<OpenEXROutputStream> m_output_stream; ///< Stream for output file
+    std::unique_ptr<Imf::OutputFile> m_output_scanline;   ///< Input for scanline files
+    std::unique_ptr<Imf::TiledOutputFile> m_output_tiled; ///< Input for tiled files
 #ifdef USE_OPENEXR_VERSION2
-    Imf::MultiPartOutputFile *m_output_multipart;
-    Imf::OutputPart *m_scanline_output_part;
-    Imf::TiledOutputPart *m_tiled_output_part;
-    Imf::DeepScanLineOutputPart *m_deep_scanline_output_part;
-    Imf::DeepTiledOutputPart *m_deep_tiled_output_part;
+    std::unique_ptr<Imf::MultiPartOutputFile> m_output_multipart;
+    std::unique_ptr<Imf::OutputPart> m_scanline_output_part;
+    std::unique_ptr<Imf::TiledOutputPart> m_tiled_output_part;
+    std::unique_ptr<Imf::DeepScanLineOutputPart> m_deep_scanline_output_part;
+    std::unique_ptr<Imf::DeepTiledOutputPart> m_deep_tiled_output_part;
 #else
-    char *m_output_multipart;
-    char *m_scanline_output_part;
-    char *m_tiled_output_part;
-    char *m_deep_scanline_output_part;
-    char *m_deep_tiled_output_part;
+    std::unique_ptr<char> m_output_multipart;
+    std::unique_ptr<char> m_scanline_output_part;
+    std::unique_ptr<char> m_tiled_output_part;
+    std::unique_ptr<char> m_deep_scanline_output_part;
+    std::unique_ptr<char> m_deep_tiled_output_part;
 #endif
     int m_levelmode;                      ///< The level mode of the file
     int m_roundingmode;                   ///< Rounding mode of the file
@@ -194,11 +195,11 @@ private:
         m_output_stream = NULL;
         m_output_scanline = NULL;
         m_output_tiled = NULL;
-        m_output_multipart = NULL;
-        m_scanline_output_part = NULL;
-        m_tiled_output_part = NULL;
-        m_deep_scanline_output_part = NULL;
-        m_deep_tiled_output_part = NULL;
+        m_output_multipart.reset();
+        m_scanline_output_part.reset();
+        m_tiled_output_part.reset();
+        m_deep_scanline_output_part.reset();
+        m_deep_tiled_output_part.reset();
         m_subimage = -1;
         m_miplevel = -1;
         std::vector<ImageSpec>().swap (m_subimagespecs);  // clear and free
@@ -283,14 +284,14 @@ OpenEXROutput::~OpenEXROutput ()
     // Close, if not already done.
     close ();
 
-    delete m_output_scanline;  m_output_scanline = NULL;
-    delete m_output_tiled;  m_output_tiled = NULL;
-    delete m_scanline_output_part;  m_scanline_output_part = NULL;
-    delete m_tiled_output_part;  m_tiled_output_part = NULL;
-    delete m_deep_scanline_output_part;  m_deep_scanline_output_part = NULL;
-    delete m_deep_tiled_output_part;  m_deep_tiled_output_part = NULL;
-    delete m_output_multipart;  m_output_multipart = NULL;
-    delete m_output_stream;  m_output_stream = NULL;
+    m_output_scanline.reset ();
+    m_output_tiled.reset ();
+    m_scanline_output_part.reset ();
+    m_tiled_output_part.reset ();
+    m_deep_scanline_output_part.reset ();
+    m_deep_tiled_output_part.reset ();
+    m_output_multipart.reset ();
+    m_output_stream.reset ();
 }
 
 
@@ -362,13 +363,13 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             return false;
 
         try {
-            m_output_stream = new OpenEXROutputStream (name.c_str());
+            m_output_stream.reset (new OpenEXROutputStream (name.c_str()));
             if (m_spec.tile_width) {
-                m_output_tiled = new Imf::TiledOutputFile (*m_output_stream,
-                                                           m_headers[m_subimage]);
+                m_output_tiled.reset (new Imf::TiledOutputFile (*m_output_stream,
+                                                           m_headers[m_subimage]));
             } else {
-                m_output_scanline = new Imf::OutputFile (*m_output_stream,
-                                                         m_headers[m_subimage]);
+                m_output_scanline.reset (new Imf::OutputFile (*m_output_stream,
+                                                         m_headers[m_subimage]));
             }
         } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
@@ -406,34 +407,30 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         // Close the current subimage, open the next one
         try {
             if (m_tiled_output_part) {
-                delete m_tiled_output_part;
-                m_tiled_output_part = new Imf::TiledOutputPart (*m_output_multipart, m_subimage);
+                m_tiled_output_part.reset (new Imf::TiledOutputPart (*m_output_multipart, m_subimage));
             } else if (m_scanline_output_part) {
-                delete m_scanline_output_part;
-                m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, m_subimage);
+                m_scanline_output_part.reset (new Imf::OutputPart (*m_output_multipart, m_subimage));
             } else if (m_deep_tiled_output_part) {
-                delete m_deep_tiled_output_part;
-                m_deep_tiled_output_part = new Imf::DeepTiledOutputPart (*m_output_multipart, m_subimage);
+                m_deep_tiled_output_part.reset (new Imf::DeepTiledOutputPart (*m_output_multipart, m_subimage));
             } else if (m_deep_scanline_output_part) {
-                delete m_deep_scanline_output_part;
-                m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, m_subimage);
+                m_deep_scanline_output_part.reset (new Imf::DeepScanLineOutputPart (*m_output_multipart, m_subimage));
             } else {
                 error ("Called open with AppendSubimage mode, but no appropriate part is found. Application bug?");
                 return false;
             }
         } catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
-            m_scanline_output_part = NULL;
-            m_tiled_output_part = NULL;
-            m_deep_scanline_output_part = NULL;
-            m_deep_tiled_output_part = NULL;
+            m_scanline_output_part.reset ();
+            m_tiled_output_part.reset ();
+            m_deep_scanline_output_part.reset ();
+            m_deep_tiled_output_part.reset ();
             return false;
         } catch (...) {   // catch-all for edge cases or compiler bugs
             error ("OpenEXR exception: unknown exception");
-            m_scanline_output_part = NULL;
-            m_tiled_output_part = NULL;
-            m_deep_scanline_output_part = NULL;
-            m_deep_tiled_output_part = NULL;
+            m_scanline_output_part.reset ();
+            m_tiled_output_part.reset ();
+            m_deep_scanline_output_part.reset ();
+            m_deep_tiled_output_part.reset ();
             return false;
         }
         m_spec = m_subimagespecs[m_subimage];
@@ -528,54 +525,52 @@ OpenEXROutput::open (const std::string &name, int subimages,
 
     // Create an ImfMultiPartOutputFile
     try {
-        // m_output_stream = new OpenEXROutputStream (name.c_str());
-        // m_output_multipart = new Imf::MultiPartOutputFile (*m_output_stream,
-        //                                          &m_headers[0], subimages);
+        // m_output_stream.reset (new OpenEXROutputStream (name.c_str())();
+        // m_output_multipart.reset (new Imf::MultiPartOutputFile (*m_output_stream,
+        //                                          &m_headers[0], subimages)();
         // FIXME: Oops, looks like OpenEXR 2.0 currently lacks a
         // MultiPartOutputFile ctr that takes an OStream, so we can't
         // do this quite yet.
-        m_output_multipart = new Imf::MultiPartOutputFile (name.c_str(),
-                                                 &m_headers[0], subimages);
+        m_output_multipart.reset (new Imf::MultiPartOutputFile (name.c_str(),
+                                                 &m_headers[0], subimages));
     } catch (const std::exception &e) {
-        delete m_output_stream;
-        m_output_stream = NULL;
+        m_output_stream.reset ();
         error ("OpenEXR exception: %s", e.what());
         return false;
     } catch (...) {   // catch-all for edge cases or compiler bugs
-        delete m_output_stream;
-        m_output_stream = NULL;
+        m_output_stream.reset ();
         error ("OpenEXR exception: unknown exception");
         return false;
     }
     try {
         if (deep) {
             if (m_spec.tile_width) {
-                m_deep_tiled_output_part = new Imf::DeepTiledOutputPart (*m_output_multipart, 0);
+                m_deep_tiled_output_part.reset (new Imf::DeepTiledOutputPart (*m_output_multipart, 0));
             } else {
-                m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, 0);
+                m_deep_scanline_output_part.reset (new Imf::DeepScanLineOutputPart (*m_output_multipart, 0));
             }
         } else {
             if (m_spec.tile_width) {
-                m_tiled_output_part = new Imf::TiledOutputPart (*m_output_multipart, 0);
+                m_tiled_output_part.reset (new Imf::TiledOutputPart (*m_output_multipart, 0));
             } else {
-                m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, 0);
+                m_scanline_output_part.reset (new Imf::OutputPart (*m_output_multipart, 0));
             }
         }
     } catch (const std::exception &e) {
         error ("OpenEXR exception: %s", e.what());
-        delete m_output_stream;  m_output_stream = NULL;
-        m_scanline_output_part = NULL;
-        m_tiled_output_part = NULL;
-        m_deep_scanline_output_part = NULL;
-        m_deep_tiled_output_part = NULL;
+        m_output_stream.reset();
+        m_scanline_output_part.reset();
+        m_tiled_output_part.reset();
+        m_deep_scanline_output_part.reset();
+        m_deep_tiled_output_part.reset();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
         error ("OpenEXR exception: unknown exception");
-        delete m_output_stream;  m_output_stream = NULL;
-        m_scanline_output_part = NULL;
-        m_tiled_output_part = NULL;
-        m_deep_scanline_output_part = NULL;
-        m_deep_tiled_output_part = NULL;
+        m_output_stream.reset();
+        m_scanline_output_part.reset();
+        m_tiled_output_part.reset();
+        m_deep_scanline_output_part.reset();
+        m_deep_tiled_output_part.reset();
         return false;
     }
 
@@ -1289,12 +1284,12 @@ OpenEXROutput::close ()
         return true;
     }
 
-    delete m_output_scanline;  m_output_scanline = NULL;
-    delete m_output_tiled;  m_output_tiled = NULL;
-    delete m_scanline_output_part;  m_scanline_output_part = NULL;
-    delete m_tiled_output_part;  m_tiled_output_part = NULL;
-    delete m_output_multipart;  m_output_multipart = NULL;
-    delete m_output_stream;  m_output_stream = NULL;
+    m_output_scanline.reset();
+    m_output_tiled.reset();
+    m_scanline_output_part.reset();
+    m_tiled_output_part.reset();
+    m_output_multipart.reset();
+    m_output_stream.reset();
 
     init ();      // re-initialize
     return true;  // How can we fail?
