@@ -114,7 +114,7 @@ Building on Windows
 -------------------
 
 See the latest Windows build docs on our web site:
-http://openimageio.org/wiki/index.php?title=Building_OpenImageIO_on_Windows
+https://sites.google.com/site/openimageio/building-oiio-on-windows
 
 1. Check out the trunk or a branch of your choice.  The remainder of
    these instructions assume that you checked out the trunk to the
