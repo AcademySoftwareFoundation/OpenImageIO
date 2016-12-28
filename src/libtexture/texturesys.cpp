@@ -2477,10 +2477,13 @@ TextureSystemImpl::sample_bicubic (int nsamples, const float *s_,
         } else {
             wx = evalBSplineWeights (float4(sfrac));
             wy = evalBSplineWeights (float4(tfrac));
-#if defined(__i386__) && !defined(__x86_64__)
-            // gcc on some 32 bit platforms complains here about these being
-            // uninitialized, so initialize them. Don't waste the cycles
-            // for 64 bit platforms that don't seem to have that error.
+#if (defined(__i386__) && !defined(__x86_64__)) || defined(__aarch64__)
+            // Some platforms complain here about these being uninitialized,
+            // so initialize them. Don't waste the cycles for platforms that
+            // don't seem to have that error. It's a false positive -- this
+            // code really is safe without the initialization, but that
+            // doesn't seem to get figured out on some platforms (even when
+            // running the same gcc version).
             dwx = float4::Zero();
             dwy = float4::Zero();
 #endif
