@@ -1109,10 +1109,7 @@ private:
     void incr_time_stat (double &stat, double incr) {
         stat += incr;
         return;
-#ifdef NOTHREADS
-        stat += incr;
-#else
-        DASSERT (sizeof (atomic_ll) == sizeof(double));
+        OIIO_STATIC_ASSERT (sizeof (atomic_ll) == sizeof(double));
         double oldval, newval;
         long long *lloldval = (long long *)&oldval;
         long long *llnewval = (long long *)&newval;
@@ -1126,7 +1123,6 @@ private:
             // Now try to atomically swap it, and repeat until we've
             // done it with nobody else interfering.
         } while (llstat->compare_exchange_strong (*llnewval,*lloldval));
-#endif
     }
 
 };

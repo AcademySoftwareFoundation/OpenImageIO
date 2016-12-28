@@ -77,10 +77,6 @@ ifneq (${FORCE_OPENGL_1},)
 MY_CMAKE_FLAGS += -DFORCE_OPENGL_1:BOOL=${FORCE_OPENGL_1}
 endif
 
-ifneq (${NOTHREADS},)
-MY_CMAKE_FLAGS += -DNOTHREADS:BOOL=${NOTHREADS}
-endif
-
 ifneq (${OIIO_THREAD_ALLOW_DCLP},)
 MY_CMAKE_FLAGS += -DOIIO_THREAD_ALLOW_DCLP:BOOL=${OIIO_THREAD_ALLOW_DCLP}
 endif
@@ -474,7 +470,6 @@ help:
 	@echo "  OIIO build-time options:"
 	@echo "      NAMESPACE=name           Wrap everything in another namespace"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"
-	@echo "      NOTHREADS=1              Build with threading support turned off"
 	@echo "      OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"
 	@echo "      OIIO_BUILD_TOOLS=0       Skip building the command-line tools"
 	@echo "      OIIO_BUILD_TESTS=0       Skip building the unit tests"
