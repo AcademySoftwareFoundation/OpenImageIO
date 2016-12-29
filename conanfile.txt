@@ -1,0 +1,15 @@
+[requires]
+zlib/1.2.8@lasote/stable
+libtiff/4.0.6@bilke/stable
+libpng/1.6.23@lasote/stable
+OpenEXR/2.2.0@Mikayex/stable
+Boost/1.60.0@lasote/stable
+libjpeg-turbo/1.5.1@lasote/ci
+OpenSSL/1.0.2j@lasote/stable
+giflib/5.1.3@lasote/stable
+
+[generators]
+cmake
+
+[options]
+libpng:shared=False

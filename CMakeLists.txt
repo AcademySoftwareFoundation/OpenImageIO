@@ -19,6 +19,11 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
 endif ()
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
+if(USE_CONAN)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
+endif()
+
 # N.B./FIXME - after CMake 3.0 is our minimum, we should change many of the
 # add_definitions to add_compile_options. In newer cmake versions, the
 # former is designated for definitions (-Dblah) and the latter is for
@@ -218,6 +223,7 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c)")
 set (USE_CCACHE ON CACHE BOOL "Use ccache if found")
 set (CODECOV OFF CACHE BOOL "Build code coverage tests")
+set (USE_CONAN OFF CACHE BOOL "Use Conan package manager to download build dependencies")
 
 # Use ccache if found
 find_program (CCACHE_FOUND ccache)
@@ -325,6 +331,15 @@ if (BUILDSTATIC)
     endif ()
 endif()
 
+if(WIN32)
+    ADD_DEFINITIONS(/bigobj)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /bigobj")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /bigobj")
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /bigobj")
+endif()
+
 # Use .a files if LINKSTATIC is enabled
 if (LINKSTATIC)
     set (_orig_link_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -340,8 +355,10 @@ if (LINKSTATIC)
 endif ()
 
 set (CMAKE_MODULE_PATH
+     "${CMAKE_MODULE_PATH}"
      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
+     "${PROJECT_SOURCE_DIR}/src/cmake"
+     )
 
 include (util_macros)
 include (oiio_macros)

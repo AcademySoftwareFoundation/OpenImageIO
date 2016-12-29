@@ -54,7 +54,6 @@ if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
     endforeach ()
 endif ()
 
-
 setup_string (SPECIAL_COMPILE_FLAGS ""
                "Custom compilation flags")
 if (SPECIAL_COMPILE_FLAGS)
@@ -82,7 +81,6 @@ include_directories (${ZLIB_INCLUDE_DIR})
 ###########################################################################
 # PNG
 find_package (PNG REQUIRED)
-
 
 ###########################################################################
 # IlmBase & OpenEXR setup
@@ -410,8 +408,11 @@ endif ()
 
 ###########################################################################
 # JPEG
-
 if (USE_JPEGTURBO)
+    if(USE_CONAN)
+        set(JPEG_INCLUDE_DIR ${CONAN_INCLUDE_DIRS_LIBJPEG})
+        set(JPEG_LIBRARY ${CONAN_LIB_DIRS_LIBJPEG-TURBO}/turbojpeg-static.lib)
+    endif()
     find_package (JPEGTurbo)
 endif ()
 if (JPEG_FOUND)
