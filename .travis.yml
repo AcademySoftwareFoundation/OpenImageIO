@@ -42,7 +42,7 @@ addons:
       - libopenjpeg-dev
       - libwebp-dev
       - ffmpeg
-      - freetype6-dev
+      - libfreetype6-dev
       - libjpeg-turbo8-dev
 
 cache:
