@@ -123,7 +123,7 @@ parallel_image (ROI roi, parallel_image_options opt,
         ychunk = roi.height();
         // ychunk = std::max (64, minpixels/xchunk);
     } else if (splitdir == Split_Tile) {
-        int64_t n = std::max (opt.minpixels, roi.npixels());
+        int64_t n = std::max<imagesize_t>(opt.minpixels, roi.npixels());
         xchunk = ychunk = std::max (1, int(sqrt(n))/4);
     } else {
         xchunk = ychunk = std::max (int64_t(1), int64_t(sqrt(nthreads))/2);
