@@ -1,6 +1,11 @@
 Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
 ----------------------------------------------
-
+* Fix "exr_threads" value, -1 should disable IlmImf's thread pools. #1582
+* Be more reslient to malformed Exif data blocks with bogus offsets. #1585
+* Build: Fix regarding iv man page.
+* Build: Fix compiler warning on Fedora aarch64. #1592
+* Docs: improve docs about deep IBA functions.
+* Docs: fix 'Building OIIO on Windows' link. #1590
 
 Release 1.7.9 (1 Dec 2016) -- compared to 1.7.8
 ----------------------------------------------
