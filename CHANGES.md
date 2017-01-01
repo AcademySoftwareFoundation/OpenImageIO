@@ -27,7 +27,9 @@ Major new features and improvements:
      numerical values. #1552 (1.8.1)
    * Added implementation of ImageBufAlgo::to_IplImage(). #1461 (1.7.9/1.8.1)
 * DICOM file format support (currently read-only). DICOM is the standard for
-  medical imaging data. #1534 (1.8.1)
+  medical imaging data. Will   only build if dependency "dcmtk" is found at
+  build time. #1534 (1.8.1)
+
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of
@@ -78,8 +80,10 @@ Fixes, minor enhancements, and performance improvements:
    * `--diff` : in addition to the pixel coordinates and differences of the
       biggest differing pixel, it now also prints the full values of all
       channels of that pixel for both images. #1570 (1.8.1)
-   * oiiotool -d giving per-channel formats is no longer confused by channel
-     renaming with --chnames. #1563 (1.8.1/1.7.9)
+   * 1oiiotool -d` giving per-channel formats is no longer confused by
+     channel renaming with `--chnames`. #1563 (1.8.1/1.7.9)
+   * `--debug` nor prints the total runtime and peak memory use after each
+     individual op. #1583 (1.8.1)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -114,6 +118,12 @@ Fixes, minor enhancements, and performance improvements:
 * IFF:
    * Fix IFF output that didn't correctly save the "Author" and "Date"
      metadata. #1549 (1.8.1/1.7.8)
+* JPEG:
+  * Be more reslient to malformed Exif data blocks with bogus offsets.
+    #1585 (1.8.1)
+* OpenEXR:
+  * Fix global attribute "exr_threads" value, -1 should disable IlmImf's
+    thread pools as advertised. #1582 (1.8.1)
 * RAW:
    * Fix possible crash when reading certain raw metadata. #1547 (1.7.8/1.8.0)
 * RLA:
@@ -134,6 +144,9 @@ Build/test system improvements:
 * Fix compile warnings for Clang 3.9. #1529 (1.8.0/1.7.8)
 * Minimum C++ standard of C++11 is expected and enforced. #1513 (1.8.0)
 * Minimum Boost is now 1.53. #1526 (1.8.0)
+* Fix compiler warning on Fedora aarch64. #1592 (1.8.1)
+* Tweak OpenJPEG include file search rules to prefer newer versions when
+  multiple are installed. #1578 (1.8.1)
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -141,23 +154,49 @@ Developer goodies / internals:
 * C++11 idioms:
    * We now eschew BOOST_FOREACH, in favor of C++11 "range for". #1535
    * We now use std::unique_ptr, no longer use boost::scoped_ptr or
-     boost::scoped_array. #1543 (1.8.0)
+     boost::scoped_array. #1543 (1.8.0) #1586 (1.8.1)
+   * Instead of the various boost components, we now use `std::` versions of
+     unordered_map, unordered_set, shared_ptr, hash, bind. #1586 (1.8.1)
 * fmath.h:
    * Fixed typo in fmath.h that made bitcast_to_float incorrect. #1543 (1.8.0)
    * Templatize round_to_multiple() so it works with types other than `int`.
      #1548 (1.8.0)
    * `interpolate_linear()` utility linearly interpolates from a list of
      evenly-spaced knots. #1552 (1.8.1)
+* strutil.h / Strutil:
+   * Add `Strutil::printf()` and `Strutil::fprintf()`, typesafe and
+     non-thread-jumbled replacements for C versions. #1579 (1.8.1)
 * simd.h:
    * Add a matrix44 constructor from 16 floats. #1552 (1.8.1)
 * thread.h:
-   * thread_pool class offers true persistent thread pool. #1556 (1.8.1)
+   * thread_pool class offers true persistent thread pool.
+     #1556, #1581 (1.8.1)
    * Lots of C++ modernization of thread_group and spin_mutex. #1556 (1.8.1)
-* parallel.h:
+   * Environment variable `OPENIMAGEIO_THREADS` can artificially raise or
+     lower the default number of threads (otherwise, it defaults to the
+     number of processor cores available). #1581 (1.8.1)
+* *NEW* parallel.h:
    * parallel_for, parallel_for_chunked, parallel_for_each offer simple
-     thread_pool-based parallel looping. #1556 (1.8.1)
+     thread_pool-based parallel looping in 1 and 2 dimensions.
+     #1556, #1581 (1.8.1)
+* Internal `OIIO::debugmsg()` call has been renamed to `OIIO::debug()`,
+  and setting env variable OPENIMAGEIO_DEBUG_FILE can redirect the debug
+  messages to a file. #1580 (1.8.1)
+
+Docs:
+* Improve docs about deep IBA functions. (1.8.1)
+* Fix 'Building OIIO on Windows' link. #1590 (1.8.1)
 
 
+
+Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
+----------------------------------------------
+* Fix "exr_threads" value, -1 should disable IlmImf's thread pools. #1582
+* Be more reslient to malformed Exif data blocks with bogus offsets. #1585
+* Build: Fix regarding iv man page.
+* Build: Fix compiler warning on Fedora aarch64. #1592
+* Docs: improve docs about deep IBA functions.
+* Docs: fix 'Building OIIO on Windows' link. #1590
 
 Release 1.7.9 (1 Dec 2016) -- compared to 1.7.8
 ----------------------------------------------
