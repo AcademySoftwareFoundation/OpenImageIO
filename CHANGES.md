@@ -1,3 +1,7 @@
+Release 1.7.11 (?? 2017) -- compared to 1.7.10
+----------------------------------------------
+
+
 Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
 ----------------------------------------------
 * Fix "exr_threads" value, -1 should disable IlmImf's thread pools. #1582
