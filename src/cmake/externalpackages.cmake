@@ -117,7 +117,7 @@ if (NOT Boost_FIND_QUIETLY)
 endif ()
 
 if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
-  set (Boost_ADDITIONAL_VERSIONS "1.62" "1.61" "1.60"
+  set (Boost_ADDITIONAL_VERSIONS "1.63" "1.62" "1.61" "1.60"
                                  "1.59" "1.58" "1.57" "1.56" "1.55"
                                  "1.54" "1.53")
 endif ()
