@@ -456,7 +456,8 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
     stride_t full_tilewidthbytes = full_pixelsize * m_spec.tile_width;
     stride_t full_tilewhbytes = full_tilewidthbytes * m_spec.tile_height;
     stride_t full_tilebytes = full_tilewhbytes * m_spec.tile_depth;
-    size_t prefix_bytes = m_spec.pixel_bytes (0,chbegin,true);
+    size_t prefix_bytes = native_data ? m_spec.pixel_bytes (0,chbegin,true)
+                                      : format.size() * chbegin;
     std::vector<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
