@@ -274,6 +274,17 @@ try:
     # FIXME - colorconvert, ociolook need tests
 
     # computePixelStats
+    b = ImageBuf ("../oiiotool/src/tahoe-small.tif")
+    stats = oiio.PixelStats()
+    ImageBufAlgo.computePixelStats (b, stats)
+    print ("Stats for tahoe-small.tif:")
+    print "  min         = ", stats.min
+    print "  max         = ", stats.max
+    print "  avg         = ", stats.avg
+    print "  stddev      = ", stats.stddev
+    print "  nancount    = ", stats.nancount
+    print "  infcount    = ", stats.infcount
+    print "  finitecount = ", stats.finitecount
 
     compresults = oiio.CompareResults()
     ImageBufAlgo.compare (ImageBuf("flip.tif"), ImageBuf("flop.tif"),
