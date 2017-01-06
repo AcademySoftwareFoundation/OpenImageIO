@@ -90,6 +90,19 @@ command += info_command ("small.tif", safematch=1);
 command += maketx_command ("small.tif", "small.tx",
                            "--oiio --constant-color-detect", showinfo=True)
 
+# Test that the oiio:SHA-1 hash is stable, and that that changing filter and
+# using -hicomp result in different images and different hashes.
+command += maketx_command (oiio_images + "grid.tif", "grid-lanczos3.tx",
+                           extraargs = "-filter lanczos3")
+command += maketx_command (oiio_images + "grid.tif", "grid-lanczos3-hicomp.tx",
+                           extraargs = "-filter lanczos3 -hicomp")
+command += info_command ("grid.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+command += info_command ("grid-lanczos3.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+command += info_command ("grid-lanczos3-hicomp.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+
 # Regression test -- at one point, we had a bug where we were botching
 # the poles of OpenEXR env maps, adding energy.  Check it by creating an
 # all-white image, turning it into an env map, and calculating its

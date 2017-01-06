@@ -1375,7 +1375,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     }
     
     // The hash is only computed for the top mipmap level of pixel data.
-    // Thus, any additional information that will effect the lower levels
+    // Thus, any additional information that will affect the lower levels
     // (such as filtering information) needs to be manually added into the
     // hash.
     std::ostringstream addlHashData;
@@ -1385,6 +1385,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         addlHashData << "sharpen_A=" << sharpen << " ";
         // NB if we change the sharpening algorithm, change the letter!
     }
+    if (configspec.get_int_attribute ("maketx:highlightcomp", 0))
+        addlHashData << "highlightcomp=1 ";
 
     const int sha1_blocksize = 256;
     std::string hash_digest = configspec.get_int_attribute("maketx:hash", 1) ?
