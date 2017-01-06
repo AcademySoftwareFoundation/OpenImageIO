@@ -306,6 +306,12 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     wrapmodes: "black,black"
+Reading grid.tx
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
+Reading grid-lanczos3.tx
+    oiio:SHA-1: "D6C3DEE1A567726FB962FE39F0FE94A3E94530CF"
+Reading grid-lanczos3-hicomp.tx
+    oiio:SHA-1: "3994E2C39E040A372BA1894E805382E5D470790F"
 Reading small.tif
 small.tif            :   64 x   64, 3 channel, uint8 tiff
     SHA-1: BE1D5EA24E907A4C4B3FB3C28EAC872A20F5B414

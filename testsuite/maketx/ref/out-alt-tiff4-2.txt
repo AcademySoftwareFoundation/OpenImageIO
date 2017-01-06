@@ -341,6 +341,12 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     oiio:ConstantColor: "1,0,0"
     oiio:AverageColor: "1,0,0"
     oiio:SHA-1: "1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB"
+Reading grid.tx
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
+Reading grid-lanczos3.tx
+    oiio:SHA-1: "D6C3DEE1A567726FB962FE39F0FE94A3E94530CF"
+Reading grid-lanczos3-hicomp.tx
+    oiio:SHA-1: "3994E2C39E040A372BA1894E805382E5D470790F"
 whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
     MIP 0 of 3 (4 x 2):
       Stats Min: 1.000000 1.000000 1.000000 (float)

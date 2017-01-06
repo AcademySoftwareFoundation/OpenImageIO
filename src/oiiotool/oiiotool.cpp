@@ -4223,8 +4223,9 @@ prep_texture_config (ImageSpec &configspec,
     configspec.attribute ("maketx:outcolorspace",
                           get_value_override(fileoptions["outcolorspace"], ""));
     configspec.attribute ("maketx:highlightcomp",
-                          get_value_override(fileoptions["hilightcomp"], 
-                              get_value_override(fileoptions["hicomp"], 0)));
+                          get_value_override(fileoptions["highlightcomp"],
+                            get_value_override(fileoptions["hilightcomp"],
+                              get_value_override(fileoptions["hicomp"], 0))));
     configspec.attribute ("maketx:sharpen",
                           get_value_override(fileoptions["sharpen"], 0.0f));
     if (fileoptions["filter"].size() || fileoptions["filtername"].size())

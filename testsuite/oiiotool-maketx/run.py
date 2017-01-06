@@ -101,6 +101,19 @@ command += omaketx_command ("../oiiotool-fixnan/src/bad.exr", "nan.exr",
 command += omaketx_command ("checker.tif", "checker-exr.pdq",
                             options=":fileformatname=exr")
 
+# Test that the oiio:SHA-1 hash is stable, and that that changing filter and
+# using -hicomp result in different images and different hashes.
+command += omaketx_command (oiio_images + "grid.tif", "grid-lanczos3.tx",
+                           options = ":filter=lanczos3", showinfo=False)
+command += omaketx_command (oiio_images + "grid.tif", "grid-lanczos3-hicomp.tx",
+                           options = ":filter=lanczos3:highlightcomp=1", showinfo=False)
+command += info_command ("grid.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+command += info_command ("grid-lanczos3.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+command += info_command ("grid-lanczos3-hicomp.tx",
+                         extraargs="--metamatch oiio:SHA-1")
+
 # Test that we cleanly replace any existing SHA-1 hash and ConstantColor
 # hint in the ImageDescription of the input file.
 command += oiiotool (" --pattern constant:color=1,0,0 64x64 3 "
