@@ -716,6 +716,15 @@ bool IBA_unpremult (ImageBuf &dst, const ImageBuf &src,
 
 
 
+bool IBA_computePixelStats (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
+                            ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::computePixelStats (stats, src, roi, nthreads);
+}
+
+
+
 bool IBA_compare (const ImageBuf &A, const ImageBuf &B,
                   float failthresh, float warnthresh,
                   ImageBufAlgo::CompareResults &result,
@@ -1245,6 +1254,108 @@ IBA_make_texture_filename (ImageBufAlgo::MakeTextureMode mode,
 
 
 
+#if PY_MAJOR_VERSION >= 3
+# define PYLONG(x) PyLong_FromLong((long)x)
+#else
+# define PYLONG(x) PyInt_FromLong((long)x)
+#endif
+
+
+static object
+PixelStats_get_min(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.min[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_max(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.max[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_avg(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.avg[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_stddev(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.stddev[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_nancount(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PYLONG((long)stats.nancount[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_infcount(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PYLONG((long)stats.infcount[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_finitecount(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PYLONG((long)stats.finitecount[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_sum(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.sum[i]));
+    return object(handle<>(result));
+}
+
+static object
+PixelStats_get_sum2(const ImageBufAlgo::PixelStats& stats)
+{
+    size_t size = stats.min.size();
+    PyObject* result = PyTuple_New(size);
+    for (size_t i = 0; i < size; ++i)
+        PyTuple_SetItem(result, i, PyFloat_FromDouble(stats.sum2[i]));
+    return object(handle<>(result));
+}
+
+
+
+
+
+
 void declare_imagebufalgo()
 {
     enum_<ImageBufAlgo::NonFiniteFixMode>("NonFiniteFixMode")
@@ -1261,6 +1372,18 @@ void declare_imagebufalgo()
         .value("MakeTxEnvLatlFromLightProbe",
                                 ImageBufAlgo::MakeTxEnvLatlFromLightProbe)
         .export_values()
+    ;
+
+    class_<ImageBufAlgo::PixelStats>("PixelStats")
+        .add_property("min", &PixelStats_get_min)
+        .add_property("max", &PixelStats_get_max)
+        .add_property("avg", &PixelStats_get_avg)
+        .add_property("stddev", &PixelStats_get_stddev)
+        .add_property("nancount", &PixelStats_get_nancount)
+        .add_property("infcount", &PixelStats_get_infcount)
+        .add_property("finitecount", &PixelStats_get_finitecount)
+        .add_property("sum", &PixelStats_get_sum)
+        .add_property("sum2", &PixelStats_get_sum2)
     ;
 
     class_<ImageBufAlgo::CompareResults>("CompareResults")
@@ -1574,7 +1697,10 @@ void declare_imagebufalgo()
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("ociofiletransform")
 
-        // computePixelStats, 
+        .def("computePixelStats", &IBA_computePixelStats,
+             (arg("src"), arg("stats"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("computePixelStats")
 
         .def("compare", &IBA_compare,
              (arg("A"), arg("B"), arg("failthresh"), arg("warnthresh"),
