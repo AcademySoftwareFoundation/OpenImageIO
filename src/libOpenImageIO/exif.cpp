@@ -74,8 +74,8 @@ struct TIFFDirEntry {
 #include "OpenImageIO/imageio.h"
 
 
-#define DEBUG_EXIF_READ  1
-#define DEBUG_EXIF_WRITE 1
+#define DEBUG_EXIF_READ  0
+#define DEBUG_EXIF_WRITE 0
 
 OIIO_NAMESPACE_BEGIN
 
