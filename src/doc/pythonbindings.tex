@@ -2437,50 +2437,35 @@ $Z$ channels to decide which is in front on a pixel-by-pixel basis.
 \subsection{Image comparison and statistics}
 \label{sec:iba:py:stats}
 
-\begin{comment}   % Not figured out yet
 
-\apiitem{bool ImageBufAlgo.{\ce computePixelStats} (PixelStats \&stats, src, \\
+\apiitem{bool ImageBufAlgo.{\ce computePixelStats} (src, stats, \\
    \bigspc\bigspc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!computePixelStats} \indexapi{computePixelStats}
 
 Compute statistics about the ROI of the image {\cf src}, storing results
-in {\cf stats} (each of the vectors within {\cf stats} will be
-automatically resized to the number of channels in the image).  A return
-value of {\cf true} indicates success, {\cf false} indicates that it was
+in {\cf stats} (which must refer to an {\cf PixelStats} object).  A return
+value of {\cf True} indicates success, {\cf False} indicates that it was
 not possible to complete the operation.
- The {\cf PixelStats} structure is defined as follows:
-\begin{code}
-struct PixelStats {
-    std::vector<float> min
-    std::vector<float> max
-    std::vector<float> avg
-    std::vector<float> stddev
-    std::vector<imagesize_t> nancount
-    std::vector<imagesize_t> infcount
-    std::vector<imagesize_t> finitecount
-    std::vector<double> sum, sum2  # for intermediate calculation
-}
-\end{code}
+The {\cf PixelStats} structure is defined as contining the following
+data fields: {\cf min}, {\cf max}, {\cf avg}, {\cf stddev},
+{\cf nancount}, {\cf infcount}, {\cf finitecount}, {\cf sum}, {\cf sum2},
+each of which is a \emph{tuple} with one value for each channel of the image.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A ("a.exr")
-    ImageBufAlgo.PixelStats stats
-    ImageBufAlgo.computePixelStats (stats, A)
-    for (int c = 0;  c < A.nchannels();  ++c) {
-        print "Channel ", c, ":"
-        print "   min = ", stats.min[c]
-        print "   max = ", stats.max[c]
-        print "   average = ", stats.avg[c]
-        print "   standard deviation  = ", stats.stddev[c]
-        print "   # NaN values    = ", stats.nancount[c]
-        print "   # Inf values    = ", stats.infcount[c]
-        print "   # finite values = ", stats.finitecount[c]
-    }
+    A = ImageBuf("a.exr")
+    stats = OpenImageIO.PixelStats()
+    computePixelStats (A, stats)
+    print "   min = ", stats.min
+    print "   max = ", stats.max
+    print "   average = ", stats.avg
+    print "   standard deviation  = ", stats.stddev
+    print "   # NaN values    = ", stats.nancount
+    print "   # Inf values    = ", stats.infcount
+    print "   # finite values = ", stats.finitecount
 \end{code}
 \apiend
-\end{comment}
 
 
 \apiitem{bool ImageBufAlgo.{\ce compare} (A, B, failthresh, warnthresh, 

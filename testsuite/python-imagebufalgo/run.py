@@ -50,7 +50,8 @@ outputs = ["black.tif", "filled.tif", "checker.tif",
            "box3.exr",
            "a_over_b.exr",
            "tahoe-small.tx",
-           "text.tif"
+           "text.tif",
+           "out.txt"
          ]
     # command += checkref (f)
 
