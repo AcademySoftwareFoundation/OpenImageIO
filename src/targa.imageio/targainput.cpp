@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <memory>
 
 #include "targa_pvt.h"
 
@@ -427,12 +428,12 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                 if (alphabits == 0 && m_tga.bpp == 32)
                     alphabits = 8;
                 // read palette, if there is any
-                unsigned char *palette = NULL;
+                std::unique_ptr<unsigned char[]> palette;
                 if (m_tga.cmap_type) {
                     fseek (m_file, ofs, SEEK_SET);
-                    palette = new unsigned char[palbytespp
-                                                * m_tga.cmap_length];
-                    if (! fread (palette, palbytespp, m_tga.cmap_length))
+                    palette.reset (new unsigned char[palbytespp
+                                                * m_tga.cmap_length]);
+                    if (! fread (palette.get(), palbytespp, m_tga.cmap_length))
                         return false;
                     fseek (m_file, ofs_thumb + 2, SEEK_SET);
                 }
@@ -442,7 +443,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                     for (int x = 0; x < buf.c[0]; x++) {
                         if (! fread (in, bytespp, 1))
                             return false;
-                        decode_pixel (in, pixel, palette,
+                        decode_pixel (in, pixel, palette.get(),
                                       bytespp, palbytespp, alphabits);
                         memcpy (&m_buf[y * buf.c[0] * m_spec.nchannels
                                 + x * m_spec.nchannels],
