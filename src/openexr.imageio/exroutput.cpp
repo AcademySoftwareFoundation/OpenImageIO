@@ -703,8 +703,8 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, int subimage, Imf::Header &heade
     // if no request came with the user spec.
     string_view compression = spec.get_string_attribute ("compression", "zip");
     // It seems that zips is the only compression that can reliably work
-    // on deep files.
-    if (spec.deep)
+    // on deep files (but allow "none" as well)
+    if (spec.deep && compression != "none")
         compression = "zips";
     // Separate any appended quality from the name
     size_t sep = compression.find_first_of (":");
