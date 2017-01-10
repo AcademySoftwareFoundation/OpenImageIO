@@ -371,6 +371,11 @@ ImageBufAlgo::render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
         return false;   // Not enough color channels specified
     }
 
+    if (x1 == x2 && y1 == y2) {
+        // degenerate 1-point rectangle
+        return render_point (dst, x1, y1, color, roi, nthreads);
+    }
+
     // Filled case
     if (fill) {
         roi = roi_intersection (roi, ROI(x1, x2+1, y1, y2+1, 0, 1, 0, roi.chend));
