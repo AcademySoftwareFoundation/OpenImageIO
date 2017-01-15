@@ -1,7 +1,7 @@
 #!/usr/bin/env python 
 
-# Basic test -- python script that saves with dither
-command += "python src/make_ramp.py > out.txt ;"
+# Basic test -- save with dither
+command += oiiotool ("-pattern fill:left=0,0,0:right=0.0625,0.0625,0.0625 256x256 3 -d uint8 -dither -o ramp.tif")
 
 # Regression test for a buffer copy bug
 command += oiiotool ("src/copybug-input.exr -ch R -dither -d uint8 -o bad.tif")

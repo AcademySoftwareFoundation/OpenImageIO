@@ -1,5 +1,5 @@
 set (maketx_srcs maketx.cpp)
 add_executable (maketx ${maketx_srcs})
 set_target_properties (maketx PROPERTIES FOLDER "Tools")
-target_link_libraries (maketx OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+target_link_libraries (maketx OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 oiio_install_targets (maketx)

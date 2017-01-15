@@ -6,7 +6,8 @@ set (OIIO_VERSION_MINOR 8)
 set (OIIO_VERSION_PATCH 2)
 set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 
-cmake_minimum_required (VERSION 2.6)
+message (STATUS "CMake version is ${CMAKE_VERSION}")
+cmake_minimum_required (VERSION 2.8)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
     cmake_policy (SET CMP0017 NEW)
 endif ()
@@ -218,6 +219,7 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c)")
 set (USE_CCACHE ON CACHE BOOL "Use ccache if found")
 set (CODECOV OFF CACHE BOOL "Build code coverage tests")
+set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
 
 # Use ccache if found
 find_program (CCACHE_FOUND ccache)
@@ -263,13 +265,41 @@ if (USE_fPIC)
     add_definitions ("-fPIC")
 endif ()
 
-# Options common to gcc and clang
+# Code coverage options
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
     add_definitions ("-ftest-coverage -fprofile-arcs -O0 -DOIIO_CODE_COVERAGE=1")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
     set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
+endif ()
+
+# Sanitizer options
+if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
+    message (STATUS "Compiling for sanitizer=${SANITIZE}")
+    string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
+    foreach (feature ${SANITIZE_FEATURE_LIST})
+        if (VERBOSE)
+            message (STATUS "  sanitize feature: ${feature}")
+        endif ()
+        add_definitions (-fsanitize=${feature})
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${feature}")
+        set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=${feature}")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${feature}")
+    endforeach()
+    add_definitions (-g -fno-omit-frame-pointer)
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        set (SANITIZE_ON_LINUX 1)
+    endif ()
+    if (CMAKE_COMPILER_IS_GNUCC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        add_definitions ("-fuse-ld=gold")
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+        set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=gold")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
+        set (SANITIZE_LIBRARIES "asan")
+        # set (SANITIZE_LIBRARIES "asan" "ubsan")
+    endif()
+    add_definitions ("-DOIIO_SANITIZE=1")
 endif ()
 
 if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
@@ -560,9 +590,6 @@ oiio_add_tests (
                 diff
                 dither dup-channels
                 dpx ico iff png psd rla sgi
-                python-typedesc python-imagespec python-roi python-deep
-                python-imageinput python-imageoutput
-                python-imagebuf python-imagebufalgo
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
@@ -576,6 +603,23 @@ oiio_add_tests (
                 texture-missing texture-res texture-udim texture-udim2
               )
 
+# Add tests that require the Python bindings if we built the Python
+# bindings. This is mostly the test that are specifically about testing
+# the Python bindings themselves, but also a handful of tests that are
+# mainly about other things but happen to use Python in order to perform
+# thee test.
+# We also exclude these tests if this is a sanitizer build on Linux,
+# because the Python interpreter itself won't be linked with the right asan
+# libraries to run correctly.
+if (USE_PYTHON AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+    if (NOT SANITIZE_ON_LINUX)
+        oiio_add_tests (
+                python-typedesc python-imagespec python-roi python-deep
+                python-imageinput python-imageoutput
+                python-imagebuf python-imagebufalgo
+            )
+    endif ()
+endif ()
 
 
 # Advanced tests that are done by hand and for releases:

@@ -626,15 +626,12 @@ IffOutput::compress_rle_channel (
         const int max = std::min (0x7f + 1, static_cast<int>(end - in));
         if (max > 0)
         {
-            if (in[0] != in[1])
-            {
-                // compress verbatim
-                compress_verbatim (in, out, max);
-            }
-            else
-            {
+            if (in < (end-1) && in[0] == in[1]) { 
                 // compress duplicate
                 compress_duplicate (in, out, max);
+            } else {
+                // compress verbatim
+                compress_verbatim (in, out, max);
             }
         }
     }

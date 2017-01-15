@@ -143,7 +143,7 @@ class BmpInput : public ImageInput {
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);
  private:
-    int m_scanline_size;
+    int m_padded_scanline_size;
     int m_pad_size;
     FILE *m_fd;
     bmp_pvt::BmpFileHeader m_bmp_header;
@@ -152,7 +152,7 @@ class BmpInput : public ImageInput {
     std::vector<bmp_pvt::color_table> m_colortable;
     fpos_t m_image_start;
     void init (void) {
-        m_scanline_size = 0;
+        m_padded_scanline_size = 0;
         m_pad_size = 0;
         m_fd = NULL;
         m_filename.clear ();
@@ -179,7 +179,7 @@ class BmpOutput : public ImageOutput {
                              const void *data, stride_t xstride,
                              stride_t ystride, stride_t zstride);
  private:
-    int m_scanline_size;
+    int m_padded_scanline_size;
     FILE *m_fd;
     std::string m_filename;
     bmp_pvt::BmpFileHeader m_bmp_header;
@@ -189,7 +189,7 @@ class BmpOutput : public ImageOutput {
     std::vector<unsigned char> m_tilebuffer;
 
     void init (void) {
-        m_scanline_size = 0;
+        m_padded_scanline_size = 0;
         m_fd = NULL;
         m_filename.clear ();
     }
