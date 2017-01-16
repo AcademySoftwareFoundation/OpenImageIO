@@ -33,33 +33,6 @@ if (NOT VERBOSE)
     set (ZLIB_FIND_QUIETLY true)
 endif ()
 
-setup_path (THIRD_PARTY_TOOLS_HOME
-            "unknown"
-            "Location of third party libraries in the external project")
-
-# Add all third party tool directories to the include and library paths so
-# that they'll be correctly found by the various FIND_PACKAGE() invocations.
-if (THIRD_PARTY_TOOLS_HOME AND EXISTS "${THIRD_PARTY_TOOLS_HOME}")
-    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" "${CMAKE_INCLUDE_PATH}")
-    # Detect third party tools which have been successfully built using the
-    # lock files which are placed there by the external project Makefile.
-    file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d")
-    foreach (_dir_lockfile ${_external_dir_lockfiles})
-        # Grab the tool directory_name.d
-        get_filename_component (_ext_dirname ${_dir_lockfile} NAME)
-        # Strip off the .d extension
-        string (REGEX REPLACE "\\.d$" "" _ext_dirname ${_ext_dirname})
-        set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}" ${CMAKE_INCLUDE_PATH})
-        set (CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}" ${CMAKE_LIBRARY_PATH})
-    endforeach ()
-endif ()
-
-
-setup_string (SPECIAL_COMPILE_FLAGS ""
-               "Custom compilation flags")
-if (SPECIAL_COMPILE_FLAGS)
-    add_definitions (${SPECIAL_COMPILE_FLAGS})
-endif ()
 
 
 ###########################################################################
@@ -355,7 +328,7 @@ if (USE_FIELD3D)
     else ()
         find_library (HDF5_LIBRARIES
                       NAMES hdf5
-                      PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
+                      PATHS
                       /usr/local/lib
                       /opt/local/lib
                      )
@@ -376,15 +349,13 @@ if (USE_FIELD3D AND HDF5_FOUND)
         set (FIELD3D_INCLUDES "${FIELD3D_HOME}/include")
     else ()
         find_path (FIELD3D_INCLUDES Field3D/Field.h
-                   "${THIRD_PARTY_TOOLS}/include"
                    "${PROJECT_SOURCE_DIR}/src/include"
                    "${FIELD3D_HOME}/include"
                   )
     endif ()
     find_library (FIELD3D_LIBRARY
                   NAMES Field3D
-                  PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-                        "${FIELD3D_HOME}/lib"
+                  PATHS "${FIELD3D_HOME}/lib"
                  )
     if (FIELD3D_INCLUDES AND FIELD3D_LIBRARY)
         set (FIELD3D_FOUND TRUE)
@@ -485,14 +456,11 @@ if (NOT WEBP_FIND_QUIETLY)
     message (STATUS "WEBP_HOME=${WEBP_HOME}")
 endif ()
 find_path (WEBP_INCLUDE_DIR webp/encode.h
-           "${THIRD_PARTY_TOOLS}/include"
            "${PROJECT_SOURCE_DIR}/src/include"
            "${WEBP_HOME}")
 find_library (WEBP_LIBRARY
               NAMES webp
-              PATHS "${THIRD_PARTY_TOOLS_HOME}/lib/"
-              "${WEBP_HOME}"
-             )
+              PATHS "${WEBP_HOME}")
 if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
     set (WEBP_FOUND TRUE)
     if (NOT WEBP_FIND_QUIETLY)

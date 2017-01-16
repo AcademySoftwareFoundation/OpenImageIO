@@ -150,7 +150,7 @@ if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
 endif ()
 
-add_dependencies (OpenImageIO "${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map")
+add_dependencies (OpenImageIO "${VISIBILITY_MAP_FILE}")
 
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})

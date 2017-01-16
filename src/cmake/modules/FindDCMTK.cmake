@@ -36,7 +36,6 @@ find_path (DCMTK_INCLUDE_DIR
     DOC "The directory where DCMTK headers reside")
 
 foreach (COMPONENT dcmimage dcmimgle dcmdata oflog ofstd iconv)
-    message (STATUS "  looking for component ${COMPONENT}")
     find_library (DCMTK_${COMPONENT}_LIB ${COMPONENT}
                   PATHS ${DCMTK_PATH}/lib/
                         /usr/local/lib
