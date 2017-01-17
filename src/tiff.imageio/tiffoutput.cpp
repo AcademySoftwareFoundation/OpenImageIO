@@ -96,6 +96,7 @@ private:
     int m_photometric;
     unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
     int m_outputchans;   // Number of channels for the output
+    bool m_convert_rgb_to_cmyk;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -104,6 +105,7 @@ private:
         m_compression = COMPRESSION_ADOBE_DEFLATE;
         m_photometric = PHOTOMETRIC_RGB;
         m_outputchans = 0;
+        m_convert_rgb_to_cmyk = false;
     }
 
     // Convert planar contiguous to planar separate data format
@@ -442,6 +444,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
                 TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
                 TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
             }
+            // We're going to need to convert presumed RGB to CMYK unless
+            // the data we're receiving already looks like it's CMYK.
+            m_convert_rgb_to_cmyk =
+               ! (m_spec.nchannels == 4 &&
+                  m_spec.get_string_attribute("oiio:ColorSpace") == "CMYK");
         }
     }
 
@@ -880,7 +887,7 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
                                m_dither, y, z);
 
     // Handle weird photometric/color spaces
-    if (m_photometric == PHOTOMETRIC_SEPARATED)
+    if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
         data = convert_to_cmyk (spec().width, data);
 
     // Handle weird bit depths
@@ -973,7 +980,7 @@ TIFFOutput::write_tile (int x, int y, int z,
                            m_scratch, m_dither, x, y, z);
 
     // Handle weird photometric/color spaces
-    if (m_photometric == PHOTOMETRIC_SEPARATED)
+    if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
         data = convert_to_cmyk (spec().tile_pixels(), data);
 
     // Handle weird bit depths

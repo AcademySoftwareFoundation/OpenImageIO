@@ -103,8 +103,10 @@ making simplifying assumptions.  Among them:
     and returned by the API.  Compression or special encodings are
     handled entirely within an \product plugin.
 
-  \item Color space is grayscale or RGB.  Non-spectral data, such as
-    XYZ, CMYK, or YUV, are converted to RGB upon reading.\
+  \item Color space is by default converted to grayscale or RGB. Non-spectral
+    color models, such as
+    XYZ, CMYK, or YUV, are converted to RGB upon reading. (There is a
+    way to override this and ask for raw pixel values.)
 
   \item All color channels can be treated (by apps or readers/writers)
     as having the same data format (though there is a way to deal with

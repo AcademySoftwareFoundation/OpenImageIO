@@ -744,9 +744,29 @@ It's not a smart choice unless you are sending your images back to the
 
 \section{PSD}
 \label{sec:bundledplugins:psd}
-\index{PSD}
+\index{PSD} \index{PhotoShop images}
 
-% FIXME
+PSD is the file format used for storing Adobe PhotoShop images. \product
+provides limited read abilities for PDF, but not currently the ability to
+write PSD files.
+
+\subsubsection*{Configuration settings for PSD input}
+
+When opening an \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+options are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkws{oiio:RawColor} & int & If nonzero, reading images with non-RGB color models
+                        (such as CMYK or YCbCr) will return unaltered raw
+                        pixel values (versus the default OIIO behavior of
+                        automatically converting to RGB). \\
+\end{tabular}
+
 
 
 \vspace{.25in}
@@ -1067,6 +1087,10 @@ Configuration attribute & Type & Meaning \\
                                      (versus the default of premultiplying
                                      color channels by alpha if the alpha channel
                                      is unassociated). \\
+\qkws{oiio:RawColor} & int & If nonzero, reading images with non-RGB color models
+                        (such as CMYK or YCbCr) will return unaltered raw
+                        pixel values (versus the default OIIO behavior of
+                        automatically converting to RGB). \\
 \end{tabular}
 
 \subsubsection*{Configuration settings for TIFF output}

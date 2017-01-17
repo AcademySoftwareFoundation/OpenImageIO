@@ -45,4 +45,10 @@ files = [
 for f in files:
     command += rw_command (imagedir, f)
 
+# Test CMYK without conversion to RGB
+command += oiiotool ("-iconfig oiio:RawColor 1 " +
+                     parent+"/libtiffpic/depth/flower-separated-contig-08.tif " +
+                     "-attrib oiio:ColorSpace linear -o cmyk_as_cmyk.tif")
+outputs += [ "cmyk_as_cmyk.tif" ]
+
 print ("COMMAND= " + command)
