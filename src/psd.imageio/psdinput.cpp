@@ -600,7 +600,8 @@ bool
 PSDInput::open (const std::string &name, ImageSpec &newspec,
                 const ImageSpec &config)
 {
-    m_WantRaw = config.get_int_attribute ("psd:RawData", 0) != 0;
+    m_WantRaw = config.get_int_attribute ("psd:RawData")
+              || config.get_int_attribute ("oiio:RawColor");
 
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;

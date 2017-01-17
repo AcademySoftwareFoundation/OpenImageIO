@@ -141,7 +141,9 @@ private:
     bool m_no_random_access;         ///< Should we avoid random access?
     bool m_emulate_mipmap;           ///< Should we emulate mip with subimage?
     bool m_keep_unassociated_alpha;  ///< If the image is unassociated, please
-                                     ///  try to keep it that way!
+                                     ///<   try to keep it that way!
+    bool m_raw_color;                ///< If the image is not RGB, don't
+                                     ///<   transform the color.
     bool m_convert_alpha;            ///< Do we need to associate alpha?
     bool m_separate;                 ///< Separate planarconfig?
     bool m_testopenconfig;           ///< Debug aid to test open-with-config
@@ -160,6 +162,7 @@ private:
         m_subimage = -1;
         m_emulate_mipmap = false;
         m_keep_unassociated_alpha = false;
+        m_raw_color = false;
         m_convert_alpha = false;
         m_separate = false;
         m_inputchannels = 0;
@@ -463,6 +466,8 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    if (config.get_int_attribute("oiio:RawColor", 0) == 1)
+        m_raw_color = true;
     // This configuration hint has no function other than as a debugging aid
     // for testing whether configurations are received properly from other
     // OIIO components.
@@ -521,10 +526,13 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         readspec (read_meta);
         // OK, some edge cases we just don't handle. For those, fall back on
         // the TIFFRGBA interface.
-        if (m_compression == COMPRESSION_JPEG || m_compression == COMPRESSION_OJPEG ||
-            m_photometric == PHOTOMETRIC_YCBCR || m_photometric == PHOTOMETRIC_CIELAB ||
+        bool is_jpeg = (m_compression == COMPRESSION_JPEG ||
+                        m_compression == COMPRESSION_OJPEG);
+        bool is_nonspectral =
+           (m_photometric == PHOTOMETRIC_YCBCR || m_photometric == PHOTOMETRIC_CIELAB ||
             m_photometric == PHOTOMETRIC_ICCLAB || m_photometric == PHOTOMETRIC_ITULAB ||
-            m_photometric == PHOTOMETRIC_LOGL || m_photometric == PHOTOMETRIC_LOGLUV) {
+            m_photometric == PHOTOMETRIC_LOGL || m_photometric == PHOTOMETRIC_LOGLUV);
+        if (is_jpeg || (is_nonspectral && ! m_raw_color)) {
             char emsg[1024];
             m_use_rgba_interface = true;
             if (! TIFFRGBAImageOK (m_tif, emsg)) {
@@ -781,7 +789,18 @@ TIFFInput::readspec (bool read_meta)
     switch (m_photometric) {
     case PHOTOMETRIC_SEPARATED :
         m_spec.attribute ("tiff:ColorSpace", "CMYK");
-        m_spec.nchannels = 3;   // Silently convert to RGB
+        if (m_raw_color) {
+            m_spec.channelnames.resize (4);
+            m_spec.channelnames[0] = "C";
+            m_spec.channelnames[1] = "M";
+            m_spec.channelnames[2] = "Y";
+            m_spec.channelnames[3] = "K";
+            m_spec.attribute ("oiio:ColorSpace", "CMYK");
+        } else {
+            // Silently convert to RGB
+            m_spec.nchannels = 3;
+            m_spec.default_channel_names ();
+        }
         break;
     case PHOTOMETRIC_YCBCR  :
         m_spec.attribute ("tiff:ColorSpace", "YCbCr");
@@ -1298,7 +1317,8 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
     unsigned char *readbuf = (unsigned char *)data;
-    if (need_bit_convert || m_separate || m_photometric == PHOTOMETRIC_SEPARATED)
+    if (need_bit_convert || m_separate ||
+        (m_photometric == PHOTOMETRIC_SEPARATED && ! m_raw_color))
         readbuf = &m_scratch[0];
     // Perform the reads.  Note that for contig, planes==1, so it will
     // only do one TIFFReadScanline.
@@ -1333,7 +1353,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
         // We know the data is in m_scratch at this point, so 
         // contiguize it into the user data area.
-        if (m_photometric == PHOTOMETRIC_SEPARATED) {
+        if (m_photometric == PHOTOMETRIC_SEPARATED && ! m_raw_color) {
             // CMYK->RGB means we need temp storage.
             m_scratch2.resize (input_bytes);
             separate_to_contig (planes, m_spec.width, &m_scratch[0], &m_scratch2[0]);
@@ -1346,7 +1366,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     }
 
     // Handle CMYK
-    if (m_photometric == PHOTOMETRIC_SEPARATED) {
+    if (m_photometric == PHOTOMETRIC_SEPARATED && ! m_raw_color) {
         // The CMYK will be in m_scratch.
         if (spec().format == TypeDesc::UINT8) {
             cmyk_to_rgb (m_spec.width, (unsigned char *)&m_scratch[0], m_inputchannels,
