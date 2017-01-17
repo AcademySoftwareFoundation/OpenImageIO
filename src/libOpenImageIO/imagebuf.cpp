@@ -249,7 +249,7 @@ public:
     void threads (int n) { m_threads = n; }
     int threads () const { return m_threads; }
 
-    // Allocate m_configspec if no already done
+    // Allocate m_configspec if not already done
     void add_configspec (const ImageSpec *config=NULL) {
         if (! m_configspec)
             m_configspec.reset (config ? new ImageSpec (*config) : new ImageSpec);

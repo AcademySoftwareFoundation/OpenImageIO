@@ -259,7 +259,7 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
             // simply fall back on ImageCache.
             bool forceread = (s == 0 && m == 0 &&
                               m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
-            ImageBufRef ib (new ImageBuf (name(), m_imagecache));
+            ImageBufRef ib (new ImageBuf (name(), 0, 0, m_imagecache, &m_configspec));
 
             bool post_channel_set_action = false;
             std::vector<std::string> newchannelnames;
