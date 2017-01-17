@@ -258,7 +258,7 @@ ImageRec::read (ReadPolicy readpolicy)
             // simply fall back on ImageCache.
             bool forceread = (s == 0 && m == 0 &&
                               m_imagecache->imagespec(uname,s,m)->image_bytes() < 50*1024*1024);
-            ImageBuf *ib = new ImageBuf (name(), m_imagecache);
+            ImageBuf *ib = new ImageBuf (name(), 0, 0, m_imagecache, &m_configspec);
 
             // If we were requested to bypass the cache, force a full read.
             if (readpolicy & ReadNoCache)

@@ -4001,6 +4001,7 @@ input_file (int argc, const char *argv[])
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push (ImageRecRef (new ImageRec (filename, ot.imagecache)));
+        ot.curimg->configspec (ot.input_config);
         if (readnow) {
             ot.curimg->read (ReadNoCache);
         }

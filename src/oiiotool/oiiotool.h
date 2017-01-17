@@ -391,6 +391,12 @@ public:
         metadata_modified (true);
     }
 
+    // Get or set the configuration spec that will be used any time the
+    // image is opened.
+    const ImageSpec * configspec () const { return &m_configspec; }
+    void configspec (const ImageSpec &spec) { m_configspec = spec; }
+    void clear_configspec () { configspec (ImageSpec()); }
+
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
     /// void error (const char *format, ...)
@@ -416,6 +422,7 @@ private:
     std::time_t m_time;  //< Modification time of the input file
     ImageCache *m_imagecache;
     mutable std::string m_err;
+    ImageSpec m_configspec;
 
     // Add to the error message
     void append_error (string_view message) const;
