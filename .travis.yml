@@ -138,9 +138,9 @@ matrix:
       - os: linux
         compiler: gcc
         env: USE_SIMD=sse4.2
-      - os: osx
-        compiler: clang
-        env: USE_SIMD=sse4.2
+    #  - os: osx
+    #    compiler: clang
+    #    env: USE_SIMD=sse4.2
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
       # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
@@ -160,9 +160,9 @@ matrix:
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx,f16c
     # Linux only: test gcc 5
-      - os: linux
-        compiler: gcc
-        env: WHICHGCC=5
+    #  - os: linux
+    #    compiler: gcc
+    #    env: WHICHGCC=5
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
     # should/could be both platforms, but in the interest of making the
