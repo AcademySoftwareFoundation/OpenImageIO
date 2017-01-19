@@ -113,13 +113,13 @@ matrix:
       - os: linux
         compiler: gcc
         env: DEBUG=1
-      - os: osx
-        compiler: clang
-        env: DEBUG=1
+      # - os: osx
+      #   compiler: clang
+      #   env: DEBUG=1
     # test with C++14, most modern compiler
-      - os: osx
-        compiler: clang
-        env: USE_CPP=14
+      # - os: osx
+      #   compiler: clang
+      #   env: USE_CPP=14
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_CPP=14
@@ -149,10 +149,6 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
-    # Linux only: test gcc 5
-      - os: linux
-        compiler: gcc
-        env: WHICHGCC=5
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
     # should/could be both platforms, but in the interest of making the
