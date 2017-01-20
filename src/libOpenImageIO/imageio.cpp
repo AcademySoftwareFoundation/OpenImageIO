@@ -61,7 +61,6 @@ threads_default ()
 // Global private data
 namespace pvt {
 recursive_mutex imageio_mutex;
-thread_pool *oiio_thread_pool = default_thread_pool();
 atomic_int oiio_threads (threads_default());
 atomic_int oiio_exr_threads (threads_default());
 atomic_int oiio_read_chunk (256);
@@ -162,7 +161,7 @@ attribute (string_view name, TypeDesc type, const void *val)
         if (ot == 0)
             ot = threads_default();
         oiio_threads = ot;
-        oiio_thread_pool->resize (ot-1);
+        default_thread_pool()->resize (ot-1);
         return true;
     }
     spin_lock lock (attrib_mutex);
