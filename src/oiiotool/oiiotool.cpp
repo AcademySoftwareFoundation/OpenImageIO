@@ -4628,11 +4628,19 @@ print_help (ArgParse &ap)
         std::stringstream s;
         s << "Image formats supported: ";
         std::string format_list;
-        OIIO::getattribute ("format_list", format_list);
+        OIIO::getattribute ("extension_list", format_list);
         std::vector<string_view> formats;
-        Strutil::split (format_list, formats, ",");
+        Strutil::split (format_list, formats, ";");
         std::sort (formats.begin(), formats.end());
-        format_list = Strutil::join (formats, ", ");
+
+        // Strip colon from formats with only one extension
+        for (std::vector<string_view>::iterator fmt = formats.begin(), end = formats.end();
+             fmt != end; ++fmt) {
+            if (fmt->back() == ':')
+                fmt->remove_suffix(1);
+        }
+        
+        format_list = Strutil::join (formats, "; ");
         s << format_list;
         std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
     }
