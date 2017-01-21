@@ -81,6 +81,7 @@ You can contact the author at :
 // Includes & Memory related functions
 //**************************************
 #include "OpenImageIO/hash.h"
+#include "OpenImageIO/ustring.h" // Hash::append(ustring/string_view) optimization
 
 
 #include <stddef.h>   /* size_t */
@@ -942,6 +943,50 @@ unsigned long long XXH64_digest (const XXH64_state_t* state_in)
     else
         return XXH64_digest_endian(state_in, XXH_bigEndian);
 }
+
+
+#define HSTATE(SZ) ((XXH ## SZ ## _state_t*)m_state)
+
+#if defined(_MSC_VER) || defined(__CYGWIN__)
+  // Windows needs these exported !
+  #define HASH_INLINE_DEFINITION(TYPE, SZ) \
+  template <> OIIO_FORCEINLINE void Hash<TYPE>::append(const std::string &str) { \
+     return append(str.c_str(), str.size()); \
+  } \
+  template <> OIIO_FORCEINLINE void Hash<TYPE>::append(const char *str) { \
+     return append(str, strlen(str)); \
+  }
+#else
+  // Otherwise make the linker error if they were not actually inlined.
+  #define HASH_INLINE_DEFINITION(TYPE, SZ)
+#endif
+
+#define HASH_DEFINITION(TYPE, SZ) \
+  template <> void Hash<TYPE>::reset (TYPE seed) { \
+      XXH ## SZ ## _reset(HSTATE(SZ), seed); \
+  } \
+  template <> Hash<TYPE>::Hash(TYPE seed) : m_state(XXH ## SZ ## _createState()) { \
+      reset(seed); \
+  } \
+  template <> Hash<TYPE>::~Hash() { \
+      XXH ## SZ ## _freeState(HSTATE(SZ)); \
+  } \
+  template <> void Hash<TYPE>::append (const void *val, size_t N) { \
+      m_failed = (XXH ## SZ ## _update(HSTATE(SZ), val, N) != XXH_OK) || m_failed; \
+  } \
+  template <>  TYPE Hash<TYPE>::value () const { \
+      return XXH ## SZ ## _digest(HSTATE(SZ)); \
+  } \
+  template <> void Hash<TYPE>::append (const ustring &str) { \
+      append(str.hash()); \
+  } \
+  template <> void Hash<TYPE>::append (const string_view &str) { \
+      append((const void*)str.data(), str.size()); \
+  } \
+  HASH_INLINE_DEFINITION(TYPE, SZ)
+
+HASH_DEFINITION(unsigned int, 32)
+HASH_DEFINITION(unsigned long long, 64)
 
 
 } // namespace xxhash

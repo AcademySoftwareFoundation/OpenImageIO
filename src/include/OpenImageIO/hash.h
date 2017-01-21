@@ -45,6 +45,7 @@
 #include <string.h>   // for memcpy and memset
 #include <utility>
 #include <unordered_map>
+#include <type_traits>
 
 #include "export.h"
 #include "oiioversion.h"
@@ -56,6 +57,8 @@
 
 OIIO_NAMESPACE_BEGIN
 
+class ustring;
+class string_view;
 using std::unordered_map;
 using std::hash;
 
@@ -80,6 +83,82 @@ inline size_t xxhash (const Str& s, size_t seed=1771) {
     assert(sizeof(s[0]) == 1);
     return xxhash (s.data(), s.length(), seed);
 }
+
+template <typename T>
+class OIIO_API Hash {
+    enum { kSeed = 1738 + sizeof(T) };
+    void* m_state;
+    bool m_failed;
+public:
+    typedef T value_type;
+
+    Hash (T seed = kSeed);
+    ~Hash ();
+
+    void reset (T seed);
+    void append (const void* val, size_t N);
+    T value () const;
+
+    /// Hash known string objects
+    void append (const ustring &str);
+    void append (const string_view &str);
+
+    OIIO_FORCEINLINE void append (const char* str) {
+        return append(str, ::strlen(str));
+    }
+    OIIO_FORCEINLINE void append (const std::string &str) {
+        return append(str.c_str(), str.size());
+    }
+
+    /// Hash simple pods and structs
+    template <class V> OIIO_FORCEINLINE
+        typename std::enable_if<std::is_trivial<V>::value>::type
+    append (const V& val) { append(&val, sizeof(val)); }
+
+    /// Hash objects (via STL iterator interface)
+    template <class C> OIIO_FORCEINLINE
+        typename std::enable_if<!std::is_trivial<C>::value>::type
+    append (const C& cnt) { append(cnt.begin(), cnt.end()); }
+
+    /// Hash data from an array_view, without thinking about sizes.
+    template<class V> OIIO_FORCEINLINE void append (array_view<V> v) {
+        append (v.data(), v.size()*sizeof(T));
+    }
+
+    /// Hash a std::pair type, so ranged append below will work with std::map
+    template <class A, class B> OIIO_FORCEINLINE
+    void append (const std::pair<A,B> &v) {
+        append(v.first);
+        append(v.second);
+    }
+
+    /// Hash an iterator range
+    template <class I> OIIO_FORCEINLINE
+    void append (I itr, const I end) {
+        for (;itr != end; ++itr)
+            append(*itr);
+    }
+
+    /// Hash an stl vector<bool> ... Override only, not implemented!
+    OIIO_FORCEINLINE void append (const std::vector<bool> &v);
+
+    /// Was there a failure along the way?
+    OIIO_FORCEINLINE bool failed() const { return m_failed; }
+
+    /// Adapters
+    template <class V> OIIO_FORCEINLINE
+    void operator () (const V& val) { append(val); }
+    OIIO_FORCEINLINE operator T () const { return value(); }
+
+    /// Easy Hash(container).value()
+    template <class C> OIIO_FORCEINLINE Hash(const C &c, T seed = kSeed,
+                            const typename C::value_type* = nullptr)  : Hash(seed) {
+        append(c.begin(), c.end());
+    }
+};
+
+typedef Hash<unsigned int> Hash32;
+typedef Hash<unsigned long long> Hash64;
 
 }   // end namespace xxhash
 

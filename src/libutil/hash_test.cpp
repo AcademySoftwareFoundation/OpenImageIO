@@ -34,11 +34,13 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <set>
 
 #include "OpenImageIO/hash.h"
 #include "OpenImageIO/timer.h"
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/strutil.h"
+#include "OpenImageIO/ustring.h"
 #include "OpenImageIO/unittest.h"
 
 
@@ -164,6 +166,102 @@ test_farmhashchar (const char *str)
 
 
 
+template <typename V, typename T> void
+test_xxpod ( T (*hash_data)(const void* input, size_t length, T seed),
+             unsigned seed, V value) {
+    xxhash::Hash<T> hash(seed);
+    hash(value);
+    OIIO_CHECK_EQUAL(hash_data(&value, sizeof(value), seed), hash.value());
+    // Make sure XXH_digest doesn't change the hash state
+    OIIO_CHECK_EQUAL(hash.value(), hash.value());
+}
+
+
+
+template <typename T> void
+test_xxwrappers ( T (*hash_data)(const void* input, size_t length, T seed),
+                  unsigned seed = sizeof(T)) {
+
+    test_xxpod<size_t>(hash_data, seed++, 0xdeadbeef);
+    test_xxpod<bool>(hash_data, seed++, true);
+    test_xxpod<char>(hash_data, seed++, 'a');
+    test_xxpod<int>(hash_data, seed++, -45678);
+
+    {
+        unsigned lvec[5] = { 100, 201, 302, 403, 504 };
+        std::vector<unsigned> vec(&lvec[0], &lvec[0]+5);
+        xxhash::Hash<T> vhash(seed);
+        vhash(vec);
+        OIIO_CHECK_EQUAL(hash_data(&lvec, sizeof(lvec), seed++), vhash.value());
+
+        xxhash::Hash<T> lhash(seed);
+        lhash(lvec);
+        OIIO_CHECK_EQUAL(hash_data(&lvec, sizeof(lvec), seed++), lhash.value());
+    }
+
+    {
+        const char lstr[] = "C_STRINGV_STRINGSTL_STRING";
+        xxhash::Hash<T> shash(seed);
+        shash("C_STRING");
+        shash(string_view("V_STRING"));
+        shash(std::string("STL_STRING"));
+        OIIO_CHECK_EQUAL(hash_data(lstr, strlen(lstr), seed++), shash.value());
+        
+        shash.reset(++seed);
+        shash(lstr);
+        OIIO_CHECK_EQUAL(hash_data(lstr, strlen(lstr), seed), shash.value());
+    }
+
+    {
+        const char ustr[] = "U_STRING";
+        xxhash::Hash<T> uhash(seed);
+        uhash(ustring("U_STRING"));
+        // Optimized ustring::hash variant, not equal
+        OIIO_CHECK_NE(hash_data(ustr, strlen(ustr), seed++), uhash.value());
+    }
+
+    {
+        const char mstr[] = "A_KEY->VALUE0B_KEY->VALUE1";
+        std::map<std::string, std::string> mpng;
+        mpng["A_KEY"] = "->VALUE0";
+        mpng["B_KEY"] = "->VALUE1";
+        xxhash::Hash<T> mhash(seed);
+        mhash.append(mpng.begin(), mpng.end());
+        OIIO_CHECK_EQUAL(hash_data(mstr, strlen(mstr), seed++), mhash.value());
+    }
+
+    {
+#pragma pack(push, 0)
+        struct HashData {
+            size_t szv[5];
+            unsigned uiv1, uiv2;
+            char c[8];
+        };
+#pragma pack(pop)
+        HashData cpmplx = {
+            {1, 2, 3, 4, 5},
+            903894, 102837,
+            {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+        };
+        std::set<size_t> lset(&cpmplx.szv[0], &cpmplx.szv[0]+5);
+        xxhash::Hash<T> chash(seed);
+        chash.append(lset);//.begin(), lset.end());
+        chash(cpmplx.uiv1);
+        chash(cpmplx.uiv2);
+        chash("abcdefgh");
+        OIIO_CHECK_EQUAL(hash_data(&cpmplx, sizeof(cpmplx), seed++), chash.value());
+
+        chash.reset(++seed);
+        chash(cpmplx);
+        OIIO_CHECK_EQUAL(hash_data(&cpmplx, sizeof(cpmplx), seed++), chash.value());
+
+        OIIO_CHECK_EQUAL(hash_data(&cpmplx.szv, sizeof(cpmplx.szv), seed), xxhash::Hash<T>(lset, seed).value());
+
+    }
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -267,6 +365,9 @@ int main (int argc, char *argv[])
     t = time_trial (std::bind(test_xxhash, longstring.c_str(), longstring.length()), ntrials);
     std::cout << "xxhash XH64 of long string: "
               << Strutil::timeintervalformat(t, 2) << "\n";
+
+    test_xxwrappers(xxhash::XXH32);
+    test_xxwrappers(xxhash::XXH64);
 
     return unit_test_failures;
 }
