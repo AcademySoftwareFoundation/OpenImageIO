@@ -168,7 +168,7 @@ ifeq ($(SP_OS), rhel7)
     MY_CMAKE_FLAGS += -DTIFF_INCLUDE_DIR:STRING=/usr/include \
                       -DTIFF_LIBRARIES:STRING=/net/soft_scratch/users/lg/tiff-4.0.3/rhel7/lib/libtiff.a
     MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
-    MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/libOpenImageIO.map"
+    MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
     MY_CMAKE_FLAGS += -DEXTRA_DSO_LINK_ARGS:STRING="-Wl,--exclude-libs,libtiff.a"
 
     # end rhel7
@@ -186,8 +186,6 @@ else ifeq ($(SP_OS), lion)
     #   without libraries and applications linking against this
     #   library will not be able to find it at run time; prepends
     #   "@rpath/" to the internal ID
-    # OPENJPEG_HOME:
-    #   Setting THIRD_PARTY_TOOLS_HOME isn't sufficient
     # OVERRIDE_SHARED_LIBRARY_SUFFIX:
     #   Set to .so so that shared libraries end in .so to be consistent
     #   with Linux SpComp2 shared libraries
@@ -195,8 +193,6 @@ else ifeq ($(SP_OS), lion)
     # PYTHON_INCLUDE_DIR:
     # PYTHON_LIBRARY:
     #   Use MacPorts' Python
-    # THIRD_PARTY_TOOLS_HOME:
-    #   Find everything in SPI's MacPorts.
     # ZLIB_ROOT:
     #   Needed to use SPI's MacPorts' zlib.
     MY_CMAKE_FLAGS += \
@@ -207,7 +203,6 @@ else ifeq ($(SP_OS), lion)
       -DPYTHON_EXECUTABLE=${MACPORTS_PREFIX}/bin/python${PYVER} \
       -DPYTHON_INCLUDE_DIR=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Headers \
       -DPYTHON_LIBRARIES=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
-      -DTHIRD_PARTY_TOOLS_HOME=${MACPORTS_PREFIX} \
       -DZLIB_ROOT=${MACPORTS_PREFIX}
     MY_CMAKE_FLAGS += \
       -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \

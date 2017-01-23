@@ -39,14 +39,8 @@ endmacro ()
 # be handed off too the setup of the later OpenImageIO target.
 #
 macro (add_oiio_plugin)
-    if (CMAKE_VERSION VERSION_LESS 2.8.3)
-        parse_arguments (_plugin "LINK_LIBRARIES;INCLUDE_DIRS;DEFINITIONS" "" ${ARGN})
-        set (_plugin_UNPARSED_ARGUMENTS ${_plugin_DEFAULT_ARGS})
-    else ()
-        # Modern cmake has this functionality built-in
-        cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
-        # Arguments: <name> <options> <one_value_keywords> <multi_value_keywords>
-    endif ()
+    cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
+       # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     if (EMBEDPLUGINS)
         set (_target_name OpenImageIO)
         # Add each source file to the libOpenImageIO_srcs, but it takes some
@@ -86,7 +80,8 @@ endmacro ()
 # the user where to find such tests.
 #
 macro (oiio_add_tests)
-    parse_arguments (_ats "URL;IMAGEDIR;LABEL;FOUNDVAR;TESTNAME" "" ${ARGN})
+    cmake_parse_arguments (_ats "" "" "URL;IMAGEDIR;LABEL;FOUNDVAR;TESTNAME" ${ARGN})
+       # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${PROJECT_SOURCE_DIR}/../${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
     # not defined, mark the test as broken.
@@ -97,14 +92,14 @@ macro (oiio_add_tests)
         # If the directory containig reference data (images) for the test
         # isn't found, point the user at the URL.
         message (STATUS "\n\nDid not find ${_ats_testdir}")
-        message (STATUS "  -> Will not run tests ${_ats_DEFAULT_ARGS}")
+        message (STATUS "  -> Will not run tests ${_ats_UNPARSED_ARGUMENTS}")
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
         # Add the tests if all is well.
         if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
             set (_has_generator_expr TRUE)
         endif ()
-        foreach (_testname ${_ats_DEFAULT_ARGS})
+        foreach (_testname ${_ats_UNPARSED_ARGUMENTS})
             set (_testsrcdir "${CMAKE_SOURCE_DIR}/testsuite/${_testname}")
             set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
             if (_ats_LABEL MATCHES "broken")
