@@ -464,9 +464,8 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
 
 
 template<typename T>
-const void *
-_from_float (const float *src, T *dst, size_t nvals,
-             long long quant_min, long long quant_max)
+static const void *
+_from_float (const float *src, T *dst, size_t nvals)
 {
     if (! src) {
         // If no source pixels, assume zeroes
@@ -474,6 +473,8 @@ _from_float (const float *src, T *dst, size_t nvals,
         for (size_t p = 0;  p < nvals;  ++p)
             dst[p] = z;
     } else if (std::numeric_limits <T>::is_integer) {
+        long long quant_min = (long long) std::numeric_limits <T>::min();
+        long long quant_max = (long long) std::numeric_limits <T>::max();
         // Convert float to non-float native format, with quantization
         for (size_t p = 0;  p < nvals;  ++p)
             dst[p] = (T) quantize (src[p], quant_min, quant_max);
@@ -495,42 +496,31 @@ _from_float (const float *src, T *dst, size_t nvals,
 
 
 const void *
-pvt::convert_from_float (const float *src, void *dst, size_t nvals,
-                         long long quant_min, long long quant_max, TypeDesc format)
+pvt::convert_from_float (const float *src, void *dst, size_t nvals, TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT :
         return src;
     case TypeDesc::HALF :
-        return _from_float<half> (src, (half *)dst, nvals,
-                                  quant_min, quant_max);
+        return _from_float<half> (src, (half *)dst, nvals);
     case TypeDesc::DOUBLE :
-        return _from_float (src, (double *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (double *)dst, nvals);
     case TypeDesc::INT8:
-        return _from_float (src, (char *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (char *)dst, nvals);
     case TypeDesc::UINT8 :
-        return _from_float (src, (unsigned char *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (unsigned char *)dst, nvals);
     case TypeDesc::INT16 :
-        return _from_float (src, (short *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (short *)dst, nvals);
     case TypeDesc::UINT16 :
-        return _from_float (src, (unsigned short *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (unsigned short *)dst, nvals);
     case TypeDesc::INT :
-        return _from_float (src, (int *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (int *)dst, nvals);
     case TypeDesc::UINT :
-        return _from_float (src, (unsigned int *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (unsigned int *)dst, nvals);
     case TypeDesc::INT64 :
-        return _from_float (src, (long long *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (long long *)dst, nvals);
     case TypeDesc::UINT64 :
-        return _from_float (src, (unsigned long long *)dst, nvals,
-                            quant_min, quant_max);
+        return _from_float (src, (unsigned long long *)dst, nvals);
     default:
         ASSERT (0 && "ERROR from_float: bad format");
         return NULL;
@@ -546,12 +536,9 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
         return src;
 
     const int64_t blocksize = 100000;   // good choice?
-    long long quant_min, quant_max;
-    get_default_quantize (format, quant_min, quant_max);
 
     parallel_for_chunked (0, int64_t(nvals), blocksize, [=](int64_t b, int64_t e){
-        convert_from_float (src+b, (char *)dst+b*format.size(),
-                            e-b, quant_min, quant_max, format);
+        convert_from_float (src+b, (char *)dst+b*format.size(), e-b, format);
     });
     return dst;
 }
