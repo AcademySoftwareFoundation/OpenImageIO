@@ -45,9 +45,12 @@ ifeq ($(SP_OS), rhel7)
     USE_CPP ?= 11
     USE_SIMD ?= sse4.1
     CMAKE ?= cmake
-    USE_NINJA := 1
-    NINJA := /net/soft_scratch/apps/arnold/tools/spinux1/bin/ninja
-    MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
+    USE_NINJA ?= 1
+    NINJA ?= ninja
+    ifeq ($(USE_NINJA),1)
+        MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
+    endif
+    CCACHE_CPP2 ?= 1
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
