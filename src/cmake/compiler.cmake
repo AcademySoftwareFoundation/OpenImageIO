@@ -290,20 +290,3 @@ else ()
 endif ()
 
 
-###########################################################################
-# Rpath handling.
-if (CMAKE_SKIP_RPATH)
-    # We need to disallow the user from truly setting CMAKE_SKIP_RPATH, since
-    # we want to run the generated executables from the build tree in order to
-    # generate the manual page documentation.  However, we make sure the
-    # install rpath is unset so that the install tree is still free of rpaths
-    # for linux packaging purposes.
-    set (CMAKE_SKIP_RPATH FALSE)
-    unset (CMAKE_INSTALL_RPATH)
-else ()
-    set (CMAKE_INSTALL_RPATH "${LIB_INSTALL_DIR}")
-    if (NOT IS_ABSOLUTE ${CMAKE_INSTALL_RPATH})
-        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
-    endif ()
-    set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif ()
