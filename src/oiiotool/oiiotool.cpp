@@ -2874,7 +2874,7 @@ action_crop (int argc, const char *argv[])
     string_view size    = ot.express (argv[1]);
 
     std::map<std::string,std::string> options;
-    options["allsubimages"] = ot.allsubimages;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
     ot.extract_options (options, command);
     int crop_all_subimages = Strutil::from_string<int>(options["allsubimages"]);
 
