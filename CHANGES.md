@@ -1,6 +1,26 @@
-Release 1.7.11 (?? 2017) -- compared to 1.7.10
+Release 1.7.11 (1 Feb 2017) -- compared to 1.7.10
 ----------------------------------------------
-
+* maketx fix: two textures that had identical source pixels but differed
+  in whether they resized with "highlight compensation" incorrectly
+  ended up with identical hashes, and thus could be confused by the
+  TextureSystem at runtime into thinking they were duplicates. The hash
+  is now fixed.  (1599)
+* OpenEXR: Allow compression "none" for deep exr files.
+* Fix unimplemented python ImageBufAlgo.computePixelStats. (1596)
+* IBA::draw_rectangle (and oiiotool --box) wasn't drawing properly for
+  the degenerate case of a rectangle that takes up just one
+  pixel. (1601)
+* Fixed several (so far unnoticed) buffer overruns and memory leaks. (1591)
+* ImageInput::read_tiles when only a channel subset is read, fixed case
+  with certain data sizes where the copy to user buffer got mangled. (1595)
+* oiiotool -iconfig fixed, did not in all cases correctly propagate the
+  input config attribute to the file read. (1605)
+* TIFF: now has a way to read raw pixel values from CMYK files, without
+  the automatic conversion to RGB (pass configuration attribute
+  "oiio:RawColor" set to nonzero). (1605)
+* imageio.h: Fix incorrect declaration of declare_imageio_format(). (1609)
+* `oiiotool --crop` did not properly honor the `-a` flag and apply the crop
+  to all subimages. ((1613)
 
 Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
 ----------------------------------------------
