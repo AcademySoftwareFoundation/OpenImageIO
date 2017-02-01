@@ -1,3 +1,7 @@
+Release 1.7.11 (1 Mar 2017) -- compared to 1.7.11
+----------------------------------------------
+
+
 Release 1.7.11 (1 Feb 2017) -- compared to 1.7.10
 ----------------------------------------------
 * maketx fix: two textures that had identical source pixels but differed
