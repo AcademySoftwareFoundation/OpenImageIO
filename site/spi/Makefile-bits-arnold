@@ -20,7 +20,7 @@ NUKE_VERSION ?= 10.0v4
 ifeq ($(SP_OS), rhel7)
     # Rhel7 (current)
     platform := rhel7
-    COMPILER ?= clang35
+    COMPILER ?= clang40
     SPCOMP2_COMPILER=gcc48m64
 else ifeq (${SP_OS}, lion)
     # Official OS X build machines with special conventions
