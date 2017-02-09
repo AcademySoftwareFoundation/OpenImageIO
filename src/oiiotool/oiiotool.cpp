@@ -301,6 +301,9 @@ Oiiotool::error (string_view command, string_view explanation)
     if (explanation.length())
         std::cerr << " : " << explanation;
     std::cerr << "\n";
+    // Repeat the command line, so if oiiotool is being called from a
+    // script, it's easy to debug how the command was mangled.
+    std::cerr << "Full command line was:\n> " << full_command_line << "\n";
     exit (-1);
 }
 
@@ -4973,6 +4976,9 @@ getargs (int argc, char *argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         print_help (ap);
+        // Repeat the command line, so if oiiotool is being called from a
+        // script, it's easy to debug how the command was mangled.
+        std::cerr << "\nFull command line was:\n> " << ot.full_command_line << "\n";
         exit (EXIT_FAILURE);
     }
     if (help) {
