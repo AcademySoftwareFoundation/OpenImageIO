@@ -2288,6 +2288,20 @@ ImageBuf::do_wrap (int &x, int &y, int &z, WrapMode wrap) const
 
 
 
+ImageBuf::WrapMode
+ImageBuf::WrapMode_from_string (string_view name)
+{
+    static const char* names[] = {
+        "default", "black", "clamp", "periodic", "mirror", NULL
+    };
+    for (int i = 0; names[i]; ++i)
+        if (name == names[i])
+            return WrapMode(i);
+    return WrapDefault;  // name not found
+}
+
+
+
 const void *
 ImageBufImpl::retile (int x, int y, int z, ImageCache::Tile* &tile,
                       int &tilexbegin, int &tileybegin, int &tilezbegin,

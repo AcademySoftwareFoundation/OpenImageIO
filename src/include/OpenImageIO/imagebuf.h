@@ -422,6 +422,9 @@ public:
     enum WrapMode { WrapDefault, WrapBlack, WrapClamp, WrapPeriodic,
                     WrapMirror, _WrapLast };
 
+    /// Named wrap mode to enum WrapMode.
+    static WrapMode WrapMode_from_string (string_view name);
+
     /// Retrieve a single channel of one pixel.
     ///
     float getchannel (int x, int y, int z, int c, WrapMode wrap=WrapBlack) const;

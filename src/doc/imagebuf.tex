@@ -714,6 +714,13 @@ Return the index of pixel (x,y,z). If {\cf check_range} is {\cf true},
 return -1 for an invalid coordinate that is not within the data window.
 \apiend
 
+\apiitem{static WrapMode {\ce WrapMode_from_string} (string_view name)}
+\NEW % 1.7/1.8
+Return the {\cf WrapMode} corresponding to the name (\qkw{default},
+\qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}). For an unknown
+name, this will return {\cf WrapDefault}.
+\apiend
+
 
 
 \section{Iterators -- the fast way of accessing individual pixels}
