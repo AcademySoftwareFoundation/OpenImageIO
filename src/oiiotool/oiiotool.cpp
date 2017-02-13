@@ -3144,10 +3144,12 @@ action_fit (int argc, const char *argv[])
                         fit_full_x, fit_full_y, size.c_str(), false);
 
     std::map<std::string,std::string> options;
+    options["wrap"] = "black";
     ot.extract_options (options, command);
     bool pad = Strutil::from_string<int>(options["pad"]);
     string_view filtername = options["filter"];
     bool exact = Strutil::from_string<int>(options["exact"]);
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (options["wrap"]);
 
     // Compute scaling factors and use action_resize to do the heavy lifting
     float oldaspect = float(Aspec->full_width) / Aspec->full_height;
@@ -3197,7 +3199,7 @@ action_fit (int argc, const char *argv[])
         newspec.y = newspec.full_y = fit_full_y;
         ImageRecRef R (new ImageRec (A->name(), newspec, ot.imagecache));
         ImageBufAlgo::warp ((*R)(0,0), (*A)(0,0), M, filtername, 0.0f,
-                            false, ImageBuf::WrapClamp);
+                            false, wrap);
         ot.pop();
         ot.push (R);
         A = ot.top ();
