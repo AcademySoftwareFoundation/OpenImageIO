@@ -116,7 +116,7 @@ DibInformationHeader::read_header (FILE *fd)
     if (!fread (fd, &size))
         return false;
 
-    if (size == WINDOWS_V3 || size == WINDOWS_V4) {
+    if (size == WINDOWS_V3 || size == WINDOWS_V4 || size == WINDOWS_V5) {
         if (!fread(fd, &width) ||
             !fread(fd, &height) ||
             !fread(fd, &cplanes) ||
@@ -130,12 +130,11 @@ DibInformationHeader::read_header (FILE *fd)
             return false;
         }
 
-        if (size == WINDOWS_V4) {
-            int32_t dummy;
-
+        if (size == WINDOWS_V4 || size == WINDOWS_V5) {
             if (!fread (fd, &red_mask) ||
                 !fread (fd, &blue_mask) ||
                 !fread (fd, &green_mask) ||
+                !fread (fd, &alpha_mask) ||
                 !fread (fd, &cs_type) ||
                 !fread (fd, &red_x) ||
                 !fread (fd, &red_y) ||
@@ -148,8 +147,16 @@ DibInformationHeader::read_header (FILE *fd)
                 !fread (fd, &blue_z) ||
                 !fread (fd, &gamma_x) ||
                 !fread (fd, &gamma_y) ||
-                !fread (fd, &gamma_z) ||
-                !fread (fd, &dummy)) {
+                !fread (fd, &gamma_z)) {
+                return false;
+            }
+        }
+
+        if (size == WINDOWS_V5) {
+            if (!fread (fd, &intent) ||
+                !fread (fd, &profile_data) ||
+                !fread (fd, &profile_size) ||
+                !fread (fd, &reserved)) {
                 return false;
             }
         }

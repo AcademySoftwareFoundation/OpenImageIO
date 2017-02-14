@@ -47,6 +47,7 @@ namespace bmp_pvt {
     const int OS2_V1 = 12;
     const int WINDOWS_V3 = 40;
     const int WINDOWS_V4 = 108;
+    const int WINDOWS_V5 = 124;
 
     // bmp magic numbers
     const int16_t MAGIC_BM = 0x4D42;
@@ -119,6 +120,13 @@ namespace bmp_pvt {
          int32_t gamma_x;
          int32_t gamma_y;
          int32_t gamma_z;
+
+         // added in Version 5 of the format
+         int32_t intent;
+         int32_t profile_data;
+         int32_t profile_size;
+         int32_t reserved;
+
      private:
          void swap_endian (void);
     };
