@@ -53,3 +53,12 @@ Reading ../../../../../bmpsuite/g32bf.bmp
     ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
+Reading src/g01bg2-v5.bmp
+src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
+    SHA-1: 3A3A9A7D3A25907693A33D4403B3FB5BFCC9E5B1
+    channel list: R, G, B
+    XResolution: 2835
+    YResolution: 2835
+    ResolutionUnit: "m"
+Comparing "src/g01bg2-v5.bmp" and "g01bg2-v5.bmp"
+PASS
