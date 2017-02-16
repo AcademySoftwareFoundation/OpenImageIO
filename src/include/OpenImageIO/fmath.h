@@ -218,7 +218,7 @@ template <class T>
 inline T
 clamp (T a, T low, T high)
 {
-    return (a < low) ? low : ((a > high) ? high : a);
+    return (a >= low) ? ((a <= high) ? a : high) : low;
 }
 
 
