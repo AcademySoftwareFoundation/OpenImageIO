@@ -233,6 +233,11 @@ static void test_interpolate_linear ()
     OIIO_CHECK_EQUAL (interpolate_linear (1.0f, knots2),  2.0f);
     OIIO_CHECK_EQUAL (interpolate_linear (-0.1f, knots2), 1.0f);
     OIIO_CHECK_EQUAL (interpolate_linear (1.1f, knots2),  2.0f);
+    float inf = std::numeric_limits<float>::infinity();
+    float nan = std::numeric_limits<float>::quiet_NaN();
+    OIIO_CHECK_EQUAL (interpolate_linear (-inf, knots2), 1.0f); // Test -inf
+    OIIO_CHECK_EQUAL (interpolate_linear (inf, knots2), 2.0f); // Test inf
+    OIIO_CHECK_EQUAL (interpolate_linear (nan, knots2), 1.0f); // Test nan
 
     // More complex case of many knots
     float knots4[] = { 1.0f, 2.0f, 4.0f, 6.0f };
