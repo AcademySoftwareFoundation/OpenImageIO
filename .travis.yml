@@ -12,13 +12,10 @@ addons:
    sources:
       - boost-latest
       - ubuntu-toolchain-r-test
+      - george-edison55-precise-backports
    packages:
       - gcc-4.8
       - g++-4.8
-      - gcc-5
-      - g++-5
-      - gcc-6
-      - g++-6
       - libboost1.55-all-dev
       - libgif-dev
       - libtiff4-dev
@@ -116,17 +113,19 @@ matrix:
       # - os: osx
       #   compiler: clang
       #   env: DEBUG=1
-    # test with C++14, most modern compiler
+    # test with C++14, most modern compiler, latest SIMD flags
       # - os: osx
       #   compiler: clang
       #   env: USE_CPP=14
       - os: linux
         compiler: gcc
-        env: WHICHGCC=6 USE_CPP=14
-    # Build with a higher SIMD level (SSE4.2). Only bother testing linux.
-      - os: linux
-        compiler: gcc
-        env: USE_SIMD=sse4.2
+        addons:
+          apt:
+            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
+            packages: [ 'g++-6', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
+                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
+                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
+        env: WHICHGCC=6 USE_CPP=14 USE_SIMD=avx,f16c
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
       # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
@@ -137,17 +136,36 @@ matrix:
       - os: osx
         compiler: clang
         env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
-    # Linux only: test gcc 6 (catch new warnings hot off the presses) and
-    # also use a higher SIMD level, avx and f16c, to make sure all is well.
-    # TravisCI's OSX images don't yet support avx/f16c, so we only do this
-    # on Linux for now, but eventually we'll want to separate these concerns
-    # into separate tests.
+    # Linux only: test gcc 4.9, and simultaneously, test with a higher SIMD
+    # level (SSE4.2).
       - os: linux
         compiler: gcc
-        env: WHICHGCC=6 USE_SIMD=avx,f16c
+        addons:
+          apt:
+            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
+            packages: [ 'g++-4.9', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
+                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
+                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
+        env: WHICHGCC=4.9
+    # Linux only: test gcc 5
+      - os: linux
+        compiler: gcc
+        addons:
+          apt:
+            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
+            packages: [ 'g++-5', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
+                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
+                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
+        env: WHICHGCC=5
     # Build with sanitizers
       - os: linux
         compiler: gcc
+        addons:
+          apt:
+            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
+            packages: [ 'g++-6', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
+                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
+                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
