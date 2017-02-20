@@ -186,12 +186,22 @@ else ifeq (${platform}, macosx)
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    ifeq (${COMPILER}, gcc5)
+    ifeq (${COMPILER}, gcc48)
         MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-5 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-5
+           -DCMAKE_C_COMPILER=gcc-4.8 -DCMAKE_CXX_COMPILER=g++-4.8
+        USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc49)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9
+        USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc5)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER}, gcc6)
         MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-6 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-6
+           -DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang35)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.5 -DCMAKE_CXX_COMPILER=clang++-3.5
     else ifeq (${COMPILER},clang38)
