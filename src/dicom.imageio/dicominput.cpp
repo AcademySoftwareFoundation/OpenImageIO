@@ -237,7 +237,7 @@ DICOMInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_spec = ImageSpec(m_img->getWidth(), m_img->getHeight(), nchannels, format);
 
     m_bitspersample = m_img->getDepth();
-    if (m_bitspersample != m_spec.format.size()*8)
+    if (size_t(m_bitspersample) != m_spec.format.size()*8)
         m_spec.attribute ("oiio:BitsPerSample", m_bitspersample);
 
     m_spec.attribute ("PixelAspectRatio", (float)m_img->getWidthHeightRatio());
