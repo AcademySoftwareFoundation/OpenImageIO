@@ -625,16 +625,12 @@ public:
     /// Construct a ustring in a printf-like fashion.  In other words,
     /// something like:
     ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
-    ///
-    /// The printf argument list is fully typesafe via tinyformat; format
-    /// conceptually has the signature
-    ///
-    template<typename T1, typename... Args>
-    static ustring format (string_view fmt, const T1& v1, const Args&... args)
+    /// The argument list is fully typesafe.
+    template<typename... Args>
+    static ustring format (string_view fmt, const Args&... args)
     {
-        return ustring (Strutil::format (fmt, v1, args...));
+        return ustring (Strutil::format (fmt, args...));
     }
-    friend inline ustring format (string_view str) { return ustring(str); }
 
     /// Generic stream output of a ustring.
     ///

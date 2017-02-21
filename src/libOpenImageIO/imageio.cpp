@@ -117,10 +117,8 @@ error_msg ()
 
 
 
-/// Error reporting for the plugin implementation: call this with
-/// printf-like arguments.
 void
-pvt::seterror (const std::string& message)
+pvt::seterror (string_view message)
 {
     error_msg() = message;
 }

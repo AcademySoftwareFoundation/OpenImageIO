@@ -981,10 +981,10 @@ public:
     }
 
     /// Internal error reporting routine, with printf-like arguments.
-    ///
-    /// void error (const char *message, ...);
-    TINYFORMAT_WRAP_FORMAT (void, error, const,
-        std::ostringstream msg;, msg, append_error(msg.str());)
+    template<typename... Args>
+    void error (string_view fmt, const Args&... args) const {
+        append_error(Strutil::format (fmt, args...));
+    }
 
     /// Append a string to the current error message
     void append_error (const std::string& message) const;

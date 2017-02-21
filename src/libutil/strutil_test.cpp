@@ -51,6 +51,10 @@ void test_format ()
     // Test '+' format modifier
     OIIO_CHECK_EQUAL (Strutil::format ("%+d%+d%+d", 3, -3, 0), "+3-3+0");
 
+    // Test single string with no args
+    OIIO_CHECK_EQUAL (Strutil::format ("foo"), "foo");
+    OIIO_CHECK_EQUAL (Strutil::format ("%%foo"), "%foo");
+
     // FIXME -- we should make comprehensive tests here
 }
 

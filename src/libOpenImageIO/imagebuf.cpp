@@ -160,9 +160,10 @@ public:
 
     // Error reporting for ImageBuf: call this with printf-like
     // arguments.  Note however that this is fully typesafe!
-    // void error (const char *format, ...)
-    TINYFORMAT_WRAP_FORMAT (void, error, const,
-        std::ostringstream msg;, msg, append_error(msg.str());)
+    template<typename... Args>
+    void error (string_view fmt, const Args&... args) const {
+        append_error(Strutil::format (fmt, args...));
+    }
 
     void append_error (const std::string& message) const;
 

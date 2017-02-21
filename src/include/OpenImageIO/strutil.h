@@ -37,6 +37,7 @@
 
 
 
+#pragma once
 #ifndef OPENIMAGEIO_STRUTIL_H
 #define OPENIMAGEIO_STRUTIL_H
 
@@ -50,9 +51,13 @@
 
 #include "export.h"
 #include "oiioversion.h"
-#include "tinyformat.h"
 #include "string_view.h"
 #include "hash.h"
+
+#ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
+# define TINYFORMAT_USE_VARIADIC_TEMPLATES
+#endif
+#include "tinyformat.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -94,37 +99,27 @@ void OIIO_API sync_output (FILE *file, string_view str);
 ///
 /// Uses the tinyformat library underneath, so it's fully type-safe, and
 /// works with any types that understand stream output via '<<'.
-template<typename T1, typename... Args>
-std::string format (string_view fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+inline std::string format (string_view fmt,const Args&... args)
 {
-    return tinyformat::format (fmt.c_str(), v1, args...);
+    return tinyformat::format (fmt.c_str(), args...);
 }
-
-inline string_view format (string_view str) { return str; }  // base case
 
 
 /// Output formatted string to stdout, type-safe, and threads can't clobber
 /// one another.
-template<typename T1, typename... Args>
-void printf (string_view fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+inline void printf (string_view fmt, const Args&... args)
 {
-    sync_output (stdout, format(fmt.c_str(), v1, args...));
-}
-
-inline void printf (string_view str) {  // base case
-    sync_output (stdout, str);
+    sync_output (stdout, format(fmt, args...));
 }
 
 /// Output formatted string to an open FILE*, type-safe, and threads can't
 /// clobber one another.
-template<typename T1, typename... Args>
-void fprintf (FILE *file, string_view fmt, const T1& v1, const Args&... args)
+template<typename... Args>
+inline void fprintf (FILE *file, string_view fmt, const Args&... args)
 {
-    sync_output (file, format(fmt.c_str(), v1, args...));
-}
-
-inline void fprintf (FILE *file, string_view str) {  // base case
-    sync_output (file, str);
+    sync_output (file, format(fmt, args...));
 }
 
 

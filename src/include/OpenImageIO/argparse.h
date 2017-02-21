@@ -47,7 +47,7 @@
 
 #include "export.h"
 #include "oiioversion.h"
-#include "tinyformat.h"
+#include "strutil.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -188,9 +188,11 @@ private:
     std::vector<ArgOption *> m_option;
 
     ArgOption *find_option(const char *name);
-    // void error (const char *format, ...)
-    TINYFORMAT_WRAP_FORMAT (void, error, /**/,
-        std::ostringstream msg;, msg, m_errmessage = msg.str();)
+
+    template<typename... Args>
+    void error (string_view fmt, const Args&... args) const {
+        m_errmessage = Strutil::format (fmt, args...);
+    }
 
     int found (const char *option);      // number of times option was parsed
 };
