@@ -247,7 +247,7 @@ public:
         return m_spec;
     }
 
-    void threads (int n) { m_threads = n; }
+    void threads (int n) const { m_threads = n; }
     int threads () const { return m_threads; }
 
     // Allocate m_configspec if not already done
@@ -275,7 +275,7 @@ private:
     int m_current_subimage;      ///< Current subimage we're viewing
     int m_current_miplevel;      ///< Current miplevel we're viewing
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
-    int m_threads;               ///< thread policy for this image
+    mutable int m_threads;       ///< thread policy for this image
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
     boost::scoped_array<char> m_pixels; ///< Pixel data, if local and we own it
@@ -1301,7 +1301,7 @@ ImageBuf::initialized () const
 void
 ImageBuf::threads (int n) const
 {
-    impl()->threads();
+    impl()->threads(n);
 }
 
 
