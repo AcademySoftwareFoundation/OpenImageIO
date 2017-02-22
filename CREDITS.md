@@ -47,6 +47,7 @@ Other contributors (alphabetically):
 * Nicolas Burtnyk
 * Kevin Brightwell
 * Fabien Castan
+* Lucille Caillaud
 * Clément Champetier
 * Duncan Chan
 * Guillaume Chatelet
@@ -134,6 +135,7 @@ Other contributors (alphabetically):
 * Scott Wilson
 * Yang Yang
 * Nicholas Yue
+* Roman Zulak
 
 
 If you know of somebody that I missed, please let me know: 

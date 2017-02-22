@@ -42,6 +42,12 @@ Public API changes:
 * `ImageBuf::read()` now has a variety that takes a channel range, allowing
   you to populate an ImageBuf with a subset of channels in a file,
   potentially saving memory and I/O for the unneeded channels. #1541 (1.8.1)
+* Python: Fix unimplemented ImageBufAlgo.computePixelStats. #1596
+  (1.8.2/1.7.11)
+* imageio.h: Fix incorrect declaration of declare_imageio_format().
+  #1609 (1.8.2/1.7.11)
+* `ImageBuf::wrap_mode_from_string()` converts string wrap mode names
+  (such as "black") into `ImageBuf::WrapMode` enum values. #1615 (1.8.3)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:
@@ -84,12 +90,22 @@ Fixes, minor enhancements, and performance improvements:
      channel renaming with `--chnames`. #1563 (1.8.1/1.7.9)
    * `--debug` nor prints the total runtime and peak memory use after each
      individual op. #1583 (1.8.1)
+   * `-iconfig` not in all cases correctly propagate the input config
+     attribute to the file read. #1605 (1.8.2/1.7.11)
+   * Fixed `--crop`: it did not honor the `-a` flag to apply the crop to
+     all subimages. #1613 (1.8.2/1.7.11)
+   * In the case of runtime errors, `oiiotool` now echoes the entire command
+     line. This is helpful for debugging mangled oiiotool command lines
+     assembled by scripts. #1614 (1.8.3)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
    * `colorconvert()`, `ociodisplay()`, and `ociolook()` can now take
      multiple context key/value pairs (by allowing they `context_key` and
      `context_value` paramters be comma-separated lists). #1504 (1.8.0)
+   * `draw_rectangle()` (and `oiiotool --box`) wasn't drawing properly for
+     the degenerate case of a rectangle that takes up just one
+     pixel. #1601 (1.8.2)
 * TextureSystem / ImageCache:
    * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
      on UDIM file patterns now succeed, returning the value for the first
@@ -105,6 +121,11 @@ Fixes, minor enhancements, and performance improvements:
    * get_image_info queries of "displaywindow" and "datawindow" did not
      correctly return a 'true' value when the data was found.
      #1574 (1.8.1/1.7.9)
+   * maketx fix: two textures that had identical source pixels but differed
+     in whether they resized with "highlight compensation" incorrectly
+     ended up with identical hashes, and thus could be confused by the
+     TextureSystem at runtime into thinking they were duplicates. The hash
+     is now fixed. #1599 (1.8.2/1.7.11)
 * Bug fix to possible crashes when adding dither to tiled file output
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
 * Make sure that sRGB<->linear color transform still work (in the obvious
@@ -115,6 +136,11 @@ Fixes, minor enhancements, and performance improvements:
 * `idiff` : in addition to the pixel coordinates and differences of the
   biggest differing pixel, it now also prints the full values of all
   channels of that pixel for both images. #1570 (1.8.1)
+* ImageInput::read_tiles when only a channel subset is read, fixed case
+  with certain data sizes where the copy to user buffer got mangled.
+  #1595 (1.8.2/1.7.11)
+* BMP:
+   * Add support for version 5 of the BMP format header. $1616 (1.8.3)
 * IFF:
    * Fix IFF output that didn't correctly save the "Author" and "Date"
      metadata. #1549 (1.8.1/1.7.8)
@@ -124,6 +150,7 @@ Fixes, minor enhancements, and performance improvements:
 * OpenEXR:
   * Fix global attribute "exr_threads" value, -1 should disable IlmImf's
     thread pools as advertised. #1582 (1.8.1)
+  * Allow compression "none" for deep exr files. (1.8.2/1.7.11)
 * RAW:
    * Fix possible crash when reading certain raw metadata. #1547 (1.7.8/1.8.0)
 * RLA:
@@ -131,8 +158,13 @@ Fixes, minor enhancements, and performance improvements:
      formats. #1499 (1.8.0/1.7.8)
 * TIFF:
    * Fix to TIFF handling of certain unusual tags. #1547 (1.7.8/1.8.0)
+   * Now has a way to read raw pixel values from CMYK files, without
+     the automatic conversion to RGB (pass configuration attribute
+     "oiio:RawColor" set to nonzero). 1605 (1.8.2/1.7.11)
 * Nuke plugin: Fix txReader to properly restore saved MIP level knob value.
   #1531 (1.8.0)
+* Fixed several (so far unnoticed) buffer overruns and memory leaks.
+  #1591 (1.8.2)
 
 Build/test system improvements:
 * Support for building against ffmpeg 3.1 (their API has changed).
@@ -147,6 +179,8 @@ Build/test system improvements:
 * Fix compiler warning on Fedora aarch64. #1592 (1.8.1)
 * Tweak OpenJPEG include file search rules to prefer newer versions when
   multiple are installed. #1578 (1.8.1)
+* Build option `SANITIZE=...` lets us use the sanitizers. #1591 (1.8.2)
+* Big refactoring of the cmake build files. #1604 (1.8.2)
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -163,6 +197,8 @@ Developer goodies / internals:
      #1548 (1.8.0)
    * `interpolate_linear()` utility linearly interpolates from a list of
      evenly-spaced knots. #1552 (1.8.1)
+   * Slight reformulation of clamp() ensures sane results even with NaN
+     parameters. #1617 (1.8.3)
 * strutil.h / Strutil:
    * Add `Strutil::printf()` and `Strutil::fprintf()`, typesafe and
      non-thread-jumbled replacements for C versions. #1579 (1.8.1)
@@ -182,12 +218,39 @@ Developer goodies / internals:
 * Internal `OIIO::debugmsg()` call has been renamed to `OIIO::debug()`,
   and setting env variable OPENIMAGEIO_DEBUG_FILE can redirect the debug
   messages to a file. #1580 (1.8.1)
+* Upgraded tinyformat to the latest master, also changed all the places
+  where we used TINYFORMAT_WRAP_FORMAT to use of C++11 variadic templates.
+  #1618 (1.8.3)
 
 Docs:
 * Improve docs about deep IBA functions. (1.8.1)
 * Fix 'Building OIIO on Windows' link. #1590 (1.8.1)
 
 
+
+Release 1.7.11 (1 Feb 2017) -- compared to 1.7.10
+----------------------------------------------
+* maketx fix: two textures that had identical source pixels but differed
+  in whether they resized with "highlight compensation" incorrectly
+  ended up with identical hashes, and thus could be confused by the
+  TextureSystem at runtime into thinking they were duplicates. The hash
+  is now fixed.  (1599)
+* OpenEXR: Allow compression "none" for deep exr files.
+* Fix unimplemented python ImageBufAlgo.computePixelStats. (1596)
+* IBA::draw_rectangle (and oiiotool --box) wasn't drawing properly for
+  the degenerate case of a rectangle that takes up just one
+  pixel. (1601)
+* Fixed several (so far unnoticed) buffer overruns and memory leaks. (1591)
+* ImageInput::read_tiles when only a channel subset is read, fixed case
+  with certain data sizes where the copy to user buffer got mangled. (1595)
+* oiiotool -iconfig fixed, did not in all cases correctly propagate the
+  input config attribute to the file read. (1605)
+* TIFF: now has a way to read raw pixel values from CMYK files, without
+  the automatic conversion to RGB (pass configuration attribute
+  "oiio:RawColor" set to nonzero). (1605)
+* imageio.h: Fix incorrect declaration of declare_imageio_format(). (1609)
+* `oiiotool --crop` did not properly honor the `-a` flag and apply the crop
+  to all subimages. (1613)
 
 Release 1.7.10 (1 Jan 2017) -- compared to 1.7.9
 ----------------------------------------------
