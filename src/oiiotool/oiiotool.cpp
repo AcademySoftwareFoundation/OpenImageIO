@@ -42,8 +42,6 @@
 #include <ctype.h>
 #include <map>
 
-#include <boost/regex.hpp>
-
 #include <OpenEXR/ImfTimeCode.h>
 
 #include "OpenImageIO/argparse.h"
@@ -58,6 +56,21 @@
 #include "OpenImageIO/timer.h"
 
 #include "oiiotool.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_search;
+  using boost::regex_replace;
+  using boost::match_results;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_search;
+  using std::regex_replace;
+  using std::match_results;
+#endif
+
 
 OIIO_NAMESPACE_USING
 using namespace OiioTool;
@@ -4295,8 +4308,8 @@ output_file (int argc, const char *argv[])
         const char *new_argv[2];
         // Git rid of the ":all=" part of the command so we don't infinitely
         // recurse.
-        std::string newcmd = boost::regex_replace (command.str(),
-                                                   boost::regex(":all=[0-9]+"), "");
+        std::string newcmd = regex_replace (command.str(),
+                                                   regex(":all=[0-9]+"), "");
         new_argv[0] = newcmd.c_str();;
         ImageRecRef saved_curimg = ot.curimg; // because we'll overwrite it
         for (int i = 0; i < nimages; ++i) {
@@ -5008,7 +5021,7 @@ handle_sequence (int argc, const char **argv)
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
 #define VIEW_SPEC "%[Vv]"
 #define SEQUENCE_SPEC "((" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d)))" "|" "(" VIEW_SPEC ")"
-    static boost::regex sequence_re (SEQUENCE_SPEC);
+    static regex sequence_re (SEQUENCE_SPEC);
     std::string framespec = "";
 
     static const char *default_views = "left,right";
@@ -5033,7 +5046,7 @@ handle_sequence (int argc, const char **argv)
             a++;
         }
         std::string strarg (argv[a]);
-        boost::match_results<std::string::const_iterator> range_match;
+        match_results<std::string::const_iterator> range_match;
         if (strarg == "--debug" || strarg == "-debug")
             ot.debug = true;
         else if ((strarg == "--frames" || strarg == "-frames") && a < argc-1) {
@@ -5055,7 +5068,7 @@ handle_sequence (int argc, const char **argv)
             wildcard_on = true;
         }
         else if (wildcard_on && !is_output_all &&
-                 boost::regex_search (strarg, range_match, sequence_re)) {
+                 regex_search (strarg, range_match, sequence_re)) {
             is_sequence = true;
             sequence_args.push_back (a);
             sequence_is_output.push_back (is_output);

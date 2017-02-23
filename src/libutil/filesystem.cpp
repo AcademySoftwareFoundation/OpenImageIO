@@ -35,7 +35,6 @@
 #include <algorithm>
 
 #include <boost/tokenizer.hpp>
-#include <boost/regex.hpp>
 
 #include "OpenImageIO/platform.h"
 #include "OpenImageIO/dassert.h"
@@ -49,6 +48,20 @@
 # include <direct.h>
 #else
 # include <unistd.h>
+#endif
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_search;
+  using boost::regex_replace;
+  using boost::match_results;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_search;
+  using std::regex_replace;
+  using std::match_results;
 #endif
 
 #include <boost/filesystem.hpp>
@@ -220,9 +233,9 @@ Filesystem::get_directory_entries (const std::string &dirname,
     if (dirname.size() && ! is_directory(dirname))
         return false;
     filesystem::path dirpath (dirname.size() ? dirname : std::string("."));
-    boost::regex re;
+    regex re;
     try {
-        re = boost::regex(filter_regex);
+        re = regex(filter_regex);
     } catch (...) {
         return false;
     }
@@ -236,7 +249,7 @@ Filesystem::get_directory_entries (const std::string &dirname,
 #endif
              s != filesystem::recursive_directory_iterator();  ++s) {
             std::string file = s->path().string();
-            if (!filter_regex.size() || boost::regex_search (file, re))
+            if (!filter_regex.size() || regex_search (file, re))
 #ifdef _WIN32
                 filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
 #else
@@ -252,7 +265,7 @@ Filesystem::get_directory_entries (const std::string &dirname,
 #endif
              s != filesystem::directory_iterator();  ++s) {
             std::string file = s->path().string();
-            if (!filter_regex.size() || boost::regex_search (file, re))
+            if (!filter_regex.size() || regex_search (file, re))
 #ifdef _WIN32
                 filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
 #else
@@ -749,13 +762,13 @@ Filesystem::parse_pattern (const char *pattern_,
 #define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
 #define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
-    static boost::regex sequence_re (SEQUENCE_SPEC);
+    static regex sequence_re (SEQUENCE_SPEC);
     // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
-    boost::match_results<std::string::const_iterator> range_match;
-    if (! boost::regex_search (pattern, range_match, sequence_re)) {
+    match_results<std::string::const_iterator> range_match;
+    if (! regex_search (pattern, range_match, sequence_re)) {
         // Not a range
-        static boost::regex all_views_re ("%[Vv]");
-        if (boost::regex_search (pattern, all_views_re)) {
+        static regex all_views_re ("%[Vv]");
+        if (regex_search (pattern, all_views_re)) {
             normalized_pattern = pattern;
             return true;
         }
@@ -823,14 +836,14 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
                                      std::vector<std::string> &filenames)
 {
     ASSERT (views.size() == 0 || views.size() == numbers.size());
-    static boost::regex view_re ("%V"), short_view_re ("%v");
+    static regex view_re ("%V"), short_view_re ("%v");
 
     filenames.clear ();
     for (size_t i = 0, e = numbers.size(); i < e; ++i) {
         std::string f = pattern;
         if (views.size() > 0 && ! views[i].empty()) {
-            f = boost::regex_replace (f, view_re, views[i]);
-            f = boost::regex_replace (f, short_view_re, views[i].substr(0, 1));
+            f = regex_replace (f, view_re, std::string(views[i]));
+            f = regex_replace (f, short_view_re, std::string(views[i].substr(0, 1)));
         }
         f = Strutil::format (f.c_str(), numbers[i]);
         filenames.push_back (f);
@@ -848,14 +861,14 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
                                         std::vector<string_view> &frame_views,
                                         std::vector<std::string> &filenames)
 {
-    static boost::regex format_re ("%0([0-9]+)d");
-    static boost::regex all_views_re ("%[Vv]"), view_re ("%V"), short_view_re ("%v");
+    static regex format_re ("%0([0-9]+)d");
+    static regex all_views_re ("%[Vv]"), view_re ("%V"), short_view_re ("%v");
 
     frame_numbers.clear ();
     frame_views.clear ();
     filenames.clear ();
-    if (boost::regex_search (pattern, all_views_re)) {
-        if (boost::regex_search (pattern, format_re)) {
+    if (regex_search (pattern, all_views_re)) {
+        if (regex_search (pattern, format_re)) {
             // case 1: pattern has format and view
             std::vector< std::pair< std::pair< int, string_view>, std::string> > matches;
             for (int i = 0, e = views.size(); i < e; ++i) {
@@ -867,8 +880,8 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
                 std::vector<std::string> view_filenames;
 
                 std::string view_pattern = pattern;
-                view_pattern = boost::regex_replace (view_pattern, view_re, views[i]);
-                view_pattern = boost::regex_replace (view_pattern, short_view_re, short_view);
+                view_pattern = regex_replace (view_pattern, view_re, std::string(views[i]));
+                view_pattern = regex_replace (view_pattern, short_view_re, std::string(short_view));
 
                 if (! scan_for_matching_filenames (view_pattern, view_numbers, view_filenames))
                     continue;
@@ -894,8 +907,8 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
                 const string_view short_view = view.substr (0, 1);
 
                 std::string view_pattern = pattern;
-                view_pattern = boost::regex_replace (view_pattern, view_re, view);
-                view_pattern = boost::regex_replace (view_pattern, short_view_re, short_view);
+                view_pattern = regex_replace (view_pattern, view_re, std::string(view));
+                view_pattern = regex_replace (view_pattern, short_view_re, std::string(short_view));
 
                 if (exists (view_pattern))
                     matches.push_back (std::make_pair (view, view_pattern));
@@ -941,9 +954,9 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
         return false;
 
     // build a regex that matches the pattern
-    static boost::regex format_re ("%0([0-9]+)d");
-    boost::match_results<std::string::const_iterator> format_match;
-    if (! boost::regex_search (pattern, format_match, format_re))
+    static regex format_re ("%0([0-9]+)d");
+    match_results<std::string::const_iterator> format_match;
+    if (! regex_search (pattern, format_match, format_re))
         return false;
 
     std::string thepadding (format_match[1].first, format_match[1].second);
@@ -957,7 +970,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     // are badly structured and might throw an exception.
     try {
 
-    boost::regex pattern_re (pattern_re_str);
+    regex pattern_re (pattern_re_str);
 
     filesystem::directory_iterator end_it;
 #ifdef _WIN32
@@ -968,8 +981,8 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 #endif
         if (filesystem::is_regular_file(it->status())) {
             const std::string f = it->path().string();
-            boost::match_results<std::string::const_iterator> frame_match;
-            if (boost::regex_match (f, frame_match, pattern_re)) {
+            match_results<std::string::const_iterator> frame_match;
+            if (regex_match (f, frame_match, pattern_re)) {
                 std::string thenumber (frame_match[1].first, frame_match[1].second);
                 int frame = (int)strtol (thenumber.c_str(), NULL, 10);
                 matches.push_back (std::make_pair (frame, f));

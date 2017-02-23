@@ -34,7 +34,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <boost/regex.hpp>
 #include <boost/thread/tss.hpp>
 
 #include <tiffio.h>
@@ -46,6 +45,17 @@
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/fmath.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_replace;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_replace;
+#endif
+
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -1062,7 +1072,7 @@ TIFFInput::readspec (bool read_meta)
         m_spec.attribute ("oiio:ConstantColor", s);
         const std::string constcolor_pattern =
             std::string ("oiio:ConstantColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
-        desc = boost::regex_replace (desc, boost::regex(constcolor_pattern), "");
+        desc = regex_replace (desc, regex(constcolor_pattern), "");
         updatedDesc = true;
     }
     found = desc.rfind ("oiio:AverageColor=");
@@ -1073,7 +1083,7 @@ TIFFInput::readspec (bool read_meta)
         m_spec.attribute ("oiio:AverageColor", s);
         const std::string average_pattern =
             std::string ("oiio:AverageColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
-        desc = boost::regex_replace (desc, boost::regex(average_pattern), "");
+        desc = regex_replace (desc, regex(average_pattern), "");
         updatedDesc = true;
     }
     found = desc.rfind ("oiio:SHA-1=");
@@ -1084,8 +1094,8 @@ TIFFInput::readspec (bool read_meta)
         size_t end = std::min (begin+40, desc.size());
         string_view s = string_view (desc.data()+begin, end-begin);
         m_spec.attribute ("oiio:SHA-1", s);
-        desc = boost::regex_replace (desc, boost::regex("oiio:SHA-1=[[:xdigit:]]*[ ]*"), "");
-        desc = boost::regex_replace (desc, boost::regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
+        desc = regex_replace (desc, regex("oiio:SHA-1=[[:xdigit:]]*[ ]*"), "");
+        desc = regex_replace (desc, regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
         updatedDesc = true;
     }
     if (updatedDesc) {

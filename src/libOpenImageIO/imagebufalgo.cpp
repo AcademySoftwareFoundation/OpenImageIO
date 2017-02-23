@@ -28,8 +28,6 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/regex.hpp>
-
 #include <OpenEXR/half.h>
 
 #include <cmath>
@@ -43,6 +41,12 @@
 #include "OpenImageIO/filter.h"
 #include "OpenImageIO/thread.h"
 #include "kissfft.hh"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+#else
+# include <regex>
+#endif
 
 
 
@@ -208,11 +212,18 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             // Since we're altering pixels, be sure that any existing SHA
             // hash of dst's pixel values is erased.
             spec.erase_attribute ("oiio:SHA-1");
-            static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
             std::string desc = spec.get_string_attribute ("ImageDescription");
-            if (desc.size())
+            if (desc.size()) {
+#ifdef USE_BOOST_REGEX
+                static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
                 spec.attribute ("ImageDescription",
                                 boost::regex_replace (desc, regex_sha, ""));
+#else
+                static std::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
+                spec.attribute ("ImageDescription",
+                                std::regex_replace (desc, regex_sha, ""));
+#endif
+            }
         }
 
         dst->reset (spec);

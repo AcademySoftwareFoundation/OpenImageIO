@@ -31,8 +31,6 @@
 
 #include <iostream>
 
-#include <boost/regex.hpp>
-
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"

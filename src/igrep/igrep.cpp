@@ -37,12 +37,22 @@
 #include <iterator>
 #include <memory>
 
-#include <boost/regex.hpp>
-
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/filesystem.h"
 #include "OpenImageIO/imageio.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_search;
+  using namespace boost::regex_constants;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_search;
+  using namespace std::regex_constants;
+#endif
 
 OIIO_NAMESPACE_USING;
 
@@ -61,7 +71,7 @@ static std::vector<std::string> filenames;
 
 
 static bool
-grep_file (const std::string &filename, boost::regex &re,
+grep_file (const std::string &filename, regex &re,
            bool ignore_nonimage_files=false)
 {
     if (! Filesystem::exists (filename)) {
@@ -93,7 +103,7 @@ grep_file (const std::string &filename, boost::regex &re,
     ImageSpec spec = in->spec();
 
     if (file_match) {
-        bool match = boost::regex_search (filename, re);
+        bool match = regex_search (filename, re);
         if (match && ! invert_match) {
             std::cout << filename << "\n";
             return true;
@@ -110,7 +120,7 @@ grep_file (const std::string &filename, boost::regex &re,
             if (t.elementtype() == TypeDesc::STRING) {
                 int n = t.numelements();
                 for (int i = 0;  i < n;  ++i) {
-                    bool match = boost::regex_search (((const char **)p.data())[i], re);
+                    bool match = regex_search (((const char **)p.data())[i], re);
                     found |= match;
                     if (match && ! invert_match) {
                         if (list_files) {
@@ -178,12 +188,20 @@ main (int argc, const char *argv[])
         exit (EXIT_FAILURE);
     }
 
+#if USE_BOOST_REGEX
     boost::regex_constants::syntax_option_type flag = boost::regex_constants::grep;
     if (extended_regex)
         flag = boost::regex::extended;
     if (ignore_case)
         flag |= boost::regex_constants::icase;
-    boost::regex re (pattern, flag);
+#else
+    std::regex_constants::syntax_option_type flag = std::regex_constants::grep;
+    if (extended_regex)
+        flag = std::regex_constants::extended;
+    if (ignore_case)
+        flag |= std::regex_constants::icase;
+#endif
+    regex re (pattern, flag);
     for (auto&& s : filenames) {
         grep_file (s, re);
     }
