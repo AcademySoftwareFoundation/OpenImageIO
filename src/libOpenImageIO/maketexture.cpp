@@ -38,7 +38,6 @@
 #include <memory>
 
 #include <boost/version.hpp>
-#include <boost/regex.hpp>
 
 #include <OpenEXR/ImathMatrix.h>
 #include <OpenEXR/half.h>
@@ -56,6 +55,16 @@
 #include "OpenImageIO/imagebufalgo_util.h"
 #include "OpenImageIO/thread.h"
 #include "OpenImageIO/filter.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_replace;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_replace;
+#endif
 
 OIIO_NAMESPACE_USING
 
@@ -1362,15 +1371,15 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     
     // Eliminate any SHA-1 or ConstantColor hints in the ImageDescription.
     if (desc.size()) {
-        desc = boost::regex_replace (desc, boost::regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
+        desc = regex_replace (desc, regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
         static const char *fp_number_pattern =
             "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
         const std::string constcolor_pattern =
             std::string ("ConstantColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
         const std::string average_pattern =
             std::string ("AverageColor=(\\[?") + fp_number_pattern + ",?)+\\]?[ ]*";
-        desc = boost::regex_replace (desc, boost::regex(constcolor_pattern), "");
-        desc = boost::regex_replace (desc, boost::regex(average_pattern), "");
+        desc = regex_replace (desc, regex(constcolor_pattern), "");
+        desc = regex_replace (desc, regex(average_pattern), "");
         updatedDesc = true;
     }
     

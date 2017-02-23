@@ -40,7 +40,6 @@
 #include <io.h>
 #endif
 
-#include <boost/regex.hpp>
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathVec.h>
 
@@ -55,6 +54,17 @@
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/array_view.h"
 #include "oiiotool.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+  using boost::regex;
+  using boost::regex_search;
+#else
+# include <regex>
+  using std::regex;
+  using std::regex_search;
+#endif
+
 
 OIIO_NAMESPACE_USING;
 using namespace OiioTool;
@@ -510,7 +520,7 @@ print_info_subimage (Oiiotool &ot,
                      ImageSpec &spec,
                      ImageInput *input, const std::string &filename,
                      const print_info_options &opt,
-                     boost::regex &field_re, boost::regex &field_exclude_re,
+                     regex &field_re, regex &field_exclude_re,
                      ImageSpec::SerialFormat serformat,
                      ImageSpec::SerialVerbose verbose)
 {
@@ -519,7 +529,7 @@ print_info_subimage (Oiiotool &ot,
     int padlen = std::max (0, (int)opt.namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
     bool printres = opt.verbose && (opt.metamatch.empty() ||
-                                boost::regex_search ("resolution, width, height, depth, channels", field_re));
+                                regex_search ("resolution, width, height, depth, channels", field_re));
 
     // int nmip = num_of_miplevels[current_subimage];
 
@@ -529,7 +539,7 @@ print_info_subimage (Oiiotool &ot,
     Strutil::split (spec.serialize(serformat, verbose), lines, "\n");
 
     if (opt.compute_sha1 && (opt.metamatch.empty() ||
-                             boost::regex_search ("sha-1", field_re))) {
+                             regex_search ("sha-1", field_re))) {
         // Before sha-1, be sure to point back to the highest-res MIP level
         ImageSpec tmpspec;
         std::string sha = compute_sha1 (ot, input);
@@ -551,7 +561,7 @@ print_info_subimage (Oiiotool &ot,
     if (serformat == ImageSpec::SerialText) {
         // Requested a subset of metadata but not res, etc.? Kill first line.
         if (opt.metamatch.empty() ||
-            boost::regex_search ("resolution, width, height, depth, channels", field_re)) {
+            regex_search ("resolution, width, height, depth, channels", field_re)) {
             std::string orig_line0 = lines[0];
             if (current_subimage == 0)
                 lines[0] = Strutil::format ("%s%s : ", filename, padding) + lines[0];
@@ -613,8 +623,8 @@ print_info_subimage (Oiiotool &ot,
     if (! opt.metamatch.empty() || ! opt.nometamatch.empty()) {
         for (size_t i = 0; i < lines.size(); ++i) {
             std::string s = lines[i].substr (0, lines[i].find(": "));
-            if ((! opt.nometamatch.empty() && boost::regex_search (s, field_exclude_re)) ||
-                (! opt.metamatch.empty() && ! boost::regex_search (s, field_re))) {
+            if ((! opt.nometamatch.empty() && regex_search (s, field_exclude_re)) ||
+                (! opt.metamatch.empty() && ! regex_search (s, field_re))) {
                 lines.erase (lines.begin()+i);
                 --i;
             }
@@ -638,7 +648,7 @@ print_info_subimage (Oiiotool &ot,
     }
 
     if (opt.compute_stats && (opt.metamatch.empty() ||
-                              boost::regex_search ("stats", field_re))) {
+                              regex_search ("stats", field_re))) {
         for (int m = 0;  m < nmip;  ++m) {
             ImageSpec mipspec;
             input->seek_subimage (current_subimage, m, mipspec);
@@ -679,12 +689,17 @@ OiioTool::print_info (Oiiotool &ot,
         serformat = ImageSpec::SerialXML;
     ImageSpec::SerialVerbose verbose = opt.verbose ? ImageSpec::SerialDetailedHuman : ImageSpec::SerialBrief;
 
-    boost::regex field_re;
-    boost::regex field_exclude_re;
+    regex field_re;
+    regex field_exclude_re;
     if (! opt.metamatch.empty()) {
         try {
+#if USE_BOOST_REGEX
             field_re.assign (opt.metamatch,
                          boost::regex::extended | boost::regex_constants::icase);
+#else
+            field_re.assign (opt.metamatch,
+                         std::regex_constants::extended | std::regex_constants::icase);
+#endif
         } catch (const std::exception &e) {
             error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
                                      e.what(), opt.metamatch);
@@ -693,8 +708,13 @@ OiioTool::print_info (Oiiotool &ot,
     }
     if (! opt.nometamatch.empty()) {
         try {
+#if USE_BOOST_REGEX
             field_exclude_re.assign (opt.nometamatch,
                          boost::regex::extended | boost::regex_constants::icase);
+#else
+            field_exclude_re.assign (opt.nometamatch,
+                         std::regex_constants::extended | std::regex_constants::icase);
+#endif
         } catch (const std::exception &e) {
             error = Strutil::format ("Regex error '%s' on metamatch regex \"%s\"",
                                      e.what(), opt.nometamatch);

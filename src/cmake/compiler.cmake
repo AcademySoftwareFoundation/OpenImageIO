@@ -213,6 +213,27 @@ if (USE_fPIC)
     add_definitions ("-fPIC")
 endif ()
 
+
+# Test for features
+if (NOT VERBOSE)
+    set (CMAKE_REQUIRED_QUIET 1)
+endif ()
+include (CMakePushCheckState)
+include (CheckCXXSourceRuns)
+
+check_cxx_source_runs("
+      #include <regex>
+      int main() {
+          return std::regex_match(\"abc\", std::regex(\"(a)(.*)\")) ? 0 : 1;
+      }"
+      USE_STD_REGEX)
+if (USE_STD_REGEX)
+    add_definitions (-DUSE_STD_REGEX)
+else ()
+    add_definitions (-DUSE_BOOST_REGEX)
+endif ()
+
+
 # Code coverage options
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")

@@ -38,9 +38,6 @@
 #include <string>
 #include <utility>
 
-#include <boost/regex.hpp>
-
-
 #include "OpenImageIO/argparse.h"
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/imagebuf.h"
@@ -50,6 +47,12 @@
 #include "OpenImageIO/thread.h"
 
 #include "oiiotool.h"
+
+#ifdef USE_BOOST_REGEX
+# include <boost/regex.hpp>
+#else
+# include <regex>
+#endif
 
 OIIO_NAMESPACE_USING
 using namespace OiioTool;
@@ -233,7 +236,6 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
     if (elaborated())
         return true;
     static ustring u_subimages("subimages"), u_miplevels("miplevels");
-    static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
     int subimages = 0;
     ustring uname (name());
     if (! m_imagecache->get_image_info (uname, 0, 0, u_subimages,
@@ -320,9 +322,17 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
             // Remove any existing SHA-1 hash from the spec.
             ib->specmod().erase_attribute ("oiio:SHA-1");
             std::string desc = ib->spec().get_string_attribute ("ImageDescription");
-            if (desc.size())
+            if (desc.size()) {
+#ifdef USE_BOOST_REGEX
+                static boost::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
                 ib->specmod().attribute ("ImageDescription",
                                          boost::regex_replace (desc, regex_sha, ""));
+#else
+                static std::regex regex_sha ("SHA-1=[[:xdigit:]]*[ ]*");
+                ib->specmod().attribute ("ImageDescription",
+                                         std::regex_replace (desc, regex_sha, ""));
+#endif
+            }
 
             m_subimages[s].m_miplevels[m] = ib;
             m_subimages[s].m_specs[m] = ib->spec();

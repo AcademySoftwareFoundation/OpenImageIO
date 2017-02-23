@@ -103,10 +103,12 @@ if (BOOST_CUSTOM)
     # N.B. For a custom version, the caller had better set up the variables
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
-    set (Boost_COMPONENTS filesystem regex system thread)
+    set (Boost_COMPONENTS filesystem system thread)
+    if (NOT USE_STD_REGEX)
+        list (APPEND Boost_COMPONENTS regex)
+    endif ()
     find_package (Boost 1.53 REQUIRED
-                  COMPONENTS ${Boost_COMPONENTS}
-                 )
+                  COMPONENTS ${Boost_COMPONENTS})
 
     # Try to figure out if this boost distro has Boost::python.  If we
     # include python in the component list above, cmake will abort if
