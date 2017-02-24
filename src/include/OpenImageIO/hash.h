@@ -47,6 +47,7 @@
 
 #include "export.h"
 #include "oiioversion.h"
+#include "platform.h"
 #include "fmath.h"   /* for endian */
 #include "string_view.h"
 #include "array_view.h"
