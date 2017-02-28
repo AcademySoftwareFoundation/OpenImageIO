@@ -3973,7 +3973,12 @@ input_file (int argc, const char *argv[])
             // that information.
             ustring fn (filename);
             ot.imagecache->invalidate (fn);
-            ot.imagecache->add_file (fn, NULL, &ot.input_config);
+            bool ok = ot.imagecache->add_file (fn, NULL, &ot.input_config);
+            if (!ok) {
+                std::string err = ot.imagecache->geterror();
+                ot.error ("read", err.size() ? err : "(unknown error)");
+                exit (1);
+            }
         }
         if (! ot.imagecache->get_image_info (ustring(filename), 0, 0,
                             ustring("exists"), TypeDesc::TypeInt, &exists)
