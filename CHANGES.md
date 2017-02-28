@@ -1,6 +1,10 @@
-Release 1.7.11 (1 Mar 2017) -- compared to 1.7.11
+Release 1.7.12 (1 Mar 2017) -- compared to 1.7.11
 ----------------------------------------------
-
+* BMP: add support for version 5 headers. #1616
+* TIFF: Fix typo that prevented correct reading of some Exif fields. #1625
+* ImageBuf: Fix broken threads(n) method, which didn't correctly pass the
+  right number of threads along. #1622.
+* Fix build warnings about undefined OIIO_MSVS_AT_LEAST_2013 symbol.
 
 Release 1.7.11 (1 Feb 2017) -- compared to 1.7.10
 ----------------------------------------------
