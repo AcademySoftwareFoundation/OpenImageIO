@@ -165,16 +165,27 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
                                              "Adobe",
                                              "Wide",
                                              "ProPhoto",
-                                             "XYZ", NULL
+                                             "XYZ",
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+                                             "ACES",
+#endif
+                                             NULL
                                              };
 
         size_t c;
-        for (c=0; c < sizeof(colorspaces) / sizeof(colorspaces[0]); c++)
-            if (cs == colorspaces[c])
+        for (c=0; colorspaces[c]; c++)
+            if (Strutil::iequals (cs, colorspaces[c]))
                 break;
-        if (cs == colorspaces[c])
+        if (colorspaces[c])
             m_processor.imgdata.params.output_color = c;
         else {
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0,18,0)
+            if (cs == "ACES")
+                error ("raw:ColorSpace value of \"ACES\" is not supported by libRaw %d.%d.%d",
+                       LIBRAW_MAJOR_VERSION, LIBRAW_MINOR_VERSION,
+                       LIBRAW_PATCH_VERSION);
+            else
+#endif
             error("raw:ColorSpace set to unknown value");
             return false;
         }
