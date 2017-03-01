@@ -1,3 +1,7 @@
+Release 1.7.13 (1 Apr 2017) -- compared to 1.7.12
+----------------------------------------------
+
+
 Release 1.7.12 (1 Mar 2017) -- compared to 1.7.11
 ----------------------------------------------
 * BMP: add support for version 5 headers. #1616
