@@ -277,6 +277,10 @@ inline T from_string (string_view s) {
 template<> inline int from_string<int> (string_view s) {
     return s.size() ? strtol (s.c_str(), NULL, 10) : 0;
 }
+// Special case for uint
+template<> inline unsigned int from_string<unsigned int> (string_view s) {
+    return s.size() ? strtoul (s.c_str(), NULL, 10) : (unsigned int)0;
+}
 // Special case for float
 template<> inline float from_string<float> (string_view s) {
     return s.size() ? (float)strtod (s.c_str(), NULL) : 0.0f;
