@@ -165,7 +165,7 @@ datestring (time_t t)
 {
     struct tm mytm;
     Sysutil::get_local_time (&t, &mytm);
-    return Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+    return Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
                             mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                             mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
 }
