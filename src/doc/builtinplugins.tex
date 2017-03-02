@@ -841,8 +841,9 @@ Configuration attribute & Type & Meaning \\
                                correction. (Default: 0) \\
 \qkws{raw:use_camera_wb} & int & If 1, use libraw's camera white
                                balance adjustment. (Default: 1) \\
-\qkws{raw:use_camera_matrix} & int & If 1, use libraw's camera matrix
-                               balance adjustment. (Default: 0) \\
+\qkws{raw:use_camera_matrix} & int & Whether to use the embedded color profile,
+                            if it's present: 0 = never,
+                            1 (default) = only for DNG files, 3 = always. \\
 \qkws{raw:adjust_maximum_thr} & float & If nonzero, auto-adjusting maximum
                                     value. (Default:0.0) \\
 \qkws{raw:ColorSpace} & string & Which color primaries to use: \qkw{raw},
@@ -854,9 +855,9 @@ Configuration attribute & Type & Meaning \\
                                 (Default: 0, meaning no correction.) \\
 \qkws{raw:Demosaic} & string & Force a demosaicing algorithm: \qkw{linear},
                                 \qkw{VNG}, \qkw{PPG}, \qkw{AHD} (default),
-                                \qkw{DCB}, \qkw{Modified AHD}, \qkw{AFD},
+                                \qkw{DCB}, \qkw{AHD-Mod}, \qkw{AFD},
                                 \qkw{VCD}, \qkw{Mixed}, \qkw{LMMSE},
-                                \qkw{AMaZE}. \\
+                                \qkw{AMaZE}, \qkw{DHT}, \qkw{AAHD}. \\
 \end{tabular}
 
 
