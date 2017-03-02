@@ -794,6 +794,7 @@ PSDInput::load_header ()
 bool
 PSDInput::read_header ()
 {
+    m_file.seekg(0, std::ios::beg);
     m_file.read (m_header.signature, 4);
     read_bige<uint16_t> (m_header.version);
     m_file.seekg(6, std::ios::cur);
