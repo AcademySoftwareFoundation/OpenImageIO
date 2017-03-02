@@ -30,9 +30,11 @@
 
 #include "OpenImageIO/imageio.h"
 #include "OpenImageIO/fmath.h"
+#include "OpenImageIO/strutil.h"
 #include <iostream>
 #include <time.h>       /* time_t, struct tm, gmtime */
 #include <libraw/libraw.h>
+#include <libraw/libraw_version.h>
 
 
 // This plugin utilises LibRaw:
@@ -145,9 +147,14 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
     m_processor.imgdata.params.adjust_maximum_thr =
         config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
 
-    // Use camera matrix (if config "raw:use_camera_matrix" is not 0)
+    // Use embedded color profile. Values mean:
+    // 0: do not use embedded color profile
+    // 1 (default): use embedded color profile (if present) for DNG files
+    //    (always), for other files only if use_camera_wb is set.
+    // 3: use embedded color data (if present) regardless of white
+    //    balance setting.
     m_processor.imgdata.params.use_camera_matrix =
-        config.get_int_attribute("raw:use_camera_matrix", 0);
+        config.get_int_attribute("raw:use_camera_matrix", 1);
 
 
     // Check to see if the user has explicitly set the output colorspace primaries
@@ -193,9 +200,10 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
     }
 
     // Interpolation quality
-    // note: LibRaw must be compiled with demosaic pack GPL2 to use
-    // demosaic algorithms 5-9. It must be compiled with demosaic pack GPL3 for 
-    // algorithm 10. If either of these packs are not includeded, it will silently use option 3 - AHD
+    // note: LibRaw must be compiled with demosaic pack GPL2 to use demosaic
+    // algorithms 5-9. It must be compiled with demosaic pack GPL3 for
+    // algorithm 10 (AMAzE). If either of these packs are not included, it
+    // will silently use option 3 - AHD.
     std::string demosaic = config.get_string_attribute ("raw:Demosaic");
     if (demosaic.size()) {
         static const char *demosaic_algs[] = { "linear",
@@ -203,22 +211,26 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
                                                "PPG",
                                                "AHD",
                                                "DCB",
-                                               "Modified AHD",
+                                               "AHD-Mod",
                                                "AFD",
                                                "VCD",
                                                "Mixed",
                                                "LMMSE",
                                                "AMaZE",
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,16,0)
+                                               "DHT",
+                                               "AAHD",
+#endif
                                                // Future demosaicing algorithms should go here
                                                NULL
                                                };
         size_t d;
-        for (d=0; d < sizeof(demosaic_algs) / sizeof(demosaic_algs[0]); d++)
-            if (demosaic == demosaic_algs[d])
+        for (d=0; demosaic_algs[d]; d++)
+            if (Strutil::iequals (demosaic, demosaic_algs[d]))
                 break;
-        if (demosaic == demosaic_algs[d])
+        if (demosaic_algs[d])
             m_processor.imgdata.params.user_qual = d;
-        else if (demosaic == "none") {
+        else if (Strutil::iequals (demosaic, "none")) {
 #ifdef LIBRAW_DECODER_FLATFIELD
             // See if we can access the Bayer patterned data for this raw file
             libraw_decoder_info_t decoder_info;
@@ -241,10 +253,9 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
             m_spec.channelnames.push_back("R");
 
             // Also, any previously set demosaicing options are void, so remove them
-            m_spec.erase_attribute("oiio:Colorspace", TypeDesc::STRING);
-            m_spec.erase_attribute("raw:Colorspace", TypeDesc::STRING);
-            m_spec.erase_attribute("raw:Exposure", TypeDesc::STRING);
-
+            m_spec.erase_attribute("oiio:Colorspace");
+            m_spec.erase_attribute("raw:Colorspace");
+            m_spec.erase_attribute("raw:Exposure");
         }
         else {
             error("raw:Demosaic set to unknown value");
