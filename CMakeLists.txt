@@ -571,7 +571,9 @@ oiio_add_tests (
                 oiiotool-subimage oiiotool-text
                 maketx oiiotool-maketx
                 dither dup-channels
-                dpx ico iff png psd rla sgi
+                dpx ico iff png
+                psd psd-colormodes
+                rla sgi
                 python-typedesc python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
