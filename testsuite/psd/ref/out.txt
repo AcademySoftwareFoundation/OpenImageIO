@@ -531,7 +531,7 @@ Reading ../../../../../oiio-images/psd_rgb_16.psd
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     PixelAspectRatio: 1
 Reading ../../../../../oiio-images/psd_rgb_32.psd
-../../../../../oiio-images/psd_rgb_32.psd :  320 x  240, 3 channel, uint psd
+../../../../../oiio-images/psd_rgb_32.psd :  320 x  240, 3 channel, float psd
     SHA-1: 63CF8F7B010D24EFD3C41F51C16D8D285FE07313
     channel list: R, G, B
     XResolution: 180

@@ -33,6 +33,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <memory>
 
 #include "psd_pvt.h"
 #include "jpeg_memory_src.h"
@@ -306,19 +307,14 @@ private:
     //Read a row of channel data
     bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
-    //Interleave channels (RRRGGGBBB -> RGBRGBRGB).
-    void interleave_row (char *dst);
+    // Interleave channels (RRRGGGBBB -> RGBRGBRGB) while copying from
+    // m_channel_buffers[0..nchans-1] to dst.
+    template<typename T>
+    void interleave_row (T *dst, size_t nchans);
 
     //Convert the channel data to RGB
-    bool convert_to_rgb (char *dst);
     bool indexed_to_rgb (char *dst);
     bool bitmap_to_rgb (char *dst);
-    //To add support for other color modes (to be converted to RGB):
-    //-Add a function <colormode>_to_rgb (char *dst) that uses the raw channel
-    // data in m_channel_buffers[m_subimage] (size is m_spec.nchannels) and
-    // store the RGB data in dst
-    //-Modify validate_header function to not reject that color mode
-    //-Modify convert_to_rgb function to call <colormode>_to_rgb
 
     // Convert from photoshop native alpha to
     // associated/premultiplied
@@ -373,6 +369,34 @@ private:
     void background_to_assocalpha (int n, void *data);
     void background_to_unassalpha (int n, void *data);
     void unassalpha_to_assocalpha (int n, void *data);
+
+    template <typename T>
+    void cmyk_to_rgb (int n, const T *cmyk, size_t cmyk_stride,
+                      T *rgb, size_t rgb_stride)
+    {
+        for ( ; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
+            float C = convert_type<T,float>(cmyk[0]);
+            float M = convert_type<T,float>(cmyk[1]);
+            float Y = convert_type<T,float>(cmyk[2]);
+            float K = convert_type<T,float>(cmyk[3]);
+#if 0
+            // WHY doesn't this work if it's cmyk?
+            float R = (1.0f - C) * (1.0f - K);
+            float G = (1.0f - M) * (1.0f - K);
+            float B = (1.0f - Y) * (1.0f - K);
+#else
+            // But this gives the right results????? WTF?
+            // Is it because it's subtractive and PhotoShop records it
+            // as MAX-val?
+            float R = C * (K);
+            float G = M * (K);
+            float B = Y * (K);
+#endif
+            rgb[0] = convert_type<float,T>(R);
+            rgb[1] = convert_type<float,T>(G);
+            rgb[2] = convert_type<float,T>(B);
+        }
+    }
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -543,37 +567,51 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     Filesystem::open (m_file, name, std::ios::binary);
   
     if (!m_file) {
-        error ("\"%s\": failed to open file", name.c_str());
+        error ("\"%s\": failed to open file", name);
         return false;
     }
     
     // File Header
-    if (!load_header ())
+    if (!load_header ()) {
+        error ("failed to open \"%s\": failed load_header", name);
         return false;
+    }
 
     // Color Mode Data
-    if (!load_color_data ())
+    if (!load_color_data ()) {
+        error ("failed to open \"%s\": failed load_color_data", name);
         return false;
+    }
 
     // Image Resources
-    if (!load_resources ())
+    if (!load_resources ()) {
+        error ("failed to open \"%s\": failed load_resources", name);
         return false;
+    }
 
     // Layers
-    if (!load_layers ())
+    if (!load_layers ()) {
+        error ("failed to open \"%s\": failed load_layers", name);
         return false;
+    }
 
     // Global Mask Info
-    if (!load_global_mask_info ())
+    if (!load_global_mask_info ()) {
+        error ("failed to open \"%s\": failed load_global_mask_info", name);
         return false;
+    }
 
     // Global Additional Layer Info
-    if (!load_global_additional ())
+    if (!load_global_additional ()) {
+        error ("failed to open \"%s\": failed load_global_additional", name);
         return false;
+    }
 
     // Image Data
-    if (!load_image_data ())
+    if (!load_image_data ()) {
+        error ("failed to open \"%s\": failed load_image_data", name);
         return false;
+    }
 
     // Layer count + 1 for merged composite (Image Data Section)
     m_subimage_count = m_layers.size () + 1;
@@ -643,6 +681,9 @@ PSDInput::background_to_assocalpha (int n, void *data)
     case TypeDesc::UINT32:
         removeBackground ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
         break;
+    case TypeDesc::FLOAT:
+        removeBackground ((float *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
     default:
         break;
     }
@@ -662,6 +703,9 @@ PSDInput::background_to_unassalpha (int n, void *data)
         break;
     case TypeDesc::UINT32:
         unassociateAlpha ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
+        break;
+    case TypeDesc::FLOAT:
+        unassociateAlpha ((float *)data, n, m_spec.nchannels, m_spec.alpha_channel, m_background_color);
         break;
     default:
         break;
@@ -683,6 +727,9 @@ PSDInput::unassalpha_to_assocalpha (int n, void *data)
     case TypeDesc::UINT32:
         associateAlpha ((unsigned long *)data, n, m_spec.nchannels, m_spec.alpha_channel);
         break;
+    case TypeDesc::FLOAT:
+        associateAlpha ((float *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
     default:
         break;
     }
@@ -699,6 +746,8 @@ PSDInput::read_native_scanline (int y, int z, void *data)
     if (m_channel_buffers.size () < m_channels[m_subimage].size ())
         m_channel_buffers.resize (m_channels[m_subimage].size ());
 
+    int bps = (m_header.depth + 7) / 8;   // bytes per sample
+    ASSERT (bps == 1 || bps == 2 || bps == 4);
     std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
     int channel_count = (int)channels.size ();
     for (int c = 0; c < channel_count; ++c) {
@@ -711,11 +760,54 @@ PSDInput::read_native_scanline (int y, int z, void *data)
             return false;
     }
     char *dst = (char *)data;
-    if (m_WantRaw || m_header.color_mode == ColorMode_RGB)
-        interleave_row (dst);
-    else {
-        if (!convert_to_rgb (dst))
+    if (m_WantRaw || m_header.color_mode == ColorMode_RGB
+        || m_header.color_mode == ColorMode_Multichannel
+        || m_header.color_mode == ColorMode_Grayscale) {
+        switch (bps) {
+        case 4:
+            interleave_row ((float *)dst, m_channels[m_subimage].size());
+            break;
+        case 2:
+            interleave_row ((unsigned short *)dst, m_channels[m_subimage].size());
+            break;
+        default:
+            interleave_row ((unsigned char *)dst, m_channels[m_subimage].size());
+            break;
+        }
+    } else if (m_header.color_mode == ColorMode_CMYK) {
+        switch (bps) {
+        case 4: {
+            std::unique_ptr<float[]> cmyk (new float [4*m_spec.width]);
+            interleave_row (cmyk.get(), 4);
+            cmyk_to_rgb (m_spec.width, cmyk.get(), 4,
+                         (float *)dst, m_spec.nchannels);
+            break;
+            }
+        case 2: {
+            std::unique_ptr<unsigned short[]> cmyk (new unsigned short [4*m_spec.width]);
+            interleave_row (cmyk.get(), 4);
+            cmyk_to_rgb (m_spec.width, cmyk.get(), 4,
+                         (unsigned short *)dst, m_spec.nchannels);
+            break;
+            }
+        default: {
+            std::unique_ptr<unsigned char[]> cmyk (new unsigned char [4*m_spec.width]);
+            interleave_row (cmyk.get(), 4);
+            cmyk_to_rgb (m_spec.width, cmyk.get(), 4,
+                         (unsigned char *)dst, m_spec.nchannels);
+            break;
+            }
+        }
+    }
+    else if (m_header.color_mode == ColorMode_Indexed) {
+        if (!indexed_to_rgb (dst))
             return false;
+    }
+    else if (m_header.color_mode == ColorMode_Bitmap) {
+        if (!bitmap_to_rgb (dst))
+            return false;
+    } else {
+        ASSERT (0 && "unknown color mode");
     }
 
     // PSD specifically dictates unassociated (un-"premultiplied") alpha.
@@ -750,6 +842,7 @@ PSDInput::read_native_scanline (int y, int z, void *data)
     }
 
     return true;
+#undef DEB
 }
 
 
@@ -862,10 +955,10 @@ PSDInput::validate_header ()
         case ColorMode_Bitmap :
         case ColorMode_Indexed :
         case ColorMode_RGB :
-            break;
         case ColorMode_Grayscale :
         case ColorMode_CMYK :
         case ColorMode_Multichannel :
+            break;
         case ColorMode_Duotone :
         case ColorMode_Lab :
             error ("[Header] unsupported color mode");
@@ -1670,22 +1763,29 @@ PSDInput::load_image_data ()
 void
 PSDInput::setup ()
 {
-    int spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode] : 3;
-    int raw_channel_count = mode_channel_count[m_header.color_mode];
-    if (m_image_data.transparency) {
-        spec_channel_count++;
-        raw_channel_count++;
+    // raw_channel_count is the number of channels in the file
+    // spec_channel_count is what we will report to OIIO client
+    int raw_channel_count, spec_channel_count;
+    if (m_header.color_mode == ColorMode_Multichannel) {
+        spec_channel_count = raw_channel_count = m_header.channel_count;
+    } else {
+        raw_channel_count = mode_channel_count[m_header.color_mode];
+        spec_channel_count = m_WantRaw ? raw_channel_count
+                : (m_header.color_mode == ColorMode_Grayscale ? 1 : 3);
+        if (m_image_data.transparency) {
+            spec_channel_count++;
+            raw_channel_count++;
+        } else if (m_header.color_mode == ColorMode_Indexed && m_transparency_index) {
+            spec_channel_count++;
+        }
     }
-    else if (m_header.color_mode == ColorMode_Indexed && m_transparency_index)
-        spec_channel_count++;
 
     // Composite spec
     m_specs.push_back (ImageSpec (m_header.width, m_header.height,
                                   spec_channel_count, m_type_desc));
-    ImageSpec &composite_spec = m_specs.back ();
-    composite_spec.extra_attribs = m_composite_attribs.extra_attribs;
+    m_specs.back().extra_attribs = m_composite_attribs.extra_attribs;
     if (m_WantRaw)
-        fill_channel_names (composite_spec, m_image_data.transparency);
+        fill_channel_names (m_specs.back(), m_image_data.transparency);
 
     // Composite channels
     m_channels.reserve (m_subimage_count);
@@ -1719,9 +1819,9 @@ PSDInput::setup ()
             channels.push_back (layer.channel_id_map[ChannelID_Transparency]);
     }
 
-    if (m_spec.alpha_channel != -1)
+    if (m_specs.back().alpha_channel != -1)
         if (m_keep_unassociated_alpha)
-            m_spec.attribute ("oiio:UnassociatedAlpha", 1);
+            m_specs.back().attribute ("oiio:UnassociatedAlpha", 1);
 }
 
 
@@ -1730,11 +1830,14 @@ void
 PSDInput::fill_channel_names (ImageSpec &spec, bool transparency)
 {
     spec.channelnames.clear ();
-    for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
-        spec.channelnames.push_back (mode_channel_names[m_header.color_mode][i]);
-
-    if (transparency)
-        spec.channelnames.push_back ("A");
+    if (m_header.color_mode == ColorMode_Multichannel) {
+        spec.default_channel_names ();
+    } else {
+        for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
+            spec.channelnames.push_back (mode_channel_names[m_header.color_mode][i]);
+        if (transparency)
+            spec.channelnames.push_back ("A");
+    }
 }
 
 
@@ -1776,6 +1879,12 @@ PSDInput::read_channel_row (const ChannelInfo &channel_info, uint32_t row, char 
                 break;
             case 32:
                 swap_endian ((uint32_t *)data, m_spec.width);
+                // if (row == 131)
+                //     printf ("%x %x %x %x\n",
+                //             ((uint32_t*)data)[0], ((uint32_t*)data)[1],
+                //             ((uint32_t*)data)[2], ((uint32_t*)data)[3]);
+                // convert_type<float,uint32_t> ((float *)&data[0],
+                //                               (uint32_t*)&data[1], m_spec.width);
                 break;
         }
     }
@@ -1784,34 +1893,16 @@ PSDInput::read_channel_row (const ChannelInfo &channel_info, uint32_t row, char 
 
 
 
+template<typename T>
 void
-PSDInput::interleave_row (char *dst)
+PSDInput::interleave_row (T *dst, size_t nchans)
 {
-    //bytes per sample
-    int bps = (m_header.depth + 7) / 8;
-    int width = m_spec.width;
-    std::size_t channel_count = m_channels[m_subimage].size ();
-    for (int x = 0; x < width; ++x) {
-        for (unsigned int c = 0; c < channel_count; ++c) {
-            std::string &buffer = m_channel_buffers[c];
-            std::memcpy (dst, &buffer[x * bps], bps);
-            dst += bps;
-        }
+    ASSERT (nchans <= m_channels[m_subimage].size());
+    for (size_t c = 0; c < nchans; ++c) {
+        const T *cbuf = (const T*) &(m_channel_buffers[c][0]);
+        for (int x = 0; x < m_spec.width; ++x)
+            dst[nchans*x+c] = cbuf[x];
     }
-}
-
-
-
-bool
-PSDInput::convert_to_rgb (char *dst)
-{
-    switch (m_header.color_mode) {
-        case ColorMode_Indexed:
-            return indexed_to_rgb (dst);
-        case ColorMode_Bitmap:
-            return bitmap_to_rgb (dst);
-    }
-    return false;
 }
 
 
@@ -1881,7 +1972,7 @@ PSDInput::set_type_desc ()
             m_type_desc = TypeDesc::UINT16;
             break;
         case 32:
-            m_type_desc = TypeDesc::UINT32;
+            m_type_desc = TypeDesc::FLOAT;
             break;
     };
 }
