@@ -33,13 +33,14 @@
 #include <cstdio>
 #include <iostream>
 #include <vector>
-#include <map>
 #include <set>
 #include <algorithm>
 
 #include <boost/foreach.hpp>
+#include <boost/container/flat_map.hpp>
 
-#include "OpenImageIO/fmath.h"
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
 
 extern "C" {
 #include "tiff.h"
@@ -273,15 +274,19 @@ static const EXIF_tag_info gps_tag_table[] = {
 
 
 class TagMap {
-    typedef std::map<int, const EXIF_tag_info *> tagmap_t;
-    typedef std::map<string_view, const EXIF_tag_info *> namemap_t;
+    typedef boost::container::flat_map<int, const EXIF_tag_info *> tagmap_t;
+    typedef boost::container::flat_map<std::string, const EXIF_tag_info *> namemap_t;
+    // Name map is lower case so it's effectively case-insensitive
 public:
     TagMap (const EXIF_tag_info *tag_table) {
         for (int i = 0;  tag_table[i].tifftag >= 0;  ++i) {
             const EXIF_tag_info *eti = &tag_table[i];
             m_tagmap[eti->tifftag] = eti;
-            if (eti->name)
-                 m_namemap[string_view(eti->name)] = eti;
+            if (eti->name) {
+                std::string lowername (eti->name);
+                Strutil::to_lower (lowername);
+                m_namemap[lowername] = eti;
+            }
         }
     }
 
@@ -291,7 +296,9 @@ public:
     }
 
     const EXIF_tag_info * find (string_view name) const {
-        namemap_t::const_iterator i = m_namemap.find (name);
+        std::string lowername (name);
+        Strutil::to_lower (lowername);
+        namemap_t::const_iterator i = m_namemap.find (lowername);
         return i == m_namemap.end() ? NULL : i->second;
     }
 
@@ -311,7 +318,9 @@ public:
     }
 
     int tag (string_view name) const {
-        namemap_t::const_iterator i = m_namemap.find (name);
+        std::string lowername (name);
+        Strutil::to_lower (lowername);
+        namemap_t::const_iterator i = m_namemap.find (lowername);
         return i == m_namemap.end() ? -1 : i->second->tifftag;
     }
 
