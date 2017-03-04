@@ -36,6 +36,10 @@
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/imageio.h"
 
+extern "C" {
+#include "tiff.h"
+}
+
 #if USE_EXTERNAL_PUGIXML
 # include "pugixml.hpp"
 #else
@@ -158,57 +162,94 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 #if DEBUG_XMP_READ
     std::cerr << "add_attrib " << xmlname << ": '" << xmlvalue << "'\n";
 #endif
+    std::string oiioname;
+    TypeDesc oiiotype;
+    int special = NothingSpecial;
+
+    // See if it's in the xmp table, which will tell us something about the
+    // proper type (everything in the xml itself just looks like a string).
     for (int i = 0;  xmptag[i].xmpname;  ++i) {
         if (Strutil::iequals (xmptag[i].xmpname, xmlname)) {
             if (! xmptag[i].oiioname || ! xmptag[i].oiioname[0])
                 return;   // ignore it purposefully
-            if (xmptag[i].oiiotype == TypeDesc::STRING) {
-                std::string val;
-                if (xmptag[i].special & (IsList|IsSeq)) {
-                    // Special case -- append it to a list
-                    std::vector<std::string> items;
-                    ImageIOParameter *p = spec.find_attribute (xmptag[i].oiioname, TypeDesc::STRING); 
-                    bool dup = false;
-                    if (p) {
-                        Strutil::split (*(const char **)p->data(), items, ";");
-                        for (size_t item = 0;  item < items.size();  ++item) {
-                            items[item] = Strutil::strip (items[item]);
-                            dup |= (items[item] == xmlvalue);
-                        }
-                        dup |= (xmlvalue == std::string(*(const char **)p->data()));
-                    }
-                    if (! dup)
-                        items.push_back (xmlvalue);
-                    val = Strutil::join (items, "; ");
-                } else {
-                    val = xmlvalue;
-                }
-                spec.attribute (xmptag[i].oiioname, val);
-                return;
-            } else if (xmptag[i].oiiotype == TypeDesc::INT) {
-                if (xmptag[i].special & IsBool)
-                    spec.attribute (xmptag[i].oiioname, (int)Strutil::iequals(xmlvalue,"true"));
-                else  // ordinary int
-                    spec.attribute (xmptag[i].oiioname, (int)atoi(xmlvalue));
-                return;
-            } else if (xmptag[i].oiiotype == TypeDesc::FLOAT) {
-                float f = atoi (xmlvalue);
-                const char *slash = strchr (xmlvalue, '/');
-                if (slash)  // It's rational!
-                    f /= (float) atoi (slash+1);
-                spec.attribute (xmptag[i].oiioname, f);
-                return;
-            }
-#if (!defined(NDEBUG) || DEBUG_XMP_READ)
-            else {
-                std::cerr << "iptc xml add_attrib unknown type " << xmlname 
-                          << ' ' << xmptag[i].oiiotype.c_str() << "\n";
-            }
-#endif
-            return;
+            // Found
+            oiioname = xmptag[i].oiioname;
+            oiiotype = xmptag[i].oiiotype;
+            special = xmptag[i].special;
+            break;
         }
     }
-    // Catch-all for unrecognized things -- just add them!
+    // Also try looking it up to see if it's a known exif tag.
+    int tag = -1, tifftype = -1, count = 0;
+    if (Strutil::istarts_with(xmlname,"Exif:") &&
+        (exif_tag_lookup (xmlname, tag, tifftype, count) ||
+         exif_tag_lookup (xmlname+5, tag, tifftype, count))) {
+        // It's a known Exif name
+        if (tifftype == TIFF_SHORT && count == 1)
+            oiiotype = TypeDesc::UINT;
+        else if (tifftype == TIFF_LONG && count == 1)
+            oiiotype = TypeDesc::UINT;
+        else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL)
+                 && count == 1) {
+            oiiotype = TypeDesc::FLOAT;
+            special = Rational;
+        }
+        else if (tifftype == TIFF_ASCII)
+            oiiotype = TypeDesc::STRING;
+        else if (tifftype == TIFF_BYTE && count == 1)
+            oiiotype = TypeDesc::INT;
+        else if (tifftype == TIFF_NOTYPE)
+            return;  // skip
+    }
+
+    if (oiiotype == TypeDesc::STRING) {
+        std::string val;
+        if (special & (IsList|IsSeq)) {
+            // Special case -- append it to a list
+            std::vector<std::string> items;
+            ImageIOParameter *p = spec.find_attribute (oiioname, TypeDesc::STRING); 
+            bool dup = false;
+            if (p) {
+                Strutil::split (*(const char **)p->data(), items, ";");
+                for (size_t item = 0;  item < items.size();  ++item) {
+                    items[item] = Strutil::strip (items[item]);
+                    dup |= (items[item] == xmlvalue);
+                }
+                dup |= (xmlvalue == std::string(*(const char **)p->data()));
+            }
+            if (! dup)
+                items.push_back (xmlvalue);
+            val = Strutil::join (items, "; ");
+        } else {
+            val = xmlvalue;
+        }
+        spec.attribute (oiioname, val);
+        return;
+    } else if (oiiotype == TypeDesc::INT) {
+        if (special & IsBool)
+            spec.attribute (oiioname, (int)Strutil::iequals(xmlvalue,"true"));
+        else  // ordinary int
+            spec.attribute (oiioname, (int)atoi(xmlvalue));
+        return;
+    } else if (oiiotype == TypeDesc::UINT) {
+        spec.attribute (oiioname, Strutil::from_string<unsigned int>(xmlvalue));
+        return;
+    } else if (oiiotype == TypeDesc::FLOAT) {
+        float f = atoi (xmlvalue);
+        const char *slash = strchr (xmlvalue, '/');
+        if (slash)  // It's rational!
+            f /= (float) atoi (slash+1);
+        spec.attribute (oiioname, f);
+        return;
+    }
+#if (!defined(NDEBUG) || DEBUG_XMP_READ)
+    else {
+        std::cerr << "iptc xml add_attrib unknown type " << xmlname 
+                  << ' ' << oiiotype.c_str() << "\n";
+    }
+#endif
+
+    // Catch-all for unrecognized things -- just add them as a string!
     spec.attribute (xmlname, xmlvalue);
 }
 
