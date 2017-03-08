@@ -189,7 +189,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     png_timep mod_time;
     if (png_get_tIME (sp, ip, &mod_time)) {
-        std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+        std::string date = Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
                            mod_time->year, mod_time->month, mod_time->day,
                            mod_time->hour, mod_time->minute, mod_time->second);
         spec.attribute ("DateTime", date); 
@@ -406,7 +406,7 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
     if (Strutil::iequals(name, "DateTime") && type == TypeDesc::STRING) {
         png_time mod_time;
         int year, month, day, hour, minute, second;
-        if (sscanf (*(const char **)data, "%4d:%02d:%02d %2d:%02d:%02d",
+        if (sscanf (*(const char **)data, "%4d:%02d:%02d %02d:%02d:%02d",
                     &year, &month, &day, &hour, &minute, &second) == 6) {
             mod_time.year = year;
             mod_time.month = month;
@@ -516,7 +516,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         time (&now);
         struct tm mytm;
         Sysutil::get_local_time (&now, &mytm);
-        std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+        std::string date = Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
         spec.attribute ("DateTime", date);
