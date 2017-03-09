@@ -578,7 +578,8 @@ format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
                 p.type().vecsemantics);
     }
     if (n < nfull)
-        out += ", ...";
+        out += Strutil::format (", ... [%d x %s]", nfull,
+                                TypeDesc(TypeDesc::BASETYPE(element.basetype)));
     return out;
 }
 

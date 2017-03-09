@@ -41,7 +41,7 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
-    ICCProfile: 0, 0, 2, 34, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ...
+    ICCProfile: 0, 0, 2, 34, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ... [546 x uint8]
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2
@@ -60,7 +60,7 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2
     oiio:BitsPerSample: 16
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
-    ICCProfile: 0, 0, 52, 20, 65, 80, 80, 76, 2, 16, 0, 0, 115, 99, 110, 114, ...
+    ICCProfile: 0, 0, 52, 20, 65, 80, 80, 76, 2, 16, 0, 0, 115, 99, 110, 114, ... [13332 x uint8]
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
@@ -70,7 +70,7 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
     oiio:BitsPerSample: 8
     oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
-    ICCProfile: 0, 0, 1, 158, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ...
+    ICCProfile: 0, 0, 1, 158, 0, 0, 0, 0, 2, 32, 0, 0, 115, 99, 110, 114, ... [414 x uint8]
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2
