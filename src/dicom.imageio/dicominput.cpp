@@ -32,8 +32,11 @@
 #include <OpenImageIO/fmath.h>
 
 #include <iostream>
+#include <memory>
 #include <set>
 
+#define HAVE_CONFIG_H  /* Sometimes DCMTK seems to need this */
+#include <dcmtk/config/osconfig.h>
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimage/diregist.h>
 #include <dcmtk/dcmimage/dicopx.h>
@@ -284,7 +287,11 @@ DICOMInput::read_metadata ()
                 float val;
                 if (dataset->findAndGetFloat32 (tag, val).good())
                     m_spec.attribute (name, val);
-            } else if (evr == EVR_FD || evr == EVR_OD) {
+            } else if (evr == EVR_FD
+#if PACKAGE_VERSION_NUMBER >= 361
+                       || evr == EVR_OD
+#endif
+                       ) {
                 double val;
                 if (dataset->findAndGetFloat64 (tag, val).good())
                     m_spec.attribute (name, (float)val);
@@ -303,9 +310,12 @@ DICOMInput::read_metadata ()
                     m_spec.attribute (name, TypeDesc::INT16, &val);
             } else if (evr == EVR_AS || evr == EVR_CS || evr == EVR_DA ||
                        evr == EVR_DT || evr == EVR_LT || evr == EVR_PN ||
-                       evr == EVR_ST || evr == EVR_TM || evr == EVR_UC ||
-                       evr == EVR_UI || evr == EVR_UR || evr == EVR_UT ||
-                       evr == EVR_LO || evr == EVR_SH) {
+                       evr == EVR_ST || evr == EVR_TM || evr == EVR_UI ||
+                       evr == EVR_UT || evr == EVR_LO || evr == EVR_SH
+#if PACKAGE_VERSION_NUMBER >= 361
+                       || evr == EVR_UC ||evr == EVR_UR
+#endif
+                       ) {
                 OFString val;
                 if (dataset->findAndGetOFString (tag, val).good())
                     m_spec.attribute (name, val.c_str());
