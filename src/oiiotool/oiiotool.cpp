@@ -4607,6 +4607,28 @@ output_file (int argc, const char *argv[])
 
 
 
+static int
+do_echo (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+
+    string_view command = ot.express (argv[0]);
+    string_view message = ot.express (argv[1]);
+
+    std::map<std::string,std::string> options;
+    options["newline"] = "1";
+    ot.extract_options (options, command);
+    int newline = Strutil::from_string<int>(options["newline"]);
+
+    std::cout << message;
+    for (int i = 0; i < newline; ++i)
+        std::cout << '\n';
+    ot.printed_info = true;
+    return 0;
+}
+
+
+
 // Concatenate the command line into one string, optionally filtering out
 // verbose attribute commands.
 static std::string
@@ -4757,10 +4779,11 @@ getargs (int argc, char *argv[])
                 "-v", &ot.verbose, "Verbose status messages",
                 "-q %!", &ot.verbose, "Quiet mode (turn verbose off)",
                 "-n", &ot.dryrun, "No saved output (dry run)",
+                "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--debug", &ot.debug, "Debug mode",
                 "--runstats", &ot.runstats, "Print runtime statistics",
-                "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info %@", set_printinfo, NULL, "Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)",
+                "--echo %@ %s", do_echo, NULL, "Echo message to console (options: newline=0)",
                 "--metamatch %s", &ot.printinfo_metamatch,
                     "Regex: which metadata is printed with -info -v",
                 "--no-metamatch %s", &ot.printinfo_nometamatch,
