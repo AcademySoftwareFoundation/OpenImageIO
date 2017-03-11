@@ -681,6 +681,32 @@ If verbose mode is not turned on, only the resolution and data format
 are printed.
 \apiend
 
+\apiitem{{\ce --echo} {\rm \emph{message}}}
+\NEW % 1.8
+Prints the message to the console, at that point in the left-to-right
+execution of command line arguments.
+The message may contain expressions for substitution.
+
+\noindent Optional appended arguments include:
+
+\noindent
+\begin{tabular}{p{10pt} p{0.75in} p{4.0in}}
+  & {\cf newline=}\emph{n} & The number of newlines to print after the
+      message (default is 1, but 0 will suppress the newline, and a larger
+      number will make more vertical space. \\
+\end{tabular}
+
+\noindent Examples:
+
+\begin{code}
+    oiiotool test.tif --resize 256x0 --echo "result is {TOP.width}x{TOP.height}"
+\end{code}
+
+This will resize the input to be 256 pixels wide and automatically size
+it vertically to preserve the original aspect ratio, and then print
+a message to the console revealing the resolution of the resulting image.
+\apiend
+
 \apiitem{{\ce --metamatch} {\rm \emph{regex}} \\
 {\ce --no-metamatch} {\rm \emph{regex}}}
 Regular expressions to restrict which metadata are output when using
