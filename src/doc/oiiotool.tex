@@ -1317,7 +1317,8 @@ all subimages or MIPmap levels of the current top image.  Otherwise,
 they only apply to the highest-resolution MIPmap level of the first
 subimage of the current top image.
 
-\apiitem{\ce --attrib {\rm \emph{name value}}}
+\apiitem{\ce --attrib {\rm \emph{name value}} \\
+{\ce --sattrib {\rm \emph{name value}}}
 Adds or replaces metadata with the given \emph{name} to have the
 specified \emph{value}.
 
@@ -1335,13 +1336,14 @@ be saved as {\cf int} metadata; if it also contains a decimal point, it
 will be saved as {\cf float} metadata; otherwise, it will be saved as
 a {\cf string} metadata.
 
+\noindent The {\cf --sattrib} command is equivalent to {\cf --attrib:type=string}.
 
 \noindent Examples:
 
 \begin{code}
-    oiiotool in.jpg --attrib "IPTC:City" "Berkeley" out.jpg
+    oiiotool in.jpg --attrib "IPTC:City" "Berkeley" -o out.jpg
 
-    oiiotool in.jpg --attrib:type=string "Name" "0" out.jpg
+    oiiotool in.jpg --attrib:type=string "Name" "0" -o out.jpg
 
     oiiotool in.exr --attrib:type=matrix worldtocam \
             "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
@@ -1349,15 +1351,6 @@ a {\cf string} metadata.
     oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
             -o out.exr
 \end{code}
-\apiend
-
-\apiitem{\ce --sattrib {\rm \emph{name value}}}
-Adds or replaces metadata with the given \emph{name} to have the
-specified \emph{value}, forcing it to be interpreted as a {\cf string}.
-This is helpful if you want to set a {\cf string} metadata to a value
-that the {\cf --attrib} command would normally interpret as a number.
-
-\noindent Note also that {\cf --sattrib} is equivalent to {\cf --attrib:type=string}.
 \apiend
 
 \apiitem{\ce --caption {\rm \emph{text}}}
@@ -1395,6 +1388,25 @@ When set, this prevents the normal adjustment of \qkw{Software} and
 When set, this edits the command line inserted in the \qkw{Software} and
 \qkw{ImageHistory} metadata to omit any verbose {\cf --attrib} and
 {\cf --sattrib} commands.
+\apiend
+
+\apiitem{\ce --eraseattrib {\rm \emph{pattern}}}
+\NEW % 1.8
+Removes any metadata whose name matches the regular expression \emph{pattern}.
+The pattern will be case insensitive.
+
+\noindent Examples:
+
+\begin{code}
+    # Remove one item only
+    oiiotool in.jpg --eraseattrib "smpte:TimeCode" -o no_timecode.jpg
+
+    # Remove all GPS tags
+    oiiotool in.jpg --eraseattrib "GPS:.*" -o no_gps_metadata.jpg
+
+    # Remove all metadata
+    oiiotool in.exr --eraseattrib ".*" -o no_metadata.exr
+\end{code}
 \apiend
 
 \apiitem{\ce --orientation {\rm \emph{orient}}}

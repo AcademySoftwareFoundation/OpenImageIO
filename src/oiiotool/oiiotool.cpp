@@ -760,11 +760,27 @@ set_any_attribute (int argc, const char *argv[])
 
 
 static bool
-do_erase_attribute (ImageSpec &spec, const std::string &attribname)
+do_erase_attribute (ImageSpec &spec, string_view attribname)
 {
     spec.erase_attribute (attribname);
     return true;
 }
+
+
+
+static int
+erase_attribute (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    if (! ot.curimg.get()) {
+        ot.warning (argv[0], "no current image available to modify");
+        return 0;
+    }
+    string_view pattern = ot.express (argv[1]);
+    return apply_spec_mod (*ot.curimg, do_erase_attribute,
+                           pattern, ot.allsubimages);
+}
+
 
 
 template<class T>
@@ -4843,6 +4859,7 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
                 "--attrib %@ %s %s", set_any_attribute, NULL, NULL, "Sets metadata attribute (name, value) (options: type=...)",
                 "--sattrib %@ %s %s", set_string_attribute, NULL, NULL, "Sets string metadata attribute (name, value)",
+                "--eraseattrib %@ %s", erase_attribute, NULL, "Erase attributes matching regex",
                 "--caption %@ %s", set_caption, NULL, "Sets caption (ImageDescription metadata)",
                 "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
                 "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",

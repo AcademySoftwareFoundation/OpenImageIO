@@ -408,8 +408,8 @@ Section~\ref{sec:ImageSpecMemberFuncs} for details.)
 
 \apiitem{ImageSpec.{\ce erase_attribute} (name, searchtype=TypeDesc(TypeDesc.UNKNOWN),\\
 \bigspc\bigspc\spc casesensitive=False)}
-Remove the specified attribute from the list of extra_attribs. If not found,
-do nothing.
+Remove any specified attributes matching the regular expression {\cf name}
+from the list of extra_attribs.
 \apiend
 
 \apiitem{ImageSpec.{\ce attribute} (name, int) \\

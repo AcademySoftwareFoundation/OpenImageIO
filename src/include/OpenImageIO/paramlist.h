@@ -196,6 +196,7 @@ public:
 
     void resize (size_t newsize) { m_vals.resize (newsize); }
     size_t size () const { return m_vals.size(); }
+    bool empty () const { return size() == 0; }
 
     /// Add space for one more ParamValue to the list, and return a
     /// reference to its slot.
