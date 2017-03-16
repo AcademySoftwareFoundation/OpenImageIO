@@ -91,7 +91,13 @@ static size_t tiff_data_sizes[] = {
 static int
 tiff_data_size (const TIFFDirEntry &dir)
 {
-    return tiff_data_sizes[(int)dir.tdir_type] * dir.tdir_count;
+    const int num_data_sizes = sizeof(tiff_data_sizes) / sizeof(*tiff_data_sizes);
+    int dir_index = (int)dir.tdir_type;
+    if (dir_index < 0 || dir_index >= num_data_sizes) {
+        // Inform caller about corrupted entry.
+        return -1;
+    }
+    return tiff_data_sizes[dir_index] * dir.tdir_count;
 }
 
 
@@ -348,6 +354,10 @@ print_dir_entry (const TagMap &tagmap,
                  const TIFFDirEntry &dir, string_view buf)
 {
     int len = tiff_data_size (dir);
+    if (len < 0) {
+        std::cerr << "Ignoring bad directory entry\n";
+        return false;
+    }
     const char *mydata = NULL;
     if (len <= 4) {  // short data is stored in the offset field
         mydata = (const char *)&dir.tdir_offset;
@@ -393,6 +403,11 @@ print_dir_entry (const TagMap &tagmap,
     case TIFF_UNDEFINED :
     case TIFF_NOTYPE :
     default:
+        if (len <= 4 && dir.tdir_count > 4) {
+            // Request more data than is stored.
+            std::cerr << "Ignoring buffer with too much count of short data.\n";
+            return false;
+        }
         for (size_t i = 0;  i < dir.tdir_count;  ++i)
             std::cerr << (int)((unsigned char *)mydata)[i] << ' ';
         break;
@@ -512,6 +527,13 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
                std::set<size_t> &ifd_offsets_seen,
                const TagMap &tagmap)
 {
+    if ((char*)dirp < buf.data() || (char*)dirp >= buf.data() + buf.size()) {
+#if DEBUG_EXIF_READ
+        std::cerr << "Ignoring directory outside of the buffer.\n";
+#endif
+        return;
+    }
+
     TagMap& exif_tagmap (exif_tagmap_ref());
     TagMap& gps_tagmap (gps_tagmap_ref());
 
