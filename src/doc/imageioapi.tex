@@ -594,11 +594,11 @@ floating-point value, or string.
 \bigspc\bigspc                   TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc                   bool casesensitive=false)}
 
-Searches {\cf extra_attribs} for an attribute matching {\cf name},
-and if it exists, remove it entirely from {\cf extra_attribs}.
+Searches {\cf extra_attribs} for any attributes matching {\cf name} (as
+a regular expression), removing them entirely from {\cf extra_attribs}.
 If {\cf searchtype} is anything other than {\cf TypeDesc::UNKNOWN},
 matches will be restricted only to attributes with the given type.
-The name comparison will be exact if {\cf casesensitive} is true, otherwise
+The name comparison will be case-sensitive if {\cf casesensitive} is true, otherwise
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 

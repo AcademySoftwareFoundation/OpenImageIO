@@ -1,0 +1,48 @@
+Reading nomake.jpg
+nomake.jpg           : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+    jpeg:subsampling: "4:2:0"
+    Model: "T-Mobile G1"
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    Exif:YCbCrPositioning: 1
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 2048
+    Exif:PixelYDimension: 1536
+    Exif:WhiteBalance: 0 (auto)
+    GPS:LatitudeRef: "N"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LongitudeRef: "W"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:AltitudeRef: 0 (above sea level)
+    GPS:Altitude: 0 (0 m)
+    GPS:TimeStamp: 17, 56, 33
+    GPS:MapDatum: "WGS-84"
+    GPS:DateStamp: "1915:08:08"
+    ResolutionUnit: "none"
+Reading nogps.jpg
+nogps.jpg            : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+    jpeg:subsampling: "4:2:0"
+    Make: "HTC"
+    Model: "T-Mobile G1"
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    Exif:YCbCrPositioning: 1
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 2048
+    Exif:PixelYDimension: 1536
+    Exif:WhiteBalance: 0 (auto)
+    ResolutionUnit: "none"
+Reading noattribs.jpg
+noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+    jpeg:subsampling: "4:2:0"
