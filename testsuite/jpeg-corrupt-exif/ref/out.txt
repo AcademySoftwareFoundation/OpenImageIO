@@ -1,0 +1,10 @@
+Reading src/corrupt.jpg
+src/corrupt.jpg      :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: 3EA7BAEB0871E9B9BAADF286521423199ACA2401
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
+    jpeg:subsampling: "4:2:0"
+    Orientation: 1 (normal)
+    XResolution: 300
+    YResolution: 300
+    ResolutionUnit: "in"

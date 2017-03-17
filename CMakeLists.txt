@@ -234,7 +234,9 @@ oiio_add_tests (
                 maketx oiiotool-maketx
                 diff
                 dither dup-channels
-                dpx ico iff png psd rla sgi
+                dpx ico iff
+                jpeg-corrupt-exif
+                png psd rla sgi
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
