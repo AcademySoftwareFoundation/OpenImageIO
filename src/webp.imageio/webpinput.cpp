@@ -69,6 +69,11 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
 {
     m_filename = name;
 
+    if (!Filesystem::is_regular(m_filename)) {
+        error ("Not a regular file \"%s\"", m_filename.c_str());
+        return false;
+    }
+
     m_file = Filesystem::fopen(m_filename, "rb");
     if (!m_file)
     {
@@ -76,18 +81,25 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
+    // TODO(sergey): Consider using Filesystem::file_size() which does error checking.
     fseek (m_file, 0, SEEK_END);
     m_image_size = ftell(m_file);
     fseek (m_file, 0, SEEK_SET);
+    if (m_image_size == -1) {
+        error ("Failed to get size for \"%s\" (errno %d)",
+               m_filename, errno);
+        close ();
+        return false;
+    }
 
     std::vector<uint8_t> encoded_image;
     encoded_image.resize(m_image_size, 0);
     size_t numRead = fread(&encoded_image[0], sizeof(uint8_t), encoded_image.size(), m_file);
     if (numRead != encoded_image.size()) {
-    	error ("Read failure for \"%s\" (expected %d bytes, read %d)",
+        error ("Read failure for \"%s\" (expected %d bytes, read %d)",
                m_filename, encoded_image.size(), numRead);
-    	close ();
-    	return false;
+        close ();
+        return false;
     }
 
     int width = 0, height = 0;
