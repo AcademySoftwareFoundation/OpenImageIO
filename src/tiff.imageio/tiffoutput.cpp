@@ -624,6 +624,14 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
             return true;
         }
     }
+    if (Strutil::iequals(name, "Make") && type == TypeDesc::STRING) {
+        TIFFSetField (m_tif, TIFFTAG_MAKE, *(char**)data);
+        return true;
+    }
+    if (Strutil::iequals(name, "Model") && type == TypeDesc::STRING) {
+        TIFFSetField (m_tif, TIFFTAG_MODEL, *(char**)data);
+        return true;
+    }
     if (Strutil::iequals(name, "Software") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
         return true;
