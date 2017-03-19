@@ -52,8 +52,10 @@ failureok = 0
 failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
+anymatch = False
 
-image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla", ".dpx", "iff" ]
+image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
+                     ".dpx", ".iff", ".psd" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -66,6 +68,8 @@ if platform.system() == 'Windows' :
         shutil.copytree (os.path.join (test_source_dir, "ref"), "./ref")
     if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
         shutil.copytree (os.path.join (test_source_dir, "src"), "./src")
+    # if not os.path.exists("../data") :
+    #     shutil.copytree ("../../../testsuite/data", "..")
     # if not os.path.exists("../common") :
     #     shutil.copytree ("../../../testsuite/common", "..")
 else :
@@ -73,6 +77,8 @@ else :
         os.symlink (os.path.join (test_source_dir, "ref"), "./ref")
     if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
         os.symlink (os.path.join (test_source_dir, "src"), "./src")
+    if not os.path.exists("./data") :
+        os.symlink (test_source_dir, "./data")
     if not os.path.exists("../common") :
         os.symlink ("../../../testsuite/common", "../common")
 
@@ -192,24 +198,29 @@ def maketx_command (infile, outfile, extraargs="",
 # correctly).  If testwrite is nonzero, also iconvert the file to make a
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
-def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
-                preargs="", idiffextraargs="") :
+def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
+                preargs="", idiffextraargs="", output_filename="",
+                safematch=False, printinfo=True) :
     fn = oiio_relpath (dir + "/" + filename, tmpdir)
-    cmd = (oiio_app("oiiotool") + " --info -v -a --hash " + fn
-           + " >> out.txt ;\n")
+    if printinfo :
+        cmd = info_command (fn, safematch=safematch)
+    else :
+        cmd = ""
+    if output_filename == "" :
+        output_filename = filename
     if testwrite :
         if use_oiiotool :
             cmd = (cmd + oiio_app("oiiotool") + preargs + " " + fn
-                   + " " + extraargs + " -o " + filename + " >> out.txt ;\n")
+                   + " " + extraargs + " -o " + output_filename + " >> out.txt ;\n")
         else :
             cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
-                   + " " + extraargs + " " + filename + " >> out.txt ;\n")
+                   + " " + extraargs + " " + output_filename + " >> out.txt ;\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
-               + " " + idiffextraargs + " " + filename + " >> out.txt ;\n")
+               + " " + idiffextraargs + " " + output_filename + " >> out.txt ;\n")
     return cmd
 
 
@@ -234,7 +245,8 @@ def oiiotool (args, silent=False, concat=True) :
 # Check one output file against reference images in a list of reference
 # directories. For each directory, it will first check for a match under
 # the identical name, and if that fails, it will look for alternatives of
-# the form "basename-*.ext".
+# the form "basename-*.ext" (or ANY match in the ref directory, if anymatch
+# is True).
 def checkref (name, refdirlist) :
     # Break the output into prefix+extension
     (prefix, extension) = os.path.splitext(name)
@@ -245,7 +257,11 @@ def checkref (name, refdirlist) :
         # That allows us to have multiple matching variants for different
         # platforms, etc.
         defaulttest = os.path.join(ref,name)
-        for testfile in ([defaulttest] + glob.glob (os.path.join (ref, prefix+"-*"+extension))) :
+        if anymatch :
+            pattern = "*.*"
+        else :
+            pattern = prefix+"-*"+extension+"*"
+        for testfile in ([defaulttest] + glob.glob (os.path.join (ref, pattern))) :
             if not os.path.exists(testfile) :
                 continue
             # print ("comparing " + name + " to " + testfile)
