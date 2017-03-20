@@ -51,13 +51,14 @@ class WebpInput : public ImageInput
  private:
     std::string m_filename;
     uint8_t *m_decoded_image;
-    long int m_image_size;
+    uint64_t m_image_size;
     long int m_scanline_size;
     FILE *m_file;
 
     void init()
     {
-        m_image_size = m_scanline_size = 0;
+        m_image_size = 0;
+        m_scanline_size = 0;
         m_decoded_image = NULL;
         m_file = NULL;
     }
@@ -81,13 +82,9 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
-    // TODO(sergey): Consider using Filesystem::file_size() which does error checking.
-    fseek (m_file, 0, SEEK_END);
-    m_image_size = ftell(m_file);
-    fseek (m_file, 0, SEEK_SET);
-    if (m_image_size == -1) {
-        error ("Failed to get size for \"%s\" (errno %d)",
-               m_filename, errno);
+    m_image_size = Filesystem::file_size(name);
+    if (m_image_size == uint64_t(-1)) {
+        error ("Failed to get size for \"%s\"", m_filename);
         close ();
         return false;
     }
