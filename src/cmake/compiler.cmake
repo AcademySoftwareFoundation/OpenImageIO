@@ -161,14 +161,16 @@ if (CCACHE_FOUND AND USE_CCACHE)
     endif ()
 endif ()
 
+set (CSTD_FLAGS "")
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
     if (USE_CPP VERSION_GREATER 11)
         message (STATUS "Building for C++14")
-        add_definitions ("-std=c++14")
+        set (CSTD_FLAGS "-std=c++14")
     else ()
         message (STATUS "Building for C++11")
-        add_definitions ("-std=c++11")
+        set (CSTD_FLAGS "-std=c++11")
     endif ()
+    add_definitions (${CSTD_FLAGS})
     if (CMAKE_COMPILER_IS_CLANG)
         # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
         add_definitions ("-Wno-deprecated-register")
@@ -221,10 +223,13 @@ endif ()
 include (CMakePushCheckState)
 include (CheckCXXSourceRuns)
 
+cmake_push_check_state ()
+set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
 check_cxx_source_runs("
       #include <regex>
       int main() {
-          return std::regex_match(\"abc\", std::regex(\"(a)(.*)\")) ? 0 : 1;
+          std::string r = std::regex_replace(std::string(\"abc\"), std::regex(\"b\"), \" \");
+          return r == \"a c\" ? 0 : -1;
       }"
       USE_STD_REGEX)
 if (USE_STD_REGEX)
@@ -232,7 +237,7 @@ if (USE_STD_REGEX)
 else ()
     add_definitions (-DUSE_BOOST_REGEX)
 endif ()
-
+cmake_pop_check_state ()
 
 # Code coverage options
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
