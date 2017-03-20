@@ -70,8 +70,22 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
 {
     m_filename = name;
 
+    // Perform preliminary test on file type.
     if (!Filesystem::is_regular(m_filename)) {
         error ("Not a regular file \"%s\"", m_filename.c_str());
+        return false;
+    }
+
+    // Get file size and check we've got enough data to decode WebP.
+    m_image_size = Filesystem::file_size(name);
+    if (m_image_size == uint64_t(-1))
+    {
+        error ("Failed to get size for \"%s\"", m_filename);
+        return false;
+    }
+    if (m_image_size < 12)
+    {
+        error ("File size is less than WebP header for file \"%s\"", m_filename);
         return false;
     }
 
@@ -82,28 +96,36 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
-    m_image_size = Filesystem::file_size(name);
-    if (m_image_size == uint64_t(-1)) {
-        error ("Failed to get size for \"%s\"", m_filename);
-        close ();
-        return false;
-    }
-
-    std::vector<uint8_t> encoded_image;
-    encoded_image.resize(m_image_size, 0);
-    size_t numRead = fread(&encoded_image[0], sizeof(uint8_t), encoded_image.size(), m_file);
-    if (numRead != encoded_image.size()) {
-        error ("Read failure for \"%s\" (expected %d bytes, read %d)",
-               m_filename, encoded_image.size(), numRead);
+    // Read header and verify we've got WebP image.
+    std::vector<uint8_t> image_header;
+    image_header.resize(std::min(m_image_size, (uint64_t)64), 0);
+    size_t numRead = fread(&image_header[0], sizeof(uint8_t), image_header.size(), m_file);
+    if (numRead != image_header.size())
+    {
+        error ("Read failure for header of \"%s\" (expected %d bytes, read %d)",
+               m_filename, image_header.size(), numRead);
         close ();
         return false;
     }
 
     int width = 0, height = 0;
-    if(!WebPGetInfo(&encoded_image[0], encoded_image.size(), &width, &height))
+    if(!WebPGetInfo(&image_header[0], image_header.size(), &width, &height))
     {
         error ("%s is not a WebP image file", m_filename.c_str());
         close();
+        return false;
+    }
+
+    // Read actual data and decode.
+    std::vector<uint8_t> encoded_image;
+    encoded_image.resize(m_image_size, 0);
+    fseek (m_file, 0, SEEK_SET);
+    numRead = fread(&encoded_image[0], sizeof(uint8_t), encoded_image.size(), m_file);
+    if (numRead != encoded_image.size())
+    {
+        error ("Read failure for \"%s\" (expected %d bytes, read %d)",
+               m_filename, encoded_image.size(), numRead);
+        close ();
         return false;
     }
 
