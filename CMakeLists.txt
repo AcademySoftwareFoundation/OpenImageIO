@@ -1,24 +1,27 @@
-project (OpenImageIO)
-
-# Release version of the library
-set (OIIO_VERSION_MAJOR 1)
-set (OIIO_VERSION_MINOR 8)
-set (OIIO_VERSION_PATCH 3)
-set (OIIO_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
+cmake_minimum_required (VERSION 3.2.2)
+cmake_policy (SET CMP0048 NEW)  # Allow VERSION specifier in project()
+project (OpenImageIO
+         VERSION 1.8.3
+         LANGUAGES CXX C)
+set (PROJ_NAME OIIO)    # short name
+set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
+set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
+set (PROJECT_COPYRIGHTYEARS "2008-2017")
+set (PROJECT_AUTHORS "Larry Gritz, et al")
+set (PROJECT_URL "http://openimageio.org")
 
 message (STATUS "CMake version is ${CMAKE_VERSION}")
-cmake_minimum_required (VERSION 2.8)
-if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
-    cmake_policy (SET CMP0017 NEW)
-endif ()
-if (NOT CMAKE_VERSION VERSION_LESS 3.0)
-    cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
-endif ()
-if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
-    cmake_policy (SET CMP0042 OLD)
-    cmake_policy (SET CMP0046 OLD)
-endif ()
+cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
+cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
+cmake_policy (SET CMP0046 OLD)  # Don't error on non-existent dependency in add_dependencies.
+cmake_policy (SET CMP0042 OLD)  # Don't enable MACOSX_RPATH by default
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+
+# Alternate names
+set (OIIO_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set (OIIO_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set (OIIO_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 
 # N.B./FIXME - after CMake 3.0 is our minimum, we should change many of the
 # add_definitions to add_compile_options. In newer cmake versions, the
@@ -53,7 +56,7 @@ set (CMAKE_MODULE_PATH
 
 include (oiio_macros)
 include (platform)
-include (compiler)
+include (compiler)   # All the C++ and compiler related options live here
 
 
 option (VERBOSE "Print lots of messages while compiling")
@@ -119,7 +122,7 @@ include (install)
 include_directories (
     BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
-    "${CMAKE_BINARY_DIR}/include/${CMAKE_PROJECT_NAME}"
+    "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}"
   )
 
 
@@ -347,15 +350,15 @@ endif ()
 
 #########################################################################
 # Packaging
-set (CPACK_PACKAGE_VERSION_MAJOR ${OIIO_VERSION_MAJOR})
-set (CPACK_PACKAGE_VERSION_MINOR ${OIIO_VERSION_MINOR})
-set (CPACK_PACKAGE_VERSION_PATCH ${OIIO_VERSION_PATCH})
+set (CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set (CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set (CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 # "Vendor" is only used in copyright notices, so we use the same thing that
 # the rest of the copyright notices say.
-set (CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
+set (CPACK_PACKAGE_VENDOR ${PROJECT_AUTHORS})
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
 set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/src/doc/Description.txt")
-set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-${platform})
+set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-${platform})
 #SET (CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_SOURCE_DIR}")
 file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cpack")
 file (COPY "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
@@ -381,7 +384,7 @@ if (WIN32)
     set(CPACK_NSIS_MODIFY_PATH ON)
     include (InstallRequiredSystemLibraries)
 endif ()
-set (CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-source)
+set (CPACK_SOURCE_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-source)
 #set (CPACK_SOURCE_STRIP_FILES Do we need this?)
 set (CPACK_SOURCE_IGNORE_FILES ".*~")
 set (CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)

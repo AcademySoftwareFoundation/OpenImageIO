@@ -14,7 +14,9 @@ addons:
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
    packages:
-      - gcc-4.8
+      - cmake
+      - cmake-data
+      # - gcc-4.8
       - g++-4.8
       - libboost1.55-all-dev
       - libgif-dev

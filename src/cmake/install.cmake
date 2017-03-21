@@ -3,16 +3,16 @@
 # to CMAKE_INSTALL_PREFIX.
 set (DEFAULT_BIN_INSTALL_DIR   "bin")
 set (DEFAULT_LIB_INSTALL_DIR   "lib")
-set (DEFAULT_INCLUDE_INSTALL_DIR "include/${CMAKE_PROJECT_NAME}")
+set (DEFAULT_INCLUDE_INSTALL_DIR "include/${PROJECT_NAME}")
 if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
     # Try to be well-behaved and install into reasonable places according to
     # the "standard" unix directory heirarchy
     # TODO: Figure out how to get the correct python directory
     set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
     set (DEFAULT_PYLIB3_INSTALL_DIR "lib/python3/site-packages")
-    set (DEFAULT_DOC_INSTALL_DIR "share/doc/${CMAKE_PROJECT_NAME}")
+    set (DEFAULT_DOC_INSTALL_DIR "share/doc/${PROJECT_NAME}")
     set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")
-    set (DEFAULT_FONTS_INSTALL_DIR "share/fonts/${CMAKE_PROJECT_NAME}")
+    set (DEFAULT_FONTS_INSTALL_DIR "share/fonts/${PROJECT_NAME}")
 else ()
     # Here is the "self-contained install tree" case: the expectation here
     # is that everything related to this project will go into its own
@@ -21,7 +21,7 @@ else ()
     set (DEFAULT_PYLIB3_INSTALL_DIR "python3")
     set (DEFAULT_DOC_INSTALL_DIR "doc")
     set (DEFAULT_MAN_INSTALL_DIR "doc/man")
-    set (DEFAULT_FONTS_INSTALL_DIR "fonts/${CMAKE_PROJECT_NAME}")
+    set (DEFAULT_FONTS_INSTALL_DIR "fonts/${PROJECT_NAME}")
 endif ()
 if (EXEC_INSTALL_PREFIX)
     # Tack on an extra prefix to support multi-arch builds.
@@ -72,7 +72,12 @@ else ()
     if (NOT IS_ABSOLUTE ${CMAKE_INSTALL_RPATH})
         set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
     endif ()
+    # add the automatically determined parts of the RPATH that
+    # point to directories outside the build tree to the install RPATH
     set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    if (VERBOSE)
+        message (STATUS "CMAKE_INSTALL_RPATH = ${CMAKE_INSTALL_RPATH}")
+    endif ()
 endif ()
 
 
@@ -82,7 +87,7 @@ endif ()
 #
 # Usage:
 #
-#    oiio_install_targets (target1 [target2 ...])
+#    install_targets (target1 [target2 ...])
 #
 macro (install_targets)
     install (TARGETS ${ARGN}
