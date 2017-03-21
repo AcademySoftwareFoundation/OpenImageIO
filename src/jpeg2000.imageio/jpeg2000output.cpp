@@ -441,7 +441,7 @@ Jpeg2000Output::write_scanline(int y, int z, const void *data)
     for (int i = 0, j = 0; i < m_spec.width; i++) {
         for (int c = 0; c < m_spec.nchannels; ++c) {
             unsigned int val = scanline[j++];
-            if (bits != m_image->comps[c].prec)
+            if (bits != int(m_image->comps[c].prec))
                 val = bit_range_convert (val, bits, m_image->comps[c].prec);
             m_image->comps[c].data[scanline_pos + i] = val;
         }
