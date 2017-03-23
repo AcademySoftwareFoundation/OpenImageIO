@@ -1,0 +1,36 @@
+Comparing "src/pattern2-8-rgb.psd" and "pattern2-8-rgb.psd.tif"
+PASS
+Comparing "src/pattern2-16-rgb.psd" and "pattern2-16-rgb.psd.tif"
+PASS
+Comparing "src/pattern2-8-cmyk.psd" and "pattern2-8-cmyk.psd.tif"
+PASS
+Comparing "src/pattern2-16-cmyk.psd" and "pattern2-16-cmyk.psd.tif"
+PASS
+Comparing "src/pattern2-8-multichannel.psd" and "pattern2-8-multichannel.psd.tif"
+PASS
+Comparing "src/pattern2-16-multichannel.psd" and "pattern2-16-multichannel.psd.tif"
+PASS
+Comparing "src/pattern2-8-grayscale.psd" and "pattern2-8-grayscale.psd.tif"
+PASS
+Comparing "src/pattern2-16-grayscale.psd" and "pattern2-16-grayscale.psd.tif"
+PASS
+Comparing "src/pattern2-8-indexed.psd" and "pattern2-8-indexed.psd.tif"
+PASS
+Comparing "pattern2-8-rgb.psd.tif" and "ref/pattern2.tif"
+PASS
+Comparing "pattern2-16-rgb.psd.tif" and "ref/pattern2.tif"
+PASS
+Comparing "pattern2-8-cmyk.psd.tif" and "ref/pattern2-cmyk.tif"
+PASS
+Comparing "pattern2-16-cmyk.psd.tif" and "ref/pattern2-cmyk.tif"
+PASS
+Comparing "pattern2-8-multichannel.psd.tif" and "ref/pattern2.tif"
+PASS
+Comparing "pattern2-16-multichannel.psd.tif" and "ref/pattern2.tif"
+PASS
+Comparing "pattern2-8-grayscale.psd.tif" and "ref/pattern2-gray.tif"
+PASS
+Comparing "pattern2-16-grayscale.psd.tif" and "ref/pattern2-gray.tif"
+PASS
+Comparing "pattern2-8-indexed.psd.tif" and "ref/pattern2-alpha.tif"
+PASS

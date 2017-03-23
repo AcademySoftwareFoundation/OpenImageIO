@@ -236,7 +236,9 @@ oiio_add_tests (
                 dither dup-channels
                 dpx ico iff
                 jpeg-corrupt-exif
-                png psd rla sgi
+                png
+                psd psd-colormodes
+                rla sgi
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
