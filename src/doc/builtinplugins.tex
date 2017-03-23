@@ -480,11 +480,10 @@ Exif, IPTC, XMP, GPS & & Extensive Exif, IPTC, XMP, and GPS data are supported b
 \subsubsection*{Limitations}
 \begin{itemize}
 \item JPEG/JFIF only supports 1- (grayscale) and 3-channel (RGB) images.
-  As a special case, \product's JPEG writer will accept 4-channel image
-  data and silently drop the alpha channel while outputting.  Other
-  channel count requests (i.e., anything other than 1, 3, and 4) will
-  cause {\cf open()} to fail, since it is not possible to write a JFIF
-  file with other than 1 or 3 channels.
+  As a special case, \product's JPEG writer will accept $n$-channel image
+  data, but will only output the first 3 channels (if $n \ge 3$) or the
+  first channel (if $n \le 2$), silently drop any extra channels from the
+  output.
 \item Since JPEG/JFIF only supports 8 bits per channel, \product's
   JPEG/JFIF writer will silently convert to UINT8 upon output,
   regardless of requests to the contrary from the calling program.

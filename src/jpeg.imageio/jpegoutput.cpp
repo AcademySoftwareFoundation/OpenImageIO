@@ -140,13 +140,6 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         return false;
     }
 
-    if (m_spec.nchannels != 1 && m_spec.nchannels != 3 &&
-            m_spec.nchannels != 4) {
-        error ("%s does not support %d-channel images",
-               format_name(), m_spec.nchannels);
-        return false;
-    }
-
     m_fd = Filesystem::fopen (name, "wb");
     if (m_fd == NULL) {
         error ("Unable to open file \"%s\"", name.c_str());
@@ -161,10 +154,13 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_cinfo.image_width = m_spec.width;
     m_cinfo.image_height = m_spec.height;
 
-    if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
+    // JFIF can only handle grayscale and RGB. Do the best we can with this
+    // limited format by truncating to 3 channels if > 3 are requested,
+    // truncating to 1 channel if 2 are requested.
+    if (m_spec.nchannels >= 3) {
         m_cinfo.input_components = 3;
         m_cinfo.in_color_space = JCS_RGB;
-    } else if (m_spec.nchannels == 1) {
+    } else {
         m_cinfo.input_components = 1;
         m_cinfo.in_color_space = JCS_GRAYSCALE;
     }
@@ -349,18 +345,17 @@ JpgOutput::write_scanline (int y, int z, TypeDesc format,
     }
     assert (y == (int)m_cinfo.next_scanline);
 
-    // It's so common to want to write RGBA data out as JPEG (which only
-    // supports RGB) than it would be too frustrating to reject it.
-    // Instead, we just silently drop the alpha.  Here's where we do the
-    // dirty work, temporarily doctoring the spec so that
-    // to_native_scanline properly contiguizes the first three channels,
+    // Here's where we do the dirty work of conforming to JFIF's limitation
+    // of 1 or 3 channels, by temporarily doctoring the spec so that
+    // to_native_scanline properly contiguizes the first 1 or 3 channels,
     // then we restore it.  The call to to_native_scanline below needs
     // m_spec.nchannels to be set to the true number of channels we're
-    // writing, or it won't arrange the data properly.  But if we
-    // doctored m_spec.nchannels = 3 permanently, then subsequent calls
-    // to write_scanline (including any surrounding call to write_image)
-    // with stride=AutoStride would screw up the strides since the
-    // user's stride is actually not 3 channels.
+    // writing, or it won't arrange the data properly.  But if we doctored
+    // m_spec.nchannels permanently, then subsequent calls to write_scanline
+    // (including any surrounding call to write_image) with
+    // stride=AutoStride would screw up the strides since the user's stride
+    // is actually not 1 or 3 channels.
+    m_spec.auto_stride (xstride, format, m_spec.nchannels);
     int save_nchannels = m_spec.nchannels;
     m_spec.nchannels = m_cinfo.input_components;
 
