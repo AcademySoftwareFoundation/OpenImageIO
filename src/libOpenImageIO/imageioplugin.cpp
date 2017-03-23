@@ -129,6 +129,16 @@ declare_imageio_format (const std::string &format_name,
     if (format_list.length())
         format_list += std::string(",");
     format_list += format_name;
+    if (input_creator) {
+        if (input_format_list.length())
+            input_format_list += std::string(",");
+        input_format_list += format_name;
+    }
+    if (output_creator) {
+        if (output_format_list.length())
+            output_format_list += std::string(",");
+        output_format_list += format_name;
+    }
     if (extension_list.length())
         extension_list += std::string(";");
     extension_list += format_name + std::string(":");
@@ -214,11 +224,15 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _output_extensions[];    \
     extern const char *name ## _input_extensions[];     \
     extern const char *name ## _imageio_library_version();
+#define PLUGENTRY_RO(name)                               \
+    ImageInput *name ## _input_imageio_create ();       \
+    extern const char *name ## _input_extensions[];     \
+    extern const char *name ## _imageio_library_version();
 
     PLUGENTRY (bmp);
     PLUGENTRY (cineon);
     PLUGENTRY (dds);
-    PLUGENTRY (dicom);
+    PLUGENTRY_RO (dicom);
     PLUGENTRY (dpx);
     PLUGENTRY (ffmpeg);
     PLUGENTRY (field3d);
@@ -232,13 +246,13 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
-    PLUGENTRY (psd);
-    PLUGENTRY (ptex);
-    PLUGENTRY (raw);
+    PLUGENTRY_RO (psd);
+    PLUGENTRY_RO (ptex);
+    PLUGENTRY_RO (raw);
     PLUGENTRY (rla);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
-    PLUGENTRY (softimage);
+    PLUGENTRY_RO (softimage);
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
     PLUGENTRY (webp);
@@ -266,16 +280,22 @@ catalog_builtin_plugins ()
                    (ImageOutput::Creator) name ## _output_imageio_create, \
                    name ## _output_extensions,                            \
                    name ## _imageio_library_version())
+#define DECLAREPLUG_RO(name)                                              \
+    declare_imageio_format (#name,                                        \
+                   (ImageInput::Creator) name ## _input_imageio_create,   \
+                   name ## _input_extensions,                             \
+                   NULL, NULL,                                            \
+                   name ## _imageio_library_version())
 
     DECLAREPLUG (bmp);
-    DECLAREPLUG (cineon);
-    DECLAREPLUG (dds);
+    DECLAREPLUG_RO (cineon);
+    DECLAREPLUG_RO (dds);
 #ifdef USE_DCMTK
-    DECLAREPLUG (dicom);
+    DECLAREPLUG_RO (dicom);
 #endif
     DECLAREPLUG (dpx);
 #ifdef USE_FFMPEG
-    DECLAREPLUG (ffmpeg);
+    DECLAREPLUG_RO (ffmpeg);
 #endif
 #ifdef USE_FIELD3D
     DECLAREPLUG (field3d);
@@ -294,19 +314,19 @@ catalog_builtin_plugins ()
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
-    DECLAREPLUG (psd);
+    DECLAREPLUG_RO (psd);
 #ifdef USE_PTEX
-    DECLAREPLUG (ptex);
+    DECLAREPLUG_RO (ptex);
 #endif
 #ifdef USE_LIBRAW
-    DECLAREPLUG (raw);
+    DECLAREPLUG_RO (raw);
 #endif
     DECLAREPLUG (rla);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);
 #endif
-    DECLAREPLUG (softimage);
+    DECLAREPLUG_RO (softimage);
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);
 #ifdef USE_WEBP

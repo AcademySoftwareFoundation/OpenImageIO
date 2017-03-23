@@ -1258,6 +1258,12 @@ OIIO_API std::string geterror ();
 ///     string format_list     (for 'getattribute' only, cannot set)
 ///             Comma-separated list of all format names supported
 ///             or for which plugins could be found.
+///     string input_format_list     (for 'getattribute' only, cannot set)
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found that can read images.
+///     string output_format_list     (for 'getattribute' only, cannot set)
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found that can write images.
 ///     string extension_list   (for 'getattribute' only, cannot set)
 ///             For each format, the format name followed by a colon,
 ///             followed by comma-separated list of all extensions that

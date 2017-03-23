@@ -48,6 +48,9 @@ Public API changes:
   #1609 (1.8.2/1.7.11)
 * `ImageBuf::wrap_mode_from_string()` converts string wrap mode names
   (such as "black") into `ImageBuf::WrapMode` enum values. #1615 (1.8.3)
+* `OIIO::getattribute()` supports two new queries: `"input_format_list"` and
+  `"output_format_list"` which return comma-separated lists of all formats
+  that support input and output, respectively. (1.8.1)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:
