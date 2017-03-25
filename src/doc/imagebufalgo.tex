@@ -233,7 +233,7 @@ error to pass both an uninitialized {\cf dst} and an undefined {\cf roi}.
 
 \apiitem{bool {\ce render_point} (ImageBuf \&dst, int x, int y, \\
   \bigspc\spc\spc array_view<const float> color, \\
-  \bigspc\spc\spc oi=ROI.All, nthreads=0)}
+  \bigspc\spc\spc ROI roi=ROI.All(), int nthreads=0)}
 \index{ImageBufAlgo!render_point} \indexapi{render_point}
 \NEW % 1.7
 Render a point into the destination image,  doing an ``over'' of color (if
@@ -254,7 +254,7 @@ many entires as the ROI (which will default to being the entirety of
 \apiitem{bool {\ce render_line} (ImageBuf \&dst, int x1, int y1, int x2, int y2, \\
   \bigspc\spc\spc array_view<const float> color, \\
   \bigspc\spc\spc bool skip_first_point=false,\\
-  \bigspc\spc\spc roi=ROI.All, nthreads=0)}
+  \bigspc\spc\spc ROI roi=ROI.All(), int nthreads=0)}
 \index{ImageBufAlgo!render_line} \indexapi{render_line}
 \NEW % 1.7
 Render a line from pixel $(x_1,y_1)$ to $(x_2,y_2)$ into {\cf dst}, doing an
@@ -281,7 +281,7 @@ vertex positions).
 
 \apiitem{bool {\ce render_box} (ImageBuf \&dst, int x1, int y1, int x2, int y2, \\
   \bigspc\spc\spc array_view<const float> color, bool fill=false,\\
-  \bigspc\spc\spc oi=ROI.All, nthreads=0)}
+  \bigspc\spc\spc roi=ROI.All(), int nthreads=0)}
 \index{ImageBufAlgo!render_box} \indexapi{render_box}
 \NEW % 1.7
 
