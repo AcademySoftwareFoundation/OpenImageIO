@@ -2759,6 +2759,12 @@ Draw (rasterize) text overtop of the current image.
  & {\cf font=}\emph{name} & font name, full path to the font file on
   disk (use double quotes {\cf "name"} if the path name includes spaces) \\
  & {\cf color=}\emph{r,g,b,...} & specify the color of the text \\
+ & {\cf xalign=}\emph{val} & controls horizontal text alignment: \qkw{left}
+                (default), \qkw{right}, \qkw{center}. \\
+ & {\cf yalign=}\emph{val} & controls vertical text alignment: \qkw{base}
+                (default), \qkw{top}, \qkw{bottom}, \qkw{center}. \\
+ & {\cf shadow=}\emph{size} & if nonzero, will make a dark shadow halo to
+                make the text more clear on bright backgrounds.
 \end{tabular}
 
 The default positions the text starting at the center of the image,
@@ -2768,11 +2774,22 @@ using a default font (which may be system dependent).
 \noindent Examples:
 
 \begin{smallcode}
-    oiiotool in.exr --text:x=10:y=400:size=40 "Hello world" \
+    oiiotool --create 320x240 3 --text:x=10:y=400:size=40 "Hello world" \
         --text:x=100:y=200:font="Arial Bold":color=1,0,0:size=60 "Go Big Red!" \
         --tocolorspace sRGB -o text.jpg
+
+    oiiotool --create 320x240 3 --text:x=160:y=120:xalign=center "Centered" \
+        --tocolorspace sRGB -o textcentered.jpg
+
+    oiiotool tahoe-small.jpg \
+            --text:x=160:y=40:xalign=center:size=40:shadow=0 "shadow = 0" \
+            --text:x=160:y=80:xalign=center:size=40:shadow=1 "shadow = 1" \
+            --text:x=160:y=120:xalign=center:size=40:shadow=2 "shadow = 2" \
+            --tocolorspace sRGB -o textshadowed.jpg
 \end{smallcode}
-\spc \includegraphics[width=2.5in]{figures/text.jpg}  \\
+\includegraphics[width=1.75in]{figures/text.jpg}
+\includegraphics[width=1.75in]{figures/textcentered.jpg}
+\includegraphics[width=1.75in]{figures/textshadowed.jpg} \\
 
 \noindent Note that because of slightly differing fonts and versions of
 Freetype available, we do not expect drawn text to be pixel-for-pixel 

@@ -306,34 +306,82 @@ otherwise only its outlien will be drawn.
 
 \apiitem{bool {\ce render_text} (ImageBuf \&dst, int x, int y, string_view text,\\
   \bigspc\spc\spc int fontsize=16, string_view fontname="", \\
-  \bigspc\spc\spc  const float *textcolor = NULL)}
+  \bigspc\spc\spc  array_view<const float> textcolor = array_view<const float>(),\\
+  \bigspc\spc\spc  int shadow = 0, ROI roi = ROI::All(), int nthreads =0)}
 \index{ImageBufAlgo!render_text} \indexapi{render_text}
-Render a text string (encode as UTF-8) into the destination, essentially
-doing an ``over'' of the antialiased character into the existing pixel data.
-The baseline of the first character will start at position ({\cf x, y}).
-The font is given by {\cf fontname} as a full pathname to the font file
-(defaulting to some reasonable system font if not supplied at all), and with
-a nominal height of {\cf fontsize} (in pixels).  The characters will be
-drawn in opaque white (1.0 in all channels), unless {\cf textcolor} is
-supplied (and is expected to point to a {\cf float} array of length at least
-equal to the number of channels in {\cf dst}).
+
+
+Render a text string (encoded as UTF-8) into image {\cf dst}. If the {\cf dst} image
+is not yet initiailzed, it will be initialized to be a black background
+exactly large enought to contain the rasterized text.  If {\cf dst} is already
+initialized, the text will be rendered into the existing image by
+essentially doing an ``over'' of the character into the existing pixel
+data.
+
+The font is given by {\cf fontname} (if not a full pathname to a font file, it
+will search for a matching font, defaulting to some reasonable system
+font if not supplied at all), and with a nominal height of {\cf fontsize} (in
+pixels).
+
+The position is given by coordinates ({\cf x,y}), with the default behavior
+to align the left edge of the character baseline to ({\cf x,y}). Optionally,
+{\cf alignx} and {\cf aligny} can override the alignment behavior, with horizontal
+alignment choices of {\cf Left}, {\cf Right}, and {\cf Center}, and vertical alignment
+choices of {\cf Baseline}, {\cf Top}, {\cf Bottom}, or {\cf Center}.
+
+The characters will be drawn in opaque white (1.0,1.0,...) in all channels,
+unless {\cf textcolor} is supplied (and is expected to point to a float
+array of length at least equal to {\cf dst.spec().nchannels}, or defaults
+will be chosen for you). If {\cf shadow} is nonzero, a ``drop shadow'' of
+that radius will be used to make the text look more clear by dilating the
+alpha channel of the composite (makes a black halo around the characters).
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
-
-    ImageBufAlgo::render_text (A, 50, 100, "Hello, world");
+    ImageBufAlgo::render_text (ImgA, 50, 100, "Hello, world");
 
     float red[] = { 1, 0, 0, 1 };
-    ImageBufAlgo::render_text (A, 100, 200, "Go Big Red!",
+    ImageBufAlgo::render_text (ImgA, 100, 200, "Go Big Red!",
                                60, "Arial Bold", red);
-\end{code}
-\spc \includegraphics[width=2.5in]{figures/text.jpg}  \\
 
-\noindent Note that because of slightly differing fonts and versions of
-Freetype available, we do not expect drawn text to be pixel-for-pixel 
-identical on different platforms supported by \product.
+    float white[] = { 1, 1, 1, 1 };
+    ImageBufAlgo::render_text (ImgB, 320, 240, "Centered",
+                               60, "Arial Bold", white,
+                               TextAlignX::Center, TextAlignY::Center);
+
+\end{code}
+\spc \includegraphics[width=2.5in]{figures/text.jpg} 
+\spc \includegraphics[width=2.5in]{figures/textcentered.jpg} \\
+\apiend
+
+
+\apiitem{ROI {\ce text_size} (string_view text, int fontsize=16, \\
+\bigspc\bigspc string_view fontname="")}
+\index{ImageBufAlgo!text_size} \indexapi{text_size}
+
+\NEW % 1.8
+The helper function {\cf text_size()} merely computes the dimensions of the
+text, returning it as an {\cf ROI}  relative to the left side of the
+baseline of the first character. Only the $x$ and $y$ dimensions of the ROI
+will be used. The $x$ dimension runs from left to right, and $y$ runs from
+top to bottom (image coordinates). For a failure (such as an invalid
+font name), the ROI will return {\cf false} if you call its {\cf defined()}
+method.
+
+\begin{code}
+    // Render text centered in the image, using text_size to find out¨
+    // the size we will need and adjusting the coordinates.
+    ImageBuf A (ImageSpec (640, 480, 4, TypeDesc::FLOAT));
+    ROI Aroi = A.roi();
+    ROI size = ImageBufAlgo::text_size ("Centered", 48, "Courier New");
+    if (size.defined()) {
+        int x = Aroi.xbegin + Aroi.width()/2  - (size.xbegin + size.width()/2);
+        int y = Aroi.ybegin + Aroi.height()/2 - (size.ybegin + size.height()/2);
+        ImageBufAlgo::render_text (A, x, y, "Centered", 48, "Courier New");
+    }
+\end{code}
+%\spc \includegraphics[width=2.0in]{figures/textcentered.jpg} \\
 \apiend
 
 

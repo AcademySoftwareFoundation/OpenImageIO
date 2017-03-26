@@ -40,6 +40,7 @@
 #include "OpenImageIO/strutil.h"
 #include "OpenImageIO/fmath.h"
 #include "OpenImageIO/imageio.h"
+#include "OpenImageIO/imagebuf.h"
 #include "imageio_pvt.h"
 
 #if USE_EXTERNAL_PUGIXML
@@ -145,6 +146,21 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
       full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
       nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1),
+      deep(false)
+{
+    default_channel_names ();
+}
+
+
+
+ImageSpec::ImageSpec (const ROI &roi, TypeDesc format)
+    : x(roi.xbegin), y(roi.ybegin), z(roi.zbegin),
+      width(roi.width()), height(roi.height()), depth(roi.depth()),
+      full_x(0), full_y(0), full_z(0),
+      full_width(width), full_height(height), full_depth(1),
+      tile_width(0), tile_height(0), tile_depth(1),
+      nchannels(roi.nchannels()), format(format),
+      alpha_channel(-1), z_channel(-1),
       deep(false)
 {
     default_channel_names ();

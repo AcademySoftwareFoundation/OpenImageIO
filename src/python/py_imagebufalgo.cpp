@@ -1245,14 +1245,41 @@ bool
 IBA_render_text (ImageBuf &dst, int x, int y,
                  const std::string &text,
                  int fontsize=16, const std::string &fontname="",
-                 tuple textcolor_ = tuple())
+                 tuple textcolor_ = tuple(),
+                 const std::string ax = "left",
+                 const std::string ay = "baseline",
+                 int shadow = 0, ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> textcolor;
     py_to_stdvector (textcolor, textcolor_);
     textcolor.resize (dst.nchannels(), 1.0f);
     ScopedGILRelease gil;
+    using ImageBufAlgo::TextAlignX;
+    using ImageBufAlgo::TextAlignY;
+    TextAlignX alignx (TextAlignX::Left);
+    TextAlignY aligny (TextAlignY::Baseline);
+    if (Strutil::iequals(ax, "right") || Strutil::iequals(ax, "r"))
+        alignx = TextAlignX::Right;
+    if (Strutil::iequals(ax, "center") || Strutil::iequals(ax, "c"))
+        alignx = TextAlignX::Center;
+    if (Strutil::iequals(ay, "top") || Strutil::iequals(ay, "t"))
+        aligny = TextAlignY::Top;
+    if (Strutil::iequals(ay, "bottom") || Strutil::iequals(ay, "b"))
+        aligny = TextAlignY::Bottom;
+    if (Strutil::iequals(ay, "center") || Strutil::iequals(ay, "c"))
+        aligny = TextAlignY::Center;
     return ImageBufAlgo::render_text (dst, x, y, text, fontsize, fontname,
-                                      &textcolor[0]);
+                                      textcolor, alignx, aligny, shadow,
+                                      roi, nthreads);
+}
+
+
+ROI
+IBA_text_size (const std::string &text,
+               int fontsize=16, const std::string &fontname="")
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::text_size (text, fontsize, fontname);
 }
 
 
@@ -1917,8 +1944,14 @@ void declare_imagebufalgo()
         .def("render_text", &IBA_render_text,
              (arg("dst"), arg("x"), arg("y"), arg("text"),
               arg("fontsize")=16, arg("fontname")="",
-              arg("textcolor")=tuple()))
+              arg("textcolor")=tuple(), arg("alignx")="left",
+              arg("aligny")="baseline", arg("shadow")=0,
+              arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("render_text")
+
+        .def("text_size", &IBA_text_size,
+             (arg("text"), arg("fontsize")=16, arg("fontname")=""))
+        .staticmethod("text_size")
 
         // histogram, histogram_draw,
 

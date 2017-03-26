@@ -3994,8 +3994,24 @@ public:
         std::string font = options["font"];
         std::vector<float> textcolor (Rspec.nchannels+1, 1.0f);
         Strutil::extract_from_list_string (textcolor, options["color"]);
+        std::string ax = options["xalign"];
+        std::string ay = options["yalign"];
+        TextAlignX alignx (TextAlignX::Left);
+        TextAlignY aligny (TextAlignY::Baseline);
+        if (Strutil::iequals(ax, "right") || Strutil::iequals(ax, "r"))
+            alignx = TextAlignX::Right;
+        if (Strutil::iequals(ax, "center") || Strutil::iequals(ax, "c"))
+            alignx = TextAlignX::Center;
+        if (Strutil::iequals(ay, "top") || Strutil::iequals(ay, "t"))
+            aligny = TextAlignY::Top;
+        if (Strutil::iequals(ay, "bottom") || Strutil::iequals(ay, "b"))
+            aligny = TextAlignY::Bottom;
+        if (Strutil::iequals(ay, "center") || Strutil::iequals(ay, "c"))
+            aligny = TextAlignY::Center;
+        int shadow = Strutil::from_string<int>(options["shadow"]);
         return ImageBufAlgo::render_text (*img[0], x, y, args[1],
-                                          fontsize, font, &textcolor[0]);
+                                          fontsize, font, textcolor,
+                                          alignx, aligny, shadow);
     }
 };
 
