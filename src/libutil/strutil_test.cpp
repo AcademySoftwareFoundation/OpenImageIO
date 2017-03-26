@@ -542,6 +542,16 @@ void test_parse ()
     s = "fl$orp 14";  ss = parse_identifier (s, "$:", true);
     OIIO_CHECK_ASSERT (ss == "fl$orp" && s == " 14");
 
+    bool b;
+    s = " foo bar"; b = parse_identifier_if (s, "bar");
+    OIIO_CHECK_ASSERT (b == false && s == " foo bar");
+    s = " foo bar"; b = parse_identifier_if (s, "foo");
+    OIIO_CHECK_ASSERT (b == true && s == " bar");
+    s = " foo_14 bar"; b = parse_identifier_if (s, "foo");
+    OIIO_CHECK_ASSERT (b == false && s == " foo_14 bar");
+    s = " foo_14 bar"; b = parse_identifier_if (s, "foo_14");
+    OIIO_CHECK_ASSERT (b == true && s == " bar");
+
     s = "foo;bar blow"; ss = parse_until (s, ";");
     OIIO_CHECK_ASSERT (ss == "foo" && s == ";bar blow");
     s = "foo;bar blow"; ss = parse_until (s, "\t ");
