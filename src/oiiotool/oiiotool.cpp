@@ -138,7 +138,7 @@ Oiiotool::Oiiotool ()
       total_imagecache_readtime (0.0),
       enable_function_timing(true),
       peak_memory(0),
-      num_outputs(0), printed_info(false)
+      num_outputs(0), printed_info(false), frame_number(0)
 {
     clear_options ();
 }
@@ -165,6 +165,7 @@ Oiiotool::clear_options ()
     nativeread = false;
     cachesize = 4096;
     autotile = 4096;
+    frame_padding = 0;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
@@ -194,6 +195,8 @@ Oiiotool::clear_options ()
     diff_hardfail = std::numeric_limits<float>::max();
     m_pending_callback = NULL;
     m_pending_argc = 0;
+    frame_number = 0;
+    frame_padding = 0;
 }
 
 
@@ -999,7 +1002,17 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
         }
     } else if (Strutil::parse_float (s, floatval)) {
         result = Strutil::format ("%g", floatval);
-    } else {
+    }
+    // Test some special identifiers
+    else if (Strutil::parse_identifier_if (s, "FRAME_NUMBER")) {
+        result = Strutil::format ("%d", ot.frame_number);
+    }
+    else if (Strutil::parse_identifier_if (s, "FRAME_NUMBER_PAD")) {
+        std::string fmt = ot.frame_padding == 0 ? std::string("%d")
+                                : Strutil::format ("\"%%0%dd\"", ot.frame_padding);
+        result = Strutil::format (fmt, ot.frame_number);
+    }
+    else {
         express_error (expr, s, "syntax error");
         result = orig;
         return false;
@@ -1030,7 +1043,10 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s, std::str
         return false;
     }
 
-    if (Strutil::string_is<float> (atom)) {
+    if (atom.size() >= 2 && atom.front() == '\"' && atom.back() == '\"') {
+        // Double quoted is string, return it
+        result = atom;
+    } else if (Strutil::string_is<float> (atom)) {
         // lval is a number
         lval = Strutil::from_string<float> (atom);
         while (s.size()) {
@@ -1093,7 +1109,10 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s, std::st
         return false;
     }
 
-    if (Strutil::string_is<float> (atom)) {
+    if (atom.size() >= 2 && atom.front() == '\"' && atom.back() == '\"') {
+        // Double quoted is string, strip it
+        result = atom.substr (1, atom.size()-2);
+    } else if (Strutil::string_is<float> (atom)) {
         // lval is a number
         lval = Strutil::from_string<float> (atom);
         while (s.size()) {
@@ -4824,7 +4843,7 @@ getargs (int argc, char *argv[])
                 "--noclobber", &ot.noclobber, "", // synonym
                 "--threads %@ %d", set_threads, NULL, "Number of threads (default 0 == #cores)",
                 "--frames %s", NULL, "Frame range for '#' or printf-style wildcards",
-                "--framepadding %d", NULL, "Frame number padding digits (ignored when using printf-style wildcards)",
+                "--framepadding %d", &ot.frame_padding, "Frame number padding digits (ignored when using printf-style wildcards)",
                 "--views %s", NULL, "Views for %V/%v wildcards (comma-separated, defaults to left,right)",
                 "--wildcardoff", NULL, "Disable numeric wildcard expansion for subsequent command line arguments",
                 "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
@@ -5198,6 +5217,7 @@ handle_sequence (int argc, const char **argv)
     // OK, now we just call getargs once for each item in the sequences,
     // substituting the i-th sequence entry for its respective argument
     // every time.
+    // Note: nfilenames really means, number of frame number iterations.
     std::vector<const char *> seq_argv (argv, argv+argc+1);
     for (size_t i = 0;  i < nfilenames;  ++i) {
         if (ot.debug)
@@ -5210,6 +5230,7 @@ handle_sequence (int argc, const char **argv)
         }
 
         ot.clear_options (); // Careful to reset all command line options!
+        ot.frame_number = frame_numbers[sequence_args[0]][i];
         getargs (argc, (char **)&seq_argv[0]);
 
         ot.process_pending ();

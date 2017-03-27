@@ -222,6 +222,16 @@ specified image (e.g., {\cf ImageDescription}, or {\cf width})
 \item[{Arithmetic}] Sub-expressions may be joined by {\cf +}, {\cf -},
 {\cf *}, or {\cf /} for arithmetic operations. Parentheses are supported,
 and standard operator precedence applies.
+
+\item[{Special variables}] \spc
+
+\begin{itemize}
+\item {\cf FRAME_NUMBER} : the number of the frame in this iteration of
+    wildcard expansion.
+\item {\cf FRAME_NUMBER_PAD} : like {\cf FRAME_NUMBER}, but 0-padded based
+    on the value set on the command line by {\cf --framepadding}.
+\end{itemize}
+
 \end{description}
 
 To illustrate how this works, consider the following command, which trims
