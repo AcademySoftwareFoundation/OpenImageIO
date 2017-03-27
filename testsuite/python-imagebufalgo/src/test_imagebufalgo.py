@@ -445,6 +445,15 @@ try:
                               42, "", (1,0,0))
     write (b, "text.tif", oiio.UINT8)
 
+    b = make_constimage (320, 240, 3, oiio.FLOAT)
+    broi = b.roi
+    textsize = ImageBufAlgo.text_size ("Centered", 40)
+    if textsize.defined :
+        x = broi.xbegin + broi.width/2  - (textsize.xbegin + textsize.width/2)
+        y = broi.ybegin + broi.height/2 - (textsize.ybegin + textsize.height/2)
+        ImageBufAlgo.render_text (b, x, y, "Centered", 40)
+    write (b, "textcentered.tif", oiio.UINT8)
+
     # histogram, histogram_draw,
 
     # make_texture

@@ -65,6 +65,7 @@
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
+struct ROI;
 
 
 /// Type we use for stride lengths.  This is only used to designate
@@ -150,6 +151,10 @@ public:
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeDesc::UINT8);
+
+    /// Constructor from an ROI that gives x, y, z, and channel range, and
+    /// a data format.
+    explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeDesc::UINT8);
 
     /// Set the data format.
     void set_format (TypeDesc fmt);

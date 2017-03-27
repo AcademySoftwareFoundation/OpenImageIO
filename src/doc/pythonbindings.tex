@@ -1815,11 +1815,15 @@ the per-channel colors.
 
 
 \apiitem{bool ImageBufAlgo.{\ce render_text} (dst, x, y, text, fontsize=16, \\
-  \bigspc\bigspc  fontname="", textcolor=(1,1,1,1))}
+  \bigspc\bigspc  fontname="", textcolor=(1,1,1,1),\\
+  \bigspc\bigspc  alignx="left", aligny="baseline", shadow=0,\\
+  \bigspc\bigspc  roi=ROI.All, nthreads=0}
 \index{ImageBufAlgo!render_text} \indexapi{render_text}
 
 Render antialiased text into {\cf dst}.  The {\cf textcolor} (if supplied)
-is a tuple giving the per-channel colors.
+is a tuple giving the per-channel colors. Choices for {\cf alignx} are
+\qkw{left}, \qkw{right}, and \qkw{center}, and choices for {\cf aligny} are
+\qkw{baseline}, \qkw{top}, \qkw{bottom}, and \qkw{center}.
 
 \smallskip
 \noindent Examples:
@@ -1827,9 +1831,35 @@ is a tuple giving the per-channel colors.
     buf = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
     ImageBufAlgo.render_text (buf, 50, 100, "Hello, world")
     ImageBufAlgo.render_text (buf, 100, 200, "Go Big Red!",
-                               60, "Arial Bold", (1,0,0,1))
+                              60, "Arial Bold", (1,0,0,1))
 \end{code}
 % \spc \includegraphics[width=2.5in]{figures/text.jpg}
+\apiend
+
+
+\apiitem{ROI ImageBufAlgo.{\ce text_size} (text, fontsize=16, fontname="")}
+\index{ImageBufAlgo!text_size} \indexapi{text_size}
+
+\NEW % 1.8
+Compute the size that will be needed for the text as an ROI and return it.
+The size will not be {\cf defined} if an error occurred (such as not being a
+valid font name).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    A = ImageBuf(ImageSpec (640, 480, 4, oiio.FLOAT))
+    Aroi = A.roi
+    size = ImageBufAlgo.text_size ("Centered", 40, "Courier New")
+    if size.defined :
+        x = Aroi.xbegin + Aroi.width/2  - (size.xbegin + size.width/2)
+        y = Aroi.ybegin + Aroi.height/2 - (size.ybegin + size.height/2)
+        ImageBufAlgo.render_text (A, x, y, "Centered", 40, "Courier New")
+
+    # Note: this was for illustration. An easier way to do this is:
+    #   render_text (A, x, y, "Centered", 40, "Courier New", alignx="center")
+\end{code}
+% \spc \includegraphics[width=2.5in]{figures/textcentered.jpg}
 \apiend
 
 

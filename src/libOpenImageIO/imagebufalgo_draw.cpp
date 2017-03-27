@@ -31,6 +31,8 @@
 #include <OpenEXR/half.h>
 
 #include <cmath>
+#include <limits>
+#include <algorithm>
 
 #include "OpenImageIO/imagebuf.h"
 #include "OpenImageIO/imagebufalgo.h"
@@ -574,69 +576,89 @@ namespace { // anon
 static mutex ft_mutex;
 static FT_Library ft_library = NULL;
 static bool ft_broken = false;
+static std::vector<std::string> font_search_dirs;
 static const char * default_font_name[] = {
         "DroidSans", "cour", "Courier New", "FreeMono", NULL
      };
+
+// Helper: given unicode and a font face, compute its size
+static ROI
+text_size_from_unicode (std::vector<uint32_t> &utext, FT_Face face)
+{
+    ROI size;
+    size.xbegin = size.ybegin = std::numeric_limits<int>::max();
+    size.xend = size.yend = std::numeric_limits<int>::min();
+    FT_GlyphSlot slot = face->glyph;
+    int x = 0;
+    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
+        int error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+        if (error)
+            continue;  // ignore errors
+        size.ybegin = std::min (size.ybegin, -slot->bitmap_top);
+        size.yend = std::max (size.yend, int(slot->bitmap.rows) - int(slot->bitmap_top) + 1);
+        size.xbegin = std::min (size.xbegin, x + int(slot->bitmap_left));
+        size.xend = std::max (size.xend, x + int(slot->bitmap.width) + int(slot->bitmap_left) + 1);
+        // increment pen position
+        x += slot->advance.x >> 6;
+    }
+    return size;   // Font rendering not supported
+}
+
 } // anon namespace
 #endif
 
 
-bool
-ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
-                           int fontsize, string_view font_,
-                           const float *textcolor)
+// Given font name, resolve it to an existing font filename.
+// If found, return true and put the resolved filename in result.
+// If not found, return false and put an error message in result.
+// Not thread-safe! The caller must use the mutex.
+static bool
+resolve_font (int fontsize, string_view font_, std::string &result)
 {
-    if (R.spec().depth > 1) {
-        R.error ("ImageBufAlgo::render_text does not support volume images");
-        return false;
-    }
-
+    result.clear ();
 #ifdef USE_FREETYPE
     // If we know FT is broken, don't bother trying again
     if (ft_broken)
         return false;
 
-    // Thread safety
-    lock_guard ft_lock (ft_mutex);
-    int error = 0;
-
     // If FT not yet initialized, do it now.
     if (! ft_library) {
-        error = FT_Init_FreeType (&ft_library);
-        if (error) {
+        if (FT_Init_FreeType (&ft_library)) {
             ft_broken = true;
-            R.error ("Could not initialize FreeType for font rendering");
+            result = "Could not initialize FreeType for font rendering";
             return false;
         }
     }
 
     // A set of likely directories for fonts to live, across several systems.
-    std::vector<std::string> search_dirs;
-    const char *home = getenv ("HOME");
-    if (home && *home) {
-        std::string h (home);
-        search_dirs.push_back (h + "/fonts");
-        search_dirs.push_back (h + "/Fonts");
-        search_dirs.push_back (h + "/Library/Fonts");
-    }
-    const char *systemRoot = getenv ("SystemRoot");
-    if (systemRoot && *systemRoot)
-        search_dirs.push_back (std::string(systemRoot) + "/Fonts");
-    search_dirs.push_back ("/usr/share/fonts");
-    search_dirs.push_back ("/Library/Fonts");
-    search_dirs.push_back ("C:/Windows/Fonts");
-    search_dirs.push_back ("/usr/local/share/fonts");
-    search_dirs.push_back ("/opt/local/share/fonts");
-    // Try $OPENIMAGEIOHOME/fonts
-    const char *oiiohomedir = getenv ("OPENIMAGEIOHOME");
-    if (oiiohomedir && *oiiohomedir)
-        search_dirs.push_back (std::string(oiiohomedir) + "/fonts");
-    // Try ../fonts relative to where this executing binary came from
-    std::string this_program = OIIO::Sysutil::this_program_path ();
-    if (this_program.size()) {
-        std::string path = Filesystem::parent_path (this_program);
-        path = Filesystem::parent_path (path);
-        search_dirs.push_back (path+"/fonts");
+    // Fill out the list of search dirs if not yet done.
+    if (font_search_dirs.size() == 0) {
+        string_view home = Sysutil::getenv ("HOME");
+        if (home.size()) {
+            std::string h (home);
+            font_search_dirs.push_back (h + "/fonts");
+            font_search_dirs.push_back (h + "/Fonts");
+            font_search_dirs.push_back (h + "/Library/Fonts");
+        }
+        string_view systemRoot = Sysutil::getenv ("SystemRoot");
+        if (systemRoot.size())
+            font_search_dirs.push_back (std::string(systemRoot) + "/Fonts");
+        font_search_dirs.push_back ("/usr/share/fonts");
+        font_search_dirs.push_back ("/Library/Fonts");
+        font_search_dirs.push_back ("C:/Windows/Fonts");
+        font_search_dirs.push_back ("/usr/local/share/fonts");
+        font_search_dirs.push_back ("/opt/local/share/fonts");
+        // Try $OPENIMAGEIOHOME/fonts
+        string_view oiiohomedir = Sysutil::getenv ("OPENIMAGEIOHOME");
+        if (oiiohomedir.size())
+            font_search_dirs.push_back (std::string(oiiohomedir) + "/fonts");
+        // Try ../fonts relative to where this executing binary came from
+        std::string this_program = OIIO::Sysutil::this_program_path ();
+        if (this_program.size()) {
+            std::string path = Filesystem::parent_path (this_program);
+            path = Filesystem::parent_path (path);
+            font_search_dirs.push_back (path+"/fonts");
+        }
     }
 
     // Try to find the font.  Experiment with several extensions
@@ -647,10 +669,10 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
             static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
             for (int i = 0;  font.empty() && extensions[i];  ++i)
                 font = Filesystem::searchpath_find (std::string(default_font_name[j])+extensions[i],
-                                                 search_dirs, true, true);
+                                                 font_search_dirs, true, true);
         }
         if (font.empty()) {
-            R.error ("Could not set default font face");
+            result = "Could not set default font face";
             return false;
         }
     } else if (Filesystem::is_regular (font)) {
@@ -661,9 +683,9 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
         static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
         for (int i = 0;  f.empty() && extensions[i];  ++i)
             f = Filesystem::searchpath_find (font+extensions[i],
-                                             search_dirs, true, true);
+                                             font_search_dirs, true, true);
         if (f.empty()) {
-            R.error ("Could not set font face to \"%s\"", font);
+            result = Strutil::format ("Could not set font face to \"%s\"", font);
             return false;
         }
         font = f;
@@ -671,10 +693,115 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
 
     ASSERT (! font.empty());
     if (! Filesystem::is_regular (font)) {
-        R.error ("Could not find font \"%s\"", font);
+        result = Strutil::format ("Could not find font \"%s\"", font);
         return false;
     }
 
+    // Success
+    result = font;
+    return true;
+#else
+    return false;
+#endif
+}
+
+
+
+ROI
+ImageBufAlgo::text_size (string_view text, int fontsize, string_view font_)
+{
+    ROI size;
+#ifdef USE_FREETYPE
+    // Thread safety
+    lock_guard ft_lock (ft_mutex);
+
+    std::string font;
+    bool ok = resolve_font (fontsize, font_, font);
+    if (! ok) {
+        return size;
+    }
+
+    int error = 0;
+    FT_Face face;      // handle to face object
+    error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
+    if (error) {
+        return size;  // couldn't open the face
+    }
+
+    error = FT_Set_Pixel_Sizes (face /*handle*/, 0 /*width*/, fontsize/*height*/);
+    if (error) {
+        FT_Done_Face (face);
+        return size;  // couldn't set the character size
+    }
+
+    FT_GlyphSlot slot = face->glyph;  // a small shortcut
+
+    std::vector<uint32_t> utext;
+    utext.reserve(text.size()); //Possible overcommit, but most text will be ascii
+    Strutil::utf8_to_unicode(text, utext);
+
+    size.xbegin = size.ybegin = std::numeric_limits<int>::max();
+    size.xend = size.yend = std::numeric_limits<int>::min();
+    int x = 0;
+    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
+        error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+        if (error)
+            continue;  // ignore errors
+        size.ybegin = std::min (size.ybegin, -slot->bitmap_top);
+        size.yend = std::max (size.yend, int(slot->bitmap.rows) - int(slot->bitmap_top) + 1);
+        size.xbegin = std::min (size.xbegin, x + int(slot->bitmap_left));
+        size.xend = std::max (size.xend, x + int(slot->bitmap.width) + int(slot->bitmap_left) + 1);
+        // increment pen position
+        x += slot->advance.x >> 6;
+    }
+
+    FT_Done_Face (face);
+#endif
+
+    return size;   // Font rendering not supported
+}
+
+
+
+// Deprecated version
+bool
+ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
+                           int fontsize, string_view font_,
+                           const float *textcolor)
+{
+    array_view<const float> color;
+    if (textcolor)
+        color = array_view<const float>(textcolor,R.nchannels());
+    return render_text (R, x, y, text, fontsize, font_, color);
+}
+
+
+
+bool
+ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
+                           int fontsize, string_view font_,
+                           array_view<const float> textcolor,
+                           TextAlignX alignx, TextAlignY aligny,
+                           int shadow, ROI roi, int nthreads)
+{
+    if (R.spec().depth > 1) {
+        R.error ("ImageBufAlgo::render_text does not support volume images");
+        return false;
+    }
+
+#ifdef USE_FREETYPE
+    // Thread safety
+    lock_guard ft_lock (ft_mutex);
+
+    std::string font;
+    bool ok = resolve_font (fontsize, font_, font);
+    if (! ok) {
+        std::string err = font.size() ? font : "Font error";
+        R.error ("%s", err);
+        return false;
+    }
+
+    int error = 0;
     FT_Face face;      // handle to face object
     error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
     if (error) {
@@ -682,9 +809,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
         return false;  // couldn't open the face
     }
 
-    error = FT_Set_Pixel_Sizes (face,        // handle to face object
-                                0,           // pixel_width
-                                fontsize);   // pixel_heigh
+    error = FT_Set_Pixel_Sizes (face /*handle*/, 0 /*width*/, fontsize/*height*/);
     if (error) {
         FT_Done_Face (face);
         R.error ("Could not set font size to %d", fontsize);
@@ -692,21 +817,47 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
     }
 
     FT_GlyphSlot slot = face->glyph;  // a small shortcut
-    int nchannels = R.spec().nchannels;
-    float *pixelcolor = ALLOCA (float, nchannels);
-    if (! textcolor) {
+    size_t nchannels (R.spec().nchannels);
+    if (textcolor.size() <= nchannels) {
         float *localtextcolor = ALLOCA (float, nchannels);
-        for (int c = 0;  c < nchannels;  ++c)
-            localtextcolor[c] = 1.0f;
-        textcolor = localtextcolor;
+        for (size_t c = 0;  c < nchannels;  ++c)
+            localtextcolor[c] = c < textcolor.size() ? textcolor[c] : 1.0f;
+        textcolor = array_view<const float>(localtextcolor, nchannels);
     }
 
+    // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;
     utext.reserve(text.size()); //Possible overcommit, but most text will be ascii
     Strutil::utf8_to_unicode(text, utext);
 
+    // Compute the size that the text will render as, into an ROI
+    ROI textroi = text_size_from_unicode (utext, face);
+    textroi.zbegin = 0; textroi.zend = 1;
+    textroi.chbegin = 0; textroi.chend = 1;
+
+    // Adjust position for alignment requests
+    if (alignx == TextAlignX::Right)
+        x -= textroi.width();
+    if (alignx == TextAlignX::Center)
+        x -= (textroi.width()/2 + textroi.xbegin);
+    if (aligny == TextAlignY::Top)
+        y += textroi.height();
+    if (aligny == TextAlignY::Bottom)
+        y -= textroi.height();
+    if (aligny == TextAlignY::Center)
+        y -= (textroi.height()/2 + textroi.ybegin);
+
+    // Pad bounds for shadowing
+    textroi.xbegin += x - shadow;  textroi.xend += x + shadow;
+    textroi.ybegin += y - shadow;  textroi.yend += y + shadow;
+
+    // Create a temp buffer of the right size and render the text into it.
+    ImageBuf textimg (ImageSpec(textroi, TypeDesc::FLOAT));
+    ImageBufAlgo::zero (textimg);
+
+    // Glyph by glyph, fill in our txtimg buffer
     for (size_t n = 0, e = utext.size();  n < e;  ++n) {
-        error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+        int error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
         // now, draw to our target surface
@@ -715,14 +866,39 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
             for (int i = 0;  i < static_cast<int>(slot->bitmap.width); ++i) {
                 int rx = x + i + slot->bitmap_left;
                 float b = slot->bitmap.buffer[slot->bitmap.pitch*j+i] / 255.0f;
-                R.getpixel (rx, ry, pixelcolor);
-                for (int c = 0;  c < nchannels;  ++c)
-                    pixelcolor[c] = b*textcolor[c] + (1.0f-b) * pixelcolor[c];
-                R.setpixel (rx, ry, pixelcolor);
+                textimg.setpixel (rx, ry, &b, 1);
             }
         }
         // increment pen position
         x += slot->advance.x >> 6;
+    }
+
+    // Generate the alpha image -- if drop shadow is requested, dilate,
+    // otherwise it's just a copy of the text image
+    ImageBuf alphaimg;
+    if (shadow)
+        dilate (alphaimg, textimg, 2*shadow+1);
+    else
+        alphaimg.copy (textimg);
+
+    if (! roi.defined())
+        roi = textroi;
+    if (! IBAprep (roi, &R))
+        return false;
+    roi = roi_intersection (textroi, R.roi());
+
+    // Now fill in the pixels of our destination image
+    float *pixelcolor = ALLOCA (float, nchannels);
+    ImageBuf::ConstIterator<float> t (textimg, roi, ImageBuf::WrapBlack);
+    ImageBuf::ConstIterator<float> a (alphaimg, roi, ImageBuf::WrapBlack);
+    ImageBuf::Iterator<float> r (R, roi);
+    for ( ;  !r.done();  ++r, ++t, ++a) {
+        float val = t[0];
+        float alpha = a[0];
+        R.getpixel (r.x(), r.y(), pixelcolor);
+        for (size_t c = 0;  c < nchannels;  ++c)
+            pixelcolor[c] = val*textcolor[c] + (1.0f-alpha) * pixelcolor[c];
+        R.setpixel (r.x(), r.y(), pixelcolor);
     }
 
     FT_Done_Face (face);

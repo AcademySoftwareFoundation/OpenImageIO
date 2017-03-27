@@ -152,7 +152,7 @@ Comparing "a_over_b.exr" and "../../../../testsuite/oiiotool-composite/ref/a_ove
 PASS
 Comparing "tahoe-small.tx" and "ref/tahoe-small.tx"
 PASS
-Comparing "text.tif" and "../../../../testsuite/oiiotool-text/ref/text-freetype2.7.tif"
+Comparing "text.tif" and "../../../../testsuite/oiiotool-text/ref/text.tif"
 PASS
-Comparing "textcentered.tif" and "ref/textcentered.tif"
+Comparing "textcentered.tif" and "ref/textcentered-freetype2.4.11.tif"
 PASS

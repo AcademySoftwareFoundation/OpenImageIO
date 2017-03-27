@@ -42,6 +42,7 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "color.h"
+#include "array_view.h"
 
 #include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
 
@@ -1922,19 +1923,55 @@ bool OIIO_API render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
                           array_view<const float> color, bool fill = false,
                           ROI roi = ROI::All(), int nthreads = 0);
 
-/// Render a text string (encoded as UTF-8) into image dst, essentially
-/// doing an "over" of the character into the existing pixel data.  The
-/// baseline of the first character will start at position (x,y).  The font
-/// is given by fontname as a full pathname to the font file (defaulting to
-/// some reasonable system font if not supplied at all), and with a nominal
-/// height of fontsize (in pixels).  The characters will be drawn in opaque
-/// white (1.0,1.0,...) in all channels, unless textcolor is supplied (and
-/// is expected to point to a float array of length at least equal to
-/// R.spec().nchannels).
-bool OIIO_API render_text (ImageBuf &dst, int x, int y,
-                           string_view text,
+
+enum class TextAlignX { Left, Right, Center };
+enum class TextAlignY { Baseline, Top, Bottom, Center };
+
+/// Render a text string (encoded as UTF-8) into image dst. If the dst image
+/// is not yet initiailzed, it will be initialized to be a black background
+/// exactly large enought to contain the rasterized text.  If dst is already
+/// initialized, the text will be rendered into the existing image by
+/// essentially doing an "over" of the character into the existing pixel
+/// data.
+///
+/// The font is given by fontname (if not a full pathname to a font file, it
+/// will search for a matching font, defaulting to some reasonable system
+/// font if not supplied at all), and with a nominal height of fontsize (in
+/// pixels).
+///
+/// The position is given by coordinates (x,y), with the default behavior
+/// to align the left edge of the character baseline to (x,y). Optionally,
+/// alignx and aligny can override the alignment behavior, with horizontal
+/// alignment choices of TextAlignX::Left, Right, and Center, and vertical
+/// alignment choices of TextAlginY::Baseline, Top, Bottom, or Center.
+///
+/// The characters will be drawn in opaque white (1.0,1.0,...) in all
+/// channels, unless textcolor is supplied (and is expected to point to a
+/// float array of length at least equal to R.spec().nchannels, or defaults
+/// will be chosen for you). If shadow is nonzero, a "drop shadow" of that
+/// radius will be used to make the text look more clear by dilating the
+/// alpha channel of the composite (makes a black halo around the
+/// characters).
+bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
                            int fontsize=16, string_view fontname="",
-                           const float *textcolor = NULL);
+                           array_view<const float> textcolor = array_view<const float>(),
+                           TextAlignX alignx = TextAlignX::Left,
+                           TextAlignY aligny = TextAlignY::Baseline,
+                           int shadow = 0,
+                           ROI roi = ROI::All(), int nthreads = 0);
+
+// Old style (pre-1.8) -- will eventually be deprecated.
+bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
+                           int fontsize, string_view fontname,
+                           const float *textcolor);
+
+/// Helper function: how big is the text that would be drawn by render_text?
+/// Returns the extent as an ROI (relative to the left edge of the baseline
+/// of the first character). The size is an ROI, but only the x and y
+/// dimensions are used. Failures can be detected by testing the ROI's
+/// defined() property.
+ROI OIIO_API text_size (string_view text, int fontsize=16,
+                        string_view fontname="");
 
 
 
