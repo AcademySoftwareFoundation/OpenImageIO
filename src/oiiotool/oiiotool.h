@@ -81,6 +81,7 @@ public:
     bool nativeread;                  // force native data type reads
     int cachesize;
     int autotile;
+    int frame_padding;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
@@ -126,6 +127,8 @@ public:
     bool enable_function_timing;
     size_t peak_memory;
     int num_outputs;                         // Count of outputs written
+    bool printed_info;                       // printed info at some point
+    int frame_number;
 
     Oiiotool ();
 
