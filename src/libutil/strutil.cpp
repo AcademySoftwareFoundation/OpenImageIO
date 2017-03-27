@@ -777,6 +777,20 @@ Strutil::parse_identifier (string_view &str, string_view allowed, bool eat)
 
 
 
+bool
+Strutil::parse_identifier_if (string_view &str, string_view id, bool eat)
+{
+    string_view head = parse_identifier (str, false /* don't eat */);
+    if (head == id) {
+        if (eat)
+            parse_identifier (str);
+        return true;
+    }
+    return false;
+}
+
+
+
 string_view
 Strutil::parse_until (string_view &str, string_view sep, bool eat)
 {
