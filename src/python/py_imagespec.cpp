@@ -347,6 +347,8 @@ void declare_imagespec()
         
         .def(init<int, int, int, TypeDesc>())
         .def(init<int, int, int, TypeDesc::BASETYPE>())
+        .def(init<const ROI&, TypeDesc>())
+        .def(init<const ROI&, TypeDesc::BASETYPE>())
         .def(init<TypeDesc>())
         .def(init<TypeDesc::BASETYPE>())
         .def(init<const ImageSpec&>())

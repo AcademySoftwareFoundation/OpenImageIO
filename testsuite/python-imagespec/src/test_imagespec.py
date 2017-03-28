@@ -106,6 +106,11 @@ try:
         print s.metadata_val (s.extra_attribs[i], True)
     print
 
+    # test initialization from ROI
+    print ("Testing construction from ROI:")
+    sroi = oiio.ImageSpec (oiio.ROI(0,640,0,480,0,1,0,3), oiio.FLOAT);
+    print_imagespec (sroi)
+
     # Also test global OIIO functions here
     print "\nTesting global attribute store/retrieve:"
     oiio.attribute ("plugin_searchpath", "perfect")

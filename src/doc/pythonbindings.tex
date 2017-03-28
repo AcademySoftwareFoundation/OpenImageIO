@@ -275,7 +275,9 @@ Section~\ref{sec:ImageSpec}, is replicated for Python.
 {\ce ImageSpec} (basetype) \\
 {\ce ImageSpec} (typedesc) \\
 {\ce ImageSpec} (xres, yres, nchannels, basetype) \\
-{\ce ImageSpec} (xres, yres, nchannels, typespec)}
+{\ce ImageSpec} (xres, yres, nchannels, typespec) \\
+{\ce ImageSpec} (roi, basetype) \\
+{\ce ImageSpec} (roi, typespec)}
 Constructors of an \ImageSpec. These correspond directly to the constructors
 in the C++ bindings.
 
@@ -292,6 +294,9 @@ in the C++ bindings.
 
     # construct with known resolution, channels, pixel data type
     s = ImageSpec(640, 480, 4, oiio.HALF)
+
+    # construct from an ROI
+    s = ImageSpec (ROI(0,640,0,480,0,1,0,3), oiio.FLOAT)
 \end{code}
 \apiend
 

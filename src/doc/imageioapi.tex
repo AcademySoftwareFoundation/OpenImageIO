@@ -485,6 +485,13 @@ beyond that they are named ``channel \emph{n}''), the fourth channel (if
 it exists) is assumed to be alpha, and values are assumed to be linear.
 \apiend
 
+\apiitem{{\ce ImageSpec} (const ROI \&roi, TypeDesc fmt = TypeDesc::UINT8)}
+\NEW % 1.8
+Constructs an \ImageSpec whose dimensions (both data and ``full'') and
+number of channels are given by the \ROI (\ref{sec:ROI}), pixel data type
+by {\cf fmt}, and other fields are set to their default values.
+\apiend
+
 \apiitem{void {\ce set_format} (TypeDesc fmt)}
 Sets the format as described, and clears any per-channel format information
 in {\cf channelformats}.

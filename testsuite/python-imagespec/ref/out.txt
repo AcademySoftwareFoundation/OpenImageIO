@@ -94,6 +94,20 @@ extra_attribs size is 5
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
 
+Testing construction from ROI:
+  resolution (width,height,depth) =  640 480 1
+  origin (x,y,z) =  0 0 0
+  full res =  640 480 1
+  full origin =  0 0 0
+  untiled
+  format =  float
+  nchannels =  3
+  channelformats =  ()
+  channel names =  ('R', 'G', 'B')
+  alpha channel =  -1
+  z channel =  -1
+  deep =  False
+
 
 Testing global attribute store/retrieve:
 get_string_attribute plugin_searchpath :  perfect

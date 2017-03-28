@@ -29,9 +29,10 @@
 */
 
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/unittest.h>
 
 OIIO_NAMESPACE_USING;
 
@@ -232,6 +233,21 @@ test_get_attribute ()
 }
 
 
+static void
+test_imagespec_from_ROI ()
+{
+    ROI roi (0, 640, 0, 480, 0, 1, 0, 3);
+    ImageSpec spec (roi, TypeDesc::FLOAT);
+    OIIO_CHECK_EQUAL (spec.nchannels, 3);
+    OIIO_CHECK_EQUAL (spec.width, 640);
+    OIIO_CHECK_EQUAL (spec.height, 480);
+    OIIO_CHECK_EQUAL (spec.depth, 1);
+    OIIO_CHECK_EQUAL (spec.full_width, 640);
+    OIIO_CHECK_EQUAL (spec.full_height, 480);
+    OIIO_CHECK_EQUAL (spec.full_depth, 1);
+}
+
+
 
 int main (int argc, char *argv[])
 {
@@ -239,6 +255,7 @@ int main (int argc, char *argv[])
     test_imagespec_metadata_val ();
     test_imagespec_attribute_from_string ();
     test_get_attribute ();
+    test_imagespec_from_ROI ();
 
     return unit_test_failures;
 }
