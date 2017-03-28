@@ -6,7 +6,7 @@ New minimum dependencies:
  * **CMake >= 3.0**
 
 Major new features and improvements:
-* New oiiotool commands:
+* New oiiotool features:
    * `--info:format=xml` format option requests what format the info
       is printed. Current choices: `"text"`, `"xml"`. #1504 (1.8.0)
    * `--info:verbose=1` verbose option make file info print full metadata,
@@ -21,15 +21,28 @@ Major new features and improvements:
      This is semantically equivalent to following the input with a `--ch`
      command, but by integrating into the input itself, it can sometimes
      avoid using memory and I/O for unneeded channels. #1541 (1.8.1)
-* New ImageBufAlgo functions:
+   * `--echo STRING` prints the string to the console. This can contain
+     expressions! So you can do something like
+         oiiotool file.exr -echo "Size is {TOP.width}x{TOP.height}"
+     #1633 (1.8.3)
+   * `--eraseattrib REGEX` erases all metadata attributes from the top image
+     whose names match the regular expression. #1638 (1.8.3)
+   * `--text` takes new optional modifiers: `xalign=` (left, right, center)
+     and `yalign=` (baseline, top, bottom, center) to control how the text
+     is aligned to the (x,y) position specified, `shadow=` (default = 0)
+     than when nonzero controls the width of a "drop shadow" that makes the
+     text clearer when rendered on a background image of similar color.
+     #1646 (1.8.3)
+* New ImageBufAlgo functionality:
    * `color_map()` applies a color map based on the input values; the
      map can be one of several named ones, or given explicitly with
      numerical values. #1552 (1.8.1)
    * Added implementation of ImageBufAlgo::to_IplImage(). #1461 (1.7.9/1.8.1)
+   * `render_text()` has added parameters controlling text alignment and
+     drop shadows. #1646 (1.8.3)
 * DICOM file format support (currently read-only). DICOM is the standard for
   medical imaging data. Will   only build if dependency "dcmtk" is found at
   build time. #1534 (1.8.1)
-
 
 Public API changes:
 * `ImageSpec::serialize()` returns a string with a serialized version of
@@ -50,7 +63,15 @@ Public API changes:
   (such as "black") into `ImageBuf::WrapMode` enum values. #1615 (1.8.3)
 * `OIIO::getattribute()` supports two new queries: `"input_format_list"` and
   `"output_format_list"` which return comma-separated lists of all formats
-  that support input and output, respectively. (1.8.1)
+  that support input and output, respectively. #1577 (1.8.3)
+* `ImageBufAlgo::render_text()` API call has been overhauled, in addition
+  to new alignment and shadow aprameters, the color has changed from a raw
+  pointer to an `array_view<const float>` for better memory safety. Also,
+  it is now valid for the destination image to be uninitialized, in which
+  case it will be initialized to be just big enough for the text.
+  #1646 (1.8.3)
+* `ImageSpec` has a new constructor that accepts a `ROI` for image
+  dimensions and channels. #1646 (1.8.3)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:
@@ -89,7 +110,7 @@ Fixes, minor enhancements, and performance improvements:
    * `--diff` : in addition to the pixel coordinates and differences of the
       biggest differing pixel, it now also prints the full values of all
       channels of that pixel for both images. #1570 (1.8.1)
-   * 1oiiotool -d` giving per-channel formats is no longer confused by
+   * `oiiotool -d` giving per-channel formats is no longer confused by
      channel renaming with `--chnames`. #1563 (1.8.1/1.7.9)
    * `--debug` nor prints the total runtime and peak memory use after each
      individual op. #1583 (1.8.1)
@@ -100,6 +121,12 @@ Fixes, minor enhancements, and performance improvements:
    * In the case of runtime errors, `oiiotool` now echoes the entire command
      line. This is helpful for debugging mangled oiiotool command lines
      assembled by scripts. #1614 (1.8.3)
+   * Improved error reporting of file open errors when -iconfig is used.
+     #1626 (1.8.3/1.7.13)
+   * Expression evaluation now substitutes `FRAME_NUMBER` with the numeric
+     frame number for frame sequence wildcards, and `FRAME_NUMBER_PAD`
+     with the frame number 0-padded to the number of total digits specified
+     by the command line `--framepadding` argument. #1648 (1.8.3)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -109,6 +136,9 @@ Fixes, minor enhancements, and performance improvements:
    * `draw_rectangle()` (and `oiiotool --box`) wasn't drawing properly for
      the degenerate case of a rectangle that takes up just one
      pixel. #1601 (1.8.2)
+* ImageBuf:
+   * Fix broken threads(n) method, which didn't correctly pass the right
+     number of threads along. #1622. (1.8.3/1.7.12)
 * TextureSystem / ImageCache:
    * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
      on UDIM file patterns now succeed, returning the value for the first
@@ -143,19 +173,35 @@ Fixes, minor enhancements, and performance improvements:
   with certain data sizes where the copy to user buffer got mangled.
   #1595 (1.8.2/1.7.11)
 * BMP:
-   * Add support for version 5 of the BMP format header. $1616 (1.8.3)
+   * Add support for version 5 of the BMP format header. $1616 (1.8.3/1.7.12)
 * IFF:
    * Fix IFF output that didn't correctly save the "Author" and "Date"
      metadata. #1549 (1.8.1/1.7.8)
 * JPEG:
-  * Be more reslient to malformed Exif data blocks with bogus offsets.
-    #1585 (1.8.1)
+  * Be more reslient to malformed Exif data blocks with bogus offsets
+    #1585 (1.8.1/1.7.10) and #1639 (1.8.3/1.7.13).
+  * When you ask the JPEG writer to output files with unsupported channel
+    counts (JFIF files only allow 1 or 3 channels), it will just silently
+    drop extra channels, rather than having a hard error. #1643 (1.8.3)
 * OpenEXR:
   * Fix global attribute "exr_threads" value, -1 should disable IlmImf's
     thread pools as advertised. #1582 (1.8.1)
   * Allow compression "none" for deep exr files. (1.8.2/1.7.11)
+* PSD:
+   * Support has been added for "cmyk", "multichannel", and "grayscale"
+     color modes. And support was fixed for rgb and grayscale 32 bit per
+     sample bit depth. #1641 (1.8.3/1.7.13)
 * RAW:
    * Fix possible crash when reading certain raw metadata. #1547 (1.7.8/1.8.0)
+   * The default value for missing "raw:use_camera_matrix" has been changed
+     to 1 (not 0) to better match default behavior of libraw/dcraw.
+     #1629 (1.8.3/1.7.13)
+   * Add support for selecting new demosaicing algorithms: "DMT" (mode 11)
+     and "AAHD" (mode 12). Renamed the "Modified AHD" to "AHD-Mod" to
+     simplify and match libraw terminology. Made matching of demosaicing
+     algorithms case-insensitive. #1629 (1.8.3/1.7.13)
+   * Support "ACES" color space for direct conversion while reading RAW
+     images (supported in libraw 0.18 or newer). #1626 (1.8.3/1.7.13)
 * RLA:
    * Fix RLA reading and writing with certain channel orders and mixded data
      formats. #1499 (1.8.0/1.7.8)
@@ -164,10 +210,23 @@ Fixes, minor enhancements, and performance improvements:
    * Now has a way to read raw pixel values from CMYK files, without
      the automatic conversion to RGB (pass configuration attribute
      "oiio:RawColor" set to nonzero). 1605 (1.8.2/1.7.11)
+   * Fix typo that prevented correct reading of some Exif fields. #1625
+     (1.8.3/1.7.12)
+   * TIFF output omitted setting the "Make" and "Model" metadata tags.
+     #1642 (1.8.3/1.7.13)
+* webp:
+   * Several new sanity checks prevent the webp reader from spending too
+     much I/O time and memory reading bogus files (malformed, corrupted,
+     or not a webp after all). #1640 (1.8.3/1.7.13)
 * Nuke plugin: Fix txReader to properly restore saved MIP level knob value.
   #1531 (1.8.0)
 * Fixed several (so far unnoticed) buffer overruns and memory leaks.
   #1591 (1.8.2)
+* TIFF, JPEG, others: Improved reading Exif meatdata from XMP blocks, now it
+  does a better job of discerning the proper data types. #1627 (1.8.3/1.7.13)
+* In several places, the formatting of date metadata has been changed to
+  have a leading zero rather than leading space for hours < 10, i.e.,
+  "02:00:00" rather than " 2:00:00". #1630 (1.8.3)
 
 Build/test system improvements:
 * Support for building against ffmpeg 3.1 (their API has changed).
@@ -184,6 +243,8 @@ Build/test system improvements:
   multiple are installed. #1578 (1.8.1)
 * Build option `SANITIZE=...` lets us use the sanitizers. #1591 (1.8.2)
 * Big refactoring of the cmake build files. #1604 (1.8.2)
+* When using a recent enough C++ compiler and standard library, OIIO will
+  now use C++11 std::regex rather than boost regex. #1620,#1644 (1.8.3)
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -205,6 +266,8 @@ Developer goodies / internals:
 * strutil.h / Strutil:
    * Add `Strutil::printf()` and `Strutil::fprintf()`, typesafe and
      non-thread-jumbled replacements for C versions. #1579 (1.8.1)
+   * `from_string<>` has been extended to 'unsigned int'. (1.8.3/1.7.13)
+   * `Strutil::parse_identifier_if` #1647 (1.8.3)
 * simd.h:
    * Add a matrix44 constructor from 16 floats. #1552 (1.8.1)
 * thread.h:
@@ -230,6 +293,14 @@ Docs:
 * Fix 'Building OIIO on Windows' link. #1590 (1.8.1)
 
 
+
+Release 1.7.12 (1 Mar 2017) -- compared to 1.7.11
+----------------------------------------------
+* BMP: add support for version 5 headers. #1616
+* TIFF: Fix typo that prevented correct reading of some Exif fields. #1625
+* ImageBuf: Fix broken threads(n) method, which didn't correctly pass the
+  right number of threads along. #1622.
+* Fix build warnings about undefined OIIO_MSVS_AT_LEAST_2013 symbol.
 
 Release 1.7.11 (1 Feb 2017) -- compared to 1.7.10
 ----------------------------------------------
