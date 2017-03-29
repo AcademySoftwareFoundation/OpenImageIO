@@ -32,7 +32,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <time.h>
+#include <ctime>
 
 #include "png_pvt.h"
 

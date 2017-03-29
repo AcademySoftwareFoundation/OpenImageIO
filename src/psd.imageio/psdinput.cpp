@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include <setjmp.h>
+#include <csetjmp>
 #include <fstream>
 #include <vector>
 #include <map>

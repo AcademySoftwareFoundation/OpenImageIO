@@ -29,7 +29,7 @@
 */
 
 
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <sstream>
 #include <list>

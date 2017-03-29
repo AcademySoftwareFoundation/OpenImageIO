@@ -31,7 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <errno.h>
+#include <cerrno>
 #include <fstream>
 #include <iostream>
 #include <map>

@@ -39,7 +39,7 @@
 #include <sstream>
 #include <algorithm>
 #include <utility>
-#include <ctype.h>
+#include <cctype>
 #include <map>
 
 #include <OpenEXR/ImfTimeCode.h>

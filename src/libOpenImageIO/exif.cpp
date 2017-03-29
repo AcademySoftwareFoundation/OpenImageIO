@@ -29,7 +29,7 @@
 */
 
 
-#include <ctype.h>
+#include <cctype>
 #include <cstdio>
 #include <iostream>
 #include <vector>

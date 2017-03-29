@@ -3,10 +3,10 @@
  * IT IS STRICTLY USE AT YOUR OWN RISK.  */
 
 #include "rgbe.h"
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
 
 /* This file contains code to read and write four byte rgbe file format
  developed by Greg Ward.  It handles the conversions between rgbe and

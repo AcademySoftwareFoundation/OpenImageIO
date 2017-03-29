@@ -30,7 +30,7 @@
 
 
 #include <cstdlib>
-#include <ctype.h>
+#include <cctype>
 
 #include "fits_pvt.h"
 

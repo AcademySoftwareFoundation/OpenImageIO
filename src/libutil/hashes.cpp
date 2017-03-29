@@ -1,5 +1,5 @@
-#include <stdio.h>      /* defines printf for tests */
-#include <time.h>       /* defines time_t for timings in the test */
+#include <cstdio>      /* defines printf for tests */
+#include <ctime>       /* defines time_t for timings in the test */
 #if defined(__linux__) || defined(__APPLE__)
 # include <sys/param.h>  /* attempt to define endianness */
 #endif
