@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=41
+OPENIMAGEIO_SPCOMP2_VERSION=42
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -97,7 +97,7 @@ ifeq ($(SP_OS), rhel7)
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/spinux1/llvm_3.5
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_4.0_final
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -174,6 +174,7 @@ ifeq ($(SP_OS), rhel7)
     MY_CMAKE_FLAGS += -DHIDE_SYMBOLS=1
     MY_CMAKE_FLAGS += -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
     MY_CMAKE_FLAGS += -DEXTRA_DSO_LINK_ARGS:STRING="-Wl,--exclude-libs,libtiff.a"
+    MY_CMAKE_FLAGS += -DUSE_OPENCV=0
 
     # end rhel7
 
@@ -231,12 +232,22 @@ else ifeq (${platform}, macosx)
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    ifeq (${COMPILER}, gcc5)
+    ifeq (${COMPILER}, gcc48)
         MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-5 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-5
+           -DCMAKE_C_COMPILER=gcc-4.8 -DCMAKE_CXX_COMPILER=g++-4.8
+        USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc49)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9
+        USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc5)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER}, gcc6)
         MY_CMAKE_FLAGS += \
-           -DCMAKE_C_COMPILER=/usr/local/bin/gcc-6 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-6
+           -DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang35)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.5 -DCMAKE_CXX_COMPILER=clang++-3.5
     else ifeq (${COMPILER},clang38)
