@@ -1,3 +1,7 @@
+Release 1.7.14 (1 May 2017) -- compared to 1.7.13
+-------------------------------------------------
+
+
 Release 1.7.13 (1 Apr 2017) -- compared to 1.7.12
 ----------------------------------------------
 * TIFF, JPEG, others: Improved reading Exif meatdata from XMP blocks, now it
