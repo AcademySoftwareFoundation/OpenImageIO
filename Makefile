@@ -292,6 +292,8 @@ ifneq (${CLANG_TIDY_ARGS},)
 endif
 ifneq (${CLANG_TIDY_FIX},)
   MY_CMAKE_FLAGS += -DCLANG_TIDY_FIX:BOOL=${CLANG_TIDY_FIX}
+  MY_NINJA_FLAGS += -j 1
+  # N.B. when fixing, you don't want parallel jobs!
 endif
 
 ifneq (${USE_FREETYPE},)
