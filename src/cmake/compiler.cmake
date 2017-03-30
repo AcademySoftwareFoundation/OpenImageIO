@@ -281,7 +281,7 @@ endif ()
 
 # clang-tidy options
 if (CLANG_TIDY)
-    set (CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=OpenImageIO/*.h")
+    set (CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=(${PROJECT_NAME})|(${PROJ_NAME})|(${PROJ_NAME_LOWER})|(_pvt.h)")
     if (CLANG_TIDY_ARGS)
         set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};${CLANG_TIDY_ARGS}")
     endif ()
