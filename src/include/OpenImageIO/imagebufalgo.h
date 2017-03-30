@@ -38,11 +38,11 @@
 #  pragma warning (disable : 4251)
 #endif
 
-#include "imageio.h"
-#include "imagebuf.h"
-#include "fmath.h"
-#include "color.h"
-#include "array_view.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/color.h>
+#include <OpenImageIO/array_view.h>
 
 #include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
 

@@ -31,10 +31,10 @@
 #include <sstream>
 #include <fstream>
 
-#include "OpenImageIO/platform.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/unittest.h>
 
 #ifndef _WIN32
 # include <sys/stat.h>

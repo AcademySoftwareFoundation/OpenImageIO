@@ -33,9 +33,9 @@
 
 #include <memory>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/sysutil.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/sysutil.h>
 
 
 OIIO_NAMESPACE_BEGIN

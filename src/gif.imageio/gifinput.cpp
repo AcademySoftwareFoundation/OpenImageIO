@@ -32,8 +32,8 @@
 #include <memory>
 #include <gif_lib.h>
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/thread.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/thread.h>
 
 // GIFLIB:
 // http://giflib.sourceforge.net/

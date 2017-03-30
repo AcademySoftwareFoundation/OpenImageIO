@@ -52,10 +52,10 @@
 #include <cstddef>
 #include <iostream>
 
-#include "export.h"
-#include "oiioversion.h"
-#include "dassert.h"
-#include "string_view.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/string_view.h>
 
 
 OIIO_NAMESPACE_BEGIN

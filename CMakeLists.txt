@@ -122,7 +122,7 @@ include (install)
 include_directories (
     BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
-    "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}"
+    "${CMAKE_BINARY_DIR}/include"
   )
 
 

@@ -38,10 +38,10 @@
 #include <initializer_list>
 #include <type_traits>
 
-#include "oiioversion.h"
-#include "platform.h"
-#include "dassert.h"
-#include "coordinate.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/coordinate.h>
 
 OIIO_NAMESPACE_BEGIN
 

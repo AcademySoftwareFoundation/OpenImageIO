@@ -32,14 +32,13 @@
 #include <functional>
 #include <iostream>
 
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/ustring.h"
-
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/unittest.h>
 
 
 OIIO_NAMESPACE_USING;

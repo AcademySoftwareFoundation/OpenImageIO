@@ -43,10 +43,10 @@
 #  pragma warning (disable : 4251)
 #endif
 
-#include "imageio.h"
-#include "fmath.h"
-#include "imagecache.h"
-#include "dassert.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/dassert.h>
 
 #include <limits>
 

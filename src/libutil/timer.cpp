@@ -31,7 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "OpenImageIO/timer.h"
+#include <OpenImageIO/timer.h>
 
 
 OIIO_NAMESPACE_BEGIN

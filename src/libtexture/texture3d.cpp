@@ -36,17 +36,17 @@
 
 #include <OpenEXR/ImathMatrix.h>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/varyingref.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/texture.h"
-#include "OpenImageIO/imagecache.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/varyingref.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/texture.h>
+#include <OpenImageIO/imagecache.h>
 
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"

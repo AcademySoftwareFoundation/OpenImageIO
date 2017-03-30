@@ -36,11 +36,11 @@
 
 #include <boost/tokenizer.hpp>
 
-#include "OpenImageIO/platform.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/refcnt.h"
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/refcnt.h>
 
 #ifdef _WIN32
 // # include <windows.h>   // Already done by platform.h

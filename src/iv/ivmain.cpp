@@ -47,12 +47,12 @@
 #include <QApplication>
 
 #include "imageviewer.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/imagecache.h"
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/filesystem.h>
 
 OIIO_NAMESPACE_USING;
 

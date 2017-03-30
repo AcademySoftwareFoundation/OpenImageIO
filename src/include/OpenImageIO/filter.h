@@ -33,9 +33,9 @@
 #ifndef OPENIMAGEIO_FILTER_H
 #define OPENIMAGEIO_FILTER_H
 
-#include "oiioversion.h"
-#include "export.h"
-#include "string_view.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/string_view.h>
 
 
 OIIO_NAMESPACE_BEGIN

@@ -50,9 +50,9 @@
 #include <string>
 #include <iostream>
 
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/dassert.h"
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/dassert.h>
 
 
 OIIO_NAMESPACE_BEGIN

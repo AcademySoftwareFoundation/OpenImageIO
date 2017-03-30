@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 #include "socket_pvt.h"
 
 

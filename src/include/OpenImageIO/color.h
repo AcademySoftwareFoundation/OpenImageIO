@@ -31,10 +31,10 @@
 #ifndef OPENIMAGEIO_COLOR_H
 #define OPENIMAGEIO_COLOR_H
 
-#include "export.h"
-#include "oiioversion.h"
-#include "typedesc.h"
-#include "fmath.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/fmath.h>
 
 
 OIIO_NAMESPACE_BEGIN

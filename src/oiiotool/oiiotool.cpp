@@ -44,16 +44,16 @@
 
 #include <OpenEXR/ImfTimeCode.h>
 
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/color.h"
-#include "OpenImageIO/timer.h"
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/color.h>
+#include <OpenImageIO/timer.h>
 
 #include "oiiotool.h"
 

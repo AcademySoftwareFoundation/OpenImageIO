@@ -31,7 +31,7 @@
 #include <memory>
 
 #include "py_oiio.h"
-#include "OpenImageIO/platform.h"
+#include <OpenImageIO/platform.h>
 
 
 namespace PyOpenImageIO

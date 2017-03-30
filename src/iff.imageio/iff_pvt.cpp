@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 #include "iff_pvt.h"
-#include "OpenImageIO/dassert.h"
+#include <OpenImageIO/dassert.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

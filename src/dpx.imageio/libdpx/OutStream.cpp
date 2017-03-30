@@ -34,7 +34,7 @@
 
 #include <cstdio>
 
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/filesystem.h>
 
 #include "DPXStream.h"
 

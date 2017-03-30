@@ -35,7 +35,7 @@
 #ifndef OPENIMAGEIO_VARYINGREF_H
 #define OPENIMAGEIO_VARYINGREF_H
 
-#include "oiioversion.h"
+#include <OpenImageIO/oiioversion.h>
 
 OIIO_NAMESPACE_BEGIN
 

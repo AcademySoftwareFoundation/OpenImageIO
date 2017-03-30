@@ -36,9 +36,9 @@
 #ifndef OPENIMAGEIO_TIMER_H
 #define OPENIMAGEIO_TIMER_H
 
-#include "oiioversion.h"
-#include "export.h"
-#include "platform.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/platform.h>
 
 #ifdef _WIN32
 //# include <windows.h>  // Already done by platform.h

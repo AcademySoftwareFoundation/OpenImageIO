@@ -36,8 +36,8 @@
 #ifndef OPENIMAGEIO_TEXTURE_PVT_H
 #define OPENIMAGEIO_TEXTURE_PVT_H
 
-#include "OpenImageIO/texture.h"
-#include "OpenImageIO/simd.h"
+#include <OpenImageIO/texture.h>
+#include <OpenImageIO/simd.h>
 
 OIIO_NAMESPACE_BEGIN
 

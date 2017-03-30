@@ -31,9 +31,9 @@
 #ifndef OPENIMAGEIO_PSD_PVT_H
 #define OPENIMAGEIO_PSD_PVT_H
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/fmath.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

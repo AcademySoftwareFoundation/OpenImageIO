@@ -35,8 +35,8 @@
 #include <cstdlib>
 #include <vector>
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/platform.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/platform.h>
 
 namespace {
 #define GIF_TEMP_MALLOC malloc

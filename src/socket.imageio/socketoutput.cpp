@@ -30,7 +30,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 #include "socket_pvt.h"
 
 

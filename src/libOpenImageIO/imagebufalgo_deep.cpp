@@ -35,12 +35,12 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/deepdata.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/thread.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/thread.h>
 
 
 OIIO_NAMESPACE_BEGIN

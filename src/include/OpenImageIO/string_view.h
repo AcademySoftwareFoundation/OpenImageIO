@@ -38,8 +38,8 @@
 #include <algorithm>
 #include <ostream>
 
-#include "oiioversion.h"
-#include "export.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
 
 
 OIIO_NAMESPACE_BEGIN

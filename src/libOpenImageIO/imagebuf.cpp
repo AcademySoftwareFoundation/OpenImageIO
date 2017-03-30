@@ -39,17 +39,17 @@
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/deepdata.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/imagecache.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/simd.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/simd.h>
 
 OIIO_NAMESPACE_BEGIN
 

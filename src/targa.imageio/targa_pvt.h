@@ -31,8 +31,7 @@
 #ifndef OPENIMAGEIO_TARGA_PVT_H
 #define OPENIMAGEIO_TARGA_PVT_H
 
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/fmath.h"
+#include <OpenImageIO/oiioversion.h>
 
 
 

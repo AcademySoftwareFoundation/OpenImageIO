@@ -7,9 +7,9 @@
 # include <endian.h>    /* attempt to define endianness */
 #endif
 
-#include "OpenImageIO/platform.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/hash.h"
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/hash.h>
 
 OIIO_NAMESPACE_BEGIN
 

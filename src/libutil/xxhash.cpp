@@ -80,7 +80,7 @@ You can contact the author at :
 //**************************************
 // Includes & Memory related functions
 //**************************************
-#include "OpenImageIO/hash.h"
+#include <OpenImageIO/hash.h>
 
 
 #include <cstddef>   /* size_t */

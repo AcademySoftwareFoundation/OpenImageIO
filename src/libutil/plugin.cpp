@@ -31,14 +31,14 @@
 #include <cstdlib>
 #include <string>
 
-#include "OpenImageIO/platform.h"
+#include <OpenImageIO/platform.h>
 
 #ifndef _WIN32
 # include <dlfcn.h>
 #endif
 
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/plugin.h"
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/plugin.h>
 
 
 OIIO_NAMESPACE_BEGIN

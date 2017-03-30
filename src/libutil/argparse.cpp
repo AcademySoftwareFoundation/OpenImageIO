@@ -40,10 +40,10 @@
 #include <string>
 #include <sstream>
 
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/dassert.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/dassert.h>
 
 OIIO_NAMESPACE_BEGIN
 

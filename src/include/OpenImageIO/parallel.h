@@ -41,7 +41,7 @@
 #include <thread>
 #include <vector>
 
-#include "thread.h"
+#include <OpenImageIO/thread.h>
 
 
 OIIO_NAMESPACE_BEGIN

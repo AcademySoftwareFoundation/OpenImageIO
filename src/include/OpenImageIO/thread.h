@@ -49,11 +49,11 @@
 #include <chrono>
 #include <iostream>
 
-#include "oiioversion.h"
-#include "export.h"
-#include "platform.h"
-#include "atomic.h"
-#include "dassert.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/atomic.h>
+#include <OpenImageIO/dassert.h>
 
 
 

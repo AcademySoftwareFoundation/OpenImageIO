@@ -39,8 +39,8 @@
 #ifndef OPENIMAGEIO_ATOMIC_H
 #define OPENIMAGEIO_ATOMIC_H
 
-#include "oiioversion.h"
-#include "platform.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 # include <atomic>

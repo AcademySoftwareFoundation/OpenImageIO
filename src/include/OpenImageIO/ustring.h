@@ -133,11 +133,11 @@
 #include <string>
 #include <iostream>
 #include <cstring>
-#include "export.h"
-#include "strutil.h"
-#include "string_view.h"
-#include "dassert.h"
-#include "oiioversion.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/string_view.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/oiioversion.h>
 
 #ifndef NULL
 #define NULL 0

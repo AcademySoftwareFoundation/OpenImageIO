@@ -30,8 +30,8 @@
 
 #include <cstdio>
 
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/unittest.h>
 
 OIIO_NAMESPACE_USING;
 using namespace Strutil;

@@ -46,10 +46,10 @@
 #include <malloc.h> // for alloca
 #endif
 
-#include "export.h"
-#include "oiioversion.h"
-#include "platform.h"
-#include "string_view.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/string_view.h>
 
 
 OIIO_NAMESPACE_BEGIN

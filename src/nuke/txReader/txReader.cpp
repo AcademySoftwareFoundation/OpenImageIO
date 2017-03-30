@@ -6,7 +6,7 @@
 #include "DDImage/Reader.h"
 #include "DDImage/Row.h"
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 
 
 using namespace DD::Image;

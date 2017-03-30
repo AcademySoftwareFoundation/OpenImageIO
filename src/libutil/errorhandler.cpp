@@ -34,9 +34,9 @@
 #include <iostream>
 #include <string>
 
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/errorhandler.h"
-#include "OpenImageIO/thread.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/errorhandler.h>
+#include <OpenImageIO/thread.h>
 
 
 

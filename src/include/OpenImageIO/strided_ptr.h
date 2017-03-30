@@ -34,7 +34,7 @@
 
 #include <cstddef>
 
-#include "oiioversion.h"
+#include <OpenImageIO/oiioversion.h>
 
 
 OIIO_NAMESPACE_BEGIN

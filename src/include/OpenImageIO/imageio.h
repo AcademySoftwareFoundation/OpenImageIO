@@ -54,13 +54,13 @@
 #include <limits>
 #include <cmath>
 
-#include "export.h"
-#include "oiioversion.h"
-#include "platform.h"
-#include "typedesc.h"   /* Needed for TypeDesc definition */
-#include "paramlist.h"
-#include "strutil.h"
-#include "array_view.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/paramlist.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/array_view.h>
 
 OIIO_NAMESPACE_BEGIN
 

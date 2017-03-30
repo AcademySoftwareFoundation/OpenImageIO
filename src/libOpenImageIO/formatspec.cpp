@@ -35,18 +35,18 @@
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImfTimeCode.h>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/imagebuf.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
 #include "imageio_pvt.h"
 
 #if USE_EXTERNAL_PUGIXML
 # include "pugixml.hpp"
 #else
-# include "OpenImageIO/pugixml.hpp"
+# include <OpenImageIO/pugixml.hpp>
 #endif
 
 #ifdef USE_BOOST_REGEX

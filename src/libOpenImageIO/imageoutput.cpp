@@ -36,14 +36,14 @@
 #include <vector>
 #include <memory>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/plugin.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/deepdata.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/plugin.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/deepdata.h>
 #include "imageio_pvt.h"
 
 

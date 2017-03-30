@@ -37,10 +37,10 @@
 #include <iterator>
 #include <memory>
 
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
 
 #ifdef USE_BOOST_REGEX
 # include <boost/regex.hpp>

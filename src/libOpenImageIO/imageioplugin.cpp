@@ -34,11 +34,11 @@
 #include <string>
 #include <vector>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/plugin.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/plugin.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
 #include "imageio_pvt.h"
 
 

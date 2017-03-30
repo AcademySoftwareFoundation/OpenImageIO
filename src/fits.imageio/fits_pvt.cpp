@@ -29,7 +29,7 @@
 */
 
 #include "fits_pvt.h"
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/strutil.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

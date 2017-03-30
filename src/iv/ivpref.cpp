@@ -38,8 +38,8 @@
 #include <QVBoxLayout>
 
 #include "imageviewer.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/strutil.h>
 
 
 

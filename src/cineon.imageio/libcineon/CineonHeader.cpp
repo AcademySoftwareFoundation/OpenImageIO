@@ -41,7 +41,7 @@
 #include <ctime>
 #include <limits>
 
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/strutil.h>
 
 #include "CineonHeader.h"
 #include "EndianSwap.h"

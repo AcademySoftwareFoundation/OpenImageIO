@@ -56,12 +56,12 @@
 
 #include <OpenEXR/ImathFun.h>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/filesystem.h>
 #include "ivutils.h"
 
 

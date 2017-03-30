@@ -44,11 +44,11 @@
 #include <vector>
 #include <algorithm>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/sysutil.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/sysutil.h>
 
 
 

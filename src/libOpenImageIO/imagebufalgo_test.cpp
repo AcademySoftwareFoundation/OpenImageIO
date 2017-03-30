@@ -31,13 +31,13 @@
 // Based on the sample at:
 // http://code.google.com/p/googletest/wiki/GoogleTestPrimer#Writing_the_main()_Function
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/unittest.h>
 
 #include <iostream>
 #include <iomanip>

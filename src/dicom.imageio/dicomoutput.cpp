@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

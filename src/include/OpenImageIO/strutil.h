@@ -49,15 +49,15 @@
 #include <vector>
 #include <map>
 
-#include "export.h"
-#include "oiioversion.h"
-#include "string_view.h"
-#include "hash.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/string_view.h>
+#include <OpenImageIO/hash.h>
 
 #ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
 # define TINYFORMAT_USE_VARIADIC_TEMPLATES
 #endif
-#include "tinyformat.h"
+#include <OpenImageIO/tinyformat.h>
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__

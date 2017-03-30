@@ -30,7 +30,7 @@
 
 #include <cstdio>
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 
 #include "jpeg_memory_src.h"
 #include "jerror.h"

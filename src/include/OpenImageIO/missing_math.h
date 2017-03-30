@@ -40,7 +40,7 @@
 
 #include <cmath>
 
-#include "oiioversion.h"   /* Just for the OIIO_NAMESPACE stuff */
+#include <OpenImageIO/oiioversion.h>
 
 
 #ifndef M_PI

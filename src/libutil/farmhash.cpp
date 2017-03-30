@@ -23,7 +23,7 @@
 // http://code.google.com/p/farmhash/
 
 //#include "farmhash.h"
-#include "OpenImageIO/hash.h"
+#include <OpenImageIO/hash.h>
 
 #define NAMESPACE_FOR_HASH_FUNCTIONS OIIO::farmhash
 

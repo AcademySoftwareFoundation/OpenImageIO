@@ -35,11 +35,11 @@
 #undef SIZEOF_LONG
 #include <boost/python.hpp>
 
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/imagecache.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/deepdata.h"
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/deepdata.h>
 
 
 #if PY_MAJOR_VERSION < 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)

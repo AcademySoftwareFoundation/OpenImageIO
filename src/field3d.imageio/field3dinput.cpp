@@ -32,10 +32,10 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/filesystem.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/filesystem.h>
 
 #include <OpenEXR/ImathVec.h>
 

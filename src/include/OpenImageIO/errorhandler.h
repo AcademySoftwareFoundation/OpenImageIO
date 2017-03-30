@@ -34,9 +34,9 @@
 
 #include <cstdarg>
 
-#include "export.h"
-#include "oiioversion.h"
-#include "strutil.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/strutil.h>
 
 
 OIIO_NAMESPACE_BEGIN

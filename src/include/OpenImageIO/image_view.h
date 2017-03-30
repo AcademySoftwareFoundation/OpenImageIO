@@ -54,8 +54,8 @@
 #  endif
 #endif
 
-#include "oiioversion.h"
-#include "strided_ptr.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/strided_ptr.h>
 
 
 OIIO_NAMESPACE_BEGIN

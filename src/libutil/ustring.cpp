@@ -30,11 +30,11 @@
 
 #include <string>
 
-#include "OpenImageIO/export.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/ustring.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/ustring.h>
 
 OIIO_NAMESPACE_BEGIN
 

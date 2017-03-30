@@ -36,15 +36,15 @@
 
 #include <boost/thread/tss.hpp>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/parallel.h"
-#include "OpenImageIO/hash.h"
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/parallel.h>
+#include <OpenImageIO/hash.h>
+#include <OpenImageIO/imageio.h>
 #include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN

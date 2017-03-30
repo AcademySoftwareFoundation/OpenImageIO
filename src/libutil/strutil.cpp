@@ -40,11 +40,11 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "OpenImageIO/platform.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/string_view.h"
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/string_view.h>
 
 #ifdef _WIN32
 # include <shellapi.h>

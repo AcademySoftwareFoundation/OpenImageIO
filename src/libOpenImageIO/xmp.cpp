@@ -31,10 +31,10 @@
 
 #include <iostream>
 
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imageio.h>
 
 extern "C" {
 #include "tiff.h"
@@ -43,7 +43,7 @@ extern "C" {
 #if USE_EXTERNAL_PUGIXML
 # include "pugixml.hpp"
 #else
-# include "OpenImageIO/pugixml.hpp"
+# include <OpenImageIO/pugixml.hpp>
 #endif
 
 #define DEBUG_XMP_READ  0

@@ -42,12 +42,12 @@
 
 #include <OpenEXR/half.h>
 
-#include "OpenImageIO/export.h"
-#include "OpenImageIO/texture.h"
-#include "OpenImageIO/refcnt.h"
-#include "OpenImageIO/hash.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/unordered_map_concurrent.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/texture.h>
+#include <OpenImageIO/refcnt.h>
+#include <OpenImageIO/hash.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/unordered_map_concurrent.h>
 
 
 OIIO_NAMESPACE_BEGIN

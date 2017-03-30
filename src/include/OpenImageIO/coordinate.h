@@ -36,9 +36,9 @@
 #include <iostream>
 #include <initializer_list>
 
-#include "oiioversion.h"
-#include "platform.h"
-#include "dassert.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/dassert.h>
 
 OIIO_NAMESPACE_BEGIN
 

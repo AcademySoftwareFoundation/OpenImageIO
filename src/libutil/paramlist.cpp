@@ -31,9 +31,9 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/ustring.h"
-#include "OpenImageIO/paramlist.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/paramlist.h>
 
 
 OIIO_NAMESPACE_BEGIN

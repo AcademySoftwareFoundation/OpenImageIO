@@ -36,9 +36,6 @@
 
 #include "png_pvt.h"
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/strutil.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

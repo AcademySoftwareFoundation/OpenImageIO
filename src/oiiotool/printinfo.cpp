@@ -43,16 +43,16 @@
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathVec.h>
 
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/deepdata.h"
-#include "OpenImageIO/hash.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/array_view.h"
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/hash.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/array_view.h>
 #include "oiiotool.h"
 
 #ifdef USE_BOOST_REGEX

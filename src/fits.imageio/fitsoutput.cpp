@@ -28,7 +28,7 @@
   (This is the Modified BSD License)
 */
 
-#include "oiioversion.h"
+#include <OpenImageIO/oiioversion.h>
 #include "fits_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

@@ -39,18 +39,18 @@
 #define OPENIMAGEIO_HASH_H
 
 #include <vector>
-#include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>   // for memcpy and memset
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <utility>
 #include <unordered_map>
 
-#include "export.h"
-#include "oiioversion.h"
-#include "fmath.h"   /* for endian */
-#include "string_view.h"
-#include "array_view.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/string_view.h>
+#include <OpenImageIO/array_view.h>
 
 
 

@@ -39,7 +39,7 @@
 
 #include <map>
 #include <memory>
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 
 
 // The boost::asio library uses functionality only available since Windows XP,

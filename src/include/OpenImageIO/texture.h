@@ -37,9 +37,9 @@
 #ifndef OPENIMAGEIO_TEXTURE_H
 #define OPENIMAGEIO_TEXTURE_H
 
-#include "varyingref.h"
-#include "ustring.h"
-#include "imageio.h"
+#include <OpenImageIO/varyingref.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/imageio.h>
 
 #include <OpenEXR/ImathVec.h>       /* because we need V3f */
 

@@ -4,9 +4,9 @@
 #include "DDImage/Thread.h"
 #include "DDImage/Row.h"
 
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 
 
 /*

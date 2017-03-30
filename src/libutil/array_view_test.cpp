@@ -29,10 +29,10 @@
 
 #include <iostream>
 
-#include "OpenImageIO/strided_ptr.h"
-#include "OpenImageIO/array_view.h"
-#include "OpenImageIO/image_view.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/strided_ptr.h>
+#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/image_view.h>
+#include <OpenImageIO/unittest.h>
 
 OIIO_NAMESPACE_USING;
 

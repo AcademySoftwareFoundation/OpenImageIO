@@ -43,9 +43,9 @@
 #include <QGLFormat>
 
 #include "ivutils.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/timer.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/timer.h>
 
 
 static const char *

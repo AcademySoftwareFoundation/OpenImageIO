@@ -37,11 +37,11 @@
 #include <vector>
 #include <string>
 
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/imagecache.h"
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagecache.h>
 
 
 OIIO_NAMESPACE_USING;

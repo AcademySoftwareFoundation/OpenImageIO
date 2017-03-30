@@ -57,12 +57,12 @@
 #include <cstring>
 #include <cmath>
 
-#include "oiioversion.h"   /* Just for the OIIO_NAMESPACE stuff */
-#include "platform.h"
-#include "dassert.h"
-#include "missing_math.h"
-#include "simd.h"
-#include "array_view.h"
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/missing_math.h>
+#include <OpenImageIO/simd.h>
+#include <OpenImageIO/array_view.h>
 
 
 OIIO_NAMESPACE_BEGIN

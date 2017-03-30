@@ -35,11 +35,11 @@
 
 #include <OpenEXR/half.h>
 
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/deepdata.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/strutil.h>
 
 OIIO_NAMESPACE_BEGIN
 

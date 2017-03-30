@@ -126,8 +126,8 @@ inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
 
 #include <boost/thread/once.hpp>
 
-#include "OpenImageIO/imageio.h"
-#include  <iostream>
+#include <OpenImageIO/imageio.h>
+#include <iostream>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

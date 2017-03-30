@@ -34,8 +34,8 @@
 #include <OpenEXR/half.h>
 
 #include "imageviewer.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/fmath.h"
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/fmath.h>
 
 
 IvImage::IvImage (const std::string &filename)

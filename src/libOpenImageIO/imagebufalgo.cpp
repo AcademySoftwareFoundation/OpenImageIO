@@ -33,13 +33,13 @@
 #include <cmath>
 #include <memory>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/platform.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/thread.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/platform.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/thread.h>
 #include "kissfft.hh"
 
 #ifdef USE_BOOST_REGEX

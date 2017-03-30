@@ -32,10 +32,10 @@
 #include "libdpx/DPXColorConverter.h"
 #include <OpenEXR/ImfTimeCode.h> //For TimeCode support
 
-#include "OpenImageIO/typedesc.h"
-#include "OpenImageIO/imageio.h"
-#include "OpenImageIO/fmath.h"
-#include "OpenImageIO/strutil.h"
+#include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
 #include <iomanip>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

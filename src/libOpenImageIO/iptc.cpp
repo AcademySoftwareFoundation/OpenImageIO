@@ -31,7 +31,7 @@
 
 #include <iostream>
 
-#include "OpenImageIO/imageio.h"
+#include <OpenImageIO/imageio.h>
 
 #define DEBUG_IPTC_READ  0
 #define DEBUG_IPTC_WRITE 0

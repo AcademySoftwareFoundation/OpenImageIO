@@ -33,9 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OPENIMAGEIO_DEEPDATA_H
 #define OPENIMAGEIO_DEEPDATA_H
 
-#include "export.h"
-#include "oiioversion.h"
-#include "array_view.h"
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/array_view.h>
 
 OIIO_NAMESPACE_BEGIN
 

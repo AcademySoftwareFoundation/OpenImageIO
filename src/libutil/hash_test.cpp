@@ -35,11 +35,11 @@
 #include <vector>
 #include <functional>
 
-#include "OpenImageIO/hash.h"
-#include "OpenImageIO/timer.h"
-#include "OpenImageIO/argparse.h"
-#include "OpenImageIO/strutil.h"
-#include "OpenImageIO/unittest.h"
+#include <OpenImageIO/hash.h>
+#include <OpenImageIO/timer.h>
+#include <OpenImageIO/argparse.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/unittest.h>
 
 
 

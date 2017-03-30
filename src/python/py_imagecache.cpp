@@ -30,7 +30,6 @@
 
 #include <memory>
 #include "py_oiio.h"
-#include "OpenImageIO/ustring.h"
 
 namespace PyOpenImageIO
 {

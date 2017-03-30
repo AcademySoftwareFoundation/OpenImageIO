@@ -34,15 +34,15 @@
 #include <limits>
 #include <algorithm>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/sysutil.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/thread.h"
-#include "OpenImageIO/filesystem.h"
-#include "OpenImageIO/hash.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/thread.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/hash.h>
 
 #ifdef USE_FREETYPE
 #include <ft2build.h>

@@ -39,12 +39,12 @@
 #include <cmath>
 #include <memory>
 
-#include "OpenImageIO/imagebuf.h"
-#include "OpenImageIO/imagebufalgo.h"
-#include "OpenImageIO/imagebufalgo_util.h"
-#include "OpenImageIO/dassert.h"
-#include "OpenImageIO/filter.h"
-#include "OpenImageIO/thread.h"
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/imagebufalgo_util.h>
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filter.h>
+#include <OpenImageIO/thread.h>
 
 OIIO_NAMESPACE_BEGIN
 
