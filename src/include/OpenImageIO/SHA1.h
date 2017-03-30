@@ -94,8 +94,8 @@
 #include <memory.h>
 
 #ifdef SHA1_UTILITY_FUNCTIONS
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #endif
 
 #ifdef SHA1_STL_FUNCTIONS

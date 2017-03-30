@@ -8,7 +8,7 @@
    See rgbe.txt file for more details.
 */
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <OpenImageIO/imageio.h>
 

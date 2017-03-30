@@ -56,7 +56,7 @@
 #  ifndef __STDC_LIMIT_MACROS
 #    define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
 #  endif
-#  include <stdint.h>
+#  include <cstdint>
 #endif
 
 #if defined(__FreeBSD__)

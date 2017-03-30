@@ -48,7 +48,7 @@
 #  ifndef __STDC_LIMIT_MACROS
 #    define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
 #  endif
-#  include <stdint.h>
+#  include <cstdint>
 #  if ! defined(INT64_MIN)
 #    error You must define __STDC_LIMIT_MACROS prior to including stdint.h
 #  endif

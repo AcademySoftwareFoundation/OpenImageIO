@@ -55,9 +55,9 @@ For more information, please refer to <http://unlicense.org>
 #ifndef gif_h
 #define gif_h
 
-#include <stdio.h>   // for FILE*
-#include <string.h>  // for memcpy and bzero
-#include <stdint.h>  // for integer typedefs
+#include <cstdio>   // for FILE*
+#include <cstring>  // for memcpy and bzero
+#include <cstdint>  // for integer typedefs
 
 // Define these macros to hook into a custom memory allocator.
 // TEMP_MALLOC and TEMP_FREE will only be called in stack fashion - frees in the reverse order of mallocs

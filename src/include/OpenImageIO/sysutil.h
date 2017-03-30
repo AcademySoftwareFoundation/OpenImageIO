@@ -40,7 +40,7 @@
 #pragma once
 
 #include <string>
-#include <time.h>
+#include <ctime>
 
 #ifdef __MINGW32__
 #include <malloc.h> // for alloca

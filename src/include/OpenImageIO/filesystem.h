@@ -42,7 +42,7 @@
 #ifndef OPENIMAGEIO_FILESYSTEM_H
 #define OPENIMAGEIO_FILESYSTEM_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <fstream>
