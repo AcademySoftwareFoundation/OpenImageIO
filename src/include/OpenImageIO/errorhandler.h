@@ -32,8 +32,6 @@
 #ifndef OPENIMAGEIO_ERRORMANAGER_H
 #define OPENIMAGEIO_ERRORMANAGER_H
 
-#include <cstdarg>
-
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/strutil.h>
@@ -91,46 +89,55 @@ public:
 
     /// Info message with printf-like formatted error message.
     /// Will not print unless verbosity >= VERBOSE.
-    void info (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    void info (string_view format, const Args&... args) {
+        if (verbosity() >= VERBOSE)
+            info (Strutil::format (format, args...));
+    }
 
     /// Warning message with printf-like formatted error message.
     /// Will not print unless verbosity >= NORMAL (i.e. will suppress
     /// for QUIET).
-    void warning (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    void warning (string_view format, const Args&... args) {
+        if (verbosity() >= NORMAL)
+            warning (Strutil::format (format, args...));
+    }
 
     /// Error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    void error (string_view format, const Args&... args) {
+        error (Strutil::format (format, args...));
+    }
 
     /// Severe error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void severe (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    void severe (string_view format, const Args&... args) {
+        severe (Strutil::format (format, args...));
+    }
 
     /// Prefix-less message with printf-like formatted error message.
     /// Will not print if verbosity is QUIET.  Also note that unlike
     /// the other routines, message() will NOT append a newline.
-    void message (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    template<typename... Args>
+    void message (string_view format, const Args&... args) {
+        if (verbosity() > QUIET)
+            message (Strutil::format (format, args...));
+    }
 
     /// Debugging message with printf-like formatted error message.
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
+    template<typename... Args>
+    void debug (string_view format, const Args&... args) {
 #ifndef NDEBUG
-    void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
-#else
-    void debug (const char * /*format*/, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
+        debug (Strutil::format (format, args...));
 #endif
+    }
 
-    void vInfo    (const char *format, va_list argptr);
-    void vWarning (const char *format, va_list argptr);
-    void vError   (const char *format, va_list argptr);
-    void vSevere  (const char *format, va_list argptr);
-    void vMessage (const char *format, va_list argptr);
-#ifndef NDEBUG
-    void vDebug   (const char *format, va_list argptr);
-#else
-    void vDebug   (const char *, va_list) { }
-#endif
-
+    // Base cases
     void info    (const std::string &msg) { (*this)(EH_INFO, msg); }
     void warning (const std::string &msg) { (*this)(EH_WARNING, msg); }
     void error   (const std::string &msg) { (*this)(EH_ERROR, msg); }

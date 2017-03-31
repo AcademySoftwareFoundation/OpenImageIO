@@ -41,11 +41,7 @@
 #ifndef OPENIMAGEIO_STRUTIL_H
 #define OPENIMAGEIO_STRUTIL_H
 
-#include <cstdarg>
 #include <string>
-#include <cstring>
-#include <cstdlib>
-#include <iostream>
 #include <cstdio>
 #include <vector>
 #include <map>
@@ -102,7 +98,7 @@ void OIIO_API sync_output (std::ostream &file, string_view str);
 /// Uses the tinyformat library underneath, so it's fully type-safe, and
 /// works with any types that understand stream output via '<<'.
 template<typename... Args>
-inline std::string format (string_view fmt,const Args&... args)
+inline std::string format (string_view fmt, const Args&... args)
 {
     return tinyformat::format (fmt.c_str(), args...);
 }
