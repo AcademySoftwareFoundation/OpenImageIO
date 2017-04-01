@@ -289,7 +289,7 @@ if (CLANG_TIDY)
         set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};-fix")
     endif ()
     set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};-checks=${CLANG_TIDY_CHECKS}")
-    message (STATUS, "clang-tidy command line is: ${CMAKE_CXX_CLANG_TIDY}")
+    message (STATUS "clang-tidy command line is: ${CMAKE_CXX_CLANG_TIDY}")
 endif ()
 
 if (EXTRA_CPP_ARGS)
