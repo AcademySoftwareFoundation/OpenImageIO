@@ -45,6 +45,7 @@
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <iostream>
 #include <cstdio>
 #include <vector>
 #include <map>
@@ -85,12 +86,13 @@ OIIO_NAMESPACE_BEGIN
 /// @brief     String-related utilities.
 namespace Strutil {
 
-/// Output the string to the FILE* stream in a synchronized fashion, so that
+/// Output the string to the file/stream in a synchronized fashion, so that
 /// buffers are flushed and internal mutex is used to prevent threads from
 /// clobbering each other -- output strings coming from concurrent threads
 /// may be interleaved, but each string is "atomic" and will never splice
 /// each other character-by-character.
 void OIIO_API sync_output (FILE *file, string_view str);
+void OIIO_API sync_output (std::ostream &file, string_view str);
 
 
 /// Construct a std::string in a printf-like fashion.  In other words,
@@ -118,6 +120,14 @@ inline void printf (string_view fmt, const Args&... args)
 /// clobber one another.
 template<typename... Args>
 inline void fprintf (FILE *file, string_view fmt, const Args&... args)
+{
+    sync_output (file, format(fmt, args...));
+}
+
+/// Output formatted string to an open ostream, type-safe, and threads can't
+/// clobber one another.
+template<typename... Args>
+inline void fprintf (std::ostream &file, string_view fmt, const Args&... args)
 {
     sync_output (file, format(fmt, args...));
 }

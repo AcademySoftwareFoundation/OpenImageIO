@@ -55,6 +55,12 @@
 OIIO_NAMESPACE_BEGIN
 
 
+namespace {
+static std::mutex output_mutex;
+};
+
+
+
 const char *
 string_view::c_str() const
 {
@@ -76,11 +82,21 @@ string_view::c_str() const
 void
 Strutil::sync_output (FILE *file, string_view str)
 {
-    static std::mutex output_mutex;
     if (str.size() && file) {
         std::unique_lock<std::mutex> lock (output_mutex);
         fwrite (str.data(), 1, str.size(), file);
         fflush (file);
+    }
+}
+
+
+
+void
+Strutil::sync_output (std::ostream& file, string_view str)
+{
+    if (str.size()) {
+        std::unique_lock<std::mutex> lock (output_mutex);
+        file << str;
     }
 }
 
