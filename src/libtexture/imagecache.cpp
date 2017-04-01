@@ -1911,7 +1911,7 @@ ImageCacheImpl::getstats (int level) const
         }
         int nbroken = 0;
         BOOST_FOREACH (const ImageCacheFileRef &file, files) {
-            if (file->broken() || !file->validspec())
+            if (file->broken())
                 ++nbroken;
         }
         out << "  Broken or invalid files: " << nbroken << "\n";
@@ -1919,7 +1919,7 @@ ImageCacheImpl::getstats (int level) const
             std::sort (files.begin(), files.end(), filename_compare);
             int nprinted = 0;
             BOOST_FOREACH (const ImageCacheFileRef &file, files) {
-                if (file->broken() || !file->validspec()) {
+                if (file->broken()) {
                     ++nprinted;
                     out << Strutil::format ("   %4d  %s\n", nprinted, file->filename());
                 }
