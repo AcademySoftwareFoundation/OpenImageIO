@@ -161,7 +161,7 @@ IvGL::create_textures (void)
 
     // Initialize texture objects
     for (int i = 0; i < total_texbufs; i++) {
-        m_texbufs.push_back (TexBuffer());
+        m_texbufs.emplace_back();
         glBindTexture (GL_TEXTURE_2D, textures[i]);
         GLERRPRINT ("bind tex");
         glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,

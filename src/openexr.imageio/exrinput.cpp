@@ -811,7 +811,7 @@ OpenEXRInput::PartInfo::query_channels (const Imf::Header *header)
     int c = 0;
     for (Imf::ChannelList::ConstIterator ci = channels.begin();
          ci != channels.end();  ++c, ++ci) {
-        cnh.push_back (ChanNameHolder (ci.name(), c, ci.channel().type));
+        cnh.emplace_back (ci.name(), c, ci.channel().type);
         ++spec.nchannels;
     }
     std::sort (cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);

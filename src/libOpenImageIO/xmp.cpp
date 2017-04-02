@@ -218,7 +218,7 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
                 dup |= (xmlvalue == std::string(*(const char **)p->data()));
             }
             if (! dup)
-                items.push_back (xmlvalue);
+                items.emplace_back (xmlvalue);
             val = Strutil::join (items, "; ");
         } else {
             val = xmlvalue;
@@ -415,7 +415,7 @@ gather_xmp_attribs (const ImageSpec &spec,
             }
             std::string s = stringize (p,xmptag[i]);
             if (s.size()) {
-                list.push_back (std::pair<int,std::string>(i, s));
+                list.emplace_back (i, s);
                 //std::cerr << "  " << xmptag[i].xmpname << " = " << s << "\n"; 
             }
         }

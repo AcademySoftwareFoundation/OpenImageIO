@@ -1068,8 +1068,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     return true;
                 case TypeDesc::STRING:
                     Imf::StringVector v;
-                    v.push_back(((const char **)data)[0]);
-                    v.push_back(((const char **)data)[1]);
+                    v.emplace_back(((const char **)data)[0]);
+                    v.emplace_back(((const char **)data)[1]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
 #endif
@@ -1091,9 +1091,9 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                     return true;
                 case TypeDesc::STRING:
                     Imf::StringVector v;
-                    v.push_back(((const char **)data)[0]);
-                    v.push_back(((const char **)data)[1]);
-                    v.push_back(((const char **)data)[2]);
+                    v.emplace_back(((const char **)data)[0]);
+                    v.emplace_back(((const char **)data)[1]);
+                    v.emplace_back(((const char **)data)[2]);
                     header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
                     return true;
 #endif
@@ -1231,7 +1231,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         if (type.basetype == TypeDesc::STRING) {
             Imf::StringVector v;
             for (int i=0; i<type.arraylen; i++) {
-                v.push_back(((const char **)data)[i]);
+                v.emplace_back(((const char **)data)[i]);
             }
             header.insert (xname.c_str(), Imf::StringVectorAttribute (v));
             return true;

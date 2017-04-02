@@ -643,11 +643,11 @@ resolve_font (int fontsize, string_view font_, std::string &result)
         string_view systemRoot = Sysutil::getenv ("SystemRoot");
         if (systemRoot.size())
             font_search_dirs.push_back (std::string(systemRoot) + "/Fonts");
-        font_search_dirs.push_back ("/usr/share/fonts");
-        font_search_dirs.push_back ("/Library/Fonts");
-        font_search_dirs.push_back ("C:/Windows/Fonts");
-        font_search_dirs.push_back ("/usr/local/share/fonts");
-        font_search_dirs.push_back ("/opt/local/share/fonts");
+        font_search_dirs.emplace_back ("/usr/share/fonts");
+        font_search_dirs.emplace_back ("/Library/Fonts");
+        font_search_dirs.emplace_back ("C:/Windows/Fonts");
+        font_search_dirs.emplace_back ("/usr/local/share/fonts");
+        font_search_dirs.emplace_back ("/opt/local/share/fonts");
         // Try $OPENIMAGEIOHOME/fonts
         string_view oiiohomedir = Sysutil::getenv ("OPENIMAGEIOHOME");
         if (oiiohomedir.size())

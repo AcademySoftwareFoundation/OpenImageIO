@@ -76,7 +76,7 @@ public:
     ~Impl() { }
     void inventory ();
     void add (const std::string &name, int index) {
-        colorspaces.push_back (std::pair<std::string,int> (name, index));
+        colorspaces.emplace_back(name, index);
     }
 };
 

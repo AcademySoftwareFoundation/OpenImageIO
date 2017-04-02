@@ -67,7 +67,7 @@ static float cache_size = 0;
 static int
 parse_files (int argc, const char *argv[])
 {
-    input_filename.push_back (ustring(argv[0]));
+    input_filename.emplace_back(argv[0]);
     return 0;
 }
 

@@ -239,7 +239,7 @@ test_file_seq_with_view (const char *pattern, const char *override, const char *
 
     if (view) {
         for (size_t i = 0, e = numbers.size(); i < e; ++i)
-            views.push_back(view);
+            views.emplace_back(view);
     }
 
     Filesystem::enumerate_file_sequence (normalized_pattern, numbers, views, names);
@@ -290,7 +290,7 @@ test_scan_file_seq_with_views (const char *pattern, const char **views_, const s
     std::vector<string_view> views;
 
     for (size_t i = 0; views_[i]; ++i)
-        views.push_back(views_[i]);
+        views.emplace_back(views_[i]);
 
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
     Filesystem::scan_for_matching_filenames (normalized_pattern, views, frame_numbers, frame_views, frame_names);

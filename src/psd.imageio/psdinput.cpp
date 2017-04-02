@@ -1508,7 +1508,7 @@ PSDInput::load_layer (Layer &layer)
 
     extra_remaining -= read_pascal_string(layer.name, 4);
     while (m_file && extra_remaining >= 12) {
-        layer.additional_info.push_back (Layer::AdditionalInfo());
+        layer.additional_info.emplace_back();
         Layer::AdditionalInfo &info = layer.additional_info.back();
 
         char signature[4];
@@ -1781,8 +1781,8 @@ PSDInput::setup ()
     }
 
     // Composite spec
-    m_specs.push_back (ImageSpec (m_header.width, m_header.height,
-                                  spec_channel_count, m_type_desc));
+    m_specs.emplace_back (m_header.width, m_header.height,
+                          spec_channel_count, m_type_desc);
     m_specs.back().extra_attribs = m_composite_attribs.extra_attribs;
     if (m_WantRaw)
         fill_channel_names (m_specs.back(), m_image_data.transparency);
@@ -1802,8 +1802,8 @@ PSDInput::setup ()
             spec_channel_count++;
             raw_channel_count++;
         }
-        m_specs.push_back (ImageSpec (layer.width, layer.height,
-                                      spec_channel_count, m_type_desc));
+        m_specs.emplace_back (layer.width, layer.height,
+                              spec_channel_count, m_type_desc);
         ImageSpec &spec = m_specs.back ();
         spec.extra_attribs = m_common_attribs.extra_attribs;
         if (m_WantRaw)
@@ -1834,9 +1834,9 @@ PSDInput::fill_channel_names (ImageSpec &spec, bool transparency)
         spec.default_channel_names ();
     } else {
         for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
-            spec.channelnames.push_back (mode_channel_names[m_header.color_mode][i]);
+            spec.channelnames.emplace_back(mode_channel_names[m_header.color_mode][i]);
         if (transparency)
-            spec.channelnames.push_back ("A");
+            spec.channelnames.emplace_back("A");
     }
 }
 

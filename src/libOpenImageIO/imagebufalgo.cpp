@@ -797,8 +797,8 @@ ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
     spec.channelformats.clear();
     spec.nchannels = 2;
     spec.channelnames.clear();
-    spec.channelnames.push_back ("real");
-    spec.channelnames.push_back ("imag");
+    spec.channelnames.emplace_back("real");
+    spec.channelnames.emplace_back("imag");
 
     // And a spec that describes the transposed intermediate
     ImageSpec specT = spec;
@@ -873,8 +873,8 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
     spec.channelformats.clear();
     spec.nchannels = 2;
     spec.channelnames.clear();
-    spec.channelnames.push_back ("real");
-    spec.channelnames.push_back ("imag");
+    spec.channelnames.emplace_back("real");
+    spec.channelnames.emplace_back("imag");
 
     // Inverse FFT the rows (into temp buffer B).
     ImageBuf B (spec);
@@ -894,7 +894,7 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
     // imaginary part and go back to a single (real) channel.
     spec.nchannels = 1;
     spec.channelnames.clear ();
-    spec.channelnames.push_back ("R");
+    spec.channelnames.emplace_back("R");
     dst.reset (dst.name(), spec);
     ROI Broi = get_roi(B.spec());
     Broi.chend = 1;
@@ -1052,7 +1052,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     topspec.set_format (TypeDesc::FLOAT);
     ImageBuf *top = new ImageBuf (topspec);
     paste (*top, topspec.x, topspec.y, topspec.z, 0, src);
-    pyramid.push_back (std::shared_ptr<ImageBuf>(top));
+    pyramid.emplace_back(top);
 
     // Construct the rest of the pyramid by successive x/2 resizing and
     // then dividing nonzero alpha pixels by their alpha (this "spreads
@@ -1065,7 +1065,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
         ImageBuf *small = new ImageBuf (smallspec);
         ImageBufAlgo::resize (*small, *pyramid.back(), "triangle");
         divide_by_alpha (*small, get_roi(smallspec), nthreads);
-        pyramid.push_back (std::shared_ptr<ImageBuf>(small));
+        pyramid.emplace_back(small);
         //debug small->save();
     }
 

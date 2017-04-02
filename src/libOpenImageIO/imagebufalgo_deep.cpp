@@ -222,7 +222,7 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
     if (add_z_channel) {
         // No z channel? Make one.
         force_spec.z_channel = force_spec.nchannels++;
-        force_spec.channelnames.push_back ("Z");
+        force_spec.channelnames.emplace_back("Z");
     }
 
     if (! IBAprep (roi, &dst, &src, NULL, &force_spec,

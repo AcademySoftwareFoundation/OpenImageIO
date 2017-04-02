@@ -152,7 +152,7 @@ parse_files (int argc, const char *argv[])
         if (pattern.empty())
             pattern = argv[i];
         else
-            filenames.push_back (argv[i]);
+            filenames.emplace_back(argv[i]);
     }
     return 0;
 }

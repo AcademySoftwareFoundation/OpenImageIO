@@ -311,7 +311,7 @@ ArgOption::invoke_callback () const
 void
 ArgOption::add_argument (const char *argv)
 {
-    m_argv.push_back (argv);
+    m_argv.emplace_back(argv);
 }
 
 

@@ -185,18 +185,18 @@ ImageSpec::default_channel_names ()
     alpha_channel = -1;
     z_channel = -1;
     if (nchannels == 1) {   // Special case: 1-channel is named "Y"
-        channelnames.push_back ("Y");
+        channelnames.emplace_back("Y");
         return;
     }
     // General case: name channels R, G, B, A, channel4, channel5, ...
     if (nchannels >= 1)
-        channelnames.push_back ("R");
+        channelnames.emplace_back("R");
     if (nchannels >= 2)
-        channelnames.push_back ("G");
+        channelnames.emplace_back("G");
     if (nchannels >= 3)
-        channelnames.push_back ("B");
+        channelnames.emplace_back("B");
     if (nchannels >= 4) {
-        channelnames.push_back ("A");
+        channelnames.emplace_back("A");
         alpha_channel = 3;
     }
     for (int c = 4;  c < nchannels;  ++c)
@@ -948,7 +948,7 @@ get_channelnames (const xml_node &n, std::vector<std::string> &channelnames)
 
     for (xml_node n = channel_node.child ("channelname"); n;
             n = n.next_sibling ("channelname")) {
-        channelnames.push_back (n.child_value ());
+        channelnames.emplace_back(n.child_value ());
     }
 }
 

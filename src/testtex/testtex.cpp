@@ -120,7 +120,7 @@ static int
 parse_files (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++)
-        filenames.push_back (ustring(argv[i]));
+        filenames.emplace_back(argv[i]);
     return 0;
 }
 

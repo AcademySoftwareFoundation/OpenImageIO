@@ -261,7 +261,7 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
             m_spec.height = m_processor.imgdata.sizes.raw_height;
             m_spec.nchannels = 1;
             m_spec.channelnames.clear();
-            m_spec.channelnames.push_back("R");
+            m_spec.channelnames.emplace_back("R");
 
             // Also, any previously set demosaicing options are void, so remove them
             m_spec.erase_attribute("oiio:Colorspace");

@@ -280,10 +280,10 @@ void test_split ()
 void test_join ()
 {
     std::vector<std::string> seq;
-    seq.push_back ("Now");
-    seq.push_back ("is");
-    seq.push_back ("the");
-    seq.push_back ("time");
+    seq.emplace_back("Now");
+    seq.emplace_back("is");
+    seq.emplace_back("the");
+    seq.emplace_back("time");
     OIIO_CHECK_EQUAL (Strutil::join (seq, ". "),
                       "Now. is. the. time");
 }

@@ -194,7 +194,7 @@ oiio_attribute_typed (const std::string &name, TypeDesc type, object &obj)
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
             for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.push_back (ustring(vals[i]));
+                u.emplace_back(vals[i]);
             return OIIO::attribute (name, type, &u[0]);
         }
         return false;
@@ -228,7 +228,7 @@ oiio_attribute_tuple_typed (const std::string &name,
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
             for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.push_back (ustring(vals[i]));
+                u.emplace_back(vals[i]);
             return OIIO::attribute (name, type, &u[0]);
         }
         return false;

@@ -141,7 +141,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
                     std::string ch = Strutil::format ("I%d", gscount);
                     m_spec.channelnames.push_back (ch);
                 } else
-                    m_spec.channelnames.push_back ("I");
+                    m_spec.channelnames.emplace_back("I");
                 break;
             case cineon::kPrintingDensityRed:
             case cineon::kRec709Red:
@@ -149,7 +149,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
                     std::string ch = Strutil::format ("R%d", rcount);
                     m_spec.channelnames.push_back (ch);
                 } else
-                    m_spec.channelnames.push_back ("R");
+                    m_spec.channelnames.emplace_back("R");
                 break;
             case cineon::kPrintingDensityGreen:
             case cineon::kRec709Green:
@@ -157,7 +157,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
                     std::string ch = Strutil::format ("G%d", gcount);
                     m_spec.channelnames.push_back (ch);
                 } else
-                    m_spec.channelnames.push_back ("G");
+                    m_spec.channelnames.emplace_back("G");
                 break;
             case cineon::kPrintingDensityBlue:
             case cineon::kRec709Blue:
@@ -165,7 +165,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
                     std::string ch = Strutil::format ("B%d", bcount);
                     m_spec.channelnames.push_back (ch);
                 } else
-                    m_spec.channelnames.push_back ("B");
+                    m_spec.channelnames.emplace_back("B");
                 break;
             default:
                 std::string ch = Strutil::format ("channel%d", (int)m_spec.channelnames.size());
