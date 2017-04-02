@@ -390,7 +390,8 @@ public:
                 (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
     }
 
-    /// Return teh channelformat of the given channel.
+    /// Return the channelformat of the given channel. This is safe even
+    /// if channelformats is not filled out.
     TypeDesc channelformat (int chan) const {
         return chan >= 0 && chan < (int)channelformats.size()
             ? channelformats[chan] : format;
