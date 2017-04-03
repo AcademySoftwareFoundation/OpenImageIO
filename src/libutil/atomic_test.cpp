@@ -47,7 +47,7 @@ OIIO_NAMESPACE_USING;
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.
 
-static int iterations = 40000000;
+static int iterations = 20000000;
 static int numthreads = 16;
 static int ntrials = 1;
 static bool verbose = false;
@@ -56,16 +56,13 @@ static bool wedge = false;
 static spin_mutex print_mutex;  // make the prints not clobber each other
 atomic_int ai;
 atomic_ll all;
+std::atomic<float> af (0.0f);
+std::atomic<double> ad (0.0);
 
 
 static void
 do_int_math (int iterations)
 {
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "thread " << std::this_thread::get_id()
-              << ", ai = " << ai << "\n";
-    }
     for (int i = 0;  i < iterations;  ++i) {
         ++ai;
         ai += 3;
@@ -82,18 +79,10 @@ do_int_math (int iterations)
 
 
 
-void test_atomic_int (int numthreads, int iterations)
+void test_atomic_int ()
 {
-    ai = 42;
-    thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (do_int_math, iterations);
-    }
-    ASSERT ((int)threads.size() == numthreads);
-    threads.join_all ();
-    OIIO_CHECK_EQUAL (ai, 42);
-
     // Test and, or, xor
+    ai = 42;
     ai &= 15; OIIO_CHECK_EQUAL (ai, 10);
     ai |=  6; OIIO_CHECK_EQUAL (ai, 14);
     ai ^= 31; OIIO_CHECK_EQUAL (ai, 17);
@@ -109,11 +98,6 @@ void test_atomic_int (int numthreads, int iterations)
 static void
 do_int64_math (int iterations)
 {
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "thread " << std::this_thread::get_id()
-                  << ", all = " << all << "\n";
-    }
     for (int i = 0;  i < iterations;  ++i) {
         ++all;
         all += 3;
@@ -130,16 +114,8 @@ do_int64_math (int iterations)
 
 
 
-void test_atomic_int64 (int numthreads, int iterations)
+void test_atomic_int64 ()
 {
-    all = 0;
-    thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (do_int64_math, iterations);
-    }
-    threads.join_all ();
-    OIIO_CHECK_EQUAL (all, 0);
-
     // Test and, or, xor
     all = 42;
     all &= 15; OIIO_CHECK_EQUAL (all, 10);
@@ -154,10 +130,50 @@ void test_atomic_int64 (int numthreads, int iterations)
 
 
 
-void test_atomics (int numthreads, int iterations)
+static void
+do_float_math (int iterations)
 {
-    test_atomic_int (numthreads, iterations);
-    test_atomic_int64 (numthreads, iterations);
+    if (verbose) {
+        spin_lock lock(print_mutex);
+        std::cout << "thread " << std::this_thread::get_id()
+                  << ", all = " << all << "\n";
+    }
+    for (int i = 0;  i < iterations;  ++i) {
+        atomic_fetch_add (af,  1.0f);
+        atomic_fetch_add (af,  3.0f);
+        atomic_fetch_add (af, -1.0f);
+        atomic_fetch_add (af,  1.0f);
+        atomic_fetch_add (af, -3.0f);
+        atomic_fetch_add (af, -1.0f);
+        // That should have a net change of 0, but since other threads
+        // are doing operations simultaneously, it's only after all
+        // threads have finished that we can be sure it's back to the
+        // initial value.
+    }
+}
+
+
+
+static void
+do_double_math (int iterations)
+{
+    if (verbose) {
+        spin_lock lock(print_mutex);
+        std::cout << "thread " << std::this_thread::get_id()
+                  << ", all = " << all << "\n";
+    }
+    for (int i = 0;  i < iterations;  ++i) {
+        atomic_fetch_add (ad,  1.0);
+        atomic_fetch_add (ad,  3.0);
+        atomic_fetch_add (ad, -1.0);
+        atomic_fetch_add (ad,  1.0);
+        atomic_fetch_add (ad, -3.0);
+        atomic_fetch_add (ad, -1.0);
+        // That should have a net change of 0, but since other threads
+        // are doing operations simultaneously, it's only after all
+        // threads have finished that we can be sure it's back to the
+        // initial value.
+    }
 }
 
 
@@ -206,23 +222,44 @@ int main (int argc, char *argv[])
     getargs (argc, argv);
 
     std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
-    std::cout << "threads\ttime (best of " << ntrials << ")\n";
-    std::cout << "-------\t----------\n";
 
-    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
-    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
-        int nt = wedge ? threadcounts[i] : numthreads;
-        int its = iterations/nt;
+    std::cout << "\natomic int:\n";
+    test_atomic_int ();
+    ai = 0;
+    if (wedge)
+        timed_thread_wedge (do_int_math, numthreads, iterations, ntrials);
+    else
+        timed_thread_wedge (do_int_math, numthreads, iterations, ntrials,
+                            numthreads);
+    OIIO_CHECK_EQUAL (ai, 0);
 
-        double range;
-        double t = time_trial (std::bind(test_atomics,nt,its),
-                               ntrials, &range);
+    std::cout << "\natomic int64:\n";
+    test_atomic_int64 ();
+    all = 0;
+    if (wedge)
+        timed_thread_wedge (do_int64_math, numthreads, iterations, ntrials);
+    else
+        timed_thread_wedge (do_int64_math, numthreads, iterations, ntrials,
+                            numthreads);
+    OIIO_CHECK_EQUAL (all, 0);
 
-        std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",
-                                      nt, t, range, its);
-        if (! wedge)
-            break;    // don't loop if we're not wedging
-    }
+    std::cout << "\natomic floats:\n";
+    af = 0.0f;
+    if (wedge)
+        timed_thread_wedge (do_float_math, numthreads, iterations, ntrials);
+    else
+        timed_thread_wedge (do_float_math, numthreads, iterations, ntrials,
+                            numthreads);
+    OIIO_CHECK_EQUAL (af, 0.0f);
+
+    std::cout << "\natomic doubles:\n";
+    ad = 0.0;
+    if (wedge)
+        timed_thread_wedge (do_double_math, numthreads, iterations, ntrials);
+    else
+        timed_thread_wedge (do_double_math, numthreads, iterations, ntrials,
+                            numthreads);
+    OIIO_CHECK_EQUAL (ad, 0.0);
 
     return unit_test_failures;
 }

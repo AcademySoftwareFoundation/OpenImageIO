@@ -566,7 +566,7 @@ atomic_min (atomic<T> &avar, const T &bval)
 {
     do {
         T a = avar.load();
-        if (a <= bval || avar.compare_exchange_strong (a,bval))
+        if (a <= bval || avar.compare_exchange_weak (a,bval))
             break;
     } while (1);
 }
@@ -578,11 +578,36 @@ atomic_max (atomic<T> &avar, const T &bval)
 {
     do {
         T a = avar.load();
-        if (a >= bval || avar.compare_exchange_strong (a,bval))
+        if (a >= bval || avar.compare_exchange_weak (a,bval))
             break;
     } while (1);
+
+
+
+// Add atomically to a float and return the original value.
+OIIO_FORCEINLINE float
+atomic_fetch_add (atomic<float> &a, float f)
+{
+    do {
+        float oldval = a.load();
+        float newval = oldval + f;
+        if (a.compare_exchange_weak (oldval, newval))
+            return oldval;
+    } while (true);
 }
 
+
+// Add atomically to a double and return the original value.
+OIIO_FORCEINLINE double
+atomic_fetch_add (atomic<double> &a, double f)
+{
+    do {
+        double oldval = a.load();
+        double newval = oldval + f;
+        if (a.compare_exchange_weak (oldval, newval))
+            return oldval;
+    } while (true);
+}
 
 
 OIIO_NAMESPACE_END
