@@ -677,7 +677,7 @@ public:
     const int4 & operator= (int a);
 
     /// Assignment from another int4
-    const int4 & operator= (int4 other) ;
+    const int4 & operator= (const int4& other) ;
 
     /// Component access (set)
     int& operator[] (int i) ;
@@ -920,7 +920,7 @@ public:
     const int8 & operator= (int a);
 
     /// Assignment from another int8
-    const int8 & operator= (int8 other) ;
+    const int8 & operator= (const int8& other) ;
 
     /// Component access (set)
     int& operator[] (int i) ;
@@ -2226,7 +2226,7 @@ OIIO_FORCEINLINE bool reduce_and (const bool4& v) {
 #elif OIIO_SIMD_SSE
     return _mm_movemask_ps(v.simd()) == 0xf;
 #else
-    SIMD_RETURN_REDUCE (bool, true, r &= v[i]);
+    SIMD_RETURN_REDUCE (bool, true, r &= (v[i] != 0));
 #endif
 }
 
@@ -2236,7 +2236,7 @@ OIIO_FORCEINLINE bool reduce_or (const bool4& v) {
 #elif OIIO_SIMD_SSE
     return _mm_movemask_ps(v) != 0;
 #else
-    SIMD_RETURN_REDUCE (bool, false, r |= v[i]);
+    SIMD_RETURN_REDUCE (bool, false, r |= (v[i] != 0));
 #endif
 }
 
@@ -2534,7 +2534,7 @@ OIIO_FORCEINLINE bool none (const bool8& v) { return reduce_or(v) == false; }
 //////////////////////////////////////////////////////////////////////
 // int4 implementation
 
-OIIO_FORCEINLINE const int4 & int4::operator= (int4 other) {
+OIIO_FORCEINLINE const int4 & int4::operator= (const int4& other) {
     m_simd = other.m_simd;
     return *this;
 }
@@ -3228,7 +3228,7 @@ OIIO_FORCEINLINE bool4::bool4 (const int4& ival) {
 //////////////////////////////////////////////////////////////////////
 // int8 implementation
 
-OIIO_FORCEINLINE const int8 & int8::operator= (int8 other) {
+OIIO_FORCEINLINE const int8 & int8::operator= (const int8& other) {
     m_simd = other.m_simd;
     return *this;
 }
