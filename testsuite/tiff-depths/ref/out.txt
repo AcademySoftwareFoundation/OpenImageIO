@@ -627,3 +627,5 @@ Reading ../../../../../libtiffpic/depth/flower-separated-planar-16.tif
     PixelAspectRatio: 1
 Comparing "../../../../../libtiffpic/depth/flower-separated-planar-16.tif" and "flower-separated-planar-16.tif"
 PASS
+Comparing "cmyk_as_cmyk.tif" and "ref/cmyk_as_cmyk.tif"
+PASS

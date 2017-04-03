@@ -2,6 +2,7 @@
 
 # FIXME -- eventually, we want more (all?) of these to work
 
+outputs = []
 imagedir = parent + "/libtiffpic/depth"
 files = [
     "flower-minisblack-02.tif",   #  73x43 2-bit minisblack gray image
@@ -49,6 +50,6 @@ for f in files:
 command += oiiotool ("-iconfig oiio:RawColor 1 " +
                      parent+"/libtiffpic/depth/flower-separated-contig-08.tif " +
                      "-attrib oiio:ColorSpace linear -o cmyk_as_cmyk.tif")
-outputs += [ "cmyk_as_cmyk.tif" ]
+outputs += [ "cmyk_as_cmyk.tif", "out.txt" ]
 
 print ("COMMAND= " + command)
