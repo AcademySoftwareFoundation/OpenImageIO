@@ -185,6 +185,9 @@ private:
     // metadata and should not be cleared or rewritten.
     void readspec (bool read_meta=true);
 
+    // Figure out all the photometric-related aspects of the header
+    void readspec_photometric ();
+
     // Convert planar separate to contiguous data format
     void separate_to_contig (int nplanes, int nvals,
                              const unsigned char *separate,
@@ -783,70 +786,7 @@ TIFFInput::readspec (bool read_meta)
     // Now we need to get fields "by hand" for anything else that is less
     // straightforward...
 
-    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
-    TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.attribute ("tiff:PhotometricInterpretation", (int)m_photometric);
-    switch (m_photometric) {
-    case PHOTOMETRIC_SEPARATED :
-        m_spec.attribute ("tiff:ColorSpace", "CMYK");
-        if (m_raw_color) {
-            m_spec.channelnames.resize (4);
-            m_spec.channelnames[0] = "C";
-            m_spec.channelnames[1] = "M";
-            m_spec.channelnames[2] = "Y";
-            m_spec.channelnames[3] = "K";
-            m_spec.attribute ("oiio:ColorSpace", "CMYK");
-        } else {
-            // Silently convert to RGB
-            m_spec.nchannels = 3;
-            m_spec.default_channel_names ();
-        }
-        break;
-    case PHOTOMETRIC_YCBCR  :
-        m_spec.attribute ("tiff:ColorSpace", "YCbCr");
-        break;
-    case PHOTOMETRIC_CIELAB :
-        m_spec.attribute ("tiff:ColorSpace", "CIELAB");
-        break;
-    case PHOTOMETRIC_ICCLAB :
-        m_spec.attribute ("tiff:ColorSpace", "ICCLAB");
-        break;
-    case PHOTOMETRIC_ITULAB :
-        m_spec.attribute ("tiff:ColorSpace", "ITULAB");
-        break;
-    case PHOTOMETRIC_LOGL   :
-        m_spec.attribute ("tiff:ColorSpace", "LOGL");
-        break;
-    case PHOTOMETRIC_LOGLUV :
-        m_spec.attribute ("tiff:ColorSpace", "LOGLUV");
-        break;
-    case PHOTOMETRIC_PALETTE : {
-        m_spec.attribute ("tiff:ColorSpace", "palette");
-        // Read the color map
-        unsigned short *r = NULL, *g = NULL, *b = NULL;
-        TIFFGetField (m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
-        ASSERT (r != NULL && g != NULL && b != NULL);
-        m_colormap.clear ();
-        m_colormap.insert (m_colormap.end(), r, r + (1 << m_bitspersample));
-        m_colormap.insert (m_colormap.end(), g, g + (1 << m_bitspersample));
-        m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
-        // Palette TIFF images are always 3 channels (to the client)
-        m_spec.nchannels = 3;
-        m_spec.default_channel_names ();
-        if (m_bitspersample != m_spec.format.size()*8) {
-            // For palette images with unusual bits per sample, set
-            // oiio:BitsPerSample to the "full" version, to avoid problems
-            // when copying the file back to a TIFF file (we don't write
-            // palette images), but do leave "tiff:BitsPerSample" to reflect
-            // the original file.
-            m_spec.attribute ("tiff:BitsPerSample", (int)m_bitspersample);
-            m_spec.attribute ("oiio:BitsPerSample", (int)m_spec.format.size()*8);
-        }
-        // FIXME - what about palette + extra (alpha?) channels?  Is that
-        // allowed?  And if so, ever encountered in the wild?
-        break;
-        }
-    }
+    readspec_photometric ();
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
     m_separate = (m_planarconfig == PLANARCONFIG_SEPARATE &&
@@ -1097,6 +1037,113 @@ TIFFInput::readspec (bool read_meta)
 
     if (m_testopenconfig)  // open-with-config debugging
         m_spec.attribute ("oiio:DebugOpenConfig!", 42);
+}
+
+
+
+void
+TIFFInput::readspec_photometric ()
+{
+    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
+    TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
+    m_spec.attribute ("tiff:PhotometricInterpretation", (int)m_photometric);
+    switch (m_photometric) {
+    case PHOTOMETRIC_SEPARATED : {
+        // Photometric "separated" is "usually CMYK".
+        m_spec.channelnames.clear ();
+        short inkset = INKSET_CMYK;
+        short numberofinks = 0;
+        TIFFGetFieldDefaulted (m_tif, TIFFTAG_INKSET, &inkset);
+        TIFFGetFieldDefaulted (m_tif, TIFFTAG_NUMBEROFINKS, &numberofinks);
+        if (inkset == INKSET_CMYK && m_spec.nchannels == 4) {
+            // True CMYK
+            m_spec.attribute ("tiff:ColorSpace", "CMYK");
+            if (m_raw_color) {
+                m_spec.channelnames.resize (4);
+                m_spec.channelnames[0] = "C";
+                m_spec.channelnames[1] = "M";
+                m_spec.channelnames[2] = "Y";
+                m_spec.channelnames[3] = "K";
+                m_spec.attribute ("oiio:ColorSpace", "CMYK");
+            } else {
+                // Silently convert to RGB
+                m_spec.nchannels = 3;
+                m_spec.default_channel_names ();
+            }
+        } else {
+            // Non-CMYK ink set
+            m_spec.attribute ("tiff:ColorSpace", "color separated");
+            m_spec.attribute ("oiio:ColorSpace", "color separated");
+            m_raw_color = true;   // Conversion to RGB doesn't make sense
+            const char* inknames = NULL;
+            safe_tiffgetfield ("tiff:InkNames", TIFFTAG_INKNAMES, &inknames);
+            if (inknames && inknames[0] && numberofinks) {
+                m_spec.channelnames.clear ();
+                // Decode the ink names, which are all concatenated together.
+                for (int i = 0; i < int(numberofinks); ++i) {
+                    string_view ink (inknames);
+                    if (ink.size()) {
+                        m_spec.channelnames.push_back (ink);
+                        inknames += ink.size() + 1;
+                    } else {
+                        // Run out of road
+                        numberofinks = i;
+                    }
+                }
+            } else {
+                numberofinks = 0;
+            }
+            // No ink names. Make it up.
+            for (int i = numberofinks; i < m_spec.nchannels; ++i)
+                m_spec.channelnames.push_back (Strutil::format ("ink%d", i));
+        }
+        break;
+        }
+    case PHOTOMETRIC_YCBCR  :
+        m_spec.attribute ("tiff:ColorSpace", "YCbCr");
+        break;
+    case PHOTOMETRIC_CIELAB :
+        m_spec.attribute ("tiff:ColorSpace", "CIELAB");
+        break;
+    case PHOTOMETRIC_ICCLAB :
+        m_spec.attribute ("tiff:ColorSpace", "ICCLAB");
+        break;
+    case PHOTOMETRIC_ITULAB :
+        m_spec.attribute ("tiff:ColorSpace", "ITULAB");
+        break;
+    case PHOTOMETRIC_LOGL   :
+        m_spec.attribute ("tiff:ColorSpace", "LOGL");
+        break;
+    case PHOTOMETRIC_LOGLUV :
+        m_spec.attribute ("tiff:ColorSpace", "LOGLUV");
+        break;
+    case PHOTOMETRIC_PALETTE : {
+        m_spec.attribute ("tiff:ColorSpace", "palette");
+        // Read the color map
+        unsigned short *r = NULL, *g = NULL, *b = NULL;
+        TIFFGetField (m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
+        ASSERT (r != NULL && g != NULL && b != NULL);
+        m_colormap.clear ();
+        m_colormap.insert (m_colormap.end(), r, r + (1 << m_bitspersample));
+        m_colormap.insert (m_colormap.end(), g, g + (1 << m_bitspersample));
+        m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
+        // Palette TIFF images are always 3 channels (to the client)
+        m_spec.nchannels = 3;
+        m_spec.default_channel_names ();
+        if (m_bitspersample != m_spec.format.size()*8) {
+            // For palette images with unusual bits per sample, set
+            // oiio:BitsPerSample to the "full" version, to avoid problems
+            // when copying the file back to a TIFF file (we don't write
+            // palette images), but do leave "tiff:BitsPerSample" to reflect
+            // the original file.
+            m_spec.attribute ("tiff:BitsPerSample", (int)m_bitspersample);
+            m_spec.attribute ("oiio:BitsPerSample", (int)m_spec.format.size()*8);
+        }
+        // FIXME - what about palette + extra (alpha?) channels?  Is that
+        // allowed?  And if so, ever encountered in the wild?
+        break;
+        }
+    }
 }
 
 
