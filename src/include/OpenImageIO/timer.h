@@ -36,9 +36,14 @@
 #ifndef OPENIMAGEIO_TIMER_H
 #define OPENIMAGEIO_TIMER_H
 
+#include <iostream>
+#include <functional>
+
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/function_view.h>
 
 #ifdef _WIN32
 //# include <windows.h>  // Already done by platform.h
@@ -349,6 +354,44 @@ double time_trial (FUNC func, int ntrials, double *range) {
     return time_trial (func, ntrials, 1, range);
 }
 
+
+
+// Benchmarking helper function: Time a function with various thread counts.
+// Inputs:
+//     task(int iterations) : The function to run (which understands an
+//                            iteration count or work load).
+//     pretask() : Code to run before the task threads start.
+//     posttask() : Code to run after the task threads complete.
+//     out : Stream to print results (or NULL to not print anything).
+//     maxthreads : Don't do any trials greater than this thread count,
+//                      even if it's in the threadcounts[].
+//     total_iterations : Total amount of work to do. The func() will be
+//                      called with total_iterations/nthreads, so that the
+//                      total work for all threads stays close to constant.
+//     ntrials : The number of runs for each thread count (more will take
+//                      longer, but be more accurate timing). The best case
+//                      run is the one that will be reported.
+//     threadcounts[] : An array_view<int> giving the set of thread counts
+//                      to try.
+// Return value:
+//     A vector<double> containing the best time (of the trials) for each
+//     thread count. This can be discarded.
+OIIO_API std::vector<double>
+timed_thread_wedge (function_view<void(int)> task,
+                    function_view<void()> pretask,
+                    function_view<void()> posttask,
+                    std::ostream *out,
+                    int maxthreads,
+                    int total_iterations, int ntrials,
+                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
+
+// Simplified timed_thread_wedge without pre- and post-tasks, using
+// std::out for output, with a default set of thread counts, and not needing
+// to return the vector of times.
+OIIO_API void
+timed_thread_wedge (function_view<void(int)> task,
+                    int maxthreads, int total_iterations, int ntrials,
+                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
 
 
 OIIO_NAMESPACE_END
