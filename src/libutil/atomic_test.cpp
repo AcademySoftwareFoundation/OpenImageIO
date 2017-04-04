@@ -38,6 +38,7 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/ustring.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/unittest.h>
 
 
@@ -48,7 +49,7 @@ OIIO_NAMESPACE_USING;
 // value at the end.
 
 static int iterations = 20000000;
-static int numthreads = 16;
+static int numthreads = clamp ((int)Sysutil::physical_concurrency(), 2, 16);
 static int ntrials = 1;
 static bool verbose = false;
 static bool wedge = false;

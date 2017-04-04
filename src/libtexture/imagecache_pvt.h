@@ -612,7 +612,8 @@ public:
             return true;  // Don't really release invalid or unready tiles
         // If m_used is 1, set it to zero and return true.  If it was already
         // zero, it's fine and return false.
-        return atomic_compare_and_exchange ((volatile int *)&m_used, 1, 0);
+        int one = 1;
+        return m_used.compare_exchange_strong (one, 0);
     }
 
     /// Has this tile been recently used?

@@ -1358,13 +1358,7 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
 void
 ImageCacheImpl::set_min_cache_size (long long newsize)
 {
-    long long oldsize = m_max_memory_bytes;
-    while (newsize > oldsize) {
-	if (atomic_compare_and_exchange ((long long *)&m_max_memory_bytes,
-                                         oldsize, newsize))
-            return;
-        oldsize = m_max_memory_bytes;
-    }
+    atomic_max (m_max_memory_bytes, newsize);
 }
 
 
