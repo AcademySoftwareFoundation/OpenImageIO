@@ -55,7 +55,7 @@
 #include <OpenImageIO/timer.h>
 #include "../libtexture/imagecache_pvt.h"
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 #if OIIO_CPLUSPLUS_VERSION >= 11
 using OIIO::_1;

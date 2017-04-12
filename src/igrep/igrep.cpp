@@ -54,7 +54,7 @@
   using namespace std::regex_constants;
 #endif
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static bool help = false;
 static bool invert_match = false;

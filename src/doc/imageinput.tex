@@ -12,7 +12,7 @@ out its resolution, and read the pixels (converting them into
 
 \begin{code}
         #include <OpenImageIO/imageio.h>
-        OIIO_NAMESPACE_USING
+        using namespace OIIO;
         ...
 
         ImageInput *in = ImageInput::open (filename);
@@ -734,7 +734,7 @@ elaborated with error checking and reporting:
 
 \begin{code}
         #include <OpenImageIO/imageio.h>
-        OIIO_NAMESPACE_USING
+        using namespace OIIO;
         ...
 
         const char *filename = "foo.jpg";

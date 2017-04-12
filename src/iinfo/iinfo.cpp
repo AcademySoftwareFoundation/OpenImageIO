@@ -56,7 +56,7 @@
   using std::regex_search;
 #endif
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 using namespace ImageBufAlgo;
 

@@ -40,7 +40,7 @@
 # include <sys/stat.h>
 #endif
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 // This will be run via testsuite/unit_filesystem, from the

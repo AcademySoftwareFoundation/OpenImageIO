@@ -60,7 +60,9 @@ include (platform)
 include (compiler)   # All the C++ and compiler related options live here
 
 
-option (VERBOSE "Print lots of messages while compiling")
+option (VERBOSE "Print lots of messages while compiling" OFF)
+set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
+      "Customized outer namespace base name (version will be added)")
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
 option (OIIO_BUILD_TESTS "Build the unit tests" ON)
@@ -109,9 +111,9 @@ if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
 endif ()
 
 # Set the default namespace
-set (OIIO_NAMESPACE OpenImageIO CACHE STRING
-      "Specify the master C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc.")
-message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
+set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
+set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
+message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 if (BUILDSTATIC)
     add_definitions(-DOIIO_STATIC_BUILD=1)

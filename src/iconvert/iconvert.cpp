@@ -44,7 +44,7 @@
 #include <OpenImageIO/imagecache.h>
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 static std::string uninitialized = "uninitialized \001 HHRU dfvAS: efjl";

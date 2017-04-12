@@ -490,7 +490,7 @@ help:
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
 	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
 	@echo "  OIIO build-time options:"
-	@echo "      NAMESPACE=name           Wrap everything in another namespace"
+	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"
 	@echo "      OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"
 	@echo "      OIIO_BUILD_TOOLS=0       Skip building the command-line tools"

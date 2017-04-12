@@ -43,7 +43,7 @@
 
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static int iterations = 100000000;
 static int ntrials = 1;

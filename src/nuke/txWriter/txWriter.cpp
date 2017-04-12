@@ -27,7 +27,7 @@ namespace TxWriterNS
 {
 
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 // Limit the available output datatypes (for now, at least).
 static const TypeDesc::BASETYPE oiioBitDepths[] = {TypeDesc::INT8,

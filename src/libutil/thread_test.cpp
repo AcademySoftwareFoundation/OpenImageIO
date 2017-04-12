@@ -40,7 +40,7 @@
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/ustring.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static int iterations = 100000;
 static int numthreads = 16;

@@ -50,7 +50,7 @@
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/unittest.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static int iterations = 100;
 static int numthreads = Sysutil::hardware_concurrency();

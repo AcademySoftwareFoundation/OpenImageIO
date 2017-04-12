@@ -51,7 +51,7 @@ namespace PyOpenImageIO
 
 using namespace boost::python;
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 void declare_imagespec(); 
 void declare_imageinput();
