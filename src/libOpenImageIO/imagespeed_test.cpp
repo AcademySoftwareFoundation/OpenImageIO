@@ -42,7 +42,7 @@
 #include <vector>
 #include <functional>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static bool verbose = false;
 static int iterations = 1;

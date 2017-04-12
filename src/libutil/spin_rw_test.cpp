@@ -41,7 +41,7 @@
 #include <OpenImageIO/unittest.h>
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 // Test spin_rw_mutex by creating a bunch of threads usually just check
 // the accumulator value (requiring a read lock), but occasionally

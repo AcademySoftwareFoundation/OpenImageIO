@@ -42,7 +42,7 @@
 #include <OpenImageIO/unittest.h>
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 // Test ustring's internal locks by creating a bunch of strings in many
 // threads simultaneously.  Hopefully something will crash if the 

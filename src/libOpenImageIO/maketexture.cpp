@@ -66,7 +66,7 @@
   using std::regex_replace;
 #endif
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 
 static spin_mutex maketx_mutex;   // for anything that needs locking

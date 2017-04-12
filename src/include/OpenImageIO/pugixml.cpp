@@ -103,17 +103,17 @@ using std::memmove;
 #endif
 
 #ifdef PUGIXML_HEADER_ONLY
-#	define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN NAMESPACE_BEGIN(pugi) NAMESPACE_BEGIN(impl)
-#	define PUGI__NS_END NAMESPACE_END(impl) NAMESPACE_END(pugi) OIIO_NAMESPACE_END
+#	define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN namespace pugi { namespace impl {
+#	define PUGI__NS_END } } OIIO_NAMESPACE_END
 #	define PUGI__FN inline
 #	define PUGI__FN_NO_INLINE inline
 #else
 #	if defined(_MSC_VER) && _MSC_VER < 1300 // MSVC6 seems to have an amusing bug with anonymous namespaces inside namespaces
-#		define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN NAMESPACE_BEGIN(pugi) NAMESPACE_BEGIN(impl)
-#		define PUGI__NS_END NAMESPACE_END(impl) NAMESPACE_END(pugi) OIIO_NAMESPACE_END
+#		define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN namespace pugi { namespace impl {
+#		define PUGI__NS_END } } OIIO_NAMESPACE_END
 #	else
-#		define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN NAMESPACE_BEGIN(pugi) NAMESPACE_BEGIN(impl) namespace {
-#		define PUGI__NS_END NAMESPACE_END(impl) NAMESPACE_END(pugi) } OIIO_NAMESPACE_END
+#		define PUGI__NS_BEGIN OIIO_NAMESPACE_BEGIN namespace pugi { namespace impl { namespace {
+#		define PUGI__NS_END } } } OIIO_NAMESPACE_END
 #	endif
 #	define PUGI__FN
 #	define PUGI__FN_NO_INLINE PUGI__NO_INLINE

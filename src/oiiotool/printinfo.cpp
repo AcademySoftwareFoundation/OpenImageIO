@@ -66,7 +66,7 @@
 #endif
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
 

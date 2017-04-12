@@ -44,7 +44,7 @@
 #include <string>
 #include <cstdio>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 static int iterations = 1;

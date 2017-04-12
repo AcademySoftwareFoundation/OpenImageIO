@@ -27,7 +27,7 @@ namespace TxReaderNS
 {
 
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 
 static const char* const EMPTY[] = {NULL};

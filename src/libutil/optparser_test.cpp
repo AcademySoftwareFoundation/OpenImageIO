@@ -39,7 +39,7 @@
 #include <OpenImageIO/unittest.h>
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 class MySystem {

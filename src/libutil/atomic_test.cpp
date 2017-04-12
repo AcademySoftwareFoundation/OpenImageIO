@@ -42,7 +42,7 @@
 #include <OpenImageIO/unittest.h>
 
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 // How do we test atomics?  Run a whole bunch of threads, incrementing
 // and decrementing the crap out of it, and make sure it has the right

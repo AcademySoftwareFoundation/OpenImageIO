@@ -34,7 +34,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/unittest.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 void test_imagespec_pixels ()

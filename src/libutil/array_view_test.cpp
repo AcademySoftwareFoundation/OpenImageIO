@@ -34,7 +34,7 @@
 #include <OpenImageIO/image_view.h>
 #include <OpenImageIO/unittest.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 

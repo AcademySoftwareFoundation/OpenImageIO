@@ -47,7 +47,7 @@
 
 #include "oiiotool.h"
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
 

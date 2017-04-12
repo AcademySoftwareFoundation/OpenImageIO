@@ -36,7 +36,7 @@
 
 #include <iostream>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 
 

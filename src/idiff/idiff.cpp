@@ -47,7 +47,7 @@
 #include <OpenImageIO/fmath.h>
 
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 
 enum idiffErrors {

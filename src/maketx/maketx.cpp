@@ -50,7 +50,7 @@
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/filter.h>
 
-OIIO_NAMESPACE_USING
+using namespace OIIO;
 
 
 // # FIXME: Refactor all statics into a struct

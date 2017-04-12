@@ -39,7 +39,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/filter.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 static int iterations = 10;
 static int ntrials = 5;

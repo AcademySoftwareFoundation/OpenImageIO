@@ -60,7 +60,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 
-OIIO_NAMESPACE_USING;
+using namespace OIIO;
 
 class QComboBox;
 class QLabel;
