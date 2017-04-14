@@ -146,6 +146,9 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
     // Turn off maximum threshold value (unless set to non-zero)
     m_processor.imgdata.params.adjust_maximum_thr =
         config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
+    // Set camera maximum value if "raw:user_sat" is not 0
+    m_processor.imgdata.params.user_sat =
+        config.get_int_attribute("raw:user_sat", 0);
 
     // Use embedded color profile. Values mean:
     // 0: do not use embedded color profile

@@ -225,6 +225,8 @@ Fixes, minor enhancements, and performance improvements:
      algorithms case-insensitive. #1629 (1.8.3/1.7.13)
    * Support "ACES" color space for direct conversion while reading RAW
      images (supported in libraw 0.18 or newer). #1626 (1.8.3/1.7.13)
+   * Add "raw:user_sat" configuration attribute to the reader.
+     #1666 (1.7.15/1.8.4)
 * RLA:
    * Fix RLA reading and writing with certain channel orders and mixded data
      formats. #1499 (1.8.0/1.7.8)
