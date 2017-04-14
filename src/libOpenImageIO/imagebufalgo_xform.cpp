@@ -502,6 +502,8 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
         const ImageSpec &srcspec (src.spec());
         const ImageSpec &dstspec (dst.spec());
         int nchannels = src.nchannels();
+        bool deep = src.deep();
+        ASSERT (deep == dst.deep());
 
         // Local copies of the source image window, converted to float
         float srcfx = srcspec.full_x;
@@ -527,21 +529,36 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
             // src_x, src_y are image space integer coordinates of the floor
             int src_y;
             (void) floorfrac (src_yf, &src_y);
-            for (int x = roi.xbegin;  x < roi.xend;  ++x) {
+            for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
                 float s = (x-dstfx+0.5f)*dstpixelwidth;
                 float src_xf = srcfx + s * srcfw - 0.5f;
                 int src_x;
                 (void) floorfrac (src_xf, &src_x);
-                if (interpolate) {
+                if (deep) {
+                    srcpel.pos (src_x, src_y, 0);
+                    int nsamps = srcpel.deep_samples();
+                    ASSERT (nsamps == out.deep_samples());
+                    if (! nsamps)
+                        continue;
+                    for (int c = 0; c < nchannels; ++c) {
+                        if (dstspec.channelformat(c) == TypeDesc::UINT32)
+                            for (int samp = 0; samp < nsamps; ++samp)
+                                out.set_deep_value (c, samp, srcpel.deep_value_uint(c, samp));
+                        else
+                            for (int samp = 0; samp < nsamps; ++samp)
+                                out.set_deep_value (c, samp, srcpel.deep_value(c, samp));
+                    }
+                } else if (interpolate) {
+                    // Non-deep image, bilinearly interpolate
                     src.interppixel (src_xf, src_yf, pel);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = pel[c];
                 } else {
+                    // Non-deep image, just copy closest pixel
                     srcpel.pos (src_x, src_y, 0);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = srcpel[c];
                 }
-                ++out;
             }
         }
     });
@@ -556,8 +573,33 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
 {
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
-            IBAprep_NO_COPY_ROI_FULL))
+            IBAprep_NO_COPY_ROI_FULL | IBAprep_SUPPORT_DEEP))
         return false;
+
+    if (dst.deep()) {
+        // If it's deep, figure out the sample allocations first, because
+        // it's not thread-safe to do that simultaneously with copying the
+        // values.
+        const ImageSpec &srcspec (src.spec());
+        const ImageSpec &dstspec (dst.spec());
+        float srcfx = srcspec.full_x;
+        float srcfy = srcspec.full_y;
+        float srcfw = srcspec.full_width;
+        float srcfh = srcspec.full_height;
+        float dstpixelwidth = 1.0f / dstspec.full_width;
+        float dstpixelheight = 1.0f / dstspec.full_height;
+        ImageBuf::ConstIterator<float> srcpel (src, roi);
+        ImageBuf::Iterator<float> dstpel (dst, roi);
+        for ( ;  !dstpel.done();  ++dstpel, ++srcpel) {
+            float s = (dstpel.x()-dstspec.full_x+0.5f)*dstpixelwidth;
+            float t = (dstpel.y()-dstspec.full_y+0.5f)*dstpixelheight;
+            int src_y = ifloor (srcfy + t * srcfh - 0.5f);
+            int src_x = ifloor (srcfx + s * srcfw - 0.5f);
+            srcpel.pos (src_x, src_y, 0);
+            dstpel.set_deep_samples (srcpel.deep_samples ());
+        }
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "resample", resample_,
                           dst.spec().format, src.spec().format,
