@@ -29,8 +29,8 @@
 */
 
 
-#ifndef OPENIMAGEIO_EXPORT_H
-#define OPENIMAGEIO_EXPORT_H
+#pragma once
+
 
 /// \file
 /// Macros necessary for proper symbol export from dynamic libraries.
@@ -90,10 +90,3 @@
 #else
 #  define OIIO_API OIIO_IMPORT
 #endif
-
-
-// Back compatibility macros (DEPRECATED)
-#define DLLPUBLIC OIIO_API
-#define DLLEXPORT OIIO_EXPORT
-
-#endif // OPENIMAGEIO_EXPORT_H
