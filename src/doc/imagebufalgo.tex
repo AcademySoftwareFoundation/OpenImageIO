@@ -810,6 +810,10 @@ just samples either with a bilinear interpolation (if {\cf interpolate} is
 {\cf resize()}, though obviously with lower quality (aliasing when
 downsizing, pixel replication when upsizing).
 
+For ``deep'' images, this function returns copies the closest source pixel
+needed, rather than attempting to interpolate deep pixels (regardless of the
+value of {\cf interpolate}).
+
 \smallskip
 \noindent Examples:
 \begin{code}
@@ -2572,6 +2576,18 @@ values {\cf B[]}, storing the result in deep image {\cf dst}.
 \index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
 \NEW % 1.7
 Repair nonfinite ({\cf NaN} or {\cf Inf}) values, setting them to 0.0.
+\apiend
+
+\apiitem{bool {\ce resample} (ImageBuf \&dst, const ImageBuf \&src, \\
+        \bigspc bool interpolate = true, \\
+        \bigspc ROI roi=ROI::All(), int nthreads=0)}
+\index{ImageBufAlgo!resample} \indexapi{resample}
+\NEW % 1.8
+Set {\cf dst}, over the region of interest, to be a resized version of the
+corresponding portion of {\cf src} (mapping such that the ``full'' image
+window of each correspond to each other, regardless of resolution), for each
+pixel merely copying the closest deep pixel of the source image (no true
+interpolation is done for deep images).
 \apiend
 
 
