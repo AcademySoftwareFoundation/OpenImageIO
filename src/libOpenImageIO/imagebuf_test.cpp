@@ -32,6 +32,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/unittest.h>
 
 #include <iostream>
@@ -183,16 +184,16 @@ void ImageBuf_test_appbuffer ()
 {
     const int WIDTH = 8;
     const int HEIGHT = 8;
-    const int CHANNELS = 1;
-    static float buf[HEIGHT][WIDTH] = {
-        { 0, 0, 0, 0, 1, 0, 0, 0 }, 
-        { 0, 0, 0, 1, 0, 1, 0, 0 }, 
-        { 0, 0, 1, 0, 0, 0, 1, 0 }, 
-        { 0, 1, 0, 0, 0, 0, 0, 1 }, 
-        { 0, 0, 1, 0, 0, 0, 1, 0 }, 
-        { 0, 0, 0, 1, 0, 1, 0, 0 }, 
-        { 0, 0, 0, 0, 1, 0, 0, 0 }, 
-        { 0, 0, 0, 0, 0, 0, 0, 0 }
+    const int CHANNELS = 3;
+    float buf[HEIGHT][WIDTH][CHANNELS] = {
+        { {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0} },
+        { {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0} },
+        { {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0} },
+        { {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0} },
+        { {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0} },
+        { {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0} },
+        { {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0} },
+        { {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} }
     };
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A (spec, buf);
@@ -201,62 +202,25 @@ void ImageBuf_test_appbuffer ()
     OIIO_CHECK_EQUAL ((void *)A.pixeladdr (0, 0, 0), (void *)buf);
 
     // write it
-    A.write ("A.tif");
+    A.write ("A_imagebuf_test.tif");
 
     // Read it back and make sure it matches the original
-    ImageBuf B ("A.tif");
+    ImageBuf B ("A_imagebuf_test.tif");
     for (int y = 0;  y < HEIGHT;  ++y)
         for (int x = 0;  x < WIDTH;  ++x)
-            OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, 0),
-                              B.getchannel (x, y, 0, 0));
-}
+            for (int c = 0;  c < WIDTH;  ++c)
+                OIIO_CHECK_EQUAL (A.getchannel (x, y, 0, c),
+                                  B.getchannel (x, y, 0, c));
 
+    // Make sure we can write to the buffer
+    float pix[CHANNELS] = { 0.0, 42.0, 0 };
+    A.setpixel (3, 2, 0, pix);
+    OIIO_CHECK_EQUAL (buf[2][3][1], 42.0);
 
-
-// Tests histogram computation.
-void histogram_computation_test ()
-{
-    const int INPUT_WIDTH   = 64;
-    const int INPUT_HEIGHT  = 64;
-    const int INPUT_CHANNEL = 0;
-
-    const int HISTOGRAM_BINS = 256;
-
-    const int SPIKE1 = 51;  // 0.2f in range 0->1 maps to 51 in range 0->255
-    const int SPIKE2 = 128; // 0.5f in range 0->1 maps to 128 in range 0->255
-    const int SPIKE3 = 204; // 0.8f in range 0->1 maps to 204 in range 0->255
-
-    const int SPIKE1_COUNT = INPUT_WIDTH * 8;
-    const int SPIKE2_COUNT = INPUT_WIDTH * 16;
-    const int SPIKE3_COUNT = INPUT_WIDTH * 40;
-
-    // Create input image with three regions with different pixel values.
-    ImageSpec spec (INPUT_WIDTH, INPUT_HEIGHT, 1, TypeDesc::FLOAT);
-    ImageBuf A (spec);
-
-    float value[] = {0.2f};
-    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 0, 8));
-
-    value[0] = 0.5f;
-    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 8, 24));
-
-    value[0] = 0.8f;
-    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 24, 64));
-
-    // Compute A's histogram.
-    std::vector<imagesize_t> hist;
-    ImageBufAlgo::histogram (A, INPUT_CHANNEL, hist, HISTOGRAM_BINS);
-
-    // Does the histogram size equal the number of bins?
-    OIIO_CHECK_EQUAL (hist.size(), (imagesize_t)HISTOGRAM_BINS);
-
-    // Are the histogram values as expected?
-    OIIO_CHECK_EQUAL (hist[SPIKE1], (imagesize_t)SPIKE1_COUNT);
-    OIIO_CHECK_EQUAL (hist[SPIKE2], (imagesize_t)SPIKE2_COUNT);
-    OIIO_CHECK_EQUAL (hist[SPIKE3], (imagesize_t)SPIKE3_COUNT);
-    for (int i = 0; i < HISTOGRAM_BINS; i++)
-        if (i!=SPIKE1 && i!=SPIKE2 && i!=SPIKE3)
-            OIIO_CHECK_EQUAL (hist[i], 0);
+    // Make sure we can copy-construct the ImageBuf and it points to the
+    // same application buffer.
+    ImageBuf C (A);
+    OIIO_CHECK_EQUAL ((void *)A.pixeladdr(0,0,0), (void*)C.pixeladdr(0,0,0));
 }
 
 
@@ -268,7 +232,7 @@ void test_open_with_config ()
     ImageCache *ic = ImageCache::create(false);
     ImageSpec config;
     config.attribute ("oiio:DebugOpenConfig!", 1);
-    ImageBuf A ("A.tif", 0, 0, ic, &config);
+    ImageBuf A ("A_imagebuf_test.tif", 0, 0, ic, &config);
     OIIO_CHECK_EQUAL (A.spec().get_int_attribute("oiio:DebugOpenConfig!",0), 42);
     ic->destroy (ic);
 }
@@ -341,10 +305,10 @@ main (int argc, char **argv)
     iterator_wrap_test<ImageBuf::ConstIterator<float> > (ImageBuf::WrapMirror, "mirror");
 
     ImageBuf_test_appbuffer ();
-    histogram_computation_test ();
     test_open_with_config ();
 
     test_set_get_pixels ();
 
+    Filesystem::remove ("A_imagebuf_test.tif");
     return unit_test_failures;
 }
