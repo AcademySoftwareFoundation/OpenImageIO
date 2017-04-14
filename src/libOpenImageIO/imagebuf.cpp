@@ -363,8 +363,6 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_nmiplevels(src.m_nmiplevels),
       m_threads(src.m_threads),
       m_spec(src.m_spec), m_nativespec(src.m_nativespec),
-      m_pixels(src.m_localpixels ? new char [src.m_spec.image_bytes()] : NULL),
-      m_localpixels(m_pixels.get()),
       m_badfile(src.m_badfile),
       m_pixelaspect(src.m_pixelaspect),
       m_pixel_bytes(src.m_pixel_bytes),
@@ -386,15 +384,18 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
         if (m_storage == ImageBuf::APPBUFFER) {
-            // Source just wrapped the client app's pixels
-            ASSERT (0 && "ImageBuf wrapping client buffer not yet supported");
+            // Source just wrapped the client app's pixels, we do the same
+            m_localpixels = src.m_localpixels;
         } else {
             // We own our pixels -- copy from source
+            m_pixels.reset (new char [src.m_spec.image_bytes()]);
             memcpy (m_pixels.get(), src.m_pixels.get(), m_spec.image_bytes());
+            m_localpixels = m_pixels.get();
         }
     } else {
         // Source was cache-based or deep
         // nothing else to do
+        m_localpixels = NULL;
     }
     if (src.m_configspec)
         m_configspec.reset (new ImageSpec(*src.m_configspec));
