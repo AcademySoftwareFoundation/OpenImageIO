@@ -43,6 +43,11 @@ command += oiiotool (parent + "/oiio-images/grid.tif --resize 25% -o resize2.tif
 command += oiiotool (parent + "/oiio-images/grid.tif --resize 64x64 -o resize64.tif")
 command += oiiotool ("resize64.tif --resize 512x512 -o resize512.tif")
 
+# test resize with nonzero origin. Save to exr to make extra sure we have
+# the display and data windows correct.
+command += oiiotool ("--pattern fill:topleft=1,0,0:topright=0,1,0:bottomleft=0,0,1:bottomright=0,1,1 64x64 3 " +
+                     "--origin +100+100 --fullsize 256x256+0+0 " +
+                     "--resize 128x128 -d half -o resized-offset.exr")
 # test fit
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 360x240 -d uint8 -o fit.tif")
 command += oiiotool (parent + "/oiio-images/grid.tif --fit 240x360 -d uint8 -o fit2.tif")
@@ -106,6 +111,7 @@ command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
 outputs = [
             "resample.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
+            "resized-offset.exr",
             "fit.tif", "fit2.tif", "fit3.tif", "fit4.exr",
             "pixelaspect.tif",
             "warped.tif",
