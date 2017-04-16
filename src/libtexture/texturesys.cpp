@@ -641,7 +641,8 @@ TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
         error ("Texture file \"%s\" not found", filename);
         return false;
     }
-    return get_texels (filename, options, miplevel, xbegin, xend,
+    return get_texels ((TextureHandle *)texfile, (Perthread *)thread_info,
+                       options, miplevel, xbegin, xend,
                        ybegin, yend, zbegin, zend, chbegin, chend,
                        format, result);
 }

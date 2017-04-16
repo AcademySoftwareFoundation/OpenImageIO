@@ -243,7 +243,7 @@ oiio_add_tests (
                 texture-blurtube
                 texture-crop texture-cropover
                 texture-derivs texture-fill texture-filtersize
-                texture-flipt texture-gray
+                texture-flipt texture-gettexels texture-gray
                 texture-mip-nomip texture-mip-trilinear
                 texture-overscan texture-pointsample
                 texture-uint8
