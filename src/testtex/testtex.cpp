@@ -703,27 +703,32 @@ test_getimagespec_gettexels (ustring filename)
     if (! test_gettexels)
         return;
 
-    int w = spec.width / std::max(1,2<<miplevel);
-    int h = spec.height / std::max(1,2<<miplevel);
+    int w = std::min (spec.width, output_xres);
+    int h = std::min (spec.height, output_yres);
     int nchannels = nchannels_override ? nchannels_override : spec.nchannels;
     ImageSpec postagespec (w, h, nchannels, TypeDesc::FLOAT);
     ImageBuf buf (postagespec);
     TextureOpt opt;
     initialize_opt (opt, nchannels);
     std::vector<float> tmp (w*h*nchannels);
-    bool ok = texsys->get_texels (filename, opt, miplevel,
-                                  spec.x+w/2, spec.x+w/2+w,
-                                  spec.y+h/2, spec.y+h/2+h,
-                                  0, 1, 0, nchannels,
-                                  postagespec.format, &tmp[0]);
-    if (! ok)
-        std::cerr << texsys->geterror() << "\n";
+    int x = spec.x + spec.width/2 - w/2;
+    int y = spec.y + spec.height/2 - h/2;
+    for (int i = 0; i < iters; ++i) {
+        bool ok = texsys->get_texels (filename, opt, miplevel,
+                                      x, x+w, y, y+h, 0, 1, 0, nchannels,
+                                      postagespec.format, &tmp[0]);
+        if (! ok)
+            std::cerr << texsys->geterror() << "\n";
+    }
     for (int y = 0;  y < h;  ++y)
         for (int x = 0;  x < w;  ++x) {
             imagesize_t texoffset = (y*w + x) * spec.nchannels;
             buf.setpixel (x, y, &tmp[texoffset]);
         }
-    buf.write ("postage.exr");
+    TypeDesc fmt (dataformatname);
+    if (fmt != TypeDesc::UNKNOWN)
+        buf.set_write_format (fmt);
+    buf.write (output_filename);
 }
 
 
@@ -1139,6 +1144,11 @@ main (int argc, const char *argv[])
         for (int i = 0;  i < iters;  ++i) {
             texsys->get_imagespec (filenames[0], 0, spec);
         }
+        iters = 0;
+    }
+
+    if (test_gettexels) {
+        test_getimagespec_gettexels (filenames[0]);
         iters = 0;
     }
 
