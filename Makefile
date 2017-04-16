@@ -12,7 +12,6 @@
 .PHONY: all debug profile clean realclean nuke doxygen
 
 working_dir	:= ${shell pwd}
-INSTALLDIR	=${working_dir}
 
 # Figure out which architecture we're on
 include ${working_dir}/src/make/detectplatform.mk
@@ -48,6 +47,13 @@ build_dir     := ${top_build_dir}/${platform}${variant}
 top_dist_dir  := dist
 dist_dir      := ${top_dist_dir}/${platform}${variant}
 
+ifndef INSTALL_PREFIX
+INSTALL_PREFIX := ${working_dir}/${dist_dir}
+INSTALL_PREFIX_BRIEF := ${dist_dir}
+else
+INSTALL_PREFIX_BRIEF := ${INSTALL_PREFIX}
+endif
+
 VERBOSE ?= ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
@@ -58,7 +64,7 @@ ifneq (${VERBOSE},0)
 endif
 $(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
 $(info dist_dir = ${dist_dir})
-$(info INSTALLDIR = ${INSTALLDIR})
+$(info INSTALL_PREFIX = ${INSTALL_PREFIX})
 endif
 
 ifneq (${EMBEDPLUGINS},)
@@ -330,7 +336,7 @@ cmakesetup:
 	@ (if [ ! -e ${build_dir}/${BUILDSENTINEL} ] ; then \
 		${CMAKE} -E make_directory ${build_dir} ; \
 		cd ${build_dir} ; \
-		${CMAKE} -DCMAKE_INSTALL_PREFIX=${INSTALLDIR}/${dist_dir} \
+		${CMAKE} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
 			${MY_CMAKE_FLAGS} -DBOOST_ROOT=${BOOST_HOME} \
 			../.. ; \
 	 fi)
@@ -425,12 +431,9 @@ doxygen:
 # 'make help' prints important make targets
 help:
 	@echo "Targets:"
-	@echo "  make              Build optimized binaries and libraries in ${dist_dir},"
-	@echo "                        temporary build files in ${build_dir}"
-	@echo "  make debug        Build unoptimized with symbols in ${dist_dir}.debug,"
-	@echo "                        temporary build files in ${build_dir}.debug"
-	@echo "  make profile      Build for profiling in ${dist_dir}.profile,"
-	@echo "                        temporary build files in ${build_dir}.profile"
+	@echo "  make              Build optimized binaries and libraries"
+	@echo "  make debug        Build unoptimized with symbols"
+	@echo "  make profile      Build for profiling"
 	@echo "  make clean        Remove the temporary files in ${build_dir}"
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
@@ -450,7 +453,7 @@ help:
 	@echo "      USE_NINJA=1              Set up Ninja build (instead of make)"
 	@echo "      USE_CCACHE=0             Disable ccache (even if available)"
 	@echo "      CODECOV=1                Enable code coverage tests"
-	@echo "      SANITIZE=name1,...       Enablie sanitizers (address, leak, thread)"
+	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
 	@echo "                                  by CLANG_TIDY_ARGS=... and CLANG_TIDY_FIX=1"
 	@echo "  Linking and libraries:"
@@ -483,13 +486,13 @@ help:
 	@echo "      USE_NUKE=0               Don't build Nuke plugins"
 	@echo "      NUKE_HOME=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
-#	@echo "      USE_OPENSSL=1            Use OpenSSL's SHA-1 implementation"
 	@echo "      USE_LIBRAW=0             Don't use LibRaw, even if found"
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
 	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
 	@echo "  OIIO build-time options:"
+	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX_BRIEF})"
 	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"
 	@echo "      OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"

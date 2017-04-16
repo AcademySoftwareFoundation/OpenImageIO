@@ -15,7 +15,6 @@ message (STATUS "CMake version is ${CMAKE_VERSION}")
 cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
 cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
 cmake_policy (SET CMP0046 OLD)  # Don't error on non-existent dependency in add_dependencies.
-cmake_policy (SET CMP0042 OLD)  # Don't enable MACOSX_RPATH by default
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
 # Alternate names
@@ -32,7 +31,8 @@ set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 if (VERBOSE)
     message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 endif ()
-message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
+message (STATUS "Project build dir   = ${CMAKE_BINARY_DIR}")
+message (STATUS "Project install dir = ${CMAKE_INSTALL_PREFIX}")
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
