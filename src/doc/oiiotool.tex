@@ -2129,8 +2129,10 @@ The size is in the form
 \apiitem{\ce --resample {\rm \emph{size}}}
 Replace the current image with a new image that is resampled to the
 given pixel data resolution rapidly, but at a low quality, by simply
-copying the ``closest'' pixel.  The \emph{size} is in the form 
-\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+copying the ``closest'' pixel.  The \emph{size} is in the form
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset}
+\\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 \\ or~~~~ \spc \emph{wscale}{\verb|%|}\,{\cf x}\,\emph{hscale}{\verb|%|} \\
 
@@ -2149,9 +2151,11 @@ automatically computed so as to preserve the original aspect ratio.
 \apiend
 
 \apiitem{\ce --resize {\rm \emph{size}}}
-Replace the current image with a new image that is resized to the 
-given pixel data resolution.  The \emph{size} is in the form 
-\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+Replace the current image with a new image whose display (full) size is
+the given pixel data resolution and offset.  The \emph{size} is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset}
+\\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
 \\ or~~~~ \spc \emph{wscale}{\verb|%|}\,{\cf x}\,\emph{hscale}{\verb|%|} \\
 

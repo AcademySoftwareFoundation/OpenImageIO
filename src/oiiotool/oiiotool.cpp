@@ -3003,22 +3003,26 @@ public:
         : OiiotoolOp (ot, opname, argc, argv, 1) { }
     virtual int compute_subimages () { return 1; } // just the first one
     virtual bool setup () {
+        // The size argument will be the resulting display (full) window.
         const ImageSpec &Aspec (*ir[1]->spec(0,0));
         ImageSpec newspec = Aspec;
-        ot.adjust_geometry (args[0], newspec.width, newspec.height,
-                            newspec.x, newspec.y, args[1].c_str() /*size*/, true);
-        if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
+        ot.adjust_geometry (args[0], newspec.full_width, newspec.full_height,
+                            newspec.full_x, newspec.full_y,
+                            args[1].c_str() /*size*/, true);
+        if (newspec.full_width == Aspec.full_width &&
+            newspec.full_height == Aspec.full_height) {
             // No change -- pop the temp result and restore the original
             ot.pop ();
             ot.push (ir[1]);
             return false;   // nothing more to do
         }
-        // Shrink-wrap full to match actual pixels; I'm not sure what else
-        // is appropriate, need to think it over.
-        newspec.full_x = newspec.x;
-        newspec.full_y = newspec.y;
-        newspec.full_width = newspec.width;
-        newspec.full_height = newspec.height;
+        // Compute corresponding data window.
+        float wratio = float(newspec.full_width) / float(Aspec.full_width);
+        float hratio = float(newspec.full_height) / float(Aspec.full_height);
+        newspec.x = newspec.full_x + int(floorf ((Aspec.x - Aspec.full_x) * wratio));
+        newspec.y = newspec.full_y + int(floorf ((Aspec.y - Aspec.full_y) * hratio));
+        newspec.width = int(ceilf (Aspec.width * wratio));
+        newspec.height = int(ceilf (Aspec.height * hratio));
         (*ir[0])(0,0).reset (newspec);
         return true;
     }
@@ -3037,22 +3041,26 @@ public:
         : OiiotoolOp (ot, opname, argc, argv, 1) { }
     virtual int compute_subimages () { return 1; } // just the first one
     virtual bool setup () {
+        // The size argument will be the resulting display (full) window.
         const ImageSpec &Aspec (*ir[1]->spec(0,0));
         ImageSpec newspec = Aspec;
-        ot.adjust_geometry (args[0], newspec.width, newspec.height,
-                            newspec.x, newspec.y, args[1].c_str() /*size*/, true);
-        if (newspec.width == Aspec.width && newspec.height == Aspec.height) {
+        ot.adjust_geometry (args[0], newspec.full_width, newspec.full_height,
+                            newspec.full_x, newspec.full_y,
+                            args[1].c_str() /*size*/, true);
+        if (newspec.full_width == Aspec.full_width &&
+            newspec.full_height == Aspec.full_height) {
             // No change -- pop the temp result and restore the original
             ot.pop ();
             ot.push (ir[1]);
             return false;   // nothing more to do
         }
-        // Shrink-wrap full to match actual pixels; I'm not sure what else
-        // is appropriate, need to think it over.
-        newspec.full_x = newspec.x;
-        newspec.full_y = newspec.y;
-        newspec.full_width = newspec.width;
-        newspec.full_height = newspec.height;
+        // Compute corresponding data window.
+        float wratio = float(newspec.full_width) / float(Aspec.full_width);
+        float hratio = float(newspec.full_height) / float(Aspec.full_height);
+        newspec.x = newspec.full_x + int(floorf ((Aspec.x - Aspec.full_x) * wratio));
+        newspec.y = newspec.full_y + int(floorf ((Aspec.y - Aspec.full_y) * hratio));
+        newspec.width = int(ceilf (Aspec.width * wratio));
+        newspec.height = int(ceilf (Aspec.height * hratio));
         (*ir[0])(0,0).reset (newspec);
         return true;
     }

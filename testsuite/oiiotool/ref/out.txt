@@ -69,6 +69,8 @@ Comparing "resize64.tif" and "ref/resize64.tif"
 PASS
 Comparing "resize512.tif" and "ref/resize512.tif"
 PASS
+Comparing "resized-offset.exr" and "ref/resized-offset.exr"
+PASS
 Comparing "fit.tif" and "ref/fit.tif"
 PASS
 Comparing "fit2.tif" and "ref/fit2.tif"
