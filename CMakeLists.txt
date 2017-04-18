@@ -14,7 +14,6 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.0)
     cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
 endif ()
 if (NOT CMAKE_VERSION VERSION_LESS 3.2.2)
-    cmake_policy (SET CMP0042 OLD)
     cmake_policy (SET CMP0046 OLD)
 endif ()
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
@@ -445,6 +444,7 @@ else ()
     endif ()
     set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif ()
+set (MACOSX_RPATH ON)
 
 
 if (MSVC)
