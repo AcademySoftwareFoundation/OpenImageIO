@@ -2524,7 +2524,22 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         *(int *)data = file->subimages();
         return true;
     }
-    
+
+    // Make sure we have a valid subimage and miplevel BEFORE we get a
+    // reference to the spec.
+    if (subimage < 0 || subimage >= file->subimages()) {
+        if (file->errors_should_issue())
+            error ("Unknown subimage %d (out of %d)",
+                   subimage, file->subimages());
+        return false;
+    }
+    if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
+        if (file->errors_should_issue())
+            error ("Unknown mip level %d (out of %d)",
+                   miplevel, file->miplevels(subimage));
+        return false;
+    }
+
     const ImageSpec &spec (file->spec(subimage,miplevel));
     if (dataname == s_resolution && datatype==TypeDesc(TypeDesc::INT,2)) {
         int *d = (int *)data;
