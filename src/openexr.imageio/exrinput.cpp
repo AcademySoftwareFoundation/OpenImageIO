@@ -771,7 +771,8 @@ struct ChanNameHolder {
         }
         static const char * special[] = {
             "R", "Red", "G", "Green", "B", "Blue", "real", "imag",
-            "A", "Alpha", "RA", "RG", "RB", "Z", "Depth", "Zback", NULL
+            "A", "Alpha", "AR", "RA", "AG", "GA", "AB", "BA",
+            "Z", "Depth", "Zback", NULL
         };
         special_index = 10000;
         for (int i = 0; special[i]; ++i)
