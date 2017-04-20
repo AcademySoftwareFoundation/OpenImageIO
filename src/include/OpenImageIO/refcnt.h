@@ -112,9 +112,11 @@ public:
 
     /// Reset to point to a pointer
     void reset (T *r) {
-        if (m_ptr) intrusive_ptr_release (m_ptr);
-        m_ptr = r;
-        if (m_ptr) intrusive_ptr_add_ref (m_ptr);
+        if (r != m_ptr) {
+            if (r) intrusive_ptr_add_ref (r);
+            if (m_ptr) intrusive_ptr_release (m_ptr);
+            m_ptr = r;
+        }
     }
 
     /// Swap intrusive pointers
