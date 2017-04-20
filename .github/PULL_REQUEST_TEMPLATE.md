@@ -16,12 +16,12 @@
 
 - [ ] I have read the [contribution guidelines](../CONTRIBUTING.md).
 - [ ] If this is more extensive than a small change to existing code, I
-      have previously submitted a Contributor License Agreement
-      ([individual](../src/doc/CLA-INDIVIDUAL), and if there is any way my
-      employers might think my programming belongs to them, then also
-      [corporate](../src/doc/CLA-CORPORATE)).
+  have previously submitted a Contributor License Agreement
+  ([individual](../src/doc/CLA-INDIVIDUAL), and if there is any way my
+  employers might think my programming belongs to them, then also
+  [corporate](../src/doc/CLA-CORPORATE)).
 - [ ] I have updated the documentation, if applicable.
 - [ ] I have ensured that the change is tested somewhere in the testsuite
-     (adding new test cases if necessary).
+  (adding new test cases if necessary).
 - [ ] My code follows the prevailing code style of this project.
 
