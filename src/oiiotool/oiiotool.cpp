@@ -3204,11 +3204,13 @@ action_fit (int argc, const char *argv[])
 
     std::map<std::string,std::string> options;
     options["wrap"] = "black";
+    options["allsubimages"] = std::to_string(ot.allsubimages);
     ot.extract_options (options, command);
     bool pad = Strutil::from_string<int>(options["pad"]);
     string_view filtername = options["filter"];
     bool exact = Strutil::from_string<int>(options["exact"]);
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (options["wrap"]);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
 
     // Compute scaling factors and use action_resize to do the heavy lifting
     float oldaspect = float(Aspec->full_width) / Aspec->full_height;
@@ -3251,14 +3253,19 @@ action_fit (int argc, const char *argv[])
                        xoff,  yoff,  1.0f);
         if (ot.debug)
             std::cout << "   Fit performing warp with " << M << "\n";
-        ImageSpec newspec = *Aspec;
-        newspec.width = newspec.full_width = fit_full_width;
-        newspec.height = newspec.full_height = fit_full_height;
-        newspec.x = newspec.full_x = fit_full_x;
-        newspec.y = newspec.full_y = fit_full_y;
-        ImageRecRef R (new ImageRec (A->name(), newspec, ot.imagecache));
-        ImageBufAlgo::warp ((*R)(0,0), (*A)(0,0), M, filtername, 0.0f,
-                            false, wrap);
+        int subimages = allsubimages ? A->subimages() : 1;
+        ImageRecRef R (new ImageRec (A->name(), subimages));
+        for (int s = 0; s < subimages; ++s) {
+            ImageSpec newspec = (*A)(s,0).spec();
+            newspec.width = newspec.full_width = fit_full_width;
+            newspec.height = newspec.full_height = fit_full_height;
+            newspec.x = newspec.full_x = fit_full_x;
+            newspec.y = newspec.full_y = fit_full_y;
+            (*R)(s,0).reset (newspec);
+            ImageBufAlgo::warp ((*R)(s,0), (*A)(s,0), M, filtername, 0.0f,
+                                false, wrap);
+            R->update_spec_from_imagebuf (s, 0);
+        }
         ot.pop();
         ot.push (R);
         A = ot.top ();
@@ -3278,6 +3285,7 @@ action_fit (int argc, const char *argv[])
             std::string command = "resize";
             if (filtername.size())
                 command += Strutil::format (":filter=%s", filtername);
+            command += Strutil::format (":allsubimages=%d", allsubimages);
             const char *newargv[2] = { command.c_str(), resize.c_str() };
             action_resize (2, newargv);
             A = ot.top ();
