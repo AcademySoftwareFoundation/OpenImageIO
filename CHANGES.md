@@ -1,6 +1,30 @@
 Release 1.7.14 (1 May 2017) -- compared to 1.7.13
 -------------------------------------------------
-
+* oiiotool expression substitution now recognizes FRAME_NUMBER and
+  FRAME_NUMBER_PAD. #1648
+* oiiotool -resize and -resample now have more intuitive behavior for images
+  where the display and pixel data windows are not the same, especially if
+  the data window had a nonzero origin (such as with crop or overscan).
+  #1667
+* oiiotool --resample and ImageBufAlgo::resample() have been extended to
+  work for "deep" images. #1668
+* ImageCache::get_image_info() will now return a proper error (and not hit
+  an assertion) if asked for information about a subimage or MIP level that
+  does not exist in the file. #1672
+* ImageBuf copy constructor from another ImageBuf was previously broken for
+  IB's that wrap application buffers. #1665
+* TextureSystem::get_texels fixes crashing behavior. #1669
+* Fixes to OSX rpath behavior of linked binaries. #1671
+* OpenEXR file input: fixed problem with sorting order of spectral alpha
+  channels (RA, GA, BA, or AR, AG, AB). #1674
+* ImageBufAlgo::deep_merge() (and oiiotool --deepmerge) now will give a
+  useful error message if you try to merge two deep images that do not have
+  the same number of channels. #1675
+* ImageCache/TextureSystem statistics no longer list as "BROKEN" files which
+  were invalidated, or files that were initialized with an ImageCacheFile
+  but never opened. #1655
+* Fix Windows warnings about SIMD types as function args, and about
+  int vs bool. #1659
 
 Release 1.7.13 (1 Apr 2017) -- compared to 1.7.12
 ----------------------------------------------
