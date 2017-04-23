@@ -57,24 +57,24 @@ class offset {
     OIIO_STATIC_ASSERT (Rank >= 1);
 public:
     // constants and types
-    static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
+    static constexpr size_t rank = Rank;
     using reference           = ptrdiff_t&;
     using const_reference     = const ptrdiff_t&;
     using size_type           = size_t;
     using value_type          = ptrdiff_t;
 
     /// Default constructor
-    OIIO_CONSTEXPR14 offset() OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 offset() noexcept {
         std::fill (m_ind+0, m_ind+Rank, 0);
     }
     /// Constructor for 1D case
-    OIIO_CONSTEXPR14 offset (value_type v) OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 offset (value_type v) noexcept {
         DASSERT (Rank == 1);
         m_ind[0] = v;
         std::fill (m_ind+1, m_ind+Rank, 1);
     }
     /// Constructor for 2D case
-    OIIO_CONSTEXPR14 offset (value_type v0, value_type v1) OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 offset (value_type v0, value_type v1) noexcept {
         DASSERT (Rank == 2);
         m_ind[0] = v0;
         m_ind[1] = v1;
@@ -88,11 +88,11 @@ public:
     }
 
     /// Equality test.
-    OIIO_CONSTEXPR bool operator== (const offset& rhs) const OIIO_NOEXCEPT {
+    constexpr bool operator== (const offset& rhs) const noexcept {
         return std::equal (m_ind+0, m_ind+Rank, rhs.m_ind+0);
     }
     /// Inequality test.
-    OIIO_CONSTEXPR bool operator!= (const offset& rhs) const OIIO_NOEXCEPT {
+    constexpr bool operator!= (const offset& rhs) const noexcept {
         return ! (*this == rhs);
     }
 
@@ -153,7 +153,7 @@ public:
         return ret;
     }
 
-    OIIO_CONSTEXPR offset operator+ () const OIIO_NOEXCEPT { return *this; }
+    constexpr offset operator+ () const noexcept { return *this; }
     OIIO_CONSTEXPR14 offset operator- () const {
         offset result;
         for (size_t i = 0; i < Rank; ++i)
@@ -204,7 +204,7 @@ class bounds {
     OIIO_STATIC_ASSERT (Rank >= 1);
 public:
     // constants and types
-    static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
+    static constexpr size_t rank = Rank;
     using reference           = ptrdiff_t&;
     using const_reference     = const ptrdiff_t&;
     using size_type           = size_t;
@@ -213,7 +213,7 @@ public:
     using const_iterator      = bounds_iterator<Rank>;
 
     /// Default constructor
-    OIIO_CONSTEXPR14 bounds() OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 bounds() noexcept {
         std::fill (m_bnd+0, m_bnd+Rank, 0);
     }
     /// Constructor for 1D case
@@ -236,13 +236,13 @@ public:
         std::copy (il.begin(), il.end(), m_bnd+0);
     }
 
-    OIIO_CONSTEXPR14 size_type size() const OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 size_type size() const noexcept {
         size_type r = m_bnd[0];
         for (size_t i = 1; i < Rank; ++i)
             r *= m_bnd[i];
         return r;
     }
-    OIIO_CONSTEXPR14 bool contains(const offset<Rank>& idx) const OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 bool contains(const offset<Rank>& idx) const noexcept {
         for (size_t i = 0; i < Rank; ++i)
             if (idx[i] < 0 || idx[i] > m_bnd[i])
                 return false;
@@ -250,20 +250,20 @@ public:
     }
 
     /// Equality test.
-    OIIO_CONSTEXPR bool operator== (const bounds& rhs) const OIIO_NOEXCEPT {
+    constexpr bool operator== (const bounds& rhs) const noexcept {
         return std::equal (m_bnd+0, m_bnd+Rank, rhs.m_bnd+0);
     }
     /// Inequality test.
-    OIIO_CONSTEXPR bool operator!= (const bounds& rhs) const OIIO_NOEXCEPT {
+    constexpr bool operator!= (const bounds& rhs) const noexcept {
         return ! (*this == rhs);
     }
 
     // bounds iterators
-    const_iterator begin() const OIIO_NOEXCEPT {
+    const_iterator begin() const noexcept {
         return const_iterator(*this, offset<Rank>());
     }
     // Return a bounds_iterator that is one-past-the-end of *this.
-    const_iterator end() const OIIO_NOEXCEPT {
+    const_iterator end() const noexcept {
         offset<Rank> off;
         off[0] = m_bnd[0];
         return const_iterator (*this, off);

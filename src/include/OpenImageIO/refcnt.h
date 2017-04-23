@@ -58,7 +58,7 @@ public:
     typedef T element_type;
 
     /// Default ctr
-    intrusive_ptr () OIIO_NOEXCEPT : m_ptr(NULL) { }
+    intrusive_ptr () noexcept : m_ptr(NULL) { }
 
     /// Construct from a raw pointer (presumed to be just now allocated,
     /// and now owned by us).
@@ -72,7 +72,7 @@ public:
     }
 
     /// Move construct from another intrusive_ptr.
-    intrusive_ptr (intrusive_ptr &&r) OIIO_NOEXCEPT : m_ptr(r.get()) {
+    intrusive_ptr (intrusive_ptr &&r) noexcept : m_ptr(r.get()) {
         r.m_ptr = NULL;
     }
 
@@ -86,13 +86,13 @@ public:
     }
 
     /// Move assignment from intrusive_ptr
-    intrusive_ptr & operator= (intrusive_ptr&& r) OIIO_NOEXCEPT {
+    intrusive_ptr & operator= (intrusive_ptr&& r) noexcept {
         intrusive_ptr (static_cast<intrusive_ptr&&>(r)).swap(*this);
         return *this;
     }
 
     /// Reset to null reference
-    void reset () OIIO_NOEXCEPT {
+    void reset () noexcept {
         if (m_ptr) { intrusive_ptr_release (m_ptr); m_ptr = NULL; }
     }
 
@@ -106,7 +106,7 @@ public:
     }
 
     /// Swap intrusive pointers
-    void swap (intrusive_ptr &r) OIIO_NOEXCEPT {
+    void swap (intrusive_ptr &r) noexcept {
         T *tmp = m_ptr; m_ptr = r.m_ptr; r.m_ptr = tmp;
     }
 
@@ -117,10 +117,10 @@ public:
     T* operator->() const { DASSERT (m_ptr); return m_ptr; }
 
     /// Get raw pointer
-    T* get() const OIIO_NOEXCEPT { return m_ptr; }
+    T* get() const noexcept { return m_ptr; }
 
     /// Cast to bool to detect whether it points to anything
-    operator bool () const OIIO_NOEXCEPT { return m_ptr != NULL; }
+    operator bool () const noexcept { return m_ptr != NULL; }
 
 private:
     T* m_ptr;   // the raw pointer
