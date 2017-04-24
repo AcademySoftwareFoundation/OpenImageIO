@@ -8,10 +8,14 @@
 
 find_path (PUGIXML_INCLUDE_DIR
            NAMES pugixml.hpp
-           PATHS ${PUGIXML_HOME}/include)
+           PATHS ${PUGIXML_HOME}/include
+           /usr/local/include
+           /usr/local/include/pugixml-1.8)
 find_library (PUGIXML_LIBRARY
               NAMES pugixml
-              PATHS ${PUGIXML_HOME}/lib)
+              PATHS ${PUGIXML_HOME}/lib
+              /usr/local/lib
+              /usr/local/lib/pugixml-1.8)
 
 # Support the REQUIRED and QUIET arguments, and set PUGIXML_FOUND if found.
 include (FindPackageHandleStandardArgs)
