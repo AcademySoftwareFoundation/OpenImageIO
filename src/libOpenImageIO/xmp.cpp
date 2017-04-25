@@ -31,6 +31,8 @@
 
 #include <iostream>
 
+#include <boost/container/flat_map.hpp>
+
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/fmath.h>
@@ -41,7 +43,7 @@ extern "C" {
 }
 
 #if USE_EXTERNAL_PUGIXML
-# include "pugixml.hpp"
+# include <pugixml.hpp>
 #else
 # include <OpenImageIO/pugixml.hpp>
 #endif
@@ -92,6 +94,7 @@ static XMPtag xmptag [] = {
     { "photoshop:SupplementalCategories", "IPTC:SupplementalCategories", TypeDesc::STRING, IsList|Suppress },  // FIXME -- un-suppress when we have it working
     { "photoshop:TransmissionReference", "IPTC:TransmissionReference", TypeDesc::STRING, 0 },
     { "photoshop:Urgency", "photoshop:Urgency", TypeDesc::INT, 0 },
+    { "photoshop:ColorMode", "photoshop:ColorMode", TypeDesc::STRING, 0 },
 
     { "tiff:Compression", "tiff:Compression", TypeDesc::INT, TiffRedundant },
     { "tiff:PlanarConfiguration", "tiff:PlanarConfiguration", TypeDesc::INT, TiffRedundant },
@@ -146,9 +149,111 @@ static XMPtag xmptag [] = {
     { "Iptc4xmpCore:Scene", "IPTC:SceneCode", TypeDesc::STRING, IsList },
     { "Iptc4xmpExt:PersonInImage", "IPTC:PersonInImage", TypeDesc::STRING, IsList },
 
+    { "aux::Firmware", "aux:Firmware", TypeDesc::STRING, 0},
+
+    { "crs:AutoBrightness", "crs:AutoBrightness"  , TypeDesc::INT, IsBool },
+    { "crs:AutoContrast", "crs:AutoContrast"    , TypeDesc::INT, IsBool },
+    { "crs:AutoExposure", "crs:AutoExposure"    , TypeDesc::INT, IsBool },
+    { "crs:AutoShadows", "crs:AutoShadows"     , TypeDesc::INT, IsBool },
+    { "crs:BlueHue", "crs:BlueHue"         , TypeDesc::INT, 0 },
+    { "crs:BlueSaturation", "crs:BlueSaturation"  , TypeDesc::INT, 0 },
+    { "crs:Brightness", "crs:Brightness"      , TypeDesc::INT, 0 },
+    { "crs:CameraProfile", "crs:CameraProfile"   , TypeDesc::STRING, 0 },
+    { "crs:ChromaticAberrationB", "crs:ChromaticAberrationB"    , TypeDesc::INT, 0 },
+    { "crs:ChromaticAberrationR", "crs:ChromaticAberrationR"    , TypeDesc::INT, 0 },
+    { "crs:ColorNoiseReduction", "crs:ColorNoiseReduction" , TypeDesc::INT, 0 },
+    { "crs:Contrast", "crs:Contrast", TypeDesc::INT, 0 },
+    { "crs:CropTop", "crs:CropTop", TypeDesc::FLOAT, 0 },
+    { "crs:CropLeft", "crs:CropLeft", TypeDesc::FLOAT, 0 },
+    { "crs:CropBottom", "crs:CropBottom", TypeDesc::FLOAT, 0 },
+    { "crs:CropRight", "crs:CropRight", TypeDesc::FLOAT, 0 },
+    { "crs:CropAngle", "crs:CropAngle", TypeDesc::FLOAT, 0 },
+    { "crs:CropWidth", "crs:CropWidth", TypeDesc::FLOAT, 0 },
+    { "crs:CropHeight", "crs:CropHeight", TypeDesc::FLOAT, 0 },
+    { "crs:CropUnits", "crs:CropUnits", TypeDesc::INT, 0 },
+    { "crs:Exposure", "crs:Exposure", TypeDesc::FLOAT, 0 },
+    { "crs:GreenHue", "crs:GreenHue", TypeDesc::INT, 0 },
+    { "crs:GreenSaturation", "crs:GreenSaturation", TypeDesc::INT, 0 },
+    { "crs:HasCrop", "crs:HasCrop", TypeDesc::INT, IsBool },
+    { "crs:HasSettings", "crs:HasSettings", TypeDesc::INT, IsBool },
+    { "crs:LuminanceSmoothing", "crs:LuminanceSmoothing", TypeDesc::INT, 0 },
+    { "crs:RawFileName", "crs:RawFileName", TypeDesc::STRING, 0 },
+    { "crs:RedHue", "crs:RedHue", TypeDesc::INT, 0 },
+    { "crs:RedSaturation", "crs:RedSaturation", TypeDesc::INT, 0 },
+    { "crs:Saturation", "crs:Saturation", TypeDesc::INT, 0 },
+    { "crs:Shadows", "crs:Shadows", TypeDesc::INT, 0 },
+    { "crs:ShadowTint", "crs:ShadowTint", TypeDesc::INT, 0 },
+    { "crs:Sharpness", "crs:Sharpness", TypeDesc::INT, 0 },
+    { "crs:Temperature", "crs:Temperature", TypeDesc::INT, 0 },
+    { "crs:Tint", "crs:Tint", TypeDesc::INT, 0 },
+    { "crs:ToneCurve", "crs:ToneCurve", TypeDesc::STRING, 0 },
+    { "crs:ToneCurveName", "crs:ToneCurveName", TypeDesc::STRING, 0 },
+    { "crs:Version", "crs:Version", TypeDesc::STRING, 0 },
+    { "crs:VignetteAmount", "crs:VignetteAmount", TypeDesc::INT, 0 },
+    { "crs:VignetteMidpoint", "crs:VignetteMidpoint", TypeDesc::INT, 0 },
+    { "crs:WhiteBalance", "crs:WhiteBalance", TypeDesc::STRING, 0 },
+
+    { "GPano:UsePanoramaViewer", "GPano:UsePanoramaViewer", TypeDesc::INT, IsBool },
+    { "GPano:CaptureSoftware", "GPano:CaptureSoftware", TypeDesc::STRING, 0 },
+    { "GPano:StitchingSoftware", "GPano:StitchingSoftware", TypeDesc::STRING, 0 },
+    { "GPano:ProjectionType", "GPano:ProjectionType", TypeDesc::STRING, 0 },
+    { "GPano:PoseHeadingDegrees", "GPano:PoseHeadingDegrees", TypeDesc::FLOAT, 0 },
+    { "GPano:PosePitchDegrees", "GPano:PosePitchDegrees", TypeDesc::FLOAT, 0 },
+    { "GPano:PoseRollDegrees", "GPano:PoseRollDegrees", TypeDesc::FLOAT, 0 },
+    { "GPano:InitialViewHeadingDegrees", "GPano:InitialViewHeadingDegrees", TypeDesc::INT, 0 },
+    { "GPano:InitialViewPitchDegrees", "GPano:InitialViewPitchDegrees", TypeDesc::INT, 0 },
+    { "GPano:InitialViewRollDegrees", "GPano:InitialViewRollDegrees", TypeDesc::INT, 0 },
+    { "GPano:InitialHorizontalFOVDegrees", "GPano:InitialHorizontalFOVDegrees", TypeDesc::FLOAT, 0 },
+    { "GPano:FirstPhotoDate", "GPano:FirstPhotoDate", TypeDesc::STRING, DateConversion },
+    { "GPano:LastPhotoDate", "GPano:LastPhotoDate", TypeDesc::STRING, DateConversion },
+    { "GPano:SourcePhotosCount", "GPano:SourcePhotosCount", TypeDesc::INT, 0 },
+    { "GPano:ExposureLockUsed", "GPano:ExposureLockUsed", TypeDesc::INT, IsBool },
+    { "GPano:CroppedAreaImageWidthPixels", "GPano:CroppedAreaImageWidthPixels", TypeDesc::INT, 0 },
+    { "GPano:CroppedAreaImageHeightPixels", "GPano:CroppedAreaImageHeightPixels", TypeDesc::INT, 0 },
+    { "GPano:FullPanoWidthPixels", "GPano:FullPanoWidthPixels", TypeDesc::INT, 0 },
+    { "GPano:FullPanoHeightPixels", "GPano:FullPanoHeightPixels", TypeDesc::INT, 0 },
+    { "GPano:CroppedAreaLeftPixels", "GPano:CroppedAreaLeftPixels", TypeDesc::INT, 0 },
+    { "GPano:CroppedAreaTopPixels", "GPano:CroppedAreaTopPixels", TypeDesc::INT, 0 },
+    { "GPano:InitialCameraDolly", "GPano:InitialCameraDolly", TypeDesc::FLOAT, 0 },
+    { "GPano:LargestValidInteriorRectWidth", "GPano:LargestValidInteriorRectWidth", TypeDesc::INT, 0 },
+    { "GPano:LargestValidInteriorRectHeight", "GPano:LargestValidInteriorRectHeight", TypeDesc::INT, 0 },
+    { "GPano:LargestValidInteriorRectTop", "GPano:LargestValidInteriorRectTop", TypeDesc::INT, 0 },
+    { "GPano:LargestValidInteriorRectLeft", "GPano:LargestValidInteriorRectLeft", TypeDesc::INT, 0 },
+
     { "rdf:li", "" },  // ignore these strays
     { NULL, NULL }
 };
+
+
+
+class XMPtagMap {
+    typedef boost::container::flat_map<std::string, const XMPtag *> tagmap_t;
+    // Key is lower case so it's effectively case-insensitive
+public:
+    XMPtagMap (const XMPtag *tag_table) {
+        for (const XMPtag *t = &tag_table[0]; t->xmpname; ++t) {
+            std::string lower (t->xmpname);
+            Strutil::to_lower (lower);
+            m_tagmap[lower] = t;
+        }
+    }
+
+    const XMPtag * find (string_view name) const {
+        std::string lower = name;
+        Strutil::to_lower (lower);
+        tagmap_t::const_iterator i = m_tagmap.find (lower);
+        return i == m_tagmap.end() ? nullptr : i->second;
+    }
+
+private:
+    tagmap_t m_tagmap;
+};
+
+static XMPtagMap& xmp_tagmap_ref () {
+    static XMPtagMap T (xmptag);
+    return T;
+}
+
 
 
 
@@ -168,17 +273,15 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 
     // See if it's in the xmp table, which will tell us something about the
     // proper type (everything in the xml itself just looks like a string).
-    for (int i = 0;  xmptag[i].xmpname;  ++i) {
-        if (Strutil::iequals (xmptag[i].xmpname, xmlname)) {
-            if (! xmptag[i].oiioname || ! xmptag[i].oiioname[0])
-                return;   // ignore it purposefully
-            // Found
-            oiioname = xmptag[i].oiioname;
-            oiiotype = xmptag[i].oiiotype;
-            special = xmptag[i].special;
-            break;
-        }
+    if (const XMPtag *xt = xmp_tagmap_ref().find (xmlname)) {
+        if (! xt->oiioname || ! xt->oiioname[0])
+            return;   // ignore it purposefully
+        // Found
+        oiioname = xt->oiioname;
+        oiiotype = xt->oiiotype;
+        special = xt->special;
     }
+
     // Also try looking it up to see if it's a known exif tag.
     int tag = -1, tifftype = -1, count = 0;
     if (Strutil::istarts_with(xmlname,"Exif:") &&
@@ -246,6 +349,29 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
     else {
         std::cerr << "iptc xml add_attrib unknown type " << xmlname 
                   << ' ' << oiiotype.c_str() << "\n";
+    }
+#endif
+
+#if 0
+    // Guess that if it's exactly an integer, it's an integer.
+    string_view intstring (xmlvalue);
+    int intval;
+    if (intstring.size() && intstring[0] != ' ' &&
+          Strutil::parse_int(intstring, intval, true) &&
+          intstring.size() == 0) {
+        spec.attribute (xmlname, intval);
+        return;
+    }
+
+    // If it's not exactly an int, but is exactly a float, guess that it's
+    // a float.
+    string_view floatstring (xmlvalue);
+    float floatval;
+    if (floatstring.size() && floatstring[0] != ' ' &&
+          Strutil::parse_float(floatstring, floatval, true) &&
+          floatstring.size() == 0) {
+        spec.attribute (xmlname, floatval);
+        return;
     }
 #endif
 
@@ -351,12 +477,21 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
         std::cerr << "RDF is:\n---\n" << rdf << "\n---\n";
 #endif
         pugi::xml_document doc;
-        pugi::xml_parse_result parse_result = doc.load_buffer (&rdf[0], rdf.size());
+        pugi::xml_parse_result parse_result =
+            doc.load_buffer (&rdf[0], rdf.size(), pugi::parse_default | pugi::parse_fragment);
         if (! parse_result) {
 #if DEBUG_XMP_READ
-            std::cerr << "Error parsing XML\n";
+            std::cerr << "Error parsing XML @" << parse_result.offset
+                      << ": " << parse_result.description() << "\n";
 #endif
+            // Instead of returning early here if there were errors parsing
+            // the XML -- I have noticed that very minor XML malformations
+            // are common in XMP found in files -- hope for the best and
+            // go ahead and assume that maybe it managed to put something
+            // useful in the resulting document.
+#if 0
             return true;
+#endif
         }
         // Decode the contents of the XML document (it will recurse)
         decode_xmp_node (doc.first_child(), spec);
@@ -400,23 +535,24 @@ stringize (const ImageIOParameterList::const_iterator &p,
 
 static void
 gather_xmp_attribs (const ImageSpec &spec,
-                    std::vector<std::pair<int,std::string> > &list)
+                    std::vector<std::pair<const XMPtag*,std::string> > &list)
 {
     // Loop over all params...
     for (ImageIOParameterList::const_iterator p = spec.extra_attribs.begin();
          p != spec.extra_attribs.end();  ++p) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        for (int i = 0;  xmptag[i].xmpname;  ++i) {
-            if (! Strutil::iequals (p->name().c_str(), xmptag[i].oiioname))
+        const XMPtag *tag = xmp_tagmap_ref().find (p->name());
+        if (tag) {
+            if (! Strutil::iequals (p->name(), tag->oiioname))
                 continue;   // Name doesn't match
-            if (xmptag[i].special & Suppress) {
+            if (tag->special & Suppress) {
                 break;   // Purposely suppressing
             }
-            std::string s = stringize (p,xmptag[i]);
+            std::string s = stringize (p, *tag);
             if (s.size()) {
-                list.emplace_back (i, s);
-                //std::cerr << "  " << xmptag[i].xmpname << " = " << s << "\n"; 
+                list.emplace_back (tag, s);
+                //std::cerr << "  " << tag->xmpname << " = " << s << "\n"; 
             }
         }
     }
@@ -434,7 +570,7 @@ enum XmpControl { XMP_suppress, XMP_nodes, XMP_attribs,
 // Turn an entire category of XMP items into a properly serialized 
 // xml fragment.
 static std::string
-encode_xmp_category (std::vector<std::pair<int,std::string> > &list,
+encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
                      const char *xmlnamespace, const char *pattern,
                      const char *exclude_pattern,
                      const char *nodename, const char *url,
@@ -452,10 +588,10 @@ encode_xmp_category (std::vector<std::pair<int,std::string> > &list,
     for (size_t li = 0;  li < list.size();  ++li) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        int i = list[li].first;
+        const XMPtag *tag = list[li].first;
         const std::string &val (list[li].second);
-        const char *xmpname (xmptag[i].xmpname);
-        if (control == XMP_attribs && (xmptag[i].special & (IsList|IsSeq)))
+        const char *xmpname (tag->xmpname);
+        if (control == XMP_attribs && (tag->special & (IsList|IsSeq)))
             continue;   // Skip lists for attrib output
         if (exclude_pattern && exclude_pattern[0] &&
             Strutil::istarts_with (xmpname, exclude_pattern)) {
@@ -481,7 +617,7 @@ encode_xmp_category (std::vector<std::pair<int,std::string> > &list,
 //                       x = Strutil::format("<%s ", nodename);
 //                    }
                 }
-                if (minimal && (xmptag[i].special & (TiffRedundant|ExifRedundant))) {
+                if (minimal && (tag->special & (TiffRedundant|ExifRedundant))) {
                     if (xmp_minimal.size())
                         xmp_minimal += ' ';
                     xmp_minimal += x;
@@ -552,7 +688,7 @@ encode_xmp_category (std::vector<std::pair<int,std::string> > &list,
 std::string 
 encode_xmp (const ImageSpec &spec, bool minimal)
 {
-    std::vector<std::pair<int,std::string> > list;
+    std::vector<std::pair<const XMPtag *,std::string> > list;
     gather_xmp_attribs (spec, list);
 
     std::string xmp;
@@ -594,6 +730,10 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 
     xmp += encode_xmp_category (list, "xmpMM", "xmpMM:", NULL, NULL,
                                 "http://ns.adobe.com/xap/1.0/mm/", minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "GPano", "GPano:", NULL, NULL,
+                                "http://ns.google.com/photos/1.0/panorama/", minimal, XMP_attribs);
+    xmp += encode_xmp_category (list, "crs", "crs:", NULL, NULL,
+                                "http://ns.adobe.com/camera-raw-settings/1.0/", minimal, XMP_attribs);
 #endif
 
     xmp += encode_xmp_category (list, "xmp", "xmp:", NULL, NULL,
@@ -627,7 +767,7 @@ encode_xmp (const ImageSpec &spec, bool minimal)
     std::cerr << "xmp to write = \n---\n" << xmp << "\n---\n";
     std::cerr << "\n\nHere's what I still haven't output:\n";
     for (size_t i = 0; i < list.size(); ++i)
-        std::cerr << xmptag[list[i].first].xmpname << "\n";
+        std::cerr << list[i].first->xmpname << "\n";
 #endif
 
     return xmp;
