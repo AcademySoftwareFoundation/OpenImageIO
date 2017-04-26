@@ -39,12 +39,6 @@
 #ifndef OPENIMAGEIO_PARAMLIST_H
 #define OPENIMAGEIO_PARAMLIST_H
 
-#if defined(_MSC_VER)
-// Ignore warnings about DLL exported classes with member variables that are template classes.
-// This happens with the Rep m_vals member variable of ParamValueList below, which is a std::vector<T>.
-#  pragma warning (disable : 4251)
-#endif
-
 #include <vector>
 
 #include <OpenImageIO/export.h>
@@ -163,40 +157,11 @@ private:
 
 
 /// A list of ParamValue entries, that can be iterated over or searched.
-///
-class OIIO_API ParamValueList {
-    typedef std::vector<ParamValue> Rep;
+/// It's really just a std::vector<ParamValue>, but with a few more handy
+/// methods.
+class OIIO_API ParamValueList : public std::vector<ParamValue> {
 public:
     ParamValueList () { }
-
-    typedef Rep::iterator        iterator;
-    typedef Rep::const_iterator  const_iterator;
-    typedef ParamValue           value_type;
-    typedef value_type &         reference;
-    typedef const value_type &   const_reference;
-    typedef value_type *         pointer;
-    typedef const value_type *   const_pointer;
-
-    iterator begin () { return m_vals.begin(); }
-    iterator end () { return m_vals.end(); }
-    const_iterator begin () const { return m_vals.begin(); }
-    const_iterator end () const { return m_vals.end(); }
-    const_iterator cbegin () const { return m_vals.begin(); }
-    const_iterator cend () const { return m_vals.end(); }
-
-    reference front () { return m_vals.front(); }
-    reference back () { return m_vals.back(); }
-    const_reference front () const { return m_vals.front(); }
-    const_reference back () const { return m_vals.back(); }
-
-    reference operator[] (int i) { return m_vals[i]; }
-    const_reference operator[] (int i) const { return m_vals[i]; }
-    reference operator[] (size_t i) { return m_vals[i]; }
-    const_reference operator[] (size_t i) const { return m_vals[i]; }
-
-    void resize (size_t newsize) { m_vals.resize (newsize); }
-    size_t size () const { return m_vals.size(); }
-    bool empty () const { return size() == 0; }
 
     /// Add space for one more ParamValue to the list, and return a
     /// reference to its slot.
@@ -205,10 +170,6 @@ public:
         return back ();
     }
 
-    /// Add a ParamValue to the end of the list.
-    ///
-    void push_back (const ParamValue &p) { m_vals.push_back (p); }
-    
     /// Find the first entry with matching name, and if type != UNKNOWN,
     /// then also with matching type. The name search is case sensitive if
     /// casesensitive == true.
@@ -221,24 +182,9 @@ public:
     const_iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
                          bool casesensitive = true) const;
 
-    /// Removes from the ParamValueList container a single element.
-    /// 
-    iterator erase (iterator position) { return m_vals.erase (position); }
-    
-    /// Removes from the ParamValueList container a range of elements ([first,last)).
-    /// 
-    iterator erase (iterator first, iterator last) { return m_vals.erase (first, last); }
-    
-    /// Remove all the values in the list.
-    ///
-    void clear () { m_vals.clear(); }
-
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.
-    void free () { Rep tmp; std::swap (m_vals, tmp); }
-
-private:
-    Rep m_vals;
+    void free () { clear(); shrink_to_fit(); }
 };
 
 

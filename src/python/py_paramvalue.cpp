@@ -118,6 +118,30 @@ ParamValue& ParamValueList_getitem(ParamValueList& self, int i)
 }
 
 
+void ParamValueList_push_back (ParamValueList& self, const ParamValue& p)
+{
+    self.push_back (p);
+}
+
+
+void ParamValueList_clear (ParamValueList& self)
+{
+    self.clear();
+}
+
+
+void ParamValueList_resize (ParamValueList& self, size_t s)
+{
+    self.resize (s);
+}
+
+
+size_t ParamValueList_size (ParamValueList& self)
+{
+    return self.size ();
+}
+
+
 
 void declare_paramvalue()
 {
@@ -141,13 +165,13 @@ void declare_paramvalue()
         .def("__getitem__", &ParamValueList_getitem,
             return_internal_reference<>())
         .def("__iter__", boost::python::iterator<ParamValueList>())
-        .def("__len__",     &ParamValueList::size)
+        .def("__len__",     &ParamValueList_size)
         .def("grow",        &ParamValueList::grow,
             return_internal_reference<>())
-        .def("append",      &ParamValueList::push_back)
-        .def("clear",       &ParamValueList::clear)
+        .def("append",      &ParamValueList_push_back)
+        .def("clear",       &ParamValueList_clear)
         .def("free",        &ParamValueList::free)
-        .def("resize",      &ParamValueList::resize)
+        .def("resize",      &ParamValueList_resize)
     ;
 }
 
