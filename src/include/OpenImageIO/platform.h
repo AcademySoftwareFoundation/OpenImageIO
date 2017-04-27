@@ -90,11 +90,8 @@
 //
 // OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (3, 11, 14, ...)
 // OIIO_USING_CPP11 : (deprecated) defined and 1 if using C++11 or newer.
-// OIIO_CONSTEXPR : constexpr for C++ >= 11, otherwise nothing
-// OIIO_CONSTEXPR_OR_CONST : constexpr for C++ >= 11, otherwise const
 // OIIO_CONSTEXPR14 : constexpr for C++ >= 14, otherwise nothing (this is
 //                      useful for things that can only be constexpr for 14)
-// OIIO_NOEXCEPT : noexcept for C++ >= 11, otherwise nothing
 //
 // Note: oiioversion.h defines OIIO_BUILD_CPP11 or OIIO_BUILD_CPP14 to be 1
 // if OIIO itself was built using C++11 or C++14, respectively. In contrast,
@@ -107,21 +104,21 @@
 #if (__cplusplus >= 201402L)
 #  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  14
-#  define OIIO_CONSTEXPR          constexpr
-#  define OIIO_CONSTEXPR_OR_CONST constexpr
 #  define OIIO_CONSTEXPR14        constexpr
-#  define OIIO_NOEXCEPT           noexcept
 #elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
 #  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  11
-#  define OIIO_CONSTEXPR          constexpr
-#  define OIIO_CONSTEXPR_OR_CONST constexpr
 #  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
-#  define OIIO_NOEXCEPT           noexcept
 #else
 #  error "This version of OIIO is meant to work only with C++11 and above"
 #endif
 
+// DEPRECATED(1.8): use C++11 constexpr
+#define OIIO_CONSTEXPR          constexpr
+#define OIIO_CONSTEXPR_OR_CONST constexpr
+
+// DEPRECATED(1.8): use C++11 noexcept
+#define OIIO_NOEXCEPT noexcept
 
 
 // Fallback definitions for feature testing. Some newer compilers define

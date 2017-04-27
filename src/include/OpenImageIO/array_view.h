@@ -78,7 +78,7 @@ class array_view {
 public:
     // using iterator        = bounds_iterator<Rank>;
     // using const_iterator  = bounds_iterator<Rank>;
-    static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
+    static constexpr size_t rank = Rank;
     using offset_type     = offset<Rank>;
     using bounds_type     = OIIO::bounds<Rank>;
     using stride_type     = offset<Rank>;
@@ -135,13 +135,13 @@ public:
         return *this;
     }
 
-    OIIO_CONSTEXPR bounds_type bounds() const OIIO_NOEXCEPT {
+    constexpr bounds_type bounds() const noexcept {
         return m_bounds;
     }
-    OIIO_CONSTEXPR14 size_type size() const OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 size_type size() const noexcept {
         return m_bounds.size();
     }
-    OIIO_CONSTEXPR14 offset_type stride() const OIIO_NOEXCEPT {
+    OIIO_CONSTEXPR14 offset_type stride() const noexcept {
         if (Rank == 1) {
             return offset_type(1);
         } else {
@@ -152,9 +152,9 @@ public:
             return offset;
         }
     }
-    OIIO_CONSTEXPR pointer data() const OIIO_NOEXCEPT { return m_data; }
+    constexpr pointer data() const noexcept { return m_data; }
 
-    OIIO_CONSTEXPR T& operator[] (offset_type idx) const {
+    constexpr T& operator[] (offset_type idx) const {
         return VIEW_ACCESS(data(), idx, stride(), Rank);
     }
     T& at (offset_type idx) const {  // FIXME -- should be offset_type
@@ -192,7 +192,7 @@ class array_view_strided {
     OIIO_STATIC_ASSERT (Rank >= 1);
     OIIO_STATIC_ASSERT (std::is_array<T>::value == false);
 public:
-    static OIIO_CONSTEXPR_OR_CONST size_t rank = Rank;
+    static constexpr size_t rank = Rank;
     using offset_type     = offset<Rank>;
     using bounds_type     = OIIO::bounds<Rank>;
     using stride_type     = offset<Rank>;
@@ -260,7 +260,7 @@ public:
     size_type size() const { return m_bounds.size(); }
     stride_type stride() const { return m_stride; }
 
-    OIIO_CONSTEXPR T& operator[] (size_type idx) const {
+    constexpr T& operator[] (size_type idx) const {
         return VIEW_ACCESS(data(), idx, stride(), Rank);
     }
     const T& at (size_t idx) const {
