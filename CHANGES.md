@@ -127,6 +127,14 @@ Fixes, minor enhancements, and performance improvements:
      frame number for frame sequence wildcards, and `FRAME_NUMBER_PAD`
      with the frame number 0-padded to the number of total digits specified
      by the command line `--framepadding` argument. #1648 (1.8.3)
+   * `--resize` and `--resample` now have more intuitive behavior for images
+     where the display and pixel data windows are not the same, especially if
+     the data window had a nonzero origin (such as with crop or overscan).
+     #1667 (1.8.4/1.7.14)
+   * `--resample` has been extended to work for "deep" images. #1668
+     (1.8.4/1.7.14)
+   * `--deepmerge` now will give a useful error message when the image do
+     not have the same number of channels. #1675 (1.8.4/1.7.14)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -136,9 +144,15 @@ Fixes, minor enhancements, and performance improvements:
    * `draw_rectangle()` (and `oiiotool --box`) wasn't drawing properly for
      the degenerate case of a rectangle that takes up just one
      pixel. #1601 (1.8.2)
+   * `resample()` has been extended to work for "deep" images.
+      #1668 (1.8.4/1.7.14)
+   * `deep_merge()` now will give a useful error message when the images do
+     not have the same number of channels. #1675 (1.8.4/1.7.14)
 * ImageBuf:
    * Fix broken threads(n) method, which didn't correctly pass the right
      number of threads along. #1622. (1.8.3/1.7.12)
+   * Copy constructor from another ImageBuf was previously broken for
+     IB's that wrap application buffers. #1665 (1.8.4/1.7.13)
 * TextureSystem / ImageCache:
    * `IC::get_image_info` (or `TS::get_texture_info`) queries for "channels"
      on UDIM file patterns now succeed, returning the value for the first
@@ -159,6 +173,13 @@ Fixes, minor enhancements, and performance improvements:
      ended up with identical hashes, and thus could be confused by the
      TextureSystem at runtime into thinking they were duplicates. The hash
      is now fixed. #1599 (1.8.2/1.7.11)
+   * Statistics no longer list as "BROKEN" files which were invalidated, or
+     files that were initialized with an ImageCacheFile but never opened.
+     #1655 (1.8.4)
+   * ImageCache::get_image_info() will now return a proper error (and not
+     hig an assertion) if asked for information about a subimage or MIP
+     level that does not exist in the file. #1672 (1.8.4/1.7.14)
+   * TextureSystem::get_texels fixes crashing behavior. #1669 (1.8.4/1.7.14)
 * Bug fix to possible crashes when adding dither to tiled file output
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
 * Make sure that sRGB<->linear color transform still work (in the obvious
@@ -187,6 +208,8 @@ Fixes, minor enhancements, and performance improvements:
   * Fix global attribute "exr_threads" value, -1 should disable IlmImf's
     thread pools as advertised. #1582 (1.8.1)
   * Allow compression "none" for deep exr files. (1.8.2/1.7.11)
+  * Fixed input problem with sorting order of spectral alpha channels (RA,
+    GA, BA, or AR, AG, AB). #1674 (1.8./1.7.14)
 * PSD:
    * Support has been added for "cmyk", "multichannel", and "grayscale"
      color modes. And support was fixed for rgb and grayscale 32 bit per
@@ -245,6 +268,14 @@ Build/test system improvements:
 * Big refactoring of the cmake build files. #1604 (1.8.2)
 * When using a recent enough C++ compiler and standard library, OIIO will
   now use C++11 std::regex rather than boost regex. #1620,#1644 (1.8.3)
+* Support for clang-tidy using build time flags CLANG_TIDY=1,
+  CLANG_TIDY_ARGS=..., and optionally CLANG_TIDY_FIX=1. #1649 (1.8.4)
+* Fix Windows warnings about SIMD types as function arguments
+  and about bool vs int. #1659 (1.8.4)
+* Changed the way namespaces work. Instead of a 2-level namespace, make a
+  one-level namespace, and automatically embed the major and minor version
+  in it. (Can stll override the basename.) #1662 (1.8.4)
+* Fixes to OSX rpath behavior of linked binaries. #1671
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -255,6 +286,9 @@ Developer goodies / internals:
      boost::scoped_array. #1543 (1.8.0) #1586 (1.8.1)
    * Instead of the various boost components, we now use `std::` versions of
      unordered_map, unordered_set, shared_ptr, hash, bind. #1586 (1.8.1)
+   * Change deprecated C headers (such as `<ctype.h>`) to C++ (`<cctype>`).
+     #1649 (1.8.4)
+   * Use `std::vector<>::emplace_back()` where applicable. #1657 (1.8.4)
 * fmath.h:
    * Fixed typo in fmath.h that made bitcast_to_float incorrect. #1543 (1.8.0)
    * Templatize round_to_multiple() so it works with types other than `int`.
@@ -265,7 +299,7 @@ Developer goodies / internals:
      parameters. #1617 (1.8.3)
 * strutil.h / Strutil:
    * Add `Strutil::printf()` and `Strutil::fprintf()`, typesafe and
-     non-thread-jumbled replacements for C versions. #1579 (1.8.1)
+     non-thread-jumbled replacements for C versions. #1579, #1656 (1.8.1, 1.8.4)
    * `from_string<>` has been extended to 'unsigned int'. (1.8.3/1.7.13)
    * `Strutil::parse_identifier_if` #1647 (1.8.3)
 * simd.h:
@@ -287,12 +321,57 @@ Developer goodies / internals:
 * Upgraded tinyformat to the latest master, also changed all the places
   where we used TINYFORMAT_WRAP_FORMAT to use of C++11 variadic templates.
   #1618 (1.8.3)
+* *NEW* function_view.h : function_view<> is a very lightweight, non-owning,
+  generic callable object view. Cheaper than std::function, but the view
+  is not allowed to outlive the callable object it references. #1660 (1.8.4)
+* timer.h: added timed_thread_widge() that benchmark code and prints
+  statistics about thread scaling. #1660 (1.8.4)
+* atomic.h:
+   * Added atomic_min and atomic_max. #1661 (1.8.4)
+   * Added atomic_fetch_add for `std::atomic<float>` and double. #1661 (1.8.4)
+   * Assume std::atomic is available, remove all code that is only needed
+     for pre-C++11. #1661 (1.8.4)
+* errorhandler.h: Change all ErrorHandler methods to use variadic templates
+  rather than varargs. #1653 (1.8.4)
+* ParamValueList has been refactored and now inherets from, rather than
+  containts, a `std::vector<ParamValue>`. This removes most of the additional
+  code from the class. #1677 (1.8.4)
+* Deprecate the pre-C++11 macros OIIO_CONSTEXPR, OIIO_CONSTEXPR_OR_CONST,
+  and OIIO_NOEXCEPT. #1678 (1.8.4)
 
 Docs:
 * Improve docs about deep IBA functions. (1.8.1)
 * Fix 'Building OIIO on Windows' link. #1590 (1.8.1)
 
 
+
+Release 1.7.14 (1 May 2017) -- compared to 1.7.13
+-------------------------------------------------
+* oiiotool expression substitution now recognizes FRAME_NUMBER and
+  FRAME_NUMBER_PAD. #1648
+* oiiotool -resize and -resample now have more intuitive behavior for images
+  where the display and pixel data windows are not the same, especially if
+  the data window had a nonzero origin (such as with crop or overscan).
+  #1667
+* oiiotool --resample and ImageBufAlgo::resample() have been extended to
+  work for "deep" images. #1668
+* ImageCache::get_image_info() will now return a proper error (and not hit
+  an assertion) if asked for information about a subimage or MIP level that
+  does not exist in the file. #1672
+* ImageBuf copy constructor from another ImageBuf was previously broken for
+  IB's that wrap application buffers. #1665
+* TextureSystem::get_texels fixes crashing behavior. #1669
+* Fixes to OSX rpath behavior of linked binaries. #1671
+* OpenEXR file input: fixed problem with sorting order of spectral alpha
+  channels (RA, GA, BA, or AR, AG, AB). #1674
+* ImageBufAlgo::deep_merge() (and oiiotool --deepmerge) now will give a
+  useful error message if you try to merge two deep images that do not have
+  the same number of channels. #1675
+* ImageCache/TextureSystem statistics no longer list as "BROKEN" files which
+  were invalidated, or files that were initialized with an ImageCacheFile
+  but never opened. #1655
+* Fix Windows warnings about SIMD types as function args, and about
+  int vs bool. #1659
 
 Release 1.7.13 (1 Apr 2017) -- compared to 1.7.12
 ----------------------------------------------
