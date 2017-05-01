@@ -1,3 +1,6 @@
+Release 1.7.15 (1 Jun 2017) -- compared to 1.7.14
+-------------------------------------------------
+
 Release 1.7.14 (1 May 2017) -- compared to 1.7.13
 -------------------------------------------------
 * oiiotool expression substitution now recognizes FRAME_NUMBER and
