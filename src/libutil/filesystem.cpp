@@ -176,7 +176,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (boost::filesystem::is_regular_file (filename))
+        if (is_regular (filename))
             return filename_utf8;
     }
 
@@ -190,7 +190,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 #endif
         boost::filesystem::path f = d / filename;
         // std::cerr << "\tTesting '" << f.string() << "'\n";
-        if (boost::filesystem::is_regular_file (f)) {
+        if (is_regular (f.string())) {
             // std::cerr << "Found '" << f.string() << "'\n";
 #ifdef _WIN32
             return Strutil::utf16_to_utf8 (f.native());
@@ -199,11 +199,11 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 #endif
         }
 
-        if (recursive && boost::filesystem::is_directory (d)) {
+        if (recursive && is_directory (d.string())) {
             std::vector<std::string> subdirs;
             boost::filesystem::directory_iterator end_iter;
             for (boost::filesystem::directory_iterator s(d); s != end_iter; ++s) {
-                if (boost::filesystem::is_directory (s->status())) {
+                if (is_directory (s->path().string())) {
 #ifdef _WIN32
                     subdirs.push_back (Strutil::utf16_to_utf8 (s->path().native()));
 #else
@@ -1050,7 +1050,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 #else
     for (boost::filesystem::directory_iterator it(directory); it != end_it; ++it) {
 #endif
-        if (boost::filesystem::is_regular_file(it->status())) {
+        if (is_regular(it->path().string())) {
             const std::string f = it->path().string();
             boost::match_results<std::string::const_iterator> frame_match;
             if (boost::regex_match (f, frame_match, pattern_re)) {
