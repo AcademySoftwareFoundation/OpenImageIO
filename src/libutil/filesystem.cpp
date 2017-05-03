@@ -178,7 +178,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (filesystem::is_regular_file (filename))
+        if (is_regular (filename))
             return filename_utf8;
     }
 
@@ -192,7 +192,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 #endif
         filesystem::path f = d / filename;
         // std::cerr << "\tTesting '" << f.string() << "'\n";
-        if (filesystem::is_regular_file (f)) {
+        if (is_regular (f.string())) {
             // std::cerr << "Found '" << f.string() << "'\n";
 #ifdef _WIN32
             return Strutil::utf16_to_utf8 (f.native());
@@ -201,7 +201,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 #endif
         }
 
-        if (recursive && filesystem::is_directory (d)) {
+        if (recursive && is_directory (d.string())) {
             std::vector<std::string> subdirs;
             filesystem::directory_iterator end_iter;
             for (filesystem::directory_iterator s(d); s != end_iter; ++s) {
@@ -979,7 +979,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 #else
     for (filesystem::directory_iterator it(directory); it != end_it; ++it) {
 #endif
-        if (filesystem::is_regular_file(it->status())) {
+        if (is_regular(it->path().string())) {
             const std::string f = it->path().string();
             match_results<std::string::const_iterator> frame_match;
             if (regex_match (f, frame_match, pattern_re)) {
