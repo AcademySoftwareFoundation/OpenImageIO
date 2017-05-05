@@ -280,7 +280,7 @@ struct OIIO_API TypeDesc {
         return this->aggregate == VEC3 && this->basetype == b && !is_array();
     }
 
-    /// Is this a 3-vector aggregate (of the given type, float by default)?
+    /// Is this a 4-vector aggregate (of the given type, float by default)?
     bool is_vec4 (BASETYPE b=FLOAT) const {
         return this->aggregate == VEC4 && this->basetype == b && !is_array();
     }
