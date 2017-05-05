@@ -36,11 +36,11 @@
 \newenvironment{smallcode}{\small \renewcommand{\baselinestretch}{0.8} \verbatimtab}{\endverbatimtab \renewcommand{\baselinestretch}{1}}
 \newenvironment{tinycode}{\footnotesize \renewcommand{\baselinestretch}{0.75} \verbatimtab}{\endverbatimtab \renewcommand{\baselinestretch}{1}}
 
-\begin{htmlonly}
-\renewenvironment{code}{\begin{verbatim}}{\end{verbatim}}
-\newenvironment{smallcode}{\begin{verbatim}}{\end{verbatim}}
-\newenvironment{tinycode}{\begin{verbatim}}{\end{verbatim}}
-\end{htmlonly}
+% \begin{htmlonly}
+% \renewenvironment{code}{\begin{verbatim}}{\end{verbatim}}
+% \newenvironment{smallcode}{\begin{verbatim}}{\end{verbatim}}
+% \newenvironment{tinycode}{\begin{verbatim}}{\end{verbatim}}
+% \end{htmlonly}
 
 \newcommand{\includedcode}[1]{{\small \verbatimtabinput{#1}}}
 \newcommand{\smallincludedcode}[1]{{\small \renewcommand{\baselinestretch}{0.8} \verbatimtabinput{#1} \renewcommand{\baselinestretch}{1}}}
@@ -76,15 +76,15 @@
 %end{latexonly}
 
 
-\begin{htmlonly}
-\newcommand{\apiitem}[1]{\medskip \noindent {\bf #1} \begin{quote}}
-\newcommand{\apiend}{\end{quote}}
-\def\halfspc{\begin{rawhtml} &nbsp; &nbsp; \end{rawhtml}}
-\def\spc{\halfspc\halfspc}
-\pagecolor[named]{White}
-\def\chapwidthbegin{\begin{rawhtml}<p><table cellspacing=1><tr><td width=550>\end{rawhtml}}
-\def\chapwidthend{\begin{rawhtml}</td></tr></table>\end{rawhtml}}
-\end{htmlonly}
+%\begin{htmlonly}
+%\newcommand{\apiitem}[1]{\medskip \noindent {\bf #1} \begin{quote}}
+%\newcommand{\apiend}{\end{quote}}
+%\def\halfspc{\begin{rawhtml} &nbsp; &nbsp; \end{rawhtml}}
+%\def\spc{\halfspc\halfspc}
+%\pagecolor[named]{White}
+%\def\chapwidthbegin{\begin{rawhtml}<p><table cellspacing=1><tr><td width=550>\end{rawhtml}}
+%\def\chapwidthend{\begin{rawhtml}</td></tr></table>\end{rawhtml}}
+%\end{htmlonly}
 
 
 \newcommand{\apibinding}[3]{\apiitem{#1\\[1ex]#2\\[1ex]#3}}
