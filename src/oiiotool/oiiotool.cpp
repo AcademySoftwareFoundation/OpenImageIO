@@ -1695,6 +1695,9 @@ public:
         : OiiotoolOp (ot, opname, argc, argv, 1) {
             fromspace = args[1];  tospace = args[2];
         }
+    virtual void option_defaults () {
+        options["strict"] = "1";
+    }
     virtual bool setup () {
         if (fromspace == tospace) {
             // The whole thing is a no-op. Get rid of the empty result we
@@ -1709,11 +1712,23 @@ public:
     virtual int impl (ImageBuf **img) {
         string_view contextkey = options["key"];
         string_view contextvalue = options["value"];
-        return ImageBufAlgo::colorconvert (*img[0], *img[1],
-                                           fromspace, tospace, false,
-                                           contextkey, contextvalue,
-                                           &ot.colorconfig);
+        bool strict = Strutil::from_string<int>(options["strict"]);
+        bool ok = ImageBufAlgo::colorconvert (*img[0], *img[1],
+                                              fromspace, tospace, false,
+                                              contextkey, contextvalue,
+                                              &ot.colorconfig);
+        if (!ok && !strict) {
+            // The color transform failed, but we were told not to be
+            // strict, so ignore the error and just copy destination to
+            // source.
+            std::string err = img[0]->geterror();
+            ot.warning (opname(), err);
+            // ok = ImageBufAlgo::copy (*img[0], *img[1], TypeDesc);
+            ok = img[0]->copy (*img[1]);
+        }
+        return ok;
     }
+private:
     string_view fromspace, tospace;
 };
 
@@ -4256,7 +4271,7 @@ input_file (int argc, const char *argv[])
             if (linearspace.empty())
                 linearspace = string_view("Linear");
             if (colorspace.size() && !Strutil::iequals(colorspace,linearspace)) {
-                const char *argv[] = { "colorconvert", colorspace.c_str(),
+                const char *argv[] = { "colorconvert:strict=0", colorspace.c_str(),
                                        linearspace.c_str() };
                 if (ot.debug)
                     std::cout << "  Converting " << filename << " from "
@@ -4515,7 +4530,8 @@ output_file (int argc, const char *argv[])
             if (ot.debug)
                 std::cout << "  Converting from " << currentspace << " to "
                           << outcolorspace << " for output to " << filename << "\n";
-            const char *argv[] = { "colorconvert", currentspace.c_str(), outcolorspace.c_str() };
+            const char *argv[] = { "colorconvert:strict=0",
+                                   currentspace.c_str(), outcolorspace.c_str() };
             action_colorconvert (3, argv);
             ir = ot.curimg;
         }

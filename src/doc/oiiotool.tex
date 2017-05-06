@@ -1009,6 +1009,11 @@ The rules for deducing color spaces are as follows, in order of priority:
   occurs if the filename does not specify something different.
 \end{enumerate}
 
+If the implied color transformation is unknown (for example, involving
+a color space that is not recognized), a warning will be printed, but it
+the rest of {\cf oiiotool} processing will proceed (but without having
+transformed the colors of the image).
+
 \noindent Example:
 
 If the input file \qkw{in_lg10.dpx} is in the \qkw{lg10} color space,
@@ -2846,6 +2851,10 @@ arguments include:
  & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
   OpenColorIO will used when applying the look. Multiple key/value pairs
   may be specified by making each one a comma-separated list. \\
+ & {\cf strict=}\emph{val} & When nonzero (the default), an
+     inability to perform the color transform will be a hard error. If
+     strict is 0, inability to find the transformation will just print a
+     warning and simply copy the image without changing colors. \\
 \end{tabular}
 \apiend
 
