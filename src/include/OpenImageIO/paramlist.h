@@ -87,10 +87,42 @@ public:
                 Interp _interp, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
-    ParamValue (const ParamValue &p, bool _copy=true) {
+    ParamValue (string_view _name, int value) {
+        init_noclear (ustring(_name), TypeDesc::INT, 1, &value);
+    }
+    ParamValue (string_view _name, float value) {
+        init_noclear (ustring(_name), TypeDesc::FLOAT, 1, &value);
+    }
+    ParamValue (string_view _name, ustring value) {
+        init_noclear (ustring(_name), TypeDesc::STRING, 1, &value);
+    }
+    ParamValue (string_view _name, string_view value) {
+        ustring u (value);
+        init_noclear (ustring(_name), TypeDesc::STRING, 1, &u);
+    }
+
+    // Set from string -- parse
+    ParamValue (string_view _name, TypeDesc type, string_view value);
+
+    // Copy constructor
+    ParamValue (const ParamValue &p) {
+        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), true);
+    }
+    ParamValue (const ParamValue &p, bool _copy) {
         init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), _copy);
     }
+
+    // Rvalue ref -- "move constructor"
+    ParamValue (ParamValue&& p)
+        : m_name(p.m_name), m_nvalues(p.m_nvalues), m_interp(p.m_interp),
+          m_copy(p.m_copy), m_nonlocal(p.m_nonlocal)
+    {
+        m_data.ptr = p.m_data.ptr;
+        p.m_data.ptr = nullptr;
+    }
+
     ~ParamValue () { clear_value(); }
+
     void init (ustring _name, TypeDesc _type, int _nvalues,
                Interp _interp, const void *_value, bool _copy=true) {
         clear_value ();
@@ -134,6 +166,32 @@ public:
         std::swap (a.m_copy,     b.m_copy);
         std::swap (a.m_nonlocal, b.m_nonlocal);
     }
+
+    // Use with extreme caution! This is just doing a cast. You'd better
+    // be really sure you are asking for the right type. Note that for
+    // "string" data, you can get<ustring> or get<char*>, but it's not
+    // a std::string.
+    template<typename T>
+    const T& get (int i=0) const { return (reinterpret_cast<const T*>(data()))[i]; }
+
+    /// Retrive an integer, with converstions from a wide variety of type
+    /// cases, including unsigned, short, byte. Not float. It will retrive
+    /// from a string, but only if the string is entirely a valid int
+    /// format. Unconvertable types return the default value.
+    int get_int (int defaultval=0) const;
+
+    /// Retrive a float, with converstions from a wide variety of type
+    /// cases, including integers. It will retrive from a string, but only
+    /// if the string is entirely a valid float format. Unconvertable types
+    /// return the default value.
+    float get_float (float defaultval=0) const;
+
+    /// Convert any type to a string value. An optional maximum number of
+    /// elements is also passed.
+    std::string get_string (int maxsize = 64) const;
+    /// Convert any type to a ustring value. An optional maximum number of
+    /// elements is also passed.
+    ustring get_ustring (int maxsize = 64) const;
 
 private:
     ustring m_name;           ///< data name
@@ -181,6 +239,29 @@ public:
                          bool casesensitive = true) const;
     const_iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
                          bool casesensitive = true) const;
+
+    /// Case insensitive search for an integer, with default if not found.
+    /// Automatically will return an int even if the data is really
+    /// unsigned, short, or byte, but not float. It will retrive from a
+    /// string, but only if the string is entirely a valid int format.
+    int get_int (string_view name, int defaultval=0,
+                 bool casesensitive=false, bool convert=true) const;
+
+    /// Case insensitive search for a float, with default if not found.
+    /// Automatically will return a float even if the data is really double
+    /// or half. It will retrive from a string, but only if the string is
+    /// entirely a valid float format.
+    float get_float (string_view name, float defaultval=0,
+                     bool casesensitive=false, bool convert=true) const;
+
+    /// Simple way to get a string attribute, with default provided.
+    /// If the value is another type, it will be turned into a string.
+    string_view get_string (string_view name,
+                            string_view defaultval = string_view(),
+                            bool casesensitive=false, bool convert=true) const;
+    ustring get_ustring (string_view name,
+                         string_view defaultval = string_view(),
+                         bool casesensitive=false, bool convert=true) const;
 
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.

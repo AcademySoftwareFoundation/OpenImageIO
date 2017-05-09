@@ -320,64 +320,15 @@ ImageSpec::attribute (string_view name, TypeDesc type, const void *value)
 
 
 
-template <class T>
-static void
-parse_elements (string_view name, TypeDesc type, const char *type_code,
-                string_view value, ImageIOParameter &param)
-{
-    int num_items = type.numelements() * type.aggregate;
-    T *data = (T*) param.data();
-    // Erase any leading whitespace
-    value.remove_prefix (value.find_first_not_of (" \t"));
-    for (int i = 0;  i < num_items;  ++i) {
-        // Make a temporary copy so we for sure have a 0-terminated string.
-        std::string temp = value;
-        // Grab the first value from it
-        sscanf (temp.c_str(), type_code, &data[i]);
-        // Skip the value (eat until we find a delimiter -- space, comma, tab)
-        value.remove_prefix (value.find_first_of (" ,\t"));
-        // Skip the delimiter
-        value.remove_prefix (value.find_first_not_of (" ,\t"));
-        if (value.empty())
-            break;   // done if nothing left to parse
-    }
-}
-
-
-
 void
 ImageSpec::attribute (string_view name, TypeDesc type, string_view value)
 {
-    ImageIOParameter param (name, type, 1, NULL);
-    TypeDesc::BASETYPE basetype = (TypeDesc::BASETYPE)type.basetype;
-
-    if (basetype == TypeDesc::INT) {
-        parse_elements<int> (name, type, "%d", value, param);
-    } else if (basetype == TypeDesc::UINT) {
-        parse_elements<unsigned int> (name, type, "%u", value, param);
-    } else if (basetype == TypeDesc::FLOAT) {
-        parse_elements<float> (name, type, "%f", value, param);
-    } else if (basetype == TypeDesc::DOUBLE) {
-        parse_elements<double> (name, type, "%lf", value, param);
-    } else if (basetype == TypeDesc::INT64) {
-        parse_elements<long long> (name, type, "%lld", value, param);
-    } else if (basetype == TypeDesc::UINT64) {
-        parse_elements<unsigned long long> (name, type, "%llu", value, param);
-    } else if (basetype == TypeDesc::INT16) {
-        parse_elements<short> (name, type, "%hd", value, param);
-    } else if (basetype == TypeDesc::UINT16) {
-        parse_elements<unsigned short> (name, type, "%hu", value, param);
-    } else if (type == TypeDesc::STRING) {
-        ustring s (value);
-        param.init (name, TypeDesc::TypeString, 1, &s);
-    }
-
     // Don't allow duplicates
-    ImageIOParameter *f = find_attribute (name);
+    ParamValue *f = find_attribute (name);
     if (f) {
-        *f = param;
+        *f = ParamValue (name, type, value);
     } else {
-        extra_attribs.push_back (param);
+        extra_attribs.emplace_back (name, type, value);
     }
 }
 
@@ -497,75 +448,34 @@ ImageSpec::find_attribute (string_view name, ImageIOParameter &tmpparam,
 
 
 int
-ImageSpec::get_int_attribute (string_view name, int val) const
+ImageSpec::get_int_attribute (string_view name, int defaultval) const
 {
+    // Call find_attribute with the tmpparam, in order to retrieve special
+    // "virtual" attribs that aren't really in extra_attribs.
     ImageIOParameter tmpparam;
-    const ImageIOParameter *p = find_attribute (name, tmpparam);
-    if (p) {
-        if (p->type() == TypeDesc::INT)
-            val = *(const int *)p->data();
-        else if (p->type() == TypeDesc::UINT)
-            val = (int) *(const unsigned int *)p->data();
-        else if (p->type() == TypeDesc::INT16)
-            val = *(const short *)p->data();
-        else if (p->type() == TypeDesc::UINT16)
-            val = *(const unsigned short *)p->data();
-        else if (p->type() == TypeDesc::INT8)
-            val = *(const char *)p->data();
-        else if (p->type() == TypeDesc::UINT8)
-            val = *(const unsigned char *)p->data();
-        else if (p->type() == TypeDesc::INT64)
-            val = *(const long long *)p->data();
-        else if (p->type() == TypeDesc::UINT64)
-            val = *(const unsigned long long *)p->data();
-    }
-    return val;
+    auto p = find_attribute (name, tmpparam);
+    return p ? p->get_int (defaultval) : defaultval;
 }
 
 
 
 float
-ImageSpec::get_float_attribute (string_view name, float val) const
+ImageSpec::get_float_attribute (string_view name, float defaultval) const
 {
-    ImageIOParameter tmpparam;
-    const ImageIOParameter *p = find_attribute (name, tmpparam);
-    if (p) {
-        if (p->type() == TypeDesc::FLOAT)
-            val = *(const float *)p->data();
-        else if (p->type() == TypeDesc::HALF)
-            val = *(const half *)p->data();
-        else if (p->type() == TypeDesc::DOUBLE)
-            val = (float) *(const double *)p->data();
-        else if (p->type() == TypeDesc::INT)
-            val = (float) *(const int *)p->data();
-        else if (p->type() == TypeDesc::UINT)
-            val = (float) *(const unsigned int *)p->data();
-        else if (p->type() == TypeDesc::INT16)
-            val = (float) *(const short *)p->data();
-        else if (p->type() == TypeDesc::UINT16)
-            val = (float) *(const unsigned short *)p->data();
-        else if (p->type() == TypeDesc::INT8)
-            val = (float) *(const char *)p->data();
-        else if (p->type() == TypeDesc::UINT8)
-            val = (float) *(const unsigned char *)p->data();
-        else if (p->type() == TypeDesc::INT64)
-            val = (float) *(const long long *)p->data();
-        else if (p->type() == TypeDesc::UINT64)
-            val = (float) *(const unsigned long long *)p->data();
-    }
-    return val;
+    // No need for the special find_attribute trick, because there are
+    // currently no special virtual attribs that are floats.
+    return extra_attribs.get_float (name, defaultval,
+                                    false/*case*/, true/*convert*/);
 }
 
 
 
 string_view
-ImageSpec::get_string_attribute (string_view name, string_view val) const
+ImageSpec::get_string_attribute (string_view name, string_view defaultval) const
 {
     ImageIOParameter tmpparam;
     const ImageIOParameter *p = find_attribute (name, tmpparam, TypeDesc::STRING);
-    if (p)
-        return *(ustring *)p->data();
-    else return val;
+    return p ? p->get_ustring() : defaultval;
 }
 
 

@@ -118,4 +118,9 @@ if (OIIO_BUILD_TESTS)
     target_link_libraries (filter_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_filter filter_test)
 
+    add_executable (paramlist_test paramlist_test.cpp)
+    set_target_properties (paramlist_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (paramlist_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    add_test (unit_paramlist paramlist_test)
+
 endif ()

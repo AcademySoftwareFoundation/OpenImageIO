@@ -159,6 +159,9 @@ void declare_paramvalue()
        .add_property("value",    &ParamValue_value)
        .def("__getitem__",       &ParamValue_getitem)
        .def("__len__",           &ParamValue::nvalues)
+       .def(init<const std::string&, int>())
+       .def(init<const std::string&, float>())
+       .def(init<const std::string&, const std::string&>())
    ;
 
     class_<ParamValueList>("ParamValueList")
