@@ -365,9 +365,11 @@ required.
 \ImageSpec Attribute & Type & RGBE header data or explanation \\
 \hline
 \qkw{Orientation} & int & encodes the orientation (see
-  \ref{metadata:orientation}) \\
-{\cf ImageSpec.gamma} & float & the gamma correction specified in the
-  RGBE header.
+  Section~\ref{metadata:orientation}) \\
+\qkw{oiio:ColorSpace} & string & Color space (see
+    Section~\ref{metadata:colorspace}). \\
+\qkw{oiio:Gamma} & float & the gamma correction specified in the
+  RGBE header (if it's gamma corrected).
 \end{tabular}
 
 
@@ -678,6 +680,9 @@ PNG files use the file extension {\cf .png}.
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
 \qkw{XResolution} \qkw{YResolution}
   \qkw{ResolutionUnit} & & resolution and units from the PNG header. \\
+\qkw{oiio:ColorSpace} & string & Color space (see
+    Section~\ref{metadata:colorspace}). \\
+\qkw{oiio:Gamma} & float & the gamma correction value (if specified). \\
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \end{tabular}
 
@@ -852,7 +857,7 @@ Configuration attribute & Type & Meaning \\
                             (Default: 0) \\
 \qkws{raw:ColorSpace} & string & Which color primaries to use: \qkw{raw},
                                 \qkw{sRGB}, \qkw{Adobe}, \qkw{Wide},
-                                \qkw{ProPhoto}, \qkw{XYZ}.
+                                \qkw{ProPhoto}, \qkw{ACES}, \qkw{XYZ}.
                                 (Default: \qkw{sRGB}) \\
 \qkws{raw:Exposure} & float & Amount of exposure before de-mosaicing, from
                                 0.25 (2 stop darken) to 8 (3 stop brighten).
@@ -917,6 +922,9 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
   (vec3) coordinates. \\
 \qkws{rla:WhitePoint} & vec2 or vec3 of floats & white point XY (vec2) or XYZ
   (vec3) coordinates. \\
+\qkw{oiio:ColorSpace} & string & Color space (see
+    Section~\ref{metadata:colorspace}). \\
+\qkw{oiio:Gamma} & float & the gamma correction value (if specified).
 \end{tabular}
 
 \subsubsection*{Limitations}
@@ -1012,6 +1020,9 @@ The official Targa format specification may be found at\\
 \qkw{targa:ImageID} & string & Image ID \\
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
 \qkw{oiio:BitsPerSample} & int & the true (in the file) bits per sample. \\
+\qkw{oiio:ColorSpace} & string & Color space (see
+    Section~\ref{metadata:colorspace}). \\
+\qkw{oiio:Gamma} & float & the gamma correction value (if specified).
 \end{tabular}
 \\ 
 \vspace{.25in}

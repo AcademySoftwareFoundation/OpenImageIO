@@ -671,26 +671,9 @@ in.  Each individual \ImageOutput should document how it uses this (or
 not).
 
 The {\cf ImageSpec::extra_attribs} field should store metadata that
-reveals the color space of the pixels you are sending the ImageOutput.
-The \qkw{oiio:ColorSpace} attribute may take on any of the following
-values:
-
-\begin{description}
-\item[\halfspc \rm \qkw{Linear}] indicates that the
-  color pixel values are known to be linear.
-\item[\halfspc \rm \qkw{GammaCorrected}] indicates
-  that the color pixel values (but not alpha or $z$) have
-  already been gamma corrected (raised to the power $1/\gamma$), and
-  that the gamma exponent may be found in the \qkw{oiio:Gamma} metadata.
-\item[\halfspc \rm \qkw{sRGB}] indicates that the
-  color pixel values are in sRGB color space.
-\item[\halfspc \rm \qkw{AdobeRGB}] indicates that the
-  color pixel values are in Adobe RGB color space.
-\item[\halfspc \rm \qkw{Rec709}] indicates that the
-  color pixel values are in Rec709 color space.
-\item[\halfspc \rm \qkw{KodakLog}] indicates that the
-  color pixel values are in Kodak logarithmic color space.
-\end{description}
+reveals the color space of the pixels you are sending the ImageOutput
+(see Section~\ref{metadata:colorspace} for explanations of
+particular values).
 
 \noindent The color space hints only describe color channels.  You should always
 pass alpha, depth, or other non-color channels with linear values.

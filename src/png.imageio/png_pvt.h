@@ -167,8 +167,18 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     } else {
         double gamma;
         if (png_get_gAMA (sp, ip, &gamma)) {
-            spec.attribute ("oiio:Gamma", (float)(1.0f/gamma));
-            spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
+            // Round gamma to the nearest hundredth to prevent stupid
+            // precision choices and make it easier for apps to make
+            // decisions based on known gamma values. For example, you want
+            // 2.2, not 2.19998.
+            float g = float (1.0 / gamma);
+            g = roundf (100.0 * g) / 100.0f;
+            spec.attribute ("oiio:Gamma", g);
+            if (g == 1.0f)
+                spec.attribute ("oiio:ColorSpace", "linear");
+            else
+                spec.attribute ("oiio:ColorSpace",
+                                Strutil::format("GammaCorrected%.2g", g));
         }
     }
 
@@ -489,7 +499,10 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     if (Strutil::iequals (colorspace, "Linear")) {
         png_set_gAMA (sp, ip, 1.0);
     }
-    else if (Strutil::iequals (colorspace, "GammaCorrected")) {
+    else if (Strutil::istarts_with (colorspace, "GammaCorrected")) {
+        float g = Strutil::from_string<float>(colorspace.c_str()+14);
+        if (g >= 0.01f && g <= 10.0f /* sanity check */)
+            gamma = g;
         png_set_gAMA (sp, ip, 1.0f/gamma);
     }
     else if (Strutil::iequals (colorspace, "sRGB")) {

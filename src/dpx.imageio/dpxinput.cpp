@@ -334,8 +334,10 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             break;
         case dpx::kUserDefined:
             if (! isnan (m_dpx.header.Gamma ()) && m_dpx.header.Gamma () != 0) {
-                m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
-                m_spec.attribute ("oiio:Gamma", (float) m_dpx.header.Gamma ());
+                float g = float(m_dpx.header.Gamma());
+                m_spec.attribute ("oiio:ColorSpace",
+                                  Strutil::format("GammaCorrected%.2g", g));
+                m_spec.attribute ("oiio:Gamma", g);
                 break;
             }
             // intentional fall-through

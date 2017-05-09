@@ -226,7 +226,8 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             // either grayscale or printing density
             if (!isinf (m_cin.header.Gamma ()) && m_cin.header.Gamma () != 0.0f)
                 // actual gamma value is read later on
-                m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
+                m_spec.attribute ("oiio:ColorSpace",
+                                  Strutil::format("GammaCorrected%.2g", g));
             break;
     }
 

@@ -376,21 +376,27 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 #undef STRING_FIELD
 #undef FIELD
 
-    float f[3]; // variable will be reused for chroma, thus the array
-    f[0] = atof (m_rla.Gamma);
-    if (f[0] > 0.f) {
-        if (f[0] == 1.f)
+    float gamma = Strutil::from_string<float> (m_rla.Gamma);
+    if (gamma > 0.f) {
+        // Round gamma to the nearest hundredth to prevent stupid
+        // precision choices and make it easier for apps to make
+        // decisions based on known gamma values. For example, you want
+        // 2.2, not 2.19998.
+        gamma = roundf (100.0 * gamma) / 100.0f;
+        if (gamma == 1.f)
             m_spec.attribute ("oiio:ColorSpace", "Linear");
         else {
-            m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
-            m_spec.attribute ("oiio:Gamma", f[0]);
+            m_spec.attribute ("oiio:ColorSpace",
+                              Strutil::format("GammaCorrected%.2g", gamma));
+            m_spec.attribute ("oiio:Gamma", gamma);
         }
     }
-    
-    f[0] = atof (m_rla.AspectRatio);
-    if (f[0] > 0.f)
-        m_spec.attribute ("PixelAspectRatio", f[0]);
-    
+
+    float aspect = atof (m_rla.AspectRatio);
+    if (aspect > 0.f)
+        m_spec.attribute ("PixelAspectRatio", aspect);
+
+    float f[3]; // variable will be reused for chroma, thus the array
     // read chromaticity points
     if (m_rla.RedChroma[0]) {
         int num = sscanf(m_rla.RedChroma, "%f %f %f", f + 0, f + 1, f + 2);

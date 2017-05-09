@@ -311,13 +311,16 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     //           << m_rla.NumOfMatteChannels << " z " << m_rla.NumOfAuxChannels << "\n";
     m_rla.Revision = 0xFFFE;
     
-    std::string s = m_spec.get_string_attribute ("oiio:ColorSpace", "Unknown");
-    if (Strutil::iequals(s, "Linear"))
+    std::string colorspace = m_spec.get_string_attribute ("oiio:ColorSpace", "Unknown");
+    if (Strutil::iequals(colorspace, "Linear"))
         Strutil::safe_strcpy (m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
-    else if (Strutil::iequals(s, "GammaCorrected"))
-        snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
-            m_spec.get_float_attribute ("oiio:Gamma", 1.f));
-    
+    else if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
+        float g = Strutil::from_string<float>(colorspace.c_str()+14);
+        if (! (g >= 0.01f && g <= 10.0f /* sanity check */))
+            g = m_spec.get_float_attribute ("oiio:Gamma", 1.f);
+        snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f", g);
+    }
+
     const ImageIOParameter *p;
     // default NTSC chromaticities
     p = m_spec.find_attribute ("rla:RedChroma");

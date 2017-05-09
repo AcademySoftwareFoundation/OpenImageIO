@@ -467,24 +467,8 @@ banding artifacts in the dim values.
 
 The {\cf ImageSpec::extra_attribs} field may store metadata that reveals
 the color space the image file in the \qkw{oiio:ColorSpace}
-attribute, which may take on any of the following values:
-
-\begin{description}
-\item[\halfspc \rm \qkw{Linear}] indicates that the
-  color pixel values are known to be linear.
-\item[\halfspc \rm \qkw{GammaCorrected}] indicates
-  that the color pixel values (but not alpha or $z$) have
-  already been gamma corrected (raised to the power $1/\gamma$), and
-  that the gamma exponent may be found in the \qkw{oiio:Gamma} metadata.
-\item[\halfspc \rm \qkw{sRGB}] indicates that the
-  color pixel values are in sRGB color space.
-\item[\halfspc \rm \qkw{AdobeRGB}] indicates that the
-  color pixel values are in Adobe RGB color space.
-\item[\halfspc \rm \qkw{Rec709}] indicates that the
-  color pixel values are in Rec709 color space.
-\item[\halfspc \rm \qkw{KodakLog}] indicates that the
-  color pixel values are in Kodak logarithmic color space.
-\end{description}
+attribute (see Section~\ref{metadata:colorspace} for explanations of
+particular values).
 
 The \ImageInput sets the \qkw{oiio:ColorSpace} metadata in a
 purely advisory capacity --- the {\cf read} will not convert pixel

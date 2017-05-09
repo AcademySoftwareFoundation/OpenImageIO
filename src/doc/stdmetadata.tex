@@ -63,23 +63,6 @@ The name or identity of the computer that created the image.
 \section{Display hints}
 \label{metadata:displayhints}
 
-\apiitem{"oiio:ColorSpace" : string}
-The name of the color space of the color channels.  Values incude:
-\qkw{Linear}, \qkw{sRGB}, \qkw{GammaCorrected}, \qkw{AdobeRGB},
-\qkw{Rec709}, and \qkw{KodakLog}.
-\apiend
-
-\apiitem{"oiio:Gamma" : float}
-If the color space is \qkw{GammaCorrected}, this value is the gamma
-exponent.
-\apiend
-
-\apiitem{"oiio:BorderColor" : float[nchannels]}
-The color presumed to be filling any parts of the display/full image
-window that are not overlapping the pixel data window.  If not supplied,
-the default is black (0 in all channels).
-\apiend
-
 \apiitem{"Orientation" : int}
 \index{Orientation}
 \label{metadata:orientation}
@@ -120,11 +103,6 @@ For example, the TIFF ImageIO plugin supports \qkw{none}, \qkw{in},
 and \qkw{cm}.
 \apiend
 
-\apiitem{"ICCProfile" : uint8[]}
-The ICC color profile takes the form of an array of bytes (unsigned 8 bit
-chars). The length of the array is the length of the profile blob.
-\apiend
-
 \apiitem{"oiio:Movie" : int}
 If nonzero, a hint that a multi-image file is meant to be interpreted as
 an animation (i.e., that the subimages are a time sequence).
@@ -134,6 +112,48 @@ an animation (i.e., that the subimages are a time sequence).
 For a multi-image file intended to be played back as an animation,
 the frame refresh rate.
 \apiend
+
+\section{Color information}
+\label{metadata:colorspace}
+
+\apiitem{"oiio:ColorSpace" : string}
+The name of the color space of the color channels.  Values incude:
+
+\begin{description}
+\item[\spc] \spc
+\item[\halfspc \rm \qkw{Linear}] Color pixel values are known to be
+  scene-linear and using facility-default color primaries (presumed
+  sRGB/Rec709 color primaries if otherwise unknown.
+\item[\halfspc \rm \qkw{sRGB}] Using standard sRGB response and primaries.
+\item[\halfspc \rm \qkw{Rec709}] Using standard Rec709 response and primaries.
+\item[\halfspc \rm \qkw{ACES}] ACES color space encoding.
+\item[\halfspc \rm \qkw{AdobeRGB}] Adobe RGB color space.
+\item[\halfspc \rm \qkw{KodakLog}] Kodak logarithmic color space.
+\item[\halfspc \rm \qkw{GammaCorrectedX.Y}] Color values have been
+  gamma corrected (raised to the power $1/\gamma$). The
+  {\cf X.Y} is the numeric value of the gamma exponent.
+\item[\halfspc \emph{arbitrary}] The name of any
+  color space known to OpenColorIO (if OCIO support is present).
+\end{description}
+\apiend
+
+\apiitem{"oiio:Gamma" : float}
+If the color space is \qkw{GammaCorrectedX.Y}, this value is the gamma
+exponent. (Optional/deprecated; if present, it should match the suffix of the
+color space.)
+\apiend
+
+\apiitem{"oiio:BorderColor" : float[nchannels]}
+The color presumed to be filling any parts of the display/full image
+window that are not overlapping the pixel data window.  If not supplied,
+the default is black (0 in all channels).
+\apiend
+
+\apiitem{"ICCProfile" : uint8[]}
+The ICC color profile takes the form of an array of bytes (unsigned 8 bit
+chars). The length of the array is the length of the profile blob.
+\apiend
+
 
 \section{Disk file format info/hints}
 

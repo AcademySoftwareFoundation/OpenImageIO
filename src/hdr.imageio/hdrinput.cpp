@@ -141,8 +141,23 @@ HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_spec = ImageSpec (width, height, 3, TypeDesc::FLOAT);
 
-    if (h.valid & RGBE_VALID_GAMMA)
-        m_spec.attribute ("oiio:Gamma", h.gamma);
+    if (h.valid & RGBE_VALID_GAMMA) {
+        // Round gamma to the nearest hundredth to prevent stupid
+        // precision choices and make it easier for apps to make
+        // decisions based on known gamma values. For example, you want
+        // 2.2, not 2.19998.
+        float g = float (1.0 / h.gamma);
+        g = roundf (100.0 * g) / 100.0f;
+        m_spec.attribute ("oiio:Gamma", g);
+        if (g == 1.0f)
+            m_spec.attribute ("oiio:ColorSpace", "linear");
+        else
+            m_spec.attribute ("oiio:ColorSpace",
+                              Strutil::format("GammaCorrected%.2g", g));
+    } else {
+        // Presume linear color space
+        m_spec.attribute ("oiio:ColorSpace", "linear");
+    }
     if (h.valid & RGBE_VALID_ORIENTATION)
         m_spec.attribute ("Orientation", h.orientation);
 

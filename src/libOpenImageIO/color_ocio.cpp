@@ -507,6 +507,45 @@ public:
 
 
 
+// ColorProcessor that performs gamma correction
+class ColorProcessor_gamma : public ColorProcessor {
+public:
+    ColorProcessor_gamma (float gamma)
+        : ColorProcessor(), m_gamma(gamma)
+    { };
+    ~ColorProcessor_gamma () { };
+
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        if (channels > 3)
+            channels = 3;
+        if (channels == 3) {
+            simd::float4 g = m_gamma;
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride) {
+                    simd::float4 r;
+                    r.load ((float *)d, 3);
+                    r = fast_pow_pos (simd::float4((float *)d), g);
+                    r.store ((float *)d, 3);
+                }
+            }
+        } else {
+            for (int y = 0;  y < height;  ++y) {
+                char *d = (char *)data + y*ystride;
+                for (int x = 0;  x < width;  ++x, d += xstride)
+                    for (int c = 0;  c < channels;  ++c)
+                        ((float *)d)[c] = powf (((float *)d)[c], m_gamma);
+            }
+        }
+    }
+private:
+    float m_gamma;
+};
+
+
 // ColorProcessor that does nothing (identity transform)
 class ColorProcessor_Ident : public ColorProcessor {
 public:
@@ -620,6 +659,22 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
         (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
          iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
         return new ColorProcessor_Rec709_to_linear;
+    }
+    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
+        istarts_with(outputColorSpace,"GammaCorrected")) {
+        string_view gamstr = outputColorSpace;
+        Strutil::parse_prefix (gamstr, "GammaCorrected");
+        float g = from_string<float>(gamstr);
+        return new ColorProcessor_gamma(1.0f/g);
+    }
+    if (istarts_with(inputColorSpace,"GammaCorrected") &&
+        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
+        string_view gamstr = inputColorSpace;
+        Strutil::parse_prefix (gamstr, "GammaCorrected");
+        float g = from_string<float>(gamstr);
+        return new ColorProcessor_gamma(g);
     }
 
 #ifdef USE_OCIO

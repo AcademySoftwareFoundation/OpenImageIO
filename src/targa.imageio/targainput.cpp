@@ -366,12 +366,17 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                 if (bigendian())
                     swap_endian (&buf.s[0], 2);
                 float gamma = (float)buf.s[0] / (float)buf.s[1];
-                
+                // Round gamma to the nearest hundredth to prevent stupid
+                // precision choices and make it easier for apps to make
+                // decisions based on known gamma values. For example, you want
+                // 2.2, not 2.19998.
+                gamma = roundf (100.0 * gamma) / 100.0f;
                 if (gamma == 1.f) {
-                    m_spec.attribute ("oiio:ColorSpace", "Linear");
+                    m_spec.attribute ("oiio:ColorSpace", "linear");
                 }
                 else {
-                    m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
+                    m_spec.attribute ("oiio:ColorSpace",
+                                      Strutil::format("GammaCorrected%.2g", gamma));
                     m_spec.attribute ("oiio:Gamma", gamma);
                 }
             }
