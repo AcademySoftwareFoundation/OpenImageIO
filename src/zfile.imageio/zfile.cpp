@@ -292,7 +292,7 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
     header.width = (int)m_spec.width;
     header.height = (int)m_spec.height;
 
-    ImageIOParameter *p;
+    ParamValue *p;
     static float ident[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     if ((p = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)))
         memcpy (header.worldtocamera, p->data(), 16*sizeof(float));

@@ -316,7 +316,7 @@ TGAOutput::write_tga20_data_fields ()
         unsigned char th = m_spec.get_int_attribute ("thumbnail_width", 0);
         int tc = m_spec.get_int_attribute ("thumbnail_nchannels", 0);
         if (tw && th && tc == m_spec.nchannels) {
-            ImageIOParameter *p = m_spec.find_attribute ("thumbnail_image");
+            ParamValue *p = m_spec.find_attribute ("thumbnail_image");
             if (p) {
                 ofs_thumb = (uint32_t) ftell (m_file);
                 // dump thumbnail size

@@ -142,7 +142,7 @@ WebpOutput::open (const std::string &name, const ImageSpec &spec,
 
     m_webp_config.method = 6;
     int compression_quality = 100;
-    const ImageIOParameter *qual = m_spec.find_attribute ("CompressionQuality",
+    const ParamValue *qual = m_spec.find_attribute ("CompressionQuality",
                                                           TypeDesc::INT);
     if (qual)
     {

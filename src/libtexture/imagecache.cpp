@@ -603,7 +603,7 @@ void
 ImageCacheFile::init_from_spec ()
 {
     const ImageSpec &spec (this->spec(0,0));
-    const ImageIOParameter *p;
+    const ParamValue *p;
 
     // FIXME -- this should really be per-subimage
     if (spec.depth <= 1 && spec.full_depth <= 1)
@@ -2646,7 +2646,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
 
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
-    const ImageIOParameter *p = spec.find_attribute (dataname.string());
+    const ParamValue *p = spec.find_attribute (dataname.string());
     if (p && p->type().arraylen == datatype.arraylen) {
         // First test for exact type match
         if (p->type() == datatype) {

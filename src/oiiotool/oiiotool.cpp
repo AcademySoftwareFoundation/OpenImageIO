@@ -954,8 +954,8 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
         string_view metadata = Strutil::parse_identifier (s, ":", true);
         if (metadata.size()) {
             read (img);
-            ImageIOParameter tmpparam;
-            const ImageIOParameter *p = img->spec(0,0)->find_attribute (metadata, tmpparam);
+            ParamValue tmpparam;
+            const ParamValue *p = img->spec(0,0)->find_attribute (metadata, tmpparam);
             if (p) {
                 std::string val = ImageSpec::metadata_val (*p);
                 if (p->type().basetype == TypeDesc::STRING) {

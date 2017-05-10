@@ -494,12 +494,12 @@ Field3DOutput::prep_subimage_specialized ()
 
     // Mapping matrix
     TypeDesc TypeMatrixD (TypeDesc::DOUBLE, TypeDesc::MATRIX44);
-    if (ImageIOParameter *mx = m_spec.find_attribute ("field3d:localtoworld", TypeMatrixD)) {
+    if (ParamValue *mx = m_spec.find_attribute ("field3d:localtoworld", TypeMatrixD)) {
         MatrixFieldMapping::Ptr mapping (new MatrixFieldMapping);
         mapping->setLocalToWorld (*((FIELD3D_NS::M44d*)mx->data()));
         m_field->setMapping (mapping);
     }
-    else if (ImageIOParameter *mx = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)) {
+    else if (ParamValue *mx = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)) {
         Imath::M44f m = *((Imath::M44f*)mx->data());
         m = m.inverse();
         FIELD3D_NS::M44d md (m[0][0], m[0][1], m[0][1], m[0][3],

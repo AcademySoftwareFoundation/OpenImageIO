@@ -101,6 +101,7 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 
+// Deprecated typedefs. Just use ParamValue and ParamValueList directly.
 typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;
 
@@ -142,7 +143,7 @@ public:
     /// these data.  Note, however, that the names and semantics of such
     /// extra attributes are plugin-dependent and are not enforced by
     /// the imageio library itself.
-    ImageIOParameterList extra_attribs;  ///< Additional attributes
+    ParamValueList extra_attribs;  ///< Additional attributes
 
     /// Constructor: given just the data format, set all other fields to
     /// something reasonable.
@@ -320,23 +321,23 @@ public:
     /// matches to only those of the given type. If casesensitive is true,
     /// the name search will be case-sensitive, otherwise the name search
     /// will be performed without regard to case (this is the default).
-    ImageIOParameter * find_attribute (string_view name,
-                                       TypeDesc searchtype=TypeDesc::UNKNOWN,
-                                       bool casesensitive=false);
-    const ImageIOParameter *find_attribute (string_view name,
-                                            TypeDesc searchtype=TypeDesc::UNKNOWN,
-                                            bool casesensitive=false) const;
+    ParamValue * find_attribute (string_view name,
+                                 TypeDesc searchtype=TypeDesc::UNKNOWN,
+                                 bool casesensitive=false);
+    const ParamValue *find_attribute (string_view name,
+                                      TypeDesc searchtype=TypeDesc::UNKNOWN,
+                                      bool casesensitive=false) const;
 
     /// Search for the named attribute and return a pointer to an
-    /// ImageIOParameter record, or NULL if not found.  This variety of
+    /// ParamValue record, or NULL if not found.  This variety of
     /// find_attribute() can retrieve items such as "width", which are part
     /// of the ImageSpec, but not in extra_attribs. The tmpparam is a
     /// temporary storage area owned by the caller, which is used as
     /// temporary buffer in cases where the information does not correspond
     /// to an actual extra_attribs (in this case, the return value will be
     /// &tmpparam).
-    const ImageIOParameter * find_attribute (string_view name,
-                         ImageIOParameter &tmpparam,
+    const ParamValue * find_attribute (string_view name,
+                         ParamValue &tmpparam,
                          TypeDesc searchtype=TypeDesc::UNKNOWN,
                          bool casesensitive=false) const;
 
@@ -358,7 +359,7 @@ public:
     /// For a given parameter p, format the value nicely as a string.  If
     /// 'human' is true, use especially human-readable explanations (units,
     /// or decoding of values) for certain known metadata.
-    static std::string metadata_val (const ImageIOParameter &p,
+    static std::string metadata_val (const ParamValue &p,
                               bool human=false);
 
     enum SerialFormat  { SerialText, SerialXML };

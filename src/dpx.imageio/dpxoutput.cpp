@@ -361,7 +361,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     orient = DpxOrientations[clamp (orient, 0, 8)];
     m_dpx.header.SetImageOrientation ((dpx::Orientation)orient);
 
-    ImageIOParameter *tc = m_spec.find_attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, false);
+    ParamValue *tc = m_spec.find_attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, false);
     if (tc) {
         unsigned int *timecode = (unsigned int*) tc->data();
         m_dpx.header.timeCode = timecode[0];
@@ -377,7 +377,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
     }
 
-    ImageIOParameter *kc = m_spec.find_attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, false);
+    ParamValue *kc = m_spec.find_attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, false);
     if (kc) {
         int *array = (int*) kc->data();
         set_keycode_values(array);
@@ -401,7 +401,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // set the user data size
-    ImageIOParameter *user = m_spec.find_attribute ("dpx:UserData");
+    ParamValue *user = m_spec.find_attribute ("dpx:UserData");
     if (user && user->datasize () > 0 && user->datasize () <= 1024 * 1024) {
         m_dpx.SetUserData (user->datasize ());
     }

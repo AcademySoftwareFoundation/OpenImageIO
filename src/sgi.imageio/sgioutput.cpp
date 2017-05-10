@@ -193,7 +193,7 @@ SgiOutput::create_and_write_header()
     sgi_header.pixmax = (sgi_header.bpc == 1) ? 255 : 65535;
     sgi_header.dummy = 0;
 
-    ImageIOParameter *ip = m_spec.find_attribute ("ImageDescription",
+    ParamValue *ip = m_spec.find_attribute ("ImageDescription",
                                                    TypeDesc::STRING);
     if (ip && ip->data()) {
         const char** img_descr = (const char**)ip->data();

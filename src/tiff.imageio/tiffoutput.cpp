@@ -495,7 +495,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
-    ImageIOParameter *param;
+    ParamValue *param;
     const char *str = NULL;
 
     // Did the user request separate planar configuration?
@@ -533,7 +533,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // Write ICC profile, if we have anything
-    const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned char *icc_profile = (unsigned char*)icc_profile_parameter->data();
         uint32 length = icc_profile_parameter->type().size();
@@ -714,7 +714,7 @@ TIFFOutput::write_exif_data ()
     // First, see if we have any Exif data at all
     bool any_exif = false;
     for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
-        const ImageIOParameter &p (m_spec.extra_attribs[i]);
+        const ParamValue &p (m_spec.extra_attribs[i]);
         int tag, tifftype, count;
         if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
                 tifftype != TIFF_NOTYPE) {
@@ -748,7 +748,7 @@ TIFFOutput::write_exif_data ()
     }
 
     for (size_t i = 0, e = m_spec.extra_attribs.size(); i < e; ++i) {
-        const ImageIOParameter &p (m_spec.extra_attribs[i]);
+        const ParamValue &p (m_spec.extra_attribs[i]);
         int tag, tifftype, count;
         if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
                 tifftype != TIFF_NOTYPE) {

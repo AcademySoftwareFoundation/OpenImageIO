@@ -207,7 +207,7 @@ encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc)
 {
     iptc.clear ();
     
-    const ImageIOParameter *p;
+    const ParamValue *p;
     for (int i = 0;  iimtag[i].name;  ++i) {
         if ((p = spec.find_attribute (iimtag[i].name))) {
             if (iimtag[i].repeatable) {

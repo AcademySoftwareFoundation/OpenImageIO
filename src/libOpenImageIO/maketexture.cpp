@@ -496,7 +496,7 @@ static void
 maketx_merge_spec (ImageSpec &dstspec, const ImageSpec &srcspec)
 {
     for (size_t i = 0, e = srcspec.extra_attribs.size(); i < e; ++i) {
-        const ImageIOParameter &p (srcspec.extra_attribs[i]);
+        const ParamValue &p (srcspec.extra_attribs[i]);
         ustring name = p.name();
         if (Strutil::istarts_with (name.string(), "maketx:")) {
             // Special instruction -- don't copy it to the destination spec
