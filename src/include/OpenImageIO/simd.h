@@ -346,9 +346,6 @@ public:
     /// Default constructor (contents undefined)
     bool4 () { }
 
-    /// Destructor
-    ~bool4 () { }
-
     /// Construct from a single value (store it in all slots)
     bool4 (bool a) { load(a); }
 
@@ -474,9 +471,6 @@ public:
 
     /// Default constructor (contents undefined)
     bool8 () { }
-
-    /// Destructor
-    ~bool8 () { }
 
     /// Construct from a single value (store it in all slots)
     bool8 (bool a) { load (a); }
@@ -616,9 +610,6 @@ public:
 
     /// Default constructor (contents undefined)
     int4 () { }
-
-    /// Destructor
-    ~int4 () { }
 
     /// Construct from a single value (store it in all slots)
     int4 (int a);
@@ -858,9 +849,6 @@ public:
 
     /// Default constructor (contents undefined)
     int8 () { }
-
-    /// Destructor
-    ~int8 () { }
 
     /// Construct from a single value (store it in all slots)
     int8 (int a);
@@ -1110,9 +1098,6 @@ public:
 
     /// Default constructor (contents undefined)
     float4 () { }
-
-    /// Destructor
-    ~float4 () { }
 
     /// Construct from a single value (store it in all slots)
     float4 (float a) { load(a); }
@@ -1419,9 +1404,6 @@ public:
     /// Default constructor (contents undefined)
     float3 () { }
 
-    /// Destructor
-    ~float3 () { }
-
     /// Construct from a single value (store it in all slots)
     float3 (float a) { load(a); }
 
@@ -1688,9 +1670,6 @@ public:
 
     /// Default constructor (contents undefined)
     float8 () { }
-
-    /// Destructor
-    ~float8 () { }
 
     /// Construct from a single value (store it in all slots)
     float8 (float a) { load(a); }
