@@ -362,8 +362,7 @@ file (COPY "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_BINARY_DIR}/cpac
 file (RENAME "${CMAKE_BINARY_DIR}/cpack/LICENSE" "${CMAKE_BINARY_DIR}/cpack/License.txt")
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/cpack/License.txt")
 file (COPY "${PROJECT_SOURCE_DIR}/README.md" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
-file (RENAME "${CMAKE_BINARY_DIR}/cpack/README.md" "${CMAKE_BINARY_DIR}/cpack/Readme.md")
-set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/cpack/Readme.md")
+set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/cpack/README.md")
 set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/src/doc/Welcome.txt")
 #SET (CPACK_STRIP_FILES Do we need this?)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -391,14 +390,8 @@ set (CPACK_COMPONENT_USER_DISPLAY_NAME "Applications")
 set (CPACK_COMPONENT_DEVELOPER_DISPLAY_NAME "Developer files")
 set (CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
 set (CPACK_COMPONENT_USER_DESCRIPTION
-     "Applications: iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
+     "Applications: oiotool, iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
 set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
 set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
 set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
 include (CPack)
-
-# TODO: equivalents of the old:
-#  * make doxygen
-#  * BOOST_DYNAMIC
-
-# Do TIFF, JPEG, PNG actually look in external?
