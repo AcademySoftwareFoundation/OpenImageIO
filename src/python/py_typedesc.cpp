@@ -142,6 +142,7 @@ void declare_typedesc() {
         //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
         .def("c_str",            &TypeDesc::c_str)
         .def("numelements",      &TypeDesc::numelements)
+        .def("basevalues",       &TypeDesc::basevalues)
         .def("size",             &TypeDesc::size)
         .def("elementtype",      &TypeDesc::elementtype)
         .def("elementsize",      &TypeDesc::elementsize)

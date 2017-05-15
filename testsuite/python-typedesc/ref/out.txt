@@ -12,6 +12,7 @@ type '(default)'
     size = 0
     elementtype = unknown
     numelements = 1
+    basevalues = 1
     elementsize = 0
     basesize = 0
 type 'UINT8'
@@ -24,6 +25,7 @@ type 'UINT8'
     size = 1
     elementtype = uint8
     numelements = 1
+    basevalues = 1
     elementsize = 1
     basesize = 1
 type 'HALF, VEC3, COLOR'
@@ -36,6 +38,7 @@ type 'HALF, VEC3, COLOR'
     size = 6
     elementtype = colorh
     numelements = 1
+    basevalues = 3
     elementsize = 6
     basesize = 2
 type 'FLOAT, SCALAR, NOXFORM, array of 6'
@@ -48,6 +51,7 @@ type 'FLOAT, SCALAR, NOXFORM, array of 6'
     size = 24
     elementtype = float
     numelements = 6
+    basevalues = 6
     elementsize = 4
     basesize = 4
 type 'FLOAT, VEC3, POINT, array of 2'
@@ -60,6 +64,7 @@ type 'FLOAT, VEC3, POINT, array of 2'
     size = 24
     elementtype = point
     numelements = 2
+    basevalues = 6
     elementsize = 12
     basesize = 4
 
@@ -73,6 +78,7 @@ type 'float[2]'
     size = 8
     elementtype = float
     numelements = 2
+    basevalues = 2
     elementsize = 4
     basesize = 4
 type 'normal'
@@ -85,6 +91,7 @@ type 'normal'
     size = 12
     elementtype = normal
     numelements = 1
+    basevalues = 3
     elementsize = 12
     basesize = 4
 type 'uint16'
@@ -97,6 +104,7 @@ type 'uint16'
     size = 2
     elementtype = uint16
     numelements = 1
+    basevalues = 1
     elementsize = 2
     basesize = 2
 
