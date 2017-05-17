@@ -77,6 +77,7 @@ def breakdown_test(t, name="", verbose=True):
         print "    size =", t.size()
         print "    elementtype =", t.elementtype()
         print "    numelements =", t.numelements()
+        print "    basevalues =", t.basevalues()
         print "    elementsize =", t.elementsize()
         print "    basesize =", t.basesize()
 

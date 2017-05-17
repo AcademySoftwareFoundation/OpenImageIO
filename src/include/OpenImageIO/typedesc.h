@@ -157,11 +157,18 @@ struct OIIO_API TypeDesc {
     }
 
     /// Return the number of elements: 1 if not an array, or the array
-    /// length.
+    /// length. Invalid to call this for arrays of undetermined size.
     OIIO_CONSTEXPR14 size_t numelements () const {
         DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
                      "of array with unspecified length (%d)", arraylen);
         return (arraylen >= 1 ? arraylen : 1);
+    }
+
+    /// Return the number of basetype values: the aggregate count multiplied
+    /// by the array length (or 1 if not an array). Invalid to call this
+    /// for arrays of undetermined size.
+    OIIO_CONSTEXPR14 size_t basevalues () const {
+        return numelements() * aggregate;
     }
 
     /// Does this TypeDesc describe an array?
