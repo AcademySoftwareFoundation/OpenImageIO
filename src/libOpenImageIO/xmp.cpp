@@ -88,13 +88,13 @@ static XMPtag xmptag [] = {
     { "photoshop:Credit", "IPTC:Provider", TypeDesc::STRING, 0 },
     { "photoshop:DateCreated", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
     { "photoshop:Headline", "IPTC:Headline", TypeDesc::STRING, 0 },
+    { "photoshop:History", "ImageHistory", TypeDesc::STRING, 0 },
     { "photoshop:Instructions", "IPTC:Instructions", TypeDesc::STRING, 0 },
     { "photoshop:Source", "IPTC:Source", TypeDesc::STRING, 0 },
     { "photoshop:State", "IPTC:State", TypeDesc::STRING, 0 },
     { "photoshop:SupplementalCategories", "IPTC:SupplementalCategories", TypeDesc::STRING, IsList|Suppress },  // FIXME -- un-suppress when we have it working
     { "photoshop:TransmissionReference", "IPTC:TransmissionReference", TypeDesc::STRING, 0 },
     { "photoshop:Urgency", "photoshop:Urgency", TypeDesc::INT, 0 },
-    { "photoshop:ColorMode", "photoshop:ColorMode", TypeDesc::STRING, 0 },
 
     { "tiff:Compression", "tiff:Compression", TypeDesc::INT, TiffRedundant },
     { "tiff:PlanarConfiguration", "tiff:PlanarConfiguration", TypeDesc::INT, TiffRedundant },
@@ -104,6 +104,13 @@ static XMPtag xmptag [] = {
     { "tiff:XResolution", "XResolution", TypeDesc::FLOAT, Rational|TiffRedundant },
     { "tiff:YResolution", "YResolution", TypeDesc::FLOAT, Rational|TiffRedundant },
     { "tiff:ResolutionUnit", "ResolutionUnit", TypeDesc::INT, TiffRedundant },
+    { "tiff:Artist", "Artist", TypeDesc::STRING, 0 },
+    { "tiff:Copyright", "Copyright", TypeDesc::STRING, 0 },
+    { "tiff:DateTime", "DateTime", TypeDesc::STRING, DateConversion },
+    { "tiff:ImageDescription", "ImageDescription", TypeDesc::STRING, 0 },
+    { "tiff:Make", "Make", TypeDesc::STRING, 0 },
+    { "tiff:Model", "Model", TypeDesc::STRING, 0 },
+    { "tiff:Software", "Software", TypeDesc::STRING, TiffRedundant },
 
     { "exif:ColorSpace", "Exif:ColorSpace", TypeDesc::INT, ExifRedundant },
     { "exifEX:PhotographicSensitivity", "Exif:ISOSpeedRatings", TypeDesc::INT, ExifRedundant },

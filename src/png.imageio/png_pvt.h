@@ -216,6 +216,8 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                 spec.attribute ("Artist", text_ptr[i].text);
             else if (Strutil::iequals (text_ptr[i].key, "Title"))
                 spec.attribute ("DocumentName", text_ptr[i].text);
+            else if (Strutil::iequals (text_ptr[i].key, "XML:com.adobe.xmp"))
+                decode_xmp (text_ptr[i].text, spec);
             else
                 spec.attribute (text_ptr[i].key, text_ptr[i].text);
         }
