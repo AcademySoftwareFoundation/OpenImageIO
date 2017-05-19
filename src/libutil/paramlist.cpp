@@ -31,6 +31,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <OpenEXR/half.h>
+
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/paramlist.h>
@@ -93,12 +95,220 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type, int _nvalues,
 
 
 
+// helper to parse a list from a string
+template <class T>
+static void
+parse_elements (string_view name, TypeDesc type, const char *type_code,
+                string_view value, ParamValue &p)
+{
+    int num_items = type.numelements() * type.aggregate;
+    T *data = (T*) p.data();
+    // Erase any leading whitespace
+    value.remove_prefix (value.find_first_not_of (" \t"));
+    for (int i = 0;  i < num_items;  ++i) {
+        // Make a temporary copy so we for sure have a 0-terminated string.
+        std::string temp = value;
+        // Grab the first value from it
+        sscanf (temp.c_str(), type_code, &data[i]);
+        // Skip the value (eat until we find a delimiter -- space, comma, tab)
+        value.remove_prefix (value.find_first_of (" ,\t"));
+        // Skip the delimiter
+        value.remove_prefix (value.find_first_not_of (" ,\t"));
+        if (value.empty())
+            break;   // done if nothing left to parse
+    }
+}
+
+
+
+// Construct from parsed string
+ParamValue::ParamValue (string_view name, TypeDesc type, string_view value)
+    : ParamValue (name, type, 1, nullptr)
+{
+    if (type.basetype == TypeDesc::INT) {
+        parse_elements<int> (name, type, "%d", value, *this);
+    } else if (type.basetype == TypeDesc::UINT) {
+        parse_elements<unsigned int> (name, type, "%u", value, *this);
+    } else if (type.basetype == TypeDesc::FLOAT) {
+        parse_elements<float> (name, type, "%f", value, *this);
+    } else if (type.basetype == TypeDesc::DOUBLE) {
+        parse_elements<double> (name, type, "%lf", value, *this);
+    } else if (type.basetype == TypeDesc::INT64) {
+        parse_elements<long long> (name, type, "%lld", value, *this);
+    } else if (type.basetype == TypeDesc::UINT64) {
+        parse_elements<unsigned long long> (name, type, "%llu", value, *this);
+    } else if (type.basetype == TypeDesc::INT16) {
+        parse_elements<short> (name, type, "%hd", value, *this);
+    } else if (type.basetype == TypeDesc::UINT16) {
+        parse_elements<unsigned short> (name, type, "%hu", value, *this);
+    } else if (type == TypeDesc::STRING) {
+        ustring s (value);
+        init (name, type, 1, &s);
+    }
+}
+
+
+
+int
+ParamValue::get_int (int defaultval) const
+{
+    if (type() == TypeDesc::INT)
+        return get<int>();
+    if (type() == TypeDesc::UINT)
+        return (int) get<unsigned int>();
+    if (type() == TypeDesc::INT16)
+        return get<short>();
+    if (type() == TypeDesc::UINT16)
+        return get<unsigned short>();
+    if (type() == TypeDesc::INT8)
+        return get<char>();
+    if (type() == TypeDesc::UINT8)
+        return get<unsigned char>();
+    if (type() == TypeDesc::INT64)
+        return get<long long>();
+    if (type() == TypeDesc::UINT64)
+        return get<unsigned long long>();
+    if (type() == TypeDesc::STRING) {
+        // Only succeed for a string if it exactly holds something that
+        // excatly parses to an int value.
+        string_view str = get<ustring>();
+        int val = defaultval;
+        if (Strutil::parse_int(str, val) && str.empty())
+            return val;
+    }
+    return defaultval;   // Some nonstandard type, fail
+}
+
+
+
+float
+ParamValue::get_float (float defaultval) const
+{
+    if (type() == TypeDesc::FLOAT)
+        return get<float>();
+    if (type() == TypeDesc::HALF)
+        return get<half>();
+    if (type() == TypeDesc::DOUBLE)
+        return get<double>();
+    if (type() == TypeDesc::INT)
+        return get<int>();
+    if (type() == TypeDesc::UINT)
+        return get<unsigned int>();
+    if (type() == TypeDesc::INT16)
+        return get<short>();
+    if (type() == TypeDesc::UINT16)
+        return get<unsigned short>();
+    if (type() == TypeDesc::INT8)
+        return get<char>();
+    if (type() == TypeDesc::UINT8)
+        return get<unsigned char>();
+    if (type() == TypeDesc::INT64)
+        return get<long long>();
+    if (type() == TypeDesc::UINT64)
+        return get<unsigned long long>();
+    if (type() == TypeDesc::STRING) {
+        // Only succeed for a string if it exactly holds something
+        // that excatly parses to a float value.
+        string_view str = get<ustring>();
+        float val = defaultval;
+        if (Strutil::parse_float(str, val) && str.empty())
+            return val;
+    }
+    return defaultval;
+}
+
+
+
+namespace {  // make an anon namespace
+
+template < typename T >
+void formatType (const ParamValue& p, int n, TypeDesc element,
+                 string_view formatString, std::string& out)
+{
+    const T *f = (const T *)p.data();
+    for (int i = 0;  i < n;  ++i) {
+        if (i)
+            out += ", ";
+        for (size_t c = 0;  c < element.aggregate;  ++c, ++f)
+            out += Strutil::format (formatString, (c ? " " : ""), f[0]);
+    }
+}
+
+} // end anon namespace
+
+
+
+std::string
+ParamValue::get_string (int maxsize) const
+{
+    std::string out;
+    TypeDesc element = type().elementtype();
+    int nfull = int(type().numelements()) * nvalues();
+    int n = std::min (nfull, maxsize);
+    if (element.basetype == TypeDesc::STRING) {
+        // Just a single scalar string -- return it directly, not quoted
+        if (n == 1 && ! type().is_array())
+            return get<const char *>();
+        // Multiple strings or an array -- return a list of double-quoted
+        // strings.
+        for (int i = 0;  i < n;  ++i) {
+            const char *s = ((const char **)data())[i];
+            out += Strutil::format ("%s\"%s\"", (i ? ", " : ""),
+                                    s ? Strutil::escape_chars(s) : std::string());
+        }
+    } else if (element.basetype == TypeDesc::FLOAT) {
+        formatType< float >(*this, n, element, "%s%g", out);
+    } else if (element.basetype == TypeDesc::DOUBLE) {
+        formatType< double >(*this, n, element, "%s%g", out);
+    } else if (element.basetype == TypeDesc::HALF) {
+        formatType< half >(*this, n, element, "%s%g", out);
+    } else if (element.basetype == TypeDesc::INT) {
+        formatType< int >(*this, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT) {
+        formatType< unsigned int >(*this, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT16) {
+        formatType< unsigned short >(*this, n, element, "%s%u", out);
+    } else if (element.basetype == TypeDesc::INT16) {
+        formatType< short >(*this, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::UINT64) {
+        formatType< unsigned long long >(*this, n, element, "%s%llu", out);
+    } else if (element.basetype == TypeDesc::INT64) {
+        formatType< long long >(*this, n, element, "%s%lld", out);
+    } else if (element.basetype == TypeDesc::UINT8) {
+        formatType< unsigned char >(*this, n, element, "%s%d", out);
+    } else if (element.basetype == TypeDesc::INT8) {
+        formatType< char >(*this, n, element, "%s%d", out);
+    } else {
+        out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
+                type().basetype, type().aggregate,
+                type().vecsemantics);
+    }
+    if (n < nfull)
+        out += Strutil::format (", ... [%d x %s]", nfull,
+                                TypeDesc(TypeDesc::BASETYPE(element.basetype)));
+    return out;
+}
+
+
+
+ustring
+ParamValue::get_ustring (int maxsize) const
+{
+    // Special case for retrieving a string already in ustring form,
+    // super inexpensive.
+    if (type() == TypeDesc::STRING)
+        return get<ustring>();
+    return ustring (get_string(maxsize));
+}
+
+
+
 void
 ParamValue::clear_value ()
 {
     if (m_copy && m_nonlocal && m_data.ptr)
         free ((void *)m_data.ptr);
-    m_data.ptr = NULL;
+    m_data.ptr = nullptr;
     m_copy = false;
     m_nonlocal = false;
 }
@@ -177,6 +387,50 @@ ParamValueList::find (string_view name, TypeDesc type, bool casesensitive)
         }
     }
     return end();
+}
+
+
+
+int
+ParamValueList::get_int (string_view name, int defaultval,
+                         bool casesensitive, bool convert) const
+{
+    auto p = find (name, convert ? TypeDesc::UNKNOWN : TypeDesc::INT,
+                   casesensitive);
+    return (p == cend()) ? defaultval : p->get_int (defaultval);
+}
+
+
+
+float
+ParamValueList::get_float (string_view name, float defaultval,
+                           bool casesensitive, bool convert) const
+{
+    auto p = find (name, convert ? TypeDesc::UNKNOWN : TypeDesc::FLOAT,
+                   casesensitive);
+    return (p == cend()) ? defaultval : p->get_float (defaultval);
+}
+
+
+
+string_view
+ParamValueList::get_string (string_view name, string_view defaultval,
+                            bool casesensitive, bool convert) const
+{
+    auto p = find (name, convert ? TypeDesc::UNKNOWN : TypeDesc::STRING,
+                   casesensitive);
+    return (p == cend()) ? defaultval : string_view(p->get_ustring());
+}
+
+
+
+ustring
+ParamValueList::get_ustring (string_view name, string_view defaultval,
+                            bool casesensitive, bool convert) const
+{
+    auto p = find (name, convert ? TypeDesc::UNKNOWN : TypeDesc::STRING,
+                   casesensitive);
+    return (p == cend()) ? ustring(defaultval) : p->get_ustring();
 }
 
 
