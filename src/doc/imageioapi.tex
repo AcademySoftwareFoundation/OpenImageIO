@@ -580,6 +580,13 @@ be represented by a {\cf size_t} on that platform.  If this returns
 storage!
 \apiend
 
+\apiitem{int {\ce channelindex} (string_view name) const}
+\NEW % 1.8
+Returns the index of the channel with the given name, or -1 if no such
+channel is present in {\cf channelnames}.
+\apiend
+
+
 % FIXME - document auto_stride() ?
 
 \apiitem{void {\ce attribute} (string_view name, TypeDesc type, \\

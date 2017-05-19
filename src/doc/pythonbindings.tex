@@ -379,6 +379,12 @@ Sets {\cf channel_names} to the default names given the value of
 the {\cf nchannels} field.
 \apiend
 
+\apiitem{int ImageSpec.{\ce channelindex} (name)}
+\NEW % 1.8
+Return (as an int) the index of the channel with the given name, or -1
+if it does not exist.
+\apiend
+
 \apiitem{ImageSpec.{\ce channel_bytes} () \\
 ImageSpec.{\ce channel_bytes} (channel, native=False)}
 Returns the size of a single channel value, in bytes (as an

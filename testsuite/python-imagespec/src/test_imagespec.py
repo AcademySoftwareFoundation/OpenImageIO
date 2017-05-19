@@ -63,6 +63,8 @@ try:
     s.default_channel_names()
     s.channelformats = (oiio.UINT8, oiio.UINT8, oiio.UINT8, oiio.UINT8, oiio.FLOAT)
     print_imagespec (s, "lots of fields")
+    print " B channel =", s.channelindex("B")
+    print " foo channel =", s.channelindex("foo")
 
     print "channel bytes =", s.channel_bytes()
     print "  channel_bytes(1) =", s.channel_bytes(1), "native", s.channel_bytes(1,True)
