@@ -287,4 +287,74 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
 }
 
 
+
+bool
+ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
+                            const ImageBuf &thresh,
+                            ROI roi, int nthreads)
+{
+    if (! src.deep() || ! thresh.deep()) {
+        dst.error ("deep_holdout can only be performed on deep images");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &src, &thresh, NULL, IBAprep_SUPPORT_DEEP))
+        return false;
+    if (! dst.deep()) {
+        dst.error ("Cannot deep_holdout into a flat image");
+        return false;
+    }
+
+    DeepData &dstdd (*dst.deepdata());
+    const DeepData &srcdd (*src.deepdata());
+    // First, reserve enough space in dst, to reduce the number of
+    // allocations we'll do later.
+    for (int z = roi.zbegin; z < roi.zend; ++z)
+    for (int y = roi.ybegin; y < roi.yend; ++y)
+    for (int x = roi.xbegin; x < roi.xend; ++x) {
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        int srcpixel = src.pixelindex (x, y, z, true);
+        if (dstpixel >= 0 && srcpixel >= 0)
+            dstdd.set_capacity (dstpixel, srcdd.capacity(srcpixel));
+    }
+    // Now we compute each pixel: We copy the src pixel to dst, then split
+    // any samples that span the opaque threshold, and then delete any
+    // samples that lie beyond the threshold.
+    int Zchan = dstdd.Z_channel();
+    int Zbackchan = dstdd.Zback_channel();
+    const DeepData &threshdd (*thresh.deepdata());
+    for (ImageBuf::Iterator<float> r (dst, roi);  !r.done();  ++r) {
+        int x = r.x(), y = r.y(), z = r.z();
+        int srcpixel = src.pixelindex (x, y, z, true);
+        if (srcpixel < 1)
+            continue;   // Nothing in this pixel
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        dstdd.copy_deep_pixel (dstpixel, srcdd, srcpixel);
+        int threshpixel = thresh.pixelindex (x, y, z, true);
+        if (threshpixel < 0)
+            continue;  // No threshold mask for this pixel
+        float zthresh = threshdd.opaque_z (threshpixel);
+        // Eliminate the samples that are entirely beyond the depth
+        // threshold. Do this before the split; that makes it less
+        // likely that the split will force a re-allocation.
+        for (int s = 0, n = dstdd.samples(dstpixel); s < n; ++s) {
+            if (dstdd.deep_value (dstpixel, Zchan, s) > zthresh) {
+                dstdd.set_samples (dstpixel, s);
+                break;
+            }
+        }
+        // Now split any samples that straddle the z.
+        if (dstdd.split (dstpixel, zthresh)) {
+            // If a split did occur, do anohter discard pass.
+            for (int s = 0, n = dstdd.samples(dstpixel); s < n; ++s) {
+                if (dstdd.deep_value (dstpixel, Zbackchan, s) > zthresh) {
+                    dstdd.set_samples (dstpixel, s);
+                    break;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
 OIIO_NAMESPACE_END

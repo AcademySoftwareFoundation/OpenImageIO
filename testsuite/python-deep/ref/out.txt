@@ -190,5 +190,51 @@ Values dd has 3 pixels, 6 channels.
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
   sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
-Opaque z:  11.5 3.40282346639e+38 3.40282346639e+38 
+Opaque z:  11.5 3.40282346639e+38 3.40282346639e+38
+
+Testing ImageBufAlgo.deep_holdout...
+Input image dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  Nsamples[ 2 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 3 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 4 ] = 3  (capacity= 3 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 15.00 /  [5 Zback] 16.00 / 
+  sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+Holdout image dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Nsamples[ 0 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.00 /  [5 Zback] 15.10 / 
+  Nsamples[ 1 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.10 /  [5 Zback] 15.20 / 
+  Nsamples[ 2 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.20 /  [5 Zback] 15.30 / 
+  Nsamples[ 3 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.30 /  [5 Zback] 15.40 / 
+  Nsamples[ 4 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.40 /  [5 Zback] 15.50 / 
+  Nsamples[ 5 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.50 /  [5 Zback] 15.60 / 
+Result after holdout dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  Nsamples[ 2 ] = 0  (capacity= 1 ) samples:
+  Nsamples[ 3 ] = 1  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  Nsamples[ 4 ] = 2  (capacity= 3 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.33 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 15.00 /  [5 Zback] 15.50 / 
+
 Done.

@@ -3156,6 +3156,25 @@ the first opaque sample will be discarded, otherwise they will be kept.
 \end{code}
 \apiend
 
+\apiitem{bool ImageBufAlgo.{\ce deep_holdout} (dst, src, holdout, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deep_holdout} \indexapi{deep_holdout} \index{deep images}
+
+Set the pixels of {\cf dst} to the pixels of {\cf src}, but only copying the
+samples that are closer than the opaque frontier of image {\cf holdout}.
+That is, {\cf holdout} will serve as a depth holdout mask, but no samples
+from {\cf holdout} will actually be copied to {\cf dst}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Img = ImageBuf("image.exr")
+    Mask = ImageBuf("mask.exr")
+    Thresholded = ImageBuf()
+    ImageBufAlgo.deep_holdout (Thresholded, Img, Mask)
+\end{code}
+\apiend
+
+
 \subsection*{Other ImageBufAlgo methods that understand deep images}
 
 In addition to the previously described methods that are specific to
