@@ -174,6 +174,7 @@ void declare_deepdata()
         .def("merge_deep_pixels", &DeepData::merge_deep_pixels,
              (arg("pixel"), arg("src"), arg("srcpixel")))
         .def("occlusion_cull", &DeepData::occlusion_cull, (arg("pixel")))
+        .def("opaque_z", &DeepData::opaque_z, (arg("pixel")))
     ;
 }
 

@@ -1106,6 +1106,51 @@ DeepData::merge_deep_pixels (int pixel, const DeepData &src, int srcpixel)
 
 
 
+float
+DeepData::opaque_z (int pixel) const
+{
+    if (pixel < 0)
+        return std::numeric_limits<float>::max();
+    int nsamples = samples(pixel);
+    int cZ = Z_channel();
+    if (! nsamples || cZ < 0) {
+        // If nothing is in this pixel or we don't have Z's, just
+        // return a huge number.
+        return std::numeric_limits<float>::max();
+    }
+
+    int cZback = Zback_channel(); // Will be Z if Zback is missing
+    int cA = A_channel();
+    int cAR = AR_channel();  // A[RGB]_channel() returns A_channel if the
+    int cAG = AG_channel();  // specific channel is missing.
+    int cAB = AB_channel();
+    if (cAR < 0 || cAG < 0 || cAB < 0) {
+        // If there aren't alpha channels, just return the closest Z
+        return deep_value (pixel, cZ, 0);
+    }
+
+    // There are samples, Z, and alpha channels. Figure out where it gets
+    // opaque.
+    for (int s = 0; s < nsamples; ++s) {
+        float alpha;
+        if (cA >= 0)
+            alpha = deep_value (pixel, cA, s);
+        else {
+            alpha = (deep_value (pixel, cAR, s) +
+                     deep_value (pixel, cAG, s) +
+                     deep_value (pixel, cAB, s)) / 3.0f;
+        }
+        if (alpha >= 1.0f) {
+            // We hit an opaque sample. Return its far side.
+            return deep_value (pixel, cZback, s);
+        }
+    }
+    // We never hit an opaque sample. Return huge number.
+    return std::numeric_limits<float>::max();
+}
+
+
+
 void
 DeepData::occlusion_cull (int pixel)
 {

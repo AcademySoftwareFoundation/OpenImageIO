@@ -186,6 +186,9 @@ public:
     /// Merge src's samples into dst's samples
     void merge_deep_pixels (int pixel, const DeepData &src, int srcpixel);
 
+    /// Return the z depth at which the pixel becomes opaque.
+    float opaque_z (int pixel) const;
+
     /// Occlusion cull samples hidden behind opaque samples.
     void occlusion_cull (int pixel);
 

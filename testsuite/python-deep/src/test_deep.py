@@ -192,6 +192,35 @@ def test_occlusion_cull () :
     dd.occlusion_cull (0)
     print_deep_image (dd, "After occlusion_cull,")
 
+def test_opaque_z () :
+    print "\nTesting opaque_z..."
+    dd = oiio.DeepData ()
+    # 3 test pixels
+    dd.init (3, test_nchannels, test_chantypes, test_channames)
+    # First pixel: has 3 samples, middle one is opaque
+    dd.set_samples (0, 3)
+    for s in range(dd.samples(0)) :
+        dd.set_deep_value (0, 0, s, 0.5) # R
+        dd.set_deep_value (0, 1, s, 0.0) # G
+        dd.set_deep_value (0, 2, s, 0.0) # B
+        dd.set_deep_value (0, 3, s, (1.0 if s==1 else 0.5)) # A
+        dd.set_deep_value (0, 4, s, 10.0+s) # Z
+        dd.set_deep_value (0, 5, s, 10.5+s) # Zback
+    # Second pixel: 3 samples, none are opaque
+    dd.set_samples (1, 3)
+    for s in range(dd.samples(0)) :
+        dd.set_deep_value (1, 0, s, 0.5) # R
+        dd.set_deep_value (1, 1, s, 0.0) # G
+        dd.set_deep_value (1, 2, s, 0.0) # B
+        dd.set_deep_value (1, 3, s, 0.5) # A
+        dd.set_deep_value (1, 4, s, 10.0+s) # Z
+        dd.set_deep_value (1, 5, s, 10.5+s) # Zback
+    # Third pixel is empty
+    print_deep_image (dd, "Values")
+    print "Opaque z: ",
+    for p in range(dd.pixels) :
+        print dd.opaque_z(p),
+
 
 
 ######################################################################
@@ -227,6 +256,7 @@ try:
     test_merge_overlaps ()
     test_merge_deep_pixels ()
     test_occlusion_cull ()
+    test_opaque_z ()
 
     print "\nDone."
 
