@@ -74,6 +74,9 @@ public:
     size_t m_samplesize;
     int m_z_channel, m_zback_channel;
     int m_alpha_channel;
+    int m_AR_channel;
+    int m_AG_channel;
+    int m_AB_channel;
     bool m_allocated;
     spin_mutex m_mutex;
 
@@ -93,6 +96,9 @@ public:
         m_z_channel = -1;
         m_zback_channel = -1;
         m_alpha_channel = -1;
+        m_AR_channel = -1;
+        m_AG_channel = -1;
+        m_AB_channel = -1;
         m_allocated = false;
     }
 
@@ -215,6 +221,48 @@ int DeepData::channels () const
 
 
 
+int DeepData::Z_channel () const
+{
+    return m_impl->m_z_channel;
+}
+
+
+
+int DeepData::Zback_channel () const
+{
+    return m_impl->m_zback_channel >= 0 ? m_impl->m_zback_channel : m_impl->m_z_channel;
+}
+
+
+
+int DeepData::A_channel () const
+{
+    return m_impl->m_alpha_channel;
+}
+
+
+
+int DeepData::AR_channel () const
+{
+    return m_impl->m_AR_channel >= 0 ? m_impl->m_AR_channel : m_impl->m_alpha_channel;
+}
+
+
+
+int DeepData::AG_channel () const
+{
+    return m_impl->m_AG_channel >= 0 ? m_impl->m_AG_channel : m_impl->m_alpha_channel;
+}
+
+
+
+int DeepData::AB_channel () const
+{
+    return m_impl->m_AB_channel >= 0 ? m_impl->m_AB_channel : m_impl->m_alpha_channel;
+}
+
+
+
 string_view
 DeepData::channelname (int c) const
 {
@@ -304,6 +352,12 @@ DeepData::init (int npix, int nchan,
             m_impl->m_zback_channel = c;
         else if (m_impl->m_alpha_channel < 0 && is_or_endswithdot (channelnames[c], "A"))
             m_impl->m_alpha_channel = c;
+        else if (m_impl->m_AR_channel < 0 && is_or_endswithdot (channelnames[c], "AR"))
+            m_impl->m_AR_channel = c;
+        else if (m_impl->m_AG_channel < 0 && is_or_endswithdot (channelnames[c], "AG"))
+            m_impl->m_AG_channel = c;
+        else if (m_impl->m_AB_channel < 0 && is_or_endswithdot (channelnames[c], "AB"))
+            m_impl->m_AB_channel = c;
     }
     // Now try to find which alpha corresponds to each channel
     for (int c = 0; c < m_nchannels; ++c) {
@@ -313,8 +367,8 @@ DeepData::init (int npix, int nchan,
             continue;
         string_view name (channelnames[c]);
         // Alpha channels are their own alpha
-        if (is_or_endswithdot (name, "A")  || is_or_endswithdot (name, "RA") ||
-            is_or_endswithdot (name, "GA") || is_or_endswithdot (name, "BA")) {
+        if (is_or_endswithdot (name, "A")  || is_or_endswithdot (name, "AR") ||
+            is_or_endswithdot (name, "AG") || is_or_endswithdot (name, "AB")) {
             m_impl->m_myalphachannel[c] = c;
             continue;
         }
@@ -327,7 +381,7 @@ DeepData::init (int npix, int nchan,
             prefix = prefix.substr (0, dot+1);
             suffix = suffix.substr (dot+1);
         }
-        std::string targetalpha = std::string(prefix) + std::string(suffix) + "A";
+        std::string targetalpha = std::string(prefix) + "A" + std::string(suffix);
         for (int i = 0; i < m_nchannels; ++i) {
             if (Strutil::iequals (m_impl->m_channelnames[i], targetalpha)) {
                 m_impl->m_myalphachannel[c] = i;

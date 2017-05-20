@@ -42,6 +42,7 @@ def make_test_deep_image () :
 
 def print_deep_image (dd, prefix="After init,") :
     print prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels."
+    print "  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 0 or dd.capacity(p) > 0 :

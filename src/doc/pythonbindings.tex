@@ -619,6 +619,18 @@ collection of deep data.
 This {\cf int} field constains the number of channels.
 \apiend
 
+\apiitem{int DeepData.{\ce A_channel} \\
+int DeepData.{\ce AR_channel} \\
+int DeepData.{\ce AG_channel} \\
+int DeepData.{\ce AB_channel} \\
+int DeepData.{\ce Z_channel} \\
+int DeepData.{\ce Zback_channel}}
+\NEW % 1.8
+The channel index of certain named channels, or -1 if they don't exist. For
+{\cf AR_channel}, {\cf AG_channel}, {\cf AB_channel}, if they don't exist,
+they will contain the value of {\cf A_channel}, and {\cf Zback_channel} will
+contain the value of {\cf Z_channel} if there is no actual {\cf Zback}.
+\apiend
 
 \apiitem{string DeepData.{\ce channelname} (c)}
 Retrieve the name of channel {\cf c}.

@@ -125,6 +125,12 @@ void declare_deepdata()
         .def_readonly ("nchannels",  &DeepData::channels) //DEPRECATED(1.7)
         .def_readonly ("pixels",     &DeepData::pixels)
         .def_readonly ("channels",   &DeepData::channels)
+        .def_readonly ("A_channel",  &DeepData::A_channel)
+        .def_readonly ("AR_channel", &DeepData::AR_channel)
+        .def_readonly ("AG_channel", &DeepData::AG_channel)
+        .def_readonly ("AB_channel", &DeepData::AB_channel)
+        .def_readonly ("Z_channel",  &DeepData::Z_channel)
+        .def_readonly ("Zback_channel", &DeepData::Zback_channel)
 
         .def("init",  &DeepData_init,
              (arg("npixels"), arg("nchannels"),

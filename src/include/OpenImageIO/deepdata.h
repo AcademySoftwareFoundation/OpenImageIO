@@ -80,6 +80,19 @@ public:
     /// Retrieve the number of channels.
     int channels () const;
 
+    // Retrieve the index of the Z channel.
+    int Z_channel () const;
+    // Retrieve the index of the Zback channel, which will return the
+    // Z channel if no Zback exists.
+    int Zback_channel () const;
+    // Retrieve the index of the A (alpha) channel.
+    int A_channel () const;
+    // Retrieve the index of the AR, AG, AB channel, respectively. If they
+    // don't exist, the A channel (which always exists) will be returned.
+    int AR_channel () const;
+    int AG_channel () const;
+    int AB_channel () const;
+
     /// The name of channel c.
     string_view channelname (int c) const;
 

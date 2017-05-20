@@ -46,42 +46,6 @@
 OIIO_NAMESPACE_BEGIN
 
 
-// Helper for flatten: identify channels in the spec that are important to
-// deciphering deep images. Return true if appropriate alphas were found.
-static bool
-find_deep_channels (const ImageSpec &spec, int &alpha_channel,
-                    int &AR_channel, int &AG_channel, int &AB_channel,
-                    int &R_channel, int &G_channel, int &B_channel,
-                    int &Z_channel, int &Zback_channel)
-{
-    static const char *names[] = { "A",
-                                   "RA", "GA", "BA", // old OpenEXR recommendation
-                                   "AR", "AG", "AB", // new OpenEXR recommendation
-                                   "R", "G", "B",
-                                   "Z", "Zback", NULL };
-    int *chans[] = { &alpha_channel,
-                     &AR_channel, &AG_channel, &AB_channel,
-                     &AR_channel, &AG_channel, &AB_channel,
-                     &R_channel, &G_channel, &B_channel,
-                     &Z_channel, &Zback_channel };
-    for (int i = 0;  names[i];  ++i)
-        *chans[i] = -1;
-    for (int c = 0, e = int(spec.channelnames.size()); c < e; ++c) {
-        for (int i = 0;  names[i];  ++i) {
-            if (spec.channelnames[c] == names[i]) {
-                *chans[i] = c;
-                break;
-            }
-        }
-    }
-    if (Zback_channel < 0)
-        Zback_channel = Z_channel;
-    return (alpha_channel >= 0 ||
-            (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
-}
-
-
-
 // FIXME -- NOT CORRECT!  This code assumes sorted, non-overlapping samples.
 // That is not a valid assumption in general. We will come back to fix this.
 template<class DSTTYPE>
@@ -89,26 +53,22 @@ static bool
 flatten_ (ImageBuf &dst, const ImageBuf &src, 
           ROI roi, int nthreads)
 {
-    const ImageSpec &srcspec (src.spec());
-    int nc = srcspec.nchannels;
-    int alpha_channel, AR_channel, AG_channel, AB_channel;
-    int R_channel, G_channel, B_channel;
-    int Z_channel, Zback_channel;
-    if (! find_deep_channels (srcspec, alpha_channel,
-                              AR_channel, AG_channel, AB_channel,
-                              R_channel, G_channel, B_channel,
-                              Z_channel, Zback_channel)) {
-        dst.error ("No alpha channel could be identified");
-        return false;
-    }
-
     ImageBufAlgo::parallel_image (roi, nthreads, [=,&dst,&src](ROI roi){
-        ASSERT (alpha_channel >= 0 ||
-                (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
+        const ImageSpec &srcspec (src.spec());
+        const DeepData *dd = src.deepdata();
+        int nc = srcspec.nchannels;
+        int AR_channel = dd->AR_channel();
+        int AG_channel = dd->AG_channel();
+        int AB_channel = dd->AB_channel();
+        int Z_channel = dd->Z_channel();
+        int Zback_channel = dd->Zback_channel();
+        int R_channel = srcspec.channelindex ("R");
+        int G_channel = srcspec.channelindex ("G");
+        int B_channel = srcspec.channelindex ("B");
         float *val = ALLOCA (float, nc);
-        float &ARval (AR_channel >= 0 ? val[AR_channel] : val[alpha_channel]);
-        float &AGval (AG_channel >= 0 ? val[AG_channel] : val[alpha_channel]);
-        float &ABval (AB_channel >= 0 ? val[AB_channel] : val[alpha_channel]);
+        float &ARval (val[AR_channel]);
+        float &AGval (val[AG_channel]);
+        float &ABval (val[AB_channel]);
 
         for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
             int x = r.x(), y = r.y(), z = r.z();
@@ -172,13 +132,8 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
 
-    const ImageSpec &srcspec (src.spec());
-    int alpha_channel, AR_channel, AG_channel, AB_channel;
-    int R_channel, G_channel, B_channel, Z_channel, Zback_channel;
-    if (! find_deep_channels (srcspec, alpha_channel,
-                              AR_channel, AG_channel, AB_channel,
-                              R_channel, G_channel, B_channel,
-                              Z_channel, Zback_channel)) {
+    const DeepData *dd = src.deepdata();
+    if (dd->AR_channel() < 0 || dd->AG_channel() < 0 || dd->AB_channel() < 0) {
         dst.error ("No alpha channel could be identified");
         return false;
     }
