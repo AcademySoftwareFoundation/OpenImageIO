@@ -429,6 +429,22 @@ DeepData::free ()
 
 
 
+bool
+DeepData::initialized () const
+{
+    return m_impl != nullptr;
+}
+
+
+
+bool
+DeepData::allocated () const
+{
+    return m_impl && m_impl->m_allocated;
+}
+
+
+
 int
 DeepData::capacity (int pixel) const
 {

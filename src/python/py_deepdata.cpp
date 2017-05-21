@@ -138,6 +138,8 @@ void declare_deepdata()
         .def("init",  &DeepData_init_spec)
         .def("clear", &DeepData::clear)
         .def("free",  &DeepData::free)
+        .def("initialized",     &DeepData::initialized)
+        .def("allocated",       &DeepData::allocated)
 
         .def("samples",         &DeepData_get_samples,
              (arg("pixel")))

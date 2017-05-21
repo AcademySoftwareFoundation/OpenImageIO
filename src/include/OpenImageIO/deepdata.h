@@ -75,6 +75,13 @@ public:
     /// of pixels, channels, and channel types in the ImageSpec.
     void init (const ImageSpec &spec);
 
+    /// Is the DeepData initialized?
+    bool initialized () const;
+
+    /// Has the DeepData fully allocated? If no, it is still very
+    /// inexpensive to call set_capacity().
+    bool allocated () const;
+
     /// Retrieve the total number of pixels.
     int pixels () const;
     /// Retrieve the number of channels.

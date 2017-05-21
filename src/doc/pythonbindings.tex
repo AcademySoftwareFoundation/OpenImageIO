@@ -610,6 +610,14 @@ samples for each pixel (using {\cf set_nsamples}) and then call {\cf alloc()}
 to actually allocate the sample memory.
 \apiend
 
+\apiitem{bool {\ce DeepData}.initialized ()}
+Returns {\cf True} if the \DeepData is initialized at all.
+\apiend
+
+\apiitem{bool {\ce DeepData}.allocated ()}
+Returns {\cf True} if the \DeepData has already had pixel memory allocated.
+\apiend
+
 \apiitem{DeepData.{\ce pixels}}
 This {\cf int} field constains the total number of pixels in this
 collection of deep data.
