@@ -229,3 +229,34 @@ if (OIIO_BUILD_TESTS)
     add_test (unit_compute compute_test)
 
 endif (OIIO_BUILD_TESTS)
+
+# Package config support
+
+# Configure and install pkg_config file.
+if (OIIO_INSTALL_PKGCONFIG)
+  # Make sure all libraries ends with "_LIBRARIES"
+  set(WEBP_LIBRARIES ${WEBP_LIBRARY})
+  set(LIBRAW_LIBRARIES ${LibRaw_r_LIBRARIES})
+  foreach(lib IN ITEMS Boost PNG TIFF JPEG ZLIB FIELD3D OPENJPEG WEBP OpenCV OPENSSL FREETYPE GIF LIBRAW OCIO)
+    if (${lib}_FOUND)
+      list (APPEND PKG_LIBRARY_FLAGS ${${lib}_LIBRARIES})
+    endif()
+  endforeach()
+  list (APPEND PKG_LIBRARY_FLAGS ${CMAKE_DL_LIBS})
+  string(REPLACE ";" " -l" PKG_LIBRARIES_STRING "${PKG_LIBRARY_FLAGS}")
+  # Write the file.
+  file ( WRITE ${CMAKE_BINARY_DIR}/OpenImageIO.pc "prefix=${CMAKE_INSTALL_PREFIX}
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+OpenImageIO_includedir=\${prefix}/include/OpenImageIO
+
+Name: OpenImageIO
+Description: OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.
+Version: ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
+Libs: -L${libdir} -lOpenImageIO -l${PKG_LIBRARIES_STRING}
+Cflags: -I\${OpenImageIO_includedir}
+Requires: OpenEXR
+")
+  install (FILES ${CMAKE_BINARY_DIR}/OpenImageIO.pc DESTINATION lib/pkgconfig)
+endif (OIIO_INSTALL_PKGCONFIG)
