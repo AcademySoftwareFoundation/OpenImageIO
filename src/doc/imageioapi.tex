@@ -810,8 +810,9 @@ layout. Return {\cf true} if ok, {\cf false} if the operation could not be
 performed.
 \apiend
 
-\apiitem{void {\ce split} (int pixel, float depth)}
-Split any samples of the pixel that cross {\cf depth}.
+\apiitem{bool {\ce split} (int pixel, float depth)}
+Split any samples of the pixel that cross {\cf depth}. Return {\cf true} if
+any splits occurred, {\cf false} if the pixel was unmodified.
 \apiend
 
 \apiitem{void {\ce sort} (int pixel)}

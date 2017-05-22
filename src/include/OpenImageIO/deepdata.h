@@ -178,8 +178,9 @@ public:
     /// with depth ranges [z,zsplit] and [zsplit,zback] with appropriate
     /// changes to their color and alpha values. Samples not spanning zsplit
     /// will remain intact. This operation will have no effect if there are
-    /// not Z and Zback channels present.
-    void split (int pixel, float depth);
+    /// not Z and Zback channels present. Return true if any splits
+    /// occurred, false if the pixel was not modified.
+    bool split (int pixel, float depth);
 
     /// Sort the samples of a pixel by Z.
     void sort (int pixel);

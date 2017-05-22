@@ -870,19 +870,20 @@ DeepData::copy_deep_pixel (int pixel, const DeepData &src, int srcpixel)
 
 
 
-void
+bool
 DeepData::split (int pixel, float depth)
 {
 #if OIIO_CPLUSPLUS_VERSION >= 11
     using std::log1p;
     using std::expm1;
 #endif
+    bool splits_occurred = false;
     int zchan = m_impl->m_z_channel;
     int zbackchan = m_impl->m_zback_channel;
     if (zchan < 0)
-        return;   // No channel labeled Z -- we don't know what to do
+        return false;   // No channel labeled Z -- we don't know what to do
     if (zbackchan < 0)
-        return;   // The samples are not extended -- nothing to split
+        return false;   // The samples are not extended -- nothing to split
     int nchans = channels();
     for (int s = 0; s < samples(pixel); ++s) {
         float zf = deep_value (pixel, zchan, s);     // z front
@@ -890,6 +891,7 @@ DeepData::split (int pixel, float depth)
         if (zf < depth && zb > depth) {
             // The sample spans depth, so split it.
             // See http://www.openexr.com/InterpretingDeepPixels.pdf
+            splits_occurred = true;
             insert_samples (pixel, s+1);
             copy_deep_sample (pixel, s+1, *this, pixel, s);
             set_deep_value (pixel, zbackchan, s,   depth);
@@ -940,6 +942,7 @@ DeepData::split (int pixel, float depth)
             }
         }
     }
+    return splits_occurred;
 }
 
 

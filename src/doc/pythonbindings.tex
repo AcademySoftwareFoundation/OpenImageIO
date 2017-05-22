@@ -689,8 +689,9 @@ Copy a deep sample from \DeepData {\cf src} into this \DeepData.
 Copy a deep pixel from \DeepData {\cf src} into this \DeepData.
 \apiend
 
-\apiitem{DeepData.{\ce split} (pixel, depth)}
-Split any samples of the pixel that cross {\cf depth}.
+\apiitem{bool DeepData.{\ce split} (pixel, depth)}
+Split any samples of the pixel that cross {\cf depth}. Return {\cf True} if
+any splits occurred, {\cf False} if the pixel was unmodified.
 \apiend
 
 \apiitem{DeepData.{\ce sort} (pixel)}
