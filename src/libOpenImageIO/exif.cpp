@@ -698,7 +698,7 @@ append_dir_entry (const TagMap &tagmap,
 ///
 template <class T>
 bool
-append_dir_entry_integer (const ImageIOParameter &p, const TagMap &tagmap,
+append_dir_entry_integer (const ParamValue &p, const TagMap &tagmap,
                           std::vector<TIFFDirEntry> &dirs,
                           std::vector<char> &data, int tag, TIFFDataType type)
 {
@@ -731,7 +731,7 @@ append_dir_entry_integer (const ImageIOParameter &p, const TagMap &tagmap,
 /// reside.  Don't worry about it being relative to the start of some
 /// TIFF structure.
 static void
-encode_exif_entry (const ImageIOParameter &p, int tag,
+encode_exif_entry (const ParamValue &p, int tag,
                    std::vector<TIFFDirEntry> &dirs,
                    std::vector<char> &data,
                    const TagMap &tagmap)
@@ -879,7 +879,7 @@ decode_exif (string_view exif, ImageSpec &spec)
                        exif, swab, ifd_offsets_seen, exif_tagmap);
 
     // A few tidbits to look for
-    ImageIOParameter *p;
+    ParamValue *p;
     if ((p = spec.find_attribute ("Exif:ColorSpace")) ||
         (p = spec.find_attribute ("ColorSpace"))) {
         int cs = -1;
@@ -957,7 +957,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 
     // Go through all spec attribs, add them to the appropriate tag
     // directory (tiff, gps, or exif).
-    for (const ImageIOParameter &p : spec.extra_attribs) {
+    for (const ParamValue &p : spec.extra_attribs) {
         // Which tag domain are we using?
         if (! strncmp (p.name().c_str(), "GPS:", 4)) {
             // GPS

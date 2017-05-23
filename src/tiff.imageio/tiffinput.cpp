@@ -942,7 +942,7 @@ TIFFInput::readspec (bool read_meta)
         TIFFSetDirectory (m_tif, m_subimage);
 
         // A few tidbits to look for
-        ImageIOParameter *p;
+        ParamValue *p;
         if ((p = m_spec.find_attribute ("Exif:ColorSpace", TypeDesc::INT))) {
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.

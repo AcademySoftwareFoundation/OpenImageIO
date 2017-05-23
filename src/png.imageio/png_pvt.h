@@ -512,7 +512,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     }
 
     // Write ICC profile, if we have anything
-    const ImageIOParameter* icc_profile_parameter = spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = spec.find_attribute(ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned int length = icc_profile_parameter->type().size();
 #if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */

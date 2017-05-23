@@ -123,7 +123,7 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec,
     h.valid |= RGBE_VALID_PROGRAMTYPE;
     Strutil::safe_strcpy (h.programtype, "RADIANCE", sizeof(h.programtype));
 
-    ImageIOParameter *p;
+    ParamValue *p;
     p = m_spec.find_attribute ("Orientation", TypeDesc::INT);
     if (p) {
         h.valid |= RGBE_VALID_ORIENTATION;

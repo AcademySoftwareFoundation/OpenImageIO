@@ -317,7 +317,7 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
         if (special & (IsList|IsSeq)) {
             // Special case -- append it to a list
             std::vector<std::string> items;
-            ImageIOParameter *p = spec.find_attribute (oiioname, TypeDesc::STRING); 
+            ParamValue *p = spec.find_attribute (oiioname, TypeDesc::STRING); 
             bool dup = false;
             if (p) {
                 Strutil::split (*(const char **)p->data(), items, ";");
@@ -509,10 +509,10 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
 
 
 
-// Turn one ImageIOParameter (whose xmp info we know) into a properly
+// Turn one ParamValue (whose xmp info we know) into a properly
 // serialized xmp string.
 static std::string
-stringize (const ImageIOParameterList::const_iterator &p,
+stringize (const ParamValueList::const_iterator &p,
            const XMPtag &xmptag)
 {
     if (p->type() == TypeDesc::STRING) {
@@ -545,7 +545,7 @@ gather_xmp_attribs (const ImageSpec &spec,
                     std::vector<std::pair<const XMPtag*,std::string> > &list)
 {
     // Loop over all params...
-    for (ImageIOParameterList::const_iterator p = spec.extra_attribs.begin();
+    for (ParamValueList::const_iterator p = spec.extra_attribs.begin();
          p != spec.extra_attribs.end();  ++p) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.

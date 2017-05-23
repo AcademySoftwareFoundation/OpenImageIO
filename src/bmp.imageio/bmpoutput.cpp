@@ -205,13 +205,13 @@ BmpOutput::create_and_write_bitmap_header (void)
     m_dib_header.cpalete = 0;
     m_dib_header.important = 0;
 
-    ImageIOParameter *p = NULL;
+    ParamValue *p = NULL;
     p = m_spec.find_attribute ("ResolutionUnit", TypeDesc::STRING);
     if (p && p->data()) {
         std::string res_units = *(char**)p->data ();
         if (Strutil::iequals (res_units, "m") ||
               Strutil::iequals (res_units, "pixel per meter")) {
-            ImageIOParameter *resx = NULL, *resy = NULL;
+            ParamValue *resx = NULL, *resy = NULL;
             resx = m_spec.find_attribute ("XResolution", TypeDesc::INT32);
             if (resx && resx->data())
                 m_dib_header.hres = *(int*)resx->data ();

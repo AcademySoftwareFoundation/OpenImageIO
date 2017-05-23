@@ -310,7 +310,7 @@ void
 ImageSpec::attribute (string_view name, TypeDesc type, const void *value)
 {
     // Don't allow duplicates
-    ImageIOParameter *f = find_attribute (name);
+    ParamValue *f = find_attribute (name);
     if (! f) {
         extra_attribs.resize (extra_attribs.size() + 1);
         f = &extra_attribs.back();
@@ -362,12 +362,11 @@ ImageSpec::erase_attribute (string_view name, TypeDesc searchtype,
 }
 
 
-ImageIOParameter *
+ParamValue *
 ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive)
 {
-    ImageIOParameterList::iterator iter =
-        extra_attribs.find (name, searchtype, casesensitive);
+    auto iter = extra_attribs.find (name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
     return NULL;
@@ -375,12 +374,11 @@ ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
 
 
 
-const ImageIOParameter *
+const ParamValue *
 ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
                            bool casesensitive) const
 {
-    ImageIOParameterList::const_iterator iter =
-        extra_attribs.find (name, searchtype, casesensitive);
+    auto iter = extra_attribs.find (name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
     return NULL;
@@ -388,12 +386,11 @@ ImageSpec::find_attribute (string_view name, TypeDesc searchtype,
 
 
 
-const ImageIOParameter *
-ImageSpec::find_attribute (string_view name, ImageIOParameter &tmpparam,
+const ParamValue *
+ImageSpec::find_attribute (string_view name, ParamValue &tmpparam,
                            TypeDesc searchtype, bool casesensitive) const
 {
-    ImageIOParameterList::const_iterator iter =
-        extra_attribs.find (name, searchtype, casesensitive);
+    auto iter = extra_attribs.find (name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
     // Check named items in the ImageSpec structs, not in extra_attrubs
@@ -452,7 +449,7 @@ ImageSpec::get_int_attribute (string_view name, int defaultval) const
 {
     // Call find_attribute with the tmpparam, in order to retrieve special
     // "virtual" attribs that aren't really in extra_attribs.
-    ImageIOParameter tmpparam;
+    ParamValue tmpparam;
     auto p = find_attribute (name, tmpparam);
     return p ? p->get_int (defaultval) : defaultval;
 }
@@ -473,8 +470,8 @@ ImageSpec::get_float_attribute (string_view name, float defaultval) const
 string_view
 ImageSpec::get_string_attribute (string_view name, string_view defaultval) const
 {
-    ImageIOParameter tmpparam;
-    const ImageIOParameter *p = find_attribute (name, tmpparam, TypeDesc::STRING);
+    ParamValue tmpparam;
+    const ParamValue *p = find_attribute (name, tmpparam, TypeDesc::STRING);
     return p ? p->get_ustring() : defaultval;
 }
 
@@ -483,7 +480,7 @@ ImageSpec::get_string_attribute (string_view name, string_view defaultval) const
 namespace {  // make an anon namespace
 
 template < typename T >
-void formatType(const ImageIOParameter& p, const int n, const TypeDesc& element, const char* formatString, std::string& out) {
+void formatType(const ParamValue& p, const int n, const TypeDesc& element, const char* formatString, std::string& out) {
   const T *f = (const T *)p.data();
   for (int i = 0;  i < n;  ++i) {
       if (i)
@@ -494,7 +491,7 @@ void formatType(const ImageIOParameter& p, const int n, const TypeDesc& element,
 }
 
 static std::string
-format_raw_metadata (const ImageIOParameter &p, int maxsize=16)
+format_raw_metadata (const ParamValue &p, int maxsize=16)
 {
     std::string out;
     TypeDesc element = p.type().elementtype();
@@ -545,13 +542,13 @@ struct LabelTable {
 };
 
 static std::string
-explain_justprint (const ImageIOParameter &p, const void *extradata)
+explain_justprint (const ParamValue &p, const void *extradata)
 {
     return format_raw_metadata(p) + " " + std::string ((const char *)extradata);
 }
 
 static std::string
-explain_labeltable (const ImageIOParameter &p, const void *extradata)
+explain_labeltable (const ParamValue &p, const void *extradata)
 {
     int val;
     if (p.type() == TypeDesc::INT)
@@ -569,7 +566,7 @@ explain_labeltable (const ImageIOParameter &p, const void *extradata)
 }
 
 static std::string
-explain_shutterapex (const ImageIOParameter &p, const void *extradata)
+explain_shutterapex (const ParamValue &p, const void *extradata)
 {
     if (p.type() == TypeDesc::FLOAT) {
         double val = pow (2.0, - (double)*(float *)p.data());
@@ -582,7 +579,7 @@ explain_shutterapex (const ImageIOParameter &p, const void *extradata)
 }
 
 static std::string
-explain_apertureapex (const ImageIOParameter &p, const void *extradata)
+explain_apertureapex (const ParamValue &p, const void *extradata)
 {
     if (p.type() == TypeDesc::FLOAT)
         return Strutil::format ("f/%g", powf (2.0f, *(float *)p.data()/2.0f));
@@ -590,7 +587,7 @@ explain_apertureapex (const ImageIOParameter &p, const void *extradata)
 }
 
 static std::string
-explain_ExifFlash (const ImageIOParameter &p, const void *extradata)
+explain_ExifFlash (const ParamValue &p, const void *extradata)
 {
     int val = 0;
     if (p.type() == TypeDesc::INT)
@@ -735,7 +732,7 @@ static LabelTable magnetic_table[] = {
     { 'T', "true north" }, { 'M', "magnetic north" }, { -1, NULL }
 };
 
-typedef std::string (*ExplainerFunc) (const ImageIOParameter &p, 
+typedef std::string (*ExplainerFunc) (const ParamValue &p, 
                                       const void *extradata);
 
 struct ExplanationTableEntry {
@@ -788,7 +785,7 @@ static ExplanationTableEntry explanation[] = {
 
 
 std::string
-ImageSpec::metadata_val (const ImageIOParameter &p, bool human)
+ImageSpec::metadata_val (const ParamValue &p, bool human)
 {
     std::string out = format_raw_metadata (p, human ? 16 : 1024);
 

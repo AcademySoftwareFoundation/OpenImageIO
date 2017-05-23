@@ -331,7 +331,7 @@ OpenEXROutput::supports (string_view feature) const
     // EXR supports random write order iff lineOrder is set to 'random Y'
     // and it's a tiled file.
     if (feature == "random_access" && m_spec.tile_width != 0) {
-        const ImageIOParameter *param = m_spec.find_attribute("openexr:lineOrder");
+        const ParamValue *param = m_spec.find_attribute("openexr:lineOrder");
         const char *lineorder = param ? *(char **)param->data() : NULL;
         return (lineorder && Strutil::iequals (lineorder, "randomY"));
     }

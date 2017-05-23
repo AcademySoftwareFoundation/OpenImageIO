@@ -89,7 +89,7 @@ static void
 metadata_val_test (void *data, int num_elements, TypeDesc type, std::string& val)
 {
     static ImageSpec spec;
-    ImageIOParameter p;
+    ParamValue p;
 
     p.init ("name", type, num_elements, data);
     val = spec.metadata_val (p);

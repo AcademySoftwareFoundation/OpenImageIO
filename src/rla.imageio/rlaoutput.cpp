@@ -85,7 +85,7 @@ private:
     }
     
     /// Helper - sets a chromaticity from attribute
-    inline void set_chromaticity (const ImageIOParameter *p, char *dst,
+    inline void set_chromaticity (const ParamValue *p, char *dst,
                                   size_t field_size, const char *default_val);
     
     // Helper - handles the repetitive work of encoding and writing a
@@ -321,7 +321,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f", g);
     }
 
-    const ImageIOParameter *p;
+    const ParamValue *p;
     // default NTSC chromaticities
     p = m_spec.find_attribute ("rla:RedChroma");
     set_chromaticity (p, m_rla.RedChroma, sizeof (m_rla.RedChroma), "0.67 0.08");
@@ -407,7 +407,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
 
 
 inline void
-RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
+RLAOutput::set_chromaticity (const ParamValue *p, char *dst,
                              size_t field_size, const char *default_val)
 {
     if (p && p->type().basetype == TypeDesc::FLOAT) {

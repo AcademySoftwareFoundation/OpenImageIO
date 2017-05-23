@@ -235,7 +235,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_next_scanline = 0;    // next scanline we'll write
 
     // Write JPEG comment, if sent an 'ImageDescription'
-    ImageIOParameter *comment = m_spec.find_attribute ("ImageDescription",
+    ParamValue *comment = m_spec.find_attribute ("ImageDescription",
                                                        TypeDesc::STRING);
     if (comment && comment->data()) {
         const char **c = (const char **) comment->data();
@@ -290,7 +290,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 
     // Write ICC profile, if we have anything
-    const ImageIOParameter* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned char *icc_profile = (unsigned char*)icc_profile_parameter->data();
         unsigned int icc_profile_length = icc_profile_parameter->type().size();

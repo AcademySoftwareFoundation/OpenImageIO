@@ -609,10 +609,10 @@ The name comparison will be case-sensitive if {\cf casesensitive} is true, other
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
-\apiitem{ImageIOParameter * {\ce find_attribute} (string_view name,\\
+\apiitem{ParamValue * {\ce find_attribute} (string_view name,\\
 \bigspc\bigspc\bigspc                        TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\bigspc                        bool casesensitive=false)\\
-const ImageIOParameter * {\ce find_attribute} (string_view name,\\
+const ParamValue * {\ce find_attribute} (string_view name,\\
 \bigspc\bigspc\bigspc\spc                     TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\bigspc\spc                     bool casesensitive=false) const}
 
@@ -624,12 +624,12 @@ The name comparison will be exact if {\cf casesensitive} is true, otherwise
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
-\apiitem{const ImageIOParameter * {\ce find_attribute} (string_view name,\\
-\bigspc\bigspc\bigspc\spc                     ImageIOParameter \&tmpparam,\\
+\apiitem{const ParamValue * {\ce find_attribute} (string_view name,\\
+\bigspc\bigspc\bigspc\spc                     ParamValue \&tmpparam,\\
 \bigspc\bigspc\bigspc\spc                     TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\bigspc\spc                     bool casesensitive=false) const}
 Search for the named attribute and return the pointer to its
-{\cf ImageIOParameter} record, or {\cf NULL} if not found.  This variety of
+{\cf ParamValue} record, or {\cf NULL} if not found.  This variety of
 {\cf find_attribute(}) can retrieve items such as \qkw{width}, which are
 part of the \ImageSpec, but not in {\cf extra_attribs}. The {\cf tmpparam}
 is a temporary storage area owned by the caller, which is used as temporary
@@ -660,7 +660,7 @@ function for when you know you are just looking for a simple string value.
 \apiend
 
 
-\apiitem{static std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
+\apiitem{static std::string {\ce metadata_val} (const ParamValue \&p,
   bool human=true) const}
 For a given parameter {\cf p}, format the value nicely as a string.
 If {\cf human} is true, use

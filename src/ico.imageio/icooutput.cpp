@@ -182,7 +182,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
     // check if the client wants this subimage written as PNG
     // also force PNG if image size is 256 because ico_header->width and height
     // are 8-bit
-    const ImageIOParameter *p = m_spec.find_attribute ("ico:PNG",
+    const ParamValue *p = m_spec.find_attribute ("ico:PNG",
                                                        TypeDesc::TypeInt);
     m_want_png = (p && *(int *)p->data())
                  || m_spec.width == 256 || m_spec.height == 256;

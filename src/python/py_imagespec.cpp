@@ -232,8 +232,8 @@ static object
 ImageSpec_get_attribute_typed (const ImageSpec& spec,
                                const std::string &name, TypeDesc type)
 {
-    ImageIOParameter tmpparam;
-    const ImageIOParameter *p = spec.find_attribute (name, tmpparam, type);
+    ParamValue tmpparam;
+    const ParamValue *p = spec.find_attribute (name, tmpparam, type);
     if (!p)
         return object();   // None
     type = p->type();
@@ -343,7 +343,7 @@ void declare_imagespec()
         .def_readwrite("z_channel",     &ImageSpec::z_channel)
         .def_readwrite("deep",          &ImageSpec::deep)
         .add_property("extra_attribs", 
-            make_getter(&ImageSpec::extra_attribs))//ImageIOParameterList
+            make_getter(&ImageSpec::extra_attribs))//ParamValueList
         
         .def(init<int, int, int, TypeDesc>())
         .def(init<int, int, int, TypeDesc::BASETYPE>())
