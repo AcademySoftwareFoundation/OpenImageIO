@@ -1,5 +1,13 @@
 Release 1.7.15 (1 Jun 2017) -- compared to 1.7.14
 -------------------------------------------------
+* Add "raw:user_sat" configuration attribute to the reader. #1666
+* Better exception safety for `Filesystem::searchpath_find()`. #1680
+* Improved I/O of color separation images, particularly those with custom
+  InkSet attributes. #1658
+* Big TextureSystem performance improvement on Windows with MSVC by removing
+  certain empty destructors in simd.h that prevented MSVC from fully
+  inlining the class. #1685
+* Fix rare case TextureSystem crash. #1685
 
 Release 1.7.14 (1 May 2017) -- compared to 1.7.13
 -------------------------------------------------
