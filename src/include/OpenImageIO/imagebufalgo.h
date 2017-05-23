@@ -2091,6 +2091,9 @@ enum OIIO_API MakeTextureMode {
 ///    maketx:outcolorspace (string) 
 ///                           These two together will apply a color conversion
 ///                               (with OpenColorIO, if compiled). Default: ""
+///    maketx:colorconfig (string)
+///                           Specifies a custom OpenColorIO color config
+///                           file. Default: ""
 ///    maketx:checknan (int)  If nonzero, will consider it an error if the
 ///                               input image has any NaN pixels. (0)
 ///    maketx:fixnan (string) If set to "black" or "box3", will attempt
