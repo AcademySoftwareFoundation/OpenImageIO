@@ -1214,6 +1214,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // conversion is required we will promote the src to floating point
     // (or there wont be enough precision potentially).  Also,
     // independently color convert the constant color metadata
+    std::string colorconfigname = configspec.get_string_attribute ("maketx:colorconfig");
     std::string incolorspace = configspec.get_string_attribute ("maketx:incolorspace");
     std::string outcolorspace = configspec.get_string_attribute ("maketx:outcolorspace");
     if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
@@ -1233,7 +1234,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             ccSrc.reset (new ImageBuf (floatSpec));
         }
 
-        ColorConfig colorconfig;
+        ColorConfig colorconfig (colorconfigname);
         if (colorconfig.error()) {
             outstream << "Error Creating ColorConfig\n";
             outstream << colorconfig.geterror() << std::endl;

@@ -211,6 +211,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     float sharpen = 0.0f;
     std::string incolorspace;
     std::string outcolorspace;
+    std::string colorconfigname;
     std::string channelnames;
     std::vector<std::string> string_attrib_names, string_attrib_values;
     std::vector<std::string> any_attrib_names, any_attrib_values;
@@ -278,6 +279,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
+                  "--colorconfig %s", &colorconfigname, "Explicitly specify an OCIO configuration file",
                   "--colorconvert %s %s", &incolorspace, &outcolorspace,
                           colorconvert_help_string().c_str(),
                   "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
@@ -376,6 +378,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:unpremult", unpremult);
     configspec.attribute ("maketx:incolorspace", incolorspace);
     configspec.attribute ("maketx:outcolorspace", outcolorspace);
+    configspec.attribute ("maketx:colorconfig", colorconfigname);
     configspec.attribute ("maketx:checknan", checknan);
     configspec.attribute ("maketx:fixnan", fixnan);
     configspec.attribute ("maketx:set_full_to_pixels", set_full_to_pixels);

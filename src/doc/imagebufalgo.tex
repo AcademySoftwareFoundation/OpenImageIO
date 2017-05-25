@@ -2390,7 +2390,10 @@ created.  The full list of supported configuration options is:
    {\small maketx:incolorspace} & string & \\
    {\small maketx:outcolorspace} & string &
                           These two together will apply a color conversion
-                              (with OpenColorIO, if compiled). Default: "" \\
+                              (with OpenColorIO, if compiled). Default: \qkw{} \\
+   {\small maketx:colorconfig} & string &
+                          Specifies a custom OpenColorIO color config file.
+                              Default: \qkw{} \\
    maketx:checknan & int &   If nonzero, will consider it an error if the
                               input image has any NaN pixels. (0) \\
    maketx:fixnan & string & If set to "black" or "box3", will attempt
@@ -2404,7 +2407,7 @@ created.  The full list of supported configuration options is:
    maketx:filtername & string &
                           If set, will specify the name of a high-quality
                              filter to use when resampling for MIPmap
-                             levels. Default: "", use bilinear resampling. \\
+                             levels. Default: \qkw{}, use bilinear resampling. \\
    maketx:highlightcomp & int &
                           If nonzero, performs highlight compensation --
                              range compression and expansion around 
@@ -2421,7 +2424,7 @@ created.  The full list of supported configuration options is:
                              output image (comma-separated). \\
    {\small maketx:fileformatname} & string &
                           If set, will specify the output file format.
-                              (default: "", meaning infer the format from
+                              (default: \qkw{}, meaning infer the format from
                               the output filename) \\
    \multicolumn{2}{l}{\spc \cf\small maketx:prman_metadata} \\ & int &
                           If set, output some metadata that PRMan will
@@ -2435,11 +2438,11 @@ created.  The full list of supported configuration options is:
    maketx:mipimages & string &
                           Semicolon-separated list of alternate images
                               to be used for individual MIPmap levels,
-                              rather than simply downsizing. (default: "") \\
+                              rather than simply downsizing. (default: \qkw{}) \\
    \multicolumn{2}{l}{\spc \cf\small maketx:full_command_line} \\ & string &
                           The command or program used to generate this
                               call, will be embedded in the metadata.
-                              (default: "") \\
+                              (default: \qkw{}) \\
    \multicolumn{2}{l}{\spc \cf\small maketx:ignore_unassoc} \\ & int &
                           If nonzero, will disbelieve any evidence that
                               the input image is unassociated alpha. (0) \\
