@@ -46,42 +46,6 @@
 OIIO_NAMESPACE_BEGIN
 
 
-// Helper for flatten: identify channels in the spec that are important to
-// deciphering deep images. Return true if appropriate alphas were found.
-static bool
-find_deep_channels (const ImageSpec &spec, int &alpha_channel,
-                    int &AR_channel, int &AG_channel, int &AB_channel,
-                    int &R_channel, int &G_channel, int &B_channel,
-                    int &Z_channel, int &Zback_channel)
-{
-    static const char *names[] = { "A",
-                                   "RA", "GA", "BA", // old OpenEXR recommendation
-                                   "AR", "AG", "AB", // new OpenEXR recommendation
-                                   "R", "G", "B",
-                                   "Z", "Zback", NULL };
-    int *chans[] = { &alpha_channel,
-                     &AR_channel, &AG_channel, &AB_channel,
-                     &AR_channel, &AG_channel, &AB_channel,
-                     &R_channel, &G_channel, &B_channel,
-                     &Z_channel, &Zback_channel };
-    for (int i = 0;  names[i];  ++i)
-        *chans[i] = -1;
-    for (int c = 0, e = int(spec.channelnames.size()); c < e; ++c) {
-        for (int i = 0;  names[i];  ++i) {
-            if (spec.channelnames[c] == names[i]) {
-                *chans[i] = c;
-                break;
-            }
-        }
-    }
-    if (Zback_channel < 0)
-        Zback_channel = Z_channel;
-    return (alpha_channel >= 0 ||
-            (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
-}
-
-
-
 // FIXME -- NOT CORRECT!  This code assumes sorted, non-overlapping samples.
 // That is not a valid assumption in general. We will come back to fix this.
 template<class DSTTYPE>
@@ -89,26 +53,22 @@ static bool
 flatten_ (ImageBuf &dst, const ImageBuf &src, 
           ROI roi, int nthreads)
 {
-    const ImageSpec &srcspec (src.spec());
-    int nc = srcspec.nchannels;
-    int alpha_channel, AR_channel, AG_channel, AB_channel;
-    int R_channel, G_channel, B_channel;
-    int Z_channel, Zback_channel;
-    if (! find_deep_channels (srcspec, alpha_channel,
-                              AR_channel, AG_channel, AB_channel,
-                              R_channel, G_channel, B_channel,
-                              Z_channel, Zback_channel)) {
-        dst.error ("No alpha channel could be identified");
-        return false;
-    }
-
     ImageBufAlgo::parallel_image (roi, nthreads, [=,&dst,&src](ROI roi){
-        ASSERT (alpha_channel >= 0 ||
-                (AR_channel >= 0 && AG_channel >= 0 && AB_channel >= 0));
+        const ImageSpec &srcspec (src.spec());
+        const DeepData *dd = src.deepdata();
+        int nc = srcspec.nchannels;
+        int AR_channel = dd->AR_channel();
+        int AG_channel = dd->AG_channel();
+        int AB_channel = dd->AB_channel();
+        int Z_channel = dd->Z_channel();
+        int Zback_channel = dd->Zback_channel();
+        int R_channel = srcspec.channelindex ("R");
+        int G_channel = srcspec.channelindex ("G");
+        int B_channel = srcspec.channelindex ("B");
         float *val = ALLOCA (float, nc);
-        float &ARval (AR_channel >= 0 ? val[AR_channel] : val[alpha_channel]);
-        float &AGval (AG_channel >= 0 ? val[AG_channel] : val[alpha_channel]);
-        float &ABval (AB_channel >= 0 ? val[AB_channel] : val[alpha_channel]);
+        float &ARval (val[AR_channel]);
+        float &AGval (val[AG_channel]);
+        float &ABval (val[AB_channel]);
 
         for (ImageBuf::Iterator<DSTTYPE> r (dst, roi);  !r.done();  ++r) {
             int x = r.x(), y = r.y(), z = r.z();
@@ -172,13 +132,8 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
 
-    const ImageSpec &srcspec (src.spec());
-    int alpha_channel, AR_channel, AG_channel, AB_channel;
-    int R_channel, G_channel, B_channel, Z_channel, Zback_channel;
-    if (! find_deep_channels (srcspec, alpha_channel,
-                              AR_channel, AG_channel, AB_channel,
-                              R_channel, G_channel, B_channel,
-                              Z_channel, Zback_channel)) {
+    const DeepData *dd = src.deepdata();
+    if (dd->AR_channel() < 0 || dd->AG_channel() < 0 || dd->AB_channel() < 0) {
         dst.error ("No alpha channel could be identified");
         return false;
     }
@@ -329,6 +284,76 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
             dstdd.occlusion_cull (dstpixel);
     }
     return ok;
+}
+
+
+
+bool
+ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
+                            const ImageBuf &thresh,
+                            ROI roi, int nthreads)
+{
+    if (! src.deep() || ! thresh.deep()) {
+        dst.error ("deep_holdout can only be performed on deep images");
+        return false;
+    }
+    if (! IBAprep (roi, &dst, &src, &thresh, NULL, IBAprep_SUPPORT_DEEP))
+        return false;
+    if (! dst.deep()) {
+        dst.error ("Cannot deep_holdout into a flat image");
+        return false;
+    }
+
+    DeepData &dstdd (*dst.deepdata());
+    const DeepData &srcdd (*src.deepdata());
+    // First, reserve enough space in dst, to reduce the number of
+    // allocations we'll do later.
+    for (int z = roi.zbegin; z < roi.zend; ++z)
+    for (int y = roi.ybegin; y < roi.yend; ++y)
+    for (int x = roi.xbegin; x < roi.xend; ++x) {
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        int srcpixel = src.pixelindex (x, y, z, true);
+        if (dstpixel >= 0 && srcpixel >= 0)
+            dstdd.set_capacity (dstpixel, srcdd.capacity(srcpixel));
+    }
+    // Now we compute each pixel: We copy the src pixel to dst, then split
+    // any samples that span the opaque threshold, and then delete any
+    // samples that lie beyond the threshold.
+    int Zchan = dstdd.Z_channel();
+    int Zbackchan = dstdd.Zback_channel();
+    const DeepData &threshdd (*thresh.deepdata());
+    for (ImageBuf::Iterator<float> r (dst, roi);  !r.done();  ++r) {
+        int x = r.x(), y = r.y(), z = r.z();
+        int srcpixel = src.pixelindex (x, y, z, true);
+        if (srcpixel < 1)
+            continue;   // Nothing in this pixel
+        int dstpixel = dst.pixelindex (x, y, z, true);
+        dstdd.copy_deep_pixel (dstpixel, srcdd, srcpixel);
+        int threshpixel = thresh.pixelindex (x, y, z, true);
+        if (threshpixel < 0)
+            continue;  // No threshold mask for this pixel
+        float zthresh = threshdd.opaque_z (threshpixel);
+        // Eliminate the samples that are entirely beyond the depth
+        // threshold. Do this before the split; that makes it less
+        // likely that the split will force a re-allocation.
+        for (int s = 0, n = dstdd.samples(dstpixel); s < n; ++s) {
+            if (dstdd.deep_value (dstpixel, Zchan, s) > zthresh) {
+                dstdd.set_samples (dstpixel, s);
+                break;
+            }
+        }
+        // Now split any samples that straddle the z.
+        if (dstdd.split (dstpixel, zthresh)) {
+            // If a split did occur, do anohter discard pass.
+            for (int s = 0, n = dstdd.samples(dstpixel); s < n; ++s) {
+                if (dstdd.deep_value (dstpixel, Zbackchan, s) > zthresh) {
+                    dstdd.set_samples (dstpixel, s);
+                    break;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 

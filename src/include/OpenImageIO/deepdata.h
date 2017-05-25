@@ -75,10 +75,30 @@ public:
     /// of pixels, channels, and channel types in the ImageSpec.
     void init (const ImageSpec &spec);
 
+    /// Is the DeepData initialized?
+    bool initialized () const;
+
+    /// Has the DeepData fully allocated? If no, it is still very
+    /// inexpensive to call set_capacity().
+    bool allocated () const;
+
     /// Retrieve the total number of pixels.
     int pixels () const;
     /// Retrieve the number of channels.
     int channels () const;
+
+    // Retrieve the index of the Z channel.
+    int Z_channel () const;
+    // Retrieve the index of the Zback channel, which will return the
+    // Z channel if no Zback exists.
+    int Zback_channel () const;
+    // Retrieve the index of the A (alpha) channel.
+    int A_channel () const;
+    // Retrieve the index of the AR, AG, AB channel, respectively. If they
+    // don't exist, the A channel (which always exists) will be returned.
+    int AR_channel () const;
+    int AG_channel () const;
+    int AB_channel () const;
 
     /// The name of channel c.
     string_view channelname (int c) const;
@@ -158,8 +178,9 @@ public:
     /// with depth ranges [z,zsplit] and [zsplit,zback] with appropriate
     /// changes to their color and alpha values. Samples not spanning zsplit
     /// will remain intact. This operation will have no effect if there are
-    /// not Z and Zback channels present.
-    void split (int pixel, float depth);
+    /// not Z and Zback channels present. Return true if any splits
+    /// occurred, false if the pixel was not modified.
+    bool split (int pixel, float depth);
 
     /// Sort the samples of a pixel by Z.
     void sort (int pixel);
@@ -172,6 +193,9 @@ public:
 
     /// Merge src's samples into dst's samples
     void merge_deep_pixels (int pixel, const DeepData &src, int srcpixel);
+
+    /// Return the z depth at which the pixel becomes opaque.
+    float opaque_z (int pixel) const;
 
     /// Occlusion cull samples hidden behind opaque samples.
     void occlusion_cull (int pixel);

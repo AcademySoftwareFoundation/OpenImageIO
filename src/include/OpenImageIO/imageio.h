@@ -407,6 +407,9 @@ public:
         if ((int)formats.size() < nchannels)
             formats.resize (nchannels, format);
     }
+
+    /// Return the index of the named channel, or -1 if not found.
+    int channelindex (string_view name) const;
 };
 
 

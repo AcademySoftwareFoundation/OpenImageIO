@@ -1893,6 +1893,17 @@ bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      ROI roi = ROI::All(), int nthreads = 0);
 
 
+/// Set dst to the samples of deep image src that are closer than the opaque
+/// frontier of deep image holdout, returning true upon success and false
+/// for any failures. Samples of src that are farther than the first opaque
+/// sample of holdout (for the corresponding pixel)will not be copied to
+/// dst. Image holdout is only used as the depth threshold; no sample values
+/// from holdout are themselves copied to dst.
+bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
+                            const ImageBuf &holdout,
+                            ROI roi = ROI::All(), int nthreads = 0);
+
+
 
 /// Render a single point at (x,y) of the given color "over" the existing
 /// image dst. If there is no alpha channel, the color will be written

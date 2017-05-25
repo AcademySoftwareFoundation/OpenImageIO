@@ -11,6 +11,16 @@ test_chantypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
 test_channames = ("R", "G", "B", "A", "Z", "Zback")
 print "test_chantypes ", str(test_chantypes[0]), str(test_chantypes[1]), str(test_chantypes[2]), str(test_chantypes[3]), str(test_chantypes[4]), str(test_chantypes[5])
 
+def set_dd_sample (dd, pixel, sample, vals) :
+    if dd.samples(pixel) <= sample :
+        dd.set_samples(pixel, sample+1)
+    for c in range(ib.nchannels) :
+        dd.set_value (pixel, c, sample, vals[c])
+
+def add_dd_sample (dd, pixel, sample, vals) :
+    set_dd_sample (dd, pixel, dd.samples(pixel), vale)
+
+
 # Make a simple deep image
 # Only odd pixel indes have samples, and they have #samples = pixel index.
 def make_test_deep_image () :
@@ -42,6 +52,7 @@ def make_test_deep_image () :
 
 def print_deep_image (dd, prefix="After init,") :
     print prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels."
+    print "  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 0 or dd.capacity(p) > 0 :
@@ -51,6 +62,10 @@ def print_deep_image (dd, prefix="After init,") :
                 for c in range(dd.channels) :
                     print "[%d %s] %.2f / " % (c, dd.channelname(c), dd.deep_value (p, c, s)),
                 print
+
+
+def print_deep_imagebuf (buf, prefix) :
+    print_deep_image (buf.deepdata(), prefix)
 
 
 def test_insert_erase () :
@@ -191,6 +206,81 @@ def test_occlusion_cull () :
     dd.occlusion_cull (0)
     print_deep_image (dd, "After occlusion_cull,")
 
+def test_opaque_z () :
+    print "\nTesting opaque_z..."
+    dd = oiio.DeepData ()
+    # 3 test pixels
+    dd.init (3, test_nchannels, test_chantypes, test_channames)
+    # First pixel: has 3 samples, middle one is opaque
+    dd.set_samples (0, 3)
+    for s in range(dd.samples(0)) :
+        dd.set_deep_value (0, 0, s, 0.5) # R
+        dd.set_deep_value (0, 1, s, 0.0) # G
+        dd.set_deep_value (0, 2, s, 0.0) # B
+        dd.set_deep_value (0, 3, s, (1.0 if s==1 else 0.5)) # A
+        dd.set_deep_value (0, 4, s, 10.0+s) # Z
+        dd.set_deep_value (0, 5, s, 10.5+s) # Zback
+    # Second pixel: 3 samples, none are opaque
+    dd.set_samples (1, 3)
+    for s in range(dd.samples(0)) :
+        dd.set_deep_value (1, 0, s, 0.5) # R
+        dd.set_deep_value (1, 1, s, 0.0) # G
+        dd.set_deep_value (1, 2, s, 0.0) # B
+        dd.set_deep_value (1, 3, s, 0.5) # A
+        dd.set_deep_value (1, 4, s, 10.0+s) # Z
+        dd.set_deep_value (1, 5, s, 10.5+s) # Zback
+    # Third pixel is empty
+    print_deep_image (dd, "Values")
+    print "Opaque z: ",
+    for p in range(dd.pixels) :
+        print dd.opaque_z(p),
+    print
+
+
+def set_ib_sample (ib, x, y, sample, vals) :
+    if ib.deep_samples(x, y) <= sample :
+        ib.set_deep_samples (x, y, 0, sample+1)
+    for c in range(ib.nchannels) :
+        ib.set_deep_value (x, y, 0, c, sample, vals[c])
+
+def add_ib_sample (ib, x, y, vals) :
+    set_ib_sample (ib, x, y, ib.deep_samples(x,y), vals)
+
+
+def test_iba_deep_holdout () :
+    print "\nTesting ImageBufAlgo.deep_holdout..."
+    spec = oiio.ImageSpec (6, 1, 6, oiio.FLOAT)
+    spec.deep = True
+    spec.channeltypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
+                  oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
+                  oiio.TypeDesc.TypeFloat, oiio.TypeDesc.TypeFloat)
+    spec.channelnames = ("R", "G", "B", "A", "Z", "Zback")
+    src = oiio.ImageBuf (spec)
+    # Set up source image
+    #   pixel 0: empty
+    #   pixel 1: one sample close
+    add_ib_sample (src, 1, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    #   pixel 2: one sample far
+    add_ib_sample (src, 2, 0, (0.5, 0.0, 0.0, 0.75, 20.0, 20.5))
+    #   pixel 3: one sample close, one far
+    add_ib_sample (src, 3, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    add_ib_sample (src, 3, 0, (0.5, 0.0, 0.0, 0.75, 20.0, 20.5))
+    #   pixel 4: three samples, one spans the threshold
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 15.0, 16.0))
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 20.0, 20.5))
+    print_deep_imagebuf (src, "Input image")
+
+    # Set up holdout image: depth increases left to right
+    hold = oiio.ImageBuf (spec)
+    for x in range(6) :
+        add_ib_sample (hold, x, 0, (0, 0, 0, 0.5, 12.0, 12.5))
+        add_ib_sample (hold, x, 0, (0, 0, 0, 1.0, 15.0+0.1*x, 15.0+0.1*x+0.1))
+    print_deep_imagebuf (hold, "Holdout image")
+    result = oiio.ImageBuf()
+    oiio.ImageBufAlgo.deep_holdout (result, src, hold)
+    print_deep_imagebuf (result, "Result after holdout")
+
 
 
 ######################################################################
@@ -226,6 +316,9 @@ try:
     test_merge_overlaps ()
     test_merge_deep_pixels ()
     test_occlusion_cull ()
+    test_opaque_z ()
+
+    test_iba_deep_holdout ();
 
     print "\nDone."
 

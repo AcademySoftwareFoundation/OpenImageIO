@@ -3804,6 +3804,19 @@ OP_CUSTOMCLASS (deepmerge, OpDeepMerge, 2);
 
 
 
+class OpDeepHoldout : public OiiotoolOp {
+public:
+    OpDeepHoldout (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 2) {}
+    virtual int impl (ImageBuf **img) {
+        return ImageBufAlgo::deep_holdout (*img[0], *img[1], *img[2]);
+    }
+};
+
+OP_CUSTOMCLASS (deepholdout, OpDeepHoldout, 2);
+
+
+
 class OpDeepen : public OiiotoolOp {
 public:
     OpDeepen (Oiiotool &ot, string_view opname, int argc, const char *argv[])
@@ -5003,6 +5016,7 @@ getargs (int argc, char *argv[])
                 "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
                 "--deepmerge %@", action_deepmerge, NULL, "Merge/composite two deep images",
+                "--deepholdout %@", action_deepholdout, NULL, "Hold out one deep image by another",
                 "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
                 "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
                 "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",

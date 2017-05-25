@@ -477,6 +477,18 @@ ImageSpec::get_string_attribute (string_view name, string_view defaultval) const
 
 
 
+int
+ImageSpec::channelindex (string_view name) const
+{
+    ASSERT (nchannels == int(channelnames.size()));
+    for (int i = 0; i < nchannels; ++i)
+        if (channelnames[i] == name)
+            return i;
+    return -1;
+}
+
+
+
 namespace {  // make an anon namespace
 
 template < typename T >

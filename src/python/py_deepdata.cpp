@@ -125,6 +125,12 @@ void declare_deepdata()
         .def_readonly ("nchannels",  &DeepData::channels) //DEPRECATED(1.7)
         .def_readonly ("pixels",     &DeepData::pixels)
         .def_readonly ("channels",   &DeepData::channels)
+        .def_readonly ("A_channel",  &DeepData::A_channel)
+        .def_readonly ("AR_channel", &DeepData::AR_channel)
+        .def_readonly ("AG_channel", &DeepData::AG_channel)
+        .def_readonly ("AB_channel", &DeepData::AB_channel)
+        .def_readonly ("Z_channel",  &DeepData::Z_channel)
+        .def_readonly ("Zback_channel", &DeepData::Zback_channel)
 
         .def("init",  &DeepData_init,
              (arg("npixels"), arg("nchannels"),
@@ -132,6 +138,8 @@ void declare_deepdata()
         .def("init",  &DeepData_init_spec)
         .def("clear", &DeepData::clear)
         .def("free",  &DeepData::free)
+        .def("initialized",     &DeepData::initialized)
+        .def("allocated",       &DeepData::allocated)
 
         .def("samples",         &DeepData_get_samples,
              (arg("pixel")))
@@ -168,6 +176,7 @@ void declare_deepdata()
         .def("merge_deep_pixels", &DeepData::merge_deep_pixels,
              (arg("pixel"), arg("src"), arg("srcpixel")))
         .def("occlusion_cull", &DeepData::occlusion_cull, (arg("pixel")))
+        .def("opaque_z", &DeepData::opaque_z, (arg("pixel")))
     ;
 }
 

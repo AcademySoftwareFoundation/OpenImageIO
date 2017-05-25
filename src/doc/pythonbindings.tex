@@ -379,6 +379,12 @@ Sets {\cf channel_names} to the default names given the value of
 the {\cf nchannels} field.
 \apiend
 
+\apiitem{int ImageSpec.{\ce channelindex} (name)}
+\NEW % 1.8
+Return (as an int) the index of the channel with the given name, or -1
+if it does not exist.
+\apiend
+
 \apiitem{ImageSpec.{\ce channel_bytes} () \\
 ImageSpec.{\ce channel_bytes} (channel, native=False)}
 Returns the size of a single channel value, in bytes (as an
@@ -604,6 +610,14 @@ samples for each pixel (using {\cf set_nsamples}) and then call {\cf alloc()}
 to actually allocate the sample memory.
 \apiend
 
+\apiitem{bool {\ce DeepData}.initialized ()}
+Returns {\cf True} if the \DeepData is initialized at all.
+\apiend
+
+\apiitem{bool {\ce DeepData}.allocated ()}
+Returns {\cf True} if the \DeepData has already had pixel memory allocated.
+\apiend
+
 \apiitem{DeepData.{\ce pixels}}
 This {\cf int} field constains the total number of pixels in this
 collection of deep data.
@@ -613,6 +627,18 @@ collection of deep data.
 This {\cf int} field constains the number of channels.
 \apiend
 
+\apiitem{int DeepData.{\ce A_channel} \\
+int DeepData.{\ce AR_channel} \\
+int DeepData.{\ce AG_channel} \\
+int DeepData.{\ce AB_channel} \\
+int DeepData.{\ce Z_channel} \\
+int DeepData.{\ce Zback_channel}}
+\NEW % 1.8
+The channel index of certain named channels, or -1 if they don't exist. For
+{\cf AR_channel}, {\cf AG_channel}, {\cf AB_channel}, if they don't exist,
+they will contain the value of {\cf A_channel}, and {\cf Zback_channel} will
+contain the value of {\cf Z_channel} if there is no actual {\cf Zback}.
+\apiend
 
 \apiitem{string DeepData.{\ce channelname} (c)}
 Retrieve the name of channel {\cf c}.
@@ -663,8 +689,9 @@ Copy a deep sample from \DeepData {\cf src} into this \DeepData.
 Copy a deep pixel from \DeepData {\cf src} into this \DeepData.
 \apiend
 
-\apiitem{DeepData.{\ce split} (pixel, depth)}
-Split any samples of the pixel that cross {\cf depth}.
+\apiitem{bool DeepData.{\ce split} (pixel, depth)}
+Split any samples of the pixel that cross {\cf depth}. Return {\cf True} if
+any splits occurred, {\cf False} if the pixel was unmodified.
 \apiend
 
 \apiitem{DeepData.{\ce sort} (pixel)}
@@ -683,6 +710,12 @@ Merge the samples of {\cf src}'s pixel into this \DeepData's pixel.
 
 \apiitem{DeepData.{\ce occlusion_cull} (pixel)}
 Eliminate any samples beyond an opaque sample.
+\apiend
+
+\apiitem{float DeepData.{\ce opaque_z} (pixel)}
+\NEW % 1.8
+For the given pixel index. return the $z$ value at which the pixel reaches
+full opacity.
 \apiend
 
 
@@ -3122,6 +3155,25 @@ the first opaque sample will be discarded, otherwise they will be kept.
     ImageBufAlgo.deep_merge (Merged, DeepA, DeepB)
 \end{code}
 \apiend
+
+\apiitem{bool ImageBufAlgo.{\ce deep_holdout} (dst, src, holdout, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deep_holdout} \indexapi{deep_holdout} \index{deep images}
+
+Set the pixels of {\cf dst} to the pixels of {\cf src}, but only copying the
+samples that are closer than the opaque frontier of image {\cf holdout}.
+That is, {\cf holdout} will serve as a depth holdout mask, but no samples
+from {\cf holdout} will actually be copied to {\cf dst}.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Img = ImageBuf("image.exr")
+    Mask = ImageBuf("mask.exr")
+    Thresholded = ImageBuf()
+    ImageBufAlgo.deep_holdout (Thresholded, Img, Mask)
+\end{code}
+\apiend
+
 
 \subsection*{Other ImageBufAlgo methods that understand deep images}
 

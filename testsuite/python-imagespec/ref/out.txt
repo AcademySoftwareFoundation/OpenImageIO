@@ -54,6 +54,8 @@ lots of fields
   z channel =  -1
   deep =  False
 
+ B channel = 2
+ foo channel = -1
 channel bytes = 4
   channel_bytes(1) = 4 native 1
   channel_bytes(4) = 4 native 4

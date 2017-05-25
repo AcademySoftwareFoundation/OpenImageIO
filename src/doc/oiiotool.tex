@@ -3007,6 +3007,15 @@ number and order of channels and must contain an alpha channel and depth
 channel.
 \apiend
 
+\apiitem{\ce --deepholdout}
+\index{composite}
+\NEW % 1.8
+Replace the \emph{two} top images with a new deep image that is the ``deep
+holdout'' of the first image by the second --- that is, the samples from
+the first image that are closer than the opaque frontier of the second
+image. Both input inputs must be deep images.
+\apiend
+
 
 \subsection{General commands that also work for deep images}
 
