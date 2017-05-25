@@ -352,6 +352,8 @@ DeepData::init (int npix, int nchan,
             m_impl->m_zback_channel = c;
         else if (m_impl->m_alpha_channel < 0 && is_or_endswithdot (channelnames[c], "A"))
             m_impl->m_alpha_channel = c;
+        else if (m_impl->m_alpha_channel < 0 && is_or_endswithdot (channelnames[c], "Alpha"))
+            m_impl->m_alpha_channel = c;
         else if (m_impl->m_AR_channel < 0 && is_or_endswithdot (channelnames[c], "AR"))
             m_impl->m_AR_channel = c;
         else if (m_impl->m_AG_channel < 0 && is_or_endswithdot (channelnames[c], "AG"))
@@ -368,7 +370,8 @@ DeepData::init (int npix, int nchan,
         string_view name (channelnames[c]);
         // Alpha channels are their own alpha
         if (is_or_endswithdot (name, "A")  || is_or_endswithdot (name, "AR") ||
-            is_or_endswithdot (name, "AG") || is_or_endswithdot (name, "AB")) {
+            is_or_endswithdot (name, "AG") || is_or_endswithdot (name, "AB") ||
+            is_or_endswithdot (name, "Alpha")) {
             m_impl->m_myalphachannel[c] = c;
             continue;
         }
