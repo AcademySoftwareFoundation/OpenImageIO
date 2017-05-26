@@ -2239,7 +2239,8 @@ The size is in the form
 
 \apiitem{\ce --resample {\rm \emph{size}}}
 Replace the current image with a new image that is resampled to the
-given pixel data resolution rapidly, but at a low quality, by simply
+given pixel data resolution rapidly, but at a low quality, either by simple
+bilinear interpolation or by just
 copying the ``closest'' pixel.  The \emph{size} is in the form
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
   [+-]}\emph{yoffset}
@@ -2249,6 +2250,15 @@ copying the ``closest'' pixel.  The \emph{size} is in the form
 
 \noindent if {\cf width} or {\cf height} is 0, that dimension will be
 automatically computed so as to preserve the original aspect ratio.
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf interp=}\emph{bool} & If set to zero, it will just copy the
+ ``closest'' pixel; if nonzero, bilinear interpolation of the surrounding
+ 4 pixels will be used. \\
+\end{tabular}
+
 
 \noindent Examples (suppose that the original image is 640x480):
 

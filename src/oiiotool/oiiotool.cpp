@@ -3111,6 +3111,9 @@ public:
     OpResample (Oiiotool &ot, string_view opname, int argc, const char *argv[])
         : OiiotoolOp (ot, opname, argc, argv, 1) { }
     virtual int compute_subimages () { return 1; } // just the first one
+    virtual void option_defaults () {
+        options["interp"] = "1";
+    }
     virtual bool setup () {
         // The size argument will be the resulting display (full) window.
         const ImageSpec &Aspec (*ir[1]->spec(0,0));
@@ -3136,7 +3139,8 @@ public:
         return true;
     }
     virtual int impl (ImageBuf **img) {
-        return ImageBufAlgo::resample (*img[0], *img[1]);
+        bool interp = (bool) Strutil::from_string<int>(options["interp"]);
+        return ImageBufAlgo::resample (*img[0], *img[1], interp);
     }
 };
 
@@ -5027,7 +5031,7 @@ getargs (int argc, char *argv[])
                 "--reorient %@", action_reorient, NULL, "Rotate and/or flop the image to transform the pixels to match the Orientation metadata",
                 "--transpose %@", action_transpose, NULL, "Transpose the image",
                 "--cshift %@ %s", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
-                "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%)",
+                "--resample %@ %s", action_resample, NULL, "Resample (640x480, 50%) (options: interp=0)",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%) (options: filter=%s)",
                 "--fit %@ %s", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d, exact=%d)",
                 "--pixelaspect %@ %g", action_pixelaspect, NULL, "Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)",
