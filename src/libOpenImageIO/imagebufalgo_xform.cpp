@@ -525,15 +525,13 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
             // s,t are NDC space
             float t = (y-dstfy+0.5f)*dstpixelheight;
             // src_xf, src_xf are image space float coordinates
-            float src_yf = srcfy + t * srcfh - 0.5f;
+            float src_yf = srcfy + t * srcfh;
             // src_x, src_y are image space integer coordinates of the floor
-            int src_y;
-            (void) floorfrac (src_yf, &src_y);
+            int src_y = ifloor (src_yf);
             for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
                 float s = (x-dstfx+0.5f)*dstpixelwidth;
-                float src_xf = srcfx + s * srcfw - 0.5f;
-                int src_x;
-                (void) floorfrac (src_xf, &src_x);
+                float src_xf = srcfx + s * srcfw;
+                int src_x = ifloor (src_xf);
                 if (deep) {
                     srcpel.pos (src_x, src_y, 0);
                     int nsamps = srcpel.deep_samples();
@@ -593,8 +591,8 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
         for ( ;  !dstpel.done();  ++dstpel, ++srcpel) {
             float s = (dstpel.x()-dstspec.full_x+0.5f)*dstpixelwidth;
             float t = (dstpel.y()-dstspec.full_y+0.5f)*dstpixelheight;
-            int src_y = ifloor (srcfy + t * srcfh - 0.5f);
-            int src_x = ifloor (srcfx + s * srcfw - 0.5f);
+            int src_y = ifloor (srcfy + t * srcfh);
+            int src_x = ifloor (srcfx + s * srcfw);
             srcpel.pos (src_x, src_y, 0);
             dstpel.set_deep_samples (srcpel.deep_samples ());
         }
