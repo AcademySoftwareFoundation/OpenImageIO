@@ -176,7 +176,7 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (is_regular (filename))
+        if (is_regular (filename.string()))
             return filename_utf8;
     }
 
