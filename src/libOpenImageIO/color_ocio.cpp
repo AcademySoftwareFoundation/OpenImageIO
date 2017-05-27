@@ -888,16 +888,6 @@ static spin_mutex colorconfig_mutex;
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
-                            bool unpremult, ROI roi, int nthreads)
-{
-    return colorconvert (dst, src, from, to, unpremult, NULL, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            string_view from, string_view to,
                             bool unpremult, ColorConfig *colorconfig,
                             ROI roi, int nthreads)
 {
@@ -1086,19 +1076,6 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view looks, string_view from, string_view to,
                         bool inverse, bool unpremult,
                         string_view key, string_view value,
-                        ROI roi, int nthreads)
-{
-    return ociolook (dst, src, looks, from, to, inverse, unpremult,
-                     key, value, NULL, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
-                        string_view looks, string_view from, string_view to,
-                        bool inverse, bool unpremult,
-                        string_view key, string_view value,
                         ColorConfig *colorconfig,
                         ROI roi, int nthreads)
 {
@@ -1137,20 +1114,6 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
         colorconfig->deleteColorProcessor (processor);
     }
     return ok;
-}
-
-
-    
-bool
-ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
-                           string_view display, string_view view,
-                           string_view from, string_view looks,
-                           bool unpremult,
-                           string_view key, string_view value,
-                           ROI roi, int nthreads)
-{
-    return ociodisplay (dst, src, display, view, from, looks, unpremult,
-                        key, value, NULL, roi, nthreads);
 }
 
 

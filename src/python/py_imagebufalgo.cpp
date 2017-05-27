@@ -1022,8 +1022,8 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ScopedGILRelease gil;
-    return ImageBufAlgo::colorconvert (dst, src, from, to,
-                                       unpremult, NULL, roi, nthreads);
+    return ImageBufAlgo::colorconvert (dst, src, from, to, unpremult,
+                                       "", "", nullptr, roi, nthreads);
 }
 
 
