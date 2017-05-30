@@ -2336,8 +2336,10 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
     // looking up the first entry in the tile cache.
     if (m_tile_sweep_id.empty()) {
         TileCache::iterator sweep = m_tilecache.begin();
-        DASSERT (sweep != m_tilecache.end() &&
-                "no way m_tilecache can be empty and use too much memory");
+        if (sweep == m_tilecache.end()) {
+            m_tile_sweep_mutex.unlock();
+            return;
+        }
         m_tile_sweep_id = (*sweep).first;
     }
 
