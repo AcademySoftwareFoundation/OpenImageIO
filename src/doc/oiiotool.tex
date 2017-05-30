@@ -317,7 +317,7 @@ into the current image, then output the current image as {\cf lena.jpg}
 \subsection*{Comparing two images}
 
 To print a report of the differences between two images of the same
-resolution:
+resolution: \index{image comparison}
 
 \begin{code}
     oiiotool old.tif new.tif --diff
@@ -335,6 +335,15 @@ report the differences between them, subtract {\cf new.tif} from
 {\cf old.tif} and replace them both with the difference image,
 replace that with its absolute value, then save that image to 
 {\cf diff.tif}.
+
+Sometimes you want to compare images but allow a certain number of small
+difference, say allowing the comparison to pass as long as no more than
+1\% of pixels differs by more than 1/255, and as long as no single pixel
+differs by more than 2/255.. You can do this with thresholds:
+
+\begin{code}
+    oiiotool old.tif new.tif --fail 0.004 -failpercent 1 --hardfail 0.008 --diff
+\end{code}
 
 
 \subsection*{Changing the data format or bit depth}
@@ -785,11 +794,28 @@ Print to the console detailed information about the values in every pixel.
 \end{tabular}
 \apiend
 
-\apiitem{\ce --diff}
+\apiitem{\ce --diff \\
+--fail {\rm \emph{A}} --failpercent {\rm \emph{B}} --hardfail {\rm \emph{C}} \\
+--warn {\rm \emph{A}} --warnpercent {\rm \emph{B}} --hardwarn {\rm \emph{C}}}
+\index{image comparison}
 This command computes the difference of the current image and the next
 image on the stack, and prints a report of those differences (how
 many pixels differed, the maximum amount, etc.).  This command does not
 alter the image stack.
+
+The {\cf --fail}, {\cf --failpercent}, and {\cf hardfail} options set
+thresholds for {\cf FAILURE}: if more than \emph{B}\% of pixels (on a 0-100
+floating point scale) are greater than \emph{A} different, or if \emph{any}
+pixels are more than \emph{C} different.  The defaults are to fail if more
+than 0\% (any) pixels differ by more than 0.00001 (1e-6), and \emph{C} is
+infinite.
+
+The {\cf --warn}, {\cf --warnpercent}, and {\cf hardwarn} options set
+thresholds for {\cf WARNING}: if more than \emph{B}\% of pixels (on a 0-100
+floating point scale) are greater than \emph{A} different, or if \emph{any}
+pixels are more than \emph{C} different.  The defaults are to warn if more
+than 0\% (any) pixels differ by more than 0.00001 (1e-6), and \emph{C} is
+infinite.
 \apiend
 
 \apiitem{\ce --pdiff}
