@@ -1310,8 +1310,10 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
     // looking up the filename of the first entry in the file cache.
     if (! m_file_sweep_name) {
         FilenameMap::iterator sweep = m_files.begin();
-        DASSERT (sweep != m_files.end() &&
-                "no way m_files can be empty and have too many files open");
+        if (sweep == m_files.end()) {
+            m_file_sweep_mutex.unlock();
+            return;
+        }
         m_file_sweep_name = sweep->first;
     }
 
