@@ -37,6 +37,8 @@
 #include <numeric>
 #include <memory>
 
+#include <boost/math/common_factor_rt.hpp>
+
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfInputFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
@@ -59,6 +61,7 @@
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
+#include <OpenEXR/ImfRationalAttribute.h>
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
@@ -578,6 +581,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::TimeCodeAttribute *tattr;
         const Imf::KeyCodeAttribute *kcattr;
         const Imf::ChromaticitiesAttribute *crattr;
+        const Imf::RationalAttribute *rattr;
 #ifdef USE_OPENEXR_VERSION2
         const Imf::StringVectorAttribute *svattr;
         const Imf::DoubleAttribute *dattr;
@@ -705,6 +709,28 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             const Imf::Chromaticities *chroma = &crattr->value();
             spec.attribute (oname, TypeDesc(TypeDesc::FLOAT,8),
                             (const float *)chroma);
+        } 
+        else if (type == "rational" &&
+                   (rattr = header->findTypedAttribute<Imf::RationalAttribute> (name))) {
+            const Imf::Rational *rational = &rattr->value();
+            int n = rational->n;
+            unsigned int d = rational->d;
+            if (d < (1 << 31)) {
+                int r[2];
+                r[0] = n;
+                r[1] = static_cast<int>(d);
+                OIIO::debug ("adding rational with numerator %d and denominator %u (easy case)", n, d);
+                spec.attribute (oname, TypeDesc::TypeRational, r);    
+            } else if (int f = static_cast<int>(boost::math::gcd<long int>(rational[0], rational[1])) > 1) {
+                int r[2];
+                r[0] = n / f;
+                r[1] = static_cast<int>(d / f);
+                OIIO::debug ("adding rational with numerator %d and denominator %u (hard case)", n, d);
+               spec.attribute (oname, TypeDesc::TypeRational, r);
+            } else {
+                // TODO: find a way to allow the client to accept "close" rational values
+                OIIO::debug ("Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly", oname, n, d);
+            }
         }
         else {
 #if 0

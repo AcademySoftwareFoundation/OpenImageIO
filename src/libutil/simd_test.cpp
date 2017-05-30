@@ -607,7 +607,7 @@ void test_arithmetic ()
 template<typename VEC>
 void test_fused ()
 {
-    typedef typename VEC::value_t ELEM;
+    // typedef typename VEC::value_t ELEM;
     test_heading ("fused ", VEC::type_name());
 
     VEC a = VEC::Iota (10);
@@ -643,7 +643,7 @@ template<typename T> T do_andnot (const T& a, const T& b) { return andnot(a,b); 
 template<typename VEC>
 void test_bitwise_int ()
 {
-    typedef typename VEC::value_t ELEM;
+    // typedef typename VEC::value_t ELEM;
     test_heading ("bitwise ", VEC::type_name());
 
     VEC a (0x12341234);
@@ -674,7 +674,7 @@ void test_bitwise_int ()
 template<typename VEC>
 void test_bitwise_bool ()
 {
-    typedef int ELEM;
+    // typedef int ELEM;
     test_heading ("bitwise ", VEC::type_name());
 
     bool A[]   = { true,  true,  false, false, false, false, true,  true  };
@@ -894,7 +894,7 @@ template<typename VEC>
 void test_shift ()
 {
     test_heading ("shift ", VEC::type_name());
-    typedef typename VEC::value_t ELEM;
+    // typedef typename VEC::value_t ELEM;
 
     // Basics of << and >>
     VEC i = VEC::Iota (10, 10);   // 10, 20, 30 ...
@@ -1078,7 +1078,7 @@ template<typename VEC>
 void test_mathfuncs ()
 {
     test_heading ("mathfuncs", VEC::type_name());
-    typedef typename VEC::value_t ELEM;
+    // typedef typename VEC::value_t ELEM;
 
     VEC A = mkvec<VEC> (-1.0f, 0.0f, 1.0f, 4.5f);
     VEC expA = mkvec<VEC> (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);

@@ -217,6 +217,7 @@ TypeDesc::c_str () const
         case POINT  : vec = "point"; break;
         case VECTOR : vec = "vector"; break;
         case NORMAL : vec = "normal"; break;
+        case RATIONAL  : vec = "rational"; break;
         default: ASSERT (0 && "Invalid vector semantics");
         }
         const char *agg = "";
@@ -301,6 +302,8 @@ TypeDesc::fromstring (string_view typestring)
         t = TypeMatrix44;
     else if (type == "timecode")
         t = TypeTimeCode;
+    else if (type == "rational")
+        t = TypeRational;
     else {
         return 0;  // unknown
     }
@@ -436,6 +439,7 @@ const TypeDesc TypeDesc::TypeHalf (TypeDesc::HALF);
 const TypeDesc TypeDesc::TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
 const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
 const TypeDesc TypeDesc::TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+const TypeDesc TypeDesc::TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
 
 
 OIIO_NAMESPACE_END

@@ -58,6 +58,7 @@
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfChromaticitiesAttribute.h>
+#include <OpenEXR/ImfRationalAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
@@ -1057,6 +1058,13 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::UINT:
                 case TypeDesc::INT:
                 // TODO could probably handle U/INT16 here too
+                    if (type.vecsemantics == TypeDesc::RATIONAL) {
+                        // It's a floor wax AND a dessert topping
+                        const int* intArray = reinterpret_cast<const int*>(data);
+                        const unsigned int* uIntArray = reinterpret_cast<const unsigned int*>(data);
+                        header.insert(xname.c_str(), Imf::RationalAttribute(Imf::Rational(intArray[0], uIntArray[1])));
+                        return true;
+                    }
                     header.insert (xname.c_str(), Imf::V2iAttribute (*(Imath::V2i*)data));
                     return true;
                 case TypeDesc::FLOAT:
@@ -1080,7 +1088,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::UINT:
                 case TypeDesc::INT:
                 // TODO could probably handle U/INT16 here too
-                    header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
+                     header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
                     return true;
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
