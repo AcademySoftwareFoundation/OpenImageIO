@@ -715,7 +715,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             const Imf::Rational *rational = &rattr->value();
             int n = rational->n;
             unsigned int d = rational->d;
-            if (d < (1 << 31)) {
+            if (d < (1UL << 31)) {
                 int r[2];
                 r[0] = n;
                 r[1] = static_cast<int>(d);
