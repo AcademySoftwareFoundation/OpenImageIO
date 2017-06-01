@@ -1,3 +1,7 @@
+Release 1.7.16 (1 Jul? 2017) -- compared to 1.7.15
+-------------------------------------------------
+
+
 Release 1.7.15 (1 Jun 2017) -- compared to 1.7.14
 -------------------------------------------------
 * Add "raw:user_sat" configuration attribute to the reader. #1666
