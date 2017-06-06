@@ -150,7 +150,6 @@ if (MSVC)
     add_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
     add_definitions (-D_SCL_SECURE_NO_WARNINGS)
     add_definitions (-DJAS_WIN_MSVC_BUILD)
-    add_definitions (-DOPENEXR_DLL)
 endif (MSVC)
 
 # Use ccache if found
@@ -330,6 +329,7 @@ if (LINKSTATIC)
 else ()
     if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK)
+        add_definitions (-DOPENEXR_DLL)
     endif ()
 endif ()
 
