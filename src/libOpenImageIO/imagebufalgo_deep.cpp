@@ -248,7 +248,7 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
         return false;
     }
     if (! IBAprep (roi, &dst, &A, &B, NULL,
-                   IBAprep_SUPPORT_DEEP | IBAprep_REQUIRE_SAME_NCHANNELS))
+                   IBAprep_SUPPORT_DEEP | IBAprep_REQUIRE_MATCHING_CHANNELS))
         return false;
     if (! dst.deep()) {
         dst.error ("Cannot deep_merge to a flat image");
