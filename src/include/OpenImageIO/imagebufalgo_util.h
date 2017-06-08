@@ -172,9 +172,9 @@ parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
 /// IBAprep_flags.
 bool OIIO_API IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A=NULL,
                        const ImageBuf *B=NULL, const ImageBuf *C=NULL,
-                       ImageSpec *force_spec=NULL, int prepflags=0);
+                       const ImageSpec *force_spec=NULL, int prepflags=0);
 inline bool IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
-                     const ImageBuf *B, ImageSpec *force_spec,
+                     const ImageBuf *B, const ImageSpec *force_spec,
                      int prepflags=0) {
     return IBAprep (roi, dst, A, B, NULL, force_spec, prepflags);
 }

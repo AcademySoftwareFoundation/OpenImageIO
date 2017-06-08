@@ -297,7 +297,8 @@ ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
         dst.error ("deep_holdout can only be performed on deep images");
         return false;
     }
-    if (! IBAprep (roi, &dst, &src, &thresh, NULL, IBAprep_SUPPORT_DEEP))
+    if (! IBAprep (roi, &dst, &src, &thresh, NULL, &src.spec(),
+                   IBAprep_SUPPORT_DEEP))
         return false;
     if (! dst.deep()) {
         dst.error ("Cannot deep_holdout into a flat image");
