@@ -261,12 +261,16 @@ inline bool string_is (string_view /*s*/) {
 }
 // Special case for int
 template <> inline bool string_is<int> (string_view s) {
+    if (s.empty())
+        return false;
     char *endptr = 0;
     strtol (s.data(), &endptr, 10);
     return (s.data() + s.size() == endptr);
 }
 // Special case for float
 template <> inline bool string_is<float> (string_view s) {
+    if (s.empty())
+        return false;
     char *endptr = 0;
     strtod (s.data(), &endptr);
     return (s.data() + s.size() == endptr);

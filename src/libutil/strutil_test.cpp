@@ -170,11 +170,28 @@ void test_wordwrap ()
 
 
 
+void test_hash ()
+{
+    OIIO_CHECK_EQUAL (strhash("foo"), 6150913649986995171);
+    OIIO_CHECK_EQUAL (strhash(std::string("foo")), 6150913649986995171);
+    OIIO_CHECK_EQUAL (strhash(string_view("foo")), 6150913649986995171);
+}
+
+
+
 void test_comparisons ()
 {
     OIIO_CHECK_EQUAL (Strutil::iequals ("abc", "abc"), true);
     OIIO_CHECK_EQUAL (Strutil::iequals ("Abc", "aBc"), true);
     OIIO_CHECK_EQUAL (Strutil::iequals ("abc", "adc"), false);
+
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("abcd", "ab"), true);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("aBcd", "Ab"), false);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("abcd", "ba"), false);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("abcd", "abcde"), false);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("", "a"), false);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::starts_with ("abc", ""), true);
 
     OIIO_CHECK_EQUAL (Strutil::istarts_with ("abcd", "ab"), true);
     OIIO_CHECK_EQUAL (Strutil::istarts_with ("aBcd", "Ab"), true);
@@ -183,6 +200,15 @@ void test_comparisons ()
     OIIO_CHECK_EQUAL (Strutil::istarts_with ("", "a"), false);
     OIIO_CHECK_EQUAL (Strutil::istarts_with ("", ""), true);
     OIIO_CHECK_EQUAL (Strutil::istarts_with ("abc", ""), true);
+
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("abcd", "cd"), true);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("aBCd", "cd"), false);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("aBcd", "CD"), false);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("abcd", "ba"), false);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("abcd", "xabcd"), false);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("", "a"), false);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("", ""), true);
+    OIIO_CHECK_EQUAL (Strutil::ends_with ("abc", ""), true);
 
     OIIO_CHECK_EQUAL (Strutil::iends_with ("abcd", "cd"), true);
     OIIO_CHECK_EQUAL (Strutil::iends_with ("aBCd", "cd"), true);
@@ -326,11 +352,34 @@ void test_replace ()
 
 void test_conversion ()
 {
+    std::cout << "Testing string_is, string_from conversions\n";
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>("142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>("142.0"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>(""), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>("foo"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>("142x"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>(" 142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is<int>("x142"), false);
+
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>("142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>("142.0"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>(""), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>("foo"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>("142x"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>(" 142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is<float>("x142"), false);
+
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("hi"), 0);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("123"), 123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("-123"), -123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>(" 123 "), 123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("123.45"), 123);
+
+    OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("hi"), unsigned(0));
+    OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("123"), unsigned(123));
+    OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("-123"), unsigned(-123));
+    OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>(" 123 "), unsigned(123));
+    OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("123.45"), unsigned(123));
 
     OIIO_CHECK_EQUAL (Strutil::from_string<float>("hi"), 0.0f);
     OIIO_CHECK_EQUAL (Strutil::from_string<float>("123"), 123.0f);
@@ -606,6 +655,7 @@ main (int argc, char *argv[])
     test_get_rest_arguments ();
     test_escape_sequences ();
     test_wordwrap ();
+    test_hash ();
     test_comparisons ();
     test_case ();
     test_strip ();
