@@ -1561,30 +1561,40 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
     if (channel_info.data_length <= 2)
         return true;
 
+    // Use mask_data size when channel_id is -2
+    uint32_t width, height;
+    if (channel_info.channel_id == ChannelID_LayerMask) {
+        width = (uint32_t)std::abs ((int)layer.mask_data.right - (int)layer.mask_data.left);
+        height = (uint32_t)std::abs ((int)layer.mask_data.bottom - (int)layer.mask_data.top);
+    } else {
+        width = layer.width;
+        height = layer.height;
+    }
+
     channel_info.data_pos = m_file.tellg ();
-    channel_info.row_pos.resize (layer.height);
-    channel_info.row_length = (layer.width * m_header.depth + 7) / 8;
+    channel_info.row_pos.resize (height);
+    channel_info.row_length = (width * m_header.depth + 7) / 8;
     switch (channel_info.compression) {
         case Compression_Raw:
-            if (layer.height) {
+            if (height) {
                 channel_info.row_pos[0] = channel_info.data_pos;
-                for (uint32_t i = 1; i < layer.height; ++i)
+                for (uint32_t i = 1; i < height; ++i)
                     channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.row_length;
             }
-            channel_info.data_length = channel_info.row_length * layer.height;
+            channel_info.data_length = channel_info.row_length * height;
             break;
         case Compression_RLE:
             // RLE lengths are stored before the channel data
-            if (!read_rle_lengths (layer.height, channel_info.rle_lengths))
+            if (!read_rle_lengths (height, channel_info.rle_lengths))
                 return false;
 
             // channel data is located after the RLE lengths
             channel_info.data_pos = m_file.tellg ();
             // subtract the RLE lengths read above
             channel_info.data_length = channel_info.data_length - (channel_info.data_pos - start_pos);
-            if (layer.height) {
+            if (height) {
                 channel_info.row_pos[0] = channel_info.data_pos;
-                for (uint32_t i = 1; i < layer.height; ++i)
+                for (uint32_t i = 1; i < height; ++i)
                     channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
             }
             break;
