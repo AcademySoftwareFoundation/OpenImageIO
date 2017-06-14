@@ -208,6 +208,12 @@ test_get_attribute ()
     OIIO_CHECK_EQUAL (spec.get_int_attribute("width"), 640);
     OIIO_CHECK_EQUAL (spec.get_int_attribute("height"), 480);
     OIIO_CHECK_EQUAL (spec.get_int_attribute("nchannels"), 4);
+    OIIO_CHECK_EQUAL (spec.channelnames.size(), 4);
+    OIIO_CHECK_EQUAL (spec.channel_name(0), "R");
+    OIIO_CHECK_EQUAL (spec.channel_name(1), "G");
+    OIIO_CHECK_EQUAL (spec.channel_name(2), "B");
+    OIIO_CHECK_EQUAL (spec.channel_name(3), "A");
+    OIIO_CHECK_EQUAL (spec.channel_name(4), "");
     OIIO_CHECK_EQUAL (spec.get_int_attribute("x"), 10);
     OIIO_CHECK_EQUAL (spec.get_int_attribute("y"), 12);
     OIIO_CHECK_EQUAL (spec.get_int_attribute("full_x"), -5);

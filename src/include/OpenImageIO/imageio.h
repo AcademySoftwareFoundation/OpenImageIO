@@ -398,6 +398,13 @@ public:
             ? channelformats[chan] : format;
     }
 
+    /// Return the channel name of the given channel. This is safe even if
+    /// channelnames is not filled out.
+    string_view channel_name (int chan) const {
+        return chan >= 0 && chan < (int)channelnames.size()
+            ? channelnames[chan] : "";
+    }
+
     /// Fill in an array of channel formats describing all channels in
     /// the image.  (Note that this differs slightly from the member
     /// data channelformats, which is empty if there are not separate
