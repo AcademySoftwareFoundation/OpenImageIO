@@ -309,13 +309,14 @@ ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
     const DeepData &srcdd (*src.deepdata());
     // First, reserve enough space in dst, to reduce the number of
     // allocations we'll do later.
-    for (int z = roi.zbegin; z < roi.zend; ++z)
-    for (int y = roi.ybegin; y < roi.yend; ++y)
-    for (int x = roi.xbegin; x < roi.xend; ++x) {
-        int dstpixel = dst.pixelindex (x, y, z, true);
-        int srcpixel = src.pixelindex (x, y, z, true);
-        if (dstpixel >= 0 && srcpixel >= 0)
-            dstdd.set_capacity (dstpixel, srcdd.capacity(srcpixel));
+    {
+        ImageBuf::ConstIterator<float> s (src, roi);
+        for (ImageBuf::Iterator<float> r (dst, roi); !r.done(); ++r, ++s) {
+            if (r.exists() && s.exists()) {
+                int dstpixel = dst.pixelindex (r.x(), r.y(), r.z(), true);
+                dstdd.set_capacity (dstpixel, s.deep_samples());
+            }
+        }
     }
     // Now we compute each pixel: We copy the src pixel to dst, then split
     // any samples that span the opaque threshold, and then delete any
@@ -323,16 +324,19 @@ ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
     int Zchan = dstdd.Z_channel();
     int Zbackchan = dstdd.Zback_channel();
     const DeepData &threshdd (*thresh.deepdata());
+    ImageBuf::ConstIterator<float> s (src, roi);
+    ImageBuf::ConstIterator<float> t (thresh, roi);
     for (ImageBuf::Iterator<float> r (dst, roi);  !r.done();  ++r) {
+        if (!r.exists() || !s.exists())
+            continue;
         int x = r.x(), y = r.y(), z = r.z();
         int srcpixel = src.pixelindex (x, y, z, true);
-        if (srcpixel < 1)
-            continue;   // Nothing in this pixel
         int dstpixel = dst.pixelindex (x, y, z, true);
+        ASSERT (srcpixel >= 0 && dstpixel >= 0);
         dstdd.copy_deep_pixel (dstpixel, srcdd, srcpixel);
+        if (!t.exists())
+            continue;
         int threshpixel = thresh.pixelindex (x, y, z, true);
-        if (threshpixel < 0)
-            continue;  // No threshold mask for this pixel
         float zthresh = threshdd.opaque_z (threshpixel);
         // Eliminate the samples that are entirely beyond the depth
         // threshold. Do this before the split; that makes it less
