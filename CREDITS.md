@@ -69,6 +69,7 @@ Other contributors (alphabetically):
 * Manuel Gamito
 * Ananth Garre
 * Alexandre Gauthier
+* Joesph Goldstone
 * Deepak Gopinath
 * John Haddon
 * Brian Hall

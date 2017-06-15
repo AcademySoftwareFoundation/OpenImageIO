@@ -1,0 +1,78 @@
+Reading src/test.exr
+src/test.exr         :   64 x   64, 3 channel, half openexr
+    SHA-1: 8B72B6EA35D9E5CFBD3AAE08D7204FBEF3895FAA
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    compression: "none"
+    Exif:ImageHistory: "oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
+    Software: "OpenImageIO 1.8.5dev : oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
+    acesImageContainerFlag: 1
+    adoptedNeutral: 0.32168 0.33767
+    cameraFirmwareVersion: "23192"
+    cameraIdentifier: "ARRI-Alexa_EV-SN_R23J"
+    cameraLabel: "A"
+    cameraMake: "ARRI"
+    cameraModel: "Alexa EV"
+    cameraSerialNumber: "2719"
+    DateTime: "2000-01-01 01:00:17"
+    captureRate: 24000/1000 (24)
+    chromaticities: 0.7347, 0.2653, 0, 1, 0.0001, -0.077, 0.32168, 0.33767
+    com.arri.camera.AmcVersion: 0
+    com.arri.camera.ArriUuid: "30366561-3134-3365-2D30-3030302D3430"
+    com.arri.camera.ColorGamma: "LOG-C"
+    com.arri.camera.ColorVersion: 5
+    com.arri.camera.ExrMapVersion: 1
+    com.arri.camera.EyeIndex: "SINGLE"
+    com.arri.camera.HardwareVersion: 1
+    com.arri.camera.ImageOrient: "No flip"
+    com.arri.camera.LensType: "Zeiss MP100 T1.3"
+    com.arri.camera.MasterSlave: "OFF"
+    com.arri.camera.Nr.Applied: 0
+    com.arri.camera.Nr.Strength: 0
+    com.arri.camera.Roll: 0.6
+    com.arri.camera.Sharpness: 100
+    com.arri.camera.SupVersion: "7.1HD:23192"
+    com.arri.camera.TimeBase: 24
+    com.arri.camera.UnitPref: "Metric"
+    com.arri.camera.Variframe: 0
+    com.arri.camera.WbFactor: 1.68334 1 1.42
+    com.arri.camera.WbTintCc: -1
+    ImageDescription: "ARC3_3.5.0.8_ARRIRAW_SDK_Version_5.4.0.b7"
+    ExposureTime: 0.02
+    focalLength: 100
+    focus: 3.969
+    framesPerSecond: 24000/1000 (24)
+    imageCounter: 112782
+    imageRotation: 0
+    interim.camera.shutterAngle: 172.8
+    interim.camera.wbKelvin: 5500
+    interim.clip.cameraClipName: "A004C001_130313_R23J"
+    interim.clip.sceneName: "1"
+    interim.clip.takeName: "C001"
+    isoSpeed: 800
+    lensMake: "Zeiss"
+    lensModel: "MP100 T1.3"
+    lensSerialNumber: "8939063"
+    originalImageFlag: 1
+    PixelAspectRatio: 1
+    recorderFirmwareVersion: "2012.r2.2610"
+    recorderMake: "Codex Digital"
+    recorderModel: "Outboard"
+    recorderSerialNumber: "1093"
+    reelName: "A004R23J"
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
+    smpte:TimeCode: 18356486, 4294967295 (01:18:19:06)
+    timecodeRate: 24
+Comparing "src/test.exr" and "test.exr"
+PASS
+Reading rat2.exr
+rat2.exr             :   64 x   64, 3 channel, float openexr
+    SHA-1: 6FECD5769C727E137B7580AE3B1823B06EE6F9D9
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    onehalf: 50/100 (0.5)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1

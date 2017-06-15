@@ -1349,6 +1349,25 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         }
         return true;
     }
+    if (type == TypeDesc::TypeRational && value.find('/') != value.npos) {
+        // Special case: They are specifying a rational as "a/b", so we need
+        // to re-encode as a int32[2].
+        int v[2];
+        Strutil::parse_int (value, v[0]);
+        Strutil::parse_char (value, '/');
+        Strutil::parse_int (value, v[1]);
+        for (int s = 0, send = img->subimages();  s < send;  ++s) {
+            for (int m = 0, mend = img->miplevels(s);  m < mend;  ++m) {
+                ((*img)(s,m).specmod()).attribute (attribname, type, v);
+                img->update_spec_from_imagebuf (s, m);
+                if (! allsubimages)
+                    break;
+            }
+            if (! allsubimages)
+                break;
+        }
+        return true;
+    }
     if (type.basetype == TypeDesc::INT) {
         size_t n = type.numelements() * type.aggregate;
         std::vector<int> vals (n, 0);
@@ -4738,12 +4757,12 @@ command_line_string (int argc, char * argv[], bool sansattrib)
     for (int i = 0;  i < argc;  ++i) {
         if (sansattrib) {
             // skip any filtered attributes
-            if (!strcmp(argv[i], "--attrib") || !strcmp(argv[i], "-attrib") ||
-                !strcmp(argv[i], "--sattrib") || !strcmp(argv[i], "-sattrib")) {
+            if (Strutil::starts_with(argv[i], "--attrib") || Strutil::starts_with(argv[i], "-attrib") ||
+                Strutil::starts_with(argv[i], "--sattrib") || Strutil::starts_with(argv[i], "-sattrib")) {
                 i += 2;  // also skip the following arguments
                 continue;
             }
-            if (!strcmp(argv[i], "--sansattrib") || !strcmp(argv[i], "-sansattrib")) {
+            if (Strutil::starts_with(argv[i], "--sansattrib") || Strutil::starts_with(argv[i], "-sansattrib")) {
                 continue;
             }
         }

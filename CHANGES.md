@@ -88,6 +88,18 @@ Public API changes:
      whether any split occurred. #1691 (1.8.4)
 * Remove some long-deprecated varieties of `ImageBufAlgo::colorconvert()`,
   `ociolook()`, and `ociodisplay()`. #1695 (1.8.4)
+* TypeDesc now allows specification of "rational" values, using a vec2i
+  (aggregate 2-vector of int) with a semantic hint of RATIONAL, i.e.,
+  `TypeDesc(INT, VEC2, RATIONAL)`, which is also aliased as
+  `TypeDesc::TypeRational`. The value is understood to be val[0]/val[1].
+  #1698 (1.8.5)
+* ParamValueList::get_float will automatically convert rational values to
+  float. #1698 (1.8.5)
+* The standard metadata "FramesPerSecond" has had its definition changed
+  from `float` to `rational`. Retrieving it as `float` should still work
+  as always. But apps and plugins that wish to treat it as a true rational
+  with no loss of precision are able to do so. This is only known to
+  directly affect the OpenEXR, GIF, and FFMPEG metadata. #1698 (1.8.5)
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool:
@@ -156,6 +168,9 @@ Fixes, minor enhancements, and performance improvements:
    * `--resample` now takes an optional modifier `interp=0` to control
      whether bilinear sample is used (default) or true closest-pixel point
      sampling. #1694 (1.8.4)
+   * You can set rational metadata on the command line like this:
+      `oiiotool foo.exr --attrib:type=rational onehalf "50/100" -o rat.exr`
+      #1698 (1.8.5)
 * ImageBufAlgo:
    * `channel_append()` resolves redundant channel names by using the
      subimage name, if available. #1498 (1.8.0/1.7.8)
@@ -240,6 +255,8 @@ Fixes, minor enhancements, and performance improvements:
   * Allow compression "none" for deep exr files. (1.8.2/1.7.11)
   * Fixed input problem with sorting order of spectral alpha channels (RA,
     GA, BA, or AR, AG, AB). #1674 (1.8./1.7.14)
+  * Can handle true rational metadata, including FramesPerSecond and
+    captureRate. #1698 (1.8.5)
 * PNG: Better extraction of XMP from PNG files. #1689 (1.8.4)
 * PSD:
    * Support has been added for "cmyk", "multichannel", and "grayscale"

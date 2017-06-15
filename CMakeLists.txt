@@ -239,6 +239,7 @@ oiio_add_tests (
                 png
                 psd psd-colormodes
                 rla sgi
+                rational
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover

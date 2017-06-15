@@ -108,9 +108,10 @@ If nonzero, a hint that a multi-image file is meant to be interpreted as
 an animation (i.e., that the subimages are a time sequence).
 \apiend
 
-\apiitem{"FramesPerSecond" : float}
+\apiitem{"FramesPerSecond" : rational}
 For a multi-image file intended to be played back as an animation,
-the frame refresh rate.
+the frame refresh rate. (It's technically a rational, but it may be retrieved
+as a float also, if you are ok with imprecision.)
 \apiend
 
 \section{Color information}

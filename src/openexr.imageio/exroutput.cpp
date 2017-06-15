@@ -1088,7 +1088,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 case TypeDesc::UINT:
                 case TypeDesc::INT:
                 // TODO could probably handle U/INT16 here too
-                     header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
+                    header.insert (xname.c_str(), Imf::V3iAttribute (*(Imath::V3i*)data));
                     return true;
                 case TypeDesc::FLOAT:
                     header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));

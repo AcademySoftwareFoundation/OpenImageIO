@@ -491,63 +491,6 @@ ImageSpec::channelindex (string_view name) const
 
 namespace {  // make an anon namespace
 
-template < typename T >
-void formatType(const ParamValue& p, const int n, const TypeDesc& element, const char* formatString, std::string& out) {
-  const T *f = (const T *)p.data();
-  for (int i = 0;  i < n;  ++i) {
-      if (i)
-          out += ", ";
-      for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
-          out += Strutil::format (formatString, (c ? " " : ""), f[0]);
-  }
-}
-
-static std::string
-format_raw_metadata (const ParamValue &p, int maxsize=16)
-{
-    std::string out;
-    TypeDesc element = p.type().elementtype();
-    int nfull = int(p.type().numelements()) * p.nvalues();
-    int n = std::min (nfull, maxsize);
-    if (element.basetype == TypeDesc::STRING) {
-        for (int i = 0;  i < n;  ++i) {
-            const char *s = ((const char **)p.data())[i];
-            out += Strutil::format ("%s\"%s\"", (i ? ", " : ""),
-                                    s ? Strutil::escape_chars(s) : std::string());
-        }
-    } else if (element.basetype == TypeDesc::FLOAT) {
-        formatType< float >(p, n, element, "%s%g", out);
-    } else if (element.basetype == TypeDesc::DOUBLE) {
-        formatType< double >(p, n, element, "%s%g", out);
-    } else if (element.basetype == TypeDesc::HALF) {
-        formatType< half >(p, n, element, "%s%g", out);
-    } else if (element.basetype == TypeDesc::INT) {
-        formatType< int >(p, n, element, "%s%d", out);
-    } else if (element.basetype == TypeDesc::UINT) {
-        formatType< unsigned int >(p, n, element, "%s%d", out);
-    } else if (element.basetype == TypeDesc::UINT16) {
-        formatType< unsigned short >(p, n, element, "%s%u", out);
-    } else if (element.basetype == TypeDesc::INT16) {
-        formatType< short >(p, n, element, "%s%d", out);
-    } else if (element.basetype == TypeDesc::UINT64) {
-        formatType< unsigned long long >(p, n, element, "%s%llu", out);
-    } else if (element.basetype == TypeDesc::INT64) {
-        formatType< long long >(p, n, element, "%s%lld", out);
-    } else if (element.basetype == TypeDesc::UINT8) {
-        formatType< unsigned char >(p, n, element, "%s%d", out);
-    } else if (element.basetype == TypeDesc::INT8) {
-        formatType< char >(p, n, element, "%s%d", out);
-    } else {
-        out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
-                p.type().basetype, p.type().aggregate,
-                p.type().vecsemantics);
-    }
-    if (n < nfull)
-        out += Strutil::format (", ... [%d x %s]", nfull,
-                                TypeDesc(TypeDesc::BASETYPE(element.basetype)));
-    return out;
-}
-
 struct LabelTable {
     int value;
     const char *label;
@@ -556,7 +499,7 @@ struct LabelTable {
 static std::string
 explain_justprint (const ParamValue &p, const void *extradata)
 {
-    return format_raw_metadata(p) + " " + std::string ((const char *)extradata);
+    return p.get_string() + " " + std::string ((const char *)extradata);
 }
 
 static std::string
@@ -799,8 +742,12 @@ static ExplanationTableEntry explanation[] = {
 std::string
 ImageSpec::metadata_val (const ParamValue &p, bool human)
 {
-    std::string out = format_raw_metadata (p, human ? 16 : 1024);
+    std::string out = p.get_string (human ? 16 : 1024);
 
+    // ParamValue::get_string() doesn't escape or double-quote single
+    // strings, so we need to correct for that here.
+    if (p.type() == TypeDesc::TypeString && p.nvalues() == 1)
+        out = Strutil::format ("\"%s\"", Strutil::escape_chars(out));
     if (human) {
         std::string nice;
         for (int e = 0;  explanation[e].oiioname;  ++e) {
@@ -809,6 +756,11 @@ ImageSpec::metadata_val (const ParamValue &p, bool human)
                 nice = explanation[e].explainer (p, explanation[e].extradata);
                 break;
             }
+        }
+        if (p.type() == TypeDesc::TypeRational) {
+            int num = p.get<int>(0), den = p.get<int>(1);
+            if (den)
+                nice = Strutil::format ("%g", float(num)/float(den));
         }
         if (p.type() == TypeDesc::TypeTimeCode) {
             Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode *>(p.data());
