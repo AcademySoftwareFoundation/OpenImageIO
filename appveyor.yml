@@ -19,7 +19,6 @@ environment:
       tbs_arch: "x64"
       tbs_tools: "msvc14"
       tbs_static_runtime: 0
-      # BUILD_STATIC: 1
 
 install:
   - cinstall: python
@@ -87,9 +86,9 @@ install:
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/deps/libjpeg-msvc14-x64-master.1.4.80.21
 
   # Boost
-  - set BOOST_ROOT=C:\Libraries\boost_1_59_0
+  - set BOOST_ROOT=C:\Libraries\boost_1_63_0
   - dir %BOOST_ROOT%
-  - set BOOST_LIBRARYDIR=C:\Libraries\boost_1_59_0\lib64-msvc-14.0
+  - set BOOST_LIBRARYDIR=C:\Libraries\boost_1_63_0\lib64-msvc-14.0
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%BOOST_ROOT%
 
   # OpenColorIO

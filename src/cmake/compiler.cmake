@@ -331,8 +331,4 @@ endif ()
 
 if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
     add_definitions ("-D${PROJ_NAME}_CI=1" "-DBUILD_CI=1")
-    if (WIN32)
-        set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-        set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-    endif ()
 endif ()
