@@ -91,7 +91,8 @@ struct OIIO_API TypeDesc {
                         VECTOR,   // spatial direction
                         NORMAL,   // surface normal
                         TIMECODE, // SMPTE timecode (should be int[2])
-                        KEYCODE   // SMPTE keycode (should be int[7])
+                        KEYCODE,  // SMPTE keycode (should be int[7])
+                        RATIONAL  // paired numerator and denominator
                       };
 
     unsigned char basetype;     ///< C data type at the heart of our type
@@ -310,6 +311,7 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeTimeCode;
     static const TypeDesc TypeKeyCode;
     static const TypeDesc TypeFloat4;
+    static const TypeDesc TypeRational;
 };
 
 
