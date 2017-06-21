@@ -263,6 +263,15 @@ int DeepData::AB_channel () const
 
 
 
+int
+DeepData::alpha_channel_for (int c) const
+{
+    DASSERT (m_impl);
+    return (c >= 0 && c < m_nchannels) ? m_impl->m_myalphachannel[c] : -1;
+}
+
+
+
 string_view
 DeepData::channelname (int c) const
 {
@@ -766,6 +775,15 @@ DeepData::all_channeltypes () const
 
 
 
+array_view<const std::string>
+DeepData::all_channelnames () const
+{
+    ASSERT (m_impl);
+    return m_impl->m_channelnames;
+}
+
+
+
 array_view<const unsigned int>
 DeepData::all_samples () const
 {
@@ -809,8 +827,10 @@ DeepData::copy_deep_sample (int pixel, int sample,
 {
     const void *srcdata = src.data_ptr (srcpixel, 0, srcsample);
     int nchans = channels();
-    if (! srcdata || nchans != src.channels())
+    if (! srcdata || nchans != src.channels()) {
+        erase_samples (pixel, 0, samples(pixel));
         return false;
+    }
     int nsamples = src.samples(srcpixel);
     set_samples (pixel, std::max (samples(pixel), nsamples));
     for (int c = 0; c < m_nchannels; ++c) {
@@ -1118,7 +1138,8 @@ DeepData::merge_deep_pixels (int pixel, const DeepData &src, int srcpixel)
         float z = deep_value (pixel, zchan, s);
         float zback = deep_value (pixel, zbackchan, s);
         split (pixel, z);
-        split (pixel, zback);
+        if (z != zback)
+            split (pixel, zback);
     }
     sort (pixel);
 
@@ -1169,6 +1190,28 @@ DeepData::opaque_z (int pixel) const
     }
     // We never hit an opaque sample. Return huge number.
     return std::numeric_limits<float>::max();
+}
+
+
+
+int
+DeepData::cull_behind (int pixel, float depth)
+{
+    if (pixel < 0 || pixel >= m_npixels)
+        return 0;
+    DASSERT (m_impl);
+    int zchan = m_impl->m_z_channel;
+    int nsamps = m_impl->m_nsamples[pixel];
+    if (deep_value (pixel, zchan, nsamps-1) < depth)
+        return 0;    // None to cull -- early out
+
+    for (int s = 0; s < nsamps; ++s) {
+        if (deep_value (pixel, zchan, s) >= depth) {
+            set_samples (pixel, s);
+            return nsamps - s;
+        }
+    }
+    return 0;   // didn't cull anything
 }
 
 

@@ -640,6 +640,14 @@ they will contain the value of {\cf A_channel}, and {\cf Zback_channel} will
 contain the value of {\cf Z_channel} if there is no actual {\cf Zback}.
 \apiend
 
+\apiitem{int DeepData.{\ce A_channel} (c) const}
+\NEW % 1.8
+Return the channel number that is the alpha channel for channel {\cf c}.
+(For example, the alpha channel for the \qkw{R} channel will be {\cf AR_channel()}.)
+If there is no sensible alpha channel for channel {\cf c}, -1 will be
+returned.
+\apiend
+
 \apiitem{string DeepData.{\ce channelname} (c)}
 Retrieve the name of channel {\cf c}.
 \apiend
@@ -3158,7 +3166,24 @@ the first opaque sample will be discarded, otherwise they will be kept.
 
 \apiitem{bool ImageBufAlgo.{\ce deep_holdout} (dst, src, holdout, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!deep_holdout} \indexapi{deep_holdout} \index{deep images}
+Set the pixels of {\cf dst} to the samples of {\cf src}, but held out by the
+samples of the {\cf holdout} image. A ``holdout'' is an image whose alpha
+blocks what's behind it as usual, but doesn't contribute any alpha or color
+itself.
 
+\smallskip
+\noindent Examples:
+\begin{code}
+    Img = ImageBuf("image.exr")
+    Holdout = ImageBuf("holdout.exr")
+    Result = ImageBuf()
+    ImageBufAlgo.deep_holdout (Result, Img, Holdout)
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce deep_cull} (dst, src, holdout, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!deep_cull} \indexapi{deep_cull} \index{deep images}
 Set the pixels of {\cf dst} to the pixels of {\cf src}, but only copying the
 samples that are closer than the opaque frontier of image {\cf holdout}.
 That is, {\cf holdout} will serve as a depth holdout mask, but no samples
@@ -3170,7 +3195,7 @@ from {\cf holdout} will actually be copied to {\cf dst}.
     Img = ImageBuf("image.exr")
     Mask = ImageBuf("mask.exr")
     Thresholded = ImageBuf()
-    ImageBufAlgo.deep_holdout (Thresholded, Img, Mask)
+    ImageBufAlgo.deep_cull (Thresholded, Img, Mask)
 \end{code}
 \apiend
 

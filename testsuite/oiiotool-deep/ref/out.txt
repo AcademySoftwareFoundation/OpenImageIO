@@ -22,5 +22,9 @@ Comparing "deep_divc.exr" and "ref/deep_divc.exr"
 PASS
 Comparing "deepmerge.exr" and "ref/deepmerge.exr"
 PASS
+Comparing "deepholdout-crop.deep.exr" and "ref/deepholdout-crop.deep.exr"
+PASS
+Comparing "deepcull-crop.deep.exr" and "ref/deepcull-crop.deep.exr"
+PASS
 Comparing "resampled-balls.exr" and "ref/resampled-balls.exr"
 PASS

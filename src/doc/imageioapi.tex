@@ -741,12 +741,33 @@ Not only {\cf clear()}, but also ensure that all allocated memory has been
 truly freed.
 \apiend
 
-\apiitem{int {\ce npixels} () const}
+\apiitem{int {\ce pixels} () const}
 Retrieve the total number of pixels.
 \apiend
 
-\apiitem{int {\ce nchannels} () const}
+\apiitem{int {\ce channels} () const}
 Retrieve the number of channels.
+\apiend
+
+\apiitem{int {\ce A_channel} () const \\
+int {\ce AR_channel} () const \\
+int {\ce AG_channel} () const \\
+int {\ce AB_channel} () const \\
+int {\ce Z_channel} () const \\
+int {\ce Zback_channel} () const}
+\NEW % 1.8
+The channel index of certain named channels, or -1 if they don't exist. For
+{\cf AR_channel}, {\cf AG_channel}, {\cf AB_channel}, if they don't exist,
+they will contain the value of {\cf A_channel}, and {\cf Zback_channel} will
+contain the value of {\cf Z_channel} if there is no actual {\cf Zback}.
+\apiend
+
+\apiitem{int {\ce alpha_channel_for} (int c) const}
+\NEW % 1.8
+Return the channel number that is the alpha channel for channel {\cf c}.
+(For example, the alpha channel for the \qkw{R} channel will be {\cf AR_channel()}.)
+If there is no sensible alpha channel for channel {\cf c}, -1 will be
+returned.
 \apiend
 
 \apiitem{string_view {\ce channelname} (int c) const}
@@ -840,6 +861,12 @@ Eliminate any samples beyond an opaque sample.
 \NEW % 1.8
 For the given pixel index. return the $z$ value at which the pixel reaches
 full opacity.
+\apiend
+
+\apiitem{int {\ce cull_behind} (int pixel, float depth)}
+\NEW % 1.8
+Remove all samples that lie completely behind {\cf depth}, returning the
+number of samples culled.
 \apiend
 
 

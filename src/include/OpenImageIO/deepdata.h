@@ -100,13 +100,21 @@ public:
     int AG_channel () const;
     int AB_channel () const;
 
+    /// Return the channel number that is the alpha channel for channel c.
+    /// (For example, the alpha channel for "R" will be AR_channel().)
+    /// If there is no sensible alpha channel for channel c, -1 will be
+    /// returned.
+    int alpha_channel_for (int c) const;
+
     /// The name of channel c.
     string_view channelname (int c) const;
 
     /// Retrieve the channel type of channel c.
     TypeDesc channeltype (int c) const;
+
     /// The size for each sample of channel c
     size_t channelsize (int c) const;
+
     /// The size for all channels of one sample.
     size_t samplesize () const;
 
@@ -156,6 +164,7 @@ public:
     const void *data_ptr (int pixel, int channel, int sample) const;
 
     array_view<const TypeDesc> all_channeltypes () const;
+    array_view<const std::string> all_channelnames () const;
     array_view<const unsigned int> all_samples () const;
     array_view<const char> all_data () const;
 
@@ -196,6 +205,12 @@ public:
 
     /// Return the z depth at which the pixel becomes opaque.
     float opaque_z (int pixel) const;
+
+    /// Erase any samples that lie completely behind the depth. Return the
+    /// number of samples culled.
+    int cull_behind (int pixel, float depth);
+
+    float alpha_at (float z) const;
 
     /// Occlusion cull samples hidden behind opaque samples.
     void occlusion_cull (int pixel);
