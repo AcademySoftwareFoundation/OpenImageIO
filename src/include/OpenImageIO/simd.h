@@ -459,7 +459,7 @@ bool none (const bool4& v);
 
 /// bool8: An 8-vector whose elements act mostly like bools, accelerated by
 /// SIMD instructions when available. This is what is naturally produced by
-/// SIMD comparison operators on the float4 and int4 types.
+/// SIMD comparison operators on the float8 and int8 types.
 class bool8 {
 public:
     static const char* type_name() { return "bool8"; }
@@ -540,7 +540,6 @@ public:
     void store (bool *values, int n) const;
 
     /// Logical/bitwise operators, component-by-component
-    friend bool4 operator! (const bool4& a);
     friend bool8 operator! (const bool8& a);
     friend bool8 operator& (const bool8& a, const bool8& b);
     friend bool8 operator| (const bool8& a, const bool8& b);
