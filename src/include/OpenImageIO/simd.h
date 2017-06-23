@@ -386,9 +386,10 @@ public:
     int operator[] (int i) const;
 
     /// Component access (set).
-    /// NOTE: use with caution. The implementation sets the integer
-    /// value, which may not have the same bit pattern as the bool returned
-    /// by operator[]const.
+    void setcomp (int i, bool value);
+
+    /// Component access (set).
+    /// NOTE: avoid this unsafe construct. It will go away some day.
     int& operator[] (int i);
 
     /// Helper: load a single value into all components.
@@ -515,9 +516,10 @@ public:
     int operator[] (int i) const;
 
     /// Component access (set).
-    /// NOTE: use with caution. The implementation sets the integer
-    /// value, which may not have the same bit pattern as the bool returned
-    /// by operator[]const.
+    void setcomp (int i, bool value);
+
+    /// Component access (set).
+    /// NOTE: avoid this unsafe construct. It will go away some day.
     int& operator[] (int i);
 
     /// Extract the lower percision bool4
@@ -1946,6 +1948,12 @@ OIIO_FORCEINLINE int& bool4::operator[] (int i) {
 }
 
 
+OIIO_FORCEINLINE void bool4::setcomp (int i, bool value) {
+    DASSERT(i >= 0 && i < elements);
+    m_val[i] = value ? -1 : 0;
+}
+
+
 OIIO_FORCEINLINE std::ostream& operator<< (std::ostream& cout, const bool4& a) {
     cout << a[0];
     for (int i = 1; i < a.elements; ++i)
@@ -2224,6 +2232,11 @@ OIIO_FORCEINLINE int bool8::operator[] (int i) const {
 #else
     return m_val[i];
 #endif
+}
+
+OIIO_FORCEINLINE void bool8::setcomp (int i, bool value) {
+    DASSERT(i >= 0 && i < elements);
+    m_val[i] = value ? -1 : 0;
 }
 
 OIIO_FORCEINLINE int& bool8::operator[] (int i) {
