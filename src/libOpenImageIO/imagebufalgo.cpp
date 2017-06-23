@@ -265,13 +265,26 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             return false;
         }
     }
-    if (prepflags & IBAprep_REQUIRE_SAME_NCHANNELS) {
+    if ((prepflags & IBAprep_REQUIRE_SAME_NCHANNELS) ||
+        (prepflags & IBAprep_REQUIRE_MATCHING_CHANNELS)) {
         int n = dst->spec().nchannels;
         if ((A && A->spec().nchannels != n) ||
             (B && B->spec().nchannels != n) ||
             (C && C->spec().nchannels != n)) {
             dst->error ("images must have the same number of channels");
             return false;
+        }
+    }
+    if (prepflags & IBAprep_REQUIRE_MATCHING_CHANNELS) {
+        int n = dst->spec().nchannels;
+        for (int c = 0; c < n; ++c) {
+            string_view name = dst->spec().channel_name(c);
+            if ((A && A->spec().channel_name(c) != name) ||
+                (B && B->spec().channel_name(c) != name) ||
+                (C && C->spec().channel_name(c) != name)) {
+                dst->error ("images must have the same channel names and order");
+                return false;
+            }
         }
     }
     if (prepflags & IBAprep_NO_SUPPORT_VOLUME) {
