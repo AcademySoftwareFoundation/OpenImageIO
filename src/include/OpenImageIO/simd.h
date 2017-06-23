@@ -349,7 +349,7 @@ public:
     /// Construct from a single value (store it in all slots)
     bool4 (bool a) { load(a); }
 
-    explicit bool4 (bool *a);
+    explicit bool4 (const bool *a);
 
     /// Construct from 4 values
     bool4 (bool a, bool b, bool c, bool d) { load (a, b, c, d); }
@@ -476,7 +476,7 @@ public:
     /// Construct from a single value (store it in all slots)
     bool8 (bool a) { load (a); }
 
-    explicit bool8 (bool *values);
+    explicit bool8 (const bool *values);
 
     /// Construct from 8 values
     bool8 (bool a, bool b, bool c, bool d, bool e, bool f, bool g, bool h);
@@ -2004,7 +2004,7 @@ OIIO_FORCEINLINE void bool4::load (bool a, bool b, bool c, bool d) {
 #endif
 }
 
-OIIO_FORCEINLINE bool4::bool4 (bool *a) {
+OIIO_FORCEINLINE bool4::bool4 (const bool *a) {
     load (a[0], a[1], a[2], a[3]);
 }
 
@@ -2306,7 +2306,7 @@ OIIO_FORCEINLINE bool8::bool8 (bool a, bool b, bool c, bool d,
     load (a, b, c, d, e, f, g, h);
 }
 
-OIIO_FORCEINLINE bool8::bool8 (bool *a) {
+OIIO_FORCEINLINE bool8::bool8 (const bool *a) {
     load (a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
 }
 
