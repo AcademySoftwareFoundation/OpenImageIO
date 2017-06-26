@@ -214,6 +214,12 @@ ParamValue::get_float (float defaultval) const
         if (Strutil::parse_float(str, val) && str.empty())
             return val;
     }
+    if (type() == TypeDesc::TypeRational) {
+        int num = get<int>(0);
+        int den = get<int>(1);
+        return den ? float(num)/float(den) : 0.0f;
+    }
+
     return defaultval;
 }
 
@@ -222,15 +228,19 @@ ParamValue::get_float (float defaultval) const
 namespace {  // make an anon namespace
 
 template < typename T >
-void formatType (const ParamValue& p, int n, TypeDesc element,
-                 string_view formatString, std::string& out)
+void formatType (const ParamValue& p, const int n, const char* formatString,
+                 std::string& out)
 {
+    TypeDesc element = p.type().elementtype();
     const T *f = (const T *)p.data();
     for (int i = 0;  i < n;  ++i) {
         if (i)
             out += ", ";
-        for (size_t c = 0;  c < element.aggregate;  ++c, ++f)
-            out += Strutil::format (formatString, (c ? " " : ""), f[0]);
+        for (int c = 0;  c < (int)element.aggregate;  ++c, ++f) {
+            if (c)
+                out += " ";
+            out += Strutil::format (formatString, f[0]);
+        }
     }
 }
 
@@ -257,27 +267,35 @@ ParamValue::get_string (int maxsize) const
                                     s ? Strutil::escape_chars(s) : std::string());
         }
     } else if (element.basetype == TypeDesc::FLOAT) {
-        formatType< float >(*this, n, element, "%s%g", out);
+        formatType< float >(*this, n, "%g", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {
-        formatType< double >(*this, n, element, "%s%g", out);
+        formatType< double >(*this, n, "%g", out);
     } else if (element.basetype == TypeDesc::HALF) {
-        formatType< half >(*this, n, element, "%s%g", out);
+        formatType< half >(*this, n, "%g", out);
     } else if (element.basetype == TypeDesc::INT) {
-        formatType< int >(*this, n, element, "%s%d", out);
+        if (element.vecsemantics == TypeDesc::RATIONAL && element.aggregate == TypeDesc::VEC2) {
+            const int *val = (const int *)data();
+            for (int i = 0;  i < n;  ++i, val += 2) {
+                if (i) out += ", ";
+                out += Strutil::format ("%d/%d", val[0], val[1]);
+            }
+        } else {
+            formatType< int >(*this, n, "%d", out);
+        }
     } else if (element.basetype == TypeDesc::UINT) {
-        formatType< unsigned int >(*this, n, element, "%s%d", out);
+        formatType< unsigned int >(*this, n, "%u", out);
     } else if (element.basetype == TypeDesc::UINT16) {
-        formatType< unsigned short >(*this, n, element, "%s%u", out);
+        formatType< unsigned short >(*this, n, "%u", out);
     } else if (element.basetype == TypeDesc::INT16) {
-        formatType< short >(*this, n, element, "%s%d", out);
+        formatType< short >(*this, n, "%d", out);
     } else if (element.basetype == TypeDesc::UINT64) {
-        formatType< unsigned long long >(*this, n, element, "%s%llu", out);
+        formatType< unsigned long long >(*this, n, "%llu", out);
     } else if (element.basetype == TypeDesc::INT64) {
-        formatType< long long >(*this, n, element, "%s%lld", out);
+        formatType< long long >(*this, n, "%lld", out);
     } else if (element.basetype == TypeDesc::UINT8) {
-        formatType< unsigned char >(*this, n, element, "%s%d", out);
+        formatType< unsigned char >(*this, n, "%d", out);
     } else if (element.basetype == TypeDesc::INT8) {
-        formatType< char >(*this, n, element, "%s%d", out);
+        formatType< char >(*this, n, "%d", out);
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 type().basetype, type().aggregate,

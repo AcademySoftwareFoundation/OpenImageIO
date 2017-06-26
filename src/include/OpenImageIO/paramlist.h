@@ -187,10 +187,14 @@ public:
     float get_float (float defaultval=0) const;
 
     /// Convert any type to a string value. An optional maximum number of
-    /// elements is also passed.
+    /// elements is also passed. In the case of a single string, just the
+    /// string directly is returned. But for an array of strings, the array
+    /// is returned as one string that's a comma-separated list of double-
+    /// quoted, escaped strings.
     std::string get_string (int maxsize = 64) const;
     /// Convert any type to a ustring value. An optional maximum number of
-    /// elements is also passed.
+    /// elements is also passed. Same behavior as get_string, but returning
+    /// a ustring.
     ustring get_ustring (int maxsize = 64) const;
 
 private:

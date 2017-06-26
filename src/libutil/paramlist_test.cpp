@@ -116,6 +116,19 @@ void test_value_types ()
         ret = test_one_value (matrix16, sizeof (matrix16) / (16 * sizeof (float)), TypeDesc::TypeMatrix);
         OIIO_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
     }
+
+    // Test rational
+    {
+        int rat[2] = { 1, 2 };
+        ParamValue p ("name", TypeDesc::TypeRational, 1, rat);
+        // make sure we can retrieve it as int[2] (numerator, denominator)
+        OIIO_CHECK_EQUAL (p.get<int>(0), rat[0]);
+        OIIO_CHECK_EQUAL (p.get<int>(1), rat[1]);
+        // make sure we can retrieve rational as float, with conversion
+        OIIO_CHECK_EQUAL (p.get_float(), 0.5f);
+        // make sure we can retrieve rational as nicely formatted string
+        OIIO_CHECK_EQUAL (p.get_string(), "1/2");
+    }
 }
 
 

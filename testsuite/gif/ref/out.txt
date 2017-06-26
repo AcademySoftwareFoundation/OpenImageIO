@@ -5,21 +5,21 @@ Reading ../../../../../oiio-images/gif_animation.gif
     SHA-1: DDECBD8686D4C2BCB43C2AA05F75C5BDB1CAF54B
     channel list: R, G, B, A
     oiio:ColorSpace: "sRGB"
-    FramesPerSecond: 0.813008
+    FramesPerSecond: 100/123 (0.813008)
     oiio:Movie: 1
     gif:Interlacing: 0
  subimage  1:   30 x   30, 4 channel, uint8 gif
     SHA-1: D69F1E35C727EEC9E3DF750374E41D42192DFFBE
     channel list: R, G, B, A
     oiio:ColorSpace: "sRGB"
-    FramesPerSecond: 0.813008
+    FramesPerSecond: 100/123 (0.813008)
     oiio:Movie: 1
     gif:Interlacing: 0
  subimage  2:   30 x   30, 4 channel, uint8 gif
     SHA-1: 3897B49CE5378D3C65590497269B1BB3F9D7630F
     channel list: R, G, B, A
     oiio:ColorSpace: "sRGB"
-    FramesPerSecond: 0.813008
+    FramesPerSecond: 100/123 (0.813008)
     oiio:Movie: 1
     gif:Interlacing: 0
 Reading ../../../../../oiio-images/gif_oiio_logo_with_alpha.gif
@@ -95,6 +95,6 @@ tahoe-tiny.gif       :  128 x   96, 4 channel, uint8 gif
     channel list: R, G, B, A
     oiio:ColorSpace: "sRGB"
     gif:LoopCount: 0
-    FramesPerSecond: 1
+    FramesPerSecond: 100/100 (1)
     oiio:Movie: 1
     gif:Interlacing: 0

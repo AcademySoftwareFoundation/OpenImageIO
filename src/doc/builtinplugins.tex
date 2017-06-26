@@ -314,11 +314,11 @@ despite its technical limitations.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.5in}|p{0.5in}|p{3.25in}}
+\noindent\begin{tabular}{p{1.5in}|p{1in}|p{2.75in}}
 \ImageSpec Attribute & Type & GIF header data or explanation \\
 \hline
 \qkw{gif:Interlacing} & int & Specifies if image is interlaced (0 or 1). \\
-\qkw{FramesPerSecond} & float & Frames per second \\
+\qkw{FramesPerSecond} & int[2] (rational) & Frames per second \\
 \qkw{oiio:Movie} & int & If nonzero, indicates that it's an animated GIF. \\
 \qkw{gif:LoopCount} & int & Number of times the animation should be played 
 (0--65535, 0 stands for infinity). \\
@@ -561,11 +561,11 @@ Some special attributes are used for movie files:
 
 \medskip
 
-\noindent\begin{tabular}{p{1.8in}|p{0.65in}|p{2.75in}}
+\noindent\begin{tabular}{p{1.5in}|p{1in}|p{2.7in}}
 OIIO Attribute & Type & Explanation \\
 \hline
 \qkw{oiio:Movie} & int & Nonzero value for movie files \\
-\qkw{FramesPerSecond} & float & Frames per second \\
+\qkw{FramesPerSecond} & int[2] (rational) & Frames per second \\
 \end{tabular}
 
 
@@ -590,7 +590,7 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \noindent\begin{tabular}{p{1.95in}|p{0.5in}|p{2.8in}}
 \ImageSpec Attribute & Type & OpenEXR header data or explanation \\
 \hline
-{\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\[1ex]
+{\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\[0.5ex]
 {\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
   {\cf\small full_y} & & {\cf displayWindow}.  \\[4ex]
 \qkw{worldtocamera} & matrix & worldToCamera \\
@@ -609,11 +609,15 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   it will use \qkw{zip} by default. For \qkw{dwaa} and \qkw{dwab}, the
   dwaCompressionLevel may be optionally appended to the compression name
   after a colon, like this: \qkw{dwaa:200}. \\
-\qkw{textureformat} & string & set to \qkw{Plain Texture} for
+\qkw{textureformat} & string & \qkw{Plain Texture} for
   MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
     Environment} for OpenEXR environment maps.  Non-environment
   non-MIP-mapped OpenEXR files will not set this attribute. \\
 \qkw{wrapmodes} & string & wrapmodes \\
+\qkw{FramesPerSecond} & int[2] & Frames per second playback rate (vecsemantics
+                                will be marked as RATIONAL) \\
+\qkw{captureRate} & int[2] & Frames per second capture rate (vecsemantics
+                                will be marked as RATIONAL)\\
 \qkw{smpte:TimeCode} & int[2] & SMPTE time code (vecsemantics will be
                                 marked as TIMECODE) \\
 \qkw{smpte:KeyCode} & int[7] & SMPTE key code (vecsemantics will be
@@ -624,13 +628,13 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 %\qkw{oiio:sampleborder} & int & Will be set to 1 for OpenEXR environment
 % maps to indicate that OpenEXR dictates that boundary texels sample exactly
 % on the texture border (pole, meridian, or cube edge).\\[2ex]
-\qkw{openexr:lineOrder} & string & the OpenEXR lineOrder attribute
-  (set to \qkws{increasingY}, \qkws{randomY}, or \qkws{decreasingY}).
+\qkw{openexr:lineOrder} & string & OpenEXR lineOrder attribut:
+  \qkws{increasingY}, \qkws{randomY}, or \qkws{decreasingY}.
  \\
 \qkws{openexr:roundingmode} & int & the MIPmap rounding mode of the
   file. \\
 \qkws{\small openexr:dwaCompressionLevel} & float & compression level for
-   dwaa or dwab compression (default: 45.0). \\[2ex]
+   dwaa or dwab compression (default: 45.0). \\[1ex]
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
 \end{tabular}
