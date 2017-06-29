@@ -255,6 +255,10 @@ if (USE_QT AND Qt5_FOUND)
     endif ()
 else ()
     message (STATUS "No Qt5 -- skipping components that need Qt5.")
+    if (USE_QT AND NOT Qt5_FOUND AND APPLE)
+        message (STATUS "If you think you installed qt5 with Homebrew and it still doesn't work,")
+        message (STATUS "try:   export PATH=/usr/local/opt/qt5/bin:$PATH")
+    endif ()
 endif ()
 
 # end Qt setup

@@ -27,6 +27,7 @@ brew install freetype
 brew install libraw libpng webp jpeg-turbo
 brew install openjpeg
 brew install dcmtk
+brew install qt
 if [ "$LINKSTATIC" == "1" ] ; then
     brew install little-cms2 tinyxml szip
     brew install homebrew/dupes/bzip2

@@ -4,6 +4,7 @@ New minimum dependencies:
  * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
  * **Boost >= 1.53**
  * **CMake >= 3.0**
+ * (optional) **Qt >= 5.6**
 
 Major new features and improvements:
 * New oiiotool features:

@@ -18,6 +18,21 @@ to the 'lib' directory where OpenImageIO is installed, or else it will
 not be able to find the plugins.
 
 
+Dependencies
+------------
+
+NEW or CHANGED dependencies since the last major release are **bold**.
+
+### Required dependencies
+
+ * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
+ * **Boost >= 1.53**
+ * **CMake >= 3.0**
+
+### Optional dependencies
+ * **Qt >= 5.6**  (Only needed if you want the `iv` viewer.)
+
+
 
 Building OpenImageIO on Linux or OS X
 -------------------------------------
