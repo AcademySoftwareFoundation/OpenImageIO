@@ -123,6 +123,13 @@ IvGL::initializeGL ()
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
+
+#if 1
+    // Compensate for high res displays with device pixel ratio scaling
+    float dpr = m_viewer.devicePixelRatio();
+    glScalef (dpr, dpr, 1.0f);
+#endif
+
     // There's this small detail in the OpenGL 2.1 (probably earlier versions
     // too) spec:
     //
