@@ -3,7 +3,7 @@
 language: cpp
 sudo: false
 osx_image: xcode7.3
-dist: precise
+dist: trusty
 
 
 # Add-ons: specify apt packages for Linux
@@ -13,20 +13,26 @@ addons:
       - boost-latest
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
+      - sourceline: 'ppa:jonathonf/ffmpeg-3'
    packages:
       - cmake
       - cmake-data
-      # - gcc-4.8
       - g++-4.8
+      - g++-4.9
+      - g++-5
+      - g++-6
       - libboost1.55-all-dev
       - libgif-dev
       - libtiff4-dev
       - libopenjpeg-dev
       - libwebp-dev
-      - ffmpeg
       - libfreetype6-dev
       - libjpeg-turbo8-dev
       - dcmtk
+      - libavcodec-dev
+      - libavformat-dev
+      - libswscale-dev
+      - libavutil-dev
       # - qtbase5-dev   # FIXME: enable Qt5 on Linux
       # - bzip2
       # - libtinyxml-dev
@@ -64,6 +70,7 @@ install:
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
           export ILMBASE_HOME=$PWD/openexr-install ;
           export OPENEXR_HOME=$PWD/openexr-install ;
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_HOME/lib ;
       fi
     - src/build-scripts/install_test_images.bash
 
@@ -123,12 +130,6 @@ matrix:
       #   env: USE_CPP=14
       - os: linux
         compiler: gcc
-        addons:
-          apt:
-            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
-            packages: [ 'g++-6', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
-                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
-                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
         env: WHICHGCC=6 USE_CPP=14 USE_SIMD=avx,f16c
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
@@ -144,32 +145,14 @@ matrix:
     # level (SSE4.2).
       - os: linux
         compiler: gcc
-        addons:
-          apt:
-            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
-            packages: [ 'g++-4.9', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
-                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
-                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
         env: WHICHGCC=4.9
     # Linux only: test gcc 5
       - os: linux
         compiler: gcc
-        addons:
-          apt:
-            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
-            packages: [ 'g++-5', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
-                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
-                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
         env: WHICHGCC=5
     # Build with sanitizers
       - os: linux
         compiler: gcc
-        addons:
-          apt:
-            sources: [ 'ubuntu-toolchain-r-test', 'boost-latest', 'george-edison55-precise-backports' ]
-            packages: [ 'g++-6', 'cmake', 'cmake-data', 'libboost1.55-all-dev',
-                        'libtiff4-dev', 'libgif-dev', 'libopenjpeg-dev', 'libwebp-dev',
-                        'ffmpeg', 'libfreetype6-dev', 'libjpeg-turbo8-dev', 'dcmtk' ]
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
