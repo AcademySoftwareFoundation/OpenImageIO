@@ -1,3 +1,6 @@
+# FIXME: CMake >= 3.5 has its own FindDCMTK.cmake, so when our minimum
+# cmake is at least that, we can remove this file.
+
 # Module to find DCMTK
 #
 # This module will first look into the directories defined by the variables:
