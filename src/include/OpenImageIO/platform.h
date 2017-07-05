@@ -379,6 +379,15 @@ inline bool cpu_has_popcnt() {int i[4]; cpuid(i,1,0); return (i[2] & (1<<23)) !=
 inline bool cpu_has_avx   () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<28)) != 0; }
 inline bool cpu_has_f16c  () {int i[4]; cpuid(i,1,0); return (i[2] & (1<<29)) != 0; }
 inline bool cpu_has_rdrand() {int i[4]; cpuid(i,1,0); return (i[2] & (1<<30)) != 0; }
+inline bool cpu_has_avx2  () {int i[4]; cpuid(i,7,0); return (i[1] & (1<<5)) != 0; }
+inline bool cpu_has_avx512f() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<16)) != 0; }
+inline bool cpu_has_avx512dq() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<17)) != 0; }
+inline bool cpu_has_avx512ifma() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<21)) != 0; }
+inline bool cpu_has_avx512pf() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<26)) != 0; }
+inline bool cpu_has_avx512er() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<27)) != 0; }
+inline bool cpu_has_avx512cd() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<28)) != 0; }
+inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) != 0; }
+inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
 
 OIIO_NAMESPACE_END
