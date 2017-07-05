@@ -665,3 +665,118 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
     stEvt:changed: "/"
     PixelAspectRatio: 1
+Reading src/different-mask-size.psd
+src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
+    4 subimages: 30x90 [u8,u8,u8], 30x90 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8]
+ subimage  0:   30 x   90, 3 channel, uint8 psd
+    SHA-1: 42E73C11525323760BF0BEB74370AECC18FC2D92
+    channel list: R, G, B
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    DateTime: "2014-02-16T17:20:13+09:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    oiio:ColorSpace: "sRGB"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    PixelAspectRatio: 1
+ subimage  1:   30 x   90, 4 channel, uint8 psd
+    SHA-1: B2E0D74684B53DF0382EAB0BB1A277438715BB2F
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    DateTime: "2014-02-16T17:20:13+09:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    oiio:ColorSpace: "sRGB"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    PixelAspectRatio: 1
+ subimage  2:    4 x   93, 4 channel, uint8 psd
+    SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    DateTime: "2014-02-16T17:20:13+09:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    oiio:ColorSpace: "sRGB"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    PixelAspectRatio: 1
+ subimage  3:    4 x   93, 4 channel, uint8 psd
+    SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2015.5 (Windows)"
+    DateTime: "2014-02-16T17:20:13+09:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 30
+    Exif:PixelYDimension: 90
+    oiio:ColorSpace: "sRGB"
+    IPTC:MetadataDate: "2017-01-10T17:55:32+09:00"
+    IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
+    IPTC:InstanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    IPTC:DocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    PixelAspectRatio: 1
