@@ -42,6 +42,7 @@
 #include <algorithm>
 #include <atomic>
 #include <future>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <thread>
