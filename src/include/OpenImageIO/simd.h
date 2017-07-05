@@ -843,7 +843,7 @@ public:
     typedef int value_t;      ///< Underlying equivalent scalar value type
     enum { elements = 8 };    ///< Number of scalar elements
     enum { paddedelements =8 }; ///< Number of scalar elements for full pad
-    enum { bits = 128 };      ///< Total number of bits
+    enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
     typedef bool8 bool_t; ///< bool type of the same length
     typedef float8 float_t; ///< float type of the same length
@@ -1675,11 +1675,11 @@ public:
     /// Construct from a single value (store it in all slots)
     float8 (float a) { load(a); }
 
-    /// Construct from 3 or 4 values
+    /// Construct from 8 values
     float8 (float a, float b, float c, float d,
             float e, float f, float g, float h) { load(a,b,c,d,e,f,g,h); }
 
-    /// Construct from a pointer to 4 values
+    /// Construct from a pointer to 8 values
     float8 (const float *f) { load (f); }
 
     /// Copy construct from another float8
@@ -1760,31 +1760,31 @@ public:
     /// Helper: load a single value into all components
     void load (float val);
 
-    /// Helper: load 3 or 4 values. (If 3 are supplied, the 4th will be 0.)
+    /// Helper: load 8 values
     void load (float a, float b, float c, float d,
                float e, float f, float g, float h);
 
     /// Load from an array of values
     void load (const float *values);
 
-    /// Load from a partial array of <=4 values. Unassigned values are
+    /// Load from a partial array of <=8 values. Unassigned values are
     /// undefined.
     void load (const float *values, int n);
 
-    /// Load from an array of 4 unsigned short values, convert to float
+    /// Load from an array of 8 unsigned short values, convert to float
     void load (const unsigned short *values);
 
-    /// Load from an array of 4 short values, convert to float
+    /// Load from an array of 8 short values, convert to float
     void load (const short *values);
 
-    /// Load from an array of 4 unsigned char values, convert to float
+    /// Load from an array of 8 unsigned char values, convert to float
     void load (const unsigned char *values);
 
-    /// Load from an array of 4 char values, convert to float
+    /// Load from an array of 8 char values, convert to float
     void load (const char *values);
 
 #ifdef _HALF_H_
-    /// Load from an array of 4 half values, convert to float
+    /// Load from an array of 8 half values, convert to float
     void load (const half *values);
 #endif /* _HALF_H_ */
 
@@ -1869,17 +1869,17 @@ float dot3 (const float8 &a, const float8 &b);
 
 /// Use a bool mask to select between components of a (if mask[i] is false)
 /// and b (if mask[i] is true), i.e., mask[i] ? b[i] : a[i].
-float8 blend (const float8& a, const float8& b, const bool4& mask);
+float8 blend (const float8& a, const float8& b, const bool8& mask);
 
 /// Use a bool mask to select between `a` (if mask[i] is true) or 0 if
 /// mask[i] is false), i.e., mask[i] ? a[i] : 0. Equivalent to
 /// blend(0,a,mask).
-float8 blend0 (const float8& a, const bool4& mask);
+float8 blend0 (const float8& a, const bool8& mask);
 
 /// Use a bool mask to select between components of a (if mask[i] is false)
 /// or 0 (if mask[i] is true), i.e., mask[i] ? 0 : a[i]. Equivalent to
 /// blend(0,a,!mask), or blend(a,0,mask).
-float8 blend0not (const float8& a, const bool4& mask);
+float8 blend0not (const float8& a, const bool8& mask);
 
 /// "Safe" divide of float8/float8 -- for any component of the divisor
 /// that is 0, return 0 rather than Inf.
