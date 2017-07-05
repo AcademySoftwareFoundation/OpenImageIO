@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenEXR/ImathMatrix.h>
 
 #include <OpenImageIO/simd.h>
+#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/strutil.h>
@@ -1280,15 +1281,14 @@ main (int argc, char *argv[])
 
     getargs (argc, argv);
 
-#if defined(OIIO_SIMD_AVX)
-    std::cout << "SIMD is AVX " << OIIO_SIMD_AVX << "\n";
-#elif defined(OIIO_SIMD_SSE)
-    std::cout << "SIMD is SSE " << OIIO_SIMD_SSE << "\n";
-#elif defined(OIIO_SIMD_NEON)
-    std::cout << "SIMD is NEON " << OIIO_SIMD_NEON << "\n";
-#else
-    std::cout << "NO SIMD!!\n";
-#endif
+    std::string oiiosimd = OIIO::get_string_attribute ("oiio:simd");
+    std::string hwsimd = OIIO::get_string_attribute ("hw:simd");
+    std::cout << "OIIO SIMD support is: "
+              << (oiiosimd.size() ? oiiosimd : "") << "\n";
+    std::cout << "Hardware SIMD support is: "
+              << (hwsimd.size() ? hwsimd : "") << "\n";
+    std::cout << "\n";
+
     Timer timer;
 
     int4 dummy4(0);

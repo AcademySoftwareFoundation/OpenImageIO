@@ -110,7 +110,7 @@ if (OIIO_BUILD_TESTS)
 
     add_executable (simd_test simd_test.cpp)
     set_target_properties (simd_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (simd_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    target_link_libraries (simd_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_simd simd_test)
 
     add_executable (filter_test filter_test.cpp)

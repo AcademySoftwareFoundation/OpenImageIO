@@ -1272,21 +1272,6 @@ OIIO_API std::string geterror ();
 ///     string plugin_searchpath
 ///             Colon-separated list of directories to search for 
 ///             dynamically-loaded format plugins.
-///     string format_list     (for 'getattribute' only, cannot set)
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found.
-///     string input_format_list     (for 'getattribute' only, cannot set)
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found that can read images.
-///     string output_format_list     (for 'getattribute' only, cannot set)
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found that can write images.
-///     string extension_list   (for 'getattribute' only, cannot set)
-///             For each format, the format name followed by a colon,
-///             followed by comma-separated list of all extensions that
-///             are presumed to be used for that format.  Semicolons
-///             separate the lists for formats.  For example,
-///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
 ///     int read_chunk
 ///             The number of scanlines that will be attempted to read at
 ///             once for read_image calls (default: 256).
@@ -1318,6 +1303,39 @@ inline bool attribute (string_view name, string_view val) {
 /// otherwise return false and do not modify the contents of *val.  It
 /// is up to the caller to ensure that val points to the right kind and
 /// size of storage for the given type.
+///
+/// In addition to being able to retrieve all the attributes that are
+/// documented as settable by the attribute() call, getattribute() can
+/// also retrieve the following read-only attributes:
+///     string "format_list"
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found.
+///     string "input_format_list"
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found that can read images.
+///     string "output_format_list"
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found that can write images.
+///     string "extension_list"
+///             For each format, the format name followed by a colon,
+///             followed by comma-separated list of all extensions that
+///             are presumed to be used for that format.  Semicolons
+///             separate the lists for formats.  For example,
+///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+///     string "library_list"
+///             For each format that uses an external expendent library, the
+///             format name followed by a colon, followed by the name of
+///             the library. Semicolons separate the lists for formats. For
+///             example,
+///              "jpeg:jpeg-turbo 1.5.1;png:libpng 1.6.29;gif:gif_lib 5.1.4"
+///     string "oiio:simd"
+///             Comma-separated list of the SIMD-related capabilities
+///             enabled when the OIIO library was built. For example,
+///                 "sse2,sse3,ssse3,sse41,sse42,avx"
+///     string "hw:simd"
+///             Comma-separated list of the SIMD-related capabilities
+///             detected at runtime at the time of the query (which may not
+///             match the support compiled into the library).
 OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
 // Shortcuts for common types
 inline bool getattribute (string_view name, int &val) {

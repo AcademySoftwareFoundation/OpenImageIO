@@ -91,6 +91,65 @@ int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
 
 
 
+// Return a comma-separated list of all the important SIMD/capabilities
+// supported by the hardware we're running on right now.
+static std::string
+hw_simd_caps ()
+{
+    std::vector<string_view> caps;
+    if (cpu_has_sse2())        caps.emplace_back ("sse2");
+    if (cpu_has_sse3())        caps.emplace_back ("sse3");
+    if (cpu_has_ssse3())       caps.emplace_back ("ssse3");
+    if (cpu_has_sse41())       caps.emplace_back ("sse41");
+    if (cpu_has_sse42())       caps.emplace_back ("sse42");
+    if (cpu_has_avx())         caps.emplace_back ("avx");
+    if (cpu_has_avx2())        caps.emplace_back ("avx2");
+    if (cpu_has_avx512f())     caps.emplace_back ("avx512f");
+    if (cpu_has_avx512dq())    caps.emplace_back ("avx512dq");
+    if (cpu_has_avx512ifma())  caps.emplace_back ("avx512ifma");
+    if (cpu_has_avx512pf())    caps.emplace_back ("avx512pf");
+    if (cpu_has_avx512er())    caps.emplace_back ("avx512er");
+    if (cpu_has_avx512cd())    caps.emplace_back ("avx512cd");
+    if (cpu_has_avx512bw())    caps.emplace_back ("avx512bw");
+    if (cpu_has_avx512vl())    caps.emplace_back ("avx512vl");
+    if (cpu_has_fma())         caps.emplace_back ("fma");
+    if (cpu_has_f16c())        caps.emplace_back ("f16c");
+    if (cpu_has_popcnt())      caps.emplace_back ("popcnt");
+    if (cpu_has_rdrand())      caps.emplace_back ("rdrand");
+    return Strutil::join (caps, ",");
+}
+
+
+
+// Return a comma-separated list of all the important SIMD/capabilities
+// that were enabled as a compile-time option when OIIO was built.
+static std::string
+oiio_simd_caps ()
+{
+    std::vector<string_view> caps;
+    if (OIIO_SIMD_SSE >= 2)      caps.emplace_back ("sse2");
+    if (OIIO_SIMD_SSE >= 3)      caps.emplace_back ("sse3");
+    if (OIIO_SIMD_SSE >= 3)      caps.emplace_back ("ssse3");
+    if (OIIO_SIMD_SSE >= 4)      caps.emplace_back ("sse41");
+    if (OIIO_SIMD_SSE >= 4)      caps.emplace_back ("sse42");
+    if (OIIO_SIMD_AVX)           caps.emplace_back ("avx");
+    if (OIIO_SIMD_AVX >= 2)      caps.emplace_back ("avx2");
+    if (OIIO_SIMD_AVX >= 512)    caps.emplace_back ("avx512f");
+    if (OIIO_AVX512DQ_ENABLED)   caps.emplace_back ("avx512dq");
+    if (OIIO_AVX512IFMA_ENABLED) caps.emplace_back ("avx512ifma");
+    if (OIIO_AVX512PF_ENABLED)   caps.emplace_back ("avx512pf");
+    if (OIIO_AVX512ER_ENABLED)   caps.emplace_back ("avx512er");
+    if (OIIO_AVX512CD_ENABLED)   caps.emplace_back ("avx512cd");
+    if (OIIO_AVX512BW_ENABLED)   caps.emplace_back ("avx512bw");
+    if (OIIO_AVX512VL_ENABLED)   caps.emplace_back ("avx512vl");
+    if (OIIO_FMA_ENABLED)        caps.emplace_back ("fma");
+    if (OIIO_F16C_ENABLED)       caps.emplace_back ("f16c");
+    // if (OIIO_POPCOUNT_ENABLED)   caps.emplace_back ("popcnt");
+    return Strutil::join (caps, ",");
+}
+
+
+
 int
 openimageio_version ()
 {
@@ -246,6 +305,14 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "debug" && type == TypeDesc::TypeInt) {
         *(int *)val = print_debug;
+        return true;
+    }
+    if (name == "hw:simd" && type == TypeDesc::TypeString) {
+        *(ustring *)val = ustring(hw_simd_caps());
+        return true;
+    }
+    if (name == "oiio:simd" && type == TypeDesc::TypeString) {
+        *(ustring *)val = ustring(oiio_simd_caps());
         return true;
     }
     return false;
