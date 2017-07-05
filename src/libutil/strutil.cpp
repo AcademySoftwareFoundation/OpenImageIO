@@ -931,7 +931,7 @@ Strutil::utf8_to_unicode (string_view str, std::vector<uint32_t> &uvec)
     const char* end = str.end();
     uint32_t state = 0;
     for (; begin != end; ++begin) {
-        uint32_t codepoint;
+        uint32_t codepoint = 0;
         if (!decode(&state, &codepoint, (unsigned char) *begin))
             uvec.push_back(codepoint);
     }
