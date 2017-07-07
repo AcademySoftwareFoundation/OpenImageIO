@@ -57,9 +57,7 @@
 
 using namespace OIIO;
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
 using OIIO::_1;
-#endif
 
 static std::vector<ustring> filenames;
 static std::string output_filename = "out.exr";

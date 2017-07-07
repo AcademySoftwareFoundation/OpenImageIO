@@ -82,7 +82,6 @@ void test_offset ()
     { offset<2> o = off2b; o *= 2; OIIO_CHECK_EQUAL(o, offset<2>(20,24)); }
     { offset<2> o = off2b; o /= 2; OIIO_CHECK_EQUAL(o, offset<2>(5,6)); }
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
     {
         // test initializer list
         offset<1> off1 {42};
@@ -91,7 +90,6 @@ void test_offset ()
         OIIO_CHECK_EQUAL (off2[0], 14);
         OIIO_CHECK_EQUAL (off2[1], 43);
     }
-#endif
 }
 
 
@@ -165,7 +163,6 @@ void test_bounds ()
         ++i; OIIO_CHECK_EQUAL (i, b.end());
     }
 
-#if OIIO_CPLUSPLUS_VERSION >= 11
     {
         // test initializer list
         bounds<1> b1 {42};
@@ -174,7 +171,6 @@ void test_bounds ()
         OIIO_CHECK_EQUAL (b2[0], 14);
         OIIO_CHECK_EQUAL (b2[1], 43);
     }
-#endif
 }
 
 
@@ -216,7 +212,6 @@ void test_array_view_mutable ()
 
 void test_array_view_initlist ()
 {
-#if OIIO_CPLUSPLUS_VERSION >= 11
     // Try the array_view syntax with initializer_list.
     array_view<const float> a { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
     OIIO_CHECK_EQUAL (a.size(), 12);
@@ -224,7 +219,6 @@ void test_array_view_initlist ()
     OIIO_CHECK_EQUAL (a[1], 1.0f);
     OIIO_CHECK_EQUAL (a[2], 0.0f);
     OIIO_CHECK_EQUAL (a[3], 2.0f);
-#endif
 }
 
 

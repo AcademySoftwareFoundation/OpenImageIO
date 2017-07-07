@@ -240,7 +240,7 @@ clamp (const simd::float8& a, const simd::float8& low, const simd::float8& high)
 
 /// Fused multiply and add: (a*b + c)
 inline float madd (float a, float b, float c) {
-#if OIIO_FMA_ENABLED && (OIIO_CPLUSPLUS_VERSION >= 11)
+#if OIIO_FMA_ENABLED
     // C++11 defines std::fma, which we assume is implemented using an
     // intrinsic.
     return std::fma (a, b, c);
@@ -1032,11 +1032,7 @@ inline T safe_log2 (T x) {
     // match clamping from fast version
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
-#if OIIO_CPLUSPLUS_VERSION >= 11
     return std::log2(x);
-#else
-    return log2f(x);   // punt: just use the float one
-#endif
 }
 
 /// Safe log: clamp to valid domain.
@@ -1060,11 +1056,7 @@ inline T safe_log10 (T x) {
 /// Safe logb: clamp to valid domain.
 template <typename T>
 inline T safe_logb (T x) {
-#if OIIO_CPLUSPLUS_VERSION >= 11
     return (x != T(0)) ? std::logb(x) : -std::numeric_limits<T>::max();
-#else
-    return (x != T(0)) ? logbf(x) : -std::numeric_limits<T>::max();
-#endif
 }
 
 /// Safe pow: clamp the domain so it never returns Inf or NaN or has divide
