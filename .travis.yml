@@ -88,7 +88,9 @@ script:
     # - ls -R $OIIO_LIBRARY_PATH
     - export PYTHONPATH=$OPENIMAGEIOHOME/python:$PYTHONPATH
     - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
-    - make $BUILD_FLAGS test
+    - if [ "$SKIP_TESTS" == "" ] ; then
+          make $BUILD_FLAGS test ;
+      fi
 
 
 after_success:
@@ -161,6 +163,14 @@ matrix:
       - os: linux
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0
+    # build for AVX2, don't run the tests (ensure against build breaks)
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=5 USE_SIMD=avx2 SKIP_TESTS=1
+    # build for AVX512, don't run the tests (ensure against build breaks)
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=6 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
