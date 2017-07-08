@@ -876,10 +876,8 @@ DeepData::copy_deep_pixel (int pixel, const DeepData &src, int srcpixel)
 bool
 DeepData::split (int pixel, float depth)
 {
-#if OIIO_CPLUSPLUS_VERSION >= 11
     using std::log1p;
     using std::expm1;
-#endif
     bool splits_occurred = false;
     int zchan = m_impl->m_z_channel;
     int zbackchan = m_impl->m_zback_channel;
@@ -997,12 +995,7 @@ DeepData::sort (int pixel)
     // swapper, so there's no way to std::sort a data type whose size is not
     // known at compile time. So we just sort the indices!
     int *sample_indices = OIIO_ALLOCA (int, nsamples);
-#if OIIO_CPLUSPLUS_VERSION >= 11
     std::iota (sample_indices, sample_indices+nsamples, 0);
-#else
-    for (int i = 0; i < nsamples; ++i)
-        sample_indices[i] = i;
-#endif
     std::stable_sort (sample_indices, sample_indices+nsamples,
                       SampleComparator(*this, pixel, zchan, zbackchan));
 
@@ -1020,9 +1013,7 @@ DeepData::sort (int pixel)
 void
 DeepData::merge_overlaps (int pixel)
 {
-#if OIIO_CPLUSPLUS_VERSION >= 11
     using std::log1p;
-#endif
     int zchan = m_impl->m_z_channel;
     int zbackchan = m_impl->m_zback_channel;
     if (zchan < 0)
