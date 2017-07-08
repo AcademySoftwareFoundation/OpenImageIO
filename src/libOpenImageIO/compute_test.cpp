@@ -129,8 +129,8 @@ test_arrays_simd4 (ROI roi)
     float *r = (float *)imgR.localpixels(); ASSERT(r);
     int x, end4 = size - (size&3);
     for (x = 0; x < end4; x += 4, a += 4, b += 4, r += 4) {
-        simd::float4 a_simd(a), b_simd(b);
-        *(simd::float4 *)r = a_simd * a_simd + b_simd;
+        simd::vfloat4 a_simd(a), b_simd(b);
+        *(simd::vfloat4 *)r = a_simd * a_simd + b_simd;
     }
     for ( ; x < size; ++x, ++a, ++b, ++r) {
         *r = a[0]*a[0] + b[0];
@@ -149,7 +149,7 @@ test_arrays_like_image_simd (ROI roi)
     for (int y = 0; y < yres; ++y) {
         for (int x = 0; x < xres; ++x) {
             int i = (y*xres + x) * nchannels;
-            simd::float4 a_simd, b_simd, r_simd;
+            simd::vfloat4 a_simd, b_simd, r_simd;
             a_simd.load (a+i, 3);
             b_simd.load (b+i, 3);
             r_simd = a_simd * a_simd + b_simd;
@@ -169,7 +169,7 @@ test_arrays_like_image_simd_multithread (ROI roi)
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; ++x) {
             int i = (y*xres + x) * nchannels;
-            simd::float4 a_simd, b_simd, r_simd;
+            simd::vfloat4 a_simd, b_simd, r_simd;
             a_simd.load (a+i, 3);
             b_simd.load (b+i, 3);
             r_simd = a_simd * a_simd + b_simd;

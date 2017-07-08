@@ -409,9 +409,9 @@ public:
             for (int y = 0;  y < height;  ++y) {
                 char *d = (char *)data + y*ystride;
                 for (int x = 0;  x < width;  ++x, d += xstride) {
-                    simd::float4 r;
+                    simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = sRGB_to_linear (simd::float4((float *)d));
+                    r = sRGB_to_linear (simd::vfloat4((float *)d));
                     r.store ((float *)d, 3);
                 }
             }
@@ -443,9 +443,9 @@ public:
             for (int y = 0;  y < height;  ++y) {
                 char *d = (char *)data + y*ystride;
                 for (int x = 0;  x < width;  ++x, d += xstride) {
-                    simd::float4 r;
+                    simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = linear_to_sRGB (simd::float4((float *)d));
+                    r = linear_to_sRGB (simd::vfloat4((float *)d));
                     r.store ((float *)d, 3);
                 }
             }
@@ -522,13 +522,13 @@ public:
         if (channels > 3)
             channels = 3;
         if (channels == 3) {
-            simd::float4 g = m_gamma;
+            simd::vfloat4 g = m_gamma;
             for (int y = 0;  y < height;  ++y) {
                 char *d = (char *)data + y*ystride;
                 for (int x = 0;  x < width;  ++x, d += xstride) {
-                    simd::float4 r;
+                    simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = fast_pow_pos (simd::float4((float *)d), g);
+                    r = fast_pow_pos (simd::vfloat4((float *)d), g);
                     r.store ((float *)d, 3);
                 }
             }

@@ -551,7 +551,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
             OIIO_SIMD4_ALIGN float tval[4] = { t, 0.0f, 0.0f, 0.0f };
             OIIO_SIMD4_ALIGN float weight[4] = { levelweight[level]*invsamples,
                                                  0.0f, 0.0f, 0.0f };
-            float4 r, drds, drdt;
+            vfloat4 r, drds, drdt;
             ok &= (this->*sampler) (1, sval, tval, miplevel[level],
                                     *texturefile, thread_info, options,
                                     nchannels, actualchannels, weight,

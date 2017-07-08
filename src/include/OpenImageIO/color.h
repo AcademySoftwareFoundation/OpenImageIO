@@ -251,7 +251,7 @@ inline float sRGB_to_linear (float x)
                            : powf ((x + 0.055f) * (1.0f / 1.055f), 2.4f);
 }
 
-inline simd::float4 sRGB_to_linear (const simd::float4& x)
+inline simd::vfloat4 sRGB_to_linear (const simd::vfloat4& x)
 {
     return simd::select (x <= 0.04045f, x * (1.0f/12.92f),
                          fast_pow_pos (madd (x, (1.0f / 1.055f), 0.055f*(1.0f/1.055f)), 2.4f));
@@ -266,9 +266,9 @@ inline float linear_to_sRGB (float x)
 
 
 /// Utility -- convert linear value to sRGB
-inline simd::float4 linear_to_sRGB (const simd::float4& x)
+inline simd::vfloat4 linear_to_sRGB (const simd::vfloat4& x)
 {
-    // x = simd::max (x, simd::float4::Zero());
+    // x = simd::max (x, simd::vfloat4::Zero());
     return simd::select (x <= 0.0031308f, 12.92f * x,
                          madd (1.055f, fast_pow_pos (x, 1.f/2.4f),  -0.055f));
 }

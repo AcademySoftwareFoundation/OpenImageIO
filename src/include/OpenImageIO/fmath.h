@@ -223,15 +223,15 @@ clamp (const T& a, const T& low, const T& high)
 }
 
 
-// Specialization of clamp for float4
-template<> inline simd::float4
-clamp (const simd::float4& a, const simd::float4& low, const simd::float4& high)
+// Specialization of clamp for vfloat4
+template<> inline simd::vfloat4
+clamp (const simd::vfloat4& a, const simd::vfloat4& low, const simd::vfloat4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> inline simd::float8
-clamp (const simd::float8& a, const simd::float8& low, const simd::float8& high)
+template<> inline simd::vfloat8
+clamp (const simd::vfloat8& a, const simd::vfloat8& low, const simd::vfloat8& high)
 {
     return simd::min (high, simd::max (low, a));
 }
@@ -663,10 +663,10 @@ inline void convert_type<uint8_t,float> (const uint8_t *src,
                                          float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint8_t>::max());
-    simd::float4 scale_simd (scale);
+    simd::vfloat4 scale_simd (scale);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 s_simd (src);
-        simd::float4 d_simd = s_simd * scale_simd;
+        simd::vfloat4 s_simd (src);
+        simd::vfloat4 d_simd = s_simd * scale_simd;
         d_simd.store (dst);
     }
     while (n--)
@@ -681,10 +681,10 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
                                           float _min, float _max)
 {
     float scale (1.0f/std::numeric_limits<uint16_t>::max());
-    simd::float4 scale_simd (scale);
+    simd::vfloat4 scale_simd (scale);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 s_simd (src);
-        simd::float4 d_simd = s_simd * scale_simd;
+        simd::vfloat4 s_simd (src);
+        simd::vfloat4 d_simd = s_simd * scale_simd;
         d_simd.store (dst);
     }
     while (n--)
@@ -699,7 +699,7 @@ inline void convert_type<half,float> (const half *src,
                                       float _min, float _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 s_simd (src);
+        simd::vfloat4 s_simd (src);
         s_simd.store (dst);
     }
     while (n--)
@@ -717,13 +717,13 @@ convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
     float min = std::numeric_limits<uint16_t>::min();
     float max = std::numeric_limits<uint16_t>::max();
     float scale = max;
-    simd::float4 max_simd (max);
-    simd::float4 one_half_simd (0.5f);
-    simd::float4 zero_simd (0.0f);
+    simd::vfloat4 max_simd (max);
+    simd::vfloat4 one_half_simd (0.5f);
+    simd::vfloat4 zero_simd (0.0f);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 scaled = simd::round (simd::float4(src) * max_simd);
-        simd::float4 clamped = clamp (scaled, zero_simd, max_simd);
-        simd::int4 i (clamped);
+        simd::vfloat4 scaled = simd::round (simd::vfloat4(src) * max_simd);
+        simd::vfloat4 clamped = clamp (scaled, zero_simd, max_simd);
+        simd::vint4 i (clamped);
         i.store (dst);
     }
     while (n--)
@@ -739,13 +739,13 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
     float min = std::numeric_limits<uint8_t>::min();
     float max = std::numeric_limits<uint8_t>::max();
     float scale = max;
-    simd::float4 max_simd (max);
-    simd::float4 one_half_simd (0.5f);
-    simd::float4 zero_simd (0.0f);
+    simd::vfloat4 max_simd (max);
+    simd::vfloat4 one_half_simd (0.5f);
+    simd::vfloat4 zero_simd (0.0f);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 scaled = simd::round (simd::float4(src) * max_simd);
-        simd::float4 clamped = clamp (scaled, zero_simd, max_simd);
-        simd::int4 i (clamped);
+        simd::vfloat4 scaled = simd::round (simd::vfloat4(src) * max_simd);
+        simd::vfloat4 clamped = clamp (scaled, zero_simd, max_simd);
+        simd::vint4 i (clamped);
         i.store (dst);
     }
     while (n--)
@@ -760,7 +760,7 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
                           half _min, half _max)
 {
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
-        simd::float4 s (src);
+        simd::vfloat4 s (src);
         s.store (dst);
     }
     while (n--)
@@ -1110,7 +1110,7 @@ inline int fast_rint (float x) {
 #endif
 }
 
-inline simd::int4 fast_rint (const simd::float4& x) {
+inline simd::vint4 fast_rint (const simd::vfloat4& x) {
     return simd::rint (x);
 }
 

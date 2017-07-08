@@ -192,28 +192,28 @@ inline VEC mkvec (typename VEC::value_t a, typename VEC::value_t b,
     return VEC(a,b,c,d);
 }
 
-template<> inline float3 mkvec<float3> (float a, float b, float c, float d) {
-    return float3(a,b,c);
+template<> inline vfloat3 mkvec<vfloat3> (float a, float b, float c, float d) {
+    return vfloat3(a,b,c);
 }
 
-template<> inline float8 mkvec<float8> (float a, float b, float c, float d) {
-    return float8(a,b,c,d,a,b,c,d);
+template<> inline vfloat8 mkvec<vfloat8> (float a, float b, float c, float d) {
+    return vfloat8(a,b,c,d,a,b,c,d);
 }
 
-template<> inline float16 mkvec<float16> (float a, float b, float c, float d) {
-    return float16(a,b,c,d,a,b,c,d,a,b,c,d,a,b,c,d);
+template<> inline vfloat16 mkvec<vfloat16> (float a, float b, float c, float d) {
+    return vfloat16(a,b,c,d,a,b,c,d,a,b,c,d,a,b,c,d);
 }
 
-template<> inline int8 mkvec<int8> (int a, int b, int c, int d) {
-    return int8(a,b,c,d,a,b,c,d);
+template<> inline vint8 mkvec<vint8> (int a, int b, int c, int d) {
+    return vint8(a,b,c,d,a,b,c,d);
 }
 
-template<> inline bool8 mkvec<bool8> (bool a, bool b, bool c, bool d) {
-    return bool8(a,b,c,d,a,b,c,d);
+template<> inline vbool8 mkvec<vbool8> (bool a, bool b, bool c, bool d) {
+    return vbool8(a,b,c,d,a,b,c,d);
 }
 
-template<> inline bool16 mkvec<bool16> (bool a, bool b, bool c, bool d) {
-    return bool16(a,b,c,d,a,b,c,d,a,b,c,d,a,b,c,d);
+template<> inline vbool16 mkvec<vbool16> (bool a, bool b, bool c, bool d) {
+    return vbool16(a,b,c,d,a,b,c,d,a,b,c,d,a,b,c,d);
 }
 
 
@@ -228,35 +228,35 @@ inline VEC mkvec (typename VEC::value_t a, typename VEC::value_t b,
 }
 
 
-template<> inline bool4 mkvec<bool4> (bool a, bool b, bool c, bool d,
+template<> inline vbool4 mkvec<vbool4> (bool a, bool b, bool c, bool d,
                                       bool e, bool f, bool g, bool h) {
-    return bool4(a,b,c,d);
+    return vbool4(a,b,c,d);
 }
 
-template<> inline int4 mkvec<int4> (int a, int b, int c, int d,
+template<> inline vint4 mkvec<vint4> (int a, int b, int c, int d,
                                     int e, int f, int g, int h) {
-    return int4(a,b,c,d);
+    return vint4(a,b,c,d);
 }
 
-template<> inline int16 mkvec<int16> (int a, int b, int c, int d,
+template<> inline vint16 mkvec<vint16> (int a, int b, int c, int d,
                                       int e, int f, int g, int h) {
-    return int16(a,b,c,d,e,f,g,h,
+    return vint16(a,b,c,d,e,f,g,h,
                  h+1,h+2,h+3,h+4,h+5,h+6,h+7,h+8);
 }
 
-template<> inline float4 mkvec<float4> (float a, float b, float c, float d,
+template<> inline vfloat4 mkvec<vfloat4> (float a, float b, float c, float d,
                                         float e, float f, float g, float h) {
-    return float4(a,b,c,d);
+    return vfloat4(a,b,c,d);
 }
 
-template<> inline float3 mkvec<float3> (float a, float b, float c, float d,
+template<> inline vfloat3 mkvec<vfloat3> (float a, float b, float c, float d,
                                         float e, float f, float g, float h) {
-    return float3(a,b,c);
+    return vfloat3(a,b,c);
 }
 
-template<> inline float16 mkvec<float16> (float a, float b, float c, float d,
+template<> inline vfloat16 mkvec<vfloat16> (float a, float b, float c, float d,
                                           float e, float f, float g, float h) {
-    return float16(a,b,c,d,e,f,g,h,
+    return vfloat16(a,b,c,d,e,f,g,h,
                    h+1,h+2,h+3,h+4,h+5,h+6,h+7,h+8);
 }
 
@@ -287,10 +287,10 @@ inline float dot_imath (const Imath::V3f &v) {
     return v.dot(v);
 }
 inline float dot_imath_simd (const Imath::V3f &v_) {
-    float3 v (v_);
+    vfloat3 v (v_);
     return simd::dot(v,v);
 }
-inline float dot_simd (const simd::float3 v) {
+inline float dot_simd (const simd::vfloat3 v) {
     return dot(v,v);
 }
 
@@ -300,22 +300,22 @@ norm_imath (const Imath::V3f &a) {
 }
 
 inline Imath::V3f
-norm_imath_simd (float3 a) {
+norm_imath_simd (vfloat3 a) {
     return a.normalized().V3f();
 }
 
 inline Imath::V3f
-norm_imath_simd_fast (float3 a) {
+norm_imath_simd_fast (vfloat3 a) {
     return a.normalized_fast().V3f();
 }
 
-inline float3
-norm_simd_fast (float3 a) {
+inline vfloat3
+norm_simd_fast (vfloat3 a) {
     return a.normalized_fast();
 }
 
-inline float3
-norm_simd (float3 a) {
+inline vfloat3
+norm_simd (vfloat3 a) {
     return a.normalized();
 }
 
@@ -575,9 +575,9 @@ void test_component_access ()
 
 
 template<>
-void test_component_access<bool4> ()
+void test_component_access<vbool4> ()
 {
-    typedef bool4 VEC;
+    typedef vbool4 VEC;
     typedef VEC::value_t ELEM;
     test_heading ("component_access ", VEC::type_name());
 
@@ -612,9 +612,9 @@ void test_component_access<bool4> ()
 
 
 template<>
-void test_component_access<bool8> ()
+void test_component_access<vbool8> ()
 {
-    typedef bool8 VEC;
+    typedef vbool8 VEC;
     typedef VEC::value_t ELEM;
     test_heading ("component_access ", VEC::type_name());
 
@@ -662,9 +662,9 @@ void test_component_access<bool8> ()
 
 
 template<>
-void test_component_access<bool16> ()
+void test_component_access<vbool16> ()
 {
-    typedef bool16 VEC;
+    typedef vbool16 VEC;
     typedef VEC::value_t ELEM;
     test_heading ("component_access ", VEC::type_name());
 
@@ -743,7 +743,7 @@ template<typename T> inline T do_mul (const T &a, const T &b) { return a*b; }
 template<typename T> inline T do_div (const T &a, const T &b) { return a/b; }
 template<typename T> inline T do_safe_div (const T &a, const T &b) { return T(safe_div(a,b)); }
 inline Imath::V3f add_vec_simd (const Imath::V3f &a, const Imath::V3f &b) {
-    return (float3(a)+float3(b)).V3f();
+    return (vfloat3(a)+vfloat3(b)).V3f();
 }
 
 
@@ -784,7 +784,7 @@ void test_arithmetic ()
     benchmark2 ("operator*", do_mul<VEC>, a, b);
     benchmark2 ("operator/", do_div<VEC>, a, b);
     benchmark  ("reduce_add", [](VEC& a){ return vreduce_add(a); }, a);
-    if (is_same<VEC,float3>::value) {  // For float3, compare to Imath
+    if (is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
         Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
         benchmark2 ("add Imath::V3f", do_add<Imath::V3f>, a, b, 3 /*work*/);
         benchmark2 ("add Imath::V3f with simd", add_vec_simd, a, b, 3 /*work*/);
@@ -1143,9 +1143,9 @@ void test_shift ()
 
 
 
-void test_vectorops_float4 ()
+void test_vectorops_vfloat4 ()
 {
-    typedef float4 VEC;
+    typedef vfloat4 VEC;
     typedef VEC::value_t ELEM;
     test_heading ("vectorops ", VEC::type_name());
 
@@ -1155,7 +1155,7 @@ void test_vectorops_float4 ()
     OIIO_CHECK_EQUAL (dot3(a,b), ELEM(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot(a,b), VEC(10+22+36+52));
     OIIO_CHECK_SIMD_EQUAL (vdot3(a,b), VEC(10+22+36));
-    OIIO_CHECK_SIMD_EQUAL (hdiv(float4(1.0f,2.0f,3.0f,2.0f)), float3(0.5f,1.0f,1.5f));
+    OIIO_CHECK_SIMD_EQUAL (hdiv(vfloat4(1.0f,2.0f,3.0f,2.0f)), vfloat3(0.5f,1.0f,1.5f));
 
     benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
     benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
@@ -1165,9 +1165,9 @@ void test_vectorops_float4 ()
 
 
 
-void test_vectorops_float3 ()
+void test_vectorops_vfloat3 ()
 {
-    typedef float3 VEC;
+    typedef vfloat3 VEC;
     typedef VEC::value_t ELEM;
     test_heading ("vectorops ", VEC::type_name());
 
@@ -1177,22 +1177,22 @@ void test_vectorops_float3 ()
     OIIO_CHECK_EQUAL (dot3(a,b), ELEM(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot(a,b), VEC(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (vdot3(a,b), VEC(10+22+36));
-    OIIO_CHECK_SIMD_EQUAL (float3(1.0f,2.0f,3.0f).normalized(),
-                           float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))));
-    OIIO_CHECK_SIMD_EQUAL_THRESH (float3(1.0f,2.0f,3.0f).normalized_fast(),
-                                  float3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))), 0.0005);
+    OIIO_CHECK_SIMD_EQUAL (vfloat3(1.0f,2.0f,3.0f).normalized(),
+                           vfloat3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))));
+    OIIO_CHECK_SIMD_EQUAL_THRESH (vfloat3(1.0f,2.0f,3.0f).normalized_fast(),
+                                  vfloat3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))), 0.0005);
 
     benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
     benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
-    benchmark ("dot float3", dot_simd, float3(2.0f,1.0f,0.0f), 1);
+    benchmark ("dot vfloat3", dot_simd, vfloat3(2.0f,1.0f,0.0f), 1);
     // benchmark2 ("dot Imath::V3f", [](Imath::V3f& a, Imath::V3f& b){ return a.dot(b); }, a.V3f(), b.V3f());
     benchmark ("dot Imath::V3f", dot_imath, Imath::V3f(2.0f,1.0f,0.0f), 1);
     benchmark ("dot Imath::V3f with simd", dot_imath_simd, Imath::V3f(2.0f,1.0f,0.0f), 1);
     benchmark ("normalize Imath", norm_imath, Imath::V3f(1.0f,4.0f,9.0f));
     benchmark ("normalize Imath with simd", norm_imath_simd, Imath::V3f(1.0f,4.0f,9.0f));
     benchmark ("normalize Imath with simd fast", norm_imath_simd_fast, Imath::V3f(1.0f,4.0f,9.0f));
-    benchmark ("normalize simd", norm_simd, float3(1.0f,4.0f,9.0f));
-    benchmark ("normalize simd fast", norm_simd_fast, float3(1.0f,4.0f,9.0f));
+    benchmark ("normalize simd", norm_simd, vfloat3(1.0f,4.0f,9.0f));
+    benchmark ("normalize simd fast", norm_simd_fast, vfloat3(1.0f,4.0f,9.0f));
 }
 
 
@@ -1201,79 +1201,79 @@ void test_constants ()
 {
     test_heading ("constants");
 
-    OIIO_CHECK_SIMD_EQUAL (bool4::False(), bool4(false));
-    OIIO_CHECK_SIMD_EQUAL (bool4::True(), bool4(true));
+    OIIO_CHECK_SIMD_EQUAL (vbool4::False(), vbool4(false));
+    OIIO_CHECK_SIMD_EQUAL (vbool4::True(), vbool4(true));
 
-    OIIO_CHECK_SIMD_EQUAL (bool8::False(), bool8(false));
-    OIIO_CHECK_SIMD_EQUAL (bool8::True(), bool8(true));
+    OIIO_CHECK_SIMD_EQUAL (vbool8::False(), vbool8(false));
+    OIIO_CHECK_SIMD_EQUAL (vbool8::True(), vbool8(true));
 
-    OIIO_CHECK_SIMD_EQUAL (bool16::False(), bool16(false));
-    OIIO_CHECK_SIMD_EQUAL (bool16::True(), bool16(true));
-    OIIO_CHECK_SIMD_EQUAL (bool16::False(), bool16(false));
-    OIIO_CHECK_SIMD_EQUAL (bool16::True(), bool16(true));
+    OIIO_CHECK_SIMD_EQUAL (vbool16::False(), vbool16(false));
+    OIIO_CHECK_SIMD_EQUAL (vbool16::True(), vbool16(true));
+    OIIO_CHECK_SIMD_EQUAL (vbool16::False(), vbool16(false));
+    OIIO_CHECK_SIMD_EQUAL (vbool16::True(), vbool16(true));
 
-    OIIO_CHECK_SIMD_EQUAL (int4::Zero(), int4(0));
-    OIIO_CHECK_SIMD_EQUAL (int4::One(), int4(1));
-    OIIO_CHECK_SIMD_EQUAL (int4::NegOne(), int4(-1));
-    OIIO_CHECK_SIMD_EQUAL (int4::Iota(), int4(0,1,2,3));
-    OIIO_CHECK_SIMD_EQUAL (int4::Iota(3), int4(3,4,5,6));
-    OIIO_CHECK_SIMD_EQUAL (int4::Iota(3,2), int4(3,5,7,9));
-    OIIO_CHECK_SIMD_EQUAL (int4::Giota(), int4(1,2,4,8));
+    OIIO_CHECK_SIMD_EQUAL (vint4::Zero(), vint4(0));
+    OIIO_CHECK_SIMD_EQUAL (vint4::One(), vint4(1));
+    OIIO_CHECK_SIMD_EQUAL (vint4::NegOne(), vint4(-1));
+    OIIO_CHECK_SIMD_EQUAL (vint4::Iota(), vint4(0,1,2,3));
+    OIIO_CHECK_SIMD_EQUAL (vint4::Iota(3), vint4(3,4,5,6));
+    OIIO_CHECK_SIMD_EQUAL (vint4::Iota(3,2), vint4(3,5,7,9));
+    OIIO_CHECK_SIMD_EQUAL (vint4::Giota(), vint4(1,2,4,8));
 
-    OIIO_CHECK_SIMD_EQUAL (int8::Zero(), int8(0));
-    OIIO_CHECK_SIMD_EQUAL (int8::One(), int8(1));
-    OIIO_CHECK_SIMD_EQUAL (int8::NegOne(), int8(-1));
-    OIIO_CHECK_SIMD_EQUAL (int8::Iota(), int8(0,1,2,3, 4,5,6,7));
-    OIIO_CHECK_SIMD_EQUAL (int8::Iota(3), int8(3,4,5,6, 7,8,9,10));
-    OIIO_CHECK_SIMD_EQUAL (int8::Iota(3,2), int8(3,5,7,9, 11,13,15,17));
-    OIIO_CHECK_SIMD_EQUAL (int8::Giota(), int8(1,2,4,8, 16,32,64,128));
+    OIIO_CHECK_SIMD_EQUAL (vint8::Zero(), vint8(0));
+    OIIO_CHECK_SIMD_EQUAL (vint8::One(), vint8(1));
+    OIIO_CHECK_SIMD_EQUAL (vint8::NegOne(), vint8(-1));
+    OIIO_CHECK_SIMD_EQUAL (vint8::Iota(), vint8(0,1,2,3, 4,5,6,7));
+    OIIO_CHECK_SIMD_EQUAL (vint8::Iota(3), vint8(3,4,5,6, 7,8,9,10));
+    OIIO_CHECK_SIMD_EQUAL (vint8::Iota(3,2), vint8(3,5,7,9, 11,13,15,17));
+    OIIO_CHECK_SIMD_EQUAL (vint8::Giota(), vint8(1,2,4,8, 16,32,64,128));
 
-    OIIO_CHECK_SIMD_EQUAL (int16::Zero(), int16(0));
-    OIIO_CHECK_SIMD_EQUAL (int16::One(), int16(1));
-    OIIO_CHECK_SIMD_EQUAL (int16::NegOne(), int16(-1));
-    OIIO_CHECK_SIMD_EQUAL (int16::Iota(), int16(0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15));
-    OIIO_CHECK_SIMD_EQUAL (int16::Iota(3), int16(3,4,5,6, 7,8,9,10, 11,12,13,14, 15,16,17,18));
-    OIIO_CHECK_SIMD_EQUAL (int16::Iota(3,2), int16(3,5,7,9, 11,13,15,17, 19,21,23,25, 27,29,31,33));
-    OIIO_CHECK_SIMD_EQUAL (int16::Giota(), int16(1,2,4,8, 16,32,64,128, 256,512,1024,2048, 4096,8192,16384,32768));
+    OIIO_CHECK_SIMD_EQUAL (vint16::Zero(), vint16(0));
+    OIIO_CHECK_SIMD_EQUAL (vint16::One(), vint16(1));
+    OIIO_CHECK_SIMD_EQUAL (vint16::NegOne(), vint16(-1));
+    OIIO_CHECK_SIMD_EQUAL (vint16::Iota(), vint16(0,1,2,3, 4,5,6,7, 8,9,10,11, 12,13,14,15));
+    OIIO_CHECK_SIMD_EQUAL (vint16::Iota(3), vint16(3,4,5,6, 7,8,9,10, 11,12,13,14, 15,16,17,18));
+    OIIO_CHECK_SIMD_EQUAL (vint16::Iota(3,2), vint16(3,5,7,9, 11,13,15,17, 19,21,23,25, 27,29,31,33));
+    OIIO_CHECK_SIMD_EQUAL (vint16::Giota(), vint16(1,2,4,8, 16,32,64,128, 256,512,1024,2048, 4096,8192,16384,32768));
 
-    OIIO_CHECK_SIMD_EQUAL (float4::Zero(), float4(0.0f));
-    OIIO_CHECK_SIMD_EQUAL (float4::One(), float4(1.0f));
-    OIIO_CHECK_SIMD_EQUAL (float4::Iota(), float4(0,1,2,3));
-    OIIO_CHECK_SIMD_EQUAL (float4::Iota(3.0f), float4(3,4,5,6));
-    OIIO_CHECK_SIMD_EQUAL (float4::Iota(3.0f,2.0f), float4(3,5,7,9));
+    OIIO_CHECK_SIMD_EQUAL (vfloat4::Zero(), vfloat4(0.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat4::One(), vfloat4(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat4::Iota(), vfloat4(0,1,2,3));
+    OIIO_CHECK_SIMD_EQUAL (vfloat4::Iota(3.0f), vfloat4(3,4,5,6));
+    OIIO_CHECK_SIMD_EQUAL (vfloat4::Iota(3.0f,2.0f), vfloat4(3,5,7,9));
 
-    OIIO_CHECK_SIMD_EQUAL (float3::Zero(), float3(0.0f));
-    OIIO_CHECK_SIMD_EQUAL (float3::One(), float3(1.0f));
-    OIIO_CHECK_SIMD_EQUAL (float3::Iota(), float3(0,1,2));
-    OIIO_CHECK_SIMD_EQUAL (float3::Iota(3.0f), float3(3,4,5));
-    OIIO_CHECK_SIMD_EQUAL (float3::Iota(3.0f,2.0f), float3(3,5,7));
+    OIIO_CHECK_SIMD_EQUAL (vfloat3::Zero(), vfloat3(0.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat3::One(), vfloat3(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat3::Iota(), vfloat3(0,1,2));
+    OIIO_CHECK_SIMD_EQUAL (vfloat3::Iota(3.0f), vfloat3(3,4,5));
+    OIIO_CHECK_SIMD_EQUAL (vfloat3::Iota(3.0f,2.0f), vfloat3(3,5,7));
 
-    OIIO_CHECK_SIMD_EQUAL (float8::Zero(), float8(0.0f));
-    OIIO_CHECK_SIMD_EQUAL (float8::One(), float8(1.0f));
-    OIIO_CHECK_SIMD_EQUAL (float8::Iota(), float8(0,1,2,3,4,5,6,7));
-    OIIO_CHECK_SIMD_EQUAL (float8::Iota(3.0f), float8(3,4,5,6,7,8,9,10));
-    OIIO_CHECK_SIMD_EQUAL (float8::Iota(3.0f,2.0f), float8(3,5,7,9,11,13,15,17));
+    OIIO_CHECK_SIMD_EQUAL (vfloat8::Zero(), vfloat8(0.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat8::One(), vfloat8(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat8::Iota(), vfloat8(0,1,2,3,4,5,6,7));
+    OIIO_CHECK_SIMD_EQUAL (vfloat8::Iota(3.0f), vfloat8(3,4,5,6,7,8,9,10));
+    OIIO_CHECK_SIMD_EQUAL (vfloat8::Iota(3.0f,2.0f), vfloat8(3,5,7,9,11,13,15,17));
 
-    OIIO_CHECK_SIMD_EQUAL (float16::Zero(), float16(0.0f));
-    OIIO_CHECK_SIMD_EQUAL (float16::One(), float16(1.0f));
-    OIIO_CHECK_SIMD_EQUAL (float16::Iota(), float16(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15));
-    OIIO_CHECK_SIMD_EQUAL (float16::Iota(3.0f), float16(3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18));
-    OIIO_CHECK_SIMD_EQUAL (float16::Iota(3.0f,2.0f), float16(3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33));
+    OIIO_CHECK_SIMD_EQUAL (vfloat16::Zero(), vfloat16(0.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat16::One(), vfloat16(1.0f));
+    OIIO_CHECK_SIMD_EQUAL (vfloat16::Iota(), vfloat16(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15));
+    OIIO_CHECK_SIMD_EQUAL (vfloat16::Iota(3.0f), vfloat16(3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18));
+    OIIO_CHECK_SIMD_EQUAL (vfloat16::Iota(3.0f,2.0f), vfloat16(3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33));
 
-    benchmark ("float4 = float(const)", [](float f){ return float4(f); }, 1.0f);
-    benchmark ("float4 = Zero()", [](int){ return float4::Zero(); }, 0);
-    benchmark ("float4 = One()", [](int){ return float4::One(); }, 0);
-    benchmark ("float4 = Iota()", [](int){ return float4::Iota(); }, 0);
+    benchmark ("vfloat4 = float(const)", [](float f){ return vfloat4(f); }, 1.0f);
+    benchmark ("vfloat4 = Zero()", [](int){ return vfloat4::Zero(); }, 0);
+    benchmark ("vfloat4 = One()", [](int){ return vfloat4::One(); }, 0);
+    benchmark ("vfloat4 = Iota()", [](int){ return vfloat4::Iota(); }, 0);
 
-    benchmark ("float8 = float(const)", [](float f){ return float8(f); }, 1.0f);
-    benchmark ("float8 = Zero()", [](int){ return float8::Zero(); }, 0);
-    benchmark ("float8 = One()", [](int){ return float8::One(); }, 0);
-    benchmark ("float8 = Iota()", [](int){ return float8::Iota(); }, 0);
+    benchmark ("vfloat8 = float(const)", [](float f){ return vfloat8(f); }, 1.0f);
+    benchmark ("vfloat8 = Zero()", [](int){ return vfloat8::Zero(); }, 0);
+    benchmark ("vfloat8 = One()", [](int){ return vfloat8::One(); }, 0);
+    benchmark ("vfloat8 = Iota()", [](int){ return vfloat8::Iota(); }, 0);
 
-    benchmark ("float16 = float(const)", [](float f){ return float16(f); }, 1.0f);
-    benchmark ("float16 = Zero()", [](int){ return float16::Zero(); }, 0);
-    benchmark ("float16 = One()", [](int){ return float16::One(); }, 0);
-    benchmark ("float16 = Iota()", [](int){ return float16::Iota(); }, 0);
+    benchmark ("vfloat16 = float(const)", [](float f){ return vfloat16(f); }, 1.0f);
+    benchmark ("vfloat16 = Zero()", [](int){ return vfloat16::Zero(); }, 0);
+    benchmark ("vfloat16 = One()", [](int){ return vfloat16::One(); }, 0);
+    benchmark ("vfloat16 = Iota()", [](int){ return vfloat16::Iota(); }, 0);
 }
 
 
@@ -1283,21 +1283,21 @@ void test_special ()
 {
     test_heading ("special");
     {
-        // Make sure a float4 constructed from saturated unsigned short,
+        // Make sure a vfloat4 constructed from saturated unsigned short,
         // short, unsigned char, or char values, then divided by the float
         // max, exactly equals 1.0.
         short s32767[] = {32767, 32767, 32767, 32767};
         unsigned short us65535[] = {65535, 65535, 65535, 65535};
         char c127[] = {127, 127, 127, 127};
         unsigned char uc255[] = {255, 255, 255, 255};
-        OIIO_CHECK_SIMD_EQUAL (float4(us65535)/float4(65535.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(us65535)*float4(1.0f/65535.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(s32767)/float4(32767.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(s32767)*float4(1.0f/32767.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(uc255)/float4(255.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(uc255)*float4(1.0f/255.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(c127)/float4(127.0), float4(1.0f));
-        OIIO_CHECK_SIMD_EQUAL (float4(c127)*float4(1.0f/127.0), float4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(us65535)/vfloat4(65535.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(us65535)*vfloat4(1.0f/65535.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(s32767)/vfloat4(32767.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(s32767)*vfloat4(1.0f/32767.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(uc255)/vfloat4(255.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(uc255)*vfloat4(1.0f/255.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(c127)/vfloat4(127.0), vfloat4(1.0f));
+        OIIO_CHECK_SIMD_EQUAL (vfloat4(c127)*vfloat4(1.0f/127.0), vfloat4(1.0f));
     }
 }
 
@@ -1305,9 +1305,9 @@ void test_special ()
 
 // Wrappers to resolve the return type ambiguity
 inline float fast_exp_float (float x) { return fast_exp(x); }
-inline float4 fast_exp_float4 (const float4& x) { return fast_exp(x); }
+inline vfloat4 fast_exp_vfloat4 (const vfloat4& x) { return fast_exp(x); }
 inline float fast_log_float (float x) { return fast_log(x); }
-//inline float4 fast_log_float (const float4& x) { return fast_log(x); }
+//inline vfloat4 fast_log_float (const vfloat4& x) { return fast_log(x); }
 inline float rsqrtf (float f) { return 1.0f / sqrtf(f); }
 inline float rcp (float f) { return 1.0f / f; }
 
@@ -1364,49 +1364,49 @@ void test_mathfuncs ()
 void test_metaprogramming ()
 {
     test_heading ("metaprogramming");
-    OIIO_CHECK_EQUAL (SimdSize<float4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdSize<float3>::size, 4);
-    OIIO_CHECK_EQUAL (SimdSize<int4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdSize<bool4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdSize<float8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdSize<int8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdSize<bool8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdSize<float16>::size, 16);
-    OIIO_CHECK_EQUAL (SimdSize<int16>::size, 16);
-    OIIO_CHECK_EQUAL (SimdSize<bool16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdSize<vfloat4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<vfloat3>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<vint4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<vbool4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdSize<vfloat8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdSize<vint8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdSize<vbool8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdSize<vfloat16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdSize<vint16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdSize<vbool16>::size, 16);
     OIIO_CHECK_EQUAL (SimdSize<float>::size, 1);
     OIIO_CHECK_EQUAL (SimdSize<int>::size, 1);
     OIIO_CHECK_EQUAL (SimdSize<bool>::size, 1);
 
-    OIIO_CHECK_EQUAL (SimdElements<float4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdElements<float3>::size, 3);
-    OIIO_CHECK_EQUAL (SimdElements<int4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdElements<bool4>::size, 4);
-    OIIO_CHECK_EQUAL (SimdElements<float8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdElements<int8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdElements<bool8>::size, 8);
-    OIIO_CHECK_EQUAL (SimdElements<float16>::size, 16);
-    OIIO_CHECK_EQUAL (SimdElements<int16>::size, 16);
-    OIIO_CHECK_EQUAL (SimdElements<bool16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdElements<vfloat4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdElements<vfloat3>::size, 3);
+    OIIO_CHECK_EQUAL (SimdElements<vint4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdElements<vbool4>::size, 4);
+    OIIO_CHECK_EQUAL (SimdElements<vfloat8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdElements<vint8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdElements<vbool8>::size, 8);
+    OIIO_CHECK_EQUAL (SimdElements<vfloat16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdElements<vint16>::size, 16);
+    OIIO_CHECK_EQUAL (SimdElements<vbool16>::size, 16);
     OIIO_CHECK_EQUAL (SimdElements<float>::size, 1);
     OIIO_CHECK_EQUAL (SimdElements<int>::size, 1);
     OIIO_CHECK_EQUAL (SimdElements<bool>::size, 1);
 
-    OIIO_CHECK_EQUAL (float4::elements, 4);
-    OIIO_CHECK_EQUAL (float3::elements, 3);
-    OIIO_CHECK_EQUAL (int4::elements, 4);
-    OIIO_CHECK_EQUAL (bool4::elements, 4);
-    OIIO_CHECK_EQUAL (float8::elements, 8);
-    OIIO_CHECK_EQUAL (int8::elements, 8);
-    OIIO_CHECK_EQUAL (bool8::elements, 8);
-    OIIO_CHECK_EQUAL (float16::elements, 16);
-    OIIO_CHECK_EQUAL (int16::elements, 16);
-    OIIO_CHECK_EQUAL (bool16::elements, 16);
+    OIIO_CHECK_EQUAL (vfloat4::elements, 4);
+    OIIO_CHECK_EQUAL (vfloat3::elements, 3);
+    OIIO_CHECK_EQUAL (vint4::elements, 4);
+    OIIO_CHECK_EQUAL (vbool4::elements, 4);
+    OIIO_CHECK_EQUAL (vfloat8::elements, 8);
+    OIIO_CHECK_EQUAL (vint8::elements, 8);
+    OIIO_CHECK_EQUAL (vbool8::elements, 8);
+    OIIO_CHECK_EQUAL (vfloat16::elements, 16);
+    OIIO_CHECK_EQUAL (vint16::elements, 16);
+    OIIO_CHECK_EQUAL (vbool16::elements, 16);
 
-    // OIIO_CHECK_EQUAL (is_same<float4::value_t,float>::value, true);
-    // OIIO_CHECK_EQUAL (is_same<float3::value_t,float>::value, true);
-    // OIIO_CHECK_EQUAL (is_same<int4::value_t,int>::value, true);
-    // OIIO_CHECK_EQUAL (is_same<bool4::value_t,int>::value, true);
+    // OIIO_CHECK_EQUAL (is_same<vfloat4::value_t,float>::value, true);
+    // OIIO_CHECK_EQUAL (is_same<vfloat3::value_t,float>::value, true);
+    // OIIO_CHECK_EQUAL (is_same<vint4::value_t,int>::value, true);
+    // OIIO_CHECK_EQUAL (is_same<vbool4::value_t,int>::value, true);
 }
 
 
@@ -1428,8 +1428,8 @@ transformp_imath_simd (const Imath::V3f &v, const Imath::M44f &m)
 }
 
 // Transform a simd point by an Imath matrix using SIMD
-inline float3
-transformp_simd (const float3 &v, const Imath::M44f &m)
+inline vfloat3
+transformp_simd (const vfloat3 &v, const Imath::M44f &m)
 {
     return simd::transformp (m, v);
 }
@@ -1509,7 +1509,7 @@ void test_matrix ()
     Imath::M44f mx (1,0,0,0, 0,1,0,0, 0,0,1,0, 10,11,12,1);
     benchmark2 ("transformp Imath", transformp_imath, vx, mx, 1);
     benchmark2 ("transformp Imath with simd", transformp_imath_simd, vx, mx, 1);
-    benchmark2 ("transformp simd", transformp_simd, float3(vx), mx, 1);
+    benchmark2 ("transformp simd", transformp_simd, vfloat3(vx), mx, 1);
     benchmark ("transpose m44", mat_transpose, mx, 1);
     benchmark ("transpose m44 with simd", mat_transpose_simd, mx, 1);
     // Reduce the iterations of the ones below, if we can
@@ -1554,120 +1554,120 @@ main (int argc, char *argv[])
 
     Timer timer;
 
-    int4 dummy4(0);
-    int8 dummy8(0);
-    benchmark ("null benchmark 4", [](const int4&){ return int(0); }, dummy4);
-    benchmark ("null benchmark 8", [](const int8&){ return int(0); }, dummy8);
+    vint4 dummy4(0);
+    vint8 dummy8(0);
+    benchmark ("null benchmark 4", [](const vint4&){ return int(0); }, dummy4);
+    benchmark ("null benchmark 8", [](const vint8&){ return int(0); }, dummy8);
 
-    category_heading ("float4");
-    test_partial_loadstore<float4> ();
-    test_conversion_loadstore_float<float4> ();
-    test_component_access<float4> ();
-    test_arithmetic<float4> ();
-    test_comparisons<float4> ();
-    test_shuffle4<float4> ();
-    test_swizzle<float4> ();
-    test_blend<float4> ();
-    test_transpose4<float4> ();
-    test_vectorops_float4 ();
-    test_fused<float4> ();
-    test_mathfuncs<float4>();
+    category_heading ("vfloat4");
+    test_partial_loadstore<vfloat4> ();
+    test_conversion_loadstore_float<vfloat4> ();
+    test_component_access<vfloat4> ();
+    test_arithmetic<vfloat4> ();
+    test_comparisons<vfloat4> ();
+    test_shuffle4<vfloat4> ();
+    test_swizzle<vfloat4> ();
+    test_blend<vfloat4> ();
+    test_transpose4<vfloat4> ();
+    test_vectorops_vfloat4 ();
+    test_fused<vfloat4> ();
+    test_mathfuncs<vfloat4>();
 
-    category_heading ("float3");
-    test_partial_loadstore<float3> ();
-    test_conversion_loadstore_float<float3> ();
-    test_component_access<float3> ();
-    test_arithmetic<float3> ();
-    // Unnecessary to test these, they just use the float4 ops.
-    // test_comparisons<float3> ();
-    // test_shuffle4<float3> ();
-    // test_swizzle<float3> ();
-    // test_blend<float3> ();
-    // test_transpose4<float3> ();
-    test_vectorops_float3 ();
-    test_fused<float3> ();
-    // test_mathfuncs<float3>();
+    category_heading ("vfloat3");
+    test_partial_loadstore<vfloat3> ();
+    test_conversion_loadstore_float<vfloat3> ();
+    test_component_access<vfloat3> ();
+    test_arithmetic<vfloat3> ();
+    // Unnecessary to test these, they just use the vfloat4 ops.
+    // test_comparisons<vfloat3> ();
+    // test_shuffle4<vfloat3> ();
+    // test_swizzle<vfloat3> ();
+    // test_blend<vfloat3> ();
+    // test_transpose4<vfloat3> ();
+    test_vectorops_vfloat3 ();
+    test_fused<vfloat3> ();
+    // test_mathfuncs<vfloat3>();
 
-    category_heading ("float8");
-    test_partial_loadstore<float8> ();
-    test_conversion_loadstore_float<float8> ();
-    test_masked_loadstore<float8> ();
-    test_component_access<float8> ();
-    test_arithmetic<float8> ();
-    test_comparisons<float8> ();
-    test_shuffle8<float8> ();
-    test_blend<float8> ();
-    test_fused<float8> ();
-    test_mathfuncs<float8>();
+    category_heading ("vfloat8");
+    test_partial_loadstore<vfloat8> ();
+    test_conversion_loadstore_float<vfloat8> ();
+    test_masked_loadstore<vfloat8> ();
+    test_component_access<vfloat8> ();
+    test_arithmetic<vfloat8> ();
+    test_comparisons<vfloat8> ();
+    test_shuffle8<vfloat8> ();
+    test_blend<vfloat8> ();
+    test_fused<vfloat8> ();
+    test_mathfuncs<vfloat8>();
 
-    category_heading ("float16");
-    test_partial_loadstore<float16> ();
-    test_conversion_loadstore_float<float16> ();
-    test_masked_loadstore<float16> ();
-    test_component_access<float16> ();
-    test_arithmetic<float16> ();
-    test_comparisons<float16> ();
-    test_shuffle16<float16> ();
-    test_blend<float16> ();
-    test_fused<float16> ();
-    test_mathfuncs<float16>();
+    category_heading ("vfloat16");
+    test_partial_loadstore<vfloat16> ();
+    test_conversion_loadstore_float<vfloat16> ();
+    test_masked_loadstore<vfloat16> ();
+    test_component_access<vfloat16> ();
+    test_arithmetic<vfloat16> ();
+    test_comparisons<vfloat16> ();
+    test_shuffle16<vfloat16> ();
+    test_blend<vfloat16> ();
+    test_fused<vfloat16> ();
+    test_mathfuncs<vfloat16>();
 
-    category_heading ("int4");
-    test_partial_loadstore<int4> ();
-    test_conversion_loadstore_int<int4> ();
-    test_component_access<int4> ();
-    test_arithmetic<int4> ();
-    test_bitwise_int<int4> ();
-    test_comparisons<int4> ();
-    test_shuffle4<int4> ();
-    test_blend<int4> ();
-    test_vint_to_uint16s<int4> ();
-    test_vint_to_uint8s<int4> ();
-    test_shift<int4> ();
-    test_transpose4<int4> ();
+    category_heading ("vint4");
+    test_partial_loadstore<vint4> ();
+    test_conversion_loadstore_int<vint4> ();
+    test_component_access<vint4> ();
+    test_arithmetic<vint4> ();
+    test_bitwise_int<vint4> ();
+    test_comparisons<vint4> ();
+    test_shuffle4<vint4> ();
+    test_blend<vint4> ();
+    test_vint_to_uint16s<vint4> ();
+    test_vint_to_uint8s<vint4> ();
+    test_shift<vint4> ();
+    test_transpose4<vint4> ();
 
-    category_heading ("int8");
-    test_partial_loadstore<int8> ();
-    test_conversion_loadstore_int<int8> ();
-    test_masked_loadstore<int8> ();
-    test_component_access<int8> ();
-    test_arithmetic<int8> ();
-    test_bitwise_int<int8> ();
-    test_comparisons<int8> ();
-    test_shuffle8<int8> ();
-    test_blend<int8> ();
-    test_vint_to_uint16s<int8> ();
-    test_vint_to_uint8s<int8> ();
-    test_shift<int8> ();
+    category_heading ("vint8");
+    test_partial_loadstore<vint8> ();
+    test_conversion_loadstore_int<vint8> ();
+    test_masked_loadstore<vint8> ();
+    test_component_access<vint8> ();
+    test_arithmetic<vint8> ();
+    test_bitwise_int<vint8> ();
+    test_comparisons<vint8> ();
+    test_shuffle8<vint8> ();
+    test_blend<vint8> ();
+    test_vint_to_uint16s<vint8> ();
+    test_vint_to_uint8s<vint8> ();
+    test_shift<vint8> ();
 
-    category_heading ("int16");
-    test_partial_loadstore<int16> ();
-    test_conversion_loadstore_int<int16> ();
-    test_masked_loadstore<int16> ();
-    test_component_access<int16> ();
-    test_arithmetic<int16> ();
-    test_bitwise_int<int16> ();
-    test_comparisons<int16> ();
-    test_shuffle16<int16> ();
-    test_blend<int16> ();
-    test_vint_to_uint16s<int16> ();
-    test_vint_to_uint16s<int16> ();
-    test_shift<int16> ();
+    category_heading ("vint16");
+    test_partial_loadstore<vint16> ();
+    test_conversion_loadstore_int<vint16> ();
+    test_masked_loadstore<vint16> ();
+    test_component_access<vint16> ();
+    test_arithmetic<vint16> ();
+    test_bitwise_int<vint16> ();
+    test_comparisons<vint16> ();
+    test_shuffle16<vint16> ();
+    test_blend<vint16> ();
+    test_vint_to_uint16s<vint16> ();
+    test_vint_to_uint16s<vint16> ();
+    test_shift<vint16> ();
 
-    category_heading ("bool4");
-    test_shuffle4<bool4> ();
-    test_component_access<bool4> ();
-    test_bitwise_bool<bool4> ();
+    category_heading ("vbool4");
+    test_shuffle4<vbool4> ();
+    test_component_access<vbool4> ();
+    test_bitwise_bool<vbool4> ();
 
-    category_heading ("bool8");
-    test_shuffle8<bool8> ();
-    test_component_access<bool8> ();
-    test_bitwise_bool<bool8> ();
+    category_heading ("vbool8");
+    test_shuffle8<vbool8> ();
+    test_component_access<vbool8> ();
+    test_bitwise_bool<vbool8> ();
 
-    category_heading ("bool16");
-    // test_shuffle16<bool16> ();
-    test_component_access<bool16> ();
-    test_bitwise_bool<bool16> ();
+    category_heading ("vbool16");
+    // test_shuffle16<vbool16> ();
+    test_component_access<vbool16> ();
+    test_bitwise_bool<vbool16> ();
 
     category_heading ("Odds and ends");
     test_constants();

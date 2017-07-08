@@ -400,26 +400,26 @@ private:
                           int level, TextureFile &texturefile,
                           PerThreadInfo *thread_info, TextureOpt &options,
                           int nchannels_result, int actualchannels,
-                          const float *weight, simd::float4 *accum,
-                          simd::float4 *daccumds, simd::float4 *daccumdt);
+                          const float *weight, simd::vfloat4 *accum,
+                          simd::vfloat4 *daccumds, simd::vfloat4 *daccumdt);
     bool sample_closest  (int nsamples, const float *s, const float *t,
                           int level, TextureFile &texturefile,
                           PerThreadInfo *thread_info, TextureOpt &options,
                           int nchannels_result, int actualchannels,
-                          const float *weight, simd::float4 *accum,
-                          simd::float4 *daccumds, simd::float4 *daccumdt);
+                          const float *weight, simd::vfloat4 *accum,
+                          simd::vfloat4 *daccumds, simd::vfloat4 *daccumdt);
     bool sample_bilinear (int nsamples, const float *s, const float *t,
                           int level, TextureFile &texturefile,
                           PerThreadInfo *thread_info, TextureOpt &options,
                           int nchannels_result, int actualchannels,
-                          const float *weight, simd::float4 *accum,
-                          simd::float4 *daccumds, simd::float4 *daccumdt);
+                          const float *weight, simd::vfloat4 *accum,
+                          simd::vfloat4 *daccumds, simd::vfloat4 *daccumdt);
     bool sample_bicubic  (int nsamples, const float *s, const float *t,
                           int level, TextureFile &texturefile,
                           PerThreadInfo *thread_info, TextureOpt &options,
                           int nchannels_result, int actualchannels,
-                          const float *weight, simd::float4 *accum,
-                          simd::float4 *daccumds, simd::float4 *daccumdt);
+                          const float *weight, simd::vfloat4 *accum,
+                          simd::vfloat4 *daccumds, simd::vfloat4 *daccumdt);
 
     // Define a prototype of a member function pointer for texture3d
     // lookups.
