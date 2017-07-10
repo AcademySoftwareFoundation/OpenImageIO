@@ -8,7 +8,7 @@ if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
     # Try to be well-behaved and install into reasonable places according to
     # the "standard" unix directory heirarchy
     # TODO: Figure out how to get the correct python directory
-    set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
+    set (DEFAULT_PYLIB_INSTALL_DIR "lib/python${PYTHONLIBS_VERSION_MAJOR}.${PYTHONLIBS_VERSION_MINOR}/site-packages")
     set (DEFAULT_PYLIB3_INSTALL_DIR "lib/python3/site-packages")
     set (DEFAULT_DOC_INSTALL_DIR "share/doc/${PROJECT_NAME}")
     set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")

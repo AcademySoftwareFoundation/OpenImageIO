@@ -77,12 +77,17 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
          py_typedesc.cpp py_paramvalue.cpp py_deepdata.cpp
          py_oiio.cpp)
 
+    string (REGEX MATCH "([0-9]+)\.([0-9]+)\.[0-9]+" _version_match ${PYTHONLIBS_VERSION_STRING})
+    set (PYTHONLIBS_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set (PYTHONLIBS_VERSION_MINOR ${CMAKE_MATCH_2})
     if (VERBOSE)
         message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
         message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
         message (STATUS "Python libraries    ${PYTHON_LIBRARIES}")
         message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
         message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
+        message (STATUS "PYTHONLIBS_VERSION_STRING = ${PYTHONLIBS_VERSION_STRING}")
+        message (STATUS "Python version major: ${PYTHONLIBS_VERSION_MAJOR} minor: ${PYTHONLIBS_VERSION_MINOR}")
     endif ()
 
     include_directories (${PYTHON_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
