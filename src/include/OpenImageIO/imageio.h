@@ -402,7 +402,7 @@ public:
     /// channelnames is not filled out.
     string_view channel_name (int chan) const {
         return chan >= 0 && chan < (int)channelnames.size()
-            ? channelnames[chan] : "";
+            ? string_view(channelnames[chan]) : "";
     }
 
     /// Fill in an array of channel formats describing all channels in
