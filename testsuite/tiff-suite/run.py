@@ -52,10 +52,13 @@ command += rw_command (imagedir, "pc260001.tif")
 # quad-lzw.tif	512x384 8-bit RGB (lzw) "quadric surfaces"
 # quad-tile.tif	512x384 tiled version of quad-lzw.tif (lzw)
 # quad-jpeg.tif 512x384 8-bit YCbCr (jpeg) version of quad-lzw.tif
-command += rw_command (imagedir, "quad-lzw.tif")
+
+# FIXME - temporarily disable quad-lzw.tif to address a regression in
+# libtiff 4.0.8. Re-enable these tests after libtiff is patched.
+#command += rw_command (imagedir, "quad-lzw.tif")
 command += rw_command (imagedir, "quad-tile.tif")
-command += diff_command (imagedir+"/quad-tile.tif",
-                                          imagedir+"/quad-lzw.tif")
+#command += diff_command (imagedir+"/quad-tile.tif",
+#                                          imagedir+"/quad-lzw.tif")
 command += rw_command (imagedir, "quad-jpeg.tif",
                        extraargs="-compression zip")
 

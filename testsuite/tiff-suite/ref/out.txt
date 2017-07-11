@@ -243,19 +243,6 @@ Reading ../../../../../libtiffpic/pc260001.tif
     oiio:ColorSpace: "sRGB"
 Comparing "../../../../../libtiffpic/pc260001.tif" and "pc260001.tif"
 PASS
-Reading ../../../../../libtiffpic/quad-lzw.tif
-../../../../../libtiffpic/quad-lzw.tif :  512 x  384, 3 channel, uint8 tiff
-    SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
-    channel list: R, G, B
-    oiio:BitsPerSample: 8
-    tiff:PhotometricInterpretation: 2
-    tiff:PlanarConfiguration: 1
-    planarconfig: "contig"
-    tiff:Compression: 5
-    compression: "lzw"
-    tiff:RowsPerStrip: 5
-Comparing "../../../../../libtiffpic/quad-lzw.tif" and "quad-lzw.tif"
-PASS
 Reading ../../../../../libtiffpic/quad-tile.tif
 ../../../../../libtiffpic/quad-tile.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
@@ -269,8 +256,6 @@ Reading ../../../../../libtiffpic/quad-tile.tif
     tiff:Compression: 5
     compression: "lzw"
 Comparing "../../../../../libtiffpic/quad-tile.tif" and "quad-tile.tif"
-PASS
-Comparing "../../../../../libtiffpic/quad-tile.tif" and "../../../../../libtiffpic/quad-lzw.tif"
 PASS
 Reading ../../../../../libtiffpic/quad-jpeg.tif
 ../../../../../libtiffpic/quad-jpeg.tif :  512 x  384, 3 channel, uint8 tiff
