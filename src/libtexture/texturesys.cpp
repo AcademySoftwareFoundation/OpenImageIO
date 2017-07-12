@@ -1100,6 +1100,80 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
 
 
 bool
+TextureSystemImpl::texture (ustring filename, TextureOptBatch &options,
+                            Tex::RunMask mask, const float *s, const float *t,
+                            const float *dsdx, const float *dtdx,
+                            const float *dsdy, const float *dtdy,
+                            int nchannels, float *result,
+                            float *dresultds, float *dresultdt)
+{
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return texture (texture_handle, thread_info, options, mask,
+                    s, t, dsdx, dtdx, dsdy, dtdy,
+                    nchannels, result, dresultds, dresultdt);
+}
+
+
+bool
+TextureSystemImpl::texture (TextureHandle *texture_handle,
+                            Perthread *thread_info, TextureOptBatch &options,
+                            Tex::RunMask mask, const float *s, const float *t,
+                            const float *dsdx, const float *dtdx,
+                            const float *dsdy, const float *dtdy,
+                            int nchannels, float *result,
+                            float *dresultds, float *dresultdt)
+{
+    // (FIXME) CHEAT! Texture points individually
+    TextureOpt opt;
+    opt.firstchannel = options.firstchannel;
+    opt.subimage = options.subimage;
+    opt.subimagename = options.subimagename;
+    opt.swrap = (TextureOpt::Wrap) options.swrap;
+    opt.twrap = (TextureOpt::Wrap) options.twrap;
+    opt.mipmode = (TextureOpt::MipMode) options.mipmode;
+    opt.interpmode = (TextureOpt::InterpMode) options.interpmode;
+    opt.anisotropic = options.anisotropic;
+    opt.conservative_filter = options.conservative_filter;
+    opt.fill = options.fill;
+    opt.missingcolor = options.missingcolor;
+    // rwrap not needed for 2D texture
+
+    bool ok = true;
+    Tex::RunMask bit = 1;
+    for (int i = 0; i < Tex::BatchWidth;  ++i, bit <<= 1) {
+        float r[4], drds[4], drdt[4];  // temp result
+        if (mask & bit) {
+            opt.sblur = options.sblur[i];
+            opt.tblur = options.tblur[i];
+            opt.swidth = options.swidth[i];
+            opt.twidth = options.twidth[i];
+            // rblur, rwidth not needed for 2D texture
+            if (dresultds) {
+                ok &= texture (texture_handle, thread_info,
+                               opt, s[i], t[i], dsdx[i], dtdx[i],
+                               dsdy[i], dtdy[i], nchannels, r, drds, drdt);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                    dresultds[c*Tex::BatchWidth+i] = drds[c];
+                    dresultdt[c*Tex::BatchWidth+i] = drdt[c];
+                }
+            } else {
+                ok &= texture (texture_handle, thread_info,
+                               opt, s[i], t[i], dsdx[i], dtdx[i],
+                               dsdy[i], dtdy[i], nchannels, r);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                }
+            }
+        }
+    }
+    return ok;
+}
+
+
+
+bool
 TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                             PerThreadInfo *thread_info, 
                             TextureOpt &options,

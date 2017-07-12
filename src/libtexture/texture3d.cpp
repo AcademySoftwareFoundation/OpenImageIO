@@ -737,6 +737,87 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 
 
 
+bool
+TextureSystemImpl::texture3d (TextureHandle *texture_handle,
+                              Perthread *thread_info,
+                              TextureOptBatch &options, Tex::RunMask mask,
+                              const float *P, const float *dPdx,
+                              const float *dPdy, const float *dPdz,
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
+{
+    // (FIXME) CHEAT! Texture points individually
+    TextureOpt opt;
+    opt.firstchannel = options.firstchannel;
+    opt.subimage = options.subimage;
+    opt.subimagename = options.subimagename;
+    opt.swrap = (TextureOpt::Wrap) options.swrap;
+    opt.twrap = (TextureOpt::Wrap) options.twrap;
+    opt.mipmode = (TextureOpt::MipMode) options.mipmode;
+    opt.interpmode = (TextureOpt::InterpMode) options.interpmode;
+    opt.anisotropic = options.anisotropic;
+    opt.conservative_filter = options.conservative_filter;
+    opt.fill = options.fill;
+    opt.missingcolor = options.missingcolor;
+    opt.rwrap = (TextureOpt::Wrap) options.rwrap;
+
+    bool ok = true;
+    Tex::RunMask bit = 1;
+    for (int i = 0; i < Tex::BatchWidth;  ++i, bit <<= 1) {
+        float r[4], drds[4], drdt[4];  // temp result
+        if (mask & bit) {
+            opt.sblur = options.sblur[i];
+            opt.tblur = options.tblur[i];
+            opt.rblur = options.rblur[i];
+            opt.swidth = options.swidth[i];
+            opt.twidth = options.twidth[i];
+            opt.rwidth = options.rwidth[i];
+            Imath::V3f P_ (P[i], P[i+Tex::BatchWidth], P[i+2*Tex::BatchWidth]);
+            Imath::V3f dPdx_ (dPdx[i], dPdx[i+Tex::BatchWidth], dPdx[i+2*Tex::BatchWidth]);
+            Imath::V3f dPdy_ (dPdy[i], dPdy[i+Tex::BatchWidth], dPdy[i+2*Tex::BatchWidth]);
+            Imath::V3f dPdz_ (dPdz[i], dPdz[i+Tex::BatchWidth], dPdz[i+2*Tex::BatchWidth]);
+            if (dresultds) {
+                ok &= texture3d (texture_handle, thread_info, opt,
+                                 P_, dPdx_, dPdy_, dPdz_,
+                                 nchannels, r, drds, drdt);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                    dresultds[c*Tex::BatchWidth+i] = drds[c];
+                    dresultdt[c*Tex::BatchWidth+i] = drdt[c];
+                }
+            } else {
+                ok &= texture3d (texture_handle, thread_info, opt,
+                                 P_, dPdx_, dPdy_, dPdz_, nchannels, r);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                }
+            }
+        }
+    }
+    return ok;
+}
+
+
+
+bool
+TextureSystemImpl::texture3d (ustring filename,
+                              TextureOptBatch &options, Tex::RunMask mask,
+                              const float *P, const float *dPdx,
+                              const float *dPdy, const float *dPdz,
+                              int nchannels, float *result,
+                              float *dresultds, float *dresultdt,
+                              float *dresultdr)
+{
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return texture3d (texture_handle, thread_info, options, mask,
+                      P, dPdx, dPdy, dPdz, nchannels,
+                      result, dresultds, dresultdt, dresultdr);
+
+}
+
+
 }  // end namespace pvt
 
 OIIO_NAMESPACE_END

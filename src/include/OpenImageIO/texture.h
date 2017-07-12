@@ -69,6 +69,82 @@ enum EnvLayout {
 
 
 
+namespace Tex {
+
+/// Wrap mode describes what happens when texture coordinates describe
+/// a value outside the usual [0,1] range where a texture is defined.
+enum class Wrap {
+    Default,        ///< Use the default found in the file
+    Black,          ///< Black outside [0..1]
+    Clamp,          ///< Clamp to [0..1]
+    Periodic,       ///< Periodic mod 1
+    Mirror,         ///< Mirror the image
+    PeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+    PeriodicSharedBorder,  ///< Periodic with shared border (env)
+    Last            ///< Mark the end -- don't use this!
+};
+
+/// Utility: Return the Wrap enum corresponding to a wrap name:
+/// "default", "black", "clamp", "periodic", "mirror".
+OIIO_API Wrap decode_wrapmode (const char *name);
+OIIO_API Wrap decode_wrapmode (ustring name);
+
+/// Utility: Parse a single wrap mode (e.g., "periodic") or a
+/// comma-separated wrap modes string (e.g., "black,clamp") into
+/// separate Wrap enums for s and t.
+OIIO_API void parse_wrapmodes (const char *wrapmodes,
+                               Wrap &swrapcode, Wrap &twrapcode);
+
+
+/// Mip mode determines if/how we use mipmaps
+///
+enum class MipMode {
+    Default,      ///< Default high-quality lookup
+    NoMIP,        ///< Just use highest-res image, no MIP mapping
+    OneLevel,     ///< Use just one mipmap level
+    Trilinear,    ///< Use two MIPmap levels (trilinear)
+    Aniso         ///< Use two MIPmap levels w/ anisotropic
+};
+
+/// Interp mode determines how we sample within a mipmap level
+///
+enum class InterpMode {
+    Closest,      ///< Force closest texel
+    Bilinear,     ///< Force bilinear lookup within a mip level
+    Bicubic,      ///< Force cubic lookup within a mip level
+    SmartBicubic  ///< Bicubic when maxifying, else bilinear
+};
+
+
+/// Fixed width for SIMD batching texture lookups.
+/// May be changed for experimentation or future expansion.
+#ifndef OIIO_TEXTURE_SIMD_BATCH_WIDTH
+#define OIIO_TEXTURE_SIMD_BATCH_WIDTH 16
+#endif
+
+static constexpr int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
+
+typedef simd::VecType<float,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
+typedef simd::VecType<int,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type IntWide;
+typedef uint64_t RunMask;
+
+#if OIIO_TEXTURE_SIMD_BATCH_WIDTH == 4
+static constexpr RunMask RunMaskOn = 0xf;
+#elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 8
+static constexpr RunMask RunMaskOn = 0xff;
+#elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 16
+static constexpr RunMask RunMaskOn = 0xffff;
+#elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 32
+static constexpr RunMask RunMaskOn = 0xffffffff;
+#elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 64
+static constexpr RunMask RunMaskOn = 0xffffffffffffffffULL;
+#else
+# error "Not a valid OIIO_TEXTURE_SIMD_BATCH_WIDTH choice"
+#endif
+
+}  // namespace Tex
+
+
 /// Data type for flags that indicate on a point-by-point basis whether
 /// we want computations to be performed.
 typedef unsigned char Runflag;
@@ -166,15 +242,23 @@ public:
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
-    static Wrap decode_wrapmode (const char *name);
-    static Wrap decode_wrapmode (ustring name);
+    static Wrap decode_wrapmode (const char *name) {
+        return (Wrap) Tex::decode_wrapmode(name);
+    }
+    static Wrap decode_wrapmode (ustring name) {
+        return (Wrap) Tex::decode_wrapmode(name);
+    }
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
     /// separate Wrap enums for s and t.
     static void parse_wrapmodes (const char *wrapmodes,
                                  TextureOpt::Wrap &swrapcode,
-                                 TextureOpt::Wrap &twrapcode);
+                                 TextureOpt::Wrap &twrapcode) {
+        Tex::parse_wrapmodes (wrapmodes,
+                              *(Tex::Wrap *)&swrapcode,
+                              *(Tex::Wrap *)&twrapcode);
+    }
 
 private:
     // Options set INTERNALLY by libtexture after the options are passed
@@ -185,6 +269,47 @@ private:
 
 
 
+/// Texture options for a batch of Tex::BatchWidth points and run mask.
+class OIIO_API TextureOptBatch {
+public:
+    /// Create a TextureOptBatch with all fields initialized to reasonable
+    /// defaults.
+    TextureOptBatch () {}   // use inline initializers
+
+    // Options that must be the same for all points we're texturing at once
+    int firstchannel = 0;                 ///< First channel of the lookup
+    int subimage = 0;                     ///< Subimage or face ID
+    ustring subimagename;                 ///< Subimage name
+    Tex::Wrap swrap = Tex::Wrap::Default; ///< Wrap mode in the s direction
+    Tex::Wrap twrap = Tex::Wrap::Default; ///< Wrap mode in the t direction
+    Tex::Wrap rwrap = Tex::Wrap::Default; ///< Wrap mode in the r direction (volumetric)
+    Tex::MipMode mipmode = Tex::MipMode::Default;  ///< Mip mode
+    Tex::InterpMode interpmode = Tex::InterpMode::SmartBicubic;  ///< Interpolation mode
+    int anisotropic = 32;                 ///< Maximum anisotropic ratio
+    bool conservative_filter = true;      ///< True: over-blur rather than alias
+    float fill = 0.0f;                    ///< Fill value for missing channels
+    const float *missingcolor = nullptr;  ///< Color for missing texture
+
+    // Options that may be different for each point we're texturing
+    float sblur[Tex::BatchWidth];    ///< Blur amount
+    float tblur[Tex::BatchWidth];
+    float swidth[Tex::BatchWidth];   ///< Multiplier for derivatives
+    float twidth[Tex::BatchWidth];
+
+    // For 3D volume texture lookups only:
+    float rblur[Tex::BatchWidth];
+    float rwidth[Tex::BatchWidth];
+
+private:
+    // Options set INTERNALLY by libtexture after the options are passed
+    // by the user.  Users should not attempt to alter these!
+    int envlayout = 0;               // Layout for environment wrap
+    friend class pvt::TextureSystemImpl;
+};
+
+
+
+/// DEPRECATED(1.8)
 /// Encapsulate all the options needed for texture lookups.  Making
 /// these options all separate parameters to the texture API routines is
 /// very ugly and also a big pain whenever we think of new options to
@@ -261,10 +386,10 @@ public:
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
     static Wrap decode_wrapmode (const char *name) {
-        return (Wrap)TextureOpt::decode_wrapmode (name);
+        return (Wrap)Tex::decode_wrapmode (name);
     }
     static Wrap decode_wrapmode (ustring name) {
-        return (Wrap)TextureOpt::decode_wrapmode (name);
+        return (Wrap)Tex::decode_wrapmode (name);
     }
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
@@ -273,9 +398,9 @@ public:
     static void parse_wrapmodes (const char *wrapmodes,
                                  TextureOptions::Wrap &swrapcode,
                                  TextureOptions::Wrap &twrapcode) {
-        TextureOpt::parse_wrapmodes (wrapmodes,
-                                     *(TextureOpt::Wrap *)&swrapcode,
-                                     *(TextureOpt::Wrap *)&twrapcode);
+        Tex::parse_wrapmodes (wrapmodes,
+                              *(Tex::Wrap *)&swrapcode,
+                              *(Tex::Wrap *)&twrapcode);
     }
 
 private:
@@ -284,6 +409,7 @@ private:
     friend class pvt::TextureSystemImpl;
     friend class TextureOpt;
 };
+
 
 
 
@@ -430,16 +556,38 @@ public:
                           float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
     /// Retrieve filtered (possibly anisotropic) texture lookups for
-    /// several points at once.
-    ///
-    /// All of the VaryingRef parameters (and fields in options)
-    /// describe texture lookup parameters at an array of positions.
-    /// But this routine only computes them from indices i where
-    /// beginactive <= i < endactive, and ONLY when runflags[i] is
-    /// nonzero.
+    /// an entire batch of points. The mask is a bitfield giving the
+    /// lanes to compute.
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
+    ///
+    /// The float* inputs are each pointing to an array of float[BatchWidth]
+    /// giving one float value for each batch lane.
+    ///
+    /// The float* results act like float[nchannels][BatchWidth], so that
+    /// effectively result[0..BatchWidth-1] are the "red" result for each
+    /// lane, result[BatchWidth..2*BatchWidth-1] are the "green" results, etc.
+    /// The dresultds and dresultdt should either both be provided, or else
+    /// both be nullptr (meaning no derivative results are required).
+    virtual bool texture (ustring filename, TextureOptBatch &options,
+                          Tex::RunMask mask, const float *s, const float *t,
+                          const float *dsdx, const float *dtdx,
+                          const float *dsdy, const float *dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=nullptr,
+                          float *dresultdt=nullptr) = 0;
+    virtual bool texture (TextureHandle *texture_handle,
+                          Perthread *thread_info, TextureOptBatch &options,
+                          Tex::RunMask mask, const float *s, const float *t,
+                          const float *dsdx, const float *dtdx,
+                          const float *dsdy, const float *dtdy,
+                          int nchannels, float *result,
+                          float *dresultds=nullptr,
+                          float *dresultdt=nullptr) = 0;
+
+    /// Old multi-point API call.
+    /// DEPRECATED (1.8)
     virtual bool texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int beginactive, int endactive,
                           VaryingRef<float> s, VaryingRef<float> t,
@@ -477,10 +625,38 @@ public:
                             float *dresultds=NULL, float *dresultdt=NULL,
                             float *dresultdr=NULL) = 0;
 
-    /// Retrieve a 3D texture lookup at many points at once.
+    /// Batched 3D (volumetric) texture lookup.
+    ///
+    /// The inputs P, dPdx, dPdy, dPdz are pointers to arrays that look like:
+    /// float P[3][BatchWidth], or alternately like Imath::Vec3<FloatWide>.
+    /// The mask is a bitfield giving the lanes to compute.
+    ///
+    /// The float* results act like float[nchannels][BatchWidth], so that
+    /// effectively result[0..BatchWidth-1] are the "red" result for each
+    /// lane, result[BatchWidth..2*BatchWidth-1] are the "green" results, etc.
+    /// The dresultds and dresultdt should either both be provided, or else
+    /// both be nullptr (meaning no derivative results are required).
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
+    virtual bool texture3d (ustring filename,
+                            TextureOptBatch &options, Tex::RunMask mask,
+                            const float *P, const float *dPdx,
+                            const float *dPdy, const float *dPdz,
+                            int nchannels, float *result,
+                            float *dresultds=nullptr, float *dresultdt=nullptr,
+                            float *dresultdr=nullptr) = 0;
+    virtual bool texture3d (TextureHandle *texture_handle,
+                            Perthread *thread_info,
+                            TextureOptBatch &options, Tex::RunMask mask,
+                            const float *P, const float *dPdx,
+                            const float *dPdy, const float *dPdz,
+                            int nchannels, float *result,
+                            float *dresultds=nullptr, float *dresultdt=nullptr,
+                            float *dresultdr=nullptr) = 0;
+
+    /// Retrieve a 3D texture lookup at many points at once.
+    /// DEPRECATED(1.8)
     virtual bool texture3d (ustring filename, TextureOptions &options,
                             Runflag *runflags, int beginactive, int endactive,
                             VaryingRef<Imath::V3f> P,
@@ -518,10 +694,18 @@ public:
                          const Imath::V3f &dPdy, float *result,
                          float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
+    /// Batched shadow lookups
+    virtual bool shadow (ustring filename,
+                         TextureOptBatch &options, Tex::RunMask mask,
+                         const float *P, const float *dPdx, const float *dPdy,
+                         float *result, float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
+                         TextureOptBatch &options, Tex::RunMask mask,
+                         const float *P, const float *dPdx, const float *dPdy,
+                         float *result, float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+
     /// Retrieve a shadow lookup for position P at many points at once.
-    ///
-    /// Return true if the file is found and could be opened by an
-    /// available ImageIO plugin, otherwise return false.
+    /// DEPRECATED(1.8)
     virtual bool shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int beginactive, int endactive,
                          VaryingRef<Imath::V3f> P,
@@ -555,11 +739,34 @@ public:
                               const Imath::V3f &dRdy, int nchannels, float *result,
                               float *dresultds=NULL, float *dresultdt=NULL) = 0;
 
-    /// Retrieve an environment map lookup for direction R, for many
-    /// points at once.
+    /// Batched environment looksups.
+    ///
+    /// The inputs R, dRdx, dRdy are pointers to arrays that look like:
+    /// float R[3][BatchWidth], or alternately like Imath::Vec3<FloatWide>.
+    /// The mask is a bitfield giving the lanes to compute.
+    ///
+    /// The float* results act like float[nchannels][BatchWidth], so that
+    /// effectively result[0..BatchWidth-1] are the "red" result for each
+    /// lane, result[BatchWidth..2*BatchWidth-1] are the "green" results, etc.
+    /// The dresultds and dresultdt should either both be provided, or else
+    /// both be nullptr (meaning no derivative results are required).
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
+    virtual bool environment (ustring filename,
+                              TextureOptBatch &options, Tex::RunMask mask,
+                              const float *R, const float *dRdx, const float *dRdy,
+                              int nchannels, float *result,
+                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+    virtual bool environment (TextureHandle *texture_handle, Perthread *thread_info,
+                              TextureOptBatch &options, Tex::RunMask mask,
+                              const float *R, const float *dRdx, const float *dRdy,
+                              int nchannels, float *result,
+                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+
+    /// Retrieve an environment map lookup for direction R, for many
+    /// points at once.
+    /// DEPRECATED(1.8)
     virtual bool environment (ustring filename, TextureOptions &options,
                               Runflag *runflags, int beginactive, int endactive,
                               VaryingRef<Imath::V3f> R,

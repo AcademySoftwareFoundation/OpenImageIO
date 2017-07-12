@@ -4,6 +4,7 @@
 
 \def\TextureSystem{{\kw TextureSystem}\xspace}
 \def\TextureOptions{{\kw TextureOptions}\xspace}
+\def\TextureOptBatch{{\kw TextureOptBatch}\xspace}
 \def\TextureOpt{{\kw TextureOpt}\xspace}
 
 
@@ -42,6 +43,7 @@ as arguments to \TextureSystem methods.
 
 \subsection{\TextureOpt}
 \indexapi{TextureOpt}
+\label{sec:textureopt}
 
 \TextureOpt is a structure that holds many options controlling
 single-point texture lookups.  Because each texture lookup API call takes
@@ -148,196 +150,11 @@ Specifies wrap, blur, and width for the third component of 3D volume texture
 lookups.  These are not used for 2D texture lookups.
 \apiend
 
-\subsection{\TextureOptions}
 
-\TextureOptions is a structure that holds many options controlling
-batched texture lookups.  Because each texture lookup API call takes
-a reference to a \TextureOptions, the call signatures remain uncluttered
-rather than having an ever-growing list of parameters, most of which
-will never vary from their defaults.  Here is a brief description of
-the data members of a \TextureOptions structure:
-
-\apiitem{int firstchannel}
-The beginning channel for the lookup.  For example, to retrieve just the blue
-channel, you should have {\cf firstchannel} = 2 while passing {\cf nchannels} = 1
-to the appropriate texture function.
-\apiend
-
-\apiitem{int subimage}
-The subimage or face within the file to use for the texture lookup.
-The default is 0, and larger values only make sense for a texture file
-that supports subimages or separate images per face (such as Ptex).
-This will be ignored if the file does not have multiple subimages or
-separate per-face textures.
-\apiend
-
-\apiitem{Wrap swrap, twrap}
-Specify the \emph{wrap mode} for 2D texture lookups (and 3D volume
-texture lookups, using the additional {\cf rwrap} field).  These fields
-are ignored for shadow and environment lookups.
-
-These specify what happens when texture coordinates are found to be
-outside the usual $[0,1]$ range over which the texture is defined.
-{\cf Wrap} is an enumerated type that may take on any of the
-following values:
-\begin{description}
-\item[\spc] \spc
-\item[\rm \kw{WrapBlack}] The texture is black outside the [0,1] range.
-\item[\rm \kw{WrapClamp}] The texture coordinates will be clamped to
-  [0,1], i.e., the value outside [0,1] will be the same as the color
-  at the nearest point on the border.
-\item[\rm \kw{WrapPeriodic}] The texture is periodic, i.e., wraps back
-  to 0 after going past 1.
-\item[\rm \kw{WrapMirror}] The texture presents a mirror image at the
-  edges, i.e., the coordinates go from 0 to 1, then back down to 0, then
-  back up to 1, etc.
-\item[\rm \kw{WrapDefault}] Use whatever wrap might be specified in the
-  texture file itself, or some other suitable default (caveat emptor).
-\end{description}
-
-The wrap mode does not need to be identical in the $s$ and $t$
-directions.
-\apiend
-
-\apiitem{VaryingRef<float> swidth, twidth}
-For each direction, gives a multiplier for the derivatives.  Note that
-a width of 0 indicates a point sampled lookup (assuming that blur is
-also zero).  The default width is 1, indicating that the derivatives
-should guide the amount of blur applied to the texture filtering (not
-counting any additional \emph{blur} specified).
-\apiend
-
-\apiitem{VaryingRef<float> sblur, tblur}
-For each direction, specifies an additional amount of pre-blur to apply
-to the texture (\emph{after} derivatives are taken into account),
-expressed as a portion of the width of the texture.  In other words,
-blur = 0.1 means that the texture lookup should act as if the texture
-was pre-blurred with a filter kernel with a width 1/10 the size of the
-full image.  The default blur amount is 0, indicating a sharp texture
-lookup.
-\apiend
-
-\apiitem{VaryingRef<float> fill}
-Specifies the value that will be used for any color channels that are
-requested but not found in the file.  For example, if you perform a
-4-channel lookup on a 3-channel texture, the lsat channel will
-get the fill value.  (Note: this behavior is affected by the
-\qkw{gray_to_rgb} attribute described in 
-Section~\ref{sec:texturesys:attributes}.)
-\apiend
-
-\apiitem{VaryingRef<float> missingcolor}
-If supplied, indicates that a missing or broken texture should \emph{not}
-be treated as an error, but rather will simply return the supplied color
-as the texture lookup color and {\cf texture()} will return {\cf true}.  
-If the {\cf missingcolor} field is left at its default (a NULL pointer),
-a missing or broken texture will be treated as an error and
-{\cf texture()} will return {\cf false}.
-
-Although this is a {\cf VaryingRef<float>}, the data must point to
-\emph{nchannels} contiguous floats, and if ``varying,'' the step size must
-be set to {\cf nchannels*sizeof(float)}, not {\cf sizeof(float)}.
-\apiend
-
-\apiitem{VaryingRef<float> bias}
-For shadow map lookups only, this gives the ``shadow bias'' amount.
-\apiend
-
-\apiitem{VaryingRef<int> samples}
-For shadow map lookups only, the number of samples to use for each lookup.
-\apiend
-
-\apiitem{Wrap rwrap \\
-VaryingRef<float> rblur, rwidth}
-Specifies wrap, blur, and width for the third component of 3D volume texture
-lookups.  These are not used for 2D texture lookups.
-\apiend
-
-\subsection{{\cf VaryingRef}: encapsulate uniform and varying}
-
-Many texture access API routines are designed to look up
-texture efficiently at many points at once.  Therefore, many of
-the parameters to the API routines, and many of the fields in
-\TextureOptions need to accommodate both uniform and varying values.
-\emph{Uniform} means that a single value may be used for each of
-the many simultaneous texture lookups, whereas \emph{varying} means
-that a different value is provided for each of the positions where
-you are sampling the texture.
-
-Please read the comments in \qkw{varyingref.h} for the full gory 
-details, but here's all you really need to know about it to use the
-texture functionality.  Let's suppose that we have a routine 
-whose prototype looks like this:
-
-\begin{code}
-        void API (int n, VaryingRef<float> x);
-\end{code}
-
-\noindent This means that parameter $x$ may either be a single value
-for use at each of the $n$ texture lookups, or it may have $n$ different
-values of $x$.  
-
-If you want to pass a uniform value, you may do any of the following:
-
-\begin{code}
-      float x;   // just one value
-      API (n, x);   // automatically knows what to do!
-      API (n, &x);  // Also ok to pass the pointer to x
-      API (n, VaryingRef<float>(x));  // Wordy but correct
-      API (n, Uniform(x));  // Shorthand
-\end{code}
-
-If you want to pass a varying value, i.e., an array of values,
-
-\begin{code}
-      float x[n];   // One value for each of n points
-      API (n, VaryingRef<float>(x), sizeof(x));  // Wordy but correct
-      API (n, Varying(x));  // Shorthand if stride is sizeof(x)
-\end{code}
-
-You can also initialize a VaryingRef directly:
-
-\begin{code}
-    float x;     // just one value
-    float y[n];  // array of values
-    VaryingRef<float> r;
-    r.init (&x);                 // Initialize to uniform
-    r.init (&x, 0);              // Initialize to uniform the wordy way
-    r.init (&y, sizeof(float));  // Initialize to varying
-    ...
-    API (n, r);
-\end{code}
-
-
-\subsection{SIMD Run Flags}
-
-Many of the texture lookup API routines are written to accommodate
-queries about many points at once.  Furthermore, only a subset of
-points may need to compute.  This is all expressed using three
-parameters:  {\cf Runflag *runflags, int beginactive, int endactive}.
-There are also {\cf VaryingRef} parameters such as {\cf s} and {\cf t}
-that act as if they are arrays.
-
-The {\cf beginactive} and {\cf endactive} indices are the first
-(inclusive) and
-last (exclusive) points that should be computed, and for each point
-{\cf runflags[i]} is nonzero if the point should be computed.  To
-illustrate, here is how a routine might be written that would copy
-values in {\cf arg} to {\cf result} using runflags:
-
-\begin{code}
-        void copy (Runflag *runflags, int beginactive, int endactive,
-                   VaryingRef<float> arg, VaryingRef <float> result)
-        {
-            for (int i = beginactive; i < endactive;  ++i)
-                if (runflags[i])
-                    result[i] = arg[i];
-        }
-\end{code}
 
 
 \newpage
-\section{TextureSystem API}
+\section{TextureSystem Setup}
 \label{sec:texturesys:api}
 
 \subsection{Creating and destroying texture systems}
@@ -634,8 +451,10 @@ or sampled.
 \apiend
 
 
-%\newpage
-\subsection{Texture Lookups}
+\newpage
+\section{Texture Lookups -- single point}
+
+\subsection{2D Texture Lookups}
 \label{sec:texturesys:api:texture}
 
 \apiitem{bool {\ce texture} (ustring filename, TextureOpt \&options,\\
@@ -743,42 +562,6 @@ may be retrieved by the {\cf get_texture_handle()} and
 {\cf get_perthread_info()} methods, respectively.
 \apiend
 
-\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
-\bigspc                   Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
-\bigspc                   VaryingRef<float> dsdx, VaryingRef<float> dtdx,\\
-\bigspc                   VaryingRef<float> dsdy, VaryingRef<float> dtdy,\\
-\bigspc                   int nchannels, float *result,\\
-\bigspc                   float *dresultds=NULL, float *dresultdt=NULL) \\[2ex]
-bool {\ce texture} (TextureHandle *texture_handle,
-                          Perthread *thread_info, \\
-\bigspc                   TextureOptions \&options,\\
-\bigspc                   Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
-\bigspc                   VaryingRef<float> dsdx, VaryingRef<float> dtdx,\\
-\bigspc                   VaryingRef<float> dsdy, VaryingRef<float> dtdy,\\
-\bigspc                   int nchannels, float *result,\\
-\bigspc                   float *dresultds=NULL, float *dresultdt=NULL) \\
-}
-
-Perform filtered 2D texture lookups on a collection of positions all at
-once, which may be much more efficient than repeatedly calling the
-single-point version of {\cf texture()}.  The parameters {\cf s},
-{\cf t}, {\cf dsdx}, {\cf dtdx}, and {\cf dsdy}, {\cf dtdy} are now
-{\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are many of the fields in the {\cf options}.
-
-Texture will be computed at indices {\cf beginactive} through
-{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
-is nonzero.  Results will be stored at corresponding positions of
-{\cf result}, that is, 
-{\cf result[i*nchannels ... (i+1)*nchannels-1]} (and similarly for
-{\cf dresultds} and {\cf dresultdt}, if they are not {\cf NULL}).
-
-This function returns {\cf true} upon success, or {\cf false} if the
-file was not found or could not be opened by any available ImageIO
-plugin.
-\apiend
 
 
 %\newpage
@@ -896,38 +679,6 @@ may be retrieved by the {\cf get_texture_handle()} and
 {\cf get_perthread_info()} methods, respectively.
 \apiend
 
-\apiitem{bool {\ce texture3d} (ustring filename, TextureOptions \&options,\\
-\bigspc                          Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                          VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,\\
-\bigspc                          VaryingRef<Imath::V3f> dPdy, VaryingRef<Imath::V3f> dPdz,\\
-\bigspc                          int nchannels, float *result, float *dresultds=NULL,\\
-\bigspc                          float *dresultdt=NULL,float *dresultdr=NULL)\\[2ex]
-bool {\ce texture3d} (TextureHandle *texture_handle,
-                          Perthread *thread_info, \\
-\bigspc                   TextureOptions \&options,\\
-\bigspc                          Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                          VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,\\
-\bigspc                          VaryingRef<Imath::V3f> dPdy, VaryingRef<Imath::V3f> dPdz,\\
-\bigspc                          int nchannels, float *result, float *dresultds=NULL,\\
-\bigspc                          float *dresultdt=NULL, float *dresultdr=NULL)}
-
-Perform filtered 3D volumetric texture lookups on a collection of positions all at
-once, which may be much more efficient than repeatedly calling the
-single-point version of {\cf texture()}.  The parameters {\cf P},
-{\cf dPdx}, {\cf dPdy}, and {\cf dPdz} are now
-{\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are all the fields in the {\cf options}.
-
-Texture will be computed at indices {\cf beginactive} through
-{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
-is nonzero.  Results will be stored at corresponding positions of
-{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
-is the number of channels requested by {\cf options.nchannels}.
-
-This function returns {\cf true} upon success, or {\cf false} if the
-file was not found or could not be opened by any available ImageIO
-plugin.
-\apiend
 
 %\newpage
 \subsection{Shadow Lookups}
@@ -1004,35 +755,6 @@ may be retrieved by the {\cf get_texture_handle()} and
 {\cf get_perthread_info()} methods, respectively.
 \apiend
 
-\apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
-\bigspc                         Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                         VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,\\
-\bigspc                         VaryingRef<Imath::V3f> dPdy, int nchannels, float *result,\\
-\bigspc                         float *dresultds=NULL, float *dresultdt=NULL)\\[2ex]
-bool {\ce shadow} (TextureHandle *texture_handle,  Perthread *thread_info, \\
-\bigspc                         TextureOptions \&options,\\
-\bigspc                         Runflag *runflags, int beginactive, int endactive,\\
-\bigspc                         VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,\\
-\bigspc                         VaryingRef<Imath::V3f> dPdy, int nchannels, float *result,\\
-\bigspc                         float *dresultds=NULL, float *dresultdt=NULL)}
-
-Perform filtered shadow map lookups on a collection of positions all at
-once, which may be much more efficient than repeatedly calling the
-single-point version of {\cf shadow()}.  The parameters {\cf P},
-{\cf dPdx}, and {\cf dPdy} are now
-{\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are many the fields in the {\cf options}.
-
-Shadow lookups will be computed at indices {\cf beginactive} through
-{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
-is nonzero.  Results will be stored at corresponding positions of
-{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
-is the number of channels requested by {\cf options.nchannels}.
-
-This function returns {\cf true} upon success, or {\cf false} if the
-file was not found or could not be opened by any available ImageIO
-plugin.
-\apiend
 
 %\newpage
 \subsection{Environment Lookups}
@@ -1110,18 +832,202 @@ may be retrieved by the {\cf get_texture_handle()} and
 {\cf get_perthread_info()} methods, respectively.
 \apiend
 
-\apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
-\bigspc\spc                              Runflag *runflags, int beginactive, int endactive,\\
-\bigspc\spc                              VaryingRef<Imath::V3f> R, VaryingRef<Imath::V3f> dRdx,\\
-\bigspc\spc                              VaryingRef<Imath::V3f> dRdy, int nchannels, float *result,\\
-\bigspc\spc                         float *dresultds=NULL, float *dresultdt=NULL)\\[2ex]
-bool {\ce environment} (TextureHandle *texture_handle,
+
+
+\section{Batched Texture Lookups}
+\label{sec:texturesys:api:batched}
+\index{SIMD} \index{batched texture lookups}
+
+On CPU architectures with SIMD processing, texturing entire batches of
+samples at once may provide a large speedup compared to texturing each
+sample point individually. The batch size is fixed (for any build of
+\product) and may be accessed with the following constant:
+
+\apiitem{static const int {\ce Tex::BatchWidth}}
+This constant specifies the batch size. This is fixed within any release
+of \product, but may change from release to release and also may be
+overridden at build time. A typical batch size is 16.
+\apiend
+
+All of the batched calls take a \emph{run mask}, which describes which
+subset of ``lanes'' should be computed by the batched lookup:
+
+\apiitem{typedef ... {\ce Tex::RunMask}}
+
+The {\cf RunMask} is defined to be an integer large enough to hold at least
+{\cf BatchWidth} bits. The least significant bit corresponds to the first
+(i.e., {\cf [0]}) position of all batch arrays. For each position
+{\cf i} in the batch, the bit identified by {\cf (1 << i)} controls whether
+that position will be computed.
+
+The defined constant {\cf RunMaskOn} contants the value with all bits
+{\cf 0..BatchWidth-1} set to 1.
+\apiend
+
+\subsection{Batched Options}
+
+\apiitem{class {\ce TextureOptBatch}}
+\label{sec:textureoptbatch}
+
+\TextureOptBatch is a structure that holds the options for doing an entire
+batch of lookups from the same texture at once.
+The members of \TextureOptBatch correspond to the similarly named members of
+the single-point \TextureOpt, so we refer you to
+Section~\ref{sec:textureopt} for detailed explanations, and this section
+will only explain the differences between batched and single-point options.
+
+\apiitem{int firstchannel \\
+int subimage \\
+ustring subimagename \\
+Tex::Wrap swrap, twrap, rwrap \\
+Tex::MipMode mipmode \\
+Tex::InterpMode interpmode \\
+int anisotropic \\
+bool conservative_filter \\
+float fill \\
+const float *missingcolor } ~\\
+These fields are all scalars --- a single value for each \TextureOptBatch
+--- which means that the value of these options must be the same for every
+texture sample point within a batch. If you have a number of texture lookups
+to perform for the same texture, but they have (for example) differing wrap
+modes or subimages from point to point, then you must split them into
+separate batch calls.
+\apiend
+
+\apiitem{float sblur[Tex::BatchWidth] \\
+float tblur[Tex::BatchWidth] \\
+float rblur[Tex::BatchWidth] } ~\\
+These arrays hold the $s$, and $t$ blur amounts, for each sample in the
+batch, respectively. (And the $r$ blur amount, used only for volumetric
+{\cf texture3d()} lookups.)
+\apiend
+
+\apiitem{float swidth[Tex::BatchWidth] \\
+float twidth[Tex::BatchWidth] \\
+float rwidth[Tex::BatchWidth] } ~\\
+These arrays hold the $s$, and $t$ filtering width multiplier for
+derivatives, for each sample in the batch, respectively. (And the $r$
+multiplier, used only for volumetric {\cf texture3d()} lookups.)
+\apiend
+\apiend
+
+\subsection{Batched Texture Lookup Calls}
+
+\apiitem{bool {\ce texture} (ustring filename, TextureOptBatch \&options,\\
+\bigspc                   Tex::RunMask mask, const float *s, const float *t,\\
+\bigspc                   const float *dsdx, const float *dtdx,\\
+\bigspc                   const float *dsdy, const float *dtdy,\\
+\bigspc                   int nchannels, float *result,\\
+\bigspc                   float *dresultds=nullptr, float *dresultdt=nullptr) \\[2ex]
+bool {\ce texture} (TextureHandle *texture_handle,
                           Perthread *thread_info, \\
-\bigspc\spc                   TextureOptions \&options,\\
-\bigspc\spc                              Runflag *runflags, int beginactive, int endactive,\\
-\bigspc\spc                              VaryingRef<Imath::V3f> R, VaryingRef<Imath::V3f> dRdx,\\
-\bigspc\spc                              VaryingRef<Imath::V3f> dRdy, int nchannels, float *result,\\
-\bigspc\spc                         float *dresultds=NULL, float *dresultdt=NULL)}
+\bigspc                   TextureOptBatch \&options,\\
+\bigspc                   Tex::RunMask mask, const float *s, const float *t,\\
+\bigspc                   const float *dsdx, const float *dtdx,\\
+\bigspc                   const float *dsdy, const float *dtdy,\\
+\bigspc                   int nchannels, float *result,\\
+\bigspc                   float *dresultds=nullptr, float *dresultdt=nullptr) \\
+}
+
+Perform filtered 2D texture lookups on a batch of positions from the
+same texture, all at once.  The parameters {\cf s},
+{\cf t}, {\cf dsdx}, {\cf dtdx}, and {\cf dsdy}, {\cf dtdy} are each
+a pointer to {\cf [BatchSize]} values.  The {\cf mask} determines which
+of those array elements to actually compute.
+
+The various results are arranged as arrays that behave as if they were
+declared
+
+~~~~ {\cf  float result[channels][BatchSize]}
+
+\noindent In other words, all the batch values for channel 0 are
+adjacent, followed by all the batch values for channel 1, etc. (This is
+``SOA'' order.)
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
+\apiend
+
+\apiitem{bool {\ce texture3d} (ustring filename, TextureOptBatch \&options,\\
+\bigspc                        Tex::RunMask mask, const float *P, const float *dPdx,\\
+\bigspc                        const float *dPdy, const float *dPdz,\\
+\bigspc                        int nchannels, float *result, float *dresultds=nullptr,\\
+\bigspc                        float *dresultdt=nullptr,float *dresultdr=nullptr)\\[2ex]
+bool {\ce texture3d} (TextureHandle *texture_handle,
+                      Perthread *thread_info, \\
+\bigspc               TextureOptBatch \&options,\\
+\bigspc               Tex::RunMask mask, const float *P, const float *dPdx,\\
+\bigspc               const float *dPdy, const float *dPdz,\\
+\bigspc               int nchannels, float *result, float *dresultds=nullptr,\\
+\bigspc               float *dresultdt=nullptr, float *dresultdr=nullptr)}
+
+Perform filtered 3D volumetric texture lookups on a batch of positions from
+the same texture, all at once. The ``point-like'' parameters {\cf P}, {\cf
+dPdx}, {\cf dPdy}, and {\cf dPdz} are each a pointers to arrays of
+{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+for the batch, immediately followed by all the $y$ values, followed by the
+$z$ values.
+
+The various results arrays are also arranged as arrays that behave as if
+they were declared {\cf  float result[channels][BatchSize]}, where all the
+batch values for channel 0 are adjacent, followed by all the batch values
+for channel 1, etc.
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
+\apiend
+
+\begin{comment}
+\apiitem{bool {\ce shadow} (ustring filename, TextureOptBatch \&options,\\
+\bigspc                         Tex::RunMask mask, \\
+\bigspc                         const float *P, const float *dPdx,\\
+\bigspc                         const float *dPdy, int nchannels, float *result,\\
+\bigspc                         float *dresultds=nullptr, float *dresultdt=nullptr)\\[2ex]
+bool {\ce shadow} (TextureHandle *texture_handle,  Perthread *thread_info, \\
+\bigspc                         TextureOptBatch \&options,\\
+\bigspc                         Tex::RunMask mask, \\
+\bigspc                         const float *P, const float *dPdx,\\
+\bigspc                         const float *dPdy, int nchannels, float *result,\\
+\bigspc                         float *dresultds=nullptr, float *dresultdt=nullptr)}
+
+Perform filtered shadow map lookups on a batch of positions from
+the same texture, all at once. The ``point-like'' parameters {\cf P},
+{\cf dPdx}, and {\cf dPdy} are each a pointers to arrays of
+{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+for the batch, immediately followed by all the $y$ values, followed by the
+$z$ values.
+
+The various results arrays are also arranged as arrays that behave as if
+they were declared {\cf  float result[channels][BatchSize]}, where all the
+batch values for channel 0 are adjacent, followed by all the batch values
+for channel 1, etc.
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
+\apiend
+\end{comment}
+
+\apiitem{bool {\ce environment} (ustring filename, TextureOptBatch \&options,\\
+\bigspc\spc                      Tex::RunMask mask, \\
+\bigspc\spc                      const float *R, const float *dRdx,\\
+\bigspc\spc                      const float *dRdy, int nchannels, float *result,\\
+\bigspc\spc                      float *dresultds=nullptr, float *dresultdt=nullptr)\\[2ex]
+bool {\ce environment} (TextureHandle *texture_handle,
+                        Perthread *thread_info, \\
+\bigspc\spc             TextureOptBatch \&options, Tex::RunMask mask, \\
+\bigspc\spc             const float *R, const float *dRdx,\\
+\bigspc\spc             const float *dRdy, int nchannels, float *result,\\
+\bigspc\spc             float *dresultds=nullptr, float *dresultdt=nullptr)}
+
+Perform filtered directional environment map lookups on a batch of positions
+from the same texture, all at once. The ``point-like'' parameters {\cf R},
+{\cf dRdx}, and {\cf dRdy} are each a pointers to arrays of
+{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+for the batch, immediately followed by all the $y$ values, followed by the
+$z$ values.
 
 Perform filtered directional environment map lookups on a collection of
 directions all at once, which may be much more efficient than repeatedly
@@ -1130,19 +1036,19 @@ calling the single-point version of {\cf environment()}.  The parameters
 refer to either a single or an array of values, as are many the fields in
 the {\cf options}.
 
-Results will be computed at indices {\cf beginactive} through
-{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
-is nonzero.  Results will be stored at corresponding positions of
-{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
-is the number of channels requested by {\cf options.nchannels}.
+The various results arrays are also arranged as arrays that behave as if
+they were declared {\cf  float result[channels][BatchSize]}, where all the
+batch values for channel 0 are adjacent, followed by all the batch values
+for channel 1, etc.
 
 This function returns {\cf true} upon success, or {\cf false} if the
 file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
+
 %\newpage
-\subsection{Texture Metadata and Raw Texels}
+\section{Texture Metadata and Raw Texels}
 \label{sec:texturesys:api:gettextureinfo}
 \label{sec:texturesys:api:getimagespec}
 
@@ -1392,7 +1298,7 @@ Returns the true path to the given file name, with searchpath logic
 applied.
 \apiend
 
-\subsection{Miscellaneous -- Statistics, errors, flushing the cache}
+\section{Miscellaneous -- Statistics, errors, flushing the cache}
 \label{sec:texturesys:api:geterror}
 \label{sec:texturesys:api:getstats}
 \label{sec:texturesys:api:resetstats}
