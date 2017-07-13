@@ -157,15 +157,14 @@ public:
     constexpr T& operator[] (offset_type idx) const {
         return VIEW_ACCESS(data(), idx, stride(), Rank);
     }
-    T& at (offset_type idx) const {  // FIXME -- should be offset_type
+    T& at (offset_type idx) const {
         if (! bounds().contains(idx))
             throw (std::out_of_range ("OpenImageIO::array_view::at"));
         return VIEW_ACCESS(data(), idx, stride(), Rank);
     }
-    // T& front() const { return m_data[0]; }   // FIXME - delete?
-    // T& back() const { return m_data[size()-1]; }   // FIXME - delete?
 
-    // FIXME -- slicing and sectioning
+    T& front() const { return m_data[0]; }
+    T& back() const { return m_data[size()-1]; }
 
 private:
     T * m_data;
