@@ -867,8 +867,13 @@ TIFFInput::readspec (bool read_meta)
                 }
             }
         }
-        if (m_spec.alpha_channel >= 0)
+        if (m_spec.alpha_channel >= 0) {
             m_spec.channelnames[m_spec.alpha_channel] = "A";
+            // Special case: "R","A" should really be named "Y","A", since
+            // the first channel is luminance, not red.
+            if (m_spec.nchannels == 2 && m_spec.alpha_channel == 1)
+                m_spec.channelnames[0] = "Y";
+        }
     }
     // Will we need to do alpha conversions?
     m_convert_alpha = (m_spec.alpha_channel >= 0 && alpha_is_unassociated &&
