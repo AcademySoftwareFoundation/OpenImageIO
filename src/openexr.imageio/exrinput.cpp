@@ -796,7 +796,7 @@ struct ChanNameHolder {
             suffix = string_view (fullname.data()+dot+1, fullname.size()-dot-1);
         }
         static const char * special[] = {
-            "R", "Red", "G", "Green", "B", "Blue", "real", "imag",
+            "R", "Red", "G", "Green", "B", "Blue", "Y", "real", "imag",
             "A", "Alpha", "AR", "RA", "AG", "GA", "AB", "BA",
             "Z", "Depth", "Zback", NULL
         };
