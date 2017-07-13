@@ -394,7 +394,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
     TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
 
-    m_photometric = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
+    m_photometric = (m_spec.nchannels >= 3 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
 
     string_view comp = m_spec.get_string_attribute("Compression", "zip");
     if (Strutil::iequals (comp, "jpeg") &&
@@ -483,12 +483,14 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, m_photometric);
 
     // ExtraSamples tag
-    if (m_spec.nchannels > 3 && m_photometric != PHOTOMETRIC_SEPARATED) {
+    if ((m_spec.alpha_channel >= 0 || m_spec.nchannels > 3)
+         && m_photometric != PHOTOMETRIC_SEPARATED) {
         bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
-        short e = m_spec.nchannels-3;
+        int defaultchans = m_spec.nchannels >= 3 ? 3 : 1;
+        short e = m_spec.nchannels - defaultchans;
         std::vector<unsigned short> extra (e);
         for (int c = 0;  c < e;  ++c) {
-            if (m_spec.alpha_channel == (c+3))
+            if (m_spec.alpha_channel == (c+defaultchans))
                 extra[c] = unass ? EXTRASAMPLE_UNASSALPHA : EXTRASAMPLE_ASSOCALPHA;
             else
                 extra[c] = EXTRASAMPLE_UNSPECIFIED;
