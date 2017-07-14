@@ -42,7 +42,7 @@ else ()
     #Finding the python3 component for boost is a little tricky, since it has
     #different names on different systems. Try the most common ones
     #(boost_python3, boost_python-py34, …).
-    foreach (_boost_py3_lib python3 python-py34 python-py33 python-py32)
+    foreach (_boost_py3_lib python3 python-py${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
         find_package (Boost 1.42 QUIET COMPONENTS ${_boost_py3_lib})
         string (TOUPPER ${_boost_py3_lib} boost_py3_lib_name)
         if (Boost_${boost_py3_lib_name}_FOUND)
