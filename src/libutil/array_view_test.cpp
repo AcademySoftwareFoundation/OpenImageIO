@@ -184,6 +184,10 @@ void test_array_view ()
     OIIO_CHECK_EQUAL (a[1], 1.0f);
     OIIO_CHECK_EQUAL (a[2], 0.0f);
     OIIO_CHECK_EQUAL (a[3], 2.0f);
+
+    OIIO_CHECK_EQUAL (&a.front(), &a[0]);
+    OIIO_CHECK_EQUAL (&a.back(), &a[a.size()-1]);
+
     // array_view<float>::const_iterator i = a.begin();
     // OIIO_CHECK_EQUAL (*i, 0.0f);
     // ++i;  OIIO_CHECK_EQUAL (*i, 1.0f);
@@ -200,6 +204,9 @@ void test_array_view_mutable ()
     OIIO_CHECK_EQUAL (a[1], 1.0f);
     OIIO_CHECK_EQUAL (a[2], 0.0f);
     OIIO_CHECK_EQUAL (a[3], 2.0f);
+
+    OIIO_CHECK_EQUAL (&a.front(), &a[0]);
+    OIIO_CHECK_EQUAL (&a.back(), &a[a.size()-1]);
 
     a[2] = 42.0f;
     OIIO_CHECK_EQUAL (a[2], 42.0f);
