@@ -3431,7 +3431,7 @@ OIIO_FORCEINLINE bool none (const vbool8& v) { return reduce_or(v) == false; }
 OIIO_FORCEINLINE int vbool16::operator[] (int i) const {
     DASSERT(i >= 0 && i < elements);
 #if OIIO_SIMD_AVX >= 512
-    return (_mm512_mask2int(m_simd) >> i) & 1;
+    return (int(m_simd) >> i) & 1;
 #else
     return (m_bits >> i) & 1;
 #endif
@@ -3516,7 +3516,7 @@ OIIO_FORCEINLINE const vbool16& vbool16::operator= (const vbool16 & other) {
 
 OIIO_FORCEINLINE int vbool16::bitmask() const {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_mask2int(m_simd);
+    return int(m_simd);
 #else
     return int(m_bits);
 #endif
@@ -5168,7 +5168,7 @@ OIIO_FORCEINLINE void vint16::load (const int *values) {
 OIIO_FORCEINLINE void vint16::load (const int *values, int n)
 {
 #if OIIO_SIMD_AVX >= 512
-    m_simd = _mm512_maskz_loadu_epi32 (_mm512_int2mask(~(0xffff << n)), values);
+    m_simd = _mm512_maskz_loadu_epi32 (__mmask16(~(0xffff << n)), values);
 #else
     if (n > 8) {
         m_8[0].load (values);
@@ -5462,9 +5462,11 @@ OIIO_FORCEINLINE vint16 operator~ (const vint16& a) {
 }
 
 
-OIIO_FORCEINLINE vint16 operator<< (const vint16& a, unsigned int bits) {
+OIIO_FORCEINLINE vint16 operator<< (const vint16& a, const unsigned int bits) {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_slli_epi32 (a, bits);
+    return _mm512_sllv_epi32 (a, vint16(int(bits)));
+    // return _mm512_slli_epi32 (a, bits);
+    // FIXME: can this be slli?
 #else
     return vint16 (a.lo() << bits, a.hi() << bits);
 #endif
@@ -5477,7 +5479,8 @@ OIIO_FORCEINLINE const vint16& operator<<= (vint16& a, const unsigned int bits) 
 
 OIIO_FORCEINLINE vint16 operator>> (const vint16& a, const unsigned int bits) {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_srai_epi32 (a, bits);
+    return _mm512_srav_epi32 (a, vint16(int(bits)));
+    // FIXME: can this be srai?
 #else
     return vint16 (a.lo() >> bits, a.hi() >> bits);
 #endif
@@ -5490,7 +5493,8 @@ OIIO_FORCEINLINE const vint16& operator>>= (vint16& a, const unsigned int bits) 
 
 OIIO_FORCEINLINE vint16 srl (const vint16& a, const unsigned int bits) {
 #if OIIO_SIMD_AVX >= 512
-    return _mm512_srli_epi32 (a, bits);
+    return _mm512_srlv_epi32 (a, vint16(int(bits)));
+    // FIXME: can this be srli?
 #else
     return vint16 (srl(a.lo(), bits), srl (a.hi(), bits));
 #endif
@@ -5563,7 +5567,7 @@ inline std::ostream& operator<< (std::ostream& cout, const vint16& val) {
 OIIO_FORCEINLINE void vint16::store (int *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
 #if OIIO_SIMD_AVX >= 512
-    _mm512_mask_storeu_epi32 (values, _mm512_int2mask(~(0xffff << n)), m_simd);
+    _mm512_mask_storeu_epi32 (values, __mmask16(~(0xffff << n)), m_simd);
 #else
     if (n > 8) {
         m_8[0].store (values);
@@ -8368,7 +8372,7 @@ OIIO_FORCEINLINE void vfloat16::load (const float *values, int n)
 {
     DASSERT (n >= 0 && n <= elements);
 #if OIIO_SIMD_AVX >= 512
-    m_simd = _mm512_maskz_loadu_ps (_mm512_int2mask(~(0xffff << n)), values);
+    m_simd = _mm512_maskz_loadu_ps (__mmask16(~(0xffff << n)), values);
 #else
     if (n > 8) {
         m_8[0].load (values);
@@ -8455,7 +8459,7 @@ OIIO_FORCEINLINE void vfloat16::store (float *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
     // FIXME: is this faster with AVX masked stores?
 #if OIIO_SIMD_AVX >= 512
-    _mm512_mask_storeu_ps (values, _mm512_int2mask(~(0xffff << n)), m_simd);
+    _mm512_mask_storeu_ps (values, __mmask16(~(0xffff << n)), m_simd);
 #else
     if (n <= 8) {
         lo().store (values, n);
@@ -8783,8 +8787,10 @@ OIIO_FORCEINLINE vfloat16 safe_div (const vfloat16 &a, const vfloat16 &b) {
 OIIO_FORCEINLINE vfloat16 abs (const vfloat16& a)
 {
 #if OIIO_SIMD_AVX >= 512
+    // Not available?  return _mm512_abs_ps (a.simd());
     // Just clear the sign bit for cheap fabsf
-    return _mm512_abs_ps (a.simd());
+    return _mm512_castsi512_ps (_mm512_and_epi32 (_mm512_castps_si512(a.simd()),
+                                                  _mm512_set1_epi32(0x7fffffff)));
 #else
     return vfloat16(abs(a.lo()), abs(a.hi()));
 #endif
