@@ -919,6 +919,10 @@ public:
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
 
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
+
     /// Sset all components to 0
     void clear () ;
 
@@ -1197,6 +1201,10 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
 
     /// Sset all components to 0
     void clear () ;
@@ -1484,6 +1492,10 @@ public:
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
 
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
+
     /// Sset all components to 0
     void clear () ;
 
@@ -1762,6 +1774,10 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
 
     /// Construct from a Imath::V3f
     vfloat4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
@@ -2374,6 +2390,10 @@ public:
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
 
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
+
     /// Construct from a pointer to unsigned short values
     explicit vfloat8 (const unsigned short *vals) { load(vals); }
 
@@ -2680,6 +2700,10 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+
+    /// Return a pointer to the underlying scalar type
+    const value_t* data () const { return (const value_t*)this; }
+    value_t* data () { return (value_t*)this; }
 
     /// Construct from a pointer to unsigned short values
     explicit vfloat16 (const unsigned short *vals) { load(vals); }
