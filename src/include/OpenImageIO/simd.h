@@ -873,8 +873,11 @@ public:
     enum { paddedelements =4 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
     typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
-    typedef vbool4 bool_t; ///< bool type of the same length
-    typedef vfloat4 float_t; ///< float type of the same length
+    typedef vbool4 vbool_t;   ///< bool type of the same length
+    typedef vfloat4 vfloat_t; ///< float type of the same length
+    typedef vint4 vint_t;     ///< int type of the same length
+    typedef vbool4 bool_t;   // old name (deprecated 1.8)
+    typedef vfloat4 float_t; // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vint4 () { }
@@ -906,8 +909,8 @@ public:
     /// Copy construct from another vint4
     vint4 (const vint4 & other) { m_simd = other.m_simd; }
 
-    /// Convert a float_t to an vint4. Equivalent to i = (int)f;
-    explicit vint4 (const float_t& f); // implementation below
+    /// Convert a vfloat to an vint. Equivalent to i = (int)f;
+    explicit vint4 (const vfloat4& f); // implementation below
 
     /// Construct from the underlying SIMD type
     vint4 (const simd_t& m) : m_simd(m) { }
@@ -1118,8 +1121,11 @@ public:
     enum { paddedelements =8 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
-    typedef vbool8 bool_t; ///< bool type of the same length
-    typedef vfloat8 float_t; ///< float type of the same length
+    typedef vbool8 vbool_t;   ///< bool type of the same length
+    typedef vfloat8 vfloat_t; ///< float type of the same length
+    typedef vint8 vint_t;     ///< int type of the same length
+    typedef vbool8 bool_t;   // old name (deprecated 1.8)
+    typedef vfloat8 float_t; // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vint8 () { }
@@ -1382,8 +1388,11 @@ public:
     enum { paddedelements =16 }; ///< Number of scalar elements for full pad
     enum { bits = 128 };      ///< Total number of bits
     typedef simd_raw_t<int,elements>::type simd_t;  ///< the native SIMD type used
-    typedef vbool16 bool_t; ///< bool type of the same length
-    typedef vfloat16 float_t; ///< float type of the same length
+    typedef vbool16 vbool_t;   ///< bool type of the same length
+    typedef vfloat16 vfloat_t; ///< float type of the same length
+    typedef vint16 vint_t;     ///< int type of the same length
+    typedef vbool16 bool_t;   // old name (deprecated 1.8)
+    typedef vfloat16 float_t; // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vint16 () { }
@@ -1651,12 +1660,15 @@ class vfloat4 {
 public:
     static const char* type_name() { return "vfloat4"; }
     typedef float value_t;    ///< Underlying equivalent scalar value type
-    typedef vint4 int_t;       ///< SIMD int type
-    typedef vbool4 bool_t;     ///< SIMD bool type
     enum { elements = 4 };    ///< Number of scalar elements
     enum { paddedelements = 4 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
     typedef simd_raw_t<float,4>::type simd_t;  ///< the native SIMD type used
+    typedef vfloat4 vfloat_t; ///< SIMD int type
+    typedef vint4 vint_t;     ///< SIMD int type
+    typedef vbool4 vbool_t;   ///< SIMD bool type
+    typedef vint4 int_t;      // old name (deprecated 1.8)
+    typedef vbool4 bool_t;    // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vfloat4 () { }
@@ -2225,14 +2237,17 @@ vfloat3 transformvT (const Imath::M44f &M, const vfloat3 &V);
 /// available.
 class vfloat8 {
 public:
+    static const char* type_name() { return "vfloat8"; }
+    typedef float value_t;    ///< Underlying equivalent scalar value type
     enum { elements = 8 };    ///< Number of scalar elements
     enum { paddedelements = 8 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
-    typedef float value_t;    ///< Underlying equivalent scalar value type
     typedef simd_raw_t<float,8>::type simd_t;  ///< the native SIMD type used
-    typedef vbool8 bool_t; ///< bool type of the same length
-    typedef vint8 int_t;    ///< int type of the same length
-    static const char* type_name() { return "vfloat8"; }
+    typedef vfloat8 vfloat_t; ///< SIMD int type
+    typedef vint8 vint_t;     ///< SIMD int type
+    typedef vbool8 vbool_t;   ///< SIMD bool type
+    typedef vint8 int_t;      // old name (deprecated 1.8)
+    typedef vbool8 bool_t;    // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vfloat8 () { }
@@ -2506,14 +2521,17 @@ vfloat8 nmsub (const vfloat8& a, const vfloat8& b, const vfloat8& c); // -a*b - 
 /// available.
 class vfloat16 {
 public:
+    static const char* type_name() { return "vfloat16"; }
+    typedef float value_t;    ///< Underlying equivalent scalar value type
     enum { elements = 16 };    ///< Number of scalar elements
     enum { paddedelements = 16 }; ///< Number of scalar elements for full pad
     enum { bits = elements*32 }; ///< Total number of bits
-    typedef float value_t;    ///< Underlying equivalent scalar value type
     typedef simd_raw_t<float,16>::type simd_t;  ///< the native SIMD type used
-    typedef vbool16 bool_t; ///< bool type of the same length
-    typedef vint16 int_t;    ///< int type of the same length
-    static const char* type_name() { return "vfloat16"; }
+    typedef vfloat16 vfloat_t; ///< SIMD int type
+    typedef vint16 vint_t;     ///< SIMD int type
+    typedef vbool16 vbool_t;   ///< SIMD bool type
+    typedef vint16 int_t;      // old name (deprecated 1.8)
+    typedef vbool16 bool_t;    // old name (deprecated 1.8)
 
     /// Default constructor (contents undefined)
     vfloat16 () { }
@@ -6779,7 +6797,7 @@ OIIO_FORCEINLINE T exp (const T& v)
     // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
     // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
     // under the zlib license.
-    typedef typename T::int_t int_t;
+    typedef typename T::vint_t int_t;
     T x = v;
     const float exp_hi (88.3762626647949f);
     const float exp_lo (-88.3762626647949f);
@@ -6834,8 +6852,8 @@ OIIO_FORCEINLINE T log (const T& v)
     // https://github.com/embree/embree/blob/master/common/simd/sse_special.h
     // Which is listed as Copyright (C) 2007  Julien Pommier and distributed
     // under the zlib license.
-    typedef typename T::int_t int_t;
-    typedef typename T::bool_t bool_t;
+    typedef typename T::vint_t int_t;
+    typedef typename T::vbool_t bool_t;
     T x = v;
     int_t emm0;
     T zero (T::Zero());
