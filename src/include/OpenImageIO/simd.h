@@ -999,6 +999,34 @@ public:
     /// unsigned chars.
     void store (unsigned char *values) const;
 
+    /// Masked load -- read from values[] where mask is 1, load zero where
+    /// mask is 0.
+    void load_mask (int mask, const value_t *values);
+    void load_mask (const vbool_t& mask, const value_t *values);
+
+    /// Masked store -- write to values[] where mask is enabled, don't
+    /// touch values[] where it's not.
+    void store_mask (int mask, value_t *values) const;
+    void store_mask (const vbool_t& mask, value_t *values) const;
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    /// Gather elements defined by the mask, leave others unchanged.
+    template<int scale=4>
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex);
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const;
+
     // Arithmetic operators (component-by-component)
     friend vint4 operator+ (const vint4& a, const vint4& b);
     friend vint4 operator- (const vint4& a);
@@ -1258,13 +1286,31 @@ public:
 
     /// Masked load -- read from values[] where mask is 1, load zero where
     /// mask is 0.
-    void load_mask (int mask, const int *values);
-    void load_mask (const vbool8& mask, const int *values);
+    void load_mask (int mask, const value_t *values);
+    void load_mask (const vbool_t& mask, const value_t *values);
 
     /// Masked store -- write to values[] where mask is enabled, don't
     /// touch values[] where it's not.
-    void store_mask (int mask, int *values) const;
-    void store_mask (const vbool8& mask, int *values) const;
+    void store_mask (int mask, value_t *values) const;
+    void store_mask (const vbool_t& mask, value_t *values) const;
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    /// Gather elements defined by the mask, leave others unchanged.
+    template<int scale=4>
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex);
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const;
 
     // Arithmetic operators (component-by-component)
     friend vint8 operator+ (const vint8& a, const vint8& b);
@@ -1527,13 +1573,35 @@ public:
 
     /// Masked load -- read from values[] where mask is 1, load zero where
     /// mask is 0.
-    void load_mask (const vbool16 &mask, const int *values);
-    void load_mask (int mask, const int *values) { load_mask(vbool16(mask), values); }
+    void load_mask (const vbool_t &mask, const value_t *values);
+    void load_mask (int mask, const value_t *values) { load_mask(vbool_t(mask), values); }
 
     /// Masked store -- write to values[] where mask is enabled, don't
     /// touch values[] where it's not.
-    void store_mask (const vbool16 &mask, int *values) const;
-    void store_mask (int mask, int *values) const { store_mask(vbool16(mask), values); }
+    void store_mask (const vbool_t &mask, value_t *values) const;
+    void store_mask (int mask, value_t *values) const { store_mask(vbool_t(mask), values); }
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    /// Gather elements defined by the mask, leave others unchanged.
+    template<int scale=4>
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex) {
+        gather_mask<scale> (vbool_t(mask), baseptr, vindex);
+    }
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const {
+        scatter_mask<scale> (vbool_t(mask), baseptr, vindex);
+    }
 
     // Arithmetic operators (component-by-component)
     friend vint16 operator+ (const vint16& a, const vint16& b);
@@ -1813,6 +1881,34 @@ public:
 #ifdef _HALF_H_
     void store (half *values) const;
 #endif
+
+    /// Masked load -- read from values[] where mask is 1, load zero where
+    /// mask is 0.
+    void load_mask (int mask, const value_t *values);
+    void load_mask (const vbool_t& mask, const value_t *values);
+
+    /// Masked store -- write to values[] where mask is enabled, don't
+    /// touch values[] where it's not.
+    void store_mask (int mask, value_t *values) const;
+    void store_mask (const vbool_t& mask, value_t *values) const;
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    /// Gather elements defined by the mask, leave others unchanged.
+    template<int scale=4>
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex);
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const;
 
     // Arithmetic operators
     friend vfloat4 operator+ (const vfloat4& a, const vfloat4& b);
@@ -2382,13 +2478,31 @@ public:
 
     /// Masked load -- read from values[] where mask is 1, load zero where
     /// mask is 0.
-    void load_mask (int mask, const float *values);
-    void load_mask (const vbool8& mask, const float *values);
+    void load_mask (int mask, const value_t *values);
+    void load_mask (const vbool_t& mask, const value_t *values);
 
     /// Masked store -- write to values[] where mask is enabled, don't
     /// touch values[] where it's not.
-    void store_mask (int mask, float *values) const;
-    void store_mask (const vbool8& mask, float *values) const;
+    void store_mask (int mask, value_t *values) const;
+    void store_mask (const vbool_t& mask, value_t *values) const;
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    // Fastest way to fill with all 1 bits is to cmp any value to itself.
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex);
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const;
 
     // Arithmetic operators (component-by-component)
     friend vfloat8 operator+ (const vfloat8& a, const vfloat8& b);
@@ -2673,13 +2787,35 @@ public:
 
     /// Masked load -- read from values[] where mask is 1, load zero where
     /// mask is 0.
-    void load_mask (const vbool16 &mask, const float *values);
-    void load_mask (int mask, const float *values) { load_mask(vbool16(mask), values); }
+    void load_mask (const vbool_t &mask, const value_t *values);
+    void load_mask (int mask, const value_t *values) { load_mask(vbool_t(mask), values); }
 
     /// Masked store -- write to values[] where mask is enabled, don't
     /// touch values[] where it's not.
-    void store_mask (const vbool16 &mask, float *values) const;
-    void store_mask (int mask, float *values) const { store_mask(vbool16(mask), values); }
+    void store_mask (const vbool_t &mask, value_t *values) const;
+    void store_mask (int mask, value_t *values) const { store_mask(vbool_t(mask), values); }
+
+    /// Load values from addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void gather (const value_t *baseptr, const vint_t& vindex);
+    /// Gather elements defined by the mask, leave others unchanged.
+    template<int scale=4>
+    void gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex);
+    template<int scale=4>
+    void gather_mask (int mask, const value_t *baseptr, const vint_t& vindex) {
+        gather_mask<scale> (vbool_t(mask), baseptr, vindex);
+    }
+
+    /// Store values at addresses  (char*)basepatr + vindex[i]*scale
+    template<int scale=4>
+    void scatter (value_t *baseptr, const vint_t& vindex) const;
+    /// Scatter elements defined by the mask
+    template<int scale=4>
+    void scatter_mask (const bool_t& mask, value_t *baseptr, const vint_t& vindex) const;
+    template<int scale=4>
+    void scatter_mask (int mask, value_t *baseptr, const vint_t& vindex) const {
+        scatter_mask<scale> (vbool_t(mask), baseptr, vindex);
+    }
 
     // Arithmetic operators (component-by-component)
     friend vfloat16 operator+ (const vfloat16& a, const vfloat16& b);
@@ -3863,6 +3999,96 @@ OIIO_FORCEINLINE void vint4::store (int *values) const {
 }
 
 
+OIIO_FORCEINLINE void vint4::load_mask (int mask, const value_t *values) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_epi32 (__mmask8(mask), (const simd_t *)values);
+#elif OIIO_SIMD_AVX >= 2
+    m_simd = _mm_maskload_epi32 (values, _mm_castps_si128(vbool_t::from_bitmask(mask)));
+#else
+    SIMD_CONSTRUCT ((mask>>i) & 1 ? values[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vint4::load_mask (const vbool_t& mask, const value_t *values) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_epi32 (__mmask8(mask.bitmask()), (const simd_t *)values);
+#elif OIIO_SIMD_AVX >= 2
+    m_simd = _mm_maskload_epi32 (values, _mm_castps_si128(mask));
+#else
+    SIMD_CONSTRUCT (mask[i] ? values[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vint4::store_mask (int mask, value_t *values) const {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+#elif OIIO_SIMD_AVX >= 2
+    _mm_maskstore_epi32 (values, _mm_castps_si128(vbool_t::from_bitmask(mask)), m_simd);
+#else
+    SIMD_DO (if ((mask>>i) & 1) values[i] = (*this)[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vint4::store_mask (const vbool_t& mask, value_t *values) const {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+#elif OIIO_SIMD_AVX >= 2
+    _mm_maskstore_epi32 (values, _mm_castps_si128(mask), m_simd);
+#else
+    SIMD_DO (if (mask[i]) values[i] = (*this)[i]);
+#endif
+}
+
+
+template <int scale>
+OIIO_FORCEINLINE void
+vint4::gather (const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm_i32gather_epi32 (baseptr, vindex, scale);
+#else
+    SIMD_CONSTRUCT (*(const value_t *)((const char *)baseptr + vindex[i]*scale));
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint4::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm_cvtps_epi32(mask), scale);
+#else
+    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint4::scatter (value_t *baseptr, const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_i32scatter_epi32 (baseptr, vindex, m_simd, scale);
+#else
+    SIMD_DO (*(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint4::scatter_mask (const bool_t& mask, value_t *baseptr,
+                     const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_mask_i32scatter_epi32 (baseptr, mask, vindex, m_simd, scale);
+#else
+    SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+
 OIIO_FORCEINLINE void vint4::clear () {
 #if OIIO_SIMD_SSE
     m_simd = _mm_setzero_si128();
@@ -4586,6 +4812,52 @@ OIIO_FORCEINLINE void vint8::store_mask (const vbool8& mask, int *values) const 
 }
 
 
+template <int scale>
+OIIO_FORCEINLINE void
+vint8::gather (const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm256_i32gather_epi32 (baseptr, vindex, scale);
+#else
+    SIMD_CONSTRUCT (*(const value_t *)((const char *)baseptr + vindex[i]*scale));
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint8::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm256_mask_i32gather_epi32 (m_simd, baseptr, vindex, _mm256_cvtps_epi32(mask), scale);
+#else
+    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint8::scatter (value_t *baseptr, const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm256_i32scatter_epi32 (baseptr, vindex, m_simd, scale);
+#else
+    SIMD_DO (*(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint8::scatter_mask (const bool_t& mask, value_t *baseptr,
+                     const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm256_mask_i32scatter_epi32 (baseptr, mask, vindex, m_simd, scale);
+#else
+    SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+
 OIIO_FORCEINLINE void vint8::clear () {
 #if OIIO_SIMD_AVX
     m_simd = _mm256_setzero_si256();
@@ -5275,6 +5547,51 @@ OIIO_FORCEINLINE void vint16::store_mask (const vbool16 &mask, int *values) cons
 #endif
 }
 
+
+template <int scale>
+OIIO_FORCEINLINE void
+vint16::gather (const value_t *baseptr, const vint_t& vindex) {
+#if OIIO_SIMD_AVX >= 512
+    m_simd = _mm512_i32gather_epi32 (vindex, baseptr, scale);
+#else
+    m_8[0].gather<scale> (baseptr, vindex.lo());
+    m_8[1].gather<scale> (baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint16::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex) {
+#if OIIO_SIMD_AVX >= 512
+    m_simd = _mm512_mask_i32gather_epi32 (m_simd, mask, vindex, baseptr, scale);
+#else
+    m_8[0].gather_mask<scale> (mask.lo(), baseptr, vindex.lo());
+    m_8[1].gather_mask<scale> (mask.hi(), baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint16::scatter (value_t *baseptr, const vint_t& vindex) const {
+#if OIIO_SIMD_AVX >= 512
+    _mm512_i32scatter_epi32 (baseptr, vindex, m_simd, scale);
+#else
+    lo().scatter<scale> (baseptr, vindex.lo());
+    hi().scatter<scale> (baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vint16::scatter_mask (const bool_t& mask, value_t *baseptr,
+                      const vint_t& vindex) const {
+#if OIIO_SIMD_AVX >= 512
+    _mm512_mask_i32scatter_epi32 (baseptr, mask, vindex, m_simd, scale);
+#else
+    lo().scatter_mask<scale> (mask.lo(), baseptr, vindex.lo());
+    hi().scatter_mask<scale> (mask.hi(), baseptr, vindex.hi());
+#endif
+}
 
 
 OIIO_FORCEINLINE void vint16::store (int *values) const {
@@ -6119,6 +6436,101 @@ OIIO_FORCEINLINE void vfloat4::store (half *values) const {
 #endif
 }
 #endif
+
+
+OIIO_FORCEINLINE void vfloat4::load_mask (int mask, const float *values) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_ps (__mmask8(mask), (const simd_t *)values);
+#elif OIIO_SIMD_AVX
+    // Concern: is this really faster?
+    m_simd = _mm_maskload_ps (values, _mm_castps_si128(vbool_t::from_bitmask(mask)));
+#else
+    SIMD_CONSTRUCT ((mask>>i) & 1 ? values[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vfloat4::load_mask (const vbool_t& mask, const float *values) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_ps (__mmask8(mask.bitmask()), (const simd_t *)values);
+#elif OIIO_SIMD_AVX
+    // Concern: is this really faster?
+    m_simd = _mm_maskload_ps (values, _mm_castps_si128(mask));
+#else
+    SIMD_CONSTRUCT (mask[i] ? values[i] : 0.0f);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vfloat4::store_mask (int mask, float *values) const {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_mask_storeu_ps (__mmask8(mask), (const simd_t *)values);
+#elif OIIO_SIMD_AVX
+    // Concern: is this really faster?
+    _mm_maskstore_ps (values, _mm_castps_si128(vbool_t::from_bitmask(mask)), m_simd);
+#else
+    SIMD_DO (if ((mask>>i) & 1) values[i] = (*this)[i]);
+#endif
+}
+
+
+OIIO_FORCEINLINE void vfloat4::store_mask (const vbool_t& mask, float *values) const {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_mask_storeu_ps (__mmask8(mask.bitmask()), (const simd_t *)values);
+#elif OIIO_SIMD_AVX
+    // Concern: is this really faster?
+    _mm_maskstore_ps (values, _mm_castps_si128(mask.simd()), m_simd);
+#else
+    SIMD_DO (if (mask[i]) values[i] = (*this)[i]);
+#endif
+}
+
+
+template <int scale>
+OIIO_FORCEINLINE void
+vfloat4::gather (const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm_i32gather_ps (baseptr, vindex, scale);
+#else
+    SIMD_CONSTRUCT (*(const value_t *)((const char *)baseptr + vindex[i]*scale));
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat4::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
+#else
+    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat4::scatter (value_t *baseptr, const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_i32scatter_ps (baseptr, vindex, m_simd, scale);
+#else
+    SIMD_DO (*(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat4::scatter_mask (const bool_t& mask, value_t *baseptr,
+                       const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm_mask_i32scatter_ps (baseptr, mask, vindex, m_simd, scale);
+#else
+    SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
 
 OIIO_FORCEINLINE vfloat4 operator+ (const vfloat4& a, const vfloat4& b) {
 #if OIIO_SIMD_SSE
@@ -7751,6 +8163,53 @@ OIIO_FORCEINLINE void vfloat8::store_mask (const vbool8& mask, float *values) co
 }
 
 
+template <int scale>
+OIIO_FORCEINLINE void
+vfloat8::gather (const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm256_i32gather_ps (baseptr, vindex, scale);
+#else
+    SIMD_CONSTRUCT (*(const value_t *)((const char *)baseptr + vindex[i]*scale));
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat8::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 2
+    m_simd = _mm256_mask_i32gather_ps (m_simd, baseptr, vindex, mask, scale);
+#else
+    SIMD_CONSTRUCT (mask[i] ? *(const value_t *)((const char *)baseptr + vindex[i]*scale) : 0);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat8::scatter (value_t *baseptr, const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm256_i32scatter_ps (baseptr, vindex, m_simd, scale);
+#else
+    SIMD_DO (*(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat8::scatter_mask (const bool_t& mask, value_t *baseptr,
+                       const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    _mm256_mask_i32scatter_ps (baseptr, mask, vindex, m_simd, scale);
+#else
+    SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
+#endif
+}
+
+
+
 OIIO_FORCEINLINE vfloat8 operator+ (const vfloat8& a, const vfloat8& b) {
 #if OIIO_SIMD_AVX
     return _mm256_add_ps (a, b);
@@ -8517,6 +8976,57 @@ OIIO_FORCEINLINE void vfloat16::store_mask (const vbool16 &mask, float *values) 
 #else
     lo().store_mask (mask.lo(), values);
     hi().store_mask (mask.hi(), values+8);
+#endif
+}
+
+
+
+template <int scale>
+OIIO_FORCEINLINE void
+vfloat16::gather (const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 512
+    m_simd = _mm512_i32gather_ps (vindex, baseptr, scale);
+#else
+    m_8[0].gather<scale> (baseptr, vindex.lo());
+    m_8[1].gather<scale> (baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat16::gather_mask (const bool_t& mask, const value_t *baseptr, const vint_t& vindex)
+{
+#if OIIO_SIMD_AVX >= 512
+    m_simd = _mm512_mask_i32gather_ps (m_simd, mask, vindex, baseptr, scale);
+#else
+    m_8[0].gather_mask<scale> (mask.lo(), baseptr, vindex.lo());
+    m_8[1].gather_mask<scale> (mask.hi(), baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat16::scatter (value_t *baseptr, const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512
+    _mm512_i32scatter_ps (baseptr, vindex, m_simd, scale);
+#else
+    lo().scatter<scale> (baseptr, vindex.lo());
+    hi().scatter<scale> (baseptr, vindex.hi());
+#endif
+}
+
+template<int scale>
+OIIO_FORCEINLINE void
+vfloat16::scatter_mask (const bool_t& mask, value_t *baseptr,
+                        const vint_t& vindex) const
+{
+#if OIIO_SIMD_AVX >= 512
+    _mm512_mask_i32scatter_ps (baseptr, mask, vindex, m_simd, scale);
+#else
+    lo().scatter_mask<scale> (mask.lo(), baseptr, vindex.lo());
+    hi().scatter_mask<scale> (mask.hi(), baseptr, vindex.hi());
 #endif
 }
 
