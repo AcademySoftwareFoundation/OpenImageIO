@@ -140,7 +140,7 @@ test_parallel_for_2D ()
     std::vector<int> vals (size*size, 0);
 
     // Increment all the integers via parallel_for
-    parallel_for_2D (0, size, 0, 0, size, 0, [&](uint64_t i, uint64_t j){
+    parallel_for_2D (0, size, 0, size, [&](uint64_t i, uint64_t j){
         vals[j*size+i] += 1;
     });
 
