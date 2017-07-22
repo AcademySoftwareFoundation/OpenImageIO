@@ -32,9 +32,39 @@
 #define OPENIMAGEIO_UNITTEST_H
 
 #include <iostream>
+#include <cstdlib>
+
+#include <OpenImageIO/sysutil.h>
 
 
-static int unit_test_failures = 0;
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
+
+class UnitTestFailureCounter {
+public:
+    UnitTestFailureCounter () : m_failures(0) { }
+    ~UnitTestFailureCounter () {
+        if (m_failures) {
+            std::cout << Sysutil::Term().ansi ("red", "ERRORS!\n");
+            std::exit (m_failures != 0);
+        } else {
+            std::cout << Sysutil::Term().ansi ("green", "OK\n");
+        }
+    }
+    const UnitTestFailureCounter& operator++ () { ++m_failures; return *this; } // prefix
+    int operator++ (int) { return m_failures++; }  // postfix
+    UnitTestFailureCounter operator+= (int i) { m_failures += i; return *this; }
+    operator int () const { return m_failures; }
+private:
+    int m_failures = 0;
+};
+
+}
+OIIO_NAMESPACE_END
+
+static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
+
+
 
 /// OIIO_CHECK_* macros checks if the conditions is met, and if not,
 /// prints an error message indicating the module and line where the
@@ -42,60 +72,95 @@ static int unit_test_failures = 0;
 /// where we do not want one failure.
 #define OIIO_CHECK_ASSERT(x)                                            \
     ((x) ? ((void)0)                                                    \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-                       << "FAILED: " << #x << "\n"),                    \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+           << __FILE__ << ":" << __LINE__ << ":\n"                      \
+           << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")     \
+           << #x << "\n"),                                              \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_EQUAL(x,y)                                           \
     (((x) == (y)) ? ((void)0)                                           \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " == " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_EQUAL_THRESH(x,y,eps)                                \
     ((std::abs((x)-(y)) <= eps) ? ((void)0)                             \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " == " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'"     \
              << ", diff was " << std::abs((x)-(y)) << "\n"),            \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_NE(x,y)                                              \
     (((x) != (y)) ? ((void)0)                                           \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " != " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+           << __FILE__ << ":" << __LINE__ << ":\n"                      \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " != " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_LT(x,y)                                              \
     (((x) < (y)) ? ((void)0)                                            \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " < " << #y << "\n"                 \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " < " << #y << "\n"                               \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_GT(x,y)                                              \
     (((x) > (y)) ? ((void)0)                                            \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " > " << #y << "\n"                 \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " > " << #y << "\n"                               \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_LE(x,y)                                              \
     (((x) <= (y)) ? ((void)0)                                           \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " <= " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " <= " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_GE(x,y)                                              \
     (((x) >= (y)) ? ((void)0)                                           \
-         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
-             << "FAILED: " << #x << " >= " << #y << "\n"                \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " >= " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
+
+// Special SIMD related equality checks that use all()
+#define OIIO_CHECK_SIMD_EQUAL(x,y)                                      \
+    (all ((x) == (y)) ? ((void)0)                                       \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
+            (void)++unit_test_failures))
+
+#define OIIO_CHECK_SIMD_EQUAL_THRESH(x,y,eps)                           \
+    (all (abs((x)-(y)) < (eps)) ? ((void)0)                             \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
+            (void)++unit_test_failures))
 
 
 #endif /* OPENIMAGEIO_UNITTEST_H */
