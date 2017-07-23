@@ -209,7 +209,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // FIXME Future: support ARM Neon
 // Uncomment this when somebody with Neon can verify it works
 #if 0 && defined(__ARM_NEON__) && !defined(OIIO_NO_NEON)
-#  define OIIO_SIMD 1
+#  define OIIO_SIMD 4
 #  define OIIO_SIMD_NEON 1
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
