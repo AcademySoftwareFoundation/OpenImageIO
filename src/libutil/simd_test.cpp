@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/strutil.h>
-#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/ustring.h>
@@ -104,27 +103,6 @@ test_heading (string_view name, string_view name2="")
     std::cout << term.ansi("bold") << name << ' ' << name2
               << term.ansi("normal") << "\n";
 }
-
-
-
-#define OIIO_CHECK_SIMD_EQUAL(x,y)                                      \
-    (all ((x) == (y)) ? ((void)0)                                       \
-         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
-             << __FILE__ << ":" << __LINE__ << ":\n"                    \
-             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
-             << #x << " == " << #y << "\n"                              \
-             << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
-            (void)++unit_test_failures))
-
-
-#define OIIO_CHECK_SIMD_EQUAL_THRESH(x,y,eps)                           \
-    (all (abs((x)-(y)) < (eps)) ? ((void)0)                             \
-         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
-             << __FILE__ << ":" << __LINE__ << ":\n"                    \
-             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
-             << #x << " == " << #y << "\n"                              \
-             << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
-            (void)++unit_test_failures))
 
 
 
@@ -1709,9 +1687,5 @@ main (int argc, char *argv[])
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer()) << "\n";
 
-    if (unit_test_failures)
-        std::cout << term.ansi ("red", "ERRORS!\n");
-    else
-        std::cout << term.ansi ("green", "OK\n");
     return unit_test_failures;
 }
