@@ -482,6 +482,48 @@ void test_masked_loadstore ()
 
 
 template<typename VEC>
+void test_gatherscatter ()
+{
+    typedef typename VEC::value_t ELEM;
+    typedef typename VEC::vbool_t BOOL;
+    test_heading ("scatter & gather ", VEC::type_name());
+
+    const int spacing = 3;
+    const int bufsize = VEC::elements*3 + 1;
+    std::vector<ELEM> gather_source (bufsize);
+    for (int i = 0; i < bufsize; ++i)
+        gather_source[i] = ((i%spacing) == 1) ? i/3 : -1;
+    // gather_source will contain: -1 0 -1  -1 1 -1  -1 2 -1  -1 3 -1  ...
+
+    auto indices = VEC::vint_t::Iota(1,3);
+    VEC g, gm;
+    g.gather (gather_source.data(), indices);
+    OIIO_CHECK_SIMD_EQUAL (g, VEC::Iota());
+
+    BOOL mask = BOOL::from_bitmask(0x55555555);  // every other one
+    ELEM every_other_iota[] = { 0, 0, 2, 0, 4, 0, 6, 0, 8, 0, 10, 0, 12, 0, 14, 0 };
+    gm = 0;
+    gm.gather_mask (mask, gather_source.data(), indices);
+    OIIO_CHECK_SIMD_EQUAL (gm, VEC(every_other_iota));
+
+    std::vector<ELEM> scatter_out (bufsize, (ELEM)-1);
+    g.scatter (scatter_out.data(), indices);
+    OIIO_CHECK_ASSERT (scatter_out == gather_source);
+
+    std::fill (scatter_out.begin(), scatter_out.end(), -1);
+    VEC::Iota().scatter_mask (mask, scatter_out.data(), indices);
+    for (int i = 0; i < (int)scatter_out.size(); ++i)
+        OIIO_CHECK_EQUAL (scatter_out[i], ((i%3) == 1 && (i&1) ? i/3 : -1));
+
+    benchmark ("gather", [&](const ELEM *d){ VEC v; v.gather (d, indices); return v; }, gather_source.data());
+    benchmark ("gather_mask", [&](const ELEM *d){ VEC v; v.gather_mask (mask, d, indices); return v; }, gather_source.data());
+    benchmark ("scatter", [&](ELEM *d){ g.scatter (d, indices); return g; }, scatter_out.data());
+    benchmark ("scatter_mask", [&](ELEM *d){ g.scatter_mask (mask, d, indices); return g; }, scatter_out.data());
+}
+
+
+
+template<typename VEC>
 void test_component_access ()
 {
     typedef typename VEC::value_t ELEM;
@@ -1572,6 +1614,8 @@ main (int argc, char *argv[])
     category_heading ("vfloat4");
     test_partial_loadstore<vfloat4> ();
     test_conversion_loadstore_float<vfloat4> ();
+    test_masked_loadstore<vfloat4> ();
+    test_gatherscatter<vfloat4> ();
     test_component_access<vfloat4> ();
     test_arithmetic<vfloat4> ();
     test_comparisons<vfloat4> ();
@@ -1602,6 +1646,7 @@ main (int argc, char *argv[])
     test_partial_loadstore<vfloat8> ();
     test_conversion_loadstore_float<vfloat8> ();
     test_masked_loadstore<vfloat8> ();
+    test_gatherscatter<vfloat8> ();
     test_component_access<vfloat8> ();
     test_arithmetic<vfloat8> ();
     test_comparisons<vfloat8> ();
@@ -1614,6 +1659,7 @@ main (int argc, char *argv[])
     test_partial_loadstore<vfloat16> ();
     test_conversion_loadstore_float<vfloat16> ();
     test_masked_loadstore<vfloat16> ();
+    test_gatherscatter<vfloat16> ();
     test_component_access<vfloat16> ();
     test_arithmetic<vfloat16> ();
     test_comparisons<vfloat16> ();
@@ -1625,6 +1671,8 @@ main (int argc, char *argv[])
     category_heading ("vint4");
     test_partial_loadstore<vint4> ();
     test_conversion_loadstore_int<vint4> ();
+    test_masked_loadstore<vint4> ();
+    test_gatherscatter<vint4> ();
     test_component_access<vint4> ();
     test_arithmetic<vint4> ();
     test_bitwise_int<vint4> ();
@@ -1640,6 +1688,7 @@ main (int argc, char *argv[])
     test_partial_loadstore<vint8> ();
     test_conversion_loadstore_int<vint8> ();
     test_masked_loadstore<vint8> ();
+    test_gatherscatter<vint8> ();
     test_component_access<vint8> ();
     test_arithmetic<vint8> ();
     test_bitwise_int<vint8> ();
@@ -1654,6 +1703,7 @@ main (int argc, char *argv[])
     test_partial_loadstore<vint16> ();
     test_conversion_loadstore_int<vint16> ();
     test_masked_loadstore<vint16> ();
+    test_gatherscatter<vint16> ();
     test_component_access<vint16> ();
     test_arithmetic<vint16> ();
     test_bitwise_int<vint16> ();
