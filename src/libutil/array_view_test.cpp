@@ -38,143 +38,6 @@ using namespace OIIO;
 
 
 
-void test_offset ()
-{
-    // Test default constructor
-    offset<1> off1_default;
-    offset<2> off2_default;
-    OIIO_CHECK_EQUAL (off1_default[0], 0);
-    OIIO_CHECK_EQUAL (off2_default[0], 0);
-    OIIO_CHECK_EQUAL (off2_default[0], 0);
-
-    // Test explitit initializers
-    offset<1> off1 (42), off1b(10);
-    offset<2> off2 (14, 43), off2b(10,12);
-    OIIO_CHECK_EQUAL (off1[0], 42);
-    OIIO_CHECK_EQUAL (off2[0], 14);
-    OIIO_CHECK_EQUAL (off2[1], 43);
-    // test == and !=
-    OIIO_CHECK_EQUAL (off1, off1);
-    OIIO_CHECK_NE (off1, off1b);
-    OIIO_CHECK_EQUAL (off2, off2);
-    OIIO_CHECK_NE (off2, off2b);
-    // test arithmetic
-    OIIO_CHECK_EQUAL (off1+off1b, offset<1>(52));
-    OIIO_CHECK_EQUAL (off1-off1b, offset<1>(32));
-    OIIO_CHECK_EQUAL (-off1, offset<1>(-42));
-    OIIO_CHECK_EQUAL (off1*2, offset<1>(84));
-    OIIO_CHECK_EQUAL (off1/2, offset<1>(21));
-    OIIO_CHECK_EQUAL (off2+off2b, offset<2>(24,55));
-    OIIO_CHECK_EQUAL (off2-off2b, offset<2>(4,31));
-    OIIO_CHECK_EQUAL (-off2, offset<2>(-14,-43));
-    OIIO_CHECK_EQUAL (off2b*2, offset<2>(20,24));
-    OIIO_CHECK_EQUAL (off2b/2, offset<2>(5,6));
-    { offset<1> o = off1; ++o; OIIO_CHECK_EQUAL(o[0], 43); }
-    { offset<1> o = off1; o++; OIIO_CHECK_EQUAL(o[0], 43); }
-    { offset<1> o = off1; --o; OIIO_CHECK_EQUAL(o[0], 41); }
-    { offset<1> o = off1; o--; OIIO_CHECK_EQUAL(o[0], 41); }
-    { offset<1> o = off1; o += off1b; OIIO_CHECK_EQUAL(o[0], 52); }
-    { offset<1> o = off1; o -= off1b; OIIO_CHECK_EQUAL(o[0], 32); }
-    { offset<1> o = off1; o *= 2; OIIO_CHECK_EQUAL(o[0], 84); }
-    { offset<1> o = off1; o /= 2; OIIO_CHECK_EQUAL(o[0], 21); }
-    { offset<2> o = off2; o += off2b; OIIO_CHECK_EQUAL(o, offset<2>(24,55)); }
-    { offset<2> o = off2; o -= off2b; OIIO_CHECK_EQUAL(o, offset<2>(4,31)); }
-    { offset<2> o = off2b; o *= 2; OIIO_CHECK_EQUAL(o, offset<2>(20,24)); }
-    { offset<2> o = off2b; o /= 2; OIIO_CHECK_EQUAL(o, offset<2>(5,6)); }
-
-    {
-        // test initializer list
-        offset<1> off1 {42};
-        offset<2> off2 {14, 43};
-        OIIO_CHECK_EQUAL (off1[0], 42);
-        OIIO_CHECK_EQUAL (off2[0], 14);
-        OIIO_CHECK_EQUAL (off2[1], 43);
-    }
-}
-
-
-
-void test_bounds ()
-{
-    // Test default constructor
-    bounds<1> b1_default;
-    bounds<2> b2_default;
-    OIIO_CHECK_EQUAL (b1_default[0], 0);
-    OIIO_CHECK_EQUAL (b2_default[0], 0);
-    OIIO_CHECK_EQUAL (b2_default[0], 0);
-
-    // Test explitit initializers
-    bounds<1> b1 (42), b1b(10);
-    bounds<2> b2 (14, 43), b2b(10,12);
-    OIIO_CHECK_EQUAL (b1[0], 42);
-    OIIO_CHECK_EQUAL (b2[0], 14);
-    OIIO_CHECK_EQUAL (b2[1], 43);
-    // test == and !=
-    OIIO_CHECK_EQUAL (b1, b1);
-    OIIO_CHECK_NE (b1, b1b);
-    OIIO_CHECK_EQUAL (b2, b2);
-    OIIO_CHECK_NE (b2, b2b);
-    // test arithmetic
-    offset<1> off1b(10);
-    offset<2> off2b(10,12);
-    OIIO_CHECK_EQUAL (b1+off1b, bounds<1>(52));
-    OIIO_CHECK_EQUAL (b1-off1b, bounds<1>(32));
-    OIIO_CHECK_EQUAL (b1*2, bounds<1>(84));
-    OIIO_CHECK_EQUAL (b1/2, bounds<1>(21));
-    OIIO_CHECK_EQUAL (b2+off2b, bounds<2>(24,55));
-    OIIO_CHECK_EQUAL (b2-off2b, bounds<2>(4,31));
-    OIIO_CHECK_EQUAL (b2b*2, bounds<2>(20,24));
-    OIIO_CHECK_EQUAL (b2b/2, bounds<2>(5,6));
-    { bounds<1> b = b1; b += off1b; OIIO_CHECK_EQUAL(b[0], 52); }
-    { bounds<1> b = b1; b -= off1b; OIIO_CHECK_EQUAL(b[0], 32); }
-    { bounds<1> b = b1; b *= 2; OIIO_CHECK_EQUAL(b[0], 84); }
-    { bounds<1> b = b1; b /= 2; OIIO_CHECK_EQUAL(b[0], 21); }
-    { bounds<2> b = b2; b += off2b; OIIO_CHECK_EQUAL(b, bounds<2>(24,55)); }
-    { bounds<2> b = b2; b -= off2b; OIIO_CHECK_EQUAL(b, bounds<2>(4,31)); }
-    { bounds<2> b = b2b; b *= 2; OIIO_CHECK_EQUAL(b, bounds<2>(20,24)); }
-    { bounds<2> b = b2b; b /= 2; OIIO_CHECK_EQUAL(b, bounds<2>(5,6)); }
-
-    // test iterators
-    {
-        bounds<1> b (3);
-        bounds<1>::iterator i = b.begin();
-        OIIO_CHECK_EQUAL (*i, 0); OIIO_CHECK_NE (i, b.end());
-        ++i;
-        OIIO_CHECK_EQUAL (*i, 1); OIIO_CHECK_NE (i, b.end());
-        --i; OIIO_CHECK_EQUAL (*i, 0); ++i;
-        i++;
-        i--; OIIO_CHECK_EQUAL (*i, 1); ++i;
-        OIIO_CHECK_EQUAL (*i, 2);
-        i -= 1; OIIO_CHECK_EQUAL (*i, 1); i += 1;
-        OIIO_CHECK_EQUAL (*i, 2); OIIO_CHECK_NE (i, b.end());
-        i += 1;
-        OIIO_CHECK_EQUAL (i, b.end());
-    }
-    {
-        bounds<2> b (2, 2);
-        bounds<2>::iterator i = b.begin();
-             OIIO_CHECK_EQUAL (*i, offset<2>(0,0)); OIIO_CHECK_NE (i, b.end());
-        ++i; OIIO_CHECK_EQUAL (*i, offset<2>(0,1)); OIIO_CHECK_NE (i, b.end());
-        --i; OIIO_CHECK_EQUAL (*i, offset<2>(0,0)); ++i;
-        ++i; OIIO_CHECK_EQUAL (*i, offset<2>(1,0)); OIIO_CHECK_NE (i, b.end());
-        i--; OIIO_CHECK_EQUAL (*i, offset<2>(0,1)); i++;
-        ++i; OIIO_CHECK_EQUAL (*i, offset<2>(1,1)); OIIO_CHECK_NE (i, b.end());
-        i -= 1; OIIO_CHECK_EQUAL (*i, offset<2>(1,0)); i += 1;
-        ++i; OIIO_CHECK_EQUAL (i, b.end());
-    }
-
-    {
-        // test initializer list
-        bounds<1> b1 {42};
-        bounds<2> b2 {14, 43};
-        OIIO_CHECK_EQUAL (b1[0], 42);
-        OIIO_CHECK_EQUAL (b2[0], 14);
-        OIIO_CHECK_EQUAL (b2[1], 43);
-    }
-}
-
-
-
 void test_array_view ()
 {
     static float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
@@ -228,32 +91,6 @@ void test_array_view_initlist ()
     OIIO_CHECK_EQUAL (a[3], 2.0f);
 }
 
-
-
-
-void test_array_view_2D ()
-{
-    float A[] = { 0, 1, 0,   2, 0, 3,   0, 4, 0,   5, 0, 0 };
-    array_view<float,2> a (A, bounds<2>(4, 3));
-    OIIO_CHECK_EQUAL (a.bounds()[0], 4);
-    OIIO_CHECK_EQUAL (a.bounds()[1], 3);
-    OIIO_CHECK_EQUAL (a.size(), 12);
-    OIIO_CHECK_EQUAL (a[offset<2>(0,0)], 0.0f);
-    OIIO_CHECK_EQUAL (a[offset<2>(0,1)], 1.0f);
-    OIIO_CHECK_EQUAL (a[offset<2>(0,2)], 0.0f);
-    OIIO_CHECK_EQUAL (a[offset<2>(1,0)], 2.0f);
-    OIIO_CHECK_EQUAL (a[offset<2>(1,1)], 0.0f);
-    OIIO_CHECK_EQUAL (a[offset<2>(1,2)], 3.0f);
-#if 0
-    // Test this after we add slicing
-    OIIO_CHECK_EQUAL (a[0][0], 0.0f);
-    OIIO_CHECK_EQUAL (a[0][1], 1.0f);
-    OIIO_CHECK_EQUAL (a[0][2], 0.0f);
-    OIIO_CHECK_EQUAL (a[1][0], 2.0f);
-    OIIO_CHECK_EQUAL (a[1][1], 0.0f);
-    OIIO_CHECK_EQUAL (a[1][2], 3.0f);
-#endif
-}
 
 
 
@@ -409,12 +246,9 @@ void test_image_view_mutable ()
 
 int main (int argc, char *argv[])
 {
-    test_offset ();
-    test_bounds ();
     test_array_view ();
     test_array_view_mutable ();
     test_array_view_initlist ();
-    test_array_view_2D ();
     test_const_strided_ptr ();
     test_strided_ptr ();
     test_array_view_strided ();
