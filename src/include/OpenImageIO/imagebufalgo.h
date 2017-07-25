@@ -250,74 +250,6 @@ bool OIIO_API channel_append (ImageBuf &dst, const ImageBuf &A,
                               int nthreads=0);
 
 
-/// Set dst to the "deep" version of "flat" input src. Turning a flat
-/// image into a deep one means:
-///
-/// If the src image has a "Z" channel: if the source pixel's Z channel
-/// value is not infinite, the corresponding pixel of dst will get a single
-/// depth sample that copies the data from the soruce pixel; otherwise, dst
-/// will get an empty pixel. In other words, infinitely far pixels will not
-/// turn into deep samples.
-///
-/// If the src image lacks a "Z" channel: if any of the source pixel's
-/// channel values are nonzero, the corresponding pixel of dst will get a
-/// single depth sample that copies the data from the source pixel and uses
-/// the zvalue parameter for the depth; otherwise, if all source channels in
-/// that pixel are zero, the destination pixel will get no depth samples.
-///
-/// If src is already a deep image, it will just copy pixel values from src
-/// to dst. If dst is not already an initialized ImageBuf, it will be sized
-/// to match src (but made deep).
-///
-/// 'roi' specifies the region of dst's pixels which will be computed;
-/// existing pixels outside this range will not be altered.  If not
-/// specified, the default ROI value will be the pixel data window of src.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-bool OIIO_API deepen (ImageBuf &dst, const ImageBuf &src, float zvalue = 1.0f,
-                      ROI roi = ROI::All(), int nthreads = 0);
-
-
-/// Set dst to the ``flattened'' composite of deep image src.  That is, it
-/// converts a deep image to a simple flat image by front-to-back
-/// compositing the samples within each pixel.  If src is already a non-
-/// deep/flat image, it will just copy pixel values from src to dst. If dst
-/// is not already an initialized ImageBuf, it will be sized to match src
-/// (but made non-deep).
-///
-/// 'roi' specifies the region of dst's pixels which will be computed;
-/// existing pixels outside this range will not be altered.  If not
-/// specified, the default ROI value will be the pixel data window of src.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-bool OIIO_API flatten (ImageBuf &dst, const ImageBuf &src,
-                       ROI roi = ROI::All(), int nthreads = 0);
-
-
-/// Set dst to the deep merge of the samples of deep images A and B,
-/// overwriting any existing samples of dst in the ROI.
-/// If occlusion_cull is true, any samples occluded by an opaque
-/// sample will be deleted.
-///
-/// 'roi' specifies the region of dst's pixels which will be computed;
-/// existing pixels outside this range will not be altered.  If not
-/// specified, the default ROI value will be the pixel data window of src.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-bool OIIO_API deep_merge (ImageBuf &dst, const ImageBuf &A,
-                          const ImageBuf &B, bool occlusion_cull = true,
-                          ROI roi = ROI::All(), int nthreads = 0);
-
-
 /// Copy the specified region of pixels of src into dst at the same
 /// locations, without changing any existing pixels of dst outside the
 /// region.  If dst is not already initialized, it will be set to the same
@@ -1878,18 +1810,6 @@ bool OIIO_API zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      ROI roi = ROI::All(), int nthreads = 0);
 
 
-/// Set dst to the samples of deep image src that are closer than the opaque
-/// frontier of deep image holdout, returning true upon success and false
-/// for any failures. Samples of src that are farther than the first opaque
-/// sample of holdout (for the corresponding pixel)will not be copied to
-/// dst. Image holdout is only used as the depth threshold; no sample values
-/// from holdout are themselves copied to dst.
-bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
-                            const ImageBuf &holdout,
-                            ROI roi = ROI::All(), int nthreads = 0);
-
-
-
 /// Render a single point at (x,y) of the given color "over" the existing
 /// image dst. If there is no alpha channel, the color will be written
 /// unconditionally (as if the alpha is 1.0). The color array view must
@@ -1968,6 +1888,105 @@ bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
 /// defined() property.
 ROI OIIO_API text_size (string_view text, int fontsize=16,
                         string_view fontname="");
+
+
+
+/// Set dst to the "deep" version of "flat" input src. Turning a flat
+/// image into a deep one means:
+///
+/// If the src image has a "Z" channel: if the source pixel's Z channel
+/// value is not infinite, the corresponding pixel of dst will get a single
+/// depth sample that copies the data from the soruce pixel; otherwise, dst
+/// will get an empty pixel. In other words, infinitely far pixels will not
+/// turn into deep samples.
+///
+/// If the src image lacks a "Z" channel: if any of the source pixel's
+/// channel values are nonzero, the corresponding pixel of dst will get a
+/// single depth sample that copies the data from the source pixel and uses
+/// the zvalue parameter for the depth; otherwise, if all source channels in
+/// that pixel are zero, the destination pixel will get no depth samples.
+///
+/// If src is already a deep image, it will just copy pixel values from src
+/// to dst. If dst is not already an initialized ImageBuf, it will be sized
+/// to match src (but made deep).
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+bool OIIO_API deepen (ImageBuf &dst, const ImageBuf &src, float zvalue = 1.0f,
+                      ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Set dst to the ``flattened'' composite of deep image src.  That is, it
+/// converts a deep image to a simple flat image by front-to-back
+/// compositing the samples within each pixel.  If src is already a non-
+/// deep/flat image, it will just copy pixel values from src to dst. If dst
+/// is not already an initialized ImageBuf, it will be sized to match src
+/// (but made non-deep).
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+bool OIIO_API flatten (ImageBuf &dst, const ImageBuf &src,
+                       ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Set dst to the deep merge of the samples of deep images A and B,
+/// overwriting any existing samples of dst in the ROI.
+/// If occlusion_cull is true, any samples occluded by an opaque
+/// sample will be deleted.
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+bool OIIO_API deep_merge (ImageBuf &dst, const ImageBuf &A,
+                          const ImageBuf &B, bool occlusion_cull = true,
+                          ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Set dst to the samples of src, but held out by the samples of the
+/// holdout image. A "holdout" is an image whose alpha blocks what's
+/// behind it as usual, but doesn't contribute any alpha or color itself.
+///
+/// 'roi' specifies the region of dst's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be the pixel data window of src.
+///
+/// The nthreads parameter specifies how many threads (potentially) may
+/// be used, but it's not a guarantee.  If nthreads == 0, it will use
+/// the global OIIO attribute "nthreads".  If nthreads == 1, it
+/// guarantees that it will not launch any new threads.
+bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
+                            const ImageBuf &holdout,
+                            ROI roi = ROI::All(), int nthreads = 0);
+
+
+/// Set dst to the samples of deep image src that are closer than the opaque
+/// frontier of deep image holdout, returning true upon success and false
+/// for any failures. Samples of src that are farther than the first opaque
+/// sample of holdout (for the corresponding pixel)will not be copied to
+/// dst. Image holdout is only used as the depth threshold; no sample values
+/// from holdout are themselves copied to dst.
+bool OIIO_API deep_cull (ImageBuf &dst, const ImageBuf &src,
+                         const ImageBuf &holdout,
+                         ROI roi = ROI::All(), int nthreads = 0);
+
+
 
 
 

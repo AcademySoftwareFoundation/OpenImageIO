@@ -1,6 +1,13 @@
 test_chantypes  half half half half float float
 After init, dd has 9 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 1.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   Nsamples[ 3 ] = 3  (capacity= 3 ) samples:
@@ -27,6 +34,13 @@ Writing image...
 Reading image...
 After init, dd has 9 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 1.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   Nsamples[ 3 ] = 3  (capacity= 3 ) samples:
@@ -51,16 +65,37 @@ After init, dd has 9 pixels, 6 channels.
 Testing insert and erase...
 After setting one sample: dd has 3 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 10.00 /  [5 Zback] 0.00 / 
 After inserting before and after: dd has 3 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 3  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 9.00 /  [5 Zback] 0.00 / 
   sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 10.00 /  [5 Zback] 0.00 / 
   sample 2 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 11.00 /  [5 Zback] 0.00 / 
 After deleting the middle: dd has 3 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 2  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 9.00 /  [5 Zback] 0.00 / 
   sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.00 /  [4 Z] 11.00 /  [5 Zback] 0.00 / 
@@ -68,6 +103,13 @@ After deleting the middle: dd has 3 pixels, 6 channels.
 Testing copy_deep_pixel...
 test_deep_copy: should swap pixels 3 and 5, dd has 9 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 1.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   Nsamples[ 3 ] = 5  (capacity= 5 ) samples:
@@ -92,6 +134,13 @@ test_deep_copy: should swap pixels 3 and 5, dd has 9 pixels, 6 channels.
 Testing split...
 After split, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 2  (capacity= 2 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.10 /  [2 B] 0.10 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 11.00 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.50 /  [2 B] 0.10 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 21.00 / 
@@ -103,6 +152,13 @@ After split, dd has 2 pixels, 6 channels.
 Testing sort...
 Before z sort, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
@@ -115,6 +171,13 @@ Before z sort, dd has 2 pixels, 6 channels.
   sample 3 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 17.00 /  [5 Zback] 17.50 / 
 After z sort of pixel 1, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 19.00 /  [5 Zback] 19.50 / 
@@ -129,6 +192,13 @@ After z sort of pixel 1, dd has 2 pixels, 6 channels.
 Testing merge_overlaps...
 Before merge_overlaps, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
@@ -141,6 +211,13 @@ Before merge_overlaps, dd has 2 pixels, 6 channels.
   sample 3 :  [0 R] 0.30 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
 After merge_overlaps of pixel 1, dd has 2 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 4  (capacity= 4 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.10 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
@@ -153,14 +230,35 @@ After merge_overlaps of pixel 1, dd has 2 pixels, 6 channels.
 Testing merge_deep_pixels...
 Before merge_deep_pixels, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 12.00 / 
 And the other image, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 13.00 / 
 After merge_deep_pixels, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 3  (capacity= 4 ) samples:
   sample 0 :  [0 R] 0.29 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.29 /  [4 Z] 10.00 /  [5 Zback] 11.00 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 12.00 / 
@@ -169,12 +267,26 @@ After merge_deep_pixels, dd has 1 pixels, 6 channels.
 Testing occlusion_cull...
 Before occlusion_cull, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 3  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
   sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
 After occlusion_cull, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 2  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
@@ -182,6 +294,13 @@ After occlusion_cull, dd has 1 pixels, 6 channels.
 Testing opaque_z...
 Values dd has 3 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 3  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
@@ -192,9 +311,33 @@ Values dd has 3 pixels, 6 channels.
   sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
 Opaque z:  11.5 3.40282346639e+38 3.40282346639e+38
 
-Testing ImageBufAlgo.deep_holdout...
+Testing cull_behind...
+After cull_behind, dd has 3 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R half  my_alpha= 3
+     1 G half  my_alpha= 3
+     2 B half  my_alpha= 3
+     3 A half  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
+  Nsamples[ 0 ] = 0  (capacity= 2 ) samples:
+  Nsamples[ 1 ] = 1  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.10 /  [2 B] 0.10 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 11.00 / 
+  Nsamples[ 2 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.10 /  [2 B] 0.10 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 11.00 / 
+  sample 1 :  [0 R] 0.10 /  [1 G] 0.50 /  [2 B] 0.10 /  [3 A] 0.50 /  [4 Z] 20.00 /  [5 Zback] 21.00 / 
+
+Testing ImageBufAlgo.deep_cull...
 Input image dd has 6 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   Nsamples[ 2 ] = 1  (capacity= 1 ) samples:
@@ -208,6 +351,13 @@ Input image dd has 6 pixels, 6 channels.
   sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
 Holdout image dd has 6 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 0 ] = 2  (capacity= 2 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
   sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.00 /  [5 Zback] 15.10 / 
@@ -226,8 +376,15 @@ Holdout image dd has 6 pixels, 6 channels.
   Nsamples[ 5 ] = 2  (capacity= 2 ) samples:
   sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
   sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 15.50 /  [5 Zback] 15.60 / 
-Result after holdout dd has 6 pixels, 6 channels.
+Result after deep_cull dd has 6 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
   Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   Nsamples[ 2 ] = 0  (capacity= 1 ) samples:
@@ -236,5 +393,74 @@ Result after holdout dd has 6 pixels, 6 channels.
   Nsamples[ 4 ] = 2  (capacity= 3 ) samples:
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.33 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 15.00 /  [5 Zback] 15.50 / 
+
+Testing ImageBufAlgo.deep_holdout...
+Input image dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
+  Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  Nsamples[ 2 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 3 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 4 ] = 3  (capacity= 3 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 15.00 /  [5 Zback] 16.00 / 
+  sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 25.00 /  [5 Zback] 26.00 / 
+Holdout image dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
+  Nsamples[ 0 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.00 /  [5 Zback] 25.10 / 
+  Nsamples[ 1 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.10 /  [5 Zback] 25.20 / 
+  Nsamples[ 2 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.20 /  [5 Zback] 25.30 / 
+  Nsamples[ 3 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.30 /  [5 Zback] 25.40 / 
+  Nsamples[ 4 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.40 /  [5 Zback] 25.50 / 
+  Nsamples[ 5 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
+  sample 1 :  [0 R] 0.00 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 1.00 /  [4 Z] 25.50 /  [5 Zback] 25.60 / 
+Result after holdout dd has 6 pixels, 6 channels.
+  Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
+  Channel info:
+     0 R float  my_alpha= 3
+     1 G float  my_alpha= 3
+     2 B float  my_alpha= 3
+     3 A float  my_alpha= 3
+     4 Z float  my_alpha= -1
+     5 Zback float  my_alpha= -1
+  Nsamples[ 1 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  Nsamples[ 2 ] = 1  (capacity= 1 ) samples:
+  sample 0 :  [0 R] 0.25 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.38 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 3 ] = 2  (capacity= 2 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.25 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.38 /  [4 Z] 20.00 /  [5 Zback] 20.50 / 
+  Nsamples[ 4 ] = 3  (capacity= 5 ) samples:
+  sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.75 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
+  sample 1 :  [0 R] 0.25 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.38 /  [4 Z] 15.00 /  [5 Zback] 16.00 / 
+  sample 2 :  [0 R] 0.14 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.21 /  [4 Z] 25.00 /  [5 Zback] 25.40 / 
 
 Done.

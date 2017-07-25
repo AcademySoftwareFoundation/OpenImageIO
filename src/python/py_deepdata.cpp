@@ -153,6 +153,7 @@ void declare_deepdata()
              (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
         .def("erase_samples",   &DeepData::erase_samples,
              (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
+        .def("alpha_channel_for", &DeepData::alpha_channel_for)
         .def("channelname",     &DeepData_channelname)
         .def("channeltype",     &DeepData::channeltype)
         .def("channelsize",     &DeepData_channelsize)
@@ -177,6 +178,8 @@ void declare_deepdata()
              (arg("pixel"), arg("src"), arg("srcpixel")))
         .def("occlusion_cull", &DeepData::occlusion_cull, (arg("pixel")))
         .def("opaque_z", &DeepData::opaque_z, (arg("pixel")))
+        .def("cull_behind", &DeepData::cull_behind,
+             (arg("pixel"), arg("depth")))
     ;
 }
 

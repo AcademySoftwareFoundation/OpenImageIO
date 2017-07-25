@@ -37,6 +37,16 @@ command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
                      " -deepmerge -deepmerge -deepmerge -flatten " +
                      " -ch R,G,B,A -d half -o deepmerge.exr")
 
+# --deepholdout
+command += oiiotool ("src/input-crop.deep.exr src/holdout-crop.deep.exr " +
+                     "-deepholdout -o deepholdout-crop.deep.exr " +
+                     "-flatten -ch R,G,B,A,Z,Zback -o deepholdout-crop.flat.exr")
+
+# --deepcull
+command += oiiotool ("src/input-crop.deep.exr src/holdout-crop.deep.exr " +
+                     "-deepcull -o deepcull-crop.deep.exr " +
+                     "-flatten -ch R,G,B,A,Z,Zback -o deepcull-crop.flat.exr")
+
 # --resample
 command += oiiotool (exrdir+"/Balls.exr -resample 128x72 -o resampled-balls.exr")
 
@@ -56,6 +66,8 @@ outputs = [ "flat.exr",
             "deep_mulc.exr",
             "deep_divc.exr",
             "deepmerge.exr",
+            "deepholdout-crop.deep.exr",
+            "deepcull-crop.deep.exr",
             "resampled-balls.exr",
             "out.txt" ]
 

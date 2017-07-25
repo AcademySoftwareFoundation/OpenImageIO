@@ -53,6 +53,9 @@ def make_test_deep_image () :
 def print_deep_image (dd, prefix="After init,") :
     print prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels."
     print "  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel
+    print "  Channel info:"
+    for c in range(dd.channels) :
+        print "    ", c, dd.channelname(c), dd.channeltype(c), " my_alpha=", dd.alpha_channel_for(c)
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 0 or dd.capacity(p) > 0 :
@@ -96,7 +99,7 @@ def test_deep_copy () :
 
 def test_sample_split () :
     print "\nTesting split..."
-    # Set up a simple 3-pixel image
+    # Set up a simple 2-pixel image
     dd = oiio.DeepData ()
     dd.init (2, test_nchannels, test_chantypes, test_channames)
     for p in range(dd.pixels) :
@@ -122,6 +125,34 @@ def test_sample_split () :
     dd.split (1, 20.0)   # Right on an edge -- should have no effect
     dd.split (1, 20.5)   # THIS one should split
     print_deep_image (dd, "After split,")
+
+
+def test_cull_behind () :
+    print "\nTesting cull_behind..."
+    # Set up a simple 3-pixel image
+    dd = oiio.DeepData ()
+    dd.init (3, test_nchannels, test_chantypes, test_channames)
+    for p in range(dd.pixels) :
+        dd.set_samples (p, 2)
+        # first sample - reddish
+        dd.set_deep_value (p, 0, 0, 0.5)   # R
+        dd.set_deep_value (p, 1, 0, 0.1)   # G
+        dd.set_deep_value (p, 2, 0, 0.1)   # B
+        dd.set_deep_value (p, 3, 0, 0.5)   # A
+        dd.set_deep_value (p, 4, 0, 10.0)  # Z
+        dd.set_deep_value (p, 5, 0, 11.0)  # Zback
+        # second sample - greenish
+        dd.set_deep_value (p, 0, 1, 0.1)   # R
+        dd.set_deep_value (p, 1, 1, 0.5)   # G
+        dd.set_deep_value (p, 2, 1, 0.1)   # B
+        dd.set_deep_value (p, 3, 1, 0.5)   # A
+        dd.set_deep_value (p, 4, 1, 20.0)  # Z
+        dd.set_deep_value (p, 5, 1, 21.0)  # Zback
+    # Now do a few cull_behinds
+    dd.cull_behind (0, 5.0)    # should cull everything
+    dd.cull_behind (1, 15.0)   # should cull the second sample
+    dd.cull_behind (2, 25.0)   # shouldn't cull anything
+    print_deep_image (dd, "After cull_behind,")
 
 
 def test_sample_sort () :
@@ -247,8 +278,8 @@ def add_ib_sample (ib, x, y, vals) :
     set_ib_sample (ib, x, y, ib.deep_samples(x,y), vals)
 
 
-def test_iba_deep_holdout () :
-    print "\nTesting ImageBufAlgo.deep_holdout..."
+def test_iba_deep_cull () :
+    print "\nTesting ImageBufAlgo.deep_cull..."
     spec = oiio.ImageSpec (6, 1, 6, oiio.FLOAT)
     spec.deep = True
     spec.channeltypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
@@ -276,6 +307,41 @@ def test_iba_deep_holdout () :
     for x in range(6) :
         add_ib_sample (hold, x, 0, (0, 0, 0, 0.5, 12.0, 12.5))
         add_ib_sample (hold, x, 0, (0, 0, 0, 1.0, 15.0+0.1*x, 15.0+0.1*x+0.1))
+    print_deep_imagebuf (hold, "Holdout image")
+    result = oiio.ImageBuf()
+    oiio.ImageBufAlgo.deep_cull (result, src, hold)
+    print_deep_imagebuf (result, "Result after deep_cull")
+
+
+def test_iba_deep_holdout () :
+    print "\nTesting ImageBufAlgo.deep_holdout..."
+    spec = oiio.ImageSpec (6, 1, 6, oiio.FLOAT)
+    spec.deep = True
+    spec.channeltypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
+                  oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
+                  oiio.TypeDesc.TypeFloat, oiio.TypeDesc.TypeFloat)
+    spec.channelnames = ("R", "G", "B", "A", "Z", "Zback")
+    src = oiio.ImageBuf (spec)
+    # Set up source image
+    #   pixel 0: empty
+    #   pixel 1: one sample close
+    add_ib_sample (src, 1, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    #   pixel 2: one sample far
+    add_ib_sample (src, 2, 0, (0.5, 0.0, 0.0, 0.75, 20.0, 20.5))
+    #   pixel 3: one sample close, one far
+    add_ib_sample (src, 3, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    add_ib_sample (src, 3, 0, (0.5, 0.0, 0.0, 0.75, 20.0, 20.5))
+    #   pixel 4: three samples, one spans the threshold
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 10.0, 10.5))
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 15.0, 16.0))
+    add_ib_sample (src, 4, 0, (0.5, 0.0, 0.0, 0.75, 25.0, 26.0))
+    print_deep_imagebuf (src, "Input image")
+
+    # Set up holdout image: depth increases left to right
+    hold = oiio.ImageBuf (spec)
+    for x in range(6) :
+        add_ib_sample (hold, x, 0, (0, 0, 0, 0.5, 12.0, 12.5))
+        add_ib_sample (hold, x, 0, (0, 0, 0, 1.0, 25.0+0.1*x, 25.0+0.1*x+0.1))
     print_deep_imagebuf (hold, "Holdout image")
     result = oiio.ImageBuf()
     oiio.ImageBufAlgo.deep_holdout (result, src, hold)
@@ -317,7 +383,9 @@ try:
     test_merge_deep_pixels ()
     test_occlusion_cull ()
     test_opaque_z ()
+    test_cull_behind ()
 
+    test_iba_deep_cull ();
     test_iba_deep_holdout ();
 
     print "\nDone."

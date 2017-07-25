@@ -254,6 +254,16 @@ IBA_deep_holdout (ImageBuf &dst, const ImageBuf &src, const ImageBuf &holdout,
 
 
 bool
+IBA_deep_cull (ImageBuf &dst, const ImageBuf &src, const ImageBuf &holdout,
+               ROI roi, int nthreads)
+{
+    ScopedGILRelease gil;
+    return ImageBufAlgo::deep_cull (dst, src, holdout, roi, nthreads);
+}
+
+
+
+bool
 IBA_copy (ImageBuf &dst, const ImageBuf &src, TypeDesc::BASETYPE convert,
           ROI roi, int nthreads)
 {
@@ -1533,6 +1543,11 @@ void declare_imagebufalgo()
              (arg("dst"), arg("src"), arg("holdout"),
               arg("roi")=ROI::All(), arg("nthreads")=0))
         .staticmethod("deep_holdout")
+
+        .def("deep_cull", IBA_deep_cull,
+             (arg("dst"), arg("src"), arg("holdout"),
+              arg("roi")=ROI::All(), arg("nthreads")=0))
+        .staticmethod("deep_cull")
 
         .def("copy", IBA_copy,
              (arg("dst"), arg("src"), arg("convert")=TypeDesc::UNKNOWN,
