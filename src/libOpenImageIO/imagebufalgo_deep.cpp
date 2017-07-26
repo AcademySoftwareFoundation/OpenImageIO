@@ -41,6 +41,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/timer.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -256,19 +257,73 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
     }
 
     // First, set the capacity of the dst image to reserve enough space for
-    // the segments of both source images. It may be that more insertions
-    // are needed, due to overlaps, but those will be compartively fewer
-    // than doing reallocations for every single sample.
+    // the segments of both source images, including any splits that may
+    // occur.
     DeepData &dstdd (*dst.deepdata());
     const DeepData &Add (*A.deepdata());
     const DeepData &Bdd (*B.deepdata());
+    int Azchan = Add.Z_channel();
+    int Azbackchan = Add.Zback_channel();
+    int Bzchan = Bdd.Z_channel();
+    int Bzbackchan = Bdd.Zback_channel();
     for (int z = roi.zbegin; z < roi.zend; ++z)
     for (int y = roi.ybegin; y < roi.yend; ++y)
     for (int x = roi.xbegin; x < roi.xend; ++x) {
         int dstpixel = dst.pixelindex (x, y, z, true);
         int Apixel = A.pixelindex (x, y, z, true);
         int Bpixel = B.pixelindex (x, y, z, true);
-        dstdd.set_capacity (dstpixel, Add.capacity(Apixel) + Bdd.capacity(Bpixel));
+        int Asamps = Add.samples(Apixel);
+        int Bsamps = Bdd.samples(Bpixel);
+        int nsplits = 0;
+        int self_overlap_splits = 0;
+        for (int s = 0; s < Asamps; ++s) {
+            float src_z = Add.deep_value (Apixel, Azchan, s);
+            float src_zback = Add.deep_value (Apixel, Azbackchan, s);
+            for (int d = 0; d < Bsamps; ++d) {
+                float dst_z = Bdd.deep_value (Bpixel, Bzchan, d);
+                float dst_zback = Bdd.deep_value (Bpixel, Bzbackchan, d);
+                if (src_z > dst_z && src_z < dst_zback)
+                    ++nsplits;
+                if (src_zback > dst_z && src_zback < dst_zback)
+                    ++nsplits;
+                if (dst_z > src_z && dst_z < src_zback)
+                    ++nsplits;
+                if (dst_zback > src_z && dst_zback < src_zback)
+                    ++nsplits;
+            }
+            // Check for splits src vs src -- in case they overlap!
+            for (int ss = s; ss < Asamps; ++ss) {
+                float src_z2 = Add.deep_value (Apixel, Azchan, ss);
+                float src_zback2 = Add.deep_value (Apixel, Azbackchan, ss);
+                if (src_z2 > src_z && src_z2 < src_zback)
+                    ++self_overlap_splits;
+                if (src_zback2 > src_z && src_zback2 < src_zback)
+                    ++self_overlap_splits;
+                if (src_z > src_z2 && src_z < src_zback2)
+                    ++self_overlap_splits;
+                if (src_zback > src_z2 && src_zback < src_zback2)
+                    ++self_overlap_splits;
+            }
+        }
+        // Check for splits dst vs dst -- in case they overlap!
+        for (int d = 0; d < Bsamps; ++d) {
+            float dst_z = Bdd.deep_value (Bpixel, Bzchan, d);
+            float dst_zback = Bdd.deep_value (Bpixel, Bzbackchan, d);
+            for (int dd = d; dd < Bsamps; ++dd) {
+                float dst_z2 = Bdd.deep_value (Bpixel, Bzchan, dd);
+                float dst_zback2 = Bdd.deep_value (Bpixel, Bzbackchan, dd);
+                if (dst_z2 > dst_z && dst_z2 < dst_zback)
+                    ++self_overlap_splits;
+                if (dst_zback2 > dst_z && dst_zback2 < dst_zback)
+                    ++self_overlap_splits;
+                if (dst_z > dst_z2 && dst_z < dst_zback2)
+                    ++self_overlap_splits;
+                if (dst_zback > dst_z2 && dst_zback < dst_zback2)
+                    ++self_overlap_splits;
+            }
+        }
+
+        dstdd.set_capacity (dstpixel, Asamps+Bsamps+nsplits+self_overlap_splits);
     }
 
     bool ok = ImageBufAlgo::copy (dst, A, TypeDesc::UNKNOWN, roi, nthreads);
@@ -279,7 +334,10 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
         int dstpixel = dst.pixelindex (x, y, z, true);
         int Bpixel = B.pixelindex (x, y, z, true);
         DASSERT (dstpixel >= 0);
+        // OIIO_UNUSED_OK int oldcap = dstdd.capacity (dstpixel);
         dstdd.merge_deep_pixels (dstpixel, Bdd, Bpixel);
+        // DASSERT (oldcap == dstdd.capacity(dstpixel) &&
+        //          "Broken: we did not preallocate enough capacity");
         if (occlusion_cull)
             dstdd.occlusion_cull (dstpixel);
     }
