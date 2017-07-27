@@ -547,7 +547,8 @@ void
 DeepData::insert_samples (int pixel, int samplepos, int n)
 {
     int oldsamps = samples(pixel);
-    set_capacity (pixel, oldsamps + n);
+    if (oldsamps+n > int(m_impl->m_capacity[pixel]))
+        set_capacity (pixel, oldsamps + n);
     // set_capacity is thread-safe, it locks internally. Once the capacity
     // is adjusted, we can alter nsamples or copy the data around within
     // the pixel without a lock, we presume that if multiple threads are
