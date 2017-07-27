@@ -101,12 +101,13 @@
 // packages is compiling against OIIO and using these headers (OIIO may be
 // C++11 but the client package may be older, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 201402L)
-#  define OIIO_USING_CPP11        1 /* deprecated */
+#if (__cplusplus >= 201700L)
+#  define OIIO_CPLUSPLUS_VERSION  17
+#  define OIIO_CONSTEXPR14        constexpr
+#elif (__cplusplus >= 201402L)
 #  define OIIO_CPLUSPLUS_VERSION  14
 #  define OIIO_CONSTEXPR14        constexpr
 #elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
-#  define OIIO_USING_CPP11        1 /* deprecated */
 #  define OIIO_CPLUSPLUS_VERSION  11
 #  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
 #else
