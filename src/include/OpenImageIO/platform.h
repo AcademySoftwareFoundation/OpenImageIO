@@ -265,18 +265,6 @@
 #  define OIIO_CONST_FUNC
 #endif
 
-// OIIO_NOTHROW is a function attribute that assures the compiler that
-// neither the function nor any other function it calls will throw an
-// exception. This declaration goes after the
-// function declaration:  int blah (int arg) OIIO_NOTHROW;
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(nothrow)
-#  define OIIO_NOTHROW __attribute__((nothrow))
-#elif defined(_MSC_VER)
-#  define OIIO_NOTHROW __declspec(nothrow)
-#else
-#  define OIIO_NOTHROW
-#endif
-
 // OIIO_UNUSED_OK is a function or variable attribute that assures tells the
 // compiler that it's fine for the item to appear to be unused.
 #if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
