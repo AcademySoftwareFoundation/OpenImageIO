@@ -509,7 +509,7 @@ private:
 /// to make this easy:
 ///     task_set<decltype(myfunc())> tasks (pool);
 ///     for (int i = 0; i < n_subtasks; ++i)
-///         tasks.push_back (pool->push (myfunc));
+///         tasks.push (pool->push (myfunc));
 ///     tasks.wait ();
 /// Note that the tasks.wait() is optional -- it will be called
 /// automatically when the task_set exits its scope.
@@ -635,7 +635,7 @@ OIIO_API thread_pool* default_thread_pool ();
 ///        task_set<decltype(myfunc())> tasks (pool);
 ///        // Launch a bunch of tasks into the thread pool
 ///        for (int i = 0; i < ntasks; ++i)
-///            tasks.push_back (pool->push (myfunc));
+///            tasks.push (pool->push (myfunc));
 ///        // The following brace, by ending the scope of 'tasks', will
 ///        // wait for all those queue tasks to finish.
 ///    }

@@ -251,8 +251,8 @@ parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
 ///    ...
 ///    task (id, xend-1, yend-1);
 inline void
-parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
-                 int64_t ystart, int64_t yend, int64_t ychunksize,
+parallel_for_2D (int64_t xstart, int64_t xend,
+                 int64_t ystart, int64_t yend,
                  std::function<void(int id, int64_t i, int64_t j)>&& task)
 {
     parallel_for_chunked_2D (xstart, xend, 0, ystart, yend, 0,
@@ -265,11 +265,18 @@ parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
 
 
 
-/// parallel_for, for a 2D task that takes int64_t x & y indices (no
-/// threadid).
+/// parallel_for, for a task that takes an int threadid and int64_t x & y
+/// indices, running all of:
+///    task (xstart, ystart);
+///    ...
+///    task (xend-1, ystart);
+///    task (xstart, ystart+1);
+///    task (xend-1, ystart+1);
+///    ...
+///    task (xend-1, yend-1);
 inline void
-parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
-                 int64_t ystart, int64_t yend, int64_t ychunksize,
+parallel_for_2D (int64_t xstart, int64_t xend,
+                 int64_t ystart, int64_t yend,
                  std::function<void(int64_t i, int64_t j)>&& task)
 {
     parallel_for_chunked_2D (xstart, xend, 0, ystart, yend, 0,
@@ -281,6 +288,17 @@ parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
 }
 
 
+
+// DEPRECATED(1.8): This version accidentally accepted chunksizes that
+// weren't used. Preserve for a version to not break 3rd party apps.
+inline void
+parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                 int64_t ystart, int64_t yend, int64_t ychunksize,
+                 std::function<void(int id, int64_t i, int64_t j)>&& task)
+{
+    parallel_for_2D (xstart, xend, ystart, yend,
+                     std::forward<std::function<void(int,int64_t,int64_t)>>(task));
+}
 
 OIIO_NAMESPACE_END
 
