@@ -1,6 +1,10 @@
-Release 1.7.16 (1 Jul? 2017) -- compared to 1.7.15
+Release 1.7.16 (1 Aug 2017) -- compared to 1.7.15
 -------------------------------------------------
-
+* OpenEXR: fix problem with 2-channel images putting the channels in the
+  wrong order. #1717
+* TIFF: images with fewer than 4 channels, but one of those channels was
+  alpha, were not correctly marking their spec.alpha_channel. #1718
+* Several minor updates to simd.h backported from mater.
 
 Release 1.7.15 (1 Jun 2017) -- compared to 1.7.14
 -------------------------------------------------
