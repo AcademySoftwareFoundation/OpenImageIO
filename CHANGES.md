@@ -1,3 +1,6 @@
+Release 1.7.17 (?? 2017) -- compared to 1.7.16
+-------------------------------------------------
+
 Release 1.7.16 (1 Aug 2017) -- compared to 1.7.15
 -------------------------------------------------
 * OpenEXR: fix problem with 2-channel images putting the channels in the
