@@ -117,6 +117,7 @@ public:
         : m_name(p.m_name), m_nvalues(p.m_nvalues), m_interp(p.m_interp),
           m_copy(p.m_copy), m_nonlocal(p.m_nonlocal)
     {
+        m_type = p.m_type;
         m_data.ptr = p.m_data.ptr;
         p.m_data.ptr = nullptr;
     }
