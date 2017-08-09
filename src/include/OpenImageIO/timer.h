@@ -325,7 +325,7 @@ inline void clobber_all_memory() { }
 /// Timer to benchmark the results, and returning the fastest trial.  If
 /// 'range' is non-NULL, the range (max-min) of the various time trials
 /// will be stored there.
-template<class FUNC>
+template<typename FUNC>
 double
 time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
 {
@@ -349,7 +349,7 @@ time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
 }
 
 /// Version without repeats.
-template<class FUNC>
+template<typename FUNC>
 double time_trial (FUNC func, int ntrials, double *range) {
     return time_trial (func, ntrials, 1, range);
 }

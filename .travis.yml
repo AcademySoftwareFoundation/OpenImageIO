@@ -18,9 +18,9 @@ addons:
       - cmake
       - cmake-data
       - g++-4.8
-      - g++-4.9
       - g++-5
       - g++-6
+      - g++-7
       - libboost1.55-all-dev
       - libgif-dev
       - libtiff4-dev
@@ -63,6 +63,11 @@ install:
     - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
     - export USE_CCACHE=1
     - export CCACHE_CPP2=1
+    # Temporary fix: Use LG's private openexr branch, until the
+    # fixes are merged into the OpenEXR project that will address
+    # the warnings for gcc7 and C++17 compatibility.
+    -   export EXRREPO=https://github.com/lgritz/openexr.git ;
+    -   export EXRBRANCH=lg-cpp11 ;
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           src/build-scripts/install_homebrew_deps.bash ;
           export PATH=/usr/local/opt/qt5/bin:$PATH ;
@@ -114,7 +119,7 @@ matrix:
         compiler: clang
 
     include:
-    # test default compile: C++11, optimized, default compilers
+    # test default compile: C++11, optimized, default compilers, SSE2
       - os: linux
         compiler: gcc
       - os: osx
@@ -126,13 +131,14 @@ matrix:
       # - os: osx
       #   compiler: clang
       #   env: DEBUG=1
-    # test with C++14, most modern compiler, latest SIMD flags
-      # - os: osx
-      #   compiler: clang
-      #   env: USE_CPP=14
+    # test with C++14, gcc 6, latest SIMD flags supported by TravisCI VMs
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_CPP=14 USE_SIMD=avx,f16c
+    # test with C++14, gcc 7, latest SIMD flags supported by TravisCI VMs
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=7 USE_CPP=14 USE_SIMD=avx,f16c
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
       # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
@@ -143,15 +149,10 @@ matrix:
       - os: osx
         compiler: clang
         env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
-    # Linux only: test gcc 4.9, and simultaneously, test with a higher SIMD
-    # level (SSE4.2).
+    # Linux only: test gcc 5 and simultaneously, test SSE4.2
       - os: linux
         compiler: gcc
-        env: WHICHGCC=4.9
-    # Linux only: test gcc 5
-      - os: linux
-        compiler: gcc
-        env: WHICHGCC=5
+        env: WHICHGCC=5 USE_SIMD=sse4.2
     # Build with sanitizers
       - os: linux
         compiler: gcc

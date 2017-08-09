@@ -377,8 +377,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // I think it's safe not to care until someone complains
     STRING_FIELD (Aspect, "rla:Aspect");
 
-    snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.6f",
-        m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
+    float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.f);
+    Strutil::safe_strcpy (m_rla.AspectRatio, Strutil::format("%.6f", aspect), sizeof(m_rla.AspectRatio));
     Strutil::safe_strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb"), sizeof(m_rla.ColorChannel));
     m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
