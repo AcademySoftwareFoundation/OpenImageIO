@@ -577,18 +577,17 @@ Strutil::utf16_to_utf8 (const std::wstring& str)
 
 
 char *
-Strutil::safe_strcpy (char *dst, const char *src, size_t size)
+Strutil::safe_strcpy (char *dst, string_view src, size_t size)
 {
-    if (src) {
-        for (size_t i = 0;  i < size;  ++i) {
-            if (! (dst[i] = src[i]))
-                return dst;   // finished, and copied the 0 character
-        }
-        // If we got here, we have gotten to the maximum length, and still
-        // no terminating 0, so add it!
-        dst[size-1] = 0;
+    if (src.size()) {
+        size_t end = std::min (size-1, src.size());
+        for (size_t i = 0;  i < end;  ++i)
+            dst[i] = src[i];
+        for (size_t i = end; i < size; ++i)
+            dst[i] = 0;
     } else {
-        dst[0] = 0;
+        for (size_t i = 0; i < size; ++i)
+            dst[i] = 0;
     }
     return dst;
 }

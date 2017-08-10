@@ -412,14 +412,11 @@ std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 #endif
 
 
-/// Safe C string copy.  Basically strncpy but ensuring that there's a
-/// terminating 0 character at the end of the resulting string.
-OIIO_API char * safe_strcpy (char *dst, const char *src, size_t size);
-
-inline char * safe_strcpy (char *dst, const std::string &src, size_t size) {
-    return safe_strcpy (dst, src.length() ? src.c_str() : NULL, size);
-}
-
+/// Copy at most size characters (including terminating 0 character) from
+/// src into dst[], filling any remaining characters with 0 values. Returns
+/// dst. Note that this behavior is identical to strncpy, except that it
+/// guarantees that there will be a termining 0 character.
+OIIO_API char * safe_strcpy (char *dst, string_view src, size_t size);
 
 
 /// Modify str to trim any whitespace (space, tab, linefeed, cr) from the

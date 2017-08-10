@@ -454,33 +454,33 @@ void test_safe_strcpy ()
         char result[4] = { '0', '1', '2', '3' };
         Strutil::safe_strcpy (result, "A", 3);
         OIIO_CHECK_EQUAL (result[0], 'A');
-        OIIO_CHECK_EQUAL (result[1],  0);
-        OIIO_CHECK_EQUAL (result[2], '2'); // should not overwrite
-        OIIO_CHECK_EQUAL (result[3], '3'); // should not overwrite
+        OIIO_CHECK_EQUAL (result[1], 0);
+        OIIO_CHECK_EQUAL (result[2], 0);
+        OIIO_CHECK_EQUAL (result[3], '3');
     }
     { // test over-bounds copy
         char result[4] = { '0', '1', '2', '3' };
         Strutil::safe_strcpy (result, "ABC", 3);
         OIIO_CHECK_EQUAL (result[0], 'A');
         OIIO_CHECK_EQUAL (result[1], 'B');
-        OIIO_CHECK_EQUAL (result[2],  0);
-        OIIO_CHECK_EQUAL (result[3], '3'); // should not overwrite
+        OIIO_CHECK_EQUAL (result[2], 0);
+        OIIO_CHECK_EQUAL (result[3], '3');
     }
     { // test empty string copy
         char result[4] = { '0', '1', '2', '3' };
         Strutil::safe_strcpy (result, "", 3);
         OIIO_CHECK_EQUAL (result[0], 0);
-        OIIO_CHECK_EQUAL (result[1], '1'); // should not overwrite
-        OIIO_CHECK_EQUAL (result[2], '2'); // should not overwrite
-        OIIO_CHECK_EQUAL (result[3], '3'); // should not overwrite
+        OIIO_CHECK_EQUAL (result[1], 0);
+        OIIO_CHECK_EQUAL (result[2], 0);
+        OIIO_CHECK_EQUAL (result[3], '3');
     }
     { // test NULL case
         char result[4] = { '0', '1', '2', '3' };
         Strutil::safe_strcpy (result, NULL, 3);
         OIIO_CHECK_EQUAL (result[0], 0);
-        OIIO_CHECK_EQUAL (result[1], '1'); // should not overwrite
-        OIIO_CHECK_EQUAL (result[2], '2'); // should not overwrite
-        OIIO_CHECK_EQUAL (result[3], '3'); // should not overwrite
+        OIIO_CHECK_EQUAL (result[1], 0);
+        OIIO_CHECK_EQUAL (result[2], 0);
+        OIIO_CHECK_EQUAL (result[3], '3');
     }
 }
 
