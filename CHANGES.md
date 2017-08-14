@@ -312,6 +312,10 @@ Fixes, minor enhancements, and performance improvements:
      #1642 (1.8.3/1.7.13)
    * Images with fewer than 4 channels, but one of those channels was alpha,
      were not correctly marking spec.alpha_channel. #1718 (1.8.5/1.7.16)
+   * The XPOSITION and YPOSITION tags are now interpreted as relative to
+     the RESOLUTIONUNIT, whereas before it was assumed to be measured in
+     pixels. We are confident that the new way is more in line with the
+     intent of the TIFF spec. #1631 (1.8.5)
 * webp:
    * Several new sanity checks prevent the webp reader from spending too
      much I/O time and memory reading bogus files (malformed, corrupted,

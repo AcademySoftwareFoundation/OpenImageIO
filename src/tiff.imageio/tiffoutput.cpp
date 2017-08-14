@@ -299,11 +299,6 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    // N.B. Clamp position at 0... TIFF is internally incapable of having
-    // negative origin.
-    TIFFSetField (m_tif, TIFFTAG_XPOSITION, (float)std::max (0, m_spec.x));
-    TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)std::max (0, m_spec.y));
-
     TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, m_spec.width);
     TIFFSetField (m_tif, TIFFTAG_IMAGELENGTH, m_spec.height);
 
@@ -550,6 +545,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     // that contradicts them.
     float X_density = m_spec.get_float_attribute ("XResolution", 1.0f);
     float Y_density = m_spec.get_float_attribute ("YResolution", 1.0f);
+    // Eliminate nonsensical densities
+    if (X_density <= 0.0f)
+        X_density = 1.0f;
+    if (Y_density <= 0.0f)
+        Y_density = 1.0f;
     float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
     if (X_density < 1.0f || Y_density < 1.0f || aspect*X_density != Y_density) {
         if (X_density < 1.0f || Y_density < 1.0f) {
@@ -558,6 +558,21 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         }
         m_spec.attribute ("XResolution", X_density);
         m_spec.attribute ("YResolution", X_density * aspect);
+    }
+
+    if (m_spec.x || m_spec.y) {
+        // The TIFF spec implies that the XPOSITION & YPOSITION are in the
+        // resolution units. For a long time we just assumed they were whole
+        // pixels. Beware! For the sake of old OIIO or other readers that
+        // assume pixel units, it may be smart to not have non-1.0
+        // XRESOLUTION or YRESOLUTION if you have a non-zero origin.
+        //
+        // TIFF is internally incapable of having negative origin, so we
+        // have to clamp at 0.
+        float x = m_spec.x / X_density;
+        float y = m_spec.y / Y_density;
+        TIFFSetField (m_tif, TIFFTAG_XPOSITION, std::max (0.0f, x));
+        TIFFSetField (m_tif, TIFFTAG_YPOSITION, std::max (0.0f, y));
     }
 
     // Deal with all other params
