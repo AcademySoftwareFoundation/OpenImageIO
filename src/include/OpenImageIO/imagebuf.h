@@ -733,7 +733,7 @@ public:
     class IteratorBase {
     public:
         IteratorBase (const ImageBuf &ib, WrapMode wrap)
-            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+            : m_ib(&ib)
         {
             init_ib (wrap);
             range_is_image ();
@@ -741,7 +741,7 @@ public:
 
         /// Construct valid iteration region from ImageBuf and ROI.
         IteratorBase (const ImageBuf &ib, const ROI &roi, WrapMode wrap)
-            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+            : m_ib(&ib)
         {
             init_ib (wrap);
             if (roi.defined()) {
@@ -761,7 +761,7 @@ public:
         IteratorBase (const ImageBuf &ib, int xbegin, int xend,
                       int ybegin, int yend, int zbegin, int zend,
                       WrapMode wrap)
-            : m_ib(&ib), m_tile(NULL), m_proxydata(NULL)
+            : m_ib(&ib)
         {
             init_ib (wrap);
             m_rng_xbegin = xbegin;
@@ -777,7 +777,7 @@ public:
               m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
               m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
               m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend),
-              m_tile(NULL), m_proxydata(i.m_proxydata)
+              m_proxydata(i.m_proxydata)
         {
             init_ib (i.m_wrap);
         }
@@ -956,10 +956,10 @@ public:
     protected:
         friend class ImageBuf;
         friend class ImageBufImpl;
-        const ImageBuf *m_ib;
-        bool m_valid, m_exists;
-        bool m_deep;
-        bool m_localpixels;
+        const ImageBuf *m_ib = nullptr;
+        bool m_valid = false, m_exists = false;
+        bool m_deep = false;
+        bool m_localpixels = false;
         // Image boundaries
         int m_img_xbegin, m_img_xend, m_img_ybegin, m_img_yend,
             m_img_zbegin, m_img_zend;
@@ -967,13 +967,13 @@ public:
         int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
             m_rng_zbegin, m_rng_zend;
         int m_x, m_y, m_z;
-        ImageCache::Tile *m_tile;
+        ImageCache::Tile *m_tile = nullptr;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
         int m_nchannels;
         size_t m_pixel_bytes;
-        char *m_proxydata;
-        WrapMode m_wrap;
+        char *m_proxydata = nullptr;
+        WrapMode m_wrap = WrapBlack;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.

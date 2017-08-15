@@ -708,10 +708,8 @@ Strutil::parse_string (string_view &str, string_view &val,
             break;   // not quoted and we hit whitespace: we're done
         if (quoted && *end == '\"' && ! escaped)
             break;   // closing quite -- we're done (beware embedded quote)
-        if (p[0] == '\\')
-            escaped = true;
+        escaped = (p[0] == '\\');
         ++end;
-        escaped = false;
     }
     if (quoted && keep_quotes == KeepQuotes) {
         if (*end == '\"')

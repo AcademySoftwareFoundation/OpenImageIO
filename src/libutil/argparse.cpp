@@ -155,8 +155,6 @@ ArgOption::initialize()
             // Parse the scanf-like parameters
 
             m_type = Regular;
-    
-            n = (m_format.length() - n) / 2;       // conservative estimate
             m_code.clear ();
     
             while (*s != '\0') {

@@ -152,7 +152,7 @@ void CSHA1::Transform(UINT_32* pState, const UINT_8* pBuffer)
 
 	// Wipe variables
 #ifdef SHA1_WIPE_VARIABLES
-	a = b = c = d = e = 0;
+	a = b = c = d = e = 0;   // NOLINT
 #endif
 }
 
