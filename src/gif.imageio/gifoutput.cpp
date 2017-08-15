@@ -49,7 +49,7 @@ namespace {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class GIFOutput : public ImageOutput {
+class GIFOutput final : public ImageOutput {
  public:
     GIFOutput () { init(); }
     virtual ~GIFOutput () { close(); }

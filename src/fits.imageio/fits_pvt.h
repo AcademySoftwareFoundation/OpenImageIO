@@ -64,7 +64,7 @@ struct Subimage {
 
 
 
-class FitsInput : public ImageInput {
+class FitsInput final : public ImageInput {
  public:
     FitsInput () { init (); }
     virtual ~FitsInput () { close (); }
@@ -136,7 +136,7 @@ class FitsInput : public ImageInput {
 
 
 
-class FitsOutput : public ImageOutput {
+class FitsOutput final : public ImageOutput {
  public:
     FitsOutput () { init (); }
     virtual ~FitsOutput () { close (); }

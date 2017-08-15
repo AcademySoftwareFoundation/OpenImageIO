@@ -102,7 +102,7 @@ struct TIFF_tag_info {
 
 
 
-class TIFFInput : public ImageInput {
+class TIFFInput final : public ImageInput {
 public:
     TIFFInput ();
     virtual ~TIFFInput ();

@@ -81,7 +81,7 @@ associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma
 }  // namespace
 
 
-class Jpeg2000Input : public ImageInput {
+class Jpeg2000Input final : public ImageInput {
  public:
     Jpeg2000Input () { init (); }
     virtual ~Jpeg2000Input () { close (); }

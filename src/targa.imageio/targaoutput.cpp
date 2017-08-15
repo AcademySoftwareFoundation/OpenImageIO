@@ -46,7 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace TGA_pvt;
 
 
-class TGAOutput : public ImageOutput {
+class TGAOutput final : public ImageOutput {
 public:
     TGAOutput ();
     virtual ~TGAOutput ();

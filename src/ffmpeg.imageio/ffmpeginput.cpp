@@ -132,7 +132,7 @@ inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class FFmpegInput : public ImageInput {
+class FFmpegInput final : public ImageInput {
 public:
     FFmpegInput ();
     virtual ~FFmpegInput();

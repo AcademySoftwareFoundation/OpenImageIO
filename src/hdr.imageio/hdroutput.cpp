@@ -41,7 +41,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class HdrOutput : public ImageOutput {
+class HdrOutput final : public ImageOutput {
  public:
     HdrOutput () { init(); }
     virtual ~HdrOutput () { close(); }

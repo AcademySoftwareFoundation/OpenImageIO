@@ -41,7 +41,7 @@ using namespace cineon;
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class CineonInput : public ImageInput {
+class CineonInput final : public ImageInput {
 public:
     CineonInput () : m_stream(NULL) { init(); }
     virtual ~CineonInput () { close(); }

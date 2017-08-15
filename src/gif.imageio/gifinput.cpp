@@ -55,7 +55,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class GIFInput : public ImageInput {
+class GIFInput final : public ImageInput {
 public:
     GIFInput () { init (); }
     virtual ~GIFInput () { close (); }

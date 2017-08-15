@@ -51,7 +51,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
-class JpgOutput : public ImageOutput {
+class JpgOutput final : public ImageOutput {
  public:
     JpgOutput () { init(); }
     virtual ~JpgOutput () { close(); }

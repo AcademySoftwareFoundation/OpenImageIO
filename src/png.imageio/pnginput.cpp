@@ -39,7 +39,7 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class PNGInput : public ImageInput {
+class PNGInput final : public ImageInput {
 public:
     PNGInput () { init(); }
     virtual ~PNGInput () { close(); }

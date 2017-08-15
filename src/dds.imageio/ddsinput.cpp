@@ -48,7 +48,7 @@ using namespace DDS_pvt;
 // uncomment the following define to enable 3x2 cube map layout
 //#define DDS_3X2_CUBE_MAP_LAYOUT
 
-class DDSInput : public ImageInput {
+class DDSInput final : public ImageInput {
 public:
     DDSInput () { init(); }
     virtual ~DDSInput () { close(); }

@@ -55,7 +55,7 @@ openjpeg_dummy_callback(const char *msg, void *data)
 
 
 
-class Jpeg2000Output : public ImageOutput {
+class Jpeg2000Output final : public ImageOutput {
  public:
     Jpeg2000Output () { init (); }
     virtual ~Jpeg2000Output () { close (); }

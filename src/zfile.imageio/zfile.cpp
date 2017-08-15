@@ -62,7 +62,7 @@ static const int zfile_magic_endian = 0xab67082f;  // other endianness
 
 
 
-class ZfileInput : public ImageInput {
+class ZfileInput final : public ImageInput {
 public:
     ZfileInput () { init(); }
     virtual ~ZfileInput () { close(); }
@@ -88,7 +88,7 @@ private:
 
 
 
-class ZfileOutput : public ImageOutput {
+class ZfileOutput final : public ImageOutput {
 public:
     ZfileOutput () { init(); }
     virtual ~ZfileOutput () { close(); }

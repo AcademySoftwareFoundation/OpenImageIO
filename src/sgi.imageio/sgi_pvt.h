@@ -87,7 +87,7 @@ namespace sgi_pvt {
 
 
 
-class SgiInput : public ImageInput {
+class SgiInput final : public ImageInput {
  public:
     SgiInput () { init(); }
     virtual ~SgiInput () { close(); }
@@ -136,7 +136,7 @@ class SgiInput : public ImageInput {
 
 
 
-class SgiOutput : public ImageOutput {
+class SgiOutput final : public ImageOutput {
  public:
     SgiOutput () : m_fd(NULL) { }
     virtual ~SgiOutput () { close(); }

@@ -44,7 +44,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class RawInput : public ImageInput {
+class RawInput final : public ImageInput {
 public:
     RawInput () : m_process(true), m_image(NULL) {}
     virtual ~RawInput() { close(); }

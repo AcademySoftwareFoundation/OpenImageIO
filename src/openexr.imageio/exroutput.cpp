@@ -133,7 +133,7 @@ private:
 
 
 
-class OpenEXROutput : public ImageOutput {
+class OpenEXROutput final : public ImageOutput {
 public:
     OpenEXROutput ();
     virtual ~OpenEXROutput ();

@@ -68,7 +68,7 @@ namespace
     static int MIN_SCANLINES_OR_TILES_PER_CHECKPOINT = 64;
 }
 
-class TIFFOutput : public ImageOutput {
+class TIFFOutput final : public ImageOutput {
 public:
     TIFFOutput ();
     virtual ~TIFFOutput ();

@@ -37,7 +37,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace webp_pvt {
 
 
-class WebpOutput : public ImageOutput
+class WebpOutput final : public ImageOutput
 {
  public:
     WebpOutput(){ init(); }

@@ -43,7 +43,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace psd_pvt;
 
 
-class PSDInput : public ImageInput {
+class PSDInput final : public ImageInput {
 public:
     PSDInput ();
     virtual ~PSDInput () { close(); }

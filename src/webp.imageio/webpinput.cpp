@@ -38,7 +38,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace webp_pvt {
 
 
-class WebpInput : public ImageInput
+class WebpInput final : public ImageInput
 {
  public:
     WebpInput() { init(); }

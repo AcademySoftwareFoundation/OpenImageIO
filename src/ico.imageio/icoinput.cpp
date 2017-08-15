@@ -46,7 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace ICO_pvt;
 
-class ICOInput : public ImageInput {
+class ICOInput final : public ImageInput {
 public:
     ICOInput () { init(); }
     virtual ~ICOInput () { close(); }

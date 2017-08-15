@@ -38,7 +38,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 static void openjpeg_dummy_callback(const char*, void*) {}
 
-class Jpeg2000Output : public ImageOutput {
+class Jpeg2000Output final : public ImageOutput {
  public:
     Jpeg2000Output () { init (); }
     virtual ~Jpeg2000Output () { close (); }

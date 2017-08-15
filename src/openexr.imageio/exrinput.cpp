@@ -143,7 +143,7 @@ private:
 
 
 
-class OpenEXRInput : public ImageInput {
+class OpenEXRInput final : public ImageInput {
 public:
     OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }

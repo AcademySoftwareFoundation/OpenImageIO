@@ -58,7 +58,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class DICOMInput : public ImageInput {
+class DICOMInput final : public ImageInput {
 public:
     DICOMInput () {}
     virtual ~DICOMInput() { close(); }

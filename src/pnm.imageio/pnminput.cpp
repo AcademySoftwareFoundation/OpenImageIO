@@ -38,7 +38,7 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class PNMInput : public ImageInput {
+class PNMInput final : public ImageInput {
 public:
     PNMInput() { }
     virtual ~PNMInput() { close(); }

@@ -977,7 +977,7 @@ launch_tex_threads (int numthreads, int iterations)
 
 
 
-class GridImageInput : public ImageInput {
+class GridImageInput final : public ImageInput {
 public:
     GridImageInput () : m_miplevel(-1) { }
     virtual ~GridImageInput () { close(); }
