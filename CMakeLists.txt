@@ -97,7 +97,7 @@ set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
 set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
 option (USE_DICOM "Use DICOM if DCMTK is found" ON)
-
+set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util")
@@ -106,6 +106,9 @@ if (NOT OIIO_THREAD_ALLOW_DCLP)
     add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
 endif ()
 
+if (TEX_BATCH_SIZE)
+    add_definitions ("-DOIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE}")
+endif ()
 
 # Set the default namespace
 set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")

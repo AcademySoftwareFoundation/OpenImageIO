@@ -96,42 +96,37 @@ macro (oiio_add_tests)
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
         # Add the tests if all is well.
-        if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
-            set (_has_generator_expr TRUE)
-        endif ()
+        set (_has_generator_expr TRUE)
         foreach (_testname ${_ats_UNPARSED_ARGUMENTS})
             set (_testsrcdir "${CMAKE_SOURCE_DIR}/testsuite/${_testname}")
             set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
-            if (_ats_LABEL MATCHES "broken")
-                set (_testname "${_testname}-broken")
-            endif ()
             if (_ats_TESTNAME)
                 set (_testname "${_ats_TESTNAME}")
             endif ()
-            if (_has_generator_expr)
-                set (_add_test_args NAME ${_testname} 
-#                                    WORKING_DIRECTORY ${_testdir}
-                                    COMMAND python)
-                if (MSVC_IDE)
-                    set (_extra_test_args
-                        --devenv-config $<CONFIGURATION>
-                        --solution-path "${PROJECT_BINARY_DIR}" )
-                else ()
-                    set (_extra_test_args "")
-                endif ()
-            else ()
-                set (_add_test_args ${_testname} python)
-                set (_extra_test_args "")
+            if (_ats_LABEL MATCHES "broken")
+                set (_testname "${_testname}-broken")
             endif ()
-            if (VERBOSE)
-                message (STATUS "TEST ${_testname}: ${CMAKE_BINARY_DIR}/testsuite/runtest.py ${_testdir} ${_extra_test_args}")
+
+            set (_runtest python "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+            if (MSVC_IDE)
+                set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
+                                          --solution-path "${CMAKE_BINARY_DIR}" )
             endif ()
-            # Make the build test directory and copy
+
             file (MAKE_DIRECTORY "${_testdir}")
-            add_test (${_add_test_args}
-                      "${CMAKE_SOURCE_DIR}/testsuite/runtest.py"
-                      ${_testdir}
-                      ${_extra_test_args})
+
+            add_test ( NAME ${_testname}
+                       COMMAND ${_runtest} )
+
+            # For texture tests, add a second test using batch mode as well.
+            if (_testname MATCHES "texture")
+                add_test ( NAME "${_testname}.batch"
+                           COMMAND env TESTTEX_BATCH=1 ${_runtest} )
+            endif ()
+
+            if (VERBOSE)
+                message (STATUS "TEST ${_testname}: ${_runtest}")
+            endif ()
         endforeach ()
     endif ()
 endmacro ()

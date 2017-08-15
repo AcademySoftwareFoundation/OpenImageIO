@@ -575,6 +575,75 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
 
 
 
+bool
+TextureSystemImpl::environment (TextureHandle *texture_handle, Perthread *thread_info,
+                                TextureOptBatch &options, Tex::RunMask mask,
+                                const float *R, const float *dRdx, const float *dRdy,
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
+{
+    // (FIXME) CHEAT! Texture points individually
+    TextureOpt opt;
+    opt.firstchannel = options.firstchannel;
+    opt.subimage = options.subimage;
+    opt.subimagename = options.subimagename;
+    opt.swrap = (TextureOpt::Wrap) options.swrap;
+    opt.twrap = (TextureOpt::Wrap) options.twrap;
+    opt.mipmode = (TextureOpt::MipMode) options.mipmode;
+    opt.interpmode = (TextureOpt::InterpMode) options.interpmode;
+    opt.anisotropic = options.anisotropic;
+    opt.conservative_filter = options.conservative_filter;
+    opt.fill = options.fill;
+    opt.missingcolor = options.missingcolor;
+
+    bool ok = true;
+    Tex::RunMask bit = 1;
+    for (int i = 0; i < Tex::BatchWidth;  ++i, bit <<= 1) {
+        float r[4], drds[4], drdt[4];  // temp result
+        if (mask & bit) {
+            opt.sblur = options.sblur[i];
+            opt.tblur = options.tblur[i];
+            opt.swidth = options.swidth[i];
+            opt.twidth = options.twidth[i];
+            Imath::V3f R_ (R[i], R[i+Tex::BatchWidth], R[i+2*Tex::BatchWidth]);
+            Imath::V3f dRdx_ (dRdx[i], dRdx[i+Tex::BatchWidth], dRdx[i+2*Tex::BatchWidth]);
+            Imath::V3f dRdy_ (dRdy[i], dRdy[i+Tex::BatchWidth], dRdy[i+2*Tex::BatchWidth]);
+            if (dresultds) {
+                ok &= environment (texture_handle, thread_info, opt,
+                                   R_, dRdx_, dRdy_, nchannels, r, drds, drdt);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                    dresultds[c*Tex::BatchWidth+i] = drds[c];
+                    dresultdt[c*Tex::BatchWidth+i] = drdt[c];
+                }
+            } else {
+                ok &= environment (texture_handle, thread_info, opt,
+                                   R_, dRdx_, dRdy_, nchannels, r);
+                for (int c = 0; c < nchannels; ++c) {
+                    result[c*Tex::BatchWidth+i] = r[c];
+                }
+            }
+        }
+    }
+    return ok;
+}
+
+
+
+bool
+TextureSystemImpl::environment (ustring filename,
+                                TextureOptBatch &options, Tex::RunMask mask,
+                                const float *R, const float *dRdx, const float *dRdy,
+                                int nchannels, float *result,
+                                float *dresultds, float *dresultdt)
+{
+    Perthread *thread_info = get_perthread_info();
+    TextureHandle *texture_handle = get_texture_handle (filename, thread_info);
+    return environment (texture_handle, thread_info, options, mask,
+                        R, dRdx, dRdy, nchannels, result, dresultds, dresultdt);
+}
+
+
 }  // end namespace pvt
 
 OIIO_NAMESPACE_END

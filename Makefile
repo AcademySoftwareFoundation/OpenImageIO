@@ -266,6 +266,10 @@ ifneq (${USE_SIMD},)
 MY_CMAKE_FLAGS += -DUSE_SIMD:STRING="${USE_SIMD}"
 endif
 
+ifneq (${TEX_BATCH_SIZE},)
+MY_CMAKE_FLAGS += -DTEX_BATCH_SIZE:STRING="${TEX_BATCH_SIZE}"
+endif
+
 ifneq (${TEST},)
 TEST_FLAGS += -R ${TEST}
 endif
@@ -499,9 +503,10 @@ help:
 	@echo "      OIIO_BUILD_TOOLS=0       Skip building the command-line tools"
 	@echo "      OIIO_BUILD_TESTS=0       Skip building the unit tests"
 	@echo "      BUILD_OIIOUTIL_ONLY=1    Build *only* libOpenImageIO_Util"
-	@echo "      USE_SIMD=arch            Build with SIMD support (choices: 0, sse2, sse3,"
-	@echo "                                  ssse3, sse4.1, sse4.2, f16c, avx, avx2"
-	@echo "                                  comma-separated ok)"
+	@echo "      USE_SIMD=arch            Build with SIMD support (comma-separated choices:"
+	@echo "                                  0, sse2, sse3, ssse3, sse4.1, sse4.2, f16c,"
+	@echo "                                  avx, avx2, avx512f)"
+	@echo "      TEX_BATCH_SIZE=16        Override TextureSystem SIMD batch size"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""
