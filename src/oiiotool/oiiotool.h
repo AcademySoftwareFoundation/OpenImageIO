@@ -80,6 +80,7 @@ public:
     bool autoorient;
     bool autocc;                      // automatically color correct
     bool nativeread;                  // force native data type reads
+    bool printinfo_verbose;
     int cachesize;
     int autotile;
     int frame_padding;
@@ -87,20 +88,18 @@ public:
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
     std::string printinfo_format;
-    bool printinfo_verbose;
     ImageSpec input_config;           // configuration options for reading
-    bool input_config_set;
     std::string input_channel_set;    // Optional input channel set
 
     // Output options
     TypeDesc output_dataformat;
     std::map<std::string,std::string> output_channelformats;
-    int output_bitspersample;
-    bool output_scanline;
-    int output_tilewidth, output_tileheight;
     std::string output_compression;
-    int output_quality;
     std::string output_planarconfig;
+    int output_bitspersample;
+    int output_tilewidth, output_tileheight;
+    int output_quality;
+    bool output_scanline;
     bool output_adjust_time;
     bool output_autocrop;
     bool output_autotrim;
@@ -120,20 +119,21 @@ public:
     ImageRecRef curimg;                      // current image
     std::vector<ImageRecRef> image_stack;    // stack of previous images
     std::map<std::string, ImageRecRef> image_labels; // labeled images
-    ImageCache *imagecache;                  // back ptr to ImageCache
-    int return_value;                        // oiiotool command return code
+    ImageCache *imagecache = nullptr;        // back ptr to ImageCache
     ColorConfig colorconfig;                 // OCIO color config
     Timer total_runtime;
-    Timer total_readtime;
-    Timer total_writetime;
-    double total_imagecache_readtime;
+    Timer total_readtime  {Timer::DontStartNow};
+    Timer total_writetime {Timer::DontStartNow};
+    double total_imagecache_readtime = 0.0;
     typedef std::map<std::string, double> TimingMap;
     TimingMap function_times;
-    bool enable_function_timing;
-    size_t peak_memory;
-    int num_outputs;                         // Count of outputs written
-    bool printed_info;                       // printed info at some point
-    int frame_number;
+    size_t peak_memory = 0;
+    int return_value = EXIT_SUCCESS;         // oiiotool command return code
+    int num_outputs = 0;                     // Count of outputs written
+    int frame_number = 0;
+    bool enable_function_timing = true;
+    bool input_config_set = false;
+    bool printed_info = false;               // printed info at some point
 
     Oiiotool ();
 

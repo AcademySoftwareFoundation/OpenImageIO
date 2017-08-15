@@ -90,6 +90,7 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
                        const ImageBuf *B, const ImageBuf *C,
                        ImageSpec *force_spec, int prepflags)
 {
+    ASSERT (dst);
     if ((A && !A->initialized()) ||
         (B && !B->initialized()) ||
         (C && !C->initialized())) {

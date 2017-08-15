@@ -54,7 +54,7 @@ TypeDesc::TypeDesc (string_view typestring)
 
 namespace {
 
-static int basetype_size[] = {
+static int basetype_size[TypeDesc::LASTBASE] = {
     0, // UNKNOWN
     0, // VOID
     sizeof(unsigned char),   // UCHAR
@@ -77,7 +77,6 @@ static int basetype_size[] = {
 size_t
 TypeDesc::basesize () const
 {
-    DASSERT (sizeof(basetype_size)/sizeof(basetype_size[0]) == TypeDesc::LASTBASE);
     DASSERT (basetype < TypeDesc::LASTBASE);
     return basetype_size[basetype];
 }
@@ -87,7 +86,7 @@ TypeDesc::basesize () const
 bool
 TypeDesc::is_floating_point () const
 {
-    static bool isfloat[] = {
+    static bool isfloat[TypeDesc::LASTBASE] = {
         0, // UNKNOWN
         0, // VOID
         0, // UCHAR
@@ -104,7 +103,6 @@ TypeDesc::is_floating_point () const
         0, // STRING
         0  // PTR
     };
-    DASSERT (sizeof(isfloat)/sizeof(isfloat[0]) == TypeDesc::LASTBASE);
     DASSERT (basetype < TypeDesc::LASTBASE);
     return isfloat[basetype];
 }
@@ -114,7 +112,7 @@ TypeDesc::is_floating_point () const
 bool
 TypeDesc::is_signed () const
 {
-    static bool issigned[] = {
+    static bool issigned[TypeDesc::LASTBASE] = {
         0, // UNKNOWN
         0, // VOID
         0, // UCHAR
@@ -131,7 +129,6 @@ TypeDesc::is_signed () const
         0, // STRING
         0  // PTR
     };
-    DASSERT (sizeof(issigned)/sizeof(issigned[0]) == TypeDesc::LASTBASE);
     DASSERT (basetype < TypeDesc::LASTBASE);
     return issigned[basetype];
 }

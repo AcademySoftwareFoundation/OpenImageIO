@@ -131,14 +131,6 @@ static Oiiotool ot;
 
 
 Oiiotool::Oiiotool ()
-    : imagecache(NULL),
-      return_value (EXIT_SUCCESS),
-      total_readtime (Timer::DontStartNow),
-      total_writetime (Timer::DontStartNow),
-      total_imagecache_readtime (0.0),
-      enable_function_timing(true),
-      peak_memory(0),
-      num_outputs(0), printed_info(false), frame_number(0)
 {
     clear_options ();
 }
@@ -2877,7 +2869,6 @@ action_pattern (int argc, const char *argv[])
         ot.extract_options (options, pattern);
         std::string type = options["type"];
         float A = 0, B = 1;
-        bool ok = true;
         if (type == "gaussian") {
             A = Strutil::from_string<float> (options["mean"]);
             B = Strutil::from_string<float> (options["stddev"]);
@@ -3430,7 +3421,6 @@ action_pixelaspect (int argc, const char *argv[])
         const char *newargv[2] = { command.c_str(), resize.c_str() };
         action_resize (2, newargv);
         A = ot.top ();
-        Aspec = A->spec(0,0);
         A->spec(0,0)->full_width = (*A)(0,0).specmod().full_width = scale_full_width;
         A->spec(0,0)->full_height = (*A)(0,0).specmod().full_height = scale_full_height;
         A->spec(0,0)->attribute ("PixelAspectRatio", new_paspect);

@@ -182,14 +182,14 @@ private:
         return result;
     }
 
-    OIIO_CACHE_ALIGN ustring_mutex_t mutex;
     size_t mask;
     ustring::TableRep** entries;
     size_t num_entries;
     char* pool;
     size_t pool_offset;
     size_t memory_usage;
-    OIIO_CACHE_ALIGN size_t num_lookups;
+    size_t num_lookups;
+    ustring_mutex_t mutex;
 };
 
 #if 0

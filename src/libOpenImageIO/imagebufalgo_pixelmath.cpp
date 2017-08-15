@@ -1499,7 +1499,6 @@ decode_over_channels (const ImageBuf &R, int &nchannels,
     if (! has_alpha && colors == 4) {
         // No marked alpha channel, but suspiciously 4 channel -- assume
         // it's RGBA. 
-        has_alpha = true;
         colors -= 1;
         // Assume alpha is the highest channel that's not z
         alpha = nchannels - 1;

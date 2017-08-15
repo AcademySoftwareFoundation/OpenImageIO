@@ -96,7 +96,7 @@
 # define DASSERT(x) ASSERT(x)
 #else
  /* DASSERT does nothing when not debugging; sizeof trick prevents warnings */
-# define DASSERT(x) ((void)sizeof(x))
+# define DASSERT(x) ((void)sizeof(x)) /*NOLINT*/
 #endif
 
 /// DASSERT_MSG(condition,msg,...) is just like ASSERT_MSG, except that it
@@ -105,7 +105,8 @@
 #ifndef NDEBUG
 # define DASSERT_MSG ASSERT_MSG
 #else
-# define DASSERT_MSG(x,...) ((void)sizeof(x)) /* does nothing when not debugging */
+ /* does nothing when not debugging */
+# define DASSERT_MSG(x,...) ((void)sizeof(x)) /*NOLINT*/
 #endif
 
 #ifndef DASSERTMSG
