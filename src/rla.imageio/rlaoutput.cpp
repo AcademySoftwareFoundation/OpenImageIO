@@ -53,7 +53,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace RLA_pvt;
 
 
-class RLAOutput : public ImageOutput {
+class RLAOutput final : public ImageOutput {
 public:
     RLAOutput ();
     virtual ~RLAOutput ();

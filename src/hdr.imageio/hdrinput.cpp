@@ -55,7 +55,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
-class HdrInput : public ImageInput {
+class HdrInput final : public ImageInput {
 public:
     HdrInput () { init(); }
     virtual ~HdrInput () { close(); }

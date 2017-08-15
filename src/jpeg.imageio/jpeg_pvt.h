@@ -69,7 +69,7 @@ static const int JPEG_420_COMP[6] = {2,2, 1,1, 1,1};
 static const int JPEG_411_COMP[6] = {4,1, 1,1, 1,1};
 
 
-class JpgInput : public ImageInput {
+class JpgInput final : public ImageInput {
  public:
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }

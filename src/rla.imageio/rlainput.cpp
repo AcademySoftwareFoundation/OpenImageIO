@@ -46,7 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace RLA_pvt;
 
 
-class RLAInput : public ImageInput {
+class RLAInput final : public ImageInput {
 public:
     RLAInput () { init(); }
     virtual ~RLAInput () { close(); }

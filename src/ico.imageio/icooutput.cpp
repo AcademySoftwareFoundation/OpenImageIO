@@ -47,7 +47,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace ICO_pvt;
 
-class ICOOutput : public ImageOutput {
+class ICOOutput final : public ImageOutput {
 public:
     ICOOutput ();
     virtual ~ICOOutput ();

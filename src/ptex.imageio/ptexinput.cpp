@@ -38,7 +38,7 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class PtexInput : public ImageInput {
+class PtexInput final : public ImageInput {
 public:
     PtexInput () : m_ptex(NULL) { init(); }
     virtual ~PtexInput () { close(); }

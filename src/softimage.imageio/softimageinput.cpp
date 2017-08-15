@@ -39,7 +39,7 @@ using namespace softimage_pvt;
 
 
 
-class SoftimageInput : public ImageInput
+class SoftimageInput final : public ImageInput
 {
 public:
     SoftimageInput() {

@@ -40,7 +40,7 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class PNGOutput : public ImageOutput {
+class PNGOutput final : public ImageOutput {
 public:
     PNGOutput ();
     virtual ~PNGOutput ();

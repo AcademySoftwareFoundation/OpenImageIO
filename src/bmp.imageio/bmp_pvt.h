@@ -141,7 +141,7 @@ namespace bmp_pvt {
 
 
 
-class BmpInput : public ImageInput {
+class BmpInput final : public ImageInput {
  public:
     BmpInput () { init (); }
     virtual ~BmpInput () { close (); }
@@ -172,7 +172,7 @@ class BmpInput : public ImageInput {
 
 
 
-class BmpOutput : public ImageOutput {
+class BmpOutput final : public ImageOutput {
  public:
     BmpOutput () { init (); }
     virtual ~BmpOutput () { close (); }

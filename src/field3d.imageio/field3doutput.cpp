@@ -48,7 +48,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
-class Field3DOutput : public ImageOutput {
+class Field3DOutput final : public ImageOutput {
 public:
     Field3DOutput ();
     virtual ~Field3DOutput ();

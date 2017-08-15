@@ -41,7 +41,7 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-class DPXInput : public ImageInput {
+class DPXInput final : public ImageInput {
 public:
     DPXInput () : m_stream(NULL), m_dataPtr(NULL) { init(); }
     virtual ~DPXInput () { close(); }

@@ -48,7 +48,7 @@ static const int MAX_DPX_IMAGE_ELEMENTS = 8;  // max subimages in DPX spec
 
 
 
-class DPXOutput : public ImageOutput {
+class DPXOutput final : public ImageOutput {
 public:
     DPXOutput ();
     virtual ~DPXOutput ();

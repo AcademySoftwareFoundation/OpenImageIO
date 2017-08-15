@@ -59,7 +59,7 @@ using namespace boost::asio;
 
 
 
-class SocketOutput : public ImageOutput {
+class SocketOutput final : public ImageOutput {
  public:
     SocketOutput ();
     virtual ~SocketOutput () { close(); }
@@ -87,7 +87,7 @@ class SocketOutput : public ImageOutput {
 
 
 
-class SocketInput : public ImageInput {
+class SocketInput final : public ImageInput {
  public:
     SocketInput ();
     virtual ~SocketInput () { close(); }

@@ -157,7 +157,7 @@ real-world example of writing a JPEG/JFIF plug-in.
   or tiled images.
 
   \begin{code}
-    class JpgInput : public ImageInput {
+    class JpgInput final : public ImageInput {
      public:
         JpgInput () { init(); }
         virtual ~JpgInput () { close(); }
@@ -314,7 +314,7 @@ real-world example of writing a JPEG/JFIF plug-in.
   or tiled images.
 
   \begin{code}
-    class JpgOutput : public ImageOutput {
+    class JpgOutput final : public ImageOutput {
      public:
         JpgOutput () { init(); }
         virtual ~JpgOutput () { close(); }

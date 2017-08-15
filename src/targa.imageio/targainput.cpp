@@ -46,7 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace TGA_pvt;
 
 
-class TGAInput : public ImageInput {
+class TGAInput final : public ImageInput {
 public:
     TGAInput () { init(); }
     virtual ~TGAInput () { close(); }
