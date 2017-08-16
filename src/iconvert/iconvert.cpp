@@ -297,8 +297,8 @@ adjust_spec (ImageInput *in, ImageOutput *out,
         std::vector<std::string> oldkwlist;
         if (! oldkw.empty()) {
             Strutil::split (oldkw, oldkwlist, ";");
-            for (size_t i = 0; i < oldkwlist.size(); ++i)
-                oldkwlist[i] = Strutil::strip (oldkwlist[i]);
+            for (auto & kw : oldkwlist)
+                kw = Strutil::strip (kw);
         }
         for (auto&& nk : keywords) {
             bool dup = false;

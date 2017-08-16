@@ -167,9 +167,9 @@ IvGL::create_textures (void)
     glGenTextures (total_texbufs, textures);
 
     // Initialize texture objects
-    for (int i = 0; i < total_texbufs; i++) {
+    for (unsigned int texture : textures) {
         m_texbufs.emplace_back();
-        glBindTexture (GL_TEXTURE_2D, textures[i]);
+        glBindTexture (GL_TEXTURE_2D, texture);
         GLERRPRINT ("bind tex");
         glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
                       4 /*internal format - color components */,
@@ -184,7 +184,7 @@ IvGL::create_textures (void)
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
         glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
         GLERRPRINT ("After tex parameters");
-        m_texbufs.back().tex_object = textures[i];
+        m_texbufs.back().tex_object = texture;
         m_texbufs.back().x = 0;
         m_texbufs.back().y = 0;
         m_texbufs.back().width = 0;

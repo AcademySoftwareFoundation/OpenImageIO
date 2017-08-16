@@ -679,8 +679,8 @@ public:
         : next_last_file(0), shared(false)
     {
         // std::cout << "Creating PerThreadInfo " << (void*)this << "\n";
-        for (int i = 0;  i < nlastfile;  ++i)
-            last_file[i] = NULL;
+        for (auto& f : last_file)
+            f = nullptr;
         purge = 0;
     }
 

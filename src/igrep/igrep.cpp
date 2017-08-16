@@ -89,8 +89,8 @@ grep_file (const std::string &filename, regex &re,
         bool r = false;
         std::vector<std::string> directory_entries;
         Filesystem::get_directory_entries (filename, directory_entries);
-        for (size_t i = 0, e = directory_entries.size(); i < e; ++i)
-            r |= grep_file (directory_entries[i], re, true);
+        for (const auto& d : directory_entries)
+            r |= grep_file (d, re, true);
         return r;
     }
 

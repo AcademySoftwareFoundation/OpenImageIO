@@ -204,9 +204,9 @@ public:
             std::unique_lock<std::mutex> lock(this->mutex);
             this->cv.notify_all();  // stop all waiting threads
         }
-        for (int i = 0; i < static_cast<int>(this->threads.size()); ++i) {  // wait for the computing threads to finish
-            if (this->threads[i]->joinable())
-                this->threads[i]->join();
+        for (auto& thread : this->threads) {  // wait for the computing threads to finish
+            if (thread->joinable())
+                thread->join();
         }
         // if there were no threads in the pool but some functors in the queue, the functors are not deleted by the threads
         // therefore delete them here

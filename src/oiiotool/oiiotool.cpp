@@ -703,13 +703,13 @@ set_dataformat (int argc, const char *argv[])
 
     // If we make it here, the format designator was of the form
     //    name0=type0,name1=type1,...
-    for (size_t i = 0;  i < chans.size();  ++i) {
-        const char *eq = strchr(chans[i].c_str(),'=');
+    for (auto& chan : chans) {
+        const char *eq = strchr(chan.c_str(),'=');
         if (eq) {
-            std::string channame (chans[i], 0, eq - chans[i].c_str());
+            std::string channame (chan, 0, eq - chan.c_str());
             ot.output_channelformats[channame] = std::string (eq+1);
         } else {
-            ot.error (command, Strutil::format ("Malformed format designator \"%s\"", chans[i]));
+            ot.error (command, Strutil::format ("Malformed format designator \"%s\"", chan));
         }
     }
 
@@ -4863,9 +4863,9 @@ print_help (ArgParse &ap)
     if (libs.size()) {
         std::vector<string_view> libvec;
         Strutil::split (libs, libvec, ";");
-        for (size_t i = 0; i < libvec.size(); ++i) {
-            size_t pos = libvec[i].find(':');
-            libvec[i].remove_prefix (pos+1);
+        for (auto& lib : libvec) {
+            size_t pos = lib.find(':');
+            lib.remove_prefix (pos+1);
         }
         std::cout << "Dependent libraries:\n    "
                   << Strutil::wordwrap(Strutil::join (libvec, ", "), columns, 4)
@@ -5297,8 +5297,7 @@ handle_sequence (int argc, const char **argv)
     for (size_t i = 0;  i < nfilenames;  ++i) {
         if (ot.debug)
             std::cout << "SEQUENCE " << i << "\n";
-        for (size_t j = 0;  j < sequence_args.size();  ++j) {
-            size_t a = sequence_args[j];
+        for (size_t a : sequence_args) {
             seq_argv[a] = filenames[a][i].c_str();
             if (ot.debug)
                 std::cout << "  " << argv[a] << " -> " << seq_argv[a] << "\n";

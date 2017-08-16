@@ -278,8 +278,8 @@ Field3DOutput::put_parameter (const std::string &name, TypeDesc type,
                 Strutil::split (format_list, format_prefixes, ",");
                 format_prefixes_initialized = true;
             }
-            for (size_t i = 0, e = format_prefixes.size();  i < e;  ++i)
-                if (Strutil::iequals (prefix, format_prefixes[i]))
+            for (const auto& f : format_prefixes)
+                if (Strutil::iequals (prefix, f))
                     return false;
         }
     }

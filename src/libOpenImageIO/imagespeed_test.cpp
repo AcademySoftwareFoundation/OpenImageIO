@@ -547,10 +547,10 @@ main (int argc, char **argv)
     bool all_scanline = true;
     total_image_pixels = 0;
     imagesize_t maxpelchans = 0;
-    for (size_t i = 0;  i < input_filename.size();  ++i) {
+    for (auto&& fn : input_filename) {
         ImageSpec spec;
-        if (! imagecache->get_imagespec (input_filename[i], spec, 0, 0, true)) {
-            std::cout << "File \"" << input_filename[i] << "\" could not be opened.\n";
+        if (! imagecache->get_imagespec (fn, spec, 0, 0, true)) {
+            std::cout << "File \"" << fn << "\" could not be opened.\n";
             return -1;
         }
         total_image_pixels += spec.image_pixels();

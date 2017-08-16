@@ -171,8 +171,8 @@ attribute_typed (T &myobj, string_view name, TypeDesc type, object &dataobj)
         py_to_stdvector (vals, dataobj);
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
-            for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.emplace_back(vals[i]);
+            for (auto& val : vals)
+                u.emplace_back(val);
             myobj.attribute (name, type, &u[0]);
         }
         return;
@@ -206,8 +206,8 @@ attribute_tuple_typed (T &myobj, string_view name,
         py_to_stdvector (vals, dataobj);
         if (vals.size() == type.numelements()*type.aggregate) {
             std::vector<ustring> u;
-            for (size_t i = 0, e = vals.size(); i < e; ++i)
-                u.emplace_back(vals[i]);
+            for (auto& val : vals)
+                u.emplace_back(val);
             myobj.attribute (name, type, &u[0]);
         }
         return;

@@ -590,8 +590,8 @@ text_size_from_unicode (std::vector<uint32_t> &utext, FT_Face face)
     size.xend = size.yend = std::numeric_limits<int>::min();
     FT_GlyphSlot slot = face->glyph;
     int x = 0;
-    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
-        int error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+    for (auto ch : utext) {
+        int error = FT_Load_Char (face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
         size.ybegin = std::min (size.ybegin, -slot->bitmap_top);
@@ -743,8 +743,8 @@ ImageBufAlgo::text_size (string_view text, int fontsize, string_view font_)
     size.xbegin = size.ybegin = std::numeric_limits<int>::max();
     size.xend = size.yend = std::numeric_limits<int>::min();
     int x = 0;
-    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
-        error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+    for (auto ch : utext) {
+        error = FT_Load_Char (face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
         size.ybegin = std::min (size.ybegin, -slot->bitmap_top);
@@ -856,8 +856,8 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
     ImageBufAlgo::zero (textimg);
 
     // Glyph by glyph, fill in our txtimg buffer
-    for (size_t n = 0, e = utext.size();  n < e;  ++n) {
-        int error = FT_Load_Char (face, utext[n], FT_LOAD_RENDER);
+    for (auto ch : utext) {
+        int error = FT_Load_Char (face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
         // now, draw to our target surface
