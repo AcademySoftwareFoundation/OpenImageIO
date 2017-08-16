@@ -185,10 +185,10 @@
 
 
 /// allocates memory, equivalent of C99 type var_name[size]
-#define OIIO_ALLOCA(type, size) ((size) ? ((type*)alloca((size) * sizeof (type))) : nullptr)
+#define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof (type))) : nullptr)
 
 /// Deprecated (for namespace pollution reasons)
-#define ALLOCA(type, size) ((size) ? ((type*)alloca((size) * sizeof (type))) : nullptr)
+#define ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof (type))) : nullptr)
 
 
 // Define a macro that can be used for memory alignment.
