@@ -428,8 +428,8 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
         minorlength = xfilt;
     }
 
-    sampler_prototype sampler = nullptr;
-    long long *probecount = nullptr;
+    sampler_prototype sampler;
+    long long *probecount;
     switch (options.interpmode) {
     case TextureOpt::InterpClosest :
         sampler = &TextureSystemImpl::sample_closest;
@@ -444,7 +444,9 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
         probecount = &stats.cubic_interps;
         break;
     default:
-        return false;
+        sampler = &TextureSystemImpl::sample_bilinear;
+        probecount = &stats.bilinear_interps;
+        break;
     }
 
     TextureOpt::MipMode mipmode = options.mipmode;
