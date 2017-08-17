@@ -1,6 +1,11 @@
 include_directories (${NUKE_INCLUDE_DIRS})
 link_directories (${NUKE_LIBRARY_DIRS})
 
+# Ignore Nuke 10's use of deprecated auto_ptr
+if (NOT MSVC)
+    set_source_files_properties (txWriter.cpp PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+endif ()
+
 add_library (txWriter SHARED
     txWriter.cpp)
 
