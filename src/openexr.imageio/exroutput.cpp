@@ -980,8 +980,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 Strutil::split (format_list, pvt::format_prefixes, ",");
                 pvt::format_prefixes_initialized = true;
             }
-            for (size_t i = 0, e = pvt::format_prefixes.size();  i < e;  ++i)
-                if (Strutil::iequals (prefix, pvt::format_prefixes[i]))
+            for (const auto& f : pvt::format_prefixes)
+                if (Strutil::iequals (prefix, f))
                     return false;
         }
     }

@@ -325,8 +325,7 @@ ArgParse::ArgParse (int argc, const char **argv)
 
 ArgParse::~ArgParse()
 {
-    for (unsigned int i=0; i<m_option.size(); ++i) {
-        ArgOption *opt = m_option[i];
+    for (auto&& opt : m_option) {
         delete opt;
     }
 }
@@ -503,8 +502,7 @@ ArgParse::usage () const
     std::cout << m_intro << '\n';
     size_t maxlen = 0;
     
-    for (unsigned int i=0; i<m_option.size(); ++i) {
-        ArgOption *opt = m_option[i];
+    for (auto&& opt : m_option) {
         size_t fmtlen = opt->fmt().length();
         // Option lists > 40 chars will be split into multiple lines
         if (fmtlen < longline)
@@ -514,8 +512,7 @@ ArgParse::usage () const
     // Try to figure out how wide the terminal is, so we can word wrap.
     int columns = Sysutil::terminal_columns ();
 
-    for (unsigned int i=0; i<m_option.size(); ++i) {
-        ArgOption *opt = m_option[i];
+    for (auto&& opt : m_option) {
         if (opt->description().length()) {
             size_t fmtlen = opt->fmt().length();
             if (opt->is_separator()) {
@@ -542,8 +539,7 @@ ArgParse::briefusage () const
     int columns = Sysutil::terminal_columns ();
 
     std::string pending;
-    for (unsigned int i=0; i<m_option.size(); ++i) {
-        ArgOption *opt = m_option[i];
+    for (auto&& opt : m_option) {
         if (opt->description().length()) {
             if (opt->is_separator()) {
                 if (pending.size())

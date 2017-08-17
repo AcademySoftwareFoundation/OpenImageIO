@@ -254,21 +254,21 @@ SoftimageInput::read_next_scanline (void * data)
 {
     // Each scanline is stored using one or more channel packets.
     // We go through each of those to pull the data
-    for (size_t i = 0;  i < m_channel_packets.size();  i++) {
-        if (m_channel_packets[i].type & UNCOMPRESSED) {
-            if (!read_pixels_uncompressed (m_channel_packets[i], data)) {
+    for (auto & cp : m_channel_packets) {
+        if (cp.type & UNCOMPRESSED) {
+            if (!read_pixels_uncompressed (cp, data)) {
                 error ("Failed to read uncompressed pixel data from \"%s\"", m_filename.c_str());
                 close();
                 return false;
             }
-        } else if (m_channel_packets[i].type & PURE_RUN_LENGTH) {
-            if (!read_pixels_pure_run_length (m_channel_packets[i], data)) {
+        } else if (cp.type & PURE_RUN_LENGTH) {
+            if (!read_pixels_pure_run_length (cp, data)) {
                 error ("Failed to read pure run length encoded pixel data from \"%s\"", m_filename.c_str());
                 close();
                 return false;
             }
-        } else if (m_channel_packets[i].type & MIXED_RUN_LENGTH) {
-            if (!read_pixels_mixed_run_length (m_channel_packets[i], data)) {
+        } else if (cp.type & MIXED_RUN_LENGTH) {
+            if (!read_pixels_mixed_run_length (cp, data)) {
                 error ("Failed to read mixed run length encoded pixel data from \"%s\"", m_filename.c_str());
                 close();
                 return false;
@@ -292,7 +292,7 @@ SoftimageInput::read_pixels_uncompressed (const softimage_pvt::ChannelPacket & c
         // data pointer is set so we're supposed to write data there
         uint8_t * scanlineData = (uint8_t *)data;
         for (size_t pixelX=0; pixelX < m_pic_header.width; pixelX++) {
-            for (size_t curChan=0; curChan < channels.size(); curChan++) {
+            for (int channel : channels) {
                 for (size_t byte=0; byte < pixelChannelSize; byte++) {
                     // Get which byte we should be placing this in depending on endianness
                     size_t curByte = byte;
@@ -300,7 +300,7 @@ SoftimageInput::read_pixels_uncompressed (const softimage_pvt::ChannelPacket & c
                         curByte = ((pixelChannelSize) - 1) - curByte;
 
                     //read the data into the correct place
-                    if (fread (&scanlineData[(pixelX * pixelChannelSize * m_spec.nchannels) + (channels[curChan] * pixelChannelSize) + curByte],
+                    if (fread (&scanlineData[(pixelX * pixelChannelSize * m_spec.nchannels) + (channel * pixelChannelSize) + curByte],
                         1, 1, m_fd) != 1)
                         return false;
                 }
@@ -403,7 +403,7 @@ SoftimageInput::read_pixels_mixed_run_length (const softimage_pvt::ChannelPacket
                 // data pointer is set so we're supposed to write data there
                 uint8_t * scanlineData = (uint8_t *)data;
                 for (size_t pixelX=linePixelCount; pixelX < linePixelCount+curCount; pixelX++) {
-                    for (size_t curChan=0; curChan < channels.size(); curChan++) {
+                    for (int channel : channels) {
                         for (size_t byte=0; byte < pixelChannelSize; byte++) {
                             // Get which byte we should be placing this in depending on endianness
                             size_t curByte = byte;
@@ -411,7 +411,7 @@ SoftimageInput::read_pixels_mixed_run_length (const softimage_pvt::ChannelPacket
                                 curByte = ((pixelChannelSize) - 1) - curByte;
                             
                             //read the data into the correct place
-                            if (fread (&scanlineData[(pixelX * pixelChannelSize * m_spec.nchannels) + (channels[curChan] * pixelChannelSize) + curByte],
+                            if (fread (&scanlineData[(pixelX * pixelChannelSize * m_spec.nchannels) + (channel * pixelChannelSize) + curByte],
                                 1, 1, m_fd) != 1)
                                 return false;
                         }

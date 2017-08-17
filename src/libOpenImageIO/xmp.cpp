@@ -321,9 +321,9 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
             bool dup = false;
             if (p) {
                 Strutil::split (*(const char **)p->data(), items, ";");
-                for (size_t item = 0;  item < items.size();  ++item) {
-                    items[item] = Strutil::strip (items[item]);
-                    dup |= (items[item] == xmlvalue);
+                for (auto& item : items) {
+                    item = Strutil::strip (item);
+                    dup |= (item == xmlvalue);
                 }
                 dup |= (xmlvalue == std::string(*(const char **)p->data()));
             }
@@ -611,9 +611,9 @@ encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
             else if (control == XMP_AltList || control == XMP_BagList) {
                 std::vector<std::string> vals;
                 Strutil::split (val, vals, ";");
-                for (size_t i = 0;  i < vals.size();  ++i) {
-                    vals[i] = Strutil::strip (vals[i]);
-                    x += Strutil::format ("<rdf:li>%s</rdf:li>", vals[i]);
+                for (auto& val : vals) {
+                    val = Strutil::strip (val);
+                    x += Strutil::format ("<rdf:li>%s</rdf:li>", val);
                 }
             }
             else

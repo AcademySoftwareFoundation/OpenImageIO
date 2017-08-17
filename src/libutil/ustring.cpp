@@ -209,22 +209,22 @@ struct UstringTable {
 
     size_t get_memory_usage() {
         size_t mem = 0;
-        for (int i = 0; i < NUM_BINS; i++)
-            mem += bins[i].get_memory_usage();
+        for (auto& bin : bins)
+            mem += bin.get_memory_usage();
         return mem;
     }
 
     size_t get_num_entries() {
         size_t num = 0;
-        for (int i = 0; i < NUM_BINS; i++)
-            num += bins[i].get_num_entries();
+        for (auto& bin : bins)
+            num += bin.get_num_entries();
         return num;
     }
 
     size_t get_num_lookups() {
         size_t num = 0;
-        for (int i = 0; i < NUM_BINS; i++)
-            num += bins[i].get_num_lookups();
+        for (auto& bin : bins)
+            num += bin.get_num_lookups();
         return num;
     }
 

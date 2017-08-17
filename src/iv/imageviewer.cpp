@@ -180,10 +180,10 @@ ImageViewer::createActions()
     openAct->setShortcut(tr("Ctrl+O"));
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 
-    for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
-        openRecentAct[i] = new QAction (this);
-        openRecentAct[i]->setVisible (false);
-        connect (openRecentAct[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
+    for (auto& i : openRecentAct) {
+        i = new QAction (this);
+        i->setVisible (false);
+        connect (i, SIGNAL(triggered()), this, SLOT(openRecentFile()));
     }
 
     reloadAct = new QAction(tr("&Reload image"), this);
@@ -430,8 +430,8 @@ void
 ImageViewer::createMenus()
 {
     openRecentMenu = new QMenu(tr("Open recent..."), this);
-    for (size_t i = 0;  i < MaxRecentFiles;  ++i)
-        openRecentMenu->addAction (openRecentAct[i]);
+    for (auto& i : openRecentAct)
+        openRecentMenu->addAction (i);
 
     fileMenu = new QMenu(tr("&File"), this);
     fileMenu->addAction (openAct);
@@ -659,8 +659,8 @@ ImageViewer::open()
     QStringList names = dialog.selectedFiles();
 
     int old_lastimage = m_images.size()-1;
-    for (QStringList::Iterator it = names.begin();  it != names.end();  ++it) {
-        std::string filename = it->toUtf8().data();
+    for (auto& name : names) {
+        std::string filename = name.toUtf8().data();
         if (filename.empty())
             continue;
         add_image (filename);

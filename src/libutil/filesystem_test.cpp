@@ -331,8 +331,7 @@ void test_frame_sequences ()
     test_file_seq ("foo.%d.exr", "1-5", "foo.1.exr foo.2.exr foo.3.exr foo.4.exr foo.5.exr");
 
     const char *views1[] = { "left", "right", "foo", "", NULL };
-    for (size_t i = 0; i < 5; ++i) {
-        const char *view = views1[i];
+    for (auto view : views1) {
         test_file_seq_with_view ("foo.1-5#.exr", NULL, view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0004.exr foo.0005.exr");
         test_file_seq_with_view ("foo.5-1#.exr", NULL, view, "foo.0005.exr foo.0004.exr foo.0003.exr foo.0002.exr foo.0001.exr");
         test_file_seq_with_view ("foo.1-3,6,10-12#.exr", NULL, view, "foo.0001.exr foo.0002.exr foo.0003.exr foo.0006.exr foo.0010.exr foo.0011.exr foo.0012.exr");
