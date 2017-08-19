@@ -29,4 +29,4 @@ else ()
 endif ()
 
 install (TARGETS txWriter
-    LIBRARY DESTINATION "${LIB_INSTALL_DIR}/nuke")
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/nuke")

@@ -4,9 +4,14 @@ string (REGEX MATCH "python3\$" _py3_subdir ${CMAKE_CURRENT_BINARY_DIR})
 
 if (_py3_subdir)
     set (BUILD_PY3 ON)
+    set (PYTHON_DIR python3)
 else ()
     set (BUILD_PY3 OFF)
+    set (PYTHON_DIR python)
 endif ()
+
+set (PYLIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/${PYTHON_DIR}/site-packages CACHE STRING
+     "Install location for python libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
 
 if (NOT BOOST_CUSTOM AND NOT BUILD_PY3)
     #Unset those, otherwise find_package(PythonLibs) will pick up old stuff
@@ -123,15 +128,10 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
                                SUFFIX ".pyd")
     endif()
     
-    if (BUILD_PY3)
-        install (TARGETS ${target_name}
-                 RUNTIME DESTINATION ${PYLIB3_INSTALL_DIR} COMPONENT user
-                 LIBRARY DESTINATION ${PYLIB3_INSTALL_DIR} COMPONENT user)
-    else ()
-        install (TARGETS ${target_name}
-                 RUNTIME DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
-                 LIBRARY DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user)
-    endif ()
+    install (TARGETS ${target_name}
+             RUNTIME DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
+             LIBRARY DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
+    )
 elseif (BUILD_PY3)
     if (NOT PYTHONLIBS_FOUND)
         message (STATUS "Python3 libraries not found")
