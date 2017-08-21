@@ -36,6 +36,7 @@
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/unittest.h>
 
 #include <iostream>

@@ -36,6 +36,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/fmath.h>

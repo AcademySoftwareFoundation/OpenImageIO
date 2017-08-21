@@ -43,6 +43,7 @@ list (APPEND libOpenImageIO_srcs
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
                           maketexture.cpp
                           ../libutil/argparse.cpp
+                          ../libutil/benchmark.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/farmhash.cpp 

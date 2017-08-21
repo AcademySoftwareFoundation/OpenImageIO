@@ -37,6 +37,7 @@
 
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/unittest.h>
