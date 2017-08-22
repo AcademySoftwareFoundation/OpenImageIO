@@ -44,7 +44,7 @@ FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
             )
 
 IF(LibRaw_INCLUDE_DIR)
-   FILE(READ ${LibRaw_INCLUDE_DIR}/libraw_version.h _libraw_version_content)
+   FILE(READ ${LibRaw_INCLUDE_DIR}/libraw/libraw_version.h _libraw_version_content)
    
    STRING(REGEX MATCH "#define LIBRAW_MAJOR_VERSION[ \t]*([0-9]*)\n" _version_major_match ${_libraw_version_content})
    SET(_libraw_version_major "${CMAKE_MATCH_1}")
@@ -59,7 +59,7 @@ IF(LibRaw_INCLUDE_DIR)
       SET(LibRaw_VERSION_STRING "${_libraw_version_major}.${_libraw_version_minor}.${_libraw_version_patch}")
    ELSE()
       IF(NOT LibRaw_FIND_QUIETLY)
-         MESSAGE(STATUS "Failed to get version information from ${LibRaw_INCLUDE_DIR}/libraw_version.h")
+         MESSAGE(STATUS "Failed to get version information from ${LibRaw_INCLUDE_DIR}/libraw/libraw_version.h")
       ENDIF()
    ENDIF()
 ENDIF()
