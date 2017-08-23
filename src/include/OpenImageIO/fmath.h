@@ -444,9 +444,22 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 
 
 
-/// Return floor(x) as an int, as efficiently as possible.
+/// Return floor(x) cast to an int.
 inline int
 ifloor (float x)
+{
+    return (int)floorf(x);
+}
+
+
+
+/// Like ifloor(), but ~25% faster and it incorrectly rounds negative
+/// integers down to the NEXT integer. In other words, fast_ifloor(-1) ==
+/// -2, oh my. But it's fine if either (a) you are sure your inputs will not
+/// be negative integers, or (b) for some reason it's ok with you that
+/// negative integer values n are rounded down as if they are (n-epsilon).
+inline int
+fast_ifloor (float x)
 {
     // Find the greatest whole number <= x.  This cast is faster than
     // calling floorf.
@@ -462,10 +475,36 @@ ifloor (float x)
 inline float
 floorfrac (float x, int *xint)
 {
+#if 1
+    float f = std::floor(x);
+    *xint = int(f);
+    return x - f;
+#else /* vvv This idiom is slower */
     int i = ifloor(x);
     *xint = i;
     return x - static_cast<float>(i);   // Return the fraction left over
+#endif
 }
+
+
+inline simd::vfloat4 floorfrac (const simd::vfloat4& x, simd::vint4 *xint) {
+    simd::vfloat4 f = simd::floor(x);
+    *xint = simd::vint4(f);
+    return x - f;
+}
+
+inline simd::vfloat8 floorfrac (const simd::vfloat8& x, simd::vint8 *xint) {
+    simd::vfloat8 f = simd::floor(x);
+    *xint = simd::vint8(f);
+    return x - f;
+}
+
+inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
+    simd::vfloat16 f = simd::floor(x);
+    *xint = simd::vint16(f);
+    return x - f;
+}
+
 
 
 
@@ -499,6 +538,12 @@ sincos (double x, double* sine, double* cosine)
     *sine = std::sin(x);
     *cosine = std::cos(x);
 #endif
+}
+
+
+inline float sign (float x)
+{
+    return x < 0.0f ? -1.0f : (x==0.0f ? 0.0f : 1.0f);
 }
 
 
