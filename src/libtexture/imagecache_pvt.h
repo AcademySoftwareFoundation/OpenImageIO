@@ -315,12 +315,23 @@ public:
     /// number of errors so far, including this one, is a above the limit
     /// set for errors to print for each file.
     int errors_should_issue () const;
-    
+
+    /// Mark the file as "not broken"
+    void mark_not_broken ();
+
+    /// Mark the file as "broken" with an error message, and send the error
+    /// message to the imagecache.
+    void mark_broken (string_view error);
+
+    /// Return the error message that explains why the file is broken.
+    string_view broken_error_message () const { return m_broken_message; }
+
 private:
     ustring m_filename_original;    ///< original filename before search path
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
+    std::string m_broken_message;   ///< Error message for why it's broken
     std::shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;          ///< Which texture format
