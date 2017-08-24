@@ -112,7 +112,7 @@ ImageOutputWrap::make_read_buffer (object &buffer, imagesize_t size)
 
 
 bool
-ImageOutputWrap::write_scanline_array (int y, int z, numeric::array &buffer)
+ImageOutputWrap::write_scanline_array (int y, int z, object &buffer)
 {
     TypeDesc format;
     size_t numelements = 0;
@@ -154,7 +154,7 @@ ImageOutputWrap::write_scanline_bt (int y, int z, TypeDesc::BASETYPE format,
 
 bool
 ImageOutputWrap::write_scanlines_array (int ybegin, int yend, int z,
-                                        numeric::array &buffer)
+                                        object &buffer)
 {
     TypeDesc format;
     size_t numelements = 0;
@@ -199,7 +199,7 @@ ImageOutputWrap::write_scanlines_bt (int ybegin, int yend, int z,
 
 bool
 ImageOutputWrap::write_tile_array (int x, int y, int z,
-                                   numeric::array &buffer)
+                                   object &buffer)
 {
     TypeDesc format;
     size_t numelements = 0;
@@ -243,7 +243,7 @@ ImageOutputWrap::write_tile_bt (int x, int y, int z, TypeDesc::BASETYPE format,
 bool
 ImageOutputWrap::write_tiles_array (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
-                                    numeric::array &buffer)
+                                    object &buffer)
 {
     TypeDesc format;
     size_t numelements = 0;
@@ -290,7 +290,7 @@ ImageOutputWrap::write_tiles_bt (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-ImageOutputWrap::write_image_array (numeric::array &buffer)
+ImageOutputWrap::write_image_array (object &buffer)
 {
     TypeDesc format;
     size_t numelements = 0;
