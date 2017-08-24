@@ -416,8 +416,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         m_input.reset (ImageInput::create (m_filename.string(),
                                            m_imagecache.plugin_searchpath()));
     if (! m_input) {
-        imagecache().error ("%s", OIIO::geterror());
-        m_broken = true;
+        mark_broken (OIIO::geterror());
         invalidate_spec ();
         return false;
     }
@@ -429,7 +428,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         configspec.attribute ("oiio:UnassociatedAlpha", 1);
 
     ImageSpec nativespec, tempspec;
-    m_broken = false;
+    mark_not_broken ();
     bool ok = true;
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
         ok = m_input->open (m_filename.c_str(), nativespec, configspec);
@@ -446,8 +445,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
     }
     if (! ok) {
-        imagecache().error ("%s", m_input->geterror());
-        m_broken = true;
+        mark_broken (m_input->geterror());
         m_input.reset ();
         return false;
     }
@@ -511,7 +509,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 // No idea what to do with a subimage that doesn't have the
                 // same number of channels as the others, so just skip it.
                 close ();
-                m_broken = true;
+                mark_broken ("Subimages don't all have the same number of channels");
                 invalidate_spec ();
                 return false;
             }
@@ -565,15 +563,13 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             }
         }
         if (si.untiled && ! imagecache().accept_untiled()) {
-            imagecache().error ("%s was untiled, rejecting", m_filename);
-            m_broken = true;
+            mark_broken ("image was untiled");
             invalidate_spec ();
             m_input.reset ();
             return false;
         }
         if (si.unmipped && ! imagecache().accept_unmipped()) {
-            imagecache().error ("%s was not MIP-mapped, rejecting", m_filename);
-            m_broken = true;
+            mark_broken ("image was not MIP-mapped");
             invalidate_spec ();
             m_input.reset ();
             return false;
@@ -1057,7 +1053,7 @@ ImageCacheFile::invalidate ()
     recursive_lock_guard guard (m_input_mutex);
     close ();
     invalidate_spec ();
-    m_broken = false;
+    mark_not_broken ();
     m_fingerprint.clear ();
     duplicate (NULL);
 
@@ -1113,6 +1109,28 @@ int
 ImageCacheFile::errors_should_issue () const
 {
     return (++m_errors_issued <= imagecache().max_errors_per_file());
+}
+
+
+
+void
+ImageCacheFile::mark_not_broken ()
+{
+    m_broken = false;
+    m_broken_message.clear();
+}
+
+
+
+void
+ImageCacheFile::mark_broken (string_view error)
+{
+    m_broken = true;
+    if (! error.size())
+        error = string_view("unknown error");
+    m_broken_message = error;
+    imagecache().error ("%s", error);
+    invalidate_spec ();
 }
 
 
@@ -2481,7 +2499,8 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
 
     if (file->broken()) {
         if (file->errors_should_issue())
-            error ("Invalid image file \"%s\"", file->filename());
+            error ("Invalid image file \"%s\": %s",
+                   file->filename(), file->broken_error_message());
         return false;
     }
     // No other queries below are expected to work with broken
@@ -2734,7 +2753,8 @@ ImageCacheImpl::imagespec (ImageCacheFile *file,
     file = verify_file (file, thread_info, true);
     if (file->broken()) {
         if (file->errors_should_issue())
-            error ("Invalid image file \"%s\"", file->filename());
+            error ("Invalid image file \"%s\": %s",
+                   file->filename(), file->broken_error_message());
         return NULL;
     }
     if (file->is_udim()) {
@@ -2839,7 +2859,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     file = verify_file (file, thread_info);
     if (file->broken()) {
         if (file->errors_should_issue())
-            error ("Invalid image file \"%s\"", file->filename());
+            error ("Invalid image file \"%s\": %s",
+                   file->filename(), file->broken_error_message());
         return false;
     }
     if (file->is_udim()) {
