@@ -79,6 +79,14 @@ typedesc_from_python_array_code (char code)
 
 
 
+std::string
+object_classname (const object& obj)
+{
+    return extract<std::string>(obj.attr("__class__").attr("__name__"));
+}
+
+
+
 object
 C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
 {
@@ -313,11 +321,18 @@ oiio_get_string_attribute_d (const char *name, const char *defaultval)
 
 
 const void *
-python_array_address (numeric::array &data, TypeDesc &elementtype,
+python_array_address (const object &data, TypeDesc &elementtype,
                       size_t &numelements)
 {
     // Figure out the type of the array
-    object tcobj = data.attr("typecode");
+    object tcobj;
+    try {
+        tcobj = data.attr("typecode");
+    } catch(...) {
+        return NULL;
+    }
+    if (! tcobj)
+        return NULL;
     extract<char> tce (tcobj);
     char typecode = tce.check() ? (char)tce : 0;
     elementtype = typedesc_from_python_array_code (typecode);
@@ -395,7 +410,9 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
     scope().attr("VERSION_PATCH") = OIIO_VERSION_PATCH;
     scope().attr("INTRO_STRING") = OIIO_INTRO_STRING;
 
+#if BOOST_VERSION < 106500
     boost::python::numeric::array::set_module_and_type("array", "array");
+#endif
 }
 
 } // namespace PyOpenImageIO

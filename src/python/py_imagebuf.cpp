@@ -346,7 +346,7 @@ ImageBuf_set_deep_value_uint (ImageBuf &buf, int x, int y, int z,
 
 
 bool
-ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, tuple data)
+ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, const tuple& data)
 {
     if (! roi.defined())
         roi = buf.roi();
@@ -364,8 +364,13 @@ ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, tuple data)
 
 
 bool
-ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, numeric::array data)
+ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, const object& data)
 {
+    // If it's a tuple, we handle that with the other function
+    extract<tuple> tup (data);
+    if (tup.check())
+        return ImageBuf_set_pixels_tuple (buf, roi, tup());
+
     if (! roi.defined())
         roi = buf.roi();
     roi.chend = std::min (roi.chend, buf.nchannels()+1);
@@ -373,13 +378,15 @@ ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, numeric::array data)
     if (size == 0)
         return true;   // done
 
-    TypeDesc type;
-    size_t pylen = 0;
-    const void *addr = python_array_address (data, type, pylen);
-    if (!addr || size > pylen)
+    TypeDesc elementtype;
+    size_t numelements;
+    const void* addr = python_array_address (data, elementtype, numelements);
+    if (!addr || size > numelements)
         return false;   // Not enough data to fill our ROI
-
-    buf.set_pixels (roi, type, addr);
+    std::vector<float> vals (numelements);
+    convert_types (elementtype, addr, TypeDesc::TypeFloat, vals.data(),
+                   int(numelements));
+    buf.set_pixels (roi, TypeDesc::TypeFloat, &vals[0]);
     return true;
 }
 
