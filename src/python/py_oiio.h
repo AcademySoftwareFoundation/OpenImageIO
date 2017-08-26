@@ -69,12 +69,13 @@ bool PyProgressCallback(void*, float);
 object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
 const char * python_array_code (TypeDesc format);
 TypeDesc typedesc_from_python_array_code (char code);
+std::string object_classname (const object& obj);
 
 
 // Given python array 'data', figure out its element type and number of
 // elements, and return the memory address of its contents.  Return NULL as
 // the address for an error.
-const void * python_array_address (numeric::array &data, TypeDesc &elementtype,
+const void * python_array_address (const object &data, TypeDesc &elementtype,
                                    size_t &numelements);
 
 
@@ -89,7 +90,7 @@ void py_to_stdvector (std::vector<T> &vals, const object &obj)
         for (int i = 0, e = len(tup()); i < e; ++i)
             py_to_stdvector<T> (vals, tup()[i]);
     } else {
-        // non-tuple case
+        // non-tuple case (presumably scalar)
         extract<T> t (obj);
         vals.push_back (t.check() ? t() : T());
     }
@@ -102,16 +103,6 @@ void py_to_stdvector (std::vector<T> &vals, const tuple &tup)
 {
     for (int i = 0, e = len(tup); i < e; ++i)
         py_to_stdvector<T> (vals, tup[i]);
-}
-
-
-
-// Suck up a tuple of presumed T values into a vector<T>
-template<typename T>
-void py_to_stdvector (std::vector<T> &vals, const numeric::array &arr)
-{
-    for (int i = 0, e = len(arr); i < e; ++i)
-        vals.push_back (extract<T>(arr[i]));
 }
 
 
@@ -313,12 +304,12 @@ public:
                          stride_t xstride=AutoStride);
     bool write_scanline_bt (int, int, TypeDesc::BASETYPE,
                             boost::python::object&, stride_t xstride=AutoStride);
-    bool write_scanline_array (int, int, numeric::array&);
+    bool write_scanline_array (int, int, object&);
     bool write_scanlines (int, int, int, TypeDesc, boost::python::object&,
                          stride_t xstride=AutoStride);
     bool write_scanlines_bt (int, int, int, TypeDesc::BASETYPE,
                             boost::python::object&, stride_t xstride=AutoStride);
-    bool write_scanlines_array (int, int, int, numeric::array&);
+    bool write_scanlines_array (int, int, int, object&);
     bool write_tile (int, int, int, TypeDesc, boost::python::object&,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
@@ -326,7 +317,7 @@ public:
                         boost::python::object&, stride_t xstride=AutoStride,
                         stride_t ystride=AutoStride,
                         stride_t zstride=AutoStride);
-    bool write_tile_array (int, int, int, numeric::array&);
+    bool write_tile_array (int, int, int, object&);
     bool write_tiles (int, int, int, int, int, int,
                       TypeDesc, boost::python::object&,
                       stride_t xstride=AutoStride, stride_t ystride=AutoStride,
@@ -336,7 +327,7 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
-    bool write_tiles_array (int, int, int, int, int, int, numeric::array&);
+    bool write_tiles_array (int, int, int, int, int, int, object&);
     bool write_image (TypeDesc format, object &buffer,
                       stride_t xstride=AutoStride,
                       stride_t ystride=AutoStride,
@@ -345,7 +336,7 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride,
                          stride_t zstride=AutoStride);
-    bool write_image_array (numeric::array &buffer);
+    bool write_image_array (object &buffer);
     bool write_deep_scanlines (int ybegin, int yend, int z,
                                const DeepData &deepdata);
     bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,

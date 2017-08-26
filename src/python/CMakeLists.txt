@@ -19,7 +19,7 @@ if (NOT BOOST_CUSTOM AND NOT BUILD_PY3)
     unset(PYTHON_INCLUDE_PATH)
     unset(PYTHON_INCLUDE_PATH CACHE)
     find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
-    find_package (Boost 1.42 REQUIRED COMPONENTS python)
+    find_package (Boost 1.53 REQUIRED COMPONENTS python)
 elseif (BOOST_CUSTOM AND NOT BUILD_PY3)
     find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
 else ()
@@ -43,7 +43,7 @@ else ()
     #different names on different systems. Try the most common ones
     #(boost_python3, boost_python-py34, …).
     foreach (_boost_py3_lib python3 python-py${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-        find_package (Boost 1.42 QUIET COMPONENTS ${_boost_py3_lib})
+        find_package (Boost 1.53 QUIET COMPONENTS ${_boost_py3_lib})
         string (TOUPPER ${_boost_py3_lib} boost_py3_lib_name)
         if (Boost_${boost_py3_lib_name}_FOUND)
             #Not the most beautiful thing to do, but that gets them included in
