@@ -1,10 +1,11 @@
 Release 1.8 (in progress) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
- * **C++11** (gcc 4.8.2, clang 3.3, or MSVS 2013)
- * **Boost >= 1.53**
- * **CMake >= 3.0**
+ * **C++11** (gcc 4.8.2 - gcc 7, clang 3.3 - 5.0, or MSVS 2013 - 2017)
+ * **Boost >= 1.53** (tested up through 1.65)
+ * **CMake >= 3.0** (tested up through 3.9)
  * (optional) **Qt >= 5.6**
+ * (optional) **Python >= 2.7**
 
 Major new features and improvements:
 * New oiiotool features:
@@ -46,8 +47,13 @@ Major new features and improvements:
    * `deep_holdout()` culls all samples that are farther away than the
      opaque depth of a second holdout image. #1691 (1.8.4)
 * DICOM file format support (currently read-only). DICOM is the standard for
-  medical imaging data. Will   only build if dependency "dcmtk" is found at
+  medical imaging data. Will only build if dependency "dcmtk" is found at
   build time. #1534 (1.8.1)
+* Experimental: The TextureSystem API has been extended to support batches
+  of texture lookups in a SIMD fashion. At present, only the new API was
+  added, a full implementation is in progress and may not be forthcoming
+  or reliable until 1.9. Even the API is experimental, and may change for
+  future releases. #1733 (1.8.5)
 
 Public API changes:
 * TypeDesc:
@@ -237,6 +243,9 @@ Fixes, minor enhancements, and performance improvements:
      an OpenColorIO config file, just like `oiiotool `--colorconfig`.
      #1692 (1.8.4)
    * Fix rare edge case crash in ImageCache. #1696 (1.8.4/1.7.15)
+   * Improved error messages for broken files. Specifically, it's much more
+     clear now when a file is broken because it's being rejected as a
+     texture because it's untiled or not MIP-mapped. #1751 (1.8.5)
 * Bug fix to possible crashes when adding dither to tiled file output
   (buffer size miscalculation). #1518 (1.8.0/1.7.8)
 * Make sure that sRGB<->linear color transform still work (in the obvious
@@ -369,6 +378,9 @@ Build/test system improvements:
   deprecated. #1711 (1.8.5)
 * Make the search for boost_python3 more reliable. #1727 (1.8.5)
 * Fix python site-packages path for installation. #1722 (1.8.5)
+* Fixes for building with gcc 7. (1.8.5)
+* Support and fixes for building with clang 5.0. #1746 (1.8.5)
+* Support/fixes for Boost 1.65. #1553 (1.8.5)
 
 Developer goodies / internals:
 * Sysutil::Term formatting now works properly in Windows (though is only
@@ -382,8 +394,10 @@ Developer goodies / internals:
    * Change deprecated C headers (such as `<ctype.h>`) to C++ (`<cctype>`).
      #1649 (1.8.4)
    * Use `std::vector<>::emplace_back()` where applicable. #1657 (1.8.4)
+   * Mark ImageInput/ImageOutput derived classes as 'final'. (1.8.5)
 * array_view.h:
    * Add front() and back() methods. #1724 (1.8.5)
+   * Simplified array_view template to be 1D only. #1734 (1.8.5)
 * atomic.h:
    * Added atomic_min and atomic_max. #1661 (1.8.4)
    * Added atomic_fetch_add for `std::atomic<float>` and double. #1661 (1.8.4)
@@ -422,6 +436,9 @@ Developer goodies / internals:
      non-thread-jumbled replacements for C versions. #1579, #1656 (1.8.1, 1.8.4)
    * `from_string<>` has been extended to 'unsigned int'. (1.8.3/1.7.13)
    * `Strutil::parse_identifier_if` #1647 (1.8.3)
+   * safe_strcpy now takes a string_view, and more closely conforms to the
+     behavior of strncpy by filling in the extra space with 0 padding.
+     (1.8.5)
 * simd.h:
    * Add a matrix44 constructor from 16 floats. #1552 (1.8.1)
    * Renamed files floatN, intN, boolN to vfloatN, vintN, vboolN, to avoid
