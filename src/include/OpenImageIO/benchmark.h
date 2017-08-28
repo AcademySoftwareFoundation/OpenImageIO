@@ -211,6 +211,8 @@ public:
     Benchmarker& units (Unit s) { m_units = s; return *this; }
     Unit units () const { return m_units; }
 
+    const std::string& name () const { return m_name; }
+
 private:
     size_t m_iterations = 0;
     size_t m_user_iterations = 0;

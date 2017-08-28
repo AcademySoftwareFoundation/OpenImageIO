@@ -155,7 +155,8 @@ std::ostream& operator<< (std::ostream& out, const Benchmarker &bench)
         out << Strutil::format ("%-16s: %s", bench.m_name,
                                 Strutil::timeintervalformat(avg, 2));
     else
-        out << Strutil::format ("%-16s: %6.1f %s, ", bench.m_name, avg, unitname);
+        out << Strutil::format ("%-16s: %6.1f %s (+/-%4.1f%s), ",
+                                bench.name(), avg, unitname, stddev, unitname);
     if (bench.avg() < 0.25e-9) {
         // Less than 1/4 ns iteration time is probably an error
         out << "unreliable";
@@ -165,12 +166,13 @@ std::ostream& operator<< (std::ostream& out, const Benchmarker &bench)
         out << Strutil::format ("%6.1f M/s",
                                 (1.0f/1.0e6)/bench.avg());
     else
-        out << Strutil::format ("%6.1f Mvals/s, (%.1f Mcalls/s)",
+        out << Strutil::format ("%6.1f Mvals/s, %.1f Mcalls/s",
                                 (bench.work()/1.0e6)/bench.avg(),
                                 (1.0f/1.0e6)/bench.avg());
-    out << Strutil::format (" (%dx%d, sdev=%.1f%s rng=%.1f%%, med=%.1f)",
-                            bench.trials(), bench.iterations(), stddev, unitname,
-                            (range/avg)*100.0, bench.median()*scale);
+    if (bench.verbose() >= 2)
+        out << Strutil::format (" (%dx%d, rng=%.1f%%, med=%.1f)",
+                                bench.trials(), bench.iterations(), unitname,
+                                (range/avg)*100.0, bench.median()*scale);
 #if 0
     if (range > avg/10.0) {
         for (auto v : bench.m_times)
