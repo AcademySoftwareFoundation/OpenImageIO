@@ -46,7 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class RawInput final : public ImageInput {
 public:
-    RawInput () : m_process(true), m_image(NULL) {}
+    RawInput () : m_process(true), m_unpacked(false), m_image(NULL) {}
     virtual ~RawInput() { close(); }
     virtual const char * format_name (void) const { return "raw"; }
     virtual int supports (string_view feature) const {
@@ -62,9 +62,12 @@ public:
 private:
     bool process();
     bool m_process;
+    bool m_unpacked = false;
     LibRaw m_processor;
     libraw_processed_image_t *m_image;
+    std::string m_filename;
 
+    bool do_unpack();
     void read_tiff_metadata (const std::string &filename);
 };
 
@@ -110,19 +113,26 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
     int ret;
 
     // open the image
+    m_filename = name;
     if ( (ret = m_processor.open_file(name.c_str()) ) != LIBRAW_SUCCESS) {
         error ("Could not open file \"%s\", %s", name.c_str(), libraw_strerror(ret));
         return false;
     }
 
-    if ( (ret = m_processor.unpack() ) != LIBRAW_SUCCESS) {
-        error ("Could not unpack \"%s\", %s",name.c_str(), libraw_strerror(ret));
+#if 0
+    // We used to unpack here, but that is needlessly expensive for an app
+    // that is only opening the file to read the metadata. So we now do it
+    // upon the first scanline read.
+
+    // We also no longer call adjust_sizes_info_only(), I think that doesn't
+    // hurt us in any practical sense, but be on the lookout for trouble.
+    if (! do_unpack())
         return false;
-    }
 
     // Forcing the Libraw to adjust sizes based on the capture device orientation
     m_processor.adjust_sizes_info_only();
- 
+#endif
+
     // Set file information
     m_spec = ImageSpec(m_processor.imgdata.sizes.iwidth,
                        m_processor.imgdata.sizes.iheight,
@@ -365,7 +375,25 @@ RawInput::close()
     if (m_image) {
         LibRaw::dcraw_clear_mem(m_image);
         m_image = NULL;
+        m_unpacked = false;
+        m_process = true;
     }
+    return true;
+}
+
+
+
+bool
+RawInput::do_unpack ()
+{
+    if (m_unpacked)
+        return true;
+    int ret;
+    if ( (ret = m_processor.unpack() ) != LIBRAW_SUCCESS) {
+        error ("Could not unpack \"%s\", %s", m_filename, libraw_strerror(ret));
+        return false;
+    }
+    m_unpacked = true;
     return true;
 }
 
@@ -408,6 +436,9 @@ RawInput::read_native_scanline (int y, int z, void *data)
 {
     if (y < 0 || y >= m_spec.height) // out of range scanline
         return false;
+
+    if (! m_unpacked)
+        do_unpack ();
 
     if (! m_process) {
         // The user has selected not to apply any debayering.

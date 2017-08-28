@@ -305,6 +305,10 @@ Fixes, minor enhancements, and performance improvements:
      images (supported in libraw 0.18 or newer). #1626 (1.8.3/1.7.13)
    * Add "raw:user_sat" configuration attribute to the reader.
      #1666 (1.7.15/1.8.4)
+   * The pixels are now decoded (expensive) only when they are read, not
+     when the file is first opened. This makes raw reading much faster for
+     apps that are only interested in the metadata and not the pixel data.
+     #1741 (1.8.5)
 * RLA:
    * Fix RLA reading and writing with certain channel orders and mixded data
      formats. #1499 (1.8.0/1.7.8)
