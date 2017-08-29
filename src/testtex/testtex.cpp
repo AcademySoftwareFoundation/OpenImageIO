@@ -53,6 +53,7 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include "../libtexture/imagecache_pvt.h"
 
 using namespace OIIO;

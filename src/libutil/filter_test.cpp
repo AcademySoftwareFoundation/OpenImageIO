@@ -34,6 +34,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/argparse.h>

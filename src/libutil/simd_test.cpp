@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/fmath.h>
 

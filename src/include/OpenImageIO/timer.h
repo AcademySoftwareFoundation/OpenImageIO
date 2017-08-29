@@ -33,6 +33,8 @@
 /// @brief Simple timer class.
 
 
+#pragma once
+
 #ifndef OPENIMAGEIO_TIMER_H
 #define OPENIMAGEIO_TIMER_H
 
@@ -261,139 +263,11 @@ private:
 
 
 
-/// DoNotOptimize(val) is a helper function for timing benchmarks that fools
-/// the compiler into thinking the the location 'val' is used and will not
-/// optimize it away.  For benchmarks only, do not use in production code!
-/// May not work on all platforms. References:
-/// * Chandler Carruth's CppCon 2015 talk
-/// * Folly https://github.com/facebook/folly/blob/master/folly/Benchmark.h
-/// * Google Benchmark https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h
-
-#if __has_attribute(__optnone__)
-
-// If __optnone__ attribute is available: make a null function with no
-// optimization, that's all we need.
-template <class T>
-inline void __attribute__((__optnone__))
-DoNotOptimize (T const &val) { }
-
-#elif ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
-
-// Major non-MS compilers on x86/x86_64: use asm trick to indicate that
-// the value is needed.
-template <class T>
-inline void
-DoNotOptimize (T const &val) { asm volatile("" : "+rm" (const_cast<T&>(val))); }
-
-#elif _MSC_VER
-
-// Microsoft of course has its own way of turning off optimizations.
-#pragma optimize("", off)
-template <class T> inline void DoNotOptimize (T const &val) { const_cast<T&>(val) = val; }
-#pragma optimize("", on)
-
-#else
-
-// Otherwise, it won't work, just make a stub.
-template <class T> inline void DoNotOptimize (T const &val) { }
-
-#endif
-
-
-
-/// clobber_all_memory() is a helper function for timing benchmarks that
-/// fools the compiler into thinking that potentially any part of memory
-/// has been modified, and thus serves as a barrier where the optimizer
-/// won't assume anything about the state of memory preceding it.
-#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
-
-// Special trick for x86/x86_64 and gcc-like compilers
-inline void clobber_all_memory() {
-    asm volatile ("" : : : "memory");
-}
-
-#else
-
-// No fallback for other CPUs or compilers. Suggestions?
-inline void clobber_all_memory() { }
-
-#endif
-
-
-
-/// Helper template that runs a function (or functor) n times, using a
-/// Timer to benchmark the results, and returning the fastest trial.  If
-/// 'range' is non-NULL, the range (max-min) of the various time trials
-/// will be stored there.
-template<typename FUNC>
-double
-time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
-{
-    double mintime = 1.0e30, maxtime = 0.0;
-    while (ntrials-- > 0) {
-        Timer timer;
-        for (int i = 0; i < nrepeats; ++i) {
-            // Be sure that the repeated calls to func aren't optimzed away:
-            clobber_all_memory();
-            func ();
-        }
-        double t = timer();
-        if (t < mintime)
-            mintime = t;
-        if (t > maxtime)
-            maxtime = t;
-    }
-    if (range)
-        *range = maxtime-mintime;
-    return mintime;
-}
-
-/// Version without repeats.
-template<typename FUNC>
-double time_trial (FUNC func, int ntrials, double *range) {
-    return time_trial (func, ntrials, 1, range);
-}
-
-
-
-// Benchmarking helper function: Time a function with various thread counts.
-// Inputs:
-//     task(int iterations) : The function to run (which understands an
-//                            iteration count or work load).
-//     pretask() : Code to run before the task threads start.
-//     posttask() : Code to run after the task threads complete.
-//     out : Stream to print results (or NULL to not print anything).
-//     maxthreads : Don't do any trials greater than this thread count,
-//                      even if it's in the threadcounts[].
-//     total_iterations : Total amount of work to do. The func() will be
-//                      called with total_iterations/nthreads, so that the
-//                      total work for all threads stays close to constant.
-//     ntrials : The number of runs for each thread count (more will take
-//                      longer, but be more accurate timing). The best case
-//                      run is the one that will be reported.
-//     threadcounts[] : An array_view<int> giving the set of thread counts
-//                      to try.
-// Return value:
-//     A vector<double> containing the best time (of the trials) for each
-//     thread count. This can be discarded.
-OIIO_API std::vector<double>
-timed_thread_wedge (function_view<void(int)> task,
-                    function_view<void()> pretask,
-                    function_view<void()> posttask,
-                    std::ostream *out,
-                    int maxthreads,
-                    int total_iterations, int ntrials,
-                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
-
-// Simplified timed_thread_wedge without pre- and post-tasks, using
-// std::out for output, with a default set of thread counts, and not needing
-// to return the vector of times.
-OIIO_API void
-timed_thread_wedge (function_view<void(int)> task,
-                    int maxthreads, int total_iterations, int ntrials,
-                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
-
-
 OIIO_NAMESPACE_END
+
+
+// DEPRECATED(1.8): for back compatibility with old inclusion of some
+// functions that used to be here but are now in benchmark.h, include it.
+#include <OpenImageIO/benchmark.h>
 
 #endif // OPENIMAGEIO_TIMER_H

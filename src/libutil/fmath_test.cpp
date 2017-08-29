@@ -39,6 +39,7 @@
 #include <OpenImageIO/unittest.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/argparse.h>
+#include <OpenImageIO/benchmark.h>
 
 using namespace OIIO;
 

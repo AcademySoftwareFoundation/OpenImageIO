@@ -34,6 +34,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/unittest.h>
 
 #include <iostream>
@@ -161,5 +162,26 @@ main (int argc, char **argv)
     OIIO_CHECK_EQUAL_THRESH (all(),       0.6, eps);
     std::cout << "Checkpoint2: All " << all() << " selective " << selective() << "\n";
 
+
+    // Test Benchmarker
+    Benchmarker bench;
+    bench ("string ctr", [&](){
+        std::string x ("foo");
+    });
+    bench ("usleep(1000)", [&](){
+        Sysutil::usleep(1000);
+    });
+
+    float val = 0.5;  clobber(val);
+    simd::float4 val4 = val;  clobber(val4);
+
+    bench ("add", [&](){ DoNotOptimize(val+1.5); });
+    bench ("cos", [&](){ DoNotOptimize(std::cos(val)); });
+    bench ("acos", [&](){ DoNotOptimize(std::acos(val)); });
+    bench ("fast_acos", [&](){ DoNotOptimize(OIIO::fast_acos(val)); });
+
+    bench ("sqrt", [&](){ DoNotOptimize(std::sqrt(val)); });
+    bench.work (4);
+    bench ("simd sqrt", [&](){ DoNotOptimize(sqrt(val4)); });
     return unit_test_failures;
 }
