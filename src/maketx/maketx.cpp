@@ -70,9 +70,6 @@ static bool envlatlmode = false;
 static bool envcubemode = false;
 static bool lightprobemode = false;
 
-static ColorConfig colorconfig;
-
-
 
 
 static std::string
@@ -115,6 +112,7 @@ colorconvert_help_string ()
     "to the proper bit depth using the -d option. ";
     
     s += " (choices: ";
+    ColorConfig colorconfig;
     if (colorconfig.error() || colorconfig.getNumColorSpaces()==0) {
         s += "NONE";
     } else {
