@@ -338,6 +338,12 @@ static std::locale& loc ()
     // inside the function that is allocated the first time it's needed. It
     // will "leak" in the sense that this one locale is never deleted, but
     // so what?
+#if OIIO_MSVS_BEFORE_2015
+    // MSVS prior to 2015 could not be trusted to make in-function static
+    // initialization thread-safe, as required by C++11.
+    static spin_mutex mutex;
+    spin_lock lock (mutex);
+#endif
     static std::locale *loc = new std::locale (std::locale::classic());
     return *loc;
 }
