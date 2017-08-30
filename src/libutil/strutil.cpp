@@ -330,15 +330,24 @@ Strutil::wordwrap (string_view src, int columns, int prefix)
 
 
 
-namespace {
-static std::locale loc = std::locale::classic();
+
+static std::locale& loc ()
+{
+    // Rather than have a file-level static locale which could suffer from
+    // the static initialization order fiasco, make it a static pointer
+    // inside the function that is allocated the first time it's needed. It
+    // will "leak" in the sense that this one locale is never deleted, but
+    // so what?
+    static std::locale *loc = new std::locale (std::locale::classic());
+    return *loc;
 }
+
 
 
 bool
 Strutil::iequals (string_view a, string_view b)
 {
-    return boost::algorithm::iequals (a, b, loc);
+    return boost::algorithm::iequals (a, b, loc());
 }
 
 
@@ -352,7 +361,7 @@ Strutil::starts_with (string_view a, string_view b)
 bool
 Strutil::istarts_with (string_view a, string_view b)
 {
-    return boost::algorithm::istarts_with (a, b, loc);
+    return boost::algorithm::istarts_with (a, b, loc());
 }
 
 
@@ -366,7 +375,7 @@ Strutil::ends_with (string_view a, string_view b)
 bool
 Strutil::iends_with (string_view a, string_view b)
 {
-    return boost::algorithm::iends_with (a, b, loc);
+    return boost::algorithm::iends_with (a, b, loc());
 }
 
 
@@ -380,21 +389,21 @@ Strutil::contains (string_view a, string_view b)
 bool
 Strutil::icontains (string_view a, string_view b)
 {
-    return boost::algorithm::icontains (a, b, loc);
+    return boost::algorithm::icontains (a, b, loc());
 }
 
 
 void
 Strutil::to_lower (std::string &a)
 {
-    boost::algorithm::to_lower (a, loc);
+    boost::algorithm::to_lower (a, loc());
 }
 
 
 void
 Strutil::to_upper (std::string &a)
 {
-    boost::algorithm::to_upper (a, loc);
+    boost::algorithm::to_upper (a, loc());
 }
 
 
