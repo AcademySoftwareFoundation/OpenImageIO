@@ -1,11 +1,12 @@
 Release 1.8 (in progress) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
- * **C++11** (gcc 4.8.2 - gcc 7, clang 3.3 - 5.0, or MSVS 2013 - 2017)
+ * **C++11** (should also build with C++14 and C++17)
+ * **Compilers**: gcc 4.8.2 - gcc 7, clang 3.3 - 5.0, or MSVS 2013 - 2017
  * **Boost >= 1.53** (tested up through 1.65)
- * **CMake >= 3.0** (tested up through 3.9)
+ * **CMake >= 3.2.2** (tested up through 3.9)
+ * **OpenEXR >= 2.0** (recommended: 2.2)
  * (optional) **Qt >= 5.6**
- * (optional) **Python >= 2.7**
 
 Major new features and improvements:
 * New oiiotool features:

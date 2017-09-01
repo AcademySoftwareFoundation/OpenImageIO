@@ -60,17 +60,14 @@ find_package (PNG REQUIRED)
 ###########################################################################
 # IlmBase & OpenEXR setup
 
-find_package (OpenEXR REQUIRED)
+find_package (OpenEXR 2.0 REQUIRED)
 #OpenEXR 2.2 still has problems with importing ImathInt64.h unqualified
 #thus need for ilmbase/OpenEXR
 include_directories ("${OPENEXR_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}/OpenEXR")
 if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
-    # OpenEXR 1.x had weird #include dirctives, this is also necessary:
-    include_directories ("${OPENEXR_INCLUDE_DIR}/OpenEXR")
-else ()
-    add_definitions (-DUSE_OPENEXR_VERSION2=1)
+    message (FATAL_ERROR "OpenEXR/Ilmbase is too old")
 endif ()
 if (NOT OpenEXR_FIND_QUIETLY)
     message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
