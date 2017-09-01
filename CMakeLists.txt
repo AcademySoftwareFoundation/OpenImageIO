@@ -51,6 +51,8 @@ if (CMAKE_USE_FOLDERS)
     set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 endif ()
 
+include (GNUInstallDirs)
+
 set (CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
      "${PROJECT_SOURCE_DIR}/src/cmake")
@@ -193,7 +195,9 @@ if (USE_PYTHON3 AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 add_subdirectory (src/include)
-add_subdirectory (src/doc)
+if (INSTALL_DOCS)
+    add_subdirectory (src/doc)
+endif ()
 add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
 

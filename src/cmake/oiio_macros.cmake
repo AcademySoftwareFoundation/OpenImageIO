@@ -7,9 +7,9 @@
 #
 macro (oiio_install_targets)
     install (TARGETS ${ARGN}
-             RUNTIME DESTINATION "${BIN_INSTALL_DIR}" COMPONENT user
-             LIBRARY DESTINATION "${LIB_INSTALL_DIR}" COMPONENT user
-             ARCHIVE DESTINATION "${LIB_INSTALL_DIR}" COMPONENT developer)
+             RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
+             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 endmacro ()
 
 # Macro to add a build target for an IO plugin.

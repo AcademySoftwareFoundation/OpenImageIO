@@ -24,5 +24,6 @@ endif ()
 configure_file(OpenImageIO/oiioversion.h.in "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h" @ONLY)
 list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h")
 
-install (FILES ${public_headers} DESTINATION ${INCLUDE_INSTALL_DIR}
+install (FILES ${public_headers}
+         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO
          COMPONENT developer)
