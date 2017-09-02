@@ -77,6 +77,8 @@ ifeq ($(SP_OS), rhel7)
         MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     endif
     export CCACHE_CPP2 ?= 1
+    # Override lib64 and use SPI convention of lib
+    MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${working_dir}/dist/${platform}${variant}/lib"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
     BOOSTSPSUFFIX ?= sp
@@ -216,9 +218,6 @@ else ifeq ($(SP_OS), lion)
 ## Generic OSX machines (including LG's laptop)
 else ifeq (${platform}, macosx)
     USE_SIMD ?= sse4.2
-    MY_CMAKE_FLAGS += \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
-    # don't need this? -DBUILD_WITH_INSTALL_RPATH=1
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.

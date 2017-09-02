@@ -50,6 +50,8 @@ ifeq ($(SP_OS), rhel7)
         MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     endif
     export CCACHE_CPP2 ?= 1
+    # Override lib64 and use SPI convention of lib
+    MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${working_dir}/dist/${platform}${variant}/lib"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
@@ -131,10 +133,6 @@ else ifeq ($(SP_OS), lion)
     FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
     # CMAKE_CXX_COMPILER:
     #   otherwise g++ is used and SPI standardized on clang.
-    # CMAKE_INSTALL_NAME_DIR:
-    #   without libraries and applications linking against this
-    #   library will not be able to find it at run time; prepends
-    #   "@rpath/" to the internal ID
     # OVERRIDE_SHARED_LIBRARY_SUFFIX:
     #   Set to .so so that shared libraries end in .so to be consistent
     #   with Linux SpComp2 shared libraries
@@ -153,8 +151,6 @@ else ifeq ($(SP_OS), lion)
       -DPYTHON_INCLUDE_DIR=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Headers \
       -DPYTHON_LIBRARIES=${MACPORTS_PREFIX}/Library/Frameworks/Python.framework/Versions/2.7/Python \
       -DZLIB_ROOT=${MACPORTS_PREFIX}
-    MY_CMAKE_FLAGS += \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${SP_OS}${variant}/lib"
     ifeq (${SPCOMP2_USE_BOOSTVERS}, 1)
 	BOOSTVERS_UNDERSCORE = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
 	MY_CMAKE_FLAGS += \
@@ -169,9 +165,6 @@ else ifeq ($(SP_OS), lion)
 ## Generic OSX machines (including LG's laptop)
 else ifeq (${platform}, macosx)
     USE_SIMD ?= sse4.2
-    MY_CMAKE_FLAGS += \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
-    # don't need this? -DBUILD_WITH_INSTALL_RPATH=1
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
