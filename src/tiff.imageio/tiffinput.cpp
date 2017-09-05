@@ -267,7 +267,7 @@ private:
     void get_matrix_attribute (string_view name, int tag) {
         float *f = NULL;
         if (safe_tiffgetfield (name, tag, &f) && f)
-            m_spec.attribute (name, TypeDesc::TypeMatrix, f);
+            m_spec.attribute (name, TypeMatrix, f);
     }
 
     // Get a float tiff tag field and put it into extra_params

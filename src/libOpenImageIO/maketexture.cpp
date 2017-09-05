@@ -246,7 +246,7 @@ resize_block_ (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode)
     float xscale = 1.0f / (float)dstspec.full_width;
     float yscale = 1.0f / (float)dstspec.full_height;
     int nchannels = dst.nchannels();
-    ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+    ASSERT (dst.spec().format == TypeFloat);
     ImageBuf::Iterator<float> d (dst, roi);
     for (int y = y0;  y < y1;  ++y) {
         float t = (y+0.5f)*yscale + yoffset;
@@ -348,7 +348,7 @@ resize_block (ImageBuf &dst, const ImageBuf &src, ROI roi, bool envlatlmode,
         OIIO_DISPATCH_TYPES (ok, "resize_block_2pass", resize_block_2pass,
                              srcspec.format, dst, src, roi, allow_shift);
     } else {
-        ASSERT (dst.spec().format == TypeDesc::TypeFloat);
+        ASSERT (dst.spec().format == TypeFloat);
         OIIO_DISPATCH_TYPES (ok, "resize_block", resize_block_, srcspec.format,
                              dst, src, roi, envlatlmode);
     }

@@ -710,12 +710,12 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     if (m_configspec)  // Pass configuration options to cache
         m_imagecache->add_file (m_name, NULL, m_configspec.get());
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
-                                  TypeDesc::TypeInt, &m_nsubimages);
+                                  TypeInt, &m_nsubimages);
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
-                                  TypeDesc::TypeInt, &m_nmiplevels);
+                                  TypeInt, &m_nmiplevels);
     const char *fmt = NULL;
     m_imagecache->get_image_info (m_name, subimage, miplevel,
-                                  s_fileformat, TypeDesc::TypeString, &fmt);
+                                  s_fileformat, TypeString, &fmt);
     m_fileformat = ustring(fmt);
     m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
     m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true);
@@ -734,7 +734,7 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     int peltype = TypeDesc::UNKNOWN;
     m_imagecache->get_image_info (m_name, subimage, miplevel,
                                   ustring("cachedpixeltype"),
-                                  TypeDesc::TypeInt, &peltype);
+                                  TypeInt, &peltype);
     if (peltype != TypeDesc::UNKNOWN) {
         m_spec.format = (TypeDesc::BASETYPE)peltype;
         m_spec.channelformats.clear();
@@ -824,7 +824,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
     int peltype = TypeDesc::UNKNOWN;
     m_imagecache->get_image_info (m_name, subimage, miplevel,
                                   ustring("cachedpixeltype"),
-                                  TypeDesc::TypeInt, &peltype);
+                                  TypeInt, &peltype);
     m_cachedpixeltype = TypeDesc ((TypeDesc::BASETYPE)peltype);
     if (! m_localpixels && ! force && ! use_channel_subset &&
         (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {

@@ -305,7 +305,7 @@ test_gettextureinfo (ustring filename)
         std::cout << " " << avg[0] << ' ' << avg[1] << ' '
                   << avg[2] << ' ' << avg[3] << "\n";
     ok = texsys->get_texture_info (filename, 0, ustring("averagealpha"),
-                                   TypeDesc::TypeFloat, avg);
+                                   TypeFloat, avg);
     std::cout << "Result of get_texture_info averagealpha = " << (ok?"yes":"no\n");
     if (ok)
         std::cout << " " << avg[0] << "\n";
@@ -1363,7 +1363,7 @@ main (int argc, const char *argv[])
     if (cachesize >= 0)
         texsys->attribute ("max_memory_MB", cachesize);
     else
-        texsys->getattribute ("max_memory_MB", TypeDesc::TypeFloat, &cachesize);
+        texsys->getattribute ("max_memory_MB", TypeFloat, &cachesize);
     if (maxfiles >= 0)
         texsys->attribute ("max_open_files", maxfiles);
     if (searchpath.length())

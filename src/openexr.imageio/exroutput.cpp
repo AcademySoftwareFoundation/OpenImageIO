@@ -802,26 +802,20 @@ struct ExrMeta {
         : oiioname(oiioname), exrname(exrname), exrtype(exrtype) {}
 };
 
-// Make our own type here because TypeDesc::TypeMatrix and friends may
-// not have been constructed yet. Initialization order fiasco, ick!
-static TypeDesc TypeMatrix (TypeDesc::FLOAT,TypeDesc::MATRIX44,0);
-static TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
-static TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-
 static ExrMeta exr_meta_translation[] = {
     // Translate OIIO standard metadata names to OpenEXR standard names
     ExrMeta ("worldtocamera", "worldToCamera", TypeMatrix),
     ExrMeta ("worldtoscreen", "worldToNDC", TypeMatrix),
-    ExrMeta ("DateTime", "capDate", TypeDesc::STRING),
-    ExrMeta ("ImageDescription", "comments", TypeDesc::STRING),
-    ExrMeta ("description", "comments", TypeDesc::STRING),
-    ExrMeta ("Copyright", "owner", TypeDesc::STRING),
-    ExrMeta ("PixelAspectRatio", "pixelAspectRatio", TypeDesc::FLOAT),
-    ExrMeta ("XResolution", "xDensity", TypeDesc::FLOAT),
-    ExrMeta ("ExposureTime", "expTime", TypeDesc::FLOAT),
-    ExrMeta ("FNumber", "aperture", TypeDesc::FLOAT),
-    ExrMeta ("oiio:subimagename", "name", TypeDesc::STRING),
-    ExrMeta ("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeDesc::FLOAT),
+    ExrMeta ("DateTime", "capDate", TypeString),
+    ExrMeta ("ImageDescription", "comments", TypeString),
+    ExrMeta ("description", "comments", TypeString),
+    ExrMeta ("Copyright", "owner", TypeString),
+    ExrMeta ("PixelAspectRatio", "pixelAspectRatio", TypeFloat),
+    ExrMeta ("XResolution", "xDensity", TypeFloat),
+    ExrMeta ("ExposureTime", "expTime", TypeFloat),
+    ExrMeta ("FNumber", "aperture", TypeFloat),
+    ExrMeta ("oiio:subimagename", "name", TypeString),
+    ExrMeta ("openexr:dwaCompressionLevel", "dwaCompressionLevel", TypeFloat),
     ExrMeta ("smpte:TimeCode", "timeCode", TypeTimeCode),
     ExrMeta ("smpte:KeyCode", "keyCode", TypeKeyCode),
     // Empty exrname means that we silently drop this metadata.
@@ -848,7 +842,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     if (name.empty())
         return false;
     std::string xname = name;
-    TypeDesc exrtype = TypeDesc::UNKNOWN;
+    TypeDesc exrtype = TypeUnknown;
 
     for (int i = 0; exr_meta_translation[i].oiioname; ++i) {
         const ExrMeta &e(exr_meta_translation[i]);
@@ -862,7 +856,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     }
 
     // Special cases
-    if (Strutil::iequals(xname, "Compression") && type == TypeDesc::STRING) {
+    if (Strutil::iequals(xname, "Compression") && type == TypeString) {
         const char *str = *(char **)data;
         header.compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {
@@ -899,7 +893,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
-    if (Strutil::iequals (xname, "openexr:lineOrder") && type == TypeDesc::STRING) {
+    if (Strutil::iequals (xname, "openexr:lineOrder") && type == TypeString) {
         const char *str = *(char **)data;
         header.lineOrder() = Imf::INCREASING_Y;   // Default
         if (str) {
@@ -951,18 +945,18 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // OpenEXR expects, and we can make a good guess about how to translate.
     float tmpfloat;
     int tmpint;
-    if (exrtype == TypeDesc::TypeFloat && type == TypeDesc::TypeInt) {
+    if (exrtype == TypeFloat && type == TypeInt) {
         tmpfloat = float (*(const int *)data);
         data = &tmpfloat;
-        type = TypeDesc::TypeFloat;
-    } else if (exrtype == TypeDesc::TypeInt && type == TypeDesc::TypeFloat) {
+        type = TypeFloat;
+    } else if (exrtype == TypeInt && type == TypeFloat) {
         tmpfloat = int (*(const float *)data);
         data = &tmpint;
-        type = TypeDesc::TypeInt;
-    } else if (exrtype == TypeDesc::TypeMatrix &&
+        type = TypeInt;
+    } else if (exrtype == TypeMatrix &&
                type == TypeDesc(TypeDesc::FLOAT, 16)) {
         // Automatically translate float[16] to Matrix when expected
-        type = TypeDesc::TypeMatrix;
+        type = TypeMatrix;
     }
 
     // Now if we still don't match a specific type OpenEXR is looking for,
@@ -999,7 +993,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 header.insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
                 return true;
             }
-            if (type == TypeDesc::TypeString) {
+            if (type == TypeString) {
                 header.insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
                 return true;
             }
@@ -1087,12 +1081,12 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // Arrays
     else { 
         // TimeCode
-        if (type == TypeDesc::TypeTimeCode ) {
+        if (type == TypeTimeCode ) {
             header.insert(xname.c_str(), Imf::TimeCodeAttribute (*(Imf::TimeCode*)data));
             return true;
         }
         // KeyCode
-        else if (type == TypeDesc::TypeKeyCode ) {
+        else if (type == TypeKeyCode ) {
             header.insert(xname.c_str(), Imf::KeyCodeAttribute (*(Imf::KeyCode*)data));
             return true;
         }

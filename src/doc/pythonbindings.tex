@@ -86,24 +86,28 @@ Construct a {\cf TypeDesc} object.
 \end{code}
 \apiend
 
-\apiitem{TypeDesc.TypeFloat() \\
-TypeDesc.TypeInt() \\
-TypeDesc.TypeString() \\
-TypeDesc.TypeHalf() \\
-TypeDesc.TypeColor() \\
-TypeDesc.TypePoint() \\
-TypeDesc.TypeVector() \\
-TypeDesc.TypeNormal() \\
-TypeDesc.TypeMatrix() \\
-TypeDesc.TypeMatrix33() \\
-TypeDesc.TypeTimeCode() \\
-TypeDesc.TypeKeyCode() \\
-TypeDesc.TypeFloat4()}
-Pre-constructed \TypeDesc objects for some common types.
+\apiitem{TypeFloat \\
+TypeInt \\
+TypeUInt \\
+TypeString \\
+TypeHalf \\
+TypeColor \\
+TypePoint \\
+TypeVector \\
+TypeNormal \\
+TypeMatrix \\
+TypeMatrix33 \\
+TypeTimeCode \\
+TypeKeyCode \\
+TypeFloat4 \\
+TypeRational \\
+}
+Pre-constructed \TypeDesc objects for some common types, available in the
+outer OpenImageIO scope.
 
 \noindent Example:
 \begin{code}
-    t = TypeDesc.TypeFloat()
+    t = TypeFloat
 \end{code}
 \apiend
 

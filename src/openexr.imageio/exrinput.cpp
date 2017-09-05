@@ -565,13 +565,13 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             spec.attribute (oname, fattr->value());
         else if (type == "m33f" &&
             (m33fattr = header->findTypedAttribute<Imf::M33fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeMatrix33, &(m33fattr->value()));
+            spec.attribute (oname, TypeMatrix33, &(m33fattr->value()));
         else if (type == "m44f" &&
             (m44fattr = header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeMatrix44, &(m44fattr->value()));
+            spec.attribute (oname, TypeMatrix44, &(m44fattr->value()));
         else if (type == "v3f" &&
                  (v3fattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
-            spec.attribute (oname, TypeDesc::TypeVector, &(v3fattr->value()));
+            spec.attribute (oname, TypeVector, &(v3fattr->value()));
         else if (type == "v3i" &&
                  (v3iattr = header->findTypedAttribute<Imf::V3iAttribute> (name))) {
             TypeDesc v3 (TypeDesc::INT, TypeDesc::VEC3, TypeDesc::VECTOR);
@@ -640,7 +640,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             // Elevate "timeCode" to smpte:TimeCode
             if (oname == "timeCode")
                 oname = "smpte:TimeCode";
-            spec.attribute(oname, TypeDesc::TypeTimeCode, timecode);
+            spec.attribute(oname, TypeTimeCode, timecode);
         }
         else if (type == "keycode" &&
                  (kcattr = header->findTypedAttribute<Imf::KeyCodeAttribute> (name))) {
@@ -657,7 +657,7 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
             // Elevate "keyCode" to smpte:KeyCode
             if (oname == "keyCode")
                 oname = "smpte:KeyCode";
-            spec.attribute(oname, TypeDesc::TypeKeyCode, keycode);
+            spec.attribute(oname, TypeKeyCode, keycode);
         } else if (type == "chromaticities" &&
                    (crattr = header->findTypedAttribute<Imf::ChromaticitiesAttribute> (name))) {
             const Imf::Chromaticities *chroma = &crattr->value();
@@ -674,13 +674,13 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
                 r[0] = n;
                 r[1] = static_cast<int>(d);
                 OIIO::debug ("adding rational with numerator %d and denominator %u (easy case)", n, d);
-                spec.attribute (oname, TypeDesc::TypeRational, r);    
+                spec.attribute (oname, TypeRational, r);    
             } else if (int f = static_cast<int>(boost::math::gcd<long int>(rational[0], rational[1])) > 1) {
                 int r[2];
                 r[0] = n / f;
                 r[1] = static_cast<int>(d / f);
                 OIIO::debug ("adding rational with numerator %d and denominator %u (hard case)", n, d);
-               spec.attribute (oname, TypeDesc::TypeRational, r);
+               spec.attribute (oname, TypeRational, r);
             } else {
                 // TODO: find a way to allow the client to accept "close" rational values
                 OIIO::debug ("Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly", oname, n, d);

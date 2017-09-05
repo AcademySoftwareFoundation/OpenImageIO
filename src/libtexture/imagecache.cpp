@@ -530,7 +530,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             (tempspec.width > 1 || tempspec.height > 1 || tempspec.depth > 1))
             si.unmipped = true;
         if (si.unmipped && imagecache().automip() &&
-            ! tempspec.find_attribute ("textureformat", TypeDesc::TypeString)) {
+            ! tempspec.find_attribute ("textureformat", TypeString)) {
             int w = tempspec.full_width;
             int h = tempspec.full_height;
             int d = tempspec.full_depth;
@@ -666,11 +666,11 @@ ImageCacheFile::init_from_spec ()
 #if USE_SHADOW_MATRICES
     Imath::M44f c2w;
     m_imagecache.get_commontoworld (c2w);
-    if ((p = spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix))) {
+    if ((p = spec.find_attribute ("worldtocamera", TypeMatrix))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mlocal = c2w * (*m);
     }
-    if ((p = spec.find_attribute ("worldtoscreen", TypeDesc::TypeMatrix))) {
+    if ((p = spec.find_attribute ("worldtoscreen", TypeMatrix))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mproj = c2w * (*m);
     }
@@ -1085,7 +1085,7 @@ ImageCacheFile::get_average_color (float *avg, int subimage,
             bool ok = m_imagecache.get_pixels (this, NULL, subimage, nlevels-1,
                              spec.x, spec.x+1, spec.y, spec.y+1,
                              spec.z, spec.z+1, 0, spec.nchannels,
-                             TypeDesc::TypeFloat, &si.average_color[0]);
+                             TypeFloat, &si.average_color[0]);
             si.has_average_color = ok;
         }
     }
@@ -2153,12 +2153,12 @@ ImageCacheImpl::getattribute (string_view name, TypeDesc type,
         *(ustring *)val = m_plugin_searchpath;
         return true;
     }
-    if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
+    if (name == "worldtocommon" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
         return true;
     }
-    if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
+    if (name == "commontoworld" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
         return true;
@@ -2468,7 +2468,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
     }
 
     file = verify_file (file, thread_info, true);
-    if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_exists && datatype == TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
         // for the file to be nonexistant or broken!
@@ -2502,7 +2502,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
     }
     // No other queries below are expected to work with broken
 
-    if (dataname == s_UDIM && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_UDIM && datatype == TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
         // for the file to be nonexistant or broken!
@@ -2532,7 +2532,7 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
     if (file->is_udim()) {
         return false;     // UDIM-like files fail all other queries
     }
-    if (dataname == s_subimages && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_subimages && datatype == TypeInt) {
         *(int *)data = file->subimages();
         return true;
     }
@@ -2566,38 +2566,38 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
         d[2] = spec.depth;
         return true;
     }
-    if (dataname == s_texturetype && datatype == TypeDesc::TypeString) {
+    if (dataname == s_texturetype && datatype == TypeString) {
         ustring s (texture_type_name (file->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == s_textureformat && datatype == TypeDesc::TypeString) {
+    if (dataname == s_textureformat && datatype == TypeString) {
         ustring s (texture_format_name (file->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == s_fileformat && datatype == TypeDesc::TypeString) {
+    if (dataname == s_fileformat && datatype == TypeString) {
         *(const char **)data = file->fileformat().c_str();
         return true;
     }
-    if (dataname == s_channels && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_channels && datatype == TypeInt) {
         *(int *)data = spec.nchannels;
         return true;
     }
-    if (dataname == s_channels && datatype == TypeDesc::TypeFloat) {
+    if (dataname == s_channels && datatype == TypeFloat) {
         *(float *)data = spec.nchannels;
         return true;
     }
-    if (dataname == s_format && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_format && datatype == TypeInt) {
         *(int *)data = (int) spec.format.basetype;
         return true;
     }
     if ((dataname == s_cachedformat || dataname == s_cachedpixeltype) &&
-            datatype == TypeDesc::TypeInt) {
+            datatype == TypeInt) {
         *(int *)data = (int) file->datatype(subimage).basetype;
         return true;
     }
-    if (dataname == s_miplevels && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_miplevels && datatype == TypeInt) {
         *(int *)data = file->miplevels(subimage);
         return true;
     }

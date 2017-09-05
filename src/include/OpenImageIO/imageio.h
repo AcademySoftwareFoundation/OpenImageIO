@@ -1288,14 +1288,14 @@ OIIO_API std::string geterror ();
 OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
 // Shortcuts for common types
 inline bool attribute (string_view name, int val) {
-    return attribute (name, TypeDesc::TypeInt, &val);
+    return attribute (name, TypeInt, &val);
 }
 inline bool attribute (string_view name, float val) {
-    return attribute (name, TypeDesc::TypeFloat, &val);
+    return attribute (name, TypeFloat, &val);
 }
 inline bool attribute (string_view name, string_view val) {
     const char *s = val.c_str();
-    return attribute (name, TypeDesc::TypeString, &s);
+    return attribute (name, TypeString, &s);
 }
 
 /// Get the named global attribute of OpenImageIO, store it in *val.
@@ -1339,33 +1339,33 @@ inline bool attribute (string_view name, string_view val) {
 OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
 // Shortcuts for common types
 inline bool getattribute (string_view name, int &val) {
-    return getattribute (name, TypeDesc::TypeInt, &val);
+    return getattribute (name, TypeInt, &val);
 }
 inline bool getattribute (string_view name, float &val) {
-    return getattribute (name, TypeDesc::TypeFloat, &val);
+    return getattribute (name, TypeFloat, &val);
 }
 inline bool getattribute (string_view name, char **val) {
-    return getattribute (name, TypeDesc::TypeString, val);
+    return getattribute (name, TypeString, val);
 }
 inline bool getattribute (string_view name, std::string &val) {
     ustring s;
-    bool ok = getattribute (name, TypeDesc::TypeString, &s);
+    bool ok = getattribute (name, TypeString, &s);
     if (ok)
         val = s.string();
     return ok;
 }
 inline int get_int_attribute (string_view name, int defaultval=0) {
     int val;
-    return getattribute (name, TypeDesc::TypeInt, &val) ? val : defaultval;
+    return getattribute (name, TypeInt, &val) ? val : defaultval;
 }
 inline float get_float_attribute (string_view name, float defaultval=0) {
     float val;
-    return getattribute (name, TypeDesc::TypeFloat, &val) ? val : defaultval;
+    return getattribute (name, TypeFloat, &val) ? val : defaultval;
 }
 inline string_view get_string_attribute (string_view name,
                                  string_view defaultval = string_view()) {
     ustring val;
-    return getattribute (name, TypeDesc::TypeString, &val) ? string_view(val) : defaultval;
+    return getattribute (name, TypeString, &val) ? string_view(val) : defaultval;
 }
 
 

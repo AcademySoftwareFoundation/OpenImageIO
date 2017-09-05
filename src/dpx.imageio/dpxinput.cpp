@@ -478,13 +478,13 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
         int kc[7];
         get_keycode_values (kc);
-        m_spec.attribute("smpte:KeyCode", TypeDesc::TypeKeyCode, kc);
+        m_spec.attribute("smpte:KeyCode", TypeKeyCode, kc);
     }
 
     if (m_dpx.header.timeCode != 0xFFFFFFFF) {
 
         unsigned int timecode[2] = {m_dpx.header.timeCode, m_dpx.header.userBits};
-        m_spec.attribute("smpte:TimeCode", TypeDesc::TypeTimeCode, timecode);
+        m_spec.attribute("smpte:TimeCode", TypeTimeCode, timecode);
 
         // This attribute is dpx specific and is left in for backwards compatability.
         // Users should utilise the new smpte:TimeCode attribute instead

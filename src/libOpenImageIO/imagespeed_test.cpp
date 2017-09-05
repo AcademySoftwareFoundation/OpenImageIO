@@ -358,7 +358,7 @@ test_write (const std::string &explanation,
 static float
 time_loop_pixels_1D (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.localpixels() && ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.localpixels() && ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     int nchannels = spec.nchannels;
@@ -380,7 +380,7 @@ time_loop_pixels_1D (ImageBuf &ib, int iters)
 static float
 time_loop_pixels_3D (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.localpixels() && ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.localpixels() && ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     int nchannels = spec.nchannels;
@@ -406,7 +406,7 @@ time_loop_pixels_3D (ImageBuf &ib, int iters)
 static float
 time_loop_pixels_3D_getchannel (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum = 0.0f;
@@ -428,7 +428,7 @@ time_loop_pixels_3D_getchannel (ImageBuf &ib, int iters)
 static float
 time_iterate_pixels (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum = 0.0f;
@@ -446,7 +446,7 @@ time_iterate_pixels (ImageBuf &ib, int iters)
 static float
 time_iterate_pixels_slave_pos (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum = 0.0f;
@@ -466,7 +466,7 @@ time_iterate_pixels_slave_pos (ImageBuf &ib, int iters)
 static float
 time_iterate_pixels_slave_incr (ImageBuf &ib, int iters)
 {
-    ASSERT (ib.pixeltype() == TypeDesc::TypeFloat);
+    ASSERT (ib.pixeltype() == TypeFloat);
     const ImageSpec &spec (ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum = 0.0f;
@@ -493,7 +493,7 @@ test_pixel_iteration (const std::string &explanation,
     imagecache->attribute ("autotile", autotile);
     imagecache->attribute ("autoscanline", 1);
     ImageBuf ib (input_filename[0].string(), imagecache);
-    ib.read (0, 0, preload, TypeDesc::TypeFloat);
+    ib.read (0, 0, preload, TypeFloat);
     double t = time_trial (std::bind(func,std::ref(ib),iters), ntrials);
     double rate = double(ib.spec().image_pixels()) / (t/iters);
     std::cout << "  " << explanation << ": "

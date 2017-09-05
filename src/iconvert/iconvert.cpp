@@ -368,7 +368,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         int nsubimages = 0;
         ustring ufilename (in_filename);
         imagecache->get_image_info (ufilename, 0, 0, ustring("subimages"),
-                                    TypeDesc::TypeInt, &nsubimages);
+                                    TypeInt, &nsubimages);
         if (nsubimages > 1) {
             subimagespecs.resize (nsubimages);
             for (int i = 0;  i < nsubimages;  ++i) {

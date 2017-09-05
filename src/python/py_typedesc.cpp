@@ -161,21 +161,41 @@ void declare_typedesc() {
         .def(str(self))    // __str__
 
         // Static members of pre-constructed types
-        .def_readonly("TypeFloat",    &TypeDesc::TypeFloat)
-        .def_readonly("TypeColor",    &TypeDesc::TypeColor)
-        .def_readonly("TypeString",   &TypeDesc::TypeString)
-        .def_readonly("TypeInt",      &TypeDesc::TypeInt)
-        .def_readonly("TypeHalf",     &TypeDesc::TypeHalf)
-        .def_readonly("TypePoint",    &TypeDesc::TypePoint)
-        .def_readonly("TypeVector",   &TypeDesc::TypeVector)
-        .def_readonly("TypeNormal",   &TypeDesc::TypeNormal)
-        .def_readonly("TypeMatrix",   &TypeDesc::TypeMatrix)
-        .def_readonly("TypeMatrix33", &TypeDesc::TypeMatrix33)
-        .def_readonly("TypeMatrix44", &TypeDesc::TypeMatrix44)
-        .def_readonly("TypeTimeCode", &TypeDesc::TypeTimeCode)
-        .def_readonly("TypeKeyCode",  &TypeDesc::TypeKeyCode)
-        .def_readonly("TypeFloat4",   &TypeDesc::TypeFloat4)
+        // DEPRECATED(1.8)
+        .def_readonly("TypeFloat",    &TypeFloat)
+        .def_readonly("TypeColor",    &TypeColor)
+        .def_readonly("TypeString",   &TypeString)
+        .def_readonly("TypeInt",      &TypeInt)
+        .def_readonly("TypeHalf",     &TypeHalf)
+        .def_readonly("TypePoint",    &TypePoint)
+        .def_readonly("TypeVector",   &TypeVector)
+        .def_readonly("TypeNormal",   &TypeNormal)
+        .def_readonly("TypeMatrix",   &TypeMatrix)
+        .def_readonly("TypeMatrix33", &TypeMatrix33)
+        .def_readonly("TypeMatrix44", &TypeMatrix44)
+        .def_readonly("TypeTimeCode", &TypeTimeCode)
+        .def_readonly("TypeKeyCode",  &TypeKeyCode)
+        .def_readonly("TypeFloat4",   &TypeFloat4)
     ;
+
+    // Global constants of common TypeDescs
+    scope().attr("TypeUnknown")  = TypeUnknown;
+    scope().attr("TypeFloat")    = TypeFloat;
+    scope().attr("TypeColor")    = TypeColor;
+    scope().attr("TypePoint")    = TypePoint;
+    scope().attr("TypeVector")   = TypeVector;
+    scope().attr("TypeNormal")   = TypeNormal;
+    scope().attr("TypeString")   = TypeString;
+    scope().attr("TypeInt")      = TypeInt;
+    scope().attr("TypeUInt")     = TypeUInt;
+    scope().attr("TypeHalf")     = TypeHalf;
+    scope().attr("TypeMatrix")   = TypeMatrix;
+    scope().attr("TypeMatrix33") = TypeMatrix33;
+    scope().attr("TypeMatrix44") = TypeMatrix44;
+    scope().attr("TypeTimeCode") = TypeTimeCode;
+    scope().attr("TypeKeyCode")  = TypeKeyCode;
+    scope().attr("TypeFloat4")   = TypeFloat4;
+    scope().attr("TypeRational") = TypeRational;
 
 }
 

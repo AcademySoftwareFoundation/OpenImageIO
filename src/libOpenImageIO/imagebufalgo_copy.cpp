@@ -161,7 +161,7 @@ ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
         ImageSpec newspec = src.spec();
         set_roi (newspec, roi);
         newspec.nchannels = roi.chend;
-        if (convert != TypeDesc::UNKNOWN)
+        if (convert != TypeUnknown)
             newspec.set_format (convert);
         dst.reset (newspec);
     }
@@ -833,7 +833,7 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
     // make it unconditinally float.
     if (! dst.pixels_valid()) {
         ImageSpec dstspec = A.spec();
-        dstspec.set_format (TypeDesc::TypeFloat);
+        dstspec.set_format (TypeFloat);
         // Append the channel descriptions
         dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
         for (int c = 0;  c < B.spec().nchannels;  ++c) {

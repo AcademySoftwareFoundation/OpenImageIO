@@ -692,11 +692,11 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_PIXAR_WRAPMODES, *(char**)data);
         return true;
     }
-    if (Strutil::iequals(name, "worldtocamera") && type == TypeDesc::TypeMatrix) {
+    if (Strutil::iequals(name, "worldtocamera") && type == TypeMatrix) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, data);
         return true;
     }
-    if (Strutil::iequals(name, "worldtoscreen") && type == TypeDesc::TypeMatrix) {
+    if (Strutil::iequals(name, "worldtoscreen") && type == TypeMatrix) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, data);
         return true;
     }
