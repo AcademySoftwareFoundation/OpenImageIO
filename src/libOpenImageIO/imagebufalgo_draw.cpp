@@ -644,20 +644,27 @@ resolve_font (int fontsize, string_view font_, std::string &result)
         if (systemRoot.size())
             font_search_dirs.push_back (std::string(systemRoot) + "/Fonts");
         font_search_dirs.emplace_back ("/usr/share/fonts");
+        font_search_dirs.emplace_back ("/usr/share/fonts/OpenImageIO");
         font_search_dirs.emplace_back ("/Library/Fonts");
+        font_search_dirs.emplace_back ("/Library/Fonts/OpenImageIO");
         font_search_dirs.emplace_back ("C:/Windows/Fonts");
+        font_search_dirs.emplace_back ("C:/Windows/Fonts/OpenImageIO");
         font_search_dirs.emplace_back ("/usr/local/share/fonts");
+        font_search_dirs.emplace_back ("/usr/local/share/fonts/OpenImageIO");
         font_search_dirs.emplace_back ("/opt/local/share/fonts");
+        font_search_dirs.emplace_back ("/opt/local/share/fonts/OpenImageIO");
         // Try $OPENIMAGEIOHOME/fonts
         string_view oiiohomedir = Sysutil::getenv ("OPENIMAGEIOHOME");
         if (oiiohomedir.size())
             font_search_dirs.push_back (std::string(oiiohomedir) + "/fonts");
+            font_search_dirs.push_back (std::string(oiiohomedir) + "/share/fonts/OpenImageIO");
         // Try ../fonts relative to where this executing binary came from
         std::string this_program = OIIO::Sysutil::this_program_path ();
         if (this_program.size()) {
             std::string path = Filesystem::parent_path (this_program);
             path = Filesystem::parent_path (path);
             font_search_dirs.push_back (path+"/fonts");
+            font_search_dirs.push_back (path+"/shared/fonts/OpenImageIO");
         }
     }
 

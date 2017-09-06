@@ -6,10 +6,10 @@ set (public_docs
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
 )
 
-if (INSTALL_DOCS)
-    install (FILES ${public_docs} DESTINATION ${DOC_INSTALL_DIR}
-             COMPONENT documentation)
-endif ()
+install (FILES ${public_docs}
+         DESTINATION ${CMAKE_INSTALL_DOCDIR}
+         COMPONENT documentation)
+
 
 # generate man pages using txt2man and a tiny python script to munge the
 # result of "$tool --help"
@@ -37,8 +37,7 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     # force man page build before install
     add_custom_target (man_pages ALL DEPENDS ${manpage_files})
 
-    if (INSTALL_DOCS)
-        install (FILES ${manpage_files}
-                 DESTINATION ${MAN_INSTALL_DIR} COMPONENT documentation)
-    endif ()
+    install (FILES ${manpage_files}
+             DESTINATION ${CMAKE_INSTALL_MANDIR}
+             COMPONENT documentation)
 endif()

@@ -33,5 +33,4 @@ else ()
         COMPILE_FLAGS "-fPIC -msse")
 endif ()
 
-install (TARGETS txWriter
-    LIBRARY DESTINATION "${LIB_INSTALL_DIR}/nuke")
+oiio_install_targets (txWriter)
