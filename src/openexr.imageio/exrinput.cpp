@@ -89,6 +89,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/sysutil.h>
+#include "imageio_pvt.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -703,6 +704,9 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
     // EXR "name" also gets passed along as "oiio:subimagename".
     if (header->hasName())
         spec.attribute ("oiio:subimagename", header->name());
+
+    // Squash some problematic texture metadata if we suspect it's wrong
+    pvt::check_texture_metadata_sanity (spec);
 
     initialized = true;
 }

@@ -54,6 +54,7 @@
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/simd.h>
 #include "imagecache_pvt.h"
+#include "imageio_pvt.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -598,7 +599,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 void
 ImageCacheFile::init_from_spec ()
 {
-    const ImageSpec &spec (this->spec(0,0));
+    ImageSpec &spec (this->spec(0,0));
     const ParamValue *p;
 
     // FIXME -- this should really be per-subimage
@@ -676,17 +677,13 @@ ImageCacheFile::init_from_spec ()
     // FIXME -- compute Mtex, Mras
 #endif
 
+    // Squash some problematic texture metadata if we suspect it's wrong
+    pvt::check_texture_metadata_sanity (spec);
+
     // See if there's a SHA-1 hash in the image description
-    std::string fing = spec.get_string_attribute ("oiio:SHA-1");
-    if (fing.length()) {
+    string_view fing = spec.get_string_attribute ("oiio:SHA-1");
+    if (fing.length())
         m_fingerprint = ustring(fing);
-        // If it looks like something other than OIIO wrote the file, forget
-        // the fingerprint, it probably is not accurate.
-        string_view software = spec.get_string_attribute ("Software");
-        if (! Strutil::istarts_with (software, "OpenImageIO") &&
-            ! Strutil::istarts_with (software, "maketx"))
-            m_fingerprint.clear ();
-    }
 
     m_mod_time = Filesystem::last_write_time (m_filename.string());
 
