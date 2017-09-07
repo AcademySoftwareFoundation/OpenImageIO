@@ -107,7 +107,7 @@ void test_const_strided_ptr ()
     OIIO_CHECK_EQUAL (a[3], 2.0f);
 
     // All the other tests are with stride of 2 elements
-    a = strided_ptr<const float> (&A[1], 2*sizeof(A[0]));
+    a = strided_ptr<const float> (&A[1], 2);
     OIIO_CHECK_EQUAL (*a, 1.0f);
     OIIO_CHECK_EQUAL (a[0], 1.0f);
     OIIO_CHECK_EQUAL (a[1], 2.0f);
@@ -140,7 +140,7 @@ void test_strided_ptr ()
     OIIO_CHECK_EQUAL (a[3], 2.0f);
 
     // All the other tests are with stride of 2 elements
-    a = strided_ptr<float> (&A[1], 2*sizeof(A[0]));
+    a = strided_ptr<float> (&A[1], 2);
     OIIO_CHECK_EQUAL (*a, 1.0f);
     OIIO_CHECK_EQUAL (a[0], 1.0f);
     OIIO_CHECK_EQUAL (a[1], 2.0f);
