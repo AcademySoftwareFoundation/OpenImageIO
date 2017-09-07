@@ -87,7 +87,7 @@ if (NOT Boost_FIND_QUIETLY)
 endif ()
 
 if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
-  set (Boost_ADDITIONAL_VERSIONS "1.63" "1.62" "1.61" "1.60"
+  set (Boost_ADDITIONAL_VERSIONS "1.64" "1.63" "1.62" "1.61" "1.60"
                                  "1.59" "1.58" "1.57" "1.56" "1.55"
                                  "1.54" "1.53")
 endif ()
@@ -106,48 +106,6 @@ else ()
     endif ()
     find_package (Boost 1.53 REQUIRED
                   COMPONENTS ${Boost_COMPONENTS})
-
-    # Try to figure out if this boost distro has Boost::python.  If we
-    # include python in the component list above, cmake will abort if
-    # it's not found.  So we resort to checking for the boost_python
-    # library's existance to get a soft failure.
-    find_library (my_boost_python_lib boost_python
-                  PATHS ${Boost_LIBRARY_DIRS} NO_DEFAULT_PATH)
-    mark_as_advanced (my_boost_python_lib)
-    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
-        get_filename_component (my_boost_PYTHON_rel
-                                ${Boost_SYSTEM_LIBRARY_RELEASE} NAME
-                               )
-        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                my_boost_PYTHON_rel ${my_boost_PYTHON_rel}
-               )
-        find_library (my_boost_PYTHON_LIBRARY_RELEASE
-                      NAMES ${my_boost_PYTHON_rel} lib${my_boost_PYTHON_rel}
-                      HINTS ${Boost_LIBRARY_DIRS}
-                      NO_DEFAULT_PATH
-                     )
-        mark_as_advanced (my_boost_PYTHON_LIBRARY_RELEASE)
-    endif ()
-    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
-        get_filename_component (my_boost_PYTHON_dbg
-                                ${Boost_SYSTEM_LIBRARY_DEBUG} NAME
-                               )
-        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
-                my_boost_PYTHON_dbg ${my_boost_PYTHON_dbg}
-               )
-        find_library (my_boost_PYTHON_LIBRARY_DEBUG
-                      NAMES ${my_boost_PYTHON_dbg} lib${my_boost_PYTHON_dbg}
-                      HINTS ${Boost_LIBRARY_DIRS}
-                      NO_DEFAULT_PATH
-                     )
-        mark_as_advanced (my_boost_PYTHON_LIBRARY_DEBUG)
-    endif ()
-    if (my_boost_python_lib OR
-        my_boost_PYTHON_LIBRARY_RELEASE OR my_boost_PYTHON_LIBRARY_DEBUG)
-        set (boost_PYTHON_FOUND ON)
-    else ()
-        set (boost_PYTHON_FOUND OFF)
-    endif ()
 endif ()
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
@@ -162,16 +120,6 @@ if (NOT Boost_FIND_QUIETLY)
     message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
     message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
     message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-    message (STATUS "Boost python found ${boost_PYTHON_FOUND}")
-endif ()
-if (NOT boost_PYTHON_FOUND)
-    # If Boost python components were not found, turn off all python support.
-    message (STATUS "Boost python support not found -- will not build python components!")
-    if (APPLE AND USE_PYTHON)
-        message (STATUS "   If your Boost is from Macports, you need the +python26 variant to get Python support.")
-    endif ()
-    set (USE_PYTHON OFF)
-    set (PYTHONLIBS_FOUND OFF)
 endif ()
 
 include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
