@@ -51,7 +51,7 @@ ifeq ($(SP_OS), rhel7)
     endif
     export CCACHE_CPP2 ?= 1
     # Override lib64 and use SPI convention of lib
-    MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${working_dir}/dist/${platform}${variant}/lib"
+    MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${INSTALL_PREFIX}/lib"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
