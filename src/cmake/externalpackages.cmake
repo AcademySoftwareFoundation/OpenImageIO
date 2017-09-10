@@ -107,6 +107,10 @@ else ()
     find_package (Boost 1.53 REQUIRED
                   COMPONENTS ${Boost_COMPONENTS})
 
+    if (CMAKE_GENTOO_BUILD OR CMAKE_BUILD_TYPE STREQUAL Gentoo)
+        # Gentoo's patches to CMake make sure that we will always find exactly the version of Python required by Gentoo
+        find_package (Boost 1.53 COMPONENTS ${Boost_COMPONENTS} python)
+    else ()
     # Try to figure out if this boost distro has Boost::python.  If we
     # include python in the component list above, cmake will abort if
     # it's not found.  So we resort to checking for the boost_python
@@ -144,9 +148,10 @@ else ()
     endif ()
     if (my_boost_python_lib OR
         my_boost_PYTHON_LIBRARY_RELEASE OR my_boost_PYTHON_LIBRARY_DEBUG)
-        set (boost_PYTHON_FOUND ON)
+        set (Boost_PYTHON_FOUND ON)
     else ()
-        set (boost_PYTHON_FOUND OFF)
+        set (Boost_PYTHON_FOUND OFF)
+    endif ()
     endif ()
 endif ()
 
@@ -162,9 +167,9 @@ if (NOT Boost_FIND_QUIETLY)
     message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
     message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
     message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-    message (STATUS "Boost python found ${boost_PYTHON_FOUND}")
+    message (STATUS "Boost python found ${Boost_PYTHON_FOUND}")
 endif ()
-if (NOT boost_PYTHON_FOUND)
+if (NOT Boost_PYTHON_FOUND)
     # If Boost python components were not found, turn off all python support.
     message (STATUS "Boost python support not found -- will not build python components!")
     if (APPLE AND USE_PYTHON)
