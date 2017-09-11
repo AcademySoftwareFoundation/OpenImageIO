@@ -1037,24 +1037,10 @@ bool
 ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
                                   ROI roi, int nthreads)
 {
-    if (! IBAprep (roi, &dst, &src))
+    const int req = (IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_REQUIRE_ALPHA |
+                     IBAprep_NO_SUPPORT_VOLUME);
+    if (! IBAprep (roi, &dst, &src, req))
         return false;
-    const ImageSpec &dstspec (dst.spec());
-    if (dstspec.nchannels != src.nchannels()) {
-        dst.error ("channel number mismatch: %d vs. %d", 
-                   dstspec.nchannels, src.spec().nchannels);
-        return false;
-    }
-    if (dst.spec().depth > 1 || src.spec().depth > 1) {
-        dst.error ("ImageBufAlgo::fillholes_pushpull does not support volume images");
-        return false;
-    }
-    if (dstspec.alpha_channel < 0 ||
-        dstspec.alpha_channel != src.spec().alpha_channel) {
-        dst.error ("Must have alpha channels");
-        return false;
-    }
-
     // We generate a bunch of temp images to form an image pyramid.
     // These give us a place to stash them and make sure they are
     // auto-deleted when the function exits.
@@ -1098,7 +1084,7 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
 
     // Now copy the completed base layer of the pyramid back to the
     // original requested output.
-    paste (dst, dstspec.x, dstspec.y, dstspec.z, 0, *pyramid[0]);
+    paste (dst, src.spec().x, src.spec().y, src.spec().z, 0, *pyramid[0]);
 
     return true;
 }

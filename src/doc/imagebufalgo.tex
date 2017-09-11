@@ -1937,7 +1937,8 @@ Copy the specified ROI of {\cf src} to {\cf dst} and fill any
 holes (pixels where alpha $< 1$) with plausible values using a push-pull
 technique.  The {\cf src} image must have
 an alpha channel.  The dst image will end up with a copy of src, but
-will have an alpha of 1.0 everywhere, and any place where the alpha
+will have an alpha of 1.0 everywhere within {\cf roi},
+and any place where the alpha
 of src was < 1, dst will have a pixel color that is a plausible
 ``filling'' of the original alpha hole.
 
