@@ -319,7 +319,6 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     tiff:RowsPerStrip: 32
-    oiio:SHA-1: "1234abcd ConstantColor=[0.0,0,-0.0] bar"
 Reading small.tx
 small.tx             :   64 x   64, 3 channel, uint8 tiff
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1

@@ -1048,4 +1048,32 @@ ImageSpec::from_xml (const char *xml)
 }
 
 
+
+bool
+pvt::check_texture_metadata_sanity (ImageSpec &spec)
+{
+    // The oiio:ConstantColor, AverageColor, and SHA-1 attributes are
+    // strictly a maketx thing for our textures. If there's any evidence
+    // that this is not a maketx-created texture file (e.g., maybe a texture
+    // file was loaded into Photoshop, altered and saved), then these
+    // metadata are likely wrong, so just squash them.
+    string_view software = spec.get_string_attribute ("Software");
+    string_view textureformat = spec.get_string_attribute ("textureformat");
+    if (textureformat == "" || // no `textureformat` tag -- not a texture
+        spec.tile_width == 0 || // scanline file -- definitly not a texture
+        (! Strutil::istarts_with (software, "OpenImageIO") &&
+         ! Strutil::istarts_with (software, "maketx"))
+         // assume not maketx output if it doesn't say so in the software field
+        ) {
+        // invalidate these attributes that only have meaning for directly
+        // maketx-ed files. (Or `oiiotool -otex`)
+        spec.erase_attribute ("oiio::ConstantColor");
+        spec.erase_attribute ("oiio::AverageColor");
+        spec.erase_attribute ("oiio:SHA-1");
+        return true;
+    }
+    return false;
+}
+
+
 OIIO_NAMESPACE_END

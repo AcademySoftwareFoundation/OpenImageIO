@@ -45,6 +45,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include "imageio_pvt.h"
 
 #ifdef USE_BOOST_REGEX
 # include <boost/regex.hpp>
@@ -1086,6 +1087,9 @@ TIFFInput::readspec (bool read_meta)
         else
             m_spec.erase_attribute ("ImageDescription");
     }
+
+    // Squash some problematic texture metadata if we suspect it's wrong
+    pvt::check_texture_metadata_sanity (m_spec);
 
     if (m_testopenconfig)  // open-with-config debugging
         m_spec.attribute ("oiio:DebugOpenConfig!", 42);
